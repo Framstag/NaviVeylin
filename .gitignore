@@ -13,6 +13,7 @@ app/debug.keystore
 
 # Gradle build outputs
 .gradle/
+.kotlin/
 build/
 */build/
 

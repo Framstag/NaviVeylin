@@ -1,5 +1,6 @@
 # Machine-specific local properties
 local.properties
+mise.local.toml
 
 # Release signing secrets (never commit)
 app/keystore.properties

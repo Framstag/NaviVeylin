@@ -1,0 +1,70 @@
+schema: spec-driven
+
+context: |
+  Project: NaviVeylin — Android navigation app built on libosmscout
+  Tech Stack: Kotlin, Java, C++20 (NDK)
+  UI: Jetpack Compose + Material 3
+  DI: Hilt
+  Persistence: Room
+  Navigation: Jetpack Navigation Compose
+  Native: libosmscout-client via NDK/CMake + JNI
+  Build: Gradle (Kotlin DSL), AGP 8.7+, CMake 3.22+
+  Min SDK: 26, Target SDK: 36
+  ABI Targets: arm64-v8a, armeabi-v7a, x86_64
+  Android Auto: Car App API 1.7+ (deferred)
+  Distribution: APK sideloading (no Play Store)
+  External Repo: https://github.com/Framstag/libosmscout
+
+rules:
+  proposal:
+    - Each capability must be concrete enough to derive specs from — avoid vague names
+    - List affected files and modules explicitly in the Impact section
+    - Reference Android-specific components (modules, manifests, resources)
+
+  specs:
+    - Write acceptance criteria in WHEN/THEN format
+    - Every requirement must have at least one scenario
+    - Scenarios must be testable — no "system should work" scenarios
+    - Specs define the contract, not the implementation — avoid prescribing how
+    - Reference Android framework APIs where relevant (e.g., LocationManager, CarAppService)
+
+  design:
+    - Document at least 2 alternatives per decision with rationale for the chosen one
+    - Reference specific files, modules, and Gradle configurations that will change
+    - Include risk assessment per approach
+    - Cover Android-specific concerns: threading (main vs background), lifecycle, configuration changes
+
+  tasks:
+    - Each task must reference its parent spec
+    - Always include tasks that verify the build compiles without errors
+    - Always include tasks that verify existing tests still pass
+    - Always include explicit tasks for creating new unit tests when new code is added (unless testing is not feasible)
+    - Order tasks by dependency — what must be done first
+    - Each task should be completable in one session — if too big, split it
+    - Group related tasks under numbered headings
+    - Include Gradle sync or build verification steps for Android-specific tasks
+
+  apply:
+    - Before marking implementation complete, run the build and verify it compiles without errors
+    - Before marking implementation complete, verify tests exist for all new/modified code and they pass
+    - If build or tests fail, do NOT mark tasks complete — report failures and fix them first
+    - Make sure that build has no warnings
+    - Check all new/modified code against every document in guidelines/ — all conventions and rules defined there must be followed
+    - Update README or documentation if behavior changes
+    - Verify no regressions in unrelated areas
+    - For native C++ changes, verify all target ABIs compile
+
+validation:
+  - All spec scenarios must be traceable to a task
+  - All tasks must be traceable to a spec requirement
+  - No task references a deleted or renamed spec
+
+review:
+  - Build compiles without errors for all target ABIs
+  - All existing tests still pass
+  - New unit tests exist for all new or modified code (unless testing is not feasible)
+  - Every new public API has documentation (Kotlin docs or KDoc)
+  - No hardcoded paths, API keys, or magic numbers
+  - Error messages are user-actionable
+  - Native/JNI code follows Android NDK conventions (no leaks, proper JNI exception handling)
+  - Compose previews exist for new UI components

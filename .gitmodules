@@ -1,0 +1,3 @@
+[submodule "app/src/main/cpp/libosmscout"]
+	path = app/src/main/cpp/libosmscout
+	url = https://github.com/Framstag/libosmscout

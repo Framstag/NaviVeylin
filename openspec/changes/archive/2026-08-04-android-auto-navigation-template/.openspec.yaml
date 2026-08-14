@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-08-04
+goal: "Phase 1: Surface existing navigation state (next turn, ETA, speed, lane
+  guidance) to Android Auto via NavigationTemplate"

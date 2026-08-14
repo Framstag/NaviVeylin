@@ -1,0 +1,10 @@
+[env]
+OLLAMA_API_KEY="ffee1522120743979dda39b03e956989.CoG3kwGbXzED48moX0Y0K3Is"
+OLLAMA_CLOUD_API_KEY="ffee1522120743979dda39b03e956989.CoG3kwGbXzED48moX0Y0K3Is"
+OLLAMA_HOST_CLOUD="https://ollama.com"
+
+[tools]
+# For KI tools
+node = "22"
+pi = "latest"
+"npm:@fission-ai/openspec" = "latest"

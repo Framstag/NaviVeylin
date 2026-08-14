@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="grid_line">#1A000000</color>
+    <color name="grid_line_dark">#1AFFFFFF</color>
+    <color name="map_placeholder_text">#66000000</color>
+    <color name="map_placeholder_text_dark">#66FFFFFF</color>
+    <color name="naviveylin_primary">#1A73E8</color>
+</resources>

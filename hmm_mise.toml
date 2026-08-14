@@ -1,0 +1,108 @@
+# mise.toml
+#:schema https://mise.jdx.dev/schema/mise.json
+
+min_version = "2025.7.0"
+
+[tools]
+java = "temurin-21"
+node = "22.17.1"
+android-sdk = "latest"
+
+[env]
+ANDROID_SDK_ROOT = "{{ config_root }}/.android-sdk"
+ANDROID_HOME = "{{ env.ANDROID_SDK_ROOT }}"
+GRADLE_OPTS = "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=true"
+_.path = [
+  "{{ env.ANDROID_SDK_ROOT }}/cmdline-tools/latest/bin",
+  "{{ env.ANDROID_SDK_ROOT }}/platform-tools",
+  "{{ env.ANDROID_SDK_ROOT }}/emulator",
+  "./node_modules/.bin",
+]
+
+[tasks."android:doctor"]
+description = "Show Java, Gradle, Android SDK, NDK, and CMake info"
+run = """
+set -euo pipefail
+echo "JAVA_HOME=${JAVA_HOME:-unset}"
+java -version
+echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+command -v sdkmanager
+command -v adb || true
+test -d "$ANDROID_SDK_ROOT/ndk/27.0.12077973" && echo "NDK OK: $ANDROID_SDK_ROOT/ndk/27.0.12077973" || echo "NDK missing"
+test -d "$ANDROID_SDK_ROOT/cmake/3.31.6" && echo "CMake OK: $ANDROID_SDK_ROOT/cmake/3.31.6" || echo "CMake missing"
+./gradlew --version
+"""
+
+[tasks."android:licenses"]
+description = "Accept Android SDK licenses"
+run = """
+set -euo pipefail
+yes | sdkmanager --licenses
+"""
+
+[tasks."android:packages"]
+description = "Install core Android SDK packages"
+run = """
+set -euo pipefail
+mkdir -p .android
+cat > .android/sdk-packages.txt <<'EOF'
+platform-tools
+platforms;android-34
+build-tools;34.0.0
+cmdline-tools;latest
+emulator
+EOF
+sdkmanager --package_file=.android/sdk-packages.txt
+"""
+
+[tasks."android:packages-native"]
+description = "Install native Android packages"
+run = """
+set -euo pipefail
+mkdir -p .android
+cat > .android/sdk-native-packages.txt <<'EOF'
+ndk;27.0.12077973
+cmake;3.31.6
+EOF
+sdkmanager --package_file=.android/sdk-native-packages.txt
+"""
+
+[tasks."android:setup"]
+description = "Full Android machine bootstrap including native deps"
+depends = ["android:licenses", "android:packages", "android:packages-native"]
+
+[tasks."android:build:debug"]
+description = "Build debug APK"
+run = "./gradlew --no-daemon assembleDebug"
+sources = [
+  "build.gradle",
+  "build.gradle.kts",
+  "settings.gradle",
+  "settings.gradle.kts",
+  "gradle.properties",
+  "app/src/**/*",
+]
+outputs = [
+  "app/build/outputs/apk/debug/*.apk",
+]
+
+[tasks."android:build:native-debug"]
+description = "Build debug APK with native code"
+run = "./gradlew --no-daemon assembleDebug"
+
+[tasks."android:test:unit"]
+description = "Run unit tests"
+run = "./gradlew --no-daemon testDebugUnitTest"
+
+[tasks."android:lint"]
+description = "Run Android lint"
+run = "./gradlew --no-daemon lint"
+
+[tasks."android:ci"]
+description = "CI entrypoint for Android + native code"
+depends = [
+  "android:doctor",
+  "android:build:native-debug",
+  "android:test:unit",
+  "android:lint",
+]

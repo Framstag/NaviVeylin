@@ -1,0 +1,5 @@
+# Android SDK location
+sdk.dir=/path/to/Android/Sdk
+
+# Java 17+ (required by AGP 8.7+)
+org.gradle.java.home=/path/to/jdk-17

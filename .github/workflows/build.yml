@@ -79,6 +79,14 @@ jobs:
             "ndk;27.0.12077973" \
             "cmake;3.22.1"
 
+      # Host build tools required by vcpkg host deps: gperf:x64-linux (used by
+      # fontconfig) builds via autotools. Without these, fontconfig → cairo →
+      # pango all fail and the .pc gate reports them missing.
+      - name: Install host build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf autoconf-archive automake libtool
+
       # ── vcpkg ────────────────────────────────────────────────
       - name: Compute vcpkg cache key
         id: vcpkg-key

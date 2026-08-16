@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provides a visual compass widget on the map screen that shows north direction, indicates GPS fix quality via a colored ring, and lets users toggle map orientation mode or re-center on their location.
+Provides a visual compass widget on the map screen that shows north direction, indicates GPS fix quality via the button fill color, and lets users toggle map orientation mode or re-center on their location.
 ## Requirements
 ### Requirement: Compass shows north direction
 
@@ -24,27 +24,24 @@ The system SHALL display an animated compass widget that rotates to indicate the
 - **WHEN** the map rotation angle changes
 - **THEN** the compass needle SHALL animate smoothly to the new angle over a short duration (≤300ms)
 
-### Requirement: GPS fix status ring
+### Requirement: GPS fix status fill color
 
-The system SHALL display a colored ring around the compass that indicates GPS fix quality using light colors. The ring SHALL have a minimum stroke width of 3dp.
+The system SHALL display GPS fix quality using the compass button's fill (background) color with light colors. The fill color SHALL be clearly visible at a glance.
 
-#### Scenario: No GPS fix shows light red ring
+#### Scenario: No GPS fix shows light red fill
 
 - **WHEN** no GPS location fix is available
-- **THEN** the compass ring SHALL display a light red color
-- **AND** the ring SHALL be at least 3dp thick
+- **THEN** the compass button fill SHALL display a light red color
 
-#### Scenario: Poor GPS accuracy shows light yellow ring
+#### Scenario: Poor GPS accuracy shows light yellow fill
 
 - **WHEN** a GPS fix is available with accuracy worse than 50 meters
-- **THEN** the compass ring SHALL display a light yellow color
-- **AND** the ring SHALL be at least 3dp thick
+- **THEN** the compass button fill SHALL display a light yellow color
 
-#### Scenario: Good GPS fix shows light green ring
+#### Scenario: Good GPS fix shows light green fill
 
 - **WHEN** a GPS fix is available with accuracy ≤50 meters
-- **THEN** the compass ring SHALL display a light green color
-- **AND** the ring SHALL be at least 3dp thick
+- **THEN** the compass button fill SHALL display a light green color
 
 ### Requirement: Short press re-centers on location
 
@@ -105,27 +102,26 @@ The system SHALL position the compass button in the top-right overlay column, be
 
 ### Requirement: Compass visually differentiates orientation modes
 
-The compass widget SHALL have a visually distinct appearance between "always north" (north-up) and "follow direction" modes, so the user can tell at a glance which mode is active.
+The compass needle SHALL have a visually distinct appearance between "always north" (north-up) and "follow direction" modes, so the user can tell at a glance which mode is active. The button body color reflects GPS fix quality (see "GPS fix status fill color") and is not mode-dependent.
 
 #### Scenario: Always north mode shows fixed north indicator
 
 - **WHEN** the orientation mode is "always north" (north-up)
 - **THEN** the compass SHALL display a prominent north indicator (e.g., a red "N" or arrow)
-- **AND** the compass body SHALL use a neutral, static appearance
 
 #### Scenario: Follow direction mode shows directional indicator
 
 - **WHEN** the orientation mode is "follow direction"
-- **THEN** the compass SHALL display a directional indicator that visually conveys the map is rotating to match the driving direction
-- **AND** the compass body SHALL use a distinct color or style compared to north-up mode
+- **THEN** the compass SHALL display a compass-needle-like triangle pointing in the travel direction
+- **AND** the triangle's base line SHALL be smaller than its height
 
-### Requirement: Thicker GPS fix status ring
+### Requirement: Compass button matches overlay button sizing
 
-The GPS fix status ring around the compass SHALL be thicker than the current implementation for better visibility.
+The compass button SHALL be the same size as the other map overlay buttons (menu, search, location options) and SHALL use the same shadow as those buttons. The follow-direction triangle needle SHALL be sized to about 70% of the button.
 
-#### Scenario: Ring is visibly thicker
+#### Scenario: Compass button same size as other overlay buttons
 
-- **WHEN** the compass is displayed
-- **THEN** the GPS fix status ring SHALL have a stroke width of at least 3dp
-- **AND** the ring SHALL be clearly visible at a glance
-
+- **WHEN** the map screen is displayed
+- **THEN** the compass button SHALL match the size of the other overlay buttons
+- **AND** the compass button SHALL use the same shadow as the other overlay buttons
+- **AND** the follow-direction triangle SHALL be sized to about 70% of the button

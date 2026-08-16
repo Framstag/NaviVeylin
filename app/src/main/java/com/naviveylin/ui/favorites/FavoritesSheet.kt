@@ -1,5 +1,6 @@
 package com.naviveylin.ui.favorites
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -108,6 +109,16 @@ fun FavoritesSheet(
     val groupDetailListState = remember { androidx.compose.foundation.lazy.LazyListState() }
 
     val isDetailView = state.selectedGroup != null
+
+    // System back: from a group detail sub-screen return to the main grid;
+    // on the main grid close the sheet. Dialogs inside the sheet handle their
+    // own back via onDismissRequest (registered later, so they win).
+    BackHandler(enabled = isDetailView) {
+        viewModel.selectGroup(null)
+    }
+    BackHandler(enabled = !isDetailView) {
+        onDismiss()
+    }
 
     Scaffold(
         topBar = {

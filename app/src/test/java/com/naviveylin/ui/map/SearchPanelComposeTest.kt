@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.framstag.libosmscout.client.LocationEntry
 import org.junit.Rule
 import org.junit.Test
@@ -42,6 +43,7 @@ class SearchPanelComposeTest {
                 onResultSelected = {},
                 onSelectCurrentLocation = {},
                 onSelectFavorite = {},
+                onSelectFromHistory = {},
                 onDismiss = {}
             )
         }
@@ -89,6 +91,7 @@ class SearchPanelComposeTest {
                 onResultSelected = {},
                 onSelectCurrentLocation = {},
                 onSelectFavorite = {},
+                onSelectFromHistory = {},
                 onDismiss = {}
             )
         }
@@ -97,5 +100,48 @@ class SearchPanelComposeTest {
         centerLat = 51.5406
         composeRule.waitForIdle()
         composeRule.onNodeWithText("2.0 km").assertIsDisplayed()
+    }
+
+    @Test
+    fun historyEntryVisibleOnEmptyQuery() {
+        launchPanel(adminRegionName = null)
+        composeRule.onNodeWithText("Select from history").assertIsDisplayed()
+    }
+
+    @Test
+    fun historyEntryHiddenWhileTyping() {
+        launchPanel(adminRegionName = null, query = "Dort")
+        composeRule.onNodeWithText("Select from history").assertDoesNotExist()
+    }
+
+    @Test
+    fun historyEntryRestoredOnClear() {
+        var query by mutableStateOf("")
+        composeRule.setContent {
+            SearchPanel(
+                query = query,
+                results = emptyList(),
+                isSearching = false,
+                gpsAvailable = true,
+                adminRegionName = null,
+                centerLat = 51.5136,
+                centerLon = 7.4653,
+                onQueryChanged = { query = it },
+                onResultSelected = {},
+                onSelectCurrentLocation = {},
+                onSelectFavorite = {},
+                onSelectFromHistory = {},
+                onDismiss = {}
+            )
+        }
+        composeRule.onNodeWithText("Select from history").assertIsDisplayed()
+        // Typing hides the entry.
+        query = "Dort"
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Select from history").assertDoesNotExist()
+        // Clearing restores it immediately.
+        query = ""
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Select from history").assertIsDisplayed()
     }
 }

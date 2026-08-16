@@ -37,9 +37,7 @@ import kotlin.math.tan
 class MapRenderer(
     private val client: OSMScoutClient,
     private val dpi: Double,
-    private val scope: CoroutineScope,
-    /** Minimum interval between GPS-triggered full re-renders (ms); 0 disables. */
-    private val gpsRenderMinIntervalMs: Long = 1000L
+    private val scope: CoroutineScope
 ) {
     private val panDebounceMs = 50L
     private val zoomDebounceMs = 200L
@@ -71,19 +69,14 @@ class MapRenderer(
     @Volatile private var routeDestLat = Double.NaN
     @Volatile private var routeDestLon = Double.NaN
 
-    // ---- GPS marker data ----
+    // ---- GPS marker state (overlay input, snapshotted per render job) ----
+    // Storage only: never drawn natively, never triggers renders. The marker
+    // rides with each emitted frame so the overlay stays on the road of the
+    // displayed bitmap (no lead/jump while frames lag the live fix).
     @Volatile private var gpsMarkerLat = Double.NaN
     @Volatile private var gpsMarkerLon = Double.NaN
     @Volatile private var gpsMarkerBearing = Double.NaN
     @Volatile private var gpsMarkerAccuracy = 0.0
-    @Volatile private var gpsMarkerVisible = false
-    // Last rendered marker position (for change detection)
-    private var lastMarkerLat = Double.NaN
-    private var lastMarkerLon = Double.NaN
-    private var lastMarkerVisible = false
-    // Throttle GPS-triggered full re-renders so GPS ticks cannot starve
-    // user-initiated zoom/pan renders (each GPS render is a full JNI render).
-    private var lastGpsRenderMs = 0L
 
     // ---- Double buffers ----
     private val bufferLock = ReentrantLock()
@@ -107,9 +100,7 @@ class MapRenderer(
     private val epoch = AtomicLong(0)
     private val logCounter = AtomicInteger(0)
 
-    // ---- Front buffer exposed to UI ----
-    private val _frontBufferFlow = MutableStateFlow<Bitmap?>(null)
-    val frontBufferFlow: StateFlow<Bitmap?> = _frontBufferFlow.asStateFlow()
+    // ---- Frame emitted to UI (atomic: bitmap + producing viewport + marker snapshot) ----
 
     /** Viewport state used for the currently visible map image (matches JavaScout current*). */
     data class RenderViewport(
@@ -119,18 +110,33 @@ class MapRenderer(
         val angle: Double
     )
 
-    /** Snapshot of the GPS marker state (for tests and diagnostics). */
-    data class GpsMarkerState(
+    /** Marker state carried by the most recently emitted front buffer frame. */
+    data class MarkerSnapshot(
         val lat: Double,
         val lon: Double,
         val bearing: Double,
-        val accuracy: Double,
-        val visible: Boolean
+        val accuracy: Double
+    ) {
+        val visible: Boolean get() = !lat.isNaN() && !lon.isNaN()
+    }
+
+    /** One atomic emission per rendered frame — bitmap, the viewport that produced it,
+     *  and the marker state that rode with it. The overlay consumes all three together,
+     *  so it can never combine state from different frames. */
+    data class FrameState(
+        val bitmap: Bitmap?,
+        val viewport: RenderViewport,
+        val marker: MarkerSnapshot
     )
 
-    /** Viewport of the bitmap currently shown on screen. Marker overlay must use this. */
-    private val _frontBufferViewportFlow = MutableStateFlow(RenderViewport(currentLat, currentLon, currentMag, currentAngle))
-    val frontBufferViewportFlow: StateFlow<RenderViewport> = _frontBufferViewportFlow.asStateFlow()
+    private val _frameFlow = MutableStateFlow(
+        FrameState(
+            null,
+            RenderViewport(currentLat, currentLon, currentMag, currentAngle),
+            MarkerSnapshot(Double.NaN, Double.NaN, Double.NaN, 0.0)
+        )
+    )
+    val frameFlow: StateFlow<FrameState> = _frameFlow.asStateFlow()
 
     private val _currentViewportFlow = MutableStateFlow(RenderViewport(currentLat, currentLon, currentMag, currentAngle))
     val currentViewportFlow: StateFlow<RenderViewport> = _currentViewportFlow.asStateFlow()
@@ -161,7 +167,6 @@ class MapRenderer(
         val gpsMarkerLon: Double,
         val gpsMarkerBearing: Double,
         val gpsMarkerAccuracy: Double,
-        val gpsMarkerVisible: Boolean,
         val width: Int,
         val height: Int,
         val jobEpoch: Long,
@@ -180,7 +185,7 @@ class MapRenderer(
         val lat: Double, val lon: Double, val mag: Int, val angle: Double,
         val forceFullRender: Boolean,
         val markerLat: Double, val markerLon: Double,
-        val markerBearing: Double, val markerAccuracy: Double, val markerVisible: Boolean
+        val markerBearing: Double, val markerAccuracy: Double
     )
 
     // ---- Channels (coroutine-safe, non-blocking) ----
@@ -240,10 +245,6 @@ class MapRenderer(
 
     private fun emitCurrentViewport() {
         _currentViewportFlow.value = RenderViewport(currentLat, currentLon, currentMag, currentAngle)
-    }
-
-    private fun emitFrontBufferViewport() {
-        _frontBufferViewportFlow.value = RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle)
     }
 
     fun setRoute(
@@ -317,43 +318,36 @@ class MapRenderer(
             currentLat, currentLon, currentMag, currentAngle, forceFullRender = true)
     }
 
-    fun setGpsMarker(lat: Double, lon: Double, bearing: Double, accuracy: Double): Boolean {
-        if (lat.isNaN() || lon.isNaN()) {
-            gpsMarkerVisible = false
-        } else {
-            gpsMarkerLat = lat
-            gpsMarkerLon = lon
-            gpsMarkerBearing = bearing
-            gpsMarkerAccuracy = accuracy
-            gpsMarkerVisible = true
+    /**
+     * Record the marker state for the next render job. Storage only — the marker
+     * is drawn by the Compose overlay from the frame snapshot, never natively.
+     */
+    fun setGpsMarkerState(lat: Double, lon: Double, bearing: Double, accuracy: Double) {
+        gpsMarkerLat = lat
+        gpsMarkerLon = lon
+        gpsMarkerBearing = bearing
+        gpsMarkerAccuracy = accuracy
+    }
+
+    /** Clear the marker; the next emitted frame carries no marker. */
+    fun clearGpsMarkerState() {
+        gpsMarkerLat = Double.NaN
+        gpsMarkerLon = Double.NaN
+        gpsMarkerBearing = Double.NaN
+        gpsMarkerAccuracy = 0.0
+        bufferLock.withLock {
+            _frameFlow.value = FrameState(
+                frontBuffer?.copy(Bitmap.Config.ARGB_8888, true),
+                RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
+                MarkerSnapshot(Double.NaN, Double.NaN, Double.NaN, 0.0)
+            )
         }
-        // Trigger re-render so the marker appears/moves even without follow mode.
-        // Use distance threshold to avoid re-rendering on every GPS tick.
-        val dist = haversine(lastMarkerLat, lastMarkerLon, lat, lon)
-        val now = System.currentTimeMillis()
-        val throttled = gpsRenderMinIntervalMs > 0 && now - lastGpsRenderMs < gpsRenderMinIntervalMs
-        val triggered = (dist > 5.0 || gpsMarkerVisible != lastMarkerVisible) && !throttled
-        Log.d(TAG, "setGpsMarker lat=${"%.6f".format(lat)} lon=${"%.6f".format(lon)} " +
-                "dist=${"%.1f".format(dist)} currentCenter=${"%.6f".format(currentLat)},${"%.6f".format(currentLon)} " +
-                "triggered=$triggered")
-        if (triggered) {
-            lastMarkerLat = lat
-            lastMarkerLon = lon
-            lastMarkerVisible = gpsMarkerVisible
-            lastGpsRenderMs = now
-            // A pure GPS marker move does not need a forced full render; the debounced
-            // render (possibly served by sub-region blit) will redraw it at the new
-            // coordinates. Follow-mode callers already updated the viewport first.
-            submitDebounced(currentLat, currentLon, currentMag, currentAngle,
-                currentLat, currentLon, currentMag, currentAngle, forceFullRender = false)
-        }
-        return triggered
     }
 
     /**
      * Update the renderer's target viewport without submitting a render. Use this
-     * before [setGpsMarker] in follow mode so the GPS-triggered render is centered
-     * on the new position, not the previous frame's center.
+     * in follow mode so the next render is centered on the new position, not the
+     * previous frame's center.
      */
     fun prepareViewport(lat: Double, lon: Double, mag: Int, angle: Double) {
         currentLat = lat
@@ -362,27 +356,6 @@ class MapRenderer(
         currentAngle = normalizeAngle(angle)
         emitCurrentViewport()
         Log.d(TAG, "prepareViewport lat=${"%.6f".format(lat)} lon=${"%.6f".format(lon)} mag=$mag angle=${Math.toDegrees(currentAngle)}")
-    }
-
-    private fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        if (lat1.isNaN() || lon1.isNaN() || lat2.isNaN() || lon2.isNaN()) return Double.POSITIVE_INFINITY
-        val R = 6371000.0
-        val dlat = Math.toRadians(lat2 - lat1)
-        val dlon = Math.toRadians(lon2 - lon1)
-        val a = Math.sin(dlat / 2) * Math.sin(dlat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                Math.sin(dlon / 2) * Math.sin(dlon / 2)
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    }
-
-    fun clearGpsMarker() {
-        gpsMarkerVisible = false
-        lastMarkerLat = Double.NaN
-        lastMarkerLon = Double.NaN
-        lastMarkerVisible = false
-        epoch.incrementAndGet()
-        submitDebounced(currentLat, currentLon, currentMag, currentAngle,
-            currentLat, currentLon, currentMag, currentAngle, forceFullRender = true)
     }
 
     /**
@@ -440,7 +413,7 @@ class MapRenderer(
         }
 
         pendingRender = PendingRender(lat, lon, mag, angle, forceFullRender,
-            gpsMarkerLat, gpsMarkerLon, gpsMarkerBearing, gpsMarkerAccuracy, gpsMarkerVisible)
+            gpsMarkerLat, gpsMarkerLon, gpsMarkerBearing, gpsMarkerAccuracy)
         debounceSignal.trySend(Unit)
 
         if (debounceJob == null || debounceJob!!.isCompleted) {
@@ -475,8 +448,7 @@ class MapRenderer(
                 pendingRender = null
                 Log.d(TAG, "debounce enqueue mag=" + finalReq.mag + " (zoom=" + isZoom + ", timeout=" + timeout + ")")
                 enqueueRenderJob(finalReq.lat, finalReq.lon, finalReq.mag, finalReq.angle, finalReq.forceFullRender,
-                    finalReq.markerLat, finalReq.markerLon, finalReq.markerBearing,
-                    finalReq.markerAccuracy, finalReq.markerVisible)
+                    finalReq.markerLat, finalReq.markerLon, finalReq.markerBearing, finalReq.markerAccuracy)
             }
         }
     }
@@ -485,8 +457,7 @@ class MapRenderer(
 
     private fun enqueueRenderJob(
         lat: Double, lon: Double, mag: Int, angle: Double, forceFullRender: Boolean,
-        markerLat: Double, markerLon: Double, markerBearing: Double,
-        markerAccuracy: Double, markerVisible: Boolean
+        markerLat: Double, markerLon: Double, markerBearing: Double, markerAccuracy: Double
     ) {
         if (screenWidth <= 0 || screenHeight <= 0) {
             Log.w(TAG, "enqueueRenderJob skipped: screen " + screenWidth + "x" + screenHeight)
@@ -504,7 +475,7 @@ class MapRenderer(
             routeLats, routeLons,
             routeStartLat, routeStartLon,
             routeDestLat, routeDestLon,
-            markerLat, markerLon, markerBearing, markerAccuracy, markerVisible,
+            markerLat, markerLon, markerBearing, markerAccuracy,
             renderW, renderH, jobEpoch, System.currentTimeMillis())
 
         renderQueue.trySend(job)
@@ -611,22 +582,28 @@ class MapRenderer(
                             " (" + renderMs + "ms, " + tileSizePx + "x" + tileSizePx + ")")
                 }
                 val (tLat, tLon) = tileTopLeft(x, y, n)
-                val (px, py) = if (rotated) vp.geoToScreenRotated(tLat, tLon) else vp.geoToScreen(tLat, tLon)
                 if (rotated) {
-                    // Tiles are rendered north-up; rotate each around its own
-                    // top-left corner so the composed view matches the projection.
-                    // This is a fast live preview during the rotation gesture; the
-                    // gesture-end render forces the full native path so labels are
-                    // drawn in the correct direction.
+                    // Tiles are rendered north-up. Compose the rotated view by placing
+                    // each tile at its north-up position and rotating the whole canvas
+                    // about the VIEWPORT CENTER — this reproduces the projection exactly.
+                    // Rotating each tile around its own corner instead shifts content by
+                    // up to ~d*θ for tiles far from the center (d = distance from center,
+                    // θ = rotation), which breaks overlay alignment: the Compose marker
+                    // overlay projects about the center, so the map and the marker would
+                    // disagree by that same error.
+                    val (nux, nuy) = vp.geoToScreen(tLat, tLon)
                     canvas.save()
-                    canvas.rotate(rotationDegrees, px.toFloat(), py.toFloat())
-                    canvas.drawBitmap(tile, px.toFloat(), py.toFloat(), null)
+                    canvas.rotate(rotationDegrees, W / 2f, H / 2f)
+                    canvas.drawBitmap(tile, nux.toFloat(), nuy.toFloat(), null)
                     canvas.restore()
+                    Log.d(TAG, "tile copied z=" + job.mag + " x=" + x + " y=" + y +
+                            " at (" + nux.toInt() + "," + nuy.toInt() + ") rot=" + rotationDegrees.toInt())
                 } else {
+                    val (px, py) = vp.geoToScreen(tLat, tLon)
                     canvas.drawBitmap(tile, px.toFloat(), py.toFloat(), null)
+                    Log.d(TAG, "tile copied z=" + job.mag + " x=" + x + " y=" + y +
+                            " at (" + px.toInt() + "," + py.toInt() + ")")
                 }
-                Log.d(TAG, "tile copied z=" + job.mag + " x=" + x + " y=" + y +
-                        " at (" + px.toInt() + "," + py.toInt() + ")")
                 renderedAny = true
             }
         }
@@ -664,29 +641,6 @@ class MapRenderer(
         val startMs = System.currentTimeMillis()
         Log.d(TAG, "executeRender start mag=" + job.mag + " epoch=" + job.jobEpoch + " curEpoch=" + epoch.get() +
                 " " + job.width + "x" + job.height)
-
-        // Push the marker for this frame into the native client before rendering.
-        // The marker is then drawn on the same Cairo surface with the same projection.
-        client.setGpsMarker(
-            if (job.gpsMarkerVisible) job.gpsMarkerLat else Double.NaN,
-            if (job.gpsMarkerVisible) job.gpsMarkerLon else Double.NaN,
-            if (job.gpsMarkerVisible && job.gpsMarkerBearing >= 0.0) job.gpsMarkerBearing else -1.0,
-            if (job.gpsMarkerVisible && job.gpsMarkerAccuracy > 0.0) job.gpsMarkerAccuracy else -1.0
-        )
-
-        // Marker rendering log: expected screen position of the marker in the
-        // screen-sized viewport (same projection the native renderer uses).
-        // offset=(0,0) means the marker is at the map center.
-        if (job.gpsMarkerVisible) {
-            val (mx, my) = ProjectionUtils.geoToScreen(
-                job.gpsMarkerLat, job.gpsMarkerLon,
-                screenWidth, screenHeight, job.mag, job.lat, job.lon, dpi
-            )
-            Log.d(TAG, "marker screen=(" + "%.1f".format(mx) + "," + "%.1f".format(my) + ") " +
-                    "center=(" + screenWidth / 2.0 + "," + screenHeight / 2.0 + ") " +
-                    "offset=(" + "%.1f".format(mx - screenWidth / 2.0) + "," +
-                    "%.1f".format(my - screenHeight / 2.0) + ")")
-        }
 
         // Tile path serves north-up views and serves as a fast live preview
         // during the rotation gesture. A forced full render (gesture end) uses
@@ -761,10 +715,12 @@ class MapRenderer(
                 frontBufferLat = job.lat; frontBufferLon = job.lon
                 frontBufferMag = job.mag; frontBufferAngle = normalizeAngle(job.angle)
                 renderedLat = job.lat; renderedLon = job.lon; renderedMag = job.mag
-                emitFrontBufferViewport()
+                _frameFlow.value = FrameState(
+                    frontBuffer?.copy(Bitmap.Config.ARGB_8888, true),
+                    RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
+                    MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy)
+                )
             }
-            _frontBufferFlow.value = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-            bitmap.recycle()
             Log.d(TAG, "executeRender: front buffer emitted (tiles) mag=" + job.mag + " (" + elapsed + "ms)")
         } else {
             // Rotated/full render path: swap into the double buffer, then extract
@@ -791,13 +747,16 @@ class MapRenderer(
                 frontBufferLat = job.lat; frontBufferLon = job.lon
                 frontBufferMag = job.mag; frontBufferAngle = normalizeAngle(job.angle)
                 renderedLat = job.lat; renderedLon = job.lon; renderedMag = job.mag
-                emitFrontBufferViewport()
             }
 
             if (completionEpoch == epoch.get() && job.mag == frontBufferMag) {
                 bufferLock.withLock {
                     val fb = frontBuffer ?: return@withLock
-                    _frontBufferFlow.value = extractCenterRegion(fb)
+                    _frameFlow.value = FrameState(
+                        extractCenterRegion(fb),
+                        RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
+                        MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy)
+                    )
                 }
                 Log.d(TAG, "executeRender: front buffer emitted mag=" + job.mag + " (" + elapsed + "ms)")
             } else {
@@ -868,7 +827,11 @@ class MapRenderer(
                 setBitmap(null)
             }
             regionCopy.recycle()
-            _frontBufferFlow.value = result
+            _frameFlow.value = FrameState(
+                result,
+                RenderViewport(currentLat, currentLon, currentMag, frontBufferAngle),
+                MarkerSnapshot(gpsMarkerLat, gpsMarkerLon, gpsMarkerBearing, gpsMarkerAccuracy)
+            )
         }
 
         return viewLeft >= 0 && viewTop >= 0 && viewLeft + sw <= fbW && viewTop + sh <= fbH
@@ -919,14 +882,6 @@ class MapRenderer(
         // jumps). The tile path already copies before recycle.
         return region.copy(Bitmap.Config.ARGB_8888, true)
     }
-
-    @VisibleForTesting
-    internal fun getGpsMarkerState(): GpsMarkerState =
-        GpsMarkerState(gpsMarkerLat, gpsMarkerLon, gpsMarkerBearing, gpsMarkerAccuracy, gpsMarkerVisible)
-
-    @VisibleForTesting
-    internal fun haversineDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double =
-        haversine(lat1, lon1, lat2, lon2)
 
     private fun normalizeAngle(rad: Double): Double {
         var r = rad

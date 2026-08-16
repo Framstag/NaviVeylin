@@ -56,6 +56,14 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
   - SDK/NDK/Java paths read from `local.properties` automatically
 - Cairo rendering backend (not OpenGL — better quality for map rendering)
 
+### Stylesheets
+
+- The libosmscout submodule `stylesheets/` dir (`app/src/main/cpp/libosmscout/stylesheets/`) is the **single source of truth** for map style sheets
+- `app/build.gradle.kts` copies it into `build/generated/assets/stylesheets` at build time (`syncSubmoduleStylesheets` task, wired into `preBuild` and all `merge*Assets` tasks) — there is **no committed snapshot** in `app/src/main/assets/`
+- A submodule bump automatically changes the stylesheet content of the next APK; no manual sync step
+- `checkSubmoduleStylesheets` (preBuild) fails the build with an actionable message if the submodule is not initialized (fresh clone: `git submodule update --init --recursive`)
+- `AssetCopier` refreshes the on-device copy from the APK on every app start (per-file size+SHA-256 compare, deletes stale files), so existing installs get new styles after an update without clearing data
+
 ### Android Auto
 - `:auto` module exists as placeholder
 - `NaviVeylinCarAppService` stub throws `UnsupportedOperationException`
@@ -133,6 +141,15 @@ systematically. Compose UI tests for the route panel live in
 rm -rf vcpkg/buildtrees/<package>
 ./setup-vcpkg.sh
 ```
+
+### vcpkg usage pattern (CI)
+
+- **Classic mode, no manifest**: the dependency list is hardcoded in `setup-vcpkg.sh` (`DEPS=(...)`), not in a `vcpkg.json` manifest. Overlay ports (`vcpkg-overlays/`, e.g. marisa-trie) and overlay triplets are passed via `--overlay-ports`/`--overlay-triplets`.
+- **CI pins vcpkg**: `.github/workflows/build.yml` sets `VCPKG_COMMIT` to a specific commit and fetches it shallowly. Pinning keeps the binary-cache ABI hash stable — an unpinned daily clone would miss the cache every run.
+- **CI uses the binary cache**: `VCPKG_BINARY_SOURCES=files,<dir>,readwrite` stores compiled packages (~0.5–1 GB) instead of caching the full vcpkg tree (4–7 GB with buildtrees/installed). The cache key is `VCPKG_COMMIT` + hash of `setup-vcpkg.sh` + `vcpkg-overlays/**`.
+- **Adding/removing a dependency**: edit the `DEPS` list in `setup-vcpkg.sh` — the CI cache key changes automatically (script is hashed). For an unregistered port, add an overlay port under `vcpkg-overlays/`.
+- **Refreshing ports in CI**: bump `VCPKG_COMMIT` in the workflow — the cache key changes and packages rebuild.
+- **`setup-vcpkg.sh` tolerates install failures** (`|| echo`), so CI runs an explicit `.pc` verification gate after it (see `Verify vcpkg packages` step).
 
 ## Common Patterns
 

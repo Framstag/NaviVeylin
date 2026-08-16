@@ -1,6 +1,5 @@
 package com.naviveylin.ui.map
 
-import android.location.Location
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,14 +12,21 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
-import com.naviveylin.core.ProjectionUtils
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.naviveylin.core.ProjectionUtils
 
 /**
  * Compose overlay that renders the GPS location marker on top of the map.
+ *
+ * The marker is drawn per-frame on a layer above the rendered map bitmap and is
+ * NEVER baked into cached tiles, the back buffer, or the front buffer — those
+ * contain only static map content (specs: gps-location-marker, tile-cache,
+ * double-buffering). Projection uses the viewport of the displayed bitmap
+ * ([MapRenderer.RenderViewport] carried by the emitted frame), so the marker
+ * stays anchored to the map features actually on screen.
  *
  * Draws:
  * - Accuracy circle (alpha fill + border) — only when accuracy is poor
@@ -28,64 +34,80 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun LocationMarkerOverlay(
-    location: Location?,
+    lat: Double,
+    lon: Double,
+    bearing: Double,
+    accuracy: Double,
     viewport: MapRenderer.RenderViewport?,
-    screenWidthPx: Int,
-    screenHeightPx: Int,
     dpi: Double,
     modifier: Modifier = Modifier
 ) {
-    if (location == null || viewport == null) return
-    if (screenWidthPx <= 0 || screenHeightPx <= 0) return
+    if (lat.isNaN() || lon.isNaN() || viewport == null) return
+    if (dpi <= 0.0) return
 
     val density = LocalDensity.current
     val minRadiusPx = with(density) { MIN_RADIUS_DP.toPx() }
 
-    val projected = ProjectionUtils.viewport(
-        viewport.lat, viewport.lon, viewport.mag,
-        screenWidthPx, screenHeightPx, dpi, viewport.angle
-    )
-    val (sx, sy) = projected.geoToScreenRotated(location.latitude, location.longitude)
-
-    if (sx.toFloat() < -MARGIN_PX || sx.toFloat() > screenWidthPx + MARGIN_PX ||
-        sy.toFloat() < -MARGIN_PX || sy.toFloat() > screenHeightPx + MARGIN_PX
-    ) return
-
-    // Meters per pixel at the rendered magnification for the accuracy circle.
-    val scale = ProjectionUtils.computeScale(viewport.mag, screenWidthPx.toDouble(), dpi)
-    val metersPerPixel = ProjectionUtils.EARTH_RADIUS / scale.scaleGradtorad
-
-    val accuracyMeters = if (location.hasAccuracy()) location.accuracy else 0f
-    val accuracyRadiusPx = if (accuracyMeters > 0f && metersPerPixel > 0.0) {
-        (accuracyMeters / metersPerPixel).coerceAtLeast(minRadiusPx.toDouble()).toFloat()
-    } else {
-        minRadiusPx
-    }
-
-    val hasBearing = location.hasBearing() && location.bearing >= 0f
-    val rawBearing = if (hasBearing) location.bearing.toDouble() else 0.0
-    // In follow-direction mode the map angle is set to -bearing, so screenBearing is 0
-    // (arrow points up). In north-up mode the map angle is 0, so screenBearing = bearing.
-    val bearingDegrees = ProjectionUtils.screenBearing(rawBearing, viewport.angle).toFloat()
-    val trueBearing = if (hasBearing) location.bearing.toInt() else -1
-
     Canvas(modifier = modifier.fillMaxSize()) {
-        val center = Offset(sx.toFloat(), sy.toFloat())
+        val screenWidthPx = size.width.toDouble()
+        val screenHeightPx = size.height.toDouble()
+        val center = projectMarker(lat, lon, viewport, screenWidthPx, screenHeightPx, dpi)
+            ?: return@Canvas
+
+        // Meters per pixel at the rendered magnification for the accuracy circle.
+        val scale = ProjectionUtils.computeScale(viewport.mag, screenWidthPx, dpi)
+        val metersPerPixel = ProjectionUtils.EARTH_RADIUS / scale.scaleGradtorad
+
+        val accuracyRadiusPx = if (accuracy > 0f && metersPerPixel > 0.0) {
+            (accuracy / metersPerPixel).coerceAtLeast(minRadiusPx.toDouble()).toFloat()
+        } else {
+            minRadiusPx
+        }
+
+        // Bearing < 0 (unavailable or north-up orientation) draws the arrow pointing
+        // north on the map. Screen bearing = raw bearing + map rotation (same sign
+        // convention the native renderer used — do not flip).
+        val rawBearing = if (bearing >= 0.0) bearing else 0.0
+        val bearingDegrees = ProjectionUtils.screenBearing(rawBearing, viewport.angle).toFloat()
 
         if (accuracyRadiusPx >= POOR_ACCURACY_THRESHOLD_PX) {
             drawAccuracyCircle(center, accuracyRadiusPx)
         }
 
-        if (hasBearing) {
-            drawCompassArrowWithShadow(center, bearingDegrees)
-        }
+        drawCompassArrowWithShadow(center, bearingDegrees)
         if (markerLogCount++ % 10 == 0) {
-            Log.d("Marker", "draw sx=${sx.toInt()}, sy=${sy.toInt()} " +
-                    "trueBearing=${trueBearing} screenBearing=${bearingDegrees.toInt()} " +
+            Log.d("Marker", "draw sx=${center.x.toInt()}, sy=${center.y.toInt()} " +
+                    "bearing=${bearing.toInt()} screenBearing=${bearingDegrees.toInt()} " +
+                    "lat=${"%.6f".format(lat)} lon=${"%.6f".format(lon)} " +
                     "vp=${"%.5f".format(viewport.lat)},${"%.5f".format(viewport.lon)} " +
                     "mag=${viewport.mag} angle=${Math.toDegrees(viewport.angle).toInt()}")
         }
     }
+}
+
+/**
+ * Project the GPS coordinate onto the screen using the viewport of the displayed
+ * bitmap. Returns null when the marker is outside the visible area (with margin).
+ * Extracted for unit testing.
+ */
+internal fun projectMarker(
+    lat: Double,
+    lon: Double,
+    viewport: MapRenderer.RenderViewport,
+    screenWidthPx: Double,
+    screenHeightPx: Double,
+    dpi: Double
+): Offset? {
+    val projected = ProjectionUtils.viewport(
+        viewport.lat, viewport.lon, viewport.mag,
+        screenWidthPx.toInt(), screenHeightPx.toInt(), dpi, viewport.angle
+    )
+    val (sx, sy) = projected.geoToScreenRotated(lat, lon)
+    if (sx.isNaN() || sy.isNaN()) return null
+    if (sx < -MARGIN_PX || sx > screenWidthPx + MARGIN_PX ||
+        sy < -MARGIN_PX || sy > screenHeightPx + MARGIN_PX
+    ) return null
+    return Offset(sx.toFloat(), sy.toFloat())
 }
 
 private var markerLogCount: Int = 0
@@ -148,5 +170,5 @@ private val SHADOW_COLOR = Color(0x40000000)            // 25% black
 private val ARROW_SIZE_DP: Dp = 56.dp
 private val MIN_RADIUS_DP: Dp = 4.dp
 private val SHADOW_OFFSET_DP: Dp = 2.dp
-private const val MARGIN_PX = 100
+internal const val MARGIN_PX = 100
 private const val POOR_ACCURACY_THRESHOLD_PX = 20f

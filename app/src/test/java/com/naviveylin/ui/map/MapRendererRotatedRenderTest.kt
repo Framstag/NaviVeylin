@@ -35,8 +35,7 @@ class MapRendererRotatedRenderTest {
         renderer = MapRenderer(
             client = FakeOSMScoutClient(),
             dpi = 320.0,
-            scope = scope,
-            gpsRenderMinIntervalMs = 0
+            scope = scope
         )
     }
 

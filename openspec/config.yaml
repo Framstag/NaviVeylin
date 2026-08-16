@@ -49,6 +49,7 @@ rules:
     - Before marking implementation complete, verify tests exist for all new/modified code and they pass
     - If build or tests fail, do NOT mark tasks complete — report failures and fix them first
     - Make sure that build has no warnings
+    - Build only that targets that you need for testing to minimize ressource usage and compilation time
     - Check all new/modified code against every document in guidelines/ — all conventions and rules defined there must be followed
     - Update README or documentation if behavior changes
     - Verify no regressions in unrelated areas

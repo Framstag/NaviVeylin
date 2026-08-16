@@ -16,6 +16,16 @@ import kotlin.math.atan2
 private const val TAG = "MapGestures"
 
 /**
+ * Minimum accumulated two-finger rotation (radians) before [MapGestureCallbacks.onRotate]
+ * fires. Per-event angle deltas on high-refresh-rate devices are far smaller than this
+ * (a 90° rotation over 1 s at 120 Hz is ~0.013 rad/event), so a fixed per-event threshold
+ * would swallow the whole gesture. Accumulating the raw deltas filters finger jitter —
+ * which oscillates around zero and rarely sums past the threshold — while still reporting
+ * slow, deliberate rotations.
+ */
+private const val ROTATION_REPORT_THRESHOLD_RAD = 0.01f
+
+/**
  * Callbacks for map canvas touch gestures. All positions are in screen pixels.
  */
 interface MapGestureCallbacks {
@@ -61,6 +71,9 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
             // Finger distance when the second finger went down — the reference
             // for the continuous zoom factor reported during the gesture.
             var gestureStartDist = -1f
+            // Accumulated rotation since the last onRotate report (see
+            // ROTATION_REPORT_THRESHOLD_RAD). Per-gesture state.
+            var rotationAccumulator = 0f
 
             // Phase 1: Wait for up, drag, or 500ms timeout
             val upOrNull = withTimeoutOrNull(500L) {
@@ -110,6 +123,11 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
                         ?: event.changes.firstOrNull() ?: break
 
                     if (!change.pressed) {
+                        // Flush any residual rotation below the report threshold so
+                        // the committed angle matches the fingers' total rotation.
+                        if (rotationAccumulator != 0f) {
+                            currentCallbacks.onRotate(rotationAccumulator.toDouble())
+                        }
                         currentCallbacks.onRenderRequested()
                         break
                     }
@@ -163,8 +181,13 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
                         if (angleDelta > PI.toFloat()) angleDelta -= 2f * PI.toFloat()
                         if (angleDelta < -PI.toFloat()) angleDelta += 2f * PI.toFloat()
 
-                        if (abs(angleDelta) > 0.05f) {
-                            currentCallbacks.onRotate(angleDelta.toDouble())
+                        // Accumulate raw deltas and report only when the accumulated
+                        // rotation exceeds a small threshold. A per-event threshold
+                        // would swallow slow rotations on high-refresh-rate devices.
+                        rotationAccumulator += angleDelta
+                        if (abs(rotationAccumulator) > ROTATION_REPORT_THRESHOLD_RAD) {
+                            currentCallbacks.onRotate(rotationAccumulator.toDouble())
+                            rotationAccumulator = 0f
                         }
 
                         // Zoom: continuous distance ratio vs the gesture start.

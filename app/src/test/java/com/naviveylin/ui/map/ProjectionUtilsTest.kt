@@ -97,6 +97,39 @@ class ProjectionUtilsTest {
     }
 
     @Test
+    fun `screenToGeoRotated round-trips with geoToScreenRotated at non-zero angle`() {
+        val centerLat = 48.2
+        val centerLon = 16.4
+        val angle = Math.PI / 3
+        val testLat = 48.5
+        val testLon = 16.8
+
+        val vp = ProjectionUtils.viewport(centerLat, centerLon, 10, screenW, screenH, dpi, angle)
+        val (sx, sy) = vp.geoToScreenRotated(testLat, testLon)
+        val (latBack, lonBack) = vp.screenToGeoRotated(sx, sy)
+        assertEquals(testLat, latBack, 1e-8)
+        assertEquals(testLon, lonBack, 1e-8)
+    }
+
+    @Test
+    fun `screenToGeoRotated at angle zero equals screenToGeo`() {
+        val centerLat = 48.2
+        val centerLon = 16.4
+        val sx = 300.0
+        val sy = 700.0
+
+        val (northLat, northLon) = ProjectionUtils.screenToGeo(
+            sx, sy,
+            screenW, screenH, 10,
+            centerLat, centerLon, dpi
+        )
+        val vp = ProjectionUtils.viewport(centerLat, centerLon, 10, screenW, screenH, dpi, 0.0)
+        val (rotLat, rotLon) = vp.screenToGeoRotated(sx, sy)
+        assertEquals(northLat, rotLat, 1e-9)
+        assertEquals(northLon, rotLon, 1e-9)
+    }
+
+    @Test
     fun `dragDeltaToNewCenter pan right moves center west`() {
         val centerLat = 51.5
         val centerLon = 7.5
@@ -170,6 +203,58 @@ class ProjectionUtilsTest {
         // down must move the center west (lower lon).
         assertTrue("pan down at 90° should decrease lon", newLon < centerLon)
         assertEquals("pan down at 90° should not change lat", centerLat, newLat, 0.1)
+    }
+
+    @Test
+    fun `dragDeltaToNewCenterRotated pan right at 45 degrees moves center southwest`() {
+        val centerLat = 51.5
+        val centerLon = 7.5
+        val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
+            100.0, 0.0, Math.PI / 4, 8,
+            screenW.toDouble(), screenH.toDouble(),
+            centerLat, centerLon, dpi
+        )
+        // At 45° rotation the drag vector splits evenly between the geo
+        // axes: dragging right moves the center south-west.
+        assertTrue("pan right at 45° should decrease lat", newLat < centerLat)
+        assertTrue("pan right at 45° should decrease lon", newLon < centerLon)
+    }
+
+    @Test
+    fun `dragDeltaToNewCenterRotated pan right at 135 degrees moves center southeast`() {
+        val centerLat = 51.5
+        val centerLon = 7.5
+        val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
+            100.0, 0.0, 3 * Math.PI / 4, 8,
+            screenW.toDouble(), screenH.toDouble(),
+            centerLat, centerLon, dpi
+        )
+        // At 135° rotation north-east points right on screen, so dragging
+        // right moves the center south-east.
+        assertTrue("pan right at 135° should decrease lat", newLat < centerLat)
+        assertTrue("pan right at 135° should increase lon", newLon > centerLon)
+    }
+
+    @Test
+    fun `dragDeltaToNewCenterRotated finger follow invariant holds at arbitrary angle`() {
+        // The geo point under the finger at drag start must appear under the
+        // finger's new position after the drag — the map follows the finger.
+        val centerLat = 51.5
+        val centerLon = 7.5
+        val angle = Math.toRadians(30.0)
+        val fingerStart = Pair(260.0, 310.0)
+        val delta = Pair(60.0, -40.0)
+        val vp = ProjectionUtils.viewport(centerLat, centerLon, 8, screenW, screenH, dpi, angle)
+        val (gLat, gLon) = vp.screenToGeoRotated(fingerStart.first, fingerStart.second)
+        val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
+            delta.first, delta.second, angle, 8,
+            screenW.toDouble(), screenH.toDouble(),
+            centerLat, centerLon, dpi
+        )
+        val vp2 = ProjectionUtils.viewport(newLat, newLon, 8, screenW, screenH, dpi, angle)
+        val (sx, sy) = vp2.geoToScreenRotated(gLat, gLon)
+        assertEquals("finger-follow X", fingerStart.first + delta.first, sx, 1e-6)
+        assertEquals("finger-follow Y", fingerStart.second + delta.second, sy, 1e-6)
     }
 
     @Test

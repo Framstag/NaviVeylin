@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
@@ -57,6 +58,7 @@ fun SearchPanel(
     onResultSelected: (LocationEntry) -> Unit,
     onSelectCurrentLocation: () -> Unit,
     onSelectFavorite: () -> Unit,
+    onSelectFromHistory: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -135,9 +137,10 @@ fun SearchPanel(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Convenience entries (Current Location, Select Favorite) are shown
-            // only while the query is empty. Typing a query lists search results
-            // only; clearing the field restores both entries immediately.
+            // Convenience entries (Current Location, Select Favorite, Select
+            // from history) are shown only while the query is empty. Typing a
+            // query lists search results only; clearing the field restores the
+            // entries immediately.
             if (query.isEmpty()) {
                 if (gpsAvailable) {
                     Row(
@@ -176,6 +179,26 @@ fun SearchPanel(
                     )
                     Text(
                         text = "Select Favorite",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                HorizontalDivider()
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onSelectFromHistory)
+                        .padding(vertical = 10.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 12.dp)
+                    )
+                    Text(
+                        text = "Select from history",
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }

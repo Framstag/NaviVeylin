@@ -14,6 +14,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
 import java.time.Duration
 import org.junit.Assert.assertTrue
@@ -40,6 +41,7 @@ class RoutePanelComposeTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context())
         )
         composeRule.setContent {
@@ -127,6 +129,7 @@ class RoutePanelComposeTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context())
         )
         client.nextSearchResults = arrayOf(distanceEntry())

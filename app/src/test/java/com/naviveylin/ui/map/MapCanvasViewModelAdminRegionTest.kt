@@ -7,6 +7,7 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
@@ -52,6 +53,7 @@ class MapCanvasViewModelAdminRegionTest {
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context),
             locationService = locationService,
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context

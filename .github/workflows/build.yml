@@ -1,0 +1,152 @@
+name: Build Debug APK
+
+# Build the debug APK on every change to the main branch and on pull
+# requests targeting it. No secrets required — debug signing uses the
+# auto-generated debug keystore and every dependency (Android SDK, NDK,
+# vcpkg, libosmscout submodule) is public.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs of the same branch/PR to save CI minutes.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # vcpkg is pinned so the binary cache stays valid (the cache ABI hash
+  # includes the vcpkg tool version). Bump to a newer commit to refresh
+  # ports — the cache key changes and packages rebuild.
+  VCPKG_COMMIT: 94a541197763a4f449a1b91478df48c0584a6256
+  VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+  VCPKG_BINARY_SOURCES: files,${{ github.workspace }}/.vcpkg-bincache,readwrite
+  ANDROID_HOME: ${{ github.workspace }}/android-sdk
+  ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+
+jobs:
+  build:
+    name: Build debug APK (all ABIs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # AGP reads sdk.dir; setup-vcpkg.sh reads sdk.dir + org.gradle.java.home.
+      - name: Write local.properties
+        run: |
+          cat > local.properties <<EOF
+          sdk.dir=$ANDROID_HOME
+          org.gradle.java.home=$JAVA_HOME
+          EOF
+
+      # ── Android SDK ──────────────────────────────────────────
+      - name: Cache Android SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}
+          key: android-sdk-${{ runner.os }}-api36-bt36-ndk27-cmake3221
+
+      - name: Install Android SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          set -euxo pipefail
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -fsSLo /tmp/cmdline-tools.zip \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;27.0.12077973" \
+            "cmake;3.22.1"
+
+      # ── vcpkg ────────────────────────────────────────────────
+      - name: Compute vcpkg cache key
+        id: vcpkg-key
+        run: |
+          DEPS_HASH=$(find setup-vcpkg.sh vcpkg-overlays -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+          echo "deps-hash=$DEPS_HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Cache vcpkg binary cache
+        id: cache-vcpkg
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-bincache
+          key: vcpkg-bincache-${{ env.VCPKG_COMMIT }}-${{ steps.vcpkg-key.outputs.deps-hash }}
+          restore-keys: |
+            vcpkg-bincache-${{ env.VCPKG_COMMIT }}-
+
+      - name: Clone vcpkg (pinned commit)
+        run: |
+          git init -q "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" remote add origin https://github.com/microsoft/vcpkg.git
+          git -C "$VCPKG_ROOT" fetch -q --depth 1 origin "$VCPKG_COMMIT"
+          git -C "$VCPKG_ROOT" checkout -q FETCH_HEAD
+
+      - name: Bootstrap vcpkg
+        run: |
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      # Installs all deps for the 3 Android triplets; compiled packages
+      # come from / are stored in the binary cache.
+      - name: Install vcpkg dependencies
+        run: ./setup-vcpkg.sh
+
+      # setup-vcpkg.sh tolerates per-package failures (|| echo) — fail the
+      # job here if any required package is actually missing.
+      - name: Verify vcpkg packages
+        run: |
+          set -euo pipefail
+          for pc in cairo marisa pango harfbuzz fribidi libpng freetype2 fontconfig protobuf libxml-2.0 zlib; do
+            found=false
+            for t in arm64-android arm-neon-android x64-android; do
+              if [ -f "$VCPKG_ROOT/installed/$t/lib/pkgconfig/$pc.pc" ]; then
+                found=true
+              fi
+            done
+            if [ "$found" != true ]; then
+              echo "::error::Missing vcpkg package: $pc"
+              exit 1
+            fi
+          done
+          echo "All vcpkg packages present for all triplets."
+
+      # ── Gradle build ─────────────────────────────────────────
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper/dists
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # gradle.properties commits a machine-local JDK path
+      # (org.gradle.java.home=/usr/lib/jvm/java-17-openjdk) which does not
+      # exist on the runner — override it with the JDK set up above.
+      - name: Build debug APK
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :app:assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: naviveylin-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

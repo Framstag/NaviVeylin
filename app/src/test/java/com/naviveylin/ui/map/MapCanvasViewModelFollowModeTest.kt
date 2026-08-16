@@ -7,9 +7,11 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
+import android.location.Location
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -33,6 +35,7 @@ class MapCanvasViewModelFollowModeTest {
 
     private lateinit var context: Context
     private lateinit var client: FakeOSMScoutClient
+    private lateinit var locationService: LocationService
     private lateinit var viewModel: MapCanvasViewModel
 
     @Before
@@ -40,13 +43,15 @@ class MapCanvasViewModelFollowModeTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
+        locationService = LocationService(context)
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
             settingsStorage = SettingsStorage(context),
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            locationService = LocationService(context),
+            searchHistoryRepository = SearchHistoryRepository(context),
+            locationService = locationService,
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
@@ -176,5 +181,59 @@ class MapCanvasViewModelFollowModeTest {
         )
         val buttonVisible = !state.followMode && state.gpsFixQuality != GpsFixQuality.NONE
         assertFalse("Re-center button should be hidden", buttonVisible)
+    }
+
+    // --- GPS location state (Compose overlay input comes from renderer marker snapshot) ---
+
+    @Test
+    fun gpsLocationTracksRawFixInFollowMode() = runTest {
+        viewModel.onToggleFollowMode(true)
+        assertTrue(viewModel.uiState.first { it.followMode }.followMode)
+
+        val loc = Location("gps").apply {
+            latitude = 51.5136
+            longitude = 7.4653
+            accuracy = 8f
+            time = 1_000L
+        }
+        locationService.setLocationForTest(loc)
+
+        val state = viewModel.uiState.first { it.gpsLocation != null }
+        assertEquals("raw fix stored", 51.5136, state.gpsLocation!!.latitude, 1e-9)
+        assertEquals(7.4653, state.gpsLocation!!.longitude, 1e-9)
+    }
+
+    @Test
+    fun gpsLocationTracksRawFixWithoutFollowMode() = runTest {
+        val loc = Location("gps").apply {
+            latitude = 51.5
+            longitude = 7.4
+            bearing = 45f
+            accuracy = 5f
+            time = 2_000L
+        }
+        locationService.setLocationForTest(loc)
+
+        val state = viewModel.uiState.first { it.gpsLocation != null }
+        assertFalse("follow mode must stay off", state.followMode)
+        assertEquals(51.5, state.gpsLocation!!.latitude, 1e-9)
+        assertEquals(7.4, state.gpsLocation!!.longitude, 1e-9)
+    }
+
+    @Test
+    fun gpsLocationClearedOnNullLocation() = runTest {
+        val loc = Location("gps").apply {
+            latitude = 51.5136
+            longitude = 7.4653
+            accuracy = 8f
+            time = 3_000L
+        }
+        locationService.setLocationForTest(loc)
+        viewModel.uiState.first { it.gpsLocation != null }
+
+        locationService.setLocationForTest(null)
+
+        val state = viewModel.uiState.first { it.gpsLocation == null }
+        assertEquals(null, state.gpsLocation)
     }
 }

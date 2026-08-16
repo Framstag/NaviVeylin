@@ -1,5 +1,6 @@
 package com.naviveylin.ui.route
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -48,6 +49,11 @@ fun RouteSummaryDialog(
     isNavigating: Boolean = false,
     onDismiss: () -> Unit
 ) {
+    // System back dismisses the summary overlay (custom Box, not a Dialog).
+    BackHandler {
+        onDismiss()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // Scrim
         Box(

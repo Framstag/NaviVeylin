@@ -13,6 +13,8 @@ import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.SearchHistoryEntry
+import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportState
 import com.naviveylin.data.ViewportStorage
@@ -86,7 +88,14 @@ data class MapCanvasUiState(
     /** Last GPS location for marker overlay; null if unavailable. */
     val gpsLocation: android.location.Location? = null,
     /** Viewport that produced the currently visible bitmap. Marker overlay must use this. */
-    val renderViewport: MapRenderer.RenderViewport? = null
+    val renderViewport: MapRenderer.RenderViewport? = null,
+    /** Marker position for the overlay: nav-filtered in routing mode, raw GPS otherwise; NaN when unavailable. */
+    val gpsMarkerLat: Double = Double.NaN,
+    val gpsMarkerLon: Double = Double.NaN,
+    /** Marker arrow bearing in degrees (freshest direction signal); < 0 = north-up arrow. */
+    val gpsMarkerBearing: Double = Double.NaN,
+    /** GPS horizontal accuracy in meters for the accuracy circle; <= 0 = no circle. */
+    val gpsMarkerAccuracy: Double = 0.0
 )
 
 @HiltViewModel
@@ -96,6 +105,7 @@ class MapCanvasViewModel @Inject constructor(
     private val assetCopier: AssetCopier,
     private val client: OSMScoutClient,
     private val favoriteRepository: FavoriteRepository,
+    private val searchHistoryRepository: SearchHistoryRepository,
     private val locationService: LocationService,
     private val darkModeController: DarkModeController,
     @ApplicationContext private val context: Context
@@ -103,6 +113,9 @@ class MapCanvasViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(MapCanvasUiState())
     val uiState: StateFlow<MapCanvasUiState> = _uiState.asStateFlow()
+
+    /** Search history, youngest first. Loaded from disk on ViewModel init. */
+    val searchHistory: StateFlow<List<SearchHistoryEntry>> = searchHistoryRepository.history
 
     private val _gpsFixQuality = MutableStateFlow(GpsFixQuality.NONE)
     val gpsFixQuality: StateFlow<GpsFixQuality> = _gpsFixQuality.asStateFlow()
@@ -138,6 +151,10 @@ class MapCanvasViewModel @Inject constructor(
 
     // GPS follow throttle state
     private var lastFollowRenderMs: Long = 0L
+    // Non-follow marker render tracking (marker moves > 5 m trigger a render)
+    private var lastMarkerLat = Double.NaN
+    private var lastMarkerLon = Double.NaN
+    private var lastNonFollowMarkerRenderMs: Long = 0L
     private var lastGpsLat = Double.NaN
     private var lastGpsLon = Double.NaN
     private var lastGpsBearing = Double.NaN
@@ -151,18 +168,6 @@ class MapCanvasViewModel @Inject constructor(
     private val centerSmoothMaxJumpM = 500.0
 
     // Auto-zoom state
-    private data class SpeedZoomLevel(val speedKmH: Double, val magnification: Double)
-
-    private val SPEED_ZOOM_TABLE = listOf(
-        SpeedZoomLevel(0.0,   17.0),   // stationary
-        SpeedZoomLevel(6.0,   16.5),   // slow jog
-        SpeedZoomLevel(15.0,  16.0),   // cycling / slow city
-        SpeedZoomLevel(30.0,  15.0),   // city driving
-        SpeedZoomLevel(60.0,  14.0),   // suburban
-        SpeedZoomLevel(90.0,  13.0),   // highway
-        SpeedZoomLevel(130.0, 12.0),   // very fast
-    )
-
     private var lastValidSpeedKmH: Double = 20.0
     private var autoZoomSuspended: Boolean = false
     private var lastSpeedBandIndex: Int = -1
@@ -227,43 +232,6 @@ class MapCanvasViewModel @Inject constructor(
             lastValidSpeedKmH = rawSpeedKmH
         }
         return lastValidSpeedKmH
-    }
-
-    /** Compute target magnification from speed using linear interpolation. */
-    private fun computeSpeedZoom(speedKmH: Double): Double {
-        val table = SPEED_ZOOM_TABLE
-        if (table.isEmpty()) return 15.0
-
-        // Clamp below first entry
-        if (speedKmH <= table.first().speedKmH) return table.first().magnification
-        // Clamp above last entry
-        if (speedKmH >= table.last().speedKmH) return table.last().magnification
-
-        // Linear interpolation between breakpoints
-        for (i in 0 until table.size - 1) {
-            val low = table[i]
-            val high = table[i + 1]
-            if (speedKmH in low.speedKmH..high.speedKmH) {
-                val fraction = (speedKmH - low.speedKmH) / (high.speedKmH - low.speedKmH)
-                return low.magnification + fraction * (high.magnification - low.magnification)
-            }
-        }
-
-        return table.last().magnification
-    }
-
-    /** Find the table index for the current speed band. */
-    private fun findSpeedBandIndex(speedKmH: Double): Int {
-        val table = SPEED_ZOOM_TABLE
-        if (table.isEmpty()) return 0
-        if (speedKmH <= table.first().speedKmH) return 0
-        if (speedKmH >= table.last().speedKmH) return table.size - 1
-        for (i in 0 until table.size - 1) {
-            if (speedKmH in table[i].speedKmH..table[i + 1].speedKmH) {
-                return i
-            }
-        }
-        return table.size - 1
     }
 
     /** Compute turn zoom boost floor: 16.0 if ≤ 2000m, 15.0 if ≤ 5000m, 0.0 otherwise. */
@@ -411,6 +379,8 @@ class MapCanvasViewModel @Inject constructor(
     private val _searchQueryFlow = MutableStateFlow("")
 
     init {
+        viewModelScope.launch { searchHistoryRepository.load() }
+
         @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
         viewModelScope.launch {
             _searchQueryFlow
@@ -493,7 +463,9 @@ class MapCanvasViewModel @Inject constructor(
             locationService.location.collect { loc ->
                 if (loc == null) {
                     _uiState.value = _uiState.value.copy(gpsLocation = null)
-                    mapRenderer?.clearGpsMarker()
+                    mapRenderer?.clearGpsMarkerState()
+                    lastMarkerLat = Double.NaN
+                    lastMarkerLon = Double.NaN
                     return@collect
                 }
 
@@ -543,7 +515,20 @@ class MapCanvasViewModel @Inject constructor(
                 )
 
                 if (!_uiState.value.followMode) {
-                    mapRenderer?.setGpsMarker(markerLat, markerLon, bearing, accuracy)
+                    // The marker rides with the next rendered frame (overlay input, never
+                    // baked into tiles). A marker move > 5 m triggers a render so the marker
+                    // follows the fix — same cadence as the old native setGpsMarker path.
+                    mapRenderer?.setGpsMarkerState(markerLat, markerLon, bearing, accuracy)
+                    val nowMs = System.currentTimeMillis()
+                    val dist = distanceMeters(lastMarkerLat, lastMarkerLon, markerLat, markerLon)
+                    if ((dist > 5.0 || lastMarkerLat.isNaN()) &&
+                        nowMs - lastNonFollowMarkerRenderMs >= NON_FOLLOW_MARKER_RENDER_INTERVAL_MS
+                    ) {
+                        lastMarkerLat = markerLat
+                        lastMarkerLon = markerLon
+                        lastNonFollowMarkerRenderMs = nowMs
+                        renderMap()
+                    }
                     return@collect
                 }
 
@@ -591,6 +576,10 @@ class MapCanvasViewModel @Inject constructor(
                     else -> lastUsedBearing
                 }
                 val markerBearing = if (!isNorthUp && !markerBearingRaw.isNaN()) markerBearingRaw else -1.0
+                // Feed the marker state to the renderer: it is snapshotted into the next
+                // render job and emitted with the front buffer, so the overlay marker always
+                // matches the displayed map (no lead/jump while frames lag the live fix).
+                mapRenderer?.setGpsMarkerState(followMarkerLat, followMarkerLon, markerBearing, accuracy)
                 val smoothedAngle = if (!isNorthUp && !effectiveBearing.isNaN()) normalizeAngle(-Math.toRadians(effectiveBearing)) else Double.NaN
                 val renderedAngle = normalizeAngle(mapRenderer?.renderedAngle ?: _uiState.value.viewport.angle)
                 val angle = if (!isNorthUp && !smoothedAngle.isNaN()) {
@@ -632,9 +621,9 @@ class MapCanvasViewModel @Inject constructor(
                 }
 
                 if (!shouldRender) {
-                    // Marker/center did not move enough; keep marker at raw GPS so it
-                    // stays on the road/track even when the camera barely shifts.
-                    mapRenderer?.setGpsMarker(followMarkerLat, followMarkerLon, markerBearing, accuracy)
+                    // Marker/center did not move enough; the overlay already shows the
+                    // marker at the raw GPS fix so it stays on the road/track even when
+                    // the camera barely shifts.
                     return@collect
                 }
 
@@ -648,7 +637,7 @@ class MapCanvasViewModel @Inject constructor(
                     val navState = navVm?.state?.value
                     val rawSpeed = navState?.currentSpeedKmH ?: Double.NaN
                     val filteredSpeed = filterSpeed(rawSpeed)
-                    val speedTarget = computeSpeedZoom(filteredSpeed)
+                    val speedTarget = SpeedZoomTable.compute(filteredSpeed)
 
                     val turnDist = navState?.nextInstruction?.distanceTo ?: Double.NaN
                     val turnFloor = computeTurnBoost(turnDist)
@@ -670,7 +659,7 @@ class MapCanvasViewModel @Inject constructor(
 
                     val postTurnFloor = if (!turnPassedDistance.isNaN() && turnPassedDistance <= 600.0) 15.0 else 0.0
                     val finalTarget = maxOf(speedTarget, turnFloor, curveFloor, postTurnFloor)
-                    val currentBand = findSpeedBandIndex(filteredSpeed)
+                    val currentBand = SpeedZoomTable.bandIndex(filteredSpeed)
 
                     if (autoZoomSuspended && currentBand != lastSpeedBandIndex) {
                         autoZoomSuspended = false
@@ -726,19 +715,13 @@ class MapCanvasViewModel @Inject constructor(
                     )
                     mapRenderer?.prepareViewport(smoothedLat, smoothedLon, newMag, angle)
                     // In follow mode the marker represents the current vehicle position and
-                    // is drawn at the raw/navigation GPS fix. The viewport center is not smoothed,
-                    // so the marker stays exactly on the road/track.
-                    val markerTriggered = mapRenderer?.setGpsMarker(followMarkerLat, followMarkerLon, markerBearing, accuracy) ?: false
-                    if (!markerTriggered) {
-                        // Marker stayed still but angle or zoom changed; request a render explicitly.
-                        renderMap()
-                    }
+                    // is drawn by the Compose overlay at the raw/navigation GPS fix. The
+                    // viewport center is not smoothed, so the marker stays exactly on the
+                    // road/track. The viewport moved — render it.
+                    renderMap()
                     lastFollowRenderMs = System.currentTimeMillis()
                 } else {
-                    // No viewport motion; still keep marker at raw GPS and use the
-                    // same COG-based bearing so the marker orientation does not snap
-                    // back to the instantaneous GPS bearing.
-                    mapRenderer?.setGpsMarker(followMarkerLat, followMarkerLon, markerBearing, accuracy)
+                    // No viewport motion; marker stays at the raw GPS fix via the overlay.
                 }
             }
         }
@@ -1092,9 +1075,12 @@ class MapCanvasViewModel @Inject constructor(
             renderer.screenHeight = screenHeight
             mapRenderer = renderer
 
-            // Wire front buffer updates to UI state
+            // Wire frame emissions to UI state. Each frame carries bitmap + viewport +
+            // marker snapshot as ONE atomic emission, so the overlay never sees state
+            // from different frames (which would make the marker jump off the road).
             viewModelScope.launch {
-                renderer.frontBufferFlow.collect { bitmap ->
+                renderer.frameFlow.collect { frame ->
+                    val bitmap = frame.bitmap
                     if (bitmap != null) {
                         // First frame: the DB may have opened after the initMap flag
                         // push (SetStyleFlag is a no-op until a DB is open) — re-apply once.
@@ -1106,18 +1092,15 @@ class MapCanvasViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             renderedBitmap = bitmap.asImageBitmap(),
                             isLoading = false,
-                            error = null
+                            error = null,
+                            renderViewport = frame.viewport,
+                            gpsMarkerLat = frame.marker.lat,
+                            gpsMarkerLon = frame.marker.lon,
+                            gpsMarkerBearing = frame.marker.bearing,
+                            gpsMarkerAccuracy = frame.marker.accuracy
                         )
                         Log.d(TAG, "frontBufferFlow: new bitmap " + bitmap.width + "x" + bitmap.height)
                     }
-                }
-            }
-
-            // Marker overlay must always be projected with the viewport that produced the
-            // bitmap currently on screen, not the renderer's in-flight target viewport.
-            viewModelScope.launch {
-                renderer.frontBufferViewportFlow.collect { vp ->
-                    _uiState.value = _uiState.value.copy(renderViewport = vp)
                 }
             }
 
@@ -1140,7 +1123,7 @@ class MapCanvasViewModel @Inject constructor(
                 null
             }
             val default = ViewportState()
-            val vp = saved ?: if (bbox != null && bbox.size >= 4) {
+            val restored = saved ?: if (bbox != null && bbox.size >= 4) {
                 ViewportState(
                     centerLat = (bbox[0] + bbox[2]) / 2.0,
                     centerLon = (bbox[1] + bbox[3]) / 2.0,
@@ -1149,6 +1132,10 @@ class MapCanvasViewModel @Inject constructor(
             } else {
                 default
             }
+            // A persisted world-zoom viewport (mag < 4) renders the whole globe in
+            // native and can hang the render worker — clamp the restore to the same
+            // floor the gesture/zoom controls enforce (specs: min magnification 4).
+            val vp = restored.copy(magnification = restored.magnification.coerceIn(MIN_MAG, MAX_MAG))
             Log.d(
                 TAG,
                 "initMap: viewport lat=${vp.centerLat}, lon=${vp.centerLon}, mag=${vp.magnification} " +
@@ -1170,6 +1157,10 @@ class MapCanvasViewModel @Inject constructor(
             // render already uses the correct variant
             lastPushedDark = null
             pushDarkPresentation(darkModeController.isDarkPresentation.value)
+            // The push above happens after the database is open, so SetStyleFlag
+            // is effective — mark it as done so the first front-buffer frame does
+            // not re-push and invalidate the freshly rendered tiles.
+            stylePushedToNative = true
 
             Log.d(TAG, "initMap: triggering first render")
             renderer.requestRender(vp.centerLat, vp.centerLon, vp.magnification)
@@ -1196,6 +1187,11 @@ class MapCanvasViewModel @Inject constructor(
     fun onSearchQueryChanged(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
         _searchQueryFlow.value = query
+    }
+
+    /** Called when user picks an entry from the search history: fills the search box. */
+    fun onHistoryEntrySelected(text: String) {
+        onSearchQueryChanged(text)
     }
 
     /** Called when user selects a favorite from the favorites sheet. */
@@ -1277,7 +1273,14 @@ class MapCanvasViewModel @Inject constructor(
     /** Called when user selects a search result. */
     fun onSearchResultSelected(entry: LocationEntry) {
         Log.d(TAG, "onSearchResultSelected: label='${entry.label}', lat=${entry.lat}, lon=${entry.lon}")
+        // Capture the query before the state copy below clears it. Only real
+        // search selections (non-blank query) are recorded; convenience entries
+        // like "Current Location" are selected from an empty query.
+        val query = _uiState.value.searchQuery
         viewModelScope.launch {
+            if (query.isNotBlank()) {
+                searchHistoryRepository.record(query)
+            }
             // Deactivate follow mode so the selected result stays visible and
             // subsequent GPS updates do not re-center the viewport.
             if (_uiState.value.followMode) {
@@ -1733,7 +1736,7 @@ class MapCanvasViewModel @Inject constructor(
             autoZoomSuspended = true
             val navVm = _navigationViewModel
             val rawSpeed = navVm?.state?.value?.currentSpeedKmH ?: Double.NaN
-            lastSpeedBandIndex = if (!rawSpeed.isNaN() && rawSpeed >= 0) findSpeedBandIndex(filterSpeed(rawSpeed)) else -1
+            lastSpeedBandIndex = if (!rawSpeed.isNaN() && rawSpeed >= 0) SpeedZoomTable.bandIndex(filterSpeed(rawSpeed)) else -1
         }
     }
 
@@ -1789,13 +1792,23 @@ class MapCanvasViewModel @Inject constructor(
         private const val GPS_DEDUPE_MS = 100L
         // Minimum interval between follow-mode renders (coalesces GPS ticks).
         private const val GPS_FOLLOW_RENDER_INTERVAL_MS = 200L
+        // Minimum interval between non-follow marker-move renders (old native throttle).
+        private const val NON_FOLLOW_MARKER_RENDER_INTERVAL_MS = 1000L
         // Ignore bearing changes smaller than this for follow-mode angle updates.
         private const val MIN_BEARING_DELTA_DEG = 3.0
 
         // Movement threshold for re-resolving the search admin region (meters)
         private const val ADMIN_REGION_MOVEMENT_THRESHOLD_M = 500.0
+        /** Minimum magnification for the zoom control (buttons, keys, scroll wheel).
+         *  Floor of 4 matches the gesture range and the specs (map-pan-zoom, map-rotation-gesture):
+         *  lower zooms render huge world tiles natively (z=2 ~5s, z=1 hangs), stalling the render worker. */
         const val MIN_MAG = 4
+        /** Minimum magnification for the pinch/rotation gesture commit (keeps 4–20). */
+        const val GESTURE_MIN_MAG = 4
         const val MAX_MAG = 20
+
+        /** Clamp a magnification to the pinch/rotation gesture range (4–20). */
+        fun clampGestureMagnification(mag: Int): Int = mag.coerceIn(GESTURE_MIN_MAG, MAX_MAG)
         private const val CANVAS_OVERRUN = 1.2
 
         /** Fixed zoom level for node-type favorites (points, POIs). */

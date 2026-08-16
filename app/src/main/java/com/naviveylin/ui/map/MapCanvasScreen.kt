@@ -5,6 +5,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.view.WindowManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -47,12 +48,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.input.key.key
@@ -86,8 +90,10 @@ import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.ui.route.RouteSummaryDialog
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.ProjectionUtils
+import kotlin.math.cos
 import kotlin.math.log2
 import kotlin.math.round
+import kotlin.math.sin
 
 private const val TAG = "MapCanvasScreen"
 
@@ -117,6 +123,7 @@ fun MapCanvasScreen(
 
     var menuExpanded by remember { mutableStateOf(false) }
     var showSearchPanel by remember { mutableStateOf(false) }
+    var showSearchHistory by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showFavoritePicker by remember { mutableStateOf(false) }
     var favoritePickerField by remember { mutableStateOf<ActiveField?>(null) }
@@ -126,6 +133,14 @@ fun MapCanvasScreen(
     // Location permission state
     var showPermissionRationale by remember { mutableStateOf(false) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // While navigation is active, reject system back on the base map so the
+    // app cannot be closed mid-route; the user must stop navigation first.
+    // Overlays (favorites sheet, search panel, dialogs) register their own
+    // handlers later in composition, so they still dismiss before this fires.
+    BackHandler(enabled = navState.isNavigating) {
+        viewModel.showSnackbar("Stop navigation before exiting")
+    }
 
     // Live gesture transform: applied to the current bitmap during a multi-touch
     // gesture (pan/zoom/rotate). No render calls happen until the gesture ends;
@@ -201,18 +216,8 @@ fun MapCanvasScreen(
         }
     }
 
-    // Keep screen on during navigation when setting enabled
-    val activity = context as? androidx.activity.ComponentActivity
-    DisposableEffect(navState.isNavigating, state.keepScreenOn) {
-        if (navState.isNavigating && state.keepScreenOn) {
-            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        } else {
-            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-        onDispose {
-            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-    }
+    // Keep screen on while the app is in the foreground when the setting is enabled.
+    KeepScreenOnEffect(state.keepScreenOn)
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Snackbar at bottom
@@ -260,16 +265,27 @@ fun MapCanvasScreen(
                         // Live gesture transform on the current bitmap: rotation,
                         // zoom, and pan are applied visually with no render calls
                         // until the gesture ends (onRenderRequested commits).
+                        // The rotation is applied around the SCREEN CENTER, not the
+                        // gesture centroid: the rendered bitmap exactly fills the
+                        // canvas, so rotating around an off-center pivot swings the
+                        // map off-screen (empty regions) — worst at 180°. Center
+                        // rotation also matches the committed native render (which
+                        // rotates around the viewport center), so there is no jump
+                        // on gesture end. The zoom keeps its pivot at the gesture
+                        // centroid (matches zoomAtCursor on commit) via the
+                        // translation compensation in gestureTransformTranslation.
                         .graphicsLayer {
-                            rotationZ = normalizeDegrees(Math.toDegrees(gestureRotation.toDouble())).toFloat()
-                            scaleX = gestureZoom
-                            scaleY = gestureZoom
-                            translationX = gesturePan.x
-                            translationY = gesturePan.y
-                            transformOrigin = TransformOrigin(
-                                if (size.width > 0) gestureCentroid.x / size.width else 0.5f,
-                                if (size.height > 0) gestureCentroid.y / size.height else 0.5f
+                            val theta = gestureRotation
+                            val s = gestureZoom
+                            val t = gestureTransformTranslation(
+                                theta, s, gestureCentroid, size, gesturePan
                             )
+                            translationX = t.x
+                            translationY = t.y
+                            rotationZ = normalizeDegrees(Math.toDegrees(theta.toDouble())).toFloat()
+                            scaleX = s
+                            scaleY = s
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                         }
                         .mapGestureHandler(
                             object : MapGestureCallbacks {
@@ -277,8 +293,9 @@ fun MapCanvasScreen(
                                     viewModel.disengageFollowMode()
                                     val s = viewModel.uiState.value
                                     val dpi = context.resources.displayMetrics.densityDpi.toDouble()
-                                    val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenter(
+                                    val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
                                         dx.toDouble(), dy.toDouble(),
+                                        s.viewport.angle,
                                         s.viewport.magnification,
                                         canvasSize.width.toDouble(), canvasSize.height.toDouble(),
                                         s.viewport.centerLat, s.viewport.centerLon, dpi
@@ -335,10 +352,15 @@ fun MapCanvasScreen(
                                 override fun onZoom(centroid: Offset, zoomFactor: Float) {
                                     // Continuous zoom factor vs gesture start; applied
                                     // visually and committed on gesture end. Clamped to
-                                    // reasonable limits so the map cannot shrink to
-                                    // nothing or zoom to a blur. The pivot comes from
-                                    // onGestureCentroid.
-                                    gestureZoom = zoomFactor.coerceIn(MIN_GESTURE_ZOOM, MAX_GESTURE_ZOOM)
+                                    // the range the commit can actually deliver: the
+                                    // committed magnification is clamped to
+                                    // [GESTURE_MIN_MAG, MAX_MAG], so at the limits the
+                                    // visual preview must not exceed the headroom —
+                                    // otherwise the map zooms in visually and then
+                                    // snaps back on gesture end.
+                                    gestureZoom = clampGestureVisualZoom(
+                                        zoomFactor, viewModel.uiState.value.viewport.magnification
+                                    )
                                 }
 
                                 override fun onLongPress(position: Offset) {
@@ -362,9 +384,7 @@ fun MapCanvasScreen(
                                         val zoomSteps = round(log2(gestureZoom.toDouble())).toInt()
                                         if (zoomSteps != 0) {
                                             val mag = s.viewport.magnification
-                                            val newMag = (mag + zoomSteps).coerceIn(
-                                                MapCanvasViewModel.MIN_MAG, MapCanvasViewModel.MAX_MAG
-                                            )
+                                            val newMag = MapCanvasViewModel.clampGestureMagnification(mag + zoomSteps)
                                             if (newMag != mag) {
                                                 val dpi = context.resources.displayMetrics.densityDpi.toDouble()
                                                 val (clat, clon) = ProjectionUtils.zoomAtCursor(
@@ -475,9 +495,21 @@ fun MapCanvasScreen(
                     }
                 }
 
-                // GPS marker is now rendered natively on the same Cairo surface as the
-                // map, so no separate Compose overlay is needed. This guarantees the
-                // marker and the road are always drawn with one consistent projection.
+                // GPS marker is rendered as a Compose overlay on top of the rendered map,
+                // never baked into cached tiles or reusable buffers (spec: gps-location-marker).
+                // Projection uses the front-buffer viewport so the marker stays anchored
+                // to the bitmap actually on screen. No bitmap yet → no marker: there is no
+                // displayed frame to project against.
+                if (state.renderedBitmap != null) {
+                    LocationMarkerOverlay(
+                        lat = state.gpsMarkerLat,
+                        lon = state.gpsMarkerLon,
+                        bearing = state.gpsMarkerBearing,
+                        accuracy = state.gpsMarkerAccuracy,
+                        viewport = state.renderViewport,
+                        dpi = context.resources.displayMetrics.densityDpi.toDouble()
+                    )
+                }
             }
         }
 
@@ -891,10 +923,26 @@ fun MapCanvasScreen(
                     viewModel.toggleFavoritesSheet()
                     showSearchPanel = false
                 },
+                onSelectFromHistory = {
+                    showSearchHistory = true
+                },
                 onDismiss = {
                     viewModel.clearSearch()
                     showSearchPanel = false
                 }
+            )
+        }
+
+        // Search history sheet (opened from "Select from history")
+        if (showSearchHistory) {
+            val history by viewModel.searchHistory.collectAsState()
+            SearchHistorySheet(
+                entries = history,
+                onEntrySelected = { text ->
+                    viewModel.onHistoryEntrySelected(text)
+                    showSearchHistory = false
+                },
+                onDismiss = { showSearchHistory = false }
             )
         }
 
@@ -1102,7 +1150,7 @@ private fun shouldShowRequestPermissionRationale(
     }
 }
 
-private fun fireLongPress(
+internal fun fireLongPress(
     viewModel: MapCanvasViewModel,
     context: android.content.Context,
     pos: androidx.compose.ui.geometry.Offset,
@@ -1110,18 +1158,71 @@ private fun fireLongPress(
 ) {
     val s = viewModel.uiState.value
     val dpi = context.resources.displayMetrics.densityDpi.toDouble()
-    val (lat, lon) = ProjectionUtils.screenToGeo(
-        pos.x.toDouble(), pos.y.toDouble(),
-        size.width, size.height,
+    // Angle-aware conversion: the north-up screenToGeo ignores the viewport
+    // rotation, so on a rotated map the resolved geo point would not be under
+    // the press point. screenToGeoRotated reduces to screenToGeo at angle 0.
+    val vp = ProjectionUtils.viewport(
+        s.viewport.centerLat, s.viewport.centerLon,
         s.viewport.magnification,
-        s.viewport.centerLat, s.viewport.centerLon, dpi
+        size.width, size.height,
+        dpi,
+        s.viewport.angle
     )
+    val (lat, lon) = vp.screenToGeoRotated(pos.x.toDouble(), pos.y.toDouble())
     viewModel.onLongPress(lat, lon)
 }
 
 /** Minimum/maximum visual zoom factor during a multi-touch gesture (±2 mag levels). */
 private const val MIN_GESTURE_ZOOM = 0.25f
 private const val MAX_GESTURE_ZOOM = 4.0f
+
+/**
+ * Clamp the live visual zoom factor to the range the gesture-end commit can
+ * actually deliver. The commit applies `round(log2(zoom))` magnification levels
+ * clamped to [GESTURE_MIN_MAG, MAX_MAG]; at the limits the visual preview must
+ * not exceed the headroom at the current magnification, or the map zooms in
+ * visually and then snaps back on gesture end (e.g. at mag 20 the preview would
+ * show up to 4× while the commit cannot zoom in at all).
+ */
+internal fun clampGestureVisualZoom(zoomFactor: Float, mag: Int): Float {
+    val maxVisual = Math.pow(2.0, (MapCanvasViewModel.MAX_MAG - mag).toDouble()).toFloat()
+    val minVisual = Math.pow(2.0, (MapCanvasViewModel.GESTURE_MIN_MAG - mag).toDouble()).toFloat()
+    return zoomFactor.coerceIn(
+        minVisual.coerceAtLeast(MIN_GESTURE_ZOOM),
+        maxVisual.coerceAtMost(MAX_GESTURE_ZOOM)
+    )
+}
+
+/**
+ * Translation for the live multi-touch visual transform. The rotation is applied
+ * around the screen center (see the graphicsLayer comment in [MapCanvasScreen])
+ * while the zoom keeps its pivot at the gesture centroid; this returns the
+ * translation that reconciles the two pivots: T = (1 - s)·R(θ)·(C - O) + P, where
+ * O is the canvas center, C the gesture centroid, s the zoom factor, θ the
+ * accumulated rotation, and P the accumulated centroid pan.
+ *
+ * At zoom 1 the translation reduces to the pan (pure rotation around the center);
+ * at rotation 0 it reduces to the centroid-anchored zoom (the map content at the
+ * centroid stays fixed, matching the committed zoomAtCursor).
+ */
+internal fun gestureTransformTranslation(
+    rotationRadians: Float,
+    zoom: Float,
+    centroid: Offset,
+    canvasSize: Size,
+    pan: Offset
+): Offset {
+    val ox = canvasSize.width / 2f
+    val oy = canvasSize.height / 2f
+    val dx = centroid.x - ox
+    val dy = centroid.y - oy
+    val cosT = cos(rotationRadians)
+    val sinT = sin(rotationRadians)
+    return Offset(
+        (1f - zoom) * (cosT * dx - sinT * dy) + pan.x,
+        (1f - zoom) * (sinT * dx + cosT * dy) + pan.y
+    )
+}
 
 /** Normalize an angle in degrees to [-180, 180]. */
 private fun normalizeDegrees(deg: Double): Double {
@@ -1137,4 +1238,50 @@ private fun normalizeRadians(rad: Double): Double {
     if (r > Math.PI) r -= 2 * Math.PI
     if (r < -Math.PI) r += 2 * Math.PI
     return r
+}
+
+/**
+ * Keeps the device screen on while the app is in the foreground and [keepScreenOn]
+ * is true. A lifecycle observer re-applies [WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON]
+ * on every resume (window flags can be cleared by the system while the app is
+ * backgrounded) and releases it on pause; a keyed effect responds immediately to
+ * setting toggles. See openspec/specs/always-on-display.
+ */
+@Composable
+internal fun KeepScreenOnEffect(keepScreenOn: Boolean) {
+    val activity = LocalContext.current as? androidx.activity.ComponentActivity
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentKeepScreenOn by rememberUpdatedState(keepScreenOn)
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    if (currentKeepScreenOn) {
+                        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    DisposableEffect(currentKeepScreenOn) {
+        if (currentKeepScreenOn) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 }

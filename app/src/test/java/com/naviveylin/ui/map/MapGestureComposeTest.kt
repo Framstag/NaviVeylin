@@ -98,6 +98,22 @@ class MapGestureComposeTest {
     }
 
     @Test
+    fun slowRotationWithSmallPerEventDeltasIsReported() {
+        launchMap()
+        composeRule.onRoot().performTouchInput {
+            // Real-device scenario: high touch-sampling rates deliver many small
+            // per-event deltas (0.9° here — below the old 0.05 rad per-event
+            // threshold). The handler must accumulate and report them.
+            rotateFingers(center, 90.0, steps = 100)
+        }
+        composeRule.waitForIdle()
+
+        assertTrue("slow rotation must be reported", rotations.isNotEmpty())
+        val total = rotations.sum()
+        assertEquals("total rotation ≈ 90°", PI / 2, total, 0.3)
+    }
+
+    @Test
     fun twoFingerCounterClockwiseRotationReportsNegativeAngleDelta() {
         launchMap()
         composeRule.onRoot().performTouchInput {

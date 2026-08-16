@@ -19,6 +19,9 @@ travel while the map itself rotates at its own pace.
 - The overrun buffer allows sub-region blits for small pans before a full render is needed.
 - Both paths MUST ALWAYS deliver a 1080×2400 frame to `_frontBufferFlow`. A 1296×2880 frame in the
   UI = bug (wrongly scaled, marker offset).
+- **Overlay stage (final):** the GPS marker is NOT part of the native render. After a frame is
+  emitted, `MapCanvasScreen` composes `LocationMarkerOverlay` on top of the displayed bitmap.
+  Tiles, back buffer, and front buffer contain only static map content — never the marker.
 
 ## 2. Bitmap Lifecycle (CRITICAL — caused "jumps" multiple times)
 
@@ -67,8 +70,11 @@ travel while the map itself rotates at its own pace.
 - Unnormalized angles grow beyond 2π across renders and produce apparent rotation jumps (the log
   then shows e.g. `angle=14.6` — note: the `prepareViewport` log converts to degrees for display;
   values in the log are degrees, not radians).
-- Native convention (C++): `screenBearing = gpsMarkerBearing + angle`. For follow-direction,
+- Former native convention (C++): `screenBearing = gpsMarkerBearing + angle`. For follow-direction,
   `angle = -bearing` (radians) so the marker arrow points up. **Do not flip the sign.**
+- Kotlin overlay convention (same sign): `ProjectionUtils.screenBearing(bearingDeg, angleRad)` =
+  `bearingDeg + toDegrees(angle)`. The marker is drawn by the Compose overlay, so the C++ side no
+  longer computes a screen bearing — keep both sides on the same formula.
 
 ## 7. Course over Ground (COG)
 
@@ -94,20 +100,36 @@ Purpose: stable direction of travel from track geometry instead of noisy `Locati
 
 ## 8. Marker Rules
 
+- **Render target:** the marker is a Compose overlay (`LocationMarkerOverlay`) drawn on top of the
+  rendered map bitmap in `MapCanvasScreen`. It is NEVER written into cached tiles, the back buffer,
+  or the front buffer — those hold only static map content. A marker-only move/hide triggers no
+  native render, no epoch bump, and no tile invalidation.
+- **Projection:** the overlay projects against `uiState.renderViewport` (from the emitted
+  `frameFlow`) — the viewport of the bitmap actually on screen. NEVER the live
+  `currentViewport`, which leads the rendered frame during gestures.
+- **Position rides with the frame:** the VM feeds the marker state to `MapRenderer.setGpsMarkerState`;
+  it is snapshotted into the render job and emitted with the front buffer in one atomic
+  `frameFlow` (`FrameState(bitmap, viewport, marker)` — single emission per frame, so the overlay
+  can never combine state from different frames). The overlay draws THAT snapshot, not the live
+  fix — so the marker always sits on the road of the displayed bitmap and never jumps ahead while
+  frames lag the live GPS fix (old native behavior,
+  same cadence: marker updates per render; non-follow moves > 5 m trigger a render, 1 s throttle).
 - **Position:** in follow mode ALWAYS the raw (or navigation-filtered) GPS position
-  (`followMarkerLat/Lon`), never the smoothed camera center. A smoothed marker drifts off the road
-  (at 20 m/s already ~9 m offset visible).
+  (`followMarkerLat/Lon` → `uiState.gpsMarkerLat/Lon`), never the smoothed camera center. A smoothed
+  marker drifts off the road (at 20 m/s already ~9 m offset visible). Non-follow mode uses the raw fix.
 - **Arrow orientation (important):** the marker arrow uses the FRESHEST direction signal,
   independent of map smoothing. Priority chain:
   1. Window course (`courseBearing`) — reacts immediately after turn reset.
   2. Last segment bearing (`lastSegmentBearing`, newest 2 points ≥ 2 m) — also applies when the
      window course is still NaN (after reset < 10 m).
   3. Last used bearing (`lastUsedBearing`).
+  The VM publishes this as `uiState.gpsMarkerBearing`; the overlay draws the arrow at
+  `screenBearing(bearing, frontBufferAngle)`. In north-up orientation the bearing is `-1` and the
+  arrow points north on the map.
 - Map rotation may lag after corners (low-pass + rate limit) — the arrow must still point along
-  the new road immediately. Geometry: `screenBearing = markerBearing + angle`; with fresh
-  `markerBearing` + old `angle` the arrow points on screen exactly in the road direction of the
-  new stretch.
-- **Do not** fall back to raw `Location.bearing` (noisy, provider-dependent).
+  the new road immediately.
+- **Do not** fall back to raw `Location.bearing` (noisy, provider-dependent) — except in
+  non-follow mode, which mirrors the old behavior.
 
 ## 9. Map Rotation (Follow-Mode)
 
@@ -139,8 +161,9 @@ Purpose: stable direction of travel from track geometry instead of noisy `Locati
 - **No angle epsilon check against `currentAngle`**: during a slow render `prepareViewport`
   changes the target angle; the finished frame would otherwise be discarded (old cause of "map
   shows old image / jumps"). The next job picks up the new angle.
-- Render job snapshots center/marker at enqueue (`PendingRender`), not at the later
-  `submitDebounced` — otherwise old center + new marker in one frame (marker offset jumps).
+- Render job snapshots the viewport AND the marker state at enqueue (`PendingRender`); the marker
+  snapshot is emitted with the frame (`frameFlow`) — the overlay reads that frame's snapshot per
+  frame, so there is no marker/center skew to worry about.
 
 ## 13. Sub-Region Blits
 
@@ -149,6 +172,12 @@ Purpose: stable direction of travel from track geometry instead of noisy `Locati
   `sin(40°) × move` wrongly.
 - Blit only at the same magnification; on zoom change keep the old correct frame, don't show a
   scaled placeholder.
+- Blits copy pure map content — the marker overlay is drawn by Compose on top afterwards, so a
+  blit can never carry stale marker pixels.
+- Tile-path rotated composition MUST rotate about the viewport center (tiles placed north-up,
+  `canvas.rotate(deg, W/2, H/2)`), NEVER about each tile's own corner — corner pivots shift
+  content by up to `d·θ` (d = tile distance from center, θ = rotation) and break marker-overlay
+  alignment.
 
 ---
 
@@ -168,6 +197,17 @@ When "map jumps" / "marker wrong" appears, check first:
 8. Blit delta without rotation matrix? → lateral offset on rotated map.
 9. Center smoothed? → marker drifts off the road.
 10. Rate limit < 90°/frame? → map rotates too slowly after corners.
+11. Marker baked into cached tiles / reused front buffer (ghost marker artifacts after it moves)?
+    → marker must be a Compose overlay; tiles/buffers must contain only map content.
+12. Overlay projecting against `currentViewport` instead of `frontBufferViewport`? → marker
+    misplaced during pan/zoom/rotate gestures; always use `uiState.renderViewport`.
+13. `setGpsMarker`/`clearGpsMarker` or native `gpsMarker` state re-introduced? → forbidden: the
+    marker renders exclusively via `LocationMarkerOverlay`.
+14. Tile-path rotation pivots on each tile's own corner? → marker overlay (projected about the
+    viewport center) diverges from the map by up to `d·θ` — rotate about the viewport center.
+15. Overlay fed the LIVE GPS fix instead of the frame marker snapshot? → marker jumps ahead of the
+    road by up to one fix of travel while frames lag; always draw the snapshot that rode with the
+    displayed frame (`frameFlow`).
 
 ---
 

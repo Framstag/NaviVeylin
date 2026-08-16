@@ -10,6 +10,7 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -92,6 +93,7 @@ data class RouteResult(
 class RoutePanelViewModel @Inject constructor(
     private val client: OSMScoutClient,
     val favoriteRepository: FavoriteRepository,
+    private val searchHistoryRepository: SearchHistoryRepository,
     private val locationService: LocationService
 ) : ViewModel() {
 
@@ -146,6 +148,10 @@ class RoutePanelViewModel @Inject constructor(
     }
 
     fun selectSearchResult(entry: LocationEntry) {
+        // Capture the query before the state copy below clears it. Only real
+        // search selections (non-blank query) are recorded; "Current Location"
+        // is selected from an empty query and must not be recorded.
+        val query = _uiState.value.searchQuery
         val field = _uiState.value.activeField
         when (field) {
             ActiveField.START -> setStartLocation(entry)
@@ -157,6 +163,9 @@ class RoutePanelViewModel @Inject constructor(
             searchQuery = "",
             searchResults = emptyList()
         )
+        if (query.isNotBlank()) {
+            viewModelScope.launch { searchHistoryRepository.record(query) }
+        }
     }
 
     fun selectCurrentLocation() {

@@ -16,10 +16,6 @@ class FakeOSMScoutClient : OSMScoutClient() {
         styleFlags.add(key to value)
     }
 
-    override fun setGpsMarker(lat: Double, lon: Double, bearing: Double, accuracy: Double) {
-        // no-op for tests — the native marker drawing is not exercised
-    }
-
     override fun render(
         width: Int, height: Int,
         lat: Double, lon: Double,

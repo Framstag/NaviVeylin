@@ -26,7 +26,7 @@ android {
         applicationId = "com.framstag.naviveylin"
         minSdk = 28
         targetSdk = 36
-        versionCode = 5
+        versionCode = 7
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -101,6 +101,16 @@ android {
         schemaDirectory("$projectDir/schemas")
     }
 
+    sourceSets {
+        getByName("main") {
+            // Stylesheets are copied from the pinned libosmscout submodule into a
+            // generated assets root at build time (syncSubmoduleStylesheets) — no
+            // committed snapshot. Upstream style updates reach the APK with the
+            // submodule bump; there is no snapshot to keep in sync.
+            assets.srcDir("build/generated/assets")
+        }
+    }
+
     testOptions {
         unitTests {
             // Robolectric Compose UI tests need Android resources
@@ -114,6 +124,39 @@ android {
         }
     }
 }
+
+// Stylesheets are sourced from the libosmscout submodule at build time. Copy the
+// submodule stylesheet directory into a generated assets root so the APK packages
+// exactly the current submodule state — "stylesheets/..." in the APK, matching the
+// AssetCopier contract.
+tasks.register<Sync>("syncSubmoduleStylesheets") {
+    from("src/main/cpp/libosmscout/stylesheets")
+    into(layout.buildDirectory.dir("generated/assets/stylesheets"))
+}
+
+// Fail fast with an actionable message when the submodule is not checked out
+// (fresh clone), instead of packaging an APK without stylesheets.
+tasks.register("checkSubmoduleStylesheets") {
+    val stylesheetsDir = file("src/main/cpp/libosmscout/stylesheets")
+    doFirst {
+        check(stylesheetsDir.isDirectory) {
+            "libosmscout submodule stylesheets not found at $stylesheetsDir. " +
+                "Initialize the submodule first: git submodule update --init --recursive"
+        }
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn("checkSubmoduleStylesheets", "syncSubmoduleStylesheets")
+}
+
+// Ensure every asset merge (debug/release/test) copies the submodule stylesheets
+// first — the sync output is a static build-dir path, so no automatic dependency
+// is carried from the source set.
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
+    .configureEach {
+        dependsOn("syncSubmoduleStylesheets")
+    }
 
 dependencies {
     // Compose BOM

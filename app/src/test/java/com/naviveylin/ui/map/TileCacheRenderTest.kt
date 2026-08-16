@@ -27,8 +27,7 @@ class TileCacheRenderTest {
         renderer = MapRenderer(
             client = FakeOSMScoutClient(),
             dpi = 420.0,
-            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-            gpsRenderMinIntervalMs = 0
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         )
     }
 

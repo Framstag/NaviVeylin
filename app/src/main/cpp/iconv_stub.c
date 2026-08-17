@@ -19,3 +19,19 @@ size_t iconv(iconv_t cd, char** inbuf, size_t* inbytesleft,
 int iconv_close(iconv_t cd) {
     return 0;
 }
+
+// GNU libiconv-compatible aliases. fontconfig built against vcpkg's libiconv
+// (iconv feature) references libiconv_open/libiconv/libiconv_close instead of
+// the bionic names above — provide both so the link works either way.
+iconv_t libiconv_open(const char* to, const char* from) {
+    return iconv_open(to, from);
+}
+
+size_t libiconv(iconv_t cd, char** inbuf, size_t* inbytesleft,
+                char** outbuf, size_t* outbytesleft) {
+    return iconv(cd, inbuf, inbytesleft, outbuf, outbytesleft);
+}
+
+int libiconv_close(iconv_t cd) {
+    return iconv_close(cd);
+}

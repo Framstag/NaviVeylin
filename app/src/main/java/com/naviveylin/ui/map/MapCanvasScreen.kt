@@ -670,6 +670,10 @@ fun MapCanvasScreen(
                         onToggleLaneHints = { enabled ->
                             viewModel.onToggleLaneHints(enabled)
                         },
+                        renderMode = state.renderMode,
+                        onSetRenderMode = { mode ->
+                            viewModel.onSetRenderMode(mode)
+                        },
                         isNavigating = navState.isNavigating
                     )
 
@@ -849,6 +853,10 @@ fun MapCanvasScreen(
                         laneHintsEnabled = state.laneHintsEnabled,
                         onToggleLaneHints = { enabled ->
                             viewModel.onToggleLaneHints(enabled)
+                        },
+                        renderMode = state.renderMode,
+                        onSetRenderMode = { mode ->
+                            viewModel.onSetRenderMode(mode)
                         },
                         isNavigating = navState.isNavigating
                     )

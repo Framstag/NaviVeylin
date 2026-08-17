@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.naviveylin.data.DarkModePreference
+import com.naviveylin.data.RenderMode
 
 /**
  * Location options button that opens a full-width Material 3 bottom sheet
@@ -60,6 +61,8 @@ fun LocationOptionsOverlay(
     onSetDarkModePreference: (DarkModePreference) -> Unit = {},
     laneHintsEnabled: Boolean = true,
     onToggleLaneHints: (Boolean) -> Unit = {},
+    renderMode: RenderMode = RenderMode.TILES,
+    onSetRenderMode: (RenderMode) -> Unit = {},
     isNavigating: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -111,6 +114,8 @@ fun LocationOptionsOverlay(
                 onSetDarkModePreference = onSetDarkModePreference,
                 laneHintsEnabled = laneHintsEnabled,
                 onToggleLaneHints = onToggleLaneHints,
+                renderMode = renderMode,
+                onSetRenderMode = onSetRenderMode,
                 isNavigating = isNavigating
             )
         }
@@ -133,6 +138,8 @@ private fun LocationOptionsSheetContent(
     onSetDarkModePreference: (DarkModePreference) -> Unit,
     laneHintsEnabled: Boolean,
     onToggleLaneHints: (Boolean) -> Unit,
+    renderMode: RenderMode,
+    onSetRenderMode: (RenderMode) -> Unit,
     isNavigating: Boolean
 ) {
     val currentNorthUp = if (isNavigating) navNorthUp else freeFormNorthUp
@@ -284,6 +291,29 @@ private fun LocationOptionsSheetContent(
                 label = "Automatic",
                 selected = darkModePreference == DarkModePreference.AUTOMATIC,
                 onClick = { onSetDarkModePreference(DarkModePreference.AUTOMATIC) }
+            )
+        }
+
+        // Rendering mode section — always visible
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        Text(
+            text = "Rendering",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        )
+
+        Column(modifier = Modifier.selectableGroup()) {
+            OrientationOption(
+                label = "Tile cache",
+                selected = renderMode == RenderMode.TILES,
+                onClick = { onSetRenderMode(RenderMode.TILES) }
+            )
+            OrientationOption(
+                label = "Direct",
+                selected = renderMode == RenderMode.DIRECT,
+                onClick = { onSetRenderMode(RenderMode.DIRECT) }
             )
         }
     }

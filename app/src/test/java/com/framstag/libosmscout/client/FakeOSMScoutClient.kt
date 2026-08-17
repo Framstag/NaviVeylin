@@ -12,6 +12,16 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Recorded (key, value) style flag pushes in call order. */
     val styleFlags: MutableList<Pair<String, Boolean>> = CopyOnWriteArrayList()
 
+    /** Number of [render] invocations (full direct native renders). */
+    val renderCount = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /** Number of [renderWithRouteAndPois] invocations (per-tile renders + overlay renders). */
+    val renderWithRouteAndPoisCount = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /** Optional artificial delay (ms) inside [renderWithRouteAndPois] — used to
+     *  interleave mode switches with an in-flight tile render in tests. */
+    var renderWithRouteAndPoisDelayMs: Long = 0L
+
     override fun setStyleSheetFlag(key: String, value: Boolean) {
         styleFlags.add(key to value)
     }
@@ -21,6 +31,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
         lat: Double, lon: Double,
         angle: Double, magnification: Int
     ): IntArray? {
+        renderCount.incrementAndGet()
         return createTestPixels(width, height)
     }
 
@@ -32,6 +43,10 @@ class FakeOSMScoutClient : OSMScoutClient() {
         searchSelLat: Double, searchSelLon: Double,
         trackLats: DoubleArray?, trackLons: DoubleArray?
     ): IntArray? {
+        renderWithRouteAndPoisCount.incrementAndGet()
+        if (renderWithRouteAndPoisDelayMs > 0L) {
+            Thread.sleep(renderWithRouteAndPoisDelayMs)
+        }
         return createTestPixels(width, height)
     }
 

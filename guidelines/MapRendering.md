@@ -12,16 +12,38 @@ travel while the map itself rotates at its own pace.
 
 ## 1. Render Pipeline Architecture
 
-- Two paths in `MapRenderer.executeRender`:
-  - **Tile path** (`job.angle == 0.0`): assemble tiles from `TileCache` onto a 1080×2400 canvas.
-  - **Rotated path** (`job.angle != 0.0`): full JNI render onto an overrun canvas
-    (1296×2880 = 1.2× screen), then `extractCenterRegion` → 1080×2400.
+- Two user-selectable modes in `MapRenderer` (`renderMode`: `TILES` default, `DIRECT`):
+  - **TILES mode — tile path** (`renderMode == TILES && (angle == 0.0 || !forceFullRender)`):
+    visible geo bounds are covered from geographic tiles in `TileCache`; missing tiles are
+    rendered natively one per tile (`renderTilePixels`, 256px @ 96dpi scaled by device dpi) and
+    cached; the composed frame is screen-sized (e.g. 1080×2400). Rotated live previews compose
+    tiles north-up and rotate the whole canvas about the viewport center — labels stay north-up.
+  - **DIRECT mode — full native path**: every render goes through `MapRenderUtil.renderToBitmap`
+    onto an overrun canvas (1296×2880 = 1.2× screen), then `extractCenterRegion` → 1080×2400.
+    Labels render natively in the viewport direction. No tile cache is read or written.
+  - Forced full renders (rotation gesture end, `forceFullRender = true`) use the full native path
+    in BOTH modes when the angle is non-zero, so labels are drawn in the correct direction.
+- Path selection in `executeRender`:
+  `val tilePath = renderMode == RenderMode.TILES && (job.angle == 0.0 || !job.forceFullRender)`
+  - Tile path bails (→ full native render) on antimeridian views, tile render failure, or a tile
+    grid wider than the 4×4 sanity guard.
 - The overrun buffer allows sub-region blits for small pans before a full render is needed.
-- Both paths MUST ALWAYS deliver a 1080×2400 frame to `_frontBufferFlow`. A 1296×2880 frame in the
-  UI = bug (wrongly scaled, marker offset).
+- Both paths MUST ALWAYS deliver a screen-sized frame to `_frontBufferFlow`. An overrun-sized
+  frame in the UI = bug (wrongly scaled, marker offset).
 - **Overlay stage (final):** the GPS marker is NOT part of the native render. After a frame is
   emitted, `MapCanvasScreen` composes `LocationMarkerOverlay` on top of the displayed bitmap.
   Tiles, back buffer, and front buffer contain only static map content — never the marker.
+- **Mode switch:** `onSetRenderMode` in the ViewModel persists the choice and applies it via
+  `mapRenderer.invalidateStyle()` (epoch bump + tile cache clear + forced full re-render), so no
+  tiles/buffers from the other mode survive. `renderMode` is a `@Volatile` field read at job
+  execution — an in-flight job may finish in the old mode; its result is discarded by the epoch
+  check.
+- **DIRECT mode low-zoom risk:** at mag < 4 a full native render covers huge world viewports
+  (z=2 ~5s, z=1 hangs). The zoom floors (`MIN_MAG`/`GESTURE_MIN_MAG` = 4) prevent gesture-driven
+  low zooms in both modes; DIRECT at mag 4 is still a full-world first draw — expect slowness
+  before the frame lands.
+- **Removed:** the old screen-space tile-split helpers (`TileCache.storeTiles`/`compose`,
+  `computeTileGrid`, `MapRenderer.blitSubRegion`) are gone; the tile cache is geographic-only.
 
 ## 2. Bitmap Lifecycle (CRITICAL — caused "jumps" multiple times)
 

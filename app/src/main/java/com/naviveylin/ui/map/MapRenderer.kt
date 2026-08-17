@@ -7,6 +7,7 @@ import androidx.annotation.VisibleForTesting
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.MapRenderUtil
+import com.naviveylin.data.RenderMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -49,6 +50,15 @@ class MapRenderer(
     @Volatile var currentLon = DEFAULT_LONGITUDE
     @Volatile var currentMag = DEFAULT_MAGNIFICATION
     @Volatile var currentAngle = 0.0
+
+    // ---- Render mode ----
+    /**
+     * Rendering strategy: TILES uses the geographic tile cache and renders only
+     * missing tiles natively; DIRECT always renders the full viewport natively
+     * (no tile cache). Read at job execution, so a switch applies at the next
+     * render without touching queued jobs.
+     */
+    @Volatile var renderMode: RenderMode = RenderMode.TILES
 
     // ---- Canvas dimensions ----
     @Volatile var screenWidth = 0
@@ -645,7 +655,8 @@ class MapRenderer(
         // Tile path serves north-up views and serves as a fast live preview
         // during the rotation gesture. A forced full render (gesture end) uses
         // the native path so labels are drawn in the correct direction.
-        val tilePath = job.angle == 0.0 || !job.forceFullRender
+        // In DIRECT mode every render is a full native render — no tile cache.
+        val tilePath = renderMode == RenderMode.TILES && (job.angle == 0.0 || !job.forceFullRender)
         var bitmap: Bitmap? = null
         if (tilePath) {
             bitmap = renderFromTiles(job)
@@ -837,36 +848,6 @@ class MapRenderer(
         return viewLeft >= 0 && viewTop >= 0 && viewLeft + sw <= fbW && viewTop + sh <= fbH
     }
 
-    private fun blitSubRegion(fb: Bitmap, renderLat: Double, renderLon: Double, renderMag: Int): Bitmap {
-        val sw = screenWidth; val sh = screenHeight; val fbW = fb.width; val fbH = fb.height
-        val (ocx, ocy) = ProjectionUtils.geoToScreen(renderLat, renderLon, sw, sh, renderMag, renderLat, renderLon, dpi)
-        val (ncx, ncy) = ProjectionUtils.geoToScreen(currentLat, currentLon, sw, sh, renderMag, renderLat, renderLon, dpi)
-        val dx = ncx - ocx; val dy = ncy - ocy
-        // Rotate the unrotated screen delta by the viewport angle (see trySubRegionBlit).
-        val cosA = kotlin.math.cos(frontBufferAngle)
-        val sinA = kotlin.math.sin(frontBufferAngle)
-        val dxR = dx * cosA - dy * sinA
-        val dyR = dx * sinA + dy * cosA
-        val srcX = fbW / 2.0 - sw / 2.0 + dxR; val srcY = fbH / 2.0 - sh / 2.0 + dyR
-        val isx = srcX.coerceAtLeast(0.0); val isy = srcY.coerceAtLeast(0.0)
-        val iw = minOf(fbW - isx, sw.toDouble()).coerceAtLeast(0.0)
-        val ih = minOf(fbH - isy, sh.toDouble()).coerceAtLeast(0.0)
-        val result = Bitmap.createBitmap(sw, sh, Bitmap.Config.ARGB_8888)
-        if (iw > 0 && ih > 0) {
-            val region = Bitmap.createBitmap(fb, isx.toInt(), isy.toInt(), iw.toInt(), ih.toInt())
-            // createBitmap can share the backing buffer with fb. Recycling that shared view
-            // would free fb's pixels while Compose may still be drawing it, so copy first.
-            val regionCopy = region.copy(Bitmap.Config.ARGB_8888, true)
-            region.recycle()
-            android.graphics.Canvas(result).apply {
-                drawBitmap(regionCopy, (isx - srcX).toFloat(), (isy - srcY).toFloat(), null)
-                setBitmap(null)
-            }
-            regionCopy.recycle()
-        }
-        return result
-    }
-
     private fun extractCenterRegion(fb: Bitmap): Bitmap {
         val sw = screenWidth; val sh = screenHeight
         val fbW = fb.width; val fbH = fb.height
@@ -892,8 +873,6 @@ class MapRenderer(
 
     companion object {
         private const val TAG = "MapRenderer"
-        /** Accept ±5° angle drift between render start and emission so GPS bearing jitter does not discard frames. */
-        private const val ANGLE_EPSILON_RAD = 0.0872665
         const val DEFAULT_MAGNIFICATION = 5
         const val DEFAULT_LATITUDE = 51.5142273
         const val DEFAULT_LONGITUDE = 7.4652789

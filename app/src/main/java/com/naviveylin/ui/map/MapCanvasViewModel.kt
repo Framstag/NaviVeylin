@@ -13,6 +13,7 @@ import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.RenderMode
 import com.naviveylin.data.SearchHistoryEntry
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
@@ -85,6 +86,7 @@ data class MapCanvasUiState(
     val isDarkPresentation: Boolean = false,
     val gpsFixQuality: GpsFixQuality = GpsFixQuality.NONE,
     val laneHintsEnabled: Boolean = true,
+    val renderMode: RenderMode = RenderMode.TILES,
     /** Last GPS location for marker overlay; null if unavailable. */
     val gpsLocation: android.location.Location? = null,
     /** Viewport that produced the currently visible bitmap. Marker overlay must use this. */
@@ -330,6 +332,21 @@ class MapCanvasViewModel @Inject constructor(
             val current = settingsStorage.load()
             settingsStorage.save(current.copy(laneHintsEnabled = enabled))
         }
+    }
+
+    /**
+     * Set the map rendering mode (tile-cached vs direct). Persists the
+     * selection and applies it immediately: the renderer is switched and a
+     * forced full re-render clears any tiles/buffers from the other mode.
+     */
+    fun onSetRenderMode(mode: RenderMode) {
+        _uiState.value = _uiState.value.copy(renderMode = mode)
+        viewModelScope.launch {
+            val current = settingsStorage.load()
+            settingsStorage.save(current.copy(renderMode = mode))
+        }
+        mapRenderer?.renderMode = mode
+        mapRenderer?.invalidateStyle()
     }
 
     /** Feed the environment dimming signal (system night mode) from composition. */
@@ -737,7 +754,8 @@ class MapCanvasViewModel @Inject constructor(
                 navNorthUp = settings.navNorthUp,
                 keepScreenOn = settings.keepScreenOn,
                 darkModePreference = settings.darkMode,
-                laneHintsEnabled = settings.laneHintsEnabled
+                laneHintsEnabled = settings.laneHintsEnabled,
+                renderMode = settings.renderMode
             )
         }
 
@@ -1068,6 +1086,7 @@ class MapCanvasViewModel @Inject constructor(
             val rendererScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
             this@MapCanvasViewModel.rendererScope = rendererScope
             val renderer = MapRenderer(client, density, rendererScope)
+            renderer.renderMode = _uiState.value.renderMode
             // Re-apply the last known screen size: onSizeChanged only fires on size
             // CHANGE, so re-entering this screen (same size) would leave the new
             // renderer at 0x0 and every render would be skipped.

@@ -5,6 +5,9 @@ import com.naviveylin.core.ProjectionUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -20,12 +23,14 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class TileCacheRenderTest {
 
+    private lateinit var client: FakeOSMScoutClient
     private lateinit var renderer: MapRenderer
 
     @Before
     fun setUp() {
+        client = FakeOSMScoutClient()
         renderer = MapRenderer(
-            client = FakeOSMScoutClient(),
+            client = client,
             dpi = 420.0,
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         )
@@ -120,6 +125,38 @@ class TileCacheRenderTest {
             assertTrue("corner ($lat,$lon) x=$x outside [$xMin,$xMax]", x in xMin..xMax)
             assertTrue("corner ($lat,$lon) y=$y outside [$yMin,$yMax]", y in yMin..yMax)
         }
+    }
+
+    @Test
+    fun tilePathRendersMissingTilesAndReusesCachedTiles() = runBlocking {
+        // Screen larger than one tile (1120px @ 420dpi) so the viewport spans
+        // multiple geographic tiles and the tile path renders several natively.
+        renderer.screenWidth = 1200
+        renderer.screenHeight = 1200
+        renderer.requestRender(51.5, 7.5, 14, 0.0)
+
+        withTimeout(5000) {
+            while (renderer.frameFlow.value.bitmap == null || renderer.renderedMag != 14) {
+                delay(10)
+            }
+        }
+        val firstBitmap = renderer.frameFlow.value.bitmap
+        val firstCount = client.renderWithRouteAndPoisCount.get()
+        assertTrue("tile path must render missing tiles natively (count=$firstCount)", firstCount >= 1)
+
+        // Forced full render at the SAME viewport: the tile path must compose
+        // entirely from the cache — no new native render calls.
+        renderer.requestRender(51.5, 7.5, 14, 0.0, forceFullRender = true)
+        withTimeout(5000) {
+            while (renderer.frameFlow.value.bitmap === firstBitmap) {
+                delay(10)
+            }
+        }
+        assertEquals(
+            "cached tiles must be reused on re-render",
+            firstCount,
+            client.renderWithRouteAndPoisCount.get()
+        )
     }
 
     @Test

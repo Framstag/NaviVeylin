@@ -19,6 +19,13 @@ enum class DarkModePreference {
     AUTOMATIC
 }
 
+/** Map rendering strategy: tile-cached geographic tiles, or direct full-viewport native render. */
+@Serializable
+enum class RenderMode {
+    TILES,
+    DIRECT
+}
+
 /** User settings persisted to a JSON file. */
 @Serializable
 data class AppSettings(
@@ -28,7 +35,8 @@ data class AppSettings(
     val navNorthUp: Boolean = false,
     val keepScreenOn: Boolean = true,
     val darkMode: DarkModePreference = DarkModePreference.AUTOMATIC,
-    val laneHintsEnabled: Boolean = true
+    val laneHintsEnabled: Boolean = true,
+    val renderMode: RenderMode = RenderMode.TILES
 )
 
 /** Persists [AppSettings] to a JSON file in app internal storage. */

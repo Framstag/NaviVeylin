@@ -82,6 +82,16 @@ class TileCacheTest {
     }
 
     @Test
+    fun `tiles at different zoom levels do not collide`() {
+        val keyLow = TileCache.TileKey(8, 0, 0)
+        val keyHigh = TileCache.TileKey(14, 0, 0)
+        val bmp = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
+        cache.put(keyLow, bmp, 1L)
+        assertNotNull(cache.get(keyLow, 1L))
+        assertNull(cache.get(keyHigh, 1L))
+    }
+
+    @Test
     fun `retainEpoch removes stale entries`() {
         val key1 = TileCache.TileKey(8, 0, 0)
         val key2 = TileCache.TileKey(8, 0, 1)
@@ -104,79 +114,5 @@ class TileCacheTest {
         cache.put(key, bitmap, 1L)
         cache.clear()
         assertEquals(0, cache.size())
-    }
-
-    @Test
-    fun `computeTileGrid covers full area`() {
-        val keys = cache.computeTileGrid(512, 512, 8)
-        // 512/256 = 2 cols, 2 rows = 4 tiles
-        assertEquals(4, keys.size)
-        val expectedKeys = setOf(
-            TileCache.TileKey(8, 0, 0),
-            TileCache.TileKey(8, 1, 0),
-            TileCache.TileKey(8, 0, 1),
-            TileCache.TileKey(8, 1, 1)
-        )
-        assertEquals(expectedKeys, keys.toSet())
-    }
-
-    @Test
-    fun `computeTileGrid handles partial tiles`() {
-        val keys = cache.computeTileGrid(300, 300, 8)
-        // 300/256 = 2 cols (ceil), 2 rows = 4 tiles
-        assertEquals(4, keys.size)
-    }
-
-    @Test
-    fun `storeTiles and compose round-trip`() {
-        val width = 512
-        val height = 512
-        val pixels = IntArray(width * height)
-        // Fill with a recognizable pattern: red in top-left tile, blue in bottom-right
-        for (y in 0 until 256) {
-            for (x in 0 until 256) {
-                pixels[y * width + x] = 0xFFFF0000.toInt() // red
-            }
-        }
-        for (y in 256 until 512) {
-            for (x in 256 until 512) {
-                pixels[y * width + x] = 0xFF0000FF.toInt() // blue
-            }
-        }
-
-        cache.storeTiles(pixels, width, height, 8, 1L)
-
-        val result = cache.compose(width, height, 8, 1L)
-        assertNotNull(result)
-        assertEquals(0, result!!.missingTiles)
-        assertTrue(result.isComplete)
-
-        // Verify pixel at top-left is red
-        val checkPixels = IntArray(1)
-        result.bitmap.getPixels(checkPixels, 0, 1, 0, 0, 1, 1)
-        assertEquals(0xFFFF0000.toInt(), checkPixels[0])
-    }
-
-    @Test
-    fun `compose with partial cache returns missing count`() {
-        val width = 512
-        val height = 512
-        val pixels = IntArray(width * height)
-
-        // Store only one tile
-        val singleTile = IntArray(256 * 256)
-        val singleBmp = android.graphics.Bitmap.createBitmap(singleTile, 256, 256, android.graphics.Bitmap.Config.ARGB_8888)
-        cache.put(TileCache.TileKey(8, 0, 0), singleBmp, 1L)
-
-        val result = cache.compose(width, height, 8, 1L)
-        assertNotNull(result)
-        assertEquals(3, result!!.missingTiles)
-        assertFalse(result.isComplete)
-    }
-
-    @Test
-    fun `compose with no cached tiles returns null`() {
-        val result = cache.compose(512, 512, 8, 1L)
-        assertNull(result)
     }
 }

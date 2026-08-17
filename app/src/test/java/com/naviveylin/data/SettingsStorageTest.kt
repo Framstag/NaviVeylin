@@ -43,6 +43,36 @@ class SettingsStorageTest {
     }
 
     @Test
+    fun missingFileDefaultsToTiles() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        val loaded = storage.load()
+        assertEquals(RenderMode.TILES, loaded.renderMode)
+    }
+
+    @Test
+    fun roundTripPersistsRenderMode() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        storage.save(AppSettings(renderMode = RenderMode.DIRECT))
+        val loaded = storage.load()
+        assertEquals(RenderMode.DIRECT, loaded.renderMode)
+    }
+
+    @Test
+    fun oldSettingsJsonWithoutRenderModeLoadsAsTiles() = runTest {
+        // Simulate a settings file written by an app version predating the
+        // renderMode setting — the missing key must decode to the default.
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val file = java.io.File(context.filesDir, "maps/settings.json")
+        file.parentFile?.mkdirs()
+        file.writeText("""{"followMode":true,"keepScreenOn":false}""")
+        val storage = SettingsStorage(context)
+        val loaded = storage.load()
+        assertEquals(true, loaded.followMode)
+        assertEquals(false, loaded.keepScreenOn)
+        assertEquals(RenderMode.TILES, loaded.renderMode)
+    }
+
+    @Test
     fun otherSettingsSurviveDarkModeRoundTrip() = runTest {
         val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
         storage.save(

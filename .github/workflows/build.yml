@@ -25,6 +25,10 @@ env:
   VCPKG_BINARY_SOURCES: files,${{ github.workspace }}/.vcpkg-bincache,readwrite
   ANDROID_HOME: ${{ github.workspace }}/android-sdk
   ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+  # vcpkg must build deps with the SAME NDK as the app (ndkVersion in
+  # app/build.gradle.kts) — the runner image pre-sets ANDROID_NDK_HOME to its
+  # own NDK (27.3.x), which would otherwise produce mismatched deps.
+  ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/27.0.12077973
 
 jobs:
   build:

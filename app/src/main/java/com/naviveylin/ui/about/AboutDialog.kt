@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.naviveylin.BuildConfig
 import com.naviveylin.core.DiagnosticsLog
 
 @Composable
@@ -31,11 +32,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     var showDiagnostics by remember { mutableStateOf(false) }
 
-    val versionName = try {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
-    } catch (_: Exception) {
-        "?"
-    }
+    val versionName = BuildConfig.VERSION_NAME.ifBlank { "?" }
 
     AlertDialog(
         onDismissRequest = onDismiss,

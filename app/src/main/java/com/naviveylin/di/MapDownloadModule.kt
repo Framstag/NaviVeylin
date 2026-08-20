@@ -8,6 +8,7 @@ import com.framstag.libosmscout.client.MapDownloadManager
 import com.framstag.libosmscout.client.MapProvider
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.OSMScoutClientBuilder
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.MapStorageManager
 import dagger.Module
@@ -37,13 +38,22 @@ object MapDownloadModule {
         @ApplicationContext context: Context
     ): OSMScoutClient {
         val mapsDir = storageManager.mapsRootDir.toString()
-        val stylesheetsDir = assetCopier.ensureStylesheets()
+        var stylesheetsDir = ""
+        DiagnosticsLog.time("stylesheet sync") {
+            stylesheetsDir = assetCopier.ensureStylesheets()
+        }
+        DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Stylesheets synced to $stylesheetsDir")
 
         val metrics: DisplayMetrics = context.resources.displayMetrics
         val physicalDpi = metrics.densityDpi.toDouble()
         Log.d("MapDownloadModule", "densityDpi=$physicalDpi, xdpi=${metrics.xdpi}, ydpi=${metrics.ydpi}")
 
+        // Class init of OSMScoutClientBuilder triggers System.loadLibrary —
+        // bracket it so a slow/failing dlopen shows up in the warmup log.
+        DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Loading native library (OSMScoutClientBuilder class init)")
         val builder = OSMScoutClientBuilder()
+        DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Native library loaded, builder created")
+        builder
             .withMapLookupDirectories(mapsDir)
             .withPhysicalDpi(physicalDpi)
             .withFontSizeMm(2.5)
@@ -60,7 +70,13 @@ object MapDownloadModule {
             builder.withBasemapLookupDirectory(basemapDir.toString())
         }
 
-        return builder.build()
+        DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Starting native build()")
+        var client: OSMScoutClient? = null
+        DiagnosticsLog.time("native build") {
+            client = builder.build()
+        }
+        DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "native build() returned")
+        return client!!
     }
 
     @Provides

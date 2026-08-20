@@ -17,10 +17,11 @@ object SearchScreenMapper {
      */
     fun buildDescription(entry: LocationEntry): String {
         val parts = mutableListOf<String>()
-        if (entry.postalArea.isNotEmpty()) {
+        // JNI leaves these fields null when the location index has no data.
+        if (!entry.postalArea.isNullOrEmpty()) {
             parts.add(entry.postalArea)
         }
-        if (entry.region.isNotEmpty()) {
+        if (!entry.region.isNullOrEmpty()) {
             parts.add(entry.region.joinToString(", "))
         }
         return parts.joinToString(" — ")

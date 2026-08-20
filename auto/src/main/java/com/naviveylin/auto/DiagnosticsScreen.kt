@@ -3,7 +3,7 @@ package com.naviveylin.auto
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
-import androidx.car.app.model.ActionStrip
+import androidx.car.app.model.Header
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
@@ -15,6 +15,10 @@ import com.naviveylin.core.DiagnosticsLog
  * inspected from the car without adb.
  */
 class DiagnosticsScreen(carContext: CarContext) : Screen(carContext) {
+
+    init {
+        enableBackNavigation()
+    }
 
     override fun onGetTemplate(): PaneTemplate {
         val entries = DiagnosticsLog.readEntries().takeLast(MAX_ROWS).asReversed()
@@ -42,8 +46,13 @@ class DiagnosticsScreen(carContext: CarContext) : Screen(carContext) {
             .build()
 
         return PaneTemplate.Builder(builder.build())
-            .setTitle("Diagnostics")
-            .setActionStrip(ActionStrip.Builder().addAction(refreshAction).build())
+            .setHeader(
+                Header.Builder()
+                    .setTitle("Diagnostics")
+                    .setStartHeaderAction(Action.BACK)
+                    .addEndHeaderAction(refreshAction)
+                    .build()
+            )
             .build()
     }
 

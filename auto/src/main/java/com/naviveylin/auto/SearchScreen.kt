@@ -37,10 +37,25 @@ class SearchScreen(
     )
     private val searchProvider = entryPoint.autoSearchProvider()
 
+    init {
+        enableBackNavigation()
+    }
+
     override fun onGetTemplate(): SearchTemplate {
-        return SearchTemplate.Builder(SearchCallbackImpl())
+        val builder = SearchTemplate.Builder(SearchCallbackImpl())
             .setShowKeyboardByDefault(true)
-            .build()
+            // Explicit back — emulated hosts may not render their own.
+            .setHeaderAction(Action.BACK)
+
+        // Show the loading state while a search is in flight; once results
+        // are ready, render them via setItemList (SearchTemplate results are
+        // carried by the template itself, not a separate screen).
+        if (searchJob?.isActive == true) {
+            builder.setLoading(true)
+        } else if (lastQuery.isNotBlank() || lastResults.isNotEmpty()) {
+            builder.setItemList(buildResultsList())
+        }
+        return builder.build()
     }
 
     private inner class SearchCallbackImpl : SearchCallback {

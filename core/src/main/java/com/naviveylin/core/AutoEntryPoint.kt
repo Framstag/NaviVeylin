@@ -19,6 +19,19 @@ interface AutoEntryPoint {
     /** Reactive snapshot of all favorite locations, grouped by group name. */
     fun autoFavoritesProvider(): AutoFavoritesProvider
 
+    /** GPS position source for the car map (AA-only process has no phone UI). */
+    fun autoLocationProvider(): AutoLocationProvider
+
+    /**
+     * Real navigation controller for the AA-only process (route calc +
+     * turn-by-turn). Observes itself into the shared state provider; resolve
+     * it during warmup to activate navigation.
+     */
+    fun autoNavigationController(): AutoNavigationController
+
     /** Shared OSMScoutClient instance for map rendering. */
     fun autoClientProvider(): AutoClientProvider
+
+    /** Shared navigation settings (view + edit) for the preferences screen. */
+    fun autoSettingsProvider(): AutoSettingsProvider
 }

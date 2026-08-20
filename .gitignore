@@ -7,6 +7,9 @@ app/keystore.properties
 app/release.keystore
 app/debug.keystore
 
+# Release version state (managed by the release task)
+app/release-version.properties
+
 # Agent/tooling state
 .pi/
 .pi-subagents/

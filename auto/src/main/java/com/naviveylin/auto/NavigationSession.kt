@@ -5,24 +5,30 @@ import android.util.Log
 import androidx.car.app.Screen
 import androidx.car.app.ScreenManager
 import androidx.car.app.Session
+import androidx.car.app.model.Action
+import androidx.car.app.model.Header
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Android Auto session that manages the screen stack.
@@ -34,10 +40,18 @@ import kotlinx.coroutines.withContext
  *
  * Startup hardening:
  * - Heavy initialization (Hilt entry point + native [OSMScoutClient] singleton)
- *   runs in the background ([startWarmup]) so the host receives its first
- *   template immediately ([LoadingScreen]) instead of blocking the main thread.
+ *   runs in the background ([startWarmup]) so the host gets a responsive session;
+ *   the root screen ([RootScreen]/[NavigationScreen]) is shown immediately and
+ *   does not block on the native client (only the map screen uses it).
  * - Host callbacks are guarded: failures surface as [ErrorScreen] with Retry
  *   rather than killing the process.
+ * - The root screen is always the real one: a transient LoadingScreen was never
+ *   a viable root because androidx.car.app 1.7 [ScreenManager] refuses to pop
+ *   the root screen, so any later popToRoot() would re-reveal the stale
+ *   loading template and wedge the session on it forever.
+ * - Warmup is time-boxed ([WARMUP_TIMEOUT_MS]): a stuck native client build
+ *   must never block the session; on timeout the session surfaces
+ *   [ErrorScreen] with the last completed warmup step.
  */
 class NavigationSession : Session() {
 
@@ -53,13 +67,30 @@ class NavigationSession : Session() {
     @Volatile
     private var warmupCompleted = false
 
+    @Volatile
+    private var lastWarmupStep: String = "warmup not started"
+
+    /** Wall clock at Session construction — anchors all elapsed-time logs. */
+    private val sessionStartMs: Long = System.currentTimeMillis()
+
     private var pendingIntent: Intent? = null
-    private var loadingScreenShown = false
+
+    /** Set once the AA location source has been started (guards [entryPoint] in onDestroy). */
+    @Volatile
+    private var locationStarted = false
 
     init {
+        SessionLog.sessionCreated()
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onDestroy(owner: LifecycleOwner) {
                 SessionLog.destroyed()
+                if (warmupJob?.isActive == true) {
+                    SessionLog.warmupCancelled()
+                }
+                if (locationStarted) {
+                    runCatching { entryPoint.autoLocationProvider().stop() }
+                        .onFailure { Log.w(TAG, "location stop failed", it) }
+                }
                 sessionDestroyed = true
                 stopObserving()
                 scope.cancel()
@@ -81,20 +112,28 @@ class NavigationSession : Session() {
     }
 
     override fun onCreateScreen(intent: Intent): Screen {
-        SessionLog.onCreateScreen(intent)
+        SessionLog.onCreateScreen(
+            intent,
+            warmupCompleted = warmupCompleted,
+            sinceSessionMs = System.currentTimeMillis() - sessionStartMs
+        )
         return runCatching {
-            if (!warmupCompleted) {
-                // Host is waiting for the first template: return a lightweight
-                // loading screen now; warmup pushes the real screen when ready.
-                pendingIntent = intent
-                loadingScreenShown = true
-                LoadingScreen(carContext)
-            } else {
-                val screen = initialScreen()
+            // The root screen is always the real one (RootScreen or
+            // NavigationScreen). It does not need the native client, so it can
+            // be served as the very first template without waiting for warmup.
+            // Never return a transient LoadingScreen here: it would become the
+            // stack root and, because ScreenManager cannot pop the root, any
+            // later popToRoot() would re-reveal it and wedge the session.
+            val screen = initialScreen()
+            if (warmupCompleted) {
                 startObserving()
                 handleDeepLink(intent)
-                screen
+            } else {
+                // Warmup still running; the deep link is processed when it
+                // finishes (see onWarmupComplete).
+                pendingIntent = intent
             }
+            screen
         }.getOrElse { e ->
             SessionLog.failed("onCreateScreen", e)
             ErrorScreen(
@@ -106,7 +145,7 @@ class NavigationSession : Session() {
     }
 
     override fun onNewIntent(intent: Intent) {
-        SessionLog.onNewIntent(intent)
+        SessionLog.onNewIntent(intent, System.currentTimeMillis() - sessionStartMs)
         runCatching {
             if (warmupCompleted) {
                 handleDeepLink(intent)
@@ -121,35 +160,158 @@ class NavigationSession : Session() {
     /**
      * Background warmup: resolve the Hilt entry point and touch the native
      * client singleton off the main thread, then hand off to the real screens.
+     *
+     * Never lets the session wedge:
+     * - exceptions are caught and surfaced as [ErrorScreen] instead of killing
+     *   the process (a warmup crash previously left the host in an error/restart
+     *   loop with no usable diagnostic);
+     * - the whole init is time-boxed by [WARMUP_TIMEOUT_MS]. A native client
+     *   build that blocks forever can not be interrupted cooperatively, so the
+     *   timeout merely stops waiting and reports the last completed step — the
+     *   stuck thread leaks but the session stays usable and Retryable after the
+     *   host restarts the process.
      */
     private fun startWarmup() {
         warmupJob = scope.launch {
-            val start = System.currentTimeMillis()
-            withContext(Dispatchers.Default) {
-                SessionLog.warmupStep("Resolving Hilt entry point")
-                entryPoint
-                SessionLog.warmupStep("Entry point resolved")
-                SessionLog.warmupStep("Building native client")
-                entryPoint.autoClientProvider().client()
-                SessionLog.warmupStep("Native client ready")
-            }
-            SessionLog.warmupDuration(System.currentTimeMillis() - start)
-            if (sessionDestroyed) return@launch
-            warmupCompleted = true
-            SessionLog.warmupComplete()
+            SessionLog.warmupStarted()
+            val result = runCatching {
+                withTimeoutOrNull(WARMUP_TIMEOUT_MS) {
+                    val start = System.currentTimeMillis()
+                    var lastStepAt = start
+                    withContext(Dispatchers.Default) {
+                        lastWarmupStep = "Resolving Hilt entry point"
+                        SessionLog.warmupStep(lastWarmupStep, 0)
+                        entryPoint
+                        lastStepAt = step("Entry point resolved", lastStepAt)
+                        lastWarmupStep = "Building native client"
+                        SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
+                        lastStepAt = System.currentTimeMillis()
+                        entryPoint.autoClientProvider().client()
+                        lastWarmupStep = "Native client ready"
+                        SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
 
+                        // Activate the AA navigation controller: its init wires
+                        // itself into the shared state provider, so "Navigate
+                        // here" and turn-by-turn work without the phone UI.
+                        lastStepAt = System.currentTimeMillis()
+                        lastWarmupStep = "Activating navigation controller"
+                        SessionLog.warmupStep(lastWarmupStep, 0)
+                        try {
+                            entryPoint.autoNavigationController()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "autoNavigationController init failed", e)
+                        }
+                        lastWarmupStep = "Navigation controller ready"
+                        SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
+
+                        // Mirror the phone app's initMap(): open every installed
+                        // map database so the map renders and search/geocoding
+                        // find results, and init the favorites repository.
+                        // Best effort — failures are logged, not fatal.
+                        lastStepAt = System.currentTimeMillis()
+                        lastWarmupStep = "Opening installed map databases"
+                        SessionLog.warmupStep(lastWarmupStep, 0)
+                        try {
+                            val filesDir = carContext.applicationContext.filesDir.absolutePath
+                            entryPoint.autoClientProvider().openMapDatabases(filesDir)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "openMapDatabases failed", e)
+                        }
+                        lastWarmupStep = "Opening map databases done"
+                        SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
+
+                        lastStepAt = System.currentTimeMillis()
+                        lastWarmupStep = "Initializing favorites"
+                        SessionLog.warmupStep(lastWarmupStep, 0)
+                        try {
+                            val favoritesFile = File(
+                                carContext.applicationContext.filesDir,
+                                FAVORITES_FILE
+                            ).absolutePath
+                            entryPoint.autoFavoritesProvider().init(favoritesFile)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "favorites init failed", e)
+                        }
+                        lastWarmupStep = "Favorites ready"
+                        SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
+                    }
+                    val total = System.currentTimeMillis() - start
+                    SessionLog.warmupBlockDone(total)
+                    SessionLog.warmupDuration(total)
+                    true
+                }
+            }
+            if (sessionDestroyed) return@launch
+
+            val exception = result.exceptionOrNull()
+            if (exception != null) {
+                if (exception is CancellationException) return@launch
+                SessionLog.failed("startWarmup", exception)
+                showStartupFailure(
+                    "Startup failed: ${exception.message ?: exception.javaClass.simpleName}"
+                )
+            } else {
+                if (result.getOrNull() == true) {
+                    warmupCompleted = true
+                    SessionLog.warmupComplete()
+                    onWarmupComplete()
+                } else {
+                    DiagnosticsLog.log(
+                        SessionLog.SESSION_TAG,
+                        "Warmup timed out after ${WARMUP_TIMEOUT_MS}ms (last step: $lastWarmupStep)"
+                    )
+                    showStartupFailure(
+                        "Map data initialization timed out after ${WARMUP_TIMEOUT_MS / 1000}s " +
+                            "(last step: $lastWarmupStep). Retry or restart the app."
+                    )
+                }
+            }
+        }
+    }
+
+    /** Log a warmup step with elapsed time since [sinceMs]; returns the new timestamp. */
+    private fun step(step: String, sinceMs: Long): Long {
+        val now = System.currentTimeMillis()
+        lastWarmupStep = step
+        SessionLog.warmupStep(step, now - sinceMs)
+        return now
+    }
+
+    /** Runs on the main thread once warmup succeeded. Never throws out. */
+    private fun onWarmupComplete() {
+        runCatching {
             val intent = pendingIntent
             pendingIntent = null
             if (intent != null) {
                 handleDeepLink(intent)
             }
-
-            if (loadingScreenShown) {
-                loadingScreenShown = false
-                carContext.getCarService(ScreenManager::class.java).popToRoot()
-                carContext.getCarService(ScreenManager::class.java).push(initialScreen())
-            }
+            startLocation()
             startObserving()
+        }.onFailure { e ->
+            SessionLog.failed("onWarmupComplete", e)
+            showStartupFailure("Startup failed: ${e.message ?: e.javaClass.simpleName}")
+        }
+    }
+
+    /** Start the AA location source (GPS marker + follow mode on the car map). */
+    private fun startLocation() {
+        runCatching {
+            entryPoint.autoLocationProvider().start()
+            locationStarted = true
+        }.onFailure { e ->
+            Log.w(TAG, "location start failed", e)
+        }
+    }
+
+    /** Surface an actionable error (with Retry) on top of the root screen. */
+    private fun showStartupFailure(message: String) {
+        if (sessionDestroyed) return
+        DiagnosticsLog.log(SessionLog.SESSION_TAG, "Showing ErrorScreen: $message")
+        runCatching {
+            carContext.getCarService(ScreenManager::class.java)
+                .push(ErrorScreen(carContext, message, onRetry = { retryStartup() }))
+        }.onFailure { e ->
+            SessionLog.failed("showStartupFailure", e)
         }
     }
 
@@ -158,8 +320,6 @@ class NavigationSession : Session() {
         if (sessionDestroyed) return
         SessionLog.retry()
         carContext.getCarService(ScreenManager::class.java).popToRoot()
-        loadingScreenShown = true
-        carContext.getCarService(ScreenManager::class.java).push(LoadingScreen(carContext))
         startWarmup()
     }
 
@@ -167,7 +327,9 @@ class NavigationSession : Session() {
         return if (navigationViewModel.state.value.isNavigating) {
             getNavigationScreen()
         } else {
-            RootScreen(carContext, navigationViewModel)
+            // Open in map view by default; the menu is reachable via the map's
+            // "Menu" action (RootScreen is no longer the stack root).
+            MapScreen(carContext, navigationViewModel)
         }
     }
 
@@ -267,16 +429,25 @@ class NavigationSession : Session() {
         Log.d(TAG, "Showing error: $message")
         SessionLog.errorOverlay(message)
         val errorScreen = object : Screen(carContext) {
+            init {
+                enableBackNavigation()
+            }
+
             override fun onGetTemplate(): PaneTemplate {
+                val backAction = Action.Builder()
+                    .setTitle("Back")
+                    .setOnClickListener { screenManager.pop() }
+                    .build()
                 val pane = Pane.Builder()
                     .addRow(
                         Row.Builder()
                             .setTitle(message)
+                            .addAction(backAction)
                             .build()
                     )
                     .build()
                 return PaneTemplate.Builder(pane)
-                    .setTitle("Error")
+                    .setHeader(Header.Builder().setTitle("Error").setStartHeaderAction(Action.BACK).build())
                     .build()
             }
         }
@@ -294,5 +465,15 @@ class NavigationSession : Session() {
         private const val TAG = "NavigationSession"
         private const val ERROR_DISPLAY_MS = 4000L
         private const val MAX_GEOCODE_RESULTS = 1
+
+        /** Same favorites persistence file as the phone app (MapCanvasViewModel). */
+        private const val FAVORITES_FILE = "favorites.json"
+
+        /**
+         * Cap on cold-start warmup (Hilt entry point + native client build).
+         * A healthy first init usually takes a few seconds; give slow devices
+         * headroom, but never let the LoadingScreen stay up indefinitely.
+         */
+        private const val WARMUP_TIMEOUT_MS = 45_000L
     }
 }

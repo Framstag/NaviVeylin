@@ -25,7 +25,7 @@ class AutoMapRendererTest {
     @Before
     fun setUp() {
         client = FakeAutoRenderClient()
-        renderer = AutoMapRenderer(client)
+        renderer = AutoMapRenderer(client, initialProjectionDpi = 240.0)
     }
 
     @Test

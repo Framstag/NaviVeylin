@@ -13,17 +13,43 @@ object SessionLog {
     const val SESSION_TAG = "SESSION"
     const val WARMUP_TAG = "WARMUP"
 
-    fun onCreateScreen(intent: Intent?) =
-        DiagnosticsLog.log(SESSION_TAG, "onCreateScreen action=${intent?.action} data=${intent?.data}")
+    /** Logged once when the [NavigationSession] object is constructed. */
+    fun sessionCreated() =
+        DiagnosticsLog.log(SESSION_TAG, "Session created")
 
-    fun onNewIntent(intent: Intent?) =
-        DiagnosticsLog.log(SESSION_TAG, "onNewIntent action=${intent?.action} data=${intent?.data}")
+    /** Logged when the background warmup coroutine actually starts running. */
+    fun warmupStarted() =
+        DiagnosticsLog.log(WARMUP_TAG, "Warmup started on thread=${Thread.currentThread().name}")
+
+    /** Logged when the warmup coroutine resumes on the main thread after the Default block. */
+    fun warmupBlockDone(elapsedMs: Long) =
+        DiagnosticsLog.log(WARMUP_TAG, "Warmup block returned to main thread (+${elapsedMs}ms) thread=${Thread.currentThread().name}")
+
+    fun onCreateScreen(intent: Intent?, warmupCompleted: Boolean? = null, sinceSessionMs: Long? = null) =
+        DiagnosticsLog.log(
+            SESSION_TAG,
+            "onCreateScreen action=${intent?.action} data=${intent?.data}" +
+                (warmupCompleted?.let { " warmupCompleted=$it" } ?: "") +
+                (sinceSessionMs?.let { " sinceSessionCreate=${it}ms" } ?: "") +
+                " thread=${Thread.currentThread().name}"
+        )
+
+    fun onNewIntent(intent: Intent?, sinceSessionMs: Long? = null) =
+        DiagnosticsLog.log(
+            SESSION_TAG,
+            "onNewIntent action=${intent?.action} data=${intent?.data}" +
+                (sinceSessionMs?.let { " sinceSessionCreate=${it}ms" } ?: "") +
+                " thread=${Thread.currentThread().name}"
+        )
 
     fun destroyed() =
         DiagnosticsLog.log(SESSION_TAG, "Session destroyed")
 
     fun warmupComplete() =
         DiagnosticsLog.log(SESSION_TAG, "Warmup complete")
+
+    fun warmupCancelled() =
+        DiagnosticsLog.log(SESSION_TAG, "Warmup cancelled (session destroyed)")
 
     fun warmupDuration(ms: Long) =
         DiagnosticsLog.log(WARMUP_TAG, "Hilt entry point + native client warmup took ${ms}ms")
@@ -34,13 +60,19 @@ object SessionLog {
      * "Before" markers are appended synchronously before the corresponding
      * native call, so a crash during that call leaves the log ending at the
      * last "before" marker — localizing the failure to that step.
+     *
+     * @param elapsedMs when >= 0, appends the wall-clock delta since the previous step.
      */
-    fun warmupStep(step: String) =
-        DiagnosticsLog.log(WARMUP_TAG, step)
+    fun warmupStep(step: String, elapsedMs: Long = -1) {
+        val delta = if (elapsedMs >= 0) " (+${elapsedMs}ms)" else ""
+        DiagnosticsLog.log(WARMUP_TAG, "$step$delta thread=${Thread.currentThread().name}")
+    }
 
+    /** Log a ScreenManager push with the concrete screen class name. */
     fun push(screen: String) =
-        DiagnosticsLog.log(SESSION_TAG, "Push $screen")
+        DiagnosticsLog.log(SESSION_TAG, "Push $screen thread=${Thread.currentThread().name}")
 
+    /** Log a ScreenManager popToRoot. */
     fun popToRoot() =
         DiagnosticsLog.log(SESSION_TAG, "Pop to RootScreen")
 

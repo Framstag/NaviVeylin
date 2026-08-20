@@ -40,6 +40,16 @@ class NavigationScreen(
     private var lastState: NavigationState? = null
 
     init {
+        // Back during navigation stops it; the session observer then pops the
+        // screen back to the root menu.
+        carContext.getOnBackPressedDispatcher().addCallback(
+            this,
+            object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    navigationViewModel.stopNavigation()
+                }
+            }
+        )
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 startObserving()
@@ -82,12 +92,18 @@ class NavigationScreen(
         val estimate = buildTravelEstimate(state)
         builder.setDestinationTravelEstimate(estimate)
 
-        // Stop navigation action
+        // Stop navigation action + standard back icon (host back affordances
+        // are unreliable on emulated hosts).
         val stopAction = Action.Builder()
             .setTitle("Stop")
             .setOnClickListener { onStopNavigation() }
             .build()
-        builder.setActionStrip(ActionStrip.Builder().addAction(stopAction).build())
+        builder.setActionStrip(
+            ActionStrip.Builder()
+                .addAction(Action.BACK)
+                .addAction(stopAction)
+                .build()
+        )
 
         return builder.build()
     }

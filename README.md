@@ -92,6 +92,9 @@ To include libosmscout with map rendering and routing:
 # Release APK (requires signing config)
 ./gradlew :app:assembleRelease
 
+# Play-ready release AAB (generates date-based version, bumps versionCode)
+./gradlew release
+
 # JNI bridge AAR (placeholder — real JNI in submodule)
 ./gradlew :osmscout-jni:assembleRelease
 
@@ -101,6 +104,19 @@ To include libosmscout with map rendering and routing:
 # Full clean
 ./gradlew clean
 ```
+
+## Release Build
+
+`./gradlew release` produces a signed, Play-ready Android App Bundle:
+
+- **versionName** is generated as `<yyyy>-<MM>-<dd>-<N>` — 4-digit year, zero-padded month/day, and a running number `N` (no leading zeros) that increments per release build on the same day and resets to 1 on a new day
+- **versionCode** increments by one on every release build
+- Version state persists in `app/release-version.properties` (gitignored, managed by the build — first run starts at `versionCode` 20)
+- Only `release` bumps the state; debug/other builds keep the fixed `1.0.0`/19 and never touch it
+- Signed with `app/release.keystore` when present (otherwise the build warns and produces an unsigned AAB)
+- Output: `app/build/outputs/bundle/release/app-release.aab`
+
+The generated version is available to the app via `BuildConfig.VERSION_NAME` and shown in the About dialog (About → Version).
 
 ## Architecture
 
@@ -133,7 +149,7 @@ Correlate the two by wall-clock timestamps. A native crash shows in `-b crash` w
 
 ## Distribution
 
-No Google Play Store. Install via APK sideloading or alternative stores (F-Droid, GitHub Releases).
+Install via APK sideloading or alternative stores (F-Droid, GitHub Releases). For Google Play upload, use `./gradlew release` to produce a signed AAB.
 
 ## License
 

@@ -1,6 +1,8 @@
 package com.naviveylin.ui.map
 
 import com.framstag.libosmscout.client.FakeOSMScoutClient
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -10,6 +12,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,6 +68,17 @@ class MapRendererRotatedRenderTest {
         }
     }
 
+    /** Wait until a new FrameState is emitted (or fail after 5s); returns its bitmap. */
+    private fun awaitNextFrame(): Bitmap? = runBlocking {
+        withTimeout(5000) {
+            val initial = renderer.frameFlow.value
+            while (renderer.frameFlow.value === initial) {
+                delay(10)
+            }
+            renderer.frameFlow.value.bitmap
+        }
+    }
+
     @Test
     fun northUpRenderKeepsZeroAngle() {
         renderer.screenWidth = 200
@@ -109,5 +125,50 @@ class MapRendererRotatedRenderTest {
         awaitAngle(7.85 - 2 * Math.PI)
         assertEquals(7.85 - 2 * Math.PI, renderer.renderedAngle, 1e-6)
         assertEquals(14, renderer.renderedMag)
+    }
+
+    @Test
+    fun repeatedEmissionReusesBitmap() {
+        renderer.screenWidth = 200
+        renderer.screenHeight = 300
+        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        val first = awaitNextFrame()
+        assertNotNull(first)
+
+        // Same front buffer, marker cleared → the emitted bitmap must be reused,
+        // not copied again (frame emission only on change). clearGpsMarkerState
+        // emits synchronously, so read the frame directly.
+        renderer.clearGpsMarkerState()
+        val second = renderer.frameFlow.value.bitmap
+        assertSame(first, second)
+    }
+
+    @Test
+    fun newRenderProducesNewBitmap() {
+        renderer.screenWidth = 200
+        renderer.screenHeight = 300
+        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        val first = awaitNextFrame()
+        assertNotNull(first)
+
+        // A new render replaces the front buffer → the emitted bitmap must be a
+        // fresh copy, not the previous frame.
+        renderer.requestRender(51.6, 7.6, 14, 0.0)
+        val second = awaitNextFrame()
+        assertNotSame(first, second)
+    }
+
+    @Test
+    fun drawBitmapBlitCopiesPixels() {
+        val src = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
+        src.eraseColor(0xFF336699.toInt())
+        val dst = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
+        dst.eraseColor(0)
+        Canvas(dst).drawBitmap(src, 0f, 0f, null)
+        assertEquals(0xFF336699.toInt(), dst.getPixel(2, 2))
+        // drawBitmap copies pixels into dst's own storage — src can be recycled
+        // without corrupting dst (no backing-storage sharing).
+        src.recycle()
+        assertEquals(0xFF336699.toInt(), dst.getPixel(2, 2))
     }
 }

@@ -124,3 +124,14 @@ The system SHALL manage the map screen in the Android Auto screen stack alongsid
 #### Scenario: Navigation replaces map
 - **WHEN** navigation starts from the map screen
 - **THEN** the map screen is replaced by the navigation screen (not stacked on top)
+
+### Requirement: Preferences entry on root screen
+The system SHALL offer a Preferences entry on the Android Auto root screen that opens the shared preferences screen.
+
+#### Scenario: Preferences option available
+- **WHEN** the user is on the root screen and not navigating
+- **THEN** a "Preferences" option is available alongside Map, Search, Favorites, Diagnostics, and About
+
+#### Scenario: Preferences screen opens from root
+- **WHEN** the user selects "Preferences" from the root screen
+- **THEN** the car screen shows the preferences screen

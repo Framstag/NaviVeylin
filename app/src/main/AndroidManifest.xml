@@ -85,6 +85,11 @@
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
 
+        <!-- AndroidX car app requires this so the host can negotiate the API level -->
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
+
         <!-- CarAppService -->
         <service
             android:name=".NaviVeylinCarAppService"

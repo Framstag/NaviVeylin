@@ -73,13 +73,28 @@ fun NextTurnOverlay(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    val lines = splitInstruction(
+                        description = instruction.description,
+                        shortDescription = instruction.shortDescription,
+                        streetName = instruction.streetName
+                    )
                     Text(
-                        text = instruction.description,
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = lines.generic,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (lines.destination != null) {
+                        Text(
+                            text = lines.destination,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 
@@ -112,16 +127,30 @@ fun NextTurnOverlay(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = formatDistance(instruction.nextNextDistanceTo),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        val nextNextLines = splitInstruction(
+                            description = instruction.nextNextDescription,
+                            shortDescription = instruction.nextNextShortDescription
+                        )
                         Text(
-                            text = instruction.nextNextDescription,
-                            style = MaterialTheme.typography.bodySmall,
+                            text = nextNextLines.generic,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
+                        if (nextNextLines.destination != null) {
+                            Text(
+                                text = nextNextLines.destination,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
@@ -177,4 +206,38 @@ private fun LaneHintsRow(
             }
         }
     }
+}
+
+/**
+ * Split an instruction description into the generic instruction part
+ * (e.g. "Turn left") and the destination name (e.g. "Hauptstrasse").
+ * The destination is taken from the explicit street name when available,
+ * otherwise extracted from the description after " into "/" onto ".
+ */
+internal data class InstructionLines(
+    val generic: String,
+    val destination: String?
+)
+
+internal fun splitInstruction(
+    description: String,
+    shortDescription: String,
+    streetName: String = ""
+): InstructionLines {
+    val hasShort = shortDescription.isNotBlank()
+    val generic = if (hasShort) shortDescription else description
+    var destination = streetName.takeIf { it.isNotEmpty() }
+    if (destination == null && hasShort) {
+        destination = listOf(" into ", " onto ")
+            .mapNotNull { marker ->
+                val idx = description.indexOf(marker)
+                if (idx >= 0) {
+                    description.substring(idx + marker.length).trim().takeIf { it.isNotEmpty() }
+                } else {
+                    null
+                }
+            }
+            .firstOrNull()
+    }
+    return InstructionLines(generic, destination)
 }

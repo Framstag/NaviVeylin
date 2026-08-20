@@ -5,12 +5,12 @@
 Provides users with app identity information including version, description, and open-source licenses in a standard Android dialog.
 ## Requirements
 ### Requirement: About dialog displays app name and version
-The about dialog SHALL display the application name "NaviVeylin" and the current version name (e.g., "1.0.0") sourced from `BuildConfig.VERSION_NAME`.
+The about dialog SHALL display the application name "NaviVeylin" and the current version name (e.g., "2026-08-19-1") sourced from the built app's version metadata.
 
 #### Scenario: Dialog shows correct app name and version
 - **WHEN** the about dialog is open
 - **THEN** the dialog SHALL show "NaviVeylin" as the app name
-- **AND** the dialog SHALL show the version string from `BuildConfig.VERSION_NAME`
+- **AND** the dialog SHALL show the version string from the built app's version metadata
 
 ### Requirement: About dialog displays app description
 The about dialog SHALL display a brief description of the application explaining it is an Android navigation app built on libosmscout.

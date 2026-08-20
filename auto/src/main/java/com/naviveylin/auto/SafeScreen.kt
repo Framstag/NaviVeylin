@@ -4,6 +4,7 @@ import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
 import androidx.car.app.model.ActionStrip
+import androidx.car.app.model.Header
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
@@ -49,16 +50,20 @@ class SafeScreen(
                 )
                 .build()
             return PaneTemplate.Builder(pane)
-                .setTitle("NaviVeylin")
+                .setHeader(Header.Builder().setTitle("NaviVeylin").build())
                 .build()
         }
     }
 }
 
 /**
- * Lightweight screen shown while the Hilt/native client warmup (see
- * [NavigationSession]) is still running. Returned synchronously so the host
- * gets its first template without waiting on heavy initialization.
+ * Lightweight loading template ("Loading map data…").
+ *
+ * NOT used as a stack root: androidx.car.app [ScreenManager] cannot pop the
+ * root screen, so a transient loading root would be re-revealed by every
+ * later popToRoot() and wedge the session on it. [NavigationSession] instead
+ * serves the real root screen immediately and preloads the native client in
+ * the background. This screen remains available for temporary/overlay use.
  */
 class LoadingScreen(carContext: CarContext) : Screen(carContext) {
 
@@ -72,7 +77,7 @@ class LoadingScreen(carContext: CarContext) : Screen(carContext) {
             )
             .build()
         return PaneTemplate.Builder(pane)
-            .setTitle("NaviVeylin")
+            .setHeader(Header.Builder().setTitle("NaviVeylin").build())
             .build()
     }
 }
@@ -87,10 +92,19 @@ class ErrorScreen(
     private val onRetry: () -> Unit
 ) : Screen(carContext) {
 
+    init {
+        enableBackNavigation()
+    }
+
     override fun onGetTemplate(): PaneTemplate {
         val retryAction = Action.Builder()
             .setTitle("Retry")
             .setOnClickListener { onRetry() }
+            .build()
+
+        val backAction = Action.Builder()
+            .setTitle("Back")
+            .setOnClickListener { screenManager.pop() }
             .build()
 
         val pane = Pane.Builder()
@@ -99,13 +113,13 @@ class ErrorScreen(
                     .setTitle("Startup failed")
                     .addText(message)
                     .addAction(retryAction)
+                    .addAction(backAction)
                     .build()
             )
             .build()
 
         return PaneTemplate.Builder(pane)
-            .setTitle("NaviVeylin")
-            .setActionStrip(ActionStrip.Builder().addAction(retryAction).build())
+            .setHeader(Header.Builder().setTitle("NaviVeylin").setStartHeaderAction(Action.BACK).build())
             .build()
     }
 }

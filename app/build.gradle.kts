@@ -1,4 +1,6 @@
 import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.time.LocalDate
 import java.util.Properties
 
 plugins {
@@ -18,6 +20,86 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// ── Release versioning ───────────────────────────────────────────────────────
+// Release builds get a date-based versionName (<yyyy>-<MM>-<dd>-<N>) and a
+// monotonic versionCode, persisted in app/release-version.properties
+// (gitignored). Only an explicit `release` invocation bumps the state; every
+// other build uses the fixed fallback below and never touches the file.
+val FALLBACK_VERSION_NAME = "1.0.0"
+val FALLBACK_VERSION_CODE = 19
+
+val releaseStateFile = file("release-version.properties")
+
+fun readReleaseState(): Properties = Properties().apply {
+    if (releaseStateFile.exists()) {
+        FileInputStream(releaseStateFile).use { load(it) }
+    }
+}
+
+fun writeReleaseState(state: Properties) {
+    FileOutputStream(releaseStateFile).use {
+        state.store(it, "NaviVeylin release version state (managed by the release task)")
+    }
+}
+
+/**
+ * Computes the next release version and persists it.
+ * Same day → running number +1; new day → running number resets to 1.
+ * versionCode increments by exactly one from the persisted value (first run: 20).
+ */
+fun nextReleaseVersion(): Pair<String, Int> {
+    val state = readReleaseState()
+    val today = LocalDate.now()
+    val todayStr = today.toString() // ISO yyyy-MM-dd
+    val runningNumber = if (state.getProperty("lastDate") == todayStr) {
+        (state.getProperty("runningNumber")?.toIntOrNull() ?: 0) + 1
+    } else {
+        1
+    }
+    val versionCode = (state.getProperty("versionCode")?.toIntOrNull() ?: FALLBACK_VERSION_CODE) + 1
+    state.setProperty("lastDate", todayStr)
+    state.setProperty("runningNumber", runningNumber.toString())
+    state.setProperty("versionCode", versionCode.toString())
+    writeReleaseState(state)
+    val versionName = String.format(
+        "%04d-%02d-%02d-%d",
+        today.year, today.monthValue, today.dayOfMonth, runningNumber
+    )
+    return versionName to versionCode
+}
+
+// Bump only when the `release` task was explicitly requested.
+val isReleaseBuild = gradle.startParameter.taskNames.any { it == "release" }
+
+// Fail fast: android.injected.* flags (e.g. -Pandroid.injected.build.abi=arm64-v8a)
+// are Android Studio internals for test deploys — AGP marks such builds
+// android:testOnly=true and Google Play rejects the AAB. Only `release` is
+// blocked; debug iteration with the ABI flag stays allowed.
+val injectedFlags =
+    gradle.startParameter.projectProperties.keys.filter { it.startsWith("android.injected.") }
+if (isReleaseBuild) {
+    check(injectedFlags.isEmpty()) {
+        "release must not run with -Pandroid.injected.* flags (got: ${injectedFlags.joinToString()}). " +
+            "AGP marks such builds android:testOnly=true, which Google Play rejects. " +
+            "Run plain ./gradlew release instead."
+    }
+}
+
+val releaseVersion: Pair<String, Int>? = if (isReleaseBuild) nextReleaseVersion() else null
+
+tasks.register("release") {
+    group = "release"
+    description = "Bumps the version state and builds a Play-ready AAB via :app:bundleRelease."
+    dependsOn("bundleRelease")
+    doLast {
+        val (versionName, versionCode) =
+            releaseVersion ?: error("release task requires a generated version")
+        println()
+        println("NaviVeylin release: $versionName (versionCode $versionCode)")
+        println("AAB: ${layout.buildDirectory.file("outputs/bundle/release/app-release.aab").get().asFile}")
+    }
+}
+
 android {
     namespace = "com.naviveylin"
     compileSdk = 36
@@ -26,8 +108,9 @@ android {
         applicationId = "com.framstag.naviveylin"
         minSdk = 28
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.0.0"
+        // `release` builds get the generated version; other builds use the fixed fallback.
+        versionCode = releaseVersion?.second ?: FALLBACK_VERSION_CODE
+        versionName = releaseVersion?.first ?: FALLBACK_VERSION_NAME
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -88,6 +171,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     externalNativeBuild {

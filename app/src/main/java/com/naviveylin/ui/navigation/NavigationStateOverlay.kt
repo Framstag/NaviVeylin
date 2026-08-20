@@ -1,6 +1,7 @@
 package com.naviveylin.ui.navigation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -42,13 +44,16 @@ fun NavigationStateOverlay(
     isRerouting: Boolean = false,
     isOffRoute: Boolean = false,
     onStopNavigation: () -> Unit = {},
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val cardContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
 
     val content = @Composable {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = cardContainerColor
@@ -61,133 +66,28 @@ fun NavigationStateOverlay(
                     .padding(start = 12.dp, top = 8.dp, end = 4.dp, bottom = 8.dp)
             ) {
                 // Current road name row (above stats)
-                val roadText = when {
-                    currentRoadInfo != null && currentRoadInfo.hasInfo() -> {
-                        listOfNotNull(
-                            currentRoadInfo.ref.takeIf { it.isNotEmpty() },
-                            currentRoadInfo.name.takeIf { it.isNotEmpty() }
-                        ).joinToString(" ")
-                    }
-                    else -> "Offroad"
-                }
                 Text(
-                    text = roadText,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = currentRoadText(currentRoadInfo),
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
                     color = if (currentRoadInfo != null && currentRoadInfo.hasInfo())
                         MaterialTheme.colorScheme.onSurface
                     else
                         MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp)
                 )
 
                 // Stats row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // ETA
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = "ETA",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = if (etaMillis > 0) {
-                                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(etaMillis))
-                            } else "--:--",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Remaining time
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = "Remaining time",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = formatRemainingTime(etaMillis),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Remaining distance
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Place,
-                            contentDescription = "Distance",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = formatDistance(remainingDistance),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                        // Current speed + max speed (always reserve space for max)
-                        // Show speed in red when exceeding max allowed speed by 5+ km/h
-                        val speedColor = if (!currentSpeedKmH.isNaN() && currentSpeedKmH >= 0 &&
-                            !maxSpeedKmH.isNaN() && maxSpeedKmH > 0 &&
-                            currentSpeedKmH > maxSpeedKmH + 5
-                        ) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Speed,
-                                contentDescription = "Speed",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = if (currentSpeedKmH.isNaN() || currentSpeedKmH < 0) "--" else "${currentSpeedKmH.toInt()}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = speedColor
-                            )
-                            Text(
-                                text = if (!maxSpeedKmH.isNaN() && maxSpeedKmH > 0) "max ${maxSpeedKmH.toInt()}" else "max --",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.height(16.dp) // fixed height prevents resizing
-                            )
-                        }
-
-                    // Stop button (compact icon-only, in the status row)
-                    IconButton(
-                        onClick = onStopNavigation,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Stop navigation",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
+                NavigationStatsRow(
+                    remainingDistance = remainingDistance,
+                    etaMillis = etaMillis,
+                    currentSpeedKmH = currentSpeedKmH,
+                    maxSpeedKmH = maxSpeedKmH,
+                    onStopNavigation = onStopNavigation
+                )
             }
         }
     }
@@ -209,7 +109,137 @@ fun NavigationStateOverlay(
     }
 }
 
-private fun formatRemainingTime(etaMillis: Long): String {
+/** ETA / remaining time / distance / speed stats row, shared with the expanded details view. */
+@Composable
+internal fun NavigationStatsRow(
+    remainingDistance: Double,
+    etaMillis: Long,
+    currentSpeedKmH: Double,
+    maxSpeedKmH: Double,
+    onStopNavigation: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // ETA
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Schedule,
+                contentDescription = "ETA",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = if (etaMillis > 0) {
+                    SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(etaMillis))
+                } else "--:--",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Remaining time
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Schedule,
+                contentDescription = "Remaining time",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = formatRemainingTime(etaMillis),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Remaining distance
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Place,
+                contentDescription = "Distance",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = formatDistance(remainingDistance),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Current speed + max speed (always reserve space for max)
+        // Show speed in red when exceeding max allowed speed by 5+ km/h
+        val speedColor = if (!currentSpeedKmH.isNaN() && currentSpeedKmH >= 0 &&
+            !maxSpeedKmH.isNaN() && maxSpeedKmH > 0 &&
+            currentSpeedKmH > maxSpeedKmH + 5
+        ) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Speed,
+                contentDescription = "Speed",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = if (currentSpeedKmH.isNaN() || currentSpeedKmH < 0) "--" else "${currentSpeedKmH.toInt()}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = speedColor
+            )
+            Text(
+                text = if (!maxSpeedKmH.isNaN() && maxSpeedKmH > 0) "max ${maxSpeedKmH.toInt()}" else "max --",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.height(16.dp) // fixed height prevents resizing
+            )
+        }
+
+        // Stop button (compact icon-only, in the status row)
+        IconButton(
+            onClick = onStopNavigation,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Stop navigation",
+                tint = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+/** Current road name text ("ref name" or "Offroad"), shared with the expanded details view. */
+internal fun currentRoadText(currentRoadInfo: CurrentRoadInfo?): String {
+    return when {
+        currentRoadInfo != null && currentRoadInfo.hasInfo() -> {
+            listOfNotNull(
+                currentRoadInfo.ref.takeIf { it.isNotEmpty() },
+                currentRoadInfo.name.takeIf { it.isNotEmpty() }
+            ).joinToString(" ")
+        }
+        else -> "Offroad"
+    }
+}
+
+internal fun formatRemainingTime(etaMillis: Long): String {
     if (etaMillis <= 0) return "--"
     val remaining = etaMillis - System.currentTimeMillis()
     if (remaining <= 0) return "0 min"

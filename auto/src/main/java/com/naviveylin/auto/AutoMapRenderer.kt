@@ -2,11 +2,17 @@ package com.naviveylin.auto
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PointF
 import android.view.Surface
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.MapRenderUtil
+import com.naviveylin.core.ProjectionUtils
 import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.cos
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,10 +29,34 @@ import kotlinx.coroutines.launch
  *
  * Designed to be used with [MapController.SurfaceCallback] from a [MapScreen].
  * Runs a render loop on [Dispatchers.Default] with debounced viewport changes.
+ *
+ * @param projectionDpi the DPI the native renderer projects with (the client's
+ *   configured physical DPI, NOT the car surface DPI). Used to draw the GPS
+ *   marker overlay in the same projection as the map bitmap.
  */
 class AutoMapRenderer(
-    private val client: OSMScoutClient
+    private val client: OSMScoutClient,
+    initialProjectionDpi: Double,
+    initialLat: Double = DEFAULT_LATITUDE,
+    initialLon: Double = DEFAULT_LONGITUDE,
+    initialZoom: Int = DEFAULT_ZOOM
 ) {
+
+    /**
+     * DPI used for gestures/marker overlay, kept in sync with the native
+     * render DPI ([OSMScoutClient.setMapDpi]) once the car surface arrives.
+     */
+    @Volatile
+    var projectionDpi: Double = initialProjectionDpi
+        private set
+
+    /** Update the projection DPI (call alongside [OSMScoutClient.setMapDpi]). */
+    fun updateProjectionDpi(dpi: Double) {
+        if (dpi > 0 && dpi != projectionDpi) {
+            projectionDpi = dpi
+            requestRender()
+        }
+    }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var renderJob: Job? = null
     private var surface: Surface? = null
@@ -35,10 +65,10 @@ class AutoMapRenderer(
     private var isShutdown = false
 
     // Viewport state
-    @Volatile private var viewportLat = DEFAULT_LATITUDE
-    @Volatile private var viewportLon = DEFAULT_LONGITUDE
-    @Volatile private var viewportZoom = DEFAULT_ZOOM
-    @Volatile private var viewportZoomFraction = DEFAULT_ZOOM.toDouble()
+    @Volatile private var viewportLat = initialLat
+    @Volatile private var viewportLon = initialLon
+    @Volatile private var viewportZoom = initialZoom
+    @Volatile private var viewportZoomFraction = initialZoom.toDouble()
     @Volatile private var viewportAngle = 0.0
 
     // Overlay data
@@ -195,6 +225,10 @@ class AutoMapRenderer(
     /** Whether follow mode is currently active. */
     fun isFollowMode(): Boolean = followMode
 
+    // Throttle for file-backed diagnostics (pan events are frequent).
+    private var lastRenderLogMs = 0L
+    private val RENDER_LOG_INTERVAL_MS = 1000L
+
     /**
      * Clean up resources.
      */
@@ -232,14 +266,9 @@ class AutoMapRenderer(
         val h = surfaceHeight
         if (w <= 0 || h <= 0) return
 
-        // Set GPS marker on client before rendering
-        client.setGpsMarker(
-            if (gpsMarkerVisible) gpsMarkerLat else Double.NaN,
-            if (gpsMarkerVisible) gpsMarkerLon else Double.NaN,
-            if (gpsMarkerVisible && gpsMarkerBearing >= 0.0) gpsMarkerBearing else -1.0,
-            if (gpsMarkerVisible && gpsMarkerAccuracy > 0.0) gpsMarkerAccuracy else -1.0
-        )
-
+        // The GPS marker is NOT passed to the native renderer (the JNI
+        // setGpsMarker export was removed upstream in favor of Kotlin-side
+        // overlays); it is drawn on the canvas in drawToSurface.
         val bitmap = MapRenderUtil.renderToBitmap(
             client = client,
             width = w,
@@ -252,6 +281,16 @@ class AutoMapRenderer(
             favoriteLons = favoriteLons
         )
 
+        val now = System.currentTimeMillis()
+        if (now - lastRenderLogMs > RENDER_LOG_INTERVAL_MS) {
+            lastRenderLogMs = now
+            com.naviveylin.core.DiagnosticsLog.log(
+                "MAP",
+                "render center=$viewportLat,$viewportLon mag=$viewportZoom -> " +
+                    if (bitmap != null) "bitmap ${bitmap.width}x${bitmap.height}" else "NULL"
+            )
+        }
+
         if (bitmap != null) {
             drawToSurface(surf, bitmap)
             bitmap.recycle()
@@ -262,11 +301,96 @@ class AutoMapRenderer(
         try {
             val canvas: Canvas = surf.lockCanvas(null)
             canvas.drawBitmap(bitmap, 0f, 0f, null)
+            drawGpsMarker(canvas, bitmap.width, bitmap.height)
             surf.unlockCanvasAndPost(canvas)
         } catch (e: Exception) {
             // Surface may be invalid (e.g., during lifecycle transitions)
             android.util.Log.w(TAG, "Failed to draw to surface: ${e.message}")
         }
+    }
+
+    /**
+     * Draws the GPS position marker (accuracy circle + bearing arrow) in the
+     * same projection the native renderer used for the map bitmap.
+     */
+    private fun drawGpsMarker(canvas: Canvas, w: Int, h: Int) {
+        if (!gpsMarkerVisible || gpsMarkerLat.isNaN() || gpsMarkerLon.isNaN()) return
+
+        val vp = ProjectionUtils.viewport(
+            viewportLat, viewportLon, viewportZoom, w, h, projectionDpi, viewportAngle
+        )
+        val (x, y) = vp.geoToScreenRotated(gpsMarkerLat, gpsMarkerLon)
+        if (x.isNaN() || y.isNaN()) return
+        if (x < -200 || x > w + 200 || y < -200 || y > h + 200) return
+
+        val density = (projectionDpi / 160.0).toFloat()
+        val arrowSize = 14f * density
+        val minRadius = 4f * density
+        val accuracyThreshold = 20f * density
+
+        // Meters per pixel at the rendered magnification (pixels-per-radian
+        // times earth radius). Used for the accuracy circle.
+        val scale = ProjectionUtils.computeScale(viewportZoom, w.toDouble(), projectionDpi).scale
+        val metersPerPixel = ProjectionUtils.EARTH_RADIUS / scale
+        val accuracyRadiusPx = if (gpsMarkerAccuracy > 0.0 && metersPerPixel > 0.0) {
+            (gpsMarkerAccuracy / metersPerPixel).coerceAtLeast(minRadius.toDouble()).toFloat()
+        } else {
+            0f
+        }
+
+        val centerX = x.toFloat()
+        val centerY = y.toFloat()
+
+        if (accuracyRadiusPx >= accuracyThreshold) {
+            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = 0x1A2196F3.toInt()
+            }
+            canvas.drawCircle(centerX, centerY, accuracyRadiusPx, fill)
+            val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                color = 0x662196F3.toInt()
+                strokeWidth = 1.5f * density
+            }
+            canvas.drawCircle(centerX, centerY, accuracyRadiusPx, border)
+        }
+
+        // Screen bearing: raw GPS bearing + map rotation (same convention as
+        // the phone overlay's ProjectionUtils.screenBearing).
+        val rawBearing = if (gpsMarkerBearing >= 0.0) gpsMarkerBearing else 0.0
+        val screenBearingDeg = ProjectionUtils.screenBearing(rawBearing, viewportAngle)
+        val dirRad = Math.toRadians(screenBearingDeg)
+        val dirX = sin(dirRad).toFloat()
+        val dirY = -cos(dirRad).toFloat()
+
+        val tip = PointF(centerX + dirX * arrowSize, centerY + dirY * arrowSize)
+        val back = PointF(centerX - dirX * arrowSize * 0.5f, centerY - dirY * arrowSize * 0.5f)
+        val perpX = -dirY
+        val perpY = dirX
+        val left = PointF(back.x + perpX * arrowSize * 0.55f, back.y + perpY * arrowSize * 0.55f)
+        val right = PointF(back.x - perpX * arrowSize * 0.55f, back.y - perpY * arrowSize * 0.55f)
+
+        fun arrow(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            this.color = color
+        }
+
+        // Drop shadow, then the arrow itself.
+        val shadow = Path().apply {
+            moveTo(tip.x, tip.y + 2f * density)
+            lineTo(left.x, left.y + 2f * density)
+            lineTo(right.x, right.y + 2f * density)
+            close()
+        }
+        canvas.drawPath(shadow, arrow(0x66000000.toInt()))
+
+        val arrowPath = Path().apply {
+            moveTo(tip.x, tip.y)
+            lineTo(left.x, left.y)
+            lineTo(right.x, right.y)
+            close()
+        }
+        canvas.drawPath(arrowPath, arrow(0xFF2196F3.toInt()))
     }
 
     private fun emitViewportState() {
@@ -278,7 +402,7 @@ class AutoMapRenderer(
         private const val RENDER_DEBOUNCE_MS = 100L
         private const val DEFAULT_LATITUDE = 51.5142273
         private const val DEFAULT_LONGITUDE = 7.4652789
-        private const val DEFAULT_ZOOM = 5
+        private const val DEFAULT_ZOOM = 12
 
         const val MIN_ZOOM = 1
         const val MAX_ZOOM = 20

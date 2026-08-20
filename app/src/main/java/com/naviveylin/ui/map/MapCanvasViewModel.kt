@@ -6,9 +6,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.framstag.libosmscout.client.InstalledMaps
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
+import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
@@ -25,6 +27,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
 import kotlinx.coroutines.async
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,6 +74,24 @@ data class MapCanvasUiState(
     val objectDescription: ObjectDescription? = null,
     val isLongPress: Boolean = false,
     val showDetailsSheet: Boolean = false,
+    /** Whether the POI search sheet is open. */
+    val poiSearchOpen: Boolean = false,
+    /** Selected POI category id, null while none is selected (never preselected). */
+    val poiCategory: String? = null,
+    /** POI search radius in meters. */
+    val poiRadiusMeters: Double = MapCanvasViewModel.DEFAULT_POI_RADIUS_METERS,
+    /** POI search results, empty until the user triggers a search. */
+    val poiResults: List<PoiEntry> = emptyList(),
+    val isPoiSearching: Boolean = false,
+    val poiSearchError: String? = null,
+    /** Map center the POI search ran around; NaN until a search runs. */
+    val poiSearchCenterLat: Double = Double.NaN,
+    val poiSearchCenterLon: Double = Double.NaN,
+    /** Position of the last clicked POI result, for the embedded-map highlight; NaN when none. */
+    val poiSelectedLat: Double = Double.NaN,
+    val poiSelectedLon: Double = Double.NaN,
+    /** True while the details sheet was opened from POI search; drives close semantics. */
+    val detailsFromPoiSearch: Boolean = false,
     val showFavoritesSheet: Boolean = false,
     val showRoutePanel: Boolean = false,
     val routeStartLocation: LocationEntry? = null,
@@ -135,6 +156,13 @@ class MapCanvasViewModel @Inject constructor(
 
     private var mapRenderer: MapRenderer? = null
     private var rendererScope: CoroutineScope? = null
+
+    /**
+     * The OSMScoutClient, exposed for embeddable map widgets (e.g. [MiniMap])
+     * that need their own renderer. Widgets only read from it; the main
+     * map's viewport state stays untouched.
+     */
+    internal val osmscoutClient: OSMScoutClient get() = client
     private var currentMapKey: String? = null
     private val epoch = AtomicLong(0)
 
@@ -144,6 +172,12 @@ class MapCanvasViewModel @Inject constructor(
 
     // Route panel view model — set via setRoutePanelViewModel() from screen
     private var _routePanelViewModel: RoutePanelViewModel? = null
+
+    // In-flight POI search job (cancelled on re-search and sheet close)
+    private var poiSearchJob: Job? = null
+
+    // Viewport snapshot taken when POI search opens; restored when the sheet closes
+    private var poiViewportSnapshot: ViewportState? = null
 
     // Navigation view model — set via setNavigationViewModel() from screen
     private var _navigationViewModel: com.naviveylin.navigation.NavigationViewModel? = null
@@ -1038,6 +1072,15 @@ class MapCanvasViewModel @Inject constructor(
             val stylesheetsDir = assetCopier.ensureStylesheets()
             Log.d(TAG, "initMap: density=$density, stylesheets=$stylesheetsDir")
 
+            // Render at this display's DPI. The shared client may have been
+            // switched to the car surface DPI by an Android Auto session in the
+            // same process — restore the phone density before rendering.
+            try {
+                client.setMapDpi(density)
+            } catch (e: Exception) {
+                Log.w(TAG, "initMap: setMapDpi failed", e)
+            }
+
             Log.d(TAG, "initMap: opening database...")
             val opened = try {
                 client.openDatabase(mapPath).also { success ->
@@ -1063,11 +1106,12 @@ class MapCanvasViewModel @Inject constructor(
             // renders via viewport coverage — no switching needed (multi-map).
             try {
                 val mapsDir = File(context.filesDir, "maps")
-                val basemapDir = File(mapsDir, "basemap").absolutePath
-                val installed = mapsDir.listFiles()
-                    ?.filter { it.isDirectory && it.absolutePath != basemapDir }
-                    ?.map { it.absolutePath }
-                    ?: emptyList()
+                // Shared with Android Auto (AutoServiceModule): every database
+                // directory under maps/ (any depth), except the basemap overlay.
+                val installed = InstalledMaps.findDatabaseDirectories(
+                    mapsDir.absolutePath,
+                    File(mapsDir, "basemap").absolutePath
+                )
                 for (dir in installed) {
                     if (dir != mapPath) {
                         client.openDatabase(dir)
@@ -1314,6 +1358,7 @@ class MapCanvasViewModel @Inject constructor(
                 searchQuery = "",
                 searchResults = emptyList(),
                 showDetailsSheet = true,
+                detailsFromPoiSearch = false,
                 isLoading = true
             )
             updateCenter(entry.lat, entry.lon)
@@ -1336,6 +1381,9 @@ class MapCanvasViewModel @Inject constructor(
                     this.lat = objLat
                     this.lon = objLon
                     this.matchQuality = entry.matchQuality
+                    this.adminRegionHierarchy = entry.adminRegionHierarchy
+                    this.name = entry.name
+                    this.objectType = entry.objectType
                 }
                 _uiState.value = _uiState.value.copy(
                     selectedLocation = objEntry,
@@ -1350,9 +1398,226 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Open the POI search sheet with a fresh state: no category selected and
+     * no search preloaded (spec: no category preselected and no preloaded
+     * results). Results from a previous session are cleared. The current
+     * viewport is snapshotted and restored when the sheet closes.
+     */
+    fun openPoiSearch() {
+        poiSearchJob?.cancel()
+        poiSearchJob = null
+        poiViewportSnapshot = _uiState.value.viewport
+        _uiState.value = _uiState.value.copy(
+            poiSearchOpen = true,
+            poiCategory = null,
+            poiResults = emptyList(),
+            isPoiSearching = false,
+            poiSearchError = null
+        )
+    }
+
+    /**
+     * Close the POI search sheet, cancelling any in-flight search and
+     * restoring the map center/zoom to the values at open time (spec:
+     * viewport restored when POI search closes).
+     */
+    fun closePoiSearch() {
+        poiSearchJob?.cancel()
+        poiSearchJob = null
+        val snapshot = poiViewportSnapshot
+        poiViewportSnapshot = null
+        mapRenderer?.clearSearchSelected()
+        if (snapshot != null) {
+            _uiState.value = _uiState.value.copy(
+                poiSearchOpen = false,
+                isPoiSearching = false,
+                poiSelectedLat = Double.NaN,
+                poiSelectedLon = Double.NaN,
+                viewport = snapshot
+            )
+        } else {
+            _uiState.value = _uiState.value.copy(
+                poiSearchOpen = false,
+                isPoiSearching = false,
+                poiSelectedLat = Double.NaN,
+                poiSelectedLon = Double.NaN
+            )
+        }
+        renderMap()
+    }
+
+    /** Select a POI category. Never triggers a search (spec: no preloaded results). */
+    fun onPoiCategorySelected(category: String?) {
+        _uiState.value = _uiState.value.copy(poiCategory = category)
+    }
+
+    /** Change the POI search radius. Never triggers a search. */
+    fun onPoiRadiusChanged(radiusMeters: Double) {
+        _uiState.value = _uiState.value.copy(poiRadiusMeters = radiusMeters)
+    }
+
+    /**
+     * Run the POI search for the selected category around the current map
+     * center. Blocking JNI call runs off the main thread; a previous in-flight
+     * search is cancelled.
+     */
+    fun performPoiSearch() {
+        val s = _uiState.value
+        val category = s.poiCategory ?: return
+        val radiusMeters = s.poiRadiusMeters
+        val lat = s.viewport.centerLat
+        val lon = s.viewport.centerLon
+        poiSearchJob?.cancel()
+        _uiState.value = s.copy(
+            isPoiSearching = true,
+            poiSearchError = null,
+            poiSearchCenterLat = lat,
+            poiSearchCenterLon = lon,
+            poiSelectedLat = Double.NaN,
+            poiSelectedLon = Double.NaN
+        )
+        poiSearchJob = viewModelScope.launch {
+            val results = withContext(Dispatchers.Default) {
+                try {
+                    client.searchPOIs(category, lat, lon, radiusMeters, MAX_POI_RESULTS)?.toList() ?: emptyList()
+                } catch (e: Exception) {
+                    Log.e(TAG, "POI search failed", e)
+                    null
+                }
+            }
+            if (results != null) {
+                _uiState.value = _uiState.value.copy(isPoiSearching = false, poiResults = results)
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isPoiSearching = false,
+                    poiSearchError = "POI search failed"
+                )
+            }
+        }
+    }
+
+    /**
+     * Select a POI result: close the POI sheet, open the details sheet with
+     * the object description fetched off-main, center the map on the POI, and
+     * zoom to fit both the current location and the POI (spec: details via
+     * single click). The POI is marked with the search-selection marker.
+     */
+    fun onPoiEntryClick(entry: PoiEntry) {
+        Log.d(TAG, "onPoiEntryClick: label='${entry.label}', lat=${entry.lat}, lon=${entry.lon}")
+        viewModelScope.launch {
+            // Disengage follow mode so a GPS fix does not yank the map away
+            // while the user is looking at the details sheet.
+            if (_uiState.value.followMode) {
+                _uiState.value = _uiState.value.copy(followMode = false)
+            }
+            val locEntry = LocationEntry().apply {
+                this.label = entry.label.ifEmpty { "(unnamed)" }
+                this.lat = entry.lat
+                this.lon = entry.lon
+                this.matchQuality = "poi"
+            }
+            _uiState.value = _uiState.value.copy(
+                selectedLocation = locEntry,
+                objectDescription = null,
+                isLongPress = false,
+                poiSearchOpen = false,
+                poiSelectedLat = entry.lat,
+                poiSelectedLon = entry.lon,
+                detailsFromPoiSearch = true,
+                showDetailsSheet = true,
+                isLoading = true
+            )
+
+            // Mark the POI, center the map on it, and fit current location + POI
+            mapRenderer?.setSearchSelected(entry.lat, entry.lon)
+            updateCenter(entry.lat, entry.lon)
+            val fitMag = poiFitMagnification(entry)
+            if (fitMag != _uiState.value.viewport.magnification) {
+                updateMagnification(fitMag)
+            }
+            renderMap()
+
+            val desc = withContext(Dispatchers.Default) {
+                try {
+                    client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getDescription failed for POI", e)
+                    null
+                }
+            }
+            if (desc != null && desc.entries.isNotEmpty()) {
+                val objLat = if (!desc.objectLat.isNaN()) desc.objectLat else entry.lat
+                val objLon = if (!desc.objectLon.isNaN()) desc.objectLon else entry.lon
+                val objEntry = LocationEntry().apply {
+                    this.label = locEntry.label
+                    this.lat = objLat
+                    this.lon = objLon
+                    this.matchQuality = "object"
+                    this.name = locEntry.label
+                    this.adminRegionHierarchy = resolveRegionName(objLat, objLon)
+                }
+                _uiState.value = _uiState.value.copy(
+                    selectedLocation = objEntry,
+                    objectDescription = desc,
+                    isLoading = false
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    /**
+     * Magnification that fits the current location and the POI with ~30%
+     * margin, or the current magnification when no GPS fix exists.
+     */
+    private fun poiFitMagnification(entry: PoiEntry): Int {
+        val currentMag = _uiState.value.viewport.magnification
+        val loc = locationService.location.value ?: return currentMag
+        val lat1 = loc.latitude
+        val lon1 = loc.longitude
+        val dLat = kotlin.math.abs(entry.lat - lat1)
+        val dLon = kotlin.math.abs(entry.lon - lon1)
+        if (dLat < 1e-9 && dLon < 1e-9) return currentMag
+        val marginLat = dLat * 0.3
+        val marginLon = dLon * 0.3
+        val bbox = doubleArrayOf(
+            kotlin.math.min(lat1, entry.lat) - marginLat,
+            kotlin.math.max(lat1, entry.lat) + marginLat,
+            kotlin.math.min(lon1, entry.lon) - marginLon,
+            kotlin.math.max(lon1, entry.lon) + marginLon
+        )
+        return computeAreaZoom(bbox, screenWidth, screenHeight)
+    }
+
+    /**
+     * Resolve the admin region name for a location (one-shot; handle released).
+     * Used to fill the details dialog's area/address for results that carry no
+     * admin region hierarchy (POI search, long-press).
+     */
+    private fun resolveRegionName(lat: Double, lon: Double): String? {
+        return try {
+            val handle = client.resolveAdminRegion(lat, lon)
+            if (handle == 0L) return null
+            val name = client.getAdminRegionName(handle)
+            client.releaseAdminRegion(handle)
+            name
+        } catch (e: Exception) {
+            Log.e(TAG, "resolveRegionName failed", e)
+            null
+        }
+    }
+
     /** Called when user long-presses on the map. */
     fun onLongPress(lat: Double, lon: Double) {
         Log.d(TAG, "onLongPress: lat=$lat, lon=$lon")
+        // File-backed diagnostics: verify the resolved point against the
+        // clicked object (screen→geo mapping check).
+        com.naviveylin.core.DiagnosticsLog.log(
+            "LONGPRESS",
+            "lat=$lat lon=$lon mag=${_uiState.value.viewport.magnification}"
+        )
         viewModelScope.launch {
             val entry = LocationEntry().apply {
                 this.label = "%.5f, %.5f".format(lat, lon)
@@ -1381,19 +1646,22 @@ class MapCanvasViewModel @Inject constructor(
                     this.lat = objLat
                     this.lon = objLon
                     this.matchQuality = "object"
+                    this.adminRegionHierarchy = resolveRegionName(objLat, objLon)
                 }
                 _uiState.value = _uiState.value.copy(
                     selectedLocation = objEntry,
                     objectDescription = desc,
                     isLoading = false,
-                    showDetailsSheet = true
+                    showDetailsSheet = true,
+                    detailsFromPoiSearch = false
                 )
                 updateCenter(objLat, objLon)
             } else {
                 _uiState.value = _uiState.value.copy(
                     objectDescription = desc,
                     isLoading = false,
-                    showDetailsSheet = false
+                    showDetailsSheet = false,
+                    detailsFromPoiSearch = false
                 )
             }
             renderMap()
@@ -1477,12 +1745,38 @@ class MapCanvasViewModel @Inject constructor(
         _routePanelViewModel?.setDestLocation(entry)
     }
 
-    /** Dismiss the details sheet. */
+    /**
+     * Dismiss the details sheet. A plain dismiss (swipe/back) of a details
+     * sheet opened from POI search reopens the POI sheet with its results
+     * intact. If a route was started from the details sheet, the POI sheet
+     * stays closed (spec: selective action closes both dialogs).
+     */
     fun dismissDetailsSheet() {
+        val s = _uiState.value
+        val fromPoi = s.detailsFromPoiSearch
+        _uiState.value = s.copy(
+            showDetailsSheet = false,
+            objectDescription = null,
+            isLongPress = false,
+            detailsFromPoiSearch = false,
+            poiSearchOpen = if (fromPoi && !s.showRoutePanel) true else s.poiSearchOpen
+        )
+    }
+
+    /**
+     * "Show on map" action from a details sheet opened via POI search: center
+     * the map on the POI, close the details sheet, and keep the POI sheet
+     * closed (spec: show action closes both dialogs).
+     */
+    fun showOnMap() {
+        val loc = _uiState.value.selectedLocation ?: return
+        updateCenter(loc.lat, loc.lon)
+        renderMap()
         _uiState.value = _uiState.value.copy(
             showDetailsSheet = false,
             objectDescription = null,
-            isLongPress = false
+            isLongPress = false,
+            detailsFromPoiSearch = false
         )
     }
 
@@ -1825,6 +2119,13 @@ class MapCanvasViewModel @Inject constructor(
         /** Minimum magnification for the pinch/rotation gesture commit (keeps 4–20). */
         const val GESTURE_MIN_MAG = 4
         const val MAX_MAG = 20
+
+        /** POI search radius steps in meters (mirrors JavaScout PoiSearchOverlay, extended to 100 km). */
+        val POI_RADIUS_STEPS_M = doubleArrayOf(500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0, 100000.0)
+        /** Default POI search radius: middle slider step (5 km, JavaScout default). */
+        const val DEFAULT_POI_RADIUS_METERS = 5000.0
+        /** Maximum number of POI results per search (JavaScout MAX_RESULTS). */
+        const val MAX_POI_RESULTS = 100
 
         /** Clamp a magnification to the pinch/rotation gesture range (4–20). */
         fun clampGestureMagnification(mag: Int): Int = mag.coerceIn(GESTURE_MIN_MAG, MAX_MAG)

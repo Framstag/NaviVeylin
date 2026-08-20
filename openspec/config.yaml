@@ -33,6 +33,7 @@ rules:
     - Reference specific files, modules, and Gradle configurations that will change
     - Include risk assessment per approach
     - Cover Android-specific concerns: threading (main vs background), lifecycle, configuration changes
+    - Solution follows material design 3 styleguides
 
   tasks:
     - Each task must reference its parent spec
@@ -56,9 +57,12 @@ rules:
     - For native C++ changes, verify all target ABIs compile
 
 validation:
-  - All spec scenarios must be traceable to a task
-  - All tasks must be traceable to a spec requirement
-  - No task references a deleted or renamed spec
+  - Make sure that all spec scenarios are traceable to a task
+  - Make sure that all tasks are traceable to a spec requirement
+  - Make sure that no task references a deleted or renamed spec
+  - Make sure that for every feature there are enough tests - especially unit tests
+  - Make sure that style guides of the Android plattform and Material Design 3 are followed
+  - Make sure that build and tests are green
 
 review:
   - Build compiles without errors for all target ABIs

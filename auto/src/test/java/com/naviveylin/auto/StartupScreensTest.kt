@@ -3,10 +3,12 @@ package com.naviveylin.auto
 import androidx.car.app.CarContext
 import androidx.car.app.model.PaneTemplate
 import com.naviveylin.core.DiagnosticsLog
+import io.mockk.every
 import io.mockk.mockk
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -16,14 +18,19 @@ import org.robolectric.RobolectricTestRunner
  * [LoadingScreen], [ErrorScreen] (message + Retry), and [DiagnosticsScreen]
  * ordering. Default Robolectric sandbox, no @Config.
  *
- * The full [NavigationSession] guard path (warmup-incomplete → loading screen,
- * exception → error screen) cannot be exercised without a real host-provided
- * CarContext; the screens it produces are covered here.
+ * The full [NavigationSession] guard path (exception → error screen) cannot
+ * be exercised without a real host-provided CarContext; the screens it
+ * produces are covered here.
  */
 @RunWith(RobolectricTestRunner::class)
 class StartupScreensTest {
 
     private val carContext = mockk<CarContext>()
+
+    @Before
+    fun setUp() {
+        every { carContext.getOnBackPressedDispatcher() } returns mockk(relaxed = true)
+    }
 
     @Test
     fun errorTemplateContainsMessage() {
@@ -59,7 +66,12 @@ class StartupScreensTest {
 
         val template = screen.onGetTemplate() as PaneTemplate
         assertTrue(template.pane.rows[0].texts.first().toString().contains("startup exploded"))
-        assertEquals("Retry", template.actionStrip!!.actions[0].title.toString())
+        // Retry + Back are row actions now (the action strip is replaced by a
+        // Header); assert the row carries both.
+        val actions = template.pane.rows[0].actions
+        assertEquals(2, actions.size)
+        assertTrue(actions.any { it.title.toString() == "Retry" })
+        assertTrue(actions.any { it.title.toString() == "Back" })
         // Note: invoking the action's OnClickDelegate requires a real host binder
         // (sendClick dispatches to the host); the lambda wiring is trivially thin.
     }

@@ -67,6 +67,18 @@ public class OSMScoutClient {
     public native void setStyleSheetFlag(String key, boolean value);
 
     /**
+     * Override the physical DPI used for rendering.
+     *
+     * The client is built with the phone display metrics; Android Auto must
+     * switch to the car surface DPI before rendering (the map would otherwise
+     * be scaled ~1.8x too zoomed on a ~236-dpi head unit). The phone UI sets
+     * its own density the same way. Takes effect on the next render.
+     *
+     * @param dpi physical DPI of the display being rendered to
+     */
+    public native void setMapDpi(double dpi);
+
+    /**
      * Close the client and release native resources.
      *
      * @return true if closed successfully
@@ -149,6 +161,18 @@ public class OSMScoutClient {
     public native ObjectDescription getDescription(double lat, double lon, int magnification);
 
     /**
+     * Reverse-lookup the address (street + house number + admin region +
+     * postal area) at the given geographic coordinate via the location index,
+     * independent of the object's own address tags.
+     *
+     * @param lat latitude in degrees
+     * @param lon longitude in degrees
+     * @return String[]{street, houseNumber, adminRegion, postalArea}, or null
+     *         if no address is indexed at the coordinate
+     */
+    public native String[] getAddressAt(double lat, double lon);
+
+    /**
      * Get the bounding box of the most reasonable visible object
      * at the given geographic coordinate.
      *
@@ -159,6 +183,49 @@ public class OSMScoutClient {
      *         or null if the best match is a node or no object found
      */
     public native double[] getObjectBoundingBox(double lat, double lon, int magnification);
+
+    /**
+     * Search for POIs of the given OSM type names within a radius around a coordinate.
+     *
+     * @param typeNames    OSM object type names (e.g. "tourism_hotel", "amenity_restaurant")
+     * @param lat          center latitude in degrees
+     * @param lon          center longitude in degrees
+     * @param radiusMeters search radius in meters
+     * @param limit        maximum number of results to return
+     * @return array of matching PoiEntry objects, or empty array if none found
+     */
+    public native PoiEntry[] searchPOIsByTypes(String[] typeNames,
+                                               double lat,
+                                               double lon,
+                                               double radiusMeters,
+                                               int limit);
+
+    /**
+     * Search for POIs of the given category within a radius around a coordinate.
+     * <p>
+     * Resolves the category to its hardcoded OSM type names via
+     * {@link PoiCategories} and delegates to
+     * {@link #searchPOIsByTypes(String[], double, double, double, int)}.
+     *
+     * @param category     category id (see {@link PoiCategories#HOTELS},
+     *                     {@link PoiCategories#RESTAURANTS}, {@link PoiCategories#GROCERY})
+     * @param lat          center latitude in degrees
+     * @param lon          center longitude in degrees
+     * @param radiusMeters search radius in meters
+     * @param limit        maximum number of results to return
+     * @return array of matching PoiEntry objects, or empty array if none found
+     */
+    public PoiEntry[] searchPOIs(String category,
+                                 double lat,
+                                 double lon,
+                                 double radiusMeters,
+                                 int limit) {
+        String[] typeNames = PoiCategories.getTypeNames(category);
+        if (typeNames == null || typeNames.length == 0 || radiusMeters <= 0) {
+            return new PoiEntry[0];
+        }
+        return searchPOIsByTypes(typeNames, lat, lon, radiusMeters, limit);
+    }
 
     /**
      * Calculate a route asynchronously.

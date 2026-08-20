@@ -22,6 +22,24 @@ class FakeOSMScoutClient : OSMScoutClient() {
      *  interleave mode switches with an in-flight tile render in tests. */
     var renderWithRouteAndPoisDelayMs: Long = 0L
 
+    /** Search-selection marker latitude from the last [renderWithRouteAndPois] (NaN when unset). */
+    var lastSearchSelLat: Double = Double.NaN
+
+    /** Search-selection marker longitude from the last [renderWithRouteAndPois] (NaN when unset). */
+    var lastSearchSelLon: Double = Double.NaN
+
+    /** Magnification of the last render (either entry point; -1 until first render). */
+    @Volatile
+    var lastRenderMag: Int = -1
+
+    /** Latitude of the last render (NaN until first render). */
+    @Volatile
+    var lastRenderLat: Double = Double.NaN
+
+    /** Longitude of the last render (NaN until first render). */
+    @Volatile
+    var lastRenderLon: Double = Double.NaN
+
     override fun setStyleSheetFlag(key: String, value: Boolean) {
         styleFlags.add(key to value)
     }
@@ -32,6 +50,9 @@ class FakeOSMScoutClient : OSMScoutClient() {
         angle: Double, magnification: Int
     ): IntArray? {
         renderCount.incrementAndGet()
+        lastRenderLat = lat
+        lastRenderLon = lon
+        lastRenderMag = magnification
         return createTestPixels(width, height)
     }
 
@@ -44,6 +65,11 @@ class FakeOSMScoutClient : OSMScoutClient() {
         trackLats: DoubleArray?, trackLons: DoubleArray?
     ): IntArray? {
         renderWithRouteAndPoisCount.incrementAndGet()
+        lastSearchSelLat = searchSelLat
+        lastSearchSelLon = searchSelLon
+        lastRenderLat = lat
+        lastRenderLon = lon
+        lastRenderMag = magnification
         if (renderWithRouteAndPoisDelayMs > 0L) {
             Thread.sleep(renderWithRouteAndPoisDelayMs)
         }
@@ -97,6 +123,11 @@ class FakeOSMScoutClient : OSMScoutClient() {
         return null
     }
 
+    /** Address returned by [getAddressAt] (null = no indexed address). */
+    var addressAt: Array<String>? = null
+
+    override fun getAddressAt(lat: Double, lon: Double): Array<String>? = addressAt
+
     /** Handles passed to [searchLocations] in call order. */
     val searchAdminRegionHandles = mutableListOf<Long>()
 
@@ -114,6 +145,40 @@ class FakeOSMScoutClient : OSMScoutClient() {
         searchQueries.add(query)
         searchLimits.add(limit)
         return nextSearchResults
+    }
+
+    // --- POI search stubs ---
+
+    /** Categories passed to [searchPOIs] in call order. */
+    val poiSearchCategories = mutableListOf<String>()
+
+    /** Type-name lists passed to [searchPOIsByTypes] in call order. */
+    val poiSearchTypeNames = mutableListOf<List<String>>()
+
+    /** Results returned by [searchPOIs]/[searchPOIsByTypes] (default: empty). */
+    var nextPoiResults: Array<PoiEntry>? = emptyArray()
+
+    /** When set, [searchPOIs]/[searchPOIsByTypes] throw this instead of returning. */
+    var poiSearchError: Exception? = null
+
+    override fun searchPOIsByTypes(
+        typeNames: Array<String>,
+        lat: Double, lon: Double,
+        radiusMeters: Double, limit: Int
+    ): Array<PoiEntry>? {
+        poiSearchTypeNames.add(typeNames.toList())
+        poiSearchError?.let { throw it }
+        return nextPoiResults
+    }
+
+    override fun searchPOIs(
+        category: String,
+        lat: Double, lon: Double,
+        radiusMeters: Double, limit: Int
+    ): Array<PoiEntry>? {
+        poiSearchCategories.add(category)
+        poiSearchError?.let { throw it }
+        return nextPoiResults
     }
 
     /** Handles returned by [resolveAdminRegion] in call order. */

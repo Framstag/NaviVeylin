@@ -57,6 +57,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.input.key.key
@@ -81,6 +82,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.naviveylin.ui.about.AboutDialog
 import com.naviveylin.ui.favorites.FavoritesSheet
 import com.naviveylin.navigation.NavigationViewModel
+import com.naviveylin.ui.navigation.NavigationDetailsOverlay
 import com.naviveylin.ui.navigation.NavigationStateOverlay
 import com.naviveylin.ui.navigation.NextTurnOverlay
 import com.naviveylin.ui.route.ActiveField
@@ -89,7 +91,9 @@ import com.naviveylin.ui.route.RoutePanel
 import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.ui.route.RouteSummaryDialog
 import com.framstag.libosmscout.client.LocationEntry
+import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.R
 import kotlin.math.cos
 import kotlin.math.log2
 import kotlin.math.round
@@ -127,6 +131,7 @@ fun MapCanvasScreen(
     var showAboutDialog by remember { mutableStateOf(false) }
     var showFavoritePicker by remember { mutableStateOf(false) }
     var favoritePickerField by remember { mutableStateOf<ActiveField?>(null) }
+    var showNavDetails by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -541,32 +546,14 @@ fun MapCanvasScreen(
                                 contentDescription = "Menu"
                             )
                         }
-                        DropdownMenu(
+                        MapMenu(
                             expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Download Maps") },
-                                onClick = {
-                                    menuExpanded = false
-                                    onNavigateToMapManager()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Favorites") },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.toggleFavoritesSheet()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("About") },
-                                onClick = {
-                                    menuExpanded = false
-                                    showAboutDialog = true
-                                }
-                            )
-                        }
+                            onDismiss = { menuExpanded = false },
+                            onDownloadMaps = { onNavigateToMapManager() },
+                            onOpenFavorites = { viewModel.toggleFavoritesSheet() },
+                            onOpenPoiSearch = { viewModel.openPoiSearch() },
+                            onOpenAbout = { showAboutDialog = true }
+                        )
                     }
 
                     Spacer(modifier = Modifier.size(2.dp))
@@ -743,32 +730,14 @@ fun MapCanvasScreen(
                                 contentDescription = "Menu"
                             )
                         }
-                        DropdownMenu(
+                        MapMenu(
                             expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Download Maps") },
-                                onClick = {
-                                    menuExpanded = false
-                                    onNavigateToMapManager()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Favorites") },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.toggleFavoritesSheet()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("About") },
-                                onClick = {
-                                    menuExpanded = false
-                                    showAboutDialog = true
-                                }
-                            )
-                        }
+                            onDismiss = { menuExpanded = false },
+                            onDownloadMaps = { onNavigateToMapManager() },
+                            onOpenFavorites = { viewModel.toggleFavoritesSheet() },
+                            onOpenPoiSearch = { viewModel.openPoiSearch() },
+                            onOpenAbout = { showAboutDialog = true }
+                        )
                     }
 
                     // Compass button
@@ -941,6 +910,27 @@ fun MapCanvasScreen(
             )
         }
 
+        // POI search sheet
+        if (state.poiSearchOpen) {
+            PoiSearchPanel(
+                category = state.poiCategory,
+                radiusMeters = state.poiRadiusMeters,
+                results = state.poiResults,
+                isSearching = state.isPoiSearching,
+                error = state.poiSearchError,
+                client = viewModel.osmscoutClient,
+                centerLat = state.poiSearchCenterLat,
+                centerLon = state.poiSearchCenterLon,
+                currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
+                selectedPoi = if (state.poiSelectedLat.isNaN()) null else state.poiSelectedLat to state.poiSelectedLon,
+                onCategorySelected = { viewModel.onPoiCategorySelected(it) },
+                onRadiusChanged = { viewModel.onPoiRadiusChanged(it) },
+                onSearch = { viewModel.performPoiSearch() },
+                onEntryClick = { viewModel.onPoiEntryClick(it) },
+                onDismiss = { viewModel.closePoiSearch() }
+            )
+        }
+
         // Search history sheet (opened from "Select from history")
         if (showSearchHistory) {
             val history by viewModel.searchHistory.collectAsState()
@@ -954,18 +944,31 @@ fun MapCanvasScreen(
             )
         }
 
-        // Location details sheet
+        // Location details dialog (full screen, spec: enhanced-details-sheet).
+        // Its own BackHandler (registered later in composition than the
+        // navigation-reject handler above) dismisses it on system back.
         if (state.showDetailsSheet && state.selectedLocation != null) {
-            LocationDetailsSheet(
+            LocationDetailsDialog(
                 entry = state.selectedLocation!!,
+                client = viewModel.osmscoutClient,
+                // Mini map starts 4 levels below the main map so the object's
+                // surroundings are visible (main map is typically zoomed in).
+                initialMag = (state.viewport.magnification - 4)
+                    .coerceIn(MapCanvasViewModel.MIN_MAG, MapCanvasViewModel.MAX_MAG),
                 objectDescription = state.objectDescription,
                 isFavorite = viewModel.isSelectedLocationFavorite(),
                 groupNames = viewModel.getFavoriteGroupNames(),
+                currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
                 onAddToFavorites = { groupName, favName, isNewGroup ->
                     viewModel.addSelectedToFavorites(groupName, favName, isNewGroup)
                 },
                 onRemoveFromFavorites = { viewModel.removeSelectedFromFavorites() },
                 onRouteToLocation = { viewModel.openRoutePanelWithStart(state.selectedLocation) },
+                onShowOnMap = if (state.detailsFromPoiSearch) {
+                    { viewModel.showOnMap() }
+                } else {
+                    null
+                },
                 onDismiss = { viewModel.dismissDetailsSheet() }
             )
         }
@@ -1137,8 +1140,32 @@ fun MapCanvasScreen(
                 isOffRoute = navState.isOffRoute,
                 onStopNavigation = { navigationViewModel.stopNavigation()
                     routePanelViewModel.setNavigating(false) },
+                onClick = { showNavDetails = true },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
+        }
+
+        // Expanded routing status details — full-screen route description
+        if (showNavDetails && navState.isNavigating) {
+            NavigationDetailsOverlay(
+                instructions = navState.instructions,
+                currentStepIndex = navState.currentStepIndex,
+                currentRoadInfo = navState.currentRoadInfo,
+                remainingDistance = navState.remainingDistance,
+                etaMillis = navState.etaMillis,
+                currentSpeedKmH = navState.currentSpeedKmH,
+                maxSpeedKmH = navState.maxSpeedKmH,
+                onStopNavigation = {
+                    navigationViewModel.stopNavigation()
+                    routePanelViewModel.setNavigating(false)
+                },
+                onDismiss = { showNavDetails = false }
+            )
+        }
+
+        // Reset the expanded view when navigation ends
+        LaunchedEffect(navState.isNavigating) {
+            if (!navState.isNavigating) showNavDetails = false
         }
     }
 }
@@ -1291,5 +1318,50 @@ internal fun KeepScreenOnEffect(keepScreenOn: Boolean) {
         onDispose {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
+    }
+}
+
+/**
+ * Map screen menu (hamburger). Shared by the landscape and portrait layouts so
+ * the POI search entry stays in sync and the menu is testable in isolation.
+ */
+@Composable
+internal fun MapMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onDownloadMaps: () -> Unit,
+    onOpenFavorites: () -> Unit,
+    onOpenPoiSearch: () -> Unit,
+    onOpenAbout: () -> Unit
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(
+            text = { Text("Download Maps") },
+            onClick = {
+                onDismiss()
+                onDownloadMaps()
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("Favorites") },
+            onClick = {
+                onDismiss()
+                onOpenFavorites()
+            }
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.poi_search_title)) },
+            onClick = {
+                onDismiss()
+                onOpenPoiSearch()
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("About") },
+            onClick = {
+                onDismiss()
+                onOpenAbout()
+            }
+        )
     }
 }

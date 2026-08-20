@@ -100,6 +100,13 @@ class MapRenderer(
     val renderedAngle: Double get() = frontBufferAngle
     private var frontBufferAngle = 0.0
 
+    // ---- Last emitted frame (reused when the front buffer did not change) ----
+    private var frontBufferSeq = 0L
+    private var lastEmittedSeq = -1L
+    private var lastEmittedFrame: Bitmap? = null
+    private var lastEmittedWidth = 0
+    private var lastEmittedHeight = 0
+
     /** Magnification of the most recently completed native render (front buffer). */
     val lastRenderedMagnification: Int get() = frontBufferMag
 
@@ -346,12 +353,36 @@ class MapRenderer(
         gpsMarkerBearing = Double.NaN
         gpsMarkerAccuracy = 0.0
         bufferLock.withLock {
-            _frameFlow.value = FrameState(
-                frontBuffer?.copy(Bitmap.Config.ARGB_8888, true),
+            emitFrame(
                 RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
-                MarkerSnapshot(Double.NaN, Double.NaN, Double.NaN, 0.0)
+                MarkerSnapshot(Double.NaN, Double.NaN, Double.NaN, 0.0),
+                crop = false
             )
         }
+    }
+
+    /**
+     * Emit the current front buffer to the UI. The bitmap handed to Compose is
+     * reused when the front buffer content is unchanged since the last emission
+     * (same front-buffer sequence and same screen size) — unchanged frames
+     * allocate no new bitmap. The emitted bitmap is always an independent copy
+     * (never shares backing storage with the front buffer, which the next render
+     * overwrites). The previous emitted bitmap is never recycled here: Compose
+     * may still be drawing it; GC reclaims it once unreferenced.
+     */
+    private fun emitFrame(viewport: RenderViewport, marker: MarkerSnapshot, crop: Boolean) {
+        val fb = frontBuffer ?: return
+        val reuse = frontBufferSeq == lastEmittedSeq &&
+            lastEmittedFrame != null &&
+            lastEmittedWidth == screenWidth &&
+            lastEmittedHeight == screenHeight
+        if (!reuse) {
+            lastEmittedFrame = if (crop) extractCenterRegion(fb) else fb.copy(Bitmap.Config.ARGB_8888, true)
+            lastEmittedSeq = frontBufferSeq
+            lastEmittedWidth = screenWidth
+            lastEmittedHeight = screenHeight
+        }
+        _frameFlow.value = FrameState(lastEmittedFrame, viewport, marker)
     }
 
     /**
@@ -722,14 +753,15 @@ class MapRenderer(
                 if (job.jobEpoch != epoch.get()) return@withLock
                 frontBuffer?.recycle()
                 frontBuffer = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+                frontBufferSeq++
                 frontBufferEpoch = job.jobEpoch
                 frontBufferLat = job.lat; frontBufferLon = job.lon
                 frontBufferMag = job.mag; frontBufferAngle = normalizeAngle(job.angle)
                 renderedLat = job.lat; renderedLon = job.lon; renderedMag = job.mag
-                _frameFlow.value = FrameState(
-                    frontBuffer?.copy(Bitmap.Config.ARGB_8888, true),
+                emitFrame(
                     RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
-                    MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy)
+                    MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy),
+                    crop = false
                 )
             }
             Log.d(TAG, "executeRender: front buffer emitted (tiles) mag=" + job.mag + " (" + elapsed + "ms)")
@@ -745,15 +777,16 @@ class MapRenderer(
                     backBuffer?.recycle()
                     backBuffer = Bitmap.createBitmap(job.width, job.height, Bitmap.Config.ARGB_8888)
                 }
-                // Copy rendered bitmap pixels into backBuffer
-                val pixels = IntArray(job.width * job.height)
-                bitmap!!.getPixels(pixels, 0, job.width, 0, 0, job.width, job.height)
-                backBuffer!!.setPixels(pixels, 0, job.width, 0, 0, job.width, job.height)
+                // Blit rendered bitmap into backBuffer (GPU-accelerated copy, no
+                // full-buffer IntArray round-trip). drawBitmap copies pixels into
+                // backBuffer's own storage, so bitmap can be recycled afterwards.
+                Canvas(backBuffer!!).drawBitmap(bitmap!!, 0f, 0f, null)
                 bitmap.recycle()
 
                 val tmp = frontBuffer
                 frontBuffer = backBuffer
                 backBuffer = tmp
+                frontBufferSeq++
                 frontBufferEpoch = job.jobEpoch
                 frontBufferLat = job.lat; frontBufferLon = job.lon
                 frontBufferMag = job.mag; frontBufferAngle = normalizeAngle(job.angle)
@@ -762,11 +795,10 @@ class MapRenderer(
 
             if (completionEpoch == epoch.get() && job.mag == frontBufferMag) {
                 bufferLock.withLock {
-                    val fb = frontBuffer ?: return@withLock
-                    _frameFlow.value = FrameState(
-                        extractCenterRegion(fb),
+                    emitFrame(
                         RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
-                        MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy)
+                        MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy),
+                        crop = true
                     )
                 }
                 Log.d(TAG, "executeRender: front buffer emitted mag=" + job.mag + " (" + elapsed + "ms)")

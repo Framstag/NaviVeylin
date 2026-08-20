@@ -89,12 +89,25 @@ Config: `openspec/config.yaml`
 # Build for specific ABI only (faster iteration)
 ./gradlew :app:assembleDebug -Pandroid.injected.build.abi=arm64-v8a
 
+# Build Play-ready release AAB (bumps version state, all 3 ABIs)
+./gradlew release
+
 # Run unit tests
 ./gradlew test
 
 # Run Android instrumented tests
 ./gradlew connectedAndroidTest
 ```
+
+### Release versioning
+- `./gradlew release` generates `versionName` as `<yyyy>-<MM>-<dd>-<N>` (4-digit year, zero-padded month/day, running number `N` without leading zeros), increments `versionCode` by one, then runs `:app:bundleRelease`
+- Version state lives in `app/release-version.properties` (**gitignored**): `lastDate`, `runningNumber`, `versionCode`. Same day → `N+1`; new day → `N` resets to 1; `versionCode` starts at 20 (migrated from the old hardcoded 19)
+- The bump happens at configuration time, gated on the `release` task being requested — every other build (`assembleDebug`, etc.) uses the fixed fallback `1.0.0`/`19` and never touches the state file
+- Direct `bundleRelease` without `release` reuses the last persisted values; only `release` bumps (single release machine assumed)
+- `buildConfig = true`; app code reads the version via `BuildConfig.VERSION_NAME` (used by `AboutDialog`)
+- Signing unchanged: `app/release.keystore` present → signed AAB; absent → warning logged, unsigned AAB still produced
+- Output: `app/build/outputs/bundle/release/app-release.aab`
+- Unit tests cover the dialog display (see `AboutDialogComposeTest.kt`); the date-format logic is inline in the Gradle DSL and verified behaviorally (run `release` twice on the same day)
 
 ### JNI stub for unit tests
 `app/src/test/jniLibs/` contains a tiny host-compiled stub (ELF, no symbols,
@@ -185,5 +198,5 @@ rm -rf vcpkg/buildtrees/<package>
 - No Google Play Services
 - No Google Maps
 - No Google account required
-- App distributed outside Play Store
+- App distributed outside Play Store; `./gradlew release` also produces an AAB suitable for Google Play upload
 - All map rendering from libosmscout native code

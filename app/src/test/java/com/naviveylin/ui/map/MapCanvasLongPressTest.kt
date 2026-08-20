@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
 import androidx.test.core.app.ApplicationProvider
+import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.FakeOSMScoutClient
+import com.framstag.libosmscout.client.ObjectDescription
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
@@ -15,6 +17,7 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -138,5 +141,65 @@ class MapCanvasLongPressTest {
         val entry = checkNotNull(viewModel.uiState.value.selectedLocation)
         assertEquals(expected.first, entry.lat, 1e-6)
         assertEquals(expected.second, entry.lon, 1e-6)
+    }
+
+    @Test
+    fun `long press with candidates shows picker instead of details`() = runTest {
+        val client = FakeOSMScoutClient()
+        client.nextCandidateDescriptions = listOf(
+            ObjectDescription(
+                listOf(DescriptionEntry().apply {
+                    sectionKey = "General"
+                    labelKey = "Name"
+                    value = "Hotel Central"
+                }),
+                48.21, 16.41, "area", "tourism_hotel", 100L
+            )
+        )
+        val vm = MapCanvasViewModel(
+            viewportStorage = ViewportStorage(context),
+            settingsStorage = SettingsStorage(context),
+            assetCopier = AssetCopier(context),
+            client = client,
+            favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context),
+            locationService = LocationService(context),
+            darkModeController = DarkModeController(SettingsStorage(context)),
+            context = context
+        )
+        vm.updateCenter(48.2, 16.4)
+        vm.updateMagnification(10)
+
+        vm.onLongPress(48.2, 16.4)
+        vm.uiState.first { it.showCandidatePicker }
+
+        assertTrue(vm.uiState.value.showCandidatePicker)
+        assertTrue(!vm.uiState.value.showDetailsSheet)
+        assertEquals(1, vm.uiState.value.candidateDescriptions.size)
+    }
+
+    @Test
+    fun `long press with no candidates shows no picker`() = runTest {
+        val client = FakeOSMScoutClient()
+        client.nextCandidateDescriptions = emptyList()
+        val vm = MapCanvasViewModel(
+            viewportStorage = ViewportStorage(context),
+            settingsStorage = SettingsStorage(context),
+            assetCopier = AssetCopier(context),
+            client = client,
+            favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context),
+            locationService = LocationService(context),
+            darkModeController = DarkModeController(SettingsStorage(context)),
+            context = context
+        )
+        vm.updateCenter(48.2, 16.4)
+        vm.updateMagnification(10)
+
+        vm.onLongPress(48.2, 16.4)
+        vm.uiState.first { !it.isLoading }
+
+        assertTrue(!vm.uiState.value.showCandidatePicker)
+        assertTrue(!vm.uiState.value.showDetailsSheet)
     }
 }

@@ -944,6 +944,16 @@ fun MapCanvasScreen(
             )
         }
 
+        // Candidate picker (long-press with multiple objects at the point).
+        // Shown instead of the details sheet; selecting a row opens details.
+        if (state.showCandidatePicker && state.candidateDescriptions.isNotEmpty()) {
+            CandidatePickerSheet(
+                candidates = state.candidateDescriptions,
+                onCandidateSelected = { viewModel.onCandidateSelected(it) },
+                onDismiss = { viewModel.dismissCandidatePicker() }
+            )
+        }
+
         // Location details dialog (full screen, spec: enhanced-details-sheet).
         // Its own BackHandler (registered later in composition than the
         // navigation-reject handler above) dismisses it on system back.

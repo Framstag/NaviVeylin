@@ -366,19 +366,41 @@ class MapScreen(
 
     /**
      * Called when a location is selected on the map (via tap or favorite marker).
-     * Shows a details overlay with "Navigate here" and "Clear" actions.
+     * Queries the ranked candidate objects at the point off the main thread:
+     * several candidates → push the candidate picker; exactly one → details
+     * screen directly with that description; none → details screen with
+     * coordinates (existing behavior).
      */
     private fun onLocationSelected(lat: Double, lon: Double) {
         selectionLat = lat
         selectionLon = lon
         hasSelection = true
 
-        // Push a details screen with the selected location
-        val detailsScreen = createDetailsScreen(lat, lon)
-        carContext.getCarService(ScreenManager::class.java).push(detailsScreen)
+        val client = entryPoint.autoClientProvider().client()
+        val mag = mapRenderer.viewportState.value.zoom
+        val screenManager = carContext.getCarService(ScreenManager::class.java)
+
+        CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
+            val candidates = withContext(Dispatchers.Default) {
+                try {
+                    client.getDescriptionCandidates(lat, lon, mag)
+                } catch (e: Exception) {
+                    Log.w(TAG, "getDescriptionCandidates failed", e)
+                    emptyList()
+                }
+            }
+            val screen = if (shouldShowCandidatePicker(candidates.size)) {
+                CandidatePickerScreen(carContext, candidates) { desc ->
+                    screenManager.push(createDetailsScreen(lat, lon, desc))
+                }
+            } else {
+                createDetailsScreen(lat, lon, candidates.firstOrNull())
+            }
+            screenManager.push(screen)
+        }
     }
 
-    private fun createDetailsScreen(lat: Double, lon: Double): Screen {
+    private fun createDetailsScreen(lat: Double, lon: Double, preloadedDescription: ObjectDescription? = null): Screen {
         val client = entryPoint.autoClientProvider().client()
         val mag = mapRenderer.viewportState.value.zoom
         return object : Screen(carContext) {
@@ -389,20 +411,24 @@ class MapScreen(
             init {
                 enableBackNavigation()
                 // Reverse-geocode + describe the tapped location off the main
-                // thread; invalidate when the JNI results arrive.
+                // thread; invalidate when the JNI results arrive. When the
+                // caller already resolved the object (single candidate), the
+                // description is passed in and not re-queried.
                 loadScope.launch {
                     val result = withContext(Dispatchers.Default) {
                         var addr: Array<String>? = null
-                        var desc: ObjectDescription? = null
+                        var desc: ObjectDescription? = preloadedDescription
                         try {
                             addr = client.getAddressAt(lat, lon)
                         } catch (e: Exception) {
                             Log.w(TAG, "getAddressAt failed", e)
                         }
-                        try {
-                            desc = client.getDescription(lat, lon, mag)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "getDescription failed", e)
+                        if (desc == null) {
+                            try {
+                                desc = client.getDescription(lat, lon, mag)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "getDescription failed", e)
+                            }
                         }
                         addr to desc
                     }

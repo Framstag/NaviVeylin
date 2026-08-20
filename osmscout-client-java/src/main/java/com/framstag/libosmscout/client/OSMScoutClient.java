@@ -1,5 +1,7 @@
 package com.framstag.libosmscout.client;
 
+import java.util.List;
+
 /**
  * Client object for libosmscout.
  *
@@ -159,6 +161,19 @@ public class OSMScoutClient {
      * @return object description, or null if nothing found
      */
     public native ObjectDescription getDescription(double lat, double lon, int magnification);
+
+    /**
+     * Get all reasonable candidate objects at the given coordinate, ranked by
+     * the native visibility/ranking algorithm (nearest and most visible first).
+     * Each candidate carries its identity (ref type, OSM type name, file
+     * offset) and object center coordinates.
+     *
+     * @param lat latitude
+     * @param lon longitude
+     * @param magnification current map magnification (zoom level)
+     * @return ranked list of candidate descriptions, empty if nothing found
+     */
+    public native List<ObjectDescription> getDescriptionCandidates(double lat, double lon, int magnification);
 
     /**
      * Reverse-lookup the address (street + house number + admin region +

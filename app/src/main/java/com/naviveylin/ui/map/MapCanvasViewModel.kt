@@ -74,6 +74,10 @@ data class MapCanvasUiState(
     val objectDescription: ObjectDescription? = null,
     val isLongPress: Boolean = false,
     val showDetailsSheet: Boolean = false,
+    /** Ranked candidate objects at the long-press point, empty until a lookup runs. */
+    val candidateDescriptions: List<ObjectDescription> = emptyList(),
+    /** Whether the candidate picker sheet is shown (long-press with multiple objects). */
+    val showCandidatePicker: Boolean = false,
     /** Whether the POI search sheet is open. */
     val poiSearchOpen: Boolean = false,
     /** Selected POI category id, null while none is selected (never preselected). */
@@ -1630,35 +1634,29 @@ class MapCanvasViewModel @Inject constructor(
                 isLongPress = true,
                 isLoading = true
             )
-            val desc = withContext(Dispatchers.Default) {
+            val candidates = withContext(Dispatchers.Default) {
                 try {
-                    client.getDescription(lat, lon, _uiState.value.viewport.magnification)
+                    client.getDescriptionCandidates(lat, lon, _uiState.value.viewport.magnification)
                 } catch (e: Exception) {
-                    Log.e(TAG, "getDescription failed", e)
-                    null
+                    Log.e(TAG, "getDescriptionCandidates failed", e)
+                    emptyList<ObjectDescription>()
                 }
             }
-            if (desc != null && desc.entries.isNotEmpty()) {
-                val objLat = if (!desc.objectLat.isNaN()) desc.objectLat else lat
-                val objLon = if (!desc.objectLon.isNaN()) desc.objectLon else lon
-                val objEntry = LocationEntry().apply {
-                    this.label = entry.label
-                    this.lat = objLat
-                    this.lon = objLon
-                    this.matchQuality = "object"
-                    this.adminRegionHierarchy = resolveRegionName(objLat, objLon)
-                }
+            if (candidates.isNotEmpty()) {
+                // Multiple (or any) candidates: show the picker, no details yet.
                 _uiState.value = _uiState.value.copy(
-                    selectedLocation = objEntry,
-                    objectDescription = desc,
+                    candidateDescriptions = candidates,
+                    showCandidatePicker = true,
                     isLoading = false,
-                    showDetailsSheet = true,
+                    showDetailsSheet = false,
                     detailsFromPoiSearch = false
                 )
-                updateCenter(objLat, objLon)
             } else {
+                // No objects at the press point: keep the coordinate entry, no picker.
                 _uiState.value = _uiState.value.copy(
-                    objectDescription = desc,
+                    candidateDescriptions = emptyList(),
+                    showCandidatePicker = false,
+                    objectDescription = null,
                     isLoading = false,
                     showDetailsSheet = false,
                     detailsFromPoiSearch = false
@@ -1666,6 +1664,49 @@ class MapCanvasViewModel @Inject constructor(
             }
             renderMap()
         }
+    }
+
+    /**
+     * Called when the user selects one candidate from the picker: open the
+     * details sheet for that object and place the marker on the object center
+     * (falling back to the press point when the object has no coordinates).
+     */
+    fun onCandidateSelected(desc: ObjectDescription) {
+        val s = _uiState.value
+        val pressLat = s.selectedLocation?.lat ?: Double.NaN
+        val pressLon = s.selectedLocation?.lon ?: Double.NaN
+        val objLat = if (!desc.objectLat.isNaN()) desc.objectLat else pressLat
+        val objLon = if (!desc.objectLon.isNaN()) desc.objectLon else pressLon
+        val objEntry = LocationEntry().apply {
+            this.label = s.selectedLocation?.label ?: "%.5f, %.5f".format(objLat, objLon)
+            this.lat = objLat
+            this.lon = objLon
+            this.matchQuality = "object"
+            this.adminRegionHierarchy = resolveRegionName(objLat, objLon)
+        }
+        _uiState.value = s.copy(
+            selectedLocation = objEntry,
+            objectDescription = desc,
+            showDetailsSheet = true,
+            isLongPress = true,
+            showCandidatePicker = false,
+            candidateDescriptions = emptyList(),
+            detailsFromPoiSearch = false
+        )
+        updateCenter(objLat, objLon)
+        renderMap()
+    }
+
+    /** Dismiss the candidate picker without opening details. */
+    fun dismissCandidatePicker() {
+        _uiState.value = _uiState.value.copy(
+            candidateDescriptions = emptyList(),
+            showCandidatePicker = false,
+            showDetailsSheet = false,
+            objectDescription = null,
+            isLongPress = false,
+            detailsFromPoiSearch = false
+        )
     }
 
     /** Set the NavigationViewModel for location forwarding during navigation. */

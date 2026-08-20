@@ -123,6 +123,19 @@ class FakeOSMScoutClient : OSMScoutClient() {
         return null
     }
 
+    /** Coordinates passed to [getDescriptionCandidates] in call order. */
+    val candidateLookupCoords = mutableListOf<Pair<Double, Double>>()
+
+    /** Results returned by the next [getDescriptionCandidates] call (default: empty). */
+    var nextCandidateDescriptions: List<ObjectDescription> = emptyList()
+
+    override fun getDescriptionCandidates(
+        lat: Double, lon: Double, magnification: Int
+    ): List<ObjectDescription> {
+        candidateLookupCoords.add(lat to lon)
+        return nextCandidateDescriptions
+    }
+
     /** Address returned by [getAddressAt] (null = no indexed address). */
     var addressAt: Array<String>? = null
 

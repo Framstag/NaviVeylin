@@ -11,6 +11,9 @@ class NaviVeylinApp : Application() {
         DiagnosticsLog.init(this)
         DiagnosticsLog.log(TAG, "Process started")
         DiagnosticsLog.time("Application.onCreate") {
+            // Forward native libosmscout osmscout::log output to Logcat
+            // before any native work starts (DB open, rendering, routing).
+            NativeLogBridge.install()
             super.onCreate()
             DiagnosticsLog.installCrashHandler()
         }

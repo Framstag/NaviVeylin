@@ -147,6 +147,21 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/CMakeLists.txt")
         add_library(iconv_stub STATIC "${CMAKE_CURRENT_SOURCE_DIR}/iconv_stub.c")
         target_link_libraries(OSMScoutMapCairo iconv_stub)
     endif()
+
+    # ── Native log bridge ──────────────────────────────────────
+    # App-owned code (not libosmscout): forwards osmscout::log output to
+    # Android Logcat. Only place in the native build allowed to use
+    # Android logging APIs. Links the client-java JNI lib so the osmscout
+    # log symbols resolve once the shared libs are loaded.
+    add_library(naviveylin_log_bridge SHARED
+        "${CMAKE_CURRENT_SOURCE_DIR}/native_log_bridge.cpp"
+    )
+    target_link_libraries(naviveylin_log_bridge
+        PRIVATE
+            OSMScout::OSMScout
+            osmscout_client_java
+            log
+    )
 else()
     message(FATAL_ERROR "libosmscout submodule not found. Run ./initialize.sh first.")
 endif()

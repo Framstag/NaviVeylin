@@ -56,6 +56,30 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
   - SDK/NDK/Java paths read from `local.properties` automatically
 - Cairo rendering backend (not OpenGL — better quality for map rendering)
 
+### Logging
+
+#### Native code (libosmscout submodule)
+- Log through the platform-independent `osmscout::log` API (`#include <osmscout/log/Logger.h>`):
+  ```cpp
+  osmscout::log.Debug() << "...";   // also .Info(), .Warn(), .Error()
+  ```
+- **Never** use Android logging (`android/log.h`, `__android_log_print`, `ANDROID_LOG_*`) in libosmscout outside its frozen `Android/` directory — no conditional or unconditional Android dependencies allowed there. The CI gate `Check libosmscout Android-free outside Android/` (`.github/workflows/build.yml`) fails the build if those patterns reappear.
+- No local changes accepted in the libosmscout `Android/` dir; its `android/log.h` usage is upstream-owned and never compiled by the app build.
+- Debug output is gated — enable with `osmscout::log.Debug(true)` if needed.
+
+#### Native log integration (NaviVeylin side)
+- `osmscout::log` lines are surfaced to Logcat by the **app-owned** NDK bridge:
+  - C++: `app/src/main/cpp/native_log_bridge.cpp/.h` — `AndroidLogLogger` sink forwarding lines to `__android_log_print`
+  - Kotlin: `com.naviveylin.NativeLogBridge` (guarded `System.loadLibrary("naviveylin_log_bridge")`; safe no-op in host unit tests)
+  - Installed once in `NaviVeylinApp.onCreate` before any DB open/render/routing
+- Native lines appear in Logcat under tag **`NaviVeylin`**, levels mapped `DEBUG/INFO/WARN/ERROR` → `D/I/W/E`
+- Inspect with: `adb logcat -s NaviVeylin`
+- The bridge links `osmscout_client_java` and is the **only** place in the native build allowed to use Android logging APIs — libosmscout must stay platform-independent
+
+#### Kotlin (app) logging
+- Use `android.util.Log` (`Log.d/i/w/e`) with per-class `TAG` constants; app diagnostics helpers live in `com.naviveylin.core.DiagnosticsLog`
+- Kotlin logs and forwarded native logs are separate streams; native lines always come from the bridge under the `NaviVeylin` tag
+
 ### Stylesheets
 
 - The libosmscout submodule `stylesheets/` dir (`app/src/main/cpp/libosmscout/stylesheets/`) is the **single source of truth** for map style sheets

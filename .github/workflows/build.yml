@@ -56,6 +56,24 @@ jobs:
           org.gradle.java.home=$JAVA_HOME
           EOF
 
+      # libosmscout must stay platform-independent: no Android logging
+      # (android/log.h, __android_log_*, ANDROID_LOG_*) and no Android-only
+      # CMake conditionals outside its frozen Android/ directory. The
+      # Android/ dir itself is upstream-owned and never modified locally.
+      - name: Check libosmscout Android-free outside Android/
+        run: |
+          set -euo pipefail
+          if grep -rE --include='*.cpp' --include='*.h' --include='*.hpp' \
+                --include='*.cc' --include='*.c' --include='CMakeLists.txt' \
+                --include='*.cmake' \
+                'android/log\.h|__android_|ANDROID_LOG|if\(ANDROID\)' \
+                app/src/main/cpp/libosmscout \
+                | grep -v '^app/src/main/cpp/libosmscout/Android/'; then
+            echo "::error::Android-specific code in libosmscout outside Android/"
+            exit 1
+          fi
+          echo "libosmscout is Android-free outside Android/."
+
       # ── Android SDK ──────────────────────────────────────────
       - name: Cache Android SDK
         id: cache-sdk

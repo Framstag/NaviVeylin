@@ -420,35 +420,34 @@ public class OSMScoutClient {
         double[] trackLats, double[] trackLons);
 
     /**
-     * Render the map with a route overlay.
+     * Render the current map view to an ARGB pixel array, with optional route overlay.
+     * <p>
+     * Convenience overload that calls {@link #renderWithRouteAndPois(int, int, double,
+     * double, double, int, double[], double[], double[], double[], double, double, double[], double[])}
+     * with no track, favorite, or selected-search markers.
      *
-     * @param width         output image width
-     * @param height        output image height
-     * @param lat           center latitude
-     * @param lon           center longitude
-     * @param angle         map rotation angle
-     * @param magnification map magnification
-     * @param routeLats     route polyline latitudes (can be null)
-     * @param routeLons     route polyline longitudes (can be null)
-     * @return ARGB pixel array, or null on error
+     * @param width         viewport width in pixels
+     * @param height        viewport height in pixels
+     * @param lat           center latitude in degrees
+     * @param lon           center longitude in degrees
+     * @param angle         map rotation angle in radians (0 = north-up)
+     * @param magnification magnification level (0 = world, higher = more zoomed in)
+     * @param routeLats     array of route waypoint latitudes, or null for no route
+     * @param routeLons     array of route waypoint longitudes, or null for no route
+     * @return int[] ARGB pixel data, or null if not initialised or invalid params
      */
-    public native int[] renderWithRoute(
-        int width, int height,
-        double lat, double lon, double angle, int magnification,
-        double[] routeLats, double[] routeLons);
-
-    /**
-     * Set or hide the GPS location marker that is drawn on top of the map during
-     * the next render. The marker is rendered in the same native pass as the map,
-     * so it always uses the exact same projection and cannot drift relative to the
-     * road. Call with {@code Double.NaN} for latitude to hide the marker.
-     *
-     * @param lat     marker latitude in degrees, or NaN to hide
-     * @param lon     marker longitude in degrees
-     * @param bearing marker bearing in degrees, 0 = north, clockwise, or negative to hide arrow
-     * @param accuracy horizontal accuracy in meters, or negative/zero to hide accuracy circle
-     */
-    public native void setGpsMarker(double lat, double lon, double bearing, double accuracy);
+    public int[] renderWithRoute(int width, int height,
+                                 double lat, double lon,
+                                 double angle,
+                                 int magnification,
+                                 double[] routeLats,
+                                 double[] routeLons) {
+        return renderWithRouteAndPois(width, height, lat, lon, angle, magnification,
+                                      routeLats, routeLons,
+                                      null, null,
+                                      Double.NaN, Double.NaN,
+                                      null, null);
+    }
 
     /**
      * Project a geographic coordinate to screen pixel coordinates.

@@ -1,41 +1,6 @@
-# Landscape Layout Specification
+# Landscape Layout — Delta
 
-## Purpose
-
-Provides orientation-aware map screen overlay layout that rearranges controls for landscape mode, following Android best practices for safe-zone placement and foldable/multi-window compatibility.
-
-## Requirements
-
-### Requirement: Orientation detection via BoxWithConstraints
-
-The system SHALL detect device orientation using Compose `BoxWithConstraints` (width vs height comparison) rather than the deprecated `Configuration.orientation` API.
-
-#### Scenario: Portrait detected when height exceeds width
-
-- **WHEN** the map screen is displayed
-- **AND** `maxWidth < maxHeight` from `BoxWithConstraints`
-- **THEN** the system SHALL use the portrait layout arrangement
-
-#### Scenario: Landscape detected when width exceeds height
-
-- **WHEN** the map screen is displayed
-- **AND** `maxWidth > maxHeight` from `BoxWithConstraints`
-- **THEN** the system SHALL use the landscape layout arrangement
-
-#### Scenario: Layout re-evaluated on configuration change
-
-- **WHEN** the device is rotated
-- **THEN** the layout SHALL re-evaluate and switch arrangements without activity restart
-
-### Requirement: Safe-zone placement in landscape
-
-In landscape mode, overlay controls SHALL NOT be placed at the very top edge of the screen. Controls SHALL maintain at least 8dp padding from the top edge to avoid overlap with the camera notch or status bar area.
-
-#### Scenario: Controls positioned away from top edge
-
-- **WHEN** the device is in landscape orientation
-- **THEN** no overlay button SHALL be positioned at the very top edge of the screen
-- **AND** controls SHALL have at least 8dp padding from the top edge to avoid camera notch overlap
+## MODIFIED Requirements
 
 ### Requirement: Control cluster arrangement in landscape
 

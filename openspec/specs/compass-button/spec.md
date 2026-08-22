@@ -89,15 +89,16 @@ The compass button's mode SHALL reflect and update the same orientation settings
 - **WHEN** the user changes orientation via the location options bottom sheet
 - **THEN** the compass button SHALL reflect the updated mode
 
-### Requirement: Compass positioned between menu and search
+### Requirement: Compass positioned at top of right view column
 
-The system SHALL position the compass button in the top-right overlay column, below the menu button and above the search button.
+The system SHALL position the compass button at the top of the right view column, below the status bar. The menu, search, and favorites buttons move to the left action column (see `map-canvas-screen`), so the compass is no longer between the menu and search buttons.
 
-#### Scenario: Compass visible in overlay column
+#### Scenario: Compass at top of right view column
 
 - **WHEN** the map screen is displayed
-- **THEN** the compass button SHALL be visible in the top-right overlay column
-- **AND** it SHALL appear below the menu (⋮) button
+- **THEN** the compass button SHALL be visible at the top of the right view column
+- **AND** it SHALL appear below the status bar
+- **AND** the menu (toaster) button SHALL be on the left side of the screen
 - **AND** it SHALL appear above the search (🔍) button
 
 ### Requirement: Compass visually differentiates orientation modes

@@ -1,10 +1,6 @@
-# nav-hints-layout Specification
+# Nav Hints Layout — Delta
 
-## Purpose
-
-Defines layout constraints for the navigation hints overlay so it does not overlap on-map controls and is positioned flush to the left display edge.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Navigation hints avoid on-map buttons
 The NextTurnOverlay SHALL have its width constrained so it does not extend under the left action button column (menu, search, favorites) or the top-right view column (compass, location options, zoom controls).
@@ -20,10 +16,3 @@ The NextTurnOverlay SHALL be positioned immediately to the right of the top-left
 - **WHEN** navigation is active and NextTurnOverlay is displayed
 - **THEN** the overlay SHALL start directly to the right of the top-left toaster button
 - **AND** the overlay SHALL have no left-side gap beyond the toaster button width
-
-### Requirement: Routing status panel full width
-The NavigationStateOverlay SHALL span the full screen width without horizontal padding.
-
-#### Scenario: NavigationStateOverlay edge-to-edge
-- **WHEN** navigation is active and NavigationStateOverlay is displayed
-- **THEN** the panel SHALL extend from the left to the right display edge with no horizontal padding

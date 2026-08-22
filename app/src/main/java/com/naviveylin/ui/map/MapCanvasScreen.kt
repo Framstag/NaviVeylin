@@ -8,6 +8,12 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,17 +31,19 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -59,6 +67,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
@@ -68,9 +77,11 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -93,6 +104,8 @@ import com.naviveylin.ui.route.RouteSummaryDialog
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.data.DarkModePreference
+import com.naviveylin.data.RenderMode
 import com.naviveylin.R
 import kotlin.math.cos
 import kotlin.math.log2
@@ -523,10 +536,40 @@ fun MapCanvasScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             val isLandscape = maxWidth > maxHeight
+            val compassNorthUp = if (navState.isNavigating) state.navNorthUp else state.freeFormNorthUp
+            val reCenterAction = {
+                val loc = viewModel.getCurrentLocation()
+                if (loc != null) {
+                    viewModel.onToggleFollowMode(true)
+                    viewModel.updateCenter(loc.latitude, loc.longitude)
+                    viewModel.renderMap()
+                } else {
+                    viewModel.showSnackbar("No GPS location available")
+                }
+            }
 
             if (isLandscape) {
-                // Landscape: all controls on right side (left side reserved for nav hints)
-                // Top-right: menu, compass, search, favorites
+                // Landscape: action buttons top-left, state controls on right
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 8.dp, top = 8.dp)
+                        .statusBarsPadding()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    MapActionColumn(
+                        isLandscape = true,
+                        onToggleMenu = { menuExpanded = true },
+                        onOpenSearch = {
+                            showSearchPanel = true
+                            viewModel.onSearchPanelOpened()
+                        },
+                        onToggleFavorites = { viewModel.toggleFavoritesSheet() }
+                    )
+                }
+
+                // Top-right: compass (view indicator)
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -535,32 +578,7 @@ fun MapCanvasScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.End
                 ) {
-                    // Menu button
-                    Box {
-                        FilledTonalIconButton(
-                            onClick = { menuExpanded = true },
-                            modifier = Modifier.shadow(3.dp, RoundedCornerShape(16.dp))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Menu"
-                            )
-                        }
-                        MapMenu(
-                            expanded = menuExpanded,
-                            onDismiss = { menuExpanded = false },
-                            onDownloadMaps = { onNavigateToMapManager() },
-                            onOpenFavorites = { viewModel.toggleFavoritesSheet() },
-                            onOpenPoiSearch = { viewModel.openPoiSearch() },
-                            onOpenAbout = { showAboutDialog = true }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.size(2.dp))
-
-                    // Compass button
-                    val compassNorthUp = if (navState.isNavigating) state.navNorthUp else state.freeFormNorthUp
-                    CompassButton(
+                    MapCompassBlock(
                         isNorthUp = compassNorthUp,
                         mapAngleRadians = state.viewport.angle,
                         gpsFixQuality = state.gpsFixQuality,
@@ -574,51 +592,16 @@ fun MapCanvasScreen(
                             }
                         },
                         onToggleOrientation = {
-                            val isNavigating = navState.isNavigating
-                            if (isNavigating) {
+                            if (navState.isNavigating) {
                                 viewModel.onSetNavOrientation(!state.navNorthUp)
                             } else {
                                 viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
                             }
                         }
                     )
-
-                    Spacer(modifier = Modifier.size(2.dp))
-
-                    // Search + Favorites side-by-side
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Favorites button
-                        FilledTonalIconButton(
-                            onClick = { viewModel.toggleFavoritesSheet() },
-                            modifier = Modifier.shadow(3.dp, RoundedCornerShape(16.dp))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = "Favorites"
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.size(4.dp))
-
-                        // Search button
-                        FilledTonalIconButton(
-                            onClick = {
-                                showSearchPanel = true
-                                viewModel.onSearchPanelOpened()
-                            },
-                            modifier = Modifier.shadow(3.dp, RoundedCornerShape(16.dp))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search location"
-                            )
-                        }
-                    }
                 }
 
-                // Bottom-right: location options, zoom, mylocation
+                // Bottom-right: location options + zoom (view controls)
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -627,8 +610,8 @@ fun MapCanvasScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.End
                 ) {
-                    // Location options
-                    LocationOptionsOverlay(
+                    MapLocationZoomBlock(
+                        isLandscape = true,
                         followMode = state.followMode,
                         onToggleFollowMode = { enabled ->
                             viewModel.onToggleFollowMode(enabled)
@@ -661,17 +644,10 @@ fun MapCanvasScreen(
                         onSetRenderMode = { mode ->
                             viewModel.onSetRenderMode(mode)
                         },
-                        isNavigating = navState.isNavigating
-                    )
-
-                    Spacer(modifier = Modifier.size(4.dp))
-
-                    // Zoom controls (horizontal)
-                    ZoomControls(
+                        isNavigating = navState.isNavigating,
                         canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
                         canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
                         currentMag = state.viewport.magnification,
-                        isLandscape = true,
                         onZoomIn = {
                             android.util.Log.d("MapCanvasScreen", "zoom+ pressed")
                             viewModel.disengageFollowMode()
@@ -685,32 +661,39 @@ fun MapCanvasScreen(
                             viewModel.renderMap()
                         }
                     )
+                }
 
-                    // Re-center button (visible when follow mode is off and GPS available)
-                    if (!state.followMode && state.gpsFixQuality != GpsFixQuality.NONE) {
-                        Spacer(modifier = Modifier.size(2.dp))
-                        FilledTonalIconButton(
-                            onClick = {
-                                val loc = viewModel.getCurrentLocation()
-                                if (loc != null) {
-                                    viewModel.onToggleFollowMode(true)
-                                    viewModel.updateCenter(loc.latitude, loc.longitude)
-                                    viewModel.renderMap()
-                                } else {
-                                    viewModel.showSnackbar("No GPS location available")
-                                }
-                            },
-                            modifier = Modifier.shadow(3.dp, RoundedCornerShape(16.dp))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MyLocation,
-                                contentDescription = "Re-center on location"
-                            )
-                        }
-                    }
+                // Bottom-left: re-center (action) when follow off + GPS available
+                if (!state.followMode && state.gpsFixQuality != GpsFixQuality.NONE) {
+                    MapReCenterButton(
+                        onReCenter = reCenterAction,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 8.dp, bottom = 12.dp)
+                            .navigationBarsPadding()
+                    )
                 }
             } else {
-                // Portrait: top-right column (unchanged)
+                // Portrait: action column top-left, view column top-right
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .statusBarsPadding()
+                        .padding(start = 8.dp, top = 4.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    MapActionColumn(
+                        isLandscape = false,
+                        onToggleMenu = { menuExpanded = true },
+                        onOpenSearch = {
+                            showSearchPanel = true
+                            viewModel.onSearchPanelOpened()
+                        },
+                        onToggleFavorites = { viewModel.toggleFavoritesSheet() }
+                    )
+                }
+
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -719,30 +702,7 @@ fun MapCanvasScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.End
                 ) {
-                    // Menu button
-                    Box {
-                        FilledTonalIconButton(
-                            onClick = { menuExpanded = true },
-                            modifier = Modifier.shadow(3.dp, RoundedCornerShape(16.dp))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Menu"
-                            )
-                        }
-                        MapMenu(
-                            expanded = menuExpanded,
-                            onDismiss = { menuExpanded = false },
-                            onDownloadMaps = { onNavigateToMapManager() },
-                            onOpenFavorites = { viewModel.toggleFavoritesSheet() },
-                            onOpenPoiSearch = { viewModel.openPoiSearch() },
-                            onOpenAbout = { showAboutDialog = true }
-                        )
-                    }
-
-                    // Compass button
-                    val compassNorthUp = if (navState.isNavigating) state.navNorthUp else state.freeFormNorthUp
-                    CompassButton(
+                    MapCompassBlock(
                         isNorthUp = compassNorthUp,
                         mapAngleRadians = state.viewport.angle,
                         gpsFixQuality = state.gpsFixQuality,
@@ -756,8 +716,7 @@ fun MapCanvasScreen(
                             }
                         },
                         onToggleOrientation = {
-                            val isNavigating = navState.isNavigating
-                            if (isNavigating) {
+                            if (navState.isNavigating) {
                                 viewModel.onSetNavOrientation(!state.navNorthUp)
                             } else {
                                 viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
@@ -765,36 +724,10 @@ fun MapCanvasScreen(
                         }
                     )
 
-                    // Search button
-                    FilledTonalIconButton(
-                        onClick = {
-                            showSearchPanel = true
-                            viewModel.onSearchPanelOpened()
-                        },
-                        modifier = Modifier.shadow(3.dp, RoundedCornerShape(16.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search location"
-                        )
-                    }
                     Spacer(modifier = Modifier.size(4.dp))
 
-                    // Favorites button
-                    FilledTonalIconButton(
-                        onClick = { viewModel.toggleFavoritesSheet() },
-                        modifier = Modifier.shadow(3.dp, RoundedCornerShape(16.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = "Favorites"
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.size(8.dp))
-
-                    // Location options (follow mode + orientation + auto-zoom)
-                    LocationOptionsOverlay(
+                    MapLocationZoomBlock(
+                        isLandscape = false,
                         followMode = state.followMode,
                         onToggleFollowMode = { enabled ->
                             viewModel.onToggleFollowMode(enabled)
@@ -827,13 +760,7 @@ fun MapCanvasScreen(
                         onSetRenderMode = { mode ->
                             viewModel.onSetRenderMode(mode)
                         },
-                        isNavigating = navState.isNavigating
-                    )
-
-                    Spacer(modifier = Modifier.size(4.dp))
-
-                    // Zoom controls
-                    ZoomControls(
+                        isNavigating = navState.isNavigating,
                         canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
                         canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
                         currentMag = state.viewport.magnification,
@@ -850,31 +777,30 @@ fun MapCanvasScreen(
                             viewModel.renderMap()
                         }
                     )
+                }
 
-                    // Re-center button (visible when follow mode is off and GPS available)
-                    if (!state.followMode && state.gpsFixQuality != GpsFixQuality.NONE) {
-                        Spacer(modifier = Modifier.size(4.dp))
-                        FilledTonalIconButton(
-                            onClick = {
-                                val loc = viewModel.getCurrentLocation()
-                                if (loc != null) {
-                                    viewModel.onToggleFollowMode(true)
-                                    viewModel.updateCenter(loc.latitude, loc.longitude)
-                                    viewModel.renderMap()
-                                } else {
-                                    viewModel.showSnackbar("No GPS location available")
-                                }
-                            },
-                            modifier = Modifier.shadow(3.dp, RoundedCornerShape(16.dp))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MyLocation,
-                                contentDescription = "Re-center on location"
-                            )
-                        }
-                    }
+                // Bottom-left: re-center (action) when follow off + GPS available
+                if (!state.followMode && state.gpsFixQuality != GpsFixQuality.NONE) {
+                    MapReCenterButton(
+                        onReCenter = reCenterAction,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 8.dp, bottom = 12.dp)
+                            .navigationBarsPadding()
+                    )
                 }
             }
+
+            // Animated map menu overlay (scrim + panel), anchored below the toaster button
+            MapMenu(
+                expanded = menuExpanded,
+                onDismiss = { menuExpanded = false },
+                onDownloadMaps = { onNavigateToMapManager() },
+                onOpenFavorites = { viewModel.toggleFavoritesSheet() },
+                onOpenPoiSearch = { viewModel.openPoiSearch() },
+                onOpenAbout = { showAboutDialog = true },
+                toasterTopPadding = if (isLandscape) 8.dp else 4.dp
+            )
         }
 
         // Search panel overlay
@@ -1126,8 +1052,8 @@ fun MapCanvasScreen(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .statusBarsPadding()
+                    .padding(start = ActionColumnInset)
             ) {
-                val buttonColumnEstimate = 64.dp
                 NextTurnOverlay(
                     instruction = navState.nextInstruction,
                     laneOneway = navState.laneOneway,
@@ -1137,7 +1063,7 @@ fun MapCanvasScreen(
                     laneSuggestedTo = navState.laneSuggestedTo,
                     laneTurns = navState.laneTurns,
                     laneHintsEnabled = state.laneHintsEnabled,
-                    modifier = Modifier.widthIn(max = maxWidth - buttonColumnEstimate)
+                    modifier = Modifier.widthIn(max = maxWidth - ViewColumnReserve)
                 )
             }
             NavigationStateOverlay(
@@ -1331,9 +1257,25 @@ internal fun KeepScreenOnEffect(keepScreenOn: Boolean) {
     }
 }
 
+/** Vertical offset (dp) between the toaster button and the menu popup. */
+private val ToasterMenuOffsetY = 48.dp
+private const val MenuFadeInMs = 140
+private const val MenuScaleInMs = 180
+private const val MenuFadeOutMs = 110
+
+/** Left inset reserved for the action button column; nav hints start after it. */
+internal val ActionColumnInset = 64.dp
+
+/** Right-side width reserved for the view button column. */
+internal val ViewColumnReserve = 64.dp
+
 /**
- * Map screen menu (hamburger). Shared by the landscape and portrait layouts so
+ * Map screen menu (toaster). Shared by the landscape and portrait layouts so
  * the POI search entry stays in sync and the menu is testable in isolation.
+ * Rendered as an overlay in the main window below the toaster button — a
+ * full-screen tap scrim dismisses it, and it animates in/out with a Material 3
+ * fade + scale. Drawn in the main window (not a Popup) so the exit animation
+ * reliably completes and the menu always closes on dismissal (spec: map-menu).
  */
 @Composable
 internal fun MapMenu(
@@ -1342,36 +1284,227 @@ internal fun MapMenu(
     onDownloadMaps: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenPoiSearch: () -> Unit,
-    onOpenAbout: () -> Unit
+    onOpenAbout: () -> Unit,
+    toasterTopPadding: Dp
 ) {
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        DropdownMenuItem(
-            text = { Text("Download Maps") },
-            onClick = {
-                onDismiss()
-                onDownloadMaps()
+    BackHandler(enabled = expanded) { onDismiss() }
+    AnimatedVisibility(
+        visible = expanded,
+        enter = fadeIn(tween(MenuFadeInMs)) +
+            scaleIn(initialScale = 0.9f, animationSpec = tween(MenuScaleInMs)),
+        exit = fadeOut(tween(MenuFadeOutMs)) +
+            scaleOut(targetScale = 0.9f, animationSpec = tween(MenuFadeOutMs))
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            // Full-screen scrim: tapping anywhere outside the menu dismisses it
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) { detectTapGestures { onDismiss() } }
+            )
+            Surface(
+                shape = MenuDefaults.shape,
+                color = MenuDefaults.containerColor,
+                shadowElevation = 8.dp,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(start = 8.dp, top = toasterTopPadding + ToasterMenuOffsetY)
+            ) {
+                Column(Modifier.padding(vertical = 8.dp)) {
+                    DropdownMenuItem(
+                        text = { Text("Download Maps") },
+                        leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                        onClick = {
+                            onDismiss()
+                            onDownloadMaps()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Favorites") },
+                        leadingIcon = { Icon(Icons.Default.Favorite, contentDescription = null) },
+                        onClick = {
+                            onDismiss()
+                            onOpenFavorites()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.poi_search_title)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        onClick = {
+                            onDismiss()
+                            onOpenPoiSearch()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("About") },
+                        leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
+                        onClick = {
+                            onDismiss()
+                            onOpenAbout()
+                        }
+                    )
+                }
             }
-        )
-        DropdownMenuItem(
-            text = { Text("Favorites") },
-            onClick = {
-                onDismiss()
-                onOpenFavorites()
-            }
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.poi_search_title)) },
-            onClick = {
-                onDismiss()
-                onOpenPoiSearch()
-            }
-        )
-        DropdownMenuItem(
-            text = { Text("About") },
-            onClick = {
-                onDismiss()
-                onOpenAbout()
-            }
-        )
+        }
     }
+}
+
+/** Shared overlay icon button style (shadow + shape) for all map controls. */
+@Composable
+private fun MapOverlayIconButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        modifier = modifier.shadow(3.dp, RoundedCornerShape(16.dp))
+    ) {
+        Icon(imageVector = imageVector, contentDescription = contentDescription)
+    }
+}
+
+/**
+ * Left action column: toaster (menu) button, search, and favorites. Search +
+ * favorites sit side by side in landscape (favorites left), stacked in portrait
+ * (spec: map-canvas-screen, landscape-layout).
+ */
+@Composable
+private fun MapActionColumn(
+    isLandscape: Boolean,
+    onToggleMenu: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onToggleFavorites: () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.Start) {
+        // Toaster (menu) button
+        MapOverlayIconButton(
+            imageVector = Icons.Default.Menu,
+            contentDescription = "Menu",
+            onClick = onToggleMenu
+        )
+
+        Spacer(modifier = Modifier.size(2.dp))
+
+        if (isLandscape) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MapOverlayIconButton(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Favorites",
+                    onClick = onToggleFavorites
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                MapOverlayIconButton(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search location",
+                    onClick = onOpenSearch
+                )
+            }
+        } else {
+            MapOverlayIconButton(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search location",
+                onClick = onOpenSearch
+            )
+            Spacer(modifier = Modifier.size(4.dp))
+            MapOverlayIconButton(
+                imageVector = Icons.Default.Favorite,
+                contentDescription = "Favorites",
+                onClick = onToggleFavorites
+            )
+        }
+    }
+}
+
+/** Compass block, shared by both orientations (spec: compass-button). */
+@Composable
+private fun MapCompassBlock(
+    isNorthUp: Boolean,
+    mapAngleRadians: Double,
+    gpsFixQuality: GpsFixQuality,
+    onCenterClick: () -> Unit,
+    onToggleOrientation: () -> Unit
+) {
+    CompassButton(
+        isNorthUp = isNorthUp,
+        mapAngleRadians = mapAngleRadians,
+        gpsFixQuality = gpsFixQuality,
+        onCenterClick = onCenterClick,
+        onToggleOrientation = onToggleOrientation
+    )
+}
+
+/** Location options + zoom controls block, shared by both orientations. */
+@Composable
+private fun MapLocationZoomBlock(
+    isLandscape: Boolean,
+    followMode: Boolean,
+    onToggleFollowMode: (Boolean) -> Unit,
+    freeFormNorthUp: Boolean,
+    onSetFreeFormOrientation: (Boolean) -> Unit,
+    navNorthUp: Boolean,
+    onSetNavOrientation: (Boolean) -> Unit,
+    autoZoomEnabled: Boolean,
+    onToggleAutoZoom: (Boolean) -> Unit,
+    keepScreenOn: Boolean,
+    onToggleKeepScreenOn: (Boolean) -> Unit,
+    darkModePreference: DarkModePreference,
+    onSetDarkModePreference: (DarkModePreference) -> Unit,
+    laneHintsEnabled: Boolean,
+    onToggleLaneHints: (Boolean) -> Unit,
+    renderMode: RenderMode,
+    onSetRenderMode: (RenderMode) -> Unit,
+    isNavigating: Boolean,
+    canZoomIn: Boolean,
+    canZoomOut: Boolean,
+    currentMag: Int,
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit
+) {
+    LocationOptionsOverlay(
+        followMode = followMode,
+        onToggleFollowMode = onToggleFollowMode,
+        freeFormNorthUp = freeFormNorthUp,
+        onSetFreeFormOrientation = onSetFreeFormOrientation,
+        navNorthUp = navNorthUp,
+        onSetNavOrientation = onSetNavOrientation,
+        autoZoomEnabled = autoZoomEnabled,
+        onToggleAutoZoom = onToggleAutoZoom,
+        keepScreenOn = keepScreenOn,
+        onToggleKeepScreenOn = onToggleKeepScreenOn,
+        darkModePreference = darkModePreference,
+        onSetDarkModePreference = onSetDarkModePreference,
+        laneHintsEnabled = laneHintsEnabled,
+        onToggleLaneHints = onToggleLaneHints,
+        renderMode = renderMode,
+        onSetRenderMode = onSetRenderMode,
+        isNavigating = isNavigating
+    )
+
+    Spacer(modifier = Modifier.size(4.dp))
+
+    ZoomControls(
+        canZoomIn = canZoomIn,
+        canZoomOut = canZoomOut,
+        currentMag = currentMag,
+        isLandscape = isLandscape,
+        onZoomIn = onZoomIn,
+        onZoomOut = onZoomOut
+    )
+}
+
+/** Re-center (MyLocation) button, shown at bottom-left when follow mode is off. */
+@Composable
+private fun MapReCenterButton(
+    onReCenter: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    MapOverlayIconButton(
+        imageVector = Icons.Default.MyLocation,
+        contentDescription = "Re-center on location",
+        onClick = onReCenter,
+        modifier = modifier
+    )
 }

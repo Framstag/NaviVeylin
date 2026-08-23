@@ -1,16 +1,35 @@
 package com.naviveylin.auto
 
+import android.graphics.Bitmap
+import androidx.car.app.model.CarIcon
+import androidx.car.app.model.Distance
 import androidx.car.app.navigation.model.LaneDirection
 import androidx.car.app.navigation.model.Maneuver
+import androidx.core.graphics.drawable.IconCompat
 import com.framstag.libosmscout.client.LaneTurn
+import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class NavigationTemplateMapperTest {
+
+    private val testIcon: CarIcon by lazy {
+        CarIcon.Builder(
+            IconCompat.createWithBitmap(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+        ).build()
+    }
+
+    private fun instr(distance: Double, type: TurnType, street: String) =
+        RouteInstruction(distance, type, street, "desc", "short")
 
     // --- maneuverTypeFromTurnType ---
 
@@ -152,6 +171,212 @@ class NavigationTemplateMapperTest {
     fun laneShape_unknownDefaultsToUnknown() {
         assertEquals(LaneDirection.SHAPE_UNKNOWN,
             NavigationTemplateMapper.laneDirectionShapeFromLaneTurn(LaneTurn.UNKNOWN))
+    }
+
+    // --- roundDistanceMeters (spec: auto/navigation-view — distance display) ---
+
+    @Test
+    fun roundDistanceMeters_showsActualValueUpTo50() {
+        assertEquals(0.0, NavigationTemplateMapper.roundDistanceMeters(0.0), 0.01)
+        assertEquals(45.0, NavigationTemplateMapper.roundDistanceMeters(45.0), 0.01)
+        assertEquals(50.0, NavigationTemplateMapper.roundDistanceMeters(50.0), 0.01)
+    }
+
+    @Test
+    fun roundDistanceMeters_multiplesOf50Between50And1km() {
+        assertEquals(150.0, NavigationTemplateMapper.roundDistanceMeters(137.0), 0.01)
+        assertEquals(100.0, NavigationTemplateMapper.roundDistanceMeters(124.0), 0.01)
+        assertEquals(200.0, NavigationTemplateMapper.roundDistanceMeters(180.0), 0.01)
+        assertEquals(1000.0, NavigationTemplateMapper.roundDistanceMeters(999.0), 0.01)
+    }
+
+    @Test
+    fun roundDistanceMeters_oneDecimalAbove1km() {
+        assertEquals(1200.0, NavigationTemplateMapper.roundDistanceMeters(1234.0), 0.01)
+        assertEquals(1400.0, NavigationTemplateMapper.roundDistanceMeters(1350.0), 0.01)
+        assertEquals(4300.0, NavigationTemplateMapper.roundDistanceMeters(4321.0), 0.01)
+    }
+
+    @Test
+    fun distanceForDisplay_usesMetersBelow1kmAndKmAbove() {
+        val meters = NavigationTemplateMapper.distanceForDisplay(350.0)
+        assertEquals(350.0, meters.displayDistance, 0.01)
+        assertEquals(Distance.UNIT_METERS, meters.displayUnit)
+
+        val km = NavigationTemplateMapper.distanceForDisplay(16800.0)
+        assertEquals(16.8, km.displayDistance, 0.01)
+        assertEquals(Distance.UNIT_KILOMETERS, km.displayUnit)
+
+        val edge = NavigationTemplateMapper.distanceForDisplay(999.0)
+        assertEquals(1.0, edge.displayDistance, 0.01)
+        assertEquals(Distance.UNIT_KILOMETERS, edge.displayUnit)
+    }
+
+    // --- stepForInstruction / lanes / routingInfo (spec: auto/navigation-view) ---
+
+    @Test
+    fun stepForInstruction_setsManeuverRoadAndCue() {
+        val step = NavigationTemplateMapper.stepForInstruction(
+            instr(350.0, TurnType.LEFT, "Main St"), testIcon
+        )
+        assertEquals(Maneuver.TYPE_TURN_NORMAL_LEFT, step.maneuver!!.type)
+        assertEquals("Main St", step.road.toString())
+        assertEquals("short", step.cue.toString())
+    }
+
+    @Test
+    fun stepForInstruction_hidesBlankStreet() {
+        val step = NavigationTemplateMapper.stepForInstruction(
+            instr(100.0, TurnType.RIGHT, ""), testIcon
+        )
+        assertNull(step.road)
+        assertEquals("short", step.cue.toString())
+    }
+
+    @Test
+    fun laneFromTurn_marksRecommended() {
+        val recommended = NavigationTemplateMapper.laneFromTurn(LaneTurn.LEFT, true)
+        assertEquals(LaneDirection.SHAPE_NORMAL_LEFT, recommended.directions[0].shape)
+        assertTrue(recommended.directions[0].isRecommended)
+
+        val plain = NavigationTemplateMapper.laneFromTurn(LaneTurn.RIGHT, false)
+        assertFalse(plain.directions[0].isRecommended)
+    }
+
+    @Test
+    fun routingInfoFromState_setsCurrentAndNextStep() {
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 1,
+            instructions = listOf(
+                instr(1000.0, TurnType.START, "Start St"),
+                instr(800.0, TurnType.LEFT, "Main St"),
+                instr(200.0, TurnType.RIGHT, "Elm St")
+            )
+        )
+        val info = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false
+        )!!
+        assertEquals(800.0, info.currentDistance!!.displayDistance, 0.01)
+        assertEquals("Main St", info.currentStep!!.road.toString())
+        // Next-next turn is the step after the current one.
+        assertEquals("Elm St", info.nextStep!!.road.toString())
+    }
+
+    @Test
+    fun routingInfoFromState_prefersLiveNextInstructionDistance() {
+        // The native engine re-emits the current instruction with an updated
+        // distance on every position update; the instructions list is frozen
+        // at route start. The live value must win, or the displayed distance
+        // freezes after the first turn.
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            instructions = listOf(
+                instr(1000.0, TurnType.START, "Start St"),
+                instr(800.0, TurnType.LEFT, "Main St")
+            ),
+            nextInstruction = instr(350.0, TurnType.LEFT, "Main St")
+        )
+        val info = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false
+        )!!
+        assertEquals(350.0, info.currentDistance!!.displayDistance, 0.01)
+        assertEquals("Main St", info.currentStep!!.road.toString())
+    }
+
+    @Test
+    fun routingInfoFromState_noNextStepWhenLast() {
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            instructions = listOf(instr(100.0, TurnType.LEFT, "Main St"))
+        )
+        val info = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false
+        )!!
+        assertNull(info.nextStep)
+    }
+
+    @Test
+    fun routingInfoFromState_nullWhenNotNavigating() {
+        assertNull(
+            NavigationTemplateMapper.routingInfoFromState(
+                NavigationState(), { testIcon }, includeLanes = true
+            )
+        )
+    }
+
+    @Test
+    fun routingInfoFromState_attachesLanesWhenEnabled() {
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            instructions = listOf(instr(350.0, TurnType.LEFT, "Main St")),
+            laneCount = 2,
+            laneSuggested = true,
+            laneSuggestedFrom = 0,
+            laneSuggestedTo = 0,
+            laneTurns = listOf(LaneTurn.LEFT, LaneTurn.STRAIGHT_ON)
+        )
+        val withLanes = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = true, laneImageFor = { _, _ -> testIcon }
+        )!!
+        assertEquals(2, withLanes.currentStep!!.lanes.size)
+        assertTrue(withLanes.currentStep!!.lanes[0].directions[0].isRecommended)
+        assertFalse(withLanes.currentStep!!.lanes[1].directions[0].isRecommended)
+        assertNotNull(withLanes.currentStep!!.lanesImage)
+
+        val withoutLanes = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false
+        )!!
+        assertTrue(withoutLanes.currentStep!!.lanes.isEmpty())
+    }
+
+    @Test
+    fun instructionsFromCurrentStep_dropsStepsBeforeCurrent() {
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 1,
+            instructions = listOf(
+                instr(1000.0, TurnType.START, "Start St"),
+                instr(800.0, TurnType.LEFT, "Main St"),
+                instr(200.0, TurnType.RIGHT, "Elm St")
+            )
+        )
+        val remaining = NavigationTemplateMapper.instructionsFromCurrentStep(state)
+        assertEquals(listOf("Main St", "Elm St"), remaining.map { it.streetName })
+    }
+
+    @Test
+    fun routeDescriptionRows_orderTitleAndCurrentMark() {
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 1,
+            instructions = listOf(
+                instr(1000.0, TurnType.START, "Start St"),
+                instr(800.0, TurnType.LEFT, "Main St"),
+                instr(200.0, TurnType.RIGHT, "Elm St")
+            )
+        )
+        val rows = NavigationTemplateMapper.routeDescriptionRows(state)
+        assertEquals(2, rows.size)
+        assertTrue(rows[0].isCurrent)
+        assertFalse(rows[1].isCurrent)
+        assertEquals("800 m · Main St", rows[0].title)
+        assertEquals("200 m · Elm St", rows[1].title)
+        assertEquals(TurnType.RIGHT, rows[1].turnType)
+    }
+
+    @Test
+    fun routeDescriptionRows_fallsBackToShortDescription() {
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            instructions = listOf(instr(500.0, TurnType.LEFT, ""))
+        )
+        val rows = NavigationTemplateMapper.routeDescriptionRows(state)
+        assertEquals("500 m · short", rows[0].title)
     }
 
     // --- hasStateChanged ---

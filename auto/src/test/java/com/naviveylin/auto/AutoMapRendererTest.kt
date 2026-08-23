@@ -117,8 +117,7 @@ class AutoMapRendererTest {
         val canvas = mockk<Canvas>(relaxed = true)
         every { surface.lockCanvas(any()) } returns canvas
 
-        renderer.onSurfaceCreated(surface, 100, 100)
-    }
+        renderer.onSurfaceCreated(surface, 100, 100)    }
 
     @Test
     fun viewportStateFlowEmitsUpdates() {
@@ -184,5 +183,23 @@ class AutoMapRendererTest {
         val (fractionOut, zoomOut) = renderer.zoomStep(0.25f)
         assertEquals(AutoMapRenderer.MIN_ZOOM, zoomOut)
         assertEquals(AutoMapRenderer.MIN_ZOOM.toDouble(), fractionOut, 1e-6)
+    }
+
+    @Test
+    fun setDestinationMarkerStoresPositionAndName() {
+        renderer.setDestinationMarker(48.8566, 2.3522, "Eiffel Tower")
+        val state = renderer.destinationMarkerState()
+        assertTrue(state.visible)
+        assertEquals(48.8566, state.lat, 1e-6)
+        assertEquals(2.3522, state.lon, 1e-6)
+        assertEquals("Eiffel Tower", state.name)
+    }
+
+    @Test
+    fun setDestinationMarkerNaNclearsMarker() {
+        renderer.setDestinationMarker(48.8566, 2.3522, "Eiffel Tower")
+        renderer.setDestinationMarker(Double.NaN, Double.NaN, null)
+        val state = renderer.destinationMarkerState()
+        assertFalse(state.visible)
     }
 }

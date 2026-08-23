@@ -2,27 +2,24 @@
 
 package com.naviveylin.auto
 
+import android.os.SystemClock
 import android.util.Log
+import android.view.View
 import androidx.car.app.AppManager
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.ScreenManager
 import androidx.car.app.SurfaceCallback
 import androidx.car.app.SurfaceContainer
-import androidx.car.app.model.Action
 import androidx.car.app.model.ActionStrip
-import androidx.car.app.model.Header
-import androidx.car.app.model.Pane
-import androidx.car.app.model.PaneTemplate
-import androidx.car.app.model.ParkedOnlyOnClickListener
-import androidx.car.app.model.Row
 import androidx.car.app.navigation.model.MapController
-import androidx.car.app.navigation.model.MapTemplate
+import androidx.car.app.navigation.model.MapWithContentTemplate
+import androidx.car.app.navigation.model.PanModeListener
 import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.framstag.libosmscout.client.InstalledMaps
-import com.framstag.libosmscout.client.ObjectDescription
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.ProjectionUtils
@@ -54,10 +51,15 @@ import org.json.JSONObject
  * is used deliberately — a full-screen map without a content overlay. The replacement requires
  * a content template (List/Pane/Grid/Message) and would reserve screen space for it.
  */
-@Suppress("DEPRECATION")
 class MapScreen(
     carContext: CarContext,
-    private val navigationViewModel: NavigationViewModel
+    private val navigationViewModel: NavigationViewModel,
+    /** Center the map here instead of the saved viewport / map bbox (details "Show" action). */
+    private val initialCenter: Pair<Double, Double>? = null,
+    /** Zoom for [initialCenter]; ignored when [initialCenter] is null. */
+    private val initialZoom: Int = DEFAULT_AA_ZOOM,
+    /** Destination name for the marker when [initialCenter] is set (details "Show" action). */
+    private val initialDestinationName: String? = null
 ) : Screen(carContext) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -69,6 +71,7 @@ class MapScreen(
     )
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
     private val locationProvider = entryPoint.autoLocationProvider()
+    private val settingsProvider = entryPoint.autoSettingsProvider()
 
     /**
      * Initial viewport for the renderer: last phone-app viewport, else the
@@ -91,7 +94,10 @@ class MapScreen(
             renderDpi,
             initialViewport.lat,
             initialViewport.lon,
-            initialViewport.zoom
+            initialViewport.zoom,
+            // "Show location" maps must stay on the requested destination —
+            // follow mode would snap the viewport to every GPS fix.
+            initialFollowMode = initialCenter == null
         )
     }
 
@@ -100,25 +106,89 @@ class MapScreen(
     private var surfaceHeight = 0
     private var surfaceDpi = DEFAULT_DPI
     private var lastGestureLogMs = 0L
-    private var selectionLat = Double.NaN
-    private var selectionLon = Double.NaN
-    private var hasSelection = false
+    private var lastSettingsReloadMs = 0L
+
+    /** Surface-refresh (invalidate) attempts left for this screen start. */
+    private var surfaceRefreshAttempts = 0
 
     init {
+        // Browse mode has no surface overlays: the host on this class of unit
+        // never forwards surface gestures, so all interactive controls live in
+        // host action strips. (The compass rose is navigation-only.)
+
+        // If the host delivered a surface we cannot lock (AAOS emulator quirk:
+        // it locks surfaces it re-delivers after a screen transition), drop it
+        // and ask the host for a fresh one. Throttled inside the renderer and
+        // capped per screen start so a persistently-bad surface does not
+        // invalidate the template forever.
+        mapRenderer.onSurfaceFailed = {
+            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
+            ) {
+                surfaceRefreshAttempts++
+                Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
+                invalidate()
+            }
+        }
+
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
+                surfaceRefreshAttempts = 0
                 registerSurfaceCallback()
+                mapRenderer.resume()
                 startObserving()
             }
             override fun onStop(owner: LifecycleOwner) {
                 stopObserving()
-                unregisterSurfaceCallback()
+                mapRenderer.pause()
+                // Release the surface: a screen stopped underneath a pushed
+                // screen never gets onSurfaceDestroyed (the host notifies only
+                // the current callback), so the stale surface would keep the
+                // host's buffer queue held and break the next screen's
+                // surface. Release on stop, re-acquire on start.
+                mapRenderer.releaseSurface()
+                // NOTE: no unregisterSurfaceCallback() here — see
+                // FreeDrivingScreen: an onStop unregister nulls the callback
+                // the next screen registered (car-app starts the new screen
+                // before stopping the old one), forcing a second surface
+                // delivery that the host locks. Unregister only on destroy.
             }
             override fun onDestroy(owner: LifecycleOwner) {
+                unregisterSurfaceCallback()
                 mapRenderer.shutdown()
                 scope.cancel()
             }
         })
+
+        // Initial settings: follow mode + browse orientation apply live.
+        scope.launch {
+            runCatching { settingsProvider.load() }
+                .onSuccess { applySettings(it) }
+                .onFailure { Log.w(TAG, "initial settings load failed", it) }
+        }
+    }
+
+    /**
+     * Apply shared settings that affect the browse map live: follow mode
+     * (re-center on GPS) and north-up orientation. Settings are re-read
+     * periodically so changes from the settings screen take effect without a
+     * screen restart.
+     */
+    private fun applySettings(settings: com.naviveylin.core.AutoSettings) {
+        // When opened via the details "Show" action (initialCenter set), the
+        // map must stay centered on the requested destination — follow mode
+        // would snap it back to the current GPS position.
+        if (settings.followMode && !mapRenderer.isFollowMode() && initialCenter == null) {
+            Log.d(TAG, "settings: follow mode on -> re-center")
+            mapRenderer.reCenter()
+        }
+        if (settings.freeFormNorthUp) {
+            val vp = mapRenderer.viewportState.value
+            if (vp.angle != 0.0) {
+                Log.d(TAG, "settings: north-up -> reset angle")
+                mapRenderer.setViewport(vp.lat, vp.lon, vp.zoom, 0.0, vp.zoom.toDouble())
+            }
+        }
     }
 
     override fun onGetTemplate(): Template {
@@ -133,6 +203,10 @@ class MapScreen(
     }
 
     private fun computeInitialViewport(): InitialViewport {
+        initialCenter?.let { (lat, lon) ->
+            Log.d(TAG, "Show map: initialCenter=$lat,$lon zoom=$initialZoom")
+            return InitialViewport(lat, lon, initialZoom)
+        }
         latestSavedViewport()?.let { return it }
         firstInstalledMapBbox()?.let { bbox ->
             return InitialViewport(
@@ -194,68 +268,67 @@ class MapScreen(
         }
     }
 
-    private fun buildTemplate(): MapTemplate {
-        val builder = MapTemplate.Builder()
-
-        // Create MapController
+    private fun buildTemplate(): MapWithContentTemplate {
+        // No map action strip: the content menu covers app navigation; search
+        // + settings + zoom live in the right template strip.
+        // PanModeListener: the host only forwards pan gestures to the surface
+        // while pan mode is active (AAOS/AA hosts render a pan affordance when
+        // the listener is registered).
         mapController = MapController.Builder()
-            .build()
-
-        builder.setMapController(mapController!!)
-
-        // MapTemplate requires exactly one of Pane or ItemList. Keep the pane
-        // minimal — a single short row — so the host's bottom sheet stays thin
-        // (the car-app API has no content-free map template).
-        val pane = Pane.Builder()
-            .addRow(
-                Row.Builder()
-                    .setTitle("Map")
-                    .build()
-            )
-            .build()
-        builder.setPane(pane)
-
-        // Zoom controls
-        val zoomInAction = Action.Builder()
-            .setTitle("+")
-            .setOnClickListener(ParkedOnlyOnClickListener.create { onZoomIn() })
-            .build()
-
-        val zoomOutAction = Action.Builder()
-            .setTitle("-")
-            .setOnClickListener(ParkedOnlyOnClickListener.create { onZoomOut() })
-            .build()
-
-        // Menu access: push the menu screen on top of the map (the map is the
-        // stack root now — popToRoot would stay on the map).
-        val menuAction = Action.Builder()
-            .setTitle("Menu")
-            .setOnClickListener(
-                ParkedOnlyOnClickListener.create {
-                    screenManager.push(RootScreen(carContext, navigationViewModel))
+            .setPanModeListener(object : PanModeListener {
+                override fun onPanModeChanged(panMode: Boolean) {
+                    Log.d(TAG, "pan mode: $panMode")
+                    if (panMode) {
+                        // Disengage follow so the map does not snap back to GPS.
+                        val vp = mapRenderer.viewportState.value
+                        mapRenderer.setViewport(vp.lat, vp.lon, vp.zoom, vp.angle, vp.zoom.toDouble())
+                    }
                 }
-            )
+            })
             .build()
 
-        val searchAction = Action.Builder()
-            .setTitle("Search")
-            .setOnClickListener(
-                ParkedOnlyOnClickListener.create {
-                    screenManager.push(SearchScreen(carContext, navigationViewModel))
-                }
-            )
-            .build()
-
-        builder.setActionStrip(
-            ActionStrip.Builder()
-                .addAction(menuAction)
-                .addAction(searchAction)
-                .addAction(zoomInAction)
-                .addAction(zoomOutAction)
-                .build()
+        // Content box = app menu.
+        val content = MapTemplateFactory.buildMenuContent(
+            onFreeDriving = {
+                // Push the destination-free navigation-style view (spec:
+                // auto/free-driving). Popping it returns to this map view.
+                screenManager.push(FreeDrivingScreen(carContext))
+            },
+            onStarredFavorites = {
+                screenManager.push(FavoritesScreen(carContext, navigationViewModel, starredOnly = true))
+            },
+            onAllFavorites = {
+                screenManager.push(FavoritesScreen(carContext, navigationViewModel))
+            },
+            onPoiSearch = {
+                screenManager.push(PoiSearchScreen(carContext, navigationViewModel))
+            },
+            onSearchHistory = {
+                screenManager.push(SearchHistoryScreen(carContext, navigationViewModel))
+            },
+            onDiagnostics = {
+                screenManager.push(DiagnosticsScreen(carContext))
+            },
+            onAbout = {
+                screenManager.push(AboutScreen(carContext))
+            }
         )
 
-        return builder.build()
+        // Right edge: Search (parked-only), Settings (driving-safe), zoom
+        // (host strip — the only reliably tappable chrome on this class of
+        // unit; surface gestures are not forwarded).
+        val actionStrip = ActionStrip.Builder()
+            .addAction(MapStripActions.searchAction {
+                screenManager.push(SearchScreen(carContext, navigationViewModel))
+            })
+            .addAction(MapStripActions.settingsAction {
+                screenManager.push(PreferencesScreen(carContext))
+            })
+            .addAction(MapStripActions.zoomInAction { onZoomIn() })
+            .addAction(MapStripActions.zoomOutAction { onZoomOut() })
+            .build()
+
+        return MapTemplateFactory.buildTemplate(mapController!!, content, actionStrip)
     }
 
     private fun registerSurfaceCallback() {
@@ -279,6 +352,19 @@ class MapScreen(
                     .onFailure { Log.w(TAG, "setMapDpi failed", it) }
                 mapRenderer.updateProjectionDpi(surfaceDpi)
                 mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
+                // "Show location" maps: draw the destination marker and center
+                // it in the visible map area (the host's menu panel covers the
+                // left ~40% of the surface).
+                initialCenter?.let { (clat, clon) ->
+                    mapRenderer.setDestinationMarker(clat, clon, initialDestinationName)
+                    val rtl = carContext.resources.configuration.layoutDirection ==
+                        View.LAYOUT_DIRECTION_RTL
+                    val (vlat, vlon) = paneOffsetCenter(
+                        clat, clon, initialZoom,
+                        surfaceWidth, surfaceHeight, surfaceDpi, rtl
+                    )
+                    mapRenderer.setViewport(vlat, vlon, initialZoom, 0.0)
+                }
             }
 
             override fun onSurfaceDestroyed(surfaceContainer: SurfaceContainer) {
@@ -372,10 +458,6 @@ class MapScreen(
      * coordinates (existing behavior).
      */
     private fun onLocationSelected(lat: Double, lon: Double) {
-        selectionLat = lat
-        selectionLon = lon
-        hasSelection = true
-
         val client = entryPoint.autoClientProvider().client()
         val mag = mapRenderer.viewportState.value.zoom
         val screenManager = carContext.getCarService(ScreenManager::class.java)
@@ -391,128 +473,25 @@ class MapScreen(
             }
             val screen = if (shouldShowCandidatePicker(candidates.size)) {
                 CandidatePickerScreen(carContext, candidates) { desc ->
-                    screenManager.push(createDetailsScreen(lat, lon, desc))
+                    screenManager.push(
+                        DetailsScreen(
+                            carContext, navigationViewModel, lat, lon,
+                            preloadedDescription = desc,
+                            mag = mag
+                        )
+                    )
                 }
             } else {
-                createDetailsScreen(lat, lon, candidates.firstOrNull())
+                DetailsScreen(
+                    carContext, navigationViewModel, lat, lon,
+                    preloadedDescription = candidates.firstOrNull(),
+                    mag = mag
+                )
             }
             screenManager.push(screen)
         }
     }
 
-    private fun createDetailsScreen(lat: Double, lon: Double, preloadedDescription: ObjectDescription? = null): Screen {
-        val client = entryPoint.autoClientProvider().client()
-        val mag = mapRenderer.viewportState.value.zoom
-        return object : Screen(carContext) {
-            private var address: Array<String>? = null
-            private var description: ObjectDescription? = null
-            private val loadScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
-            init {
-                enableBackNavigation()
-                // Reverse-geocode + describe the tapped location off the main
-                // thread; invalidate when the JNI results arrive. When the
-                // caller already resolved the object (single candidate), the
-                // description is passed in and not re-queried.
-                loadScope.launch {
-                    val result = withContext(Dispatchers.Default) {
-                        var addr: Array<String>? = null
-                        var desc: ObjectDescription? = preloadedDescription
-                        try {
-                            addr = client.getAddressAt(lat, lon)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "getAddressAt failed", e)
-                        }
-                        if (desc == null) {
-                            try {
-                                desc = client.getDescription(lat, lon, mag)
-                            } catch (e: Exception) {
-                                Log.w(TAG, "getDescription failed", e)
-                            }
-                        }
-                        addr to desc
-                    }
-                    address = result.first
-                    description = result.second
-                    invalidate()
-                }
-            }
-
-            override fun onGetTemplate(): PaneTemplate {
-                val navigateAction = Action.Builder()
-                    .setTitle("Navigate here")
-                    .setOnClickListener {
-                        Log.d(TAG, "Navigate to: $lat, $lon")
-                        navigationViewModel.navigateTo(lat, lon)
-                    }
-                    .build()
-
-                val clearAction = Action.Builder()
-                    .setTitle("Clear")
-                    .setOnClickListener {
-                        selectionLat = Double.NaN
-                        selectionLon = Double.NaN
-                        hasSelection = false
-                        screenManager.popToRoot()
-                    }
-                    .build()
-
-                val pane = Pane.Builder()
-                val rows = mutableListOf<Row>()
-
-                // Title row: address if available, else coordinates.
-                val addr = address
-                val street = addr?.getOrNull(0)
-                val houseNumber = addr?.getOrNull(1)
-                val adminRegion = addr?.getOrNull(2)
-                val postalArea = addr?.getOrNull(3)
-                val addressLine = listOf(street, houseNumber)
-                    .filter { !it.isNullOrBlank() }
-                    .joinToString(" ")
-                val title = addressLine.ifBlank { "Selected Location" }
-                rows.add(
-                    Row.Builder()
-                        .setTitle(title)
-                        .addText("${String.format("%.5f", lat)}, ${String.format("%.5f", lon)}")
-                        .addAction(navigateAction)
-                        .addAction(clearAction)
-                        .build()
-                )
-
-                // Location context (region / postal area)
-                for (part in listOf(adminRegion, postalArea)) {
-                    if (!part.isNullOrBlank()) {
-                        rows.add(Row.Builder().setTitle(part).build())
-                    }
-                }
-
-                // Object description entries (label → value), best effort
-                val desc = description
-                if (desc != null) {
-                    var added = 0
-                    for (entry in desc.entries) {
-                        val value = entry.value?.trim().orEmpty()
-                        val label = entry.labelKey?.trim().orEmpty()
-                        if (value.isEmpty() || label.isEmpty()) continue
-                        if (added >= MAX_DESCRIPTION_ROWS) break
-                        rows.add(
-                            Row.Builder()
-                                .setTitle(label)
-                                .addText(value)
-                                .build()
-                        )
-                        added++
-                    }
-                }
-
-                rows.take(MAX_PANE_ROWS).forEach { pane.addRow(it) }
-
-                return PaneTemplate.Builder(pane.build())
-                    .setHeader(Header.Builder().setTitle("Location").setStartHeaderAction(Action.BACK).build())
-                    .build()
-            }
-        }
-    }
 
     private fun startObserving() {
         if (observeJob != null) return
@@ -522,6 +501,17 @@ class MapScreen(
             locationProvider.position().collect { pos ->
                 if (pos != null) {
                     mapRenderer.setGpsMarker(pos.lat, pos.lon, pos.bearing, pos.accuracy)
+                    // Periodic settings refresh so changes made in the settings
+                    // screen take effect live (no flow on the provider yet).
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastSettingsReloadMs > SETTINGS_RELOAD_INTERVAL_MS) {
+                        lastSettingsReloadMs = now
+                        scope.launch {
+                            runCatching { settingsProvider.load() }
+                                .onSuccess { applySettings(it) }
+                                .onFailure { Log.w(TAG, "settings reload failed", it) }
+                        }
+                    }
                 }
             }
         }
@@ -560,6 +550,9 @@ class MapScreen(
         private const val DEFAULT_DPI = 160.0
         private const val SCALE_JITTER_THRESHOLD = 0.02f
 
+        /** Max invalidate() calls to recover a dead surface per screen start. */
+        private const val MAX_SURFACE_REFRESH_ATTEMPTS = 2
+
         /** Fallback center (Dortmund — same as the phone app default). */
         private const val DEFAULT_LAT = 51.5136
         private const val DEFAULT_LON = 7.4653
@@ -567,11 +560,10 @@ class MapScreen(
         /** City-level zoom so downloaded map data is visible immediately. */
         private const val DEFAULT_AA_ZOOM = 13
 
-        /** Pane row caps: keep the details template compact for the host. */
-        private const val MAX_PANE_ROWS = 10
-        private const val MAX_DESCRIPTION_ROWS = 8
-
         /** Throttle for file-backed gesture diagnostics. */
         private const val GESTURE_LOG_INTERVAL_MS = 500L
+
+        /** How often shared settings are re-read for live application. */
+        private const val SETTINGS_RELOAD_INTERVAL_MS = 5000L
     }
 }

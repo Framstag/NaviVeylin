@@ -4,7 +4,7 @@ This file helps AI coding agents understand the project structure, conventions, 
 
 ## Project Overview
 
-NaviVeylin is an Android navigation app using libosmscout for map rendering and routing. It targets phone, foldable, and tablet form factors with a single `app` module. Android Auto support is planned but deferred.
+NaviVeylin is an Android navigation app using libosmscout for map rendering and routing. It targets phone, foldable, and tablet form factors with a single `app` module, with Android Auto (projection) and Android Automotive OS (AAOS) support via the Car App Library (`:auto` module + `NaviVeylinCarAppService`).
 
 ## Tech Stack
 
@@ -19,7 +19,7 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
 | Build | Gradle (Kotlin DSL), AGP 8.7+ |
 | Native build | CMake 3.22+, NDK 27 |
 | ABI targets | arm64-v8a, armeabi-v7a, x86_64 |
-| Min SDK | 26 |
+| Min SDK | 29 (androidx.car.app:app-automotive / AAOS CarAppActivity) |
 | Target SDK | 36 |
 
 ## Module Structure
@@ -88,10 +88,14 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
 - `checkSubmoduleStylesheets` (preBuild) fails the build with an actionable message if the submodule is not initialized (fresh clone: `git submodule update --init --recursive`)
 - `AssetCopier` refreshes the on-device copy from the APK on every app start (per-file size+SHA-256 compare, deletes stale files), so existing installs get new styles after an update without clearing data
 
-### Android Auto
-- `:auto` module exists as placeholder
-- `NaviVeylinCarAppService` stub throws `UnsupportedOperationException`
-- Real implementation deferred to later change
+### Android Auto / Android Automotive OS
+- Real implementation: `:auto` library module (screens, `NavigationSession`); `NaviVeylinCarAppService` lives in the app's base package (`com.naviveylin`) as the car-app spec requires
+- Manifest conventions (`app/src/main/AndroidManifest.xml`):
+  - Android Auto (projection): `com.google.android.gms.car.application` metadata → `automotive_app_desc.xml` (`<uses name="template" />`); `NaviVeylinCarAppService` with `androidx.car.app.CarAppService` action + `androidx.car.app.category.NAVIGATION`; template/access-surface permissions (`NAVIGATION_TEMPLATES`, `MAP_TEMPLATES`, `ACCESS_SURFACE`)
+  - **Two distribution flavors, same applicationId** (`flavorDimensions "dist"`): `mobile` (phones/tablets + Android Auto projection) and `automotive` (standalone AAOS head units). Google Play **rejects** any single AAB declaring both `android.hardware.type.automotive` and `com.google.android.gms.car.application` — the old "dual-mode single APK" (`required="false"`) idea cannot be uploaded to Play, it only works sideloaded. The AAOS manifest lives in `app/src/automotive/AndroidManifest.xml` (flavor overlay): `android.hardware.type.automotive` `required="true"` + `com.android.automotive` metadata, and `tools:node="remove"` for the projection metadata
+  - The `androidx.car.app:app-automotive` AAR merges its own `android.hardware.type.automotive` (`required="false"`) into every build — main manifest strips it with `tools:node="remove"`; the automotive overlay re-declares it `required="true"`
+  - Distribution: mobile AAB → normal tracks; automotive AAB → dedicated "Android Automotive OS" track in Play Console (required for templated apps). Same package name = single store listing
+  - Spec: `openspec/specs/auto/spec.md`, `openspec/specs/android-automotive-os/spec.md`
 
 ## OpenSpec Workflow
 
@@ -107,13 +111,19 @@ Config: `openspec/config.yaml`
 ## Build & Test
 
 ```bash
-# Build debug APK (all 3 ABIs: arm64-v8a, armeabi-v7a, x86_64)
+# Build debug APK (all 3 ABIs: arm64-v8a, armeabi-v7a, x86_64; both flavors)
 ./gradlew :app:assembleDebug
 
-# Build for specific ABI only (faster iteration)
-./gradlew :app:assembleDebug -Pandroid.injected.build.abi=arm64-v8a
+# Build only the phone/Android Auto flavor (faster iteration)
+./gradlew :app:assembleMobileDebug
 
-# Build Play-ready release AAB (bumps version state, all 3 ABIs)
+# Build only the AAOS flavor (head-unit build, requires android.hardware.type.automotive)
+./gradlew :app:assembleAutomotiveDebug
+
+# Build for specific ABI only (faster iteration)
+./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a
+
+# Build both Play-ready release AABs (mobile + automotive; bumps version state, all 3 ABIs)
 ./gradlew release
 
 # Run unit tests
@@ -124,13 +134,13 @@ Config: `openspec/config.yaml`
 ```
 
 ### Release versioning
-- `./gradlew release` generates `versionName` as `<yyyy>-<MM>-<dd>-<N>` (4-digit year, zero-padded month/day, running number `N` without leading zeros), increments `versionCode` by one, then runs `:app:bundleRelease`
+- `./gradlew release` generates `versionName` as `<yyyy>-<MM>-<dd>-<N>` (4-digit year, zero-padded month/day, running number `N` without leading zeros), increments `versionCode` by one, then runs `:app:bundleMobileRelease` and `:app:bundleAutomotiveRelease`
 - Version state lives in `app/release-version.properties` (**gitignored**): `lastDate`, `runningNumber`, `versionCode`. Same day → `N+1`; new day → `N` resets to 1; `versionCode` starts at 20 (migrated from the old hardcoded 19)
 - The bump happens at configuration time, gated on the `release` task being requested — every other build (`assembleDebug`, etc.) uses the fixed fallback `1.0.0`/`19` and never touches the state file
 - Direct `bundleRelease` without `release` reuses the last persisted values; only `release` bumps (single release machine assumed)
 - `buildConfig = true`; app code reads the version via `BuildConfig.VERSION_NAME` (used by `AboutDialog`)
 - Signing unchanged: `app/release.keystore` present → signed AAB; absent → warning logged, unsigned AAB still produced
-- Output: `app/build/outputs/bundle/release/app-release.aab`
+- Outputs: `app/build/outputs/bundle/mobileRelease/app-mobile-release.aab` (phone + Android Auto) and `app/build/outputs/bundle/automotiveRelease/app-automotive-release.aab` (AAOS) — upload each to its own Play track
 - Unit tests cover the dialog display (see `AboutDialogComposeTest.kt`); the date-format logic is inline in the Gradle DSL and verified behaviorally (run `release` twice on the same day)
 
 ### JNI stub for unit tests
@@ -222,5 +232,5 @@ rm -rf vcpkg/buildtrees/<package>
 - No Google Play Services
 - No Google Maps
 - No Google account required
-- App distributed outside Play Store; `./gradlew release` also produces an AAB suitable for Google Play upload
+- App distributed outside Play Store (sideload: use the automotive AAB on head units, the mobile AAB on phones); `./gradlew release` also produces the two AABs suitable for Google Play upload (mobile track + dedicated AAOS track)
 - All map rendering from libosmscout native code

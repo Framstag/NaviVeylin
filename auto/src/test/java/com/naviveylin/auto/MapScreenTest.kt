@@ -51,4 +51,13 @@ class MapScreenTest {
         // When favorites change, MapScreen should call mapRenderer.setFavoriteLocations()
         assertTrue(true) // Placeholder
     }
+
+    @Test
+    fun initialCenterOverridesSavedViewport() {
+        // MapScreen(initialCenter = ...) must center on the given coordinates
+        // instead of the saved viewport / map bbox (details "Show" action).
+        // computeInitialViewport is private and needs a real CarContext +
+        // Hilt entry point, so this stays a placeholder like the tests above.
+        assertTrue(true) // Placeholder
+    }
 }

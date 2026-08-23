@@ -5,9 +5,10 @@ import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
 import androidx.car.app.model.Header
+import androidx.car.app.model.ItemList
+import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
-import androidx.car.app.model.RowSection
-import androidx.car.app.model.SectionedItemTemplate
+import androidx.car.app.model.SectionedItemList
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
@@ -19,17 +20,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Android Auto screen for browsing favorite locations using [SectionedItemTemplate].
- * Backed by [AutoFavoritesProvider] via [AutoEntryPoint].
+ * Android Auto screen for browsing favorite locations using [ListTemplate]
+ * with sectioned lists (one list per favorite group). Backed by
+ * [AutoFavoritesProvider] via [AutoEntryPoint].
  *
- * Uses [SectionedItemTemplate] (not [PlaceListNavigationTemplate]): the place-list
+ * Uses [ListTemplate] (not [PlaceListNavigationTemplate]): the place-list
  * template requires every non-browsable row to carry a distance span and every
  * browsable row to carry a click listener, neither of which applies to favorites
  * browsing — building it would fail with an IllegalArgumentException.
  */
 class FavoritesScreen(
     carContext: CarContext,
-    private val navigationViewModel: NavigationViewModel
+    private val navigationViewModel: NavigationViewModel,
+    private val starredOnly: Boolean = false
 ) : Screen(carContext) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -54,18 +57,24 @@ class FavoritesScreen(
         }
     }
 
-    override fun onGetTemplate(): SectionedItemTemplate {
-        val sections = mutableListOf<RowSection>()
+    override fun onGetTemplate(): ListTemplate {
+        val builder = ListTemplate.Builder()
+            .setHeader(
+                Header.Builder()
+                    .setTitle(if (starredOnly) "Starred favorites" else "Favorites")
+                    .setStartHeaderAction(Action.BACK)
+                    .build()
+            )
 
         if (!loaded) {
-            sections.add(
-                RowSection.Builder()
+            builder.setSingleList(
+                ItemList.Builder()
                     .addItem(Row.Builder().setTitle("Loading...").build())
                     .build()
             )
         } else if (favoritesData.isEmpty()) {
-            sections.add(
-                RowSection.Builder()
+            builder.setSingleList(
+                ItemList.Builder()
                     .addItem(
                         Row.Builder()
                             .setTitle("No favorites saved")
@@ -75,14 +84,21 @@ class FavoritesScreen(
                     .build()
             )
         } else {
+            var added = false
             for ((groupName, favorites) in favoritesData) {
-                val builder = RowSection.Builder()
-                    .setTitle(groupName)
+                val groupFavorites = if (starredOnly) {
+                    favorites.filter { it.attributes?.get("starred") == "true" }
+                } else {
+                    favorites
+                }
+                if (groupFavorites.isEmpty()) continue
+                added = true
 
-                for (fav in favorites) {
+                val itemList = ItemList.Builder()
+                for (fav in groupFavorites) {
                     // Row tap selects the favorite (rows with a click listener
                     // must not also carry row actions — ROW_CONSTRAINTS_SIMPLE).
-                    builder.addItem(
+                    itemList.addItem(
                         Row.Builder()
                             .setTitle(fav.name ?: "Favorite")
                             .addText(fav.attributes?.get("address") ?: "")
@@ -93,19 +109,24 @@ class FavoritesScreen(
                             .build()
                     )
                 }
-
-                sections.add(builder.build())
+                builder.addSectionedList(
+                    SectionedItemList.create(itemList.build(), groupName)
+                )
+            }
+            if (!added) {
+                builder.setSingleList(
+                    ItemList.Builder()
+                        .addItem(
+                            Row.Builder()
+                                .setTitle("No starred favorites")
+                                .addText("Star favorites from the map to see them here")
+                                .build()
+                        )
+                        .build()
+                )
             }
         }
 
-        val builder = SectionedItemTemplate.Builder()
-            .setHeader(
-                Header.Builder()
-                    .setTitle("Favorites")
-                    .setStartHeaderAction(Action.BACK)
-                    .build()
-            )
-        sections.forEach { builder.addSection(it) }
         return builder.build()
     }
 

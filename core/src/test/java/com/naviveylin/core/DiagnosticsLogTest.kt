@@ -40,6 +40,27 @@ class DiagnosticsLogTest {
     }
 
     @Test
+    fun initRepointsWhenConfiguredFileIsStale() {
+        // Simulate the app-onCreate path after a previous test left the
+        // singleton pointing at a file whose parent dir no longer exists
+        // (Robolectric per-test temp dir in the shared classloader).
+        DiagnosticsLog.reset()
+        val staleDir = File(System.getProperty("java.io.tmpdir"), "diag-stale-" + System.nanoTime())
+        val staleFile = File(staleDir, DiagnosticsLog.LOG_FILE)
+        staleDir.mkdirs()
+        DiagnosticsLog.initForTest(staleFile)
+        staleDir.delete()
+
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        DiagnosticsLog.init(context)
+
+        val target = File(context.filesDir, "diagnostics/${DiagnosticsLog.LOG_FILE}")
+        DiagnosticsLog.log("TEST", "stale-repoint")
+        assertTrue("log must be re-pointed to the app file", target.exists())
+        assertTrue(target.readText().contains("stale-repoint"))
+    }
+
+    @Test
     fun appendAndRead() {
         DiagnosticsLog.log("TEST", "hello")
         DiagnosticsLog.logThrowable("TEST", "boom", IllegalStateException("nope"))

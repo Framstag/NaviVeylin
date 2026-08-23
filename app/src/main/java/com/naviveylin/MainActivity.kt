@@ -1,9 +1,11 @@
 package com.naviveylin
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.car.app.activity.CarAppActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -29,6 +31,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Android Automotive OS: the phone UI is not the entry point there —
+        // the car experience runs through CarAppActivity (template host).
+        if (AutomotiveDevice.isAutomotive(this)) {
+            startActivity(Intent(this, CarAppActivity::class.java))
+            finish()
+            return
+        }
+
         enableEdgeToEdge()
 
         setContent {

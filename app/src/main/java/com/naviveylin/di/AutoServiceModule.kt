@@ -10,10 +10,12 @@ import com.naviveylin.core.AutoLocationProvider
 import com.naviveylin.core.AutoNavigationController
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoSearchProvider
+import com.naviveylin.core.AutoSearchHistoryProvider
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.toAppSettings
 import com.naviveylin.data.toAutoSettings
@@ -129,7 +131,8 @@ object AutoServiceModule {
                                     lat = loc.latitude,
                                     lon = loc.longitude,
                                     bearing = if (loc.hasBearing()) loc.bearing.toDouble() else Double.NaN,
-                                    accuracy = if (loc.hasAccuracy()) loc.accuracy.toDouble() else -1.0
+                                    accuracy = if (loc.hasAccuracy()) loc.accuracy.toDouble() else -1.0,
+                                    speedKmH = if (loc.hasSpeed()) loc.speed * 3.6 else Double.NaN
                                 )
                             }
                         }
@@ -157,6 +160,19 @@ object AutoServiceModule {
                 // car-edited subset onto the current persisted settings.
                 val current = settingsStorage.load()
                 settingsStorage.save(settings.toAppSettings(current))
+            }
+        }
+    }
+
+    @Provides
+    @Singleton
+    fun provideAutoSearchHistoryProvider(
+        repository: SearchHistoryRepository
+    ): AutoSearchHistoryProvider {
+        return object : AutoSearchHistoryProvider {
+            override suspend fun load(): List<String> {
+                repository.load()
+                return repository.history.value.map { it.text }
             }
         }
     }

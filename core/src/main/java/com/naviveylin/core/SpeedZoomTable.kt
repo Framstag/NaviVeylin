@@ -1,15 +1,19 @@
-package com.naviveylin.ui.map
+package com.naviveylin.core
 
 /**
- * Speed-to-magnification lookup table for auto-zoom during navigation.
+ * Speed-to-magnification lookup table for auto-zoom during navigation and
+ * free driving (spec: auto-speed-zoom).
  *
- * Maps the navigation engine's reported speed to a target map magnification
- * with linear interpolation between breakpoints. Walking speeds (≤6 km/h)
- * target 18–17.5; speeds up to 60 km/h target at least 16 so building names
- * and numbers are rendered (the stylesheet draws building labels at
+ * Maps the reported speed to a target map magnification with linear
+ * interpolation between breakpoints. Walking speeds (≤6 km/h) target
+ * 18–17.5; speeds up to 60 km/h target at least 16 so building names and
+ * numbers are rendered (the stylesheet draws building labels at
  * magnification ≥ 16); highway speeds zoom out to 13–12.
+ *
+ * Shared between the phone app (`MapCanvasViewModel`) and the Android Auto
+ * module (free-driving auto-zoom).
  */
-internal object SpeedZoomTable {
+object SpeedZoomTable {
 
     private data class SpeedZoomLevel(val speedKmH: Double, val magnification: Double)
 

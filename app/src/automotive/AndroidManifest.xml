@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Automotive flavor (Android Automotive OS standalone head units) manifest
+  overlay. Merged on top of src/main/AndroidManifest.xml.
+
+  Google Play forbids one AAB declaring BOTH android.hardware.type.automotive
+  AND com.google.android.gms.car.application (the projection metadata), so the
+  AAOS build swaps them:
+    - adds      android.hardware.type.automotive (required=true, templated apps)
+    - adds      com.android.automotive metadata (AAOS template host discovery)
+    - removes   com.google.android.gms.car.application (Android Auto projection)
+
+  Same applicationId as the mobile flavor → one Play Store listing; this AAB is
+  uploaded to the dedicated "Android Automotive OS" track only.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- AAOS standalone head units: Play requires this feature in the AAOS
+         build. required=true is safe here — this AAB is only distributed to
+         automotive devices via the dedicated AAOS track. -->
+    <uses-feature
+        android:name="android.hardware.type.automotive"
+        android:required="true" />
+
+    <application>
+        <!-- Android Auto (projection) metadata is forbidden alongside the
+             automotive feature; drop it from the AAOS build. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            tools:node="remove" />
+
+        <!-- AAOS template host (Android 11+ head units) -->
+        <meta-data
+            android:name="com.android.automotive"
+            android:resource="@xml/automotive_app_desc" />
+    </application>
+
+</manifest>

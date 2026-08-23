@@ -56,20 +56,20 @@ rules:
     - Verify no regressions in unrelated areas
     - For native C++ changes, verify all target ABIs compile
 
-validation:
-  - Make sure that all spec scenarios are traceable to a task
-  - Make sure that all tasks are traceable to a spec requirement
-  - Make sure that no task references a deleted or renamed spec
-  - Make sure that for every feature there are enough tests - especially unit tests
-  - Make sure that style guides of the Android plattform and Material Design 3 are followed
-  - Make sure that build and tests are green
+  validation:
+    - Make sure that all spec scenarios are traceable to a task
+    - Make sure that all tasks are traceable to a spec requirement
+    - Make sure that no task references a deleted or renamed spec
+    - Make sure that for every feature there are enough tests - especially unit tests
+    - Make sure that style guides of the Android plattform and Material Design 3 are followed
+    - Make sure that build and tests are green
 
-review:
-  - Build compiles without errors for all target ABIs
-  - All existing tests still pass
-  - New unit tests exist for all new or modified code (unless testing is not feasible)
-  - Every new public API has documentation (Kotlin docs or KDoc)
-  - No hardcoded paths, API keys, or magic numbers
-  - Error messages are user-actionable
-  - Native/JNI code follows Android NDK conventions (no leaks, proper JNI exception handling)
-  - Compose previews exist for new UI components
+  review:
+    - Build compiles without errors for all target ABIs
+    - All existing tests still pass
+    - New unit tests exist for all new or modified code (unless testing is not feasible)
+    - Every new public API has documentation (Kotlin docs or KDoc)
+    - No hardcoded paths, API keys, or magic numbers
+    - Error messages are user-actionable
+    - Native/JNI code follows Android NDK conventions (no leaks, proper JNI exception handling)
+    - Compose previews exist for new UI components

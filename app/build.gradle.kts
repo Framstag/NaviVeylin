@@ -89,14 +89,15 @@ val releaseVersion: Pair<String, Int>? = if (isReleaseBuild) nextReleaseVersion(
 
 tasks.register("release") {
     group = "release"
-    description = "Bumps the version state and builds a Play-ready AAB via :app:bundleRelease."
-    dependsOn("bundleRelease")
+    description = "Bumps the version state and builds both Play-ready AABs: mobile (phone + Android Auto) and automotive (AAOS)."
+    dependsOn("bundleMobileRelease", "bundleAutomotiveRelease")
     doLast {
         val (versionName, versionCode) =
             releaseVersion ?: error("release task requires a generated version")
         println()
         println("NaviVeylin release: $versionName (versionCode $versionCode)")
-        println("AAB: ${layout.buildDirectory.file("outputs/bundle/release/app-release.aab").get().asFile}")
+        println("AAB phone + Android Auto:  ${layout.buildDirectory.file("outputs/bundle/mobileRelease/app-mobile-release.aab").get().asFile}")
+        println("AAB Android Automotive OS: ${layout.buildDirectory.file("outputs/bundle/automotiveRelease/app-automotive-release.aab").get().asFile}")
     }
 }
 
@@ -106,7 +107,7 @@ android {
 
     defaultConfig {
         applicationId = "com.framstag.naviveylin"
-        minSdk = 28
+        minSdk = 29 // androidx.car.app:app-automotive (AAOS CarAppActivity) requires 29; API 28 (Android 9) dropped
         targetSdk = 36
         // `release` builds get the generated version; other builds use the fixed fallback.
         versionCode = releaseVersion?.second ?: FALLBACK_VERSION_CODE
@@ -160,6 +161,24 @@ android {
                         "Generate it and app/keystore.properties before shipping."
                 )
             }
+        }
+    }
+
+    // Two distribution flavors, same applicationId (single Play Store listing):
+    //  - mobile     → phones/tablets + Android Auto (projection);
+    //                 com.google.android.gms.car.application metadata only
+    //  - automotive → standalone AAOS head units; android.hardware.type.automotive
+    //    + com.android.automotive metadata via src/automotive/AndroidManifest.xml
+    // Google Play rejects one AAB declaring BOTH android.hardware.type.automotive
+    // and com.google.android.gms.car.application, so the AAOS build is a separate
+    // bundle uploaded to the dedicated "Android Automotive OS" track.
+    flavorDimensions += "dist"
+    productFlavors {
+        create("mobile") {
+            dimension = "dist"
+        }
+        create("automotive") {
+            dimension = "dist"
         }
     }
 
@@ -295,6 +314,10 @@ dependencies {
 
     // Google Play Services Location (GPS) — optional, fallback to LocationManager
     implementation("com.google.android.gms:play-services-location:21.1.0")
+
+    // Car App Library — Android Automotive OS entry point (CarAppActivity
+    // binds the AAOS template host; MainActivity trampolines to it on cars).
+    implementation("androidx.car.app:app-automotive:1.7.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

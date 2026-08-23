@@ -22,6 +22,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +56,15 @@ class AANavigationController @Inject constructor(
     private var lastTunnelOrNoSignalTime = 0L
     private var lastOnRouteTime = 0L
 
+    /** In-flight route calculation (coalesces reroute storms to one at a time). */
+    private var routeJob: Job? = null
+
+    /** Last reroute trigger time (throttle — the engine fires one per GPS fix while off-route). */
+    private var lastRerouteTime = 0L
+
+    /** Last plausible speed (spike filter, same as the phone's MapCanvasViewModel). */
+    private var lastValidSpeedKmH = Double.NaN
+
     init {
         // Mirror into the shared provider so AA screens get live navigation
         // state and working actions.
@@ -66,19 +76,33 @@ class AANavigationController @Inject constructor(
         scope.launch {
             locationService.location.collect { loc ->
                 if (loc != null) {
+                    val locSpeedKmH = if (loc.hasSpeed()) loc.speed * 3.6 else -1.0
                     processLocation(
                         loc.latitude,
                         loc.longitude,
-                        if (loc.hasSpeed()) loc.speed * 3.6 else -1.0,
+                        locSpeedKmH,
                         if (loc.hasAccuracy()) loc.accuracy.toDouble() else -1.0,
                         loc.time
+                    )
+                    // Display speed from the location provider (the emulator's
+                    // simulated driving speed is sane; the engine's SpeedAgent
+                    // derives absurd values from GPS jumps) — spike-filtered.
+                    val filtered = filterSpeed(locSpeedKmH)
+                    _state.value = _state.value.copy(
+                        currentSpeedKmH = filtered.takeIf { it >= 0.0 } ?: Double.NaN
                     )
                 }
             }
         }
     }
 
-    override fun navigateTo(destLat: Double, destLon: Double) {
+    override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
+        // Record destination identity for the car screen.
+        _state.value = _state.value.copy(
+            destLat = destLat,
+            destLon = destLon,
+            destinationName = destinationName
+        )
         // Resolve start position: active navigation estimate first, then GPS.
         val startLat: Double
         val startLon: Double
@@ -111,7 +135,13 @@ class AANavigationController @Inject constructor(
         destLat: Double,
         destLon: Double
     ) {
-        scope.launch(Dispatchers.Default) {
+        // Coalesce reroute storms: a reroute request while a calculation is
+        // already in flight is dropped — the engine fires onRerouteRequest
+        // again on the next GPS fix. Keeps at most one native route
+        // calculation running (concurrent JNI route calcs raced on the native
+        // routing thread, SIGABRT from a destroyed joinable thread).
+        if (routeJob?.isActive == true) return
+        routeJob = scope.launch(Dispatchers.Default) {
             try {
                 val profile = RoutingProfile(Vehicle.CAR)
                 client.calculateRouteWithProfile(
@@ -174,7 +204,10 @@ class AANavigationController @Inject constructor(
         _state.value = _state.value.copy(
             isNavigating = true,
             currentStepIndex = 0,
-            totalDistance = computeRouteDistance(routeEntry.latitudes, routeEntry.longitudes)
+            totalDistance = computeRouteDistance(routeEntry.latitudes, routeEntry.longitudes),
+            // Route geometry for the map renderer ("_route" style).
+            routeLats = routeEntry.latitudes,
+            routeLons = routeEntry.longitudes
         )
 
         scope.launch(Dispatchers.Main) {
@@ -209,6 +242,19 @@ class AANavigationController @Inject constructor(
     override fun processLocation(lat: Double, lon: Double, speedKmH: Double, accuracy: Double, timestamp: Long) {
         lastGpsAccuracy = accuracy
         nativeController?.processLocation(lat, lon, speedKmH, accuracy, timestamp)
+    }
+
+    /**
+     * Filter speed spikes: reject speed above the plausibility cap, keep the
+     * last good speed (same rule as the phone's MapCanvasViewModel — GPS
+     * jumps otherwise produce absurd readings). Cap at 250 km/h so real
+     * high-speed driving (Autobahn, up to ~220 km/h) is never clipped.
+     */
+    private fun filterSpeed(rawSpeedKmH: Double): Double {
+        if (rawSpeedKmH >= 0.0 && rawSpeedKmH <= MAX_PLAUSIBLE_SPEED_KMH) {
+            lastValidSpeedKmH = rawSpeedKmH
+        }
+        return lastValidSpeedKmH
     }
 
     private fun createListener(): NavigationListener {
@@ -257,12 +303,16 @@ class AANavigationController @Inject constructor(
 
             override fun onRouteInstructions(instructions: Array<RouteInstruction>) {
                 scope.launch(Dispatchers.Main) {
+                    // The first entry is usually the Start instruction with
+                    // distanceTo 0 — pick the first real turn so the panel
+                    // never shows "0 m" before live updates arrive.
+                    val firstReal = instructions.firstOrNull { it.distanceTo > 0.0 }
                     _state.value = _state.value.copy(
                         instructions = instructions.toList(),
                         currentStepIndex = 0,
                         isRerouting = false,
                         isOffRoute = false,
-                        nextInstruction = instructions.firstOrNull()
+                        nextInstruction = firstReal ?: instructions.firstOrNull()
                     )
                 }
             }
@@ -277,14 +327,14 @@ class AANavigationController @Inject constructor(
             }
 
             override fun onCurrentSpeed(speedKmH: Double) {
-                scope.launch(Dispatchers.Main) {
-                    _state.value = _state.value.copy(currentSpeedKmH = speedKmH)
-                }
+                // Engine-derived speed (jumpy on emulator GPS) — display uses
+                // the spike-filtered location-provider speed instead.
             }
 
             override fun onMaxAllowedSpeed(maxSpeedKmH: Double) {
                 scope.launch(Dispatchers.Main) {
-                    _state.value = _state.value.copy(maxSpeedKmH = maxSpeedKmH)
+                    // Native engine sends negative when unknown — normalize to NaN.
+                    _state.value = _state.value.copy(maxSpeedKmH = maxSpeedKmH.takeIf { it > 0.0 } ?: Double.NaN)
                 }
             }
 
@@ -304,6 +354,13 @@ class AANavigationController @Inject constructor(
                         return@launch
                     }
                     Log.d(TAG, "onRerouteRequest: rerouting from ($lat, $lon) to ($destLat, $destLon)")
+                    // Throttle: the engine fires a reroute on every off-route
+                    // GPS fix — without a minimum interval each fix spawns a
+                    // new route calculation (reroute storm).
+                    if (now - lastRerouteTime < REROUTE_MIN_INTERVAL_MS) {
+                        return@launch
+                    }
+                    lastRerouteTime = now
                     _state.value = _state.value.copy(isRerouting = true, isOffRoute = true)
                     // No phone RoutePanelViewModel in the AA process — recalculate
                     // the direct route from the current position.
@@ -335,6 +392,13 @@ class AANavigationController @Inject constructor(
 
     companion object {
         private const val TAG = "AANavigationController"
+
+        /** Min interval between reroute recalculations (engine fires per fix). */
+        private const val REROUTE_MIN_INTERVAL_MS = 10_000L
+
+        /** Plausibility cap for the speed display filter (Autobahn ~200+). */
+        private const val MAX_PLAUSIBLE_SPEED_KMH = 250.0
+
         private const val MAX_REROUTE_ACCURACY = 25.0
         private const val TUNNEL_REROUTE_GUARD_MS = 15_000L
     }

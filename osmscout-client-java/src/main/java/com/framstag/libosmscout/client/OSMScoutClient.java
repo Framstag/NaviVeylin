@@ -188,6 +188,16 @@ public class OSMScoutClient {
     public native String[] getAddressAt(double lat, double lon);
 
     /**
+     * Get the maximum allowed speed (km/h) of the road at the given
+     * geographic coordinate, or NaN when no speed limit is defined.
+     *
+     * @param lat latitude in degrees
+     * @param lon longitude in degrees
+     * @return max speed in km/h, or NaN if undefined / no road found
+     */
+    public native double getMaxSpeedAt(double lat, double lon);
+
+    /**
      * Get the bounding box of the most reasonable visible object
      * at the given geographic coordinate.
      *

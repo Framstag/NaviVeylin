@@ -26,7 +26,7 @@ class NavigationStateProvider @Inject constructor() : NavigationViewModel {
     override val state: StateFlow<NavigationState> = _state.asStateFlow()
 
     private var stopCallback: (() -> Unit)? = null
-    private var navigateToCallback: ((Double, Double) -> Unit)? = null
+    private var navigateToCallback: ((Double, Double, String?) -> Unit)? = null
     private var reportErrorCallback: ((String) -> Unit)? = null
 
     /** Start observing a [NavigationViewModel] and mirror its state + actions. */
@@ -37,7 +37,7 @@ class NavigationStateProvider @Inject constructor() : NavigationViewModel {
             }
         }
         stopCallback = { source.stopNavigation() }
-        navigateToCallback = { destLat, destLon -> source.navigateTo(destLat, destLon) }
+        navigateToCallback = { destLat, destLon, name -> source.navigateTo(destLat, destLon, name) }
         reportErrorCallback = { message -> source.reportError(message) }
     }
 
@@ -45,8 +45,8 @@ class NavigationStateProvider @Inject constructor() : NavigationViewModel {
         stopCallback?.invoke()
     }
 
-    override fun navigateTo(destLat: Double, destLon: Double) {
-        navigateToCallback?.invoke(destLat, destLon)
+    override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
+        navigateToCallback?.invoke(destLat, destLon, destinationName)
     }
 
     override fun clearError() {

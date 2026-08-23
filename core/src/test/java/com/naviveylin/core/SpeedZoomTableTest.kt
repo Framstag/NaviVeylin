@@ -1,4 +1,4 @@
-package com.naviveylin.ui.map
+package com.naviveylin.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

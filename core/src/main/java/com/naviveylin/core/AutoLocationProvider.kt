@@ -9,7 +9,9 @@ data class AutoPosition(
     /** Bearing in degrees, or [Double.NaN] when unknown. */
     val bearing: Double = Double.NaN,
     /** Horizontal accuracy in meters, or negative when unknown. */
-    val accuracy: Double = -1.0
+    val accuracy: Double = -1.0,
+    /** Ground speed in km/h, or [Double.NaN] when unknown. */
+    val speedKmH: Double = Double.NaN
 )
 
 /**

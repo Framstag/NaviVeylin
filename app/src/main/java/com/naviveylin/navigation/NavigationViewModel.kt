@@ -68,6 +68,21 @@ class NavigationViewModel @Inject constructor(
     // Last GPS accuracy from processLocation; used as extra guard with tunnel guard
     private var lastGpsAccuracy: Double = -1.0
 
+    // Last plausible speed for the spike filter (same rule as AA/MapCanvasViewModel).
+    private var lastValidSpeedKmH = Double.NaN
+
+    /**
+     * Filter speed spikes: reject speed > 150 km/h, keep the last good speed
+     * (same rule as MapCanvasViewModel — GPS jumps otherwise produce absurd
+     * readings on the speed display).
+     */
+    private fun filterSpeed(rawSpeedKmH: Double): Double {
+        if (rawSpeedKmH >= 0.0 && rawSpeedKmH <= 150.0) {
+            lastValidSpeedKmH = rawSpeedKmH
+        }
+        return lastValidSpeedKmH
+    }
+
     // Reroute confirmation: require multiple onRerouteRequest calls within window
     // Native controller fires every ~5s while off-route (RouteStateAgent.cpp:84)
     private var rerouteConfirmCount = 0
@@ -166,7 +181,14 @@ class NavigationViewModel @Inject constructor(
         _state.value = _state.value.copy(errorMessage = message)
     }
 
-    override fun navigateTo(destLat: Double, destLon: Double) {
+    override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
+        // Record destination identity for the car screen (name/address when
+        // known, else coordinates-only display).
+        _state.value = _state.value.copy(
+            destLat = destLat,
+            destLon = destLon,
+            destinationName = destinationName
+        )
         // Resolve start position: active navigation estimate first, then LocationService GPS.
         val startLat: Double
         val startLon: Double
@@ -369,13 +391,16 @@ class NavigationViewModel @Inject constructor(
 
             override fun onCurrentSpeed(speedKmH: Double) {
                 viewModelScope.launch(Dispatchers.Main) {
-                    _state.value = _state.value.copy(currentSpeedKmH = speedKmH)
+                    // Spike-filtered; native sends negative when unknown — normalize to NaN.
+                    val filtered = filterSpeed(speedKmH)
+                    _state.value = _state.value.copy(currentSpeedKmH = filtered.takeIf { it >= 0.0 } ?: Double.NaN)
                 }
             }
 
             override fun onMaxAllowedSpeed(maxSpeedKmH: Double) {
                 viewModelScope.launch(Dispatchers.Main) {
-                    _state.value = _state.value.copy(maxSpeedKmH = maxSpeedKmH)
+                    // Native engine sends negative when unknown — normalize to NaN.
+                    _state.value = _state.value.copy(maxSpeedKmH = maxSpeedKmH.takeIf { it > 0.0 } ?: Double.NaN)
                 }
             }
 
@@ -514,6 +539,9 @@ class NavigationViewModel @Inject constructor(
         private const val REROUTE_CONFIRM_WINDOW_MS = 60_000L
         private const val MIN_OFF_ROUTE_DURATION_MS = 30_000L
         private const val TUNNEL_REROUTE_GUARD_MS = 30_000L
+
+        /** Plausibility cap for the speed display filter (Autobahn ~200+). */
+        private const val MAX_PLAUSIBLE_SPEED_KMH = 250.0
 
         /** Compute total route distance in meters from lat/lon arrays using haversine. */
         fun computeRouteDistance(lats: DoubleArray, lons: DoubleArray): Double {

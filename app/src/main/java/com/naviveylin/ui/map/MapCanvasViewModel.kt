@@ -11,6 +11,7 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
 import com.framstag.libosmscout.client.PoiEntry
+import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
@@ -266,9 +267,9 @@ class MapCanvasViewModel @Inject constructor(
     /** Get the current navigation position for marker rendering. */
     fun getNavigationPosition(): com.framstag.libosmscout.client.NavigationPosition? = _navPosition
 
-    /** Filter speed spikes: reject speed > 150 km/h, use last good speed. */
+    /** Filter speed spikes: reject speed above the plausibility ceiling, use last good speed. */
     private fun filterSpeed(rawSpeedKmH: Double): Double {
-        if (rawSpeedKmH >= 0 && rawSpeedKmH <= 150.0) {
+        if (rawSpeedKmH >= 0 && rawSpeedKmH <= MAX_PLAUSIBLE_SPEED_KMH) {
             lastValidSpeedKmH = rawSpeedKmH
         }
         return lastValidSpeedKmH
@@ -2141,6 +2142,9 @@ class MapCanvasViewModel @Inject constructor(
         private const val FAVORITES_FILE = "favorites.json"
         private const val GPS_FIX_FRESHNESS_MS = 5_000L
         private const val GPS_FIX_MAX_ACCURACY_M = 50f
+
+        /** Plausibility cap for the speed filter (Autobahn ~200+). */
+        private const val MAX_PLAUSIBLE_SPEED_KMH = 250.0
 
         // Ignore duplicate GPS fixes with same coordinates and bearing within this window.
         private const val GPS_DEDUPE_MS = 100L

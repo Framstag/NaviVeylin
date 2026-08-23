@@ -23,6 +23,11 @@ class RootScreenTest {
     private val carContext = mockk<CarContext>()
     private val navigationViewModel = mockk<NavigationViewModel>()
 
+    init {
+        // RootScreen calls enableBackNavigation() in init.
+        io.mockk.every { carContext.getOnBackPressedDispatcher() } returns mockk(relaxed = true)
+    }
+
     @Test
     fun onGetTemplateBuildsWithoutThrowing() {
         val screen = RootScreen(carContext, navigationViewModel)
@@ -30,9 +35,7 @@ class RootScreenTest {
         // Previously threw IllegalArgumentException (click listener on PaneTemplate row).
         val template = screen.onGetTemplate()
 
-        assertEquals(1, template.sections.size)
-        // Section items are delivered lazily via a ListDelegate; the delegate
-        // reports the section size, which must cover all seven shortcuts.
-        assertEquals(7, template.sections[0].itemsDelegate.size)
+        // All seven shortcuts, eagerly delivered on the single list.
+        assertEquals(7, template.singleList!!.items.size)
     }
 }

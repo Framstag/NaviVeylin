@@ -175,11 +175,11 @@ jobs:
       # (org.gradle.java.home=/usr/lib/jvm/java-17-openjdk) which does not
       # exist on the runner — override it with the JDK set up above.
       - name: Build debug APK
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :app:assembleDebug
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :app:assembleMobileDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:
           name: naviveylin-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/mobile/debug/*.apk
           if-no-files-found: error

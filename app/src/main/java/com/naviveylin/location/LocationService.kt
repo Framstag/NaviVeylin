@@ -45,9 +45,11 @@ class LocationService @Inject constructor(
     private var fusedCallback: LocationCallback? = null
     private var gpsListener: LocationListener? = null
 
-    // Timestamp of the last emitted fix, used to drop duplicates delivered by
-    // both Fused and LocationManager with the same location.time.
+    // Timestamp + position of the last emitted fix, used to drop duplicates
+    // delivered by both Fused and LocationManager with the same location.
     private var lastEmittedFixTimeMs: Long = 0L
+    private var lastEmittedLat = Double.NaN
+    private var lastEmittedLon = Double.NaN
 
     private val useFusedProvider: Boolean = run {
         val availability = GoogleApiAvailability.getInstance()
@@ -131,7 +133,11 @@ class LocationService @Inject constructor(
         fusedCallback = callback
 
         try {
-            client.requestLocationUpdates(request, callback, null)
+            // Explicit main looper: requestLocationUpdates with a null looper
+            // requires the calling thread to have one (fails with
+            // "invalid null looper" when called from a background thread,
+            // e.g. the AA warmup).
+            client.requestLocationUpdates(request, callback, Looper.getMainLooper())
             Log.d(TAG, "startFusedUpdates: requested")
         } catch (e: SecurityException) {
             Log.e(TAG, "startFusedUpdates: security exception", e)
@@ -221,13 +227,22 @@ class LocationService @Inject constructor(
      * Fused and LocationManager deliver the same underlying fix with the same
      * location.time; dropping by timestamp removes the duplicate emission.
      */
+    /**
+     * Drop only truly identical duplicates (same time AND same position) —
+     * e.g. the same fix delivered by both Fused and LocationManager. Moving
+     * fixes with identical timestamps (emulator GPX replay) must pass
+     * through, otherwise the track freezes after the first fix.
+     */
     private fun shouldEmit(location: Location): Boolean {
-        val fixTime = location.time
-        val last = lastEmittedFixTimeMs
-        if (fixTime == last && fixTime != 0L) {
+        val sameTime = location.time == lastEmittedFixTimeMs && location.time != 0L
+        val samePos = location.latitude == lastEmittedLat && location.longitude == lastEmittedLon
+        if (sameTime && samePos) {
+            Log.d(TAG, "shouldEmit: duplicate fix dropped (t=${location.time})")
             return false
         }
-        lastEmittedFixTimeMs = fixTime
+        lastEmittedFixTimeMs = location.time
+        lastEmittedLat = location.latitude
+        lastEmittedLon = location.longitude
         return true
     }
 

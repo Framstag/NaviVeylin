@@ -3,6 +3,7 @@ package com.naviveylin.auto
 import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
+import androidx.car.app.ScreenManager
 import androidx.car.app.model.Action
 import androidx.car.app.model.Header
 import androidx.car.app.model.ItemList
@@ -105,8 +106,13 @@ class PoiResultsScreen(
                             .setTitle(title)
                             .addText(text)
                             .setOnClickListener {
-                                Log.d(TAG, "POI selected: ${poi.label} (${poi.lat}, ${poi.lon})")
-                                navigationViewModel.navigateTo(poi.lat, poi.lon)
+                                Log.d(TAG, "POI details: ${poi.label} (${poi.lat}, ${poi.lon})")
+                                carContext.getCarService(ScreenManager::class.java).push(
+                                    DetailsScreen(
+                                        carContext, navigationViewModel, poi.lat, poi.lon,
+                                        nameHint = poi.label
+                                    )
+                                )
                             }
                             .build()
                     )

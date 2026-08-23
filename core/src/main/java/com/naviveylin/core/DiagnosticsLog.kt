@@ -45,12 +45,18 @@ object DiagnosticsLog {
     /** Initialize with the application context. Safe to call multiple times. */
     fun init(appContext: Context) {
         synchronized(lock) {
-            if (logFile == null) {
-                val dir = File(appContext.filesDir, DIR_NAME)
+            // Always re-point to the canonical app log file: the app's
+            // onCreate must own this path. Without this, a leftover pointer
+            // from an earlier process/classloader (e.g. a previous Robolectric
+            // test's initForTest) makes the app's onCreate silently write to
+            // the wrong file, and the app's own log never appears.
+            val dir = File(appContext.filesDir, DIR_NAME)
+            val expected = File(dir, LOG_FILE)
+            if (logFile != expected) {
                 if (!dir.exists()) {
                     dir.mkdirs()
                 }
-                logFile = File(dir, LOG_FILE)
+                logFile = expected
             }
         }
     }

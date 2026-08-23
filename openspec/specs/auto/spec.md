@@ -25,8 +25,9 @@ The system SHALL declare NaviVeylin as a native Android Auto navigation app usin
 - **THEN** it finds `com.naviveylin.NaviVeylinCarAppService` with action `androidx.car.app.CarAppService` and category `androidx.car.app.category.NAVIGATION`
 
 #### Scenario: Automotive metadata is declared
-- **WHEN** the host validates the app manifest
+- **WHEN** the app validates the mobile flavor manifest (phones + Android Auto projection)
 - **THEN** the `com.google.android.gms.car.application` metadata references `automotive_app_desc.xml` containing `<uses name="template" />`
+- **AND** the `automotive` flavor (AAOS) removes this metadata (`tools:node="remove"`), since Google Play rejects it combined with `android.hardware.type.automotive`
 
 #### Scenario: Host is queryable
 - **WHEN** the app is installed
@@ -84,13 +85,6 @@ The system SHALL display a rerouting indicator on the `NavigationTemplate` when 
 #### Scenario: Rerouting shown
 - **WHEN** the navigation engine triggers a reroute
 - **THEN** the car screen shows a rerouting indicator
-
-### Requirement: Stop navigation action
-The system SHALL provide a stop navigation action on the `NavigationTemplate` that ends the active navigation.
-
-#### Scenario: Stop navigation from car
-- **WHEN** user taps the stop navigation action on the car screen
-- **THEN** navigation stops on both the car screen and the phone
 
 ### Requirement: Lifecycle-aware state observation
 The system SHALL observe navigation state only while the Auto screen is visible, and clean up observers when the screen is destroyed.

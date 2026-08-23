@@ -19,6 +19,9 @@ interface AutoEntryPoint {
     /** Reactive snapshot of all favorite locations, grouped by group name. */
     fun autoFavoritesProvider(): AutoFavoritesProvider
 
+    /** Search history shared with the phone app (pull-based). */
+    fun autoSearchHistoryProvider(): AutoSearchHistoryProvider
+
     /** GPS position source for the car map (AA-only process has no phone UI). */
     fun autoLocationProvider(): AutoLocationProvider
 

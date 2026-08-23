@@ -4,9 +4,9 @@ import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
 import androidx.car.app.model.Header
+import androidx.car.app.model.ItemList
+import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
-import androidx.car.app.model.RowSection
-import androidx.car.app.model.SectionedItemTemplate
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
@@ -22,8 +22,9 @@ import kotlinx.coroutines.launch
  * through [AutoSettingsProvider] to the same settings storage the phone app
  * uses.
  *
- * Uses [SectionedItemTemplate] (not [PaneTemplate]): PaneTemplate rows do not
- * support click listeners (car-app constraint `ROW_CONSTRAINTS_PANE`).
+ * Uses [ListTemplate] (not [PaneTemplate]): PaneTemplate rows do not support
+ * click listeners (car-app constraint `ROW_CONSTRAINTS_PANE`). ListTemplate is
+ * the most broadly supported list template across hosts (projection and AAOS).
  */
 class PreferencesScreen(
     carContext: CarContext,
@@ -53,14 +54,14 @@ class PreferencesScreen(
         }
     }
 
-    override fun onGetTemplate(): SectionedItemTemplate {
+    override fun onGetTemplate(): ListTemplate {
         val current = settings
-        val section = if (!loaded || current == null) {
-            RowSection.Builder()
+        val itemList = if (!loaded || current == null) {
+            ItemList.Builder()
                 .addItem(Row.Builder().setTitle("Loading...").build())
                 .build()
         } else {
-            val builder = RowSection.Builder()
+            val builder = ItemList.Builder()
             PreferencesScreenMapper.rows(current).forEach { row ->
                 builder.addItem(
                     Row.Builder()
@@ -73,14 +74,14 @@ class PreferencesScreen(
             builder.build()
         }
 
-        return SectionedItemTemplate.Builder()
+        return ListTemplate.Builder()
             .setHeader(
                 Header.Builder()
                     .setTitle("Preferences")
                     .setStartHeaderAction(Action.BACK)
                     .build()
             )
-            .addSection(section)
+            .setSingleList(itemList)
             .build()
     }
 

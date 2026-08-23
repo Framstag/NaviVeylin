@@ -30,5 +30,14 @@ data class NavigationState(
     val laneSuggestedTo: Int = 0,
     val laneTurns: List<LaneTurn> = emptyList(),
     // Error message to display on car screen (e.g., GPS missing, route failure)
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    // Destination identity, retained from navigation start for display on the
+    // car screen (name/address when known, otherwise coordinates only).
+    val destLat: Double = Double.NaN,
+    val destLon: Double = Double.NaN,
+    val destinationName: String? = null,
+    // Route polyline for map rendering (native renderer draws the route with
+    // the stylesheet "_route" style). Null when not navigating.
+    val routeLats: DoubleArray? = null,
+    val routeLons: DoubleArray? = null
 )

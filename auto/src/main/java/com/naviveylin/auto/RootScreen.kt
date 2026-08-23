@@ -3,29 +3,33 @@ package com.naviveylin.auto
 import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
+import androidx.car.app.model.Action
 import androidx.car.app.model.Header
+import androidx.car.app.model.ItemList
+import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
-import androidx.car.app.model.RowSection
-import androidx.car.app.model.SectionedItemTemplate
 import com.naviveylin.core.NavigationViewModel
 
 /**
  * Root Android Auto screen displayed when not navigating.
- * Shows shortcuts to Search, Favorites and Diagnostics via [SectionedItemTemplate].
+ * Shows shortcuts to Search, Favorites and Diagnostics via [ListTemplate].
  *
- * Uses [SectionedItemTemplate] (not [PaneTemplate]): PaneTemplate rows do not
- * support click listeners (car-app constraint `ROW_CONSTRAINTS_PANE`), and a
- * PaneTemplate with clickable rows fails template build with
- * `IllegalArgumentException: A click listener is not allowed on the row`.
- * List-based templates allow row click listeners.
+ * Uses [ListTemplate] (not [PaneTemplate]): PaneTemplate rows do not support
+ * click listeners (car-app constraint `ROW_CONSTRAINTS_PANE`). ListTemplate is
+ * also the most broadly supported list template across hosts (Android Auto
+ * projection and Android Automotive OS, incl. driving mode).
  */
 class RootScreen(
     carContext: CarContext,
     private val navigationViewModel: NavigationViewModel
 ) : Screen(carContext) {
 
-    override fun onGetTemplate(): SectionedItemTemplate {
-        val section = RowSection.Builder()
+    init {
+        enableBackNavigation()
+    }
+
+    override fun onGetTemplate(): ListTemplate {
+        val itemList = ItemList.Builder()
             .addItem(
                 Row.Builder()
                     .setTitle("Map")
@@ -77,13 +81,14 @@ class RootScreen(
             )
             .build()
 
-        return SectionedItemTemplate.Builder()
+        return ListTemplate.Builder()
             .setHeader(
                 Header.Builder()
                     .setTitle("NaviVeylin")
+                    .setStartHeaderAction(Action.BACK)
                     .build()
             )
-            .addSection(section)
+            .setSingleList(itemList)
             .build()
     }
 

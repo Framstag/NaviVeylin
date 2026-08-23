@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -9,10 +10,28 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
-    <!-- Android Auto -->
+    <!-- Android Auto (projection) -->
     <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES" />
     <uses-permission android:name="androidx.car.app.MAP_TEMPLATES" />
     <uses-permission android:name="androidx.car.app.ACCESS_SURFACE" />
+
+    <!--
+      The androidx.car.app:app-automotive AAR merges an
+      android.hardware.type.automotive uses-feature (required=false) into every
+      build. Google Play rejects that in combination with the
+      com.google.android.gms.car.application metadata, so strip it here; the
+      automotive flavor overlay (src/automotive/AndroidManifest.xml) re-declares
+      it with required=true for the dedicated AAOS build.
+    -->
+    <uses-feature
+        android:name="android.hardware.type.automotive"
+        tools:node="remove" />
+
+    <!-- AAOS template host (renders CarAppService UI); required=false: the
+         app also runs as a plain phone app where no host exists. -->
+    <uses-feature
+        android:name="android.software.car.templates_host"
+        android:required="false" />
 
     <queries>
         <intent>
@@ -28,6 +47,7 @@
     <application
         android:name=".NaviVeylinApp"
         android:allowBackup="true"
+        android:appCategory="maps"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -80,7 +100,7 @@
             android:foregroundServiceType="dataSync"
             android:exported="false" />
 
-        <!-- Android Auto -->
+        <!-- Android Auto (projection) -->
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
@@ -99,6 +119,23 @@
                 <category android:name="androidx.car.app.category.NAVIGATION" />
             </intent-filter>
         </service>
+
+        <!--
+          Android Automotive OS entry point. On cars the phone MainActivity
+          trampolines here; CarAppActivity binds the AAOS template host and
+          renders the CarAppService UI. No launcher intent-filter — the single
+          sideloaded APK keeps MainActivity as the launcher for phones, so the
+          trampoline redirects on automotive hardware.
+        -->
+        <activity
+            android:name="androidx.car.app.activity.CarAppActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
+        </activity>
 
     </application>
 

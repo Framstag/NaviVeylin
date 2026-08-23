@@ -15,8 +15,12 @@ interface NavigationViewModel {
     /**
      * Navigate to a destination from current GPS position.
      * Calculates route and starts turn-by-turn navigation.
+     *
+     * @param destinationName optional display name/address of the destination,
+     * retained in [NavigationState] for the car screen; null falls back to
+     * coordinates.
      */
-    fun navigateTo(destLat: Double, destLon: Double)
+    fun navigateTo(destLat: Double, destLon: Double, destinationName: String? = null)
 
     /** Clear any displayed error message. */
     fun clearError()

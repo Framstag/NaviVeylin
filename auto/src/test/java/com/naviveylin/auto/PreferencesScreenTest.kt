@@ -52,9 +52,8 @@ class PreferencesScreenTest {
         val screen = PreferencesScreen(carContext, provider)
         val template = screen.onGetTemplate()
 
-        assertEquals(1, template.sections.size)
-        // All seven car-relevant preferences, delivered lazily via ListDelegate.
-        assertEquals(7, template.sections[0].itemsDelegate.size)
+        // All seven car-relevant preferences on the single list.
+        assertEquals(7, template.singleList!!.items.size)
     }
 
     @Test

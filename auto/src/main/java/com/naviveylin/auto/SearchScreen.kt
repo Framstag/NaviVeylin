@@ -3,6 +3,7 @@ package com.naviveylin.auto
 import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
+import androidx.car.app.ScreenManager
 import androidx.car.app.model.Action
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.Row
@@ -25,7 +26,8 @@ import kotlinx.coroutines.withContext
  */
 class SearchScreen(
     carContext: CarContext,
-    private val navigationViewModel: NavigationViewModel
+    private val navigationViewModel: NavigationViewModel,
+    private val initialQuery: String? = null
 ) : Screen(carContext) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -39,6 +41,7 @@ class SearchScreen(
 
     init {
         enableBackNavigation()
+        initialQuery?.let { runSearch(it) }
     }
 
     override fun onGetTemplate(): SearchTemplate {
@@ -46,6 +49,10 @@ class SearchScreen(
             .setShowKeyboardByDefault(true)
             // Explicit back — emulated hosts may not render their own.
             .setHeaderAction(Action.BACK)
+
+        if (initialQuery != null && lastQuery.isBlank()) {
+            builder.setInitialSearchText(initialQuery)
+        }
 
         // Show the loading state while a search is in flight; once results
         // are ready, render them via setItemList (SearchTemplate results are
@@ -58,26 +65,30 @@ class SearchScreen(
         return builder.build()
     }
 
+    private fun runSearch(searchText: String) {
+        searchJob?.cancel()
+        searchJob = scope.launch {
+            delay(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+            val results = withContext(Dispatchers.Default) {
+                searchProvider.searchLocations(searchText, SearchScreenMapper.MAX_RESULTS)
+            }
+            Log.d(TAG, "Search results: ${results.size} for '$searchText'")
+            lastResults = results
+            lastQuery = searchText
+            invalidate()
+        }
+    }
+
     private inner class SearchCallbackImpl : SearchCallback {
         override fun onSearchTextChanged(searchText: String) {
-            searchJob?.cancel()
             if (searchText.isBlank()) {
+                searchJob?.cancel()
                 lastQuery = ""
                 lastResults = emptyList()
                 invalidate()
                 return
             }
-
-            searchJob = scope.launch {
-                delay(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
-                val results = withContext(Dispatchers.Default) {
-                    searchProvider.searchLocations(searchText, SearchScreenMapper.MAX_RESULTS)
-                }
-                Log.d(TAG, "Search results: ${results.size} for '$searchText'")
-                lastResults = results
-                lastQuery = searchText
-                invalidate()
-            }
+            runSearch(searchText)
         }
     }
 
@@ -101,21 +112,23 @@ class SearchScreen(
         }
 
         for (result in lastResults) {
-            val navigateAction = Action.Builder()
-                .setTitle("Navigate here")
-                .setOnClickListener {
-                    Log.d(TAG, "Navigate to: ${result.label} (${result.lat}, ${result.lon})")
-                    navigationViewModel.navigateTo(result.lat, result.lon)
-                }
-                .build()
-
             val description = SearchScreenMapper.buildDescription(result)
 
             builder.addItem(
                 Row.Builder()
                     .setTitle(result.label ?: "Unknown")
                     .addText(description)
-                    .addAction(navigateAction)
+                    // Row tap starts navigation (click listeners and row actions
+                    // are mutually exclusive — ROW_CONSTRAINTS_SIMPLE).
+                    .setOnClickListener {
+                        Log.d(TAG, "Details for: ${result.label} (${result.lat}, ${result.lon})")
+                        carContext.getCarService(ScreenManager::class.java).push(
+                            DetailsScreen(
+                                carContext, navigationViewModel, result.lat, result.lon,
+                                nameHint = result.label
+                            )
+                        )
+                    }
                     .build()
             )
         }

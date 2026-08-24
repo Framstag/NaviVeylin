@@ -9,10 +9,10 @@ context: |
   Navigation: Jetpack Navigation Compose
   Native: libosmscout-client-java via NDK/CMake
   Build: Gradle (Kotlin DSL), AGP 8.7+, CMake 3.22+
-  Min SDK: 26, Target SDK: 36
+  Min SDK: 29, Target SDK: 36
   ABI Targets: arm64-v8a, armeabi-v7a, x86_64
-  Android Auto: Car App API 1.7+ (deferred)
-  Distribution: APK sideloading (no Play Store)
+  Android Auto: implemented (Car App Library, :auto module + NaviVeylinCarAppService, AAOS support)
+  Distribution: Google Play (mobile + Android Automotive OS tracks, same applicationId); sideloading also supported
   External Repo: https://github.com/Framstag/libosmscout
 
 rules:
@@ -32,7 +32,7 @@ rules:
     - Document at least 2 alternatives per decision with rationale for the chosen one
     - Reference specific files, modules, and Gradle configurations that will change
     - Include risk assessment per approach
-    - Cover Android-specific concerns: threading (main vs background), lifecycle, configuration changes
+    - "Cover Android-specific concerns: threading (main vs background), lifecycle, configuration changes"
     - Solution follows material design 3 styleguides
 
   tasks:
@@ -45,31 +45,37 @@ rules:
     - Group related tasks under numbered headings
     - Include Gradle sync or build verification steps for Android-specific tasks
 
+operations:
   apply:
-    - Before marking implementation complete, run the build and verify it compiles without errors
-    - Before marking implementation complete, verify tests exist for all new/modified code and they pass
-    - If build or tests fail, do NOT mark tasks complete — report failures and fix them first
-    - Make sure that build has no warnings
-    - Build only that targets that you need for testing to minimize ressource usage and compilation time
-    - Check all new/modified code against every document in guidelines/ — all conventions and rules defined there must be followed
-    - Update README or documentation if behavior changes
-    - Verify no regressions in unrelated areas
-    - For native C++ changes, verify all target ABIs compile
+    guidance:
+      - Before marking implementation complete, run the build and verify it compiles without errors
+      - Before marking implementation complete, verify tests exist for all new/modified code and they pass
+      - If build or tests fail, do NOT mark tasks complete — report failures and fix them first
+      - Make sure that build has no warnings
+      - Build only the targets needed for testing to minimize resource usage and compilation time
+      - Verify all new/modified code against every document in guidelines/ — all conventions and rules defined there must be followed
+      - Update README or documentation if behavior changes
+      - Verify no regressions in unrelated areas
+      - For native C++ changes, verify all target ABIs compile
+      - Any problems you detect during implementation that are not initiated by this change, have to be documented in a TODO.md for later processing in other changes.
 
-  validation:
-    - Make sure that all spec scenarios are traceable to a task
-    - Make sure that all tasks are traceable to a spec requirement
-    - Make sure that no task references a deleted or renamed spec
-    - Make sure that for every feature there are enough tests - especially unit tests
-    - Make sure that style guides of the Android plattform and Material Design 3 are followed
-    - Make sure that build and tests are green
-
-  review:
-    - Build compiles without errors for all target ABIs
-    - All existing tests still pass
-    - New unit tests exist for all new or modified code (unless testing is not feasible)
-    - Every new public API has documentation (Kotlin docs or KDoc)
-    - No hardcoded paths, API keys, or magic numbers
-    - Error messages are user-actionable
-    - Native/JNI code follows Android NDK conventions (no leaks, proper JNI exception handling)
-    - Compose previews exist for new UI components
+  # Verify gates (validation + review): openspec 1.10.0 loads guidance only
+  # for 'apply' and 'archive' operations — there is no 'verify' operation.
+  # The verify-change skill reads no config guidance, so these load during
+  # archive (finalize/verify step) instead.
+  archive:
+    guidance:
+      - Make sure that all spec scenarios are traceable to a task
+      - Make sure that all tasks are traceable to a spec requirement
+      - Make sure that no task references a deleted or renamed spec
+      - Make sure that for every feature there are enough tests — especially unit tests
+      - Make sure that style guides of the Android platform and Material Design 3 are followed
+      - Make sure that build and tests are green
+      - Build compiles without errors for all target ABIs
+      - All existing tests still pass
+      - New unit tests exist for all new or modified code (unless testing is not feasible)
+      - Every new public API has documentation (Kotlin docs or KDoc)
+      - No hardcoded paths, API keys, or magic numbers
+      - Error messages are user-actionable
+      - Native/JNI code follows Android NDK conventions (no leaks, proper JNI exception handling)
+      - Compose previews exist for new UI components

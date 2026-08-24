@@ -2,15 +2,17 @@ package com.naviveylin.ui.map
 
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -25,15 +27,26 @@ class TileCacheRenderTest {
 
     private lateinit var client: FakeOSMScoutClient
     private lateinit var renderer: MapRenderer
+    private lateinit var scope: CoroutineScope
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Before
     fun setUp() {
         client = FakeOSMScoutClient()
+        scope = CoroutineScope(SupervisorJob() + mainDispatcherRule.dispatcher)
         renderer = MapRenderer(
             client = client,
             dpi = 420.0,
-            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            scope = scope
         )
+    }
+
+    @After
+    fun tearDown() {
+        renderer.shutdown()
+        scope.cancel()
     }
 
     @Test
@@ -128,17 +141,16 @@ class TileCacheRenderTest {
     }
 
     @Test
-    fun tilePathRendersMissingTilesAndReusesCachedTiles() = runBlocking {
+    fun tilePathRendersMissingTilesAndReusesCachedTiles() = runTest(mainDispatcherRule.dispatcher) {
         // Screen larger than one tile (1120px @ 420dpi) so the viewport spans
         // multiple geographic tiles and the tile path renders several natively.
         renderer.screenWidth = 1200
         renderer.screenHeight = 1200
         renderer.requestRender(51.5, 7.5, 14, 0.0)
 
-        withTimeout(5000) {
-            while (renderer.frameFlow.value.bitmap == null || renderer.renderedMag != 14) {
-                delay(10)
-            }
+        advanceUntilIdle()
+        check(renderer.frameFlow.value.bitmap != null && renderer.renderedMag == 14) {
+            "tile path must produce a frame at mag 14"
         }
         val firstBitmap = renderer.frameFlow.value.bitmap
         val firstCount = client.renderWithRouteAndPoisCount.get()
@@ -147,11 +159,8 @@ class TileCacheRenderTest {
         // Forced full render at the SAME viewport: the tile path must compose
         // entirely from the cache — no new native render calls.
         renderer.requestRender(51.5, 7.5, 14, 0.0, forceFullRender = true)
-        withTimeout(5000) {
-            while (renderer.frameFlow.value.bitmap === firstBitmap) {
-                delay(10)
-            }
-        }
+        advanceUntilIdle()
+        assertTrue("re-render must emit a new frame", renderer.frameFlow.value.bitmap !== firstBitmap)
         assertEquals(
             "cached tiles must be reused on re-render",
             firstCount,

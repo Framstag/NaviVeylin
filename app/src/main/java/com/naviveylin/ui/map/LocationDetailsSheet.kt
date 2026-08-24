@@ -43,11 +43,10 @@ import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
+import com.naviveylin.core.details.DetailsInput
+import com.naviveylin.core.details.DetailsResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-/** Long-press labels are formatted coordinates ("%.5f, %.5f") — never an address. */
-private val COORDINATE_LABEL_REGEX = Regex("""-?\d+\.\d+,\s*-?\d+\.\d+""")
 
 /**
  * Full-screen details view for a selected object (spec: enhanced-details-sheet).
@@ -101,72 +100,27 @@ fun LocationDetailsDialog(
         }
     }
 
-    // Derived display data from the native description + reverse lookup:
+    // Derived display data from the shared DetailsResolver (spec:
+    // enhanced-details-sheet — lead behavior; the Android Auto details screen
+    // uses the same resolver, so both views show identical address/area/title
+    // data):
     // - fullAddress: street + house number + postal code + city
     // - area: admin region hierarchy (Area list entry)
     // - title: object name if present, else the full address, else the label
+    val input = DetailsInput(
+        label = entry.label,
+        name = entry.name,
+        adminRegionHierarchy = entry.adminRegionHierarchy,
+        postalArea = entry.postalArea,
+        description = objectDescription,
+        resolvedAddress = resolvedAddress
+    )
     val (title, fullAddress, area) = remember(entry, objectDescription, resolvedAddress) {
-        val entries = objectDescription?.entries.orEmpty()
-        val locationEntries = entries.filter { it.sectionKey == "Location" }
-        val name = entries.firstOrNull {
-            it.sectionKey == "General" && it.labelKey == "Name"
-        }?.value?.takeIf { it.isNotBlank() }
-            ?: entry.name?.takeIf { it.isNotBlank() }
-        val label = entry.label?.takeIf { it.isNotBlank() && it != "(unnamed)" }
-        // A label that is not the object name, not coordinates, and contains a
-        // digit is an address label (e.g. "Hauptstraße 12") — usable as street.
-        val labelIsCoordinates = label?.matches(COORDINATE_LABEL_REGEX) == true
-        val labelIsName = name != null && label == name
-        val descStreet = locationEntries.firstOrNull { it.labelKey == "Location" }?.value
-        val reverseStreet = resolvedAddress?.getOrNull(0)?.takeIf { it.isNotBlank() }
-        val labelStreet = if (descStreet.isNullOrBlank() && reverseStreet.isNullOrBlank() &&
-            label != null && !labelIsCoordinates && !labelIsName && label.any { it.isDigit() }
-        ) {
-            label
-        } else {
-            null
-        }
-        val houseNr = locationEntries.firstOrNull { it.labelKey == "Address" }?.value
-            ?: resolvedAddress?.getOrNull(1)?.takeIf { it.isNotBlank() }
-        val streetAndNumber = when {
-            !descStreet.isNullOrBlank() && !houseNr.isNullOrBlank() -> "$descStreet $houseNr"
-            reverseStreet != null && !houseNr.isNullOrBlank() -> "$reverseStreet $houseNr"
-            labelStreet != null -> labelStreet
-            !houseNr.isNullOrBlank() -> houseNr
-            !descStreet.isNullOrBlank() -> descStreet
-            else -> null
-        }
-        val reverseRegion = resolvedAddress?.getOrNull(2)?.takeIf { it.isNotBlank() }
-        val reversePostal = resolvedAddress?.getOrNull(3)?.takeIf { it.isNotBlank() }
-        val postal = reversePostal ?: entry.postalArea?.takeIf { it.isNotBlank() }
-        val isIn = entries.firstOrNull {
-            it.sectionKey == "Location" &&
-                it.subsectionKey == "AdminLevel" &&
-                it.labelKey == "IsIn"
-        }?.value
-        val area = entry.adminRegionHierarchy?.takeIf { it.isNotBlank() }
-            ?: reverseRegion
-            ?: isIn
-            ?: postal
-        // City for the address line: deepest region name (reverse lookup gives
-        // the address's own region; otherwise the last hierarchy segment).
-        val city = reverseRegion
-            ?: area?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
-            ?: isIn
-        val address = if (streetAndNumber != null) {
-            val suffix = listOfNotNull(postal, city)
-                .filter { it != streetAndNumber }
-                .distinct()
-                .joinToString(" ")
-            if (suffix.isNotBlank()) "$streetAndNumber, $suffix" else streetAndNumber
-        } else {
-            null
-        }
-        val title = name
-            ?: address
-            ?: label
-            ?: entry.label
-        Triple(title, address, area)
+        Triple(
+            DetailsResolver.resolveTitle(input),
+            DetailsResolver.resolveAddress(input),
+            DetailsResolver.resolveArea(input)
+        )
     }
 
     // System back (edge swipe / button, incl. predictive back on API 33+)

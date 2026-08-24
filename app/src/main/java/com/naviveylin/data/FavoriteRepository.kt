@@ -2,6 +2,8 @@ package com.naviveylin.data
 
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.OSMScoutClient
+import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,10 +30,17 @@ open class FavoriteRepository @Inject constructor(
     private var loaded = false
 
     /**
+     * Dispatcher for all JNI/file persistence work. Test hook: point it at a
+     * TestDispatcher shared with the test's `runTest` so CRUD is deterministic.
+     */
+    @VisibleForTesting
+    internal var defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
+
+    /**
      * Initialise the repository with a file path for persistence.
      * Must be called once (typically from MapCanvasViewModel.initMap).
      */
-    suspend fun init(filePath: String): Boolean = withContext(Dispatchers.Default) {
+    suspend fun init(filePath: String): Boolean = withContext(defaultDispatcher) {
         favoritesFile = filePath
         val dir = File(filePath).parentFile
         if (dir != null && !dir.exists()) dir.mkdirs()
@@ -53,7 +62,7 @@ open class FavoriteRepository @Inject constructor(
     }
 
     /** Persist current state to JSON file. */
-    private suspend fun persist() = withContext(Dispatchers.Default) {
+    private suspend fun persist() = withContext(defaultDispatcher) {
         val path = favoritesFile ?: return@withContext
         val groups = client!!.favoriteGroups ?: return@withContext
         client!!.saveFavoriteLocations(path, groups)
@@ -62,7 +71,7 @@ open class FavoriteRepository @Inject constructor(
     // ---- Group CRUD ----
 
     /** Add a new empty group. Returns false if name already exists. */
-    open suspend fun addGroup(name: String): Boolean = withContext(Dispatchers.Default) {
+    open suspend fun addGroup(name: String): Boolean = withContext(defaultDispatcher) {
         if (!loaded) return@withContext false
         val success = client!!.addGroup(name)
         if (success) {
@@ -73,7 +82,7 @@ open class FavoriteRepository @Inject constructor(
     }
 
     /** Delete a group and all its favorites. Returns false if not found. */
-    open suspend fun deleteGroup(name: String): Boolean = withContext(Dispatchers.Default) {
+    open suspend fun deleteGroup(name: String): Boolean = withContext(defaultDispatcher) {
         if (!loaded) return@withContext false
         val success = client!!.deleteGroup(name)
         if (success) {
@@ -84,7 +93,7 @@ open class FavoriteRepository @Inject constructor(
     }
 
     /** Rename a group. Returns false if old name not found or new name already exists. */
-    open suspend fun renameGroup(oldName: String, newName: String): Boolean = withContext(Dispatchers.Default) {
+    open suspend fun renameGroup(oldName: String, newName: String): Boolean = withContext(defaultDispatcher) {
         if (!loaded) return@withContext false
         val success = client!!.renameGroup(oldName, newName)
         if (success) {
@@ -98,7 +107,7 @@ open class FavoriteRepository @Inject constructor(
 
     /** Add a favorite to a group. Creates the group first if it does not exist yet. Returns false if group creation fails (duplicate name) or duplicate favorite name. */
     open suspend fun addFavorite(groupName: String, favName: String, lat: Double, lon: Double): Boolean =
-        withContext(Dispatchers.Default) {
+        withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             // Auto-create the group (e.g. the details-sheet "+ New group" flow).
             // If creation fails (name already exists), adding fails as well.
@@ -116,7 +125,7 @@ open class FavoriteRepository @Inject constructor(
 
     /** Delete a favorite from a group. Returns false if not found. */
     open suspend fun deleteFavorite(groupName: String, favName: String): Boolean =
-        withContext(Dispatchers.Default) {
+        withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             val success = client!!.deleteFavorite(groupName, favName)
             if (success) {
@@ -128,7 +137,7 @@ open class FavoriteRepository @Inject constructor(
 
     /** Rename a favorite within a group. Returns false if old not found or new name exists. */
     open suspend fun renameFavorite(groupName: String, oldName: String, newName: String): Boolean =
-        withContext(Dispatchers.Default) {
+        withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             val success = client!!.renameFavorite(groupName, oldName, newName)
             if (success) {
@@ -142,7 +151,7 @@ open class FavoriteRepository @Inject constructor(
 
     /** Set a color for a group. Pass null to remove the color. */
     open suspend fun setGroupColor(groupName: String, colorHex: String?): Boolean =
-        withContext(Dispatchers.Default) {
+        withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             // Strip # prefix if present; C++ expects 6 hex chars
             val cleanColor = colorHex?.trimStart('#') ?: ""
@@ -165,7 +174,7 @@ open class FavoriteRepository @Inject constructor(
 
     /** Star or unstar a favorite. */
     open suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean =
-        withContext(Dispatchers.Default) {
+        withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             val ok = client!!.setStarred(groupName, favName, starred)
             if (ok) {

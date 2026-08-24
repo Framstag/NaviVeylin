@@ -2,7 +2,9 @@ package com.naviveylin.data
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,12 +52,19 @@ class SearchHistoryRepository @Inject constructor(
 
     private var loaded = false
 
+    /**
+     * Dispatcher for all file I/O. Test hook: point it at a TestDispatcher
+     * shared with the test's `runTest` so persistence is deterministic.
+     */
+    @VisibleForTesting
+    internal var defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
+
     /** Serializes [record] so concurrent calls cannot lose entries (read-modify-write). */
     private val mutex = Mutex()
 
     /** Load history from disk once. Safe to call repeatedly. */
     suspend fun load() {
-        withContext(Dispatchers.Default) {
+        withContext(defaultDispatcher) {
             if (loaded) return@withContext
             loaded = true
             val entries = if (file.exists()) {
@@ -79,7 +88,7 @@ class SearchHistoryRepository @Inject constructor(
     suspend fun record(text: String) {
         if (text.isBlank()) return
         mutex.withLock {
-            withContext(Dispatchers.Default) {
+            withContext(defaultDispatcher) {
                 load()
                 val newEntry = SearchHistoryEntry(text = text, timestamp = System.currentTimeMillis())
                 val updated = (listOf(newEntry) + _history.value).take(MAX_ENTRIES)

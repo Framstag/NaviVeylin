@@ -11,15 +11,13 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -38,13 +36,16 @@ class MapCanvasViewModelSearchHistoryTest {
     private lateinit var historyRepo: SearchHistoryRepository
     private lateinit var viewModel: MapCanvasViewModel
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         File(context.filesDir, "maps/search_history.json").delete()
         client = FakeOSMScoutClient()
         historyRepo = SearchHistoryRepository(context)
+        historyRepo.defaultDispatcher = mainDispatcherRule.dispatcher
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
             settingsStorage = SettingsStorage(context),
@@ -56,12 +57,12 @@ class MapCanvasViewModelSearchHistoryTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
     fun tearDown() {
         viewModel.cancelScopeForTest()
-        Dispatchers.resetMain()
     }
 
     private fun resultEntry(label: String): LocationEntry = LocationEntry().apply {
@@ -73,7 +74,7 @@ class MapCanvasViewModelSearchHistoryTest {
     }
 
     @Test
-    fun selectingResultRecordsHistoryEntry() = runTest {
+    fun selectingResultRecordsHistoryEntry() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onSearchQueryChanged("Dortmund Hbf")
         viewModel.onSearchResultSelected(resultEntry("Dortmund Hbf"))
 
@@ -83,14 +84,14 @@ class MapCanvasViewModelSearchHistoryTest {
     }
 
     @Test
-    fun typingAloneRecordsNothing() = runTest {
+    fun typingAloneRecordsNothing() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onSearchQueryChanged("Dortmund")
         viewModel.clearSearch()
         assertEquals(0, historyRepo.history.value.size)
     }
 
     @Test
-    fun currentLocationSelectionRecordsNothing() = runTest {
+    fun currentLocationSelectionRecordsNothing() = runTest(mainDispatcherRule.dispatcher) {
         // "Current Location" is a convenience entry selected from an empty
         // query; it must not be recorded as a search selection.
         viewModel.onSearchResultSelected(resultEntry("Current Location"))

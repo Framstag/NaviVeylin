@@ -1,10 +1,4 @@
-# Auto Destination Details (auto-destination-details)
-
-## Purpose
-
-Shows a destination details screen on the Android Auto car display before navigation starts — reachable from search results, POI results, and map taps — and carries the destination identity into the active navigation context.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Details screen shown before navigation starts
 The system SHALL show a details screen when the user selects a destination from a search result, a POI result, or a map tap, before navigation starts. The details screen SHALL display the destination's name or address, its coordinates, and its object description when available, overlaid on a map preview that shows the destination position. The screen SHALL show a title derived from the destination identity and SHALL present every attribute as a labeled row.
@@ -184,6 +178,8 @@ The address, area, and title SHALL be resolved with the same composition rules a
 - **AND** the caller provided no address-like search label
 - **THEN** the screen title SHALL show a generic location title
 
+## ADDED Requirements
+
 ### Requirement: Details actions visually marked
 
 The "Navigate here" and "Show" actions on the details screen SHALL be visually marked as actions (e.g. a leading symbol) so they are distinguishable from the labeled attribute rows, and SHALL be positioned before the attribute rows.
@@ -195,40 +191,3 @@ The "Navigate here" and "Show" actions on the details screen SHALL be visually m
 #### Scenario: Show marked as action
 - **WHEN** the details screen shows the "Show" action
 - **THEN** the action SHALL be visually marked (e.g. a leading symbol) distinct from the attribute rows
-
-### Requirement: Navigation starts from the details screen
-The system SHALL start navigation only from the details screen's "Navigate here" action. The details screen SHALL offer a second "Show" action that displays the destination on the browse map without starting navigation.
-
-#### Scenario: Navigate here starts navigation
-- **WHEN** the user taps "Navigate here" on the details screen
-- **THEN** the system SHALL start navigation to the displayed destination
-- **AND** the details screen SHALL be replaced by the navigation template
-
-#### Scenario: Back from details screen does not navigate
-- **WHEN** the user goes back from the details screen without tapping "Navigate here"
-- **THEN** the system SHALL NOT start navigation
-- **AND** the previous screen SHALL be shown again
-
-#### Scenario: Show action displays destination on map
-- **WHEN** the user taps "Show" on the details screen
-- **THEN** the details screen SHALL close
-- **AND** the browse map SHALL be shown centered on the destination
-- **AND** navigation SHALL NOT start
-
-### Requirement: Destination identity retained during navigation
-The system SHALL retain the destination identity (name or address when known, otherwise coordinates) after navigation starts, and SHALL display it on the navigation template during active navigation.
-
-#### Scenario: Destination name shown during navigation
-- **WHEN** navigation is active
-- **AND** the destination has a known name or address
-- **THEN** the navigation template SHALL display the destination name or address alongside the travel estimate
-
-#### Scenario: Unnamed destination shows marker without label
-- **WHEN** navigation is active
-- **AND** the destination has no known name or address
-- **THEN** the navigation template SHALL show the destination marker at the destination position
-- **AND** no name label SHALL be drawn (the marker position itself carries the coordinates)
-
-#### Scenario: Destination marker on the navigation map
-- **WHEN** navigation is active
-- **THEN** the navigation template SHALL show a destination marker at the destination position

@@ -1,6 +1,7 @@
 package com.naviveylin.ui.route
 
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.framstag.libosmscout.client.LocationEntry
@@ -13,6 +14,7 @@ import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -100,6 +102,13 @@ class RoutePanelViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(RoutePanelUiState())
     val uiState: StateFlow<RoutePanelUiState> = _uiState.asStateFlow()
 
+    /**
+     * Background dispatcher for search / route-callback work. Test hook:
+     * point it at a TestDispatcher shared with the test's `runTest`.
+     */
+    @VisibleForTesting
+    internal var defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
+
     private val _routeResultFlow = MutableStateFlow<RouteResult?>(null)
     val routeResultFlow: StateFlow<RouteResult?> = _routeResultFlow.asStateFlow()
 
@@ -139,7 +148,7 @@ class RoutePanelViewModel @Inject constructor(
         searchJob = viewModelScope.launch {
             delay(300)
             _uiState.value = _uiState.value.copy(isSearching = true)
-            val results = withContext(Dispatchers.Default) {
+            val results = withContext(defaultDispatcher) {
                 try { client.searchLocations(query, 20, OSMScoutClient.NO_ADMIN_REGION)?.toList() ?: emptyList() }
                 catch (e: Exception) { Log.e(TAG, "searchLocations failed", e); emptyList() }
             }
@@ -222,7 +231,7 @@ class RoutePanelViewModel @Inject constructor(
         _uiState.value = s.copy(routeState = RouteState.Calculating, error = null)
 
         viewModelScope.launch {
-            withContext(Dispatchers.Default) {
+            withContext(defaultDispatcher) {
                 val profile = RoutingProfile(s.vehicle)
                 client.calculateRouteWithProfile(
                     start.lat, start.lon, dest.lat, dest.lon, profile,

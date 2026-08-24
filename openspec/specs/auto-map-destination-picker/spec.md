@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Lets drivers pick one of several destination candidates when a location selected on the car map is ambiguous, before a details screen opens.
+
+## Requirements
 
 ### Requirement: Candidate picker on car map selection
 

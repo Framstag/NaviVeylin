@@ -15,17 +15,16 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -48,9 +47,11 @@ class MapCanvasLongPressTest {
     private val screenW = 1080
     private val screenH = 1920
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         val client = FakeOSMScoutClient()
         viewModel = MapCanvasViewModel(
@@ -64,18 +65,18 @@ class MapCanvasLongPressTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
     fun tearDown() {
         viewModel.cancelScopeForTest()
-        Dispatchers.resetMain()
     }
 
     private fun dpi(): Double = context.resources.displayMetrics.densityDpi.toDouble()
 
     @Test
-    fun `long press on rotated viewport resolves geo under press point`() = runTest {
+    fun `long press on rotated viewport resolves geo under press point`() = runTest(mainDispatcherRule.dispatcher) {
         val centerLat = 48.2
         val centerLon = 16.4
         val angle = PI / 2
@@ -85,6 +86,7 @@ class MapCanvasLongPressTest {
 
         val pos = Offset(300.0f, 700.0f)
         fireLongPress(viewModel, context, pos, IntSize(screenW, screenH))
+        advanceUntilIdle()
 
         val expected = ProjectionUtils.viewport(
             centerLat, centerLon, 10, screenW, screenH, dpi(), angle
@@ -99,7 +101,7 @@ class MapCanvasLongPressTest {
     }
 
     @Test
-    fun `long press on rotated viewport differs from north-up conversion`() = runTest {
+    fun `long press on rotated viewport differs from north-up conversion`() = runTest(mainDispatcherRule.dispatcher) {
         val centerLat = 48.2
         val centerLon = 16.4
         val angle = PI / 2
@@ -109,6 +111,7 @@ class MapCanvasLongPressTest {
 
         val pos = Offset(300.0f, 700.0f)
         fireLongPress(viewModel, context, pos, IntSize(screenW, screenH))
+        advanceUntilIdle()
 
         val northUp = ProjectionUtils.screenToGeo(
             pos.x.toDouble(), pos.y.toDouble(),
@@ -124,7 +127,7 @@ class MapCanvasLongPressTest {
     }
 
     @Test
-    fun `long press on north-up viewport matches north-up conversion`() = runTest {
+    fun `long press on north-up viewport matches north-up conversion`() = runTest(mainDispatcherRule.dispatcher) {
         val centerLat = 48.2
         val centerLon = 16.4
         viewModel.updateCenter(centerLat, centerLon)
@@ -132,6 +135,7 @@ class MapCanvasLongPressTest {
 
         val pos = Offset(300.0f, 700.0f)
         fireLongPress(viewModel, context, pos, IntSize(screenW, screenH))
+        advanceUntilIdle()
 
         val expected = ProjectionUtils.screenToGeo(
             pos.x.toDouble(), pos.y.toDouble(),
@@ -144,7 +148,7 @@ class MapCanvasLongPressTest {
     }
 
     @Test
-    fun `long press with candidates shows picker instead of details`() = runTest {
+    fun `long press with candidates shows picker instead of details`() = runTest(mainDispatcherRule.dispatcher) {
         val client = FakeOSMScoutClient()
         client.nextCandidateDescriptions = listOf(
             ObjectDescription(
@@ -167,6 +171,7 @@ class MapCanvasLongPressTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        vm.defaultDispatcher = mainDispatcherRule.dispatcher
         vm.updateCenter(48.2, 16.4)
         vm.updateMagnification(10)
 
@@ -179,7 +184,7 @@ class MapCanvasLongPressTest {
     }
 
     @Test
-    fun `long press with no candidates shows no picker`() = runTest {
+    fun `long press with no candidates shows no picker`() = runTest(mainDispatcherRule.dispatcher) {
         val client = FakeOSMScoutClient()
         client.nextCandidateDescriptions = emptyList()
         val vm = MapCanvasViewModel(
@@ -193,11 +198,12 @@ class MapCanvasLongPressTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        vm.defaultDispatcher = mainDispatcherRule.dispatcher
         vm.updateCenter(48.2, 16.4)
         vm.updateMagnification(10)
 
         vm.onLongPress(48.2, 16.4)
-        vm.uiState.first { !it.isLoading }
+        advanceUntilIdle()
 
         assertTrue(!vm.uiState.value.showCandidatePicker)
         assertTrue(!vm.uiState.value.showDetailsSheet)

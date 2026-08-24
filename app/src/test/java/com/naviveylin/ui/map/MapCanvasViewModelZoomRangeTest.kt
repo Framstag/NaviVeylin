@@ -10,15 +10,13 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -37,9 +35,11 @@ class MapCanvasViewModelZoomRangeTest {
     private lateinit var context: Context
     private lateinit var viewModel: MapCanvasViewModel
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         val client = FakeOSMScoutClient()
         viewModel = MapCanvasViewModel(
@@ -53,16 +53,16 @@ class MapCanvasViewModelZoomRangeTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
     fun tearDown() {
         viewModel.cancelScopeForTest()
-        Dispatchers.resetMain()
     }
 
     @Test
-    fun zoomOutStopsAtFourFloor() = runTest {
+    fun zoomOutStopsAtFourFloor() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.updateMagnification(6)
         assertEquals(6, viewModel.uiState.value.viewport.magnification)
 
@@ -77,7 +77,7 @@ class MapCanvasViewModelZoomRangeTest {
     }
 
     @Test
-    fun updateMagnificationClampsToControlRange() = runTest {
+    fun updateMagnificationClampsToControlRange() = runTest(mainDispatcherRule.dispatcher) {
         // Below the floor clamps up to 4.
         viewModel.updateMagnification(1)
         assertEquals(4, viewModel.uiState.value.viewport.magnification)
@@ -88,7 +88,7 @@ class MapCanvasViewModelZoomRangeTest {
     }
 
     @Test
-    fun zoomInAtMaxIsNoOp() = runTest {
+    fun zoomInAtMaxIsNoOp() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.updateMagnification(20)
         viewModel.zoomIn()
         assertEquals(20, viewModel.uiState.value.viewport.magnification)

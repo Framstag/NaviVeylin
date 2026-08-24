@@ -9,8 +9,10 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -33,10 +35,11 @@ class PreferencesScreenTest {
 
     private val carContext = mockk<CarContext>()
     private val provider = mockk<AutoSettingsProvider>()
+    private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        Dispatchers.setMain(testDispatcher)
         every { carContext.getOnBackPressedDispatcher() } returns mockk(relaxed = true)
     }
 
@@ -46,10 +49,13 @@ class PreferencesScreenTest {
     }
 
     @Test
-    fun onGetTemplateBuildsWithoutThrowing() {
+    fun onGetTemplateBuildsWithoutThrowing() = runTest(testDispatcher) {
         coEvery { provider.load() } returns AutoSettings()
 
         val screen = PreferencesScreen(carContext, provider)
+        // Let the init load() launch (Dispatchers.Main) run to completion.
+        advanceUntilIdle()
+
         val template = screen.onGetTemplate()
 
         // All seven car-relevant preferences on the single list.
@@ -57,12 +63,14 @@ class PreferencesScreenTest {
     }
 
     @Test
-    fun onToggleSavesFlippedValue() {
+    fun onToggleSavesFlippedValue() = runTest(testDispatcher) {
         coEvery { provider.load() } returns AutoSettings(followMode = false)
         coEvery { provider.save(any()) } returns Unit
 
         val screen = PreferencesScreen(carContext, provider)
+        advanceUntilIdle()
         screen.onToggle("followMode")
+        advanceUntilIdle()
 
         coVerify { provider.save(AutoSettings(followMode = true)) }
     }

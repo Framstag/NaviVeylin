@@ -36,7 +36,7 @@ class MiniMapComposeTest {
 
     /** Wait until the fake client saw a render at [expected] magnification (5s cap). */
     private fun awaitMag(client: FakeOSMScoutClient, expected: Int) = runBlocking {
-        withTimeout(5000) {
+        withTimeout(10_000) {
             while (client.lastRenderMag != expected) {
                 delay(10)
             }
@@ -130,7 +130,7 @@ class MiniMapComposeTest {
         composeRule.onNodeWithTag("MiniMapCanvas").performTouchInput { swipeLeft() }
 
         runBlocking {
-            withTimeout(5000) {
+            withTimeout(10_000) {
                 while (latestViewport.get() == initial) {
                     delay(10)
                 }

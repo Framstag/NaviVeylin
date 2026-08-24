@@ -3,19 +3,19 @@ package com.naviveylin.ui.map
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,16 +27,22 @@ import org.robolectric.RobolectricTestRunner
  * Note: the non-forced rotated render (tile-path preview with rotation) is not
  * exercised here — Robolectric's shadow Canvas hangs on rotated drawBitmap of
  * large tiles. The forced full render path (gesture end) is covered instead.
+ *
+ * Render work runs on the shared test dispatcher — `advanceUntilIdle` drives
+ * the debounce/render pipeline in virtual time (no real-time polling).
  */
 @RunWith(RobolectricTestRunner::class)
 class MapRendererRotatedRenderTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var renderer: MapRenderer
     private lateinit var scope: CoroutineScope
 
     @Before
     fun setUp() {
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        scope = CoroutineScope(SupervisorJob() + mainDispatcherRule.dispatcher)
         renderer = MapRenderer(
             client = FakeOSMScoutClient(),
             dpi = 320.0,
@@ -50,89 +56,63 @@ class MapRendererRotatedRenderTest {
         scope.cancel()
     }
 
-    /** Wait until the front buffer reports the given angle (or fail after 5s). */
-    private fun awaitAngle(angle: Double) = runBlocking {
-        withTimeout(5000) {
-            while (renderer.renderedAngle != angle) {
-                delay(10)
-            }
-        }
-    }
-
-    /** Wait until the front buffer reports the given magnification (or fail after 5s). */
-    private fun awaitMag(mag: Int) = runBlocking {
-        withTimeout(5000) {
-            while (renderer.renderedMag != mag) {
-                delay(10)
-            }
-        }
-    }
-
-    /** Wait until a new FrameState is emitted (or fail after 5s); returns its bitmap. */
-    private fun awaitNextFrame(): Bitmap? = runBlocking {
-        withTimeout(5000) {
-            val initial = renderer.frameFlow.value
-            while (renderer.frameFlow.value === initial) {
-                delay(10)
-            }
-            renderer.frameFlow.value.bitmap
-        }
-    }
-
     @Test
-    fun northUpRenderKeepsZeroAngle() {
+    fun northUpRenderKeepsZeroAngle() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.requestRender(51.5, 7.5, 14, 0.0)
 
         // Tile path serves north-up; front buffer must still be emitted.
-        awaitMag(14)
+        advanceUntilIdle()
+        assertEquals(14, renderer.renderedMag)
         assertEquals(0.0, renderer.renderedAngle, 1e-9)
     }
 
     @Test
-    fun forcedFullRenderUpdatesFrontBufferAngle() {
+    fun forcedFullRenderUpdatesFrontBufferAngle() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         // Gesture-end render: force the full native path (correct labels).
         renderer.requestRender(51.5, 7.5, 14, Math.PI / 3, forceFullRender = true)
 
-        awaitAngle(Math.PI / 3)
+        advanceUntilIdle()
         assertEquals(Math.PI / 3, renderer.renderedAngle, 1e-6)
         assertEquals(14, renderer.renderedMag)
     }
 
     @Test
-    fun forcedFullRenderAfterNorthUpUpdatesAngle() {
+    fun forcedFullRenderAfterNorthUpUpdatesAngle() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.requestRender(51.5, 7.5, 14, 0.0)
-        awaitMag(14)
+        advanceUntilIdle()
+        assertEquals(14, renderer.renderedMag)
 
         renderer.requestRender(51.5, 7.5, 14, -Math.PI / 4, forceFullRender = true)
-        awaitAngle(-Math.PI / 4)
+        advanceUntilIdle()
         assertEquals(-Math.PI / 4, renderer.renderedAngle, 1e-6)
         assertEquals(14, renderer.renderedMag)
     }
 
     @Test
-    fun largeAngleRenderNormalizesFrontBufferAngle() {
+    fun largeAngleRenderNormalizesFrontBufferAngle() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         // 450° = 90° mod 360 — the front buffer angle must be normalized.
         renderer.requestRender(51.5, 7.5, 14, 7.85, forceFullRender = true)
 
-        awaitAngle(7.85 - 2 * Math.PI)
+        advanceUntilIdle()
         assertEquals(7.85 - 2 * Math.PI, renderer.renderedAngle, 1e-6)
         assertEquals(14, renderer.renderedMag)
     }
 
     @Test
-    fun repeatedEmissionReusesBitmap() {
+    fun repeatedEmissionReusesBitmap() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.requestRender(51.5, 7.5, 14, 0.0)
-        val first = awaitNextFrame()
+        advanceUntilIdle()
+        val first = renderer.frameFlow.value.bitmap
         assertNotNull(first)
 
         // Same front buffer, marker cleared → the emitted bitmap must be reused,
@@ -144,17 +124,19 @@ class MapRendererRotatedRenderTest {
     }
 
     @Test
-    fun newRenderProducesNewBitmap() {
+    fun newRenderProducesNewBitmap() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.requestRender(51.5, 7.5, 14, 0.0)
-        val first = awaitNextFrame()
+        advanceUntilIdle()
+        val first = renderer.frameFlow.value.bitmap
         assertNotNull(first)
 
         // A new render replaces the front buffer → the emitted bitmap must be a
         // fresh copy, not the previous frame.
         renderer.requestRender(51.6, 7.6, 14, 0.0)
-        val second = awaitNextFrame()
+        advanceUntilIdle()
+        val second = renderer.frameFlow.value.bitmap
         assertNotSame(first, second)
     }
 

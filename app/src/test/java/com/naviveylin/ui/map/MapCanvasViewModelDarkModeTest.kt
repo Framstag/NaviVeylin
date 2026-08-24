@@ -11,17 +11,15 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -38,9 +36,11 @@ class MapCanvasViewModelDarkModeTest {
     private lateinit var controller: DarkModeController
     private lateinit var viewModel: MapCanvasViewModel
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         controller = DarkModeController(SettingsStorage(context))
@@ -55,16 +55,19 @@ class MapCanvasViewModelDarkModeTest {
             darkModeController = controller,
             context = context
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
+        // Settle init work (persisted-settings load applies its defaults to
+        // uiState) so tests observe a stable starting state.
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
     }
 
     @After
     fun tearDown() {
         viewModel.cancelScopeForTest()
-        Dispatchers.resetMain()
     }
 
     @Test
-    fun automaticFollowsEnvironmentSignal() = runTest {
+    fun automaticFollowsEnvironmentSignal() = runTest(mainDispatcherRule.dispatcher) {
         // Initial: AUTOMATIC + environment light → light presentation
         assertFalse(viewModel.uiState.first { !it.isDarkPresentation }.isDarkPresentation)
 
@@ -78,7 +81,7 @@ class MapCanvasViewModelDarkModeTest {
     }
 
     @Test
-    fun preferenceOnForcesDark() = runTest {
+    fun preferenceOnForcesDark() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onSetDarkModePreference(DarkModePreference.ON)
         assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)
         assertTrue(client.styleFlags.any { it.first == "daylight" && !it.second })
@@ -89,7 +92,7 @@ class MapCanvasViewModelDarkModeTest {
     }
 
     @Test
-    fun preferenceOffForcesLight() = runTest {
+    fun preferenceOffForcesLight() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onSetDarkModePreference(DarkModePreference.OFF)
         assertFalse(viewModel.uiState.first { !it.isDarkPresentation }.isDarkPresentation)
         assertTrue(client.styleFlags.any { it.first == "daylight" && it.second })
@@ -100,7 +103,7 @@ class MapCanvasViewModelDarkModeTest {
     }
 
     @Test
-    fun preferenceOnBeatsLightEnvironment() = runTest {
+    fun preferenceOnBeatsLightEnvironment() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.setEnvironmentDark(false)
         viewModel.onSetDarkModePreference(DarkModePreference.ON)
         assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)

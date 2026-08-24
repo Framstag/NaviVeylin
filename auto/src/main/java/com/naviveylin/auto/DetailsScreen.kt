@@ -10,8 +10,8 @@ import androidx.car.app.SurfaceCallback
 import androidx.car.app.SurfaceContainer
 import androidx.car.app.model.Action
 import androidx.car.app.model.Header
-import androidx.car.app.model.Pane
-import androidx.car.app.model.PaneTemplate
+import androidx.car.app.model.ItemList
+import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.car.app.navigation.model.MapController
@@ -23,6 +23,8 @@ import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.details.DetailsInput
+import com.naviveylin.core.details.DetailsResolver
 import dagger.hilt.android.EntryPointAccessors
 import kotlin.math.asin
 import kotlin.math.cos
@@ -182,12 +184,12 @@ class DetailsScreen(
     }
 
     override fun onGetTemplate(): Template {
-        val navigateAction = buildNavigateAction {
+        val onNavigate: () -> Unit = {
             Log.d(TAG, "Navigate to: $lat, $lon")
             navigationViewModel.navigateTo(lat, lon, destinationName())
         }
 
-        val showAction = buildShowAction {
+        val onShow: () -> Unit = {
             Log.d(TAG, "Show on map: $lat, $lon")
             val screenManager = carContext.getCarService(ScreenManager::class.java)
             screenManager.popToRoot()
@@ -201,32 +203,39 @@ class DetailsScreen(
             )
         }
 
-        val rows = buildDetailsRows(
+        // "Navigate here" + "Show" as clickable rows at the top of the list:
+        // ListTemplate actions are FAB-icon-only (car-app constraint) — a
+        // titled action throws "exceeded max number of 0 actions with custom
+        // titles", so the actions ride on rows (same as the map menu).
+        val listBuilder = ItemList.Builder()
+        listBuilder.addItem(buildNavigateRow(onNavigate))
+        listBuilder.addItem(buildShowRow(onShow))
+        buildAttributeList(
             lat = lat,
             lon = lon,
             address = address,
             description = description,
             nameHint = nameHint
-        )
+        ).forEach { listBuilder.addItem(it) }
 
-        val pane = buildDetailsPane(
-            rows = rows,
-            navigateAction = navigateAction,
-            showAction = showAction
-        )
+        // All attributes as a scrollable/paged list over the map preview
+        // (spec: auto-destination-details — all description attributes shown;
+        // the host pages when the list exceeds one page).
+        val contentTemplate = ListTemplate.Builder()
+            .setHeader(
+                Header.Builder()
+                    .setTitle(resolveTitle(address, description, nameHint))
+                    .setStartHeaderAction(Action.BACK)
+                    .build()
+            )
+            .setSingleList(listBuilder.build())
+            .build()
 
-        // Map preview with the pane overlaid (spec: auto-destination-details —
-        // map preview). The pane header carries the destination-derived title.
+        // Map preview with the attribute list overlaid (same pattern as the
+        // map menu: MapWithContentTemplate + ListTemplate content).
         return MapTemplateFactory.buildTemplate(
             mapController = MapController.Builder().build(),
-            contentTemplate = PaneTemplate.Builder(pane)
-                .setHeader(
-                    Header.Builder()
-                        .setTitle(resolveTitle(address, description, nameHint))
-                        .setStartHeaderAction(Action.BACK)
-                        .build()
-                )
-                .build()
+            contentTemplate = contentTemplate
         )
     }
 
@@ -339,41 +348,44 @@ class DetailsScreen(
 }
 
 /**
- * Builds the "Navigate here" action (spec: auto-destination-details) — the
- * pane-level primary button that starts navigation. Extracted for
- * testability: invoking the action fires [onNavigate].
+ * Builds the "Navigate here" row (spec: auto-destination-details) — the
+ * first list row that starts navigation, marked with a unicode direction
+ * glyph so it reads as an action. Extracted for testability: tapping the
+ * row fires [onNavigate]. Rendered as a row because ListTemplate actions
+ * are FAB-icon-only (no custom titles).
  */
-internal fun buildNavigateAction(onNavigate: () -> Unit): Action =
-    Action.Builder()
-        .setTitle("Navigate here")
-        .setFlags(Action.FLAG_PRIMARY)
+internal fun buildNavigateRow(onNavigate: () -> Unit): Row =
+    Row.Builder()
+        .setTitle("\u25B6 Navigate here")
         .setOnClickListener { onNavigate() }
         .build()
 
 /**
- * Builds the "Show" action (spec: auto-destination-details) — the pane-level
- * secondary button that closes the details and shows the destination on the
- * browse map. Extracted for testability: invoking the action fires [onShow].
+ * Builds the "Show" row (spec: auto-destination-details) — the second list
+ * item that closes the details and shows the destination on the browse map,
+ * marked with a unicode target glyph so it reads as an action. Extracted
+ * for testability: tapping the row fires [onShow].
  */
-internal fun buildShowAction(onShow: () -> Unit): Action =
-    Action.Builder()
-        .setTitle("Show")
+internal fun buildShowRow(onShow: () -> Unit): Row =
+    Row.Builder()
+        .setTitle("◎ Show")
         .setOnClickListener { onShow() }
         .build()
 
-private const val MAX_PANE_ROWS = 4
-
 /**
- * Builds the details pane rows (spec: auto-destination-details).
+ * Builds the details attribute list (spec: auto-destination-details).
  *
  * Pure and testable: every row carries a label (title) with its value (text),
- * in priority order — "Coordinates" (always), "Address" (street + house
- * number), "Area" (admin region, else postal area), then object description
- * entries (label/value) filling the remaining slots up to the pane cap.
- * PaneTemplate rows are non-actionable — actions live at pane level
- * (see [buildDetailsPane]).
+ * in order — "Coordinates" (always), "Address" (resolved street + house
+ * number + postal code + city), "Area" (admin hierarchy → reverse region →
+ * description IsIn → postal area), then ALL object description entries
+ * (label/value) in native order — no row cap; the host pages when the list
+ * exceeds one page, so every attribute returned by the description API
+ * (opening hours, phone, …) is reachable. Address, area, and title
+ * resolution is shared with the phone details dialog via
+ * [DetailsResolver] (phone is the lead view).
  */
-internal fun buildDetailsRows(
+internal fun buildAttributeList(
     lat: Double,
     lon: Double,
     address: Array<String>?,
@@ -381,11 +393,6 @@ internal fun buildDetailsRows(
     nameHint: String? = null
 ): List<Row> {
     val rows = mutableListOf<Row>()
-
-    val street = address?.getOrNull(0)
-    val houseNumber = address?.getOrNull(1)
-    val adminRegion = address?.getOrNull(2)
-    val postalArea = address?.getOrNull(3)
 
     // Coordinates — always present.
     rows.add(
@@ -395,29 +402,40 @@ internal fun buildDetailsRows(
             .build()
     )
 
-    // Address — street + house number when either is present.
-    val addressLine = listOf(street, houseNumber)
-        .filter { !it.isNullOrBlank() }
-        .joinToString(" ")
-    if (addressLine.isNotBlank()) {
+    // Address + area resolved with the same rules as the phone details
+    // dialog; the caller's label doubles as the search label so address-like
+    // labels ("Hauptstraße 12") can backfill a missing street.
+    val input = DetailsInput(
+        label = nameHint,
+        name = null,
+        adminRegionHierarchy = null,
+        postalArea = null,
+        description = description,
+        resolvedAddress = address
+    )
+    val addressLine = DetailsResolver.resolveAddress(input)
+    if (addressLine != null) {
         rows.add(Row.Builder().setTitle("Address").addText(addressLine).build())
     }
-
-    // Area — admin region, else postal area.
-    val area = adminRegion?.takeIf { it.isNotBlank() }
-        ?: postalArea?.takeIf { it.isNotBlank() }
+    val area = DetailsResolver.resolveArea(input)
     if (area != null) {
         rows.add(Row.Builder().setTitle("Area").addText(area).build())
     }
 
-    // Object description entries (label → value), best effort, filling the
-    // remaining slots up to the pane cap.
+    // ALL object description entries (label → value), in native order. The
+    // standalone street (Location / Location) and the merged house number
+    // (Location / Address) are already covered by the Address row — skipped
+    // to avoid duplicates.
     if (description != null) {
         for (entry in description.entries) {
-            if (rows.size >= MAX_PANE_ROWS) break
             val value = entry.value?.trim().orEmpty()
             val label = entry.labelKey?.trim().orEmpty()
             if (value.isEmpty() || label.isEmpty()) continue
+            if (entry.sectionKey == "Location" &&
+                (entry.labelKey == "Address" || entry.labelKey == "Location")
+            ) {
+                continue
+            }
             rows.add(
                 Row.Builder()
                     .setTitle(label)
@@ -431,67 +449,45 @@ internal fun buildDetailsRows(
 }
 
 /**
- * Builds the details pane (spec: auto-destination-details).
- *
- * PaneTemplate rows are NOT actionable on car hosts — action buttons must be
- * added at pane level. "Navigate here" is the primary button; "Show" is the
- * secondary button. The pane shows at most [MAX_PANE_ROWS] rows; the host
- * ignores extra rows.
- */
-internal fun buildDetailsPane(
-    rows: List<Row>,
-    navigateAction: Action,
-    showAction: Action
-): Pane {
-    val builder = Pane.Builder()
-    rows.take(MAX_PANE_ROWS).forEach { builder.addRow(it) }
-    builder.addAction(navigateAction)
-    builder.addAction(showAction)
-    return builder.build()
-}
-
-/**
  * Resolves the details screen title (spec: auto-destination-details — title
  * scenarios): the object description's `General/Name` entry, else the resolved
- * address (street + house number, else admin region), else the caller's name
- * hint, else the generic "Location". Pure and testable.
+ * full address (street + house number + postal code + city), else the caller's
+ * name/label hint, else the generic "Location". Pure and testable; delegates
+ * to the shared [DetailsResolver] (phone is lead view).
  */
 internal fun resolveTitle(
     address: Array<String>?,
     description: ObjectDescription?,
     nameHint: String? = null
 ): String {
-    val name = description?.entries?.firstOrNull {
-        it.sectionKey == "General" && it.labelKey == "Name"
-    }?.value?.takeIf { it.isNotBlank() }
-    if (name != null) return name
-    val street = address?.getOrNull(0)
-    val houseNumber = address?.getOrNull(1)
-    val addressLine = listOf(street, houseNumber)
-        .filter { !it.isNullOrBlank() }
-        .joinToString(" ")
-    if (addressLine.isNotBlank()) return addressLine
-    val adminRegion = address?.getOrNull(2)
-    if (!adminRegion.isNullOrBlank()) return adminRegion
-    return nameHint?.takeIf { it.isNotBlank() } ?: "Location"
+    val input = DetailsInput(
+        label = nameHint,
+        name = null,
+        adminRegionHierarchy = null,
+        postalArea = null,
+        description = description,
+        resolvedAddress = address
+    )
+    return DetailsResolver.resolveTitle(input, nameHint = nameHint)
 }
 
 /**
  * Best-known destination name for the navigation context and the map marker:
- * the resolved street address, else the region, else the caller's name hint,
- * else null (coordinates fallback). Pure and testable.
+ * the resolved full address, else the region, else the caller's name hint,
+ * else null (coordinates fallback). Pure and testable; delegates to the
+ * shared [DetailsResolver].
  */
 internal fun resolveDestinationName(
     address: Array<String>?,
     nameHint: String? = null
 ): String? {
-    val street = address?.getOrNull(0)
-    val houseNumber = address?.getOrNull(1)
-    val addressLine = listOf(street, houseNumber)
-        .filter { !it.isNullOrBlank() }
-        .joinToString(" ")
-    if (addressLine.isNotBlank()) return addressLine
-    val adminRegion = address?.getOrNull(2)
-    if (!adminRegion.isNullOrBlank()) return adminRegion
-    return nameHint?.takeIf { it.isNotBlank() }
+    val input = DetailsInput(
+        label = nameHint,
+        name = null,
+        adminRegionHierarchy = null,
+        postalArea = null,
+        description = null,
+        resolvedAddress = address
+    )
+    return DetailsResolver.resolveDestinationName(input, nameHint)
 }

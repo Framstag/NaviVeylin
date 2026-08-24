@@ -14,12 +14,9 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.ui.route.RoutePanelViewModel
-import kotlinx.coroutines.Dispatchers
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,6 +24,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -47,9 +45,11 @@ class PoiSearchViewModelTest {
     private lateinit var locationService: LocationService
     private lateinit var viewModel: MapCanvasViewModel
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         locationService = LocationService(context)
@@ -64,12 +64,12 @@ class PoiSearchViewModelTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
     fun tearDown() {
         viewModel.cancelScopeForTest()
-        Dispatchers.resetMain()
     }
 
     private fun poiEntry(label: String, objectType: String, distance: Double): PoiEntry =
@@ -105,7 +105,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun performPoiSearchPopulatesResults() = runTest {
+    fun performPoiSearchPopulatesResults() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(
@@ -124,7 +124,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun performPoiSearchFailureSetsError() = runTest {
+    fun performPoiSearchFailureSetsError() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.GROCERY)
         client.poiSearchError = RuntimeException("native boom")
@@ -138,7 +138,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun clickOpensDetailsCentersMapAndClosesPoiSheet() = runTest {
+    fun clickOpensDetailsCentersMapAndClosesPoiSheet() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.RESTAURANTS)
         client.nextPoiResults = arrayOf(poiEntry("Pizzeria Roma", "amenity_restaurant", 500.0))
@@ -159,7 +159,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun searchCapturesCenterAndClickSetsSelectionHighlight() = runTest {
+    fun searchCapturesCenterAndClickSetsSelectionHighlight() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.RESTAURANTS)
         client.nextPoiResults = arrayOf(poiEntry("Pizzeria Roma", "amenity_restaurant", 500.0))
@@ -183,7 +183,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun closePoiSearchClearsSelectionHighlight() = runTest {
+    fun closePoiSearchClearsSelectionHighlight() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(poiEntry("Hotel Central", "tourism_hotel", 1200.0))
@@ -202,7 +202,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun fitZoomShowsCurrentLocationAndPoi() = runTest {
+    fun fitZoomShowsCurrentLocationAndPoi() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.setScreenSize(1080, 2100)
         viewModel.updateMagnification(18)
         viewModel.openPoiSearch()
@@ -229,7 +229,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun closePoiSearchRestoresViewportSnapshot() = runTest {
+    fun closePoiSearchRestoresViewportSnapshot() = runTest(mainDispatcherRule.dispatcher) {
         // Pre-search viewport
         viewModel.updateCenter(52.0, 8.0)
         val magBefore = viewModel.uiState.value.viewport.magnification
@@ -256,7 +256,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun changingCategoryDoesNotRerunSearchOrClearResults() = runTest {
+    fun changingCategoryDoesNotRerunSearchOrClearResults() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(poiEntry("Hotel Central", "tourism_hotel", 900.0))
@@ -281,7 +281,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun plainDismissReopensPoiSheetWithResults() = runTest {
+    fun plainDismissReopensPoiSheetWithResults() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(poiEntry("Hotel Central", "tourism_hotel", 900.0))
@@ -299,7 +299,7 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun showActionCentersMapAndKeepsPoiSheetClosed() = runTest {
+    fun showActionCentersMapAndKeepsPoiSheetClosed() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.GROCERY)
         client.nextPoiResults = arrayOf(poiEntry("Supermarkt", "shop_supermarket", 300.0))
@@ -319,13 +319,13 @@ class PoiSearchViewModelTest {
     }
 
     @Test
-    fun routeActionKeepsPoiSheetClosed() = runTest {
+    fun routeActionKeepsPoiSheetClosed() = runTest(mainDispatcherRule.dispatcher) {
         val routeVm = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context)
-        )
+        ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
         viewModel.setRoutePanelViewModel(routeVm)
 
         viewModel.openPoiSearch()

@@ -2,17 +2,18 @@ package com.naviveylin.ui.map
 
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.data.RenderMode
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -21,9 +22,16 @@ import org.robolectric.RobolectricTestRunner
  * Verifies the render-mode switch: TILES mode renders missing tiles natively
  * through the tile path, DIRECT mode always renders the full frame natively,
  * and switching modes invalidates the cache and re-renders from scratch.
+ *
+ * The renderer scope runs on the shared test dispatcher, so all debounce/
+ * render work is driven by `advanceUntilIdle` (virtual time) — no real-time
+ * polling, no wall-clock race.
  */
 @RunWith(RobolectricTestRunner::class)
 class RenderModeSwitchTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var client: FakeOSMScoutClient
     private lateinit var renderer: MapRenderer
@@ -32,7 +40,7 @@ class RenderModeSwitchTest {
     @Before
     fun setUp() {
         client = FakeOSMScoutClient()
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        scope = CoroutineScope(SupervisorJob() + mainDispatcherRule.dispatcher)
         renderer = MapRenderer(client, 320.0, scope)
         renderer.screenWidth = 1200
         renderer.screenHeight = 1200
@@ -44,17 +52,14 @@ class RenderModeSwitchTest {
         scope.cancel()
     }
 
-    /** Wait until a frame bitmap is emitted (or fail after 5s). */
-    private fun awaitFrame() = runBlocking {
-        withTimeout(5000) {
-            while (renderer.frameFlow.value.bitmap == null) {
-                delay(10)
-            }
-        }
+    /** Run all queued render work; fail if no frame bitmap was emitted. */
+    private suspend fun TestScope.awaitFrame() {
+        advanceUntilIdle()
+        check(renderer.frameFlow.value.bitmap != null) { "no frame bitmap emitted" }
     }
 
     @Test
-    fun tilesModeRendersTilesNotFullFrame() {
+    fun tilesModeRendersTilesNotFullFrame() = runTest(mainDispatcherRule.dispatcher) {
         // Default mode is TILES.
         assertEquals(RenderMode.TILES, renderer.renderMode)
 
@@ -73,7 +78,7 @@ class RenderModeSwitchTest {
     }
 
     @Test
-    fun directModeRendersFullFrameWithoutTiles() {
+    fun directModeRendersFullFrameWithoutTiles() = runTest(mainDispatcherRule.dispatcher) {
         renderer.renderMode = RenderMode.DIRECT
         renderer.requestRender(51.5, 7.5, 14, 0.0)
         awaitFrame()
@@ -91,7 +96,7 @@ class RenderModeSwitchTest {
     }
 
     @Test
-    fun switchingToDirectInvalidatesCacheAndForcesFullRender() {
+    fun switchingToDirectInvalidatesCacheAndForcesFullRender() = runTest(mainDispatcherRule.dispatcher) {
         // Warm the tile cache in TILES mode.
         renderer.requestRender(51.5, 7.5, 14, 0.0)
         awaitFrame()
@@ -102,13 +107,7 @@ class RenderModeSwitchTest {
         // the direct native path.
         renderer.renderMode = RenderMode.DIRECT
         renderer.invalidateStyle()
-        runBlocking {
-            withTimeout(5000) {
-                while (client.renderCount.get() < 1) {
-                    delay(10)
-                }
-            }
-        }
+        awaitFrame()
 
         assertTrue(
             "switch to DIRECT must produce a full native render",
@@ -124,19 +123,13 @@ class RenderModeSwitchTest {
     }
 
     @Test
-    fun directModeKeepsWorkingAfterPanAndZoom() {
+    fun directModeKeepsWorkingAfterPanAndZoom() = runTest(mainDispatcherRule.dispatcher) {
         renderer.renderMode = RenderMode.DIRECT
         renderer.requestRender(51.5, 7.5, 14, 0.0)
         awaitFrame()
 
         renderer.requestRender(51.6, 7.5, 15, 0.0)
-        runBlocking {
-            withTimeout(5000) {
-                while (renderer.renderedMag != 15) {
-                    delay(10)
-                }
-            }
-        }
+        advanceUntilIdle()
 
         assertEquals(15, renderer.renderedMag)
         assertEquals(2, client.renderCount.get())
@@ -144,7 +137,7 @@ class RenderModeSwitchTest {
     }
 
     @Test
-    fun switchingModeDiscardsInFlightTileRender() {
+    fun switchingModeDiscardsInFlightTileRender() = runTest(mainDispatcherRule.dispatcher) {
         // Slow tile renderer: the tile path blocks long enough to interleave a
         // mode switch while the first job is in flight.
         client.renderWithRouteAndPoisDelayMs = 400L
@@ -158,13 +151,7 @@ class RenderModeSwitchTest {
         slowRenderer.renderMode = RenderMode.DIRECT
         slowRenderer.invalidateStyle()
 
-        runBlocking {
-            withTimeout(5000) {
-                while (slowRenderer.frameFlow.value.bitmap == null) {
-                    delay(10)
-                }
-            }
-        }
+        advanceUntilIdle()
 
         assertTrue(
             "final frame must be produced by the direct path",

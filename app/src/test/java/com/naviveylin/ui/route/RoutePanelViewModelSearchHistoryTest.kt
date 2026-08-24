@@ -7,15 +7,13 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -34,24 +32,27 @@ class RoutePanelViewModelSearchHistoryTest {
     private lateinit var historyRepo: SearchHistoryRepository
     private lateinit var viewModel: RoutePanelViewModel
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         File(context.filesDir, "maps/search_history.json").delete()
         client = FakeOSMScoutClient()
         historyRepo = SearchHistoryRepository(context)
+        historyRepo.defaultDispatcher = mainDispatcherRule.dispatcher
         viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = historyRepo,
             locationService = LocationService(context)
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
     fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     private fun resultEntry(label: String): LocationEntry = LocationEntry().apply {
@@ -63,7 +64,7 @@ class RoutePanelViewModelSearchHistoryTest {
     }
 
     @Test
-    fun selectingDestinationRecordsHistoryEntry() = runTest {
+    fun selectingDestinationRecordsHistoryEntry() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.setActiveField(ActiveField.DEST)
         viewModel.onSearchQueryChanged("Dortmund Hbf")
         viewModel.selectSearchResult(resultEntry("Dortmund Hbf"))
@@ -74,7 +75,7 @@ class RoutePanelViewModelSearchHistoryTest {
     }
 
     @Test
-    fun selectingStartRecordsHistoryEntry() = runTest {
+    fun selectingStartRecordsHistoryEntry() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.setActiveField(ActiveField.START)
         viewModel.onSearchQueryChanged("Hauptstraße 12")
         viewModel.selectSearchResult(resultEntry("Hauptstraße 12"))
@@ -84,7 +85,7 @@ class RoutePanelViewModelSearchHistoryTest {
     }
 
     @Test
-    fun emptyQuerySelectionRecordsNothing() = runTest {
+    fun emptyQuerySelectionRecordsNothing() = runTest(mainDispatcherRule.dispatcher) {
         // Convenience entries ("Current Location") are selected from an empty
         // query; they must not be recorded as search selections.
         viewModel.setActiveField(ActiveField.START)

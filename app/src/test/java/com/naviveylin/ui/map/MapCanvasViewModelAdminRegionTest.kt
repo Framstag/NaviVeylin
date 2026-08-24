@@ -11,17 +11,16 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -41,9 +40,11 @@ class MapCanvasViewModelAdminRegionTest {
     private lateinit var viewModel: MapCanvasViewModel
     private lateinit var locationService: LocationService
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         locationService = LocationService(context)
@@ -58,12 +59,12 @@ class MapCanvasViewModelAdminRegionTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
     fun tearDown() {
         viewModel.cancelScopeForTest()
-        Dispatchers.resetMain()
     }
 
     private fun freshFix(lat: Double, lon: Double, accuracy: Float = 10f): Location =
@@ -148,7 +149,7 @@ class MapCanvasViewModelAdminRegionTest {
     }
 
     @Test
-    fun searchPassesUnconstrainedHandleWithoutLiveFix() = runTest {
+    fun searchPassesUnconstrainedHandleWithoutLiveFix() = runTest(mainDispatcherRule.dispatcher) {
         // No live fix in LocationService → search must pass handle 0 (unconstrained)
         val results = viewModel.searchLocations("Hauptstraße 12")
         assertEquals(emptyList<com.framstag.libosmscout.client.LocationEntry>(), results)
@@ -202,47 +203,34 @@ class MapCanvasViewModelAdminRegionTest {
     }
 
     @Test
-    fun panelOpenResolvesRegionEagerly() = runTest {
+    fun panelOpenResolvesRegionEagerly() = runTest(mainDispatcherRule.dispatcher) {
         client.nextAdminRegionHandle = 7L
         locationService.setLocationForTest(freshFix(51.5136, 7.4653))
         viewModel.onSearchPanelOpened()
-        // Resolution runs on Dispatchers.Default — poll the final state with real time
-        var resolved = false
-        repeat(200) {
-            if (viewModel.uiState.value.searchAdminRegionName == "Dortmund") {
-                resolved = true
-                return@repeat
-            }
-            Thread.sleep(10)
-        }
-        assertTrue(resolved)
+        // The eager resolution runs on the test scheduler — drive it to completion.
+        advanceUntilIdle()
+        assertEquals("Dortmund", viewModel.uiState.value.searchAdminRegionName)
         assertEquals(listOf(7L), client.adminRegionHandles)
     }
 
     @Test
-    fun panelOpenWithoutFixDoesNotResolve() = runTest {
+    fun panelOpenWithoutFixDoesNotResolve() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onSearchPanelOpened()
         assertEquals(emptyList<Long>(), client.adminRegionHandles)
         assertEquals(null, viewModel.uiState.value.searchAdminRegionName)
     }
 
     @Test
-    fun gpsFixTransitionResolvesWhilePanelOpen() = runTest {
+    fun gpsFixTransitionResolvesWhilePanelOpen() = runTest(mainDispatcherRule.dispatcher) {
         client.nextAdminRegionHandle = 7L
         viewModel.onSearchPanelOpened()
-        // Fix arrives after panel opened (debounced GPS quality collector)
+        // Fix arrives after panel opened (debounced GPS quality collector).
+        // Shared scheduler: advancing virtual time fires the 2s debounce.
         locationService.setLocationForTest(freshFix(51.5136, 7.4653))
         advanceTimeBy(2500)
         runCurrent()
-        var resolved = false
-        repeat(200) {
-            if (viewModel.uiState.value.searchAdminRegionName == "Dortmund") {
-                resolved = true
-                return@repeat
-            }
-            Thread.sleep(10)
-        }
-        assertTrue(resolved)
+        advanceUntilIdle()
+        assertEquals("Dortmund", viewModel.uiState.value.searchAdminRegionName)
         assertEquals(listOf(7L), client.adminRegionHandles)
     }
 }

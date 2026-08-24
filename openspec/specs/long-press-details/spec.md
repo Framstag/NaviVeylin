@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+Resolves the object at a long-pressed map coordinate through a ranked candidate lookup and renders its structured description, falling back to the press point when no object is found.
+
+## Requirements
 
 ### Requirement: Object lookup by coordinate
 

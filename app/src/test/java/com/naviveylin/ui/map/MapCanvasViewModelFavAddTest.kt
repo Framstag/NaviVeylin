@@ -10,16 +10,14 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -36,9 +34,11 @@ class MapCanvasViewModelFavAddTest {
     private lateinit var client: FakeOSMScoutClient
     private var viewModel: MapCanvasViewModel? = null
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
     }
@@ -47,11 +47,11 @@ class MapCanvasViewModelFavAddTest {
     fun tearDown() {
         viewModel?.cancelScopeForTest()
         viewModel = null
-        Dispatchers.resetMain()
     }
 
     private suspend fun createViewModel(): Pair<MapCanvasViewModel, FavoriteRepository> {
         val favRepo = FavoriteRepository(client)
+        favRepo.defaultDispatcher = mainDispatcherRule.dispatcher
         favRepo.init(context.filesDir.absolutePath + "/fav-add-test.json")
         val vm = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
@@ -64,6 +64,7 @@ class MapCanvasViewModelFavAddTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        vm.defaultDispatcher = mainDispatcherRule.dispatcher
         viewModel = vm
         return vm to favRepo
     }
@@ -74,7 +75,7 @@ class MapCanvasViewModelFavAddTest {
     }
 
     @Test
-    fun addToFavoritesWithNewGroupCreatesGroupAndFavorite() = runTest {
+    fun addToFavoritesWithNewGroupCreatesGroupAndFavorite() = runTest(mainDispatcherRule.dispatcher) {
         val (viewModel, favRepo) = createViewModel()
         selectLocation(viewModel)
 
@@ -88,7 +89,7 @@ class MapCanvasViewModelFavAddTest {
     }
 
     @Test
-    fun addToFavoritesWithDuplicateNewGroupNameShowsError() = runTest {
+    fun addToFavoritesWithDuplicateNewGroupNameShowsError() = runTest(mainDispatcherRule.dispatcher) {
         val (viewModel, favRepo) = createViewModel()
         assertTrue(favRepo.addGroup("Home"))
         selectLocation(viewModel)

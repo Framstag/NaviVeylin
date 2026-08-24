@@ -11,15 +11,13 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -38,9 +36,11 @@ class MapCanvasViewModelFreeTextSearchTest {
     private lateinit var client: FakeOSMScoutClient
     private lateinit var viewModel: MapCanvasViewModel
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         viewModel = MapCanvasViewModel(
@@ -54,12 +54,12 @@ class MapCanvasViewModelFreeTextSearchTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
     fun tearDown() {
         viewModel.cancelScopeForTest()
-        Dispatchers.resetMain()
     }
 
     private fun poiEntry(
@@ -80,7 +80,7 @@ class MapCanvasViewModelFreeTextSearchTest {
     }
 
     @Test
-    fun freeTextPoiResultSurfacesWithCoordinates() = runTest {
+    fun freeTextPoiResultSurfacesWithCoordinates() = runTest(mainDispatcherRule.dispatcher) {
         client.nextSearchResults = arrayOf(poiEntry("Café Central", "cafe", 51.5136, 7.4653))
 
         val results = viewModel.searchLocations("cafe central")
@@ -93,7 +93,7 @@ class MapCanvasViewModelFreeTextSearchTest {
     }
 
     @Test
-    fun freeTextAndStructuredResultsPassThroughInOrder() = runTest {
+    fun freeTextAndStructuredResultsPassThroughInOrder() = runTest(mainDispatcherRule.dispatcher) {
         val structured = poiEntry("Hauptstraße 12", "address", 51.5, 7.4)
         val freeText = poiEntry("Café Central", "cafe", 51.5136, 7.4653)
         client.nextSearchResults = arrayOf(structured, freeText)
@@ -105,7 +105,7 @@ class MapCanvasViewModelFreeTextSearchTest {
     }
 
     @Test
-    fun searchCallPassesQueryAndLimitToClient() = runTest {
+    fun searchCallPassesQueryAndLimitToClient() = runTest(mainDispatcherRule.dispatcher) {
         client.nextSearchResults = arrayOf(poiEntry("Café Central", "cafe", 51.5136, 7.4653))
 
         viewModel.searchLocations("cafe central")
@@ -117,7 +117,7 @@ class MapCanvasViewModelFreeTextSearchTest {
     }
 
     @Test
-    fun noTextIndexFallsBackToEmptyResultsWithoutCrash() = runTest {
+    fun noTextIndexFallsBackToEmptyResultsWithoutCrash() = runTest(mainDispatcherRule.dispatcher) {
         // Database without a text index: native layer returns structured results
         // only; with none matching, the client returns an empty array.
         client.nextSearchResults = emptyArray()
@@ -129,7 +129,7 @@ class MapCanvasViewModelFreeTextSearchTest {
     }
 
     @Test
-    fun nullClientResultFallsBackToEmptyList() = runTest {
+    fun nullClientResultFallsBackToEmptyList() = runTest(mainDispatcherRule.dispatcher) {
         client.nextSearchResults = null
 
         val results = viewModel.searchLocations("cafe central")

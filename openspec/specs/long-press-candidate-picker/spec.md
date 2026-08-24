@@ -2,7 +2,7 @@
 
 Lets users choose which overlapping object at a long-pressed map coordinate to inspect, by presenting the candidate objects in the same description format used in search results.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Long press shows candidate list
 

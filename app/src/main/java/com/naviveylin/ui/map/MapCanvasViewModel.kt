@@ -28,6 +28,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
 import kotlinx.coroutines.async
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CoroutineScope
@@ -161,6 +162,15 @@ class MapCanvasViewModel @Inject constructor(
 
     private var mapRenderer: MapRenderer? = null
     private var rendererScope: CoroutineScope? = null
+
+    /**
+     * Background dispatcher for off-main work (search, POI lookup, admin
+     * region resolution, candidate description fetch). Test hook: point it at
+     * a TestDispatcher shared with the test's `runTest` so all coroutine work
+     * runs on one scheduler (deterministic, no real thread pools).
+     */
+    @VisibleForTesting
+    internal var defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 
     /**
      * The OSMScoutClient, exposed for embeddable map widgets (e.g. [MiniMap])
@@ -483,7 +493,7 @@ class MapCanvasViewModel @Inject constructor(
                     // name appears without requiring a typed query.
                     if (quality == GpsFixQuality.GOOD && searchPanelOpen && searchAdminRegionHandle == 0L) {
                         viewModelScope.launch {
-                            withContext(Dispatchers.Default) { currentSearchAdminRegionHandle() }
+                            withContext(defaultDispatcher) { currentSearchAdminRegionHandle() }
                         }
                     }
                 }
@@ -1047,7 +1057,7 @@ class MapCanvasViewModel @Inject constructor(
         return earthRadiusM * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 
-    internal suspend fun searchLocations(query: String): List<LocationEntry> = withContext(Dispatchers.Default) {
+    internal suspend fun searchLocations(query: String): List<LocationEntry> = withContext(defaultDispatcher) {
         val handle = currentSearchAdminRegionHandle()
         Log.d(TAG, "searchLocations: query='$query', adminRegionHandle=$handle")
         try {
@@ -1283,7 +1293,7 @@ class MapCanvasViewModel @Inject constructor(
 
             // Fetch object description and bounding box in parallel
             val descDeferred = async {
-                withContext(Dispatchers.Default) {
+                withContext(defaultDispatcher) {
                     try {
                         client.getDescription(fav.lat, fav.lon, _uiState.value.viewport.magnification)
                     } catch (e: Exception) {
@@ -1293,7 +1303,7 @@ class MapCanvasViewModel @Inject constructor(
                 }
             }
             val bboxDeferred = async {
-                withContext(Dispatchers.Default) {
+                withContext(defaultDispatcher) {
                     try {
                         client.getObjectBoundingBox(fav.lat, fav.lon, _uiState.value.viewport.magnification)
                     } catch (e: Exception) {
@@ -1370,7 +1380,7 @@ class MapCanvasViewModel @Inject constructor(
             renderMap()
 
             // Fetch full object description at search result location
-            val desc = withContext(Dispatchers.Default) {
+            val desc = withContext(defaultDispatcher) {
                 try {
                     client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification)
                 } catch (e: Exception) {
@@ -1483,7 +1493,7 @@ class MapCanvasViewModel @Inject constructor(
             poiSelectedLon = Double.NaN
         )
         poiSearchJob = viewModelScope.launch {
-            val results = withContext(Dispatchers.Default) {
+            val results = withContext(defaultDispatcher) {
                 try {
                     client.searchPOIs(category, lat, lon, radiusMeters, MAX_POI_RESULTS)?.toList() ?: emptyList()
                 } catch (e: Exception) {
@@ -1543,7 +1553,7 @@ class MapCanvasViewModel @Inject constructor(
             }
             renderMap()
 
-            val desc = withContext(Dispatchers.Default) {
+            val desc = withContext(defaultDispatcher) {
                 try {
                     client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification)
                 } catch (e: Exception) {
@@ -1635,7 +1645,7 @@ class MapCanvasViewModel @Inject constructor(
                 isLongPress = true,
                 isLoading = true
             )
-            val candidates = withContext(Dispatchers.Default) {
+            val candidates = withContext(defaultDispatcher) {
                 try {
                     client.getDescriptionCandidates(lat, lon, _uiState.value.viewport.magnification)
                 } catch (e: Exception) {
@@ -2015,7 +2025,7 @@ class MapCanvasViewModel @Inject constructor(
     fun onSearchPanelOpened() {
         searchPanelOpen = true
         viewModelScope.launch {
-            withContext(Dispatchers.Default) { currentSearchAdminRegionHandle() }
+            withContext(defaultDispatcher) { currentSearchAdminRegionHandle() }
         }
     }
 

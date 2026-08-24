@@ -12,17 +12,15 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import android.location.Location
-import kotlinx.coroutines.Dispatchers
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -38,9 +36,11 @@ class MapCanvasViewModelFollowModeTest {
     private lateinit var locationService: LocationService
     private lateinit var viewModel: MapCanvasViewModel
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         locationService = LocationService(context)
@@ -55,16 +55,16 @@ class MapCanvasViewModelFollowModeTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
     fun tearDown() {
         viewModel.cancelScopeForTest()
-        Dispatchers.resetMain()
     }
 
     @Test
-    fun searchResultSelectionDisablesFollowModeAndCenters() = runTest {
+    fun searchResultSelectionDisablesFollowModeAndCenters() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onToggleFollowMode(true)
         assertTrue(viewModel.uiState.first { it.followMode }.followMode)
 
@@ -88,13 +88,13 @@ class MapCanvasViewModelFollowModeTest {
     }
 
     @Test
-    fun onToggleFollowModeSetsFollowMode() = runTest {
+    fun onToggleFollowModeSetsFollowMode() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onToggleFollowMode(true)
         assertTrue(viewModel.uiState.first { it.followMode }.followMode)
     }
 
     @Test
-    fun onToggleFollowModeFalseClearsFollowMode() = runTest {
+    fun onToggleFollowModeFalseClearsFollowMode() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onToggleFollowMode(true)
         assertTrue(viewModel.uiState.first { it.followMode }.followMode)
 
@@ -103,7 +103,7 @@ class MapCanvasViewModelFollowModeTest {
     }
 
     @Test
-    fun disengageFollowModeClearsFollowMode() = runTest {
+    fun disengageFollowModeClearsFollowMode() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onToggleFollowMode(true)
         assertTrue(viewModel.uiState.first { it.followMode }.followMode)
 
@@ -112,7 +112,7 @@ class MapCanvasViewModelFollowModeTest {
     }
 
     @Test
-    fun onManualRotationDisengagesFollowModeAndNorthUp() = runTest {
+    fun onManualRotationDisengagesFollowModeAndNorthUp() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onToggleFollowMode(true)
         assertTrue(viewModel.uiState.first { it.followMode }.followMode)
         assertTrue(viewModel.uiState.value.freeFormNorthUp)
@@ -126,14 +126,14 @@ class MapCanvasViewModelFollowModeTest {
     }
 
     @Test
-    fun onManualRotationAccumulatesAngle() = runTest {
+    fun onManualRotationAccumulatesAngle() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onManualRotation(0.3)
         viewModel.onManualRotation(0.2)
         assertEquals(0.5, viewModel.uiState.value.viewport.angle, 1e-9)
     }
 
     @Test
-    fun reengagingFollowModeKeepsManualAngleAndNorthUpCleared() = runTest {
+    fun reengagingFollowModeKeepsManualAngleAndNorthUpCleared() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onManualRotation(0.7)
         viewModel.onToggleFollowMode(true)
         val state = viewModel.uiState.value
@@ -186,7 +186,7 @@ class MapCanvasViewModelFollowModeTest {
     // --- GPS location state (Compose overlay input comes from renderer marker snapshot) ---
 
     @Test
-    fun gpsLocationTracksRawFixInFollowMode() = runTest {
+    fun gpsLocationTracksRawFixInFollowMode() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onToggleFollowMode(true)
         assertTrue(viewModel.uiState.first { it.followMode }.followMode)
 
@@ -204,7 +204,7 @@ class MapCanvasViewModelFollowModeTest {
     }
 
     @Test
-    fun gpsLocationTracksRawFixWithoutFollowMode() = runTest {
+    fun gpsLocationTracksRawFixWithoutFollowMode() = runTest(mainDispatcherRule.dispatcher) {
         val loc = Location("gps").apply {
             latitude = 51.5
             longitude = 7.4
@@ -221,7 +221,7 @@ class MapCanvasViewModelFollowModeTest {
     }
 
     @Test
-    fun gpsLocationClearedOnNullLocation() = runTest {
+    fun gpsLocationClearedOnNullLocation() = runTest(mainDispatcherRule.dispatcher) {
         val loc = Location("gps").apply {
             latitude = 51.5136
             longitude = 7.4653

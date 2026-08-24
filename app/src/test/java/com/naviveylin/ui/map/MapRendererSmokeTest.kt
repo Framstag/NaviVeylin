@@ -1,17 +1,20 @@
 package com.naviveylin.ui.map
 
 import com.framstag.libosmscout.client.FakeOSMScoutClient
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -22,21 +25,45 @@ import org.robolectric.RobolectricTestRunner
  * The GPS marker was moved out of the render pipeline into the Compose overlay
  * ([LocationMarkerOverlay]); marker state/throttle coverage moved to
  * [LocationMarkerOverlayTest] and the ViewModel follow-mode tests.
+ *
+ * Render work runs on the shared test dispatcher (virtual time via
+ * [advanceUntilIdle]) — no real-time polling.
  */
 @RunWith(RobolectricTestRunner::class)
 class MapRendererSmokeTest {
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     private lateinit var renderer: MapRenderer
     private lateinit var client: FakeOSMScoutClient
+    private lateinit var scope: CoroutineScope
 
     @Before
     fun setUp() {
         client = FakeOSMScoutClient()
+        scope = CoroutineScope(SupervisorJob() + mainDispatcherRule.dispatcher)
         renderer = MapRenderer(
             client = client,
             dpi = 320.0,
-            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            scope = scope
         )
+    }
+
+    @After
+    fun tearDown() {
+        renderer.shutdown()
+        scope.cancel()
+    }
+
+    private suspend fun TestScope.awaitVisibleMarker() {
+        advanceUntilIdle()
+        check(renderer.frameFlow.value.marker.visible) { "no frame with visible marker emitted" }
+    }
+
+    private suspend fun TestScope.awaitFrame() {
+        advanceUntilIdle()
+        check(renderer.frameFlow.value.bitmap != null) { "no frame bitmap emitted" }
     }
 
     @Test
@@ -51,15 +78,13 @@ class MapRendererSmokeTest {
     }
 
     @Test
-    fun markerSnapshotRidesWithEmittedFrame() = runBlocking {
+    fun markerSnapshotRidesWithEmittedFrame() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.setGpsMarkerState(48.8566, 2.3522, 45.0, 10.0)
         renderer.requestRender(48.8566, 2.3522, 14, 0.0)
 
-        withTimeout(5000) {
-            while (!renderer.frameFlow.value.marker.visible) delay(10)
-        }
+        awaitVisibleMarker()
         val snap = renderer.frameFlow.value.marker
         assertEquals(48.8566, snap.lat, 1e-9)
         assertEquals(2.3522, snap.lon, 1e-9)
@@ -68,57 +93,46 @@ class MapRendererSmokeTest {
     }
 
     @Test
-    fun clearGpsMarkerStateEmitsHiddenSnapshot() = runBlocking {
+    fun clearGpsMarkerStateEmitsHiddenSnapshot() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.setGpsMarkerState(48.8566, 2.3522, 45.0, 10.0)
         renderer.requestRender(48.8566, 2.3522, 14, 0.0)
 
-        withTimeout(5000) {
-            while (!renderer.frameFlow.value.marker.visible) delay(10)
-        }
+        awaitVisibleMarker()
         renderer.clearGpsMarkerState()
         assertFalse(renderer.frameFlow.value.marker.visible)
     }
 
     @Test
-    fun setSearchSelectedForwardsMarkerToNativeRender() = runBlocking {
+    fun setSearchSelectedForwardsMarkerToNativeRender() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.requestRender(48.8566, 2.3522, 14, 0.0)
         // Wait until the initial render emitted a frame, then set the marker
-        withTimeout(5000) {
-            while (renderer.frameFlow.value.bitmap == null) delay(10)
-        }
+        awaitFrame()
         client.lastSearchSelLat = Double.NaN
 
         renderer.setSearchSelected(48.8566, 2.3522)
+        advanceUntilIdle()
 
-        withTimeout(5000) {
-            while (client.lastSearchSelLat.isNaN()) delay(10)
-        }
         assertEquals(48.8566, client.lastSearchSelLat, 1e-9)
         assertEquals(2.3522, client.lastSearchSelLon, 1e-9)
     }
 
     @Test
-    fun clearSearchSelectedResetsMarker() = runBlocking {
+    fun clearSearchSelectedResetsMarker() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.requestRender(48.8566, 2.3522, 14, 0.0)
-        withTimeout(5000) {
-            while (renderer.frameFlow.value.bitmap == null) delay(10)
-        }
+        awaitFrame()
         renderer.setSearchSelected(48.8566, 2.3522)
-        withTimeout(5000) {
-            while (client.lastSearchSelLat.isNaN()) delay(10)
-        }
+        advanceUntilIdle()
+        assertEquals(48.8566, client.lastSearchSelLat, 1e-9)
 
         renderer.clearSearchSelected()
+        advanceUntilIdle()
 
-        withTimeout(5000) {
-            while (!client.lastSearchSelLat.isNaN()) delay(10)
-        }
         assertTrue(client.lastSearchSelLat.isNaN())
         assertTrue(client.lastSearchSelLon.isNaN())
     }

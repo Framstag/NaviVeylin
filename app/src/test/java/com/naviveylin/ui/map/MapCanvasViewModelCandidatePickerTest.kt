@@ -12,19 +12,18 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import kotlinx.coroutines.Dispatchers
+import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -44,9 +43,11 @@ class MapCanvasViewModelCandidatePickerTest {
     private lateinit var client: FakeOSMScoutClient
     private var viewModel: MapCanvasViewModel? = null
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
     }
@@ -55,7 +56,6 @@ class MapCanvasViewModelCandidatePickerTest {
     fun tearDown() {
         viewModel?.cancelScopeForTest()
         viewModel = null
-        Dispatchers.resetMain()
     }
 
     private fun createViewModel(): MapCanvasViewModel {
@@ -70,6 +70,7 @@ class MapCanvasViewModelCandidatePickerTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             context = context
         )
+        vm.defaultDispatcher = mainDispatcherRule.dispatcher
         viewModel = vm
         return vm
     }
@@ -98,7 +99,7 @@ class MapCanvasViewModelCandidatePickerTest {
     }
 
     @Test
-    fun `long press with candidates shows picker not details`() = runTest {
+    fun `long press with candidates shows picker not details`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = createViewModel()
         client.nextCandidateDescriptions = listOf(
             candidate("Hotel Central", "tourism_hotel", 51.51, 7.41, 100L),
@@ -117,12 +118,12 @@ class MapCanvasViewModelCandidatePickerTest {
     }
 
     @Test
-    fun `long press with no candidates shows no picker`() = runTest {
+    fun `long press with no candidates shows no picker`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = createViewModel()
         client.nextCandidateDescriptions = emptyList()
 
         vm.onLongPress(51.5, 7.4)
-        vm.uiState.first { !it.isLoading }
+        advanceUntilIdle()
 
         val s = vm.uiState.value
         assertFalse(s.showCandidatePicker)
@@ -134,7 +135,7 @@ class MapCanvasViewModelCandidatePickerTest {
     }
 
     @Test
-    fun `selecting candidate opens details with marker on object`() = runTest {
+    fun `selecting candidate opens details with marker on object`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = createViewModel()
         client.nextCandidateDescriptions = listOf(
             candidate("Hotel Central", "tourism_hotel", 51.51, 7.41, 100L)
@@ -157,7 +158,7 @@ class MapCanvasViewModelCandidatePickerTest {
     }
 
     @Test
-    fun `selecting candidate without object coords falls back to press point`() = runTest {
+    fun `selecting candidate without object coords falls back to press point`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = createViewModel()
         client.nextCandidateDescriptions = listOf(
             candidate("Unnamed Building", "building", offset = 300L)
@@ -176,7 +177,7 @@ class MapCanvasViewModelCandidatePickerTest {
     }
 
     @Test
-    fun `dismissing picker clears candidates and opens no details`() = runTest {
+    fun `dismissing picker clears candidates and opens no details`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = createViewModel()
         client.nextCandidateDescriptions = listOf(
             candidate("Hotel Central", "tourism_hotel", 51.51, 7.41, 100L)

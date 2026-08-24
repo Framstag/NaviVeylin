@@ -20,7 +20,7 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 | Route summary dialog (stats + steps + Start Nav) | ✓ | `RouteSummaryDialog` — slides up from bottom, full-width, shows distance, time, scrollable steps, Start Navigation button |
 | Route progress indicator | ✓ | `CircularProgressIndicator` during calculation |
 | Route cancellation | ✓ | `cancelRoute()` wired to Cancel button |
-| Bug: route polyline persists after navigation stop | ✗ | Stopping navigation clears `NavigationState` but route polyline + markers remain on map. Need to call `mapRenderer.clearRoute()` on stop. |
+| Bug: route polyline persists after navigation stop | ✗ | Stopping navigation (`stopNavigation()` + `setNavigating(false)`) clears `NavigationState` but route polyline + markers remain on map. Plumbing exists (`clearRouteSignal` → `mapRenderer.clearRoute()`) but is not triggered on nav stop — wire `routePanelViewModel.clearRoute()` into the stop path. |
 | Bug: search dialog height jumps on text input | ✓ | Fixed: `heightIn(min = 280.dp, max = 280.dp)` on `SearchPanel` Column — sheet height stable across all states |
 
 ## 2. Turn-by-Turn Navigation
@@ -66,9 +66,11 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 
 ## 5. GPX Track Import & Playback
 
+> libosmscout submodule (master) already has GPX import/render support (archived change `javascout-gpx-track-import-render`) and JavaScout has `TrackPlayer` — but nothing is wired into the NaviVeylin app yet.
+
 | Feature | Status | Notes |
 |---------|--------|-------|
-| GPX file import | ✗ | `importGpxTrack()` exists in JNI |
+| GPX file import | ✗ | `importGpxTrack()` exists in JNI — no app UI |
 | Track rendering on map | ✗ | `renderWithRouteAndPois()` accepts `trackLats`/`trackLons` |
 | Track playback (simulated GPS) | ✗ | JavaScout `TrackPlayer.java` with speed multiplier |
 | Track playback toolbar (play/pause/stop/speed) | ✗ | JavaScout `trackToolbar` HBox |
@@ -90,7 +92,7 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 | Pinch-to-zoom | ✓ | Zoom-at-cursor via `ProjectionUtils.zoomAtCursor()` |
 | Zoom in/out buttons | ✓ | With magnification level display, max zoom 20 |
 | Combined zoom in/out control | ✓ | Pill-shaped `Row` with +/- buttons + zoom level text, shadow elevation |
-| Canvas overrun (render beyond visible area) | ✓ | Enabled (overrun=1.5). Sub-region blit via `MapRenderer.trySubRegionBlit()` |
+| Canvas overrun (render beyond visible area) | ✓ | Enabled (overrun=1.2, `DEFAULT_CANVAS_OVERRUN`). Sub-region blit via `MapRenderer.trySubRegionBlit()` |
 | Tile cache (reuse rendered tiles) | ✓ | `TileCache` with LRU eviction, epoch invalidation |
 | Debounced re-render on pan/zoom | ✓ | 50ms pan debounce, 200ms zoom debounce via coroutine Channel |
 | Double-buffered rendering | ✓ | Back/front buffer swap with epoch-based stale detection |
@@ -134,7 +136,7 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 | Landscape orientation support | ✓ | Orientation-aware layout via `BoxWithConstraints`. Controls on right side, zoom horizontal, fav+search side-by-side. Left side reserved for nav hints. |
 | DPI-aware UI scaling | ✗ | JavaScout `UIScale.java` |
 | Internationalisation (i18n) | ✗ | Multi-language UI support (strings, units, formats) |
-| App icon | ✗ | No app icon — default Android placeholder |
+| App icon | ✓ | Custom adaptive icon: `mipmap-anydpi-v26/ic_launcher.xml` + vector `ic_launcher_foreground.xml` (crosshair glyph) on `naviveylin_primary` background |
 
 ## 11. Rendering
 
@@ -160,23 +162,30 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 |----------|---------------|-------------|---------|-------------|
 | Route & Navigation | 26 | 23 | 3 | 0 |
 | Map Rotation | 4 | 4 | 0 | 0 |
-| Favorites | 10 | 10 | 0 | 0 |
+| Favorites | 8 | 8 | 0 | 0 |
 | GPX Tracks | 4 | 0 | 4 | 0 |
 | Object Description | 3 | 2 | 1 | 0 |
 | Map Interaction | 11 | 11 | 0 | 0 |
 | Search | 6 | 6 | 0 | 0 |
 | Map Download | 12 | 12 | 0 | 0 |
-| UI / Shell | 11 | 2 | 9 | 0 |
+| UI / Shell | 6 | 3 | 3 | 0 |
 | Rendering | 13 | 12 | 1 | 0 |
-| **Total** | **100** | **82** | **18** | **0** |
+| **Total** | **93** | **81** | **12** | **0** |
 
 ---
 
 ## 12. Android Auto
 
-**Status:** Phase 1 complete. Phase 2 complete (Search + Favorites on car). Phase 3 complete (map rendering on car). Phase 4 complete (deep linking + cross-device continuity). `:core` module extracted, `NavigationSession` + `NavigationScreen` implemented, `NavigationTemplate` with next turn, ETA, speed, lane guidance, rerouting, trip progress, and stop action. 35/37 tasks done (2 DHU testing tasks blocked by outdated DHU binary). [Archived change](openspec/changes/archive/2026-08-04-android-auto-navigation-template/). Phase 2: 30/30 tasks complete — [change](openspec/changes/auto-phase-2/). Phase 3: [archived change](openspec/changes/archive/2026-08-05-auto-phase-3/). Phase 4: [change](openspec/changes/auto-phase-4/).
+**Status:** All four phases complete.
 
-**Constraint:** No Google Play Services → no Google Maps tiles. `NavigationTemplate` (turn-by-turn) works without maps. Map browsing requires custom `Surface` rendering from libosmscout.
+- Phase 1 — NavigationTemplate: 35/37 tasks (2 DHU-testing tasks blocked by outdated DHU binary). [Archived](openspec/changes/archive/2026-08-04-android-auto-navigation-template/)
+- Phase 2 — Search + Favorites: 30/30 tasks. [Archived](openspec/changes/archive/2026-08-05-auto-phase-2/)
+- Phase 3 — Map rendering on car: 49/49 tasks. [Archived](openspec/changes/archive/2026-08-05-auto-phase-3/)
+- Phase 4 — Deep linking + cross-device continuity. [Archived](openspec/changes/archive/2026-08-05-auto-phase-4/)
+
+Post-phase work (archived): AA UI redesign (`aa-ui-redesign`), free driving mode (`free-driving-mode`), destination details (`auto-destination-details`), navigation view (`aa-navigation-view`), preferences (`prefs-menu-entry`), search history, route description, diagnostics, automotive OS flavor + Play distribution (`add-android-automotive-os`).
+
+**Constraint:** No Google Play Services → no Google Maps tiles. Map rendering on car is implemented via custom libosmscout `Surface` rendering (no GMS required).
 
 ### Phase 1 — NavigationTemplate (turn-by-turn on car screen) ✓
 
@@ -222,19 +231,25 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 - `app/`: `AutoServiceModule` (Hilt), `navigateTo()` in `NavigationViewModel` + `NavigationStateProvider`
 - 9 unit tests (6 SearchScreenMapper + 3 FavoritesScreenMapper)
 
-### Phase 3 — Map rendering on car
+### Phase 3 — Map rendering on car ✓
 
-*Not started. Show libosmscout-rendered map on the car display.*
+*Implemented and archived (49/49 tasks). Shows libosmscout-rendered map on the car display via custom `Surface` rendering — no Google Play Services needed (the `MapTemplate`-requires-GoogleMaps concern from the original plan did not apply).*
 
-| Step | What | Why |
-|------|------|------|
-| 3.1 | Research: determine if `MapTemplate` with custom `Surface` renderer works without Google Play Services | Car App API `MapController` may require Google Maps |
-| 3.2 | If `MapTemplate` requires Google Maps → use `MapWithContentTemplate` with static bitmap placeholder instead | Fallback: show rendered map as periodic snapshots |
-| 3.3 | Create `MapRenderer` for Auto: render libosmscout map to Android `Surface` via JNI | Reuse `MapRenderer` logic from `:app` |
-| 3.4 | Wire GPS position marker on car map | `LocationService.location` already available |
-| 3.5 | Wire favorites markers on car map | `FavoriteRepository.favorites` already available |
-| 3.6 | Handle pan/zoom gestures on car map | Car input model differs from touch |
-| 3.7 | Wire "select location on map → navigate" flow | Full map-based destination picker |
+| Step | Status | Implementation |
+|------|--------|---------------|
+| 3.1 | ✓ | Shared render util extracted to `:core` (`MapRenderUtil`) |
+| 3.2 | ✓ | `AutoMapRenderer` renders libosmscout map to Android `Surface` via JNI |
+| 3.3 | ✓ | `MapScreen` + `MapTemplateFactory` + `SurfaceLayout` with map strip controls |
+| 3.4 | ✓ | Map interaction gestures (pan/zoom/rotate) — `auto-map-interaction` spec |
+| 3.5 | ✓ | Map-based destination picker — `auto-map-destination-picker` spec |
+| 3.6 | ✓ | Integrated into screen stack: free driving mode (`FreeDrivingScreen`), navigation map view |
+| 3.7 | ✓ | AA manifest/recognition; builds + unit tests green |
+| 3.8 | ⏳ | DHU/head-unit testing — blocked by outdated DHU binary (same as phases 1–2) |
+
+**Key artifacts created:**
+- `core/`: `MapRenderUtil`, `AutoClientProvider`, `AutoLocationProvider`, `AutoSettings`
+- `auto/`: `AutoMapRenderer`, `MapScreen`, `MapTemplateFactory`, `SurfaceLayout`, `SurfaceIndicators`, `AutoZoomController`, `MapStripActions`, `StreetNameLabel`, `FreeDrivingScreen`
+- Promoted specs: `auto-map-renderer`, `auto-map-interaction`, `auto-map-destination-picker`, `auto-map-layout`
 
 ### Phase 4 — Deep linking & cross-device continuity ✓
 
@@ -283,7 +298,8 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 
 | Dependency | Status |
 |-----------|--------|
-| `androidx.car.app:app:1.7.0` | ✓ Already declared |
+| `androidx.car.app:app:1.7.0` | ✓ Already declared in `:auto` |
+| `androidx.car.app:app-automotive:1.7.0` | ✓ Declared in `:app` for AAOS head-unit builds (automotive flavor) |
 | `:core` shared module | ✓ Extracted, both `:app` and `:auto` depend on it |
 | `com.google.dagger:hilt-android:2.59` | ✓ Added to `:auto` and `:core` |
 | `com.google.android.gms:play-services-location` | ✓ Optional — `LocationManager` fallback for AAOS |

@@ -1,7 +1,6 @@
 package com.naviveylin.di
 
 import android.util.Log
-import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.InstalledMaps
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.AutoClientProvider
@@ -58,12 +57,7 @@ object AutoServiceModule {
     @Provides
     @Singleton
     fun provideAutoFavoritesProvider(repository: FavoriteRepository): AutoFavoritesProvider {
-        return object : AutoFavoritesProvider {
-            override fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>> =
-                repository.favorites
-
-            override suspend fun init(filePath: String): Boolean = repository.init(filePath)
-        }
+        return AutoFavoritesProviderImpl(repository)
     }
 
     @Provides

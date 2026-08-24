@@ -15,5 +15,6 @@ data class AutoSettings(
     val navNorthUp: Boolean = false,
     val darkMode: String = "AUTOMATIC",
     val laneHintsEnabled: Boolean = true,
-    val renderMode: String = "TILES"
+    val renderMode: String = "TILES",
+    val styleSheet: String = "standard"
 )

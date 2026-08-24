@@ -18,7 +18,8 @@ internal fun AppSettings.toAutoSettings(): AutoSettings = AutoSettings(
     navNorthUp = navNorthUp,
     darkMode = darkMode.name,
     laneHintsEnabled = laneHintsEnabled,
-    renderMode = renderMode.name
+    renderMode = renderMode.name,
+    styleSheet = styleSheet
 )
 
 /**
@@ -32,5 +33,6 @@ internal fun AutoSettings.toAppSettings(current: AppSettings): AppSettings = cur
     navNorthUp = navNorthUp,
     darkMode = DarkModePreference.valueOf(darkMode),
     laneHintsEnabled = laneHintsEnabled,
-    renderMode = RenderMode.valueOf(renderMode)
+    renderMode = RenderMode.valueOf(renderMode),
+    styleSheet = styleSheet
 )

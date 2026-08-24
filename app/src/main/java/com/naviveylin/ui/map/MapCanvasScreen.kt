@@ -644,6 +644,11 @@ fun MapCanvasScreen(
                         onSetRenderMode = { mode ->
                             viewModel.onSetRenderMode(mode)
                         },
+                        availableStyles = state.availableStyleSheets,
+                        styleSheet = state.styleSheet,
+                        onSetStyleSheet = { style ->
+                            viewModel.onStyleSheetSelected(style)
+                        },
                         isNavigating = navState.isNavigating,
                         canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
                         canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
@@ -759,6 +764,11 @@ fun MapCanvasScreen(
                         renderMode = state.renderMode,
                         onSetRenderMode = { mode ->
                             viewModel.onSetRenderMode(mode)
+                        },
+                        availableStyles = state.availableStyleSheets,
+                        styleSheet = state.styleSheet,
+                        onSetStyleSheet = { style ->
+                            viewModel.onStyleSheetSelected(style)
                         },
                         isNavigating = navState.isNavigating,
                         canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
@@ -900,11 +910,7 @@ fun MapCanvasScreen(
                 },
                 onRemoveFromFavorites = { viewModel.removeSelectedFromFavorites() },
                 onRouteToLocation = { viewModel.openRoutePanelWithStart(state.selectedLocation) },
-                onShowOnMap = if (state.detailsFromPoiSearch) {
-                    { viewModel.showOnMap() }
-                } else {
-                    null
-                },
+                onShowOnMap = { viewModel.showOnMap() },
                 onDismiss = { viewModel.dismissDetailsSheet() }
             )
         }
@@ -1456,6 +1462,9 @@ private fun MapLocationZoomBlock(
     onToggleLaneHints: (Boolean) -> Unit,
     renderMode: RenderMode,
     onSetRenderMode: (RenderMode) -> Unit,
+    availableStyles: List<String>,
+    styleSheet: String,
+    onSetStyleSheet: (String) -> Unit,
     isNavigating: Boolean,
     canZoomIn: Boolean,
     canZoomOut: Boolean,
@@ -1480,6 +1489,9 @@ private fun MapLocationZoomBlock(
         onToggleLaneHints = onToggleLaneHints,
         renderMode = renderMode,
         onSetRenderMode = onSetRenderMode,
+        availableStyles = availableStyles,
+        styleSheet = styleSheet,
+        onSetStyleSheet = onSetStyleSheet,
         isNavigating = isNavigating
     )
 

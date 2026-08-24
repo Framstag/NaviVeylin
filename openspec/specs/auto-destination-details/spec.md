@@ -9,7 +9,7 @@ Shows a destination details screen on the Android Auto car display before naviga
 ### Requirement: Details screen shown before navigation starts
 The system SHALL show a details screen when the user selects a destination from a search result, a POI result, or a map tap, before navigation starts. The details screen SHALL display the destination's name or address, its coordinates, and its object description when available, overlaid on a map preview that shows the destination position. The screen SHALL show a title derived from the destination identity and SHALL present every attribute as a labeled row.
 
-The address, area, and title SHALL be resolved with the same composition rules as the phone details dialog (which is the lead view): the address SHALL combine street, house number, postal code, and city when available; the area SHALL fall back through the admin region hierarchy, the reverse-lookup region, and the description's admin-level "IsIn" value; and the title SHALL fall back from the object name to the full address to an address-like search label to a generic title. The screen SHALL show every attribute returned by the object description API (e.g. opening hours, phone, website) as a labeled row, and SHALL NOT drop attributes: the description entries SHALL be listed completely, in native order, after the coordinates, address, and area rows, and the host SHALL page the list when it exceeds one page. A standalone street row SHALL NOT be shown when the combined address row is shown. Description entries with an empty label or an empty value SHALL be omitted (they carry no information).
+The address, area, and title SHALL be resolved with the same composition rules as the phone details dialog (which is the lead view): the address SHALL combine street, house number, postal code, and city when available; the area SHALL fall back through the admin region hierarchy, the reverse-lookup region, and the description's admin-level "IsIn" value; and the title SHALL fall back from the object name (description `General/Name`, else the caller-provided name), to the full address, to an address-like search label, to a generic title. The screen SHALL show every attribute returned by the object description API (e.g. opening hours, phone, website) as a labeled row, and SHALL NOT drop attributes: the description entries SHALL be listed completely, in native order, after the coordinates, address, and area rows, and the host SHALL page the list when it exceeds one page. A standalone street row SHALL NOT be shown when the combined address row is shown. Description entries with an empty label or an empty value SHALL be omitted (they carry no information).
 
 #### Scenario: Search result opens details screen
 - **WHEN** the user taps a search result on the car screen
@@ -151,6 +151,14 @@ The address, area, and title SHALL be resolved with the same composition rules a
 - **AND** the object description contains a name
 - **THEN** the screen title SHALL show the object's name
 
+#### Scenario: Title shows caller-provided name before address
+- **WHEN** the details screen is open
+- **AND** the object description contains no name
+- **AND** the caller provided a name (e.g. a POI name)
+- **AND** a resolved address is available
+- **THEN** the screen title SHALL show the caller-provided name
+- **AND** the screen SHALL NOT use the address as the title
+
 #### Scenario: Details screen title falls back to full address
 - **WHEN** the details screen is open
 - **AND** the object description contains no name
@@ -184,28 +192,37 @@ The address, area, and title SHALL be resolved with the same composition rules a
 - **AND** the caller provided no address-like search label
 - **THEN** the screen title SHALL show a generic location title
 
-### Requirement: Details actions visually marked
 
-The "Navigate here" and "Show" actions on the details screen SHALL be visually marked as actions (e.g. a leading symbol) so they are distinguishable from the labeled attribute rows, and SHALL be positioned before the attribute rows.
+### Requirement: Favorite management on details screen
+The details screen SHALL offer favorite management for the displayed destination, matching the phone details dialog: an "Add to Favorites" action when the destination is not yet a favorite, and a "Remove from Favorites" action when it is. The screen SHALL reflect the current favorite state of the destination.
 
-#### Scenario: Navigate here marked as action
-- **WHEN** the details screen shows the "Navigate here" action
-- **THEN** the action SHALL be visually marked (e.g. a leading symbol) distinct from the attribute rows
+#### Scenario: Save destination to favorites
+- **WHEN** the details screen is open
+- **AND** the destination is not a favorite
+- **THEN** the screen SHALL show an "Add to Favorites" action
+- **AND** activating it SHALL add the destination to the favorites
 
-#### Scenario: Show marked as action
-- **WHEN** the details screen shows the "Show" action
-- **THEN** the action SHALL be visually marked (e.g. a leading symbol) distinct from the attribute rows
+#### Scenario: Remove destination from favorites
+- **WHEN** the details screen is open
+- **AND** the destination is already a favorite
+- **THEN** the screen SHALL show a "Remove from Favorites" action
+- **AND** activating it SHALL remove the destination from the favorites
+
+#### Scenario: Favorite state shown on details screen
+- **WHEN** the details screen is open
+- **AND** the destination's favorite state changes
+- **THEN** the screen SHALL update the shown action accordingly (save ↔ remove)
 
 ### Requirement: Navigation starts from the details screen
-The system SHALL start navigation only from the details screen's "Navigate here" action. The details screen SHALL offer a second "Show" action that displays the destination on the browse map without starting navigation.
+The system SHALL start navigation only from the details screen's "Navigate to" action. The details screen SHALL offer a second "Show" action that displays the destination on the browse map without starting navigation.
 
 #### Scenario: Navigate here starts navigation
-- **WHEN** the user taps "Navigate here" on the details screen
+- **WHEN** the user taps "Navigate to" on the details screen
 - **THEN** the system SHALL start navigation to the displayed destination
 - **AND** the details screen SHALL be replaced by the navigation template
 
 #### Scenario: Back from details screen does not navigate
-- **WHEN** the user goes back from the details screen without tapping "Navigate here"
+- **WHEN** the user goes back from the details screen without tapping "Navigate to"
 - **THEN** the system SHALL NOT start navigation
 - **AND** the previous screen SHALL be shown again
 
@@ -214,6 +231,18 @@ The system SHALL start navigation only from the details screen's "Navigate here"
 - **THEN** the details screen SHALL close
 - **AND** the browse map SHALL be shown centered on the destination
 - **AND** navigation SHALL NOT start
+
+### Requirement: Details actions visually marked
+
+The "Navigate to" and "Show" actions on the details screen SHALL be visually marked as actions (e.g. a leading symbol) so they are distinguishable from the labeled attribute rows, and SHALL be positioned before the attribute rows.
+
+#### Scenario: Navigate here marked as action
+- **WHEN** the details screen shows the "Navigate to" action
+- **THEN** the action SHALL be visually marked (e.g. a leading symbol) distinct from the attribute rows
+
+#### Scenario: Show marked as action
+- **WHEN** the details screen shows the "Show" action
+- **THEN** the action SHALL be visually marked (e.g. a leading symbol) distinct from the attribute rows
 
 ### Requirement: Destination identity retained during navigation
 The system SHALL retain the destination identity (name or address when known, otherwise coordinates) after navigation starts, and SHALL display it on the navigation template during active navigation.

@@ -3,6 +3,7 @@ package com.naviveylin.data
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -14,6 +15,9 @@ import javax.inject.Singleton
 class ViewportStorage(
     @ApplicationContext private val context: Context
 ) {
+    /** Dispatcher for file IO; swapped to a test dispatcher in unit tests. */
+    internal var ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun fileFor(mapKey: String): File {
@@ -23,7 +27,7 @@ class ViewportStorage(
 
     /** Save viewport state for a map to disk. Runs on [Dispatchers.IO]. */
     suspend fun save(mapKey: String, state: ViewportState) {
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             try {
                 val file = fileFor(mapKey)
                 file.parentFile?.mkdirs()
@@ -35,7 +39,7 @@ class ViewportStorage(
     }
 
     /** Load viewport state for a map from disk. Returns null if file missing or corrupt. */
-    suspend fun load(mapKey: String): ViewportState? = withContext(Dispatchers.IO) {
+    suspend fun load(mapKey: String): ViewportState? = withContext(ioDispatcher) {
         val file = fileFor(mapKey)
         if (!file.exists()) {
             return@withContext null

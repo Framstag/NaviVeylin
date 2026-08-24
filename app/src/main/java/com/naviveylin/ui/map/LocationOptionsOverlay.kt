@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,11 +9,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
@@ -32,6 +40,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -63,6 +72,9 @@ fun LocationOptionsOverlay(
     onToggleLaneHints: (Boolean) -> Unit = {},
     renderMode: RenderMode = RenderMode.TILES,
     onSetRenderMode: (RenderMode) -> Unit = {},
+    availableStyles: List<String> = emptyList(),
+    styleSheet: String = "standard",
+    onSetStyleSheet: (String) -> Unit = {},
     isNavigating: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -116,12 +128,16 @@ fun LocationOptionsOverlay(
                 onToggleLaneHints = onToggleLaneHints,
                 renderMode = renderMode,
                 onSetRenderMode = onSetRenderMode,
+                availableStyles = availableStyles,
+                styleSheet = styleSheet,
+                onSetStyleSheet = onSetStyleSheet,
                 isNavigating = isNavigating
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LocationOptionsSheetContent(
     followMode: Boolean,
@@ -140,6 +156,9 @@ private fun LocationOptionsSheetContent(
     onToggleLaneHints: (Boolean) -> Unit,
     renderMode: RenderMode,
     onSetRenderMode: (RenderMode) -> Unit,
+    availableStyles: List<String>,
+    styleSheet: String,
+    onSetStyleSheet: (String) -> Unit,
     isNavigating: Boolean
 ) {
     val currentNorthUp = if (isNavigating) navNorthUp else freeFormNorthUp
@@ -150,6 +169,7 @@ private fun LocationOptionsSheetContent(
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         // Section: Map follows position
         Row(
@@ -315,6 +335,69 @@ private fun LocationOptionsSheetContent(
                 selected = renderMode == RenderMode.DIRECT,
                 onClick = { onSetRenderMode(RenderMode.DIRECT) }
             )
+        }
+
+        // Map style control — compact exposed dropdown (one row instead of a
+        // radio row per style, keeping the sheet short).
+        if (availableStyles.isNotEmpty()) {
+            HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text(
+                    text = "Map style",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                var styleMenuExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = styleMenuExpanded,
+                    onExpandedChange = { styleMenuExpanded = it }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { styleMenuExpanded = true }
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = styleSheet,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null
+                        )
+                    }
+                    ExposedDropdownMenu(
+                        expanded = styleMenuExpanded,
+                        onDismissRequest = { styleMenuExpanded = false }
+                    ) {
+                        availableStyles.forEach { style ->
+                            DropdownMenuItem(
+                                text = { Text(style) },
+                                trailingIcon = if (style == styleSheet) {
+                                    { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                                } else {
+                                    null
+                                },
+                                onClick = {
+                                    styleMenuExpanded = false
+                                    onSetStyleSheet(style)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

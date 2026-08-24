@@ -2,6 +2,7 @@ package com.naviveylin.data
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.naviveylin.core.BundledMapStyles
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -108,5 +109,23 @@ class AssetCopierTest {
         // Upstream deleted include/symbols.oss in cd273c581; the bundled set
         // (from the submodule at build time) must not contain it.
         assertFalse(File(context.filesDir, "stylesheets/include/symbols.oss").exists())
+    }
+
+    @Test
+    fun bundlesEveryTopLevelStyleSheet() {
+        copier.ensureStylesheets()
+        val dir = stylesheetsDir()
+
+        // Every top-level *.oss from the libosmscout submodule must be
+        // packaged and copied — a submodule bump that drops one of these
+        // silently removes a selectable style (spec: map-styles).
+        val expected = BundledMapStyles.ALL.map { "$it.oss" }
+        val actual = dir.listFiles()
+            ?.filter { it.isFile && it.name.endsWith(".oss") }
+            ?.map { it.name }
+            ?.sorted()
+            .orEmpty()
+
+        assertEquals(expected.sorted(), actual)
     }
 }

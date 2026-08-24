@@ -1,5 +1,6 @@
 package com.framstag.libosmscout.client
 
+import com.naviveylin.core.BundledMapStyles
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -43,6 +44,56 @@ class FakeOSMScoutClient : OSMScoutClient() {
     override fun setStyleSheetFlag(key: String, value: Boolean) {
         styleFlags.add(key to value)
     }
+
+    // --- Map style switching stubs ---
+
+    /** Style names passed to [loadStyleSheet] in call order. */
+    val styleSheetLoads: MutableList<String> = CopyOnWriteArrayList()
+
+    /** Return value of the next [loadStyleSheet] call (true = success). */
+    @Volatile
+    var styleSheetLoadResult: Boolean = true
+
+    override fun loadStyleSheet(name: String): Boolean {
+        styleSheetLoads.add(name)
+        return styleSheetLoadResult
+    }
+
+    /** Styles returned by [getAvailableStyleSheets] (default: all bundled). */
+    var availableStyleSheetNames: List<String> = BundledMapStyles.ALL
+
+    override fun getAvailableStyleSheets(): List<String> = availableStyleSheetNames
+
+    /** Name returned by [getActiveStyleSheet] (default: standard.oss). */
+    var activeStyleSheetName: String = "standard.oss"
+
+    override fun getActiveStyleSheet(): String = activeStyleSheetName
+
+    // --- Database / density stubs (needed to exercise initMap) ---
+
+    /** Paths passed to [openDatabase] in call order. */
+    val openedDatabases: MutableList<String> = CopyOnWriteArrayList()
+
+    /** Result returned by [openDatabase]. */
+    @Volatile
+    var openDatabaseResult: Boolean = true
+
+    override fun openDatabase(path: String): Boolean {
+        openedDatabases.add(path)
+        return openDatabaseResult
+    }
+
+    /** Densities passed to [setMapDpi] in call order. */
+    val mapDpis = mutableListOf<Double>()
+
+    override fun setMapDpi(dpi: Double) {
+        mapDpis.add(dpi)
+    }
+
+    /** Bounding box returned by [getDatabaseBoundingBox] (null = none). */
+    var databaseBoundingBox: DoubleArray? = null
+
+    override fun getDatabaseBoundingBox(path: String): DoubleArray? = databaseBoundingBox
 
     override fun render(
         width: Int, height: Int,

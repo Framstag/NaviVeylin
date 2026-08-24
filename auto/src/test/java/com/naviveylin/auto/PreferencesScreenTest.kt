@@ -58,8 +58,8 @@ class PreferencesScreenTest {
 
         val template = screen.onGetTemplate()
 
-        // All seven car-relevant preferences on the single list.
-        assertEquals(7, template.singleList!!.items.size)
+        // All eight car-relevant preferences on the single list.
+        assertEquals(8, template.singleList!!.items.size)
     }
 
     @Test
@@ -73,5 +73,19 @@ class PreferencesScreenTest {
         advanceUntilIdle()
 
         coVerify { provider.save(AutoSettings(followMode = true)) }
+    }
+
+    @Test
+    fun onToggleStyleSheetCyclesAndSaves() = runTest(testDispatcher) {
+        coEvery { provider.load() } returns AutoSettings(styleSheet = "standard")
+        coEvery { provider.save(any()) } returns Unit
+
+        val screen = PreferencesScreen(carContext, provider)
+        advanceUntilIdle()
+        screen.onToggle("styleSheet")
+        advanceUntilIdle()
+
+        // DEFAULT_STYLES is sorted: standard → winter-sports.
+        coVerify { provider.save(AutoSettings(styleSheet = "winter-sports")) }
     }
 }

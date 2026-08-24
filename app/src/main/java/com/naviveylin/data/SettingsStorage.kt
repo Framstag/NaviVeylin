@@ -3,6 +3,7 @@ package com.naviveylin.data
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -36,7 +37,8 @@ data class AppSettings(
     val keepScreenOn: Boolean = true,
     val darkMode: DarkModePreference = DarkModePreference.AUTOMATIC,
     val laneHintsEnabled: Boolean = true,
-    val renderMode: RenderMode = RenderMode.TILES
+    val renderMode: RenderMode = RenderMode.TILES,
+    val styleSheet: String = "standard"
 )
 
 /** Persists [AppSettings] to a JSON file in app internal storage. */
@@ -44,12 +46,15 @@ data class AppSettings(
 class SettingsStorage @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    /** Dispatcher for file IO; swapped to a test dispatcher in unit tests. */
+    internal var ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+
     private val json = Json { ignoreUnknownKeys = true }
     private val file: File
         get() = File(context.filesDir, "maps/settings.json")
 
     suspend fun save(settings: AppSettings) {
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             try {
                 file.parentFile?.mkdirs()
                 file.writeText(json.encodeToString(AppSettings.serializer(), settings))
@@ -59,7 +64,7 @@ class SettingsStorage @Inject constructor(
         }
     }
 
-    suspend fun load(): AppSettings = withContext(Dispatchers.IO) {
+    suspend fun load(): AppSettings = withContext(ioDispatcher) {
         if (!file.exists()) return@withContext AppSettings()
         try {
             json.decodeFromString(AppSettings.serializer(), file.readText())

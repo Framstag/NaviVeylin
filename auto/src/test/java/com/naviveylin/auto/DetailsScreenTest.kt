@@ -15,7 +15,7 @@ import org.robolectric.RobolectricTestRunner
  * labeled attribute rows (coordinates/address/area/description), ALL
  * description attributes listed (no row cap — opening hours, phone, …),
  * street/address dedup, title fallback chain (name → address → label →
- * generic), and the "Navigate here" / "Show" actions.
+ * generic), and the "Navigate to" / "Show" actions.
  */
 @RunWith(RobolectricTestRunner::class)
 class DetailsScreenTest {
@@ -222,7 +222,7 @@ class DetailsScreenTest {
     fun navigateRowInvokesCallback() {
         var invoked = false
         val row = buildNavigateRow { invoked = true }
-        assertEquals("▶ Navigate here", row.title.toString())
+        assertEquals("▶ Navigate to", row.title.toString())
         assertTrue("row must be clickable", row.onClickDelegate != null)
         row.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
         assertTrue(invoked)
@@ -240,7 +240,7 @@ class DetailsScreenTest {
 
     @Test
     fun attributeRowsAreNotClickable() {
-        // The details screen's only navigation trigger is the "Navigate here"
+        // The details screen's only navigation trigger is the "Navigate to"
         // row: attribute rows carry no click listeners, so popping the screen
         // (system back) never starts navigation.
         val rows = buildAttributeList(
@@ -254,6 +254,26 @@ class DetailsScreenTest {
     }
 
     @Test
+    fun saveFavoriteRowInvokesCallback() {
+        var invoked = false
+        val row = buildSaveFavoriteRow { invoked = true }
+        assertEquals("★ Add to Favorites", row.title.toString())
+        assertTrue("row must be clickable", row.onClickDelegate != null)
+        row.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
+        assertTrue(invoked)
+    }
+
+    @Test
+    fun removeFavoriteRowInvokesCallback() {
+        var invoked = false
+        val row = buildRemoveFavoriteRow { invoked = true }
+        assertEquals("☆ Remove from Favorites", row.title.toString())
+        assertTrue("row must be clickable", row.onClickDelegate != null)
+        row.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
+        assertTrue(invoked)
+    }
+
+    @Test
     fun titleShowsObjectName() {
         val title = resolveTitle(
             address = arrayOf("Kleppingstr.", "22", "Dortmund", "44139"),
@@ -264,11 +284,23 @@ class DetailsScreenTest {
     }
 
     @Test
-    fun titleFallsBackToAddress() {
+    fun titleShowsCallerNameBeforeAddress() {
+        // POI/search results carry the name in the label: with no description
+        // name, the caller-provided name wins over the address (bug fix).
         val title = resolveTitle(
             address = arrayOf("Kleppingstr.", "22", "Dortmund", "44139"),
             description = null,
-            nameHint = "Some label"
+            nameHint = "Mario's"
+        )
+        assertEquals("Mario's", title)
+    }
+
+    @Test
+    fun titleFallsBackToAddressWithoutCallerName() {
+        val title = resolveTitle(
+            address = arrayOf("Kleppingstr.", "22", "Dortmund", "44139"),
+            description = null,
+            nameHint = null
         )
         assertEquals("Kleppingstr. 22, 44139 Dortmund", title)
     }
@@ -282,6 +314,17 @@ class DetailsScreenTest {
             nameHint = "Some label"
         )
         assertEquals("Some label", title)
+    }
+
+    @Test
+    fun titleFallsBackToGenericWhenNoCallerNameAndNoAddress() {
+        // No name, no address, no label → generic "Location".
+        val title = resolveTitle(
+            address = arrayOf("", "", "Dortmund", "44139"),
+            description = null,
+            nameHint = null
+        )
+        assertEquals("Location", title)
     }
 
     @Test

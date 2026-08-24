@@ -227,6 +227,91 @@ class DetailsResolverTest {
         assertEquals("Location", DetailsResolver.resolveTitle(input()))
     }
 
+    @Test
+    fun destinationNamePrefersNameOverAddress() {
+        // POI name beats the address as destination identity.
+        val input = input(
+            name = "Mario's",
+            description = description(
+                entry("Location", "Address", "22"),
+                entry("Location", "Location", "Kleppingstr.")
+            ),
+            resolved = arrayOf("", "", "Dortmund", "44139")
+        )
+        assertEquals("Mario's", DetailsResolver.resolveDestinationName(input))
+    }
+
+    @Test
+    fun titleExcludesCoordinateLabel() {
+        // Long-press labels are coordinates — not titles (AA approach).
+        assertEquals("Location", DetailsResolver.resolveTitle(input(label = "51.50000, 7.40000")))
+        assertEquals("Location", DetailsResolver.resolveTitle(input(label = "51.50000, 7.40000"), nameHint = null))
+    }
+
+    @Test
+    fun titleUsesNonCoordinateLabel() {
+        assertEquals("Mario's", DetailsResolver.resolveTitle(input(label = "Mario's")))
+    }
+
+    // ------------------------------------------------------------------
+    // DetailsData bundle + shared display entries (task 1.1/1.3)
+    // ------------------------------------------------------------------
+
+    @Test
+    fun resolveProducesCompleteBundle() {
+        val input = input(
+            label = "Hauptstraße 12",
+            admin = "Eving/Dortmund/Dortmund",
+            description = description(
+                entry("Location", "Address", "12"),
+                entry("Location", "Location", "Hauptstraße"),
+                entry("General", "Type", "restaurant"),
+                entry("General", "OpeningHours", "Mo-Fr 09:00-18:00")
+            )
+        )
+        val data = DetailsResolver.resolve(input)
+        assertEquals("Hauptstraße 12, Dortmund", data.title)
+        assertEquals("Hauptstraße 12, Dortmund", data.address)
+        assertEquals("Eving/Dortmund/Dortmund", data.area)
+        assertEquals("Hauptstraße 12, Dortmund", data.destinationName)
+        // Street/address entries deduped, blanks dropped, rest kept in order.
+        assertEquals(
+            listOf("Type", "OpeningHours"),
+            data.displayEntries.map { it.labelKey }
+        )
+    }
+
+    @Test
+    fun displayEntriesDropBlanksAndStreetAddressDuplicates() {
+        val input = input(
+            description = description(
+                entry("Location", "Address", "12"),
+                entry("Location", "Location", "Hauptstraße"),
+                entry("General", "Name", "   "),
+                entry("General", "Type", "restaurant"),
+                entry("Contact", "Phone", "")
+            )
+        )
+        assertEquals(
+            listOf("Type"),
+            DetailsResolver.filterDisplayEntries(input).map { it.labelKey }
+        )
+    }
+
+    @Test
+    fun displayEntriesKeepIsIn() {
+        // IsIn is not a street/address duplicate — it stays (phone parity).
+        val input = input(
+            description = description(
+                entry("Location", "IsIn", "Dortmund, Dortmund, Nordrhein-Westfalen", subsection = "AdminLevel")
+            )
+        )
+        assertEquals(
+            listOf("IsIn"),
+            DetailsResolver.filterDisplayEntries(input).map { it.labelKey }
+        )
+    }
+
     // ------------------------------------------------------------------
     // Phone fixture parity (task 1.3): expected values copied from
     // LocationDetailsDialogComposeTest, fed through the same inputs.

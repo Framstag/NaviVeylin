@@ -215,11 +215,11 @@ class PoiSearchPanelComposeTest {
         }
 
         composeRule.onNodeWithText("Hotel Central").performClick()
-        composeRule.onNodeWithText("Route").performClick()
+        composeRule.onNodeWithText("Navigate to").performClick()
 
         assertTrue(routeInvoked)
         composeRule.onNodeWithText("Search POIs").assertDoesNotExist()
-        composeRule.onNodeWithText("Route").assertDoesNotExist()
+        composeRule.onNodeWithText("Navigate to").assertDoesNotExist()
     }
 
     @Test

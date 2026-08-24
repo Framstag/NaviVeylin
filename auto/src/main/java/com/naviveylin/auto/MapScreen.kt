@@ -45,7 +45,7 @@ import org.json.JSONObject
  * for [AutoMapRenderer] to draw on. Gesture handling (pan, zoom, click) is done through
  * [SurfaceCallback] methods.
  *
- * Supports destination selection: tap on map → details overlay with "Navigate here" action.
+ * Supports destination selection: tap on map → details overlay with "Navigate to" action.
  *
  * Note: [MapTemplate] (deprecated in favor of [androidx.car.app.navigation.model.MapWithContentTemplate])
  * is used deliberately — a full-screen map without a content overlay. The replacement requires
@@ -72,6 +72,11 @@ class MapScreen(
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
     private val locationProvider = entryPoint.autoLocationProvider()
     private val settingsProvider = entryPoint.autoSettingsProvider()
+
+    /** Applies the shared map style to the native client (deduped). */
+    private val styleApplier = CarStyleApplier { style ->
+        entryPoint.autoClientProvider().client().loadStyleSheet(style)
+    }
 
     /**
      * Initial viewport for the renderer: last phone-app viewport, else the
@@ -187,6 +192,14 @@ class MapScreen(
             if (vp.angle != 0.0) {
                 Log.d(TAG, "settings: north-up -> reset angle")
                 mapRenderer.setViewport(vp.lat, vp.lon, vp.zoom, 0.0, vp.zoom.toDouble())
+            }
+        }
+        // Apply the shared map style (loadStyleSheet blocks on the native DB
+        // thread — run off the main thread; deduped by the applier).
+        val style = settings.styleSheet
+        scope.launch(Dispatchers.Default) {
+            if (!styleApplier.apply(style)) {
+                Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
             }
         }
     }

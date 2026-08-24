@@ -87,4 +87,34 @@ class SettingsStorageTest {
         assertEquals(false, loaded.keepScreenOn)
         assertEquals(DarkModePreference.ON, loaded.darkMode)
     }
+
+    @Test
+    fun roundTripPersistsStyleSheet() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        storage.save(AppSettings(styleSheet = "cycle"))
+        val loaded = storage.load()
+        assertEquals("cycle", loaded.styleSheet)
+    }
+
+    @Test
+    fun missingStyleSheetDefaultsToStandard() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        val loaded = storage.load()
+        assertEquals("standard", loaded.styleSheet)
+    }
+
+    @Test
+    fun oldSettingsJsonWithoutStyleSheetLoadsAsStandard() = runTest {
+        // Simulate a settings file written by an app version predating the
+        // styleSheet setting — the missing key must decode to the default.
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val file = java.io.File(context.filesDir, "maps/settings.json")
+        file.parentFile?.mkdirs()
+        file.writeText("""{"followMode":true,"renderMode":"DIRECT"}""")
+        val storage = SettingsStorage(context)
+        val loaded = storage.load()
+        assertEquals(true, loaded.followMode)
+        assertEquals(RenderMode.DIRECT, loaded.renderMode)
+        assertEquals("standard", loaded.styleSheet)
+    }
 }

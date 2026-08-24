@@ -19,4 +19,16 @@ interface AutoFavoritesProvider {
      * `MapCanvasViewModel.initMap` favorite setup.
      */
     suspend fun init(filePath: String): Boolean
+
+    /**
+     * Add a favorite with the given name at the coordinates (default group).
+     * Returns false when the repository is not initialized or the add fails.
+     */
+    suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean
+
+    /**
+     * Remove the favorite at the coordinates (any group). Returns false when
+     * no matching favorite exists or the removal fails.
+     */
+    suspend fun removeFavorite(lat: Double, lon: Double): Boolean
 }

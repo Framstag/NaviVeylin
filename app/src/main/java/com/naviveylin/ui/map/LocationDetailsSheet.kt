@@ -103,7 +103,7 @@ fun LocationDetailsDialog(
     // Derived display data from the shared DetailsResolver (spec:
     // enhanced-details-sheet — lead behavior; the Android Auto details screen
     // uses the same resolver, so both views show identical address/area/title
-    // data):
+    // data and the same filtered display entries):
     // - fullAddress: street + house number + postal code + city
     // - area: admin region hierarchy (Area list entry)
     // - title: object name if present, else the full address, else the label
@@ -115,13 +115,12 @@ fun LocationDetailsDialog(
         description = objectDescription,
         resolvedAddress = resolvedAddress
     )
-    val (title, fullAddress, area) = remember(entry, objectDescription, resolvedAddress) {
-        Triple(
-            DetailsResolver.resolveTitle(input),
-            DetailsResolver.resolveAddress(input),
-            DetailsResolver.resolveArea(input)
-        )
+    val data = remember(entry, objectDescription, resolvedAddress) {
+        DetailsResolver.resolve(input)
     }
+    val title = data.title
+    val fullAddress = data.address
+    val area = data.area
 
     // System back (edge swipe / button, incl. predictive back on API 33+)
     // closes the dialog and returns to the previous view. Composed only while
@@ -177,6 +176,27 @@ fun LocationDetailsDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                // Address as a top-level list entry (street + house number +
+                // postal code + city), same row as the AA details list.
+                if (fullAddress != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                    ) {
+                        Text(
+                            text = "Address:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(120.dp)
+                        )
+                        Text(
+                            text = fullAddress,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
                 // Area as a structured list entry (admin region hierarchy, or the
                 // description's admin-level "IsIn" for results without one)
                 if (area != null) {
@@ -199,34 +219,13 @@ fun LocationDetailsDialog(
                 }
 
                 // Structured description sections (native DescriptionService
-                // entries). The street ("Location") and house number ("Address")
-                // entries are merged into one full-address row.
-                val entries = objectDescription?.entries
-                if (entries != null && entries.isNotEmpty()) {
+                // entries), filtered by the shared resolver (blank skip +
+                // street/address dedup — the Address row above covers them).
+                val displayEntries = data.displayEntries
+                if (displayEntries.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider()
                     Spacer(modifier = Modifier.height(8.dp))
-
-                    // Merge street + house number into a single "Address" row;
-                    // drop the standalone street row when merged.
-                    val displayEntries = if (fullAddress != null) {
-                        entries.map { e ->
-                            if (e.sectionKey == "Location" && e.labelKey == "Address") {
-                                DescriptionEntry().apply {
-                                    sectionKey = e.sectionKey
-                                    subsectionKey = e.subsectionKey
-                                    hasIndex = e.hasIndex
-                                    index = e.index
-                                    labelKey = "Address"
-                                    value = fullAddress
-                                }
-                            } else {
-                                e
-                            }
-                        }.filterNot { it.sectionKey == "Location" && it.labelKey == "Location" }
-                    } else {
-                        entries
-                    }
 
                     // Group entries by sectionKey, preserving order
                     val sections = mutableListOf<Pair<String, List<DescriptionEntry>>>()
@@ -323,7 +322,9 @@ fun LocationDetailsDialog(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Route button
+                // Navigate to button (opens the route panel with the
+                // destination prefilled, start = current position; label
+                // aligned with the AA details screen).
                 if (onRouteToLocation != null) {
                     Button(
                         onClick = {
@@ -337,7 +338,7 @@ fun LocationDetailsDialog(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text("Route")
+                        Text("Navigate to")
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -359,8 +360,9 @@ fun LocationDetailsDialog(
                         Text("Remove from Favorites")
                     }
                 } else if (!showGroupPicker) {
-                    // Add to favorites
-                    Button(
+                    // Add to favorites (secondary action — the primary action
+                    // is "Navigate to")
+                    OutlinedButton(
                         onClick = { showGroupPicker = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {

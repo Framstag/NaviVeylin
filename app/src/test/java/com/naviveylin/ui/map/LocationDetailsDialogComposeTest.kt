@@ -7,6 +7,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
@@ -47,6 +49,8 @@ class LocationDetailsDialogComposeTest {
         entry: LocationEntry,
         description: ObjectDescription? = null,
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
+        onShowOnMap: (() -> Unit)? = null,
+        onRouteToLocation: (() -> Unit)? = null,
         onDismiss: () -> Unit = {}
     ) {
         composeRule.setContent {
@@ -59,8 +63,8 @@ class LocationDetailsDialogComposeTest {
                 groupNames = emptyList(),
                 onAddToFavorites = { _, _, _ -> },
                 onRemoveFromFavorites = {},
-                onRouteToLocation = null,
-                onShowOnMap = null,
+                onRouteToLocation = onRouteToLocation,
+                onShowOnMap = onShowOnMap,
                 onDismiss = onDismiss
             )
         }
@@ -251,5 +255,38 @@ class LocationDetailsDialogComposeTest {
         composeRule.waitForIdle()
 
         assertTrue("back gesture must dismiss the details dialog", dismissed)
+    }
+
+    @Test
+    fun navigateToButtonVisibleAndFires() {
+        var navigated = false
+        launch(entry(), onRouteToLocation = { navigated = true })
+
+        composeRule.onNodeWithText("Navigate to").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Navigate to").performClick()
+        assertTrue("Navigate to must fire", navigated)
+    }
+
+    @Test
+    fun showOnMapButtonVisibleFromLongPress() {
+        // Long-press entry: "Show on map" must be available (spec:
+        // enhanced-details-sheet — Show on map always available).
+        var shown = false
+        launch(entry(), onShowOnMap = { shown = true })
+
+        composeRule.onNodeWithText("Show").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Show").performClick()
+        assertTrue("Show on map must fire", shown)
+    }
+
+    @Test
+    fun coordinateLabelTitleShowsGenericLocation() {
+        // Long-press label is a coordinate pair — not a title (spec:
+        // enhanced-details-sheet — coordinate label falls back to generic).
+        launch(entry(label = "51.50000, 7.40000", admin = null))
+
+        composeRule.onNodeWithText("Location").assertIsDisplayed()
+        // The coordinates row still shows the pair — but only once (no title).
+        composeRule.onAllNodesWithText("51.50000, 7.40000").assertCountEquals(1)
     }
 }

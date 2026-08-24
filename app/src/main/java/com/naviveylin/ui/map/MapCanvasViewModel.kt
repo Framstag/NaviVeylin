@@ -114,6 +114,10 @@ data class MapCanvasUiState(
     val gpsFixQuality: GpsFixQuality = GpsFixQuality.NONE,
     val laneHintsEnabled: Boolean = true,
     val renderMode: RenderMode = RenderMode.TILES,
+    /** Selected map stylesheet (name without the .oss postfix), e.g. "standard". */
+    val styleSheet: String = "standard",
+    /** All bundled map styles offered by the picker (sorted, no .oss postfix). */
+    val availableStyleSheets: List<String> = emptyList(),
     /** Last GPS location for marker overlay; null if unavailable. */
     val gpsLocation: android.location.Location? = null,
     /** Viewport that produced the currently visible bitmap. Marker overlay must use this. */
@@ -415,6 +419,7 @@ class MapCanvasViewModel @Inject constructor(
      */
     private var lastPushedDark: Boolean? = null
     private var stylePushedToNative = false
+    private var lastPushedStyleSheet: String? = null
 
     private fun pushDarkPresentation(dark: Boolean) {
         if (lastPushedDark == dark) return
@@ -425,6 +430,42 @@ class MapCanvasViewModel @Inject constructor(
             Log.e(TAG, "setStyleSheetFlag failed", e)
         }
         mapRenderer?.invalidateStyle()
+    }
+
+    /**
+     * Load the map style [name] on the native database thread (blocking — runs
+     * off the main thread) and re-render on success. On failure the native side
+     * keeps the previous style; the dedupe marker is reset so the next push
+     * retries.
+     */
+    private suspend fun applyStyleSheet(name: String) {
+        if (lastPushedStyleSheet == name) return
+        val ok = withContext(defaultDispatcher) {
+            try {
+                client.loadStyleSheet(name)
+            } catch (e: Exception) {
+                Log.e(TAG, "loadStyleSheet failed for '$name'", e)
+                false
+            }
+        }
+        if (ok) {
+            lastPushedStyleSheet = name
+            mapRenderer?.invalidateStyle()
+        } else {
+            lastPushedStyleSheet = null
+            Log.e(TAG, "loadStyleSheet returned false for '$name' — previous style kept")
+        }
+    }
+
+    /** Select and persist a map style; applies it to the renderer immediately. */
+    fun onStyleSheetSelected(name: String) {
+        _uiState.value = _uiState.value.copy(styleSheet = name)
+        viewModelScope.launch {
+            val current = settingsStorage.load()
+            settingsStorage.save(current.copy(styleSheet = name))
+        }
+        lastPushedStyleSheet = null
+        viewModelScope.launch { applyStyleSheet(name) }
     }
 
     /** Toggle auto-zoom on/off. */
@@ -804,8 +845,29 @@ class MapCanvasViewModel @Inject constructor(
                 keepScreenOn = settings.keepScreenOn,
                 darkModePreference = settings.darkMode,
                 laneHintsEnabled = settings.laneHintsEnabled,
-                renderMode = settings.renderMode
+                renderMode = settings.renderMode,
+                styleSheet = settings.styleSheet
             )
+            // If initMap already ran before this load finished (fast user flow),
+            // re-apply the persisted style — initMap may have used the default.
+            if (mapRenderer != null) {
+                lastPushedStyleSheet = null
+                applyStyleSheet(settings.styleSheet)
+            }
+        }
+
+        // Load the bundled map styles for the picker (off main; a directory
+        // scan on the device stylesheet dir).
+        viewModelScope.launch {
+            val styles = withContext(defaultDispatcher) {
+                try {
+                    client.getAvailableStyleSheets()
+                } catch (e: Exception) {
+                    Log.w(TAG, "getAvailableStyleSheets failed", e)
+                    emptyList()
+                }
+            }
+            _uiState.value = _uiState.value.copy(availableStyleSheets = styles)
         }
 
         // Collect route results from RoutePanelViewModel — pass to renderer
@@ -1239,6 +1301,14 @@ class MapCanvasViewModel @Inject constructor(
             // is effective — mark it as done so the first front-buffer frame does
             // not re-push and invalidate the freshly rendered tiles.
             stylePushedToNative = true
+
+            // Apply the persisted map style before the first render.
+            // loadStyleSheet blocks on the native DB thread, so it runs off the
+            // main thread via applyStyleSheet; the first frame then already uses
+            // the selected style. The value comes from the settings load that
+            // ran at ViewModel init.
+            lastPushedStyleSheet = null
+            applyStyleSheet(_uiState.value.styleSheet)
 
             Log.d(TAG, "initMap: triggering first render")
             renderer.requestRender(vp.centerLat, vp.centerLon, vp.magnification)

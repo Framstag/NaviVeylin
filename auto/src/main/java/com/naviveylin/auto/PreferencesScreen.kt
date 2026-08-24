@@ -10,6 +10,7 @@ import androidx.car.app.model.Row
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
+import com.naviveylin.core.BundledMapStyles
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,18 +27,24 @@ import kotlinx.coroutines.launch
  * click listeners (car-app constraint `ROW_CONSTRAINTS_PANE`). ListTemplate is
  * the most broadly supported list template across hosts (projection and AAOS).
  */
-class PreferencesScreen(
+class PreferencesScreen private constructor(
     carContext: CarContext,
-    private val settingsProvider: AutoSettingsProvider
+    private val settingsProvider: AutoSettingsProvider,
+    private val stylesLoader: () -> List<String>
 ) : Screen(carContext) {
 
-    /** Production path: resolve the provider via the Hilt entry point. */
+    /** Production path: resolve the provider and the live style list via Hilt. */
     constructor(carContext: CarContext) : this(
         carContext,
-        EntryPointAccessors.fromApplication(
-            carContext.applicationContext,
-            AutoEntryPoint::class.java
-        ).autoSettingsProvider()
+        settingsProviderFor(carContext),
+        stylesLoaderFor(carContext)
+    )
+
+    /** Test path: injected provider and the bundled fallback style list. */
+    constructor(carContext: CarContext, settingsProvider: AutoSettingsProvider) : this(
+        carContext,
+        settingsProvider,
+        { BundledMapStyles.ALL }
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -87,11 +94,30 @@ class PreferencesScreen(
 
     internal fun onToggle(key: String) {
         val current = settings ?: return
-        val updated = PreferencesScreenMapper.toggle(current, key)
+        val updated = PreferencesScreenMapper.toggle(current, key, stylesLoader())
         settings = updated
         scope.launch {
             settingsProvider.save(updated)
             invalidate()
+        }
+    }
+
+    private companion object {
+        fun settingsProviderFor(carContext: CarContext): AutoSettingsProvider =
+            EntryPointAccessors.fromApplication(
+                carContext.applicationContext,
+                AutoEntryPoint::class.java
+            ).autoSettingsProvider()
+
+        /** Live style list from the device stylesheet dir; bundled set on failure. */
+        fun stylesLoaderFor(carContext: CarContext): () -> List<String> = {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                carContext.applicationContext,
+                AutoEntryPoint::class.java
+            )
+            runCatching {
+                entryPoint.autoClientProvider().client().getAvailableStyleSheets()
+            }.getOrDefault(BundledMapStyles.ALL)
         }
     }
 }

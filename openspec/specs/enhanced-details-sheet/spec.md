@@ -7,7 +7,7 @@ Provides a full-screen details dialog that displays structured OSM object descri
 ## Requirements
 
 ### Requirement: Full-screen details dialog
-The details view SHALL be implemented as a full-screen dialog that covers the entire available screen. It SHALL close on the system back gesture/button (including predictive back on API 33+), returning to the previous view. The dialog SHALL display the object name, an interactive mini map of the object's surroundings, the structured description list, and the action buttons. No map content SHALL remain visible behind the dialog.
+The details view SHALL be implemented as a full-screen dialog that covers the entire available screen. It SHALL close on the system back gesture/button (including predictive back on API 33+), returning to the previous view. The dialog SHALL display the object name, an interactive mini map of the object's surroundings, the structured description list, and the action buttons. No map content SHALL remain visible behind the dialog. The dialog SHALL always offer a "Show on map" action that closes the dialog and centers the map on the object, regardless of how the dialog was opened.
 
 #### Scenario: Dialog is full screen
 - **WHEN** the details view is open
@@ -40,6 +40,12 @@ The details view SHALL be implemented as a full-screen dialog that covers the en
 - **WHEN** the details dialog is open
 - **THEN** an interactive mini map of the object's surroundings SHALL be displayed below the object name
 - **AND** the mini map SHALL show a marker at the object's position
+
+#### Scenario: Show on map always available
+- **WHEN** the details dialog is open
+- **AND** the dialog was opened from a long-press or a search result
+- **THEN** a "Show on map" action SHALL be visible
+- **AND** activating it SHALL close the dialog and center the map on the object
 
 ### Requirement: Structured description display
 The details dialog SHALL render `ObjectDescription` entries grouped by section. Each section SHALL display as a header (e.g., "General", "Location", "Contact") followed by its label/value rows. Subsections SHALL display as sub-headers indented under their parent section. Repeated subsections (with index) SHALL show the index.
@@ -84,18 +90,18 @@ The sheet SHALL always display the latitude and longitude of the selected locati
 - **THEN** the coordinates SHALL be displayed as "lat, lon" formatted to 5 decimal places
 - **AND** the text SHALL use a subdued color style
 
-### Requirement: Route button in details sheet
-The details sheet SHALL display a "Route" button that opens the route panel with the current location prefilled as the start point. This button SHALL be positioned alongside the favorite controls.
+### Requirement: Navigate to button in details sheet
+The details sheet SHALL display a "Navigate to" button that opens the route panel with the current location prefilled as the start point. This button SHALL be positioned alongside the favorite controls.
 
 #### Scenario: Route button visible
 - **WHEN** the details sheet is open
-- **THEN** a "Route" button SHALL be visible in the sheet
+- **THEN** a "Navigate to" button SHALL be visible in the sheet
 - **AND** tapping it SHALL dismiss the details sheet and open the route panel with the location prefilled as start
 
 #### Scenario: Route button with favorite controls
 - **WHEN** the details sheet is open
 - **AND** the location is not a favorite
-- **THEN** both the "Add to Favorites" button and the "Route" button SHALL be visible
+- **THEN** both the "Add to Favorites" button and the "Navigate to" button SHALL be visible
 
 ### Requirement: Area as list entry
 The details dialog SHALL display the object's area as a structured list entry with a label and value, alongside the other description entries. The area SHALL be the object's admin region hierarchy when available, falling back to the description's admin-level "IsIn" value (covers results without a hierarchy, e.g. POI search and long-press).
@@ -117,7 +123,7 @@ The details dialog SHALL display the object's area as a structured list entry wi
 - **THEN** no area list entry SHALL be shown
 
 ### Requirement: Title shows name or address
-The details dialog SHALL show the object's name as the title when the object has a name. When the object has no name but has an address, the address SHALL be shown as the title instead. Otherwise the search label SHALL be shown.
+The details dialog SHALL show the object's name as the title when the object has a name. When the object has no name but has an address, the address SHALL be shown as the title instead. Otherwise the search label SHALL be shown, unless the label is a coordinate pair, in which case a generic "Location" title SHALL be shown.
 
 #### Scenario: Title shows object name
 - **WHEN** the details dialog is open
@@ -133,7 +139,14 @@ The details dialog SHALL show the object's name as the title when the object has
 #### Scenario: Title falls back to label
 - **WHEN** the details dialog is open
 - **AND** the object has neither a name nor an address
+- **AND** the search label is not a coordinate pair
 - **THEN** the title SHALL display the search label
+
+#### Scenario: Coordinate label falls back to generic title
+- **WHEN** the details dialog is open
+- **AND** the object has neither a name nor an address
+- **AND** the search label is a coordinate pair (e.g. "51.50000, 7.40000")
+- **THEN** the title SHALL display a generic "Location" title
 
 ### Requirement: Address entry when house number present
 The details dialog SHALL display the object's address as a list entry when the object has a house number. The address SHALL combine the street and the house number from the object description's address entries ("Location" = street, "Address" = house number) with the postal code and city; when the description lacks a street, the street SHALL be taken from a reverse lookup of the location index at the object's position (which also supplies the admin region and postal area). The standalone street row SHALL NOT be duplicated when the combined address is shown.

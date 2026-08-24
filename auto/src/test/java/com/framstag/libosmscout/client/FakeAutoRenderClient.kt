@@ -7,6 +7,16 @@ package com.framstag.libosmscout.client
  */
 class FakeAutoRenderClient : OSMScoutClient() {
 
+    /** Style names passed to [loadStyleSheet] in call order. */
+    val styleSheetLoads = mutableListOf<String>()
+
+    /** Return value of the next [loadStyleSheet] call (true = success). */
+    var styleSheetLoadResult: Boolean = true
+
+    override fun loadStyleSheet(name: String): Boolean {
+        styleSheetLoads.add(name)
+        return styleSheetLoadResult
+    }
     override fun render(
         width: Int, height: Int,
         lat: Double, lon: Double,

@@ -16,7 +16,8 @@ class AutoSettingsMappingTest {
             keepScreenOn = false,
             darkMode = DarkModePreference.ON,
             laneHintsEnabled = false,
-            renderMode = RenderMode.DIRECT
+            renderMode = RenderMode.DIRECT,
+            styleSheet = "cycle"
         )
 
         val auto = app.toAutoSettings()
@@ -28,6 +29,7 @@ class AutoSettingsMappingTest {
         assertEquals("ON", auto.darkMode)
         assertEquals(false, auto.laneHintsEnabled)
         assertEquals("DIRECT", auto.renderMode)
+        assertEquals("cycle", auto.styleSheet)
     }
 
     @Test
@@ -46,13 +48,15 @@ class AutoSettingsMappingTest {
         val updated = AutoSettings(
             followMode = true,
             darkMode = "OFF",
-            renderMode = "DIRECT"
+            renderMode = "DIRECT",
+            styleSheet = "winter-sports"
         ).toAppSettings(current)
 
         assertEquals(false, updated.keepScreenOn)
         assertEquals(true, updated.followMode)
         assertEquals(DarkModePreference.OFF, updated.darkMode)
         assertEquals(RenderMode.DIRECT, updated.renderMode)
+        assertEquals("winter-sports", updated.styleSheet)
     }
 
     @Test
@@ -65,7 +69,8 @@ class AutoSettingsMappingTest {
             keepScreenOn = true,
             darkMode = DarkModePreference.ON,
             laneHintsEnabled = false,
-            renderMode = RenderMode.DIRECT
+            renderMode = RenderMode.DIRECT,
+            styleSheet = "cycle"
         )
 
         val roundTripped = app.toAutoSettings().toAppSettings(app)

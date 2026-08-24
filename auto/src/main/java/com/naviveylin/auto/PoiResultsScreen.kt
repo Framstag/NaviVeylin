@@ -24,7 +24,7 @@ import kotlinx.coroutines.withContext
  * POI search results for one [com.framstag.libosmscout.client.PoiCategories]
  * category, searched around the current GPS position.
  *
- * Each result row offers a "Navigate here" action (route + turn-by-turn via
+ * Each result row offers a "Navigate to" action (route + turn-by-turn via
  * the shared navigation controller). Requires a GPS fix; without one an
  * explanatory row is shown instead.
  */

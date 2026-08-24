@@ -60,6 +60,11 @@ class NavigationScreen(
     private val locationProvider = entryPoint.autoLocationProvider()
     private val settingsProvider = entryPoint.autoSettingsProvider()
 
+    /** Applies the shared map style to the native client (deduped). */
+    private val styleApplier = CarStyleApplier { style ->
+        entryPoint.autoClientProvider().client().loadStyleSheet(style)
+    }
+
     private var surfaceWidth = 0
 
     /** Surface-refresh (invalidate) attempts left for this screen start. */
@@ -166,6 +171,14 @@ class NavigationScreen(
                     laneHintsEnabled = settings.laneHintsEnabled
                     navNorthUp = settings.navNorthUp
                     autoZoomEnabled = settings.autoZoomEnabled
+                    // Apply the shared map style (loadStyleSheet blocks on the
+                    // native DB thread — run off the main thread; deduped).
+                    val style = settings.styleSheet
+                    scope.launch(Dispatchers.Default) {
+                        if (!styleApplier.apply(style)) {
+                            Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
+                        }
+                    }
                     mapRenderer.requestRender()
                 }
                 .onFailure { Log.w(TAG, "loading settings failed", it) }

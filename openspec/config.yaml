@@ -51,10 +51,11 @@ operations:
       - Before marking implementation complete, run the build and verify it compiles without errors
       - Before marking implementation complete, verify tests exist for all new/modified code and they pass
       - If build or tests fail, do NOT mark tasks complete — report failures and fix them first
+      - Make sure that tests cover all relevant data combinations and process variants and thus cover the complete code under tests in all its variants
       - Make sure that build has no warnings
       - Build only the targets needed for testing to minimize resource usage and compilation time
       - Verify all new/modified code against every document in guidelines/ — all conventions and rules defined there must be followed
-      - Update README or documentation if behavior changes
+      - Update README.md and AGENTS.md and other documentation if behavior changes
       - Verify no regressions in unrelated areas
       - For native C++ changes, verify all target ABIs compile
       - Any problems you detect during implementation that are not initiated by this change, have to be documented in a TODO.md for later processing in other changes.

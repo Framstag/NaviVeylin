@@ -18,6 +18,7 @@ import androidx.car.app.navigation.model.MapController
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.ObjectDescription
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoPosition
@@ -46,7 +47,7 @@ import kotlinx.coroutines.withContext
  * Shows a map preview of the destination (libosmscout-rendered via
  * [AutoMapRenderer], destination marker at the position) with a pane overlaid
  * containing the reverse-geocoded address, coordinates, and object
- * description as labeled rows. "Navigate here" (primary) starts navigation;
+ * description as labeled rows. "Navigate to" starts navigation;
  * "Show" closes the details and centers the browse map on the destination.
  * Shared by all entry points: map tap, search results, and POI results.
  *
@@ -66,6 +67,7 @@ class DetailsScreen(
     private var address: Array<String>? = null
     private var description: ObjectDescription? = null
     private var gpsPosition: AutoPosition? = null
+    private var favorites: Map<String, List<FavoriteLocation>> = emptyMap()
     private val loadScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val entryPoint = EntryPointAccessors.fromApplication(
@@ -125,10 +127,13 @@ class DetailsScreen(
         }
 
         // Observe favorites for markers on the preview (parity with the
-        // browse map).
+        // browse map) and for the save/remove favorite action row (spec:
+        // auto-destination-details — favorite management on details screen).
         loadScope.launch {
             favoritesProvider.favoriteLocations().collect { favorites ->
+                this@DetailsScreen.favorites = favorites
                 mapRenderer.setFavoriteLocations(favorites.values.flatten())
+                invalidate()
             }
         }
 
@@ -203,13 +208,30 @@ class DetailsScreen(
             )
         }
 
-        // "Navigate here" + "Show" as clickable rows at the top of the list:
+        // "Navigate to" + "Show" as clickable rows at the top of the list:
         // ListTemplate actions are FAB-icon-only (car-app constraint) — a
         // titled action throws "exceeded max number of 0 actions with custom
         // titles", so the actions ride on rows (same as the map menu).
         val listBuilder = ItemList.Builder()
         listBuilder.addItem(buildNavigateRow(onNavigate))
         listBuilder.addItem(buildShowRow(onShow))
+        // Favorite management (spec: auto-destination-details — favorite
+        // management on details screen): save/remove reflects the store state.
+        if (isFavorite()) {
+            listBuilder.addItem(
+                buildRemoveFavoriteRow {
+                    loadScope.launch { favoritesProvider.removeFavorite(lat, lon) }
+                }
+            )
+        } else {
+            listBuilder.addItem(
+                buildSaveFavoriteRow {
+                    loadScope.launch {
+                        favoritesProvider.addFavorite(resolveTitle(address, description, nameHint), lat, lon)
+                    }
+                }
+            )
+        }
         buildAttributeList(
             lat = lat,
             lon = lon,
@@ -245,6 +267,10 @@ class DetailsScreen(
      * name hint (search label), else null (coordinates fallback).
      */
     private fun destinationName(): String? = resolveDestinationName(address, nameHint)
+
+    /** True when the destination is already saved as a favorite (any group). */
+    private fun isFavorite(): Boolean =
+        favorites.values.flatten().any { it.lat == lat && it.lon == lon }
 
     private fun registerSurfaceCallback() {
         val appManager = carContext.getCarService(AppManager::class.java)
@@ -348,15 +374,16 @@ class DetailsScreen(
 }
 
 /**
- * Builds the "Navigate here" row (spec: auto-destination-details) — the
+ * Builds the "Navigate to" row (spec: auto-destination-details) — the
  * first list row that starts navigation, marked with a unicode direction
- * glyph so it reads as an action. Extracted for testability: tapping the
- * row fires [onNavigate]. Rendered as a row because ListTemplate actions
- * are FAB-icon-only (no custom titles).
+ * glyph so it reads as an action. Label aligned with the phone details
+ * dialog. Extracted for testability: tapping the row fires [onNavigate].
+ * Rendered as a row because ListTemplate actions are FAB-icon-only (no
+ * custom titles).
  */
 internal fun buildNavigateRow(onNavigate: () -> Unit): Row =
     Row.Builder()
-        .setTitle("\u25B6 Navigate here")
+        .setTitle("\u25B6 Navigate to")
         .setOnClickListener { onNavigate() }
         .build()
 
@@ -373,6 +400,30 @@ internal fun buildShowRow(onShow: () -> Unit): Row =
         .build()
 
 /**
+ * Builds the "Add to Favorites" row (spec: auto-destination-details —
+ * favorite management on details screen), marked with a star glyph. Label
+ * aligned with the phone details dialog (spec: cross-variant-ui-parity).
+ * Extracted for testability: tapping the row fires [onSave].
+ */
+internal fun buildSaveFavoriteRow(onSave: () -> Unit): Row =
+    Row.Builder()
+        .setTitle("★ Add to Favorites")
+        .setOnClickListener { onSave() }
+        .build()
+
+/**
+ * Builds the "Remove from Favorites" row (spec: auto-destination-details —
+ * favorite management on details screen), marked with an empty-star glyph.
+ * Label aligned with the phone details dialog (spec: cross-variant-ui-parity).
+ * Extracted for testability: tapping the row fires [onRemove].
+ */
+internal fun buildRemoveFavoriteRow(onRemove: () -> Unit): Row =
+    Row.Builder()
+        .setTitle("☆ Remove from Favorites")
+        .setOnClickListener { onRemove() }
+        .build()
+
+/**
  * Builds the details attribute list (spec: auto-destination-details).
  *
  * Pure and testable: every row carries a label (title) with its value (text),
@@ -381,9 +432,9 @@ internal fun buildShowRow(onShow: () -> Unit): Row =
  * description IsIn → postal area), then ALL object description entries
  * (label/value) in native order — no row cap; the host pages when the list
  * exceeds one page, so every attribute returned by the description API
- * (opening hours, phone, …) is reachable. Address, area, and title
- * resolution is shared with the phone details dialog via
- * [DetailsResolver] (phone is the lead view).
+ * (opening hours, phone, …) is reachable. Resolution and entry filtering are
+ * shared with the phone details dialog via [DetailsResolver] (phone is the
+ * lead view).
  */
 internal fun buildAttributeList(
     lat: Double,
@@ -402,47 +453,38 @@ internal fun buildAttributeList(
             .build()
     )
 
-    // Address + area resolved with the same rules as the phone details
-    // dialog; the caller's label doubles as the search label so address-like
-    // labels ("Hauptstraße 12") can backfill a missing street.
+    // One shared resolution pass (spec: align-details-actions-and-shared-data
+    // — DetailsData bundle): address, area, and the filtered display entries.
+    // The caller's label doubles as the object name (POI/search results carry
+    // the name in the label, phone parity) so the header shows the name even
+    // when the description lacks a General/Name entry.
     val input = DetailsInput(
         label = nameHint,
-        name = null,
+        name = nameHint,
         adminRegionHierarchy = null,
         postalArea = null,
         description = description,
         resolvedAddress = address
     )
-    val addressLine = DetailsResolver.resolveAddress(input)
+    val data = DetailsResolver.resolve(input, nameHint)
+    val addressLine = data.address
     if (addressLine != null) {
         rows.add(Row.Builder().setTitle("Address").addText(addressLine).build())
     }
-    val area = DetailsResolver.resolveArea(input)
+    val area = data.area
     if (area != null) {
         rows.add(Row.Builder().setTitle("Area").addText(area).build())
     }
 
-    // ALL object description entries (label → value), in native order. The
-    // standalone street (Location / Location) and the merged house number
-    // (Location / Address) are already covered by the Address row — skipped
-    // to avoid duplicates.
-    if (description != null) {
-        for (entry in description.entries) {
-            val value = entry.value?.trim().orEmpty()
-            val label = entry.labelKey?.trim().orEmpty()
-            if (value.isEmpty() || label.isEmpty()) continue
-            if (entry.sectionKey == "Location" &&
-                (entry.labelKey == "Address" || entry.labelKey == "Location")
-            ) {
-                continue
-            }
-            rows.add(
-                Row.Builder()
-                    .setTitle(label)
-                    .addText(value)
-                    .build()
-            )
-        }
+    // ALL object description entries (label → value), in native order, after
+    // the shared filter (blank skip + street/address dedup).
+    for (entry in data.displayEntries) {
+        rows.add(
+            Row.Builder()
+                .setTitle(entry.labelKey)
+                .addText(entry.value?.trim().orEmpty())
+                .build()
+        )
     }
 
     return rows
@@ -462,7 +504,7 @@ internal fun resolveTitle(
 ): String {
     val input = DetailsInput(
         label = nameHint,
-        name = null,
+        name = nameHint,
         adminRegionHierarchy = null,
         postalArea = null,
         description = description,
@@ -483,7 +525,7 @@ internal fun resolveDestinationName(
 ): String? {
     val input = DetailsInput(
         label = nameHint,
-        name = null,
+        name = nameHint,
         adminRegionHierarchy = null,
         postalArea = null,
         description = null,

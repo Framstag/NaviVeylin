@@ -1,5 +1,7 @@
 package com.naviveylin.core.details
 
+import com.framstag.libosmscout.client.DescriptionEntry
+
 /**
  * Single source of truth for the details-view data resolution shared by the
  * phone details dialog (`LocationDetailsDialog`) and the Android Auto details
@@ -116,7 +118,12 @@ object DetailsResolver {
         if (name != null) return name
         val address = resolveAddress(input)
         if (address != null) return address
-        val label = input.label?.takeIf { it.isNotBlank() }
+        // Coordinate labels ("51.50000, 7.40000") are not titles — fall
+        // through to the generic "Location" (AA approach, spec:
+        // enhanced-details-sheet — coordinate label falls back to generic).
+        val label = input.label?.takeIf {
+            it.isNotBlank() && !it.matches(COORDINATE_LABEL_REGEX)
+        }
         if (label != null) return label
         return nameHint?.takeIf { it.isNotBlank() } ?: "Location"
     }
@@ -127,10 +134,40 @@ object DetailsResolver {
      * null (coordinates fallback).
      */
     fun resolveDestinationName(input: DetailsInput, nameHint: String? = null): String? {
+        val name = resolveName(input)
+        if (name != null) return name
         val address = resolveAddress(input)
         if (address != null) return address
         val area = resolveArea(input)
         if (area != null) return area
         return nameHint?.takeIf { it.isNotBlank() }
     }
+
+    /**
+     * Shared display entries: description entries after blank filtering and
+     * street/address dedup (the merged Address row covers `Location/Address`
+     * and `Location/Location`). Both views render exactly this list.
+     */
+    fun filterDisplayEntries(input: DetailsInput): List<DescriptionEntry> =
+        entries(input).filter { entry ->
+            val value = entry.value?.trim().orEmpty()
+            val label = entry.labelKey?.trim().orEmpty()
+            value.isNotEmpty() && label.isNotEmpty() &&
+                !(entry.sectionKey == "Location" &&
+                    (entry.labelKey == "Address" || entry.labelKey == "Location"))
+        }
+
+    /**
+     * One resolved bundle for both details views: title, address, area,
+     * destination name, and the shared display entries. Both UIs consume this
+     * single output, so future changes affect both variants at once.
+     */
+    fun resolve(input: DetailsInput, nameHint: String? = null): DetailsData =
+        DetailsData(
+            title = resolveTitle(input, nameHint),
+            address = resolveAddress(input),
+            area = resolveArea(input),
+            destinationName = resolveDestinationName(input, nameHint),
+            displayEntries = filterDisplayEntries(input)
+        )
 }

@@ -10,7 +10,7 @@ class PreferencesScreenMapperTest {
     fun rows_containsAllCarRelevantSettings() {
         val rows = PreferencesScreenMapper.rows(AutoSettings())
 
-        assertEquals(7, rows.size)
+        assertEquals(8, rows.size)
         assertEquals(
             listOf(
                 "followMode",
@@ -19,7 +19,8 @@ class PreferencesScreenMapperTest {
                 "navNorthUp",
                 "darkMode",
                 "laneHintsEnabled",
-                "renderMode"
+                "renderMode",
+                "styleSheet"
             ),
             rows.map { it.key }
         )
@@ -31,7 +32,8 @@ class PreferencesScreenMapperTest {
             followMode = true,
             autoZoomEnabled = false,
             darkMode = "ON",
-            renderMode = "DIRECT"
+            renderMode = "DIRECT",
+            styleSheet = "cycle"
         )
 
         val rows = PreferencesScreenMapper.rows(settings).associateBy { it.key }
@@ -40,6 +42,8 @@ class PreferencesScreenMapperTest {
         assertEquals("Off", rows["autoZoomEnabled"]?.valueText)
         assertEquals("On", rows["darkMode"]?.valueText)
         assertEquals("Direct", rows["renderMode"]?.valueText)
+        assertEquals("cycle", rows["styleSheet"]?.valueText)
+        assertEquals("Map style", rows["styleSheet"]?.title)
     }
 
     @Test
@@ -67,6 +71,27 @@ class PreferencesScreenMapperTest {
     fun toggle_cyclesRenderMode() {
         assertEquals("DIRECT", PreferencesScreenMapper.toggle(AutoSettings(renderMode = "TILES"), "renderMode").renderMode)
         assertEquals("TILES", PreferencesScreenMapper.toggle(AutoSettings(renderMode = "DIRECT"), "renderMode").renderMode)
+    }
+
+    @Test
+    fun toggle_cyclesMapStyle() {
+        val styles = listOf("cycle", "motorways", "standard", "winter-sports")
+        assertEquals("winter-sports", PreferencesScreenMapper.toggle(AutoSettings(styleSheet = "standard"), "styleSheet", styles).styleSheet)
+        assertEquals("cycle", PreferencesScreenMapper.toggle(AutoSettings(styleSheet = "winter-sports"), "styleSheet", styles).styleSheet)
+    }
+
+    @Test
+    fun toggle_mapStyleWrapsToFirstForUnknownCurrent() {
+        val styles = listOf("cycle", "standard")
+        assertEquals("cycle", PreferencesScreenMapper.toggle(AutoSettings(styleSheet = "stale"), "styleSheet", styles).styleSheet)
+    }
+
+    @Test
+    fun toggle_mapStyleKeepsCurrentWhenListEmpty() {
+        assertEquals(
+            "standard",
+            PreferencesScreenMapper.toggle(AutoSettings(styleSheet = "standard"), "styleSheet", emptyList()).styleSheet
+        )
     }
 
     @Test

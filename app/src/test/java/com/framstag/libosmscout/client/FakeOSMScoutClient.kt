@@ -204,11 +204,36 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Results returned by the next [searchLocations] call (default: empty). */
     var nextSearchResults: Array<LocationEntry>? = emptyArray()
 
+    /** When set, [searchLocations] throws this instead of returning. */
+    var searchLocationsError: Exception? = null
+
     override fun searchLocations(query: String, limit: Int, adminRegionHandle: Long): Array<LocationEntry>? {
         searchAdminRegionHandles.add(adminRegionHandle)
         searchQueries.add(query)
         searchLimits.add(limit)
+        searchLocationsError?.let { throw it }
         return nextSearchResults
+    }
+
+    /** (adminRegion, postalArea, location, address) passed to [searchLocationByForm] in call order. */
+    val formSearchArgs = mutableListOf<List<String>>()
+
+    /** Results returned by the next [searchLocationByForm] call (default: empty). */
+    var nextFormResults: Array<LocationEntry>? = emptyArray()
+
+    /** When set, [searchLocationByForm] throws this instead of returning. */
+    var formSearchError: Exception? = null
+
+    override fun searchLocationByForm(
+        adminRegion: String,
+        postalArea: String,
+        location: String,
+        address: String,
+        limit: Int
+    ): Array<LocationEntry>? {
+        formSearchArgs.add(listOf(adminRegion, postalArea, location, address))
+        formSearchError?.let { throw it }
+        return nextFormResults
     }
 
     // --- POI search stubs ---

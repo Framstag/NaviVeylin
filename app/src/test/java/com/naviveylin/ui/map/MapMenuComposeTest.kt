@@ -36,14 +36,16 @@ class MapMenuComposeTest {
     private var downloadMaps = 0
     private var favorites = 0
     private var poiSearch = 0
+    private var addressBook = 0
     private var about = 0
     private var expandedState: MutableState<Boolean>? = null
 
-    private fun launchMenu() {
+    private fun launchMenu(addressBookAvailable: Boolean = true) {
         dismissed = false
         downloadMaps = 0
         favorites = 0
         poiSearch = 0
+        addressBook = 0
         about = 0
         composeRule.setContent {
             val expanded = remember { mutableStateOf(true) }
@@ -55,7 +57,9 @@ class MapMenuComposeTest {
                     onDownloadMaps = { downloadMaps++ },
                     onOpenFavorites = { favorites++ },
                     onOpenPoiSearch = { poiSearch++ },
+                    onOpenAddressBook = { addressBook++ },
                     onOpenAbout = { about++ },
+                    addressBookAvailable = addressBookAvailable,
                     toasterTopPadding = 4.dp
                 )
             }
@@ -79,7 +83,9 @@ class MapMenuComposeTest {
                     onDownloadMaps = { downloadMaps++ },
                     onOpenFavorites = { favorites++ },
                     onOpenPoiSearch = { poiSearch++ },
+                    onOpenAddressBook = { addressBook++ },
                     onOpenAbout = { about++ },
+                    addressBookAvailable = false,
                     toasterTopPadding = 4.dp
                 )
             }
@@ -88,6 +94,7 @@ class MapMenuComposeTest {
         composeRule.onNodeWithText("Download Maps").assertDoesNotExist()
         composeRule.onNodeWithText("Favorites").assertDoesNotExist()
         composeRule.onNodeWithText("Search POIs").assertDoesNotExist()
+        composeRule.onNodeWithText("Address book").assertDoesNotExist()
         composeRule.onNodeWithText("About").assertDoesNotExist()
     }
 
@@ -109,6 +116,7 @@ class MapMenuComposeTest {
         composeRule.onNodeWithText("Download Maps").assertIsDisplayed()
         composeRule.onNodeWithText("Favorites").assertIsDisplayed()
         composeRule.onNodeWithText("Search POIs").assertIsDisplayed()
+        composeRule.onNodeWithText("Address book").assertIsDisplayed()
         composeRule.onNodeWithText("About").assertIsDisplayed()
     }
 
@@ -123,6 +131,25 @@ class MapMenuComposeTest {
         assertEquals(0, downloadMaps)
         assertEquals(0, favorites)
         assertEquals(0, about)
+    }
+
+    @Test
+    fun addressBookEntryVisibleWhenPermissionGranted() {
+        launchMenu(addressBookAvailable = true)
+
+        composeRule.onNodeWithText("Address book").assertIsDisplayed()
+        composeRule.onNodeWithText("Address book").performClick()
+
+        assertEquals(1, addressBook)
+        assertTrue("menu dismissed on selection", expandedState?.value == false)
+    }
+
+    @Test
+    fun addressBookEntryHiddenWhenPermissionDenied() {
+        launchMenu(addressBookAvailable = false)
+
+        composeRule.onNodeWithText("Address book").assertDoesNotExist()
+        composeRule.onNodeWithText("Search POIs").assertIsDisplayed()
     }
 
     @Test

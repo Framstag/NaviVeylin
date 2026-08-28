@@ -197,6 +197,25 @@ public class OSMScoutClient {
     public native LocationEntry[] searchLocations(String query, int limit, long adminRegionHandle);
 
     /**
+     * Search for a location using the structured address form.
+     *
+     * Unlike {@link #searchLocations(String, int, long)} (free-form string
+     * search), this performs a structured lookup: admin region (city) first,
+     * then postal area, then street (location), then house number (address).
+     * House-level address results carry precise coordinates when the index
+     * has them.
+     *
+     * @param adminRegion city/region name (required; empty returns no results)
+     * @param postalArea postal code or area name (may be empty)
+     * @param location street name (may be empty)
+     * @param address house number (may be empty)
+     * @param limit maximum number of results
+     * @return array of matching locations, or null on error
+     */
+    public native LocationEntry[] searchLocationByForm(
+        String adminRegion, String postalArea, String location, String address, int limit);
+
+    /**
      * Resolve the admin region containing the given coordinate.
      *
      * @param lat latitude in degrees

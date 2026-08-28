@@ -98,7 +98,13 @@ data class MapCanvasUiState(
     val poiSelectedLon: Double = Double.NaN,
     /** True while the details sheet was opened from POI search; drives close semantics. */
     val detailsFromPoiSearch: Boolean = false,
+    /** True while the details sheet was opened from the address-book search; back returns to it. */
+    val detailsFromAddressBook: Boolean = false,
     val showFavoritesSheet: Boolean = false,
+    /** Whether READ_CONTACTS is granted; drives address-book menu visibility. */
+    val addressBookAvailable: Boolean = false,
+    /** Whether the address-book person search sheet is open. */
+    val showAddressBookSheet: Boolean = false,
     val showRoutePanel: Boolean = false,
     val routeStartLocation: LocationEntry? = null,
     val routeDestLocation: LocationEntry? = null,
@@ -487,6 +493,7 @@ class MapCanvasViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { searchHistoryRepository.load() }
+        refreshAddressBookAvailability()
 
         @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
         viewModelScope.launch {
@@ -1876,12 +1883,15 @@ class MapCanvasViewModel @Inject constructor(
     fun dismissDetailsSheet() {
         val s = _uiState.value
         val fromPoi = s.detailsFromPoiSearch
+        val fromAddressBook = s.detailsFromAddressBook
         _uiState.value = s.copy(
             showDetailsSheet = false,
             objectDescription = null,
             isLongPress = false,
             detailsFromPoiSearch = false,
-            poiSearchOpen = if (fromPoi && !s.showRoutePanel) true else s.poiSearchOpen
+            detailsFromAddressBook = false,
+            poiSearchOpen = if (fromPoi && !s.showRoutePanel) true else s.poiSearchOpen,
+            showAddressBookSheet = if (fromAddressBook && !s.showRoutePanel) true else s.showAddressBookSheet
         )
     }
 
@@ -1898,7 +1908,8 @@ class MapCanvasViewModel @Inject constructor(
             showDetailsSheet = false,
             objectDescription = null,
             isLongPress = false,
-            detailsFromPoiSearch = false
+            detailsFromPoiSearch = false,
+            detailsFromAddressBook = false
         )
     }
 
@@ -2064,6 +2075,92 @@ class MapCanvasViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             showFavoritesSheet = !_uiState.value.showFavoritesSheet
         )
+    }
+
+    /**
+     * Re-check READ_CONTACTS and update [MapCanvasUiState.addressBookAvailable]
+     * (spec: address-book-permission — permission state drives feature
+     * visibility). Called on init, on permission result, and on resume so
+     * later grants/revocations in system settings apply without a restart.
+     */
+    fun refreshAddressBookAvailability() {
+        val granted = android.content.pm.PackageManager.PERMISSION_GRANTED ==
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.READ_CONTACTS
+            )
+        if (_uiState.value.addressBookAvailable != granted) {
+            _uiState.value = _uiState.value.copy(addressBookAvailable = granted)
+        }
+    }
+
+    /** Open the address-book person search sheet. */
+    fun openAddressBookSheet() {
+        _uiState.value = _uiState.value.copy(showAddressBookSheet = true)
+    }
+
+    /** Close the address-book person search sheet. */
+    fun closeAddressBookSheet() {
+        _uiState.value = _uiState.value.copy(showAddressBookSheet = false)
+    }
+
+    /**
+     * Show the resolved address-book object in the existing details view
+     * (spec: address-book-search — details view for the resolved object).
+     * Mirrors search-result selection but without search history recording.
+     */
+    fun onAddressBookResultSelected(entry: LocationEntry) {
+        Log.d(TAG, "onAddressBookResultSelected: label='${entry.label}', lat=${entry.lat}, lon=${entry.lon}")
+        viewModelScope.launch {
+            if (_uiState.value.followMode) {
+                _uiState.value = _uiState.value.copy(followMode = false)
+                val current = settingsStorage.load()
+                settingsStorage.save(current.copy(followMode = false))
+            }
+            _uiState.value = _uiState.value.copy(
+                showAddressBookSheet = false,
+                selectedLocation = entry,
+                objectDescription = null,
+                isLongPress = false,
+                showDetailsSheet = true,
+                detailsFromPoiSearch = false,
+                detailsFromAddressBook = true,
+                isLoading = true
+            )
+            updateCenter(entry.lat, entry.lon)
+            renderMap()
+
+            // Fetch full object description at the resolved location
+            val desc = withContext(defaultDispatcher) {
+                try {
+                    client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getDescription failed for address-book result", e)
+                    null
+                }
+            }
+            if (desc != null && desc.entries.isNotEmpty()) {
+                val objLat = if (!desc.objectLat.isNaN()) desc.objectLat else entry.lat
+                val objLon = if (!desc.objectLon.isNaN()) desc.objectLon else entry.lon
+                val objEntry = LocationEntry().apply {
+                    this.label = entry.label
+                    this.lat = objLat
+                    this.lon = objLon
+                    this.matchQuality = entry.matchQuality
+                    this.adminRegionHierarchy = entry.adminRegionHierarchy
+                    this.name = entry.name
+                    this.objectType = entry.objectType
+                }
+                _uiState.value = _uiState.value.copy(
+                    selectedLocation = objEntry,
+                    objectDescription = desc,
+                    isLoading = false
+                )
+                updateCenter(objLat, objLon)
+                renderMap()
+            } else {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        }
     }
 
     /** Select the current GPS position as a search result (centers map + details sheet). */

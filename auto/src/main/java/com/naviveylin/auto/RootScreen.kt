@@ -1,5 +1,7 @@
 package com.naviveylin.auto
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
@@ -8,6 +10,7 @@ import androidx.car.app.model.Header
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
+import androidx.core.content.ContextCompat
 import com.naviveylin.core.NavigationViewModel
 
 /**
@@ -29,7 +32,7 @@ class RootScreen(
     }
 
     override fun onGetTemplate(): ListTemplate {
-        val itemList = ItemList.Builder()
+        val listBuilder = ItemList.Builder()
             .addItem(
                 Row.Builder()
                     .setTitle("Map")
@@ -58,6 +61,20 @@ class RootScreen(
                     .setOnClickListener { onFavorites() }
                     .build()
             )
+
+        // Address book — only while READ_CONTACTS is granted
+        // (spec: address-book-permission — permission state drives visibility).
+        if (hasAddressBookPermission()) {
+            listBuilder.addItem(
+                Row.Builder()
+                    .setTitle("Address book")
+                    .addText("Search contacts with addresses")
+                    .setOnClickListener { onAddressBook() }
+                    .build()
+            )
+        }
+
+        listBuilder
             .addItem(
                 Row.Builder()
                     .setTitle("Preferences")
@@ -79,7 +96,6 @@ class RootScreen(
                     .setOnClickListener { onAbout() }
                     .build()
             )
-            .build()
 
         return ListTemplate.Builder()
             .setHeader(
@@ -88,7 +104,7 @@ class RootScreen(
                     .setStartHeaderAction(Action.BACK)
                     .build()
             )
-            .setSingleList(itemList)
+            .setSingleList(listBuilder.build())
             .build()
     }
 
@@ -111,6 +127,17 @@ class RootScreen(
         Log.d(TAG, "Opening favorites screen")
         screenManager.push(FavoritesScreen(carContext, navigationViewModel))
     }
+
+    private fun onAddressBook() {
+        Log.d(TAG, "Opening address book screen")
+        screenManager.push(AddressBookScreen(carContext, navigationViewModel))
+    }
+
+    /** Address-book entry visibility follows the READ_CONTACTS permission. */
+    private fun hasAddressBookPermission(): Boolean =
+        ContextCompat.checkSelfPermission(
+            carContext, Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
 
     private fun onPreferences() {
         Log.d(TAG, "Opening preferences screen")

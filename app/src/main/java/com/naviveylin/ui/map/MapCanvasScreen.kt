@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -152,6 +153,13 @@ fun MapCanvasScreen(
     var showPermissionRationale by remember { mutableStateOf(false) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
+    // Address-book (contacts) permission state: one-time rationale dialog
+    // before the first request (spec: address-book-permission).
+    var showAddressBookRationale by remember { mutableStateOf(false) }
+    val addressBookRationaleStore = remember {
+        com.naviveylin.data.AddressBookRationaleStore(context.applicationContext)
+    }
+
     // While navigation is active, reject system back on the base map so the
     // app cannot be closed mid-route; the user must stop navigation first.
     // Overlays (favorites sheet, search panel, dialogs) register their own
@@ -182,6 +190,14 @@ fun MapCanvasScreen(
         }
     }
 
+    // Address-book permission launcher: result updates visibility (grant ->
+    // available, deny -> hidden); the rationale dialog runs before any launch.
+    val contactsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        viewModel.refreshAddressBookAvailability()
+    }
+
     // Request location permission on first composition if not granted
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(
@@ -191,6 +207,19 @@ fun MapCanvasScreen(
             viewModel.startLocationUpdates()
         } else {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
+    // Show the one-time address-book rationale dialog before the first
+    // READ_CONTACTS request (spec: address-book-permission). Never shown again
+    // once the decision is recorded, regardless of grant/deny outcome.
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(
+                context, Manifest.permission.READ_CONTACTS
+            ) != PackageManager.PERMISSION_GRANTED &&
+            !addressBookRationaleStore.wasShown()
+        ) {
+            showAddressBookRationale = true
         }
     }
 
@@ -223,6 +252,9 @@ fun MapCanvasScreen(
                     ) {
                         viewModel.startLocationUpdates()
                     }
+                    // Permission may have changed in system settings; keep the
+                    // address-book menu visibility in sync (spec: address-book-permission).
+                    viewModel.refreshAddressBookAvailability()
                 }
                 else -> {}
             }
@@ -808,7 +840,9 @@ fun MapCanvasScreen(
                 onDownloadMaps = { onNavigateToMapManager() },
                 onOpenFavorites = { viewModel.toggleFavoritesSheet() },
                 onOpenPoiSearch = { viewModel.openPoiSearch() },
+                onOpenAddressBook = { viewModel.openAddressBookSheet() },
                 onOpenAbout = { showAboutDialog = true },
+                addressBookAvailable = state.addressBookAvailable,
                 toasterTopPadding = if (isLandscape) 8.dp else 4.dp
             )
         }
@@ -941,6 +975,14 @@ fun MapCanvasScreen(
             )
         }
 
+        // Address-book person search sheet (full-screen)
+        if (state.showAddressBookSheet) {
+            com.naviveylin.ui.addressbook.AddressBookSheet(
+                onDismiss = { viewModel.closeAddressBookSheet() },
+                onResultSelected = { entry -> viewModel.onAddressBookResultSelected(entry) }
+            )
+        }
+
         // Route panel — hidden when summary dialog is shown
         if (state.showRoutePanel && !routeState.showSummaryDialog) {
             RoutePanel(
@@ -1021,6 +1063,27 @@ fun MapCanvasScreen(
                     TextButton(onClick = { showPermissionRationale = false }) {
                         Text("Cancel")
                     }
+                }
+            )
+        }
+        // Address-book (contacts) rationale dialog — shown once before the
+        // first READ_CONTACTS request (spec: address-book-permission).
+        if (showAddressBookRationale) {
+            com.naviveylin.ui.addressbook.AddressBookRationaleDialog(
+                onDismiss = {
+                    showAddressBookRationale = false
+                    addressBookRationaleStore.markShown()
+                },
+                onContinue = {
+                    showAddressBookRationale = false
+                    addressBookRationaleStore.markShown()
+                    try {
+                        contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                    } catch (_: Exception) {}
+                },
+                onNotNow = {
+                    showAddressBookRationale = false
+                    addressBookRationaleStore.markShown()
                 }
             )
         }
@@ -1290,7 +1353,9 @@ internal fun MapMenu(
     onDownloadMaps: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenPoiSearch: () -> Unit,
+    onOpenAddressBook: () -> Unit,
     onOpenAbout: () -> Unit,
+    addressBookAvailable: Boolean,
     toasterTopPadding: Dp
 ) {
     BackHandler(enabled = expanded) { onDismiss() }
@@ -1342,6 +1407,18 @@ internal fun MapMenu(
                             onOpenPoiSearch()
                         }
                     )
+                    // Address book entry — only while READ_CONTACTS is granted
+                    // (spec: address-book-permission — visibility).
+                    if (addressBookAvailable) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.address_book_menu_title)) },
+                            leadingIcon = { Icon(Icons.Default.Contacts, contentDescription = null) },
+                            onClick = {
+                                onDismiss()
+                                onOpenAddressBook()
+                            }
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text("About") },
                         leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },

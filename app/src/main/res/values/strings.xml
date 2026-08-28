@@ -38,4 +38,16 @@
     <string name="poi_category_hospital">Hospital</string>
     <string name="poi_category_doctors">Doctors</string>
     <string name="poi_category_public_transport">Public transport</string>
+    <string name="address_book_menu_title">Address book</string>
+    <string name="address_book_rationale_title">Address book access</string>
+    <string name="address_book_rationale_text">NaviVeylin can read your address book so you can search for contacts with addresses and navigate to them. Access is optional — you can deny it and use all other features normally.</string>
+    <string name="address_book_rationale_continue">Continue</string>
+    <string name="address_book_rationale_not_now">Not now</string>
+    <string name="address_book_search_hint">Search contacts</string>
+    <string name="address_book_close">Close address book</string>
+    <string name="address_book_empty">No contacts with addresses</string>
+    <string name="address_book_no_match">No matching contacts</string>
+    <string name="address_book_pick_address">Choose an address</string>
+    <string name="address_book_resolving">Resolving address…</string>
+    <string name="address_book_not_found">No location found for this address</string>
 </resources>

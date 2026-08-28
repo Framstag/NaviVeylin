@@ -1,5 +1,7 @@
 package com.naviveylin.core
 
+import com.naviveylin.core.addressbook.AddressBookContactsProvider
+import com.naviveylin.core.addressbook.AddressBookSearchProvider
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -21,6 +23,12 @@ interface AutoEntryPoint {
 
     /** Search history shared with the phone app (pull-based). */
     fun autoSearchHistoryProvider(): AutoSearchHistoryProvider
+
+    /** Contacts with postal addresses (address-book person search). */
+    fun addressBookContactsProvider(): AddressBookContactsProvider
+
+    /** Address resolution for the address-book person search. */
+    fun addressBookSearchProvider(): AddressBookSearchProvider
 
     /** GPS position source for the car map (AA-only process has no phone UI). */
     fun autoLocationProvider(): AutoLocationProvider

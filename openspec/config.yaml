@@ -59,6 +59,8 @@ operations:
       - Verify no regressions in unrelated areas
       - For native C++ changes, verify all target ABIs compile
       - Any problems you detect during implementation that are not initiated by this change, have to be documented in a TODO.md for later processing in other changes.
+      - Suggest at the end the implementation of skills for repetitive work you have done
+
 
   # Verify gates (validation + review): openspec 1.10.0 loads guidance only
   # for 'apply' and 'archive' operations — there is no 'verify' operation.

@@ -92,6 +92,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.naviveylin.ui.about.AboutDialog
+import com.naviveylin.ui.attribution.OsmAttributionOverlay
 import com.naviveylin.ui.favorites.FavoritesSheet
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.ui.navigation.NavigationDetailsOverlay
@@ -146,6 +147,7 @@ fun MapCanvasScreen(
     var showFavoritePicker by remember { mutableStateOf(false) }
     var favoritePickerField by remember { mutableStateOf<ActiveField?>(null) }
     var showNavDetails by remember { mutableStateOf(false) }
+    var attributionInteractionTick by remember { mutableStateOf(0) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -340,6 +342,7 @@ fun MapCanvasScreen(
                         .mapGestureHandler(
                             object : MapGestureCallbacks {
                                 override fun onPan(dx: Float, dy: Float) {
+                                    attributionInteractionTick++
                                     viewModel.disengageFollowMode()
                                     val s = viewModel.uiState.value
                                     val dpi = context.resources.displayMetrics.densityDpi.toDouble()
@@ -355,6 +358,7 @@ fun MapCanvasScreen(
                                 }
 
                                 override fun onCentroidPan(dx: Float, dy: Float) {
+                                    attributionInteractionTick++
                                     // Update the center state (no render); the visual
                                     // translation is applied to the current bitmap and
                                     // committed on gesture end.
@@ -378,6 +382,7 @@ fun MapCanvasScreen(
                                 }
 
                                 override fun onRotate(angleDeltaRadians: Double) {
+                                    attributionInteractionTick++
                                     // Disengage follow mode + clear north-up immediately;
                                     // the angle is applied visually to the current bitmap
                                     // and committed on gesture end.
@@ -400,6 +405,7 @@ fun MapCanvasScreen(
                                 }
 
                                 override fun onZoom(centroid: Offset, zoomFactor: Float) {
+                                    attributionInteractionTick++
                                     // Continuous zoom factor vs gesture start; applied
                                     // visually and committed on gesture end. Clamped to
                                     // the range the commit can actually deliver: the
@@ -418,6 +424,7 @@ fun MapCanvasScreen(
                                 }
 
                                 override fun onRenderRequested() {
+                                    attributionInteractionTick++
                                     // Gesture end: commit the accumulated multi-touch
                                     // changes to the viewport and render once with the
                                     // final angle/mag/center (correct label direction).
@@ -475,6 +482,7 @@ fun MapCanvasScreen(
                                     val scrollDelta = change.scrollDelta
                                     val deltaY = scrollDelta.y
                                     if (deltaY != 0f) {
+                                        attributionInteractionTick++
                                         val s = viewModel.uiState.value
                                         val mag = s.viewport.magnification
                                         val dir = if (deltaY < 0) 1 else -1
@@ -507,6 +515,7 @@ fun MapCanvasScreen(
                                 }
                                 event.type == KeyEventType.KeyUp &&
                                 (event.key == Key.Plus || event.key == Key.Equals) -> {
+                                    attributionInteractionTick++
                                     viewModel.disengageFollowMode()
                                     viewModel.zoomIn()
                                     viewModel.renderMap()
@@ -514,6 +523,7 @@ fun MapCanvasScreen(
                                 }
                                 event.type == KeyEventType.KeyUp &&
                                 event.key == Key.Minus -> {
+                                    attributionInteractionTick++
                                     viewModel.disengageFollowMode()
                                     viewModel.zoomOut()
                                     viewModel.renderMap()
@@ -637,7 +647,7 @@ fun MapCanvasScreen(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 8.dp, bottom = 12.dp)
+                        .padding(end = 8.dp, bottom = 44.dp)
                         .navigationBarsPadding()
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.End
@@ -687,12 +697,14 @@ fun MapCanvasScreen(
                         currentMag = state.viewport.magnification,
                         onZoomIn = {
                             android.util.Log.d("MapCanvasScreen", "zoom+ pressed")
+                            attributionInteractionTick++
                             viewModel.disengageFollowMode()
                             viewModel.zoomIn()
                             viewModel.renderMap()
                         },
                         onZoomOut = {
                             android.util.Log.d("MapCanvasScreen", "zoom- pressed")
+                            attributionInteractionTick++
                             viewModel.disengageFollowMode()
                             viewModel.zoomOut()
                             viewModel.renderMap()
@@ -808,12 +820,14 @@ fun MapCanvasScreen(
                         currentMag = state.viewport.magnification,
                         onZoomIn = {
                             android.util.Log.d("MapCanvasScreen", "zoom+ pressed")
+                            attributionInteractionTick++
                             viewModel.disengageFollowMode()
                             viewModel.zoomIn()
                             viewModel.renderMap()
                         },
                         onZoomOut = {
                             android.util.Log.d("MapCanvasScreen", "zoom- pressed")
+                            attributionInteractionTick++
                             viewModel.disengageFollowMode()
                             viewModel.zoomOut()
                             viewModel.renderMap()
@@ -846,6 +860,17 @@ fun MapCanvasScreen(
                 toasterTopPadding = if (isLandscape) 8.dp else 4.dp
             )
         }
+
+        // OSM attribution notice (bottom-right corner, per OSMF Attribution
+        // Guidelines). Auto-hides after 5s of no interaction; any map
+        // interaction re-shows it and restarts the timer.
+        OsmAttributionOverlay(
+            interactionTick = attributionInteractionTick,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 8.dp, bottom = 8.dp)
+                .navigationBarsPadding()
+        )
 
         // Search panel overlay
         if (showSearchPanel) {

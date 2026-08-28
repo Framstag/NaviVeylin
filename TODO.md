@@ -51,3 +51,41 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 | Track rendering on map | ✗ | |
 
 ## 7. Android Auto
+
+## 8. GPS / Position
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| GPS simulation / dead reckoning when no fix (PositionSimulator) | ✗ | Guess vehicle movement from last position + speed + heading (+ route if navigating) when GPS is stale. Separate service from `LocationService` — never talk to raw GPS directly when there is no fix. See detail below. |
+
+### PositionSimulator — aggregated design notes (from GPS jump investigation)
+
+**Problem:** free driving mode shows random GPS/map jumps on real devices. Root cause: `LocationService` runs Fused AND raw `LocationManager` (GPS/NETWORK/PASSIVE) in parallel on Play Services devices; raw fixes bypass OS smoothing. Fix for that is change `gps-strict-fallback` (Fused only when available). This entry covers the *next* gap: when there is no GPS fix at all.
+
+**Goal:** when GPS is lost, estimate vehicle movement instead of freezing the marker at the last fix (current behavior in free mode).
+
+**State machine:**
+
+```
+GPS fresh (acc<50m, age<5s)  →  REAL
+GPS stale > N s              →  ESTIMATED (extrapolate)
+estimate age > M s / drift > D m → LOST (give up, show signal-lost)
+GPS back                     →  REAL
+```
+
+**Estimation math:** `position(t) = lastFix + ∫ speed(τ) · heading(τ) dτ`
+
+- heading: free mode → course-over-ground from position history (already implemented in `MapCanvasViewModel` for bearing, low-pass alpha 0.3/0.7); nav mode → route bearing
+- speed: filtered GPS speed (150 km/h cap, `filterSpeed` exists in `NavigationViewModel`/`AANavigationController`); AAOS: CAN bus speed via Vehicle HAL later (`AutomotiveDevice` is feature-check only today)
+- route: nav mode → snap to route geometry; free mode → heading projection (drifts, must be bounded)
+
+**What already exists (reuse):**
+- Native `PositionAgent` (`app/src/main/cpp/libosmscout/libosmscout/src/osmscout/navigation/PositionAgent.cpp:267-355`) dead-reckons along the route at vehicle speed (capped by max speed) — but only in tunnels and only during navigation. Outside tunnels → `NoGpsSignal`, estimate holds.
+- `GpsFixQuality` enum (NONE/POOR/GOOD) + `GPS_FIX_FRESHNESS_MS = 5000`, `GPS_FIX_MAX_ACCURACY_M = 50f` in `MapCanvasViewModel` — freshness/accuracy thresholds exist but nothing acts on them.
+- Course-over-ground history + smoothed bearing in `MapCanvasViewModel` (`addCoursePoint`/`computeCourseBearing`/`smoothCourseBearing`).
+
+**Open design questions:**
+1. Scope: free mode only, or also open-road GPS loss during navigation (native agent only covers tunnels)?
+2. Give-up bounds: after N s / M m of estimation → LOST (real apps ~10-30 s).
+3. Marker UX: ESTIMATED position visually distinct from REAL (color/opacity)?
+4. Where: new Kotlin `@Singleton` service feeding a derived position flow with state (REAL/ESTIMATED/LOST); consumers = marker, center, nav engine, AA.

@@ -39,4 +39,12 @@ class MapStripActionsTest {
         assertEquals("+", MapStripActions.zoomInAction {}.title.toString())
         assertEquals("-", MapStripActions.zoomOutAction {}.title.toString())
     }
+
+    @Test
+    fun infoIsDrivingSafeAndIconOnly() {
+        val action = MapStripActions.infoAction {}
+        assertFalse(action.onClickDelegate?.isParkedOnly == true)
+        assertNull(action.title)
+        assertTrue(action.icon != null)
+    }
 }

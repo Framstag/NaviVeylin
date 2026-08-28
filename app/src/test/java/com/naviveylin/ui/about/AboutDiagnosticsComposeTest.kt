@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.naviveylin.core.DiagnosticsLog
 import java.io.File
@@ -53,7 +54,7 @@ class AboutDiagnosticsComposeTest {
     @Test
     fun diagnosticsDialogShowsLogEntries() {
         composeRule.setContent { AboutDialog(onDismiss = {}) }
-        composeRule.onNodeWithText("Diagnostics").performClick()
+        composeRule.onNodeWithText("Diagnostics").performScrollTo().performClick()
 
         composeRule.onNodeWithText("entry-one", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("entry-two", substring = true).assertIsDisplayed()
@@ -62,7 +63,7 @@ class AboutDiagnosticsComposeTest {
     @Test
     fun shareButtonStartsSendIntent() {
         composeRule.setContent { AboutDialog(onDismiss = {}) }
-        composeRule.onNodeWithText("Diagnostics").performClick()
+        composeRule.onNodeWithText("Diagnostics").performScrollTo().performClick()
         composeRule.onNodeWithText("Share").performClick()
 
         val started = shadowOf(

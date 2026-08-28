@@ -147,6 +147,13 @@ class NavigationScreen(
                 usableBounds = stableArea,
                 name = streetName.orEmpty()
             )
+            SurfaceAttribution.draw(
+                canvas = canvas,
+                surfaceWidth = w,
+                surfaceHeight = h,
+                density = density,
+                usableBounds = stableArea
+            )
         }
 
         // If the host delivered a surface we cannot lock (AAOS emulator quirk:
@@ -249,6 +256,9 @@ class NavigationScreen(
             actionStrip = ActionStrip.Builder()
                 .addAction(NavigationScreenActions.zoomInAction { onZoomIn() })
                 .addAction(NavigationScreenActions.zoomOutAction { onZoomOut() })
+                .addAction(MapStripActions.infoAction {
+                    screenManager.push(AboutScreen(carContext))
+                })
                 .build(),
             routingInfo = routingInfo
         )

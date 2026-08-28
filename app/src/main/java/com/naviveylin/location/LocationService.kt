@@ -18,6 +18,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.naviveylin.core.DiagnosticsLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,14 +27,29 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Provides GPS location updates from Fused (Play Services) and/or LocationManager.
- * Both providers are started so the app works with and without Play Services.
- * Duplicate fixes from different providers are filtered by fix timestamp.
+ * Provides GPS location updates from Fused (Play Services) or LocationManager.
+ * Strict fallback: Fused is the sole source when Play Services is available
+ * (the OS location service applies its own smoothing); LocationManager
+ * (GPS/NETWORK/PASSIVE) is used only when Fused is unavailable, e.g. on
+ * GMS-less devices (AAOS head units, Huawei, sideload). The two never run
+ * simultaneously. Duplicate fixes from different providers are filtered by
+ * timestamp + position.
  */
 @Singleton
 class LocationService @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+
+    /**
+     * Test seam: forces the Play Services availability decision instead of
+     * querying [GoogleApiAvailability]. Null (default) = runtime check.
+     */
+    private var playServicesAvailableOverride: Boolean? = null
+
+    @VisibleForTesting
+    internal constructor(context: Context, playServicesAvailable: Boolean) : this(context) {
+        this.playServicesAvailableOverride = playServicesAvailable
+    }
 
     private val _location = MutableStateFlow<Location?>(null)
     val location: StateFlow<Location?> = _location.asStateFlow()
@@ -51,21 +67,20 @@ class LocationService @Inject constructor(
     private var lastEmittedLat = Double.NaN
     private var lastEmittedLon = Double.NaN
 
-    private val useFusedProvider: Boolean = run {
-        val availability = GoogleApiAvailability.getInstance()
-        val result = try {
-            availability.isGooglePlayServicesAvailable(context)
-        } catch (e: Exception) {
-            Log.w(TAG, "Play Services availability check failed, using LocationManager", e)
-            ConnectionResult.SERVICE_MISSING
-        }
-        val fused = result == ConnectionResult.SUCCESS
-        Log.d(TAG, "Google Play Services available: $fused (result=$result)")
+    /**
+     * Lazy so the test override ([playServicesAvailableOverride]) set by the
+     * secondary constructor is visible before the decision is computed.
+     */
+    private val useFusedProvider: Boolean by lazy {
+        val fused = playServicesAvailableOverride ?: isPlayServicesAvailable()
+        Log.d(TAG, "Google Play Services available: $fused")
         if (fused) {
             fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
             Log.d(TAG, "FusedLocationProviderClient initialized")
+            DiagnosticsLog.log(TAG, "GPS source: OS location service (FusedLocationProviderClient)")
         } else {
             Log.d(TAG, "Falling back to LocationManager")
+            DiagnosticsLog.log(TAG, "GPS source: direct LocationManager (GPS/NETWORK/PASSIVE providers)")
             val providers = locationManager.allProviders.joinToString(", ")
             Log.d(TAG, "Available location providers: $providers")
             try {
@@ -79,6 +94,19 @@ class LocationService @Inject constructor(
         fused
     }
 
+    private fun isPlayServicesAvailable(): Boolean {
+        val availability = GoogleApiAvailability.getInstance()
+        val result = try {
+            availability.isGooglePlayServicesAvailable(context)
+        } catch (e: Exception) {
+            Log.w(TAG, "Play Services availability check failed, using LocationManager", e)
+            ConnectionResult.SERVICE_MISSING
+        }
+        val fused = result == ConnectionResult.SUCCESS
+        Log.d(TAG, "Google Play Services available: $fused (result=$result)")
+        return fused
+    }
+
     val hasPermission: Boolean
         get() = ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION
@@ -89,15 +117,31 @@ class LocationService @Inject constructor(
         _location.value = location
     }
 
+    /** True when the Fused provider path is active (callback registered). */
+    @VisibleForTesting
+    internal fun isFusedActive(): Boolean = fusedCallback != null
+
+    /** Test hook: deliver a fix through the registered Fused callback. */
+    @VisibleForTesting
+    internal fun simulateFusedLocation(location: Location) {
+        fusedCallback?.onLocationResult(LocationResult.create(listOf(location)))
+    }
+
     fun startLocationUpdates() {
         if (!hasPermission) {
             Log.d(TAG, "startLocationUpdates: no permission, skipping")
             return
         }
+        // Strict fallback: Fused and LocationManager never run simultaneously.
+        // On Play Services devices the OS location service (Fused) already
+        // applies its own smoothing — raw LocationManager fixes would bypass
+        // it and cause marker jumps. LocationManager is used only when Fused
+        // is unavailable (GMS-less devices: AAOS head units, Huawei, sideload).
         if (useFusedProvider) {
             startFusedUpdates()
+        } else {
+            startManagerUpdates()
         }
-        startManagerUpdates()
     }
 
     private fun startFusedUpdates() {

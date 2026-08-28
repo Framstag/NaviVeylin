@@ -283,7 +283,9 @@ class MapScreen(
 
     private fun buildTemplate(): MapWithContentTemplate {
         // No map action strip: the content menu covers app navigation; search
-        // + settings + zoom live in the right template strip.
+        // + settings + zoom live in the right template strip. The host caps
+        // the strip at 4 actions (ACTIONS_CONSTRAINTS_MAP), so licence info
+        // stays in the content menu's About row instead of a strip action.
         // PanModeListener: the host only forwards pan gestures to the surface
         // while pan mode is active (AAOS/AA hosts render a pan affordance when
         // the listener is registered).

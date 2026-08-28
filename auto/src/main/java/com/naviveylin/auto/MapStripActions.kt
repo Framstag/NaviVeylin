@@ -35,4 +35,10 @@ object MapStripActions {
         .setTitle("-")
         .setOnClickListener(ParkedOnlyOnClickListener.create(onClick))
         .build()
+
+    /** Licence info — driving-safe: opens the About screen (OSM licence info). */
+    fun infoAction(onClick: () -> Unit): Action = Action.Builder()
+        .setIcon(CarGlyphs.info)
+        .setOnClickListener(onClick)
+        .build()
 }

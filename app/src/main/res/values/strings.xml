@@ -50,4 +50,11 @@
     <string name="address_book_pick_address">Choose an address</string>
     <string name="address_book_resolving">Resolving address…</string>
     <string name="address_book_not_found">No location found for this address</string>
+    <string name="osm_attribution">© OpenStreetMap contributors</string>
+    <string name="osm_attribution_content_description">OpenStreetMap attribution. Opens OSM copyright and licence information.</string>
+    <string name="osm_licence_title">Map data licence</string>
+    <string name="osm_licence_statement">Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).</string>
+    <string name="osm_licence_link">openstreetmap.org/copyright</string>
+    <string name="osm_licence_info_button">Map data licence information</string>
+    <string name="osm_licence_close">Close</string>
 </resources>

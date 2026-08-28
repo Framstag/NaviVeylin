@@ -20,6 +20,11 @@ rules:
     - Each capability must be concrete enough to derive specs from — avoid vague names
     - List affected files and modules explicitly in the Impact section
     - Reference Android-specific components (modules, manifests, resources)
+    - If you are unsure, ask!
+    - If requirements do not seem to be complete, ask!
+    - If decisions have to be made that have large consequence. Name options an consequence and ask!
+    - Name the previous specifications that will be changed by the new proposal
+    - Assure that scope is clear. Is this a general feature, a feature only for the android auto integration or only for phone
 
   specs:
     - Write acceptance criteria in WHEN/THEN format
@@ -52,14 +57,16 @@ operations:
       - Before marking implementation complete, verify tests exist for all new/modified code and they pass
       - If build or tests fail, do NOT mark tasks complete — report failures and fix them first
       - Make sure that tests cover all relevant data combinations and process variants and thus cover the complete code under tests in all its variants
-      - Make sure that build has no warnings
+      - Make sure that the build has no warnings
       - Build only the targets needed for testing to minimize resource usage and compilation time
       - Verify all new/modified code against every document in guidelines/ — all conventions and rules defined there must be followed
-      - Update README.md and AGENTS.md and other documentation if behavior changes
+      - Update README.md and AGENTS.md and other documentation if information stored there changed
       - Verify no regressions in unrelated areas
       - For native C++ changes, verify all target ABIs compile
       - Any problems you detect during implementation that are not initiated by this change, have to be documented in a TODO.md for later processing in other changes.
-      - Suggest at the end the implementation of skills for repetitive work you have done
+      - Suggest at the end of teh development implementation of skills for repetitive work you have done
+      - Log all solutions approaches that failed with a short gol and problem description together with a time stamp in a "ki_processing_failurs.log"
+      - When starting feature development, check "ki_processing_failurs.log" to avoid doing the same error twice.
 
 
   # Verify gates (validation + review): openspec 1.10.0 loads guidance only

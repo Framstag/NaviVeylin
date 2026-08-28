@@ -148,6 +148,13 @@ class FreeDrivingScreen(
                 usableBounds = stableArea,
                 name = streetName.orEmpty()
             )
+            SurfaceAttribution.draw(
+                canvas = canvas,
+                surfaceWidth = w,
+                surfaceHeight = h,
+                density = density,
+                usableBounds = stableArea
+            )
         }
 
         // If the host delivered a surface we cannot lock (AAOS emulator quirk:

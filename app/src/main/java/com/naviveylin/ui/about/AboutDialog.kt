@@ -21,11 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.naviveylin.BuildConfig
+import com.naviveylin.R
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.ui.attribution.openUrl
 
 @Composable
 fun AboutDialog(onDismiss: () -> Unit) {
@@ -44,7 +47,11 @@ fun AboutDialog(onDismiss: () -> Unit) {
             )
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
                 Text(
                     text = "Version $versionName",
                     style = MaterialTheme.typography.bodyMedium,
@@ -100,6 +107,26 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 ) {
                     Text(
                         text = "github.com/Framstag/libosmscout",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = stringResource(R.string.osm_licence_statement),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                TextButton(
+                    onClick = { openUrl(context, OSM_COPYRIGHT_URL) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.osm_licence_link),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -200,3 +227,4 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
 }
 
 private const val MAX_DISPLAYED_ENTRIES = 100
+private const val OSM_COPYRIGHT_URL = "https://www.openstreetmap.org/copyright"

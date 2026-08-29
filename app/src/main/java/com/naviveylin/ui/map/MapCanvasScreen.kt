@@ -65,11 +65,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
@@ -108,12 +113,15 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.ZoomAnimation
 import kotlinx.coroutines.isActive
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
 import com.naviveylin.R
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.log2
+import kotlin.math.pow
 import kotlin.math.round
 import kotlin.math.sin
 
@@ -178,6 +186,18 @@ fun MapCanvasScreen(
     // onRenderRequested commits the accumulated changes and renders once.
     var gestureRotation by remember { mutableStateOf(0f) }
     var gestureZoom by remember { mutableStateOf(1f) }
+    // smooth-zoom fold (design D3, one displayed-scale model): when a gesture
+    // starts over a parked/frozen zoom-animation display scale, that scale is
+    // folded into the gesture base here — the graphicsLayer gestureZoom then
+    // carries the full visual scale and the draw-layer zoomAnimScale resets to
+    // 1f, so the two transforms can never double-apply (caused jumpy pinch +
+    // ghost frames after a button zoom).
+    var gestureBaseScale by remember { mutableStateOf(1f) }
+    // Continuous-pinch input smoothing: the detector's cumulative factor is noisy
+    // (emulated pinch pointers teleport → the ratio jumps between zoom levels).
+    // A short exponential smoothing on the applied factor damps the spikes; commit
+    // uses the DISPLAYED factor so the rendered frame always matches the preview.
+    var gestureSmoothFactor by remember { mutableStateOf(1f) }
     var gesturePan by remember { mutableStateOf(Offset.Zero) }
     var gestureCentroid by remember { mutableStateOf(Offset.Zero) }
 
@@ -194,6 +214,70 @@ fun MapCanvasScreen(
     var followOffsetY by remember { mutableStateOf(0f) }
     var followLogCount by remember { mutableStateOf(0) }
 
+    // smooth-zoom (spec: smooth-zoom): eased front-buffer zoom animation for
+    // discrete zoom input (buttons, scroll wheel, keyboard — no double-tap
+    // zoom exists). The animation scales the currently rendered bitmap around
+    // the zoom anchor while the debounced native render at the target
+    // magnification runs. Render completion hands over in the frame loop
+    // below: immediate swap when the animation already holds the target
+    // scale, crossfade from the scaled old frame otherwise (gesture case).
+    // Display-only state: the navigation engine and the persisted viewport
+    // never see the animated scale.
+    val zoomAnim = remember { ZoomAnimation() }
+    var zoomAnimScale by remember { mutableStateOf(1f) }
+    var zoomAnchor by remember { mutableStateOf(Offset.Zero) }
+    var prevRenderedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var lastFrontMag by remember { mutableStateOf(-1.0) }
+    // Crossfade at render completion (zoom-transition-scaling delta): the old
+    // front-buffer copy is drawn over the swapped-in frame, fading out.
+    var crossfadeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var crossfadeScale by remember { mutableStateOf(1f) }
+    var crossfadeAnchor by remember { mutableStateOf(Offset.Zero) }
+    var crossfadeStartMs by remember { mutableStateOf(0L) }
+    var crossfadeAlpha by remember { mutableStateOf(0f) }
+
+    /**
+     * Starts/retracks the zoom animation toward the committed magnification
+     * (design D2/D3/D6). [anchor] is the screen point that must stay visually
+     * fixed: screen center for buttons/keyboard, cursor for the wheel.
+     */
+    fun animateDiscreteZoom(anchor: Offset) {
+        val s = viewModel.uiState.value
+        val frontMag = s.renderViewport?.mag ?: return
+        val target = 2.0.pow((s.viewport.magnification - frontMag).toDouble()).toFloat()
+        val now = System.currentTimeMillis()
+        if (zoomAnim.active) {
+            zoomAnim.retrack(target, anchor.x, anchor.y, now)
+        } else {
+            zoomAnim.start(zoomAnimScale, target, anchor.x, anchor.y, now)
+        }
+        zoomAnchor = anchor
+    }
+
+    /** Screen center anchor for button/keyboard zoom. */
+    fun animateDiscreteZoomToCenter() {
+        animateDiscreteZoom(Offset(canvasSize.width / 2f, canvasSize.height / 2f))
+    }
+
+    /**
+     * A pinch gesture takes over the zoom display (design D3: gesture and
+     * animation never run simultaneously) — park the animation at its current
+     * scale and fold it into the gesture base (single displayed-scale model).
+     */
+    fun freezeZoomAnimationForGesture() {
+        if (zoomAnim.active) {
+            zoomAnim.finish(System.currentTimeMillis())
+            zoomAnimScale = zoomAnim.currentScale(System.currentTimeMillis())
+            Log.d(TAG, "smooth-zoom: gesture takes over, frozen scale=$zoomAnimScale anchor=$zoomAnchor")
+        }
+        if (zoomAnimScale != 1f) {
+            gestureBaseScale = zoomAnimScale
+            zoomAnimScale = 1f
+            gestureZoom = gestureBaseScale
+            Log.d(TAG, "smooth-zoom: fold frozen display scale into gesture base=$gestureBaseScale")
+        }
+    }
+
     LaunchedEffect(Unit) {
         var lastFixTime = -1L
         var lastFrameMs = 0L
@@ -203,6 +287,72 @@ fun MapCanvasScreen(
                 val ui = viewModel.uiState.value
                 val fix = ui.gpsLocation
                 val nowMs = System.currentTimeMillis()
+
+                // smooth-zoom (spec: smooth-zoom): drive the eased animation
+                // and advance the render-completion crossfade each frame.
+                if (zoomAnim.active) {
+                    zoomAnimScale = zoomAnim.tick(nowMs)
+                }
+                if (crossfadeBitmap != null) {
+                    val t = (nowMs - crossfadeStartMs).toFloat() / CROSSFADE_MS
+                    if (t >= 1f) {
+                        crossfadeBitmap = null
+                        crossfadeAlpha = 0f
+                    } else {
+                        crossfadeAlpha = 1f - t
+                    }
+                }
+
+                // Continuous display scale: when a gesture is active and the front
+                // buffer swaps mid-gesture (previous render completion), the frozen
+                // base scale must be transformed to the new buffer level so the
+                // composed visual (buffer × base × factor) stays continuous —
+                // otherwise the committed frame replaces the buffer at a different
+                // level and shows a zoom jump until render-land.
+                val committedMag = ui.viewport.magnification
+                val frontMag = ui.renderViewport?.mag ?: -1.0
+                if (frontMag > 0 && lastFrontMag > 0 && frontMag != lastFrontMag &&
+                    (gestureBaseScale != 1f || gestureZoom != 1f)) {
+                    // Invert: the base represented 2^(commit − bufferOld); after the
+                    // swap the new buffer carries 2^(bufferNew − bufferOld) of the
+                    // visual itself, so base must be DIVIDED by the level delta
+                    // (base × 2^(old − new)). When the swap is the committed render,
+                    // base collapses to 1.0 (the factor alone stays in gestureZoom).
+                    gestureBaseScale = (gestureBaseScale * Math.pow(
+                        2.0, (lastFrontMag - frontMag)
+                    )).toFloat()
+                    Log.d(TAG, "smooth-zoom: gesture base rescaled to $gestureBaseScale (buffer $lastFrontMag -> $frontMag)")
+                }
+
+                // Render-completion handoff (design D4): when the front buffer
+                // swaps to the committed magnification, the rendered frame
+                // supplies the target zoom exactly. Animation-case (uniform
+                // hold at the aligned scale) swaps immediately; any residual
+                // mismatch (fractional pinch end followed within the freeze)
+                // crossfades from the scaled old frame so no single-frame
+                // content jump is visible (spec: zoom-transition-scaling).
+                if (lastFrontMag > 0 && frontMag == committedMag &&
+                    lastFrontMag != frontMag && zoomAnimScale != 1f) {
+                    val hold = 2.0.pow((committedMag - lastFrontMag).toDouble()).toFloat()
+                    zoomAnim.finish(nowMs)
+                    if (abs(zoomAnimScale - hold) < 0.02f) {
+                        // Animation already holds the frame-aligned scale —
+                        // the swapped-in frame matches exactly.
+                        zoomAnimScale = 1f
+                    } else {
+                        prevRenderedBitmap?.let { oldBitmap ->
+                            crossfadeBitmap = copyImageBitmap(oldBitmap)
+                            crossfadeScale = zoomAnimScale
+                            crossfadeAnchor = zoomAnchor
+                            crossfadeStartMs = nowMs
+                            crossfadeAlpha = 1f
+                        }
+                        zoomAnimScale = 1f
+                    }
+                    Log.d(TAG, "smooth-zoom: render landed mag=$frontMag hold=$hold displayed=$zoomAnimScale crossfade=${crossfadeBitmap != null}")
+                }
+                lastFrontMag = frontMag
+                prevRenderedBitmap = ui.renderedBitmap
                 if (fix != null && fix.time != lastFixTime) {
                     // Use the receipt time (not fix.time) as the prediction base:
                     // GPS fix timestamps can be ahead of the system clock (GPS
@@ -495,6 +645,10 @@ fun MapCanvasScreen(
                                 }
 
                                 override fun onGestureCentroid(centroid: Offset) {
+                                    // smooth-zoom: a pinch gesture takes over the
+                                    // zoom display (design D3) — park any running
+                                    // discrete-zoom animation at its current scale.
+                                    freezeZoomAnimationForGesture()
                                     // Clamp the pivot to the canvas: corrupted pointer
                                     // positions from multi-touch emulation would otherwise
                                     // produce a garbage zoom/rotation pivot (map swings away).
@@ -510,6 +664,8 @@ fun MapCanvasScreen(
 
                                 override fun onZoom(centroid: Offset, zoomFactor: Float) {
                                     attributionInteractionTick++
+                                    // smooth-zoom: gesture takes over the zoom display.
+                                    freezeZoomAnimationForGesture()
                                     // Continuous zoom factor vs gesture start; applied
                                     // visually and committed on gesture end. Clamped to
                                     // the range the commit can actually deliver: the
@@ -518,9 +674,20 @@ fun MapCanvasScreen(
                                     // visual preview must not exceed the headroom —
                                     // otherwise the map zooms in visually and then
                                     // snaps back on gesture end.
-                                    gestureZoom = clampGestureVisualZoom(
+                                    // Damped visual factor: track the raw cumulative
+                                    // factor with a short exponential average so noisy
+                                    // input cannot teleport the zoom level mid-gesture.
+                                    // The commit keeps visual == commit parity.
+                                    val rawFactor = clampGestureVisualZoom(
                                         zoomFactor, viewModel.uiState.value.viewport.magnification
                                     )
+                                    gestureSmoothFactor = if (gestureSmoothFactor == 1f) {
+                                        rawFactor
+                                    } else {
+                                        gestureSmoothFactor +
+                                            (rawFactor - gestureSmoothFactor) * 0.4f
+                                    }
+                                    gestureZoom = gestureBaseScale * gestureSmoothFactor
                                 }
 
                                 override fun onLongPress(position: Offset) {
@@ -542,33 +709,51 @@ fun MapCanvasScreen(
                                             " mag=" + s.viewport.magnification + " angle=" + s.viewport.angle)
                                         val newAngle = normalizeRadians(s.viewport.angle + gestureRotation.toDouble())
                                         viewModel.updateAngle(newAngle)
-                                        val zoomSteps = round(log2(gestureZoom.toDouble())).toInt()
-                                        if (zoomSteps != 0) {
-                                            val mag = s.viewport.magnification
-                                            val newMag = MapCanvasViewModel.clampGestureMagnification(mag + zoomSteps)
-                                            if (newMag != mag) {
+                                        // continuous-pinch-zoom: commit the unrounded
+                                        // fractional magnification — the visual preview
+                                        // factor already equals the committed factor within
+                                        // the headroom clamp, so no snap at gesture end.
+                                        // Commit uses the detector's cumulative factor only —
+                                        // the folded base scale is already committed in
+                                        // viewport.magnification (visual continuity: display
+                                        // = front buffer × gestureBaseScale × factor).
+                                        val detectorFactor = gestureZoom / gestureBaseScale
+                                        val newMag = gestureEndMagnification(s.viewport.magnification, detectorFactor)
+                                        if (abs(newMag - s.viewport.magnification) > 1e-6) {
                                                 val dpi = context.resources.displayMetrics.densityDpi.toDouble()
                                                 val (clat, clon) = ProjectionUtils.zoomAtCursor(
                                                     gestureCentroid.x.toDouble(), gestureCentroid.y.toDouble(),
-                                                    mag, newMag,
+                                                    s.viewport.magnification, newMag,
                                                     canvasSize.width.toDouble(), canvasSize.height.toDouble(),
                                                     s.viewport.centerLat, s.viewport.centerLon, dpi
                                                 )
-                                                Log.d(TAG, "gesture commit angle=" + newAngle + " zoomSteps=" + zoomSteps +
-                                                    " mag=" + mag + "->" + newMag +
+                                                Log.d(TAG, "gesture commit angle=" + newAngle +
+                                                    " zoomFactor=" + detectorFactor +
+                                                    " mag=" + s.viewport.magnification + "->" + newMag +
                                                     " zoomAtCursor centroid=" + gestureCentroid +
                                                     " canvas=" + canvasSize.width + "x" + canvasSize.height +
                                                     " -> " + clat + "," + clon)
                                                 viewModel.updateCenter(clat, clon)
                                                 viewModel.updateMagnification(newMag)
-                                            }
                                         }
                                         // Full native render only when the angle or mag
                                         // changed (correct label direction); a pure pan
                                         // uses the fast tile path.
+                                        // Fold the composed gesture scale into the
+                                        // display layer: the screen keeps showing
+                                        // frontBuffer × gestureZoom (the exact gesture
+                                        // preview) while the debounced render at the
+                                        // fractional commit runs — the render-land handoff
+                                        // resets the display scale when the buffer matches
+                                        // (smooth-zoom D3/D4, no zoom-level snap between
+                                        // gesture end and render completion).
+                                        zoomAnchor = gestureCentroid
+                                        zoomAnimScale = gestureZoom
                                         val needsFullRender = gestureRotation != 0f || gestureZoom != 1f
                                         gestureRotation = 0f
                                         gestureZoom = 1f
+                                        gestureBaseScale = 1f
+                                        gestureSmoothFactor = 1f
                                         gesturePan = Offset.Zero
                                         gestureCentroid = Offset.Zero
                                         viewModel.renderMap(forceFullRender = needsFullRender)
@@ -604,6 +789,9 @@ fun MapCanvasScreen(
                                             )
                                             viewModel.updateCenter(clat, clon)
                                             viewModel.updateMagnification(newMag)
+                                            // smooth-zoom: animate the discrete zoom
+                                            // anchored at the cursor position.
+                                            animateDiscreteZoom(change.position)
                                         }
                                     }
                                 }
@@ -623,6 +811,7 @@ fun MapCanvasScreen(
                                     viewModel.disengageFollowMode()
                                     viewModel.zoomIn()
                                     viewModel.renderMap()
+                                    animateDiscreteZoomToCenter()
                                     true
                                 }
                                 event.type == KeyEventType.KeyUp &&
@@ -631,6 +820,7 @@ fun MapCanvasScreen(
                                     viewModel.disengageFollowMode()
                                     viewModel.zoomOut()
                                     viewModel.renderMap()
+                                    animateDiscreteZoomToCenter()
                                     true
                                 }
                                 else -> false
@@ -646,22 +836,24 @@ fun MapCanvasScreen(
                         // Overrun-sized frames (follow mode) are drawn at natural
                         // size with the follow offset applied within the margin;
                         // screen-sized frames keep the scale-to-fill behavior.
-                        val overrun = bitmap.width > canvasWidth || bitmap.height > canvasHeight
-                        val scale = if (overrun) 1f else
-                            (canvasWidth / bitmap.width.toFloat())
-                                .coerceAtLeast(canvasHeight / bitmap.height.toFloat())
-                        val w = (bitmap.width * scale).toInt()
-                        val h = (bitmap.height * scale).toInt()
-                        val offsetX = if (overrun) followOffsetX else 0f
-                        val offsetY = if (overrun) followOffsetY else 0f
-                        val dx = ((canvasWidth - w) / 2f).toInt() - offsetX.toInt()
-                        val dy = ((canvasHeight - h) / 2f).toInt() - offsetY.toInt()
-
-                        drawImage(
-                            image = bitmap,
-                            dstOffset = IntOffset(dx, dy),
-                            dstSize = IntSize(w, h)
+                        drawFrontFrame(
+                            bitmap, canvasWidth.toFloat(), canvasHeight.toFloat(),
+                            followOffsetX, followOffsetY,
+                            zoomAnimScale, zoomAnchor, 1f
                         )
+                    }
+
+                    // smooth-zoom render-completion crossfade (zoom-transition-
+                    // scaling delta): the scaled old frame fades out over the
+                    // swapped-in rendered frame — no single-frame content jump.
+                    crossfadeBitmap?.let { old ->
+                        if (crossfadeAlpha > 0f) {
+                            drawFrontFrame(
+                                old, canvasWidth.toFloat(), canvasHeight.toFloat(),
+                                followOffsetX, followOffsetY,
+                                crossfadeScale, crossfadeAnchor, crossfadeAlpha
+                            )
+                        }
                     }
                 }
 
@@ -679,7 +871,7 @@ fun MapCanvasScreen(
                     val markerViewport = if (followActive) {
                         MapRenderer.RenderViewport(
                             followDisplayLat, followDisplayLon,
-                            state.renderViewport?.mag ?: 0, state.renderViewport?.angle ?: 0.0
+                            state.renderViewport?.mag ?: 0.0, state.renderViewport?.angle ?: 0.0
                         )
                     } else {
                         state.renderViewport
@@ -690,7 +882,9 @@ fun MapCanvasScreen(
                         bearing = state.gpsMarkerBearing,
                         accuracy = state.gpsMarkerAccuracy,
                         viewport = markerViewport,
-                        dpi = context.resources.displayMetrics.densityDpi.toDouble()
+                        dpi = context.resources.displayMetrics.densityDpi.toDouble(),
+                        zoomScale = zoomAnimScale,
+                        zoomAnchor = zoomAnchor
                     )
                 }
             }
@@ -824,6 +1018,7 @@ fun MapCanvasScreen(
                             viewModel.disengageFollowMode()
                             viewModel.zoomIn()
                             viewModel.renderMap()
+                            animateDiscreteZoomToCenter()
                         },
                         onZoomOut = {
                             android.util.Log.d("MapCanvasScreen", "zoom- pressed")
@@ -831,6 +1026,7 @@ fun MapCanvasScreen(
                             viewModel.disengageFollowMode()
                             viewModel.zoomOut()
                             viewModel.renderMap()
+                            animateDiscreteZoomToCenter()
                         }
                     )
                 }
@@ -947,6 +1143,7 @@ fun MapCanvasScreen(
                             viewModel.disengageFollowMode()
                             viewModel.zoomIn()
                             viewModel.renderMap()
+                            animateDiscreteZoomToCenter()
                         },
                         onZoomOut = {
                             android.util.Log.d("MapCanvasScreen", "zoom- pressed")
@@ -954,6 +1151,7 @@ fun MapCanvasScreen(
                             viewModel.disengageFollowMode()
                             viewModel.zoomOut()
                             viewModel.renderMap()
+                            animateDiscreteZoomToCenter()
                         }
                     )
                 }
@@ -1081,7 +1279,7 @@ fun MapCanvasScreen(
                 client = viewModel.osmscoutClient,
                 // Mini map starts 4 levels below the main map so the object's
                 // surroundings are visible (main map is typically zoomed in).
-                initialMag = (state.viewport.magnification - 4)
+                initialMag = (state.viewport.magnification - 4).coerceAtLeast(MapCanvasViewModel.MIN_MAG)
                     .coerceIn(MapCanvasViewModel.MIN_MAG, MapCanvasViewModel.MAX_MAG),
                 objectDescription = state.objectDescription,
                 isFavorite = viewModel.isSelectedLocationFavorite(),
@@ -1361,8 +1559,60 @@ internal fun fireLongPress(
 }
 
 /** Minimum/maximum visual zoom factor during a multi-touch gesture (±2 mag levels). */
-private const val MIN_GESTURE_ZOOM = 0.25f
-private const val MAX_GESTURE_ZOOM = 4.0f
+private const val MIN_GESTURE_ZOOM = 1f / 16f
+private const val MAX_GESTURE_ZOOM = 16.0f
+
+/** Duration of the render-completion crossfade in ms (smooth-zoom / zoom-transition-scaling delta). */
+private const val CROSSFADE_MS = 150.0f
+
+/**
+ * Draw one front-buffer frame (main display or crossfade copy) with the
+ * smooth-zoom display scale applied around [zoomAnchor] (design D5: scale
+ * around anchor, then follow offset — the anchor point stays visually fixed
+ * while the animation plays).
+ *
+ * Overrun-sized frames (follow mode) are drawn at natural size with the
+ * follow offset applied within the margin; screen-sized frames keep the
+ * scale-to-fill behavior (unchanged from the pre-smooth-zoom draw path).
+ */
+private fun DrawScope.drawFrontFrame(
+    bitmap: ImageBitmap,
+    canvasWidth: Float,
+    canvasHeight: Float,
+    followOffsetX: Float,
+    followOffsetY: Float,
+    zoomScale: Float,
+    zoomAnchor: Offset,
+    alpha: Float
+) {
+    val overrun = bitmap.width > canvasWidth || bitmap.height > canvasHeight
+    val baseScale = if (overrun) 1f else
+        (canvasWidth / bitmap.width.toFloat())
+            .coerceAtLeast(canvasHeight / bitmap.height.toFloat())
+    val w = (bitmap.width * baseScale).toInt()
+    val h = (bitmap.height * baseScale).toInt()
+    val offsetX = if (overrun) followOffsetX else 0f
+    val offsetY = if (overrun) followOffsetY else 0f
+    val dx = ((canvasWidth - w) / 2f).toInt() - offsetX.toInt()
+    val dy = ((canvasHeight - h) / 2f).toInt() - offsetY.toInt()
+
+    if (zoomScale == 1f) {
+        drawImage(image = bitmap, dstOffset = IntOffset(dx, dy), dstSize = IntSize(w, h), alpha = alpha)
+    } else {
+        withTransform({ scale(zoomScale, zoomScale, pivot = zoomAnchor) }) {
+            drawImage(image = bitmap, dstOffset = IntOffset(dx, dy), dstSize = IntSize(w, h), alpha = alpha)
+        }
+    }
+}
+
+/**
+ * Copy of an [ImageBitmap] for the render-completion crossfade: the original
+ * front-buffer instance becomes the renderer's back buffer and its pixels
+ * are overwritten by the next render, so the crossfade needs its own pixel
+ * storage.
+ */
+private fun copyImageBitmap(src: ImageBitmap): ImageBitmap =
+    src.asAndroidBitmap().copy(android.graphics.Bitmap.Config.ARGB_8888, true).asImageBitmap()
 
 /**
  * Clamp the live visual zoom factor to the range the gesture-end commit can
@@ -1372,7 +1622,7 @@ private const val MAX_GESTURE_ZOOM = 4.0f
  * visually and then snaps back on gesture end (e.g. at mag 20 the preview would
  * show up to 4× while the commit cannot zoom in at all).
  */
-internal fun clampGestureVisualZoom(zoomFactor: Float, mag: Int): Float {
+internal fun clampGestureVisualZoom(zoomFactor: Float, mag: Double): Float {
     val maxVisual = Math.pow(2.0, (MapCanvasViewModel.MAX_MAG - mag).toDouble()).toFloat()
     val minVisual = Math.pow(2.0, (MapCanvasViewModel.GESTURE_MIN_MAG - mag).toDouble()).toFloat()
     return zoomFactor.coerceIn(
@@ -1380,6 +1630,17 @@ internal fun clampGestureVisualZoom(zoomFactor: Float, mag: Int): Float {
         maxVisual.coerceAtMost(MAX_GESTURE_ZOOM)
     )
 }
+
+/**
+ * Magnification committed at pinch gesture end (continuous-pinch-zoom, spec
+ * map-pan-zoom): the unrounded fractional target `start + log2(factor)`, the
+ * same clamp the visual preview uses so commit == preview even at limits.
+ * Extracted pure for unit testing.
+ */
+internal fun gestureEndMagnification(mag: Double, gestureZoom: Float): Double =
+    MapCanvasViewModel.clampGestureMagnification(
+        mag + log2(gestureZoom.toDouble())
+    )
 
 /**
  * Translation for the live multi-touch visual transform. The rotation is applied
@@ -1693,7 +1954,7 @@ private fun MapLocationZoomBlock(
     isNavigating: Boolean,
     canZoomIn: Boolean,
     canZoomOut: Boolean,
-    currentMag: Int,
+    currentMag: Double,
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit
 ) {

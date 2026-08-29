@@ -22,9 +22,10 @@ object ProjectionUtils {
     data class ProjectionScale(val scale: Double, val scaleGradtorad: Double)
 
     /**
-     * Compute projection scale factors.
+     * Compute projection scale factors. [mag] is a fractional magnification
+     * scale factor (2^z); integer levels are valid doubles.
      */
-    fun computeScale(mag: Int, viewWidth: Double, dpi: Double): ProjectionScale {
+    fun computeScale(mag: Double, viewWidth: Double, dpi: Double): ProjectionScale {
         val extentMeter = 2.0 * PI * EARTH_RADIUS
         val magnif = 2.0.pow(mag)
         val equatorTileWidth = extentMeter / magnif
@@ -41,7 +42,7 @@ object ProjectionUtils {
      */
     fun viewport(
         centerLat: Double, centerLon: Double,
-        mag: Int,
+        mag: Double,
         screenW: Int, screenH: Int,
         dpi: Double,
         angle: Double = 0.0
@@ -53,7 +54,7 @@ object ProjectionUtils {
     fun geoToScreen(
         lat: Double, lon: Double,
         screenW: Int, screenH: Int,
-        mag: Int,
+        mag: Double,
         centerLat: Double, centerLon: Double,
         dpi: Double
     ): Pair<Double, Double> = viewport(centerLat, centerLon, mag, screenW, screenH, dpi)
@@ -65,7 +66,7 @@ object ProjectionUtils {
     fun screenToGeo(
         screenX: Double, screenY: Double,
         screenW: Int, screenH: Int,
-        mag: Int,
+        mag: Double,
         centerLat: Double, centerLon: Double,
         dpi: Double
     ): Pair<Double, Double> = viewport(centerLat, centerLon, mag, screenW, screenH, dpi)
@@ -76,7 +77,7 @@ object ProjectionUtils {
      */
     fun dragDeltaToNewCenter(
         dx: Double, dy: Double,
-        mag: Int,
+        mag: Double,
         viewWidth: Double, viewHeight: Double,
         centerLat: Double, centerLon: Double,
         dpi: Double
@@ -99,7 +100,7 @@ object ProjectionUtils {
     fun dragDeltaToNewCenterRotated(
         dx: Double, dy: Double,
         angle: Double,
-        mag: Int,
+        mag: Double,
         viewWidth: Double, viewHeight: Double,
         centerLat: Double, centerLon: Double,
         dpi: Double
@@ -123,7 +124,7 @@ object ProjectionUtils {
      */
     fun zoomAtCursor(
         cursorX: Double, cursorY: Double,
-        oldMag: Int, newMag: Int,
+        oldMag: Double, newMag: Double,
         viewW: Double, viewH: Double,
         centerLat: Double, centerLon: Double,
         dpi: Double
@@ -167,7 +168,7 @@ object ProjectionUtils {
 data class ProjectedViewport(
     val centerLat: Double,
     val centerLon: Double,
-    val mag: Int,
+    val mag: Double,
     val angle: Double,
     val screenW: Int,
     val screenH: Int,
@@ -221,7 +222,7 @@ data class ProjectedViewport(
     }
 
     /** Scale factor from one magnification to another at the same viewport/DPI. */
-    fun zoomScale(newMag: Int): Double = 2.0.pow(newMag - mag)
+    fun zoomScale(newMag: Double): Double = 2.0.pow(newMag - mag)
 }
 
 /**
@@ -240,7 +241,7 @@ data class PlaceholderRects(
 fun computeZoomPlaceholderRects(
     frontBufferW: Int, frontBufferH: Int,
     screenW: Int, screenH: Int,
-    frontBufferMag: Int, newMag: Int,
+    frontBufferMag: Double, newMag: Double,
     newCenterLat: Double, newCenterLon: Double,
     frontBufferLat: Double, frontBufferLon: Double,
     dpi: Double

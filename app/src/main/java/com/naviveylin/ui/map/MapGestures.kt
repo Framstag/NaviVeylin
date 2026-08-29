@@ -193,9 +193,11 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
                         // Zoom: continuous distance ratio vs the gesture start.
                         // The caller applies it as a visual transform and commits
                         // the magnification change on gesture end. Ignored when the
-                        // fingers started too close together (unreliable ratio).
+                        // fingers started too close together (unreliable ratio — e.g. emulated
+                        // pinch pointers appearing at nearly the same point make the ratio
+                        // explode and the map flicker between zoom levels).
                         val currDist = (c1.position - c2.position).getDistance()
-                        if (gestureStartDist > 20f) {
+                        if (gestureStartDist > 60f) {
                             val zoomFactor = currDist / gestureStartDist
                             if (abs(zoomFactor - 1f) > 0.01f) {
                                 currentCallbacks.onZoom(centroid, zoomFactor)

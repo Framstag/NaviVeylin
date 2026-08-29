@@ -71,26 +71,48 @@ class MapCanvasGestureTransformTest {
     fun visualZoomClampsToHeadroomAtMaxMagnification() {
         // At the max mag the commit cannot zoom in, so the preview must not
         // show a zoom that would snap back on gesture end.
-        assertEquals(1f, clampGestureVisualZoom(4f, 20), 0.001f)
-        assertEquals(1f, clampGestureVisualZoom(1.3f, 20), 0.001f)
+        assertEquals(1f, clampGestureVisualZoom(4f, 20.0), 0.001f)
+        assertEquals(1f, clampGestureVisualZoom(1.3f, 20.0), 0.001f)
         // One level of headroom: preview clamps to 2× (the committed zoom).
-        assertEquals(2f, clampGestureVisualZoom(4f, 19), 0.001f)
+        assertEquals(2f, clampGestureVisualZoom(4f, 19.0), 0.001f)
     }
 
     @Test
     fun visualZoomClampsToHeadroomAtMinMagnification() {
         // At the min mag the commit cannot zoom out, so the preview must not
         // show a zoom-out that would snap back on gesture end.
-        assertEquals(1f, clampGestureVisualZoom(0.25f, 4), 0.001f)
+        assertEquals(1f, clampGestureVisualZoom(0.25f, 4.0), 0.001f)
         // One level of headroom: preview clamps to 0.5× (the committed zoom).
-        assertEquals(0.5f, clampGestureVisualZoom(0.25f, 5), 0.001f)
+        assertEquals(0.5f, clampGestureVisualZoom(0.25f, 5.0), 0.001f)
     }
 
     @Test
     fun visualZoomKeepsFullRangeAtMidMagnification() {
         // Mid-range mags have enough headroom for the full ±2-level preview.
-        assertEquals(4f, clampGestureVisualZoom(4f, 10), 0.001f)
-        assertEquals(0.25f, clampGestureVisualZoom(0.25f, 10), 0.001f)
-        assertEquals(1.5f, clampGestureVisualZoom(1.5f, 10), 0.001f)
+        assertEquals(4f, clampGestureVisualZoom(4f, 10.0), 0.001f)
+        assertEquals(0.25f, clampGestureVisualZoom(0.25f, 10.0), 0.001f)
+        assertEquals(1.5f, clampGestureVisualZoom(1.5f, 10.0), 0.001f)
+    }
+
+    @Test
+    fun gestureEndCommitIsUnrounded() {
+        // continuous-pinch-zoom (spec: map-pan-zoom): the committed magnification
+        // keeps the fractional part of log2(factor) — no rounding to a level.
+        assertEquals(15.20163, gestureEndMagnification(14.0, 2.3f), 1e-4)
+        assertEquals(15.5, gestureEndMagnification(14.0, 2f * 1.4142135623730951f), 1e-3) // √2·2 → +1.5 levels
+        assertEquals(16.0, gestureEndMagnification(14.0, 4f), 1e-9)
+        assertEquals(14.0, gestureEndMagnification(14.0, 1f), 1e-9)
+        assertEquals(14.67807, gestureEndMagnification(16.0, 0.4f), 1e-4)
+    }
+
+    @Test
+    fun gestureEndCommitClampMatchesPreviewHeadroom() {
+        // At the limits the commit is the same clamp the visual preview uses:
+        // preview (clampGestureVisualZoom headroom) and commit stay equal —
+        // no snap-back at gesture end.
+        assertEquals(20.0, gestureEndMagnification(19.0, 8f), 1e-9) // headroom clamp → 20
+        assertEquals(20.0, gestureEndMagnification(20.0, 8f), 1e-9) // max → stays 20
+        assertEquals(4.0, gestureEndMagnification(5.0, 0.125f), 1e-9)
+        assertEquals(20.0, gestureEndMagnification(21.0, 16f), 1e-9)
     }
 }

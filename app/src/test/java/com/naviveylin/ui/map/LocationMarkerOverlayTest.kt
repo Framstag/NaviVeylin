@@ -18,7 +18,7 @@ class LocationMarkerOverlayTest {
     private val viewport = MapRenderer.RenderViewport(
         lat = 48.8566,
         lon = 2.3522,
-        mag = 14,
+        mag = 14.0,
         angle = 0.0
     )
     private val screenW = 1080.0
@@ -76,5 +76,37 @@ class LocationMarkerOverlayTest {
         assertEquals(75.0, bearingDeg, 1e-9)
         val northUp = com.naviveylin.core.ProjectionUtils.screenBearing(0.0, Math.toRadians(30.0))
         assertEquals("no bearing → arrow points north on map", 30.0, northUp, 1e-9)
+    }
+
+    @Test
+    fun anchorScaleIdentityAtScaleOne() {
+        // zoomScale 1f (no animation) → position passthrough, anchor irrelevant.
+        val pos = Offset(100f, 200f)
+        assertEquals(pos, applyZoomAnchorScale(pos, 1f, Offset(500f, 500f)))
+    }
+
+    @Test
+    fun anchorScaleKeepsAnchorPointFixed() {
+        // smooth-zoom (spec: smooth-zoom): scaling around the zoom anchor must
+        // leave points at the anchor unchanged — i.e. the map feature under the
+        // zoom button zoom-into point stays visually fixed.
+        val anchor = Offset(540f, 1200f)
+        val scaled = applyZoomAnchorScale(anchor, 2f, anchor)
+        assertEquals(anchor, scaled)
+    }
+
+    @Test
+    fun anchorScaleScalesDistanceFromAnchor() {
+        // Point above the anchor moves up proportionally to the scale (zoom-in
+        // grows distances from the anchor; the anchor itself stays).
+        val anchor = Offset(540f, 1200f)
+        val pos = Offset(740f, 1400f) // 200 px right/below the anchor
+        val scaled = applyZoomAnchorScale(pos, 2f, anchor)
+        assertEquals(940f, scaled.x, 1e-3f)
+        assertEquals(1600f, scaled.y, 1e-3f)
+        // And shrink for zoom-out (scale < 1).
+        val shrunk = applyZoomAnchorScale(pos, 0.5f, anchor)
+        assertEquals(640f, shrunk.x, 1e-3f)
+        assertEquals(1300f, shrunk.y, 1e-3f)
     }
 }

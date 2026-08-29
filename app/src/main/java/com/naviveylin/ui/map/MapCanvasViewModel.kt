@@ -762,7 +762,7 @@ class MapCanvasViewModel @Inject constructor(
 
                     if (!autoZoomSuspended) {
                         val cooldownElapsed = now - lastAutoZoomCommitMs >= ZOOM_COOLDOWN_MS
-                        val targetInt = finalTarget.roundToInt().coerceIn(MIN_MAG, MAX_MAG)
+                        val targetInt = finalTarget.coerceIn(MIN_MAG, MAX_MAG).roundToInt()
 
                         if (targetInt == pendingZoomTarget.roundToInt()) {
                             zoomTargetStableSamples++
@@ -772,9 +772,9 @@ class MapCanvasViewModel @Inject constructor(
                         }
 
                         val canCommit = cooldownElapsed && zoomTargetStableSamples >= ZOOM_COMMIT_SAMPLES
-                        val diffMag = kotlin.math.abs(finalTarget - newMag.toDouble())
-                        if (canCommit && diffMag >= ZOOM_HYSTERESIS_MAG && targetInt != newMag) {
-                            newMag = targetInt
+                        val diffMag = kotlin.math.abs(finalTarget - newMag)
+                        if (canCommit && diffMag >= ZOOM_HYSTERESIS_MAG && targetInt.toDouble() != newMag) {
+                            newMag = targetInt.toDouble()
                             currentTargetMag = finalTarget
                             lastAutoZoomCommitMs = now
                             zoomTargetStableSamples = 0
@@ -1114,7 +1114,7 @@ class MapCanvasViewModel @Inject constructor(
 
             // Wire view change listener for viewport persistence (per map)
             renderer.addViewChangeListener(object : MapRenderer.ViewChangeListener {
-                override fun onViewChanged(lat: Double, lon: Double, mag: Int, angle: Double) {
+                override fun onViewChanged(lat: Double, lon: Double, mag: Double, angle: Double) {
                     viewModelScope.launch {
                         viewportStorage.save(currentMapKey ?: mapPath, ViewportState(lat, lon, mag))
                     }
@@ -1233,7 +1233,7 @@ class MapCanvasViewModel @Inject constructor(
             val descDeferred = async {
                 withContext(defaultDispatcher) {
                     try {
-                        client.getDescription(fav.lat, fav.lon, _uiState.value.viewport.magnification)
+                        client.getDescription(fav.lat, fav.lon, _uiState.value.viewport.magnification.roundToInt())
                     } catch (e: Exception) {
                         Log.e(TAG, "getDescription failed for favorite", e)
                         null
@@ -1243,7 +1243,7 @@ class MapCanvasViewModel @Inject constructor(
             val bboxDeferred = async {
                 withContext(defaultDispatcher) {
                     try {
-                        client.getObjectBoundingBox(fav.lat, fav.lon, _uiState.value.viewport.magnification)
+                        client.getObjectBoundingBox(fav.lat, fav.lon, _uiState.value.viewport.magnification.roundToInt())
                     } catch (e: Exception) {
                         Log.e(TAG, "getObjectBoundingBox failed for favorite", e)
                         null
@@ -1320,7 +1320,7 @@ class MapCanvasViewModel @Inject constructor(
             // Fetch full object description at search result location
             val desc = withContext(defaultDispatcher) {
                 try {
-                    client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification)
+                    client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification.roundToInt())
                 } catch (e: Exception) {
                     Log.e(TAG, "getDescription failed for search result", e)
                     null
@@ -1493,7 +1493,7 @@ class MapCanvasViewModel @Inject constructor(
 
             val desc = withContext(defaultDispatcher) {
                 try {
-                    client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification)
+                    client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification.roundToInt())
                 } catch (e: Exception) {
                     Log.e(TAG, "getDescription failed for POI", e)
                     null
@@ -1525,7 +1525,7 @@ class MapCanvasViewModel @Inject constructor(
      * Magnification that fits the current location and the POI with ~30%
      * margin, or the current magnification when no GPS fix exists.
      */
-    private fun poiFitMagnification(entry: PoiEntry): Int {
+    private fun poiFitMagnification(entry: PoiEntry): Double {
         val currentMag = _uiState.value.viewport.magnification
         val loc = locationService.location.value ?: return currentMag
         val lat1 = loc.lat
@@ -1585,7 +1585,7 @@ class MapCanvasViewModel @Inject constructor(
             )
             val candidates = withContext(defaultDispatcher) {
                 try {
-                    client.getDescriptionCandidates(lat, lon, _uiState.value.viewport.magnification)
+                    client.getDescriptionCandidates(lat, lon, _uiState.value.viewport.magnification.roundToInt())
                 } catch (e: Exception) {
                     Log.e(TAG, "getDescriptionCandidates failed", e)
                     emptyList<ObjectDescription>()
@@ -1833,7 +1833,7 @@ class MapCanvasViewModel @Inject constructor(
             lastValidSpeedKmH = 20.0
             // Set initial magnification to routing-sensible default
             _uiState.value = _uiState.value.copy(
-                viewport = _uiState.value.viewport.copy(magnification = 15)
+                viewport = _uiState.value.viewport.copy(magnification = 15.0)
             )
 
             // Immediately center on current GPS position
@@ -1993,7 +1993,7 @@ class MapCanvasViewModel @Inject constructor(
             // Fetch full object description at the resolved location
             val desc = withContext(defaultDispatcher) {
                 try {
-                    client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification)
+                    client.getDescription(entry.lat, entry.lon, _uiState.value.viewport.magnification.roundToInt())
                 } catch (e: Exception) {
                     Log.e(TAG, "getDescription failed for address-book result", e)
                     null
@@ -2118,8 +2118,9 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
-    /** Update magnification (called from zoom controls or pinch). */
-    fun updateMagnification(mag: Int) {
+    /** Update magnification (called from zoom controls or pinch; fractional values
+     *  allowed — the pinch gesture commits continuous magnification). */
+    fun updateMagnification(mag: Double) {
         val clamped = mag.coerceIn(MIN_MAG, MAX_MAG)
         _uiState.value = _uiState.value.copy(
             viewport = _uiState.value.viewport.copy(magnification = clamped)
@@ -2133,11 +2134,18 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
-    /** Increment magnification by 1. */
-    fun zoomIn() = updateMagnification(_uiState.value.viewport.magnification + 1)
+    /** Increment magnification by 1 level (snaps to the next whole level above
+     *  the current fractional magnification — discrete controls stay level-based). */
+    fun zoomIn() {
+        val snapped = kotlin.math.round(_uiState.value.viewport.magnification)
+        updateMagnification(snapped + 1.0)
+    }
 
-    /** Decrement magnification by 1. */
-    fun zoomOut() = updateMagnification(_uiState.value.viewport.magnification - 1)
+    /** Decrement magnification by 1 level (snaps to the whole level below). */
+    fun zoomOut() {
+        val snapped = kotlin.math.round(_uiState.value.viewport.magnification)
+        updateMagnification(snapped - 1.0)
+    }
 
     /** Re-render the map with current viewport via MapRenderer. */
     fun renderMap(forceFullRender: Boolean = false) {
@@ -2198,10 +2206,10 @@ class MapCanvasViewModel @Inject constructor(
         /** Minimum magnification for the zoom control (buttons, keys, scroll wheel).
          *  Floor of 4 matches the gesture range and the specs (map-pan-zoom, map-rotation-gesture):
          *  lower zooms render huge world tiles natively (z=2 ~5s, z=1 hangs), stalling the render worker. */
-        const val MIN_MAG = 4
+        const val MIN_MAG = 4.0
         /** Minimum magnification for the pinch/rotation gesture commit (keeps 4–20). */
-        const val GESTURE_MIN_MAG = 4
-        const val MAX_MAG = 20
+        const val GESTURE_MIN_MAG = 4.0
+        const val MAX_MAG = 20.0
 
         /** POI search radius steps in meters (mirrors JavaScout PoiSearchOverlay, extended to 100 km). */
         val POI_RADIUS_STEPS_M = doubleArrayOf(500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0, 100000.0)
@@ -2211,14 +2219,14 @@ class MapCanvasViewModel @Inject constructor(
         const val MAX_POI_RESULTS = 100
 
         /** Clamp a magnification to the pinch/rotation gesture range (4–20). */
-        fun clampGestureMagnification(mag: Int): Int = mag.coerceIn(GESTURE_MIN_MAG, MAX_MAG)
+        fun clampGestureMagnification(mag: Double): Double = mag.coerceIn(GESTURE_MIN_MAG, MAX_MAG)
         private const val CANVAS_OVERRUN = 1.2
 
         /** Fixed zoom level for node-type favorites (points, POIs). */
-        private const val NODE_ZOOM = 17
+        private const val NODE_ZOOM = 17.0
 
         /** Minimum zoom level for area-type favorites (prevents too-zoomed-out view). */
-        private const val MIN_AREA_ZOOM = 14
+        private const val MIN_AREA_ZOOM = 14.0
 
         /**
          * Compute a magnification that fits the given bounding box within the viewport.
@@ -2228,7 +2236,7 @@ class MapCanvasViewModel @Inject constructor(
          * @param vpHeight viewport height in pixels
          * @return magnification level clamped to [MIN_MAG, MAX_MAG]
          */
-        fun computeAreaZoom(bbox: DoubleArray, vpWidth: Int, vpHeight: Int): Int {
+        fun computeAreaZoom(bbox: DoubleArray, vpWidth: Int, vpHeight: Int): Double {
             if (vpWidth <= 0 || vpHeight <= 0) return NODE_ZOOM
 
             val minLat = bbox[0]
@@ -2269,7 +2277,7 @@ class MapCanvasViewModel @Inject constructor(
                 Math.log(earthCircumference / (256.0 * targetMetersPerPixel)) / Math.log(2.0)
             ).toInt()
 
-            return mag.coerceIn(MIN_AREA_ZOOM, MAX_MAG)
+            return mag.toDouble().coerceIn(MIN_AREA_ZOOM, MAX_MAG)
         }
     }
 }

@@ -20,7 +20,7 @@ object MapRenderUtil {
      * @param lat          center latitude
      * @param lon          center longitude
      * @param angle        map rotation angle in degrees (0 = north up)
-     * @param magnification map magnification level
+     * @param magnification magnification scale factor (2^z; fractional z allowed)
      * @param routeLats    route polyline latitudes (nullable)
      * @param routeLons    route polyline longitudes (nullable)
      * @param favoriteLats favorite marker latitudes (nullable)
@@ -38,7 +38,7 @@ object MapRenderUtil {
         lat: Double,
         lon: Double,
         angle: Double,
-        magnification: Int,
+        magnification: Double,
         routeLats: DoubleArray? = null,
         routeLons: DoubleArray? = null,
         favoriteLats: DoubleArray? = null,

@@ -442,7 +442,7 @@ private fun poiFitMagnification(
     radiusMeters: Double,
     mapW: Int,
     mapH: Int
-): Int {
+): Double {
     fun radiusBbox(): DoubleArray {
         val latRad = Math.toRadians(centerLat)
         val dLat = radiusMeters / 111320.0

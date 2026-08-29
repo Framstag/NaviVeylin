@@ -200,7 +200,7 @@ class PoiSearchPanelComposeTest {
                 LocationDetailsDialog(
                     entry = locEntry,
                     client = FakeOSMScoutClient(),
-                    initialMag = 12,
+                    initialMag = 12.0,
                     isFavorite = false,
                     groupNames = emptyList(),
                     onAddToFavorites = { _, _, _ -> },
@@ -256,7 +256,7 @@ class PoiSearchPanelComposeTest {
                 LocationDetailsDialog(
                     entry = locEntry,
                     client = FakeOSMScoutClient(),
-                    initialMag = 12,
+                    initialMag = 12.0,
                     isFavorite = false,
                     groupNames = emptyList(),
                     onAddToFavorites = { _, _, _ -> },

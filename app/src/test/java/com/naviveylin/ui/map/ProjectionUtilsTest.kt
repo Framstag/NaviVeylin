@@ -17,7 +17,7 @@ class ProjectionUtilsTest {
 
     @Test
     fun `computeScale produces consistent scale factors`() {
-        val ps = ProjectionUtils.computeScale(8, screenW.toDouble(), dpi)
+        val ps = ProjectionUtils.computeScale(8.0, screenW.toDouble(), dpi)
         assertTrue("scale should be positive", ps.scale > 0)
         assertTrue("scaleGradtorad should be positive", ps.scaleGradtorad > 0)
         // scaleGradtorad = scale * PI / 180
@@ -26,15 +26,15 @@ class ProjectionUtilsTest {
 
     @Test
     fun `higher magnification gives larger scale`() {
-        val ps8 = ProjectionUtils.computeScale(8, screenW.toDouble(), dpi)
-        val ps12 = ProjectionUtils.computeScale(12, screenW.toDouble(), dpi)
+        val ps8 = ProjectionUtils.computeScale(8.0, screenW.toDouble(), dpi)
+        val ps12 = ProjectionUtils.computeScale(12.0, screenW.toDouble(), dpi)
         assertTrue("mag 12 scale should be > mag 8 scale", ps12.scale > ps8.scale)
     }
 
     @Test
     fun `higher DPI gives larger scale`() {
-        val psLowDpi = ProjectionUtils.computeScale(8, screenW.toDouble(), 240.0)
-        val psHighDpi = ProjectionUtils.computeScale(8, screenW.toDouble(), 480.0)
+        val psLowDpi = ProjectionUtils.computeScale(8.0, screenW.toDouble(), 240.0)
+        val psHighDpi = ProjectionUtils.computeScale(8.0, screenW.toDouble(), 480.0)
         assertTrue("higher DPI should have larger scale", psHighDpi.scale > psLowDpi.scale)
     }
 
@@ -44,7 +44,7 @@ class ProjectionUtilsTest {
         val centerLon = 7.5
         val (sx, sy) = ProjectionUtils.geoToScreen(
             centerLat, centerLon,
-            screenW, screenH, 8,
+            screenW, screenH, 8.0,
             centerLat, centerLon, dpi
         )
         assertEquals(screenW / 2.0, sx, 1.0)
@@ -57,7 +57,7 @@ class ProjectionUtilsTest {
         val centerLon = 7.5
         val (sx, _) = ProjectionUtils.geoToScreen(
             centerLat, centerLon + 0.1,
-            screenW, screenH, 8,
+            screenW, screenH, 8.0,
             centerLat, centerLon, dpi
         )
         assertTrue("east point should be right of center", sx > screenW / 2.0)
@@ -69,7 +69,7 @@ class ProjectionUtilsTest {
         val centerLon = 7.5
         val (_, sy) = ProjectionUtils.geoToScreen(
             centerLat + 0.1, centerLon,
-            screenW, screenH, 8,
+            screenW, screenH, 8.0,
             centerLat, centerLon, dpi
         )
         assertTrue("north point should be above center (lower y)", sy < screenH / 2.0)
@@ -84,12 +84,12 @@ class ProjectionUtilsTest {
 
         val (sx, sy) = ProjectionUtils.geoToScreen(
             testLat, testLon,
-            screenW, screenH, 10,
+            screenW, screenH, 10.0,
             centerLat, centerLon, dpi
         )
         val (latBack, lonBack) = ProjectionUtils.screenToGeo(
             sx, sy,
-            screenW, screenH, 10,
+            screenW, screenH, 10.0,
             centerLat, centerLon, dpi
         )
         assertEquals(testLat, latBack, 1e-8)
@@ -104,7 +104,7 @@ class ProjectionUtilsTest {
         val testLat = 48.5
         val testLon = 16.8
 
-        val vp = ProjectionUtils.viewport(centerLat, centerLon, 10, screenW, screenH, dpi, angle)
+        val vp = ProjectionUtils.viewport(centerLat, centerLon, 10.0, screenW, screenH, dpi, angle)
         val (sx, sy) = vp.geoToScreenRotated(testLat, testLon)
         val (latBack, lonBack) = vp.screenToGeoRotated(sx, sy)
         assertEquals(testLat, latBack, 1e-8)
@@ -120,10 +120,10 @@ class ProjectionUtilsTest {
 
         val (northLat, northLon) = ProjectionUtils.screenToGeo(
             sx, sy,
-            screenW, screenH, 10,
+            screenW, screenH, 10.0,
             centerLat, centerLon, dpi
         )
-        val vp = ProjectionUtils.viewport(centerLat, centerLon, 10, screenW, screenH, dpi, 0.0)
+        val vp = ProjectionUtils.viewport(centerLat, centerLon, 10.0, screenW, screenH, dpi, 0.0)
         val (rotLat, rotLon) = vp.screenToGeoRotated(sx, sy)
         assertEquals(northLat, rotLat, 1e-9)
         assertEquals(northLon, rotLon, 1e-9)
@@ -134,7 +134,7 @@ class ProjectionUtilsTest {
         val centerLat = 51.5
         val centerLon = 7.5
         val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenter(
-            100.0, 0.0, 8,
+            100.0, 0.0, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
@@ -148,7 +148,7 @@ class ProjectionUtilsTest {
         val centerLat = 51.5
         val centerLon = 7.5
         val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenter(
-            0.0, 100.0, 8,
+            0.0, 100.0, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
@@ -162,12 +162,12 @@ class ProjectionUtilsTest {
         val centerLat = 51.5
         val centerLon = 7.5
         val (northLat, northLon) = ProjectionUtils.dragDeltaToNewCenter(
-            100.0, 50.0, 8,
+            100.0, 50.0, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
         val (rotLat, rotLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
-            100.0, 50.0, 0.0, 8,
+            100.0, 50.0, 0.0, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
@@ -180,7 +180,7 @@ class ProjectionUtilsTest {
         val centerLat = 51.5
         val centerLon = 7.5
         val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
-            100.0, 0.0, Math.PI / 2, 8,
+            100.0, 0.0, Math.PI / 2, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
@@ -195,7 +195,7 @@ class ProjectionUtilsTest {
         val centerLat = 51.5
         val centerLon = 7.5
         val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
-            0.0, 100.0, Math.PI / 2, 8,
+            0.0, 100.0, Math.PI / 2, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
@@ -210,7 +210,7 @@ class ProjectionUtilsTest {
         val centerLat = 51.5
         val centerLon = 7.5
         val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
-            100.0, 0.0, Math.PI / 4, 8,
+            100.0, 0.0, Math.PI / 4, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
@@ -225,7 +225,7 @@ class ProjectionUtilsTest {
         val centerLat = 51.5
         val centerLon = 7.5
         val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
-            100.0, 0.0, 3 * Math.PI / 4, 8,
+            100.0, 0.0, 3 * Math.PI / 4, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
@@ -244,14 +244,14 @@ class ProjectionUtilsTest {
         val angle = Math.toRadians(30.0)
         val fingerStart = Pair(260.0, 310.0)
         val delta = Pair(60.0, -40.0)
-        val vp = ProjectionUtils.viewport(centerLat, centerLon, 8, screenW, screenH, dpi, angle)
+        val vp = ProjectionUtils.viewport(centerLat, centerLon, 8.0, screenW, screenH, dpi, angle)
         val (gLat, gLon) = vp.screenToGeoRotated(fingerStart.first, fingerStart.second)
         val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
-            delta.first, delta.second, angle, 8,
+            delta.first, delta.second, angle, 8.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
-        val vp2 = ProjectionUtils.viewport(newLat, newLon, 8, screenW, screenH, dpi, angle)
+        val vp2 = ProjectionUtils.viewport(newLat, newLon, 8.0, screenW, screenH, dpi, angle)
         val (sx, sy) = vp2.geoToScreenRotated(gLat, gLon)
         assertEquals("finger-follow X", fingerStart.first + delta.first, sx, 1e-6)
         assertEquals("finger-follow Y", fingerStart.second + delta.second, sy, 1e-6)
@@ -263,8 +263,8 @@ class ProjectionUtilsTest {
         val centerLon = 7.5
         val cursorX = 300.0
         val cursorY = 400.0
-        val oldMag = 8
-        val newMag = 9
+        val oldMag = 8.0
+        val newMag = 9.0
 
         // Geo coord under cursor before zoom
         val (cursorLat, cursorLon) = ProjectionUtils.screenToGeo(
@@ -299,7 +299,7 @@ class ProjectionUtilsTest {
 
         val (newLat, newLon) = ProjectionUtils.zoomAtCursor(
             cursorX, cursorY,
-            8, 9,
+            8.0, 9.0,
             screenW.toDouble(), screenH.toDouble(),
             centerLat, centerLon, dpi
         )
@@ -349,7 +349,7 @@ class ProjectionUtilsTest {
 
     @Test
     fun `ProjectedViewport geoToScreen and screenToGeo round-trip`() {
-        val vp = ProjectionUtils.viewport(51.5, 7.5, 10, screenW, screenH, dpi)
+        val vp = ProjectionUtils.viewport(51.5, 7.5, 10.0, screenW, screenH, dpi)
         val original = Pair(51.49, 7.51)
         val (sx, sy) = vp.geoToScreen(original.first, original.second)
         val (latBack, lonBack) = vp.screenToGeo(sx, sy)
@@ -359,16 +359,16 @@ class ProjectionUtilsTest {
 
     @Test
     fun `ProjectedViewport zoomScale doubles per zoom level`() {
-        val vp = ProjectionUtils.viewport(51.5, 7.5, 10, screenW, screenH, dpi)
-        assertEquals(2.0, vp.zoomScale(11), 1e-12)
-        assertEquals(0.5, vp.zoomScale(9), 1e-12)
-        assertEquals(1.0, vp.zoomScale(10), 1e-12)
+        val vp = ProjectionUtils.viewport(51.5, 7.5, 10.0, screenW, screenH, dpi)
+        assertEquals(2.0, vp.zoomScale(11.0), 1e-12)
+        assertEquals(0.5, vp.zoomScale(9.0), 1e-12)
+        assertEquals(1.0, vp.zoomScale(10.0), 1e-12)
     }
 
     @Test
     fun `rotated geoToScreen keeps center fixed`() {
         val angle = Math.toRadians(45.0)
-        val vp = ProjectionUtils.viewport(51.5, 7.5, 10, screenW, screenH, dpi, angle)
+        val vp = ProjectionUtils.viewport(51.5, 7.5, 10.0, screenW, screenH, dpi, angle)
         val (cx, cy) = vp.geoToScreenRotated(51.5, 7.5)
         assertEquals(screenW / 2.0, cx, 1e-9)
         assertEquals(screenH / 2.0, cy, 1e-9)
@@ -377,7 +377,7 @@ class ProjectionUtilsTest {
     @Test
     fun `rotated geoToScreen and screenToGeo round-trip`() {
         val angle = Math.toRadians(30.0)
-        val vp = ProjectionUtils.viewport(51.5, 7.5, 10, screenW, screenH, dpi, angle)
+        val vp = ProjectionUtils.viewport(51.5, 7.5, 10.0, screenW, screenH, dpi, angle)
         val (sx, sy) = vp.geoToScreenRotated(51.49, 7.51)
         val (latBack, lonBack) = vp.screenToGeoRotated(sx, sy)
         assertEquals(51.49, latBack, 1e-8)
@@ -390,7 +390,7 @@ class ProjectionUtilsTest {
         val fbH = (screenH * 1.2).toInt()
         val rects = computeZoomPlaceholderRects(
             fbW, fbH, screenW, screenH,
-            10, 11,
+            10.0, 11.0,
             51.5, 7.5, // new center same as front-buffer center
             51.5, 7.5,
             dpi
@@ -415,7 +415,7 @@ class ProjectionUtilsTest {
         val fbH = (screenH * 1.2).toInt()
         val rects = computeZoomPlaceholderRects(
             fbW, fbH, screenW, screenH,
-            11, 10,
+            11.0, 10.0,
             51.5, 7.5,
             51.5, 7.5,
             dpi
@@ -437,7 +437,7 @@ class ProjectionUtilsTest {
         val fbH = screenH
         val rects = computeZoomPlaceholderRects(
             fbW, fbH, screenW, screenH,
-            10, 11,
+            10.0, 11.0,
             // New center north-east of front-buffer center; with no overrun buffer the
             // ideal source rect would partially fall outside the front buffer.
             51.52, 7.52,
@@ -450,5 +450,48 @@ class ProjectionUtilsTest {
             rects.srcX + rects.srcW <= fbW + 1e-9)
         assertTrue("source bottom edge should not exceed buffer height",
             rects.srcY + rects.srcH <= fbH + 1e-9)
+    }
+
+    @Test
+    fun `zoomAtCursor keeps the cursor geo point fixed for a fractional zoom step`() {
+        // continuous-pinch-zoom (spec: map-pan-zoom): a fractional magnification
+        // step (2.3× from level 14 → z ≈ 15.2) must keep the geographic point
+        // under the cursor stationary, same as integer steps.
+        val cursorX = 250.0
+        val cursorY = 900.0
+        val (cursorLat, cursorLon) = ProjectionUtils.screenToGeo(
+            cursorX, cursorY, screenW, screenH, 14.0,
+            51.5, 7.5, dpi
+        )
+        val (newLat, newLon) = ProjectionUtils.zoomAtCursor(
+            cursorX, cursorY, 14.0, 15.2,
+            screenW.toDouble(), screenH.toDouble(),
+            51.5, 7.5, dpi
+        )
+        // The cursor must project to the same geo point at the new magnification.
+        val (backX, backY) = ProjectionUtils.geoToScreen(
+            cursorLat, cursorLon, screenW, screenH, 15.2, newLat, newLon, dpi
+        )
+        assertEquals(cursorX, backX, 1e-6)
+        assertEquals(cursorY, backY, 1e-6)
+    }
+
+    @Test
+    fun `zoomAtCursor fractional and integer steps compose linearly`() {
+        // Two 0.5-level steps land on the same center as one 1-level step.
+        val (midLat, midLon) = ProjectionUtils.zoomAtCursor(
+            540.0, 1200.0, 14.0, 14.5,
+            screenW.toDouble(), screenH.toDouble(), 51.5, 7.5, dpi
+        )
+        val (fullLat, fullLon) = ProjectionUtils.zoomAtCursor(
+            540.0, 1200.0, 14.0, 15.0,
+            screenW.toDouble(), screenH.toDouble(), 51.5, 7.5, dpi
+        )
+        val (midLat2, midLon2) = ProjectionUtils.zoomAtCursor(
+            540.0, 1200.0, 14.5, 15.0,
+            screenW.toDouble(), screenH.toDouble(), midLat, midLon, dpi
+        )
+        assertEquals(fullLat, midLat2, 1e-9)
+        assertEquals(fullLon, midLon2, 1e-9)
     }
 }

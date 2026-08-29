@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlin.math.pow
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -34,8 +35,10 @@ class MiniMapComposeTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    /** Wait until the fake client saw a render at [expected] magnification (5s cap). */
-    private fun awaitMag(client: FakeOSMScoutClient, expected: Int) = runBlocking {
+    /** Wait until the fake client saw a render at zoom level [expected] — the JNI
+     *  boundary takes the scale factor 2^z; the fake stores it raw (continuous-pinch-zoom). */
+    private fun awaitMag(client: FakeOSMScoutClient, expectedLevel: Double) = runBlocking {
+        val expected = 2.0.pow(expectedLevel)
         withTimeout(10_000) {
             while (client.lastRenderMag != expected) {
                 delay(10)
@@ -47,8 +50,8 @@ class MiniMapComposeTest {
         client: FakeOSMScoutClient,
         lat: Double = 51.5,
         lon: Double = 7.4,
-        mag: Int = 12,
-        onViewportChanged: ((lat: Double, lon: Double, mag: Int) -> Unit)? = null
+        mag: Double = 12.0,
+        onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null
     ) {
         composeRule.setContent {
             MiniMap(
@@ -72,23 +75,23 @@ class MiniMapComposeTest {
     @Test
     fun zoomInIncreasesMagnificationByOneStep() {
         val client = FakeOSMScoutClient()
-        launch(client, mag = 12)
-        awaitMag(client, 12)
+        launch(client, mag = 12.0)
+        awaitMag(client, 12.0)
 
         composeRule.onNodeWithContentDescription("Zoom in").performClick()
 
-        awaitMag(client, 13)
+        awaitMag(client, 13.0)
     }
 
     @Test
     fun zoomOutDecreasesMagnificationByOneStep() {
         val client = FakeOSMScoutClient()
-        launch(client, mag = 12)
-        awaitMag(client, 12)
+        launch(client, mag = 12.0)
+        awaitMag(client, 12.0)
 
         composeRule.onNodeWithContentDescription("Zoom out").performClick()
 
-        awaitMag(client, 11)
+        awaitMag(client, 11.0)
     }
 
     @Test
@@ -101,7 +104,7 @@ class MiniMapComposeTest {
         composeRule.waitForIdle()
         runBlocking { delay(500) } // let any (unexpected) render land
 
-        assertTrue(client.lastRenderMag == MapCanvasViewModel.MAX_MAG)
+        assertTrue(client.lastRenderMag == 2.0.pow(MapCanvasViewModel.MAX_MAG))
     }
 
     @Test
@@ -114,17 +117,17 @@ class MiniMapComposeTest {
         composeRule.waitForIdle()
         runBlocking { delay(500) }
 
-        assertTrue(client.lastRenderMag == MapCanvasViewModel.MIN_MAG)
+        assertTrue(client.lastRenderMag == 2.0.pow(MapCanvasViewModel.MIN_MAG))
     }
 
     @Test
     fun panMovesTheMapCenter() {
         val client = FakeOSMScoutClient()
-        val latestViewport = AtomicReference<Triple<Double, Double, Int>?>(null)
+        val latestViewport = AtomicReference<Triple<Double, Double, Double>?>(null)
         launch(client, lat = 51.5, lon = 7.4, onViewportChanged = { l, o, m ->
             latestViewport.set(Triple(l, o, m))
         })
-        awaitMag(client, 12)
+        awaitMag(client, 12.0)
         val initial = latestViewport.get()!!
 
         composeRule.onNodeWithTag("MiniMapCanvas").performTouchInput { swipeLeft() }
@@ -145,7 +148,7 @@ class MiniMapComposeTest {
         val client = FakeOSMScoutClient()
         launch(client, lat = 51.5, lon = 7.4)
 
-        awaitMag(client, 12)
+        awaitMag(client, 12.0)
 
         // A frame reached the widget (bitmap drawn, marker projected on top).
         assertTrue(client.renderWithRouteAndPoisCount.get() > 0 || client.renderCount.get() > 0)

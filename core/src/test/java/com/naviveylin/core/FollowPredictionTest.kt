@@ -193,7 +193,7 @@ class FollowPredictionTest {
     fun `display offset is zero when displayed position equals frame center`() {
         // 1080x1920 canvas, 1296x2304 overrun bitmap (1.2x), mag 14, dpi 320.
         val off = FollowPrediction.displayOffsetPx(
-            48.0, 2.0, 48.0, 2.0, 14, 0.0, 1296, 2304, 1080, 1920, 320.0
+            48.0, 2.0, 48.0, 2.0, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0
         )
         assertEquals(0.0, off.clampedX, 1e-6)
         assertEquals(0.0, off.clampedY, 1e-6)
@@ -205,7 +205,7 @@ class FollowPredictionTest {
         // Move ~50 m east of the frame center at mag 14 (≈1.2 m/px at 320 dpi).
         val dLon = 50.0 / FollowPrediction.METERS_PER_DEG_LON
         val off = FollowPrediction.displayOffsetPx(
-            48.0, 2.0 + dLon, 48.0, 2.0, 14, 0.0, 1296, 2304, 1080, 1920, 320.0
+            48.0, 2.0 + dLon, 48.0, 2.0, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0
         )
         assertTrue(off.clampedX > 0.0)
         assertTrue(off.clampedX < 108.0) // within the 0.1 * 1080 margin
@@ -218,7 +218,7 @@ class FollowPredictionTest {
         // Move far east — the offset must clamp to the margin (108 px at 1080 wide).
         val dLon = 500.0 / FollowPrediction.METERS_PER_DEG_LON
         val off = FollowPrediction.displayOffsetPx(
-            48.0, 2.0 + dLon, 48.0, 2.0, 14, 0.0, 1296, 2304, 1080, 1920, 320.0
+            48.0, 2.0 + dLon, 48.0, 2.0, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0
         )
         assertEquals(108.0, off.clampedX, 1e-6)
         assertEquals(0.0, off.clampedY, 1e-6)
@@ -231,7 +231,7 @@ class FollowPredictionTest {
         // (negative-y) offset — the bitmap has the rotation baked in.
         val dLon = 50.0 / FollowPrediction.METERS_PER_DEG_LON
         val off = FollowPrediction.displayOffsetPx(
-            48.0, 2.0 + dLon, 48.0, 2.0, 14, -Math.PI / 2.0, 1296, 2304, 1080, 1920, 320.0
+            48.0, 2.0 + dLon, 48.0, 2.0, 14.0, -Math.PI / 2.0, 1296, 2304, 1080, 1920, 320.0
         )
         assertEquals(0.0, off.clampedX, 1e-6)
         assertTrue(off.clampedY < 0.0) // east on the map points up on screen

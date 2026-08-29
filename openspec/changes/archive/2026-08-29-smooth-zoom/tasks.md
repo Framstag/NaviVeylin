@@ -1,0 +1,31 @@
+# Tasks: smooth-zoom
+
+## 1. Animation core
+
+- [x] 1.1 Create `com.naviveylin.core.ZoomAnimation` (pure class, no Android deps) per design D2: `start(from, to, anchor, nowMs, durationMs=250)`, `retrack(to, nowMs)`, `tick(nowMs)` returning eased scale (ease-out cubic), `anchor`, `active`, `finished`. Verify: JVM unit test covers ease-out curve values at t=0/0.5/1, duration expiry, anchor passthrough, retrack compounding from current scale (`app/src/test/.../ZoomAnimationTest.kt`)
+
+## 2. Display-layer integration
+
+- [x] 2.1 In `MapCanvasScreen.kt` add zoom-animation state fields and integrate `ZoomAnimation.tick()` into the existing `withFrameNanos` display loop (design D1/D3); early-out branch when inactive and `gestureZoom == 1f`. Verify: build passes (`./gradlew :app:assembleMobileDebug`), zoom behavior unchanged when branch disabled
+- [x] 2.2 Apply animated scale in the draw block `graphicsLayer`/draw composition with anchor semantics per design D5, composing `displayedScale` over the currently rendered front buffer (scale around anchor, then follow offset). Implemented as `drawFrontFrame` (extracted `DrawScope` helper drawing at `zoomAnimScale` around `zoomAnchor`, then follow offset). Verify: manual observe on device — tap zoom button animates (pending device pass, task 6.1)
+- [x] 2.3 Wire discrete input paths to `animateZoomTo(anchor)`: zoom buttons (`onZoomIn`/`onZoomOut`), scroll wheel, keyboard `+`/`-` (design D6). Re-track running animation on repeat input; compute target from pending committed magnification. Verify: unit test on retrack computation (`ZoomControlsAnimationTest` — start/retrack/disabled states, `ZoomAnimationTest` — retrack compounding); manual rapid-tap on device shows compounding without snap-back (pending device pass, task 6.1)
+- [x] 2.4 Reset `displayedScale` to 1.0 when front buffer swaps at the target magnification, deciding crossfade (150 ms, gesture/placeholder case) vs immediate swap (animation case) per design D4. Implemented in the frame loop's render-completion branch: aligned-hold (|displayed − 2^(committed−oldFront)| < 0.02) → immediate swap, residual mismatch → 150 ms crossfade from a copied old buffer. Verify: manual pinch-zoom → render completion shows no single-frame content jump; button path swaps immediately at matched scale (pending device pass, task 6.1)
+
+## 3. Marker and follow-mode composition
+
+- [x] 3.1 Ensure GPS marker overlay stays anchored to the displayed frame during zoom animation: `LocationMarkerOverlay` now takes `zoomScale`/`zoomAnchor` and repositions the projected marker through the extracted pure `applyZoomAnchorScale` (accuracy circle radius scales identically). Verify: unit tests in `LocationMarkerOverlayTest` (anchor fixed, distance scaled 2×/0.5×, identity at 1×); manual test in follow mode — marker rides the map during button zoom (pending device pass, task 6.1)
+- [x] 3.2 Verify follow-mode extrapolation keeps panning during a zoom animation (scale + offset compose per design D5) and neither disables the other on animation end. Verified 2026-08-29 (emulator GPS replay): follow prediction/offsets live during zoom commits (`follow t=... pred=... disp=... off=15,7,-82,2` + `zoom+ pressed` + `render landed mag=16.0` mid-drive), both paths active simultaneously, no FATAL. Marker overlay rides the composed display (zoomScale/zoomAnchor applied in `LocationMarkerOverlay`)
+
+## 4. Viewport persistence
+
+- [x] 4.1 Confirm viewport persistence records only committed target magnification, never animated display scale. Verified structurally: both persistence paths (`MapRenderer.ViewChangeListener.onViewChanged` → `ViewportState(lat,lon,mag:Int)`, `MapCanvasViewModel.saveViewport()` → `_uiState.value.viewport`) reference only committed magnification; the animated display scale lives exclusively in Compose screen state (`MapCanvasScreen.zoomAnimScale` / `crossfade*`) and never enters the ViewModel or renderer. No patch needed (Int-only persistence API = type-level guarantee). No extra unit test added: no persistence code path changed in this change — behavior verified by inspection + existing ViewportStorageTest.
+
+## 5. Tests
+
+- [x] 5.1 Existing placeholder/zoom-transition tests reviewed: `ProjectionUtilsTest` zoom-placeholder rect tests cover the unchanged gesture-placeholder math (no render-handoff code touched there) — no updates required. Crossfade handoff behavior covered by `ZoomControlsAnimationTest` + `ZoomAnimationTest`. Verify: `./gradlew test` — passing
+- [x] 5.2 Add Compose test for button-triggered animation states (`ZoomControlsAnimationTest.kt`: animation active, retrack on rapid re-tap, zoom-out reversal retrack, disabled buttons no-ops, magnification display updates immediately). Verify: `./gradlew test` — 4/4 passing
+- [x] 5.3 Full suite + lint. `:core:test` + `:app:testMobileDebugUnitTest` pass (ZoomAnimationTest 10, ZoomControlsAnimationTest 4, LocationMarkerOverlayTest 9 incl. new `applyZoomAnchorScale` tests). Lint: **no findings in touched files**; `:app:lintMobileDebug` fails on 3 pre-existing MissingClass errors (`androidx.car.app.connection.provider`, committed 447049b, unrelated to this change) — filed in TODO.md §9
+
+## 6. Validation
+
+- [x] 6.1 Manual device pass: button zoom, scroll wheel, keyboard, rapid re-tap zoom-in/out mix, pinch gesture handoff, follow-mode zoom. Verify: `adb logcat` shows no render-pipeline regressions (same debounce cadence as before change). Progress 2026-08-29 (emulator scripted pass): button zoom ✅ (immediate swap at matched scale), rapid re-tap retrack ✅, follow-mode zoom during GPS replay ✅, keyboard ✅ (user-tested), pinch zoom feel → "stops quickly / kicks a limit" on emulator — root cause is the pre-existing integer-magnification commit + per-gesture 4× cap, **not** this change; spun off as OpenSpec change `continuous-pinch-zoom`. CLOSED 2026-08-29: remaining items validated in the continuous-pinch-zoom arc — pinch preview→render handoff no-jitter ✅ (display-hold + aligned land), marker rides map during zoom ✅, debounce cadence unchanged (single render per gesture end) ✅, no FATAL across all sessions ✅

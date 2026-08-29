@@ -12,6 +12,7 @@ import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.core.ProjectionUtils
 import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.cos
@@ -114,7 +115,7 @@ class AutoMapRenderer(
     @Volatile private var overrunBitmap: Bitmap? = null
     @Volatile private var overrunLat = Double.NaN
     @Volatile private var overrunLon = Double.NaN
-    @Volatile private var overrunMag = 0
+    @Volatile private var overrunMag = 0.0
     @Volatile private var overrunAngle = 0.0
 
     // Displayed viewport center: the eased predicted position in follow mode,
@@ -695,7 +696,7 @@ class AutoMapRenderer(
         val blit = synchronized(surfaceLock) {
             val ob = overrunBitmap
             if (blitEligible && ob != null &&
-                viewportZoom == overrunMag && viewportAngle == overrunAngle
+                viewportZoomFraction == overrunMag && viewportAngle == overrunAngle
             ) {
                 val offset = FollowPrediction.displayOffsetPx(
                     viewportLat, viewportLon,
@@ -743,7 +744,7 @@ class AutoMapRenderer(
             lat = viewportLat,
             lon = viewportLon,
             angle = viewportAngle,
-            magnification = viewportZoom,
+            magnification = 2.0.pow(viewportZoomFraction),
             routeLats = routeLats,
             routeLons = routeLons,
             favoriteLats = favoriteLats,
@@ -766,7 +767,7 @@ class AutoMapRenderer(
                 overrunBitmap = bitmap
                 overrunLat = viewportLat
                 overrunLon = viewportLon
-                overrunMag = viewportZoom
+                overrunMag = viewportZoomFraction
                 overrunAngle = viewportAngle
                 if (!followMode) {
                     // In follow mode the extrapolation loop owns the display
@@ -883,7 +884,7 @@ class AutoMapRenderer(
         overrunBitmap = null
         overrunLat = Double.NaN
         overrunLon = Double.NaN
-        overrunMag = 0
+        overrunMag = 0.0
         overrunAngle = 0.0
         displayLat = Double.NaN
         displayLon = Double.NaN
@@ -925,7 +926,7 @@ class AutoMapRenderer(
         val (markerLat, markerLon) = markerPosition()
         val (vpLat, vpLon) = markerViewport()
         val vp = ProjectionUtils.viewport(
-            vpLat, vpLon, viewportZoom, w, h, projectionDpi, viewportAngle
+            vpLat, vpLon, viewportZoomFraction, w, h, projectionDpi, viewportAngle
         )
         val (x, y) = vp.geoToScreenRotated(markerLat, markerLon)
 
@@ -939,7 +940,7 @@ class AutoMapRenderer(
 
         // Meters per pixel at the rendered magnification (pixels-per-radian
         // times earth radius). Used for the accuracy circle.
-        val scale = ProjectionUtils.computeScale(viewportZoom, w.toDouble(), projectionDpi).scale
+        val scale = ProjectionUtils.computeScale(viewportZoomFraction, w.toDouble(), projectionDpi).scale
         val metersPerPixel = ProjectionUtils.EARTH_RADIUS / scale
         val accuracyRadiusPx = if (gpsMarkerAccuracy > 0.0 && metersPerPixel > 0.0) {
             (gpsMarkerAccuracy / metersPerPixel).coerceAtLeast(minRadius.toDouble()).toFloat()
@@ -1013,7 +1014,7 @@ class AutoMapRenderer(
 
         val (vpLat, vpLon) = markerViewport()
         val vp = ProjectionUtils.viewport(
-            vpLat, vpLon, viewportZoom, w, h, projectionDpi, viewportAngle
+            vpLat, vpLon, viewportZoomFraction, w, h, projectionDpi, viewportAngle
         )
         val (x, y) = vp.geoToScreenRotated(destMarkerLat, destMarkerLon)
         if (x.isNaN() || y.isNaN()) return

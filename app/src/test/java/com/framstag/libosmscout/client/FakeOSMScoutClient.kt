@@ -31,7 +31,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     /** Magnification of the last render (either entry point; -1 until first render). */
     @Volatile
-    var lastRenderMag: Int = -1
+    var lastRenderMag: Double = -1.0
 
     /** Latitude of the last render (NaN until first render). */
     @Volatile
@@ -98,7 +98,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
     override fun render(
         width: Int, height: Int,
         lat: Double, lon: Double,
-        angle: Double, magnification: Int
+        angle: Double, magnification: Double
     ): IntArray? {
         renderCount.incrementAndGet()
         lastRenderLat = lat
@@ -109,7 +109,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     override fun renderWithRouteAndPois(
         width: Int, height: Int,
-        lat: Double, lon: Double, angle: Double, magnification: Int,
+        lat: Double, lon: Double, angle: Double, magnification: Double,
         routeLats: DoubleArray?, routeLons: DoubleArray?,
         favoriteLats: DoubleArray?, favoriteLons: DoubleArray?,
         searchSelLat: Double, searchSelLon: Double,

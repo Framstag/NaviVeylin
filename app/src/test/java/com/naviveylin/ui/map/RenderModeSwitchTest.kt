@@ -63,7 +63,7 @@ class RenderModeSwitchTest {
         // Default mode is TILES.
         assertEquals(RenderMode.TILES, renderer.renderMode)
 
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
         awaitFrame()
 
         assertTrue(
@@ -80,7 +80,7 @@ class RenderModeSwitchTest {
     @Test
     fun directModeRendersFullFrameWithoutTiles() = runTest(mainDispatcherRule.dispatcher) {
         renderer.renderMode = RenderMode.DIRECT
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
         awaitFrame()
 
         assertEquals(
@@ -98,7 +98,7 @@ class RenderModeSwitchTest {
     @Test
     fun switchingToDirectInvalidatesCacheAndForcesFullRender() = runTest(mainDispatcherRule.dispatcher) {
         // Warm the tile cache in TILES mode.
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
         awaitFrame()
         val tilesAfterWarmup = client.renderWithRouteAndPoisCount.get()
         assertTrue(tilesAfterWarmup >= 1)
@@ -125,13 +125,13 @@ class RenderModeSwitchTest {
     @Test
     fun directModeKeepsWorkingAfterPanAndZoom() = runTest(mainDispatcherRule.dispatcher) {
         renderer.renderMode = RenderMode.DIRECT
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
         awaitFrame()
 
-        renderer.requestRender(51.6, 7.5, 15, 0.0)
+        renderer.requestRender(51.6, 7.5, 15.0, 0.0)
         advanceUntilIdle()
 
-        assertEquals(15, renderer.renderedMag)
+        assertEquals(15.0, renderer.renderedMag, 1e-9)
         assertEquals(2, client.renderCount.get())
         assertEquals(0, client.renderWithRouteAndPoisCount.get())
     }
@@ -145,7 +145,7 @@ class RenderModeSwitchTest {
         slowRenderer.screenWidth = 1200
         slowRenderer.screenHeight = 1200
 
-        slowRenderer.requestRender(51.5, 7.5, 14, 0.0)
+        slowRenderer.requestRender(51.5, 7.5, 14.0, 0.0)
         // Switch while the tile render is in flight: epoch bumps, in-flight
         // result must be discarded, and the re-render must come from DIRECT.
         slowRenderer.renderMode = RenderMode.DIRECT

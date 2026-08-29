@@ -74,12 +74,12 @@ fun MiniMap(
     client: OSMScoutClient,
     lat: Double,
     lon: Double,
-    initialMag: Int,
+    initialMag: Double,
     modifier: Modifier = Modifier,
     additionalMarkers: List<Pair<Double, Double>> = emptyList(),
     selectedMarker: Pair<Double, Double>? = null,
     currentPosition: Pair<Double, Double>? = null,
-    onViewportChanged: ((lat: Double, lon: Double, mag: Int) -> Unit)? = null
+    onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null
 ) {
     val densityDpi = LocalContext.current.resources.displayMetrics.densityDpi.toDouble()
     val surfaceColor = MaterialTheme.colorScheme.surface

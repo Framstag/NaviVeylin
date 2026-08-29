@@ -205,6 +205,12 @@ Provider-aware inside `LocationService` only:
 ## 12. Front-Buffer Emission
 
 - Emit the finished frame as long as epoch AND magnification match the job.
+- **Fractional magnification (continuous pinch)**: the committed viewport magnification is a
+  `Double` zoom level (z, fractional from continuous pinch commits). Kotlin-internal magnification
+  is always a *level-style* value; the JNI render/projection boundary converts to the libosmscout
+  *scale factor* `2^z` once (JNI `SetMagnification(double)`). Tile lookups snap to
+  `floor(log2(mag))` internally — never round fractional mags at commit time (only discrete
+  controls snap via `zoomIn/zoomOut`).
 - **No angle epsilon check against `currentAngle`**: during a slow render `prepareViewport`
   changes the target angle; the finished frame would otherwise be discarded (old cause of "map
   shows old image / jumps"). The next job picks up the new angle.

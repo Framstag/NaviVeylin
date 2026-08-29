@@ -278,7 +278,7 @@ class FollowPrediction {
         fun displayOffsetPx(
             displayLat: Double, displayLon: Double,
             frameLat: Double, frameLon: Double,
-            mag: Int, angle: Double,
+            mag: Double, angle: Double,
             bitmapW: Int, bitmapH: Int,
             canvasW: Int, canvasH: Int, dpi: Double
         ): DisplayOffset {

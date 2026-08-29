@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 fun ZoomControls(
     canZoomIn: Boolean,
     canZoomOut: Boolean,
-    currentMag: Int = 0,
+    currentMag: Double = 0.0,
     isLandscape: Boolean = false,
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
@@ -55,7 +55,7 @@ fun ZoomControls(
                 }
 
                 Text(
-                    text = "$currentMag",
+                    text = "${currentMag.toInt()}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
@@ -97,7 +97,7 @@ fun ZoomControls(
                 }
 
                 Text(
-                    text = "$currentMag",
+                    text = "${currentMag.toInt()}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier

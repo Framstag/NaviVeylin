@@ -69,9 +69,9 @@ class TileCacheRenderTest {
     @Test
     fun tileSizeMatchesViewportScale() {
         val dpi = 420.0
-        val mag = 14
+        val mag = 14.0
         val W = 1080; val H = 2400
-        val n = 1L shl mag
+        val n = 1L shl mag.toInt()
         val vp = ProjectionUtils.viewport(51.5, 7.5, mag, W, H, dpi, 0.0)
         val (tlLat, tlLon) = vp.screenToGeo(0.0, 0.0)
         val x = renderer.tileX(tlLon, n)
@@ -89,9 +89,9 @@ class TileCacheRenderTest {
     @Test
     fun viewportTileRangeCoversViewport() {
         val dpi = 420.0
-        val mag = 14
+        val mag = 14.0
         val W = 1080; val H = 2400
-        val n = 1L shl mag
+        val n = 1L shl mag.toInt()
         val vp = ProjectionUtils.viewport(51.5, 7.5, mag, W, H, dpi, 0.0)
         val (tlLat, tlLon) = vp.screenToGeo(0.0, 0.0)
         val (brLat, brLon) = vp.screenToGeo(W.toDouble(), H.toDouble())
@@ -112,9 +112,9 @@ class TileCacheRenderTest {
     @Test
     fun rotatedViewportTileRangeCoversAllFourCorners() {
         val dpi = 420.0
-        val mag = 14
+        val mag = 14.0
         val W = 1080; val H = 2400
-        val n = 1L shl mag
+        val n = 1L shl mag.toInt()
         val angle = Math.PI / 4
         val vp = ProjectionUtils.viewport(51.5, 7.5, mag, W, H, dpi, angle)
         // The rotated tile path derives the geo bounds from all four screen
@@ -146,10 +146,10 @@ class TileCacheRenderTest {
         // multiple geographic tiles and the tile path renders several natively.
         renderer.screenWidth = 1200
         renderer.screenHeight = 1200
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
 
         advanceUntilIdle()
-        check(renderer.frameFlow.value.bitmap != null && renderer.renderedMag == 14) {
+        check(renderer.frameFlow.value.bitmap != null && renderer.renderedMag == 14.0) {
             "tile path must produce a frame at mag 14"
         }
         val firstBitmap = renderer.frameFlow.value.bitmap
@@ -158,7 +158,7 @@ class TileCacheRenderTest {
 
         // Forced full render at the SAME viewport: the tile path must compose
         // entirely from the cache — no new native render calls.
-        renderer.requestRender(51.5, 7.5, 14, 0.0, forceFullRender = true)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0, forceFullRender = true)
         advanceUntilIdle()
         assertTrue("re-render must emit a new frame", renderer.frameFlow.value.bitmap !== firstBitmap)
         assertEquals(
@@ -171,9 +171,9 @@ class TileCacheRenderTest {
     @Test
     fun rotatedTileEdgeMatchesProjectionRotation() {
         val dpi = 420.0
-        val mag = 14
+        val mag = 14.0
         val W = 1080; val H = 2400
-        val n = 1L shl mag
+        val n = 1L shl mag.toInt()
         val angle = Math.PI / 4
         val vp = ProjectionUtils.viewport(51.5, 7.5, mag, W, H, dpi, angle)
         val (tLat, tLon) = renderer.tileTopLeft(100, 100, n)

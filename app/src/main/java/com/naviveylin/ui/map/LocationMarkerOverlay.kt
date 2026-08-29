@@ -40,7 +40,9 @@ fun LocationMarkerOverlay(
     accuracy: Double,
     viewport: MapRenderer.RenderViewport?,
     dpi: Double,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    zoomScale: Float = 1f,
+    zoomAnchor: Offset = Offset.Zero
 ) {
     if (lat.isNaN() || lon.isNaN() || viewport == null) return
     if (dpi <= 0.0) return
@@ -51,17 +53,18 @@ fun LocationMarkerOverlay(
     Canvas(modifier = modifier.fillMaxSize()) {
         val screenWidthPx = size.width.toDouble()
         val screenHeightPx = size.height.toDouble()
-        val center = projectMarker(lat, lon, viewport, screenWidthPx, screenHeightPx, dpi)
-            ?: return@Canvas
+        val projected = projectMarker(lat, lon, viewport, screenWidthPx, screenHeightPx, dpi)
+        if (projected == null) return@Canvas
+        val center = applyZoomAnchorScale(projected, zoomScale, zoomAnchor)
 
         // Meters per pixel at the rendered magnification for the accuracy circle.
         val scale = ProjectionUtils.computeScale(viewport.mag, screenWidthPx, dpi)
         val metersPerPixel = ProjectionUtils.EARTH_RADIUS / scale.scaleGradtorad
 
         val accuracyRadiusPx = if (accuracy > 0f && metersPerPixel > 0.0) {
-            (accuracy / metersPerPixel).coerceAtLeast(minRadiusPx.toDouble()).toFloat()
+            ((accuracy / metersPerPixel) * zoomScale).coerceAtLeast(minRadiusPx.toDouble()).toFloat()
         } else {
-            minRadiusPx
+            minRadiusPx * zoomScale.coerceAtLeast(1f)
         }
 
         // Bearing < 0 (unavailable or north-up orientation) draws the arrow pointing
@@ -109,6 +112,15 @@ internal fun projectMarker(
     ) return null
     return Offset(sx.toFloat(), sy.toFloat())
 }
+
+/*
+ * Apply the smooth-zoom display scale around the zoom anchor to an already
+ * projected screen position — keeps the marker on the map feature it is
+ * anchored to while the front-buffer zoom animation plays (spec: smooth-zoom).
+ * Extracted pure for unit testing.
+ */
+internal fun applyZoomAnchorScale(pos: Offset, zoomScale: Float, zoomAnchor: Offset): Offset =
+    if (zoomScale != 1f) zoomAnchor + (pos - zoomAnchor) * zoomScale else pos
 
 private var markerLogCount: Int = 0
 

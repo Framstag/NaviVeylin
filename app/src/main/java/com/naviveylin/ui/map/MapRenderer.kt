@@ -2,6 +2,7 @@ package com.naviveylin.ui.map
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.RectF
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.framstag.libosmscout.client.OSMScoutClient
@@ -14,6 +15,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
+import kotlin.math.floor
+import kotlin.math.pow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -95,7 +98,7 @@ class MapRenderer(
     private var frontBufferEpoch = -1L
     private var frontBufferLat = 0.0
     private var frontBufferLon = 0.0
-    private var frontBufferMag = 0
+    private var frontBufferMag = 0.0
     /** The angle (radians) of the most recently rendered map. */
     val renderedAngle: Double get() = frontBufferAngle
     private var frontBufferAngle = 0.0
@@ -108,7 +111,7 @@ class MapRenderer(
     private var lastEmittedHeight = 0
 
     /** Magnification of the most recently completed native render (front buffer). */
-    val lastRenderedMagnification: Int get() = frontBufferMag
+    val lastRenderedMagnification: Double get() = frontBufferMag
 
     // ---- Tile cache ----
     private val tileCache = TileCache()
@@ -123,7 +126,7 @@ class MapRenderer(
     data class RenderViewport(
         val lat: Double,
         val lon: Double,
-        val mag: Int,
+        val mag: Double,
         val angle: Double
     )
 
@@ -167,7 +170,7 @@ class MapRenderer(
     private data class RenderJob(
         val lat: Double,
         val lon: Double,
-        val mag: Int,
+        val mag: Double,
         val angle: Double,
         val forceFullRender: Boolean,
         val favoriteLats: DoubleArray?,
@@ -199,7 +202,7 @@ class MapRenderer(
     @Volatile private var pendingRender: PendingRender? = null
 
     private data class PendingRender(
-        val lat: Double, val lon: Double, val mag: Int, val angle: Double,
+        val lat: Double, val lon: Double, val mag: Double, val angle: Double,
         val forceFullRender: Boolean,
         val markerLat: Double, val markerLon: Double,
         val markerBearing: Double, val markerAccuracy: Double
@@ -218,7 +221,7 @@ class MapRenderer(
     private val listeners = mutableListOf<ViewChangeListener>()
 
     fun interface ViewChangeListener {
-        fun onViewChanged(lat: Double, lon: Double, mag: Int, angle: Double)
+        fun onViewChanged(lat: Double, lon: Double, mag: Double, angle: Double)
     }
 
     fun addViewChangeListener(listener: ViewChangeListener) {
@@ -231,11 +234,11 @@ class MapRenderer(
 
     // ---- Public API ----
 
-    fun requestRenderPreserveRoute(lat: Double, lon: Double, mag: Int) {
+    fun requestRenderPreserveRoute(lat: Double, lon: Double, mag: Double) {
         requestRenderPreserveRoute(lat, lon, mag, currentAngle)
     }
 
-    fun requestRenderPreserveRoute(lat: Double, lon: Double, mag: Int, angle: Double) {
+    fun requestRenderPreserveRoute(lat: Double, lon: Double, mag: Double, angle: Double) {
         val oldLat = currentLat; val oldLon = currentLon
         val oldMag = currentMag; val oldAngle = currentAngle
         currentLat = lat; currentLon = lon; currentMag = mag; currentAngle = angle
@@ -243,15 +246,15 @@ class MapRenderer(
         submitDebounced(lat, lon, mag, angle, oldLat, oldLon, oldMag, oldAngle, forceFullRender = false)
     }
 
-    fun requestRender(lat: Double, lon: Double, mag: Int) {
+    fun requestRender(lat: Double, lon: Double, mag: Double) {
         requestRender(lat, lon, mag, currentAngle)
     }
 
-    fun requestRender(lat: Double, lon: Double, mag: Int, angle: Double) {
+    fun requestRender(lat: Double, lon: Double, mag: Double, angle: Double) {
         requestRender(lat, lon, mag, angle, forceFullRender = false)
     }
 
-    fun requestRender(lat: Double, lon: Double, mag: Int, angle: Double, forceFullRender: Boolean) {
+    fun requestRender(lat: Double, lon: Double, mag: Double, angle: Double, forceFullRender: Boolean) {
         val oldLat = currentLat; val oldLon = currentLon
         val oldMag = currentMag; val oldAngle = currentAngle
         currentLat = lat; currentLon = lon; currentMag = mag; currentAngle = angle
@@ -390,7 +393,7 @@ class MapRenderer(
      * in follow mode so the next render is centered on the new position, not the
      * previous frame's center.
      */
-    fun prepareViewport(lat: Double, lon: Double, mag: Int, angle: Double) {
+    fun prepareViewport(lat: Double, lon: Double, mag: Double, angle: Double) {
         currentLat = lat
         currentLon = lon
         currentMag = mag
@@ -427,8 +430,8 @@ class MapRenderer(
     // ---- Internal: Debounce ----
 
     private fun submitDebounced(
-        lat: Double, lon: Double, mag: Int, angle: Double,
-        oldLat: Double, oldLon: Double, oldMag: Int, oldAngle: Double,
+        lat: Double, lon: Double, mag: Double, angle: Double,
+        oldLat: Double, oldLon: Double, oldMag: Double, oldAngle: Double,
         forceFullRender: Boolean
     ) {
         val isZoom = mag != oldMag || angle != oldAngle || forceFullRender
@@ -497,7 +500,7 @@ class MapRenderer(
     // ---- Internal: Render job queue ----
 
     private fun enqueueRenderJob(
-        lat: Double, lon: Double, mag: Int, angle: Double, forceFullRender: Boolean,
+        lat: Double, lon: Double, mag: Double, angle: Double, forceFullRender: Boolean,
         markerLat: Double, markerLon: Double, markerBearing: Double, markerAccuracy: Double
     ) {
         if (screenWidth <= 0 || screenHeight <= 0) {
@@ -596,7 +599,7 @@ class MapRenderer(
         val minLon = corners.minOf { it.second }
         val maxLon = corners.maxOf { it.second }
         if (maxLon - minLon > 180.0) return null // antimeridian — fall back to full render
-        val n = 1L shl job.mag
+        val n = 1L shl floor(job.mag).toInt()
         val xMin = tileX(minLon, n); val xMax = tileX(maxLon, n)
         val yMin = tileY(maxLat, n); val yMax = tileY(minLat, n)
         if (xMax - xMin > 4 || yMax - yMin > 4) return null // sanity guard
@@ -613,11 +616,11 @@ class MapRenderer(
                 // current tile still finishes, but the old loop must not keep
                 // rendering stale tiles and stall the new renderer (JNI mutex).
                 coroutineContext.ensureActive()
-                val key = TileCache.TileKey(job.mag, x.toInt(), y.toInt())
+                val key = TileCache.TileKey(floor(job.mag).toInt(), x.toInt(), y.toInt())
                 var tile = tileCache.getLogged(key, curEpoch)
                 if (tile == null) {
                     val t0 = System.currentTimeMillis()
-                    val pixels = renderTilePixels(x.toInt(), y.toInt(), job.mag, job)
+                    val pixels = renderTilePixels(x.toInt(), y.toInt(), floor(job.mag).toInt(), job)
                     if (pixels == null) return null
                     val renderMs = System.currentTimeMillis() - t0
                     tile = Bitmap.createBitmap(pixels, tileSizePx, tileSizePx, Bitmap.Config.ARGB_8888)
@@ -626,6 +629,14 @@ class MapRenderer(
                             " (" + renderMs + "ms, " + tileSizePx + "x" + tileSizePx + ")")
                 }
                 val (tLat, tLon) = tileTopLeft(x, y, n)
+                // continuous-pinch-zoom: tile bitmaps are rendered at their floor
+                // integer level; at a fractional magnification the on-screen tile
+                // size is 2^(z − floor(z))× the natural tile size. Drawing the
+                // tile at its natural size leaves seams and shows shrunken tile
+                // content ("smaller map rectangles").
+                val tileDisplayPx = tileSizePx * Math.pow(
+                    2.0, job.mag - floor(job.mag)
+                ).toFloat()
                 if (rotated) {
                     // Tiles are rendered north-up. Compose the rotated view by placing
                     // each tile at its north-up position and rotating the whole canvas
@@ -636,17 +647,26 @@ class MapRenderer(
                     // overlay projects about the center, so the map and the marker would
                     // disagree by that same error.
                     val (nux, nuy) = vp.geoToScreen(tLat, tLon)
+                    val dst = RectF(
+                        nux.toFloat(), nuy.toFloat(),
+                        nux.toFloat() + tileDisplayPx, nuy.toFloat() + tileDisplayPx
+                    )
                     canvas.save()
                     canvas.rotate(rotationDegrees, W / 2f, H / 2f)
-                    canvas.drawBitmap(tile, nux.toFloat(), nuy.toFloat(), null)
+                    canvas.drawBitmap(tile, null, dst, null)
                     canvas.restore()
                     Log.d(TAG, "tile copied z=" + job.mag + " x=" + x + " y=" + y +
-                            " at (" + nux.toInt() + "," + nuy.toInt() + ") rot=" + rotationDegrees.toInt())
+                            " at (" + nux.toInt() + "," + nuy.toInt() + ") size=" + tileDisplayPx.toInt() +
+                            " rot=" + rotationDegrees.toInt())
                 } else {
                     val (px, py) = vp.geoToScreen(tLat, tLon)
-                    canvas.drawBitmap(tile, px.toFloat(), py.toFloat(), null)
+                    val dst = RectF(
+                        px.toFloat(), py.toFloat(),
+                        px.toFloat() + tileDisplayPx, py.toFloat() + tileDisplayPx
+                    )
+                    canvas.drawBitmap(tile, null, dst, null)
                     Log.d(TAG, "tile copied z=" + job.mag + " x=" + x + " y=" + y +
-                            " at (" + px.toInt() + "," + py.toInt() + ")")
+                            " at (" + px.toInt() + "," + py.toInt() + ") size=" + tileDisplayPx.toInt())
                 }
                 renderedAny = true
             }
@@ -671,7 +691,7 @@ class MapRenderer(
         val centerLat = (latMin + latMax) / 2.0
         val centerLon = (lonMin + lonMax) / 2.0
         return client.renderWithRouteAndPois(
-            tileSizePx, tileSizePx, centerLat, centerLon, 0.0, level,
+            tileSizePx, tileSizePx, centerLat, centerLon, 0.0, 2.0.pow(level),
             job.routeLats, job.routeLons,
             job.favoriteLats, job.favoriteLons,
             job.searchSelectedLat, job.searchSelectedLon,
@@ -708,7 +728,7 @@ class MapRenderer(
                         lat = job.lat,
                         lon = job.lon,
                         angle = job.angle,
-                        magnification = job.mag,
+                        magnification = 2.0.pow(job.mag),
                         routeLats = job.routeLats,
                         routeLons = job.routeLons,
                         favoriteLats = job.favoriteLats,
@@ -818,7 +838,7 @@ class MapRenderer(
     // ---- Internal: Sub-region blit ----
 
     private fun trySubRegionBlit(
-        newLat: Double, newLon: Double, newMag: Int, newAngle: Double
+        newLat: Double, newLon: Double, newMag: Double, newAngle: Double
     ): Boolean {
         val fb = frontBuffer ?: return false
         val fbW = fb.width; val fbH = fb.height
@@ -906,7 +926,7 @@ class MapRenderer(
 
     companion object {
         private const val TAG = "MapRenderer"
-        const val DEFAULT_MAGNIFICATION = 5
+        const val DEFAULT_MAGNIFICATION = 5.0
         const val DEFAULT_LATITUDE = 51.5142273
         const val DEFAULT_LONGITUDE = 7.4652789
         const val DEFAULT_CANVAS_OVERRUN = 1.2

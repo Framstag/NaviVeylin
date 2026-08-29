@@ -60,11 +60,11 @@ class MapRendererRotatedRenderTest {
     fun northUpRenderKeepsZeroAngle() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
 
         // Tile path serves north-up; front buffer must still be emitted.
         advanceUntilIdle()
-        assertEquals(14, renderer.renderedMag)
+        assertEquals(14.0, renderer.renderedMag, 1e-9)
         assertEquals(0.0, renderer.renderedAngle, 1e-9)
     }
 
@@ -73,25 +73,25 @@ class MapRendererRotatedRenderTest {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         // Gesture-end render: force the full native path (correct labels).
-        renderer.requestRender(51.5, 7.5, 14, Math.PI / 3, forceFullRender = true)
+        renderer.requestRender(51.5, 7.5, 14.0, Math.PI / 3, forceFullRender = true)
 
         advanceUntilIdle()
         assertEquals(Math.PI / 3, renderer.renderedAngle, 1e-6)
-        assertEquals(14, renderer.renderedMag)
+        assertEquals(14.0, renderer.renderedMag, 1e-9)
     }
 
     @Test
     fun forcedFullRenderAfterNorthUpUpdatesAngle() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
         advanceUntilIdle()
-        assertEquals(14, renderer.renderedMag)
+        assertEquals(14.0, renderer.renderedMag, 1e-9)
 
-        renderer.requestRender(51.5, 7.5, 14, -Math.PI / 4, forceFullRender = true)
+        renderer.requestRender(51.5, 7.5, 14.0, -Math.PI / 4, forceFullRender = true)
         advanceUntilIdle()
         assertEquals(-Math.PI / 4, renderer.renderedAngle, 1e-6)
-        assertEquals(14, renderer.renderedMag)
+        assertEquals(14.0, renderer.renderedMag, 1e-9)
     }
 
     @Test
@@ -99,18 +99,18 @@ class MapRendererRotatedRenderTest {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         // 450° = 90° mod 360 — the front buffer angle must be normalized.
-        renderer.requestRender(51.5, 7.5, 14, 7.85, forceFullRender = true)
+        renderer.requestRender(51.5, 7.5, 14.0, 7.85, forceFullRender = true)
 
         advanceUntilIdle()
         assertEquals(7.85 - 2 * Math.PI, renderer.renderedAngle, 1e-6)
-        assertEquals(14, renderer.renderedMag)
+        assertEquals(14.0, renderer.renderedMag, 1e-9)
     }
 
     @Test
     fun repeatedEmissionReusesBitmap() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
         advanceUntilIdle()
         val first = renderer.frameFlow.value.bitmap
         assertNotNull(first)
@@ -127,14 +127,14 @@ class MapRendererRotatedRenderTest {
     fun newRenderProducesNewBitmap() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
-        renderer.requestRender(51.5, 7.5, 14, 0.0)
+        renderer.requestRender(51.5, 7.5, 14.0, 0.0)
         advanceUntilIdle()
         val first = renderer.frameFlow.value.bitmap
         assertNotNull(first)
 
         // A new render replaces the front buffer → the emitted bitmap must be a
         // fresh copy, not the previous frame.
-        renderer.requestRender(51.6, 7.6, 14, 0.0)
+        renderer.requestRender(51.6, 7.6, 14.0, 0.0)
         advanceUntilIdle()
         val second = renderer.frameFlow.value.bitmap
         assertNotSame(first, second)

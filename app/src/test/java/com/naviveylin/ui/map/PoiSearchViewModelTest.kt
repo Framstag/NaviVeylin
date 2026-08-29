@@ -155,7 +155,7 @@ class PoiSearchViewModelTest {
         assertEquals("Pizzeria Roma", state.selectedLocation!!.label)
         assertEquals("map centered on POI", 51.5136, state.viewport.centerLat, 1e-9)
         assertEquals("map centered on POI", 7.4653, state.viewport.centerLon, 1e-9)
-        assertEquals("no GPS fix: zoom unchanged", magBefore, state.viewport.magnification)
+        assertEquals("no GPS fix: zoom unchanged", magBefore, state.viewport.magnification, 1e-9)
     }
 
     @Test
@@ -204,7 +204,7 @@ class PoiSearchViewModelTest {
     @Test
     fun fitZoomShowsCurrentLocationAndPoi() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.setScreenSize(1080, 2100)
-        viewModel.updateMagnification(18)
+        viewModel.updateMagnification(18.0)
         viewModel.openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         // GPS fix far from the POI
@@ -225,7 +225,7 @@ class PoiSearchViewModelTest {
             "zoom zoomed out to fit both locations (before=$magBefore, after=${state.viewport.magnification})",
             state.viewport.magnification < magBefore
         )
-        assertEquals("fit floor reached", 14, state.viewport.magnification)
+        assertEquals("fit floor reached", 14.0, state.viewport.magnification, 1e-9)
     }
 
     @Test
@@ -252,7 +252,7 @@ class PoiSearchViewModelTest {
         assertFalse(state.poiSearchOpen)
         assertEquals("center restored", 52.0, state.viewport.centerLat, 1e-9)
         assertEquals("center restored", 8.0, state.viewport.centerLon, 1e-9)
-        assertEquals("zoom restored", magBefore, state.viewport.magnification)
+        assertEquals("zoom restored", magBefore, state.viewport.magnification, 1e-9)
     }
 
     @Test

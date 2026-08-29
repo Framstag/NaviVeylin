@@ -43,6 +43,7 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 | Responsive layout (small screen support) | ✗ | JavaScout `SMALL_SCREEN_THRESHOLD` (600px) |
 | DPI-aware UI scaling | ✗ | JavaScout `UIScale.java` |
 | Internationalisation (i18n) | ✗ | Multi-language UI support (strings, units, formats) |
+| Double-tap to zoom | ✗ | Candidate feature (not in JavaScout either). No double-tap gesture exists (`map-pan-zoom` covers pan/pinch only). If added later, wire it into the smooth-zoom animation path and the continuous fractional magnification (see `continuous-pinch-zoom`). |
 
 ## 6. Rendering
 
@@ -95,3 +96,4 @@ GPS back                     →  REAL
 | Item | Status | Notes |
 |------|--------|-------|
 | `openspec/specs/app/spec.md` still requires Room persistence | ✗ | Room dependency removed from build + docs (no `@Database`/`@Dao`/`@Entity` anywhere). Spec still says "SHALL use Room for local storage of map metadata, favorites, and search history" — actual persistence is JSON files (JNI favorites, settings, search history). Spec-code drift; needs an OpenSpec change (proposal → spec update) to fix. |
+| `:app:lintMobileDebug` fails with 3 pre-existing MissingClass errors | ✗ | `app/src/main/AndroidManifest.xml:44` references `androidx.car.app.connection.provider` but the class is missing from the project/libraries (committed in 447049b, unrelated to smooth-zoom, found 2026-08-29). Either the provider declaration is a leftover (remove it) or a car-app library variant that exports it is missing from the mobileDebug classpath. Fix + re-run lint, then track warnings. |

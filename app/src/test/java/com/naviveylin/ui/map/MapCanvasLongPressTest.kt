@@ -81,7 +81,7 @@ class MapCanvasLongPressTest {
         val centerLon = 16.4
         val angle = PI / 2
         viewModel.updateCenter(centerLat, centerLon)
-        viewModel.updateMagnification(10)
+        viewModel.updateMagnification(10.0)
         viewModel.updateAngle(angle)
 
         val pos = Offset(300.0f, 700.0f)
@@ -89,7 +89,7 @@ class MapCanvasLongPressTest {
         advanceUntilIdle()
 
         val expected = ProjectionUtils.viewport(
-            centerLat, centerLon, 10, screenW, screenH, dpi(), angle
+            centerLat, centerLon, 10.0, screenW, screenH, dpi(), angle
         ).screenToGeoRotated(pos.x.toDouble(), pos.y.toDouble())
 
         val entry = checkNotNull(viewModel.uiState.value.selectedLocation) {
@@ -106,7 +106,7 @@ class MapCanvasLongPressTest {
         val centerLon = 16.4
         val angle = PI / 2
         viewModel.updateCenter(centerLat, centerLon)
-        viewModel.updateMagnification(10)
+        viewModel.updateMagnification(10.0)
         viewModel.updateAngle(angle)
 
         val pos = Offset(300.0f, 700.0f)
@@ -115,7 +115,7 @@ class MapCanvasLongPressTest {
 
         val northUp = ProjectionUtils.screenToGeo(
             pos.x.toDouble(), pos.y.toDouble(),
-            screenW, screenH, 10,
+            screenW, screenH, 10.0,
             centerLat, centerLon, dpi()
         )
         val entry = checkNotNull(viewModel.uiState.value.selectedLocation)
@@ -131,7 +131,7 @@ class MapCanvasLongPressTest {
         val centerLat = 48.2
         val centerLon = 16.4
         viewModel.updateCenter(centerLat, centerLon)
-        viewModel.updateMagnification(10)
+        viewModel.updateMagnification(10.0)
 
         val pos = Offset(300.0f, 700.0f)
         fireLongPress(viewModel, context, pos, IntSize(screenW, screenH))
@@ -139,7 +139,7 @@ class MapCanvasLongPressTest {
 
         val expected = ProjectionUtils.screenToGeo(
             pos.x.toDouble(), pos.y.toDouble(),
-            screenW, screenH, 10,
+            screenW, screenH, 10.0,
             centerLat, centerLon, dpi()
         )
         val entry = checkNotNull(viewModel.uiState.value.selectedLocation)
@@ -173,7 +173,7 @@ class MapCanvasLongPressTest {
         )
         vm.defaultDispatcher = mainDispatcherRule.dispatcher
         vm.updateCenter(48.2, 16.4)
-        vm.updateMagnification(10)
+        vm.updateMagnification(10.0)
 
         vm.onLongPress(48.2, 16.4)
         vm.uiState.first { it.showCandidatePicker }
@@ -200,7 +200,7 @@ class MapCanvasLongPressTest {
         )
         vm.defaultDispatcher = mainDispatcherRule.dispatcher
         vm.updateCenter(48.2, 16.4)
-        vm.updateMagnification(10)
+        vm.updateMagnification(10.0)
 
         vm.onLongPress(48.2, 16.4)
         advanceUntilIdle()

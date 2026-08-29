@@ -327,10 +327,10 @@ class DetailsScreen(
             val zoom = fitZoom(lat, lon, pos.lat, pos.lon)
             val midLat = (lat + pos.lat) / 2.0
             val midLon = (lon + pos.lon) / 2.0
-            val (clat, clon) = paneOffsetCenter(midLat, midLon, zoom, surfaceWidth, surfaceHeight, surfaceDpi, rtl)
+            val (clat, clon) = paneOffsetCenter(midLat, midLon, zoom.toDouble(), surfaceWidth, surfaceHeight, surfaceDpi, rtl)
             mapRenderer.setViewport(clat, clon, zoom, 0.0)
         } else {
-            val (clat, clon) = paneOffsetCenter(lat, lon, mag, surfaceWidth, surfaceHeight, surfaceDpi, rtl)
+            val (clat, clon) = paneOffsetCenter(lat, lon, mag.toDouble(), surfaceWidth, surfaceHeight, surfaceDpi, rtl)
             mapRenderer.setViewport(clat, clon, mag, 0.0)
         }
     }

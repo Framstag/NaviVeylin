@@ -375,7 +375,7 @@ class MapScreen(
                     val rtl = carContext.resources.configuration.layoutDirection ==
                         View.LAYOUT_DIRECTION_RTL
                     val (vlat, vlon) = paneOffsetCenter(
-                        clat, clon, initialZoom,
+                        clat, clon, initialZoom.toDouble(),
                         surfaceWidth, surfaceHeight, surfaceDpi, rtl
                     )
                     mapRenderer.setViewport(vlat, vlon, initialZoom, 0.0)
@@ -398,7 +398,7 @@ class MapScreen(
                 val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
                     distanceX.toDouble(), distanceY.toDouble(),
                     vp.angle,
-                    vp.zoom,
+                    vp.zoom.toDouble(),
                     surfaceWidth.toDouble(), surfaceHeight.toDouble(),
                     vp.lat, vp.lon,
                     mapRenderer.projectionDpi
@@ -436,7 +436,7 @@ class MapScreen(
                 val fy = if (focusY >= 0f) focusY.toDouble() else surfaceHeight / 2.0
                 val (newLat, newLon) = ProjectionUtils.zoomAtCursor(
                     fx, fy,
-                    vp.zoom, newZoom,
+                    vp.zoom.toDouble(), newFraction,
                     surfaceWidth.toDouble(), surfaceHeight.toDouble(),
                     vp.lat, vp.lon,
                     mapRenderer.projectionDpi
@@ -451,7 +451,7 @@ class MapScreen(
                 val (lat, lon) = ProjectionUtils.screenToGeo(
                     x.toDouble(), y.toDouble(),
                     surfaceWidth, surfaceHeight,
-                    vp.zoom, vp.lat, vp.lon,
+                    vp.zoom.toDouble(), vp.lat, vp.lon,
                     mapRenderer.projectionDpi
                 )
                 Log.d(TAG, "onClick ($x,$y) -> $lat,$lon mag=${vp.zoom}")

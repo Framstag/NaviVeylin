@@ -25,7 +25,7 @@ class MapRenderUtilTest {
             lat = 48.8566,
             lon = 2.3522,
             angle = 0.0,
-            magnification = 5
+            magnification = 5.0
         )
         assertNotNull(bitmap)
         assertTrue(bitmap!!.width > 0)
@@ -41,7 +41,7 @@ class MapRenderUtilTest {
             lat = 48.8566,
             lon = 2.3522,
             angle = 0.0,
-            magnification = 5,
+            magnification = 5.0,
             routeLats = doubleArrayOf(48.85, 48.86),
             routeLons = doubleArrayOf(2.35, 2.36),
             favoriteLats = doubleArrayOf(48.86),
@@ -59,7 +59,7 @@ class MapRenderUtilTest {
             lat = 48.8566,
             lon = 2.3522,
             angle = 0.0,
-            magnification = 5,
+            magnification = 5.0,
             searchSelLat = 48.86,
             searchSelLon = 2.35
         )
@@ -75,7 +75,7 @@ class MapRenderUtilTest {
             lat = 48.8566,
             lon = 2.3522,
             angle = 0.0,
-            magnification = 5,
+            magnification = 5.0,
             trackLats = doubleArrayOf(48.85, 48.86),
             trackLons = doubleArrayOf(2.35, 2.36)
         )
@@ -91,7 +91,7 @@ class MapRenderUtilTest {
             lat = 48.8566,
             lon = 2.3522,
             angle = 0.0,
-            magnification = 5,
+            magnification = 5.0,
             routeLats = null,
             routeLons = null,
             favoriteLats = null,
@@ -109,7 +109,7 @@ class MapRenderUtilTest {
             lat = 48.8566,
             lon = 2.3522,
             angle = 0.0,
-            magnification = 5,
+            magnification = 5.0,
             routeLats = doubleArrayOf(),
             routeLons = doubleArrayOf(),
             favoriteLats = doubleArrayOf(),
@@ -127,7 +127,7 @@ class MapRenderUtilTest {
             lat = 48.8566,
             lon = 2.3522,
             angle = 0.0,
-            magnification = 5
+            magnification = 5.0
         )
         assertNotNull(bitmap)
         assertTrue(bitmap!!.width == 200)

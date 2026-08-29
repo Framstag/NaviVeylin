@@ -170,12 +170,12 @@ public class OSMScoutClient {
      * @param lat          center latitude
      * @param lon          center longitude
      * @param angle        map rotation angle in degrees (0 = north up)
-     * @param magnification map magnification level
+     * @param magnification map magnification scale factor (2^z; fractional values allowed)
      * @return ARGB pixel array (width * height), or null on error
      */
     public native int[] render(int width, int height,
                                 double lat, double lon,
-                                double angle, int magnification);
+                                double angle, double magnification);
 
     /**
      * Sentinel for "no default admin region" — pass to
@@ -510,7 +510,7 @@ public class OSMScoutClient {
      */
     public native int[] renderWithRouteAndPois(
         int width, int height,
-        double lat, double lon, double angle, int magnification,
+        double lat, double lon, double angle, double magnification,
         double[] routeLats, double[] routeLons,
         double[] favoriteLats, double[] favoriteLons,
         double searchSelLat, double searchSelLon,
@@ -528,7 +528,7 @@ public class OSMScoutClient {
      * @param lat           center latitude in degrees
      * @param lon           center longitude in degrees
      * @param angle         map rotation angle in radians (0 = north-up)
-     * @param magnification magnification level (0 = world, higher = more zoomed in)
+     * @param magnification map magnification scale factor (2^z; fractional values allowed)
      * @param routeLats     array of route waypoint latitudes, or null for no route
      * @param routeLons     array of route waypoint longitudes, or null for no route
      * @return int[] ARGB pixel data, or null if not initialised or invalid params
@@ -536,7 +536,7 @@ public class OSMScoutClient {
     public int[] renderWithRoute(int width, int height,
                                  double lat, double lon,
                                  double angle,
-                                 int magnification,
+                                 double magnification,
                                  double[] routeLats,
                                  double[] routeLons) {
         return renderWithRouteAndPois(width, height, lat, lon, angle, magnification,
@@ -553,7 +553,7 @@ public class OSMScoutClient {
      * @param height       output image height
      * @param centerLat    center latitude
      * @param centerLon    center longitude
-     * @param magnification map magnification
+     * @param magnification map magnification scale factor (2^z; fractional values allowed)
      * @param dpi          screen DPI
      * @param angle        map rotation angle
      * @param lat          latitude to project
@@ -563,7 +563,7 @@ public class OSMScoutClient {
     public native double[] projectToPixel(
         int width, int height,
         double centerLat, double centerLon,
-        int magnification, double dpi, double angle,
+        double magnification, double dpi, double angle,
         double lat, double lon);
 
     /**

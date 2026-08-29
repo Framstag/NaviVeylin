@@ -82,7 +82,7 @@ class MapRendererSmokeTest {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.setGpsMarkerState(48.8566, 2.3522, 45.0, 10.0)
-        renderer.requestRender(48.8566, 2.3522, 14, 0.0)
+        renderer.requestRender(48.8566, 2.3522, 14.0, 0.0)
 
         awaitVisibleMarker()
         val snap = renderer.frameFlow.value.marker
@@ -97,7 +97,7 @@ class MapRendererSmokeTest {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
         renderer.setGpsMarkerState(48.8566, 2.3522, 45.0, 10.0)
-        renderer.requestRender(48.8566, 2.3522, 14, 0.0)
+        renderer.requestRender(48.8566, 2.3522, 14.0, 0.0)
 
         awaitVisibleMarker()
         renderer.clearGpsMarkerState()
@@ -108,7 +108,7 @@ class MapRendererSmokeTest {
     fun setSearchSelectedForwardsMarkerToNativeRender() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
-        renderer.requestRender(48.8566, 2.3522, 14, 0.0)
+        renderer.requestRender(48.8566, 2.3522, 14.0, 0.0)
         // Wait until the initial render emitted a frame, then set the marker
         awaitFrame()
         client.lastSearchSelLat = Double.NaN
@@ -124,7 +124,7 @@ class MapRendererSmokeTest {
     fun clearSearchSelectedResetsMarker() = runTest(mainDispatcherRule.dispatcher) {
         renderer.screenWidth = 200
         renderer.screenHeight = 300
-        renderer.requestRender(48.8566, 2.3522, 14, 0.0)
+        renderer.requestRender(48.8566, 2.3522, 14.0, 0.0)
         awaitFrame()
         renderer.setSearchSelected(48.8566, 2.3522)
         advanceUntilIdle()

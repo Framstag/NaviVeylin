@@ -57,7 +57,7 @@ class LocationDetailsDialogComposeTest {
             LocationDetailsDialog(
                 entry = entry,
                 client = client,
-                initialMag = 12,
+                initialMag = 12.0,
                 objectDescription = description,
                 isFavorite = false,
                 groupNames = emptyList(),

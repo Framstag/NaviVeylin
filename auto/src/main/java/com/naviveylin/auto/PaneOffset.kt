@@ -23,7 +23,7 @@ internal const val PANE_FRACTION = 0.4
 internal fun paneOffsetCenter(
     centerLat: Double,
     centerLon: Double,
-    zoom: Int,
+    zoom: Double,
     surfaceWidth: Int,
     surfaceHeight: Int,
     dpi: Double,

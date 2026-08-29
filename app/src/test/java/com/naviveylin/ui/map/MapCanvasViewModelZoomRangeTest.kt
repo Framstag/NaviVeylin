@@ -63,46 +63,67 @@ class MapCanvasViewModelZoomRangeTest {
 
     @Test
     fun zoomOutStopsAtFourFloor() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.updateMagnification(6)
-        assertEquals(6, viewModel.uiState.value.viewport.magnification)
+        viewModel.updateMagnification(6.0)
+        assertEquals(6.0, viewModel.uiState.value.viewport.magnification, 1e-9)
 
         viewModel.zoomOut()
-        assertEquals(5, viewModel.uiState.value.viewport.magnification)
+        assertEquals(5.0, viewModel.uiState.value.viewport.magnification, 1e-9)
 
         // Floor: further zoom-out is a no-op.
         viewModel.zoomOut()
-        assertEquals(4, viewModel.uiState.value.viewport.magnification)
+        assertEquals(4.0, viewModel.uiState.value.viewport.magnification, 1e-9)
         viewModel.zoomOut()
-        assertEquals(4, viewModel.uiState.value.viewport.magnification)
+        assertEquals(4.0, viewModel.uiState.value.viewport.magnification, 1e-9)
     }
 
     @Test
     fun updateMagnificationClampsToControlRange() = runTest(mainDispatcherRule.dispatcher) {
         // Below the floor clamps up to 4.
-        viewModel.updateMagnification(1)
-        assertEquals(4, viewModel.uiState.value.viewport.magnification)
+        viewModel.updateMagnification(1.0)
+        assertEquals(4.0, viewModel.uiState.value.viewport.magnification, 1e-9)
 
         // Above the max clamps down to 20.
-        viewModel.updateMagnification(21)
-        assertEquals(20, viewModel.uiState.value.viewport.magnification)
+        viewModel.updateMagnification(21.0)
+        assertEquals(20.0, viewModel.uiState.value.viewport.magnification, 1e-9)
     }
 
     @Test
     fun zoomInAtMaxIsNoOp() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.updateMagnification(20)
+        viewModel.updateMagnification(20.0)
         viewModel.zoomIn()
-        assertEquals(20, viewModel.uiState.value.viewport.magnification)
+        assertEquals(20.0, viewModel.uiState.value.viewport.magnification, 1e-9)
     }
 
     @Test
     fun gestureClampKeepsFourFloor() {
         // Pinch/rotation commit can never go below 4 — same floor as the
         // zoom control.
-        for (mag in 0..4) {
-            assertEquals(4, MapCanvasViewModel.clampGestureMagnification(mag))
+        for (magInt in 0..4) {
+            assertEquals(4.0, MapCanvasViewModel.clampGestureMagnification(magInt.toDouble()), 1e-9)
         }
-        assertEquals(5, MapCanvasViewModel.clampGestureMagnification(5))
-        assertEquals(20, MapCanvasViewModel.clampGestureMagnification(20))
-        assertEquals(20, MapCanvasViewModel.clampGestureMagnification(21))
+        assertEquals(5.0, MapCanvasViewModel.clampGestureMagnification(5.0), 1e-9)
+        assertEquals(20.0, MapCanvasViewModel.clampGestureMagnification(20.0), 1e-9)
+        assertEquals(20.0, MapCanvasViewModel.clampGestureMagnification(21.0), 1e-9)
+    }
+
+    @Test
+    fun zoomButtonsSnapFromFractionalMagnification() = runTest(mainDispatcherRule.dispatcher) {
+        // continuous-pinch-zoom: after a continuous pinch commit (fractional mag),
+        // the discrete controls move to whole levels (spec: zoom-controls unchanged
+        // behavior on a fractional starting magnification).
+        viewModel.updateMagnification(15.3)
+        viewModel.zoomIn()
+        assertEquals(16.0, viewModel.uiState.value.viewport.magnification, 1e-9)
+
+        viewModel.updateMagnification(15.3)
+        viewModel.zoomOut()
+        assertEquals(14.0, viewModel.uiState.value.viewport.magnification, 1e-9)
+    }
+
+    @Test
+    fun updateMagnificationKeepsFractionalValues() = runTest(mainDispatcherRule.dispatcher) {
+        // Continuous pinch commits store the fractional magnification verbatim.
+        viewModel.updateMagnification(15.34)
+        assertEquals(15.34, viewModel.uiState.value.viewport.magnification, 1e-12)
     }
 }

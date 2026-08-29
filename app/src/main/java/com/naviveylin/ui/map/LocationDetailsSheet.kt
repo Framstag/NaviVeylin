@@ -67,7 +67,7 @@ import kotlinx.coroutines.withContext
 fun LocationDetailsDialog(
     entry: LocationEntry,
     client: OSMScoutClient,
-    initialMag: Int,
+    initialMag: Double,
     objectDescription: ObjectDescription? = null,
     isFavorite: Boolean,
     groupNames: List<String>,

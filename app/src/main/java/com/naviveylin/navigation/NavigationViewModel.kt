@@ -203,8 +203,8 @@ class NavigationViewModel @Inject constructor(
                 _state.value = _state.value.copy(errorMessage = "GPS signal required. Please wait for GPS fix.")
                 return
             }
-            startLat = loc.latitude
-            startLon = loc.longitude
+            startLat = loc.lat
+            startLon = loc.lon
         }
 
         // Clear any previous error

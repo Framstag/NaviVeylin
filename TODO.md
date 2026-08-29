@@ -89,3 +89,9 @@ GPS back                     →  REAL
 2. Give-up bounds: after N s / M m of estimation → LOST (real apps ~10-30 s).
 3. Marker UX: ESTIMATED position visually distinct from REAL (color/opacity)?
 4. Where: new Kotlin `@Singleton` service feeding a derived position flow with state (REAL/ESTIMATED/LOST); consumers = marker, center, nav engine, AA.
+
+## 9. Spec / Documentation Maintenance
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `openspec/specs/app/spec.md` still requires Room persistence | ✗ | Room dependency removed from build + docs (no `@Database`/`@Dao`/`@Entity` anywhere). Spec still says "SHALL use Room for local storage of map metadata, favorites, and search history" — actual persistence is JSON files (JNI favorites, settings, search history). Spec-code drift; needs an OpenSpec change (proposal → spec update) to fix. |

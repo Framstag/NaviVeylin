@@ -13,7 +13,7 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
 | Language | Kotlin, Java, C++20 (NDK) |
 | UI | Jetpack Compose + Material 3 |
 | DI | Hilt |
-| Persistence | Room |
+| Persistence | JSON files (JNI favorites, settings, search history) |
 | Navigation | Jetpack Navigation Compose |
 | Native | libosmscout via NDK/CMake + JNI (Cairo rendering backend) |
 | Build | Gradle (Kotlin DSL), AGP 8.7+ |
@@ -40,7 +40,7 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
 ### Architecture
 - Single Activity (`MainActivity`), Compose-based UI
 - Hilt for DI, ViewModel + StateFlow for state
-- Room for local persistence
+- JSON-file persistence (JNI favorites, settings, search history)
 - `FavoriteRepository` wraps JNI CRUD for favorites, exposes `StateFlow`
 - Native calls go through `libosmscout-client-java` JNI bridge (submodule)
 
@@ -229,8 +229,8 @@ rm -rf vcpkg/buildtrees/<package>
 
 ## Constraints
 
-- No Google Play Services
-- No Google Maps
+- Google Play Services optional: used when available (e.g., FusedLocationProviderClient, car MapController); never a hard dependency — provider abstraction + runtime availability check + fallback (e.g., LocationManager) keep it replaceable by design
+- No Google Maps (map rendering stays libosmscout native)
 - No Google account required
 - App distributed outside Play Store (sideload: use the automotive AAB on head units, the mobile AAB on phones); `./gradlew release` also produces the two AABs suitable for Google Play upload (mobile track + dedicated AAOS track)
 - All map rendering from libosmscout native code

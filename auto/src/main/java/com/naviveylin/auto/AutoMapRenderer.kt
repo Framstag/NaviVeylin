@@ -8,8 +8,10 @@ import android.graphics.PointF
 import android.view.Surface
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.core.ProjectionUtils
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.cos
@@ -22,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** Current destination marker state (spec: auto-destination-details). */
@@ -64,6 +67,8 @@ class AutoMapRenderer(
     fun updateProjectionDpi(dpi: Double) {
         if (dpi > 0 && dpi != projectionDpi) {
             projectionDpi = dpi
+            // The overrun buffer was projected at the old DPI — full render.
+            blitEligible = false
             requestRender()
         }
     }
@@ -101,6 +106,45 @@ class AutoMapRenderer(
     @Volatile private var destMarkerLon = Double.NaN
     @Volatile private var destMarkerName: String? = null
     @Volatile private var destMarkerVisible = false
+
+    // Overrun buffer (spec: auto-smooth-follow): the last full native render at
+    // OVERRUN_FACTOR x surface size, kept for sub-region blits. A viewport
+    // change within the overrun region is served by drawing this buffer shifted
+    // by the delta — no full native render (design D1/D2).
+    @Volatile private var overrunBitmap: Bitmap? = null
+    @Volatile private var overrunLat = Double.NaN
+    @Volatile private var overrunLon = Double.NaN
+    @Volatile private var overrunMag = 0
+    @Volatile private var overrunAngle = 0.0
+
+    // Displayed viewport center: the eased predicted position in follow mode,
+    // equal to the overrun center right after a full render. The GPS marker is
+    // drawn at this position so it glides with the blitted map (design D7).
+    @Volatile private var displayLat = Double.NaN
+    @Volatile private var displayLon = Double.NaN
+
+    // Follow prediction (spec: auto-smooth-follow): extrapolates the displayed
+    // position between 1 Hz GPS fixes and eases corrections on fix arrival.
+    // Display-only — the navigation engine receives only real fixes (design D5).
+    private val followPrediction = FollowPrediction()
+    @Volatile private var lastFixSpeedMs = Double.NaN
+    @Volatile private var lastFixTimeMs = 0L
+    @Volatile private var lastFixLat = Double.NaN
+    @Volatile private var lastFixLon = Double.NaN
+    private var extrapolationJob: Job? = null
+
+    // True when the next render may be served by a sub-region blit (pure
+    // viewport or canvas-overlay change). Overlay/native-content changes
+    // (favorites, route, DPI, surface) force a full render.
+    @Volatile private var blitEligible = false
+
+    // Test-visible counters (spec: auto-smooth-follow verification): a small
+    // viewport move must not increment [fullRenderCount].
+    @Volatile internal var fullRenderCount = 0
+    @Volatile internal var blitCount = 0
+
+    /** Test seam: when false, the async render/extrapolation loops do not run. */
+    @Volatile internal var asyncLoopsEnabled = true
 
     // Follow mode
     @Volatile private var followMode = initialFollowMode
@@ -140,6 +184,7 @@ class AutoMapRenderer(
 
     init {
         startRenderLoop()
+        startExtrapolationLoop()
     }
 
     // Exposed viewport state for UI
@@ -183,6 +228,10 @@ class AutoMapRenderer(
             this.surfaceWidth = width
             this.surfaceHeight = height
             surfaceFailed = false
+            // A new surface may have a different size: the overrun buffer from
+            // the old surface is stale — drop it and force a full render.
+            clearOverrunBuffer()
+            blitEligible = false
             android.util.Log.d(TAG, "renderer#$rendererId surface created: ${System.identityHashCode(surface)}")
         }
         requestRender()
@@ -199,27 +248,64 @@ class AutoMapRenderer(
             surfaceWidth = 0
             surfaceHeight = 0
             surfaceFailed = false
+            clearOverrunBuffer()
         }
     }
 
     /**
      * Update the GPS position marker.
+     *
+     * @param speedKmH ground speed in km/h, or [Double.NaN] when unknown
+     * @param timeMs fix receipt time in ms since epoch (used as the
+     *   extrapolation base; GPS fix timestamps can be ahead of the system clock)
      */
-    fun setGpsMarker(lat: Double, lon: Double, bearing: Double, accuracy: Double) {
+    fun setGpsMarker(
+        lat: Double,
+        lon: Double,
+        bearing: Double,
+        accuracy: Double,
+        speedKmH: Double = Double.NaN,
+        timeMs: Long = System.currentTimeMillis()
+    ) {
         if (lat.isNaN() || lon.isNaN()) {
             gpsMarkerVisible = false
-        } else {
-            gpsMarkerLat = lat
-            gpsMarkerLon = lon
-            gpsMarkerBearing = bearing
-            gpsMarkerAccuracy = accuracy
-            gpsMarkerVisible = true
+            return
         }
+        val fixMoved = lastFixLat.isNaN() ||
+            abs(lat - lastFixLat) > 1e-6 || abs(lon - lastFixLon) > 1e-6
+        gpsMarkerLat = lat
+        gpsMarkerLon = lon
+        gpsMarkerBearing = bearing
+        gpsMarkerAccuracy = accuracy
+        gpsMarkerVisible = true
+        lastFixLat = lat
+        lastFixLon = lon
+        lastFixSpeedMs = if (speedKmH.isNaN()) Double.NaN else speedKmH / 3.6
+        lastFixTimeMs = timeMs
+        // Display-only prediction: the navigation engine never sees it.
+        followPrediction.update(lat, lon, lastFixSpeedMs, bearing, timeMs)
         if (followMode) {
-            viewportLat = lat
-            viewportLon = lon
-            emitViewportState()
+            // Follow mode: the extrapolation loop drives the display; the fix
+            // only updates the prediction. A small GPS move is served by the
+            // loop's blit — no viewport snap, no full render (spec:
+            // auto-smooth-follow). When the vehicle is stationary the loop is
+            // gated off, so snap the display to the fix so the marker lands on
+            // the vehicle position.
+            val moving = !lastFixSpeedMs.isNaN() && lastFixSpeedMs > MOVEMENT_SPEED_MS
+            if (!moving && fixMoved) {
+                displayLat = lat
+                displayLon = lon
+                viewportLat = lat
+                viewportLon = lon
+                emitViewportState()
+                blitEligible = true
+                requestRender()
+            }
+            return
         }
+        // Non-follow: marker-only update — the map content is unchanged, so the
+        // next frame can be served by a blit (the marker is a canvas overlay).
+        blitEligible = true
         requestRender()
     }
 
@@ -240,6 +326,9 @@ class AutoMapRenderer(
             favoriteLats = lats
             favoriteLons = lons
         }
+        // Favorites are baked into the native render — a blit would show stale
+        // markers.
+        blitEligible = false
         requestRender()
     }
 
@@ -250,6 +339,9 @@ class AutoMapRenderer(
     fun setRoute(routeLats: DoubleArray?, routeLons: DoubleArray?) {
         this.routeLats = routeLats
         this.routeLons = routeLons
+        // The route is baked into the native render — a blit would show a
+        // stale polyline.
+        blitEligible = false
         requestRender()
     }
 
@@ -266,6 +358,9 @@ class AutoMapRenderer(
             destMarkerName = name
             destMarkerVisible = true
         }
+        // The destination marker is a canvas overlay (not native-rendered), so
+        // a marker-only change can be served by a blit.
+        blitEligible = true
         requestRender()
     }
 
@@ -288,12 +383,17 @@ class AutoMapRenderer(
         zoomFraction: Double = zoom.toDouble()
     ) {
         followMode = false
+        val zoomChanged = zoom != viewportZoom
+        val angleChanged = angle != viewportAngle
         viewportLat = lat
         viewportLon = lon
         viewportZoom = zoom
         viewportZoomFraction = zoomFraction
         viewportAngle = angle
         emitViewportState()
+        // A pure center change (same zoom/angle) can be served by a blit within
+        // the overrun region; zoom/rotation changes need a full render.
+        blitEligible = !zoomChanged && !angleChanged
         requestRender()
     }
 
@@ -344,6 +444,7 @@ class AutoMapRenderer(
             surfaceWidth = 0
             surfaceHeight = 0
             surfaceFailed = false
+            clearOverrunBuffer()
         }
     }
 
@@ -356,14 +457,45 @@ class AutoMapRenderer(
 
     /**
      * Re-center on GPS position and re-engage follow mode.
+     *
+     * Snaps the display to the fix (same as the phone's re-center: the map
+     * renders at the fix and the display re-initializes there).
      */
     fun reCenter() {
         followMode = true
         if (gpsMarkerVisible) {
             viewportLat = gpsMarkerLat
             viewportLon = gpsMarkerLon
+            displayLat = gpsMarkerLat
+            displayLon = gpsMarkerLon
             emitViewportState()
+            blitEligible = true
             requestRender()
+        }
+    }
+
+    /**
+     * Re-engage follow mode WITHOUT snapping the display to the fix.
+     *
+     * Used by screens that disengage follow transiently (heading-up rotation
+     * via [setViewport]) and must not snap back per fix — the extrapolation
+     * loop eases the display to the fix instead (same as the phone's
+     * per-frame correction). [reCenter] keeps the snap for the user's
+     * re-center action.
+     *
+     * The viewport is anchored to the fix (and emitted) so a pending render
+     * (from the preceding [setViewport]) renders AT the fix — otherwise the
+     * render would target the stale [viewportState] center and [fullRender]
+     * would yank the eased display back there every fix (visible "pumping").
+     * Unlike [reCenter], the display state is left untouched so the loop's
+     * easing continues.
+     */
+    fun reengageFollow() {
+        followMode = true
+        if (gpsMarkerVisible) {
+            viewportLat = gpsMarkerLat
+            viewportLon = gpsMarkerLon
+            emitViewportState()
         }
     }
 
@@ -374,12 +506,20 @@ class AutoMapRenderer(
     private var lastRenderLogMs = 0L
     private val RENDER_LOG_INTERVAL_MS = 1000L
 
+    // Throttle for full-render requests from the extrapolation loop (a fast
+    // vehicle would otherwise queue a render every frame while clamped).
+    private var lastRenderRequestMs = 0L
+
+    // Throttle for the follow diagnostic (mirrors the phone's follow log).
+    private var followLogCount = 0
+
     /**
      * Clean up resources.
      */
     fun shutdown() {
         isShutdown = true
         renderJob?.cancel()
+        extrapolationJob?.cancel()
         scope.cancel()
         synchronized(surfaceLock) {
             surface?.release()
@@ -387,6 +527,7 @@ class AutoMapRenderer(
             surfaceWidth = 0
             surfaceHeight = 0
             surfaceFailed = false
+            clearOverrunBuffer()
         }
     }
 
@@ -404,6 +545,7 @@ class AutoMapRenderer(
         renderJob = scope.launch {
             var lastRender = 0L
             renderSignal.collect { ts ->
+                if (!asyncLoopsEnabled) return@collect
                 if (isShutdown || paused || surfaceFailed) return@collect
                 if (ts == lastRender) return@collect
                 delay(RENDER_DEBOUNCE_MS)
@@ -415,19 +557,189 @@ class AutoMapRenderer(
         }
     }
 
-    private fun renderFrame() {
+    /**
+     * Gated extrapolation display loop (spec: auto-smooth-follow, design D3/D6).
+     *
+     * Runs at ~30 fps while the renderer is resumed, follow mode is active, the
+     * vehicle is moving (speed > ~1 m/s), the fix is fresh, and the surface is
+     * valid. Each tick eases the displayed position toward the prediction and
+     * blits the overrun buffer by the delta; when the display hits the overrun
+     * margin a full render is requested at the display position.
+     */
+    private fun startExtrapolationLoop() {
+        extrapolationJob = scope.launch {
+            var lastFrameMs = 0L
+            while (isActive) {
+                if (!asyncLoopsEnabled) {
+                    lastFrameMs = 0L
+                    delay(EXTRAPOLATION_FRAME_MS)
+                    continue
+                }
+                if (isShutdown) break
+                val nowMs = System.currentTimeMillis()
+                if (!extrapolationGateActive(nowMs)) {
+                    lastFrameMs = 0L
+                    // Gated off (stationary / follow disengaged / paused): drop
+                    // the display state so the marker falls back to the raw fix
+                    // and the display re-initializes from the prediction on the
+                    // next moving frame (same as the phone's else branch).
+                    displayLat = Double.NaN
+                    displayLon = Double.NaN
+                    delay(EXTRAPOLATION_FRAME_MS)
+                    continue
+                }
+                val dtSec = if (lastFrameMs > 0) (nowMs - lastFrameMs) / 1000.0 else 0.016
+                lastFrameMs = nowMs
+                extrapolationTick(nowMs, dtSec)
+                delay(EXTRAPOLATION_FRAME_MS)
+            }
+        }
+    }
+
+    /**
+     * Gate for the extrapolation loop (design D6): resumed + follow mode +
+     * moving + valid surface. A stale fix does NOT gate the loop off —
+     * [FollowPrediction] holds the position beyond its extrapolation window,
+     * so the display eases back to the last fix instead of freezing ahead of
+     * it (same behavior as the phone's per-frame loop). Exposed for
+     * deterministic tests.
+     */
+    internal fun extrapolationGateActive(nowMs: Long): Boolean {
+        if (paused || surfaceFailed || !followMode || surface == null) return false
+        return !lastFixSpeedMs.isNaN() && lastFixSpeedMs > MOVEMENT_SPEED_MS
+    }
+
+    /**
+     * One extrapolation tick: ease the displayed position toward the predicted
+     * position and blit the overrun buffer by the delta. When the display hits
+     * the overrun margin, request a full render at the display position.
+     * Exposed for deterministic tests.
+     */
+    internal fun extrapolationTick(nowMs: Long, dtSec: Double) {
         val surf = surface ?: return
         val w = surfaceWidth
         val h = surfaceHeight
         if (w <= 0 || h <= 0) return
+        val predicted = followPrediction.predictedPosition(nowMs)
+        if (predicted.first.isNaN() || predicted.second.isNaN()) return
+        // Correction easing (design D4): ease the display from the predicted
+        // position toward the true fix on arrival instead of snapping.
+        val alpha = FollowPrediction.easeAlpha(dtSec, EASE_TAU_SEC)
+        if (displayLat.isNaN() || displayLon.isNaN()) {
+            displayLat = predicted.first
+            displayLon = predicted.second
+        } else {
+            displayLat += (predicted.first - displayLat) * alpha
+            displayLon += (predicted.second - displayLon) * alpha
+        }
+        synchronized(surfaceLock) {
+            // Read + blit under the shared lock: a concurrent full render
+            // recycles the overrun bitmap when it swaps in a new one — drawing
+            // a recycled bitmap crashes. Holding the lock from the read
+            // through the draw serializes against fullRender's swap.
+            val current = overrunBitmap ?: return
+            val offset = FollowPrediction.displayOffsetPx(
+                displayLat, displayLon,
+                overrunLat, overrunLon, overrunMag, overrunAngle,
+                current.width, current.height, w, h, projectionDpi
+            )
+            // Diagnostic (mirrors the phone's MapCanvasScreen follow log): fix
+            // vs predicted vs displayed vs offset, so an AA logcat shows
+            // exactly where the overshoot comes from.
+            if (followLogCount++ % 30 == 0) {
+                val dbg = followPrediction.debugState(nowMs)
+                android.util.Log.d(
+                    TAG,
+                    "follow fix=" + "%.6f".format(lastFixLat) + "," + "%.6f".format(lastFixLon) +
+                        " spd=" + (if (lastFixSpeedMs.isNaN()) "-" else "%.1f".format(lastFixSpeedMs * 3.6)) +
+                        " eff=" + "%.1f".format(dbg.effectiveSpeedMs * 3.6) +
+                        " dec=" + dbg.decelerating +
+                        " stp=" + dbg.stopped +
+                        " pred=" + "%.6f".format(predicted.first) + "," + "%.6f".format(predicted.second) +
+                        " disp=" + "%.6f".format(displayLat) + "," + "%.6f".format(displayLon) +
+                        " off=" + "%.1f".format(offset.clampedX) + "," + "%.1f".format(offset.clampedY) +
+                        " clamped=" + offset.clamped
+                )
+            }
+            if (offset.clamped) {
+                // Display hit the overrun margin → full render at the display
+                // position (throttled so a fast vehicle cannot queue renders).
+                if (nowMs - lastRenderRequestMs > RENDER_REQUEST_INTERVAL_MS) {
+                    lastRenderRequestMs = nowMs
+                    blitEligible = false
+                    viewportLat = displayLat
+                    viewportLon = displayLon
+                    emitViewportState()
+                    requestRender()
+                }
+                return
+            }
+            blitToSurface(surf, current, offset.clampedX, offset.clampedY, w, h)
+        }
+    }
+
+    /**
+     * Render one frame: serve a viewport change within the overrun region by a
+     * sub-region blit, otherwise perform a full native render at overrun size.
+     * Exposed for deterministic tests.
+     */
+    internal fun renderFrame() {
+        val surf = surface ?: return
+        val w = surfaceWidth
+        val h = surfaceHeight
+        if (w <= 0 || h <= 0) return
+        // Blit decision + draw under the shared lock (see extrapolationTick:
+        // a concurrent full render recycles the overrun bitmap). The full
+        // render itself runs OUTSIDE the lock so the extrapolation loop can
+        // keep blitting the old frame while the native render is in flight.
+        val blit = synchronized(surfaceLock) {
+            val ob = overrunBitmap
+            if (blitEligible && ob != null &&
+                viewportZoom == overrunMag && viewportAngle == overrunAngle
+            ) {
+                val offset = FollowPrediction.displayOffsetPx(
+                    viewportLat, viewportLon,
+                    overrunLat, overrunLon, overrunMag, overrunAngle,
+                    ob.width, ob.height, w, h, projectionDpi
+                )
+                if (!offset.clamped) {
+                    // Viewport change within the overrun region → blit, no
+                    // native render (spec: auto-map-renderer, design D2).
+                    blitEligible = false
+                    if (!followMode) {
+                        displayLat = viewportLat
+                        displayLon = viewportLon
+                    }
+                    blitToSurface(surf, ob, offset.clampedX, offset.clampedY, w, h)
+                    true
+                } else {
+                    blitEligible = false
+                    false
+                }
+            } else {
+                blitEligible = false
+                false
+            }
+        }
+        if (!blit) fullRender(surf, w, h)
+    }
+
+    /**
+     * Full native render at overrun size (design D1): render at ~1.2x the
+     * surface size, keep the bitmap as the overrun buffer, and draw the
+     * visible region to the surface.
+     */
+    private fun fullRender(surf: Surface, w: Int, h: Int) {
+        val renderW = (w * OVERRUN_FACTOR).toInt()
+        val renderH = (h * OVERRUN_FACTOR).toInt()
 
         // The GPS marker is NOT passed to the native renderer (the JNI
         // setGpsMarker export was removed upstream in favor of Kotlin-side
         // overlays); it is drawn on the canvas in drawToSurface.
         val bitmap = MapRenderUtil.renderToBitmap(
             client = client,
-            width = w,
-            height = h,
+            width = renderW,
+            height = renderH,
             lat = viewportLat,
             lon = viewportLon,
             angle = viewportAngle,
@@ -449,12 +761,34 @@ class AutoMapRenderer(
         }
 
         if (bitmap != null) {
-            drawToSurface(surf, bitmap)
-            bitmap.recycle()
+            synchronized(surfaceLock) {
+                overrunBitmap?.recycle()
+                overrunBitmap = bitmap
+                overrunLat = viewportLat
+                overrunLon = viewportLon
+                overrunMag = viewportZoom
+                overrunAngle = viewportAngle
+                if (!followMode) {
+                    // In follow mode the extrapolation loop owns the display
+                    // (the eased predicted position); a render triggered by a
+                    // transient follow-off (heading-up setViewport) must not
+                    // yank the display back to the render target — that
+                    // shows up as the vehicle "pumping" between the target
+                    // and the fix every fix.
+                    displayLat = viewportLat
+                    displayLon = viewportLon
+                }
+            }
+            fullRenderCount++
+            drawToSurface(surf, bitmap, w, h)
         }
     }
 
-    private fun drawToSurface(surf: Surface, bitmap: Bitmap) {
+    /**
+     * Draw a full-render bitmap to the surface: the overrun-sized bitmap is
+     * drawn centered (visible region = viewport center at overrun size).
+     */
+    private fun drawToSurface(surf: Surface, bitmap: Bitmap, w: Int, h: Int) {
         // The host reuses ONE display surface across screens, so multiple
         // renderers (MapScreen + FreeDrivingScreen) can lock the same Surface
         // concurrently → IllegalArgumentException from lockCanvas ("surface
@@ -477,10 +811,12 @@ class AutoMapRenderer(
                     return
                 }
                 android.util.Log.d(TAG, "renderer#$rendererId lock OK surface=${System.identityHashCode(surf)}")
-                canvas.drawBitmap(bitmap, 0f, 0f, null)
-                drawGpsMarker(canvas, bitmap.width, bitmap.height)
-                drawDestinationMarker(canvas, bitmap.width, bitmap.height)
-                overlayDrawer?.invoke(canvas, bitmap.width, bitmap.height)
+                val dx = ((w - bitmap.width) / 2f).toInt()
+                val dy = ((h - bitmap.height) / 2f).toInt()
+                canvas.drawBitmap(bitmap, dx.toFloat(), dy.toFloat(), null)
+                drawGpsMarker(canvas, w, h)
+                drawDestinationMarker(canvas, w, h)
+                overlayDrawer?.invoke(canvas, w, h)
             } catch (e: Exception) {
                 // Surface may be invalid (e.g., during lifecycle transitions)
                 // or locked by the host. Log the full stack trace — the
@@ -499,6 +835,58 @@ class AutoMapRenderer(
                 }
             }
         }
+    }
+
+    /**
+     * Sub-region blit (design D2): draw the overrun buffer shifted by the
+     * display offset directly to the surface — one draw call, no intermediate
+     * bitmap, no native render. Serialized on the shared [surfaceLock]; a dead
+     * surface goes through the same failure path as a full render.
+     */
+    private fun blitToSurface(surf: Surface, bitmap: Bitmap, ox: Double, oy: Double, w: Int, h: Int) {
+        synchronized(surfaceLock) {
+            var canvas: Canvas? = null
+            try {
+                if (!surf.isValid) {
+                    reportSurfaceFailure(surf, null, "surface invalid (isValid=false)")
+                    return
+                }
+                canvas = surf.lockCanvas(null)
+                if (canvas == null) {
+                    reportSurfaceFailure(surf, null, "lockCanvas returned null")
+                    return
+                }
+                val dx = ((w - bitmap.width) / 2f).toInt() - ox.toInt()
+                val dy = ((h - bitmap.height) / 2f).toInt() - oy.toInt()
+                canvas.drawBitmap(bitmap, dx.toFloat(), dy.toFloat(), null)
+                drawGpsMarker(canvas, w, h)
+                drawDestinationMarker(canvas, w, h)
+                overlayDrawer?.invoke(canvas, w, h)
+            } catch (e: Exception) {
+                reportSurfaceFailure(surf, e, "blit lockCanvas failed")
+            } finally {
+                if (canvas != null) {
+                    try {
+                        surf.unlockCanvasAndPost(canvas)
+                    } catch (e: Exception) {
+                        android.util.Log.w(TAG, "renderer#$rendererId failed to unlock surface", e)
+                    }
+                }
+            }
+        }
+        blitCount++
+    }
+
+    /** Recycle and drop the overrun buffer (surface change / shutdown). */
+    private fun clearOverrunBuffer() {
+        overrunBitmap?.recycle()
+        overrunBitmap = null
+        overrunLat = Double.NaN
+        overrunLon = Double.NaN
+        overrunMag = 0
+        overrunAngle = 0.0
+        displayLat = Double.NaN
+        displayLon = Double.NaN
     }
 
     /**
@@ -525,18 +913,22 @@ class AutoMapRenderer(
             onSurfaceFailed?.invoke()
         }
     }
-
     /**
      * Draws the GPS position marker (accuracy circle + bearing arrow) in the
-     * same projection the native renderer used for the map bitmap.
+     * same projection the native renderer used for the map bitmap. In follow
+     * mode the marker rides the displayed (eased predicted) position so it
+     * glides with the blitted map (spec: auto-smooth-follow, design D7).
      */
     private fun drawGpsMarker(canvas: Canvas, w: Int, h: Int) {
         if (!gpsMarkerVisible || gpsMarkerLat.isNaN() || gpsMarkerLon.isNaN()) return
 
+        val (markerLat, markerLon) = markerPosition()
+        val (vpLat, vpLon) = markerViewport()
         val vp = ProjectionUtils.viewport(
-            viewportLat, viewportLon, viewportZoom, w, h, projectionDpi, viewportAngle
+            vpLat, vpLon, viewportZoom, w, h, projectionDpi, viewportAngle
         )
-        val (x, y) = vp.geoToScreenRotated(gpsMarkerLat, gpsMarkerLon)
+        val (x, y) = vp.geoToScreenRotated(markerLat, markerLon)
+
         if (x.isNaN() || y.isNaN()) return
         if (x < -200 || x > w + 200 || y < -200 || y > h + 200) return
 
@@ -613,13 +1005,15 @@ class AutoMapRenderer(
     /**
      * Draws the destination marker (pin + name label) in the same projection
      * the native renderer used for the map bitmap (spec:
-     * auto-destination-details).
+     * auto-destination-details). In follow mode it projects against the
+     * displayed center so it stays anchored to the blitted map.
      */
     private fun drawDestinationMarker(canvas: Canvas, w: Int, h: Int) {
         if (!destMarkerVisible || destMarkerLat.isNaN() || destMarkerLon.isNaN()) return
 
+        val (vpLat, vpLon) = markerViewport()
         val vp = ProjectionUtils.viewport(
-            viewportLat, viewportLon, viewportZoom, w, h, projectionDpi, viewportAngle
+            vpLat, vpLon, viewportZoom, w, h, projectionDpi, viewportAngle
         )
         val (x, y) = vp.geoToScreenRotated(destMarkerLat, destMarkerLon)
         if (x.isNaN() || y.isNaN()) return
@@ -683,6 +1077,32 @@ class AutoMapRenderer(
         _viewportState.value = ViewportState(viewportLat, viewportLon, viewportZoom, viewportAngle)
     }
 
+    /**
+     * Position the GPS marker is drawn at: the displayed (eased predicted)
+     * position in follow mode, else the raw fix. Exposed for tests.
+     */
+    internal fun markerPosition(): Pair<Double, Double> =
+        if (followMode && !displayLat.isNaN() && !displayLon.isNaN()) {
+            displayLat to displayLon
+        } else {
+            gpsMarkerLat to gpsMarkerLon
+        }
+
+    /**
+     * Viewport the overlays project against: the displayed center in follow
+     * mode, else the render target. Exposed for tests.
+     */
+    internal fun markerViewport(): Pair<Double, Double> =
+        if (followMode && !displayLat.isNaN() && !displayLon.isNaN()) {
+            displayLat to displayLon
+        } else {
+            viewportLat to viewportLon
+        }
+
+    /** Size of the current overrun buffer, or null when none. Exposed for tests. */
+    internal fun overrunSize(): Pair<Int, Int>? =
+        overrunBitmap?.let { it.width to it.height }
+
     companion object {
         private const val TAG = "AutoMapRenderer"
         private const val RENDER_DEBOUNCE_MS = 100L
@@ -700,5 +1120,26 @@ class AutoMapRenderer(
 
         /** Max destination label characters drawn on the map surface. */
         private const val MAX_DEST_LABEL_CHARS = 40
+
+        // --- auto-smooth-follow (spec: auto-smooth-follow) ---
+
+        /** Overrun buffer scale: render at 1.2x surface size (design D1). */
+        const val OVERRUN_FACTOR = 1.2
+
+        /** Extrapolation loop period (~30 fps, design D3). */
+        const val EXTRAPOLATION_FRAME_MS = 33L
+
+        /** Correction-easing time constant (design D4): matches the phone's
+         *  `FollowPrediction.easeAlpha` default (tau = 0.3 s). A shorter tau
+         *  makes the display run further ahead of the fix and the fix-arrival
+         *  correction jerk back — the phone's tuned value is 0.3 s. */
+        const val EASE_TAU_SEC = 0.3
+
+        /** Movement gate: extrapolation runs only above ~1.8 km/h (design D6),
+         *  matching the phone's `fix.speedKmH > 1.8` check. */
+        const val MOVEMENT_SPEED_MS = 0.5
+
+        /** Throttle for full-render requests from the extrapolation loop. */
+        const val RENDER_REQUEST_INTERVAL_MS = 500L
     }
 }

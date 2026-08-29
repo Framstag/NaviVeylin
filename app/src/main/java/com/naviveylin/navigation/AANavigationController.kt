@@ -74,15 +74,15 @@ class AANavigationController @Inject constructor(
         // ACCESS_FINE_LOCATION.
         locationService.startLocationUpdates()
         scope.launch {
-            locationService.location.collect { loc ->
-                if (loc != null) {
-                    val locSpeedKmH = if (loc.hasSpeed()) loc.speed * 3.6 else -1.0
+            locationService.location.collect { fix ->
+                if (fix != null) {
+                    val locSpeedKmH = if (!fix.speedKmH.isNaN()) fix.speedKmH else -1.0
                     processLocation(
-                        loc.latitude,
-                        loc.longitude,
+                        fix.lat,
+                        fix.lon,
                         locSpeedKmH,
-                        if (loc.hasAccuracy()) loc.accuracy.toDouble() else -1.0,
-                        loc.time
+                        fix.accuracy,
+                        fix.time
                     )
                     // Display speed from the location provider (the emulator's
                     // simulated driving speed is sane; the engine's SpeedAgent
@@ -119,8 +119,8 @@ class AANavigationController @Inject constructor(
                 )
                 return
             }
-            startLat = loc.latitude
-            startLon = loc.longitude
+            startLat = loc.lat
+            startLon = loc.lon
         }
 
         _state.value = _state.value.copy(errorMessage = null)

@@ -181,7 +181,7 @@ class RoutePanelViewModel @Inject constructor(
         val loc = locationService.location.value ?: return
         val entry = LocationEntry().apply {
             label = "Current Location"
-            lat = loc.latitude; lon = loc.longitude; matchQuality = "coordinate"
+            lat = loc.lat; lon = loc.lon; matchQuality = "coordinate"
         }
         selectSearchResult(entry)
     }

@@ -266,7 +266,11 @@ class FreeDrivingScreen(
                 "effBearing=$bearing speedKmH=${pos.speedKmH} effSpeed=$speed"
         )
         currentSpeedKmH = speed
-        mapRenderer.setGpsMarker(pos.lat, pos.lon, bearing, pos.accuracy)
+        mapRenderer.setGpsMarker(
+            pos.lat, pos.lon, bearing, pos.accuracy,
+            speedKmH = speed,
+            timeMs = System.currentTimeMillis()
+        )
 
         // Heading-up always (spec: "Heading-up orientation"), independent of
         // the shared navNorthUp setting.
@@ -283,7 +287,10 @@ class FreeDrivingScreen(
             val vp = mapRenderer.viewportState.value
             val zoom = newZoom ?: vp.zoom
             mapRenderer.setViewport(vp.lat, vp.lon, zoom, angle ?: vp.angle, zoom.toDouble())
-            mapRenderer.reCenter()
+            // Re-engage follow WITHOUT snapping: the extrapolation loop eases
+            // the display to the fix (smooth correction, spec:
+            // auto-smooth-follow). reCenter() would snap the map back per fix.
+            mapRenderer.reengageFollow()
             if (newZoom != null) {
                 Log.d(TAG, "autoZoom commit speed=${pos.speedKmH} mag=$newZoom")
             }

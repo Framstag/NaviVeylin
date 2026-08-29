@@ -515,7 +515,11 @@ class MapScreen(
             // process has no phone UI mirroring into navigationViewModel).
             locationProvider.position().collect { pos ->
                 if (pos != null) {
-                    mapRenderer.setGpsMarker(pos.lat, pos.lon, pos.bearing, pos.accuracy)
+                    mapRenderer.setGpsMarker(
+                        pos.lat, pos.lon, pos.bearing, pos.accuracy,
+                        speedKmH = pos.speedKmH,
+                        timeMs = System.currentTimeMillis()
+                    )
                     // Periodic settings refresh so changes made in the settings
                     // screen take effect live (no flow on the provider yet).
                     val now = SystemClock.elapsedRealtime()

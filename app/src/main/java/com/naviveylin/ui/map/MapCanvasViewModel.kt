@@ -22,6 +22,7 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportState
 import com.naviveylin.data.ViewportStorage
+import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import com.naviveylin.ui.route.RoutePanelViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -124,8 +125,8 @@ data class MapCanvasUiState(
     val styleSheet: String = "standard",
     /** All bundled map styles offered by the picker (sorted, no .oss postfix). */
     val availableStyleSheets: List<String> = emptyList(),
-    /** Last GPS location for marker overlay; null if unavailable. */
-    val gpsLocation: android.location.Location? = null,
+    /** Last GPS fix for marker overlay; null if unavailable. */
+    val gpsLocation: GpsFix? = null,
     /** Viewport that produced the currently visible bitmap. Marker overlay must use this. */
     val renderViewport: MapRenderer.RenderViewport? = null,
     /** Marker position for the overlay: nav-filtered in routing mode, raw GPS otherwise; NaN when unavailable. */
@@ -218,7 +219,6 @@ class MapCanvasViewModel @Inject constructor(
     private var lastNonFollowMarkerRenderMs: Long = 0L
     private var lastGpsLat = Double.NaN
     private var lastGpsLon = Double.NaN
-    private var lastGpsBearing = Double.NaN
     private var lastGpsTime: Long = 0L
     private var smoothedCenterLat = Double.NaN
     private var smoothedCenterLon = Double.NaN
@@ -243,31 +243,12 @@ class MapCanvasViewModel @Inject constructor(
     private val ZOOM_COMMIT_SAMPLES = 3
     private val ZOOM_HYSTERESIS_MAG = 1.0 // only commit when target differs by at least one full level
 
-    // Course-over-ground state: derive map rotation and marker bearing from the
-    // recent center track instead of the instantaneous GPS bearing, which is jumpy
-    // on this GPX replay. A short low-pass filter keeps the heading stable on
-    // straight segments while still following curves.
-    private val COURSE_HISTORY_SIZE = 10
-    private val courseLats = DoubleArray(COURSE_HISTORY_SIZE) { Double.NaN }
-    private val courseLons = DoubleArray(COURSE_HISTORY_SIZE) { Double.NaN }
-    private var courseIndex = 0
-    private val MIN_COURSE_DISTANCE_M = 40.0
-    /** Short distance used right after a reset/start so the new direction is established quickly. */
-    private val MIN_COURSE_DISTANCE_FAST_M = 10.0
-    /** Minimum segment length before it may trigger a turn reset (avoids GPS-noise resets). */
-    private val MIN_SEGMENT_FOR_TURN_M = 8.0
-    private val COURSE_TURN_RESET_DEG = 45.0
-    private var lastCourseBearing = Double.NaN
-    private var lastSmoothedBearing = Double.NaN
+    // Bearing fallbacks: last used bearing/angle survive when the location
+    // layer has no fresh bearing yet (e.g. standstill).
     private var lastUsedBearing = Double.NaN
     private var lastUsedAngle = Double.NaN
-    /** Bearing of the most recent two-point segment; freshest direction signal for the marker. */
-    private var lastSegmentBearing = Double.NaN
-    private val COURSE_LOW_PASS_ALPHA = 0.3
-    /** Faster low-pass while the course history is not yet stable (after reset/start). */
-    private val COURSE_LOW_PASS_ALPHA_FAST = 0.7
-    /** True once at least MIN_COURSE_DISTANCE_M of track is in the history. */
-    private var courseStable = false
+    // Deadband vs the rendered angle: map rotation only moves when the smoothed
+    // bearing exceeds this — prevents re-rendering on every small change.
     private val MIN_BEARING_DELTA_DEG = 2.0
     // Per-render rotation limit. Renders run at the GPS fix cadence (~1/s), so
     // 90°/frame lets a sharp 90° turn complete in 1-2 frames instead of slowly
@@ -293,6 +274,24 @@ class MapCanvasViewModel @Inject constructor(
             lastValidSpeedKmH = rawSpeedKmH
         }
         return lastValidSpeedKmH
+    }
+
+    /**
+     * Push the marker state to the renderer (for the next render job) AND to the
+     * overlay state directly. The overlay must show the latest fix immediately —
+     * waiting for the next rendered frame would lag the marker behind the vehicle
+     * (throttled renders, no render on < 5 m movement). The overlay projects the
+     * marker against the displayed frame's viewport, so a fresh fix on a stale map
+     * is still anchored correctly.
+     */
+    private fun updateMarkerState(lat: Double, lon: Double, bearing: Double, accuracy: Double) {
+        mapRenderer?.setGpsMarkerState(lat, lon, bearing, accuracy)
+        _uiState.value = _uiState.value.copy(
+            gpsMarkerLat = lat,
+            gpsMarkerLon = lon,
+            gpsMarkerBearing = bearing,
+            gpsMarkerAccuracy = accuracy
+        )
     }
 
     /** Compute turn zoom boost floor: 16.0 if ≤ 2000m, 15.0 if ≤ 5000m, 0.0 otherwise. */
@@ -574,65 +573,69 @@ class MapCanvasViewModel @Inject constructor(
             var lastRenderedLat = Double.NaN
             var lastRenderedLon = Double.NaN
 
-            locationService.location.collect { loc ->
-                if (loc == null) {
-                    _uiState.value = _uiState.value.copy(gpsLocation = null)
+            locationService.location.collect { fix ->
+                if (fix == null) {
+                    _uiState.value = _uiState.value.copy(
+                        gpsLocation = null,
+                        gpsMarkerLat = Double.NaN,
+                        gpsMarkerLon = Double.NaN,
+                        gpsMarkerBearing = Double.NaN,
+                        gpsMarkerAccuracy = 0.0
+                    )
                     mapRenderer?.clearGpsMarkerState()
                     lastMarkerLat = Double.NaN
                     lastMarkerLon = Double.NaN
                     return@collect
                 }
 
-                _uiState.value = _uiState.value.copy(gpsLocation = loc)
+                _uiState.value = _uiState.value.copy(gpsLocation = fix)
 
                 if (logCount++ % 30 == 0) {
-                    Log.d(TAG, "GPS loc=${"%.6f".format(loc.latitude)},${"%.6f".format(loc.longitude)} " +
-                            "bearing=${if (loc.hasBearing()) "%.1f".format(loc.bearing) else "-"} " +
+                    Log.d(TAG, "GPS loc=${"%.6f".format(fix.lat)},${"%.6f".format(fix.lon)} " +
+                            "bearing=${if (!fix.markerBearing.isNaN()) "%.1f".format(fix.markerBearing) else "-"} " +
                             "follow=${_uiState.value.followMode}")
                 }
 
                 // Use navigation position if available (filtered by engine), else raw GPS
                 val navPos = _navPosition
                 val isNavigating = _navigationViewModel?.state?.value?.isNavigating == true
-                val markerLat = if (isNavigating && navPos != null && !navPos.lat.isNaN()) navPos.lat else loc.latitude
-                val markerLon = if (isNavigating && navPos != null && !navPos.lon.isNaN()) navPos.lon else loc.longitude
+                val markerLat = if (isNavigating && navPos != null && !navPos.lat.isNaN()) navPos.lat else fix.lat
+                val markerLon = if (isNavigating && navPos != null && !navPos.lon.isNaN()) navPos.lon else fix.lon
 
                 // Deduplicate duplicate fixes delivered by multiple providers in the same
                 // millisecond. Compare by timestamp and coarse coordinates only; bearing
                 // may differ between Fused and LocationManager even for the same fix.
-                val bearing = if (loc.hasBearing() && loc.bearing >= 0f) loc.bearing.toDouble() else -1.0
-                val accuracy = if (loc.hasAccuracy() && loc.accuracy > 0f) loc.accuracy.toDouble() else -1.0
-                val sameFix = (loc.time - lastGpsTime) < GPS_DEDUPE_MS &&
-                        kotlin.math.abs(loc.latitude - lastGpsLat) < 1e-6 &&
-                        kotlin.math.abs(loc.longitude - lastGpsLon) < 1e-6
+                val freshestBearing = if (!fix.markerBearing.isNaN()) fix.markerBearing else -1.0
+                val accuracy = fix.accuracy
+                val sameFix = (fix.time - lastGpsTime) < GPS_DEDUPE_MS &&
+                        kotlin.math.abs(fix.lat - lastGpsLat) < 1e-6 &&
+                        kotlin.math.abs(fix.lon - lastGpsLon) < 1e-6
                 if (sameFix) {
                     // Still feed navigation engine, but skip render work.
                     _navigationViewModel?.processLocation(
-                        loc.latitude, loc.longitude,
-                        if (loc.hasSpeed()) loc.speed.toDouble().coerceAtLeast(0.0) else -1.0,
-                        loc.accuracy.toDouble().coerceAtLeast(0.0),
-                        loc.time
+                        fix.lat, fix.lon,
+                        if (!fix.speedKmH.isNaN()) fix.speedKmH / 3.6 else -1.0,
+                        fix.accuracy.coerceAtLeast(0.0),
+                        fix.time
                     )
                     return@collect
                 }
-                lastGpsLat = loc.latitude
-                lastGpsLon = loc.longitude
-                lastGpsBearing = bearing
-                lastGpsTime = loc.time
+                lastGpsLat = fix.lat
+                lastGpsLon = fix.lon
+                lastGpsTime = fix.time
 
                 // Feed navigation engine early so it sees every distinct fix.
                 _navigationViewModel?.processLocation(
-                    loc.latitude, loc.longitude,
-                    if (loc.hasSpeed()) loc.speed.toDouble().coerceAtLeast(0.0) else -1.0,
-                    loc.accuracy.toDouble().coerceAtLeast(0.0),
-                    loc.time
+                    fix.lat, fix.lon,
+                    if (!fix.speedKmH.isNaN()) fix.speedKmH / 3.6 else -1.0,
+                    fix.accuracy.coerceAtLeast(0.0),
+                    fix.time
                 )
 
                 if (!_uiState.value.followMode) {
-                    // The marker rides with the next rendered frame (overlay input, never
-                    // baked into tiles). A marker move > 5 m triggers a render so the marker
-                    // follows the fix — same cadence as the old native setGpsMarker path.
-                    mapRenderer?.setGpsMarkerState(markerLat, markerLon, bearing, accuracy)
+                    // The marker is a Compose overlay: update it on every fix so it
+                    // tracks the vehicle immediately, independent of the render cadence.
+                    updateMarkerState(markerLat, markerLon, freshestBearing, accuracy)
                     val nowMs = System.currentTimeMillis()
                     val dist = distanceMeters(lastMarkerLat, lastMarkerLon, markerLat, markerLon)
                     if ((dist > 5.0 || lastMarkerLat.isNaN()) &&
@@ -658,42 +661,20 @@ class MapCanvasViewModel @Inject constructor(
                 val followMarkerLat = markerLat
                 val followMarkerLon = markerLon
 
-                // Derive map rotation and marker bearing from the recent track
-                // (course-over-ground). The instantaneous GPS bearing is too jumpy
-                // on this replay; the track direction is stable and follows the road.
-                addCoursePoint(followMarkerLat, followMarkerLon)
-                val (courseBearing, courseDist) = computeCourseBearing()
-                // Use a fast low-pass while the history is not yet stable (after a
-                // turn reset or start) so the map/marker align with the new driving
-                // direction quickly; use the slow alpha once 40 m of track is stable.
-                val courseAlpha = if (courseStable || courseDist >= MIN_COURSE_DISTANCE_M) {
-                    COURSE_LOW_PASS_ALPHA
-                } else {
-                    COURSE_LOW_PASS_ALPHA_FAST
-                }
-                val smoothedBearing = smoothCourseBearing(courseBearing, courseAlpha)
-
-                // Determine effective map angle based on orientation setting.
-                // Use the actually rendered angle as the deadband reference so
-                // tiny low-pass drift does not fight the front buffer. When no
-                // valid course bearing is available yet, keep the previous used
-                // angle so the map does not snap back to North-Up.
+                // Map rotation uses the location layer's smoothed bearing; the
+                // marker arrow uses the freshest bearing (no added lag). Provider
+                // knowledge (Fused vs LocationManager) stays inside LocationService.
                 val isNorthUp = if (isNavigating) _uiState.value.navNorthUp else _uiState.value.freeFormNorthUp
-                val effectiveBearing = if (!smoothedBearing.isNaN()) smoothedBearing else lastUsedBearing
+                val effectiveBearing = if (!fix.smoothedBearing.isNaN()) fix.smoothedBearing else lastUsedBearing
                 // The marker arrow tracks the freshest direction signal so it points
                 // along the new driving direction immediately after a turn, while the
                 // map rotation uses the smoothed value and rotates at its own pace.
-                // Priority: window course bearing -> latest segment bearing -> last used.
-                val markerBearingRaw = when {
-                    !courseBearing.isNaN() -> courseBearing
-                    !lastSegmentBearing.isNaN() -> lastSegmentBearing
-                    else -> lastUsedBearing
-                }
+                val markerBearingRaw = if (!fix.markerBearing.isNaN()) fix.markerBearing else lastUsedBearing
                 val markerBearing = if (!isNorthUp && !markerBearingRaw.isNaN()) markerBearingRaw else -1.0
-                // Feed the marker state to the renderer: it is snapshotted into the next
-                // render job and emitted with the front buffer, so the overlay marker always
-                // matches the displayed map (no lead/jump while frames lag the live fix).
-                mapRenderer?.setGpsMarkerState(followMarkerLat, followMarkerLon, markerBearing, accuracy)
+                // Feed the marker state to the renderer (snapshotted into the next render
+                // job) AND to the overlay state directly — the overlay must show the latest
+                // fix immediately, not wait for the next rendered frame.
+                updateMarkerState(followMarkerLat, followMarkerLon, markerBearing, accuracy)
                 val smoothedAngle = if (!isNorthUp && !effectiveBearing.isNaN()) normalizeAngle(-Math.toRadians(effectiveBearing)) else Double.NaN
                 val renderedAngle = normalizeAngle(mapRenderer?.renderedAngle ?: _uiState.value.viewport.angle)
                 val angle = if (!isNorthUp && !smoothedAngle.isNaN()) {
@@ -897,7 +878,7 @@ class MapCanvasViewModel @Inject constructor(
      * Pure scoping decision: resolves/reuses/releases the admin region handle
      * for the given GPS fix. Exposed internal for unit testing.
      */
-    internal fun searchAdminRegionHandleForFix(fix: android.location.Location?): Long {
+    internal fun searchAdminRegionHandleForFix(fix: GpsFix?): Long {
         if (fix == null ||
             System.currentTimeMillis() - fix.time > GPS_FIX_FRESHNESS_MS ||
             fix.accuracy > GPS_FIX_MAX_ACCURACY_M
@@ -906,8 +887,8 @@ class MapCanvasViewModel @Inject constructor(
             return 0L
         }
 
-        val lat = fix.latitude
-        val lon = fix.longitude
+        val lat = fix.lat
+        val lon = fix.lon
 
         // Reuse the cached region while the position has not moved significantly
         if (searchAdminRegionHandle != 0L &&
@@ -995,125 +976,6 @@ class MapCanvasViewModel @Inject constructor(
     /** Compare two angles in radians, tolerating wrap-around and floating-point noise. */
     private fun isAngleSame(a: Double, b: Double): Boolean {
         return kotlin.math.abs(normalizeAngle(a - b)) < 1e-4
-    }
-
-    /** Normalize an angle in degrees to (-180,180]. */
-    private fun normalizeAngleDeg(deg: Double): Double {
-        var d = deg
-        while (d <= -180.0) d += 360.0
-        while (d > 180.0) d -= 360.0
-        return d
-    }
-
-    /** Bearing in degrees [0,360) from (lat1,lon1) to (lat2,lon2). */
-    private fun bearingFromCourse(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val dLon = Math.toRadians(lon2 - lon1)
-        val lat1Rad = Math.toRadians(lat1)
-        val lat2Rad = Math.toRadians(lat2)
-        val y = kotlin.math.sin(dLon) * kotlin.math.cos(lat2Rad)
-        val x = kotlin.math.cos(lat1Rad) * kotlin.math.sin(lat2Rad) -
-                kotlin.math.sin(lat1Rad) * kotlin.math.cos(lat2Rad) * kotlin.math.cos(dLon)
-        var bearing = Math.toDegrees(kotlin.math.atan2(y, x))
-        if (bearing < 0) bearing += 360.0
-        return bearing
-    }
-
-    /** Append a new position to the course-over-ground history. */
-    private fun addCoursePoint(lat: Double, lon: Double) {
-        val newestIdx = (courseIndex - 1 + COURSE_HISTORY_SIZE) % COURSE_HISTORY_SIZE
-        if (!courseLats[newestIdx].isNaN()) {
-            val dist = distanceMeters(lat, lon, courseLats[newestIdx], courseLons[newestIdx])
-            if (dist > centerSmoothMaxJumpM) {
-                // Teleport: clear stale history so the course bearing starts fresh.
-                resetCourseHistory()
-            } else {
-                if (dist >= 2.0) {
-                    lastSegmentBearing = bearingFromCourse(courseLats[newestIdx], courseLons[newestIdx], lat, lon)
-                }
-                if (dist >= MIN_SEGMENT_FOR_TURN_M && !lastSmoothedBearing.isNaN()) {
-                    // If the latest segment turns sharply, the old history is from
-                    // before the turn and must not influence the new course.
-                    val diff = kotlin.math.abs(normalizeAngleDeg(lastSegmentBearing - lastSmoothedBearing))
-                    if (diff > COURSE_TURN_RESET_DEG) {
-                        resetCourseHistory()
-                    }
-                }
-            }
-        } else {
-            // First point of a fresh history: no segment yet.
-            lastSegmentBearing = Double.NaN
-        }
-        courseLats[courseIndex] = lat
-        courseLons[courseIndex] = lon
-        courseIndex = (courseIndex + 1) % COURSE_HISTORY_SIZE
-    }
-
-    private fun resetCourseHistory() {
-        for (i in courseLats.indices) {
-            courseLats[i] = Double.NaN
-            courseLons[i] = Double.NaN
-        }
-        courseIndex = 0
-        lastCourseBearing = Double.NaN
-        lastSmoothedBearing = Double.NaN
-        lastSegmentBearing = Double.NaN
-        courseStable = false
-    }
-
-    /**
-     * Compute course-over-ground bearing from the oldest history point that is at
-     * least MIN_COURSE_DISTANCE_M (or the fast distance while history is not yet
-     * stable) away from the newest point. Returns (bearing, distance). Falls back
-     * to the last computed bearing when not enough distance has been accumulated.
-     */
-    private fun computeCourseBearing(): Pair<Double, Double> {
-        val newestIdx = (courseIndex - 1 + COURSE_HISTORY_SIZE) % COURSE_HISTORY_SIZE
-        val newestLat = courseLats[newestIdx]
-        val newestLon = courseLons[newestIdx]
-        if (newestLat.isNaN()) return Pair(Double.NaN, 0.0)
-
-        val minDist = if (courseStable) MIN_COURSE_DISTANCE_M else MIN_COURSE_DISTANCE_FAST_M
-        var i = newestIdx
-        var totalDist = 0.0
-        var usedIdx = -1
-        for (step in 1 until COURSE_HISTORY_SIZE) {
-            val prev = (i - 1 + COURSE_HISTORY_SIZE) % COURSE_HISTORY_SIZE
-            if (courseLats[prev].isNaN()) break
-            totalDist += distanceMeters(courseLats[prev], courseLons[prev], courseLats[i], courseLons[i])
-            if (totalDist >= minDist) {
-                usedIdx = prev
-                break
-            }
-            i = prev
-        }
-        if (usedIdx >= 0) {
-            val bearing = bearingFromCourse(courseLats[usedIdx], courseLons[usedIdx], newestLat, newestLon)
-            lastCourseBearing = bearing
-            if (totalDist >= MIN_COURSE_DISTANCE_M) courseStable = true
-            return Pair(bearing, totalDist)
-        }
-        return Pair(lastCourseBearing.takeIf { !it.isNaN() } ?: Double.NaN, totalDist)
-    }
-
-    /**
-     * Low-pass filter the course-over-ground bearing. Returns NaN when no valid
-     * bearing is available (caller falls back to the last used bearing).
-     */
-    private fun smoothCourseBearing(newBearing: Double, alpha: Double): Double {
-        if (newBearing.isNaN()) {
-            return lastSmoothedBearing.takeIf { !it.isNaN() } ?: Double.NaN
-        }
-        val prev = lastSmoothedBearing
-        val smoothed = if (prev.isNaN()) {
-            newBearing
-        } else {
-            val diff = normalizeAngleDeg(newBearing - prev)
-            val raw = prev + diff * alpha
-            val norm = raw % 360.0
-            if (norm < 0) norm + 360.0 else norm
-        }
-        lastSmoothedBearing = smoothed
-        return smoothed
     }
 
     private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -1240,11 +1102,10 @@ class MapCanvasViewModel @Inject constructor(
                             renderedBitmap = bitmap.asImageBitmap(),
                             isLoading = false,
                             error = null,
-                            renderViewport = frame.viewport,
-                            gpsMarkerLat = frame.marker.lat,
-                            gpsMarkerLon = frame.marker.lon,
-                            gpsMarkerBearing = frame.marker.bearing,
-                            gpsMarkerAccuracy = frame.marker.accuracy
+                            renderViewport = frame.viewport
+                            // gpsMarker* is intentionally NOT set here: the location
+                            // collector updates it on every fix (updateMarkerState) so
+                            // the marker tracks the vehicle without waiting for a render.
                         )
                         Log.d(TAG, "frontBufferFlow: new bitmap " + bitmap.width + "x" + bitmap.height)
                     }
@@ -1667,8 +1528,8 @@ class MapCanvasViewModel @Inject constructor(
     private fun poiFitMagnification(entry: PoiEntry): Int {
         val currentMag = _uiState.value.viewport.magnification
         val loc = locationService.location.value ?: return currentMag
-        val lat1 = loc.latitude
-        val lon1 = loc.longitude
+        val lat1 = loc.lat
+        val lon1 = loc.lon
         val dLat = kotlin.math.abs(entry.lat - lat1)
         val dLon = kotlin.math.abs(entry.lon - lon1)
         if (dLat < 1e-9 && dLon < 1e-9) return currentMag
@@ -1849,8 +1710,8 @@ class MapCanvasViewModel @Inject constructor(
             if (loc != null) {
                 val currentLoc = LocationEntry().apply {
                     label = "Current Location"
-                    lat = loc.latitude
-                    lon = loc.longitude
+                    lat = loc.lat
+                    lon = loc.lon
                     matchQuality = "coordinate"
                 }
                 vm.setStartLocation(currentLoc)
@@ -1981,14 +1842,14 @@ class MapCanvasViewModel @Inject constructor(
                 // Apply orientation: if north-up, reset angle; if follow-direction, use bearing
                 val isNavigating = _navigationViewModel?.state?.value?.isNavigating == true
                 val isNorthUp = if (isNavigating) _uiState.value.navNorthUp else _uiState.value.freeFormNorthUp
-                val angle = if (!isNorthUp && loc.hasBearing() && loc.bearing >= 0f) {
-                    -Math.toRadians(loc.bearing.toDouble())
+                val angle = if (!isNorthUp && !loc.markerBearing.isNaN()) {
+                    -Math.toRadians(loc.markerBearing)
                 } else 0.0
 
                 _uiState.value = _uiState.value.copy(
                     viewport = _uiState.value.viewport.copy(
-                        centerLat = loc.latitude,
-                        centerLon = loc.longitude,
+                        centerLat = loc.lat,
+                        centerLon = loc.lon,
                         angle = angle
                     )
                 )
@@ -2015,10 +1876,10 @@ class MapCanvasViewModel @Inject constructor(
             renderMap()
         } else {
             val loc = locationService.location.value
-            if (loc != null && loc.hasBearing() && loc.bearing >= 0f) {
+            if (loc != null && !loc.markerBearing.isNaN()) {
                 _uiState.value = _uiState.value.copy(
                     viewport = _uiState.value.viewport.copy(
-                        angle = -Math.toRadians(loc.bearing.toDouble())
+                        angle = -Math.toRadians(loc.markerBearing)
                     )
                 )
                 renderMap()
@@ -2057,7 +1918,7 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /** Get current location for overlay rendering. */
-    fun getCurrentLocation(): android.location.Location? = locationService.location.value
+    fun getCurrentLocation(): GpsFix? = locationService.location.value
 
 
 
@@ -2168,8 +2029,8 @@ class MapCanvasViewModel @Inject constructor(
         val loc = locationService.location.value ?: return
         val entry = LocationEntry().apply {
             label = "Current Location"
-            lat = loc.latitude
-            lon = loc.longitude
+            lat = loc.lat
+            lon = loc.lon
             matchQuality = "coordinate"
         }
         onSearchResultSelected(entry)

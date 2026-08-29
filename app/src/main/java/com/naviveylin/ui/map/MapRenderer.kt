@@ -569,7 +569,10 @@ class MapRenderer(
      * falls back to a full render.
      */
     private suspend fun renderFromTiles(job: RenderJob): Bitmap? {
-        val W = screenWidth; val H = screenHeight
+        // Render at the overrun size (job.width/height) so the emitted frame has
+        // margin around the visible region — the follow-mode display loop offsets
+        // within that margin to scroll smoothly between GPS fixes.
+        val W = job.width; val H = job.height
         if (W <= 0 || H <= 0) return null
         val vp = ProjectionUtils.viewport(job.lat, job.lon, job.mag, W, H, dpi, job.angle)
         val rotated = job.angle != 0.0
@@ -746,9 +749,10 @@ class MapRenderer(
 
         val completionEpoch = epoch.get()
         if (tilePath) {
-            // Tile path: bitmap is already screen-sized. Copy it so the emitted
-            // front buffer and the stored front buffer do not share backing storage
-            // with the tile-composition result that may be recycled later.
+            // Tile path: bitmap is overrun-sized (rendered at job.width/height).
+            // Copy it so the emitted front buffer and the stored front buffer do
+            // not share backing storage with the tile-composition result that may
+            // be recycled later.
             bufferLock.withLock {
                 if (job.jobEpoch != epoch.get()) return@withLock
                 frontBuffer?.recycle()
@@ -798,7 +802,7 @@ class MapRenderer(
                     emitFrame(
                         RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
                         MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy),
-                        crop = true
+                        crop = false
                     )
                 }
                 Log.d(TAG, "executeRender: front buffer emitted mag=" + job.mag + " (" + elapsed + "ms)")
@@ -848,36 +852,33 @@ class MapRenderer(
         val dxR = dx * cosA - dy * sinA
         val dyR = dx * sinA + dy * cosA
 
+        // The follow-mode display loop offsets the visible window within the
+        // overrun margin to scroll smoothly between GPS fixes. The covered check
+        // must reserve that margin (plus prediction slack) around the window
+        // centered on the new position — otherwise a render request at the margin
+        // would be "covered" and the map would stick at the edge.
+        val slack = BLIT_COVER_SLACK_PX
         val viewLeft = fbW / 2.0 - sw / 2.0 + dxR
         val viewTop = fbH / 2.0 - sh / 2.0 + dyR
-        val srcX = viewLeft; val srcY = viewTop
-        val isx = srcX.coerceAtLeast(0.0); val isy = srcY.coerceAtLeast(0.0)
-        val iw = minOf(fbW - isx, sw.toDouble()).coerceAtLeast(0.0)
-        val ih = minOf(fbH - isy, sh.toDouble()).coerceAtLeast(0.0)
+        val covered = viewLeft - slack >= 0 && viewTop - slack >= 0 &&
+            viewLeft + sw + slack <= fbW && viewTop + sh + slack <= fbH
 
         currentLat = newLat; currentLon = newLon
         emitCurrentViewport()
 
-        if (iw > 0 && ih > 0) {
-            val region = Bitmap.createBitmap(fb, isx.toInt(), isy.toInt(), iw.toInt(), ih.toInt())
-            // createBitmap can share the backing buffer with fb. Recycling that shared view
-            // would free fb's pixels while Compose may still be drawing it, so copy first.
-            val regionCopy = region.copy(Bitmap.Config.ARGB_8888, true)
-            region.recycle()
-            val result = Bitmap.createBitmap(sw, sh, Bitmap.Config.ARGB_8888)
-            android.graphics.Canvas(result).apply {
-                drawBitmap(regionCopy, (isx - srcX).toFloat(), (isy - srcY).toFloat(), null)
-                setBitmap(null)
-            }
-            regionCopy.recycle()
-            _frameFlow.value = FrameState(
-                result,
-                RenderViewport(currentLat, currentLon, currentMag, frontBufferAngle),
-                MarkerSnapshot(gpsMarkerLat, gpsMarkerLon, gpsMarkerBearing, gpsMarkerAccuracy)
+        if (covered) {
+            // No-shift emission: the buffer content stays put; the display loop
+            // offsets the visible window within the overrun margin. Emit the full
+            // overrun buffer with the buffer's actual center as the viewport so the
+            // display loop's offset base stays consistent with the bitmap content.
+            emitFrame(
+                RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
+                MarkerSnapshot(gpsMarkerLat, gpsMarkerLon, gpsMarkerBearing, gpsMarkerAccuracy),
+                crop = false
             )
         }
 
-        return viewLeft >= 0 && viewTop >= 0 && viewLeft + sw <= fbW && viewTop + sh <= fbH
+        return covered
     }
 
     private fun extractCenterRegion(fb: Bitmap): Bitmap {
@@ -909,5 +910,13 @@ class MapRenderer(
         const val DEFAULT_LATITUDE = 51.5142273
         const val DEFAULT_LONGITUDE = 7.4652789
         const val DEFAULT_CANVAS_OVERRUN = 1.2
+
+        /**
+         * Margin (px) reserved around the visible window in the blit covered-check
+         * for the follow-mode display loop's prediction offset. Without it a render
+         * request at the overrun edge would be "covered" and the map would stick at
+         * the edge instead of re-rendering.
+         */
+        const val BLIT_COVER_SLACK_PX = 32.0
     }
 }

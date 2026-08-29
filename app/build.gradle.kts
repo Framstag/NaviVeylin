@@ -8,7 +8,6 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
-    id("androidx.room")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
@@ -200,10 +199,6 @@ android {
         }
     }
 
-    room {
-        schemaDirectory("$projectDir/schemas")
-    }
-
     sourceSets {
         getByName("main") {
             // Stylesheets are copied from the pinned libosmscout submodule into a
@@ -284,11 +279,6 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.59")
     ksp("com.google.dagger:hilt-compiler:2.59")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-
-    // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
 
     // WindowManager (foldable support)
     implementation("androidx.window:window:1.3.0")

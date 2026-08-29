@@ -5,7 +5,7 @@ context: |
   Tech Stack: Kotlin, Java, C++20 (NDK)
   UI: Jetpack Compose + Material 3
   DI: Hilt
-  Persistence: Room
+  Persistence: JSON files (JNI favorites, settings, search history)
   Navigation: Jetpack Navigation Compose
   Native: libosmscout-client-java via NDK/CMake
   Build: Gradle (Kotlin DSL), AGP 8.7+, CMake 3.22+
@@ -14,6 +14,9 @@ context: |
   Android Auto: implemented (Car App Library, :auto module + NaviVeylinCarAppService, AAOS support)
   Distribution: Google Play (mobile + Android Automotive OS tracks, same applicationId); sideloading also supported
   External Repo: https://github.com/Framstag/libosmscout
+  Guidelines: guidelines/Design.md, UI.md, MapRendering.md — read before design/apply
+  Native purity: libosmscout stays Android-free outside its frozen Android/ dir (CI-gated)
+  Google Play Services: optional, used when available (Fused location, car MapController); no hard dependency — replaceable by design (e.g., LocationManager fallback)
 
 rules:
   proposal:
@@ -24,6 +27,9 @@ rules:
     - If requirements do not seem to be complete, ask!
     - If decisions have to be made that have large consequence. Name options an consequence and ask!
     - Name the previous specifications that will be changed by the new proposal
+    - Reference the guidelines/ document(s) affected (UI.md, MapRendering.md, Design.md)
+    - State whether the change is additive or breaking, and the rollback path
+    - For native/JNI changes, state: submodule patch (minimal, upstreamable) or local override in the bridge module
     - Assure that scope is clear. Is this a general feature, a feature only for the android auto integration or only for phone
 
   specs:
@@ -32,13 +38,17 @@ rules:
     - Scenarios must be testable — no "system should work" scenarios
     - Specs define the contract, not the implementation — avoid prescribing how
     - Reference Android framework APIs where relevant (e.g., LocationManager, CarAppService)
+    - For features affecting both phone and AA: state the parity requirement (same labels/hierarchy) or the platform constraint forcing deviation
+    - If a spec contradicts a guidelines/ doc, update the guideline in the same change
+    - Include performance requirements where relevant (frame budget, allocation-free hot paths)
 
   design:
     - Document at least 2 alternatives per decision with rationale for the chosen one
     - Reference specific files, modules, and Gradle configurations that will change
     - Include risk assessment per approach
-    - "Cover Android-specific concerns: threading (main vs background), lifecycle, configuration changes"
-    - Solution follows material design 3 styleguides
+    - State the threading model (dispatcher, main vs background) and lifecycle handling per new component — see guidelines/Design.md §4
+    - Describe verification: unit tests + on-device checks (logcat, GPX replay where relevant)
+    - Follow the design principles in guidelines/Design.md — architecture, state management, threading, native boundary, rendering, Android Auto, and build conventions
 
   tasks:
     - Each task must reference its parent spec
@@ -48,6 +58,8 @@ rules:
     - Order tasks by dependency — what must be done first
     - Each task should be completable in one session — if too big, split it
     - Group related tasks under numbered headings
+    - When a change supersedes a guideline, include a task to update the guidelines/ document
+    - Include on-device verification tasks for UI, rendering, and Auto changes (emulator/head unit, surface lifecycle)
     - Include Gradle sync or build verification steps for Android-specific tasks
 
 operations:
@@ -64,9 +76,10 @@ operations:
       - Verify no regressions in unrelated areas
       - For native C++ changes, verify all target ABIs compile
       - Any problems you detect during implementation that are not initiated by this change, have to be documented in a TODO.md for later processing in other changes.
-      - Suggest at the end of teh development implementation of skills for repetitive work you have done
-      - Log all solutions approaches that failed with a short gol and problem description together with a time stamp in a "ki_processing_failurs.log"
-      - When starting feature development, check "ki_processing_failurs.log" to avoid doing the same error twice.
+      - Suggest at the end of the development implementation of skills for repetitive work you have done
+      - Log all solutions approaches that failed with a short log and problem description together with a time stamp in a "ki_processing_failures.log"
+      - When starting feature development, check "ki_processing_failures.log" to avoid doing the same error twice.
+      - For Android Auto changes, verify on emulator/head unit (surface lifecycle, host template constraints)
 
 
   # Verify gates (validation + review): openspec 1.10.0 loads guidance only
@@ -80,6 +93,9 @@ operations:
       - Make sure that no task references a deleted or renamed spec
       - Make sure that for every feature there are enough tests — especially unit tests
       - Make sure that style guides of the Android platform and Material Design 3 are followed
+      - Verify design decisions follow the guidelines/ documents (Design.md, UI.md, MapRendering.md); if a change supersedes a principle, update the affected document in the same change
+      - Make sure no dead code remains and specs match the implemented behavior
+      - For features in both variants, verify label/hierarchy parity (guidelines/UI.md)
       - Make sure that build and tests are green
       - Build compiles without errors for all target ABIs
       - All existing tests still pass

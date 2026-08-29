@@ -59,6 +59,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -106,6 +107,8 @@ import com.naviveylin.ui.route.RouteSummaryDialog
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.FollowPrediction
+import kotlinx.coroutines.isActive
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
 import com.naviveylin.R
@@ -177,6 +180,107 @@ fun MapCanvasScreen(
     var gestureZoom by remember { mutableStateOf(1f) }
     var gesturePan by remember { mutableStateOf(Offset.Zero) }
     var gestureCentroid by remember { mutableStateOf(Offset.Zero) }
+
+    // Follow-mode smooth scroll (spec: smooth-follow): extrapolate the displayed
+    // position between 1 Hz GPS fixes and ease corrections on fix arrival. The
+    // display loop runs only in follow mode while moving; the draw block applies
+    // the offset within the overrun margin. Predicted positions are display-only
+    // — the navigation engine keeps receiving real fixes.
+    val followPrediction = remember { FollowPrediction() }
+    var followActive by remember { mutableStateOf(false) }
+    var followDisplayLat by remember { mutableStateOf(Double.NaN) }
+    var followDisplayLon by remember { mutableStateOf(Double.NaN) }
+    var followOffsetX by remember { mutableStateOf(0f) }
+    var followOffsetY by remember { mutableStateOf(0f) }
+    var followLogCount by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        var lastFixTime = -1L
+        var lastFrameMs = 0L
+        var lastRenderRequestMs = 0L
+        while (isActive) {
+            withFrameNanos { _ ->
+                val ui = viewModel.uiState.value
+                val fix = ui.gpsLocation
+                val nowMs = System.currentTimeMillis()
+                if (fix != null && fix.time != lastFixTime) {
+                    // Use the receipt time (not fix.time) as the prediction base:
+                    // GPS fix timestamps can be ahead of the system clock (GPS
+                    // time vs UTC), which would make the extrapolation window
+                    // negative and hold the position instead of scrolling.
+                    followPrediction.update(
+                        fix.lat, fix.lon,
+                        if (fix.speedKmH.isNaN()) Double.NaN else fix.speedKmH / 3.6,
+                        if (fix.smoothedBearing.isNaN()) Double.NaN else fix.smoothedBearing,
+                        nowMs
+                    )
+                    lastFixTime = fix.time
+                }
+                val dtSec = if (lastFrameMs > 0) (nowMs - lastFrameMs) / 1000.0 else 0.016
+                lastFrameMs = nowMs
+                val moving = fix != null && !fix.speedKmH.isNaN() && fix.speedKmH > 1.8
+                if (ui.followMode && moving && fix != null) {
+                    val predicted = followPrediction.predictedPosition(nowMs)
+                    val alpha = FollowPrediction.easeAlpha(dtSec)
+                    if (followDisplayLat.isNaN()) {
+                        followDisplayLat = predicted.first
+                        followDisplayLon = predicted.second
+                    } else {
+                        followDisplayLat += (predicted.first - followDisplayLat) * alpha
+                        followDisplayLon += (predicted.second - followDisplayLon) * alpha
+                    }
+                    followActive = true
+                    // Compute the display offset against the current frame and clamp
+                    // to the overrun margin; request a render when clamped so the map
+                    // keeps scrolling instead of sticking at the edge.
+                    val bitmap = ui.renderedBitmap
+                    val vp = ui.renderViewport
+                    if (bitmap != null && vp != null && canvasSize.width > 0) {
+                        val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+                        val offset = FollowPrediction.displayOffsetPx(
+                            followDisplayLat, followDisplayLon,
+                            vp.lat, vp.lon, vp.mag, vp.angle,
+                            bitmap.width, bitmap.height,
+                            canvasSize.width, canvasSize.height, dpi
+                        )
+                        followOffsetX = offset.clampedX.toFloat()
+                        followOffsetY = offset.clampedY.toFloat()
+                        if (offset.clamped && nowMs - lastRenderRequestMs > 500) {
+                            lastRenderRequestMs = nowMs
+                            viewModel.updateCenter(followDisplayLat, followDisplayLon)
+                            viewModel.renderMap()
+                        }
+                        // Diagnostic: log the prediction state on fix arrival so a
+                        // device logcat shows exactly where the overshoot comes from
+                        // (fix vs predicted vs displayed vs offset).
+                        if (fix.time == lastFixTime && followLogCount++ % 30 == 0) {
+                            val dbg = followPrediction.debugState(nowMs)
+                            Log.d(TAG, "follow t=" + fix.time +
+                                " fix=" + "%.6f".format(fix.lat) + "," + "%.6f".format(fix.lon) +
+                                " spd=" + (if (fix.speedKmH.isNaN()) "-" else "%.1f".format(fix.speedKmH)) +
+                                " brg=" + (if (fix.smoothedBearing.isNaN()) "-" else "%.0f".format(fix.smoothedBearing)) +
+                                " avg=" + "%.1f".format(dbg.avgSpeedMs * 3.6) +
+                                " gps=" + (if (dbg.gpsSpeedMs.isNaN()) "-" else "%.1f".format(dbg.gpsSpeedMs * 3.6)) +
+                                " eff=" + "%.1f".format(dbg.effectiveSpeedMs * 3.6) +
+                                " savg=" + "%.1f".format(dbg.smoothAvgMs * 3.6) +
+                                " dec=" + dbg.decelerating +
+                                " stp=" + dbg.stopped +
+                                " pred=" + "%.6f".format(predicted.first) + "," + "%.6f".format(predicted.second) +
+                                " disp=" + "%.6f".format(followDisplayLat) + "," + "%.6f".format(followDisplayLon) +
+                                " off=" + "%.1f".format(offset.clampedX) + "," + "%.1f".format(offset.clampedY) +
+                                " clamped=" + offset.clamped)
+                        }
+                    }
+                } else {
+                    followActive = false
+                    followDisplayLat = Double.NaN
+                    followDisplayLon = Double.NaN
+                    followOffsetX = 0f
+                    followOffsetY = 0f
+                }
+            }
+        }
+    }
 
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -539,13 +643,19 @@ fun MapCanvasScreen(
                     drawRect(color = surfaceColor)
 
                     state.renderedBitmap?.let { bitmap ->
-                        // Scale bitmap to fill canvas for correct visual size
-                        val scale = (canvasWidth / bitmap.width.toFloat())
-                            .coerceAtLeast(canvasHeight / bitmap.height.toFloat())
+                        // Overrun-sized frames (follow mode) are drawn at natural
+                        // size with the follow offset applied within the margin;
+                        // screen-sized frames keep the scale-to-fill behavior.
+                        val overrun = bitmap.width > canvasWidth || bitmap.height > canvasHeight
+                        val scale = if (overrun) 1f else
+                            (canvasWidth / bitmap.width.toFloat())
+                                .coerceAtLeast(canvasHeight / bitmap.height.toFloat())
                         val w = (bitmap.width * scale).toInt()
                         val h = (bitmap.height * scale).toInt()
-                        val dx = ((canvasWidth - w) / 2f).toInt()
-                        val dy = ((canvasHeight - h) / 2f).toInt()
+                        val offsetX = if (overrun) followOffsetX else 0f
+                        val offsetY = if (overrun) followOffsetY else 0f
+                        val dx = ((canvasWidth - w) / 2f).toInt() - offsetX.toInt()
+                        val dy = ((canvasHeight - h) / 2f).toInt() - offsetY.toInt()
 
                         drawImage(
                             image = bitmap,
@@ -561,12 +671,25 @@ fun MapCanvasScreen(
                 // to the bitmap actually on screen. No bitmap yet → no marker: there is no
                 // displayed frame to project against.
                 if (state.renderedBitmap != null) {
+                    // In follow mode the marker rides the displayed (eased predicted)
+                    // position so it glides with the blitted map; the viewport is
+                    // centered on the same position so the marker lands on the road.
+                    val markerLat = if (followActive) followDisplayLat else state.gpsMarkerLat
+                    val markerLon = if (followActive) followDisplayLon else state.gpsMarkerLon
+                    val markerViewport = if (followActive) {
+                        MapRenderer.RenderViewport(
+                            followDisplayLat, followDisplayLon,
+                            state.renderViewport?.mag ?: 0, state.renderViewport?.angle ?: 0.0
+                        )
+                    } else {
+                        state.renderViewport
+                    }
                     LocationMarkerOverlay(
-                        lat = state.gpsMarkerLat,
-                        lon = state.gpsMarkerLon,
+                        lat = markerLat,
+                        lon = markerLon,
                         bearing = state.gpsMarkerBearing,
                         accuracy = state.gpsMarkerAccuracy,
-                        viewport = state.renderViewport,
+                        viewport = markerViewport,
                         dpi = context.resources.displayMetrics.densityDpi.toDouble()
                     )
                 }
@@ -583,7 +706,7 @@ fun MapCanvasScreen(
                 val loc = viewModel.getCurrentLocation()
                 if (loc != null) {
                     viewModel.onToggleFollowMode(true)
-                    viewModel.updateCenter(loc.latitude, loc.longitude)
+                    viewModel.updateCenter(loc.lat, loc.lon)
                     viewModel.renderMap()
                 } else {
                     viewModel.showSnackbar("No GPS location available")
@@ -628,7 +751,7 @@ fun MapCanvasScreen(
                             val loc = viewModel.getCurrentLocation()
                             if (loc != null) {
                                 viewModel.onToggleFollowMode(true)
-                                viewModel.updateCenter(loc.latitude, loc.longitude)
+                                viewModel.updateCenter(loc.lat, loc.lon)
                             } else {
                                 viewModel.showSnackbar("No GPS location available")
                             }
@@ -759,7 +882,7 @@ fun MapCanvasScreen(
                             val loc = viewModel.getCurrentLocation()
                             if (loc != null) {
                                 viewModel.onToggleFollowMode(true)
-                                viewModel.updateCenter(loc.latitude, loc.longitude)
+                                viewModel.updateCenter(loc.lat, loc.lon)
                             } else {
                                 viewModel.showSnackbar("No GPS location available")
                             }

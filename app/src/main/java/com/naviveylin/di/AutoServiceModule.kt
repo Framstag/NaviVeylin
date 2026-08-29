@@ -119,14 +119,14 @@ object AutoServiceModule {
                 locationService.startLocationUpdates()
                 if (collectJob == null) {
                     collectJob = CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-                        locationService.location.collect { loc ->
-                            if (loc != null) {
+                        locationService.location.collect { fix ->
+                            if (fix != null) {
                                 _position.value = AutoPosition(
-                                    lat = loc.latitude,
-                                    lon = loc.longitude,
-                                    bearing = if (loc.hasBearing()) loc.bearing.toDouble() else Double.NaN,
-                                    accuracy = if (loc.hasAccuracy()) loc.accuracy.toDouble() else -1.0,
-                                    speedKmH = if (loc.hasSpeed()) loc.speed * 3.6 else Double.NaN
+                                    lat = fix.lat,
+                                    lon = fix.lon,
+                                    bearing = fix.smoothedBearing,
+                                    accuracy = fix.accuracy,
+                                    speedKmH = fix.speedKmH
                                 )
                             }
                         }

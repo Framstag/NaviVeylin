@@ -1,10 +1,10 @@
 package com.naviveylin.navigation
 
 import android.content.Context
-import android.location.Location
 import android.os.Looper
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
+import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -50,13 +50,16 @@ class NavigationViewModelDirectRouteTest {
         val field = LocationService::class.java.getDeclaredField("_location")
         field.isAccessible = true
         @Suppress("UNCHECKED_CAST")
-        val flow = field.get(locationService) as MutableStateFlow<Location?>
-        flow.value = Location("gps").apply {
-            this.latitude = lat
-            this.longitude = lon
-            accuracy = 5f
+        val flow = field.get(locationService) as MutableStateFlow<GpsFix?>
+        flow.value = GpsFix(
+            lat = lat,
+            lon = lon,
+            accuracy = 5.0,
+            speedKmH = Double.NaN,
+            smoothedBearing = Double.NaN,
+            markerBearing = Double.NaN,
             time = System.currentTimeMillis()
-        }
+        )
     }
 
     @Test

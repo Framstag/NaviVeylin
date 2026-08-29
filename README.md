@@ -57,7 +57,7 @@ To include libosmscout with map rendering and routing:
 │   │   │   ├── di/            # Hilt modules
 │   │   │   ├── ui/            # Compose screens (map, favorites, ...)
 │   │   │   ├── navigation/    # Nav graph
-│   │   │   └── data/          # Room DB + repos (incl. FavoriteRepository)
+│   │   │   └── data/          # repos (incl. FavoriteRepository)
 │   │   ├── res/               # Resources
 │   │   └── AndroidManifest.xml
 │   └── build.gradle.kts
@@ -123,7 +123,7 @@ The generated version is available to the app via `BuildConfig.VERSION_NAME` and
 - **UI**: Jetpack Compose + Material 3
 - **Navigation**: Jetpack Navigation Compose
 - **DI**: Hilt
-- **Persistence**: Room (app data), JSON via JNI (favorites)
+- **Persistence**: JSON files (favorites via JNI, settings, search history)
 - **Native**: libosmscout via NDK/CMake + JNI (Cairo rendering backend)
 - **JNI bridge**: `libosmscout-client-java` (submodule) — produces `libosmscout_client_java.so`
 - **Form factors**: Single `app` module, adaptive layouts (phone, foldable, tablet)

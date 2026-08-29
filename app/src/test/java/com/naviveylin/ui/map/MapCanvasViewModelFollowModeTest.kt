@@ -10,10 +10,13 @@ import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
+import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import android.location.Location
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -199,8 +202,8 @@ class MapCanvasViewModelFollowModeTest {
         locationService.setLocationForTest(loc)
 
         val state = viewModel.uiState.first { it.gpsLocation != null }
-        assertEquals("raw fix stored", 51.5136, state.gpsLocation!!.latitude, 1e-9)
-        assertEquals(7.4653, state.gpsLocation!!.longitude, 1e-9)
+        assertEquals("raw fix stored", 51.5136, state.gpsLocation!!.lat, 1e-9)
+        assertEquals(7.4653, state.gpsLocation!!.lon, 1e-9)
     }
 
     @Test
@@ -216,8 +219,8 @@ class MapCanvasViewModelFollowModeTest {
 
         val state = viewModel.uiState.first { it.gpsLocation != null }
         assertFalse("follow mode must stay off", state.followMode)
-        assertEquals(51.5, state.gpsLocation!!.latitude, 1e-9)
-        assertEquals(7.4, state.gpsLocation!!.longitude, 1e-9)
+        assertEquals(51.5, state.gpsLocation!!.lat, 1e-9)
+        assertEquals(7.4, state.gpsLocation!!.lon, 1e-9)
     }
 
     @Test
@@ -235,5 +238,100 @@ class MapCanvasViewModelFollowModeTest {
 
         val state = viewModel.uiState.first { it.gpsLocation == null }
         assertEquals(null, state.gpsLocation)
+    }
+
+    // --- Bearing smoothing (spec: gps-bearing-smoothing) ---
+
+    /**
+     * Enable follow mode with follow-direction (not north-up). The init
+     * settings load overwrites the state with persisted values when the test
+     * scheduler advances — flush it, then re-apply so the test state sticks.
+     */
+    private fun TestScope.enableFollowDirectionMode() {
+        viewModel.onToggleFollowMode(true)
+        viewModel.onSetFreeFormOrientation(false)
+        advanceUntilIdle()
+        viewModel.onToggleFollowMode(true)
+        viewModel.onSetFreeFormOrientation(false)
+    }
+
+    private fun gpsFix(
+        lat: Double, lon: Double,
+        smoothed: Double, marker: Double,
+        time: Long
+    ) = GpsFix(
+        lat = lat, lon = lon,
+        accuracy = 8.0,
+        speedKmH = Double.NaN,
+        smoothedBearing = smoothed,
+        markerBearing = marker,
+        time = time
+    )
+
+    @Test
+    fun smallSmoothedBearingChangeWithinDeadbandDoesNotRotateMap() = runTest(mainDispatcherRule.dispatcher) {
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.freeFormNorthUp }
+
+        // First fix establishes the rendered angle (north-up).
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 0.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+        assertEquals(0.0, viewModel.uiState.value.viewport.angle, 1e-9)
+
+        // 1° change — inside the 2° deadband → the map must not rotate.
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 1.0, marker = 1.0, time = 2_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
+        assertEquals("small bearing change must not rotate the map", 0.0, viewModel.uiState.value.viewport.angle, 1e-9)
+    }
+
+    @Test
+    fun largeSmoothedBearingChangeRotatesMap() = runTest(mainDispatcherRule.dispatcher) {
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.freeFormNorthUp }
+
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 0.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+        // The follow-mode render throttle uses System.currentTimeMillis() (real
+        // clock in Robolectric) — sleep past the 200 ms interval so the second
+        // fix is not coalesced away.
+        Thread.sleep(250)
+
+        // 45° change — beyond the deadband → the map rotates toward it (45° < 90° rate clamp).
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 45.0, marker = 45.0, time = 2_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
+        assertEquals("map must rotate toward the smoothed bearing", -Math.toRadians(45.0), viewModel.uiState.value.viewport.angle, 1e-6)
+    }
+
+    @Test
+    fun mapRotationFollowsSmoothedBearingNotMarkerBearing() = runTest(mainDispatcherRule.dispatcher) {
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.freeFormNorthUp }
+
+        // markerBearing = 90 (east), smoothedBearing = 0 (north): the marker arrow
+        // would point east while the map stays north-up — decoupled.
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 90.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 90.0, time = 2_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
+        assertEquals("map rotation must follow smoothed bearing, not marker bearing", 0.0, viewModel.uiState.value.viewport.angle, 1e-9)
+    }
+
+    @Test
+    fun markerBearingUpdatesOnEveryFixWithoutRender() = runTest(mainDispatcherRule.dispatcher) {
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.freeFormNorthUp }
+
+        // First fix: marker bearing 45°.
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 45.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+        assertEquals(45.0, viewModel.uiState.value.gpsMarkerBearing, 1e-9)
+
+        // Second fix: same position (no render would be triggered — position < 5 m,
+        // smoothed bearing unchanged) but marker bearing 90°. The marker must update
+        // immediately, independent of the render cadence.
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 90.0, time = 2_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
+        assertEquals("marker bearing must update without a render", 90.0, viewModel.uiState.value.gpsMarkerBearing, 1e-9)
     }
 }

@@ -1,7 +1,6 @@
 package com.naviveylin.ui.map
 
 import android.content.Context
-import android.location.Location
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.data.AssetCopier
@@ -10,6 +9,7 @@ import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
+import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -67,13 +67,16 @@ class MapCanvasViewModelAdminRegionTest {
         viewModel.cancelScopeForTest()
     }
 
-    private fun freshFix(lat: Double, lon: Double, accuracy: Float = 10f): Location =
-        Location("gps").apply {
-            this.latitude = lat
-            this.longitude = lon
-            this.accuracy = accuracy
+    private fun freshFix(lat: Double, lon: Double, accuracy: Float = 10f): GpsFix =
+        GpsFix(
+            lat = lat,
+            lon = lon,
+            accuracy = accuracy.toDouble(),
+            speedKmH = Double.NaN,
+            smoothedBearing = Double.NaN,
+            markerBearing = Double.NaN,
             time = System.currentTimeMillis()
-        }
+        )
 
     @Test
     fun goodFixResolvesRegionAndReturnsHandle() {
@@ -91,7 +94,7 @@ class MapCanvasViewModelAdminRegionTest {
 
     @Test
     fun staleFixFallsBackToUnconstrained() {
-        val stale = freshFix(51.5136, 7.4653).apply { time = System.currentTimeMillis() - 6_000 }
+        val stale = freshFix(51.5136, 7.4653).copy(time = System.currentTimeMillis() - 6_000)
         assertEquals(0L, viewModel.searchAdminRegionHandleForFix(stale))
         assertEquals(emptyList<Long>(), client.adminRegionHandles)
     }
@@ -205,7 +208,7 @@ class MapCanvasViewModelAdminRegionTest {
     @Test
     fun panelOpenResolvesRegionEagerly() = runTest(mainDispatcherRule.dispatcher) {
         client.nextAdminRegionHandle = 7L
-        locationService.setLocationForTest(freshFix(51.5136, 7.4653))
+        locationService.setGpsFixForTest(freshFix(51.5136, 7.4653))
         viewModel.onSearchPanelOpened()
         // The eager resolution runs on the test scheduler — drive it to completion.
         advanceUntilIdle()
@@ -226,7 +229,7 @@ class MapCanvasViewModelAdminRegionTest {
         viewModel.onSearchPanelOpened()
         // Fix arrives after panel opened (debounced GPS quality collector).
         // Shared scheduler: advancing virtual time fires the 2s debounce.
-        locationService.setLocationForTest(freshFix(51.5136, 7.4653))
+        locationService.setGpsFixForTest(freshFix(51.5136, 7.4653))
         advanceTimeBy(2500)
         runCurrent()
         advanceUntilIdle()

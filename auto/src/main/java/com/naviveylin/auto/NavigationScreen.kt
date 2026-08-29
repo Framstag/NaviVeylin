@@ -336,7 +336,9 @@ class NavigationScreen(
                         mapRenderer.setViewport(
                             vp.lat, vp.lon, newZoom, angle ?: vp.angle, newZoom.toDouble()
                         )
-                        mapRenderer.reCenter()
+                        // Re-engage follow WITHOUT snapping (smooth correction
+                        // via the extrapolation loop, spec: auto-smooth-follow).
+                        mapRenderer.reengageFollow()
                         if (zoom != null) {
                             Log.d(TAG, "nav autoZoom commit speed=${pos.speedKmH} mag=$zoom")
                         }

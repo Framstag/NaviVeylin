@@ -98,27 +98,52 @@ travel while the map itself rotates at its own pace.
   `bearingDeg + toDegrees(angle)`. The marker is drawn by the Compose overlay, so the C++ side no
   longer computes a screen bearing — keep both sides on the same formula.
 
-## 7. Course over Ground (COG)
+## 7. Bearing Smoothing (location layer)
 
-Purpose: stable direction of travel from track geometry instead of noisy `Location.bearing`.
+Bearing smoothing lives in `LocationService` (`BearingFilter`), NOT in the ViewModel. The location
+layer emits a uniform `GpsFix` with two bearings, provider-agnostic to consumers:
 
-- Ring buffer with 10 positions; course = bearing between the newest point and the oldest point
-  that is ≥ `MIN_COURSE_DISTANCE_M` (40 m) away.
-- **Two-state logic:**
-  - `courseStable == false` (after start/teleport/turn reset): short base
-    (`MIN_COURSE_DISTANCE_FAST_M` = 10 m) + fast low-pass (`COURSE_LOW_PASS_ALPHA_FAST` = 0.7)
-    → new direction established quickly.
-  - `courseStable == true` (≥ 40 m track): 40-m base + slow low-pass (0.3) → stable straight ahead.
-- **Turn reset:** if the last segment bearing (> `MIN_SEGMENT_FOR_TURN_M` = 8 m) deviates by more
-  than `COURSE_TURN_RESET_DEG` (45°) from the smoothed course → clear history, set
-  `courseStable=false`, `lastSmoothedBearing=NaN`. The previous 90° threshold was too high: a 90°
-  corner never triggered a reset, and the 40-m window mixed old/new direction over a long stretch.
-- **No `-1.0` sentinel:** if no course is available, return `NaN`. `-1.0` is treated by
+- **`smoothedBearing`** — for map rotation. Stable, no render churn.
+- **`markerBearing`** — for the marker arrow. Freshest signal, no added lag.
+
+Provider-aware inside `LocationService` only:
+
+- **Fused path**: Fused already smooths its bearing (sensor fusion + Kalman). `markerBearing` =
+  `loc.bearing` as delivered (zero added lag); `smoothedBearing` = light EMA (alpha 0.5) on
+  `loc.bearing` — do NOT re-derive course from positions on the Fused path.
+- **LocationManager path** (GMS-less devices): fakes Fused quality — course-over-ground derived
+  from the recent position track:
+  - Ring buffer with 10 positions; course = bearing between the newest point and the oldest point
+    that is ≥ `MIN_COURSE_DISTANCE_M` (40 m) away.
+  - **Two-state logic:**
+    - `courseStable == false` (after start/teleport/turn reset): short base
+      (`MIN_COURSE_DISTANCE_FAST_M` = 10 m) + fast low-pass (`COURSE_LOW_PASS_ALPHA_FAST` = 0.7)
+      → new direction established quickly.
+    - `courseStable == true` (≥ 40 m track): 40-m base + slow low-pass (0.3) → stable straight ahead.
+  - **Turn reset:** if the last segment bearing (> `MIN_SEGMENT_FOR_TURN_M` = 8 m) deviates by more
+    than `COURSE_TURN_RESET_DEG` (45°) from the smoothed course → clear history, set
+    `courseStable=false`, `lastSmoothedBearing=NaN`. The previous 90° threshold was too high: a 90°
+    corner never triggered a reset, and the 40-m window mixed old/new direction over a long stretch.
+  - `markerBearing` = latest segment bearing (freshest stable signal), falling back to the window
+    course, then the last smoothed value.
+  - **Turn reset keeps the fresh segment:** the segment that triggers the reset IS the new
+    direction — it is preserved as `lastSegmentBearing` so the marker points the new way at the
+    turn fix itself instead of falling back to the old direction for a fix.
+- **No `-1.0` sentinel:** if no bearing is available, return `NaN`. `-1.0` is treated by
   `!isNaN()` checks as a valid ~1° bearing → map drifts north after reset.
-- Fallback when course missing: keep last used bearing (`lastUsedBearing`) / last angle
+- Course is derived from **raw provider positions** (not navigation-filtered positions) — the nav
+  engine filters marker *position*, the location layer owns *bearing*.
+
+`MapCanvasViewModel` keeps only render-side concerns:
+
+- Deadband vs the rendered angle (`MIN_BEARING_DELTA_DEG` = 2°): map rotation only moves when the
+  smoothed bearing exceeds this — prevents re-rendering on every small change.
+- Per-render rate clamp (`MAX_ANGLE_RATE_DEG_PER_RENDER` = 90°): a sharp turn completes in 1-2
+  frames instead of slowly crawling.
+- Fallback when no bearing: keep last used bearing (`lastUsedBearing`) / last angle
   (`lastUsedAngle`) — NEVER jump back to north-up (0°), except at the very beginning.
-- Logs: `course computed newest=… oldest=… dist=… bearing=…° stable=…` and
-  `course history reset: turn …° / teleport …m` are the diagnostic anchors.
+- Marker/map decoupling: marker arrow = `fix.markerBearing` (freshest), map rotation =
+  `fix.smoothedBearing` (smoothed).
 
 ## 8. Marker Rules
 
@@ -126,16 +151,16 @@ Purpose: stable direction of travel from track geometry instead of noisy `Locati
   rendered map bitmap in `MapCanvasScreen`. It is NEVER written into cached tiles, the back buffer,
   or the front buffer — those hold only static map content. A marker-only move/hide triggers no
   native render, no epoch bump, and no tile invalidation.
+- **Position updates on every fix:** the VM calls `updateMarkerState` (renderer snapshot + direct
+  `uiState.gpsMarker*` update) on every distinct fix — the overlay shows the latest fix
+  immediately, independent of the render cadence. The frame collector does NOT overwrite the
+  marker fields (it only sets bitmap/viewport), so a throttled or skipped render (no > 5 m
+  movement) never freezes the marker.
 - **Projection:** the overlay projects against `uiState.renderViewport` (from the emitted
   `frameFlow`) — the viewport of the bitmap actually on screen. NEVER the live
-  `currentViewport`, which leads the rendered frame during gestures.
-- **Position rides with the frame:** the VM feeds the marker state to `MapRenderer.setGpsMarkerState`;
-  it is snapshotted into the render job and emitted with the front buffer in one atomic
-  `frameFlow` (`FrameState(bitmap, viewport, marker)` — single emission per frame, so the overlay
-  can never combine state from different frames). The overlay draws THAT snapshot, not the live
-  fix — so the marker always sits on the road of the displayed bitmap and never jumps ahead while
-  frames lag the live GPS fix (old native behavior,
-  same cadence: marker updates per render; non-follow moves > 5 m trigger a render, 1 s throttle).
+  `currentViewport`, which leads the rendered frame during gestures. A fresh fix projected on a
+  stale map is still anchored correctly (the marker sits at the vehicle's position on the
+  displayed bitmap).
 - **Position:** in follow mode ALWAYS the raw (or navigation-filtered) GPS position
   (`followMarkerLat/Lon` → `uiState.gpsMarkerLat/Lon`), never the smoothed camera center. A smoothed
   marker drifts off the road (at 20 m/s already ~9 m offset visible). Non-follow mode uses the raw fix.
@@ -230,6 +255,51 @@ When "map jumps" / "marker wrong" appears, check first:
 15. Overlay fed the LIVE GPS fix instead of the frame marker snapshot? → marker jumps ahead of the
     road by up to one fix of travel while frames lag; always draw the snapshot that rode with the
     displayed frame (`frameFlow`).
+
+---
+
+## 14. Android Auto renderer — smooth follow (overrun + blit + extrapolation)
+
+`AutoMapRenderer` (spec `auto-smooth-follow`) mirrors the phone's overrun/blit machinery on the
+car Surface:
+
+- **Overrun buffer**: every full native render is at `OVERRUN_FACTOR` (1.2×) the surface size and
+  is KEPT as the overrun buffer (not recycled) for sub-region blits. The visible region is drawn
+  centered: `dx = (surfaceW - bitmapW) / 2`.
+- **Sub-region blit**: a viewport change within the overrun region is served by
+  `lockCanvas → drawBitmap(overrun, dx, dy) → unlockCanvasAndPost` — no native render. The blit
+  offset comes from `FollowPrediction.displayOffsetPx` (rotated-frame clamp, same rotation rule as
+  the phone blit). Beyond the margin → full render at the new center.
+- **Extrapolation loop**: a gated ~30 fps coroutine eases the displayed position toward
+  `FollowPrediction.predictedPosition` and blits the delta; the GPS/destination markers are drawn
+  at the displayed position so they glide with the map. Gate: resumed + follow mode + speed
+  > ~1 m/s + fresh fix + valid surface (battery/thermal on head units).
+- **Display-only prediction**: predicted positions never reach the navigation engine — the
+  prediction lives entirely inside the renderer.
+- **CRITICAL — overrun bitmap lifecycle**: the overrun bitmap is recycled when a new full render
+  swaps it in. The extrapolation loop and the render loop run on different coroutines, so the
+  read of the overrun bitmap AND the blit draw MUST happen under the shared `surfaceLock` —
+  otherwise a concurrent full render recycles the bitmap mid-draw ("trying to use a recycled
+  bitmap" crash). The full native render itself runs OUTSIDE the lock so the loop can keep
+  blitting the old frame while the render is in flight.
+- **CRITICAL — display ownership in follow mode**: in follow mode the extrapolation loop owns
+  `displayLat/Lon` (the eased predicted position). `fullRender` and the `renderFrame` blit path
+  MUST NOT reset the display to the render target when `followMode` is engaged — a render
+  triggered by a transient follow-off (heading-up `setViewport`) would otherwise yank the eased
+  display back every fix (visible "pumping"). Only set `display = viewport` when `!followMode`.
+- **reengageFollow must anchor the viewport**: screens that do transient
+  `setViewport(...) → reengageFollow()` per fix (heading-up rotation) must make
+  `reengageFollow` set `viewport = fix` + emit — otherwise the next `setViewport` reads a stale
+  `viewportState` (initial center), the pending render targets it, and the display pumps between
+  the stale center and the fix. `reCenter` keeps the snap (user re-center button);
+  `reengageFollow` re-engages without snapping the display.
+- **Stale fix must ease back, never freeze**: a GPS gap does NOT gate the extrapolation loop
+  off — `FollowPrediction.predictedPosition` holds past its extrapolation window, so the display
+  eases back to the last fix. Freezing the display at the last predicted position reads as a
+  massive overshoot during gaps.
+- **Blit eligibility**: only pure viewport/marker changes may blit. Favorites, route, DPI, and
+  surface changes force a full render (`blitEligible = false`) — a blit would show stale
+  native-rendered content.
 
 ---
 

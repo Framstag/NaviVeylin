@@ -177,6 +177,13 @@ jobs:
       - name: Build debug APK
         run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :app:assembleMobileDebug
 
+      # Unit tests across all modules (app mobile + automotive, auto, core,
+      # osmscout-client-java). Runs on the host JVM via the JNI stub — no
+      # device/emulator needed. Catches test-source breakage that the APK
+      # build alone misses (e.g. fakes drifting from OSMScoutClient API).
+      - name: Run unit tests
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:

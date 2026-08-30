@@ -13,7 +13,7 @@ import javax.inject.Singleton
 /** Persists [ViewportState] per map to JSON files in app internal storage. */
 @Singleton
 class ViewportStorage(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     /** Dispatcher for file IO; swapped to a test dispatcher in unit tests. */
     internal var ioDispatcher: CoroutineDispatcher = Dispatchers.IO

@@ -3,6 +3,7 @@ package com.naviveylin.ui.map
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -23,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
  * tile grid coverage of the viewport.
  */
 @RunWith(RobolectricTestRunner::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class TileCacheRenderTest {
 
     private lateinit var client: FakeOSMScoutClient

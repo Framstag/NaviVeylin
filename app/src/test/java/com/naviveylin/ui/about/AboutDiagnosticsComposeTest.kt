@@ -71,7 +71,7 @@ class AboutDiagnosticsComposeTest {
         ).nextStartedActivity
         // startActivity(Intent.createChooser(...)) surfaces the CHOOSER wrapper
         assertEquals(Intent.ACTION_CHOOSER, started.action)
-        val inner = started.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+        val inner = started.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
         assertEquals(Intent.ACTION_SEND, inner!!.action)
         assertEquals("text/plain", inner.type)
         assertTrue(inner.getStringExtra(Intent.EXTRA_TEXT)!!.contains("entry-one"))

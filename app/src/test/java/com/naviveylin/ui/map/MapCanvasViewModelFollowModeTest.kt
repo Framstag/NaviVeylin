@@ -14,6 +14,7 @@ import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import android.location.Location
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -32,6 +33,7 @@ import org.robolectric.RobolectricTestRunner
  * Verifies follow mode state transitions and re-center button visibility condition.
  */
 @RunWith(RobolectricTestRunner::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class MapCanvasViewModelFollowModeTest {
 
     private lateinit var context: Context

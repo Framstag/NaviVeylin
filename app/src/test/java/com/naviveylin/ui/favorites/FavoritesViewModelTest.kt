@@ -2,6 +2,7 @@ package com.naviveylin.ui.favorites
 
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.naviveylin.data.FavoriteRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -131,6 +132,7 @@ class FakeFavRepo {
     }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class FavoritesViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()

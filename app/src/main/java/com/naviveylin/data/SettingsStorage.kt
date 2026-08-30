@@ -44,7 +44,7 @@ data class AppSettings(
 /** Persists [AppSettings] to a JSON file in app internal storage. */
 @Singleton
 class SettingsStorage @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     /** Dispatcher for file IO; swapped to a test dispatcher in unit tests. */
     internal var ioDispatcher: CoroutineDispatcher = Dispatchers.IO

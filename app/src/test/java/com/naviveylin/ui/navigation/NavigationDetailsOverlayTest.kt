@@ -49,8 +49,6 @@ class NavigationDetailsOverlayTest {
                 currentStepIndex = currentStepIndex,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
-                currentSpeedKmH = 50.0,
-                maxSpeedKmH = 50.0,
                 onStopNavigation = {},
                 onDismiss = {}
             )
@@ -82,8 +80,6 @@ class NavigationDetailsOverlayTest {
                 currentStepIndex = stepIndex,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
-                currentSpeedKmH = 50.0,
-                maxSpeedKmH = 50.0,
                 onStopNavigation = {},
                 onDismiss = {}
             )
@@ -105,8 +101,6 @@ class NavigationDetailsOverlayTest {
                 currentStepIndex = 0,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
-                currentSpeedKmH = 50.0,
-                maxSpeedKmH = 50.0,
                 onStopNavigation = {},
                 onDismiss = { dismissed = true }
             )

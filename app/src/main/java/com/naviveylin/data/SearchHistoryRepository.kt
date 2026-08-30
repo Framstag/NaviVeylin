@@ -41,7 +41,7 @@ data class SearchHistoryData(
  */
 @Singleton
 class SearchHistoryRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val file: File

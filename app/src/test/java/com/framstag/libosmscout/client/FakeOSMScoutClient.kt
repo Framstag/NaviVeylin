@@ -192,6 +192,22 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     override fun getAddressAt(lat: Double, lon: Double): Array<String>? = addressAt
 
+    /** Value returned by [getMaxSpeedAt] (negative = no limit, like native). */
+    @Volatile
+    var maxSpeedAt: Double = -1.0
+
+    /** When set, [getMaxSpeedAt] throws this instead of returning. */
+    var maxSpeedAtError: Exception? = null
+
+    /** Coordinates passed to [getMaxSpeedAt] in call order. */
+    val maxSpeedLookupCoords = mutableListOf<Pair<Double, Double>>()
+
+    override fun getMaxSpeedAt(lat: Double, lon: Double): Double {
+        maxSpeedLookupCoords.add(lat to lon)
+        maxSpeedAtError?.let { throw it }
+        return maxSpeedAt
+    }
+
     /** Handles passed to [searchLocations] in call order. */
     val searchAdminRegionHandles = mutableListOf<Long>()
 

@@ -50,8 +50,6 @@ fun NavigationDetailsOverlay(
     currentRoadInfo: CurrentRoadInfo? = null,
     remainingDistance: Double,
     etaMillis: Long,
-    currentSpeedKmH: Double,
-    maxSpeedKmH: Double,
     onStopNavigation: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -110,8 +108,6 @@ fun NavigationDetailsOverlay(
             NavigationStatsRow(
                 remainingDistance = remainingDistance,
                 etaMillis = etaMillis,
-                currentSpeedKmH = currentSpeedKmH,
-                maxSpeedKmH = maxSpeedKmH,
                 onStopNavigation = onStopNavigation
             )
 

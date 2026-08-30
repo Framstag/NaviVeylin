@@ -99,7 +99,6 @@ private fun DrawScope.drawTurnArrow(type: TurnType, pxSize: Float, color: Color)
         TurnType.ROUNDABOUT_ENTER -> drawRoundaboutEnter(color)
         TurnType.ROUNDABOUT_LEAVE -> drawRoundaboutLeave(color)
         TurnType.MOTORWAY_ENTER -> drawMotorwayEnter(color)
-        null -> drawRightArrow(color)
     }
 }
 

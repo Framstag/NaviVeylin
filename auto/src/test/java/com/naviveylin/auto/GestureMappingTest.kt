@@ -18,7 +18,7 @@ class GestureMappingTest {
     private val screenH = 1080
     private val centerLat = 48.8566
     private val centerLon = 2.3522
-    private val mag = 5
+    private val mag = 5.0
 
     @Test
     fun screenToGeoCenter() {

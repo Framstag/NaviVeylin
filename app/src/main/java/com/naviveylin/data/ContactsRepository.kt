@@ -22,7 +22,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class ContactsRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : AddressBookContactsProvider {
 
     private val resolver: ContentResolver get() = context.contentResolver

@@ -25,7 +25,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class AssetCopier @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     /** The assets root containing the stylesheet tree. */
     private val stylesheetsAssetRoot = "stylesheets"

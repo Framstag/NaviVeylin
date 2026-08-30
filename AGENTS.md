@@ -6,6 +6,10 @@ This file helps AI coding agents understand the project structure, conventions, 
 
 NaviVeylin is an Android navigation app using libosmscout for map rendering and routing. It targets phone, foldable, and tablet form factors with a single `app` module, with Android Auto (projection) and Android Automotive OS (AAOS) support via the Car App Library (`:auto` module + `NaviVeylinCarAppService`).
 
+## Documentation Map
+
+Pick the right doc: `guidelines/Design.md` = architecture principles; `guidelines/UI.md` = UI rules (phone + Android Auto); `guidelines/MapRendering.md` = render-pipeline details and pitfalls; `guidelines/Build.md` = build/test/release skills; this file = project facts, build commands, logging, stylesheet mechanics.
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -109,6 +113,11 @@ Change artifacts live in `openspec/changes/<change-name>/`.
 Config: `openspec/config.yaml`
 
 ## Build & Test
+
+Build, test, and release workflows are wrapped by three skills — `build-app`,
+`run-tests`, `release-build` — documented in `guidelines/Build.md`. They wrap the
+Gradle calls below, stream build output to the console, and evaluate results by
+return code and build output. Use them for any build/test/release work.
 
 ```bash
 # Build debug APK (all 3 ABIs: arm64-v8a, armeabi-v7a, x86_64; both flavors)

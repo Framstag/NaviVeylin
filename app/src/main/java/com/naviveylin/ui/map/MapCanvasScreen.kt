@@ -22,7 +22,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -87,12 +89,11 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.widthIn
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -368,8 +369,7 @@ fun MapCanvasScreen(
                 }
                 val dtSec = if (lastFrameMs > 0) (nowMs - lastFrameMs) / 1000.0 else 0.016
                 lastFrameMs = nowMs
-                val moving = fix != null && !fix.speedKmH.isNaN() && fix.speedKmH > 1.8
-                if (ui.followMode && moving && fix != null) {
+                if (ui.followMode && fix != null && !fix.speedKmH.isNaN() && fix.speedKmH > 1.8) {
                     val predicted = followPrediction.predictedPosition(nowMs)
                     val alpha = FollowPrediction.easeAlpha(dtSec)
                     if (followDisplayLat.isNaN()) {
@@ -532,6 +532,28 @@ fun MapCanvasScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
         val surfaceColor = MaterialTheme.colorScheme.surface
+
+        // On-map speed widget (spec: map-speed-widget): navigation engine
+        // values while navigating, GPS-derived values in follow mode.
+        val speedInput = speedWidgetInput(
+            isNavigating = navState.isNavigating,
+            navCurrentSpeedKmH = navState.currentSpeedKmH,
+            navMaxSpeedKmH = navState.maxSpeedKmH,
+            followCurrentSpeedKmH = state.currentSpeedKmH,
+            followMaxSpeedKmH = state.maxSpeedKmH,
+            followMode = state.followMode
+        )
+        val compassNorthUp = if (navState.isNavigating) state.navNorthUp else state.freeFormNorthUp
+        val reCenterAction = {
+            val loc = viewModel.getCurrentLocation()
+            if (loc != null) {
+                viewModel.onToggleFollowMode(true)
+                viewModel.updateCenter(loc.lat, loc.lon)
+                viewModel.renderMap()
+            } else {
+                viewModel.showSnackbar("No GPS location available")
+            }
+        }
 
         when {
             state.isLoading && state.renderedBitmap == null -> {
@@ -895,72 +917,78 @@ fun MapCanvasScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             val isLandscape = maxWidth > maxHeight
-            val compassNorthUp = if (navState.isNavigating) state.navNorthUp else state.freeFormNorthUp
-            val reCenterAction = {
-                val loc = viewModel.getCurrentLocation()
-                if (loc != null) {
-                    viewModel.onToggleFollowMode(true)
-                    viewModel.updateCenter(loc.lat, loc.lon)
-                    viewModel.renderMap()
-                } else {
-                    viewModel.showSnackbar("No GPS location available")
-                }
-            }
 
             if (isLandscape) {
-                // Landscape: action buttons top-left, state controls on right
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 8.dp, top = 8.dp)
-                        .statusBarsPadding()
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    MapActionColumn(
-                        isLandscape = true,
-                        onToggleMenu = { menuExpanded = true },
-                        onOpenSearch = {
-                            showSearchPanel = true
-                            viewModel.onSearchPanelOpened()
-                        },
-                        onToggleFavorites = { viewModel.toggleFavoritesSheet() }
-                    )
+                // Landscape: action buttons top-left, state controls on right.
+                // Hidden during navigation so the turn instruction can start at
+                // the left edge without overlapping the right-side widgets.
+                if (!navState.isNavigating) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = 8.dp, top = 8.dp)
+                            .statusBarsPadding()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        MapActionColumn(
+                            isLandscape = true,
+                            onToggleMenu = { menuExpanded = true },
+                            onOpenSearch = {
+                                showSearchPanel = true
+                                viewModel.onSearchPanelOpened()
+                            },
+                            onToggleFavorites = { viewModel.toggleFavoritesSheet() }
+                        )
+                    }
                 }
 
-                // Top-right: compass (view indicator)
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(end = 8.dp, top = 8.dp)
-                        .statusBarsPadding()
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    MapCompassBlock(
-                        isNorthUp = compassNorthUp,
-                        mapAngleRadians = state.viewport.angle,
-                        gpsFixQuality = state.gpsFixQuality,
-                        onCenterClick = {
-                            val loc = viewModel.getCurrentLocation()
-                            if (loc != null) {
-                                viewModel.onToggleFollowMode(true)
-                                viewModel.updateCenter(loc.lat, loc.lon)
-                            } else {
-                                viewModel.showSnackbar("No GPS location available")
+                // Top-right: compass + follow-mode speed widget (view indicators).
+                // Hidden during navigation — the compass moves into the nav
+                // overlay column below the turn hints.
+                if (!navState.isNavigating) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 8.dp, top = 8.dp)
+                            .statusBarsPadding()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        MapCompassBlock(
+                            isNorthUp = compassNorthUp,
+                            mapAngleRadians = state.viewport.angle,
+                            gpsFixQuality = state.gpsFixQuality,
+                            onCenterClick = {
+                                val loc = viewModel.getCurrentLocation()
+                                if (loc != null) {
+                                    viewModel.onToggleFollowMode(true)
+                                    viewModel.updateCenter(loc.lat, loc.lon)
+                                } else {
+                                    viewModel.showSnackbar("No GPS location available")
+                                }
+                            },
+                            onToggleOrientation = {
+                                if (navState.isNavigating) {
+                                    viewModel.onSetNavOrientation(!state.navNorthUp)
+                                } else {
+                                    viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
+                                }
                             }
-                        },
-                        onToggleOrientation = {
-                            if (navState.isNavigating) {
-                                viewModel.onSetNavOrientation(!state.navNorthUp)
-                            } else {
-                                viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
-                            }
+                        )
+                        if (speedInput != null) {
+                            Spacer(modifier = Modifier.size(8.dp))
+                            SpeedWidget(
+                                currentSpeedKmH = speedInput.currentSpeedKmH,
+                                maxSpeedKmH = speedInput.maxSpeedKmH
+                            )
                         }
-                    )
+                    }
                 }
 
-                // Bottom-right: location options + zoom (view controls)
+                // Bottom-right: location options + zoom (view controls).
+                // Hidden during navigation — the routing layout owns the right side.
+                if (!navState.isNavigating) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -1030,6 +1058,7 @@ fun MapCanvasScreen(
                         }
                     )
                 }
+                }
 
                 // Bottom-left: re-center (action) when follow off + GPS available
                 if (!state.followMode && state.gpsFixQuality != GpsFixQuality.NONE) {
@@ -1042,26 +1071,34 @@ fun MapCanvasScreen(
                     )
                 }
             } else {
-                // Portrait: action column top-left, view column top-right
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(start = 8.dp, top = 4.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    MapActionColumn(
-                        isLandscape = false,
-                        onToggleMenu = { menuExpanded = true },
-                        onOpenSearch = {
-                            showSearchPanel = true
-                            viewModel.onSearchPanelOpened()
-                        },
-                        onToggleFavorites = { viewModel.toggleFavoritesSheet() }
-                    )
+                // Portrait: action column top-left, view column top-right.
+                // Action column hidden during navigation (see landscape).
+                if (!navState.isNavigating) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .statusBarsPadding()
+                            .padding(start = 8.dp, top = 4.dp)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        MapActionColumn(
+                            isLandscape = false,
+                            onToggleMenu = { menuExpanded = true },
+                            onOpenSearch = {
+                                showSearchPanel = true
+                                viewModel.onSearchPanelOpened()
+                            },
+                            onToggleFavorites = { viewModel.toggleFavoritesSheet() }
+                        )
+                    }
                 }
 
+                // Portrait: view column top-right (compass + speed widget +
+                // location/zoom). Hidden during navigation — the routing layout
+                // owns the right side. Compass + speed widget share a common
+                // center axis; the location/zoom block stays right-aligned below.
+                if (!navState.isNavigating) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -1070,27 +1107,37 @@ fun MapCanvasScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.End
                 ) {
-                    MapCompassBlock(
-                        isNorthUp = compassNorthUp,
-                        mapAngleRadians = state.viewport.angle,
-                        gpsFixQuality = state.gpsFixQuality,
-                        onCenterClick = {
-                            val loc = viewModel.getCurrentLocation()
-                            if (loc != null) {
-                                viewModel.onToggleFollowMode(true)
-                                viewModel.updateCenter(loc.lat, loc.lon)
-                            } else {
-                                viewModel.showSnackbar("No GPS location available")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        MapCompassBlock(
+                            isNorthUp = compassNorthUp,
+                            mapAngleRadians = state.viewport.angle,
+                            gpsFixQuality = state.gpsFixQuality,
+                            onCenterClick = {
+                                val loc = viewModel.getCurrentLocation()
+                                if (loc != null) {
+                                    viewModel.onToggleFollowMode(true)
+                                    viewModel.updateCenter(loc.lat, loc.lon)
+                                } else {
+                                    viewModel.showSnackbar("No GPS location available")
+                                }
+                            },
+                            onToggleOrientation = {
+                                if (navState.isNavigating) {
+                                    viewModel.onSetNavOrientation(!state.navNorthUp)
+                                } else {
+                                    viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
+                                }
                             }
-                        },
-                        onToggleOrientation = {
-                            if (navState.isNavigating) {
-                                viewModel.onSetNavOrientation(!state.navNorthUp)
-                            } else {
-                                viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
-                            }
+                        )
+
+                        if (speedInput != null) {
+                            Spacer(modifier = Modifier.size(8.dp))
+                            SpeedWidget(
+                                currentSpeedKmH = speedInput.currentSpeedKmH,
+                                maxSpeedKmH = speedInput.maxSpeedKmH
+                            )
                         }
-                    )
+                    }
 
                     Spacer(modifier = Modifier.size(4.dp))
 
@@ -1154,6 +1201,7 @@ fun MapCanvasScreen(
                             animateDiscreteZoomToCenter()
                         }
                     )
+                }
                 }
 
                 // Bottom-left: re-center (action) when follow off + GPS available
@@ -1461,14 +1509,17 @@ fun MapCanvasScreen(
             )
         }
     
-        // Navigation overlays
+        // Navigation overlays: full-width turn hints at the top, the right-side
+        // widget column (compass directly above the speed widget) spanning from
+        // above the routing status up to the top, and the routing status
+        // covering the bottom of the window.
         if (navState.isNavigating) {
-            BoxWithConstraints(
+            Column(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
+                    .fillMaxSize()
                     .statusBarsPadding()
-                    .padding(start = ActionColumnInset)
             ) {
+                // Top: full-width turn hints
                 NextTurnOverlay(
                     instruction = navState.nextInstruction,
                     laneOneway = navState.laneOneway,
@@ -1478,22 +1529,61 @@ fun MapCanvasScreen(
                     laneSuggestedTo = navState.laneSuggestedTo,
                     laneTurns = navState.laneTurns,
                     laneHintsEnabled = state.laneHintsEnabled,
-                    modifier = Modifier.widthIn(max = maxWidth - ViewColumnReserve)
+                    modifier = Modifier.fillMaxWidth()
+                )
+                // Middle: right-side widget column (compass directly above the
+                // speed widget), bottom-anchored above the routing status.
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .align(Alignment.TopEnd)
+                            .padding(end = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        MapCompassBlock(
+                            isNorthUp = compassNorthUp,
+                            mapAngleRadians = state.viewport.angle,
+                            gpsFixQuality = state.gpsFixQuality,
+                            onCenterClick = {
+                                val loc = viewModel.getCurrentLocation()
+                                if (loc != null) {
+                                    viewModel.onToggleFollowMode(true)
+                                    viewModel.updateCenter(loc.lat, loc.lon)
+                                } else {
+                                    viewModel.showSnackbar("No GPS location available")
+                                }
+                            },
+                            onToggleOrientation = {
+                                viewModel.onSetNavOrientation(!state.navNorthUp)
+                            }
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        SpeedWidget(
+                            currentSpeedKmH = speedInput?.currentSpeedKmH ?: Double.NaN,
+                            maxSpeedKmH = speedInput?.maxSpeedKmH ?: Double.NaN,
+                            reserveLimitSpace = true,
+                            reserveSlotWhenHidden = true
+                        )
+                    }
+                }
+                // Bottom: routing status, full width
+                NavigationStateOverlay(
+                    remainingDistance = navState.remainingDistance,
+                    etaMillis = navState.etaMillis,
+                    currentRoadInfo = navState.currentRoadInfo,
+                    isRerouting = navState.isRerouting,
+                    isOffRoute = navState.isOffRoute,
+                    onStopNavigation = { navigationViewModel.stopNavigation()
+                        routePanelViewModel.setNavigating(false) },
+                    onClick = { showNavDetails = true }
                 )
             }
-            NavigationStateOverlay(
-                remainingDistance = navState.remainingDistance,
-                etaMillis = navState.etaMillis,
-                currentSpeedKmH = navState.currentSpeedKmH,
-                maxSpeedKmH = navState.maxSpeedKmH,
-                currentRoadInfo = navState.currentRoadInfo,
-                isRerouting = navState.isRerouting,
-                isOffRoute = navState.isOffRoute,
-                onStopNavigation = { navigationViewModel.stopNavigation()
-                    routePanelViewModel.setNavigating(false) },
-                onClick = { showNavDetails = true },
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
         }
 
         // Expanded routing status details — full-screen route description
@@ -1504,8 +1594,6 @@ fun MapCanvasScreen(
                 currentRoadInfo = navState.currentRoadInfo,
                 remainingDistance = navState.remainingDistance,
                 etaMillis = navState.etaMillis,
-                currentSpeedKmH = navState.currentSpeedKmH,
-                maxSpeedKmH = navState.maxSpeedKmH,
                 onStopNavigation = {
                     navigationViewModel.stopNavigation()
                     routePanelViewModel.setNavigating(false)
@@ -1740,12 +1828,6 @@ private val ToasterMenuOffsetY = 48.dp
 private const val MenuFadeInMs = 140
 private const val MenuScaleInMs = 180
 private const val MenuFadeOutMs = 110
-
-/** Left inset reserved for the action button column; nav hints start after it. */
-internal val ActionColumnInset = 64.dp
-
-/** Right-side width reserved for the view button column. */
-internal val ViewColumnReserve = 64.dp
 
 /**
  * Map screen menu (toaster). Shared by the landscape and portrait layouts so

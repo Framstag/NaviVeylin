@@ -287,7 +287,7 @@ internal class BearingFilter(private val source: BearingSource) {
  */
 @Singleton
 class LocationService @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
 
     /**
@@ -431,6 +431,7 @@ class LocationService @Inject constructor(
             return
         }
 
+        @Suppress("DEPRECATION") // PRIORITY_HIGH_ACCURACY: no non-deprecated equivalent below API 34
         val request = LocationRequest.Builder(
             LocationRequest.PRIORITY_HIGH_ACCURACY,
             UPDATE_INTERVAL_MS

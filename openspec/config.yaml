@@ -14,7 +14,7 @@ context: |
   Android Auto: implemented (Car App Library, :auto module + NaviVeylinCarAppService, AAOS support)
   Distribution: Google Play (mobile + Android Automotive OS tracks, same applicationId); sideloading also supported
   External Repo: https://github.com/Framstag/libosmscout
-  Guidelines: guidelines/Design.md, UI.md, MapRendering.md — read before design/apply
+  Guidelines: guidelines/Design.md, UI.md, MapRendering.md, Build.md — read before design/apply
   Native purity: libosmscout stays Android-free outside its frozen Android/ dir (CI-gated)
   Google Play Services: optional, used when available (Fused location, car MapController); no hard dependency — replaceable by design (e.g., LocationManager fallback)
 
@@ -65,6 +65,7 @@ rules:
 operations:
   apply:
     guidance:
+      - Use the build-app, run-tests, and release-build skills (see guidelines/Build.md) for all build/test/release verification — they wrap the Gradle calls, stream output to the console, and evaluate return codes and build output
       - Before marking implementation complete, run the build and verify it compiles without errors
       - Before marking implementation complete, verify tests exist for all new/modified code and they pass
       - If build or tests fail, do NOT mark tasks complete — report failures and fix them first

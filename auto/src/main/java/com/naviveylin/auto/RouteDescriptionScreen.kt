@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
+import androidx.car.app.model.Header
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
@@ -77,8 +78,12 @@ class RouteDescriptionScreen(
             }
         }.build()
         return ListTemplate.Builder()
-            .setTitle(state.destinationName ?: "Route")
-            .setHeaderAction(Action.BACK)
+            .setHeader(
+                Header.Builder()
+                    .setTitle(state.destinationName ?: "Route")
+                    .setStartHeaderAction(Action.BACK)
+                    .build()
+            )
             .setSingleList(itemList)
             .build()
     }

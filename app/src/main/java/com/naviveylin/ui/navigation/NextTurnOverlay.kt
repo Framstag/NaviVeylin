@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.RouteInstruction
 
@@ -42,7 +43,7 @@ fun NextTurnOverlay(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 0.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            .padding(top = 8.dp, bottom = 8.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
@@ -69,7 +70,7 @@ fun NextTurnOverlay(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = formatDistance(instruction.distanceTo),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -80,7 +81,7 @@ fun NextTurnOverlay(
                     )
                     Text(
                         text = lines.generic,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -88,7 +89,7 @@ fun NextTurnOverlay(
                     if (lines.destination != null) {
                         Text(
                             text = lines.destination,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
@@ -127,7 +128,7 @@ fun NextTurnOverlay(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = formatDistance(instruction.nextNextDistanceTo),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         val nextNextLines = splitInstruction(
@@ -136,7 +137,7 @@ fun NextTurnOverlay(
                         )
                         Text(
                             text = nextNextLines.generic,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
@@ -144,7 +145,7 @@ fun NextTurnOverlay(
                         if (nextNextLines.destination != null) {
                             Text(
                                 text = nextNextLines.destination,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 2,

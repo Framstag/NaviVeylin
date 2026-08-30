@@ -12,6 +12,7 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -33,6 +34,7 @@ import org.robolectric.RobolectricTestRunner
  * - handle is released on clear / lost fix / ViewModel clear
  */
 @RunWith(RobolectricTestRunner::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class MapCanvasViewModelAdminRegionTest {
 
     private lateinit var context: Context

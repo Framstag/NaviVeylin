@@ -135,7 +135,11 @@ data class MapCanvasUiState(
     /** Marker arrow bearing in degrees (freshest direction signal); < 0 = north-up arrow. */
     val gpsMarkerBearing: Double = Double.NaN,
     /** GPS horizontal accuracy in meters for the accuracy circle; <= 0 = no circle. */
-    val gpsMarkerAccuracy: Double = 0.0
+    val gpsMarkerAccuracy: Double = 0.0,
+    /** Current vehicle speed from the GPS fix (km/h); NaN when unknown. Drives the on-map speed widget in follow mode. */
+    val currentSpeedKmH: Double = Double.NaN,
+    /** Max speed of the road at the GPS position (km/h); NaN when unknown. Drives the on-map speed widget in follow mode. */
+    val maxSpeedKmH: Double = Double.NaN
 )
 
 @HiltViewModel
@@ -148,7 +152,7 @@ class MapCanvasViewModel @Inject constructor(
     private val searchHistoryRepository: SearchHistoryRepository,
     private val locationService: LocationService,
     private val darkModeController: DarkModeController,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MapCanvasUiState())
@@ -217,6 +221,12 @@ class MapCanvasViewModel @Inject constructor(
     private var lastMarkerLat = Double.NaN
     private var lastMarkerLon = Double.NaN
     private var lastNonFollowMarkerRenderMs: Long = 0L
+
+    // Max-speed resolution throttle (spec: map-speed-widget): re-resolve the
+    // road's max speed only after significant movement or a cooldown.
+    private var lastMaxSpeedLat = Double.NaN
+    private var lastMaxSpeedLon = Double.NaN
+    private var lastMaxSpeedResolveMs = 0L
     private var lastGpsLat = Double.NaN
     private var lastGpsLon = Double.NaN
     private var lastGpsTime: Long = 0L
@@ -588,7 +598,10 @@ class MapCanvasViewModel @Inject constructor(
                     return@collect
                 }
 
-                _uiState.value = _uiState.value.copy(gpsLocation = fix)
+                _uiState.value = _uiState.value.copy(
+                    gpsLocation = fix,
+                    currentSpeedKmH = fix.speedKmH
+                )
 
                 if (logCount++ % 30 == 0) {
                     Log.d(TAG, "GPS loc=${"%.6f".format(fix.lat)},${"%.6f".format(fix.lon)} " +
@@ -623,6 +636,10 @@ class MapCanvasViewModel @Inject constructor(
                 lastGpsLat = fix.lat
                 lastGpsLon = fix.lon
                 lastGpsTime = fix.time
+
+                // Resolve the road's max speed for the follow-mode speed widget
+                // (throttled: only on significant movement or after a cooldown).
+                resolveMaxSpeed(fix.lat, fix.lon)
 
                 // Feed navigation engine early so it sees every distinct fix.
                 _navigationViewModel?.processLocation(
@@ -986,6 +1003,34 @@ class MapCanvasViewModel @Inject constructor(
             cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2))
             .coerceIn(0.0, 1.0)
         return earthRadiusM * 2 * atan2(sqrt(a), sqrt(1 - a))
+    }
+
+    /**
+     * Resolve the max speed of the road at [lat]/[lon] for the follow-mode
+     * speed widget (spec: map-speed-widget). Throttled: re-resolves only after
+     * significant movement or a cooldown, off the main thread. getMaxSpeedAt
+     * returns a negative value when the road has no limit → NaN (unknown).
+     */
+    private fun resolveMaxSpeed(lat: Double, lon: Double) {
+        val now = System.currentTimeMillis()
+        val moved = lastMaxSpeedLat.isNaN() ||
+            distanceMeters(lastMaxSpeedLat, lastMaxSpeedLon, lat, lon) > MAX_SPEED_RESOLVE_MOVE_M
+        val cooldownElapsed = now - lastMaxSpeedResolveMs >= MAX_SPEED_RESOLVE_INTERVAL_MS
+        if (!moved && !cooldownElapsed) return
+        lastMaxSpeedLat = lat
+        lastMaxSpeedLon = lon
+        lastMaxSpeedResolveMs = now
+        viewModelScope.launch(defaultDispatcher) {
+            val maxSpeed = try {
+                client.getMaxSpeedAt(lat, lon)
+            } catch (e: Exception) {
+                Log.w(TAG, "getMaxSpeedAt failed", e)
+                Double.NaN
+            }
+            _uiState.value = _uiState.value.copy(
+                maxSpeedKmH = maxSpeed.takeIf { it > 0.0 } ?: Double.NaN
+            )
+        }
     }
 
     internal suspend fun searchLocations(query: String): List<LocationEntry> = withContext(defaultDispatcher) {
@@ -2203,6 +2248,11 @@ class MapCanvasViewModel @Inject constructor(
 
         // Movement threshold for re-resolving the search admin region (meters)
         private const val ADMIN_REGION_MOVEMENT_THRESHOLD_M = 500.0
+
+        // Max-speed resolution throttle for the follow-mode speed widget:
+        // re-resolve only after significant movement or a cooldown.
+        private const val MAX_SPEED_RESOLVE_INTERVAL_MS = 5_000L
+        private const val MAX_SPEED_RESOLVE_MOVE_M = 50.0
         /** Minimum magnification for the zoom control (buttons, keys, scroll wheel).
          *  Floor of 4 matches the gesture range and the specs (map-pan-zoom, map-rotation-gesture):
          *  lower zooms render huge world tiles natively (z=2 ~5s, z=1 hangs), stalling the render worker. */

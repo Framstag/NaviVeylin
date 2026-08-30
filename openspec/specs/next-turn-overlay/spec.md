@@ -98,9 +98,13 @@ Next-next turn text SHALL use smaller typography than the next-turn text.
 
 #### Scenario: Next-turn instruction larger font
 - **WHEN** the next-turn instruction is displayed
-- **THEN** its description SHALL use a larger font size than the previous `bodyLarge` style (e.g. `titleMedium`)
+- **THEN** its description SHALL use a larger font size than the previous `titleMedium` style (e.g. 18sp)
+
+#### Scenario: Next-turn distance larger font
+- **WHEN** the next-turn distance is displayed
+- **THEN** it SHALL use a larger font size than the previous `titleLarge` style (e.g. `headlineSmall`)
 
 #### Scenario: Next-next instruction larger font
 - **WHEN** the next-next hint is displayed
-- **THEN** its description SHALL use a larger font size than the previous `bodySmall` style (e.g. `bodyMedium`)
+- **THEN** its description SHALL use a larger font size than the previous `bodyMedium` style (e.g. 16sp)
 - **AND** it SHALL remain smaller than the next-turn instruction

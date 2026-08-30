@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -38,8 +37,6 @@ import com.framstag.libosmscout.client.CurrentRoadInfo
 fun NavigationStateOverlay(
     remainingDistance: Double,
     etaMillis: Long,
-    currentSpeedKmH: Double,
-    maxSpeedKmH: Double,
     currentRoadInfo: CurrentRoadInfo? = null,
     isRerouting: Boolean = false,
     isOffRoute: Boolean = false,
@@ -54,7 +51,13 @@ fun NavigationStateOverlay(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick),
-            shape = RoundedCornerShape(12.dp),
+            // Square bottom corners: the card covers the bottom of the window.
+            shape = RoundedCornerShape(
+                topStart = 12.dp,
+                topEnd = 12.dp,
+                bottomStart = 0.dp,
+                bottomEnd = 0.dp
+            ),
             colors = CardDefaults.cardColors(
                 containerColor = cardContainerColor
             ),
@@ -63,6 +66,7 @@ fun NavigationStateOverlay(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(start = 12.dp, top = 8.dp, end = 4.dp, bottom = 8.dp)
             ) {
                 // Current road name row (above stats)
@@ -84,8 +88,6 @@ fun NavigationStateOverlay(
                 NavigationStatsRow(
                     remainingDistance = remainingDistance,
                     etaMillis = etaMillis,
-                    currentSpeedKmH = currentSpeedKmH,
-                    maxSpeedKmH = maxSpeedKmH,
                     onStopNavigation = onStopNavigation
                 )
             }
@@ -102,20 +104,25 @@ fun NavigationStateOverlay(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 12.dp,
+                            topEnd = 12.dp,
+                            bottomStart = 0.dp,
+                            bottomEnd = 0.dp
+                        )
+                    )
                     .background(MaterialTheme.colorScheme.error.copy(alpha = 0.16f))
             )
         }
     }
 }
 
-/** ETA / remaining time / distance / speed stats row, shared with the expanded details view. */
+/** ETA / remaining time / distance stats row, shared with the expanded details view. */
 @Composable
 internal fun NavigationStatsRow(
     remainingDistance: Double,
     etaMillis: Long,
-    currentSpeedKmH: Double,
-    maxSpeedKmH: Double,
     onStopNavigation: () -> Unit
 ) {
     Row(
@@ -175,40 +182,6 @@ internal fun NavigationStatsRow(
                 text = formatDistance(remainingDistance),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
-            )
-        }
-
-        // Current speed + max speed (always reserve space for max)
-        // Show speed in red when exceeding max allowed speed by 5+ km/h
-        val speedColor = if (!currentSpeedKmH.isNaN() && currentSpeedKmH >= 0 &&
-            !maxSpeedKmH.isNaN() && maxSpeedKmH > 0 &&
-            currentSpeedKmH > maxSpeedKmH + 5
-        ) {
-            MaterialTheme.colorScheme.error
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Default.Speed,
-                contentDescription = "Speed",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = if (currentSpeedKmH.isNaN() || currentSpeedKmH < 0) "--" else "${currentSpeedKmH.toInt()}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = speedColor
-            )
-            Text(
-                text = if (!maxSpeedKmH.isNaN() && maxSpeedKmH > 0) "max ${maxSpeedKmH.toInt()}" else "max --",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.height(16.dp) // fixed height prevents resizing
             )
         }
 

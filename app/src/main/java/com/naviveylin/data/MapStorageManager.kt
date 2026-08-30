@@ -14,7 +14,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class MapStorageManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     /** Root directory for all downloaded maps. */
     val mapsRootDir: Path

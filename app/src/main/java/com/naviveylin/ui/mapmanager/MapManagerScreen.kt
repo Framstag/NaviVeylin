@@ -22,7 +22,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -352,7 +352,7 @@ private fun ActiveDownloadsSection(
             )
             Spacer(modifier = Modifier.weight(1f))
             Icon(
-                imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = if (expanded) "Collapse" else "Expand"
             )
         }
@@ -598,7 +598,7 @@ private fun TreeItemRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = if (item.isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                imageVector = if (item.isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = if (item.isExpanded) "Collapse" else "Expand",
                 modifier = Modifier.padding(end = 4.dp)
             )

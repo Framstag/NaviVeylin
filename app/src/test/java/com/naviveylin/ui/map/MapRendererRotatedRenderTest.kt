@@ -4,6 +4,7 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -32,6 +33,7 @@ import org.robolectric.RobolectricTestRunner
  * the debounce/render pipeline in virtual time (no real-time polling).
  */
 @RunWith(RobolectricTestRunner::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class MapRendererRotatedRenderTest {
 
     @get:Rule

@@ -7,6 +7,7 @@ import androidx.car.app.model.Header
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
+import com.naviveylin.auto.R
 import com.naviveylin.core.DiagnosticsLog
 
 /**
@@ -27,7 +28,7 @@ class DiagnosticsScreen(carContext: CarContext) : Screen(carContext) {
         if (entries.isEmpty()) {
             builder.addRow(
                 Row.Builder()
-                    .setTitle("No log entries yet")
+                    .setTitle(carContext.getString(R.string.no_log_entries))
                     .build()
             )
         } else {
@@ -41,14 +42,14 @@ class DiagnosticsScreen(carContext: CarContext) : Screen(carContext) {
         }
 
         val refreshAction = Action.Builder()
-            .setTitle("Refresh")
+            .setTitle(carContext.getString(R.string.refresh))
             .setOnClickListener { invalidate() }
             .build()
 
         return PaneTemplate.Builder(builder.build())
             .setHeader(
                 Header.Builder()
-                    .setTitle("Diagnostics")
+                    .setTitle(carContext.getString(R.string.diagnostics))
                     .setStartHeaderAction(Action.BACK)
                     .addEndHeaderAction(refreshAction)
                     .build()

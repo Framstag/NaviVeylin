@@ -68,6 +68,29 @@ class SurfaceIndicatorsTest {
     }
 
     @Test
+    fun roseAtLeast56dp() {
+        // Spec: auto-map-layout — the compass rose is 56 dp during navigation.
+        val g = SurfaceIndicators.geometry(Rect(), 1920, density, showSpeed = true)
+        val expected = 56f * density / 2f
+        assertTrue(
+            "rose radius must be >= 56dp/2 (was ${g.compassRadius})",
+            g.compassRadius >= expected - 0.01f
+        )
+    }
+
+    @Test
+    fun speedLimitSignAtLeast56dp() {
+        // Spec: auto-map-layout — the speed-limit sign is at least 56 dp.
+        val g = SurfaceIndicators.geometry(Rect(), 1920, density, showSpeed = true, showSpeedLimit = true)
+        val limit = g.speedLimitRect!!
+        val expected = 56f * density
+        assertTrue(
+            "limit sign must be >= 56dp (was ${limit.width()}px)",
+            limit.width() >= expected - 1f && limit.height() >= expected - 1f
+        )
+    }
+
+    @Test
     fun drawSpeedLimitSignDoesNotFail() {
         val canvas = Canvas(Bitmap.createBitmap(1920, 1080, Bitmap.Config.ARGB_8888))
         SurfaceIndicators.draw(

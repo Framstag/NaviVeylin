@@ -31,6 +31,9 @@ class AboutScreenTest {
         val info = PackageInfo()
         info.versionName = "1.2.3"
         every { pm.getPackageInfo(any<String>(), any<Int>()) } returns info
+        // Resolve localized strings against real Robolectric resources (English default)
+        val appContext = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        every { carContext.getString(any()) } answers { appContext.getString(firstArg()) }
     }
 
     @Test

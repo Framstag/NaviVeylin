@@ -33,7 +33,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class PreferencesScreenTest {
 
-    private val carContext = mockk<CarContext>()
+    private val carContext = testCarContext()
     private val provider = mockk<AutoSettingsProvider>()
     private val testDispatcher = StandardTestDispatcher()
 

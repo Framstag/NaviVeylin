@@ -10,6 +10,7 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
+import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -62,6 +63,7 @@ class MapCanvasViewModelFavAddTest {
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
             darkModeController = DarkModeController(SettingsStorage(context)),
+            sharedLocationHandler = SharedLocationHandler(),
             context = context
         )
         vm.defaultDispatcher = mainDispatcherRule.dispatcher

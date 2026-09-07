@@ -3,13 +3,18 @@ package com.naviveylin.ui.map
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -265,5 +270,100 @@ class SpeedWidgetTest {
         )
         assertEquals(72.0, input!!.currentSpeedKmH, 1e-9)
         assertEquals(80.0, input.maxSpeedKmH, 1e-9)
+    }
+
+    // --- Driver-seat sizing (spec: map-speed-widget — minimum readable sizes) ---
+
+    @Test
+    fun badgeTextAtLeast24sp() {
+        var style: TextStyle? = null
+        composeRule.setContent { style = speedBadgeTextStyle() }
+        composeRule.waitForIdle()
+        assertNotNull(style)
+        val size = style!!.fontSize.value
+        assertTrue("badge text must be >= 24sp (was $size)", size >= 24f)
+    }
+
+    @Test
+    fun limitSignAtLeast64dp() {
+        composeRule.setContent {
+            SpeedWidget(currentSpeedKmH = 48.0, maxSpeedKmH = 50.0)
+        }
+        val px = with(composeRule.density) { 64.dp.toPx() }
+        val size = composeRule.onNodeWithTag("speedLimitSign").fetchSemanticsNode().size
+        assertTrue(
+            "sign must be >= 64dp (was ${size.width}px / ${size.height}px)",
+            size.width >= px - 1f && size.height >= px - 1f
+        )
+    }
+
+    @Test
+    fun limitSignDigitsAtLeast28sp() {
+        var style: TextStyle? = null
+        composeRule.setContent { style = speedLimitDigitsStyle() }
+        composeRule.waitForIdle()
+        assertNotNull(style)
+        val size = style!!.fontSize.value
+        assertTrue("sign digits must be >= 28sp (was $size)", size >= 28f)
+    }
+
+    @Test
+    fun placeholderMatchesSignFootprint() {
+        composeRule.setContent {
+            SpeedWidget(
+                currentSpeedKmH = 48.0,
+                maxSpeedKmH = Double.NaN,
+                reserveLimitSpace = true
+            )
+        }
+        val px = with(composeRule.density) { 64.dp.toPx() }
+        val size = composeRule.onNodeWithTag("speedLimitPlaceholder").fetchSemanticsNode().size
+        assertTrue(
+            "placeholder must keep the 64dp sign footprint (was ${size.width}px)",
+            size.width >= px - 1f && size.height >= px - 1f
+        )
+    }
+
+    @Test
+    fun badgeTextColorDarkOnLightCard() {
+        var normal: Color? = null
+        var overLimit: Color? = null
+        composeRule.setContent {
+            normal = speedBadgeTextColor(overLimit = false)
+            overLimit = speedBadgeTextColor(overLimit = true)
+        }
+        composeRule.waitForIdle()
+        assertNotNull(normal)
+        assertNotNull(overLimit)
+        // Normal state must be DARK text on the light card — never white
+        // (regression: white-on-light was invisible).
+        assertTrue(
+            "normal badge text must be dark on the light card (was $normal)",
+            normal!!.luminance() < 0.5f
+        )
+        // Overspeed must differ (warning color) and stay readable on the card.
+        assertTrue(
+            "overspeed color must differ from the normal text color",
+            normal != overLimit
+        )
+    }
+
+    @Test
+    fun badgeBackgroundIsThemeCardNotFixedDark() {
+        var color: Color? = null
+        composeRule.setContent { color = speedBadgeContainerColor() }
+        composeRule.waitForIdle()
+        assertNotNull(color)
+        assertTrue(
+            "badge background must be the theme surface card, not the fixed dark 0x1C1B1F " +
+                "(was $color)",
+            color != Color(0xFF1C1B1F)
+        )
+        assertEquals(
+            "badge background must use the theme surface at 0.92 alpha",
+            0.92f,
+            color!!.alpha,
+            1e-2f
+        )
     }
 }

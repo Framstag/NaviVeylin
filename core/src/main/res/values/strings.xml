@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Turn-by-turn instruction text (spec: turn-instruction-localization).
+         The native JNI bridge emits hardcoded English; the frontend rebuilds
+         display text from these resources. English is the default locale. -->
+    <string name="nav_start">Start</string>
+    <string name="nav_arrive">Arrive</string>
+    <string name="nav_roundabout">Roundabout</string>
+    <string name="nav_exit_roundabout">Exit %1$d</string>
+    <string name="nav_enter_motorway">Enter motorway</string>
+    <string name="nav_leave_motorway">Leave motorway</string>
+
+    <string name="nav_turn_sharp_left">Turn sharp left</string>
+    <string name="nav_turn_left">Turn left</string>
+    <string name="nav_turn_slightly_left">Turn slightly left</string>
+    <string name="nav_straight_on">Straight on</string>
+    <string name="nav_turn_slightly_right">Turn slightly right</string>
+    <string name="nav_turn_right">Turn right</string>
+    <string name="nav_turn_sharp_right">Turn sharp right</string>
+
+    <string name="nav_keep_sharp_left">Keep sharp left</string>
+    <string name="nav_keep_left">Keep left</string>
+    <string name="nav_keep_slightly_left">Keep slightly left</string>
+    <string name="nav_keep_straight">Keep straight</string>
+    <string name="nav_keep_slightly_right">Keep slightly right</string>
+    <string name="nav_keep_right">Keep right</string>
+    <string name="nav_keep_sharp_right">Keep sharp right</string>
+
+    <string name="nav_turn_into">%1$s into %2$s</string>
+    <string name="nav_keep_onto">%1$s onto %2$s</string>
+    <string name="nav_exit_onto">Take exit %1$d onto %2$s</string>
+    <string name="nav_enter_onto">Enter %1$s</string>
+</resources>

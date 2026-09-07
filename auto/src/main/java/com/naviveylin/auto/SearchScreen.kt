@@ -9,6 +9,7 @@ import androidx.car.app.model.ItemList
 import androidx.car.app.model.Row
 import androidx.car.app.model.SearchTemplate
 import androidx.car.app.model.SearchTemplate.SearchCallback
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
@@ -105,7 +106,7 @@ class SearchScreen(
         if (lastResults.isEmpty()) {
             builder.addItem(
                 Row.Builder()
-                    .setTitle("No results found")
+                    .setTitle(carContext.getString(R.string.no_results_found))
                     .build()
             )
             return builder.build()

@@ -240,6 +240,16 @@ public class OSMScoutClient {
     public native String getAdminRegionName(long handle);
 
     /**
+     * Get the name of the search scope region for a previously resolved admin
+     * region: the parent region when sibling expansion applies (see
+     * {@link #searchLocations(String, int, long)}), else the region itself.
+     *
+     * @param handle handle returned by {@link #resolveAdminRegion(double, double)}
+     * @return scope region name, or null if the handle is unknown
+     */
+    public native String getAdminRegionScopeName(long handle);
+
+    /**
      * Get a description of the object at the given coordinates.
      *
      * @param lat latitude

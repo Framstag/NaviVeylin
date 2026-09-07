@@ -41,7 +41,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "NaviVeylin",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -53,7 +53,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Version $versionName",
+                    text = stringResource(R.string.version_format, versionName),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -61,12 +61,12 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Tim Teulings",
+                    text = stringResource(R.string.author_name),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 Text(
-                    text = "Copyright 2026",
+                    text = stringResource(R.string.copyright),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -74,17 +74,14 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "An Android navigation app built on libosmscout. " +
-                            "Provides offline map rendering and routing using " +
-                            "OpenStreetMap data.",
+                    text = stringResource(R.string.about_description),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "This application uses open source software. " +
-                            "Source code and license information are available at:",
+                    text = stringResource(R.string.about_oss_statement),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -106,7 +103,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "github.com/Framstag/libosmscout",
+                        text = stringResource(R.string.about_source_url),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -138,7 +135,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Diagnostics",
+                        text = stringResource(R.string.diagnostics),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -146,7 +143,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.close))
             }
         }
     )
@@ -168,7 +165,7 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Diagnostics",
+                text = stringResource(R.string.diagnostics),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -182,7 +179,7 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
             ) {
                 if (entries.isEmpty()) {
                     Text(
-                        text = "No log entries yet.",
+                        text = stringResource(R.string.no_log_entries),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -202,24 +199,25 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
             TextButton(onClick = {
                 entries = DiagnosticsLog.readEntries()
             }) {
-                Text("Refresh")
+                Text(stringResource(R.string.refresh))
             }
         },
         dismissButton = {
             Row {
+                val shareLabel = stringResource(R.string.share_diagnostics)
                 TextButton(onClick = {
                     try {
                         context.startActivity(
-                            Intent.createChooser(DiagnosticsLog.shareIntent(), "Share diagnostics log")
+                            Intent.createChooser(DiagnosticsLog.shareIntent(), shareLabel)
                         )
                     } catch (_: Exception) {
                         // No share target available
                     }
                 }) {
-                    Text("Share")
+                    Text(stringResource(R.string.share))
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Close")
+                    Text(stringResource(R.string.close))
                 }
             }
         }

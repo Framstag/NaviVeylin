@@ -43,7 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.naviveylin.R
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
 
@@ -68,6 +71,8 @@ fun LocationOptionsOverlay(
     onToggleKeepScreenOn: (Boolean) -> Unit = {},
     darkModePreference: DarkModePreference = DarkModePreference.AUTOMATIC,
     onSetDarkModePreference: (DarkModePreference) -> Unit = {},
+    ambientLightDarkMode: Boolean = false,
+    onSetAmbientLightOption: (Boolean) -> Unit = {},
     laneHintsEnabled: Boolean = true,
     onToggleLaneHints: (Boolean) -> Unit = {},
     renderMode: RenderMode = RenderMode.TILES,
@@ -94,7 +99,7 @@ fun LocationOptionsOverlay(
         ) {
             Icon(
                 imageVector = Icons.Default.Settings,
-                contentDescription = "Location options",
+                contentDescription = stringResource(R.string.location_options),
                 tint = if (followMode) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -124,6 +129,8 @@ fun LocationOptionsOverlay(
                 onToggleKeepScreenOn = onToggleKeepScreenOn,
                 darkModePreference = darkModePreference,
                 onSetDarkModePreference = onSetDarkModePreference,
+                ambientLightDarkMode = ambientLightDarkMode,
+                onSetAmbientLightOption = onSetAmbientLightOption,
                 laneHintsEnabled = laneHintsEnabled,
                 onToggleLaneHints = onToggleLaneHints,
                 renderMode = renderMode,
@@ -152,6 +159,8 @@ private fun LocationOptionsSheetContent(
     onToggleKeepScreenOn: (Boolean) -> Unit,
     darkModePreference: DarkModePreference,
     onSetDarkModePreference: (DarkModePreference) -> Unit,
+    ambientLightDarkMode: Boolean,
+    onSetAmbientLightOption: (Boolean) -> Unit,
     laneHintsEnabled: Boolean,
     onToggleLaneHints: (Boolean) -> Unit,
     renderMode: RenderMode,
@@ -179,7 +188,7 @@ private fun LocationOptionsSheetContent(
                 .height(56.dp)
         ) {
             Text(
-                text = "Map follows position",
+                text = stringResource(R.string.map_follows_position),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
@@ -196,7 +205,7 @@ private fun LocationOptionsSheetContent(
 
         // Section: Orientation
         Text(
-            text = "Orientation",
+            text = stringResource(R.string.orientation),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
@@ -204,12 +213,12 @@ private fun LocationOptionsSheetContent(
 
         Column(modifier = Modifier.selectableGroup()) {
             OrientationOption(
-                label = "North up",
+                label = stringResource(R.string.north_up),
                 selected = currentNorthUp,
                 onClick = { onSetOrientation(true) }
             )
             OrientationOption(
-                label = "Follow direction",
+                label = stringResource(R.string.follow_direction),
                 selected = !currentNorthUp,
                 onClick = { onSetOrientation(false) }
             )
@@ -226,7 +235,7 @@ private fun LocationOptionsSheetContent(
                     .height(56.dp)
             ) {
                 Text(
-                    text = "Auto zoom",
+                    text = stringResource(R.string.auto_zoom),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
@@ -250,7 +259,7 @@ private fun LocationOptionsSheetContent(
                 .height(56.dp)
         ) {
             Text(
-                text = "Keep screen on",
+                text = stringResource(R.string.keep_screen_on),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
@@ -273,7 +282,7 @@ private fun LocationOptionsSheetContent(
                 .height(56.dp)
         ) {
             Text(
-                text = "Lane instructions",
+                text = stringResource(R.string.lane_instructions),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
@@ -290,7 +299,7 @@ private fun LocationOptionsSheetContent(
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
 
         Text(
-            text = "Dark mode",
+            text = stringResource(R.string.dark_mode),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
@@ -298,19 +307,41 @@ private fun LocationOptionsSheetContent(
 
         Column(modifier = Modifier.selectableGroup()) {
             OrientationOption(
-                label = "On",
+                label = stringResource(R.string.on),
                 selected = darkModePreference == DarkModePreference.ON,
                 onClick = { onSetDarkModePreference(DarkModePreference.ON) }
             )
             OrientationOption(
-                label = "Off",
+                label = stringResource(R.string.off),
                 selected = darkModePreference == DarkModePreference.OFF,
                 onClick = { onSetDarkModePreference(DarkModePreference.OFF) }
             )
             OrientationOption(
-                label = "Automatic",
+                label = stringResource(R.string.automatic),
                 selected = darkModePreference == DarkModePreference.AUTOMATIC,
                 onClick = { onSetDarkModePreference(DarkModePreference.AUTOMATIC) }
+            )
+        }
+
+        // Ambient light sensor option — only meaningful in Automatic mode.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.ambient_light_dark_mode),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = ambientLightDarkMode,
+                onCheckedChange = { enabled ->
+                    onSetAmbientLightOption(enabled)
+                },
+                modifier = Modifier.testTag("ambientLightToggle")
             )
         }
 
@@ -318,7 +349,7 @@ private fun LocationOptionsSheetContent(
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
 
         Text(
-            text = "Rendering",
+            text = stringResource(R.string.rendering),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
@@ -326,12 +357,12 @@ private fun LocationOptionsSheetContent(
 
         Column(modifier = Modifier.selectableGroup()) {
             OrientationOption(
-                label = "Tile cache",
+                label = stringResource(R.string.tile_cache),
                 selected = renderMode == RenderMode.TILES,
                 onClick = { onSetRenderMode(RenderMode.TILES) }
             )
             OrientationOption(
-                label = "Direct",
+                label = stringResource(R.string.direct),
                 selected = renderMode == RenderMode.DIRECT,
                 onClick = { onSetRenderMode(RenderMode.DIRECT) }
             )
@@ -349,7 +380,7 @@ private fun LocationOptionsSheetContent(
                     .height(56.dp)
             ) {
                 Text(
-                    text = "Map style",
+                    text = stringResource(R.string.map_style),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
@@ -385,7 +416,7 @@ private fun LocationOptionsSheetContent(
                             DropdownMenuItem(
                                 text = { Text(style) },
                                 trailingIcon = if (style == styleSheet) {
-                                    { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                                    { Icon(Icons.Default.Check, contentDescription = stringResource(R.string.selected)) }
                                 } else {
                                     null
                                 },

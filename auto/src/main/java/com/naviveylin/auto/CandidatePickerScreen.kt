@@ -2,6 +2,7 @@ package com.naviveylin.auto
 
 import android.util.Log
 import androidx.car.app.CarContext
+import com.naviveylin.auto.R
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
 import androidx.car.app.model.Header
@@ -46,7 +47,7 @@ class CandidatePickerScreen(
         }
 
         return ListTemplate.Builder()
-            .setHeader(Header.Builder().setTitle("What's here?").setStartHeaderAction(Action.BACK).build())
+            .setHeader(Header.Builder().setTitle(carContext.getString(R.string.whats_here)).setStartHeaderAction(Action.BACK).build())
             .setSingleList(listBuilder.build())
             .build()
     }

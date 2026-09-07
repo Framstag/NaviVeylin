@@ -11,6 +11,7 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
 import com.framstag.libosmscout.client.PoiEntry
+import com.naviveylin.R
 import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
@@ -24,10 +25,13 @@ import com.naviveylin.data.ViewportState
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
+import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.ui.route.RoutePanelViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
+import java.util.Locale
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -38,9 +42,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -71,6 +77,8 @@ data class MapCanvasUiState(
     val searchQuery: String = "",
     val searchResults: List<LocationEntry> = emptyList(),
     val isSearching: Boolean = false,
+    /** Signal for the screen to open the search panel (shared-location query). */
+    val openSearchPanel: Boolean = false,
     /** Name of the resolved admin region scoping the search, null when unscoped. */
     val searchAdminRegionName: String? = null,
     val selectedLocation: LocationEntry? = null,
@@ -113,10 +121,14 @@ data class MapCanvasUiState(
     val canvasOverrun: Double = MapRenderer.DEFAULT_CANVAS_OVERRUN,
     val followMode: Boolean = false,
     val autoZoomEnabled: Boolean = true,
+    /** True while auto-zoom is suspended by a user zoom gesture; drives the re-center
+     *  button so the driver sees that auto zoom stopped and can re-engage it. */
+    val autoZoomPaused: Boolean = false,
     val freeFormNorthUp: Boolean = true,
     val navNorthUp: Boolean = false,
     val keepScreenOn: Boolean = true,
     val darkModePreference: DarkModePreference = DarkModePreference.AUTOMATIC,
+    val ambientLightDarkMode: Boolean = false,
     val isDarkPresentation: Boolean = false,
     val gpsFixQuality: GpsFixQuality = GpsFixQuality.NONE,
     val laneHintsEnabled: Boolean = true,
@@ -132,7 +144,7 @@ data class MapCanvasUiState(
     /** Marker position for the overlay: nav-filtered in routing mode, raw GPS otherwise; NaN when unavailable. */
     val gpsMarkerLat: Double = Double.NaN,
     val gpsMarkerLon: Double = Double.NaN,
-    /** Marker arrow bearing in degrees (freshest direction signal); < 0 = north-up arrow. */
+    /** Marker arrow bearing in degrees (freshest direction signal); < 0 = bearing unavailable (arrow points north). */
     val gpsMarkerBearing: Double = Double.NaN,
     /** GPS horizontal accuracy in meters for the accuracy circle; <= 0 = no circle. */
     val gpsMarkerAccuracy: Double = 0.0,
@@ -152,6 +164,7 @@ class MapCanvasViewModel @Inject constructor(
     private val searchHistoryRepository: SearchHistoryRepository,
     private val locationService: LocationService,
     private val darkModeController: DarkModeController,
+    private val sharedLocationHandler: SharedLocationHandler,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -194,6 +207,16 @@ class MapCanvasViewModel @Inject constructor(
      */
     internal val osmscoutClient: OSMScoutClient get() = client
     private var currentMapKey: String? = null
+
+    /**
+     * True once [initMap] has applied the persisted viewport restore to
+     * [_uiState]. [saveViewport] no-ops until then, so a lifecycle save
+     * during the restore window (initMap suspended at the viewport load)
+     * can never overwrite the previously persisted viewport with the
+     * uninitialized default (spec: viewport-persist, "Pause during restore
+     * does not clobber").
+     */
+    private var viewportRestored = false
     private val epoch = AtomicLong(0)
 
     // Screen dimensions for zoom computation
@@ -241,6 +264,12 @@ class MapCanvasViewModel @Inject constructor(
     // Auto-zoom state
     private var lastValidSpeedKmH: Double = 20.0
     private var autoZoomSuspended: Boolean = false
+
+    /** Keep the internal suspension flag and its uiState mirror in sync. */
+    private fun setAutoZoomSuspended(suspended: Boolean) {
+        autoZoomSuspended = suspended
+        _uiState.value = _uiState.value.copy(autoZoomPaused = suspended)
+    }
     private var lastSpeedBandIndex: Int = -1
     private var currentTargetMag: Double = 15.0
 
@@ -422,10 +451,21 @@ class MapCanvasViewModel @Inject constructor(
         darkModeController.setEnvironmentDark(dark)
     }
 
+    /** Feed the ambient light sensor classification (null = inactive). */
+    fun setSensorDark(dark: Boolean?) {
+        darkModeController.setSensorDark(dark)
+    }
+
     /** Set the dark mode preference (On / Off / Automatic); persists via controller. */
     fun onSetDarkModePreference(preference: DarkModePreference) {
         darkModeController.setPreference(preference)
         _uiState.value = _uiState.value.copy(darkModePreference = preference)
+    }
+
+    /** Toggle the ambient light sensor option; persists via controller. */
+    fun onSetAmbientLightOption(enabled: Boolean) {
+        darkModeController.setSensorOption(enabled)
+        _uiState.value = _uiState.value.copy(ambientLightDarkMode = enabled)
     }
 
     /**
@@ -492,7 +532,7 @@ class MapCanvasViewModel @Inject constructor(
         }
         if (enabled) {
             // Reset suspension state so zoom adjusts immediately
-            autoZoomSuspended = false
+            setAutoZoomSuspended(false)
             lastSpeedBandIndex = -1
         }
     }
@@ -500,9 +540,21 @@ class MapCanvasViewModel @Inject constructor(
     // Search query flow — debounced and collected for location search
     private val _searchQueryFlow = MutableStateFlow("")
 
+    /** Set once the map database is open and the renderer is ready. */
+    private val mapReady = MutableStateFlow(false)
+
     init {
         viewModelScope.launch { searchHistoryRepository.load() }
         refreshAddressBookAvailability()
+
+        // Shared locations (share sheet / deep links): process when the map
+        // screen is up. Coordinates go through the candidate flow; address text
+        // opens the search panel with the query filled.
+        viewModelScope.launch {
+            sharedLocationHandler.request.collect { request ->
+                if (request != null) processSharedLocation(request)
+            }
+        }
 
         @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
         viewModelScope.launch {
@@ -687,12 +739,14 @@ class MapCanvasViewModel @Inject constructor(
                 // along the new driving direction immediately after a turn, while the
                 // map rotation uses the smoothed value and rotates at its own pace.
                 val markerBearingRaw = if (!fix.markerBearing.isNaN()) fix.markerBearing else lastUsedBearing
-                val markerBearing = if (!isNorthUp && !markerBearingRaw.isNaN()) markerBearingRaw else -1.0
+                // Orientation mode must NOT influence the arrow: north-up is a map-rotation
+                // choice, not a bearing-availability state (spec: gps-location-marker).
+                val markerBearing = computeMarkerBearing(isNorthUp, markerBearingRaw)
                 // Feed the marker state to the renderer (snapshotted into the next render
                 // job) AND to the overlay state directly — the overlay must show the latest
                 // fix immediately, not wait for the next rendered frame.
                 updateMarkerState(followMarkerLat, followMarkerLon, markerBearing, accuracy)
-                val smoothedAngle = if (!isNorthUp && !effectiveBearing.isNaN()) normalizeAngle(-Math.toRadians(effectiveBearing)) else Double.NaN
+                val smoothedAngle = if (!isNorthUp && !effectiveBearing.isNaN()) computeMapAngle(isNorthUp, effectiveBearing) else Double.NaN
                 val renderedAngle = normalizeAngle(mapRenderer?.renderedAngle ?: _uiState.value.viewport.angle)
                 val angle = if (!isNorthUp && !smoothedAngle.isNaN()) {
                     val deltaDeg = Math.toDegrees(normalizeAngle(smoothedAngle - renderedAngle))
@@ -774,7 +828,7 @@ class MapCanvasViewModel @Inject constructor(
                     val currentBand = SpeedZoomTable.bandIndex(filteredSpeed)
 
                     if (autoZoomSuspended && currentBand != lastSpeedBandIndex) {
-                        autoZoomSuspended = false
+                        setAutoZoomSuspended(false)
                     }
 
                     if (!autoZoomSuspended) {
@@ -842,6 +896,7 @@ class MapCanvasViewModel @Inject constructor(
         viewModelScope.launch {
             val settings = settingsStorage.load()
             darkModeController.restorePreference(settings.darkMode)
+            darkModeController.restoreSensorOption(settings.ambientLightDarkMode)
             _uiState.value = _uiState.value.copy(
                 followMode = settings.followMode,
                 autoZoomEnabled = settings.autoZoomEnabled,
@@ -849,6 +904,7 @@ class MapCanvasViewModel @Inject constructor(
                 navNorthUp = settings.navNorthUp,
                 keepScreenOn = settings.keepScreenOn,
                 darkModePreference = settings.darkMode,
+                ambientLightDarkMode = settings.ambientLightDarkMode,
                 laneHintsEnabled = settings.laneHintsEnabled,
                 renderMode = settings.renderMode,
                 styleSheet = settings.styleSheet
@@ -896,10 +952,17 @@ class MapCanvasViewModel @Inject constructor(
      * for the given GPS fix. Exposed internal for unit testing.
      */
     internal fun searchAdminRegionHandleForFix(fix: GpsFix?): Long {
-        if (fix == null ||
-            System.currentTimeMillis() - fix.time > GPS_FIX_FRESHNESS_MS ||
-            fix.accuracy > GPS_FIX_MAX_ACCURACY_M
-        ) {
+        // No age cap: the admin region containing a position only changes when
+        // the position moves significantly (ADMIN_REGION_MOVEMENT_THRESHOLD_M),
+        // so the last known position is valid for scoping the search however
+        // old the fix is (e.g. at home all day). A fresh fix showing real
+        // movement re-resolves via the movement threshold below.
+        if (fix == null || fix.accuracy > GPS_FIX_MAX_ACCURACY_M) {
+            Log.d(
+                TAG,
+                "searchAdminRegionHandleForFix: fix unusable (null=${fix == null}, " +
+                    "accuracy=${fix?.accuracy})"
+            )
             releaseSearchAdminRegion()
             return 0L
         }
@@ -928,12 +991,21 @@ class MapCanvasViewModel @Inject constructor(
             searchAdminRegionLat = lat
             searchAdminRegionLon = lon
             searchAdminRegionName = try {
-                val name = client.getAdminRegionName(searchAdminRegionHandle)
-                Log.d(TAG, "getAdminRegionName(handle=${searchAdminRegionHandle}) -> '$name'")
-                name
+                // Show the search scope region (the parent when sibling
+                // expansion applies), not just the resolved region. Fall
+                // back to the resolved region name if the scope lookup
+                // fails (e.g. stale native library).
+                val scopeName = client.getAdminRegionScopeName(searchAdminRegionHandle)
+                Log.d(TAG, "getAdminRegionScopeName(handle=${searchAdminRegionHandle}) -> '$scopeName'")
+                scopeName ?: client.getAdminRegionName(searchAdminRegionHandle)
             } catch (e: Exception) {
-                Log.e(TAG, "getAdminRegionName failed", e)
-                null
+                Log.e(TAG, "getAdminRegionScopeName failed", e)
+                try {
+                    client.getAdminRegionName(searchAdminRegionHandle)
+                } catch (e2: Exception) {
+                    Log.e(TAG, "getAdminRegionName failed", e2)
+                    null
+                }
             }
         }
         pushSearchAdminRegionState()
@@ -981,13 +1053,6 @@ class MapCanvasViewModel @Inject constructor(
         smoothedCenterLat = smoothedCenterLat * (1.0 - centerSmoothAlpha) + newLat * centerSmoothAlpha
         smoothedCenterLon = smoothedCenterLon * (1.0 - centerSmoothAlpha) + newLon * centerSmoothAlpha
         return Pair(smoothedCenterLat, smoothedCenterLon)
-    }
-
-    private fun normalizeAngle(rad: Double): Double {
-        var r = rad
-        while (r <= -Math.PI) r += 2.0 * Math.PI
-        while (r > Math.PI) r -= 2.0 * Math.PI
-        return r
     }
 
     /** Compare two angles in radians, tolerating wrap-around and floating-point noise. */
@@ -1049,6 +1114,9 @@ class MapCanvasViewModel @Inject constructor(
     fun initMap(mapPath: String) {
         Log.d(TAG, "initMap: initialising with path=$mapPath")
         currentMapKey = mapPath.substringAfterLast('/')
+        // Re-arm the save guard: until the persisted viewport restore is
+        // applied below, a lifecycle save must not write the default viewport.
+        viewportRestored = false
 
         // Tear down any previous renderer so a re-entry (MAIN screen after
         // map downloads) initialises cleanly instead of stacking renderers.
@@ -1084,6 +1152,7 @@ class MapCanvasViewModel @Inject constructor(
 
             if (!opened) {
                 Log.e(TAG, "initMap: failed to open database at $mapPath")
+                mapReady.value = true
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Could not open map database"
@@ -1116,6 +1185,38 @@ class MapCanvasViewModel @Inject constructor(
             val favPath = context.filesDir.resolve(FAVORITES_FILE).absolutePath
             favoriteRepository.init(favPath)
 
+            // Load persisted viewport for this map; fall back to the map's
+            // bounding box center, then to the global default. Done BEFORE the
+            // renderer exists: during this suspension mapRenderer is still null,
+            // so an early setScreenSize/renderMap cannot submit a render with the
+            // uninitialized default viewport (which would clobber the restore).
+            val saved = viewportStorage.load(currentMapKey ?: mapPath)
+            val bbox = try {
+                client.getDatabaseBoundingBox(mapPath)
+            } catch (e: Exception) {
+                Log.w(TAG, "initMap: bounding box lookup failed", e)
+                null
+            }
+            val default = ViewportState()
+            val restored = saved ?: if (bbox != null && bbox.size >= 4) {
+                ViewportState(
+                    centerLat = (bbox[0] + bbox[2]) / 2.0,
+                    centerLon = (bbox[1] + bbox[3]) / 2.0,
+                    magnification = default.magnification
+                )
+            } else {
+                default
+            }
+            // A persisted world-zoom viewport (mag < 4) renders the whole globe in
+            // native and can hang the render worker — clamp the restore to the same
+            // floor the gesture/zoom controls enforce (specs: min magnification 4).
+            val vp = restored.copy(magnification = restored.magnification.coerceIn(MIN_MAG, MAX_MAG))
+            Log.d(
+                TAG,
+                "initMap: viewport lat=${vp.centerLat}, lon=${vp.centerLon}, mag=${vp.magnification} " +
+                    (if (saved != null) "(saved)" else if (bbox != null) "(bbox)" else "(default)")
+            )
+
             // Create MapRenderer on a dedicated background scope so heavy JNI renders
             // never block the main thread and the UI stays responsive.
             val rendererScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -1128,6 +1229,15 @@ class MapCanvasViewModel @Inject constructor(
             renderer.screenWidth = screenWidth
             renderer.screenHeight = screenHeight
             mapRenderer = renderer
+
+            // Apply the restored viewport BEFORE wiring the view-change listener:
+            // the listener persists every completed render, and an early render
+            // with the uninitialized default viewport would overwrite the restored
+            // center on disk (observed: viewport-<map>.json with center dropped).
+            _uiState.value = _uiState.value.copy(viewport = vp, isLoading = false)
+            // The restore is now visible to saveViewport — lifecycle saves may
+            // persist from here on.
+            viewportRestored = true
 
             // Wire frame emissions to UI state. Each frame carries bitmap + viewport +
             // marker snapshot as ONE atomic emission, so the overlay never sees state
@@ -1166,36 +1276,6 @@ class MapCanvasViewModel @Inject constructor(
                 }
             })
 
-            // Load persisted viewport for this map; fall back to the map's
-            // bounding box center, then to the global default
-            val saved = viewportStorage.load(currentMapKey ?: mapPath)
-            val bbox = try {
-                client.getDatabaseBoundingBox(mapPath)
-            } catch (e: Exception) {
-                Log.w(TAG, "initMap: bounding box lookup failed", e)
-                null
-            }
-            val default = ViewportState()
-            val restored = saved ?: if (bbox != null && bbox.size >= 4) {
-                ViewportState(
-                    centerLat = (bbox[0] + bbox[2]) / 2.0,
-                    centerLon = (bbox[1] + bbox[3]) / 2.0,
-                    magnification = default.magnification
-                )
-            } else {
-                default
-            }
-            // A persisted world-zoom viewport (mag < 4) renders the whole globe in
-            // native and can hang the render worker — clamp the restore to the same
-            // floor the gesture/zoom controls enforce (specs: min magnification 4).
-            val vp = restored.copy(magnification = restored.magnification.coerceIn(MIN_MAG, MAX_MAG))
-            Log.d(
-                TAG,
-                "initMap: viewport lat=${vp.centerLat}, lon=${vp.centerLon}, mag=${vp.magnification} " +
-                    (if (saved != null) "(saved)" else if (bbox != null) "(bbox)" else "(default)")
-            )
-            _uiState.value = _uiState.value.copy(viewport = vp, isLoading = false)
-
             // Set initial favorites on renderer
             val favs = favoriteRepository.favorites.value
             val allFavs = mutableListOf<com.framstag.libosmscout.client.FavoriteLocation>()
@@ -1225,6 +1305,7 @@ class MapCanvasViewModel @Inject constructor(
 
             Log.d(TAG, "initMap: triggering first render")
             renderer.requestRender(vp.centerLat, vp.centerLon, vp.magnification)
+            mapReady.value = true
         }
     }
 
@@ -1616,9 +1697,33 @@ class MapCanvasViewModel @Inject constructor(
             "LONGPRESS",
             "lat=$lat lon=$lon mag=${_uiState.value.viewport.magnification}"
         )
+        showCandidatesFor(
+            lat = lat,
+            lon = lon,
+            zoom = _uiState.value.viewport.magnification.roundToInt(),
+            label = context.getString(R.string.coordinates_format, lat, lon)
+        )
+    }
+
+    /**
+     * Shared candidate flow for a coordinate: query the map database for
+     * objects near the point and show the picker, or fall back to the raw
+     * coordinate entry. Used by long-press and shared-location processing.
+     *
+     * @param openDetailsOnNoCandidates when no objects are found, open the
+     *   details sheet on the raw coordinate instead of showing only the marker
+     *   (share flow; long-press keeps the marker-only behavior).
+     */
+    private fun showCandidatesFor(
+        lat: Double,
+        lon: Double,
+        zoom: Int,
+        label: String,
+        openDetailsOnNoCandidates: Boolean = false
+    ) {
         viewModelScope.launch {
             val entry = LocationEntry().apply {
-                this.label = "%.5f, %.5f".format(lat, lon)
+                this.label = label
                 this.lat = lat
                 this.lon = lon
                 this.matchQuality = "coordinate"
@@ -1630,7 +1735,7 @@ class MapCanvasViewModel @Inject constructor(
             )
             val candidates = withContext(defaultDispatcher) {
                 try {
-                    client.getDescriptionCandidates(lat, lon, _uiState.value.viewport.magnification.roundToInt())
+                    client.getDescriptionCandidates(lat, lon, zoom)
                 } catch (e: Exception) {
                     Log.e(TAG, "getDescriptionCandidates failed", e)
                     emptyList<ObjectDescription>()
@@ -1646,18 +1751,56 @@ class MapCanvasViewModel @Inject constructor(
                     detailsFromPoiSearch = false
                 )
             } else {
-                // No objects at the press point: keep the coordinate entry, no picker.
+                // No objects at the point: keep the coordinate entry, no picker.
                 _uiState.value = _uiState.value.copy(
                     candidateDescriptions = emptyList(),
                     showCandidatePicker = false,
                     objectDescription = null,
                     isLoading = false,
-                    showDetailsSheet = false,
+                    showDetailsSheet = openDetailsOnNoCandidates,
                     detailsFromPoiSearch = false
                 )
             }
             renderMap()
         }
+    }
+
+    /**
+     * Process a shared location: wait for the map to be ready, then dispatch.
+     * Coordinates go through the candidate flow (fixed high zoom, details on
+     * the raw coordinate when nothing is found); address text opens the search
+     * panel with the query filled.
+     */
+    private suspend fun processSharedLocation(request: SharedLocationRequest) {
+        // Candidate lookup and search need the map database open.
+        mapReady.first { it }
+        sharedLocationHandler.consume()
+
+        if (request.hasCoordinates) {
+            val lat = request.lat!!
+            val lon = request.lon!!
+            Log.d(TAG, "Shared location: coordinate $lat,$lon label=${request.label}")
+            updateCenter(lat, lon)
+            showCandidatesFor(
+                lat = lat,
+                lon = lon,
+                zoom = SHARE_CANDIDATE_ZOOM,
+                label = request.label ?: String.format(Locale.US, "%.5f, %.5f", lat, lon),
+                openDetailsOnNoCandidates = true
+            )
+        } else {
+            val query = request.query
+            if (!query.isNullOrBlank()) {
+                Log.d(TAG, "Shared location: query '$query'")
+                onSearchQueryChanged(query)
+                _uiState.value = _uiState.value.copy(openSearchPanel = true)
+            }
+        }
+    }
+
+    /** Clear the open-search-panel signal after the screen consumed it. */
+    fun consumeSearchPanelSignal() {
+        _uiState.value = _uiState.value.copy(openSearchPanel = false)
     }
 
     /**
@@ -1718,21 +1861,25 @@ class MapCanvasViewModel @Inject constructor(
     fun setRoutePanelViewModel(vm: RoutePanelViewModel) {
         _routePanelViewModel = vm
 
-        // Collect route results for map rendering
+        // Collect route results for map rendering. The route is drawn only
+        // while routeVisible is true: stopping navigation hides the route
+        // without resetting the panel state (spec: stop-navigation-hides-route),
+        // and restarting navigation (showRouteOnMap) re-emits via combine.
         viewModelScope.launch {
-            vm.routeResultFlow.collect { result ->
-                if (result != null) {
-                    mapRenderer?.setRoute(
-                        result.routeLats, result.routeLons,
-                        result.startLat, result.startLon,
-                        result.destLat, result.destLon
-                    )
-                    // Store route geometry for curve detection
-                    routeLats = result.routeLats
-                    routeLons = result.routeLons
-                    renderMap()
+            combine(vm.routeResultFlow, vm.routeVisible) { result, visible -> result to visible }
+                .collect { (result, visible) ->
+                    if (result != null && visible) {
+                        mapRenderer?.setRoute(
+                            result.routeLats, result.routeLons,
+                            result.startLat, result.startLon,
+                            result.destLat, result.destLon
+                        )
+                        // Store route geometry for curve detection
+                        routeLats = result.routeLats
+                        routeLons = result.routeLons
+                        renderMap()
+                    }
                 }
-            }
         }
 
         // Collect clear route signals
@@ -1754,7 +1901,7 @@ class MapCanvasViewModel @Inject constructor(
             val loc = locationService.location.value
             if (loc != null) {
                 val currentLoc = LocationEntry().apply {
-                    label = "Current Location"
+                    label = context.getString(R.string.current_location)
                     lat = loc.lat
                     lon = loc.lon
                     matchQuality = "coordinate"
@@ -1868,7 +2015,7 @@ class MapCanvasViewModel @Inject constructor(
         }
         if (enabled) {
             // Reset auto-zoom state for fresh navigation start
-            autoZoomSuspended = false
+            setAutoZoomSuspended(false)
             lastSpeedBandIndex = -1
             currentTargetMag = 15.0
             pendingZoomTarget = 15.0
@@ -1888,7 +2035,7 @@ class MapCanvasViewModel @Inject constructor(
                 val isNavigating = _navigationViewModel?.state?.value?.isNavigating == true
                 val isNorthUp = if (isNavigating) _uiState.value.navNorthUp else _uiState.value.freeFormNorthUp
                 val angle = if (!isNorthUp && !loc.markerBearing.isNaN()) {
-                    -Math.toRadians(loc.markerBearing)
+                    computeMapAngle(isNorthUp, loc.markerBearing)
                 } else 0.0
 
                 _uiState.value = _uiState.value.copy(
@@ -2073,7 +2220,7 @@ class MapCanvasViewModel @Inject constructor(
     fun selectCurrentLocation() {
         val loc = locationService.location.value ?: return
         val entry = LocationEntry().apply {
-            label = "Current Location"
+            label = context.getString(R.string.current_location)
             lat = loc.lat
             lon = loc.lon
             matchQuality = "coordinate"
@@ -2172,7 +2319,7 @@ class MapCanvasViewModel @Inject constructor(
         )
         // Detect user-initiated zoom → suspend auto-zoom
         if (_uiState.value.autoZoomEnabled && !autoZoomSuspended) {
-            autoZoomSuspended = true
+            setAutoZoomSuspended(true)
             val navVm = _navigationViewModel
             val rawSpeed = navVm?.state?.value?.currentSpeedKmH ?: Double.NaN
             lastSpeedBandIndex = if (!rawSpeed.isNaN() && rawSpeed >= 0) SpeedZoomTable.bandIndex(filterSpeed(rawSpeed)) else -1
@@ -2205,6 +2352,15 @@ class MapCanvasViewModel @Inject constructor(
 
     /** Persist current viewport to disk. */
     fun saveViewport() {
+        // No-op until initMap has applied the persisted viewport restore:
+        // saving during the restore window would overwrite the previously
+        // persisted viewport with the uninitialized default (the isValid()
+        // guard in ViewportStorage passes — the default center is
+        // valid-looking).
+        if (!viewportRestored) {
+            Log.d(TAG, "saveViewport: skipped, viewport restore not yet applied")
+            return
+        }
         viewModelScope.launch {
             viewportStorage.save(currentMapKey ?: "default", _uiState.value.viewport)
         }
@@ -2221,6 +2377,16 @@ class MapCanvasViewModel @Inject constructor(
         viewModelScope.cancel()
     }
 
+    /**
+     * Test hook: inject a renderer without opening a map database, so the
+     * route-visibility collectors (setRoutePanelViewModel) can be exercised
+     * deterministically on the test scheduler.
+     */
+    @VisibleForTesting
+    internal fun setMapRendererForTest(renderer: MapRenderer?) {
+        mapRenderer = renderer
+    }
+
     override fun onCleared() {
         releaseSearchAdminRegion()
         super.onCleared()
@@ -2229,8 +2395,22 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     companion object {
+        /**
+         * Re-center button visibility: the viewport is no longer auto-driven when
+         * follow mode is off, or when auto-zoom is suspended during navigation
+         * (pinch/button zoom leaves follow mode on but stops auto zoom).
+         */
+        internal fun shouldShowReCenterButton(
+            followMode: Boolean,
+            autoZoomPaused: Boolean,
+            isNavigating: Boolean
+        ): Boolean = !followMode || (autoZoomPaused && isNavigating)
+
         private const val TAG = "MapCanvasVM"
         private const val FAVORITES_FILE = "favorites.json"
+
+        /** Fixed high zoom for shared-location candidate lookup (street level). */
+        private const val SHARE_CANDIDATE_ZOOM = 16
         private const val GPS_FIX_FRESHNESS_MS = 5_000L
         private const val GPS_FIX_MAX_ACCURACY_M = 50f
 
@@ -2331,3 +2511,32 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 }
+
+/** Normalize an angle in radians to [-π, π]. */
+internal fun normalizeAngle(rad: Double): Double {
+    var r = rad
+    while (r <= -Math.PI) r += 2.0 * Math.PI
+    while (r > Math.PI) r -= 2.0 * Math.PI
+    return r
+}
+
+/**
+ * Marker arrow bearing in degrees for the GPS overlay.
+ *
+ * The arrow SHALL point in the direction of travel whenever a bearing is
+ * available, regardless of the map orientation mode (spec: gps-location-marker).
+ * [isNorthUp] is intentionally unused — it exists so callers and tests document
+ * that orientation mode must NOT influence the arrow. Returns -1.0 (the
+ * "bearing unavailable" sentinel, arrow points north) only for NaN input.
+ */
+internal fun computeMarkerBearing(isNorthUp: Boolean, rawBearing: Double): Double =
+    if (!rawBearing.isNaN()) rawBearing else -1.0
+
+/**
+ * Map rotation angle in radians for the given orientation mode.
+ *
+ * North-up keeps the map at 0° regardless of bearing; follow-direction rotates
+ * the map so the bearing points up (spec: compass-settings).
+ */
+internal fun computeMapAngle(isNorthUp: Boolean, bearing: Double): Double =
+    if (isNorthUp) 0.0 else normalizeAngle(-Math.toRadians(bearing))

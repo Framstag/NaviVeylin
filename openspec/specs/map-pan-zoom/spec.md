@@ -51,6 +51,7 @@ The system SHALL support two-finger pinch to zoom the map viewport with a
 continuous (fractional) magnification commit.
 
 - Pinch zoom SHALL use `ProjectionUtils.zoomAtCursor()` to keep the geographic point under the pinch center fixed
+- During the gesture, the live visual transform SHALL keep the geographic point under the pinch focal point at the same screen pixel — the visual zoom anchor SHALL be the pinch centroid, not the screen center
 - The gesture zoom factor SHALL be applied visually during the drag as a scaled placeholder from the current front buffer, using the placeholder scale factor and anchor origin of the gesture
 - On zoom change, the system SHALL immediately display a scaled placeholder from the current front buffer using the exact placeholder scale factor and anchor origin described above
 - The epoch SHALL be incremented on zoom change to discard stale renders
@@ -74,6 +75,13 @@ continuous (fractional) magnification commit.
 - **THEN** at gesture end the committed magnification is 16 + log2(0.4) ≈ 14.68
 - **THEN** the geographic point under the pinch center stays fixed
 - **THEN** a full native render is triggered at the fractional magnification
+
+#### Scenario: Pinch zoom anchored at an off-center building
+
+- **GIVEN** the user places two fingers centered on a visible building that is not at the screen center
+- **WHEN** the fingers spread apart to zoom in
+- **THEN** the building SHALL remain at the same screen pixel under the fingers for the whole gesture (the visual anchor is the pinch centroid, not the screen center)
+- **THEN** at gesture end the building SHALL still be at the same screen pixel after the committed render
 
 #### Scenario: Pinch past the maximum magnification
 

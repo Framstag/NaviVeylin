@@ -11,6 +11,7 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
+import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -53,6 +54,7 @@ class MapCanvasViewModelDarkModeTest {
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
             darkModeController = controller,
+            sharedLocationHandler = SharedLocationHandler(),
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -107,5 +109,40 @@ class MapCanvasViewModelDarkModeTest {
         viewModel.setEnvironmentDark(false)
         viewModel.onSetDarkModePreference(DarkModePreference.ON)
         assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)
+    }
+
+    @Test
+    fun sensorWinsWhenOptionEnabled() = runTest(mainDispatcherRule.dispatcher) {
+        // System light, sensor dark, option on -> dark presentation.
+        viewModel.setEnvironmentDark(false)
+        viewModel.onSetAmbientLightOption(true)
+        viewModel.setSensorDark(true)
+        assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)
+        assertTrue(client.styleFlags.any { it.first == "daylight" && !it.second })
+    }
+
+    @Test
+    fun sensorIgnoredWhenOptionDisabled() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.setEnvironmentDark(false)
+        viewModel.setSensorDark(true)
+        // Option off -> sensor classification ignored, system signal wins.
+        assertFalse(viewModel.uiState.first { !it.isDarkPresentation }.isDarkPresentation)
+    }
+
+    @Test
+    fun sensorInactiveFallsBackToSystem() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.setEnvironmentDark(true)
+        viewModel.onSetAmbientLightOption(true)
+        // Sensor reports null (inactive/unavailable) -> system signal wins.
+        viewModel.setSensorDark(null)
+        assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)
+    }
+
+    @Test
+    fun ambientOptionPersistsInUiState() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.onSetAmbientLightOption(true)
+        assertTrue(viewModel.uiState.value.ambientLightDarkMode)
+        viewModel.onSetAmbientLightOption(false)
+        assertFalse(viewModel.uiState.value.ambientLightDarkMode)
     }
 }

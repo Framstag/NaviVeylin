@@ -59,4 +59,22 @@ class FreeDrivingScreenTest {
         // ~0.55 m in 10 s — below the 1 m trust threshold.
         assertNull(FreeDrivingScreen.movementSpeedKmH(51.0, 7.0, 51.000005, 7.0, 10_000L))
     }
+
+    // ── autoZoomTarget (spec: auto/map-pan — auto-zoom suspended while
+    // panned; design D2 — same gate as NavigationScreen) ──
+
+    @Test
+    fun panningSuppressesAutoZoomFeed() {
+        // A suspended controller re-engages on a speed-band crossing
+        // (highway speed fed from a city band) — the panning gate must
+        // return null regardless, mirroring NavigationScreen.
+        val controller = AutoZoomController()
+        controller.onSpeed(45.0) // city band
+        controller.suspend()
+        assertNull(
+            FreeDrivingScreen.autoZoomTarget(
+                panning = true, autoZoomEnabled = true, speedKmH = 100.0, controller = controller
+            )
+        )
+    }
 }

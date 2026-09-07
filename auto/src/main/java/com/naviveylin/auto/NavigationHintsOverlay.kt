@@ -27,13 +27,6 @@ object NavigationHintsOverlay {
     private const val TIP = 0.82f // arrow tip
     private const val HH = 0.10f  // arrowhead half-width
 
-    /** Format a distance in meters like the phone overlay (e.g. "1.2 km", "350 m"), rounded. */
-    fun formatDistance(meters: Double): String {
-        val rounded = NavigationTemplateMapper.roundDistanceMeters(meters)
-        return if (rounded >= 1000) "%.1f km".format(rounded / 1000)
-        else "%.0f m".format(rounded)
-    }
-
     // ── Turn symbol dispatch (port of NavigationArrowRenderer.drawTurnArrow) ──
 
     fun drawTurnSymbol(

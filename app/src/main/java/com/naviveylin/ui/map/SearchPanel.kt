@@ -39,8 +39,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.LocationEntry
+import com.naviveylin.R
 import com.naviveylin.util.formatDistanceKm
 import com.naviveylin.util.haversineDistanceMeters
 
@@ -95,7 +97,7 @@ fun SearchPanel(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Searching in $adminRegionName",
+                        text = stringResource(R.string.searching_in_region, adminRegionName),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -115,7 +117,7 @@ fun SearchPanel(
                             focusRequester.requestFocus()
                         }
                     },
-                placeholder = { Text("Search location...") },
+                placeholder = { Text(stringResource(R.string.search_location_placeholder)) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -127,7 +129,7 @@ fun SearchPanel(
                         IconButton(onClick = { onQueryChanged("") }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Clear search"
+                                contentDescription = stringResource(R.string.clear_search)
                             )
                         }
                     }
@@ -157,7 +159,7 @@ fun SearchPanel(
                             modifier = Modifier.padding(end = 12.dp)
                         )
                         Text(
-                            text = "Current Location",
+                            text = stringResource(R.string.current_location),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -178,7 +180,7 @@ fun SearchPanel(
                         modifier = Modifier.padding(end = 12.dp)
                     )
                     Text(
-                        text = "Select Favorite",
+                        text = stringResource(R.string.select_favorite),
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -198,7 +200,7 @@ fun SearchPanel(
                         modifier = Modifier.padding(end = 12.dp)
                     )
                     Text(
-                        text = "Select from history",
+                        text = stringResource(R.string.select_from_history),
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -217,7 +219,7 @@ fun SearchPanel(
 
                 results.isEmpty() && query.length >= 2 -> {
                     Text(
-                        text = "No results found",
+                        text = stringResource(R.string.no_results_found),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp)
@@ -308,9 +310,14 @@ private fun SearchResultItem(
 }
 
 /** Distance from the map center to a result as a km string, or null when not computable. */
+@Composable
 private fun distanceFromCenter(entry: LocationEntry, centerLat: Double, centerLon: Double): String? {
     val meters = haversineDistanceMeters(centerLat, centerLon, entry.lat, entry.lon)
-    return if (meters.isFinite()) formatDistanceKm(meters) else null
+    return if (meters.isFinite()) {
+        stringResource(R.string.distance_unit_km, formatDistanceKm(meters))
+    } else {
+        null
+    }
 }
 
 internal fun buildDisambiguationDetail(entry: LocationEntry): String {

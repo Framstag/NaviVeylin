@@ -25,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class StartupScreensTest {
 
-    private val carContext = mockk<CarContext>()
+    private val carContext = testCarContext()
 
     @Before
     fun setUp() {
@@ -34,7 +34,7 @@ class StartupScreensTest {
 
     @Test
     fun errorTemplateContainsMessage() {
-        val template = SafeScreen.errorTemplate("startup exploded") as PaneTemplate
+        val template = SafeScreen.errorTemplate(testCarContext(), "startup exploded") as PaneTemplate
         assertEquals("Error", template.pane.rows[0].title.toString())
         assertTrue(template.pane.rows[0].texts.first().toString().contains("startup exploded"))
     }
@@ -49,7 +49,7 @@ class StartupScreensTest {
 
     @Test
     fun safeScreenReturnsDelegateTemplateOnSuccess() {
-        val screen = SafeScreen(carContext) { SafeScreen.errorTemplate("ok") }
+        val screen = SafeScreen(carContext) { SafeScreen.errorTemplate(carContext, "ok") }
         val template = screen.onGetTemplate() as PaneTemplate
         assertTrue(template.pane.rows[0].texts.first().toString().contains("ok"))
     }

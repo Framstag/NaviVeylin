@@ -9,6 +9,7 @@ import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.SectionedItemList
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
@@ -69,7 +70,7 @@ class FavoritesScreen(
         if (!loaded) {
             builder.setSingleList(
                 ItemList.Builder()
-                    .addItem(Row.Builder().setTitle("Loading...").build())
+                    .addItem(Row.Builder().setTitle(carContext.getString(R.string.loading)).build())
                     .build()
             )
         } else if (favoritesData.isEmpty()) {
@@ -77,8 +78,8 @@ class FavoritesScreen(
                 ItemList.Builder()
                     .addItem(
                         Row.Builder()
-                            .setTitle("No favorites saved")
-                            .addText("Save favorites from the map to see them here")
+                            .setTitle(carContext.getString(R.string.no_favorites_saved))
+                            .addText(carContext.getString(R.string.favorites_save_hint))
                             .build()
                     )
                     .build()
@@ -118,8 +119,8 @@ class FavoritesScreen(
                     ItemList.Builder()
                         .addItem(
                             Row.Builder()
-                                .setTitle("No starred favorites")
-                                .addText("Star favorites from the map to see them here")
+                                .setTitle(carContext.getString(R.string.no_starred_favorites))
+                                .addText(carContext.getString(R.string.starred_hint))
                                 .build()
                         )
                         .build()

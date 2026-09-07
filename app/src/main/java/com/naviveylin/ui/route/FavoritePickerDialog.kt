@@ -24,9 +24,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.LocationEntry
+import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,7 +54,7 @@ fun FavoritePickerDialog(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Select Favorite",
+                text = stringResource(R.string.select_favorite),
                 style = MaterialTheme.typography.titleLarge
             )
 
@@ -60,7 +62,7 @@ fun FavoritePickerDialog(
 
             if (favorites.isEmpty()) {
                 Text(
-                    text = "No favorites yet",
+                    text = stringResource(R.string.no_favorites_yet),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)

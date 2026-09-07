@@ -21,7 +21,7 @@ class MapTemplateFactoryTest {
 
     private val noop: () -> Unit = {}
 
-    private fun menuContent(): ListTemplate = MapTemplateFactory.buildMenuContent(noop, noop, noop, noop, noop, noop, noop)
+    private fun menuContent(): ListTemplate = MapTemplateFactory.buildMenuContent(testCarContext(), noop, noop, noop, noop, noop, noop, noop)
 
     private fun controller(): MapController = MapController.Builder().build()
 
@@ -107,6 +107,7 @@ class MapTemplateFactoryTest {
         // constraint as MapScreenTest; the wiring seam is this callback).
         var clicked = false
         val content = MapTemplateFactory.buildMenuContent(
+            testCarContext(),
             onFreeDriving = { clicked = true },
             onStarredFavorites = noop,
             onAllFavorites = noop,

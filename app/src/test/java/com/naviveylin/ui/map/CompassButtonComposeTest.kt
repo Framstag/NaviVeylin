@@ -5,7 +5,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,5 +61,27 @@ class CompassButtonComposeTest {
 
         assertEquals("long press must trigger onToggleOrientation", 1, toggleClicks)
         assertEquals("long press must not trigger onCenterClick", 0, centerClicks)
+    }
+
+    @Test
+    fun buttonLargerThanOtherOverlayButtons() {
+        // Spec: compass-button — the compass is 56dp layout / 48dp visual,
+        // larger than the other overlay buttons (48dp / 40dp).
+        composeRule.setContent {
+            CompassButton(
+                isNorthUp = true,
+                mapAngleRadians = 0.0,
+                gpsFixQuality = GpsFixQuality.GOOD,
+                onCenterClick = {},
+                onToggleOrientation = {}
+            )
+        }
+        val layoutPx = with(composeRule.density) { 56.dp.toPx() }
+        val size = composeRule.onNodeWithContentDescription("Compass")
+            .fetchSemanticsNode().size
+        assertTrue(
+            "compass layout must be >= 56dp (was ${size.width}px / ${size.height}px)",
+            size.width >= layoutPx - 1f && size.height >= layoutPx - 1f
+        )
     }
 }

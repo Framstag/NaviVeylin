@@ -16,6 +16,7 @@ class AppSettingsTest {
         assertTrue(settings.freeFormNorthUp)
         assertFalse(settings.navNorthUp)
         assertEquals(DarkModePreference.AUTOMATIC, settings.darkMode)
+        assertFalse(settings.ambientLightDarkMode)
     }
 
     @Test
@@ -46,6 +47,15 @@ class AppSettingsTest {
         assertTrue(decoded.freeFormNorthUp) // default
         assertFalse(decoded.navNorthUp)     // default
         assertEquals(DarkModePreference.AUTOMATIC, decoded.darkMode) // default
+        assertFalse(decoded.ambientLightDarkMode) // default
+    }
+
+    @Test
+    fun ambientLightOptionRoundTrip() {
+        val settings = AppSettings(ambientLightDarkMode = true)
+        val encoded = json.encodeToString(AppSettings.serializer(), settings)
+        val decoded = json.decodeFromString(AppSettings.serializer(), encoded)
+        assertTrue(decoded.ambientLightDarkMode)
     }
 
     @Test

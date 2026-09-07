@@ -6,6 +6,7 @@ import androidx.car.app.navigation.model.TravelEstimate
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.stringResolver
 import java.util.Date
 import java.time.ZonedDateTime
 import java.time.ZoneId
@@ -26,12 +27,13 @@ import org.robolectric.RobolectricTestRunner
 class NavigationTemplateFactoryTest {
 
     private val routeList = NavigationScreenActions.routeListAction {}
-    private val stop = NavigationScreenActions.stopAction {}
     private val zoomIn = NavigationScreenActions.zoomInAction {}
     private val zoomOut = NavigationScreenActions.zoomOutAction {}
 
+    // Navigation map action strip: route-description action only — no stop
+    // (the host ETA card stop button is the single stop affordance, spec:
+    // auto/navigation-view "Leave navigation at any time") and no back.
     private val leftStrip = androidx.car.app.model.ActionStrip.Builder()
-        .addAction(stop)
         .addAction(routeList)
         .build()
 
@@ -51,10 +53,10 @@ class NavigationTemplateFactoryTest {
             isNavigating = true, travelEstimate = estimate,
             mapActionStrip = leftStrip, actionStrip = rightStrip
         )
-        // Map action strip: icon-only stop (X) + route-description actions —
-        // no BACK (spec: auto/navigation-view "Leave navigation at any time"
-        // — stop action + system back, no back button).
-        assertEquals(2, template.mapActionStrip!!.actions.size)
+        // Map action strip: route-description action only — no stop (the
+        // host ETA card stop button is the single stop affordance) and no
+        // BACK (spec: auto/navigation-view "Leave navigation at any time").
+        assertEquals(1, template.mapActionStrip!!.actions.size)
         assertTrue(template.mapActionStrip!!.actions.all { it.title == null })
         val titles = template.actionStrip!!.actions.map { it.title.toString() }
         assertEquals(listOf("+", "-"), titles)
@@ -94,7 +96,8 @@ class NavigationTemplateFactoryTest {
             isNavigating = true, travelEstimate = estimate,
             mapActionStrip = leftStrip, actionStrip = rightStrip,
             routingInfo = NavigationTemplateMapper.routingInfoFromState(
-                state, ManeuverGlyphs::forTurnType, includeLanes = false
+                state, ManeuverGlyphs::forTurnType, includeLanes = false,
+                resolver = testCarContext().stringResolver()
             )
         )
         val info = template.navigationInfo as? androidx.car.app.navigation.model.RoutingInfo
@@ -115,5 +118,29 @@ class NavigationTemplateFactoryTest {
     fun zoomActionsAreNotParkedOnly() {
         assertTrue(zoomIn.onClickDelegate?.isParkedOnly != true)
         assertTrue(zoomOut.onClickDelegate?.isParkedOnly != true)
+    }
+
+    @Test
+    fun panModeListenerForwarded() {
+        // The host pan affordance (spec: auto/map-pan): the listener is
+        // wrapped in a PanModeDelegate on the built template.
+        val listener = object : androidx.car.app.navigation.model.PanModeListener {
+            override fun onPanModeChanged(panMode: Boolean) {}
+        }
+        val template = NavigationTemplateFactory.buildNavigationTemplate(
+            isNavigating = true, travelEstimate = estimate,
+            mapActionStrip = leftStrip, actionStrip = rightStrip,
+            panModeListener = listener
+        )
+        assertNotNull("pan mode delegate must be set", template.panModeDelegate)
+    }
+
+    @Test
+    fun panModeListenerNullByDefault() {
+        val template = NavigationTemplateFactory.buildNavigationTemplate(
+            isNavigating = true, travelEstimate = estimate,
+            mapActionStrip = leftStrip, actionStrip = rightStrip
+        )
+        assertNull("pan mode delegate must be null by default", template.panModeDelegate)
     }
 }

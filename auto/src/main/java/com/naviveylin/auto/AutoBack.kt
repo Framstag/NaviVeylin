@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import com.naviveylin.auto.R
 import androidx.activity.OnBackPressedCallback
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
@@ -34,6 +35,6 @@ fun Screen.enableBackNavigation() {
  * header actions do not.)
  */
 fun Screen.backAction(): Action = Action.Builder()
-    .setTitle("Back")
+    .setTitle(carContext.getString(R.string.back))
     .setOnClickListener { screenManager.pop() }
     .build()

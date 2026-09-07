@@ -144,6 +144,43 @@ object ProjectionUtils {
     }
 
     /**
+     * Compute the new map center after a combined rotate+zoom gesture anchored
+     * at a focal point (the finger midpoint — spec map-rotation-gesture:
+     * Rotation anchored at the finger midpoint).
+     *
+     * The committed viewport must equal the pre-gesture viewport transformed by
+     * the gesture: rotate by [rotationDelta] and scale by `2^(newMag − oldMag)`
+     * around the focal point. The geographic point that ends up at the screen
+     * center is the one that was at screen position
+     * `p = M + (1/s)·R(−Δ)·(C − M)` before the gesture, so the new center is
+     * `screenToGeoRotated(p)` with the pre-gesture viewport. Reduces exactly to
+     * [zoomAtCursor] when [rotationDelta] = 0.
+     */
+    fun rotateZoomAtFocalPoint(
+        focalX: Double, focalY: Double,
+        oldMag: Double, newMag: Double,
+        rotationDelta: Double,
+        viewW: Double, viewH: Double,
+        centerLat: Double, centerLon: Double,
+        angle: Double, dpi: Double
+    ): Pair<Double, Double> {
+        val s = 2.0.pow(newMag - oldMag)
+        val cx = viewW / 2.0
+        val cy = viewH / 2.0
+        val cosD = cos(rotationDelta)
+        val sinD = sin(rotationDelta)
+        // Inverse gesture transform: the screen point that lands on the screen
+        // center after rotating by Δ and scaling by s around the focal point.
+        // R(−Δ) in screen coords (y down): [cosΔ, sinΔ; −sinΔ, cosΔ].
+        val dx = cx - focalX
+        val dy = cy - focalY
+        val px = focalX + (cosD * dx + sinD * dy) / s
+        val py = focalY + (-sinD * dx + cosD * dy) / s
+        return viewport(centerLat, centerLon, oldMag, viewW.toInt(), viewH.toInt(), dpi, angle)
+            .screenToGeoRotated(px, py)
+    }
+
+    /**
      * Compute the on-screen bearing of a direction arrow on a rotated map.
      */
     fun screenBearing(rawBearingDegrees: Double, mapAngleRadians: Double): Double {

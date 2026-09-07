@@ -27,10 +27,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.framstag.libosmscout.client.BasemapManager
+import com.naviveylin.R
 
 /**
  * World basemap section for the map manager screen: status, download/update,
@@ -41,6 +44,7 @@ fun BasemapSection(
     viewModel: BasemapViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val runWithNotificationPermission = rememberNotificationPermissionLauncher()
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
@@ -54,7 +58,7 @@ fun BasemapSection(
                 modifier = Modifier.padding(end = 8.dp)
             )
             Text(
-                text = "World Basemap",
+                text = stringResource(R.string.world_basemap),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -71,7 +75,7 @@ fun BasemapSection(
             state.isDownloading -> {
                 // Download in progress
                 Text(
-                    text = "Downloading… ${state.progress}%",
+                    text = stringResource(R.string.downloading_progress, state.progress),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -85,7 +89,7 @@ fun BasemapSection(
                         modifier = Modifier.weight(1f).height(6.dp)
                     )
                     TextButton(onClick = { viewModel.cancel() }) {
-                        Text("Cancel", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -103,7 +107,7 @@ fun BasemapSection(
                         modifier = Modifier.weight(1f)
                     )
                     TextButton(onClick = { viewModel.dismissError() }) {
-                        Text("OK", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.ok), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -117,33 +121,33 @@ fun BasemapSection(
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Installed",
+                        contentDescription = stringResource(R.string.installed),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(end = 8.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Installed (${installedInfo!!.sizeHuman})",
+                            text = stringResource(R.string.installed_with_size, installedInfo!!.sizeHuman),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "${installedInfo!!.fileCount} files",
+                            text = pluralStringResource(R.plurals.file_count, installedInfo!!.fileCount, installedInfo!!.fileCount),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     if (state.updateAvailable) {
                         Button(onClick = { viewModel.update() }) {
-                            Text("Update")
+                            Text(stringResource(R.string.update))
                         }
                     }
                     OutlinedButton(onClick = { viewModel.delete() }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete basemap",
+                            contentDescription = stringResource(R.string.delete_basemap),
                             modifier = Modifier.width(16.dp).height(16.dp)
                         )
-                        Text("Delete")
+                        Text(stringResource(R.string.delete))
                     }
                 }
             }
@@ -152,7 +156,7 @@ fun BasemapSection(
                 // Available on server, not installed: download (variant selection)
                 if (state.variants.size > 1) {
                     Text(
-                        text = "Available on server — choose a variant:",
+                        text = stringResource(R.string.basemap_variant_prompt),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -166,13 +170,13 @@ fun BasemapSection(
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f)
                             )
-                            Button(onClick = { viewModel.download(archive) }) {
+                            Button(onClick = { runWithNotificationPermission { viewModel.download(archive) } }) {
                                 Icon(
                                     imageVector = Icons.Default.CloudDownload,
                                     contentDescription = null,
                                     modifier = Modifier.width(16.dp).height(16.dp)
                                 )
-                                Text("Download")
+                                Text(stringResource(R.string.download))
                             }
                         }
                     }
@@ -188,13 +192,13 @@ fun BasemapSection(
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f)
                             )
-                            Button(onClick = { viewModel.download(archive) }) {
+                            Button(onClick = { runWithNotificationPermission { viewModel.download(archive) } }) {
                                 Icon(
                                     imageVector = Icons.Default.CloudDownload,
                                     contentDescription = null,
                                     modifier = Modifier.width(16.dp).height(16.dp)
                                 )
-                                Text("Download Basemap")
+                                Text(stringResource(R.string.download_basemap))
                             }
                         }
                     }
@@ -204,7 +208,7 @@ fun BasemapSection(
             state.availability == BasemapAvailability.Unavailable -> {
                 // Optional: no error shown, just subtle status
                 Text(
-                    text = "Basemap unavailable",
+                    text = stringResource(R.string.basemap_unavailable),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -12,6 +12,17 @@ data class ViewportState(
     /** Map rotation in radians, matching the native `MercatorProjection::Set` angle convention. */
     val angle: Double = DEFAULT_ANGLE
 ) {
+    /**
+     * True when the state holds renderable coordinates: no NaN/infinity, lat/lon
+     * within Mercator-valid ranges, positive finite magnification, finite angle.
+     * Used to reject uninitialized viewports before persisting them.
+     */
+    fun isValid(): Boolean =
+        centerLat.isFinite() && centerLon.isFinite() &&
+            centerLat in -90.0..90.0 && centerLon in -180.0..180.0 &&
+            magnification.isFinite() && magnification > 0.0 &&
+            angle.isFinite()
+
     companion object {
         /** Default center: Dortmund, Germany. */
         const val DEFAULT_LAT = 51.5136

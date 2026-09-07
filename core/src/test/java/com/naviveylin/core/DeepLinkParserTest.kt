@@ -1,4 +1,4 @@
-package com.naviveylin.auto
+package com.naviveylin.core
 
 import android.content.Intent
 import android.net.Uri
@@ -244,5 +244,115 @@ class DeepLinkParserTest {
         assertTrue(coords!!.hasCoordinates)
         val query = DeepLinkParser.parseUri("geo:0,0?q=Berlin")
         assertTrue(!query!!.hasCoordinates)
+    }
+
+    // --- OSM URLs ---
+
+    @Test
+    fun osmUrl_mlatMlon() {
+        val dest = DeepLinkParser.parseUri("https://www.openstreetmap.org/?mlat=48.8566&mlon=2.3522")
+        assertEquals(48.8566, dest!!.lat!!, 1e-6)
+        assertEquals(2.3522, dest!!.lon!!, 1e-6)
+        assertTrue(dest.hasCoordinates)
+    }
+
+    @Test
+    fun osmUrl_mapHash() {
+        val dest = DeepLinkParser.parseUri("https://www.openstreetmap.org/#map=16/48.8566/2.3522")
+        assertEquals(48.8566, dest!!.lat!!, 1e-6)
+        assertEquals(2.3522, dest!!.lon!!, 1e-6)
+    }
+
+    @Test
+    fun osmUrl_shortHost() {
+        val dest = DeepLinkParser.parseUri("https://osm.org/#map=16/48.8566/2.3522")
+        assertEquals(48.8566, dest!!.lat!!, 1e-6)
+        assertEquals(2.3522, dest!!.lon!!, 1e-6)
+    }
+
+    @Test
+    fun osmUrl_invalidCoords() {
+        assertNull(DeepLinkParser.parseUri("https://www.openstreetmap.org/?mlat=abc&mlon=2.3522"))
+        assertNull(DeepLinkParser.parseUri("https://www.openstreetmap.org/#map=16/91/2.3522"))
+    }
+
+    // --- Apple / Waze URLs ---
+
+    @Test
+    fun appleMapsUrl_ll() {
+        val dest = DeepLinkParser.parseUri("https://maps.apple.com/?ll=48.8566,2.3522&q=Eiffel%20Tower")
+        assertEquals(48.8566, dest!!.lat!!, 1e-6)
+        assertEquals(2.3522, dest!!.lon!!, 1e-6)
+    }
+
+    @Test
+    fun wazeUrl_ll() {
+        val dest = DeepLinkParser.parseUri("https://waze.com/ul?ll=48.8566,2.3522&navigate=yes")
+        assertEquals(48.8566, dest!!.lat!!, 1e-6)
+        assertEquals(2.3522, dest!!.lon!!, 1e-6)
+    }
+
+    // --- DMS / hemisphere text ---
+
+    @Test
+    fun dmsText() {
+        val dest = DeepLinkParser.parseUri("geo:0,0?q=48%C2%B051'23.8%22N%202%C2%B021'8.0%22E")
+        // 48°51'23.8"N 2°21'8.0"E
+        assertEquals(48.8566, dest!!.lat!!, 1e-3)
+        assertEquals(2.3522, dest!!.lon!!, 1e-3)
+    }
+
+    @Test
+    fun dmsText_plain() {
+        val (lat, lon, _) = DeepLinkParser.extractCoordinatesFromQuery("48°51'23.8\"N 2°21'8.0\"E")
+        assertEquals(48.8566, lat!!, 1e-3)
+        assertEquals(2.3522, lon!!, 1e-3)
+    }
+
+    @Test
+    fun dmsText_southernWestern() {
+        val (lat, lon, _) = DeepLinkParser.extractCoordinatesFromQuery("33°51'41.0\"S 151°12'40.9\"E")
+        assertEquals(-33.8614, lat!!, 1e-3)
+        assertEquals(151.2114, lon!!, 1e-3)
+    }
+
+    @Test
+    fun hemisphereText() {
+        val (lat, lon, _) = DeepLinkParser.extractCoordinatesFromQuery("48.8566N 2.3522E")
+        assertEquals(48.8566, lat!!, 1e-6)
+        assertEquals(2.3522, lon!!, 1e-6)
+    }
+
+    @Test
+    fun hemisphereText_southernWestern() {
+        val (lat, lon, _) = DeepLinkParser.extractCoordinatesFromQuery("33.8614S 151.2114W")
+        assertEquals(-33.8614, lat!!, 1e-6)
+        assertEquals(-151.2114, lon!!, 1e-6)
+    }
+
+    // --- short-link resolution ---
+
+    @Test
+    fun shortLink_resolved() {
+        val resolver: (String) -> String? = { "https://maps.google.com/?q=48.8566,2.3522" }
+        val dest = DeepLinkParser.parseUri("https://maps.app.goo.gl/abc123", resolver)
+        assertEquals(48.8566, dest!!.lat!!, 1e-6)
+        assertEquals(2.3522, dest!!.lon!!, 1e-6)
+    }
+
+    @Test
+    fun shortLink_unresolvable() {
+        val resolver: (String) -> String? = { null }
+        val dest = DeepLinkParser.parseUri("https://maps.app.goo.gl/abc123", resolver)
+        assertNull(dest!!.lat)
+        assertNull(dest.lon)
+        assertEquals("https://maps.app.goo.gl/abc123", dest.query)
+    }
+
+    @Test
+    fun shortLink_noResolver_defaultsToQuery() {
+        val dest = DeepLinkParser.parseUri("https://maps.app.goo.gl/abc123")
+        assertNull(dest!!.lat)
+        assertEquals("https://maps.app.goo.gl/abc123", dest.query)
     }
 }

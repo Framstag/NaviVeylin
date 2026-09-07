@@ -396,6 +396,31 @@ private fun ResultList(
     }
 }
 
+/**
+ * Primary text for a POI result row (spec: poi-search — POI results list):
+ * the name with the brand (preferred) or operator in parentheses when it
+ * differs; the brand or operator alone when there is no name; "(unnamed)"
+ * only when name, operator, and brand are all absent.
+ */
+private fun poiDisplayLabel(entry: PoiEntry): String {
+    val name = entry.label
+    val brand = entry.brand
+    val operator = entry.operator
+    return when {
+        name.isNotEmpty() -> {
+            val extra = when {
+                !brand.isNullOrEmpty() && brand != name -> brand
+                !operator.isNullOrEmpty() && operator != name -> operator
+                else -> null
+            }
+            if (extra != null) "$name ($extra)" else name
+        }
+        !brand.isNullOrEmpty() -> brand
+        !operator.isNullOrEmpty() -> operator
+        else -> "(unnamed)"
+    }
+}
+
 @Composable
 private fun PoiResultItem(
     entry: PoiEntry,
@@ -410,17 +435,21 @@ private fun PoiResultItem(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = entry.label.ifEmpty { "(unnamed)" },
+                text = poiDisplayLabel(entry),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = "${entry.objectType} · ${formatDistanceKm(entry.distance)}",
+                text = stringResource(
+                    R.string.poi_result_format,
+                    entry.objectType,
+                    stringResource(R.string.distance_unit_km, formatDistanceKm(entry.distance))
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Text(
-            text = formatDistanceKm(entry.distance),
+            text = stringResource(R.string.distance_unit_km, formatDistanceKm(entry.distance)),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 8.dp)

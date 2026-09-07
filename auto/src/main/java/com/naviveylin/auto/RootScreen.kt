@@ -11,6 +11,7 @@ import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.core.content.ContextCompat
+import com.naviveylin.auto.R
 import com.naviveylin.core.NavigationViewModel
 
 /**
@@ -35,29 +36,29 @@ class RootScreen(
         val listBuilder = ItemList.Builder()
             .addItem(
                 Row.Builder()
-                    .setTitle("Map")
-                    .addText("Browse the map")
+                    .setTitle(carContext.getString(R.string.map))
+                    .addText(carContext.getString(R.string.browse_map))
                     .setOnClickListener { onMap() }
                     .build()
             )
             .addItem(
                 Row.Builder()
-                    .setTitle("Search")
-                    .addText("Find a destination")
+                    .setTitle(carContext.getString(R.string.search))
+                    .addText(carContext.getString(R.string.find_destination))
                     .setOnClickListener { onSearch() }
                     .build()
             )
             .addItem(
                 Row.Builder()
-                    .setTitle("Points of interest")
-                    .addText("Hotels, restaurants, fuel, ATMs nearby")
+                    .setTitle(carContext.getString(R.string.points_of_interest))
+                    .addText(carContext.getString(R.string.poi_subtitle))
                     .setOnClickListener { onPoiSearch() }
                     .build()
             )
             .addItem(
                 Row.Builder()
-                    .setTitle("Favorites")
-                    .addText("Browse saved locations")
+                    .setTitle(carContext.getString(R.string.favorites))
+                    .addText(carContext.getString(R.string.browse_saved_locations))
                     .setOnClickListener { onFavorites() }
                     .build()
             )
@@ -67,8 +68,8 @@ class RootScreen(
         if (hasAddressBookPermission()) {
             listBuilder.addItem(
                 Row.Builder()
-                    .setTitle("Address book")
-                    .addText("Search contacts with addresses")
+                    .setTitle(carContext.getString(R.string.address_book))
+                    .addText(carContext.getString(R.string.search_contacts))
                     .setOnClickListener { onAddressBook() }
                     .build()
             )
@@ -77,22 +78,22 @@ class RootScreen(
         listBuilder
             .addItem(
                 Row.Builder()
-                    .setTitle("Preferences")
-                    .addText("Adjust navigation settings")
+                    .setTitle(carContext.getString(R.string.preferences))
+                    .addText(carContext.getString(R.string.adjust_nav_settings))
                     .setOnClickListener { onPreferences() }
                     .build()
             )
             .addItem(
                 Row.Builder()
-                    .setTitle("Diagnostics")
-                    .addText("View crash and session logs")
+                    .setTitle(carContext.getString(R.string.diagnostics))
+                    .addText(carContext.getString(R.string.view_crash_logs))
                     .setOnClickListener { onDiagnostics() }
                     .build()
             )
             .addItem(
                 Row.Builder()
-                    .setTitle("About")
-                    .addText("App information")
+                    .setTitle(carContext.getString(R.string.about))
+                    .addText(carContext.getString(R.string.app_information))
                     .setOnClickListener { onAbout() }
                     .build()
             )
@@ -100,7 +101,7 @@ class RootScreen(
         return ListTemplate.Builder()
             .setHeader(
                 Header.Builder()
-                    .setTitle("NaviVeylin")
+                    .setTitle(carContext.getString(R.string.app_name))
                     .setStartHeaderAction(Action.BACK)
                     .build()
             )

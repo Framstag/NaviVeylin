@@ -5,6 +5,7 @@ import com.naviveylin.core.BundledMapStyles
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -76,5 +77,48 @@ class LocationOptionsOverlayComposeTest {
         composeRule.onNodeWithText("winter-sports").performScrollTo().performClick()
 
         assertEquals("winter-sports", selected)
+    }
+
+    @Test
+    fun ambientLightToggleRendersAndReports() {
+        var option: Boolean? = null
+        composeRule.setContent {
+            LocationOptionsOverlay(
+                followMode = false,
+                onToggleFollowMode = {},
+                ambientLightDarkMode = false,
+                onSetAmbientLightOption = { option = it }
+            )
+        }
+        composeRule.onNodeWithContentDescription("Location options").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Adaptive by ambient light")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("ambientLightToggle")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(true, option)
+    }
+
+    @Test
+    fun ambientLightToggleReflectsState() {
+        composeRule.setContent {
+            LocationOptionsOverlay(
+                followMode = false,
+                onToggleFollowMode = {},
+                ambientLightDarkMode = true,
+                onSetAmbientLightOption = {}
+            )
+        }
+        composeRule.onNodeWithContentDescription("Location options").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Adaptive by ambient light")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 }

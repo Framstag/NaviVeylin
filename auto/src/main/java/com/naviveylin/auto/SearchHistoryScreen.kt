@@ -7,6 +7,7 @@ import androidx.car.app.model.Header
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
@@ -48,12 +49,12 @@ class SearchHistoryScreen(
         val itemList = ItemList.Builder()
         val list = entries
         if (list == null) {
-            itemList.addItem(Row.Builder().setTitle("Loading...").build())
+            itemList.addItem(Row.Builder().setTitle(carContext.getString(R.string.loading)).build())
         } else if (list.isEmpty()) {
             itemList.addItem(
                 Row.Builder()
-                    .setTitle("No search history")
-                    .addText("Search for places from the map to build up history")
+                    .setTitle(carContext.getString(R.string.no_search_history))
+                    .addText(carContext.getString(R.string.search_history_hint))
                     .build()
             )
         } else {
@@ -70,7 +71,7 @@ class SearchHistoryScreen(
         return ListTemplate.Builder()
             .setHeader(
                 Header.Builder()
-                    .setTitle("Search history")
+                    .setTitle(carContext.getString(R.string.search_history))
                     .setStartHeaderAction(Action.BACK)
                     .build()
             )

@@ -13,6 +13,7 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
+import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
@@ -62,6 +63,7 @@ class PoiSearchViewModelTest {
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = locationService,
             darkModeController = DarkModeController(SettingsStorage(context)),
+            sharedLocationHandler = SharedLocationHandler(),
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -324,7 +326,8 @@ class PoiSearchViewModelTest {
             client = client,
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
-            locationService = LocationService(context)
+            locationService = LocationService(context),
+            context = context
         ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
         viewModel.setRoutePanelViewModel(routeVm)
 

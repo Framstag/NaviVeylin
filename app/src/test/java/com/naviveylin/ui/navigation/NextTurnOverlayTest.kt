@@ -1,59 +1,117 @@
 package com.naviveylin.ui.navigation
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
+import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.TurnType
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+/**
+ * Verifies the next-turn overlay renders driver-seat readable text sizes
+ * (spec: next-turn-overlay — Driver-seat readable font sizes): distance
+ * >= 32sp, description/destination >= 22sp, next-next >= 20sp and smaller
+ * than the primary instruction.
+ */
+@RunWith(RobolectricTestRunner::class)
 class NextTurnOverlayTest {
 
-    @Test
-    fun `splitInstruction uses shortDescription as generic and streetName as destination`() {
-        val lines = splitInstruction(
-            description = "Turn left into Hauptstrasse",
-            shortDescription = "Turn left",
-            streetName = "Hauptstrasse"
-        )
-        assertEquals("Turn left", lines.generic)
-        assertEquals("Hauptstrasse", lines.destination)
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    private val instruction = RouteInstruction(
+        450.0,
+        300.0,
+        TurnType.LEFT,
+        "Hauptstraße",
+        "Turn left into Hauptstraße",
+        "Turn left",
+        100.0,
+        TurnType.RIGHT,
+        "Turn right into Bahnhofstraße",
+        "Turn right"
+    )
+
+    private fun styleFontSize(capture: () -> Unit): Float {
+        var style: TextStyle? = null
+        composeRule.setContent {
+            capture()
+            style = nextTurnDistanceStyle()
+        }
+        composeRule.waitForIdle()
+        assertNotNull(style)
+        return style!!.fontSize.value
     }
 
     @Test
-    fun `splitInstruction extracts destination from description when streetName empty`() {
-        val lines = splitInstruction(
-            description = "Take exit 3 onto A1",
-            shortDescription = "Exit 3"
-        )
-        assertEquals("Exit 3", lines.generic)
-        assertEquals("A1", lines.destination)
+    fun overlayRendersInstruction() {
+        composeRule.setContent { NextTurnOverlay(instruction = instruction) }
+        composeRule.onNodeWithText("450 m").assertIsDisplayed()
+        composeRule.onNodeWithText("Turn left").assertIsDisplayed()
+        composeRule.onNodeWithText("100 m").assertIsDisplayed()
     }
 
     @Test
-    fun `splitInstruction returns single line when no destination`() {
-        val lines = splitInstruction(
-            description = "Enter roundabout",
-            shortDescription = "Roundabout"
-        )
-        assertEquals("Roundabout", lines.generic)
-        assertNull(lines.destination)
+    fun distanceAtLeast32sp() {
+        var style: TextStyle? = null
+        composeRule.setContent { style = nextTurnDistanceStyle() }
+        composeRule.waitForIdle()
+        assertNotNull(style)
+        val size = style!!.fontSize.value
+        assertTrue("distance must be >= 32sp (was $size)", size >= 32f)
     }
 
     @Test
-    fun `splitInstruction falls back to full description when shortDescription blank`() {
-        val lines = splitInstruction(
-            description = "Destination reached",
-            shortDescription = ""
-        )
-        assertEquals("Destination reached", lines.generic)
-        assertNull(lines.destination)
+    fun descriptionAtLeast22sp() {
+        var style: TextStyle? = null
+        composeRule.setContent { style = nextTurnDescriptionStyle() }
+        composeRule.waitForIdle()
+        assertNotNull(style)
+        val size = style!!.fontSize.value
+        assertTrue("description must be >= 22sp (was $size)", size >= 22f)
     }
 
     @Test
-    fun `splitInstruction handles onto marker`() {
-        val lines = splitInstruction(
-            description = "Merge onto A100",
-            shortDescription = "Merge"
+    fun nextNextAtLeast20spAndSmallerThanPrimary() {
+        var distance: TextStyle? = null
+        var nextNext: TextStyle? = null
+        composeRule.setContent {
+            distance = nextTurnDistanceStyle()
+            nextNext = nextTurnNextNextStyle()
+        }
+        composeRule.waitForIdle()
+        assertNotNull(distance)
+        assertNotNull(nextNext)
+        val nextNextSize = nextNext!!.fontSize.value
+        assertTrue("next-next must be >= 20sp (was $nextNextSize)", nextNextSize >= 20f)
+        assertTrue(
+            "next-next must stay smaller than the primary instruction",
+            nextNextSize < distance!!.fontSize.value
         )
-        assertEquals("Merge", lines.generic)
-        assertEquals("A100", lines.destination)
+    }
+
+    @Test
+    fun iconsAtLeast64And36dp() {
+        composeRule.setContent { NextTurnOverlay(instruction = instruction) }
+        val mainPx = with(composeRule.density) { 64.dp.toPx() }
+        val nextNextPx = with(composeRule.density) { 36.dp.toPx() }
+        val main = composeRule.onNodeWithTag("nextTurnArrow").fetchSemanticsNode().size
+        val nextNext = composeRule.onNodeWithTag("nextTurnNextNextArrow").fetchSemanticsNode().size
+        assertTrue(
+            "turn icon must be >= 64dp (was ${main.width}px)",
+            main.width >= mainPx - 1f && main.height >= mainPx - 1f
+        )
+        assertTrue(
+            "next-next icon must be >= 36dp (was ${nextNext.width}px)",
+            nextNext.width >= nextNextPx - 1f && nextNext.height >= nextNextPx - 1f
+        )
     }
 }

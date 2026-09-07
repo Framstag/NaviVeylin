@@ -5,10 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -23,6 +26,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.naviveylin.R
+import com.naviveylin.core.distanceUsesKilometers
+import com.naviveylin.core.formatDistanceNumber
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +46,8 @@ fun NavigationStateOverlay(
     remainingDistance: Double,
     etaMillis: Long,
     currentRoadInfo: CurrentRoadInfo? = null,
+    distanceProgressPercent: Int? = null,
+    timeProgressPercent: Int? = null,
     isRerouting: Boolean = false,
     isOffRoute: Boolean = false,
     onStopNavigation: () -> Unit = {},
@@ -83,6 +93,27 @@ fun NavigationStateOverlay(
                         .fillMaxWidth()
                         .padding(bottom = 4.dp)
                 )
+
+                // Route progress lines — always visible during navigation
+                // (spec: navigation-status-details — "Route progress lines in
+                // routing status card"). Small, no labels, no percent values.
+                if (distanceProgressPercent != null && timeProgressPercent != null) {
+                    Column(Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+                        ProgressLine(
+                            icon = Icons.Default.Place,
+                            contentDescription = stringResource(R.string.distance),
+                            percent = distanceProgressPercent,
+                            modifier = Modifier.testTag("distanceProgressLine")
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        ProgressLine(
+                            icon = Icons.Default.Schedule,
+                            contentDescription = stringResource(R.string.remaining_time),
+                            percent = timeProgressPercent,
+                            modifier = Modifier.testTag("timeProgressLine")
+                        )
+                    }
+                }
 
                 // Stats row
                 NavigationStatsRow(
@@ -136,7 +167,7 @@ internal fun NavigationStatsRow(
         ) {
             Icon(
                 imageVector = Icons.Default.Schedule,
-                contentDescription = "ETA",
+                contentDescription = stringResource(R.string.eta),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp)
             )
@@ -156,7 +187,7 @@ internal fun NavigationStatsRow(
         ) {
             Icon(
                 imageVector = Icons.Default.Schedule,
-                contentDescription = "Remaining time",
+                contentDescription = stringResource(R.string.remaining_time),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp)
             )
@@ -174,12 +205,15 @@ internal fun NavigationStatsRow(
         ) {
             Icon(
                 imageVector = Icons.Default.Place,
-                contentDescription = "Distance",
+                contentDescription = stringResource(R.string.distance),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text = formatDistance(remainingDistance),
+                text = stringResource(
+                    if (distanceUsesKilometers(remainingDistance)) R.string.distance_unit_km else R.string.distance_unit_m,
+                    formatDistanceNumber(remainingDistance)
+                ),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -192,7 +226,7 @@ internal fun NavigationStatsRow(
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Stop navigation",
+                contentDescription = stringResource(R.string.stop_navigation),
                 tint = MaterialTheme.colorScheme.error
             )
         }
@@ -220,4 +254,50 @@ internal fun formatRemainingTime(etaMillis: Long): String {
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
     return if (hours > 0) "${hours}h ${minutes}min" else "${minutes} min"
+}
+
+/**
+ * One small progress line: a 16 dp icon for differentiation, then a thin track
+ * with a filled portion up to the current percent. No labels, no percent
+ * values (spec: navigation-status-details — "Route progress lines in routing
+ * status card").
+ */
+@Composable
+private fun ProgressLine(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    percent: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(3.dp)
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    RoundedCornerShape(1.5.dp)
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(percent / 100f)
+                    .height(3.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(1.5.dp)
+                    )
+            )
+        }
+    }
 }

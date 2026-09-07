@@ -1,4 +1,4 @@
-package com.naviveylin.auto
+package com.naviveylin.core
 
 import android.content.Intent
 import android.net.Uri
@@ -39,11 +39,15 @@ object DeepLinkParser {
 
     /**
      * Parse a deep-link [Intent]. Returns null when nothing usable is found.
+     *
+     * @param shortLinkResolver resolves a `maps.app.goo.gl` short link to its
+     *   target URL (network call, injected so the parser stays pure); when null
+     *   is returned the raw link text becomes the query.
      */
-    fun parse(intent: Intent?): DeepLinkDestination? {
+    fun parse(intent: Intent?, shortLinkResolver: (String) -> String? = { null }): DeepLinkDestination? {
         if (intent == null) return null
 
-        val fromUri = parseUri(intent.dataString ?: intent.data?.toString())
+        val fromUri = parseUri(intent.dataString ?: intent.data?.toString(), shortLinkResolver)
         if (fromUri != null) return fromUri
 
         // Share / assistant text: "48.8566, 2.3522" or an address
@@ -69,10 +73,13 @@ object DeepLinkParser {
     }
 
     /**
-     * Parse a URI string (geo, google maps URL, google.navigation).
+     * Parse a URI string (geo, google maps URL, google.navigation, OSM, Apple/Waze).
      * Pure function — unit-testable without Android.
+     *
+     * @param shortLinkResolver resolves a `maps.app.goo.gl` short link to its
+     *   target URL; when null is returned the raw link text becomes the query.
      */
-    fun parseUri(uriString: String?): DeepLinkDestination? {
+    fun parseUri(uriString: String?, shortLinkResolver: (String) -> String? = { null }): DeepLinkDestination? {
         if (uriString.isNullOrBlank()) return null
 
         val uri = try {
@@ -94,14 +101,58 @@ object DeepLinkParser {
                 fromFreeText(q)
             }
             scheme == "https" || scheme == "http" -> {
+                if (host == "maps.app.goo.gl") {
+                    // Direct payload (q=...) parses without resolution.
+                    parseMapsUrl(uri)?.let { return it }
+                    // Otherwise resolve the short link to its real target.
+                    val resolved = shortLinkResolver(uriString)
+                    if (resolved != null) return parseUri(resolved, shortLinkResolver)
+                    // Unresolvable: raw link text becomes the query.
+                    return DeepLinkDestination(null, null, uriString.trim())
+                }
                 val isMapsHost = host == "maps.google.com" || host == "www.google.com" ||
-                    host == "maps.app.goo.gl" || host == "google.com" ||
-                    (host?.contains("google") == true && path.contains("maps"))
+                    host == "google.com" ||
+                    (host?.contains("google") == true && path.contains("maps")) ||
+                    isOsmHost(host) ||
+                    host == "maps.apple.com" || host == "waze.com" || host == "www.waze.com" ||
+                    host == "share.here.com" || host == "here.com"
                 if (!isMapsHost) return null
+                if (isOsmHost(host)) {
+                    parseOsmUrl(uri)?.let { return it }
+                }
                 parseMapsUrl(uri)
             }
             else -> null
         }
+    }
+
+    private fun isOsmHost(host: String?): Boolean =
+        host == "www.openstreetmap.org" || host == "openstreetmap.org" || host == "osm.org"
+
+    /** OSM URLs: `?mlat=&mlon=` or `#map=zoom/lat/lon`. */
+    private fun parseOsmUrl(uri: Uri): DeepLinkDestination? {
+        val mlat = uri.getQueryParameter("mlat")
+        val mlon = uri.getQueryParameter("mlon")
+        if (mlat != null && mlon != null) {
+            val lat = mlat.toDoubleOrNull()
+            val lon = mlon.toDoubleOrNull()
+            if (lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                return DeepLinkDestination(lat, lon, null)
+            }
+        }
+        // #map=16/48.8566/2.3522
+        val fragment = uri.fragment
+        if (fragment != null && fragment.startsWith("map=")) {
+            val parts = fragment.removePrefix("map=").split("/")
+            if (parts.size >= 3) {
+                val lat = parts[1].toDoubleOrNull()
+                val lon = parts[2].toDoubleOrNull()
+                if (lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                    return DeepLinkDestination(lat, lon, null)
+                }
+            }
+        }
+        return null
     }
 
     private fun parseGeoUri(uri: Uri): DeepLinkDestination? {
@@ -132,6 +183,12 @@ object DeepLinkParser {
     }
 
     private fun parseMapsUrl(uri: Uri): DeepLinkDestination? {
+        // Apple Maps / Waze: ll=lat,lon carries the coordinates; q is the place name.
+        val ll = uri.getQueryParameter("ll")
+        if (!ll.isNullOrBlank()) {
+            val (lat, lon, label) = extractCoordinatesFromQuery(ll)
+            if (lat != null && lon != null) return DeepLinkDestination(lat, lon, label)
+        }
         // q=lat,lon | q=query | daddr=lat,lon | destination=lat,lon
         val q = uri.getQueryParameter("q")
         if (!q.isNullOrBlank()) {
@@ -173,6 +230,10 @@ object DeepLinkParser {
      */
     fun extractCoordinatesFromQuery(text: String?): Triple<Double?, Double?, String?> {
         if (text.isNullOrBlank()) return Triple(null, null, null)
+
+        // DMS (48°51'23.8"N 2°21'8.0"E) and hemisphere (48.8566N 2.3522E) forms
+        val dms = parseDmsOrHemisphere(text)
+        if (dms != null) return dms
 
         // Strip parenthesized label: "48.8566,2.3522(Label)"
         var candidate = text.trim()
@@ -222,6 +283,60 @@ object DeepLinkParser {
         if (lat !in -90.0..90.0 || lon !in -180.0..180.0) return null
         return lat to lon
     }
+
+    /**
+     * Parse DMS (48°51'23.8"N 2°21'8.0"E) and hemisphere (48.8566N 2.3522E)
+     * coordinate text. Returns null when neither form matches.
+     */
+    private fun parseDmsOrHemisphere(text: String): Triple<Double?, Double?, String?>? {
+        val trimmed = text.trim()
+
+        // DMS: 48°51'23.8"N 2°21'8.0"E  (seconds optional, quotes optional)
+        val dms = DMS_REGEX.matchEntire(trimmed)
+        if (dms != null) {
+            val lat = dmsToDecimal(
+                dms.groupValues[1].toDouble(),
+                dms.groupValues[2].toDouble(),
+                dms.groupValues[3].toDouble(),
+                dms.groupValues[4]
+            )
+            val lon = dmsToDecimal(
+                dms.groupValues[5].toDouble(),
+                dms.groupValues[6].toDouble(),
+                dms.groupValues[7].toDouble(),
+                dms.groupValues[8]
+            )
+            if (lat != null && lon != null) return Triple(lat, lon, null)
+        }
+
+        // Hemisphere: 48.8566N 2.3522E
+        val hem = HEMISPHERE_REGEX.matchEntire(trimmed)
+        if (hem != null) {
+            var lat = hem.groupValues[1].toDouble()
+            var lon = hem.groupValues[3].toDouble()
+            if (hem.groupValues[2] == "S") lat = -lat
+            if (hem.groupValues[4] == "W") lon = -lon
+            if (lat in -90.0..90.0 && lon in -180.0..180.0) return Triple(lat, lon, null)
+        }
+
+        return null
+    }
+
+    private fun dmsToDecimal(deg: Double, min: Double, sec: Double, hemi: String): Double? {
+        if (deg > 180.0 || min >= 60.0 || sec >= 60.0) return null
+        var value = deg + min / 60.0 + sec / 3600.0
+        if (hemi == "S" || hemi == "W") value = -value
+        return value
+    }
+
+    private val DMS_REGEX = Regex(
+        """(\d{1,3})°\s*(\d{1,2})'\s*(\d{1,2}(?:\.\d+)?)"?\s*([NS]),?\s*""" +
+            """(\d{1,3})°\s*(\d{1,2})'\s*(\d{1,2}(?:\.\d+)?)"?\s*([EW])"""
+    )
+
+    private val HEMISPHERE_REGEX = Regex(
+        """(-?\d{1,3}(?:\.\d+)?)\s*([NS]),?\s*(-?\d{1,3}(?:\.\d+)?)\s*([EW])"""
+    )
 
     private fun stripLabel(query: String): String? {
         val trimmed = query.trim()

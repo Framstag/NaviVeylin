@@ -17,8 +17,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.ObjectDescription
+import com.naviveylin.R
 
 /**
  * Bottom sheet listing all reasonable objects at a long-pressed coordinate,
@@ -50,7 +52,7 @@ fun CandidatePickerSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "What's here?",
+                text = stringResource(R.string.whats_here),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(vertical = 8.dp)
             )

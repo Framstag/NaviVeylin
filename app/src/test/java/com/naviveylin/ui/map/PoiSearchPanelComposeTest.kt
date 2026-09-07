@@ -52,6 +52,18 @@ class PoiSearchPanelComposeTest {
             lon = 7.4653
         }
 
+    private fun poiEntry(
+        label: String,
+        objectType: String,
+        distance: Double,
+        operator: String?,
+        brand: String?
+    ): PoiEntry =
+        poiEntry(label, objectType, distance).apply {
+            this.operator = operator
+            this.brand = brand
+        }
+
     private fun launchPanel(
         category: String? = null,
         results: List<PoiEntry> = emptyList(),
@@ -215,11 +227,11 @@ class PoiSearchPanelComposeTest {
         }
 
         composeRule.onNodeWithText("Hotel Central").performClick()
-        composeRule.onNodeWithText("Navigate to").performClick()
+        composeRule.onNodeWithText("Calculate route").performClick()
 
         assertTrue(routeInvoked)
         composeRule.onNodeWithText("Search POIs").assertDoesNotExist()
-        composeRule.onNodeWithText("Navigate to").assertDoesNotExist()
+        composeRule.onNodeWithText("Calculate route").assertDoesNotExist()
     }
 
     @Test
@@ -278,5 +290,114 @@ class PoiSearchPanelComposeTest {
         assertTrue(showInvoked)
         assertFalse(showPoi)
         composeRule.onNodeWithText("Search POIs").assertDoesNotExist()
+    }
+
+    // --- POI result label composition (spec: poi-search — POI results list) ---
+
+    @Test
+    fun resultLabelShowsNameAndBrand() {
+        val entry = poiEntry("Tankstelle", "amenity_fuel", 500.0, operator = "Shell GmbH", brand = "Shell")
+        launchPanel(category = PoiCategories.FUEL, results = listOf(entry))
+
+        composeRule.onNodeWithText("Tankstelle (Shell)").assertIsDisplayed()
+    }
+
+    @Test
+    fun resultLabelShowsNameAndOperatorWithoutBrand() {
+        val entry = poiEntry("Filiale Mitte", "amenity_atm", 300.0, operator = "Sparkasse", brand = null)
+        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+
+        composeRule.onNodeWithText("Filiale Mitte (Sparkasse)").assertIsDisplayed()
+    }
+
+    @Test
+    fun resultLabelPrefersBrandOverOperator() {
+        val entry = poiEntry("Tankstelle", "amenity_fuel", 500.0, operator = "Shell GmbH", brand = "Shell")
+        launchPanel(category = PoiCategories.FUEL, results = listOf(entry))
+
+        composeRule.onNodeWithText("Tankstelle (Shell)").assertIsDisplayed()
+        composeRule.onNodeWithText("Tankstelle (Shell GmbH)").assertDoesNotExist()
+    }
+
+    @Test
+    fun resultLabelShowsBrandAloneWhenUnnamed() {
+        val entry = poiEntry("", "amenity_fast_food", 200.0, operator = "McDonald's Deutschland", brand = "McDonald's")
+        launchPanel(category = PoiCategories.RESTAURANTS, results = listOf(entry))
+
+        composeRule.onNodeWithText("McDonald's").assertIsDisplayed()
+    }
+
+    @Test
+    fun resultLabelShowsOperatorAloneWhenUnnamedAndNoBrand() {
+        val entry = poiEntry("", "amenity_atm", 150.0, operator = "Sparkasse", brand = null)
+        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+
+        composeRule.onNodeWithText("Sparkasse").assertIsDisplayed()
+    }
+
+    @Test
+    fun resultLabelDoesNotDuplicateNameEqualToBrand() {
+        val entry = poiEntry("Shell", "amenity_fuel", 500.0, operator = null, brand = "Shell")
+        launchPanel(category = PoiCategories.FUEL, results = listOf(entry))
+
+        composeRule.onNodeWithText("Shell").assertIsDisplayed()
+        composeRule.onNodeWithText("Shell (Shell)").assertDoesNotExist()
+    }
+
+    @Test
+    fun resultLabelDoesNotDuplicateNameEqualToOperator() {
+        val entry = poiEntry("Sparkasse", "amenity_atm", 300.0, operator = "Sparkasse", brand = null)
+        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+
+        composeRule.onNodeWithText("Sparkasse").assertIsDisplayed()
+        composeRule.onNodeWithText("Sparkasse (Sparkasse)").assertDoesNotExist()
+    }
+
+    @Test
+    fun resultLabelShowsUnnamedWhenNothingAvailable() {
+        val entry = poiEntry("", "amenity_atm", 100.0, operator = null, brand = null)
+        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+
+        composeRule.onNodeWithText("(unnamed)").assertIsDisplayed()
+    }
+
+    @Test
+    fun resultLabelShowsDifferingOperatorWhenNameEqualsBrand() {
+        // name == brand suppresses the brand parenthetical, but a differing
+        // operator is still shown (it is additional info, not a duplicate).
+        val entry = poiEntry("Sparda-Bank", "amenity_atm", 300.0, operator = "Sparda-Bank West eG", brand = "Sparda-Bank")
+        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+
+        composeRule.onNodeWithText("Sparda-Bank (Sparda-Bank West eG)").assertIsDisplayed()
+        composeRule.onNodeWithText("Sparda-Bank (Sparda-Bank)").assertDoesNotExist()
+    }
+
+    @Test
+    fun resultLabelShowsDifferingBrandWhenNameEqualsOperator() {
+        // name == operator suppresses the operator parenthetical, but a
+        // differing brand is still shown.
+        val entry = poiEntry("Shell", "amenity_fuel", 500.0, operator = "Shell", brand = "Shell GmbH")
+        launchPanel(category = PoiCategories.FUEL, results = listOf(entry))
+
+        composeRule.onNodeWithText("Shell (Shell GmbH)").assertIsDisplayed()
+        composeRule.onNodeWithText("Shell (Shell)").assertDoesNotExist()
+    }
+
+    // --- Empty results and search failure states (spec: poi-search) ---
+
+    @Test
+    fun emptyResultsShowsEmptyState() {
+        launchPanel(category = PoiCategories.ATM, results = emptyList())
+
+        composeRule.onNodeWithText("No POIs found").assertIsDisplayed()
+    }
+
+    @Test
+    fun searchFailureShowsErrorAndKeepsSheetUsable() {
+        launchPanel(category = PoiCategories.ATM, error = "POI search failed")
+
+        composeRule.onNodeWithText("POI search failed").assertIsDisplayed()
+        // The sheet stays usable: the search trigger remains enabled.
+        composeRule.onNodeWithText("Search").assertIsEnabled()
     }
 }

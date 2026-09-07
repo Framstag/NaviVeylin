@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  i18n gate: hardcoded user-facing text fails the build.
+  All user-facing strings must live in res/values/strings.xml
+  (see guidelines/UI.md — Internationalisation / Localisation).
+-->
+<lint>
+    <issue id="HardcodedText" severity="error"/>
+</lint>

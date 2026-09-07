@@ -82,6 +82,10 @@ object SessionLog {
     fun retry() =
         DiagnosticsLog.log(SESSION_TAG, "Retry requested")
 
+    /** Log a host day/night change (tunnel entry, dusk). */
+    fun hostDarkChanged(dark: Boolean) =
+        DiagnosticsLog.log(SESSION_TAG, "Host dark mode changed to $dark")
+
     fun failed(call: String, e: Throwable) =
         DiagnosticsLog.logThrowable(SESSION_TAG, "$call failed", e)
 }

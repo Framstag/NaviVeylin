@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
  */
 object SurfaceIndicators {
 
-    private const val ROSE_DIAMETER_DP = 48f // same size as the host strip buttons
+    private const val ROSE_DIAMETER_DP = 56f // larger than the host strip buttons (48dp)
     private const val BADGE_WIDTH_DP = 128f
     private const val BADGE_HEIGHT_DP = 52f
     // Inset from the surface right edge (mirrors the phone's 8.dp end padding)
@@ -26,10 +26,10 @@ object SurfaceIndicators {
     private const val BADGE_GAP_DP = 8f
 
     // Speed-limit sign (free driving): standard EU sign — white circle with a
-    // big red border and black text, same diameter as the compass rose.
-    private const val LIMIT_DIAMETER_DP = 48f
-    private const val LIMIT_RING_DP = 6f
-    private const val LIMIT_TEXT_DP = 20f
+    // big red border and black text, larger than the compass rose.
+    private const val LIMIT_DIAMETER_DP = 56f
+    private const val LIMIT_RING_DP = 7f
+    private const val LIMIT_TEXT_DP = 24f
     private const val LIMIT_GAP_DP = 8f
 
     private const val ROSE_BG = 0xCC1C1B1F.toInt()

@@ -1,5 +1,7 @@
 package com.naviveylin.auto
 
+import androidx.car.app.CarContext
+import com.naviveylin.auto.R
 import androidx.car.app.model.Action
 import androidx.car.app.model.ActionStrip
 import androidx.car.app.model.Header
@@ -9,6 +11,7 @@ import androidx.car.app.model.Row
 import androidx.car.app.navigation.model.MapController
 import androidx.car.app.navigation.model.MapWithContentTemplate
 import androidx.car.app.navigation.model.NavigationTemplate
+import androidx.car.app.navigation.model.PanModeListener
 
 /**
  * Pure factory for the browsing-map template (extracted for testability).
@@ -23,6 +26,7 @@ object MapTemplateFactory {
 
     /** Menu content in the host content slot, with app header. */
     fun buildMenuContent(
+        carContext: CarContext,
         onFreeDriving: () -> Unit,
         onStarredFavorites: () -> Unit,
         onAllFavorites: () -> Unit,
@@ -33,7 +37,7 @@ object MapTemplateFactory {
     ): ListTemplate = ListTemplate.Builder()
         .setHeader(
             Header.Builder()
-                .setTitle("NaviVeylin")
+                .setTitle(carContext.getString(R.string.app_name))
                 .setStartHeaderAction(Action.APP_ICON)
                 .build()
         )
@@ -41,43 +45,43 @@ object MapTemplateFactory {
             ItemList.Builder()
                 .addItem(
                     Row.Builder()
-                        .setTitle("Free driving")
+                        .setTitle(carContext.getString(R.string.free_driving))
                         .setOnClickListener(onFreeDriving)
                         .build()
                 )
                 .addItem(
                     Row.Builder()
-                        .setTitle("Starred favorites")
+                        .setTitle(carContext.getString(R.string.starred_favorites))
                         .setOnClickListener(onStarredFavorites)
                         .build()
                 )
                 .addItem(
                     Row.Builder()
-                        .setTitle("All favorites")
+                        .setTitle(carContext.getString(R.string.all_favorites))
                         .setOnClickListener(onAllFavorites)
                         .build()
                 )
                 .addItem(
                     Row.Builder()
-                        .setTitle("Search for POIs")
+                        .setTitle(carContext.getString(R.string.search_pois))
                         .setOnClickListener(onPoiSearch)
                         .build()
                 )
                 .addItem(
                     Row.Builder()
-                        .setTitle("Search history")
+                        .setTitle(carContext.getString(R.string.search_history))
                         .setOnClickListener(onSearchHistory)
                         .build()
                 )
                 .addItem(
                     Row.Builder()
-                        .setTitle("Diagnostics")
+                        .setTitle(carContext.getString(R.string.diagnostics))
                         .setOnClickListener(onDiagnostics)
                         .build()
                 )
                 .addItem(
                     Row.Builder()
-                        .setTitle("About")
+                        .setTitle(carContext.getString(R.string.about))
                         .setOnClickListener(onAbout)
                         .build()
                 )
@@ -119,9 +123,14 @@ object MapTemplateFactory {
      */
     fun buildFullScreenTemplate(
         mapActionStrip: ActionStrip,
-        actionStrip: ActionStrip
-    ): NavigationTemplate = NavigationTemplate.Builder()
-        .setMapActionStrip(mapActionStrip)
-        .setActionStrip(actionStrip)
-        .build()
+        actionStrip: ActionStrip,
+        panModeListener: PanModeListener? = null
+    ): NavigationTemplate {
+        val builder = NavigationTemplate.Builder()
+            .setMapActionStrip(mapActionStrip)
+            .setActionStrip(actionStrip)
+        // Host pan affordance (spec: auto/map-pan) — see buildNavigationTemplate.
+        panModeListener?.let { builder.setPanModeListener(it) }
+        return builder.build()
+    }
 }

@@ -24,7 +24,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.naviveylin.R
 import com.naviveylin.data.SearchHistoryEntry
 import java.time.Instant
 import java.time.ZoneId
@@ -58,14 +60,14 @@ fun SearchHistorySheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Search history",
+                text = stringResource(R.string.search_history_title),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
             if (entries.isEmpty()) {
                 Text(
-                    text = "No search history yet",
+                    text = stringResource(R.string.search_history_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)

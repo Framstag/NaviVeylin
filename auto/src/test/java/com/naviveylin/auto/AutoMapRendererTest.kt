@@ -240,6 +240,32 @@ class AutoMapRendererTest {
     }
 
     @Test
+    fun invalidateStyleForcesFullRenderNotBlit() {
+        // A style/variant change (daylight flag) must bypass the overrun blit:
+        // the buffer holds pixels from the previous variant (spec:
+        // auto-map-renderer — no patterns from the previous variant).
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.renderFrame()
+        assertEquals(1, renderer.fullRenderCount)
+
+        // Marker-only update makes the next frame blit-eligible...
+        renderer.setGpsMarker(51.5142273, 7.4652789, 45.0, 10.0)
+        // ...but invalidateStyle must force a full render instead.
+        renderer.invalidateStyle()
+        renderer.renderFrame()
+
+        assertEquals(2, renderer.fullRenderCount)
+    }
+
+    @Test
+    fun invalidateStyleAfterShutdownIsNoOp() {
+        renderer.shutdown()
+        renderer.invalidateStyle() // must not throw
+    }
+
+    @Test
     fun smallGpsMoveServedByBlitNoFullRender() {
         // Task 2.1: a small viewport move within the overrun region is served
         // by a blit — no full native render (render-count assertion).

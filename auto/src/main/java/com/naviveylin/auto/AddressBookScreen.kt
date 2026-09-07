@@ -9,6 +9,7 @@ import androidx.car.app.model.ItemList
 import androidx.car.app.model.Row
 import androidx.car.app.model.SearchTemplate
 import androidx.car.app.model.SearchTemplate.SearchCallback
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.addressbook.AddressBookContactsProvider
@@ -96,7 +97,7 @@ class AddressBookScreen(
     private fun buildList(): ItemList {
         val builder = ItemList.Builder()
         if (notFound) {
-            builder.addItem(Row.Builder().setTitle("No location found for this address").build())
+            builder.addItem(Row.Builder().setTitle(carContext.getString(R.string.no_location_found)).build())
             return builder.build()
         }
         if (filteredContacts.isEmpty()) {

@@ -262,9 +262,9 @@ class LocationDetailsDialogComposeTest {
         var navigated = false
         launch(entry(), onRouteToLocation = { navigated = true })
 
-        composeRule.onNodeWithText("Navigate to").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Navigate to").performClick()
-        assertTrue("Navigate to must fire", navigated)
+        composeRule.onNodeWithText("Calculate route").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Calculate route").performClick()
+        assertTrue("Calculate route must fire", navigated)
     }
 
     @Test

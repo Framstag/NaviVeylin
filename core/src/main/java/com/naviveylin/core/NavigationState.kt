@@ -16,6 +16,9 @@ data class NavigationState(
     val remainingDistance: Double = 0.0,
     val totalDistance: Double = 0.0,
     val etaMillis: Long = 0L,
+    // Wall-clock time (epoch millis) when navigation started; reference point
+    // for elapsed-time progress (routing-progress-indicator). 0 when not navigating.
+    val navigationStartTimeMillis: Long = 0L,
     val currentSpeedKmH: Double = Double.NaN,
     val maxSpeedKmH: Double = Double.NaN,
     val position: NavigationPosition? = null,

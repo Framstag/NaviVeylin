@@ -149,21 +149,21 @@ The route panel SHALL have a "Clear" button that removes the current route from 
 - **AND** the route panel SHALL reset to its initial state
 
 ### Requirement: Turn-by-turn instruction list
-After successful route calculation, the route panel SHALL trigger display of the route summary dialog. The route panel SHALL be dismissed when the summary dialog appears, and SHALL re-open with full state when the summary dialog is dismissed. The route panel SHALL NOT show the instruction list inline — instructions are displayed in the route summary dialog instead.
+After successful route calculation, the route panel SHALL show the route summary inline, below the calculate button. The route panel SHALL remain open and SHALL NOT be dismissed. The route panel SHALL NOT show the instruction list separately — the route summary component contains the instructions.
 
 #### Scenario: Route summary dialog triggered after calculation
 - **WHEN** route calculation completes successfully
-- **THEN** the route summary dialog SHALL appear as a full-screen overlay sliding up from the bottom
-- **AND** the route panel SHALL be dismissed
-- **AND** the instruction list SHALL NOT be shown inline in the route panel
+- **THEN** the route summary SHALL be shown inline in the route panel below the calculate button
+- **AND** the route panel SHALL remain open
+- **AND** the instruction list SHALL NOT be shown separately in the route panel
 
 #### Scenario: Route panel re-opens on summary dismiss
 - **WHEN** the route summary dialog is dismissed
 - **THEN** the route panel SHALL re-open with all previous state intact (start, destination, vehicle, route)
 
 #### Scenario: Instructions scrollable in summary dialog
-- **WHEN** the route summary dialog is displayed
-- **THEN** the instruction list SHALL be scrollable within the dialog
+- **WHEN** the route summary component is displayed in the route panel
+- **THEN** the instruction list SHALL be scrollable within the summary component
 
 ### Requirement: Route panel dismiss
 The route panel SHALL be dismissable by dragging down. Dismissing SHALL NOT clear the route — the route polyline and markers SHALL remain on the map.
@@ -175,13 +175,15 @@ The route panel SHALL be dismissable by dragging down. Dismissing SHALL NOT clea
 - **AND** re-opening the route panel SHALL show the current route state
 
 ### Requirement: Start Navigation button in route panel
-When a route is calculated and navigation is not active, the route panel SHALL display a "Start Navigation" button.
+When a route is calculated and navigation is not active, the route panel SHALL display a "Start Navigation" button below the calculate button and above the route summary component.
 
 #### Scenario: Start Navigation button visible
 - **WHEN** a route is calculated
 - **AND** navigation is not active
-- **THEN** a "Start Navigation" button SHALL be visible in the route panel
+- **THEN** a "Start Navigation" button SHALL be visible in the route panel below the calculate button
+- **AND** the button SHALL be positioned above the route summary component
 - **AND** tapping it SHALL start navigation
+- **AND** the route panel SHALL close
 
 #### Scenario: Start Navigation hidden during active nav
 - **WHEN** navigation is active
@@ -195,3 +197,29 @@ The swap button SHALL be positioned to the right of the start and destination fi
 - **WHEN** the route panel is open
 - **THEN** the swap button SHALL be visible to the right of the start and destination fields
 - **AND** the button SHALL be vertically centered between the two fields
+
+### Requirement: Stop navigation hides route from map
+When navigation is stopped, the route polyline and the `_route_start`/`_route_end` markers SHALL be removed from the map, while the route panel state (start, destination, vehicle, route summary, steps) SHALL be preserved so the user can start navigation again without recalculating.
+
+#### Scenario: Stop removes route from map
+- **WHEN** navigation is active
+- **AND** the user stops navigation
+- **THEN** the route polyline SHALL be removed from the map
+- **AND** the `_route_start` and `_route_end` markers SHALL be removed
+- **AND** the route panel SHALL retain the start, destination, vehicle, and route summary
+
+#### Scenario: Route panel shows Start Navigation after stop
+- **WHEN** navigation has been stopped
+- **AND** the user opens the route planning dialog
+- **THEN** the "Start Navigation" button SHALL be available
+- **AND** the route summary SHALL still be shown
+
+#### Scenario: Restarting navigation redraws the route
+- **WHEN** the user stops navigation
+- **AND** then starts navigation again on the same route
+- **THEN** the route polyline and markers SHALL be rendered on the map again
+
+#### Scenario: Route not redrawn after stop on screen re-entry
+- **WHEN** navigation has been stopped
+- **AND** the user navigates away from the map screen and back (screen recomposition)
+- **THEN** the route polyline SHALL NOT reappear on the map

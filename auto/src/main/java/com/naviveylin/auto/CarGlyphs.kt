@@ -84,18 +84,6 @@ object CarGlyphs {
         }
     } }
 
-    /** Licence info: an "i" in a circle — opens the About screen (OSM licence info). */
-    val info: CarIcon by lazy { glyph { c, p ->
-        val stroke = Paint(p).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 4.5f
-            strokeCap = Paint.Cap.ROUND
-        }
-        c.drawCircle(24f, 24f, 12f, stroke)
-        c.drawCircle(24f, 19.5f, 2.2f, p)
-        c.drawLine(24f, 23f, 24f, 31f, stroke)
-    } }
-
     private fun glyph(draw: (Canvas, Paint) -> Unit): CarIcon {
         val size = 48
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)

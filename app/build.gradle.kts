@@ -221,7 +221,58 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    lint {
+        // i18n gate: HardcodedText elevated to error via lint.xml (see guidelines/UI.md)
+        lintConfig = file("lint.xml")
+        checkReleaseBuilds = true
+        abortOnError = true
+    }
 }
+
+// i18n gate (fallback for lint HardcodedText, which does not flag Compose
+// literals): fail the build on string literals in UI text positions.
+// See guidelines/UI.md — Internationalisation / Localisation.
+val checkHardcodedStrings by tasks.registering {
+    val sourceDir = file("src/main/java")
+    inputs.dir(sourceDir)
+    doLast {
+        val patterns = listOf(
+            Regex(
+                """(?:Text\(|text\s*=|label\s*=|title\s*=|contentDescription\s*=|placeholder\s*=|hint\s*=|\.setTitle\(|\.addText\(|\.setText\()\s*"([^"]+)"""
+            ),
+            // Conditional assignments: contentDescription = if (x) "A" else "B"
+            Regex("""(?:contentDescription|text|label|title)\s*=\s*if\s*\([^)]*\)\s*"([^"]+)"""),
+            Regex("""(?:contentDescription|text|label|title)\s*=\s*[^"]*\belse\s*"([^"]+)""")
+        )
+        val violations = mutableListOf<String>()
+        sourceDir.walkTopDown().filter { it.extension == "kt" }.forEach { file ->
+            file.readLines().forEachIndexed { idx, line ->
+                patterns.forEach { pattern ->
+                    pattern.findAll(line).forEach { m ->
+                        val literal = m.groupValues[1]
+                    // Skip dynamic template strings (e.g. "${zoomLevel}") — not hardcoded text
+                    if (literal.contains("\${")) return@forEach
+                    // Skip format templates (e.g. "%.5f, %.5f") — numeric formats, not display text
+                    if (literal.contains('%')) return@forEach
+                    // Skip camelCase identifiers (e.g. animation labels like "compassRotation")
+                    if (Regex("^[a-z][a-zA-Z0-9]*$").matches(literal)) return@forEach
+                    // Skip pure-symbol separators (e.g. "|", "-", "+")
+                    if (Regex("^[^a-zA-Z0-9]+$").matches(literal)) return@forEach
+                    violations += "${file.relativeTo(projectDir)}:${idx + 1}: $literal"
+                    }
+                }
+            }
+        }
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                "Hardcoded user-facing strings found (i18n gate) — move them to res/values/strings.xml:\n" +
+                    violations.joinToString("\n")
+            )
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 
 // Stylesheets are sourced from the libosmscout submodule at build time. Copy the
 // submodule stylesheet directory into a generated assets root so the APK packages

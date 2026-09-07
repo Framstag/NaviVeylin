@@ -31,7 +31,7 @@ class NavigationViewModelDirectRouteTest {
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
         locationService: LocationService = LocationService(ApplicationProvider.getApplicationContext())
     ): NavigationViewModel {
-        return NavigationViewModel(client, NavigationStateProvider(), locationService)
+        return NavigationViewModel(client, NavigationStateProvider(), locationService, ApplicationProvider.getApplicationContext())
     }
 
     /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
@@ -129,7 +129,7 @@ class NavigationViewModelDirectRouteTest {
         val locationService = LocationService(context)
         injectGpsFix(locationService, 52.5200, 13.4050)
 
-        val vm = NavigationViewModel(client, NavigationStateProvider(), locationService)
+        val vm = NavigationViewModel(client, NavigationStateProvider(), locationService, ApplicationProvider.getApplicationContext())
 
         vm.navigateTo(52.5300, 13.4100)
 

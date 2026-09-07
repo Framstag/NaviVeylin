@@ -46,7 +46,8 @@ class RoutePanelViewModelSearchHistoryTest {
             client = client,
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = historyRepo,
-            locationService = LocationService(context)
+            locationService = LocationService(context),
+            context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }

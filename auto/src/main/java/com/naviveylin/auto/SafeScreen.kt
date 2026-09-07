@@ -8,6 +8,7 @@ import androidx.car.app.model.Header
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
+import com.naviveylin.auto.R
 import androidx.car.app.model.Template
 import com.naviveylin.core.DiagnosticsLog
 
@@ -31,26 +32,25 @@ class SafeScreen(
             templateBuilder()
         } catch (e: Exception) {
             DiagnosticsLog.logThrowable(TEMPLATE_TAG, "SafeScreen template build failed", e)
-            errorTemplate(e.message)
+            errorTemplate(carContext, e.message)
         }
     }
 
     companion object {
         private const val TEMPLATE_TAG = "TEMPLATE"
-        private const val ERROR_TITLE = "Error"
 
         /** Build an error [PaneTemplate]; safe to call without a live context. */
-        fun errorTemplate(message: String?): PaneTemplate {
+        fun errorTemplate(carContext: CarContext, message: String?): PaneTemplate {
             val pane = Pane.Builder()
                 .addRow(
                     Row.Builder()
-                        .setTitle(ERROR_TITLE)
-                        .addText(message ?: "Unknown error")
+                        .setTitle(carContext.getString(R.string.error))
+                        .addText(message ?: carContext.getString(R.string.unknown_error))
                         .build()
                 )
                 .build()
             return PaneTemplate.Builder(pane)
-                .setHeader(Header.Builder().setTitle("NaviVeylin").build())
+                .setHeader(Header.Builder().setTitle(carContext.getString(R.string.app_name)).build())
                 .build()
         }
     }
@@ -71,13 +71,13 @@ class LoadingScreen(carContext: CarContext) : Screen(carContext) {
         val pane = Pane.Builder()
             .addRow(
                 Row.Builder()
-                    .setTitle("Loading map data…")
-                    .addText("Preparing navigation")
+                    .setTitle(carContext.getString(R.string.loading_map_data))
+                    .addText(carContext.getString(R.string.preparing_navigation))
                     .build()
             )
             .build()
         return PaneTemplate.Builder(pane)
-            .setHeader(Header.Builder().setTitle("NaviVeylin").build())
+            .setHeader(Header.Builder().setTitle(carContext.getString(R.string.app_name)).build())
             .build()
     }
 }
@@ -98,19 +98,19 @@ class ErrorScreen(
 
     override fun onGetTemplate(): PaneTemplate {
         val retryAction = Action.Builder()
-            .setTitle("Retry")
+            .setTitle(carContext.getString(R.string.retry))
             .setOnClickListener { onRetry() }
             .build()
 
         val backAction = Action.Builder()
-            .setTitle("Back")
+            .setTitle(carContext.getString(R.string.back))
             .setOnClickListener { screenManager.pop() }
             .build()
 
         val pane = Pane.Builder()
             .addRow(
                 Row.Builder()
-                    .setTitle("Startup failed")
+                    .setTitle(carContext.getString(R.string.startup_failed))
                     .addText(message)
                     .addAction(retryAction)
                     .addAction(backAction)
@@ -119,7 +119,7 @@ class ErrorScreen(
             .build()
 
         return PaneTemplate.Builder(pane)
-            .setHeader(Header.Builder().setTitle("NaviVeylin").setStartHeaderAction(Action.BACK).build())
+            .setHeader(Header.Builder().setTitle(carContext.getString(R.string.app_name)).setStartHeaderAction(Action.BACK).build())
             .build()
     }
 }

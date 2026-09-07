@@ -105,6 +105,110 @@ Source: `DetailsResolver` in `:core` (specs `auto-destination-details`,
 - One `DetailsData` bundle (`DetailsResolver.resolve`) is consumed by both UIs —
   never re-derive per view; extend the resolver instead.
 
+## 7. Phone map re-center button (follow / auto-zoom)
+
+Source: spec `map-recenter-button`.
+
+- The re-center button (crosshair/my-location icon, content description
+  "Re-center on location") appears when the viewport is no longer auto-driven
+  **and** a GPS fix is available:
+  - follow mode was disengaged by a pan/zoom (follow mode off), or
+  - auto-zoom is suspended while navigating (pinch/button zoom leaves follow
+    mode on but stops auto zoom).
+- Placement: bottom-left in free-form mode; while navigating it is anchored
+  directly above the routing status bar (the screen-bottom area is covered by
+  `NavigationStateOverlay`, so the button must never sit at the bottom edge
+  during navigation).
+- Tapping it re-enables follow mode, unsuspends auto-zoom, re-centers on the
+  current GPS position, and hides the button (existing `reCenterAction`).
+- There is no automatic re-engage: a manual interaction stops follow/auto-zoom
+  until the driver taps the button — the button's presence is the only signal.
+- Phone-only: the car display has its own follow behavior via the car
+  MapController and is unaffected (no phone-style auto zoom).
+
+## 8. Phone navigation overlay sizing (driver-seat readability)
+
+Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
+- All phone map overlays SHALL be readable from the driver seat; minimums:
+  current speed 24sp bold, speed-limit sign 64dp with 28sp digits, turn
+  distance 32sp bold, turn description/destination 22sp, next-next hint 20sp
+  (smaller than the primary instruction).
+- The compass button SHALL be larger than the other overlay buttons
+  (56dp layout / 48dp visual vs 48dp / 40dp) so it reads at a glance; the
+  follow-direction triangle stays ~70% of the button.
+- The speed badge SHALL use the standard overlay card container (theme
+  surface at 0.92 alpha, 12dp rounded) — the same treatment as the turn card
+  and routing status; NEVER a fixed dark color (theme-unaware, poor contrast
+  with the overspeed warning color in light mode). Badge text SHALL be dark
+  (`onSurface`) on the light card in the normal state; never white-on-light.
+- Phone-only: Android Auto sizes text via the host template; parity applies to
+  labels and hierarchy, not pixel sizes.
+- Android Auto surface indicators (spec `auto-map-layout`): compass rose 56dp,
+  speed-limit sign 56dp with 7dp red ring and 24sp digits; the speed badge
+  (128×52, 20sp) is unchanged.
+
+## 9. Dark mode (phone + Android Auto)
+
+Source: spec `dark-mode` (changes `aa-dark-mode-follow-host`, `phone-ambient-light-dark-mode`).
+
+- **Phone**: three-state preference (On / Off / Automatic) in the on-map
+  settings sheet, plus the "Adaptive by ambient light" toggle (default off).
+  Automatic follows the system night mode; with the ambient option enabled it
+  follows the light sensor (hysteresis 10/50 lux, 10 s debounce) instead.
+  Sensor listening is foreground-only and gated on Automatic + option enabled.
+  Devices without a light sensor fall back to the system signal.
+- **Android Auto**: the map surface follows the HOST's day/night state
+  (`CarContext.isDarkMode()`, live via `onCarConfigurationChanged`) — never
+  the phone's system mode. Templates are host-rendered and follow the host
+  automatically; only the app-drawn map surface needs the flag push.
+- Parity: both variants render the same stylesheet variants (daylight flag
+  set/unset); the environment source differs by platform (see
+  `guidelines/MapRendering.md` §15).
+
+## 10. Internationalisation / Localisation
+
+Source: spec `i18n-l10n` (change `i18n-l10n-support`).
+
+- **All user-facing text SHALL live in Android string resources** — never
+  hardcoded in composables, templates, or dialogs. English is the default
+  (`res/values/strings.xml`) and the fallback; German is fully supported
+  (`res/values-de/strings.xml`).
+- **Phone (Compose)**: read strings with `stringResource(R.string.x)` (or
+  `pluralStringResource(R.plurals.x, count)` for count-dependent text) inside
+  composables. Hoist to a `val` when the value is needed in a non-composable
+  context (semantics blocks, lambdas, companion functions).
+- **Android Auto**: read strings with `carContext.getString(R.string.x)`
+  (`getQuantityString` for plurals). Pure factory functions that build
+  templates take a `carContext` parameter so they stay testable.
+- **Module resources**: `:auto` keeps its own `res/` (library resources merge
+  into the app at build time). Both modules carry `values/` + `values-de/`;
+  every translatable key in `values/` MUST exist in `values-de/` (enforced by
+  `GermanTranslationCompletenessTest` in each module).
+- **Locale-aware numbers**: use the shared helpers in
+  `core/.../DistanceFormat.kt` — `formatDistanceNumber(meters, locale)` returns
+  the numeric part only (German comma decimals), `distanceUsesKilometers`
+  selects the unit. The unit suffix comes from a resource
+  (`distance_unit_km` / `distance_unit_m` / `size_unit_mb`), never from code.
+  Do NOT use `Locale.ROOT` for display formatting.
+- **Plurals**: count-dependent strings use `plurals.xml` (`one`/`other` for
+  English and German) — e.g. `file_count`, `active_downloads`.
+- **Format args**: positional args use `%1$s`/`%2$s` so translators can
+  reorder; never concatenate translated fragments.
+- **POI categories**: category names come from resources
+  (`poi_category_*`), mapped per module (phone `categoryLabelRes`, auto
+  resource lookups with English fallback for unknown IDs). Phone and Auto
+  SHALL show the same category labels (parity, §1).
+- **Diagnostics**: user-facing diagnostics UI text is translated; logcat-only
+  debug strings are exempt.
+- **Lint gate**: `HardcodedText` runs at error severity in both modules, and
+  a Gradle `checkHardcodedStrings` grep gate (wired into `preBuild`) fails the
+  build on string literals in UI text positions — including conditional
+  assignments like `contentDescription = if (x) "A" else "B"`. New UI text
+  MUST pass both.
+- **RTL**: `supportsRtl="true"` is set; keep layouts direction-agnostic
+  (use `start`/`end` alignment, not `left`/`right`) so future RTL locales
+  work without layout changes.
+
 ---
 
 ## Keeping this document honest

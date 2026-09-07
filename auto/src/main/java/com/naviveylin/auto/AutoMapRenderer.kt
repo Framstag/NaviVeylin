@@ -542,6 +542,19 @@ class AutoMapRenderer(
         renderSignal.value = System.nanoTime()
     }
 
+    /**
+     * Force the next frame to a full native render, bypassing the overrun
+     * blit. Used after a style/variant change (daylight flag): the overrun
+     * buffer holds pixels from the previous variant and must not be blitted
+     * (spec: auto-map-renderer — no patterns from the previous variant).
+     * Mirrors the phone [MapRenderer.invalidateStyle] contract.
+     */
+    fun invalidateStyle() {
+        if (isShutdown) return
+        blitEligible = false
+        requestRender()
+    }
+
     private fun startRenderLoop() {
         renderJob = scope.launch {
             var lastRender = 0L

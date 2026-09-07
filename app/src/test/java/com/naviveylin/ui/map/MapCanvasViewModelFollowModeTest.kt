@@ -12,6 +12,7 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
+import com.naviveylin.share.SharedLocationHandler
 import android.location.Location
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,6 +59,7 @@ class MapCanvasViewModelFollowModeTest {
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = locationService,
             darkModeController = DarkModeController(SettingsStorage(context)),
+            sharedLocationHandler = SharedLocationHandler(),
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher

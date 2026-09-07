@@ -3,6 +3,7 @@ package com.naviveylin.auto
 import androidx.car.app.model.Action
 import androidx.car.app.model.ActionStrip
 import androidx.car.app.navigation.model.NavigationTemplate
+import androidx.car.app.navigation.model.PanModeListener
 import androidx.car.app.navigation.model.RoutingInfo
 import androidx.car.app.navigation.model.TravelEstimate
 
@@ -27,7 +28,8 @@ object NavigationTemplateFactory {
         travelEstimate: TravelEstimate?,
         mapActionStrip: ActionStrip?,
         actionStrip: ActionStrip?,
-        routingInfo: RoutingInfo? = null
+        routingInfo: RoutingInfo? = null,
+        panModeListener: PanModeListener? = null
     ): NavigationTemplate {
         val builder = NavigationTemplate.Builder()
         if (!isNavigating) {
@@ -40,6 +42,10 @@ object NavigationTemplateFactory {
         travelEstimate?.let { builder.setDestinationTravelEstimate(it) }
         mapActionStrip?.let { builder.setMapActionStrip(it) }
         actionStrip?.let { builder.setActionStrip(it) }
+        // Host pan affordance (spec: auto/map-pan): the host renders a pan
+        // button and forwards pan gestures to the surface while pan mode is
+        // active (RequiresCarApi 2).
+        panModeListener?.let { builder.setPanModeListener(it) }
         // Host instruction panel (spec: auto/navigation-view).
         routingInfo?.let { builder.setNavigationInfo(it) }
         return builder.build()

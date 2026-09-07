@@ -19,7 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.naviveylin.R
 
 @Composable
 fun ZoomControls(
@@ -50,7 +52,7 @@ fun ZoomControls(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Zoom in"
+                        contentDescription = stringResource(R.string.zoom_in)
                     )
                 }
 
@@ -74,7 +76,7 @@ fun ZoomControls(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Remove,
-                        contentDescription = "Zoom out"
+                        contentDescription = stringResource(R.string.zoom_out)
                     )
                 }
             }
@@ -92,7 +94,7 @@ fun ZoomControls(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Zoom in"
+                        contentDescription = stringResource(R.string.zoom_in)
                     )
                 }
 
@@ -116,7 +118,7 @@ fun ZoomControls(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Remove,
-                        contentDescription = "Zoom out"
+                        contentDescription = stringResource(R.string.zoom_out)
                     )
                 }
             }

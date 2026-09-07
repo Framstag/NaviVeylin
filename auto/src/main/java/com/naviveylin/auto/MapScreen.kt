@@ -32,6 +32,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -59,7 +61,9 @@ class MapScreen(
     /** Zoom for [initialCenter]; ignored when [initialCenter] is null. */
     private val initialZoom: Int = DEFAULT_AA_ZOOM,
     /** Destination name for the marker when [initialCenter] is set (details "Show" action). */
-    private val initialDestinationName: String? = null
+    private val initialDestinationName: String? = null,
+    /** Host day/night state (see [NavigationSession.hostDark]). */
+    private val hostDark: StateFlow<Boolean> = MutableStateFlow(carContext.isDarkMode())
 ) : Screen(carContext) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -76,6 +80,17 @@ class MapScreen(
     /** Applies the shared map style to the native client (deduped). */
     private val styleApplier = CarStyleApplier { style ->
         entryPoint.autoClientProvider().client().loadStyleSheet(style)
+    }
+
+    /** Applies the host day/night state to the stylesheet `daylight` flag (deduped). */
+    private val daylightApplier = CarDaylightApplier { dark ->
+        try {
+            entryPoint.autoClientProvider().client().setStyleSheetFlag("daylight", !dark)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "setStyleSheetFlag failed", e)
+            false
+        }
     }
 
     /**
@@ -200,7 +215,24 @@ class MapScreen(
         scope.launch(Dispatchers.Default) {
             if (!styleApplier.apply(style)) {
                 Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
+            } else {
+                // DB is ready (style loaded) — (re)push the host day/night flag:
+                // the startup push may have been dropped while the DB was still
+                // initializing (warmup race), leaving the map on the wrong variant.
+                pushHostDark()
             }
+        }
+    }
+
+    /**
+     * (Re)push the host day/night state to the native stylesheet and force a
+     * full render. The applier is reset first so a push that was silently
+     * dropped by the native side (DB not initialized) is not deduped away.
+     */
+    private fun pushHostDark() {
+        daylightApplier.reset()
+        if (daylightApplier.apply(hostDark.value)) {
+            mapRenderer.invalidateStyle()
         }
     }
 
@@ -211,7 +243,7 @@ class MapScreen(
             template
         } catch (e: Exception) {
             DiagnosticsLog.logThrowable(TEMPLATE_TAG, "MapTemplate build failed", e)
-            SafeScreen.errorTemplate(e.message)
+            SafeScreen.errorTemplate(carContext, e.message)
         }
     }
 
@@ -304,6 +336,7 @@ class MapScreen(
 
         // Content box = app menu.
         val content = MapTemplateFactory.buildMenuContent(
+            carContext = carContext,
             onFreeDriving = {
                 // Push the destination-free navigation-style view (spec:
                 // auto/free-driving). Popping it returns to this map view.
@@ -367,6 +400,10 @@ class MapScreen(
                     .onFailure { Log.w(TAG, "setMapDpi failed", it) }
                 mapRenderer.updateProjectionDpi(surfaceDpi)
                 mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
+                // Re-push the host day/night flag before the first render: the
+                // startup push may have been dropped while the DB was still
+                // initializing (warmup race).
+                pushHostDark()
                 // "Show location" maps: draw the destination marker and center
                 // it in the visible map area (the host's menu panel covers the
                 // left ~40% of the surface).
@@ -540,6 +577,18 @@ class MapScreen(
             favoritesProvider.favoriteLocations().collect { favorites ->
                 val allFavorites = favorites.values.flatten()
                 mapRenderer.setFavoriteLocations(allFavorites)
+            }
+        }
+
+        // Host day/night: push the stylesheet `daylight` flag and re-render on
+        // change (tunnel entry, dusk). Deduped by the applier; the native side
+        // reloads the variant on its DB thread. invalidateStyle forces a full
+        // render so the stale-variant overrun buffer is never blitted.
+        scope.launch {
+            hostDark.collect { dark ->
+                if (daylightApplier.apply(dark)) {
+                    mapRenderer.invalidateStyle()
+                }
             }
         }
     }

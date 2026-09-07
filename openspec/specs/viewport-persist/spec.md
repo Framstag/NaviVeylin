@@ -14,6 +14,7 @@ The system SHALL save the current viewport state (center latitude, center longit
 - Saving SHALL use `kotlinx.serialization` for JSON encoding
 - Saving SHALL run on `Dispatchers.IO`
 - The system SHALL also save the viewport state after a pan or zoom gesture completes (in addition to lifecycle-based save)
+- The system SHALL NOT save the viewport state while the map is still initializing, before the persisted viewport restore has been applied to the map state — a lifecycle save in that window must not overwrite the previously persisted viewport with the uninitialized default
 
 #### Scenario: Save on pause
 
@@ -32,6 +33,12 @@ The system SHALL save the current viewport state (center latitude, center longit
 - **THEN** `viewport.json` contains `magnification` ≈ 15.34
 - **WHEN** the app restarts
 - **THEN** the map renders at magnification 15.34
+
+#### Scenario: Pause during restore does not clobber
+
+- **WHEN** the map screen starts and the user backgrounds the app while the persisted viewport restore is still in progress
+- **THEN** the viewport file is not written or overwritten with the default viewport
+- **THEN** the persisted viewport file still contains the previously saved center and magnification
 
 ### Requirement: Load viewport state
 
@@ -63,3 +70,38 @@ The system SHALL load the viewport state from `filesDir/maps/viewport.json` when
 - **WHEN** `viewport.json` contains invalid JSON
 - **THEN** the system logs a warning
 - **THEN** the map renders at default center (Dortmund: 51.5136, 7.4653) and magnification 8
+
+### Requirement: Reject invalid viewport states on save
+
+The system SHALL NOT persist a viewport state whose coordinates or magnification are invalid (NaN, infinity, latitude outside [-90, 90], longitude outside [-180, 180], non-positive or NaN magnification, NaN angle), so an uninitialized viewport can never overwrite a previously restored one on disk.
+
+#### Scenario: NaN center is not saved
+
+- **WHEN** a view-change event or lifecycle save carries a viewport with NaN or infinite coordinates
+- **THEN** the viewport file is not written or overwritten
+- **THEN** a warning is logged
+
+#### Scenario: Out-of-range coordinates are not saved
+
+- **WHEN** a view-change event or lifecycle save carries a latitude outside [-90, 90] or a longitude outside [-180, 180]
+- **THEN** the viewport file is not written or overwritten
+
+#### Scenario: Invalid save does not clobber a valid file
+
+- **WHEN** a valid viewport file exists on disk and an invalid viewport state is saved
+- **THEN** the existing file keeps its previous valid content
+
+### Requirement: Apply restored viewport before wiring the view-change listener
+
+The system SHALL apply the restored viewport to the map state before the view-change listener (which persists every completed render) is wired, so no render triggered during map initialization can persist an uninitialized viewport over the restored one.
+
+#### Scenario: Restore survives an early render
+
+- **WHEN** the map screen starts and a render completes before the restored viewport is applied
+- **THEN** the persisted viewport file still contains the restored center and magnification
+
+#### Scenario: Restore survives an early screen-size render
+
+- **WHEN** the map screen starts and the composable reports its size while the viewport restore is still in progress
+- **THEN** no render with the default viewport is submitted
+- **THEN** the persisted viewport file still contains the restored center and magnification

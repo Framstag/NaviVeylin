@@ -65,10 +65,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.framstag.libosmscout.client.FavoriteLocation
+import com.naviveylin.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,7 +129,7 @@ fun FavoritesSheet(
                     if (isDetailView) {
                         Text(state.selectedGroup ?: "")
                     } else {
-                        Text("Favorites")
+                        Text(stringResource(R.string.favorites))
                     }
                 },
                 navigationIcon = {
@@ -138,13 +140,13 @@ fun FavoritesSheet(
                             onDismiss()
                         }
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     if (!isDetailView) {
                         IconButton(onClick = { showAddGroupDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add group")
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_group))
                         }
                     }
                 },
@@ -172,19 +174,19 @@ fun FavoritesSheet(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "No favorites yet",
+                    text = stringResource(R.string.no_favorites_yet),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Search for a location and add it to favorites",
+                    text = stringResource(R.string.favorites_empty_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 TextButton(onClick = { showAddMapLocDialog = true }) {
                     Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                    Text("Add current map location")
+                    Text(stringResource(R.string.add_current_location))
                 }
             }
         } else if (isDetailView) {
@@ -217,7 +219,7 @@ fun FavoritesSheet(
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                        Text("Add favorite")
+                        Text(stringResource(R.string.add_favorite))
                     }
                     HorizontalDivider()
                 }
@@ -225,7 +227,7 @@ fun FavoritesSheet(
                 if (favs.isEmpty()) {
                     item {
                         Text(
-                            text = "No favorites in this group",
+                            text = stringResource(R.string.no_favorites_in_group),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(32.dp)
@@ -266,7 +268,7 @@ fun FavoritesSheet(
                 OutlinedTextField(
                     value = state.searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
-                    placeholder = { Text("Search favorites") },
+                    placeholder = { Text(stringResource(R.string.search_favorites)) },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = null)
                     },
@@ -284,7 +286,7 @@ fun FavoritesSheet(
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                    Text("Add current map location")
+                    Text(stringResource(R.string.add_current_location))
                 }
 
                 if (state.searchQuery.isNotEmpty()) {
@@ -301,7 +303,7 @@ fun FavoritesSheet(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No favorites match your search",
+                                text = stringResource(R.string.no_favorites_match),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -360,8 +362,8 @@ fun FavoritesSheet(
 
     if (showAddGroupDialog) {
         TextFieldDialog(
-            title = "New Group",
-            label = "Group name",
+            title = stringResource(R.string.new_group_title),
+            label = stringResource(R.string.group_name),
             onConfirm = { name ->
                 viewModel.addGroup(name)
                 showAddGroupDialog = false
@@ -373,19 +375,19 @@ fun FavoritesSheet(
     showDeleteGroupDialog?.let { groupName ->
         AlertDialog(
             onDismissRequest = { showDeleteGroupDialog = null },
-            title = { Text("Delete group?") },
-            text = { Text("Delete \"$groupName\" and all its favorites?") },
+            title = { Text(stringResource(R.string.delete_group_confirm)) },
+            text = { Text(stringResource(R.string.delete_group_confirm_text, groupName)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteGroup(groupName)
                     showDeleteGroupDialog = null
                 }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteGroupDialog = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -393,8 +395,8 @@ fun FavoritesSheet(
 
     showRenameGroupDialog?.let { groupName ->
         TextFieldDialog(
-            title = "Rename Group",
-            label = "New name",
+            title = stringResource(R.string.rename_group),
+            label = stringResource(R.string.new_name),
             initialValue = groupName,
             onConfirm = { newName ->
                 if (newName.isNotEmpty() && newName != groupName) {
@@ -420,19 +422,19 @@ fun FavoritesSheet(
     showDeleteFavDialog?.let { (groupName, favName) ->
         AlertDialog(
             onDismissRequest = { showDeleteFavDialog = null },
-            title = { Text("Delete favorite?") },
-            text = { Text("Delete \"$favName\" from \"$groupName\"?") },
+            title = { Text(stringResource(R.string.delete_favorite_confirm)) },
+            text = { Text(stringResource(R.string.delete_favorite_confirm_text, favName, groupName)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteFavorite(groupName, favName)
                     showDeleteFavDialog = null
                 }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteFavDialog = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -440,8 +442,8 @@ fun FavoritesSheet(
 
     showRenameFavDialog?.let { (groupName, oldName) ->
         TextFieldDialog(
-            title = "Rename Favorite",
-            label = "New name",
+            title = stringResource(R.string.rename_favorite),
+            label = stringResource(R.string.new_name),
             initialValue = oldName,
             onConfirm = { newName ->
                 if (newName.isNotEmpty() && newName != oldName) {
@@ -465,12 +467,14 @@ fun FavoritesSheet(
     }
 
     if (showAddMapLocDialog) {
+        val newLocationGroup = stringResource(R.string.new_location_group)
+        val favoritesLabel = stringResource(R.string.favorites)
         AddFavoriteDialog(
-            groupName = "New location",
+            groupName = newLocationGroup,
             initialLat = mapCenterLat,
             initialLon = mapCenterLon,
             onConfirm = { name, lat, lon ->
-                val group = state.groups.keys.firstOrNull() ?: "Favorites"
+                val group = state.groups.keys.firstOrNull() ?: favoritesLabel
                 viewModel.addFavorite(group, name, lat, lon)
                 showAddMapLocDialog = false
             },
@@ -540,14 +544,14 @@ private fun GroupCard(
             // Menu button in top-right corner
             Box(modifier = Modifier.align(Alignment.TopEnd)) {
                 IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Group options")
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.group_options))
                 }
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Set Color") },
+                        text = { Text(stringResource(R.string.set_color)) },
                         onClick = {
                             showMenu = false
                             onSetColor()
@@ -560,7 +564,7 @@ private fun GroupCard(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Rename") },
+                        text = { Text(stringResource(R.string.rename)) },
                         onClick = {
                             showMenu = false
                             onRename()
@@ -570,7 +574,7 @@ private fun GroupCard(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                        text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
                         onClick = {
                             showMenu = false
                             onDelete()
@@ -620,17 +624,17 @@ private fun FavoriteItem(
         IconButton(onClick = onToggleStar) {
             Icon(
                 imageVector = if (isStarred) Icons.Default.Star else Icons.Default.StarBorder,
-                contentDescription = if (isStarred) "Unstar" else "Star",
+                contentDescription = if (isStarred) stringResource(R.string.unstar) else stringResource(R.string.star),
                 tint = if (isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         IconButton(onClick = onRename) {
-            Icon(Icons.Default.Create, contentDescription = "Rename")
+            Icon(Icons.Default.Create, contentDescription = stringResource(R.string.rename))
         }
         IconButton(onClick = onDelete) {
             Icon(
                 Icons.Default.Delete,
-                contentDescription = "Delete",
+                contentDescription = stringResource(R.string.delete),
                 tint = MaterialTheme.colorScheme.error
             )
         }
@@ -664,12 +668,12 @@ private fun TextFieldDialog(
                 onClick = { onConfirm(text) },
                 enabled = text.isNotEmpty()
             ) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -748,7 +752,7 @@ private fun ColorPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Group Color") },
+        title = { Text(stringResource(R.string.group_color)) },
         text = {
             Column {
                 if (currentColor != null) {
@@ -759,7 +763,7 @@ private fun ColorPickerDialog(
                         },
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        Text("Remove color")
+                        Text(stringResource(R.string.remove_color))
                     }
                 }
                 LazyVerticalGrid(
@@ -788,7 +792,7 @@ private fun ColorPickerDialog(
                             if (isSelected) {
                                 Icon(
                                     Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = stringResource(R.string.selected),
                                     tint = Color.White,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -806,12 +810,12 @@ private fun ColorPickerDialog(
                 },
                 enabled = selectedColor != null
             ) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -835,13 +839,13 @@ private fun AddFavoriteDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Favorite to \"$groupName\"") },
+        title = { Text(stringResource(R.string.add_favorite_to_group, groupName)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -849,7 +853,7 @@ private fun AddFavoriteDialog(
                 OutlinedTextField(
                     value = latText,
                     onValueChange = { latText = it },
-                    label = { Text("Latitude") },
+                    label = { Text(stringResource(R.string.latitude)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -857,7 +861,7 @@ private fun AddFavoriteDialog(
                 OutlinedTextField(
                     value = lonText,
                     onValueChange = { lonText = it },
-                    label = { Text("Longitude") },
+                    label = { Text(stringResource(R.string.longitude)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -874,12 +878,12 @@ private fun AddFavoriteDialog(
                 },
                 enabled = name.isNotEmpty() && latText.toDoubleOrNull() != null && lonText.toDoubleOrNull() != null
             ) {
-                Text("Save")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

@@ -29,6 +29,12 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Search-selection marker longitude from the last [renderWithRouteAndPois] (NaN when unset). */
     var lastSearchSelLon: Double = Double.NaN
 
+    /** Route polyline latitudes from the last [renderWithRouteAndPois] (null when unset). */
+    var lastRouteLats: DoubleArray? = null
+
+    /** Route polyline longitudes from the last [renderWithRouteAndPois] (null when unset). */
+    var lastRouteLons: DoubleArray? = null
+
     /** Magnification of the last render (either entry point; -1 until first render). */
     @Volatile
     var lastRenderMag: Double = -1.0
@@ -118,6 +124,8 @@ class FakeOSMScoutClient : OSMScoutClient() {
         renderWithRouteAndPoisCount.incrementAndGet()
         lastSearchSelLat = searchSelLat
         lastSearchSelLon = searchSelLon
+        lastRouteLats = routeLats
+        lastRouteLons = routeLons
         lastRenderLat = lat
         lastRenderLon = lon
         lastRenderMag = magnification
@@ -308,6 +316,12 @@ class FakeOSMScoutClient : OSMScoutClient() {
     var adminRegionName: String? = "Dortmund"
 
     override fun getAdminRegionName(handle: Long): String? = adminRegionName
+
+    /** Name returned by [getAdminRegionScopeName]. Defaults to [adminRegionName]. */
+    var adminRegionScopeName: String? = null
+
+    override fun getAdminRegionScopeName(handle: Long): String? =
+        adminRegionScopeName ?: adminRegionName
 
     override fun getObjectBoundingBox(
         lat: Double, lon: Double, magnification: Int

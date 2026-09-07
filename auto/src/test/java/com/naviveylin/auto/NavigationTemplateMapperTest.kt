@@ -10,6 +10,8 @@ import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.StringResolver
+import com.naviveylin.core.stringResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -18,6 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class NavigationTemplateMapperTest {
@@ -27,6 +30,8 @@ class NavigationTemplateMapperTest {
             IconCompat.createWithBitmap(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
         ).build()
     }
+
+    private val resolver: StringResolver by lazy { testCarContext().stringResolver() }
 
     private fun instr(distance: Double, type: TurnType, street: String) =
         RouteInstruction(distance, type, street, "desc", "short")
@@ -217,20 +222,30 @@ class NavigationTemplateMapperTest {
     @Test
     fun stepForInstruction_setsManeuverRoadAndCue() {
         val step = NavigationTemplateMapper.stepForInstruction(
-            instr(350.0, TurnType.LEFT, "Main St"), testIcon
+            instr(350.0, TurnType.LEFT, "Main St"), testIcon, resolver = resolver
         )
         assertEquals(Maneuver.TYPE_TURN_NORMAL_LEFT, step.maneuver!!.type)
         assertEquals("Main St", step.road.toString())
-        assertEquals("short", step.cue.toString())
+        assertEquals("Turn left", step.cue.toString())
     }
 
     @Test
     fun stepForInstruction_hidesBlankStreet() {
         val step = NavigationTemplateMapper.stepForInstruction(
-            instr(100.0, TurnType.RIGHT, ""), testIcon
+            instr(100.0, TurnType.RIGHT, ""), testIcon, resolver = resolver
         )
         assertNull(step.road)
-        assertEquals("short", step.cue.toString())
+        assertEquals("Turn right", step.cue.toString())
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun stepForInstruction_cueIsGermanOnGermanLocale() {
+        val step = NavigationTemplateMapper.stepForInstruction(
+            instr(350.0, TurnType.LEFT, "Hauptstraße"), testIcon, resolver = resolver
+        )
+        assertEquals("Links abbiegen", step.cue.toString())
+        assertEquals("Hauptstraße", step.road.toString())
     }
 
     @Test
@@ -255,7 +270,7 @@ class NavigationTemplateMapperTest {
             )
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
-            state, { testIcon }, includeLanes = false
+            state, { testIcon }, includeLanes = false, resolver = resolver
         )!!
         assertEquals(800.0, info.currentDistance!!.displayDistance, 0.01)
         assertEquals("Main St", info.currentStep!!.road.toString())
@@ -279,7 +294,7 @@ class NavigationTemplateMapperTest {
             nextInstruction = instr(350.0, TurnType.LEFT, "Main St")
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
-            state, { testIcon }, includeLanes = false
+            state, { testIcon }, includeLanes = false, resolver = resolver
         )!!
         assertEquals(350.0, info.currentDistance!!.displayDistance, 0.01)
         assertEquals("Main St", info.currentStep!!.road.toString())
@@ -293,7 +308,7 @@ class NavigationTemplateMapperTest {
             instructions = listOf(instr(100.0, TurnType.LEFT, "Main St"))
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
-            state, { testIcon }, includeLanes = false
+            state, { testIcon }, includeLanes = false, resolver = resolver
         )!!
         assertNull(info.nextStep)
     }
@@ -302,7 +317,7 @@ class NavigationTemplateMapperTest {
     fun routingInfoFromState_nullWhenNotNavigating() {
         assertNull(
             NavigationTemplateMapper.routingInfoFromState(
-                NavigationState(), { testIcon }, includeLanes = true
+                NavigationState(), { testIcon }, includeLanes = true, resolver = resolver
             )
         )
     }
@@ -320,7 +335,8 @@ class NavigationTemplateMapperTest {
             laneTurns = listOf(LaneTurn.LEFT, LaneTurn.STRAIGHT_ON)
         )
         val withLanes = NavigationTemplateMapper.routingInfoFromState(
-            state, { testIcon }, includeLanes = true, laneImageFor = { _, _ -> testIcon }
+            state, { testIcon }, includeLanes = true, laneImageFor = { _, _ -> testIcon },
+            resolver = resolver
         )!!
         assertEquals(2, withLanes.currentStep!!.lanes.size)
         assertTrue(withLanes.currentStep!!.lanes[0].directions[0].isRecommended)
@@ -328,7 +344,7 @@ class NavigationTemplateMapperTest {
         assertNotNull(withLanes.currentStep!!.lanesImage)
 
         val withoutLanes = NavigationTemplateMapper.routingInfoFromState(
-            state, { testIcon }, includeLanes = false
+            state, { testIcon }, includeLanes = false, resolver = resolver
         )!!
         assertTrue(withoutLanes.currentStep!!.lanes.isEmpty())
     }
@@ -359,7 +375,7 @@ class NavigationTemplateMapperTest {
                 instr(200.0, TurnType.RIGHT, "Elm St")
             )
         )
-        val rows = NavigationTemplateMapper.routeDescriptionRows(state)
+        val rows = NavigationTemplateMapper.routeDescriptionRows(testCarContext(), state)
         assertEquals(2, rows.size)
         assertTrue(rows[0].isCurrent)
         assertFalse(rows[1].isCurrent)
@@ -375,8 +391,8 @@ class NavigationTemplateMapperTest {
             currentStepIndex = 0,
             instructions = listOf(instr(500.0, TurnType.LEFT, ""))
         )
-        val rows = NavigationTemplateMapper.routeDescriptionRows(state)
-        assertEquals("500 m · short", rows[0].title)
+        val rows = NavigationTemplateMapper.routeDescriptionRows(testCarContext(), state)
+        assertEquals("500 m · Turn left", rows[0].title)
     }
 
     // --- hasStateChanged ---

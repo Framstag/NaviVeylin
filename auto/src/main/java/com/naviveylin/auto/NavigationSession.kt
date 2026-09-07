@@ -1,6 +1,7 @@
 package com.naviveylin.auto
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.util.Log
 import androidx.car.app.Screen
 import androidx.car.app.ScreenManager
@@ -10,9 +11,12 @@ import androidx.car.app.model.Header
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
+import androidx.car.app.navigation.NavigationManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.DeepLinkParser
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
@@ -24,6 +28,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -75,6 +82,28 @@ class NavigationSession : Session() {
 
     private var pendingIntent: Intent? = null
 
+    /**
+     * Host day/night state (head unit decides; phone system mode is NOT the
+     * source). Lazy: [CarContext] is only available after the framework calls
+     * [Session.configure] — accessing it in a property initializer crashes.
+     * Initialized from [CarContext.isDarkMode] (false until the host sends
+     * configuration) and corrected by [onCarConfigurationChanged]. Screens
+     * collect this to push the stylesheet `daylight` flag.
+     */
+    private val _hostDark: MutableStateFlow<Boolean> by lazy {
+        MutableStateFlow(carContext.isDarkMode())
+    }
+    val hostDark: StateFlow<Boolean> by lazy { _hostDark.asStateFlow() }
+
+    override fun onCarConfigurationChanged(configuration: Configuration) {
+        super.onCarConfigurationChanged(configuration)
+        val dark = isNightUiMode(configuration)
+        if (_hostDark.value != dark) {
+            SessionLog.hostDarkChanged(dark)
+            _hostDark.value = dark
+        }
+    }
+
     /** Set once the AA location source has been started (guards [entryPoint] in onDestroy). */
     @Volatile
     private var locationStarted = false
@@ -91,6 +120,9 @@ class NavigationSession : Session() {
                     runCatching { entryPoint.autoLocationProvider().stop() }
                         .onFailure { Log.w(TAG, "location stop failed", it) }
                 }
+                // NavigationManager cleanup (may be mid-navigation; the
+                // controller never throws). Only if it was ever created.
+                navigationManagerController?.onDestroy()
                 sessionDestroyed = true
                 stopObserving()
                 scope.cancel()
@@ -102,6 +134,21 @@ class NavigationSession : Session() {
     private val navigationViewModel: NavigationViewModel by lazy {
         entryPoint.navigationViewModel()
     }
+
+    /**
+     * NavigationManager lifecycle (spec: auto/navigation-view — "Leave
+     * navigation at any time"): registers the callback + navigationStarted()
+     * on navigation start, navigationEnded() + clear on stop, so the host ETA
+     * card stop button works. Null until first navigation start; [CarContext]
+     * is only available after [Session.configure].
+     */
+    private var navigationManagerController: NavigationManagerController? = null
+
+    private fun navigationManagerController(): NavigationManagerController =
+        navigationManagerController ?: NavigationManagerController(
+            carContext.getCarService(NavigationManager::class.java),
+            onStop = { navigationViewModel.stopNavigation() }
+        ).also { navigationManagerController = it }
 
     private val entryPoint: AutoEntryPoint by lazy {
         val application = carContext.applicationContext
@@ -329,7 +376,7 @@ class NavigationSession : Session() {
         } else {
             // Open in map view by default; the menu is reachable via the map's
             // "Menu" action (RootScreen is no longer the stack root).
-            MapScreen(carContext, navigationViewModel)
+            MapScreen(carContext, navigationViewModel, hostDark = hostDark)
         }
     }
 
@@ -378,8 +425,10 @@ class NavigationSession : Session() {
                 .distinctUntilChanged()
                 .collect { isNavigating ->
                     if (isNavigating) {
+                        navigationManagerController().onNavigationStarted()
                         showNavigationScreen()
                     } else {
+                        navigationManagerController()?.onNavigationEnded()
                         showRootScreen()
                     }
                 }
@@ -406,7 +455,7 @@ class NavigationSession : Session() {
 
     private fun getNavigationScreen(): NavigationScreen {
         if (navigationScreen == null) {
-            navigationScreen = NavigationScreen(carContext, navigationViewModel)
+            navigationScreen = NavigationScreen(carContext, navigationViewModel, hostDark = hostDark)
         }
         return navigationScreen!!
     }
@@ -435,7 +484,7 @@ class NavigationSession : Session() {
 
             override fun onGetTemplate(): PaneTemplate {
                 val backAction = Action.Builder()
-                    .setTitle("Back")
+                    .setTitle(carContext.getString(R.string.back))
                     .setOnClickListener { screenManager.pop() }
                     .build()
                 val pane = Pane.Builder()
@@ -447,7 +496,7 @@ class NavigationSession : Session() {
                     )
                     .build()
                 return PaneTemplate.Builder(pane)
-                    .setHeader(Header.Builder().setTitle("Error").setStartHeaderAction(Action.BACK).build())
+                    .setHeader(Header.Builder().setTitle(carContext.getString(R.string.error)).setStartHeaderAction(Action.BACK).build())
                     .build()
             }
         }
@@ -477,3 +526,12 @@ class NavigationSession : Session() {
         private const val WARMUP_TIMEOUT_MS = 45_000L
     }
 }
+
+/**
+ * Pure mapping from a host [Configuration] to the night-mode flag. Extracted
+ * for unit testing — [NavigationSession] itself needs a host-provided
+ * [androidx.car.app.CarContext] and cannot be constructed in Robolectric.
+ */
+internal fun isNightUiMode(configuration: Configuration): Boolean =
+    configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+        Configuration.UI_MODE_NIGHT_YES

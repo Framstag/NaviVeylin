@@ -23,12 +23,14 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.naviveylin.R
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -44,9 +46,8 @@ private val GpsFillGoodFix = Color(0xFFC8E6C9) // light green
  * button fill color, and supporting short-press (re-center) and long-press
  * (toggle orientation).
  *
- * Sized like the other overlay buttons (48dp layout / 40dp visual, matching
- * `FilledTonalIconButton`) with the same shadow, per Material 3 usage
- * elsewhere on the map.
+ * Larger than the other overlay buttons (56dp layout / 48dp visual vs
+ * 48dp / 40dp) so it reads at a glance while driving, with the same shadow.
  *
  * @param isNorthUp True if orientation is "always north" (north-up), false for "follow direction".
  * @param mapAngleRadians Current map rotation in radians (0 = north up).
@@ -82,16 +83,19 @@ fun CompassButton(
     // Same symbol color as the other overlay buttons (FilledTonalIconButton icons)
     val needleColor = MaterialTheme.colorScheme.onSecondaryContainer
     val textMeasurer = rememberTextMeasurer()
+    val compassLabel = stringResource(R.string.compass)
+    val northLabel = stringResource(R.string.compass_north)
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            // 48dp layout matches FilledTonalIconButton (40dp visual + touch target),
-            // so the compass aligns with the other overlay buttons in the column
-            .size(48.dp)
+            // 56dp layout / 48dp visual — larger than the other overlay
+            // buttons (48dp/40dp) so the compass reads at a glance while
+            // driving (spec: compass-button — larger than other buttons).
+            .size(56.dp)
             .shadow(3.dp, RoundedCornerShape(16.dp))
             .clip(RoundedCornerShape(16.dp))
-            .semantics { contentDescription = "Compass" }
+            .semantics { contentDescription = compassLabel }
             .then(
                 Modifier.combinedClickable(
                     onClick = onCenterClick,
@@ -99,8 +103,8 @@ fun CompassButton(
                 )
             )
     ) {
-        // 40dp visual fill matching other overlay buttons, colored by GPS fix quality
-        Canvas(modifier = Modifier.size(40.dp)) {
+        // 48dp visual fill, colored by GPS fix quality
+        Canvas(modifier = Modifier.size(48.dp)) {
             drawCircle(color = fillColor)
 
             // Small border inside the button bounds (does not grow the button)
@@ -111,7 +115,7 @@ fun CompassButton(
             )
 
             // Compass needle
-            drawCompassNeedle(animatedDegrees, isNorthUp, needleColor, textMeasurer)
+            drawCompassNeedle(animatedDegrees, isNorthUp, needleColor, textMeasurer, northLabel)
         }
     }
 }
@@ -128,7 +132,8 @@ private fun DrawScope.drawCompassNeedle(
     degrees: Float,
     isNorthUp: Boolean,
     needleColor: Color,
-    textMeasurer: androidx.compose.ui.text.TextMeasurer
+    textMeasurer: androidx.compose.ui.text.TextMeasurer,
+    northLabel: String
 ) {
     val centerX = size.width / 2f
     val centerY = size.height / 2f
@@ -165,11 +170,11 @@ private fun DrawScope.drawCompassNeedle(
 
         // "N" at north tip
         val textResult = textMeasurer.measure(
-            text = "N",
+            text = northLabel,
             style = TextStyle(
                 color = needleColor,
                 fontWeight = FontWeight.Bold,
-                fontSize = 9.sp
+                fontSize = 11.sp
             )
         )
         val nOffsetX = northX - textResult.size.width / 2f

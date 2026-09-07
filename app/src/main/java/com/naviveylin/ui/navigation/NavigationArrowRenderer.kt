@@ -548,11 +548,3 @@ private fun DrawScope.drawRoundabout(symbol: NavSymbol.Roundabout, pxSize: Float
 
     drawCircle(color.copy(alpha = 0.5f), nw(0.03f), Offset(cx, cy))
 }
-
-// ── Shared utility ──
-
-fun formatDistance(meters: Double): String {
-    val rounded = com.naviveylin.core.roundDistanceMeters(meters)
-    return if (rounded >= 1000) "%.1f km".format(rounded / 1000)
-    else "%.0f m".format(rounded)
-}

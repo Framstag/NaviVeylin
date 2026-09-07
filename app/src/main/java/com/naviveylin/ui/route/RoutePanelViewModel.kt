@@ -10,10 +10,13 @@ import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
+import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -96,7 +99,8 @@ class RoutePanelViewModel @Inject constructor(
     private val client: OSMScoutClient,
     val favoriteRepository: FavoriteRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
-    private val locationService: LocationService
+    private val locationService: LocationService,
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RoutePanelUiState())
@@ -115,9 +119,26 @@ class RoutePanelViewModel @Inject constructor(
     private val _clearRouteSignal = MutableStateFlow(0)
     val clearRouteSignal: StateFlow<Int> = _clearRouteSignal.asStateFlow()
 
+    /**
+     * Whether the calculated route is currently drawn on the map. Stopping
+     * navigation hides the route (spec: stop-navigation-hides-route) while
+     * keeping the panel state; restarting navigation shows it again.
+     */
+    private val _routeVisible = MutableStateFlow(true)
+    val routeVisible: StateFlow<Boolean> = _routeVisible.asStateFlow()
+
     /** Fires when a route calculation completes successfully. No stale value. */
     private val _routeCalculatedEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val routeCalculatedEvent: SharedFlow<Unit> = _routeCalculatedEvent.asSharedFlow()
+
+    /**
+     * Fires when a route calculation fails. Fire-and-forget with a single
+     * buffer slot: the phone surfaces the message via snackbar while
+     * navigating (spec: reroute-route-visibility). When the route panel is
+     * open, the in-panel [RouteState.Error] text already covers the failure.
+     */
+    private val _routeErrorEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val routeErrorEvent: SharedFlow<String> = _routeErrorEvent.asSharedFlow()
 
     private var searchJob: Job? = null
 
@@ -180,7 +201,7 @@ class RoutePanelViewModel @Inject constructor(
     fun selectCurrentLocation() {
         val loc = locationService.location.value ?: return
         val entry = LocationEntry().apply {
-            label = "Current Location"
+            label = context.getString(R.string.current_location)
             lat = loc.lat; lon = loc.lon; matchQuality = "coordinate"
         }
         selectSearchResult(entry)
@@ -194,6 +215,20 @@ class RoutePanelViewModel @Inject constructor(
     fun setDestLocation(entry: LocationEntry) {
         clearRouteIfNeeded()
         _uiState.value = _uiState.value.copy(destLocation = entry)
+    }
+
+    /**
+     * Update start and destination for a programmatic reroute without
+     * clearing the currently drawn route (spec: reroute-route-visibility).
+     *
+     * Unlike [setStartLocation]/[setDestLocation] this must NOT call
+     * [clearRouteIfNeeded]: the map keeps drawing the last route until the
+     * reroute calculation lands. On success the new [RouteResult] replaces
+     * it via [routeResultFlow]; on failure the last route stays visible and
+     * the error is surfaced through [routeErrorEvent].
+     */
+    fun updateLocationsForReroute(start: LocationEntry, dest: LocationEntry) {
+        _uiState.value = _uiState.value.copy(startLocation = start, destLocation = dest)
     }
 
     /** If a route is calculated and user changes start/dest, clear the route. */
@@ -251,9 +286,9 @@ class RoutePanelViewModel @Inject constructor(
                                     routeState = RouteState.Done,
                                     routeEntry = route,
                                     routeSteps = steps,
-                                    error = null,
-                                    showSummaryDialog = !_uiState.value.isNavigating
+                                    error = null
                                 )
+                                _routeVisible.value = true
                                 _routeResultFlow.value = RouteResult(
                                     routeLats = route.latitudes,
                                     routeLons = route.longitudes,
@@ -266,9 +301,11 @@ class RoutePanelViewModel @Inject constructor(
 
                         override fun onError(message: String) {
                             viewModelScope.launch {
+                                Log.e(TAG, "Route calculation failed: $message")
                                 _uiState.value = _uiState.value.copy(
                                     routeState = RouteState.Error(message), error = message
                                 )
+                                _routeErrorEvent.tryEmit(message)
                             }
                         }
 
@@ -304,7 +341,24 @@ class RoutePanelViewModel @Inject constructor(
     fun clearRoute() {
         _uiState.value = RoutePanelUiState(gpsAvailable = _uiState.value.gpsAvailable)
         _routeResultFlow.value = null
+        _routeVisible.value = true
         _clearRouteSignal.value = _clearRouteSignal.value + 1
+    }
+
+    /**
+     * Hide the route from the map without resetting the panel state
+     * (spec: stop-navigation-hides-route). The route stays available in the
+     * panel (start/dest/vehicle/summary preserved) and can be shown again via
+     * [showRouteOnMap].
+     */
+    fun clearRouteFromMap() {
+        _routeVisible.value = false
+        _clearRouteSignal.value = _clearRouteSignal.value + 1
+    }
+
+    /** Make the route visible on the map again (restart navigation). */
+    fun showRouteOnMap() {
+        _routeVisible.value = true
     }
 
     companion object {

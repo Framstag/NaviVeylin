@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import androidx.car.app.CarContext
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.Distance
 import androidx.car.app.navigation.model.Lane
@@ -10,7 +11,13 @@ import androidx.car.app.navigation.model.Step
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
+import com.naviveylin.auto.R
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.StringResolver
+import com.naviveylin.core.TurnInstructionLocalizer
+import com.naviveylin.core.formatDistanceNumber
+import com.naviveylin.core.roundDistanceMeters
+import com.naviveylin.core.stringResolver
 
 /**
  * Pure mapping functions for converting navigation state to Android Auto template values.
@@ -57,21 +64,23 @@ object NavigationTemplateMapper {
     /**
      * Build a host [Step] for [instruction] (spec: auto/navigation-view). The
      * step carries the maneuver (type icon), the target street as road and the
-     * instruction text as cue; [lanes] are attached to the step (with the
-     * [lanesImage] strip, which the host requires alongside lane data).
+     * localized instruction text as cue (spec: turn-instruction-localization);
+     * [lanes] are attached to the step (with the [lanesImage] strip, which the
+     * host requires alongside lane data).
      */
     fun stepForInstruction(
         instruction: RouteInstruction,
         icon: CarIcon,
         lanes: List<Lane> = emptyList(),
-        lanesImage: CarIcon? = null
+        lanesImage: CarIcon? = null,
+        resolver: StringResolver
     ): Step {
         val maneuver = Maneuver.Builder(maneuverTypeFromTurnType(instruction.turnType))
             .setIcon(icon)
             .build()
         val builder = Step.Builder()
             .setManeuver(maneuver)
-            .setCue(instruction.shortDescription ?: instruction.description)
+            .setCue(TurnInstructionLocalizer.shortDescription(resolver, instruction))
         instruction.streetName?.takeIf { it.isNotBlank() }?.let { builder.setRoad(it) }
         lanes.forEach { builder.addLane(it) }
         if (lanes.isNotEmpty()) {
@@ -120,7 +129,8 @@ object NavigationTemplateMapper {
         state: NavigationState,
         iconForTurn: (TurnType) -> CarIcon,
         includeLanes: Boolean,
-        laneImageFor: (List<LaneTurn>, IntRange) -> CarIcon? = { _, _ -> null }
+        laneImageFor: (List<LaneTurn>, IntRange) -> CarIcon? = { _, _ -> null },
+        resolver: StringResolver
     ): RoutingInfo? {
         if (!state.isNavigating) return null
         // Prefer the live next instruction: the native engine re-emits it with
@@ -151,12 +161,13 @@ object NavigationTemplateMapper {
                     current,
                     iconForTurn(current.turnType),
                     lanes,
-                    if (lanes.isNotEmpty()) laneImageFor(state.laneTurns, recommended) else null
+                    if (lanes.isNotEmpty()) laneImageFor(state.laneTurns, recommended) else null,
+                    resolver
                 ),
                 distanceForDisplay(current.distanceTo)
             )
         if (next != null) {
-            builder.setNextStep(stepForInstruction(next, iconForTurn(next.turnType)))
+            builder.setNextStep(stepForInstruction(next, iconForTurn(next.turnType), resolver = resolver))
         }
         return builder.build()
     }
@@ -183,16 +194,19 @@ object NavigationTemplateMapper {
      * Rows for the route description screen: distance + target street title,
      * description text, current step first and marked.
      */
-    fun routeDescriptionRows(state: NavigationState): List<RouteDescriptionRow> {
+    fun routeDescriptionRows(carContext: CarContext, state: NavigationState): List<RouteDescriptionRow> {
+        val resolver = carContext.stringResolver()
         return instructionsFromCurrentStep(state).mapIndexed { index, instruction ->
-            val distance = NavigationHintsOverlay.formatDistance(instruction.distanceTo)
+            val distance = carContext.getString(
+                if (roundDistanceMeters(instruction.distanceTo) >= 1000) R.string.distance_unit_km else R.string.distance_unit_m,
+                formatDistanceNumber(instruction.distanceTo)
+            )
             val target = instruction.streetName?.takeIf { it.isNotBlank() }
-                ?: instruction.shortDescription?.takeIf { it.isNotBlank() }
-                ?: instruction.description
+                ?: TurnInstructionLocalizer.shortDescription(resolver, instruction)
             RouteDescriptionRow(
                 turnType = instruction.turnType,
-                title = "$distance · $target",
-                text = instruction.description,
+                title = carContext.getString(R.string.distance_target, distance, target),
+                text = TurnInstructionLocalizer.description(resolver, instruction),
                 isCurrent = index == 0
             )
         }

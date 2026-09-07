@@ -32,7 +32,7 @@ class DetailsScreenTest {
 
     @Test
     fun coordinatesRowAlwaysPresentWithLabel() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653, address = null, description = null
         )
         assertEquals(1, rows.size)
@@ -43,7 +43,7 @@ class DetailsScreenTest {
 
     @Test
     fun addressShownAsLabeledRow() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653,
             address = arrayOf("Kleppingstr.", "22", "Dortmund", "44139"),
             description = null
@@ -58,7 +58,7 @@ class DetailsScreenTest {
 
     @Test
     fun areaFallsBackToPostalArea() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653,
             address = arrayOf("", "", "", "44139"),
             description = null
@@ -70,7 +70,7 @@ class DetailsScreenTest {
 
     @Test
     fun areaFallsBackToDescriptionIsIn() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653, address = null,
             description = description(
                 DescriptionEntry().apply {
@@ -90,7 +90,7 @@ class DetailsScreenTest {
 
     @Test
     fun noAreaRowWithoutAreaData() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653, address = arrayOf("", "", "", ""),
             description = description(entry("General", "Type", "hotel"))
         )
@@ -103,7 +103,7 @@ class DetailsScreenTest {
     fun streetAndAddressEntriesNotDuplicated() {
         // The combined Address row covers Location/Location (street) and
         // Location/Address (house number) — neither reappears as a row.
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653,
             address = arrayOf("Kleppingstr.", "22", "Dortmund", "44139"),
             description = description(
@@ -121,7 +121,7 @@ class DetailsScreenTest {
 
     @Test
     fun descriptionEntriesShownAsLabeledRows() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653, address = null,
             description = description(
                 entry("General", "Name", "Mario's"),
@@ -137,7 +137,7 @@ class DetailsScreenTest {
 
     @Test
     fun blankDescriptionEntriesSkipped() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653, address = null,
             description = description(
                 entry("General", "Name", "   "),
@@ -152,7 +152,7 @@ class DetailsScreenTest {
     fun allDescriptionAttributesShown() {
         // Every attribute returned by the description API must be listed —
         // no fixed row limit drops attributes like opening hours or phone.
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653,
             address = arrayOf("Kleppingstr.", "22", "Dortmund", "44139"),
             description = description(
@@ -172,7 +172,7 @@ class DetailsScreenTest {
 
     @Test
     fun openingHoursShownOnDetailsScreen() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653, address = null,
             description = description(
                 entry("General", "OpeningHours", "Mo-Fr 09:00-18:00")
@@ -186,7 +186,7 @@ class DetailsScreenTest {
     @Test
     fun noRowCapForLongDescriptions() {
         // More entries than any fixed pane cap: every one must be present.
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653, address = null,
             description = description(
                 entry("General", "A", "1"),
@@ -202,7 +202,7 @@ class DetailsScreenTest {
 
     @Test
     fun descriptionEntriesKeepNativeOrder() {
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653,
             address = arrayOf("Kleppingstr.", "22", "Dortmund", "44139"),
             description = description(
@@ -221,7 +221,7 @@ class DetailsScreenTest {
     @Test
     fun navigateRowInvokesCallback() {
         var invoked = false
-        val row = buildNavigateRow { invoked = true }
+        val row = buildNavigateRow(testCarContext()) { invoked = true }
         assertEquals("▶ Navigate to", row.title.toString())
         assertTrue("row must be clickable", row.onClickDelegate != null)
         row.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
@@ -231,7 +231,7 @@ class DetailsScreenTest {
     @Test
     fun showRowInvokesCallback() {
         var invoked = false
-        val row = buildShowRow { invoked = true }
+        val row = buildShowRow(testCarContext()) { invoked = true }
         assertEquals("◎ Show", row.title.toString())
         assertTrue("row must be clickable", row.onClickDelegate != null)
         row.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
@@ -243,20 +243,20 @@ class DetailsScreenTest {
         // The details screen's only navigation trigger is the "Navigate to"
         // row: attribute rows carry no click listeners, so popping the screen
         // (system back) never starts navigation.
-        val rows = buildAttributeList(
+        val rows = buildAttributeList(testCarContext(),
             lat = 51.5136, lon = 7.4653, address = null,
             description = description(entry("General", "Type", "restaurant"))
         )
         assertTrue("attribute rows must not be clickable", rows.all { it.onClickDelegate == null })
         // The action rows are clickable by contrast.
-        assertTrue(buildNavigateRow {}.onClickDelegate != null)
-        assertTrue(buildShowRow {}.onClickDelegate != null)
+        assertTrue(buildNavigateRow(testCarContext()) {}.onClickDelegate != null)
+        assertTrue(buildShowRow(testCarContext()) {}.onClickDelegate != null)
     }
 
     @Test
     fun saveFavoriteRowInvokesCallback() {
         var invoked = false
-        val row = buildSaveFavoriteRow { invoked = true }
+        val row = buildSaveFavoriteRow(testCarContext()) { invoked = true }
         assertEquals("★ Add to Favorites", row.title.toString())
         assertTrue("row must be clickable", row.onClickDelegate != null)
         row.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
@@ -266,7 +266,7 @@ class DetailsScreenTest {
     @Test
     fun removeFavoriteRowInvokesCallback() {
         var invoked = false
-        val row = buildRemoveFavoriteRow { invoked = true }
+        val row = buildRemoveFavoriteRow(testCarContext()) { invoked = true }
         assertEquals("☆ Remove from Favorites", row.title.toString())
         assertTrue("row must be clickable", row.onClickDelegate != null)
         row.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})

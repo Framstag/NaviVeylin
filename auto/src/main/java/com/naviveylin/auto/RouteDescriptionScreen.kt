@@ -12,6 +12,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.auto.R
 import com.naviveylin.core.NavigationViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,13 +59,13 @@ class RouteDescriptionScreen(
         return try {
             buildTemplate()
         } catch (e: Exception) {
-            SafeScreen.errorTemplate(e.message)
+            SafeScreen.errorTemplate(carContext, e.message)
         }
     }
 
     private fun buildTemplate(): ListTemplate {
         val state = navigationViewModel.state.value
-        val rows = NavigationTemplateMapper.routeDescriptionRows(state)
+        val rows = NavigationTemplateMapper.routeDescriptionRows(carContext, state)
         val itemList = androidx.car.app.model.ItemList.Builder().apply {
             rows.forEach { row ->
                 val title = if (row.isCurrent) "▶ ${row.title}" else row.title

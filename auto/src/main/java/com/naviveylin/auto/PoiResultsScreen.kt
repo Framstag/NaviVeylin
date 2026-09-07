@@ -11,8 +11,10 @@ import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import com.framstag.libosmscout.client.PoiEntry
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.formatDistanceNumber
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -78,7 +80,7 @@ class PoiResultsScreen(
 
         when {
             loading -> {
-                listBuilder.addItem(Row.Builder().setTitle("Searching...").build())
+                listBuilder.addItem(Row.Builder().setTitle(carContext.getString(R.string.searching)).build())
             }
             error != null -> {
                 listBuilder.addItem(Row.Builder().setTitle(error!!).build())
@@ -86,8 +88,8 @@ class PoiResultsScreen(
             results.isNullOrEmpty() -> {
                 listBuilder.addItem(
                     Row.Builder()
-                        .setTitle("No results found")
-                        .addText("No $categoryLabel nearby")
+                        .setTitle(carContext.getString(R.string.no_results_found))
+                        .addText(carContext.getString(R.string.no_category_nearby, categoryLabel))
                         .build()
                 )
             }
@@ -96,7 +98,11 @@ class PoiResultsScreen(
                     // Row tap selects the POI (rows with a click listener must
                     // not also carry row actions — ROW_CONSTRAINTS_SIMPLE).
                     val title = (poi.label ?: "").ifBlank { poi.objectType ?: "POI" }
-                    val distance = if (poi.distance > 0) "%.0f m away".format(poi.distance) else ""
+                    val distance = if (poi.distance > 0) {
+                        carContext.getString(R.string.distance_away_m, formatDistanceNumber(poi.distance))
+                    } else {
+                        ""
+                    }
                     val text = listOf(poi.objectType ?: "", distance)
                         .filter { it.isNotBlank() }
                         .joinToString(" · ")

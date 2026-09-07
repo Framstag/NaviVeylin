@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.ObjectDescription
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.NavigationViewModel
@@ -213,19 +214,19 @@ class DetailsScreen(
         // titled action throws "exceeded max number of 0 actions with custom
         // titles", so the actions ride on rows (same as the map menu).
         val listBuilder = ItemList.Builder()
-        listBuilder.addItem(buildNavigateRow(onNavigate))
-        listBuilder.addItem(buildShowRow(onShow))
+        listBuilder.addItem(buildNavigateRow(carContext, onNavigate))
+        listBuilder.addItem(buildShowRow(carContext, onShow))
         // Favorite management (spec: auto-destination-details — favorite
         // management on details screen): save/remove reflects the store state.
         if (isFavorite()) {
             listBuilder.addItem(
-                buildRemoveFavoriteRow {
+                buildRemoveFavoriteRow(carContext) {
                     loadScope.launch { favoritesProvider.removeFavorite(lat, lon) }
                 }
             )
         } else {
             listBuilder.addItem(
-                buildSaveFavoriteRow {
+                buildSaveFavoriteRow(carContext) {
                     loadScope.launch {
                         favoritesProvider.addFavorite(resolveTitle(address, description, nameHint), lat, lon)
                     }
@@ -233,6 +234,7 @@ class DetailsScreen(
             )
         }
         buildAttributeList(
+            carContext = carContext,
             lat = lat,
             lon = lon,
             address = address,
@@ -381,9 +383,9 @@ class DetailsScreen(
  * Rendered as a row because ListTemplate actions are FAB-icon-only (no
  * custom titles).
  */
-internal fun buildNavigateRow(onNavigate: () -> Unit): Row =
+internal fun buildNavigateRow(carContext: CarContext, onNavigate: () -> Unit): Row =
     Row.Builder()
-        .setTitle("\u25B6 Navigate to")
+        .setTitle(carContext.getString(R.string.navigate_to))
         .setOnClickListener { onNavigate() }
         .build()
 
@@ -393,9 +395,9 @@ internal fun buildNavigateRow(onNavigate: () -> Unit): Row =
  * marked with a unicode target glyph so it reads as an action. Extracted
  * for testability: tapping the row fires [onShow].
  */
-internal fun buildShowRow(onShow: () -> Unit): Row =
+internal fun buildShowRow(carContext: CarContext, onShow: () -> Unit): Row =
     Row.Builder()
-        .setTitle("◎ Show")
+        .setTitle(carContext.getString(R.string.show))
         .setOnClickListener { onShow() }
         .build()
 
@@ -405,9 +407,9 @@ internal fun buildShowRow(onShow: () -> Unit): Row =
  * aligned with the phone details dialog (spec: cross-variant-ui-parity).
  * Extracted for testability: tapping the row fires [onSave].
  */
-internal fun buildSaveFavoriteRow(onSave: () -> Unit): Row =
+internal fun buildSaveFavoriteRow(carContext: CarContext, onSave: () -> Unit): Row =
     Row.Builder()
-        .setTitle("★ Add to Favorites")
+        .setTitle(carContext.getString(R.string.add_to_favorites))
         .setOnClickListener { onSave() }
         .build()
 
@@ -417,9 +419,9 @@ internal fun buildSaveFavoriteRow(onSave: () -> Unit): Row =
  * Label aligned with the phone details dialog (spec: cross-variant-ui-parity).
  * Extracted for testability: tapping the row fires [onRemove].
  */
-internal fun buildRemoveFavoriteRow(onRemove: () -> Unit): Row =
+internal fun buildRemoveFavoriteRow(carContext: CarContext, onRemove: () -> Unit): Row =
     Row.Builder()
-        .setTitle("☆ Remove from Favorites")
+        .setTitle(carContext.getString(R.string.remove_from_favorites))
         .setOnClickListener { onRemove() }
         .build()
 
@@ -437,6 +439,7 @@ internal fun buildRemoveFavoriteRow(onRemove: () -> Unit): Row =
  * lead view).
  */
 internal fun buildAttributeList(
+    carContext: CarContext,
     lat: Double,
     lon: Double,
     address: Array<String>?,
@@ -448,7 +451,7 @@ internal fun buildAttributeList(
     // Coordinates — always present.
     rows.add(
         Row.Builder()
-            .setTitle("Coordinates")
+            .setTitle(carContext.getString(R.string.coordinates))
             .addText("${String.format("%.5f", lat)}, ${String.format("%.5f", lon)}")
             .build()
     )
@@ -469,11 +472,11 @@ internal fun buildAttributeList(
     val data = DetailsResolver.resolve(input, nameHint)
     val addressLine = data.address
     if (addressLine != null) {
-        rows.add(Row.Builder().setTitle("Address").addText(addressLine).build())
+        rows.add(Row.Builder().setTitle(carContext.getString(R.string.address)).addText(addressLine).build())
     }
     val area = data.area
     if (area != null) {
-        rows.add(Row.Builder().setTitle("Area").addText(area).build())
+        rows.add(Row.Builder().setTitle(carContext.getString(R.string.area)).addText(area).build())
     }
 
     // ALL object description entries (label → value), in native order, after

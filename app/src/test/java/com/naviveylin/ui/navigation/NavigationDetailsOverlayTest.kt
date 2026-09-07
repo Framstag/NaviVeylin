@@ -93,6 +93,42 @@ class NavigationDetailsOverlayTest {
     }
 
     @Test
+    fun perStepTimeShown() {
+        composeRule.setContent {
+            NavigationDetailsOverlay(
+                instructions = listOf(
+                    RouteInstruction(
+                        500.0, 300.0, TurnType.LEFT, "Street 0", "Turn into Street 0", "Turn",
+                        0.0, TurnType.STRAIGHT_ON, "", ""
+                    )
+                ),
+                currentStepIndex = 0,
+                remainingDistance = 5000.0,
+                etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
+                onStopNavigation = {},
+                onDismiss = {}
+            )
+        }
+        // 300 s = 5 min, shown under the distance (spec: move-routing-summary).
+        composeRule.onNodeWithText("5 min").assertIsDisplayed()
+    }
+
+    @Test
+    fun perStepTimeHiddenWhenUnknown() {
+        composeRule.setContent {
+            NavigationDetailsOverlay(
+                instructions = instructions(), // 5-arg ctor → timeTo = 0
+                currentStepIndex = 0,
+                remainingDistance = 5000.0,
+                etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
+                onStopNavigation = {},
+                onDismiss = {}
+            )
+        }
+        composeRule.onNodeWithText("5 min").assertDoesNotExist()
+    }
+
+    @Test
     fun closeButtonDismisses() {
         var dismissed = false
         composeRule.setContent {

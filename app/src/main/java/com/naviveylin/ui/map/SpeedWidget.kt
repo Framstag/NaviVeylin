@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -51,11 +52,7 @@ fun SpeedWidget(
     if (!hasSpeed && !reserveSlotWhenHidden) return
 
     val showLimit = hasSpeed && !maxSpeedKmH.isNaN() && maxSpeedKmH > 0
-    val badgeColor = if (isSpeedOverLimit(currentSpeedKmH, maxSpeedKmH)) {
-        MaterialTheme.colorScheme.error
-    } else {
-        Color.White
-    }
+    val badgeColor = speedBadgeTextColor(isSpeedOverLimit(currentSpeedKmH, maxSpeedKmH))
 
     Column(
         modifier = modifier.then(
@@ -67,8 +64,8 @@ fun SpeedWidget(
         Box(
             modifier = Modifier
                 .background(
-                    if (hasSpeed) Color(0xCC1C1B1F) else Color.Transparent,
-                    RoundedCornerShape(10.dp)
+                    if (hasSpeed) speedBadgeContainerColor() else Color.Transparent,
+                    RoundedCornerShape(12.dp)
                 )
                 .padding(horizontal = 12.dp, vertical = 6.dp)
                 .then(if (hasSpeed) Modifier.testTag("speedBadge") else Modifier),
@@ -80,7 +77,7 @@ fun SpeedWidget(
             Text(
                 text = MAX_SPEED_TEXT,
                 color = Color.Transparent,
-                style = MaterialTheme.typography.titleMedium,
+                style = speedBadgeTextStyle(),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.testTag("speedBadgeMaxText")
             )
@@ -88,7 +85,7 @@ fun SpeedWidget(
                 Text(
                     text = "${currentSpeedKmH.roundToInt()} km/h",
                     color = badgeColor,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = speedBadgeTextStyle(),
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -97,16 +94,16 @@ fun SpeedWidget(
             Box(
                 modifier = Modifier
                     .padding(top = 6.dp)
-                    .size(40.dp)
+                    .size(64.dp)
                     .background(Color.White, CircleShape)
-                    .border(4.dp, Color(0xFFE53935), CircleShape)
+                    .border(6.dp, Color(0xFFE53935), CircleShape)
                     .testTag("speedLimitSign"),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "${maxSpeedKmH.roundToInt()}",
                     color = Color.Black,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = speedLimitDigitsStyle(),
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -117,12 +114,49 @@ fun SpeedWidget(
             Box(
                 modifier = Modifier
                     .padding(top = 6.dp)
-                    .size(40.dp)
+                    .size(64.dp)
                     .testTag("speedLimitPlaceholder")
             )
         }
     }
 }
+
+/**
+ * Badge text color: dark (`onSurface`) on the light card in the normal case;
+ * the overspeed warning color when exceeding the limit by 5+ km/h (spec:
+ * map-speed-widget — Overspeed warning color). Dark text on the light card
+ * background; never white-on-light. Exposed for tests.
+ */
+@Composable
+internal fun speedBadgeTextColor(overLimit: Boolean): Color =
+    if (overLimit) MaterialTheme.colorScheme.error
+    else MaterialTheme.colorScheme.onSurface
+
+/**
+ * Badge container color — the standard overlay card container shared with the
+ * turn card and routing status (spec: map-speed-widget — Speed badge uses the
+ * standard overlay card container), never a fixed dark color. Exposed for
+ * tests.
+ */
+@Composable
+internal fun speedBadgeContainerColor(): Color =
+    MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+
+/**
+ * Badge current-speed text style — driver-seat readable size (spec:
+ * map-speed-widget — minimum readable size for speed text). Exposed for
+ * tests; the widget renders this style with bold weight.
+ */
+@Composable
+internal fun speedBadgeTextStyle(): TextStyle = MaterialTheme.typography.headlineSmall
+
+/**
+ * Max-speed sign digit style — driver-seat readable size (spec:
+ * map-speed-widget — minimum readable size for the max-speed sign). Exposed
+ * for tests; the sign renders this style with bold weight.
+ */
+@Composable
+internal fun speedLimitDigitsStyle(): TextStyle = MaterialTheme.typography.headlineMedium
 
 /**
  * Overspeed rule (spec: map-speed-widget): the badge turns red when the

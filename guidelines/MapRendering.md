@@ -227,10 +227,39 @@ Provider-aware inside `LocationService` only:
   scaled placeholder.
 - Blits copy pure map content — the marker overlay is drawn by Compose on top afterwards, so a
   blit can never carry stale marker pixels.
+- A blit is a TILE-PREVIEW optimization only: the blit-covered branch in `submitDebounced` MUST NOT
+  discard a pending FORCED render (`forceFullRender=true` — route set/clear, favorites, search
+  selection, stylesheet switch, epoch bump). Discarding it would leave the new overlay undrawn
+  until a gesture triggers a full render (observed symptom: stale route on the map after a reroute
+  until the user pans). Keep the pending render (`pendingRender?.forceFullRender != true` guard)
+  so overlay changes render even when the camera never moved.
 - Tile-path rotated composition MUST rotate about the viewport center (tiles placed north-up,
   `canvas.rotate(deg, W/2, H/2)`), NEVER about each tile's own corner — corner pivots shift
   content by up to `d·θ` (d = tile distance from center, θ = rotation) and break marker-overlay
   alignment.
+
+---
+
+## 14. Rotation Gesture Display-Layer Handoff
+
+- The live rotation angle during a two-finger gesture lives in the graphicsLayer
+  (`rotationZ = gestureRotation`), NOT in the rendered bitmap (which stays at the committed
+  angle until gesture end).
+- The rotation AND zoom pivot at the FINGER MIDPOINT (the graphicsLayer `transformOrigin` =
+  `gesturePivot`): the geographic point under the midpoint at gesture start stays under the
+  midpoint for the whole gesture, and the gesture-end commit adjusts the viewport center so the
+  anchor holds in the rendered frame (`ProjectionUtils.rotateZoomAtFocalPoint` — the
+  generalized focal-point commit; Δ=0 reduces to `zoomAtCursor`).
+- Rotating around an off-center pivot can expose empty corners at large angles (accepted — the
+  overrun buffer margin covers moderate angles; standard map-app behavior).
+- At gesture end the committed angle is set and a full render is requested, but the render is
+  async (debounce + background job). The display MUST keep the final angle applied until the
+  front buffer swaps to the committed angle — otherwise the old bitmap (old angle) shows
+  unrotated for the render duration and the map temporarily jumps back to the pre-gesture
+  angle (observed symptom: rotate → map snaps back → restores).
+- The hold is a FLAG (`rotationHoldActive` in `MapCanvasScreen`); the held ANGLE is derived per draw as `committedAngle − frontBufferAngle` (`rotationDisplayTheta`) from the SAME collected state the draw reads — so it zeroes atomically with the committed bitmap swap and there is no one-frame window that draws the new bitmap with a stale rotation. A STORED hold value cleared by the frame loop is wrong: the clear (direct `uiState` read) and the draw (collected state) can straddle the render-land emission and show a double-rotation twist for one frame.
+- At render land the old rotated frame is crossfaded into the new native render (mirror of the zoom crossfade, `crossfadeAngle`), masking tile-vs-native rasterization differences; the old frame is drawn rotated about the gesture midpoint (`drawFrontFrame` `rotationDegrees`/`rotationPivot`), which equals the committed render's pivot.
+- The hold disarms when the front buffer reaches the committed angle or on the next gesture start. The derived gap composes independently with the zoom handoff: `rotationZ` and `scaleX/Y` are applied together in the graphicsLayer and each clears on its own condition.
 
 ---
 
@@ -306,6 +335,35 @@ car Surface:
 - **Blit eligibility**: only pure viewport/marker changes may blit. Favorites, route, DPI, and
   surface changes force a full render (`blitEligible = false`) — a blit would show stale
   native-rendered content.
+
+---
+
+## 15. Day/Night (daylight flag) contract
+
+- The stylesheet `daylight` flag selects the map variant: set = daylight, unset = dark.
+  Native side: `setStyleSheetFlag("daylight", !dark)` → `DBThread.SetStyleFlag` →
+  `LoadStyleInternal(stylesheet, flags)` reloads the variant on the DB thread; the next
+  render uses it. No tile cache survives the reload (variant switch must not show
+  tiles from the other variant).
+- **Phone**: the environment source is `DarkModeController` (system night mode, or the
+  ambient light sensor when enabled — see `dark-mode` spec). `pushDarkPresentation`
+  dedupes and calls `invalidateStyle()` (epoch bump + full re-render).
+- **Android Auto**: the source is the HOST's day/night state, never the phone's system
+  mode — the car process runs on the phone but the head unit decides (its own light
+  sensor / time). `NavigationSession.hostDark` (init from `CarContext.isDarkMode()`,
+  updated in `onCarConfigurationChanged`) feeds both map screens; `CarDaylightApplier`
+  dedupes the push; `invalidateStyle()` (blit bypass + full render) re-renders so the
+  stale-variant overrun buffer is never blitted. Templates are host-rendered and
+  follow the host automatically — only the app-drawn surface needs this.
+- **Startup race (both variants)**: `SetStyleFlag` is a silent no-op until a DB is
+  open, so the initial flag push can be dropped while the DB is still initializing
+  (warmup). The flag MUST be re-pushed once the DB is ready: phone re-pushes on the
+  first rendered frame (`stylePushedToNative` in `MapCanvasViewModel`); AA re-pushes
+  after a successful style load and at surface creation (`pushHostDark` in both map
+  screens, with `CarDaylightApplier.reset()` so the re-push is not deduped away).
+- Initial `isDarkMode()` may be false until the host sends configuration
+  (`UI_MODE_UNKNOWN`); the first `onCarConfigurationChanged` corrects it (one extra
+  render at startup).
 
 ---
 

@@ -23,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class RootScreenTest {
 
-    private val carContext = mockk<CarContext>()
+    private val carContext = testCarContext()
     private val navigationViewModel = mockk<NavigationViewModel>()
 
     init {

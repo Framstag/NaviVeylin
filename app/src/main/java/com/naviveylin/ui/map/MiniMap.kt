@@ -35,10 +35,12 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.naviveylin.R
 import com.naviveylin.core.ProjectionUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -269,7 +271,7 @@ fun MiniMap(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Zoom in",
+                    contentDescription = stringResource(R.string.zoom_in),
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -287,7 +289,7 @@ fun MiniMap(
             ) {
                 Icon(
                     imageVector = Icons.Default.Remove,
-                    contentDescription = "Zoom out",
+                    contentDescription = stringResource(R.string.zoom_out),
                     modifier = Modifier.size(18.dp)
                 )
             }

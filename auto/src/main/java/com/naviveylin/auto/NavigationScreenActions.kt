@@ -1,7 +1,7 @@
 package com.naviveylin.auto
 
 import androidx.car.app.model.Action
-import androidx.car.app.model.CarIcon
+import androidx.car.app.model.ActionStrip
 
 /**
  * Pure factories for the navigation screen strip actions (extracted for
@@ -27,6 +27,30 @@ object NavigationScreenActions {
         .setIcon(CarGlyphs.exit)
         .setOnClickListener(onClick)
         .build()
+
+    /**
+     * Map action strip for the navigation view: pan + route-description
+     * actions. No stop action — the host ETA card stop button is the single
+     * stop affordance (spec: auto/navigation-view — "Leave navigation at any
+     * time"); no back button (system back is the secondary leave
+     * affordance). The PAN action toggles host pan mode (spec: auto/map-pan).
+     */
+    fun navigationMapActionStrip(onShowRouteDescription: () -> Unit): ActionStrip =
+        ActionStrip.Builder()
+            .addAction(Action.PAN)
+            .addAction(routeListAction(onShowRouteDescription))
+            .build()
+
+    /**
+     * Map action strip for the free-driving view: pan + exit actions (spec:
+     * auto/map-pan — pan affordance; auto/free-driving — "Exit free
+     * driving"). No back/menu affordance.
+     */
+    fun freeDrivingMapActionStrip(onExit: () -> Unit): ActionStrip =
+        ActionStrip.Builder()
+            .addAction(Action.PAN)
+            .addAction(stopAction(onExit))
+            .build()
 
     /** Zoom in — driving-safe visualisation control. */
     fun zoomInAction(onClick: () -> Unit): Action = Action.Builder()

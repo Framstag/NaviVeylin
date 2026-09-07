@@ -36,6 +36,7 @@ data class AppSettings(
     val navNorthUp: Boolean = false,
     val keepScreenOn: Boolean = true,
     val darkMode: DarkModePreference = DarkModePreference.AUTOMATIC,
+    val ambientLightDarkMode: Boolean = false,
     val laneHintsEnabled: Boolean = true,
     val renderMode: RenderMode = RenderMode.TILES,
     val styleSheet: String = "standard"

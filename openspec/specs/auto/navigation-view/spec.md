@@ -127,7 +127,7 @@ The system SHALL show the remaining travel time and remaining distance to the de
 
 ### Requirement: Current street name shown during navigation
 
-The system SHALL display the name of the current street on the navigation display while navigating, updating when the vehicle changes roads.
+The system SHALL display the name of the current street on the navigation display while navigating, updating when the vehicle changes roads. The label SHALL remain fully visible — not covered by host-rendered UI such as the travel-estimate (ETA) card.
 
 #### Scenario: Street name displayed while driving
 
@@ -143,6 +143,26 @@ The system SHALL display the name of the current street on the navigation displa
 
 - **WHEN** navigation is active but no street name is available
 - **THEN** no street-name label is drawn
+
+#### Scenario: Street name not covered by host ETA card
+
+- **WHEN** navigation is active, a travel estimate is shown by the host, and the current street name is displayed
+- **THEN** the street-name label is drawn entirely above the host's ETA card region, within the area the host guarantees visible
+
+#### Scenario: Street name stays clear when host geometry is unknown
+
+- **WHEN** navigation is active and the host has not delivered a stable area
+- **THEN** the street-name label is still drawn within the host's visible area, not at the raw surface bottom
+
+#### Scenario: Street name in host ETA card when map area is not safe
+
+- **WHEN** navigation is active, a travel estimate is shown by the host, and the host delivers no stable or visible area that clears the surface bottom (the ETA card may cover the map label)
+- **THEN** the street name is rendered inside the host's travel-estimate card via `setTripText`, and no street-name label is drawn on the map surface
+
+#### Scenario: Street name on map when host area is safe
+
+- **WHEN** navigation is active, a travel estimate is shown by the host, and the host delivers a stable or visible area that clears the surface bottom
+- **THEN** the street-name label is drawn on the map surface and the travel-estimate card carries no trip text
 
 ### Requirement: Speed-driven auto-zoom during navigation
 
@@ -170,7 +190,7 @@ The system SHALL adjust the navigation map zoom with the vehicle speed while the
 
 ### Requirement: Leave navigation at any time
 
-The system SHALL let the user stop active navigation from the car display at any time via a visible stop action (an "x" button) in the navigation map action strip or via system back, and SHALL NOT show an explicit back button in the map action strip.
+The system SHALL let the user stop active navigation from the car display at any time via the host ETA card stop button or via system back, and SHALL NOT show an explicit stop or back button in the navigation map action strip.
 
 #### Scenario: Stop navigation from car
 
@@ -179,15 +199,15 @@ The system SHALL let the user stop active navigation from the car display at any
 
 #### Scenario: Stop action shown on navigation map
 
-- **WHEN** the user is navigating on the car display
-- **THEN** the navigation map action strip shows a stop action (an "x" button) beside the route-description action, and no back button
+- **WHEN** the user is navigating on the car display with a travel estimate
+- **THEN** the host ETA card shows a stop action and the navigation map action strip shows no stop or back button
 
 #### Scenario: Stop action stops navigation
 
-- **WHEN** the user activates the stop action on the navigation map while navigating
+- **WHEN** the user activates the stop action on the host ETA card while navigating
 - **THEN** navigation stops on the car display and the screen returns to the root menu
 
 #### Scenario: System back still leaves with the stop action shown
 
-- **WHEN** the user is navigating and the map action strip shows the stop and route-description actions without an explicit back button
+- **WHEN** the user is navigating and the host ETA card shows the stop action
 - **THEN** pressing system back still stops navigation and returns the screen to the root menu

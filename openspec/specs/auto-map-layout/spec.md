@@ -29,7 +29,7 @@ The system SHALL display the zoom buttons together with Search and Settings in t
 
 - **WHEN** navigation is active
 - **THEN** a compass rose on the navigation display rotates so its north pointer faces true north
-- **AND** the rose is right-aligned to the display edge, sized like the strip buttons (48 dp)
+- **AND** the rose is right-aligned to the display edge, sized 56 dp
 
 ### Requirement: Content box acts as the app menu
 
@@ -64,7 +64,7 @@ The system SHALL use the map template's required content slot as the app menu, h
 
 ### Requirement: Speed-limit indicator during navigation
 
-The system SHALL display the current speed and the current speed limit on the navigation display in the right visualisation region: a speed badge with the current speed, the speed limit as a round sign below the badge, and a warning color on the badge when the current speed exceeds the limit.
+The system SHALL display the current speed and the current speed limit on the navigation display in the right visualisation region: a speed badge with the current speed, the speed limit as a round sign below the badge, and a warning color on the badge when the current speed exceeds the limit. The round speed-limit sign SHALL be at least 56dp in diameter with a red ring of at least 7dp and digits of at least 24sp bold.
 
 #### Scenario: Limit badge shown during navigation
 
@@ -85,6 +85,16 @@ The system SHALL display the current speed and the current speed limit on the na
 
 - **WHEN** no speed-limit data is available
 - **THEN** no speed-limit sign is drawn
+
+#### Scenario: Sign at least 56dp
+
+- **WHEN** the speed-limit sign is shown
+- **THEN** the sign circle is at least 56dp in diameter with a red ring of at least 7dp
+
+#### Scenario: Sign digits at least 24sp
+
+- **WHEN** the speed-limit sign is shown
+- **THEN** the digit text uses a font size of 24sp or larger with bold weight
 
 ### Requirement: Settings dialog reachable while driving
 

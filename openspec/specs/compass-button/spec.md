@@ -91,13 +91,13 @@ The compass button's mode SHALL reflect and update the same orientation settings
 
 ### Requirement: Compass positioned at top of right view column
 
-The system SHALL position the compass button at the top of the right view column, below the status bar. The menu, search, and favorites buttons move to the left action column (see `map-canvas-screen`), so the compass is no longer between the menu and search buttons.
+The system SHALL position the compass button at the top of the right view column. The right view column SHALL be bottom-anchored: at the bottom-right of the screen in the standard (free-form) view, and above the routing status bar during navigation. The menu, search, and favorites buttons move to the left action column (see `map-canvas-screen`), so the compass is no longer between the menu and search buttons.
 
 #### Scenario: Compass at top of right view column
 
 - **WHEN** the map screen is displayed
 - **THEN** the compass button SHALL be visible at the top of the right view column
-- **AND** it SHALL appear below the status bar
+- **AND** the right view column SHALL be bottom-anchored
 - **AND** the menu (toaster) button SHALL be on the left side of the screen
 - **AND** it SHALL appear above the search (🔍) button
 
@@ -118,11 +118,12 @@ The compass needle SHALL have a visually distinct appearance between "always nor
 
 ### Requirement: Compass button matches overlay button sizing
 
-The compass button SHALL be the same size as the other map overlay buttons (menu, search, location options) and SHALL use the same shadow as those buttons. The follow-direction triangle needle SHALL be sized to about 70% of the button.
+The compass button SHALL be larger than the other map overlay buttons (menu, search, location options): 56dp layout / 48dp visual vs the 48dp layout / 40dp visual of the other buttons, so it reads at a glance while driving. It SHALL use the same shadow as those buttons. The follow-direction triangle needle SHALL be sized to about 70% of the button.
 
 #### Scenario: Compass button same size as other overlay buttons
 
 - **WHEN** the map screen is displayed
-- **THEN** the compass button SHALL match the size of the other overlay buttons
+- **THEN** the compass button SHALL be 56dp layout / 48dp visual
+- **AND** the other overlay buttons (menu, search, location options) SHALL remain 48dp layout / 40dp visual
 - **AND** the compass button SHALL use the same shadow as the other overlay buttons
 - **AND** the follow-direction triangle SHALL be sized to about 70% of the button

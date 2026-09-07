@@ -27,6 +27,13 @@ class ViewportStorage(
 
     /** Save viewport state for a map to disk. Runs on [Dispatchers.IO]. */
     suspend fun save(mapKey: String, state: ViewportState) {
+        // Reject uninitialized/invalid viewports (NaN, infinity, out-of-range
+        // coordinates): persisting one would clobber a previously restored
+        // viewport and make the next session open at the wrong place.
+        if (!state.isValid()) {
+            Log.w(TAG, "save rejected: invalid viewport state $state")
+            return
+        }
         withContext(ioDispatcher) {
             try {
                 val file = fileFor(mapKey)

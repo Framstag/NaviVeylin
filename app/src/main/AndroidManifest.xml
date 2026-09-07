@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Android Auto (projection) -->
     <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES" />
@@ -40,9 +41,6 @@
         </intent>
         <package android:name="com.google.android.projection.gearhead" />
         <package android:name="com.google.android.apps.automotive.templates.host" />
-        <provider
-            android:name="androidx.car.app.connection.provider"
-            android:authorities="androidx.car.app.connection" />
     </queries>
 
     <application
@@ -59,6 +57,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.NaviVeylin">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -81,6 +80,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <category android:name="androidx.car.app.category.NAVIGATION" />
                 <data android:scheme="https" android:host="maps.google.com" />
                 <data android:scheme="https" android:host="www.google.com" />

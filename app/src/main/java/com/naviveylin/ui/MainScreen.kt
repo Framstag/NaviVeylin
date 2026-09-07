@@ -24,8 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.naviveylin.R
 import com.naviveylin.ui.about.AboutDialog
 
 /**
@@ -49,7 +51,7 @@ fun MainScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "NaviVeylin",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -57,7 +59,7 @@ fun MainScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Open-source offline navigation",
+                text = stringResource(R.string.tagline),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -68,7 +70,7 @@ fun MainScreen(
             Button(
                 onClick = onNavigateToMapManager
             ) {
-                Text("Get Maps")
+                Text(stringResource(R.string.get_maps))
             }
         }
 
@@ -82,7 +84,7 @@ fun MainScreen(
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Menu"
+                    contentDescription = stringResource(R.string.menu)
                 )
             }
             DropdownMenu(
@@ -90,14 +92,14 @@ fun MainScreen(
                 onDismissRequest = { menuExpanded = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Download Maps") },
+                    text = { Text(stringResource(R.string.download_maps)) },
                     onClick = {
                         menuExpanded = false
                         onNavigateToMapManager()
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("About") },
+                    text = { Text(stringResource(R.string.about)) },
                     onClick = {
                         menuExpanded = false
                         showAboutDialog = true

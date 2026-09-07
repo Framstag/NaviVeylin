@@ -18,12 +18,16 @@ import com.naviveylin.core.NavigationState
 import com.naviveylin.location.LocationService
 import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.ui.route.RouteState
+import com.naviveylin.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -34,7 +38,8 @@ import kotlin.math.sqrt
 class NavigationViewModel @Inject constructor(
     private val client: OSMScoutClient,
     private val stateProvider: NavigationStateProvider,
-    private val locationService: LocationService
+    private val locationService: LocationService,
+    @param:ApplicationContext private val context: Context
 ) : ViewModel(), com.naviveylin.core.NavigationViewModel {
 
     private val _state = MutableStateFlow(NavigationState())
@@ -83,10 +88,15 @@ class NavigationViewModel @Inject constructor(
         return lastValidSpeedKmH
     }
 
-    // Reroute confirmation: require multiple onRerouteRequest calls within window
-    // Native controller fires every ~5s while off-route (RouteStateAgent.cpp:84)
-    private var rerouteConfirmCount = 0
-    private var rerouteConfirmStart = 0L
+    // Reroute confirmation gate: fast first trigger + post-reroute cooldown.
+    // Native controller fires every ~5s while off-route (RouteStateAgent.cpp:84).
+    private val rerouteGate = RerouteConfirmationGate(
+        minConfirmCount = MIN_REROUTE_CONFIRM_COUNT,
+        minOffRouteDurationMs = MIN_OFF_ROUTE_DURATION_MS,
+        confirmWindowMs = REROUTE_CONFIRM_WINDOW_MS,
+        cooldownMs = REROUTE_COOLDOWN_MS,
+        fastPathDistanceM = FAST_PATH_DISTANCE_M
+    )
 
     // Ignore reroute requests shortly after tunnel/NoGpsSignal to avoid GPS noise false positives
     private var lastTunnelOrNoSignalTime = 0L
@@ -123,6 +133,10 @@ class NavigationViewModel @Inject constructor(
             return
         }
 
+        // Restarting navigation redraws the route on the map (it may have been
+        // hidden by a previous stop — spec: stop-navigation-hides-route).
+        routePanelViewModel?.showRouteOnMap()
+
         // Stop any existing native controller before creating a new one.
         // Without this the old controller keeps emitting callbacks in parallel,
         // causing marker jumps, double reroutes, and corrupted navigation state.
@@ -130,14 +144,24 @@ class NavigationViewModel @Inject constructor(
         nativeController = null
 
         // Reset reroute confirmation and guard state for fresh route
-        rerouteConfirmCount = 0
-        rerouteConfirmStart = 0L
+        rerouteGate.reset()
         lastTunnelOrNoSignalTime = 0L
         lastOnRouteTime = 0L
         lastGpsAccuracy = -1.0
 
+        val totalDistance = computeRouteDistance(routeEntry.latitudes, routeEntry.longitudes)
         _state.value = _state.value.copy(isNavigating = true, currentStepIndex = 0,
-            totalDistance = computeRouteDistance(routeEntry.latitudes, routeEntry.longitudes))
+            totalDistance = totalDistance,
+            // Progress starts at 0%: remaining distance equals the total until
+            // the first arrival estimate arrives (routing-progress-indicator).
+            remainingDistance = totalDistance,
+            navigationStartTimeMillis = System.currentTimeMillis(),
+            // Route geometry for shared state consumers (car parity): the car
+            // controller stores the polyline (AANavigationController.kt), so the
+            // phone must too. The phone map still draws via routeResultFlow.
+            routeLats = routeEntry.latitudes,
+            routeLons = routeEntry.longitudes)
+        routePanelViewModel?.setActiveStepIndex(0)
         showFirstInstructionOnStart = true
         if (forceFollowMode) {
             onFollowModeChanged?.invoke(true)
@@ -165,8 +189,7 @@ class NavigationViewModel @Inject constructor(
         lastRoadInfoTime = 0L
         lastRoadInfoLat = Double.NaN
         lastRoadInfoLon = Double.NaN
-        rerouteConfirmCount = 0
-        rerouteConfirmStart = 0L
+        rerouteGate.reset()
         lastTunnelOrNoSignalTime = 0L
         lastOnRouteTime = 0L
         lastGpsAccuracy = -1.0
@@ -219,13 +242,13 @@ class NavigationViewModel @Inject constructor(
         }
 
         val startLoc = com.framstag.libosmscout.client.LocationEntry().apply {
-            label = "Current Location"
+            label = context.getString(R.string.current_location)
             lat = startLat
             lon = startLon
             matchQuality = "match"
         }
         val destLoc = com.framstag.libosmscout.client.LocationEntry().apply {
-            label = "Destination"
+            label = context.getString(R.string.destination)
             lat = destLat
             lon = destLon
             matchQuality = "match"
@@ -357,10 +380,14 @@ class NavigationViewModel @Inject constructor(
                     val idx = _state.value.instructions.indexOfFirst {
                         it.description == instruction.description
                     }
+                    val newIndex = if (idx >= 0) idx else _state.value.currentStepIndex
                     _state.value = _state.value.copy(
                         nextInstruction = instruction,
-                        currentStepIndex = if (idx >= 0) idx else _state.value.currentStepIndex
+                        currentStepIndex = newIndex
                     )
+                    // Keep the route panel summary's active step in sync
+                    // (spec: routing-summary — active step highlighting).
+                    routePanelViewModel?.setActiveStepIndex(newIndex)
                 }
             }
 
@@ -372,6 +399,7 @@ class NavigationViewModel @Inject constructor(
                         isRerouting = false,
                         isOffRoute = false
                     )
+                    routePanelViewModel?.setActiveStepIndex(0)
                     if (instructions.isNotEmpty()) {
                         _state.value = _state.value.copy(
                             nextInstruction = instructions[0]
@@ -419,55 +447,34 @@ class NavigationViewModel @Inject constructor(
                     val poorAccuracy = lastGpsAccuracy < 0 || lastGpsAccuracy > MAX_REROUTE_ACCURACY
                     if (recentTunnelOrNoSignal || poorAccuracy) {
                         Log.d(TAG, "onRerouteRequest: ignored, tunnel/no-signal=$recentTunnelOrNoSignal poorAccuracy=$poorAccuracy")
-                        rerouteConfirmCount = 0
-                        rerouteConfirmStart = 0L
+                        rerouteGate.reset()
                         return@launch
                     }
 
-                    // Require multiple consecutive onRerouteRequest calls within window
-                    // to confirm vehicle is consistently off-route (not transient GPS glitch).
-                    // Native controller fires every ~5s while off-route.
-                    if (now - rerouteConfirmStart > REROUTE_CONFIRM_WINDOW_MS) {
-                        // Window expired, start fresh
-                        rerouteConfirmCount = 1
-                        rerouteConfirmStart = now
-                        Log.d(TAG, "onRerouteRequest: pending ($rerouteConfirmCount/$MIN_REROUTE_CONFIRM_COUNT)")
-                        return@launch
-                    }
-                    rerouteConfirmCount++
-                    if (rerouteConfirmCount < MIN_REROUTE_CONFIRM_COUNT) {
-                        Log.d(TAG, "onRerouteRequest: pending ($rerouteConfirmCount/$MIN_REROUTE_CONFIRM_COUNT)")
-                        return@launch
-                    }
-                    // Confirmed count reached, but also require minimum time since first request.
-                    // Real deviation persists; transient GPS noise (e.g., tunnel exit) is brief.
-                    if (now - rerouteConfirmStart < MIN_OFF_ROUTE_DURATION_MS) {
-                        Log.d(TAG, "onRerouteRequest: pending count=$rerouteConfirmCount, time=${(now - rerouteConfirmStart) / 1000}s")
-                        return@launch
-                    }
-                    // Confirmed — proceed with reroute
-                    rerouteConfirmCount = 0
-                    rerouteConfirmStart = 0L
-                    _state.value = _state.value.copy(isRerouting = true, isOffRoute = true)
-                    Log.d(TAG, "onRerouteRequest: rerouting")
                     val vm = routePanelViewModel ?: return@launch
-                    // Set current position as start, keep original destination
-                    val currentLoc = com.framstag.libosmscout.client.LocationEntry().apply {
-                        this.label = "Current Location"
-                        this.lat = lat
-                        this.lon = lon
-                        this.matchQuality = "coordinate"
+                    if (rerouteGate.needsDeviation()) {
+                        // First report of an episode: compute deviation for the fast path.
+                        // Pure math on Dispatchers.Default; decision resumes on Main.
+                        val entry = vm.uiState.value.routeEntry
+                        val lats = entry?.latitudes
+                        val lons = entry?.longitudes
+                        viewModelScope.launch(Dispatchers.Default) {
+                            val deviation = if (lats != null && lons != null) {
+                                distanceToPolyline(lat, lon, lats, lons)
+                            } else {
+                                Double.NaN
+                            }
+                            withContext(Dispatchers.Main) {
+                                if (rerouteGate.onRequest(deviation)) {
+                                    confirmReroute(lat, lon, destLat, destLon)
+                                }
+                            }
+                        }
+                    } else {
+                        if (rerouteGate.onRequest(null)) {
+                            confirmReroute(lat, lon, destLat, destLon)
+                        }
                     }
-                    val destLoc = com.framstag.libosmscout.client.LocationEntry().apply {
-                        this.label = "Destination"
-                        this.lat = destLat
-                        this.lon = destLon
-                        this.matchQuality = "coordinate"
-                    }
-                    vm.setStartLocation(currentLoc)
-                    vm.setDestLocation(destLoc)
-                    vm.calculateRoute()
-                    vm.dismissSummaryDialog() // Don't show summary dialog during navigation
                 }
             }
 
@@ -477,6 +484,32 @@ class NavigationViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Start a reroute calculation from the current position to the original
+     * destination. Called once the confirmation gate accepts an off-route report.
+     */
+    private fun confirmReroute(lat: Double, lon: Double, destLat: Double, destLon: Double) {
+        _state.value = _state.value.copy(isRerouting = true, isOffRoute = true)
+        Log.d(TAG, "onRerouteRequest: rerouting")
+        val vm = routePanelViewModel ?: return
+        // Set current position as start, keep original destination
+        val currentLoc = com.framstag.libosmscout.client.LocationEntry().apply {
+            this.label = context.getString(R.string.current_location)
+            this.lat = lat
+            this.lon = lon
+            this.matchQuality = "coordinate"
+        }
+        val destLoc = com.framstag.libosmscout.client.LocationEntry().apply {
+            this.label = context.getString(R.string.destination)
+            this.lat = destLat
+            this.lon = destLon
+            this.matchQuality = "coordinate"
+        }
+        vm.updateLocationsForReroute(currentLoc, destLoc)
+        vm.calculateRoute()
+        vm.dismissSummaryDialog() // Don't show summary dialog during navigation
     }
 
     override fun onCleared() {
@@ -535,9 +568,11 @@ class NavigationViewModel @Inject constructor(
         private const val ROAD_INFO_THROTTLE_MS = 2000L
         private const val ROAD_INFO_MAGNIFICATION = 15
         private const val MAX_REROUTE_ACCURACY = 100.0
-        private const val MIN_REROUTE_CONFIRM_COUNT = 5
+        private const val MIN_REROUTE_CONFIRM_COUNT = 2
         private const val REROUTE_CONFIRM_WINDOW_MS = 60_000L
-        private const val MIN_OFF_ROUTE_DURATION_MS = 30_000L
+        private const val MIN_OFF_ROUTE_DURATION_MS = 10_000L
+        private const val REROUTE_COOLDOWN_MS = 25_000L
+        private const val FAST_PATH_DISTANCE_M = 50.0
         private const val TUNNEL_REROUTE_GUARD_MS = 30_000L
 
         /** Plausibility cap for the speed display filter (Autobahn ~200+). */

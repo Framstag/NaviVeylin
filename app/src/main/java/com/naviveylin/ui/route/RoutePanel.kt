@@ -40,9 +40,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.Vehicle
+import com.naviveylin.R
 import com.naviveylin.util.formatDistanceKm
 import com.naviveylin.util.haversineDistanceMeters
 
@@ -75,7 +77,7 @@ fun RoutePanel(
 
             // ---- Title ----
             Text(
-                text = "Route",
+                text = stringResource(R.string.route),
                 style = MaterialTheme.typography.titleLarge
             )
 
@@ -96,7 +98,7 @@ fun RoutePanel(
                     }
                     RouteSearchField(
                         value = startFieldValue,
-                        placeholder = "Start location",
+                        placeholder = stringResource(R.string.start_location),
                         isActive = state.activeField == ActiveField.START,
                         onFocus = { viewModel.setActiveField(ActiveField.START) },
                         onBlur = {
@@ -138,7 +140,7 @@ fun RoutePanel(
                     }
                     RouteSearchField(
                         value = destFieldValue,
-                        placeholder = "Destination",
+                        placeholder = stringResource(R.string.destination),
                         isActive = state.activeField == ActiveField.DEST,
                         onFocus = { viewModel.setActiveField(ActiveField.DEST) },
                         onBlur = {
@@ -180,7 +182,7 @@ fun RoutePanel(
                 ) {
                     Icon(
                         imageVector = Icons.Default.SwapVert,
-                        contentDescription = "Swap start and destination"
+                        contentDescription = stringResource(R.string.swap_start_dest)
                     )
                 }
             }
@@ -189,7 +191,7 @@ fun RoutePanel(
 
             // ---- Vehicle selector ----
             Text(
-                text = "Vehicle",
+                text = stringResource(R.string.vehicle),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -198,17 +200,17 @@ fun RoutePanel(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 VehicleButton(
-                    label = "Car",
+                    label = stringResource(R.string.vehicle_car),
                     selected = state.vehicle == Vehicle.CAR,
                     onClick = { viewModel.setVehicle(Vehicle.CAR) }
                 )
                 VehicleButton(
-                    label = "Bicycle",
+                    label = stringResource(R.string.vehicle_bicycle),
                     selected = state.vehicle == Vehicle.BICYCLE,
                     onClick = { viewModel.setVehicle(Vehicle.BICYCLE) }
                 )
                 VehicleButton(
-                    label = "Pedestrian",
+                    label = stringResource(R.string.vehicle_pedestrian),
                     selected = state.vehicle == Vehicle.PEDESTRIAN,
                     onClick = { viewModel.setVehicle(Vehicle.PEDESTRIAN) }
                 )
@@ -226,7 +228,7 @@ fun RoutePanel(
                                 state.destLocation!!.label.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Calculate")
+                        Text(stringResource(R.string.calculate))
                     }
 
                     if (state.routeEntry != null) {
@@ -235,7 +237,7 @@ fun RoutePanel(
                             onClick = { viewModel.clearRoute() },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Clear Route")
+                            Text(stringResource(R.string.clear_route))
                         }
                     }
                 }
@@ -251,7 +253,7 @@ fun RoutePanel(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Calculating route...",
+                            text = stringResource(R.string.calculating_route),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -260,45 +262,66 @@ fun RoutePanel(
                         onClick = { viewModel.cancelRoute() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
 
                 is RouteState.Done -> {
+                    // Calculate stays visible for recalculation; Start/Stop
+                    // Navigation sits between Calculate and the inline summary
+                    // (spec: move-routing-summary).
+                    Button(
+                        onClick = { viewModel.calculateRoute() },
+                        enabled = state.startLocation != null && state.destLocation != null &&
+                                state.startLocation!!.label.isNotEmpty() &&
+                                state.destLocation!!.label.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.calculate))
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (isNavigating) {
                         Button(
                             onClick = onStopNavigation,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Stop Navigation")
+                            Text(stringResource(R.string.stop_navigation))
                         }
                     } else {
                         Button(
                             onClick = onStartNavigation,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Start Navigation")
+                            Text(stringResource(R.string.start_navigation))
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
+                    if (state.routeEntry != null) {
+                        RouteSummary(
+                            routeEntry = state.routeEntry!!,
+                            steps = state.routeSteps,
+                            activeStepIndex = if (isNavigating) state.activeStepIndex else null
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                     Button(
                         onClick = { viewModel.showSummaryDialog() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Show Route")
+                        Text(stringResource(R.string.show_route))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = { viewModel.clearRoute() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Clear Route")
+                        Text(stringResource(R.string.clear_route))
                     }
                 }
 
                 is RouteState.Error -> {
                     Text(
-                        text = state.error ?: "Route calculation failed",
+                        text = state.error ?: stringResource(R.string.route_calculation_failed),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -308,7 +331,7 @@ fun RoutePanel(
                         enabled = state.startLocation != null && state.destLocation != null,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Retry")
+                        Text(stringResource(R.string.retry))
                     }
                 }
             }
@@ -364,7 +387,7 @@ private fun RouteSearchField(
                 IconButton(onClick = onClear) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Clear"
+                        contentDescription = stringResource(R.string.clear)
                     )
                 }
             }
@@ -411,7 +434,7 @@ private fun RouteSearchResults(
                         modifier = Modifier.padding(end = 12.dp)
                     )
                     Text(
-                        text = "Current Location",
+                        text = stringResource(R.string.current_location),
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -433,7 +456,7 @@ private fun RouteSearchResults(
                     modifier = Modifier.padding(end = 12.dp)
                 )
                 Text(
-                    text = "Select Favorite",
+                    text = stringResource(R.string.select_favorite),
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -453,7 +476,7 @@ private fun RouteSearchResults(
 
             query.length >= 2 && results.isEmpty() -> {
                 Text(
-                    text = "No results found",
+                    text = stringResource(R.string.no_results_found),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)
@@ -468,7 +491,11 @@ private fun RouteSearchResults(
                         // Distance from the current map center, right-aligned in
                         // a smaller font (see Result distance display spec).
                         val meters = haversineDistanceMeters(centerLat, centerLon, entry.lat, entry.lon)
-                        val distanceText = if (meters.isFinite()) formatDistanceKm(meters) else null
+                        val distanceText = if (meters.isFinite()) {
+                            stringResource(R.string.distance_unit_km, formatDistanceKm(meters))
+                        } else {
+                            null
+                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

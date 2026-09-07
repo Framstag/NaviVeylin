@@ -71,12 +71,17 @@ When the current speed exceeds the max speed by 5 km/h or more, the speed badge 
 
 ### Requirement: Widget placement on map
 
-The speed widget SHALL be placed on the map in the right visualisation region, aligned with the compass indicator, so it does not overlap the routing status card. During navigation the compass SHALL sit directly above the speed widget, both bottom-anchored above the routing status card.
+The speed widget SHALL be placed on the map in the right visualisation region, aligned with the compass indicator, so it does not overlap the routing status card. The compass SHALL sit directly above the speed widget, with no other widget between them, in both the standard (free-form) view and during navigation. During navigation both are bottom-anchored above the routing status card.
 
 #### Scenario: Widget in right visualisation region
 
 - **WHEN** the speed widget is visible
 - **THEN** it is drawn in the right visualisation region of the map, near the compass indicator
+
+#### Scenario: Compass directly above speed widget in standard view
+
+- **WHEN** the standard (free-form) view is displayed and the speed widget is visible
+- **THEN** the compass is drawn directly above the speed widget, with no other widget between them
 
 #### Scenario: Compass directly above speed widget during navigation
 
@@ -135,3 +140,46 @@ The speed widget SHALL keep the badge (and anything above it) at a fixed positio
 
 - **WHEN** the speed source switches between follow mode (GPS) and navigation (engine)
 - **THEN** the badge width does not change
+
+### Requirement: Speed badge uses the standard overlay card container
+The speed badge background SHALL use the same card container as the other map overlays (turn instruction card, routing status): the theme surface color at 0.92 alpha with a 12dp rounded rectangle — NOT a fixed dark color. This keeps the badge readable on any map (light/dark) in both color schemes and guarantees the overspeed warning color contrasts with the badge background.
+
+#### Scenario: Badge container matches overlay cards
+- **WHEN** the speed badge is displayed
+- **THEN** its background is the theme surface card container (surface at 0.92 alpha, 12dp rounded corners)
+- **AND** it is not a fixed near-black color
+
+#### Scenario: Overspeed color readable on card
+- **WHEN** the current speed exceeds the max speed by 5+ km/h and the badge uses the warning color
+- **THEN** the warning color text is rendered on the standard card background
+- **AND** the badge remains readable in both light and dark color schemes
+
+### Requirement: Minimum readable size for speed text
+The current-speed text in the badge SHALL render at least as large as 24sp bold, so it is readable at a glance while driving.
+
+#### Scenario: Badge text at least 24sp
+- **WHEN** the speed badge shows the current speed (km/h)
+- **THEN** the speed text uses a font size of 24sp or larger with bold weight
+
+### Requirement: Minimum readable size for the max-speed sign
+The round max-speed sign SHALL be at least 64dp in diameter with a red border of at least 6dp and digits of at least 28sp bold.
+
+#### Scenario: Sign at least 56dp
+- **WHEN** the max-speed sign is shown
+- **THEN** the sign circle is at least 56dp in diameter
+
+#### Scenario: Sign digits at least 22sp
+- **WHEN** the max-speed sign is shown
+- **THEN** the digit text uses a font size of 22sp or larger with bold weight
+
+#### Scenario: Sign at least 64dp
+- **WHEN** the max-speed sign is shown
+- **THEN** the sign circle is at least 64dp in diameter
+
+#### Scenario: Sign digits at least 28sp
+- **WHEN** the max-speed sign is shown
+- **THEN** the digit text uses a font size of 28sp or larger with bold weight
+
+#### Scenario: Reserved slot still matches
+- **WHEN** the sign is hidden but the slot is reserved (bottom-anchored placement)
+- **THEN** the reserved slot keeps the same footprint as the visible sign (64dp)

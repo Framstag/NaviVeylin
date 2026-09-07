@@ -28,14 +28,18 @@ fun haversineDistanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Doub
  * decimal place so nearby results are distinguishable, larger distances round
  * to whole kilometers.
  *
+ * Locale-aware (German comma decimals). Returns the numeric part only; the
+ * "km" unit suffix comes from a string resource (`distance_unit_km`).
+ *
  * @param meters distance in meters
- * @return formatted value with "km" unit suffix, e.g. "0.5 km" or "12 km"
+ * @param locale locale for decimal separators (default: device locale)
+ * @return formatted value, e.g. "0.5" or "12"
  */
-fun formatDistanceKm(meters: Double): String {
+fun formatDistanceKm(meters: Double, locale: Locale = Locale.getDefault()): String {
     val km = meters / 1000.0
     return if (km < 10.0) {
-        String.format(Locale.ROOT, "%.1f km", km)
+        String.format(locale, "%.1f", km)
     } else {
-        String.format(Locale.ROOT, "%.0f km", km)
+        String.format(locale, "%.0f", km)
     }
 }

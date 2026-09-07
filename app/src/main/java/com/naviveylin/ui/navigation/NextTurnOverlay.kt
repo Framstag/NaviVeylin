@@ -15,14 +15,24 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.R
+import com.naviveylin.core.TurnInstructionLocalizer
+import com.naviveylin.core.distanceUsesKilometers
+import com.naviveylin.core.formatDistanceNumber
+import com.naviveylin.core.stringResolver
 
 @Composable
 fun NextTurnOverlay(
@@ -38,6 +48,8 @@ fun NextTurnOverlay(
 ) {
     if (instruction == null) return
 
+    val context = LocalContext.current
+    val resolver = remember(context) { context.stringResolver() }
     val hasLanes = laneHintsEnabled && laneCount > 0 && laneTurns.isNotEmpty()
 
     Card(
@@ -62,26 +74,31 @@ fun NextTurnOverlay(
             ) {
                 NavigationArrow(
                     symbol = NavSymbol.TurnArrow(instruction.turnType),
-                    size = 48.dp,
+                    size = 64.dp,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(end = 12.dp, top = 4.dp)
+                    modifier = Modifier
+                        .padding(end = 12.dp, top = 4.dp)
+                        .testTag("nextTurnArrow")
                 )
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = formatDistance(instruction.distanceTo),
-                        style = MaterialTheme.typography.headlineSmall,
+                        text = stringResource(
+                            if (distanceUsesKilometers(instruction.distanceTo)) R.string.distance_unit_km else R.string.distance_unit_m,
+                            formatDistanceNumber(instruction.distanceTo)
+                        ),
+                        style = nextTurnDistanceStyle(),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     val lines = splitInstruction(
                         description = instruction.description,
-                        shortDescription = instruction.shortDescription,
+                        shortDescription = TurnInstructionLocalizer.shortDescription(resolver, instruction),
                         streetName = instruction.streetName
                     )
                     Text(
                         text = lines.generic,
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                        style = nextTurnDescriptionStyle(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -89,7 +106,7 @@ fun NextTurnOverlay(
                     if (lines.destination != null) {
                         Text(
                             text = lines.destination,
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                            style = nextTurnDescriptionStyle(),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
@@ -121,23 +138,32 @@ fun NextTurnOverlay(
                 ) {
                     NavigationArrow(
                         symbol = NavSymbol.TurnArrow(instruction.nextNextTurnType),
-                        size = 28.dp,
+                        size = 36.dp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .testTag("nextTurnNextNextArrow")
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = formatDistance(instruction.nextNextDistanceTo),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                            text = stringResource(
+                                if (distanceUsesKilometers(instruction.nextNextDistanceTo)) R.string.distance_unit_km else R.string.distance_unit_m,
+                                formatDistanceNumber(instruction.nextNextDistanceTo)
+                            ),
+                            style = nextTurnNextNextStyle(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         val nextNextLines = splitInstruction(
                             description = instruction.nextNextDescription,
-                            shortDescription = instruction.nextNextShortDescription
+                            shortDescription = TurnInstructionLocalizer.shortDescriptionFor(
+                                resolver,
+                                instruction.nextNextTurnType,
+                                instruction.nextNextShortDescription
+                            )
                         )
                         Text(
                             text = nextNextLines.generic,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                            style = nextTurnNextNextStyle(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
@@ -145,7 +171,7 @@ fun NextTurnOverlay(
                         if (nextNextLines.destination != null) {
                             Text(
                                 text = nextNextLines.destination,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                                style = nextTurnNextNextStyle(),
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 2,
@@ -208,6 +234,27 @@ private fun LaneHintsRow(
         }
     }
 }
+
+/**
+ * Next-turn distance style — driver-seat readable size (spec:
+ * next-turn-overlay — Driver-seat readable font sizes).
+ */
+@Composable
+internal fun nextTurnDistanceStyle(): TextStyle = MaterialTheme.typography.headlineLarge
+
+/**
+ * Next-turn description/destination style — driver-seat readable size.
+ */
+@Composable
+internal fun nextTurnDescriptionStyle(): TextStyle = MaterialTheme.typography.titleLarge
+
+/**
+ * Next-next hint style — driver-seat readable size, still smaller than the
+ * primary instruction.
+ */
+@Composable
+internal fun nextTurnNextNextStyle(): TextStyle =
+    MaterialTheme.typography.bodyMedium.copy(fontSize = 20.sp)
 
 /**
  * Split an instruction description into the generic instruction part

@@ -86,4 +86,52 @@ class ViewportStorageTest {
         assertNotNull(loaded)
         assertEquals(14.0, loaded!!.magnification, 1e-9)
     }
+
+    @Test
+    fun saveRejectsNaNCoordinates() = runTest {
+        // Viewport-save race guard: an uninitialized (NaN) viewport must never
+        // be persisted, or it would clobber a previously restored viewport.
+        storage.save("germany", ViewportState(centerLat = Double.NaN, centerLon = 16.4, magnification = 12.0))
+        assertNull(storage.load("germany"))
+    }
+
+    @Test
+    fun saveRejectsOutOfRangeCoordinates() = runTest {
+        storage.save("germany", ViewportState(centerLat = 95.0, centerLon = 16.4, magnification = 12.0))
+        assertNull(storage.load("germany"))
+        storage.save("germany", ViewportState(centerLat = 48.2, centerLon = 200.0, magnification = 12.0))
+        assertNull(storage.load("germany"))
+    }
+
+    @Test
+    fun saveRejectsInvalidMagnification() = runTest {
+        storage.save("germany", ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = Double.NaN))
+        assertNull(storage.load("germany"))
+        storage.save("germany", ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = 0.0))
+        assertNull(storage.load("germany"))
+    }
+
+    @Test
+    fun saveRejectedStateDoesNotClobberExistingFile() = runTest {
+        // The race scenario: a valid restored viewport exists on disk; an early
+        // invalid save must leave it untouched.
+        storage.save("germany", ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = 12.0))
+        storage.save("germany", ViewportState(centerLat = Double.NaN, centerLon = Double.NaN, magnification = 12.0))
+        val loaded = storage.load("germany")
+        assertNotNull(loaded)
+        assertEquals(48.2, loaded!!.centerLat, 1e-9)
+        assertEquals(16.4, loaded.centerLon, 1e-9)
+    }
+
+    @Test
+    fun isValidRejectsUninitializedState() {
+        assertTrue(ViewportState().isValid())
+        assertFalse(ViewportState(centerLat = Double.NaN).isValid())
+        assertFalse(ViewportState(centerLon = Double.POSITIVE_INFINITY).isValid())
+        assertFalse(ViewportState(centerLat = 91.0).isValid())
+        assertFalse(ViewportState(centerLon = -181.0).isValid())
+        assertFalse(ViewportState(magnification = 0.0).isValid())
+        assertFalse(ViewportState(magnification = Double.NaN).isValid())
+        assertFalse(ViewportState(angle = Double.NaN).isValid())
+    }
 }

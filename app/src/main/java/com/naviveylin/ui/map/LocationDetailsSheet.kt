@@ -39,11 +39,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
+import com.naviveylin.R
 import com.naviveylin.core.details.DetailsInput
 import com.naviveylin.core.details.DetailsResolver
 import kotlinx.coroutines.Dispatchers
@@ -172,7 +174,7 @@ fun LocationDetailsDialog(
 
                 // Coordinates
                 Text(
-                    text = "%.5f, %.5f".format(entry.lat, entry.lon),
+                    text = stringResource(R.string.coordinates_format, entry.lat, entry.lon),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -186,7 +188,7 @@ fun LocationDetailsDialog(
                             .padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "Address:",
+                            text = stringResource(R.string.address_label),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.width(120.dp)
@@ -207,7 +209,7 @@ fun LocationDetailsDialog(
                             .padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "Area:",
+                            text = stringResource(R.string.area_label),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.width(120.dp)
@@ -318,7 +320,7 @@ fun LocationDetailsDialog(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text("Show")
+                        Text(stringResource(R.string.show))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -339,7 +341,7 @@ fun LocationDetailsDialog(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text("Navigate to")
+                        Text(stringResource(R.string.calculate_route))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -358,7 +360,7 @@ fun LocationDetailsDialog(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text("Remove from Favorites")
+                        Text(stringResource(R.string.remove_from_favorites))
                     }
                 } else if (!showGroupPicker) {
                     // Add to favorites (secondary action — the primary action
@@ -372,7 +374,7 @@ fun LocationDetailsDialog(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text("Add to Favorites")
+                        Text(stringResource(R.string.add_to_favorites))
                     }
                 }
 
@@ -381,7 +383,7 @@ fun LocationDetailsDialog(
                     OutlinedTextField(
                         value = favName,
                         onValueChange = { favName = it },
-                        label = { Text("Favorite name") },
+                        label = { Text(stringResource(R.string.favorite_name)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -394,10 +396,10 @@ fun LocationDetailsDialog(
                         onExpandedChange = { dropdownExpanded = it }
                     ) {
                         OutlinedTextField(
-                            value = if (newGroupName.isNotEmpty()) "New: $newGroupName" else selectedGroup,
+                            value = if (newGroupName.isNotEmpty()) stringResource(R.string.new_group_prefix, newGroupName) else selectedGroup,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Group") },
+                            label = { Text(stringResource(R.string.group)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -418,7 +420,7 @@ fun LocationDetailsDialog(
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("+ New group...") },
+                                text = { Text(stringResource(R.string.new_group)) },
                                 onClick = {
                                     selectedGroup = ""
                                     newGroupName = ""
@@ -434,7 +436,7 @@ fun LocationDetailsDialog(
                         OutlinedTextField(
                             value = newGroupName,
                             onValueChange = { newGroupName = it },
-                            label = { Text("New group name") },
+                            label = { Text(stringResource(R.string.new_group_name)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -447,7 +449,7 @@ fun LocationDetailsDialog(
                             onClick = { showGroupPicker = false },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
@@ -461,7 +463,7 @@ fun LocationDetailsDialog(
                             enabled = favName.isNotEmpty() && (selectedGroup.isNotEmpty() || newGroupName.length >= 2),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Save")
+                            Text(stringResource(R.string.save))
                         }
                     }
                 }

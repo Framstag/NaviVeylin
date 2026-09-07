@@ -30,6 +30,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.naviveylin.R
+import com.naviveylin.core.distanceUsesKilometers
+import com.naviveylin.core.formatDistanceNumber
+import com.naviveylin.core.formatDurationText
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -85,9 +90,9 @@ fun NavigationDetailsOverlay(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Navigation", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.navigation), style = MaterialTheme.typography.titleLarge)
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                 }
             }
 
@@ -148,11 +153,21 @@ fun NavigationDetailsOverlay(
                                 horizontalAlignment = Alignment.End
                             ) {
                                 Text(
-                                    formatDistance(instruction.distanceTo),
+                                    stringResource(
+                                        if (distanceUsesKilometers(instruction.distanceTo)) R.string.distance_unit_km else R.string.distance_unit_m,
+                                        formatDistanceNumber(instruction.distanceTo)
+                                    ),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
+                                if (instruction.timeTo > 0) {
+                                    Text(
+                                        formatDurationText(instruction.timeTo),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                             Spacer(Modifier.width(8.dp))
                             Text(

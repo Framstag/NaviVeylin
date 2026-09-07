@@ -58,12 +58,28 @@ class FreeDrivingScreen(
     private val streetNameUpdater = StreetNameUpdater()
     private val autoZoomController = AutoZoomController()
 
+    /**
+     * Host pan-mode handling (spec: auto/map-pan): disengages follow and
+     * suspends auto-zoom on pan entry, re-engages follow on exit, and
+     * converts pan/pinch gestures to viewport changes. Lazy so the renderer
+     * is not forced before the surface is available.
+     */
+    private val panHandler: MapPanHandler by lazy {
+        MapPanHandler(mapRenderer, autoZoomController) { surfaceWidth to surfaceHeight }
+    }
+
     private var surfaceWidth = 0
     private var surfaceHeight = 0
     private var surfaceDpi = DEFAULT_DPI
     // Host-reported stable area (surface pixels; empty = unknown): the street
     // label and compass rose stay inside it so host chrome never covers them.
     private val stableArea = Rect()
+
+    // Host-reported visible area (surface pixels; empty = unknown): the
+    // *current* guaranteed-visible region, tracked separately from the stable
+    // area (design D1) — the street-name label anchors to the more
+    // conservative of the two.
+    private val visibleArea = Rect()
 
     /** Current street name label text; null/blank = nothing drawn. */
     @Volatile
@@ -145,8 +161,10 @@ class FreeDrivingScreen(
                 surfaceWidth = w,
                 surfaceHeight = h,
                 density = density,
-                usableBounds = stableArea,
+                stableBounds = stableArea,
+                visibleBounds = visibleArea,
                 name = streetName.orEmpty()
+                // No bottom reserve: free driving has no host ETA card (design D3).
             )
             SurfaceAttribution.draw(
                 canvas = canvas,
@@ -209,7 +227,7 @@ class FreeDrivingScreen(
             buildTemplate()
         } catch (e: Exception) {
             DiagnosticsLog.logThrowable(TEMPLATE_TAG, "FreeDrivingTemplate build failed", e)
-            SafeScreen.errorTemplate(e.message)
+            SafeScreen.errorTemplate(carContext, e.message)
         }
     }
 
@@ -226,13 +244,12 @@ class FreeDrivingScreen(
         // session's isNavigating state machine (design D1). The host draws its
         // own compass — cosmetic overlap with the app's rose, accepted.
         return MapTemplateFactory.buildFullScreenTemplate(
-            mapActionStrip = ActionStrip.Builder()
-                .addAction(NavigationScreenActions.stopAction { exitFreeDriving() })
-                .build(),
+            mapActionStrip = NavigationScreenActions.freeDrivingMapActionStrip { exitFreeDriving() },
             actionStrip = ActionStrip.Builder()
                 .addAction(NavigationScreenActions.zoomInAction { onZoomIn() })
                 .addAction(NavigationScreenActions.zoomOutAction { onZoomOut() })
-                .build()
+                .build(),
+            panModeListener = panHandler
         )
     }
 
@@ -279,11 +296,18 @@ class FreeDrivingScreen(
             headingRadians = angle
         }
         // Speed-driven auto-zoom (shared setting; speed → magnification).
-        val newZoom = if (autoZoomEnabled) autoZoomController.onSpeed(speed) else null
+        // The feed is gated on !panning (design D2) so the controller state
+        // stays frozen during a pan; the commit is gated on !panning too
+        // (design D1) so a band-crossing zoom can never re-engage follow
+        // mid-pan.
+        val newZoom = autoZoomTarget(panHandler.panning, autoZoomEnabled, speed, autoZoomController)
 
-        if (angle != null || newZoom != null) {
+        if (shouldCommitViewport(panHandler.panning, angle, newZoom)) {
             // setViewport disengages follow mode, so re-engage + re-center
-            // right after (same pattern as NavigationScreen).
+            // right after (same pattern as NavigationScreen). While panned the
+            // commit is gated off — heading-up is always computed here, so
+            // without the gate every fix would re-engage follow and yank the
+            // map back (spec: auto/map-pan — follow suspended while panned).
             val vp = mapRenderer.viewportState.value
             val zoom = newZoom ?: vp.zoom
             mapRenderer.setViewport(vp.lat, vp.lon, zoom, angle ?: vp.angle, zoom.toDouble())
@@ -417,17 +441,34 @@ class FreeDrivingScreen(
                 surfaceHeight = 0
                 surfaceDpi = DEFAULT_DPI
                 stableArea.setEmpty()
+                visibleArea.setEmpty()
                 mapRenderer.onSurfaceDestroyed()
             }
 
-            override fun onVisibleAreaChanged(visibleArea: Rect) {
-                if (stableArea.isEmpty()) stableArea.set(visibleArea)
+            override fun onVisibleAreaChanged(visible: Rect) {
+                // Tracked separately from the stable area: the visible area is
+                // the *current* guaranteed-visible region, the stable area
+                // accounts for occlusions "as if always present". The
+                // street-name label anchors to the more conservative of the
+                // two (design D1).
+                visibleArea.set(visible)
                 mapRenderer.requestRender()
             }
 
             override fun onStableAreaChanged(newStableArea: Rect) {
                 stableArea.set(newStableArea)
                 mapRenderer.requestRender()
+            }
+
+            // Pan gestures (spec: auto/map-pan): the host forwards them only
+            // while pan mode is active; the handler converts them to viewport
+            // changes and gates on its own panning flag.
+            override fun onScroll(distanceX: Float, distanceY: Float) {
+                panHandler.onScroll(distanceX, distanceY)
+            }
+
+            override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {
+                panHandler.onScale(focusX, focusY, scaleFactor)
             }
         })
     }
@@ -438,6 +479,21 @@ class FreeDrivingScreen(
     }
 
     companion object {
+        /**
+         * Speed-driven auto-zoom target: never while panned (spec:
+         * auto/map-pan — auto-zoom suspended while panned), otherwise when
+         * enabled and the speed is valid. Same gate as
+         * [NavigationScreen.autoZoomTarget] — the two screens share the
+         * pan-suspension semantics (design D2).
+         */
+        fun autoZoomTarget(
+            panning: Boolean,
+            autoZoomEnabled: Boolean,
+            speedKmH: Double,
+            controller: AutoZoomController
+        ): Int? =
+            if (!panning && autoZoomEnabled && speedKmH >= 0.0) controller.onSpeed(speedKmH) else null
+
         private const val TAG = "FreeDrivingScreen"
         private const val TEMPLATE_TAG = "TEMPLATE"
         private const val DEFAULT_DPI = 160.0

@@ -11,6 +11,7 @@ import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import com.framstag.libosmscout.client.PoiCategories
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
@@ -43,7 +44,7 @@ class PoiSearchScreen(
 
         val listBuilder = ItemList.Builder()
         for (category in categories) {
-            val label = CATEGORY_LABELS[category] ?: category.replace('_', ' ').replaceFirstChar { it.uppercase() }
+            val label = carContext.getString(categoryLabelRes(category))
             listBuilder.addItem(
                 Row.Builder()
                     .setTitle(label)
@@ -57,7 +58,7 @@ class PoiSearchScreen(
         }
 
         return ListTemplate.Builder()
-            .setHeader(Header.Builder().setTitle("Points of interest").setStartHeaderAction(Action.BACK).build())
+            .setHeader(Header.Builder().setTitle(carContext.getString(R.string.points_of_interest)).setStartHeaderAction(Action.BACK).build())
             .setSingleList(listBuilder.build())
             .build()
     }
@@ -65,22 +66,27 @@ class PoiSearchScreen(
     companion object {
         private const val TAG = "PoiSearchScreen"
 
-        /** Display labels for the fixed [PoiCategories] ids. */
-        private val CATEGORY_LABELS = mapOf(
-            PoiCategories.HOTELS to "Hotels",
-            PoiCategories.RESTAURANTS to "Restaurants",
-            PoiCategories.GROCERY to "Groceries",
-            PoiCategories.VIEWPOINT to "Viewpoints",
-            PoiCategories.MUSEUM to "Museums",
-            PoiCategories.FUEL to "Fuel stations",
-            PoiCategories.CHARGING_STATION to "EV charging",
-            PoiCategories.ATM to "ATMs",
-            PoiCategories.TOURISM to "Tourism",
-            PoiCategories.PARKING to "Parking",
-            PoiCategories.POLICE to "Police",
-            PoiCategories.HOSPITAL to "Hospitals",
-            PoiCategories.DOCTORS to "Doctors",
-            PoiCategories.PUBLIC_TRANSPORT to "Public transport"
-        )
+        /**
+         * Maps a native [PoiCategories] id to its localized resource label,
+         * falling back to the hotels label for unknown ids (same contract as
+         * the phone's `categoryLabelRes`).
+         */
+        private fun categoryLabelRes(id: String): Int = when (id) {
+            PoiCategories.HOTELS -> R.string.poi_category_hotels
+            PoiCategories.RESTAURANTS -> R.string.poi_category_restaurants
+            PoiCategories.GROCERY -> R.string.poi_category_grocery
+            PoiCategories.VIEWPOINT -> R.string.poi_category_viewpoint
+            PoiCategories.MUSEUM -> R.string.poi_category_museum
+            PoiCategories.FUEL -> R.string.poi_category_fuel
+            PoiCategories.CHARGING_STATION -> R.string.poi_category_charging_station
+            PoiCategories.ATM -> R.string.poi_category_atm
+            PoiCategories.TOURISM -> R.string.poi_category_tourism
+            PoiCategories.PARKING -> R.string.poi_category_parking
+            PoiCategories.POLICE -> R.string.poi_category_police
+            PoiCategories.HOSPITAL -> R.string.poi_category_hospital
+            PoiCategories.DOCTORS -> R.string.poi_category_doctors
+            PoiCategories.PUBLIC_TRANSPORT -> R.string.poi_category_public_transport
+            else -> R.string.poi_category_hotels
+        }
     }
 }

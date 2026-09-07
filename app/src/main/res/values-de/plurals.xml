@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="file_count">
+        <item quantity="one">%d Datei</item>
+        <item quantity="other">%d Dateien</item>
+    </plurals>
+    <plurals name="active_downloads">
+        <item quantity="one">%d aktiver Download</item>
+        <item quantity="other">%d aktive Downloads</item>
+    </plurals>
+</resources>

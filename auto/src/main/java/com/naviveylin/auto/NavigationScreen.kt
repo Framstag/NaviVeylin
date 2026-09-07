@@ -8,6 +8,7 @@ import androidx.car.app.Screen
 import androidx.car.app.SurfaceCallback
 import androidx.car.app.SurfaceContainer
 import androidx.car.app.model.ActionStrip
+import androidx.car.app.model.CarText
 import androidx.car.app.model.Distance
 import androidx.car.app.navigation.model.NavigationTemplate
 import androidx.car.app.navigation.model.TravelEstimate
@@ -20,12 +21,15 @@ import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.stringResolver
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -39,14 +43,17 @@ import kotlinx.coroutines.withContext
  * instruction panel renders the current-step maneuver + distance, the next
  * step and lane guidance (spec: auto/navigation-view); the map surface
  * carries only the compass rose, the speed badge ([SurfaceIndicators]) and
- * the current street name ([StreetNameLabel]). Stop action + system back
- * are the leave affordances during navigation (spec: auto/navigation-view —
- * "Leave navigation at any time"); the map action strip carries no back
- * button (see init).
+ * the current street name ([StreetNameLabel]). The host ETA card stop button
+ * (via [NavigationManagerController]) and system back are the leave
+ * affordances during navigation (spec: auto/navigation-view —
+ * "Leave navigation at any time"); the map action strip carries the
+ * route-description action only, no stop or back button (see init).
  */
 class NavigationScreen(
     carContext: CarContext,
-    private val navigationViewModel: NavigationViewModel
+    private val navigationViewModel: NavigationViewModel,
+    /** Host day/night state (see [NavigationSession.hostDark]). */
+    private val hostDark: StateFlow<Boolean> = MutableStateFlow(carContext.isDarkMode())
 ) : Screen(carContext) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -65,6 +72,29 @@ class NavigationScreen(
         entryPoint.autoClientProvider().client().loadStyleSheet(style)
     }
 
+    /** Applies the host day/night state to the stylesheet `daylight` flag (deduped). */
+    private val daylightApplier = CarDaylightApplier { dark ->
+        try {
+            entryPoint.autoClientProvider().client().setStyleSheetFlag("daylight", !dark)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "setStyleSheetFlag failed", e)
+            false
+        }
+    }
+
+    /**
+     * (Re)push the host day/night state to the native stylesheet and force a
+     * full render. The applier is reset first so a push that was silently
+     * dropped by the native side (DB not initialized) is not deduped away.
+     */
+    private fun pushHostDark() {
+        daylightApplier.reset()
+        if (daylightApplier.apply(hostDark.value)) {
+            mapRenderer.invalidateStyle()
+        }
+    }
+
     private var surfaceWidth = 0
 
     /** Surface-refresh (invalidate) attempts left for this screen start. */
@@ -74,6 +104,23 @@ class NavigationScreen(
     // Host-reported stable area (surface pixels; empty = unknown): the hint
     // panel stays inside it so host chrome never covers the hints.
     private val stableArea = Rect()
+
+    // Host-reported visible area (surface pixels; empty = unknown): the
+    // *current* guaranteed-visible region, tracked separately from the stable
+    // area (design D1) — the street-name label anchors to the more
+    // conservative of the two.
+    private val visibleArea = Rect()
+
+    /**
+     * The map label is safe only when the host delivered an area that clears
+     * the surface bottom (design D5): otherwise the host ETA card may cover
+     * it and the street name goes into the card via [TravelEstimate.setTripText]
+     * instead.
+     */
+    private fun mapLabelSafe(): Boolean {
+        val density = (surfaceDpi / 160.0).toFloat()
+        return StreetNameLabel.isMapLabelSafe(stableArea, visibleArea, surfaceHeight, density)
+    }
 
     /** Navigation orientation: north-up unless the shared setting says otherwise. */
     private var navNorthUp = true
@@ -87,6 +134,16 @@ class NavigationScreen(
     /** Speed-driven auto-zoom from the shared settings (default on). */
     private val autoZoomController = AutoZoomController()
     private var autoZoomEnabled: Boolean = true
+
+    /**
+     * Host pan-mode handling (spec: auto/map-pan): disengages follow and
+     * suspends auto-zoom on pan entry, re-engages follow on exit, and
+     * converts pan/pinch gestures to viewport changes. Lazy so the renderer
+     * is not forced before the surface is available.
+     */
+    private val panHandler: MapPanHandler by lazy {
+        MapPanHandler(mapRenderer, autoZoomController) { surfaceWidth to surfaceHeight }
+    }
 
     /** Throttled street-name resolution (same pattern as free driving). */
     private val streetNameUpdater = StreetNameUpdater()
@@ -139,14 +196,25 @@ class NavigationScreen(
                     drawSpeedLimitSign = true
                 )
             }
-            StreetNameLabel.draw(
-                canvas = canvas,
-                surfaceWidth = w,
-                surfaceHeight = h,
-                density = density,
-                usableBounds = stableArea,
-                name = streetName.orEmpty()
-            )
+            // The map label is drawn only when the host geometry is safe
+            // (design D5): a full-surface/empty stable+visible area means the
+            // ETA card may cover the bottom-center, so the street name is
+            // rendered by the host in the ETA card (setTripText) instead.
+            if (mapLabelSafe()) {
+                StreetNameLabel.draw(
+                    canvas = canvas,
+                    surfaceWidth = w,
+                    surfaceHeight = h,
+                    density = density,
+                    stableBounds = stableArea,
+                    visibleBounds = visibleArea,
+                    name = streetName.orEmpty(),
+                    // Navigation reserve: the host ETA card sits at the bottom
+                    // (bottom-left on the user's head unit); the reserve keeps the
+                    // label clear even when the host geometry is wrong (design D3).
+                    bottomReserveDp = STREET_NAME_BOTTOM_RESERVE_DP
+                )
+            }
             SurfaceAttribution.draw(
                 canvas = canvas,
                 surfaceWidth = w,
@@ -184,6 +252,11 @@ class NavigationScreen(
                     scope.launch(Dispatchers.Default) {
                         if (!styleApplier.apply(style)) {
                             Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
+                        } else {
+                            // DB is ready (style loaded) — (re)push the host
+                            // day/night flag: the startup push may have been
+                            // dropped while the DB was still initializing.
+                            pushHostDark()
                         }
                     }
                     mapRenderer.requestRender()
@@ -229,7 +302,7 @@ class NavigationScreen(
             buildTemplate()
         } catch (e: Exception) {
             DiagnosticsLog.logThrowable(TEMPLATE_TAG, "NavigationTemplate build failed", e)
-            SafeScreen.errorTemplate(e.message)
+            SafeScreen.errorTemplate(carContext, e.message)
         }
     }
 
@@ -244,23 +317,19 @@ class NavigationScreen(
             state,
             ManeuverGlyphs::forTurnType,
             includeLanes = laneHintsEnabled,
-            laneImageFor = ManeuverGlyphs::lanesImage
+            laneImageFor = ManeuverGlyphs::lanesImage,
+            resolver = carContext.stringResolver()
         )
         return NavigationTemplateFactory.buildNavigationTemplate(
             isNavigating = true,
             travelEstimate = buildTravelEstimate(state),
-            mapActionStrip = ActionStrip.Builder()
-                .addAction(NavigationScreenActions.stopAction { navigationViewModel.stopNavigation() })
-                .addAction(NavigationScreenActions.routeListAction { onShowRouteDescription() })
-                .build(),
+            mapActionStrip = NavigationScreenActions.navigationMapActionStrip { onShowRouteDescription() },
             actionStrip = ActionStrip.Builder()
                 .addAction(NavigationScreenActions.zoomInAction { onZoomIn() })
                 .addAction(NavigationScreenActions.zoomOutAction { onZoomOut() })
-                .addAction(MapStripActions.infoAction {
-                    screenManager.push(AboutScreen(carContext))
-                })
                 .build(),
-            routingInfo = routingInfo
+            routingInfo = routingInfo,
+            panModeListener = panHandler
         )
     }
 
@@ -319,18 +388,18 @@ class NavigationScreen(
                 if (pos != null) {
                     mapRenderer.setGpsMarker(pos.lat, pos.lon, pos.bearing, pos.accuracy)
                     // Speed-driven auto-zoom (shared setting) + heading-up
-                    // rotation: one viewport commit per fix.
-                    val zoom = if (autoZoomEnabled && pos.speedKmH >= 0.0) {
-                        autoZoomController.onSpeed(pos.speedKmH)
-                    } else {
-                        null
-                    }
-                    val angle = if (!navNorthUp && pos.bearing >= 0.0) {
+                    // rotation: one viewport commit per fix. The zoom feed is
+                    // gated on !panning (design D2) so the controller state
+                    // stays frozen during a pan; the commit is gated on
+                    // !panning too (design D1) so a band-crossing zoom can
+                    // never re-engage follow mid-pan.
+                    val zoom = autoZoomTarget(panHandler.panning, autoZoomEnabled, pos.speedKmH, autoZoomController)
+                    val angle = if (shouldRotateHeadingUp(panHandler.panning, navNorthUp, pos.bearing)) {
                         -Math.toRadians(pos.bearing)
                     } else {
                         null
                     }
-                    if (angle != null || zoom != null) {
+                    if (shouldCommitViewport(panHandler.panning, angle, zoom)) {
                         val vp = mapRenderer.viewportState.value
                         val newZoom = zoom ?: vp.zoom
                         mapRenderer.setViewport(
@@ -344,6 +413,18 @@ class NavigationScreen(
                         }
                     }
                     resolveStreetName(pos)
+                }
+            }
+        }
+
+        // Host day/night: push the stylesheet `daylight` flag and re-render on
+        // change (tunnel entry, dusk). Deduped by the applier; the native side
+        // reloads the variant on its DB thread. invalidateStyle forces a full
+        // render so the stale-variant overrun buffer is never blitted.
+        scope.launch {
+            hostDark.collect { dark ->
+                if (daylightApplier.apply(dark)) {
+                    mapRenderer.invalidateStyle()
                 }
             }
         }
@@ -371,8 +452,14 @@ class NavigationScreen(
             if (name != null) {
                 streetNameUpdater.markGeocoded(pos.lat, pos.lon)
             }
+            val changed = name != streetName
             streetName = name
             mapRenderer.requestRender()
+            // The host ETA card carries the street name when the map label is
+            // not safe (design D5) — the card text needs a template rebuild.
+            if (changed && !mapLabelSafe()) {
+                invalidate()
+            }
         }
     }
 
@@ -398,9 +485,14 @@ class NavigationScreen(
             java.time.ZoneId.systemDefault()
         )
 
-        return TravelEstimate.Builder(remainingDistance, zonedDateTime)
+        val builder = TravelEstimate.Builder(remainingDistance, zonedDateTime)
             .setRemainingTimeSeconds(remainingTimeSeconds)
-            .build()
+        // Street name in the host ETA card when the map label is not safe
+        // (design D5): the host positions the card, so the name is never
+        // covered. When the map label is safe, no trip text — the map label
+        // carries the name.
+        tripTextFor(mapLabelSafe(), streetName)?.let { builder.setTripText(CarText.create(it)) }
+        return builder.build()
     }
 
     private fun onZoomIn() {
@@ -438,6 +530,10 @@ class NavigationScreen(
                     .onFailure { Log.w(TAG, "setMapDpi failed", it) }
                 mapRenderer.updateProjectionDpi(surfaceDpi)
                 mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
+                // Re-push the host day/night flag before the first render: the
+                // startup push may have been dropped while the DB was still
+                // initializing (warmup race).
+                pushHostDark()
             }
 
             override fun onSurfaceDestroyed(surfaceContainer: SurfaceContainer) {
@@ -446,17 +542,44 @@ class NavigationScreen(
                 surfaceHeight = 0
                 surfaceDpi = DEFAULT_DPI
                 stableArea.setEmpty()
+                visibleArea.setEmpty()
                 mapRenderer.onSurfaceDestroyed()
             }
 
-            override fun onVisibleAreaChanged(visibleArea: Rect) {
-                if (stableArea.isEmpty()) stableArea.set(visibleArea)
+            override fun onVisibleAreaChanged(visible: Rect) {
+                // Tracked separately from the stable area: the visible area is
+                // the *current* guaranteed-visible region (excludes the ETA
+                // card while shown), the stable area accounts for occlusions
+                // "as if always present". The street-name label anchors to
+                // the more conservative of the two (design D1).
+                val wasSafe = mapLabelSafe()
+                visibleArea.set(visible)
                 mapRenderer.requestRender()
+                // Safety flip (design D5): the street name moves between the
+                // map label and the host ETA card — rebuild the template.
+                if (wasSafe != mapLabelSafe()) {
+                    invalidate()
+                }
             }
 
             override fun onStableAreaChanged(newStableArea: Rect) {
+                val wasSafe = mapLabelSafe()
                 stableArea.set(newStableArea)
                 mapRenderer.requestRender()
+                if (wasSafe != mapLabelSafe()) {
+                    invalidate()
+                }
+            }
+
+            // Pan gestures (spec: auto/map-pan): the host forwards them only
+            // while pan mode is active; the handler converts them to viewport
+            // changes and gates on its own panning flag.
+            override fun onScroll(distanceX: Float, distanceY: Float) {
+                panHandler.onScroll(distanceX, distanceY)
+            }
+
+            override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {
+                panHandler.onScale(focusX, focusY, scaleFactor)
             }
         })
     }
@@ -475,6 +598,22 @@ class NavigationScreen(
         private const val MAX_SURFACE_REFRESH_ATTEMPTS = 2
 
         /**
+         * Bottom reserve (dp) for the street-name label while navigating: a
+         * safety margin above the resolved stable/visible bottom so the host
+         * ETA card never covers the label (design D3). Free driving passes 0.
+         */
+        private const val STREET_NAME_BOTTOM_RESERVE_DP = 24f
+
+        /**
+         * Street name for the host ETA card (design D5): only when the map
+         * label is not safe (the host delivered no area clearing the surface
+         * bottom, so the card may cover the label). When the map label is
+         * safe, the card carries no trip text — the map label shows the name.
+         */
+        fun tripTextFor(mapLabelSafe: Boolean, streetName: String?): String? =
+            if (mapLabelSafe) null else streetName
+
+        /**
          * Back affordance during navigation: stops navigation (spec:
          * auto/navigation-view — "Leave navigation at any time"). Factory so
          * the handler behavior is unit-testable without a live CarContext.
@@ -485,6 +624,31 @@ class NavigationScreen(
                     onBack()
                 }
             }
+
+        /**
+         * Heading-up rotation decision: rotate with the bearing unless the
+         * map is panned (spec: auto/map-pan — rotation frozen while panned),
+         * north-up is set, or the bearing is unknown.
+         */
+        fun shouldRotateHeadingUp(panning: Boolean, navNorthUp: Boolean, bearing: Double): Boolean =
+            !panning && !navNorthUp && bearing >= 0.0
+
+        /**
+         * Speed-driven auto-zoom target: never while panned (spec:
+         * auto/map-pan — auto-zoom suspended while panned), otherwise when
+         * enabled and the speed is valid. Gating the feed (not just the
+         * commit) freezes the controller state during the pan — a
+         * band-crossing re-engage mid-pan would otherwise advance its
+         * stability/cooldown state and could commit a zoom the driver did
+         * not ask for right after pan exit (design D2).
+         */
+        fun autoZoomTarget(
+            panning: Boolean,
+            autoZoomEnabled: Boolean,
+            speedKmH: Double,
+            controller: AutoZoomController
+        ): Int? =
+            if (!panning && autoZoomEnabled && speedKmH >= 0.0) controller.onSpeed(speedKmH) else null
 
         /** Fallback center (Dortmund — same as the phone app default). */
         private const val DEFAULT_LAT = 51.5136

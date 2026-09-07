@@ -7,6 +7,7 @@ import androidx.car.app.model.Header
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
+import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
@@ -65,7 +66,7 @@ class PreferencesScreen private constructor(
         val current = settings
         val itemList = if (!loaded || current == null) {
             ItemList.Builder()
-                .addItem(Row.Builder().setTitle("Loading...").build())
+                .addItem(Row.Builder().setTitle(carContext.getString(R.string.loading)).build())
                 .build()
         } else {
             val builder = ItemList.Builder()
@@ -84,7 +85,7 @@ class PreferencesScreen private constructor(
         return ListTemplate.Builder()
             .setHeader(
                 Header.Builder()
-                    .setTitle("Preferences")
+                    .setTitle(carContext.getString(R.string.preferences))
                     .setStartHeaderAction(Action.BACK)
                     .build()
             )

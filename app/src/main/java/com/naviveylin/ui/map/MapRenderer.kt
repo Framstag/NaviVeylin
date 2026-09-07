@@ -452,7 +452,15 @@ class MapRenderer(
         // Only skip full render if pan is fully within overrun buffer (blitCovered=true)
         // For zoom changes, trySubRegionBlit returns false (always triggers full render)
         if (!isZoom && blitCovered) {
-            pendingRender = null
+            // The blit preview only covers the TILE content. A pending forced render
+            // (forceFullRender=true: route set/clear, favorites, search selection,
+            // stylesheet switch, epoch bump) changed overlays, not tiles — discarding
+            // it would leave the new overlay undrawn until some gesture triggers a
+            // full render (stale route after reroute). Keep forced renders so they
+            // execute after the debounce even when the camera never moved.
+            if (pendingRender?.forceFullRender != true) {
+                pendingRender = null
+            }
             return
         }
 

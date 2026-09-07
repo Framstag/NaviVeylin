@@ -67,9 +67,10 @@ fun LocationMarkerOverlay(
             minRadiusPx * zoomScale.coerceAtLeast(1f)
         }
 
-        // Bearing < 0 (unavailable or north-up orientation) draws the arrow pointing
-        // north on the map. Screen bearing = raw bearing + map rotation (same sign
-        // convention the native renderer used — do not flip).
+        // Bearing < 0 (unavailable) draws the arrow pointing north on the map.
+        // Screen bearing = raw bearing + map rotation (same sign convention the
+        // native renderer used — do not flip). Orientation mode never changes the
+        // arrow: north-up is a map-rotation choice, not a bearing-availability state.
         val rawBearing = if (bearing >= 0.0) bearing else 0.0
         val bearingDegrees = ProjectionUtils.screenBearing(rawBearing, viewport.angle).toFloat()
 

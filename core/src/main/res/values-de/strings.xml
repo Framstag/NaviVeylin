@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Turn-by-turn instruction text, German (spec: turn-instruction-localization). -->
+    <string name="nav_start">Start</string>
+    <string name="nav_arrive">Ankunft</string>
+    <string name="nav_roundabout">Kreisverkehr</string>
+    <string name="nav_exit_roundabout">Ausfahrt %1$d</string>
+    <string name="nav_enter_motorway">Autobahn auffahren</string>
+    <string name="nav_leave_motorway">Autobahn verlassen</string>
+
+    <string name="nav_turn_sharp_left">Scharf links abbiegen</string>
+    <string name="nav_turn_left">Links abbiegen</string>
+    <string name="nav_turn_slightly_left">Leicht links abbiegen</string>
+    <string name="nav_straight_on">Geradeaus</string>
+    <string name="nav_turn_slightly_right">Leicht rechts abbiegen</string>
+    <string name="nav_turn_right">Rechts abbiegen</string>
+    <string name="nav_turn_sharp_right">Scharf rechts abbiegen</string>
+
+    <string name="nav_keep_sharp_left">Scharf links halten</string>
+    <string name="nav_keep_left">Links halten</string>
+    <string name="nav_keep_slightly_left">Leicht links halten</string>
+    <string name="nav_keep_straight">Geradeaus halten</string>
+    <string name="nav_keep_slightly_right">Leicht rechts halten</string>
+    <string name="nav_keep_right">Rechts halten</string>
+    <string name="nav_keep_sharp_right">Scharf rechts halten</string>
+
+    <string name="nav_turn_into">%1$s in %2$s</string>
+    <string name="nav_keep_onto">%1$s auf %2$s</string>
+    <string name="nav_exit_onto">Ausfahrt %1$d auf %2$s</string>
+    <string name="nav_enter_onto">Auffahren auf %1$s</string>
+</resources>

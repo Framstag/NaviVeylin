@@ -49,11 +49,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.framstag.libosmscout.client.AvailableMapEntry
+import com.naviveylin.R
 
 /**
  * Unified map management screen combining available maps browsing,
@@ -117,10 +120,10 @@ fun MapManagerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Map Manager") },
+                title = { Text(stringResource(R.string.map_manager_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -152,7 +155,7 @@ fun MapManagerScreen(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search maps…") },
+                    placeholder = { Text(stringResource(R.string.search_maps)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true
                 )
@@ -201,7 +204,7 @@ fun MapManagerScreen(
             if (installedEntries.isNotEmpty()) {
                 item(key = "installed-header") {
                     Text(
-                        text = "Installed Maps",
+                        text = stringResource(R.string.installed_maps),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -240,7 +243,7 @@ fun MapManagerScreen(
             if (availableEntries.isNotEmpty()) {
                 item(key = "available-header") {
                     Text(
-                        text = "Available Maps",
+                        text = stringResource(R.string.available_maps),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -273,7 +276,7 @@ fun MapManagerScreen(
             } else if (!uiState.isLoading && installedEntries.isEmpty()) {
                 item {
                     Text(
-                        text = "Tap Refresh to load available maps",
+                        text = stringResource(R.string.tap_refresh_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(32.dp)
@@ -297,11 +300,11 @@ private fun ProviderSelector(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Provider:",
+            text = stringResource(R.string.provider_label),
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            text = "karry.cz",
+            text = stringResource(R.string.provider_karry),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -318,7 +321,7 @@ private fun ProviderSelector(
             } else {
                 Icon(Icons.Default.Refresh, contentDescription = null)
             }
-            Text("Refresh")
+            Text(stringResource(R.string.refresh))
         }
     }
 }
@@ -346,14 +349,17 @@ private fun ActiveDownloadsSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Active Downloads (${downloads.size + if (basemapDownloading) 1 else 0})",
+                text = pluralStringResource(
+                    R.plurals.active_downloads,
+                    downloads.size + if (basemapDownloading) 1 else 0
+                ),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.weight(1f))
             Icon(
                 imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = if (expanded) "Collapse" else "Expand"
+                contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand)
             )
         }
 
@@ -400,7 +406,7 @@ private fun BasemapDownloadRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "World Basemap",
+                text = stringResource(R.string.world_basemap),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -422,7 +428,7 @@ private fun BasemapDownloadRow(
                 modifier = Modifier.weight(1f).height(6.dp)
             )
             TextButton(onClick = onCancel) {
-                Text("Cancel", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelSmall)
             }
         }
     }
@@ -470,7 +476,7 @@ private fun ActiveDownloadRow(
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = onDismissError) {
-                    Text("OK", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.ok), style = MaterialTheme.typography.labelSmall)
                 }
             }
         } else {
@@ -484,7 +490,7 @@ private fun ActiveDownloadRow(
                     modifier = Modifier.weight(1f).height(6.dp)
                 )
                 TextButton(onClick = onCancel) {
-                    Text("Cancel", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -587,6 +593,7 @@ private fun TreeItemRow(
     onMapSelected: (AvailableMapEntry) -> Unit = {}
 ) {
     val indent = (item.depth * 24).dp
+    val runWithNotificationPermission = rememberNotificationPermissionLauncher()
 
     if (item.isDirectory) {
         val dirKey = item.id.removePrefix("dir-")
@@ -599,7 +606,7 @@ private fun TreeItemRow(
         ) {
             Icon(
                 imageVector = if (item.isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = if (item.isExpanded) "Collapse" else "Expand",
+                contentDescription = if (item.isExpanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
                 modifier = Modifier.padding(end = 4.dp)
             )
             Text(
@@ -628,7 +635,7 @@ private fun TreeItemRow(
             when {
                 installed -> Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Installed",
+                    contentDescription = stringResource(R.string.installed),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(end = 8.dp)
                 )
@@ -638,7 +645,7 @@ private fun TreeItemRow(
                 )
                 else -> Icon(
                     imageVector = Icons.Default.CloudDownload,
-                    contentDescription = "Available",
+                    contentDescription = stringResource(R.string.available),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(end = 8.dp)
                 )
@@ -654,7 +661,10 @@ private fun TreeItemRow(
                 )
                 if (entry.size > 0 && !installed) {
                     Text(
-                        text = "%.1f MB".format(entry.size / (1024.0 * 1024.0)),
+                        text = stringResource(
+                            R.string.size_unit_mb,
+                            "%.1f".format(entry.size / (1024.0 * 1024.0))
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -672,18 +682,18 @@ private fun TreeItemRow(
                         modifier = Modifier.padding(end = 8.dp)
                     )
                     TextButton(onClick = { onCancel(entry) }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
                 installed -> {
                     OutlinedButton(onClick = { onDelete(entry) }) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                        Text("Delete")
+                        Text(stringResource(R.string.delete))
                     }
                 }
                 else -> {
-                    Button(onClick = { onDownload(entry) }) {
-                        Text("Download")
+                    Button(onClick = { runWithNotificationPermission { onDownload(entry) } }) {
+                        Text(stringResource(R.string.download))
                     }
                 }
             }

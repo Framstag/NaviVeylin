@@ -4,10 +4,15 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.TurnType
+import com.naviveylin.core.distanceUsesKilometers
+import com.naviveylin.core.formatDistanceNumber
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.Locale
 
 /**
  * Tests for [NavigationHintsOverlay] symbol rendering (spec:
@@ -19,19 +24,31 @@ import org.robolectric.RobolectricTestRunner
 class NavigationHintsOverlayTest {
 
     @Test
-    fun formatDistanceHandlesMetersAndKilometers() {
-        assertEquals("350 m", NavigationHintsOverlay.formatDistance(350.0))
-        assertEquals("1.2 km", NavigationHintsOverlay.formatDistance(1200.0))
-        assertEquals("0 m", NavigationHintsOverlay.formatDistance(0.0))
+    fun formatDistanceNumberHandlesMetersAndKilometers() {
+        assertEquals("350", formatDistanceNumber(350.0, Locale.US))
+        assertEquals("1.2", formatDistanceNumber(1200.0, Locale.US))
+        assertEquals("0", formatDistanceNumber(0.0, Locale.US))
     }
 
     @Test
-    fun formatDistanceRoundsForDisplay() {
-        assertEquals("45 m", NavigationHintsOverlay.formatDistance(45.0))
-        assertEquals("150 m", NavigationHintsOverlay.formatDistance(137.0))
-        assertEquals("100 m", NavigationHintsOverlay.formatDistance(124.0))
-        assertEquals("1.4 km", NavigationHintsOverlay.formatDistance(1350.0))
-        assertEquals("1.2 km", NavigationHintsOverlay.formatDistance(1234.0))
+    fun formatDistanceNumberRoundsForDisplay() {
+        assertEquals("45", formatDistanceNumber(45.0, Locale.US))
+        assertEquals("150", formatDistanceNumber(137.0, Locale.US))
+        assertEquals("100", formatDistanceNumber(124.0, Locale.US))
+        assertEquals("1.4", formatDistanceNumber(1350.0, Locale.US))
+        assertEquals("1.2", formatDistanceNumber(1234.0, Locale.US))
+    }
+
+    @Test
+    fun formatDistanceNumberUsesLocaleDecimalSeparator() {
+        assertEquals("1,2", formatDistanceNumber(1200.0, Locale.GERMANY))
+    }
+
+    @Test
+    fun distanceUsesKilometersReflectsUnit() {
+        assertFalse(distanceUsesKilometers(350.0))
+        assertTrue(distanceUsesKilometers(1200.0))
+        assertFalse(distanceUsesKilometers(0.0))
     }
 
     @Test

@@ -11,6 +11,7 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
+import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -59,6 +60,7 @@ class MapCanvasViewModelAdminRegionTest {
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = locationService,
             darkModeController = DarkModeController(SettingsStorage(context)),
+            sharedLocationHandler = SharedLocationHandler(),
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -95,10 +97,25 @@ class MapCanvasViewModelAdminRegionTest {
     }
 
     @Test
-    fun staleFixFallsBackToUnconstrained() {
-        val stale = freshFix(51.5136, 7.4653).copy(time = System.currentTimeMillis() - 6_000)
-        assertEquals(0L, viewModel.searchAdminRegionHandleForFix(stale))
-        assertEquals(emptyList<Long>(), client.adminRegionHandles)
+    fun veryOldFixStillResolvesRegion() {
+        // No age cap for region scoping: the last known position is valid
+        // however old the fix (e.g. at home all day, searching for a target).
+        // A fresh fix showing real movement re-resolves via the movement
+        // threshold.
+        client.nextAdminRegionHandle = 7L
+        val old = freshFix(51.5136, 7.4653).copy(time = System.currentTimeMillis() - 20 * 60 * 60_000)
+        assertEquals(7L, viewModel.searchAdminRegionHandleForFix(old))
+        assertEquals(listOf(7L), client.adminRegionHandles)
+    }
+
+    @Test
+    fun moderatelyStaleFixStillResolvesRegion() {
+        // A fix minutes old (e.g. GPS gap while stationary) is still a valid
+        // position for region scoping — the region only changes on movement.
+        client.nextAdminRegionHandle = 7L
+        val stale = freshFix(51.5136, 7.4653).copy(time = System.currentTimeMillis() - 54_000)
+        assertEquals(7L, viewModel.searchAdminRegionHandleForFix(stale))
+        assertEquals(listOf(7L), client.adminRegionHandles)
     }
 
     @Test
@@ -167,6 +184,17 @@ class MapCanvasViewModelAdminRegionTest {
         client.adminRegionName = "Dortmund"
         viewModel.searchAdminRegionHandleForFix(freshFix(51.5136, 7.4653))
         assertEquals("Dortmund", viewModel.uiState.value.searchAdminRegionName)
+    }
+
+    @Test
+    fun resolveExposesScopeRegionNameInUiState() {
+        // The panel shows the search scope region (parent when expanded), not
+        // just the resolved region.
+        client.nextAdminRegionHandle = 7L
+        client.adminRegionName = "Dortmund"
+        client.adminRegionScopeName = "Regierungsbezirk Arnsberg"
+        viewModel.searchAdminRegionHandleForFix(freshFix(51.5136, 7.4653))
+        assertEquals("Regierungsbezirk Arnsberg", viewModel.uiState.value.searchAdminRegionName)
     }
 
     @Test

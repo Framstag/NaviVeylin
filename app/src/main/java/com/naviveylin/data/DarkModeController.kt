@@ -31,9 +31,18 @@ class DarkModeController @Inject constructor(
 
     private val _environmentDark = MutableStateFlow(false)
 
+    /** Sensor classification; null = sensor inactive or unavailable. */
+    private val _sensorDark = MutableStateFlow<Boolean?>(null)
+
+    /** Ambient light sensor option (persisted via [SettingsStorage]). */
+    private val _sensorEnabled = MutableStateFlow(false)
+
+    /** Ambient light sensor option state. */
+    val sensorEnabled: StateFlow<Boolean> = _sensorEnabled.asStateFlow()
+
     /** Resolved dark presentation (preference × environment). */
     val isDarkPresentation: StateFlow<Boolean> =
-        combine(_preference, _environmentDark, ::resolveDarkPresentation)
+        combine(_preference, _environmentDark, _sensorDark, _sensorEnabled, ::resolveDarkPresentation)
             .stateIn(scope, kotlinx.coroutines.flow.SharingStarted.Eagerly, false)
 
     /**
@@ -42,6 +51,32 @@ class DarkModeController @Inject constructor(
      */
     fun setEnvironmentDark(dark: Boolean) {
         _environmentDark.value = dark
+    }
+
+    /**
+     * Feed the ambient light sensor classification; null = sensor inactive or
+     * unavailable (falls back to the system signal).
+     */
+    fun setSensorDark(dark: Boolean?) {
+        _sensorDark.value = dark
+    }
+
+    /**
+     * Enable/disable the ambient light sensor as the environment source and
+     * persist the option.
+     */
+    fun setSensorOption(enabled: Boolean) {
+        if (_sensorEnabled.value == enabled) return
+        _sensorEnabled.value = enabled
+        scope.launch {
+            val current = settingsStorage.load()
+            settingsStorage.save(current.copy(ambientLightDarkMode = enabled))
+        }
+    }
+
+    /** Restore the persisted sensor option (e.g. after settings load). */
+    fun restoreSensorOption(enabled: Boolean) {
+        _sensorEnabled.value = enabled
     }
 
     /** Restore the persisted preference (e.g. after settings load). */
@@ -61,13 +96,19 @@ class DarkModeController @Inject constructor(
 }
 
 /**
- * Pure resolution: ON always dark, OFF always light, AUTOMATIC follows environment.
+ * Pure resolution: ON always dark, OFF always light, AUTOMATIC follows the
+ * environment. When the ambient light sensor option is enabled and a sensor
+ * classification is available, the sensor wins over the system signal;
+ * otherwise the system signal is used.
  */
 fun resolveDarkPresentation(
     preference: DarkModePreference,
-    environmentDark: Boolean
+    environmentDark: Boolean,
+    sensorDark: Boolean? = null,
+    sensorEnabled: Boolean = false
 ): Boolean = when (preference) {
     DarkModePreference.ON -> true
     DarkModePreference.OFF -> false
-    DarkModePreference.AUTOMATIC -> environmentDark
+    DarkModePreference.AUTOMATIC ->
+        if (sensorEnabled && sensorDark != null) sensorDark else environmentDark
 }

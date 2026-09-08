@@ -1,4 +1,5 @@
 package com.naviveylin.ui.map
+import com.naviveylin.core.BasemapReloadNotifier
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -70,6 +71,7 @@ class MapCanvasViewModelStyleTest {
             locationService = LocationService(context),
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
+            basemapReloadNotifier = BasemapReloadNotifier(),
             context = context
         )
         vm.defaultDispatcher = mainDispatcherRule.dispatcher

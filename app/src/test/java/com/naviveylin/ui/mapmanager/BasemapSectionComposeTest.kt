@@ -2,6 +2,7 @@ package com.naviveylin.ui.mapmanager
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -10,11 +11,15 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.BasemapManager
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.MapProvider
+import com.naviveylin.core.BasemapReloadNotifier
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import java.net.InetSocketAddress
 import java.nio.file.Files
@@ -74,7 +79,8 @@ class BasemapSectionComposeTest {
             val vm = BasemapViewModel(
                 context() as Application,
                 manager(server.address.port, mapsDir),
-                FakeOSMScoutClient()
+                FakeOSMScoutClient(),
+                BasemapReloadNotifier()
             )
             composeRule.setContent { BasemapSection(viewModel = vm) }
 
@@ -93,7 +99,8 @@ class BasemapSectionComposeTest {
             val vm = BasemapViewModel(
                 context() as Application,
                 manager(server.address.port, mapsDir),
-                FakeOSMScoutClient()
+                FakeOSMScoutClient(),
+                BasemapReloadNotifier()
             )
             composeRule.setContent { BasemapSection(viewModel = vm) }
 
@@ -116,7 +123,8 @@ class BasemapSectionComposeTest {
             val vm = BasemapViewModel(
                 context() as Application,
                 manager(server.address.port, mapsDir),
-                FakeOSMScoutClient()
+                FakeOSMScoutClient(),
+                BasemapReloadNotifier()
             )
             composeRule.setContent { BasemapSection(viewModel = vm) }
 
@@ -126,5 +134,24 @@ class BasemapSectionComposeTest {
         } finally {
             server.stop(0)
         }
+    }
+
+    @Test
+    fun downloadingShowsCompactStatus() {
+        // Mocked ViewModel: the real download path would start a Hilt
+        // foreground service whose component build calls native
+        // OSMScoutClientBuilder.build() and crashes on the host stub .so.
+        val bm = mock<BasemapViewModel>()
+        whenever(bm.uiState).thenReturn(
+            MutableStateFlow(BasemapUiState(isDownloading = true, progress = 42))
+        )
+        composeRule.setContent { BasemapSection(viewModel = bm) }
+
+        waitForText("Downloading world basemap…")
+        composeRule.onNodeWithText("Downloading world basemap…").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+        // Compact status: no percentage — full progress lives in the
+        // active-downloads section (basemap-ui spec).
+        composeRule.onAllNodesWithText("42%").assertCountEquals(0)
     }
 }

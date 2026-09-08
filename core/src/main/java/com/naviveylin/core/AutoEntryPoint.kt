@@ -43,6 +43,9 @@ interface AutoEntryPoint {
     /** Shared OSMScoutClient instance for map rendering. */
     fun autoClientProvider(): AutoClientProvider
 
+    /** Signal for map data changes (basemap download/update/delete while running). */
+    fun basemapReloadNotifier(): BasemapReloadNotifier
+
     /** Shared navigation settings (view + edit) for the preferences screen. */
     fun autoSettingsProvider(): AutoSettingsProvider
 }

@@ -1,4 +1,5 @@
 package com.naviveylin.ui.map
+import com.naviveylin.core.BasemapReloadNotifier
 
 import android.Manifest
 import android.app.Application
@@ -57,6 +58,7 @@ class MapCanvasViewModelAddressBookPermissionTest {
             locationService = LocationService(context),
             darkModeController = DarkModeController(SettingsStorage(context)),
             sharedLocationHandler = SharedLocationHandler(),
+            basemapReloadNotifier = BasemapReloadNotifier(),
             context = context
         )
         vm.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -134,8 +136,8 @@ class MapCanvasViewModelAddressBookPermissionTest {
     ) {
         grantContacts()
         val vm = newViewModel()
-        vm.openAddressBookSheet()
-        assertTrue(vm.uiState.value.showAddressBookSheet)
+        openContactsMode(vm)
+        assertTrue(isContactsModeOpen(vm.uiState.value))
 
         val entry = com.framstag.libosmscout.client.LocationEntry().apply {
             label = "Main Street 1 Berlin"
@@ -145,7 +147,7 @@ class MapCanvasViewModelAddressBookPermissionTest {
         vm.onAddressBookResultSelected(entry)
         advanceUntilIdle()
 
-        assertFalse(vm.uiState.value.showAddressBookSheet)
+        assertFalse(isContactsModeOpen(vm.uiState.value))
         assertTrue(vm.uiState.value.showDetailsSheet)
         assertTrue(vm.uiState.value.detailsFromAddressBook)
         assertEquals("Main Street 1 Berlin", vm.uiState.value.selectedLocation?.label)
@@ -157,7 +159,7 @@ class MapCanvasViewModelAddressBookPermissionTest {
     ) {
         grantContacts()
         val vm = newViewModel()
-        vm.openAddressBookSheet()
+        openContactsMode(vm)
         val entry = com.framstag.libosmscout.client.LocationEntry().apply {
             label = "Main Street 1 Berlin"
             lat = 52.5
@@ -171,7 +173,7 @@ class MapCanvasViewModelAddressBookPermissionTest {
         vm.dismissDetailsSheet()
 
         assertFalse(vm.uiState.value.showDetailsSheet)
-        assertTrue(vm.uiState.value.showAddressBookSheet)
+        assertTrue(isContactsModeOpen(vm.uiState.value))
         assertFalse(vm.uiState.value.detailsFromAddressBook)
     }
 
@@ -181,7 +183,7 @@ class MapCanvasViewModelAddressBookPermissionTest {
     ) {
         grantContacts()
         val vm = newViewModel()
-        vm.openAddressBookSheet()
+        openContactsMode(vm)
         val entry = com.framstag.libosmscout.client.LocationEntry().apply {
             label = "Main Street 1 Berlin"
             lat = 52.5
@@ -193,7 +195,17 @@ class MapCanvasViewModelAddressBookPermissionTest {
         vm.showOnMap()
 
         assertFalse(vm.uiState.value.showDetailsSheet)
-        assertFalse(vm.uiState.value.showAddressBookSheet)
+        assertFalse(isContactsModeOpen(vm.uiState.value))
         assertFalse(vm.uiState.value.detailsFromAddressBook)
     }
+
+    /** Open the unified dialog and switch to Contacts mode. */
+    private fun openContactsMode(vm: MapCanvasViewModel) {
+        vm.openSearch()
+        vm.setSearchMode(SearchMode.CONTACTS)
+    }
+
+    /** True while the search dialog is open in Contacts mode. */
+    private fun isContactsModeOpen(state: MapCanvasUiState): Boolean =
+        state.searchOpen && state.searchMode == SearchMode.CONTACTS
 }

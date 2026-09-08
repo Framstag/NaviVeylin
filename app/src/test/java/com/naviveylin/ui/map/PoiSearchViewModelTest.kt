@@ -1,4 +1,5 @@
 package com.naviveylin.ui.map
+import com.naviveylin.core.BasemapReloadNotifier
 
 import android.content.Context
 import android.location.Location
@@ -64,6 +65,7 @@ class PoiSearchViewModelTest {
             locationService = locationService,
             darkModeController = DarkModeController(SettingsStorage(context)),
             sharedLocationHandler = SharedLocationHandler(),
+            basemapReloadNotifier = BasemapReloadNotifier(),
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -83,12 +85,22 @@ class PoiSearchViewModelTest {
             lon = 7.4653
         }
 
+    /** Open the unified dialog and switch to POIs mode (spec: search-dialog). */
+    private fun openPoiSearch() {
+        viewModel.openSearch()
+        viewModel.setSearchMode(SearchMode.POIS)
+    }
+
+    /** True while the search dialog is open in POIs mode. */
+    private fun isPoiSearchOpen(state: MapCanvasUiState): Boolean =
+        state.searchOpen && state.searchMode == SearchMode.POIS
+
     @Test
     fun openPoiSearchHasNoCategoryAndNoResults() {
-        viewModel.openPoiSearch()
+        openPoiSearch()
 
         val state = viewModel.uiState.value
-        assertTrue(state.poiSearchOpen)
+        assertTrue(isPoiSearchOpen(state))
         assertNull("no category preselected", state.poiCategory)
         assertTrue("no preloaded results", state.poiResults.isEmpty())
         assertFalse(state.isPoiSearching)
@@ -97,7 +109,7 @@ class PoiSearchViewModelTest {
 
     @Test
     fun performPoiSearchWithoutCategoryDoesNothing() {
-        viewModel.openPoiSearch()
+        openPoiSearch()
 
         viewModel.performPoiSearch()
 
@@ -108,7 +120,7 @@ class PoiSearchViewModelTest {
 
     @Test
     fun performPoiSearchPopulatesResults() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(
             poiEntry("Hotel Central", "tourism_hotel", 1200.0),
@@ -127,7 +139,7 @@ class PoiSearchViewModelTest {
 
     @Test
     fun performPoiSearchFailureSetsError() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.GROCERY)
         client.poiSearchError = RuntimeException("native boom")
 
@@ -141,7 +153,7 @@ class PoiSearchViewModelTest {
 
     @Test
     fun clickOpensDetailsCentersMapAndClosesPoiSheet() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.RESTAURANTS)
         client.nextPoiResults = arrayOf(poiEntry("Pizzeria Roma", "amenity_restaurant", 500.0))
         viewModel.performPoiSearch()
@@ -151,7 +163,7 @@ class PoiSearchViewModelTest {
         viewModel.onPoiEntryClick(viewModel.uiState.value.poiResults[0])
 
         val state = viewModel.uiState.first { it.showDetailsSheet }
-        assertFalse("POI sheet closed on selection", state.poiSearchOpen)
+        assertFalse("POI sheet closed on selection", isPoiSearchOpen(state))
         assertTrue(state.detailsFromPoiSearch)
         assertNotNull(state.selectedLocation)
         assertEquals("Pizzeria Roma", state.selectedLocation!!.label)
@@ -162,7 +174,7 @@ class PoiSearchViewModelTest {
 
     @Test
     fun searchCapturesCenterAndClickSetsSelectionHighlight() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.RESTAURANTS)
         client.nextPoiResults = arrayOf(poiEntry("Pizzeria Roma", "amenity_restaurant", 500.0))
         viewModel.performPoiSearch()
@@ -179,14 +191,14 @@ class PoiSearchViewModelTest {
 
         // Plain dismiss reopens the POI sheet; the embedded map keeps the highlight.
         viewModel.dismissDetailsSheet()
-        val reopened = viewModel.uiState.first { it.poiSearchOpen }
+        val reopened = viewModel.uiState.first { it.searchOpen && it.searchMode == SearchMode.POIS }
         assertEquals("highlight survives reopen", 51.5136, reopened.poiSelectedLat, 1e-9)
         assertEquals("highlight survives reopen", 7.4653, reopened.poiSelectedLon, 1e-9)
     }
 
     @Test
     fun closePoiSearchClearsSelectionHighlight() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(poiEntry("Hotel Central", "tourism_hotel", 1200.0))
         viewModel.performPoiSearch()
@@ -194,9 +206,9 @@ class PoiSearchViewModelTest {
         viewModel.onPoiEntryClick(viewModel.uiState.value.poiResults[0])
         viewModel.uiState.first { it.showDetailsSheet }
         viewModel.dismissDetailsSheet()
-        viewModel.uiState.first { it.poiSearchOpen }
+        viewModel.uiState.first { it.searchOpen && it.searchMode == SearchMode.POIS }
 
-        viewModel.closePoiSearch()
+        viewModel.closeSearch()
 
         val state = viewModel.uiState.value
         assertTrue(state.poiSelectedLat.isNaN())
@@ -207,7 +219,7 @@ class PoiSearchViewModelTest {
     fun fitZoomShowsCurrentLocationAndPoi() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.setScreenSize(1080, 2100)
         viewModel.updateMagnification(18.0)
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         // GPS fix far from the POI
         locationService.setLocationForTest(Location("gps").apply {
@@ -235,7 +247,7 @@ class PoiSearchViewModelTest {
         // Pre-search viewport
         viewModel.updateCenter(52.0, 8.0)
         val magBefore = viewModel.uiState.value.viewport.magnification
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(poiEntry("Hotel Central", "tourism_hotel", 900.0))
         viewModel.performPoiSearch()
@@ -247,11 +259,11 @@ class PoiSearchViewModelTest {
 
         // Reopen the POI sheet (plain dismiss) and close it explicitly
         viewModel.dismissDetailsSheet()
-        assertTrue(viewModel.uiState.value.poiSearchOpen)
-        viewModel.closePoiSearch()
+        assertTrue(isPoiSearchOpen(viewModel.uiState.value))
+        viewModel.closeSearch()
 
         val state = viewModel.uiState.value
-        assertFalse(state.poiSearchOpen)
+        assertFalse(isPoiSearchOpen(state))
         assertEquals("center restored", 52.0, state.viewport.centerLat, 1e-9)
         assertEquals("center restored", 8.0, state.viewport.centerLon, 1e-9)
         assertEquals("zoom restored", magBefore, state.viewport.magnification, 1e-9)
@@ -259,7 +271,7 @@ class PoiSearchViewModelTest {
 
     @Test
     fun changingCategoryDoesNotRerunSearchOrClearResults() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(poiEntry("Hotel Central", "tourism_hotel", 900.0))
         viewModel.performPoiSearch()
@@ -284,7 +296,7 @@ class PoiSearchViewModelTest {
 
     @Test
     fun plainDismissReopensPoiSheetWithResults() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(poiEntry("Hotel Central", "tourism_hotel", 900.0))
         viewModel.performPoiSearch()
@@ -295,14 +307,14 @@ class PoiSearchViewModelTest {
         viewModel.dismissDetailsSheet()
 
         val state = viewModel.uiState.value
-        assertTrue("plain dismiss reopens POI sheet", state.poiSearchOpen)
+        assertTrue("plain dismiss reopens POI sheet", isPoiSearchOpen(state))
         assertFalse(state.showDetailsSheet)
         assertEquals("results intact", 1, state.poiResults.size)
     }
 
     @Test
     fun showActionCentersMapAndKeepsPoiSheetClosed() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.GROCERY)
         client.nextPoiResults = arrayOf(poiEntry("Supermarkt", "shop_supermarket", 300.0))
         viewModel.performPoiSearch()
@@ -314,7 +326,7 @@ class PoiSearchViewModelTest {
 
         val state = viewModel.uiState.value
         assertFalse(state.showDetailsSheet)
-        assertFalse("show action keeps POI sheet closed", state.poiSearchOpen)
+        assertFalse("show action keeps POI sheet closed", isPoiSearchOpen(state))
         assertFalse(state.detailsFromPoiSearch)
         assertEquals("map centered on POI", 51.5136, state.viewport.centerLat, 1e-9)
         assertEquals("map centered on POI", 7.4653, state.viewport.centerLon, 1e-9)
@@ -331,7 +343,7 @@ class PoiSearchViewModelTest {
         ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
         viewModel.setRoutePanelViewModel(routeVm)
 
-        viewModel.openPoiSearch()
+        openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
         client.nextPoiResults = arrayOf(poiEntry("Hotel Central", "tourism_hotel", 800.0))
         viewModel.performPoiSearch()
@@ -346,6 +358,6 @@ class PoiSearchViewModelTest {
         val state = viewModel.uiState.value
         assertTrue("route panel open", state.showRoutePanel)
         assertFalse(state.showDetailsSheet)
-        assertFalse("route action keeps POI sheet closed", state.poiSearchOpen)
+        assertFalse("route action keeps POI sheet closed", isPoiSearchOpen(state))
     }
 }

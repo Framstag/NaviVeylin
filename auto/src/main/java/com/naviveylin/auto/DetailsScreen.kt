@@ -138,6 +138,16 @@ class DetailsScreen(
             }
         }
 
+        // Basemap data changes (download/update/delete while the app runs):
+        // re-render the preview without an app restart (spec: basemap-loading).
+        loadScope.launch {
+            entryPoint.basemapReloadNotifier().revision.collect { revision ->
+                if (revision > 0L) {
+                    mapRenderer.invalidateData()
+                }
+            }
+        }
+
         // Observe the current position: draw the GPS marker on the preview
         // and, when both the destination and a fix are known, zoom so both
         // are visible (parity with the phone mini map, spec:

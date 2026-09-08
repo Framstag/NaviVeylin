@@ -555,6 +555,19 @@ class AutoMapRenderer(
         requestRender()
     }
 
+    /**
+     * Force the next frame to a full native render after map data changed
+     * (e.g. the basemap was downloaded, updated, or deleted while the app
+     * runs). Mirrors the phone [MapRenderer.invalidateData] contract: the
+     * overrun buffer may hold pixels rendered without the new data and must
+     * not be blitted.
+     */
+    fun invalidateData() {
+        if (isShutdown) return
+        blitEligible = false
+        requestRender()
+    }
+
     private fun startRenderLoop() {
         renderJob = scope.launch {
             var lastRender = 0L

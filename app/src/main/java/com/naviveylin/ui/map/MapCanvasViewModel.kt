@@ -12,6 +12,7 @@ import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.R
+import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
@@ -69,6 +70,13 @@ enum class GpsFixQuality {
     GOOD
 }
 
+/** Search modes of the unified search dialog (spec: search-dialog — mode switch). */
+enum class SearchMode {
+    PLACES,
+    POIS,
+    CONTACTS
+}
+
 data class MapCanvasUiState(
     val viewport: ViewportState = ViewportState(),
     val renderedBitmap: ImageBitmap? = null,
@@ -77,8 +85,10 @@ data class MapCanvasUiState(
     val searchQuery: String = "",
     val searchResults: List<LocationEntry> = emptyList(),
     val isSearching: Boolean = false,
-    /** Signal for the screen to open the search panel (shared-location query). */
-    val openSearchPanel: Boolean = false,
+    /** Whether the unified search dialog is open. */
+    val searchOpen: Boolean = false,
+    /** Active search mode; Places is the initial mode on open (spec: search-dialog). */
+    val searchMode: SearchMode = SearchMode.PLACES,
     /** Name of the resolved admin region scoping the search, null when unscoped. */
     val searchAdminRegionName: String? = null,
     val selectedLocation: LocationEntry? = null,
@@ -89,8 +99,6 @@ data class MapCanvasUiState(
     val candidateDescriptions: List<ObjectDescription> = emptyList(),
     /** Whether the candidate picker sheet is shown (long-press with multiple objects). */
     val showCandidatePicker: Boolean = false,
-    /** Whether the POI search sheet is open. */
-    val poiSearchOpen: Boolean = false,
     /** Selected POI category id, null while none is selected (never preselected). */
     val poiCategory: String? = null,
     /** POI search radius in meters. */
@@ -110,10 +118,8 @@ data class MapCanvasUiState(
     /** True while the details sheet was opened from the address-book search; back returns to it. */
     val detailsFromAddressBook: Boolean = false,
     val showFavoritesSheet: Boolean = false,
-    /** Whether READ_CONTACTS is granted; drives address-book menu visibility. */
+    /** Whether READ_CONTACTS is granted; drives the Contacts search-mode visibility. */
     val addressBookAvailable: Boolean = false,
-    /** Whether the address-book person search sheet is open. */
-    val showAddressBookSheet: Boolean = false,
     val showRoutePanel: Boolean = false,
     val routeStartLocation: LocationEntry? = null,
     val routeDestLocation: LocationEntry? = null,
@@ -165,6 +171,7 @@ class MapCanvasViewModel @Inject constructor(
     private val locationService: LocationService,
     private val darkModeController: DarkModeController,
     private val sharedLocationHandler: SharedLocationHandler,
+    private val basemapReloadNotifier: BasemapReloadNotifier,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -173,6 +180,10 @@ class MapCanvasViewModel @Inject constructor(
 
     /** Search history, youngest first. Loaded from disk on ViewModel init. */
     val searchHistory: StateFlow<List<SearchHistoryEntry>> = searchHistoryRepository.history
+
+    /** Favorites grouped by group name; drives the search-dialog suggestion rows. */
+    val favoriteGroups: StateFlow<Map<String, List<com.framstag.libosmscout.client.FavoriteLocation>>> =
+        favoriteRepository.favorites
 
     private val _gpsFixQuality = MutableStateFlow(GpsFixQuality.NONE)
     val gpsFixQuality: StateFlow<GpsFixQuality> = _gpsFixQuality.asStateFlow()
@@ -546,6 +557,18 @@ class MapCanvasViewModel @Inject constructor(
     init {
         viewModelScope.launch { searchHistoryRepository.load() }
         refreshAddressBookAvailability()
+
+        // Basemap data changes (download/update/delete while the app runs):
+        // invalidate cached tiles and force a re-render so the change shows
+        // without an app restart (spec: basemap-loading — current view
+        // re-renders with/without the basemap overlay active).
+        viewModelScope.launch {
+            basemapReloadNotifier.revision.collect { revision ->
+                if (revision > 0L) {
+                    mapRenderer?.invalidateData()
+                }
+            }
+        }
 
         // Shared locations (share sheet / deep links): process when the map
         // screen is up. Coordinates go through the candidate flow; address text
@@ -1478,30 +1501,74 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
-     * Open the POI search sheet with a fresh state: no category selected and
-     * no search preloaded (spec: no category preselected and no preloaded
-     * results). Results from a previous session are cleared. The current
-     * viewport is snapshotted and restored when the sheet closes.
+     * Open the unified search dialog (spec: search-dialog — entry points).
+     * Resets to Places mode; if the dialog was last in POIs mode, the POI
+     * viewport snapshot is restored first. Eagerly resolves the admin region
+     * when a usable GPS fix exists so the region name shows immediately.
      */
-    fun openPoiSearch() {
-        poiSearchJob?.cancel()
-        poiSearchJob = null
-        poiViewportSnapshot = _uiState.value.viewport
+    fun openSearch() {
+        if (_uiState.value.searchMode == SearchMode.POIS) {
+            restorePoiViewport()
+        }
         _uiState.value = _uiState.value.copy(
-            poiSearchOpen = true,
-            poiCategory = null,
-            poiResults = emptyList(),
-            isPoiSearching = false,
-            poiSearchError = null
+            searchOpen = true,
+            searchMode = SearchMode.PLACES
         )
+        onSearchPanelOpened()
     }
 
     /**
-     * Close the POI search sheet, cancelling any in-flight search and
-     * restoring the map center/zoom to the values at open time (spec:
-     * viewport restored when POI search closes).
+     * Close the unified search dialog. If the dialog is in POIs mode, the
+     * in-flight search is cancelled and the map center/zoom restored to the
+     * values at POI-mode entry (spec: viewport restored when POI search closes).
      */
-    fun closePoiSearch() {
+    fun closeSearch() {
+        if (_uiState.value.searchMode == SearchMode.POIS) {
+            restorePoiViewport()
+        }
+        searchPanelOpen = false
+        releaseSearchAdminRegion()
+        _uiState.value = _uiState.value.copy(searchOpen = false)
+    }
+
+    /**
+     * Switch the search dialog mode. Entering POIs mode snapshots the viewport
+     * and resets POI state (no category preselected, no preloaded results);
+     * leaving it restores the snapshot and clears the POI marker. Per-mode
+     * state (query, results) is preserved for the session (spec: search-dialog
+     * — mode switch preserves state).
+     */
+    fun setSearchMode(mode: SearchMode) {
+        val s = _uiState.value
+        if (mode == s.searchMode) return
+        when {
+            mode == SearchMode.POIS -> {
+                poiSearchJob?.cancel()
+                poiSearchJob = null
+                poiViewportSnapshot = s.viewport
+                _uiState.value = s.copy(
+                    searchMode = mode,
+                    poiCategory = null,
+                    poiResults = emptyList(),
+                    isPoiSearching = false,
+                    poiSearchError = null
+                )
+            }
+            s.searchMode == SearchMode.POIS -> {
+                restorePoiViewport()
+                _uiState.value = _uiState.value.copy(searchMode = mode)
+            }
+            else -> {
+                _uiState.value = s.copy(searchMode = mode)
+            }
+        }
+    }
+
+    /**
+     * Restore the POI-mode viewport snapshot (taken at POI-mode entry) and
+     * clear the POI marker. Cancels any in-flight search.
+     */
+    private fun restorePoiViewport() {
         poiSearchJob?.cancel()
         poiSearchJob = null
         val snapshot = poiViewportSnapshot
@@ -1509,7 +1576,6 @@ class MapCanvasViewModel @Inject constructor(
         mapRenderer?.clearSearchSelected()
         if (snapshot != null) {
             _uiState.value = _uiState.value.copy(
-                poiSearchOpen = false,
                 isPoiSearching = false,
                 poiSelectedLat = Double.NaN,
                 poiSelectedLon = Double.NaN,
@@ -1517,7 +1583,6 @@ class MapCanvasViewModel @Inject constructor(
             )
         } else {
             _uiState.value = _uiState.value.copy(
-                poiSearchOpen = false,
                 isPoiSearching = false,
                 poiSelectedLat = Double.NaN,
                 poiSelectedLon = Double.NaN
@@ -1600,7 +1665,8 @@ class MapCanvasViewModel @Inject constructor(
                 selectedLocation = locEntry,
                 objectDescription = null,
                 isLongPress = false,
-                poiSearchOpen = false,
+                searchOpen = false,
+                searchMode = SearchMode.POIS,
                 poiSelectedLat = entry.lat,
                 poiSelectedLon = entry.lon,
                 detailsFromPoiSearch = true,
@@ -1793,14 +1859,9 @@ class MapCanvasViewModel @Inject constructor(
             if (!query.isNullOrBlank()) {
                 Log.d(TAG, "Shared location: query '$query'")
                 onSearchQueryChanged(query)
-                _uiState.value = _uiState.value.copy(openSearchPanel = true)
+                openSearch()
             }
         }
-    }
-
-    /** Clear the open-search-panel signal after the screen consumed it. */
-    fun consumeSearchPanelSignal() {
-        _uiState.value = _uiState.value.copy(openSearchPanel = false)
     }
 
     /**
@@ -1929,22 +1990,28 @@ class MapCanvasViewModel @Inject constructor(
 
     /**
      * Dismiss the details sheet. A plain dismiss (swipe/back) of a details
-     * sheet opened from POI search reopens the POI sheet with its results
-     * intact. If a route was started from the details sheet, the POI sheet
-     * stays closed (spec: selective action closes both dialogs).
+     * sheet opened from POI search reopens the search dialog in POIs mode with
+     * its results intact; from the address book it reopens in Contacts mode. If
+     * a route was started from the details sheet, the dialog stays closed
+     * (spec: selective action closes both dialogs).
      */
     fun dismissDetailsSheet() {
         val s = _uiState.value
         val fromPoi = s.detailsFromPoiSearch
         val fromAddressBook = s.detailsFromAddressBook
+        val reopen = !s.showRoutePanel
         _uiState.value = s.copy(
             showDetailsSheet = false,
             objectDescription = null,
             isLongPress = false,
             detailsFromPoiSearch = false,
             detailsFromAddressBook = false,
-            poiSearchOpen = if (fromPoi && !s.showRoutePanel) true else s.poiSearchOpen,
-            showAddressBookSheet = if (fromAddressBook && !s.showRoutePanel) true else s.showAddressBookSheet
+            searchOpen = if (reopen && (fromPoi || fromAddressBook)) true else s.searchOpen,
+            searchMode = when {
+                reopen && fromPoi -> SearchMode.POIS
+                reopen && fromAddressBook -> SearchMode.CONTACTS
+                else -> s.searchMode
+            }
         )
     }
 
@@ -2146,16 +2213,6 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
-    /** Open the address-book person search sheet. */
-    fun openAddressBookSheet() {
-        _uiState.value = _uiState.value.copy(showAddressBookSheet = true)
-    }
-
-    /** Close the address-book person search sheet. */
-    fun closeAddressBookSheet() {
-        _uiState.value = _uiState.value.copy(showAddressBookSheet = false)
-    }
-
     /**
      * Show the resolved address-book object in the existing details view
      * (spec: address-book-search — details view for the resolved object).
@@ -2170,7 +2227,8 @@ class MapCanvasViewModel @Inject constructor(
                 settingsStorage.save(current.copy(followMode = false))
             }
             _uiState.value = _uiState.value.copy(
-                showAddressBookSheet = false,
+                searchOpen = false,
+                searchMode = SearchMode.CONTACTS,
                 selectedLocation = entry,
                 objectDescription = null,
                 isLongPress = false,

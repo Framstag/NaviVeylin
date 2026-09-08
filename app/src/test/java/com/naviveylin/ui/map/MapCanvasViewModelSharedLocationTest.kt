@@ -1,4 +1,5 @@
 package com.naviveylin.ui.map
+import com.naviveylin.core.BasemapReloadNotifier
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -64,6 +65,7 @@ class MapCanvasViewModelSharedLocationTest {
             locationService = LocationService(context),
             darkModeController = DarkModeController(SettingsStorage(context)),
             sharedLocationHandler = handler,
+            basemapReloadNotifier = BasemapReloadNotifier(),
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -143,10 +145,10 @@ class MapCanvasViewModelSharedLocationTest {
         initMap()
 
         handler.submit(SharedLocationRequest(query = "Brandenburger Tor"))
-        viewModel.uiState.first { it.openSearchPanel }
+        viewModel.uiState.first { it.searchOpen }
 
         val s = viewModel.uiState.value
-        assertTrue(s.openSearchPanel)
+        assertTrue(s.searchOpen)
         assertEquals("Brandenburger Tor", s.searchQuery)
     }
 

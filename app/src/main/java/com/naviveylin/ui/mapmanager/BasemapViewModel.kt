@@ -2,11 +2,13 @@ package com.naviveylin.ui.mapmanager
 
 import android.app.Application
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.framstag.libosmscout.client.BasemapManager
 import com.framstag.libosmscout.client.MapDownloadListener
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.service.MapDownloadService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +46,8 @@ data class BasemapUiState(
 class BasemapViewModel @Inject constructor(
     private val application: Application,
     private val basemapManager: BasemapManager,
-    private val client: OSMScoutClient
+    private val client: OSMScoutClient,
+    private val basemapReloadNotifier: BasemapReloadNotifier
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BasemapUiState())
@@ -88,7 +91,17 @@ class BasemapViewModel @Inject constructor(
         Log.d("BasemapVM", "download: ${archive.fileName}")
         _uiState.value = _uiState.value.copy(isDownloading = true)
         MapDownloadService.start(application)
-        downloadHandle = basemapManager.downloadBasemap(archive, object : MapDownloadListener {
+        downloadHandle = basemapManager.downloadBasemap(archive, createDownloadListener())
+    }
+
+    /**
+     * The download listener driving UI state and the native reload. Extracted
+     * so the [onComplete] path is unit-testable without running a real
+     * download (which starts a Hilt foreground service + native build).
+     */
+    @VisibleForTesting
+    internal fun createDownloadListener(): MapDownloadListener =
+        object : MapDownloadListener {
             override fun onProgress(m: String, bytes: Long, total: Long) {
                 val pct = if (total > 0L) ((bytes * 100) / total).toInt().coerceIn(0, 99) else 0
                 _uiState.value = _uiState.value.copy(progress = pct)
@@ -100,7 +113,10 @@ class BasemapViewModel @Inject constructor(
                 downloadHandle = null
                 _uiState.value = _uiState.value.copy(isDownloading = false, progress = 100)
                 MapDownloadService.stop(application)
-                client.reloadBasemap()
+                // Register the installed directory for the running session and
+                // reload, so the basemap shows without an app restart
+                // (spec: basemap-loading — first-time installation + re-render).
+                applyBasemapChange(dir)
                 refresh()
             }
 
@@ -110,7 +126,19 @@ class BasemapViewModel @Inject constructor(
                 MapDownloadService.stop(application)
                 refresh()
             }
-        })
+        }
+
+    /**
+     * Register a changed basemap directory for the running session, reload
+     * the native basemap database, and notify renderers to re-render
+     * (spec: basemap-loading — download/update/delete while the app runs).
+     * An empty [dir] unloads the basemap.
+     */
+    @VisibleForTesting
+    internal fun applyBasemapChange(dir: String) {
+        client.setBasemapLookupDirectory(dir)
+        client.reloadBasemap()
+        basemapReloadNotifier.bump()
     }
 
     /** Download the newest available archive. */
@@ -129,7 +157,9 @@ class BasemapViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val deleted = basemapManager.deleteBasemap()
             if (deleted) {
-                client.reloadBasemap()
+                // Unload the basemap for the running session and re-render
+                // (spec: basemap-loading — delete while running).
+                applyBasemapChange("")
                 refresh()
             } else {
                 _uiState.value = _uiState.value.copy(error = "Failed to delete basemap")

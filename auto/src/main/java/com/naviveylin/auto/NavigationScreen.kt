@@ -428,6 +428,16 @@ class NavigationScreen(
                 }
             }
         }
+
+        // Basemap data changes (download/update/delete while the app runs):
+        // re-render without an app restart (spec: basemap-loading).
+        scope.launch {
+            entryPoint.basemapReloadNotifier().revision.collect { revision ->
+                if (revision > 0L) {
+                    mapRenderer.invalidateData()
+                }
+            }
+        }
     }
 
     /**

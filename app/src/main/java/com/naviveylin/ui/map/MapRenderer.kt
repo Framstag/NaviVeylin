@@ -414,6 +414,19 @@ class MapRenderer(
             currentLat, currentLon, currentMag, currentAngle, forceFullRender = true)
     }
 
+    /**
+     * Invalidate all cached tiles and force a full re-render after map data
+     * changed (e.g. the basemap was downloaded, updated, or deleted while the
+     * app runs). Same mechanics as [invalidateStyle]: cached tiles were
+     * rendered without the new data and must not survive.
+     */
+    fun invalidateData() {
+        epoch.incrementAndGet()
+        tileCache.clear()
+        submitDebounced(currentLat, currentLon, currentMag, currentAngle,
+            currentLat, currentLon, currentMag, currentAngle, forceFullRender = true)
+    }
+
     fun shutdown() {
         isShutdown = true
         debounceJob?.cancel()

@@ -591,6 +591,18 @@ class MapScreen(
                 }
             }
         }
+
+        // Basemap data changes (download/update/delete while the app runs):
+        // re-render without an app restart, bypassing the overrun blit
+        // (spec: basemap-loading — current view re-renders with/without the
+        // basemap overlay active).
+        scope.launch {
+            entryPoint.basemapReloadNotifier().revision.collect { revision ->
+                if (revision > 0L) {
+                    mapRenderer.invalidateData()
+                }
+            }
+        }
     }
 
     private fun stopObserving() {

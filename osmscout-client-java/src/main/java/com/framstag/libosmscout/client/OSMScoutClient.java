@@ -50,6 +50,19 @@ public class OSMScoutClient {
     public native void reloadBasemap();
 
     /**
+     * Set the basemap lookup directory at runtime and reload the basemap.
+     * <p>
+     * Pass an empty string to unload any installed basemap. Takes effect
+     * without an app restart, so a basemap downloaded or removed while the
+     * app runs is picked up immediately. Reloading is asynchronous on the
+     * native render thread; subsequent renders use the new basemap state.
+     *
+     * @param directory absolute filesystem path to the basemap database
+     *        directory, or an empty string to unload
+     */
+    public native void setBasemapLookupDirectory(String directory);
+
+    /**
      * Return the bounding box of a map database without affecting the
      * currently loaded databases.
      *

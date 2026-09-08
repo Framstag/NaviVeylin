@@ -101,6 +101,22 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     override fun getDatabaseBoundingBox(path: String): DoubleArray? = databaseBoundingBox
 
+    // --- Basemap stubs ---
+
+    /** Number of [reloadBasemap] invocations. */
+    var reloadBasemapCount = 0
+
+    override fun reloadBasemap() {
+        reloadBasemapCount++
+    }
+
+    /** Directories passed to [setBasemapLookupDirectory] in call order. */
+    val basemapLookupDirectories = mutableListOf<String>()
+
+    override fun setBasemapLookupDirectory(directory: String) {
+        basemapLookupDirectories.add(directory)
+    }
+
     override fun render(
         width: Int, height: Int,
         lat: Double, lon: Double,

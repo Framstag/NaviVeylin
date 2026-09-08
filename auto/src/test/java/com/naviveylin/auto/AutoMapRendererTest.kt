@@ -266,6 +266,32 @@ class AutoMapRendererTest {
     }
 
     @Test
+    fun invalidateDataForcesFullRenderNotBlit() {
+        // A basemap data change (download/update/delete while running) must
+        // bypass the overrun blit: the buffer holds pixels rendered without
+        // the new data.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.renderFrame()
+        assertEquals(1, renderer.fullRenderCount)
+
+        // Marker-only update makes the next frame blit-eligible...
+        renderer.setGpsMarker(51.5142273, 7.4652789, 45.0, 10.0)
+        // ...but invalidateData must force a full render instead.
+        renderer.invalidateData()
+        renderer.renderFrame()
+
+        assertEquals(2, renderer.fullRenderCount)
+    }
+
+    @Test
+    fun invalidateDataAfterShutdownIsNoOp() {
+        renderer.shutdown()
+        renderer.invalidateData() // must not throw
+    }
+
+    @Test
     fun smallGpsMoveServedByBlitNoFullRender() {
         // Task 2.1: a small viewport move within the overrun region is served
         // by a blit — no full native render (render-count assertion).

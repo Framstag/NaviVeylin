@@ -29,9 +29,10 @@ Pick the right doc: `guidelines/Design.md` = architecture principles; `guideline
 ## Module Structure
 
 ```
-:app              → Main app (phone, foldable, tablet)
-:osmscout-jni     → JNI bridge AAR (placeholder — real JNI in libosmscout-client-java submodule)
-:auto             → Android Auto placeholder (deferred)
+:app                  → Main app (phone, foldable, tablet) + Android Auto/Automotive OS (`NaviVeylinCarAppService`)
+:auto                 → Android Auto screens + session (Car App Library)
+:core                 → Shared app helpers (`com.naviveylin.core.*`)
+:osmscout-client-java → Java side of the JNI bridge: local overrides over the libosmscout-client-java submodule sources
 ```
 
 ## Key Conventions
@@ -46,14 +47,22 @@ Pick the right doc: `guidelines/Design.md` = architecture principles; `guideline
 - Hilt for DI, ViewModel + StateFlow for state
 - JSON-file persistence (JNI favorites, settings, search history)
 - `FavoriteRepository` wraps JNI CRUD for favorites, exposes `StateFlow`
-- Native calls go through `libosmscout-client-java` JNI bridge (submodule)
+- Native calls go through the JNI bridge: C++ side = `libosmscout-client-java` inside the libosmscout submodule; Java side = `:osmscout-client-java` module overrides (see Native Integration)
 
 ### Native Integration
 - C++ source: `app/src/main/cpp/`
-- JNI bridge: `libosmscout/libosmscout-client-java/` (submodule)
-  - Produces `libosmscout_client_java.so` + `libosmscoutclientjava.jar`
-  - Target: `osmscout_client_java`
-  - Depends on: `OSMScout::OSMScout`, `OSMScout::Map`, `OSMScout::MapCairo`, `OSMScout::Client`
+- JNI bridge — split across two places; **patch in one, never both**:
+  - C++ side: libosmscout submodule `app/src/main/cpp/libosmscout/` (branch `naviveylin-local`, pushed to Framstag/libosmscout)
+    - `libosmscout-client-java/src/OSMScoutClient.cpp` → `libosmscout_client_java.so` (CMake target `osmscout_client_java`)
+    - Depends on: `OSMScout::OSMScout`, `OSMScout::Map`, `OSMScout::MapCairo`, `OSMScout::Client`
+  - Java side: Gradle module `:osmscout-client-java` (repo root)
+    - Compiles submodule `libosmscout-client-java/java` sources EXCEPT 6 overridden files
+      (`OSMScoutClient`, `OSMScoutClientBuilder`, `RoadInfo`, `BasemapManager`, `MapDownloadManager`, `AvailableMapEntry`)
+      which come from `osmscout-client-java/src/main/java` (plus local-only `InstalledMaps`)
+    - Overrides = Android ports: HttpURLConnection map downloads (no `java.net.http` desugaring), debug-suffix library loading (`osmscout_client_java` → `osmscout_client_javad` fallback), `reloadBasemap` decl, public constructors
+    - Produces `libosmscoutclientjava.jar`
+- Main repo pins the submodule SHA in the gitlink — bump it (commit) after any submodule commit
+- Keep the submodule clean: uncommitted submodule changes are not built by CI or fresh clones
 - CMake builds all native code
 - vcpkg for cross-compiling C++ dependencies (cairo, pango, harfbuzz, fribidi, protobuf, ...)
   - Location: `$VCPKG_ROOT` env var or `./vcpkg`

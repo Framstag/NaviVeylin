@@ -41,3 +41,10 @@ Thumbs.db
 
 # vcpkg
 vcpkg/
+
+# OpenSpec: open changes are local WIP — only archived changes are versioned
+openspec/changes/*/
+!openspec/changes/archive/
+
+# Misc runtime log accidentally committed
+ki_processing_failures.log

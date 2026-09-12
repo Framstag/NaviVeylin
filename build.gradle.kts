@@ -20,9 +20,9 @@ plugins {
 dependencies {
     // String (project-path) notation — Project-object notation is deprecated
     // in Gradle 9.6 and fails in Gradle 10.
-    kover(":app")
-    kover(":auto")
-    kover(":core")
+    kover(project(":app"))
+    kover(project(":auto"))
+    kover(project(":core"))
 }
 
 kover {

@@ -25,6 +25,8 @@ import kotlinx.coroutines.withContext
  * @param selectedContact set when a person with multiple addresses is picked
  *   (address selection step pending); null otherwise.
  * @param resolutionError true when the last resolution found no location.
+ *   Transient: cleared by the next query edit, reload, or resolution attempt,
+ *   and rendered as a non-blocking banner over the contact list.
  * @param resolvedEntry emitted once when a resolution succeeds; the sheet
  *   hands it to the map screen (details view) and calls [consumeResolved].
  */
@@ -84,15 +86,22 @@ class AddressBookViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 allContacts = contacts,
                 filteredContacts = filter(contacts, _uiState.value.query),
-                isLoading = false
+                isLoading = false,
+                resolutionError = false
             )
         }
     }
 
-    /** Filter the contact list by name (case-insensitive contains). */
+    /**
+     * Filter the contact list by name (case-insensitive contains). Also
+     * clears a stale resolution error so typing always returns the user to
+     * the list (spec: address-book-search — editing the query clears the
+     * not-found state).
+     */
     fun onQueryChanged(query: String) {
         _uiState.value = _uiState.value.copy(
             query = query,
+            resolutionError = false,
             filteredContacts = filter(_uiState.value.allContacts, query)
         )
     }
@@ -105,7 +114,12 @@ class AddressBookViewModel @Inject constructor(
         if (entry.addresses.size == 1) {
             resolve(entry.addresses[0])
         } else {
-            _uiState.value = _uiState.value.copy(selectedContact = entry)
+            // Selecting a person is a recovery interaction: clear any stale
+            // resolution error so the picker opens clean (design D2).
+            _uiState.value = _uiState.value.copy(
+                selectedContact = entry,
+                resolutionError = false
+            )
         }
     }
 
@@ -124,7 +138,8 @@ class AddressBookViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             resolvedEntry = null,
             selectedContact = null,
-            isResolving = false
+            isResolving = false,
+            resolutionError = false
         )
     }
 

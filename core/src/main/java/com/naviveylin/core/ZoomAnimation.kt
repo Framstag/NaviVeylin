@@ -41,28 +41,32 @@ class ZoomAnimation(private val durationMs: Long = DEFAULT_DURATION_MS) {
     private var startScale = 1f
     private var targetScale = 1f
     private var startTimeMs = 0L
+    private var activeDurationMs = durationMs
 
     /**
-     * Starts an animation from [from] to [to] anchored at ([anchorX]/[anchorY]).
+     * Starts an animation from [from] to [to] anchored at ([anchorX]/[anchorY])
+     * lasting [durationMs] (defaults to the instance's constructor duration).
      * Interrupts any running animation (its progress is discarded — callers
      * wanting continuity should use [retrack]).
      */
-    fun start(from: Float, to: Float, anchorX: Float, anchorY: Float, nowMs: Long) {
+    fun start(from: Float, to: Float, anchorX: Float, anchorY: Float, nowMs: Long, durationMs: Long = this.durationMs) {
         startScale = from
         targetScale = to
         this.anchorX = anchorX
         this.anchorY = anchorY
         startTimeMs = nowMs
+        activeDurationMs = durationMs
         active = from != to
     }
 
     /**
      * Retracks toward a new [to] scale from the scale the animation currently
-     * displays at [nowMs], keeping the anchor (or updating it when provided).
-     * Completed/idle animations behave like [start] from the rest value.
+     * displays at [nowMs], keeping the anchor (or updating it when provided),
+     * with an optional new [durationMs]. Completed/idle animations behave
+     * like [start] from the rest value.
      */
-    fun retrack(to: Float, anchorX: Float, anchorY: Float, nowMs: Long) {
-        start(currentScale(nowMs), to, anchorX, anchorY, nowMs)
+    fun retrack(to: Float, anchorX: Float, anchorY: Float, nowMs: Long, durationMs: Long = this.durationMs) {
+        start(currentScale(nowMs), to, anchorX, anchorY, nowMs, durationMs)
     }
 
     /**
@@ -83,11 +87,11 @@ class ZoomAnimation(private val durationMs: Long = DEFAULT_DURATION_MS) {
     fun tick(nowMs: Long): Float {
         if (!active) return targetScale
         val elapsed = (nowMs - startTimeMs).coerceAtLeast(0L)
-        if (elapsed >= durationMs) {
+        if (elapsed >= activeDurationMs) {
             active = false
             return targetScale
         }
-        val t = elapsed.toDouble() / durationMs.toDouble()
+        val t = elapsed.toDouble() / activeDurationMs.toDouble()
         return easedScale(t)
     }
 
@@ -100,8 +104,8 @@ class ZoomAnimation(private val durationMs: Long = DEFAULT_DURATION_MS) {
     fun currentScale(nowMs: Long): Float {
         if (!active) return targetScale
         val elapsed = (nowMs - startTimeMs).coerceAtLeast(0L)
-        if (elapsed >= durationMs) return targetScale
-        return easedScale(elapsed.toDouble() / durationMs.toDouble())
+        if (elapsed >= activeDurationMs) return targetScale
+        return easedScale(elapsed.toDouble() / activeDurationMs.toDouble())
     }
 
     private fun easedScale(t: Double): Float {

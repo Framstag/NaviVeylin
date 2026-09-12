@@ -183,6 +183,75 @@ class AddressBookViewModelTest {
     }
 
     @Test
+    fun `query change after failed resolution clears error and restores list`() =
+        runTest(dispatcher) {
+            val vm = started(newViewModel())
+
+            vm.onPersonSelected(alice)
+            advanceUntilIdle()
+            assertTrue(vm.uiState.value.resolutionError)
+
+            vm.onQueryChanged("B")
+
+            assertEquals(listOf("Bob"), vm.uiState.value.filteredContacts.map { it.name })
+            assertFalse(vm.uiState.value.resolutionError)
+        }
+
+    @Test
+    fun `reload after failed resolution clears error and shows contacts`() =
+        runTest(dispatcher) {
+            val vm = newViewModel()
+            advanceUntilIdle()
+
+            vm.onPersonSelected(alice)
+            advanceUntilIdle()
+            assertTrue(vm.uiState.value.resolutionError)
+
+            vm.loadContacts()
+            advanceUntilIdle()
+
+            assertFalse(vm.uiState.value.resolutionError)
+            assertEquals(listOf("Alice", "Bob"), vm.uiState.value.filteredContacts.map { it.name })
+        }
+
+    @Test
+    fun `consumeResolved clears a stale resolution error`() = runTest(dispatcher) {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.onPersonSelected(alice)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.resolutionError)
+
+        vm.consumeResolved()
+
+        assertFalse(vm.uiState.value.resolutionError)
+    }
+
+    @Test
+    fun `multi-address pick survives failed resolution and reselect reopens picker`() =
+        runTest(dispatcher) {
+            val vm = newViewModel()
+            advanceUntilIdle()
+
+            vm.onPersonSelected(bob)
+            advanceUntilIdle()
+            assertNotNull(vm.uiState.value.selectedContact)
+
+            vm.onAddressSelected(bob.addresses[1])
+            advanceUntilIdle()
+            // Failed resolution clears the picker and sets the error…
+            assertNull(vm.uiState.value.selectedContact)
+            assertTrue(vm.uiState.value.resolutionError)
+
+            // …but re-selecting the contact re-opens the picker with no stale error.
+            vm.onPersonSelected(bob)
+            advanceUntilIdle()
+            assertNotNull(vm.uiState.value.selectedContact)
+            assertFalse(vm.uiState.value.resolutionError)
+        }
+
+    @Test
     fun `consumeResolved clears the emitted entry`() = runTest(dispatcher) {
         val vm = newViewModel(resolve = { entry("Main Street 1 Berlin") })
         advanceUntilIdle()

@@ -64,6 +64,20 @@ fun AddressBookSearchContent(
             .fillMaxSize()
             .navigationBarsPadding()
     ) {
+        // Transient error from the last failed resolution (spec:
+        // address-book-search — Address not found). Rendered as a banner, not
+        // a state: the list below stays interactive and any query edit or
+        // reload clears it (design D1).
+        if (state.resolutionError && !state.isLoading && !state.isResolving) {
+            Text(
+                text = stringResource(R.string.address_book_not_found),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
         when {
             state.isLoading -> CenteredBox { CircularProgressIndicator() }
 
@@ -80,13 +94,6 @@ fun AddressBookSearchContent(
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.address_book_resolving))
                 }
-            }
-
-            state.resolutionError -> CenteredBox {
-                Text(
-                    stringResource(R.string.address_book_not_found),
-                    style = MaterialTheme.typography.bodyLarge
-                )
             }
 
             state.selectedContact != null -> AddressPicker(

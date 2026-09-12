@@ -18,6 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
+import kotlin.math.roundToInt
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.DiagnosticsLog
@@ -439,9 +440,13 @@ class NavigationScreen(
                     }
                     if (shouldCommitViewport(panHandler.panning, angle, zoom)) {
                         val vp = mapRenderer.viewportState.value
-                        val newZoom = zoom ?: vp.zoom
+                        val newZoom = zoom ?: vp.zoom.toDouble()
+                        // The integer slot keeps the viewport model level; the
+                        // 5th arg is the fractional render magnification
+                        // (spec: auto-speed-zoom — Smooth zoom transitions
+                        // delta — same shape as pinch zoomStep).
                         mapRenderer.setViewport(
-                            vp.lat, vp.lon, newZoom, angle ?: vp.angle, newZoom.toDouble()
+                            vp.lat, vp.lon, newZoom.roundToInt(), angle ?: vp.angle, newZoom
                         )
                         // Re-engage follow WITHOUT snapping (smooth correction
                         // via the extrapolation loop, spec: auto-smooth-follow).
@@ -733,7 +738,7 @@ class NavigationScreen(
             autoZoomEnabled: Boolean,
             speedKmH: Double,
             controller: AutoZoomController
-        ): Int? =
+        ): Double? =
             if (!panning && autoZoomEnabled && speedKmH >= 0.0) controller.onSpeed(speedKmH) else null
 
         /** Fallback center (Dortmund — same as the phone app default). */

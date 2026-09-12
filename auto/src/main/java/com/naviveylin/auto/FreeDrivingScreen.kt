@@ -18,6 +18,7 @@ import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.DiagnosticsLog
+import kotlin.math.roundToInt
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -315,8 +316,11 @@ class FreeDrivingScreen(
             // without the gate every fix would re-engage follow and yank the
             // map back (spec: auto/map-pan — follow suspended while panned).
             val vp = mapRenderer.viewportState.value
-            val zoom = newZoom ?: vp.zoom
-            mapRenderer.setViewport(vp.lat, vp.lon, zoom, angle ?: vp.angle, zoom.toDouble())
+            val zoom = newZoom ?: vp.zoom.toDouble()
+            // The integer slot keeps the viewport model level; the 5th arg is
+            // the fractional render magnification (spec: auto-speed-zoom —
+            // Smooth zoom transitions delta — same shape as pinch zoomStep).
+            mapRenderer.setViewport(vp.lat, vp.lon, zoom.roundToInt(), angle ?: vp.angle, zoom)
             // Re-engage follow WITHOUT snapping: the extrapolation loop eases
             // the display to the fix (smooth correction, spec:
             // auto-smooth-follow). reCenter() would snap the map back per fix.
@@ -463,7 +467,7 @@ class FreeDrivingScreen(
             autoZoomEnabled: Boolean,
             speedKmH: Double,
             controller: AutoZoomController
-        ): Int? =
+        ): Double? =
             if (!panning && autoZoomEnabled && speedKmH >= 0.0) controller.onSpeed(speedKmH) else null
 
         private const val TAG = "FreeDrivingScreen"

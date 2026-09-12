@@ -82,6 +82,7 @@ operations:
       - When starting feature development, check "ki_processing_failures.log" to avoid doing the same error twice.
       - For Android Auto changes, verify on emulator/head unit (surface lifecycle, host template constraints)
       - If user points to bugs in your code always question yourself, why did I not find it myself, which test was missing and add thee tests.
+      - Generate test coverage report and make sure that essential buisiness logic and strategical glueing and integration code has a high test coverage
 
 
   # Verify gates (validation + review): openspec 1.10.0 loads guidance only

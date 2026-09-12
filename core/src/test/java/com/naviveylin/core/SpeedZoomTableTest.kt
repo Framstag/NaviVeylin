@@ -1,6 +1,7 @@
 package com.naviveylin.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -53,5 +54,40 @@ class SpeedZoomTableTest {
         assertEquals(3, SpeedZoomTable.bandIndex(45.0))
         assertEquals(4, SpeedZoomTable.bandIndex(75.0))
         assertEquals(6, SpeedZoomTable.bandIndex(200.0))
+    }
+
+    @Test
+    fun `step toward clamps at half a level per update`() {
+        // 16.0 -> 14.5 with maxStep 0.5: moves half a level per update.
+        assertEquals(15.5, SpeedZoomTable.stepToward(16.0, 14.5), 0.001)
+        assertEquals(15.0, SpeedZoomTable.stepToward(15.5, 14.5), 0.001)
+        assertEquals(14.5, SpeedZoomTable.stepToward(15.0, 14.5), 0.001)
+    }
+
+    @Test
+    fun `step toward works in the zoom-in direction`() {
+        assertEquals(15.5, SpeedZoomTable.stepToward(15.0, 16.0), 0.001)
+    }
+
+    @Test
+    fun `step toward keeps fractional values`() {
+        // Larger deltas also step fractionally, never rounding to a whole level.
+        val stepped = SpeedZoomTable.stepToward(16.0, 12.75)
+        assertEquals(15.5, stepped, 0.001)
+        assertTrue("stepped value $stepped must not be an integer level", stepped % 1.0 != 0.0)
+    }
+
+    @Test
+    fun `step toward is a no-op below epsilon`() {
+        // Deltas strictly smaller than ZOOM_EPSILON (0.05) cause no change.
+        assertEquals(14.5, SpeedZoomTable.stepToward(14.5, 14.46), 0.0)
+        assertEquals(14.5, SpeedZoomTable.stepToward(14.5, 14.54), 0.0)
+        assertEquals(14.5, SpeedZoomTable.stepToward(14.5, 14.5), 0.0)
+    }
+
+    @Test
+    fun `step toward reaches the exact target when within one step`() {
+        assertEquals(14.3, SpeedZoomTable.stepToward(14.5, 14.3), 0.001)
+        assertEquals(14.7, SpeedZoomTable.stepToward(14.5, 14.7), 0.001)
     }
 }

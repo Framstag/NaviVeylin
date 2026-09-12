@@ -118,5 +118,5 @@ class MapPanHandler(
  * change by design — manual-zoom semantics), and without the gate that zoom
  * would reach the commit block and re-engage follow mid-pan.
  */
-fun shouldCommitViewport(panning: Boolean, angle: Double?, newZoom: Int?): Boolean =
+fun shouldCommitViewport(panning: Boolean, angle: Double?, newZoom: Double?): Boolean =
     !panning && (angle != null || newZoom != null)

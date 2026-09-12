@@ -147,6 +147,13 @@ data class MapCanvasUiState(
     val canvasOverrun: Double = MapRenderer.DEFAULT_CANVAS_OVERRUN,
     val followMode: Boolean = false,
     val autoZoomEnabled: Boolean = true,
+    /**
+     * Monotonic counter bumped exactly when the speed-driven auto-zoom
+     * commits a magnification (spec: smooth-zoom — Eased zoom animation,
+     * auto-zoom commit scenario). The screen observes it to start/retrack
+     * the ~500 ms display animation. Never bumped by pinch/buttons/keys.
+     */
+    val autoZoomCommitTick: Int = 0,
     /** True while the FREE_DRIVE preset is suspended by a manual pan/zoom/rotate
      *  gesture; drives the re-center button so the driver can reset to the
      *  standard drive values (spec: map-modes — drive suspension and reset). */
@@ -341,14 +348,13 @@ class MapCanvasViewModel @Inject constructor(
     private var lastSpeedBandIndex: Int = -1
     private var currentTargetMag: Double = 15.0
 
-    // Zoom-change throttling to avoid visible "pumping" when speed or turn
-    // geometry causes rapid successive magnification changes.
+    // Zoom-change throttling (spec: auto-speed-zoom — Smooth zoom
+    // transitions): lastAutoZoomCommitMs == 0L means "no commit yet" (direct
+    // jump to target on the first fix, spec's "Speed unknown" scenario);
+    // after that the zoom converges at most MAX_ZOOM_STEP_PER_UPDATE levels
+    // per position update via SpeedZoomTable.stepToward (fractional, no
+    // integer rounding). The epsilon no-op makes constant speeds commit-nothing.
     private var lastAutoZoomCommitMs: Long = 0L
-    private var pendingZoomTarget: Double = 15.0
-    private var zoomTargetStableSamples: Int = 0
-    private val ZOOM_COOLDOWN_MS = 2500L
-    private val ZOOM_COMMIT_SAMPLES = 3
-    private val ZOOM_HYSTERESIS_MAG = 1.0 // only commit when target differs by at least one full level
 
     // Bearing fallbacks: last used bearing/angle survive when the location
     // layer has no fresh bearing yet (e.g. standstill).
@@ -941,30 +947,28 @@ class MapCanvasViewModel @Inject constructor(
                     }
 
                     if (!autoZoomSuspended) {
-                        val cooldownElapsed = now - lastAutoZoomCommitMs >= ZOOM_COOLDOWN_MS
-                        val targetInt = finalTarget.coerceIn(MIN_MAG, MAX_MAG).roundToInt()
-
-                        if (targetInt == pendingZoomTarget.roundToInt()) {
-                            zoomTargetStableSamples++
-                        } else {
-                            pendingZoomTarget = finalTarget
-                            zoomTargetStableSamples = 0
-                        }
-
-                        val canCommit = cooldownElapsed && zoomTargetStableSamples >= ZOOM_COMMIT_SAMPLES
-                        val diffMag = kotlin.math.abs(finalTarget - newMag)
-                        if (canCommit && diffMag >= ZOOM_HYSTERESIS_MAG && targetInt.toDouble() != newMag) {
-                            newMag = targetInt.toDouble()
-                            currentTargetMag = finalTarget
+                        // Design D1 (spec: auto-speed-zoom — Smooth zoom
+                        // transitions): commit the fractional target (turn/
+                        // curve/post-turn floors included) without integer
+                        // rounding. The first commit jumps straight to the
+                        // target (keeps the spec's "Speed unknown" scenario);
+                        // later commits converge at ≤ 0.5 levels per update.
+                        // stepToward returns current unchanged below epsilon →
+                        // no commit, and since the mag did not change, no
+                        // re-render either.
+                        val target = finalTarget.coerceIn(MIN_MAG, MAX_MAG)
+                        val hasCommitted = lastAutoZoomCommitMs > 0L
+                        val stepped = if (hasCommitted) SpeedZoomTable.stepToward(newMag, target) else target
+                        if (stepped != newMag) {
+                            newMag = stepped
+                            currentTargetMag = target
                             lastAutoZoomCommitMs = now
-                            zoomTargetStableSamples = 0
                             zoomCommitted = true
-                            Log.d(TAG, "autoZoom commit speed=${"%.1f".format(filteredSpeed)} " +
-                                    "target=$finalTarget mag=$targetInt")
+                            Log.d(TAG, "autoZoom commit speed=" + "%.1f".format(filteredSpeed) +
+                                    "target=$target mag=$stepped")
                         } else if (logCount++ % 30 == 0) {
-                            Log.d(TAG, "autoZoom hold speed=${"%.1f".format(filteredSpeed)} " +
-                                    "target=$finalTarget current=$newMag " +
-                                    "stable=$zoomTargetStableSamples cooldown=${!cooldownElapsed} diff=$diffMag")
+                            Log.d(TAG, "autoZoom hold speed=" + "%.1f".format(filteredSpeed) +
+                                    "target=$target current=$newMag")
                         }
                         lastSpeedBandIndex = currentBand
                     }
@@ -986,7 +990,15 @@ class MapCanvasViewModel @Inject constructor(
                             centerLon = smoothedLon,
                             angle = normalizeAngle(angle),
                             magnification = newMag
-                        )
+                        ),
+                        // Auto-zoom display-animation tick (spec: smooth-zoom):
+                        // bumped only on auto-zoom commits — the screen starts
+                        // the ~500 ms center-anchored easing on this.
+                        autoZoomCommitTick = if (zoomCommitted) {
+                            _uiState.value.autoZoomCommitTick + 1
+                        } else {
+                            _uiState.value.autoZoomCommitTick
+                        }
                     )
                     mapRenderer?.prepareViewport(smoothedLat, smoothedLon, newMag, angle)
                     // In follow mode the marker represents the current vehicle position and
@@ -2254,8 +2266,6 @@ class MapCanvasViewModel @Inject constructor(
             setAutoZoomSuspended(false)
             lastSpeedBandIndex = -1
             currentTargetMag = 15.0
-            pendingZoomTarget = 15.0
-            zoomTargetStableSamples = 0
             lastAutoZoomCommitMs = 0L
             turnPassedDistance = Double.NaN
             lastValidSpeedKmH = 20.0
@@ -2332,8 +2342,6 @@ class MapCanvasViewModel @Inject constructor(
         // Reset auto-zoom state for a fresh drive start
         lastSpeedBandIndex = -1
         currentTargetMag = 15.0
-        pendingZoomTarget = 15.0
-        zoomTargetStableSamples = 0
         lastAutoZoomCommitMs = 0L
         turnPassedDistance = Double.NaN
         lastValidSpeedKmH = 20.0
@@ -2380,8 +2388,6 @@ class MapCanvasViewModel @Inject constructor(
         )
         lastSpeedBandIndex = -1
         currentTargetMag = 15.0
-        pendingZoomTarget = 15.0
-        zoomTargetStableSamples = 0
         lastAutoZoomCommitMs = 0L
         turnPassedDistance = Double.NaN
         lastValidSpeedKmH = 20.0

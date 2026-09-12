@@ -52,6 +52,8 @@ All three skills follow the same contract:
 | Run single test class | `./gradlew :app:testDebugUnitTest --tests "<FQCN>"` |
 | Run instrumented tests (device required) | `./gradlew connectedAndroidTest` |
 | Release build (both AABs, bumps version) | `./gradlew release` |
+| Generate SBOM for one variant | `./gradlew :app:generateSbom<MobileDebug|MobileRelease|AutomotiveRelease>` |
+| Generate only the native SBOM section | `./gradlew :app:mergeNativeSbom` |
 
 ## 4. Result evaluation
 
@@ -88,6 +90,8 @@ All three skills follow the same contract:
   (phone + Android Auto) and
   `app/build/outputs/bundle/automotiveRelease/app-automotive-release.aab`
   (AAOS) — upload each to its own Play track.
+- Each release variant also emits a CycloneDX SBOM next to its AAB; see
+  §8 SBOM generation.
 
 ## 6. Test constraints
 
@@ -151,3 +155,58 @@ tests" and uploads them as the `coverage-reports` artifact
 Gradle 9.6 (Project-object dependency notation from its own internals); the
 project's own scripts use string notation. This becomes a hard error in
 Gradle 10 — revisit when upgrading either dependency (tracked in TODO.md).
+
+## 8. SBOM generation (CycloneDX)
+
+Every build variant can produce a CycloneDX JSON SBOM covering the JVM
+Gradle dependency graph, the native vcpkg dependency tree, and the
+libosmscout submodule. Format: CycloneDX 1.7 JSON.
+
+**Tasks** (group `sbom`, defined in `app/build.gradle.kts`):
+
+| Task | Produces |
+|---|---|
+| `:app:generateSbomMobileDebug` / `...MobileRelease` / `...AutomotiveRelease` | full merged SBOM, `app/build/outputs/sbom/<variant>/bom.json` |
+| `:app:generateSbomJvm<Variant>` | JVM section, `.../jvm-bom.json` (plugin direct task, `includeConfigs=<variant>RuntimeClasspath`, tests excluded) |
+| `:app:mergeNativeSbom` | native section, `app/build/outputs/sbom/native/native-bom.json` (shared by all variants) |
+| `:app:downloadSbomCli` | cached `cyclonedx-cli` binary under `app/build/cyclonedx-cli/` (pinned `0.33.1`, one-time download) |
+
+**Wiring**: `./gradlew release` runs both release-variant SBOM tasks, so each
+AAB has a sibling `bom.json` carrying the release `versionName`. CI
+(`.github/workflows/build.yml`) generates the `mobileDebug` SBOM after the APK
+build and uploads it as the `naviveylin-sbom` artifact. SBOM tasks only read
+the release version state — they never bump it (versioning behavior of §5 is
+untouched).
+
+**Composition**: JVM section comes from the `org.cyclonedx.bom` 3.4.1 plugin
+(direct task per variant, `schemaVersion` 1.7). Native section: vcpkg ships a
+per-package SPDX SBOM (`vcpkg/installed/<triplet>/share/<port>/vcpkg.spdx.json`);
+the port list is read from `vcpkg/installed/vcpkg/status` (Architecture
+filtered; vcpkg-* tool ports and the intentionally-not-installed
+`libosmscout` port are excluded). Each SPDX file is converted to CDX with
+`cyclonedx convert`, template-URL external references (vcpkg source-origin
+heuristics like `${VERSION_MAJOR_MINOR}` — invalid URIs) are stripped, and
+only real `pkg:vcpkg/` components are kept, deduplicated by
+group+name+version across the three triplets (arm64 / arm-neon / x64 share the
+same software). The final merge combines JVM + native via the core-java model
+and records the submodule SHA (`git rev-parse HEAD` of
+`app/src/main/cpp/libosmscout`) as a `libosmscout` component. Every output
+passes `cyclonedx validate` inside the task.
+
+**Known cyclonedx-cli quirks** (handled in the Gradle code — do not
+re-introduce): `--input-files` must be repeated per file (a single
+space-joined argument crashes with a .NET `PathTooLongException`), and
+`merge` concatenates without deduplicating components.
+
+**Troubleshooting**: an SBOM task fails with `Missing SBOM data for vcpkg
+package ...` when an installed package predates vcpkg SBOM support (binary
+cache content built by an older vcpkg or restored from cache without the
+SPDX file). Rebuild the named package, e.g.:
+
+```bash
+VCPKG_BINARY_SOURCES=clear ./vcpkg/vcpkg install gettext:arm64-android --recurse \
+  --overlay-ports=vcpkg-overlays --overlay-triplets=vcpkg-overlays/triplets
+```
+
+(with `ANDROID_SDK_ROOT`/`ANDROID_NDK_HOME` set as in `setup-vcpkg.sh`) and
+re-run; the task names the exact missing file.

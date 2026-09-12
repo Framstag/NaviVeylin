@@ -38,14 +38,14 @@ class ZoomControlsAnimationTest {
         var animationsStarted = 0
         var retracks = 0
 
-        fun animate(nowMs: Long = 1_000L) {
+        fun animate(nowMs: Long = 1_000L, durationMs: Long = 250L) {
             val target = Math.pow(2.0, (committedMag - frontMag).toDouble()).toFloat()
             if (zoomAnim.active) {
                 retracks++
-                zoomAnim.retrack(target, 0f, 0f, nowMs)
+                zoomAnim.retrack(target, 0f, 0f, nowMs, durationMs)
             } else {
                 animationsStarted++
-                zoomAnim.start(1f, target, 0f, 0f, nowMs)
+                zoomAnim.start(1f, target, 0f, 0f, nowMs, durationMs)
             }
         }
     }
@@ -149,5 +149,58 @@ class ZoomControlsAnimationTest {
         composeRule.onNodeWithContentDescription("Zoom in").performClick()
         assertEquals("disabled button must not commit", 20.0, h.committedMag, 1e-9)
         assertEquals(0, h.animationsStarted)
+    }
+
+    @Test
+    fun autoZoomCommitAnimatesOver500msAndSettlesExactly() {
+        // Fractional auto-zoom commits pass durationMs = 500 (spec: smooth-zoom
+        // — "Auto-zoom commit animates at the slower duration"), so the ease
+        // still runs at t=300 ms and finishes exactly at the target by 500 ms.
+        val h = Harness().apply {
+            committedMag = 16.0   // 15.5 committed next
+            frontMag = 16.0
+        }
+        var tickResult = 0f
+        composeRule.setContent {
+            // Mirror the tick-driven auto-zoom wiring (design D3): the screen
+            // observes autoZoomCommitTick and calls animateDiscreteZoomToCenter
+            // with AUTO_ZOOM_ANIMATION_MS = 500.
+            h.committedMag = 15.5
+            h.animate(nowMs = 1_000L, durationMs = 500L)
+            tickResult = h.zoomAnim.tick(1_300L)
+            Unit
+        }
+
+        val target = Math.pow(2.0, (15.5 - 16.0).toDouble()).toFloat()
+        assertEquals("one auto-zoom commit starts, no retrack", 1, h.animationsStarted)
+        assertEquals(0, h.retracks)
+        assertTrue("500 ms animation must still run at 300 ms", h.zoomAnim.active)
+        assertTrue("mid-ease scale sits strictly between start and target", target < tickResult && tickResult < 1f)
+        assertEquals(target, h.zoomAnim.tick(1_500L), 1e-6f)
+        assertFalse("animation must finish by 500 ms", h.zoomAnim.active)
+    }
+
+    @Test
+    fun consecutiveAutoZoomCommitsRetrackWithoutSnapping() {
+        val h = Harness().apply {
+            committedMag = 16.0
+            frontMag = 16.0
+        }
+        composeRule.setContent {
+            // Two commits arrive ~200 ms apart while accelerating: 15.5 then
+            // 15.0. The second must retrack from the scale currently displayed.
+            h.committedMag = 15.5
+            h.animate(nowMs = 1_000L, durationMs = 500L)
+            h.committedMag = 15.0
+            h.animate(nowMs = 1_200L, durationMs = 500L)
+            Unit
+        }
+
+        val target2 = Math.pow(2.0, (15.0 - 16.0).toDouble()).toFloat()
+        assertEquals("first auto-zoom commit starts the animation", 1, h.animationsStarted)
+        assertEquals("second auto-zoom commit retracks, never snaps back", 1, h.retracks)
+        assertTrue(h.zoomAnim.active)
+        assertEquals("retracked run completes exactly at the new target", target2, h.zoomAnim.tick(1_700L), 1e-6f)
+        assertFalse(h.zoomAnim.active)
     }
 }

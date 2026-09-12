@@ -10,84 +10,70 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Tests for [AutoZoomController] (spec: auto/free-driving auto-zoom; spec:
- * auto-speed-zoom mapping): speed → magnification with cooldown, stability
- * sampling, hysteresis, manual-zoom suspension and band-change re-engage.
+ * auto-speed-zoom mapping + "Smooth zoom transitions" delta): fractional
+ * commits without integer rounding, ≤ 0.5 levels per update convergence,
+ * epsilon no-op at constant speed, first-commit direct jump, manual-zoom
+ * suspension and band-change re-engage.
  */
 @RunWith(RobolectricTestRunner::class)
 class AutoZoomControllerTest {
 
-    // Large start so the first-commit cooldown is already elapsed.
-    private var clock = 100_000L
-    private fun controller(): AutoZoomController = AutoZoomController(now = { clock })
-
     @Test
-    fun fastSpeedCommitsZoomedOut() {
-        val c = controller()
-        // 130 km/h → table mag 12. Three stable samples are required, so the
-        // commit lands on the 4th call.
-        repeat(3) { assertNull(c.onSpeed(130.0)) }
-        assertEquals(12, c.onSpeed(130.0))
-    }
-
-    @Test
-    fun slowSpeedCommitsZoomedIn() {
-        val c = controller()
-        repeat(3) { assertNull(c.onSpeed(4.0)) }
-        assertEquals(18, c.onSpeed(4.0))
-    }
-
-    @Test
-    fun cooldownGatesRepeatedCommits() {
-        val c = controller()
-        repeat(3) { c.onSpeed(130.0) }
-        assertEquals(12, c.onSpeed(130.0))
-
-        // Same speed after the cooldown: target unchanged → hysteresis blocks
-        // a new commit.
-        clock += AutoZoomController.ZOOM_COOLDOWN_MS + 1
-        repeat(4) { assertNull(c.onSpeed(130.0)) }
+    fun firstSpeedCommitJumpsDirectlyToTarget() {
+        val c = AutoZoomController()
+        // 130 km/h → 12.0; the very first fix commits straight to the target
+        // (spec's "Speed unknown" scenario — no easing from the default zoom).
+        assertEquals(12.0, c.onSpeed(130.0)!!, 0.001)
+        // Constant speed afterwards: epsilon no-op, nothing to commit.
         assertNull(c.onSpeed(130.0))
     }
 
     @Test
-    fun speedChangeCommitsAfterCooldown() {
-        val c = controller()
-        repeat(3) { c.onSpeed(130.0) }
-        assertEquals(12, c.onSpeed(130.0))
-
-        clock += AutoZoomController.ZOOM_COOLDOWN_MS + 1
-        repeat(3) { assertNull(c.onSpeed(30.0)) }
-        assertEquals(16, c.onSpeed(30.0))
+    fun fractionalConvergenceMovesHalfLevelPerUpdate() {
+        val c = AutoZoomController()
+        assertEquals(16.0, c.onSpeed(40.0)!!, 0.001)
+        // 75 km/h → interpolated target 14.5: converge 0.5 levels per update.
+        assertEquals(15.5, c.onSpeed(75.0)!!, 0.001)
+        assertEquals(15.0, c.onSpeed(75.0)!!, 0.001)
+        assertEquals(14.5, c.onSpeed(75.0)!!, 0.001)
+        // Settled exactly at the fractional target — never rounded, never churned.
+        assertNull(c.onSpeed(75.0))
     }
 
     @Test
-    fun invalidSpeedReturnsNull() {
-        val c = controller()
+    fun zoomInDirectionAlsoConvergesFractionally() {
+        val c = AutoZoomController()
+        assertEquals(12.0, c.onSpeed(130.0)!!, 0.001)
+        // Slow down: 6 km/h → 17.5; step up half a level per update.
+        assertEquals(12.5, c.onSpeed(6.0)!!, 0.001)
+        assertEquals(13.0, c.onSpeed(6.0)!!, 0.001)
+    }
+
+    @Test
+    fun invalidSpeedReturnsNullAndKeepsLastGoodSpeed() {
+        val c = AutoZoomController()
         assertNull(c.onSpeed(Double.NaN))
         // Speed spike > 150 km/h is rejected; last good speed is kept.
         assertNull(c.onSpeed(500.0))
-        // A valid speed still works afterwards.
-        repeat(3) { assertNull(c.onSpeed(30.0)) }
-        assertEquals(16, c.onSpeed(30.0))
+        // A valid speed still commits directly afterwards.
+        assertEquals(16.0, c.onSpeed(30.0)!!, 0.001)
     }
 
     @Test
     fun manualZoomSuspendsUntilBandChange() {
-        val c = controller()
-        // Establish the city band first.
-        repeat(3) { c.onSpeed(40.0) }
-        assertEquals(16, c.onSpeed(40.0))
+        val c = AutoZoomController()
+        assertEquals(16.0, c.onSpeed(30.0)!!, 0.001)
 
         c.suspend()
         assertTrue(c.isSuspended())
-        // Same band (45 km/h city) → stays suspended.
-        repeat(4) { assertNull(c.onSpeed(45.0)) }
+        // Same band (28 km/h city) → stays suspended.
+        assertNull(c.onSpeed(28.0))
         assertTrue(c.isSuspended())
-        // Highway band (100 km/h) crosses a boundary → re-engage.
-        clock += AutoZoomController.ZOOM_COOLDOWN_MS + 1
-        repeat(3) { assertNull(c.onSpeed(100.0)) }
+        // Highway band (100 km/h) crosses a boundary → re-engage; the zoom
+        // converges fractionally from the committed 16.0 toward 12.75.
+        assertEquals(15.5, c.onSpeed(100.0)!!, 0.001)
         assertTrue(!c.isSuspended())
-        assertEquals(13, c.onSpeed(100.0))
+        assertEquals(15.0, c.onSpeed(100.0)!!, 0.001)
     }
 
     // ── movementBearing (GPX replay without a GPS bearing) ──

@@ -285,24 +285,38 @@ fun MapCanvasScreen(
     /**
      * Starts/retracks the zoom animation toward the committed magnification
      * (design D2/D3/D6). [anchor] is the screen point that must stay visually
-     * fixed: screen center for buttons/keyboard, cursor for the wheel.
+     * fixed: screen center for buttons/keyboard/auto-zoom, cursor for the
+     * wheel. Auto-zoom commits pass a longer duration (spec: smooth-zoom —
+     * auto-zoom commits animate at ~500 ms).
      */
-    fun animateDiscreteZoom(anchor: Offset) {
+    fun animateDiscreteZoom(anchor: Offset, durationMs: Long = 250L) {
         val s = viewModel.uiState.value
         val frontMag = s.renderViewport?.mag ?: return
         val target = 2.0.pow((s.viewport.magnification - frontMag).toDouble()).toFloat()
         val now = System.currentTimeMillis()
         if (zoomAnim.active) {
-            zoomAnim.retrack(target, anchor.x, anchor.y, now)
+            zoomAnim.retrack(target, anchor.x, anchor.y, now, durationMs)
         } else {
-            zoomAnim.start(zoomAnimScale, target, anchor.x, anchor.y, now)
+            zoomAnim.start(zoomAnimScale, target, anchor.x, anchor.y, now, durationMs)
         }
         zoomAnchor = anchor
     }
 
-    /** Screen center anchor for button/keyboard zoom. */
-    fun animateDiscreteZoomToCenter() {
-        animateDiscreteZoom(Offset(canvasSize.width / 2f, canvasSize.height / 2f))
+    /** Screen center anchor for button/keyboard zoom and auto-zoom commits. */
+    fun animateDiscreteZoomToCenter(durationMs: Long = 250L) {
+        animateDiscreteZoom(Offset(canvasSize.width / 2f, canvasSize.height / 2f), durationMs)
+    }
+
+    // Auto-zoom display animation (spec: smooth-zoom — auto-zoom commits
+    // animate at the slower ~500 ms duration): every fractional auto-zoom
+    // commit bumps autoZoomCommitTick; ease the front buffer toward the new
+    // magnification while the native render lands. Consecutive commits
+    // retrack the running animation without snapping (spec smooth-zoom —
+    // Retracking on rapid zoom input).
+    LaunchedEffect(viewModel.uiState.value.autoZoomCommitTick) {
+        if (viewModel.uiState.value.autoZoomCommitTick > 0) {
+            animateDiscreteZoomToCenter(AUTO_ZOOM_ANIMATION_MS)
+        }
     }
 
     /**
@@ -1877,6 +1891,13 @@ private const val MAX_GESTURE_ZOOM = 16.0f
 
 /** Duration of the render-completion crossfade in ms (smooth-zoom / zoom-transition-scaling delta). */
 private const val CROSSFADE_MS = 150.0f
+
+/**
+ * Display-animation duration for auto-zoom commits (spec: smooth-zoom —
+ * auto-zoom commits animate over ~500 ms, slower than discrete-input
+ * 250 ms so the driving zoom glides instead of snapping).
+ */
+private const val AUTO_ZOOM_ANIMATION_MS = 500L
 
 /**
  * Draw one front-buffer frame (main display or crossfade copy) with the

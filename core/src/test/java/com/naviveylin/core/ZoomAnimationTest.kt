@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.pow
 
 /**
  * Verifies [ZoomAnimation]: ease-out cubic curve at t=0/0.5/1, duration
@@ -107,5 +108,55 @@ class ZoomAnimationTest {
         anim.finish(1_125L)
         assertFalse(anim.active)
         assertEquals(mid, anim.tick(2_000L), 1e-6f)
+    }
+
+    @Test
+    fun `start accepts a per-animation duration longer than the default`() {
+        // Auto-zoom display animation (~500 ms, spec: smooth-zoom) vs the
+        // 250 ms constructor default: a 500 ms run must still be running at
+        // 300 ms and complete only by 500 ms.
+        val anim = ZoomAnimation()
+        anim.start(1f, 4f, 0f, 0f, nowMs = 1_000L, durationMs = 500L)
+        assertEquals(1f, anim.tick(1_000L), 1e-6f)
+        assertTrue("500 ms animation not yet finished at t=300 ms", anim.active)
+        assertEquals(4f, anim.tick(1_500L), 1e-6f)
+        assertFalse(anim.active)
+    }
+
+    @Test
+    fun `the same instance animates default or custom durations per call`() {
+        val anim = ZoomAnimation()
+        // Discrete input: 250 ms default.
+        anim.start(1f, 2f, 0f, 0f, nowMs = 1_000L)
+        assertTrue(anim.active)
+        assertEquals(2f, anim.tick(1_250L), 1e-6f)
+        assertFalse(anim.active)
+        // Auto-zoom commit right after: 500 ms custom duration.
+        anim.retrack(3f, 0f, 0f, nowMs = 2_000L, durationMs = 500L)
+        assertEquals(2f, anim.tick(2_000L), 1e-6f)
+        assertTrue("retracked with 500 ms must still be active at t=200", anim.active)
+        assertFalse(anim.tick(2_500L) != 3f || anim.active)
+    }
+
+    @Test
+    fun `retrack without a duration inherits the instance duration`() {
+        // The retrack API's default defers to the constructor duration, so a
+        // 400 ms instance keeps 400 ms until the caller passes one explicitly.
+        val anim = ZoomAnimation(durationMs = 400L)
+        anim.start(1f, 5f, 0f, 0f, nowMs = 1_000L)
+        assertTrue(anim.active)
+        anim.retrack(2f, 0f, 0f, nowMs = 1_100L)
+        // The retrack starts from the scale currently displayed (eased toward
+        // 5 at t=100/400): 3.3125, then eases down to 2 over 400 ms.
+        val retrackStart = anim.currentScale(1_100L)
+        assertEquals(3.3125f, retrackStart, 1e-4f)
+        // 150 ms into the retracked run (150/400): eased 1-(0.625)^3 = 0.7559.
+        assertEquals(
+            retrackStart + (2f - retrackStart) * (1f - (1f - 150f / 400f).pow(3f)),
+            anim.tick(1_250L), 1e-3f
+        )
+        assertTrue(anim.active)
+        assertEquals(2f, anim.tick(1_500L), 1e-6f) // 400 ms elapsed → done
+        assertFalse(anim.active)
     }
 }

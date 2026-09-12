@@ -112,14 +112,14 @@ class MapPanHandlerTest {
         // The band-crossing case: a zoom the auto-zoom controller would
         // return while panned (it re-engages on a speed-band change) must
         // never reach the commit block — that is the routing-mode jump bug.
-        assertFalse(shouldCommitViewport(panning = true, angle = -1.0, newZoom = 8))
+        assertFalse(shouldCommitViewport(panning = true, angle = -1.0, newZoom = 8.0))
         assertFalse(shouldCommitViewport(panning = true, angle = null, newZoom = null))
     }
 
     @Test
     fun notPanningCommitsOnHeadingOrZoomChange() {
         assertTrue(shouldCommitViewport(panning = false, angle = -1.0, newZoom = null))
-        assertTrue(shouldCommitViewport(panning = false, angle = null, newZoom = 8))
+        assertTrue(shouldCommitViewport(panning = false, angle = null, newZoom = 8.0))
         assertFalse(shouldCommitViewport(panning = false, angle = null, newZoom = null))
     }
 }

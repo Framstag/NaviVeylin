@@ -1,7 +1,17 @@
+import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.FileWriter
+import java.net.URL
 import java.time.LocalDate
 import java.util.Properties
+import org.cyclonedx.Version
+import org.cyclonedx.generators.json.BomJsonGenerator
+import org.cyclonedx.gradle.CyclonedxDirectTask
+import org.cyclonedx.model.Component
+import org.cyclonedx.model.ExternalReference
+import org.cyclonedx.parsers.JsonParser
+import org.cyclonedx.model.Bom
 
 plugins {
     id("com.android.application")
@@ -10,6 +20,7 @@ plugins {
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.kover")
+    id("org.cyclonedx.bom") version "3.4.1"
 }
 
 // Release signing credentials: app/keystore.properties (gitignored) or env vars.
@@ -330,6 +341,336 @@ tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
     .configureEach {
         dependsOn("syncSubmoduleStylesheets")
     }
+
+// ── SBOM (CycloneDX) ───────────────────────────────────────────────────────
+// Per-variant CycloneDX SBOMs: the JVM dependency graph (:app + :auto + :core
+// + :osmscout-client-java via the variant runtime classpath), merged with the
+// native vcpkg dependency tree (converted from vcpkg's per-package SPDX
+// SBOMs) and a libosmscout submodule record. `release` emits one SBOM per
+// distribution flavor next to its AAB; any variant can generate standalone
+// (CI emits the mobileDebug one). Outputs:
+//   app/build/outputs/sbom/<variant>/bom.json   (full merged SBOM)
+//   app/build/outputs/sbom/<variant>/jvm-bom.json  (JVM section, from plugin)
+//   app/build/outputs/sbom/native/native-bom.json  (native section, shared)
+val sbomCliVersion = "0.33.1"
+val sbomCliBaseUrl =
+    "https://github.com/CycloneDX/cyclonedx-cli/releases/download/v$sbomCliVersion"
+
+val vcpkgRootDir = System.getenv("VCPKG_ROOT") ?: rootProject.file("vcpkg").canonicalPath
+val vcpkgTriplets = listOf("arm64-android", "arm-neon-android", "x64-android")
+
+// Variants that can emit an SBOM; release wires the two release variants.
+val sbomVariants = listOf("mobileDebug", "mobileRelease", "automotiveRelease")
+
+// cyclonedx-cli ships platform binaries; pick the one for the host.
+val sbomHostOs = System.getProperty("os.name").lowercase()
+val sbomHostArch = System.getProperty("os.arch").lowercase()
+val sbomCliAsset = when {
+    sbomHostOs.contains("linux") &&
+        (sbomHostArch == "amd64" || sbomHostArch == "x86_64") -> "cyclonedx-linux-x64"
+    sbomHostOs.contains("linux") &&
+        (sbomHostArch == "aarch64" || sbomHostArch == "arm64") -> "cyclonedx-linux-arm64"
+    (sbomHostOs.contains("mac") || sbomHostOs.contains("darwin")) &&
+        (sbomHostArch == "aarch64" || sbomHostArch == "arm64") -> "cyclonedx-osx-arm64"
+    sbomHostOs.contains("mac") || sbomHostOs.contains("darwin") -> "cyclonedx-osx-x64"
+    sbomHostOs.contains("win") -> "cyclonedx-win-x64.exe"
+    else -> error(
+        "Unsupported host OS for SBOM generation: ${System.getProperty("os.name")} / " +
+            "$sbomHostArch. Supported: Linux amd64/arm64, macOS x64/arm64, Windows x64."
+    )
+}
+
+val sbomCliFile = layout.buildDirectory.file("cyclonedx-cli/$sbomCliAsset")
+val nativeBomFile = layout.buildDirectory.file("outputs/sbom/native/native-bom.json")
+val sbomOutputRoot = layout.buildDirectory.dir("outputs/sbom")
+
+// One-time (cached) download of the pinned CLI. Pure-Java download so the
+// task works on every host; fails with an actionable message on network error.
+val downloadSbomCli by tasks.registering {
+    group = "sbom"
+    description =
+        "Downloads the pinned cyclonedx-cli binary (cached under build/cyclonedx-cli/)."
+    inputs.property("sbomCliVersion", sbomCliVersion)
+    inputs.property("sbomCliAsset", sbomCliAsset)
+    outputs.file(sbomCliFile)
+    doLast {
+        val cli = sbomCliFile.get().asFile
+        if (cli.isFile && cli.canExecute()) return@doLast // already cached
+        val url = "$sbomCliBaseUrl/$sbomCliAsset"
+        try {
+            cli.parentFile.mkdirs()
+            val tmp = File(cli.parentFile, "${cli.name}.part")
+                        URL(url).openStream().use { input ->
+                tmp.outputStream().use { output -> input.copyTo(output) }
+            }
+            if (!tmp.renameTo(cli)) {
+                tmp.copyTo(cli, overwrite = true)
+                tmp.delete()
+            }
+            cli.setExecutable(true)
+        } catch (e: Exception) {
+            throw GradleException(
+                "Failed to download cyclonedx-cli v$sbomCliVersion from $url: ${e.message}. " +
+                    "Check network access (one-time download; cached at ${cli.parentFile}).",
+                e
+            )
+        }
+    }
+}
+
+// Runs cyclonedx-cli, failing with its stderr on a non-zero exit.
+fun runSbomCli(cli: File, vararg args: String): String {
+    val process = ProcessBuilder(listOf(cli.absolutePath) + args).start()
+    val stdout = process.inputStream.readBytes().toString(Charsets.UTF_8)
+    val stderr = process.errorStream.readBytes().toString(Charsets.UTF_8)
+    val exit = process.waitFor()
+    if (exit != 0) {
+        throw GradleException(
+            "cyclonedx-cli ${args.joinToString(" ")} failed (exit $exit):\n$stderr"
+        )
+    }
+    return stdout
+}
+
+fun writeBom(file: File, bom: Bom) {
+    FileWriter(file).use { it.write(BomJsonGenerator(bom, Version.VERSION_17).toJsonString()) }
+}
+
+// vcpkg SPDX conversions carry per-file and per-binary components; keep only
+// the real pkg:vcpkg packages, deduplicated by name+version (identical
+// packages span all three triplets).
+fun collectNativeComponents(convertedFiles: List<File>): List<Component> {
+    val seen = mutableSetOf<Triple<String?, String?, String?>>()
+    val result = mutableListOf<Component>()
+    convertedFiles.forEach { file ->
+        JsonParser().parse(file).components.orEmpty().forEach { c ->
+            if (c.purl?.startsWith("pkg:vcpkg/") == true &&
+                seen.add(Triple(c.group, c.name, c.version))
+            ) {
+                result += c
+            }
+        }
+    }
+    return result
+}
+
+// Collapses components that share group+name+version into the first entry.
+fun dedupeComponents(bom: Bom) {
+    val seen = mutableSetOf<Triple<String?, String?, String?>>()
+    bom.components =
+        (bom.components.orEmpty()).filter { seen.add(Triple(it.group, it.name, it.version)) }
+}
+
+// vcpkg derives source-origin URLs from portfile.cmake; unexpanded version
+// templates (e.g. ${VERSION_MAJOR_MINOR}) are not valid URIs and fail
+// CycloneDX schema validation. Drop such external references.
+fun stripTemplateUrls(bomFile: File) {
+    val bom = JsonParser().parse(bomFile)
+    bom.components?.forEach { component ->
+        val refs = component.externalReferences
+        if (refs != null) {
+            val clean = refs.filterTo(mutableListOf()) { it.url?.contains("\${") != true }
+            component.externalReferences = if (clean.isEmpty()) null else clean
+        }
+    }
+    writeBom(bomFile, bom)
+}
+
+// Converts every installed vcpkg package's SPDX SBOM (all triplets) to
+// CycloneDX and merges them into one shared native BOM. The port list comes
+// from vcpkg's installed-status file, filtered to the triplet's architecture
+// (share/ also contains non-port data dirs, and the status file mixes
+// host-tool records). Fails naming the missing file when an installed port
+// has no SPDX record, so an SBOM is never silently produced without the
+// native section.
+fun vcpkgPorts(vcpkgStatusFile: File, triplet: String): List<String> {
+    if (!vcpkgStatusFile.isFile) {
+        throw GradleException(
+            "vcpkg installed-status file not found at $vcpkgStatusFile " +
+                "— run ./setup-vcpkg.sh first."
+        )
+    }
+    val excluded = setOf(
+        // vcpkg helper/tool ports carry no third-party sources (vcpkg-cmake,
+        // vcpkg-make, ... are build plumbing, not shipped dependencies).
+        "vcpkg-cmake", "vcpkg-cmake-config", "vcpkg-cmake-get-vars",
+        "vcpkg-make", "vcpkg-tool-meson",
+        // Stale status entry: intentionally NOT installed via vcpkg (headers
+        // would shadow the submodule headers — see setup-vcpkg.sh).
+        "libosmscout"
+    )
+    val ports = mutableSetOf<String>()
+    val lines = vcpkgStatusFile.readLines()
+    var i = 0
+    while (i < lines.size) {
+        val block = lines.drop(i).takeWhile { it.isNotBlank() }
+        i += block.size + 1
+        val pkg = block.firstOrNull { it.startsWith("Package: ") }
+            ?.removePrefix("Package: ")?.trim()
+        val arch = block.firstOrNull { it.startsWith("Architecture: ") }
+            ?.removePrefix("Architecture: ")?.trim()
+        if (pkg != null && arch == triplet && pkg !in excluded) ports += pkg
+    }
+    return ports.sorted()
+}
+
+val mergeNativeSbom by tasks.registering {
+    group = "sbom"
+    description =
+        "Converts every vcpkg package SPDX SBOM (all triplets) to CycloneDX and merges them."
+    val vcpkgStatusFile = File(vcpkgRootDir, "installed/vcpkg/status")
+    val shareDirs = vcpkgTriplets.map { File(vcpkgRootDir, "installed/$it/share") }
+    inputs.file(vcpkgStatusFile)
+    shareDirs.forEach { inputs.dir(it) }
+    inputs.property("vcpkgPorts", vcpkgTriplets.map { vcpkgPorts(vcpkgStatusFile, it) })
+    outputs.file(nativeBomFile)
+    dependsOn(downloadSbomCli)
+    doLast {
+        val cli = sbomCliFile.get().asFile
+        if (shareDirs.none { it.isDirectory }) {
+            throw GradleException(
+                "vcpkg dependency tree not found under $vcpkgRootDir " +
+                    "(expected installed/{${vcpkgTriplets.joinToString(",")}}/share). " +
+                    "Set VCPKG_ROOT or run ./setup-vcpkg.sh first."
+            )
+        }
+        val convertedDir = File(layout.buildDirectory.get().asFile, "outputs/sbom/native/converted")
+        convertedDir.mkdirs()
+        val converted = mutableListOf<File>()
+        vcpkgTriplets.forEach { triplet ->
+            val share = File(vcpkgRootDir, "installed/$triplet/share")
+            vcpkgPorts(vcpkgStatusFile, triplet).forEach { port ->
+                val spdx = File(share, "$port/vcpkg.spdx.json")
+                if (!spdx.isFile) {
+                    throw GradleException(
+                        "Missing SBOM data for vcpkg package '$port' ($triplet): " +
+                            "expected $spdx. The installed package predates vcpkg SBOM " +
+                            "support — rebuild it: rm -rf vcpkg/buildtrees/$port " +
+                            "&& ./setup-vcpkg.sh"
+                    )
+                }
+                val out = File(convertedDir, "$triplet-$port.json")
+                runSbomCli(
+                    cli,
+                    "convert",
+                    "--input-file", spdx.absolutePath,
+                    "--input-format", "spdxjson",
+                    "--output-format", "json",
+                    "--output-file", out.absolutePath
+                )
+                stripTemplateUrls(out)
+                converted += out
+            }
+        }
+        if (converted.isEmpty()) {
+            throw GradleException(
+                "No vcpkg SBOM data found under $vcpkgRootDir/installed — " +
+                    "cannot build the native SBOM section."
+            )
+        }
+        val nativeBom = Bom().apply {
+            components = collectNativeComponents(converted)
+            metadata = JsonParser().parse(converted.first()).metadata
+        }
+        writeBom(nativeBomFile.get().asFile, nativeBom)
+        runSbomCli(cli, "validate", "--input-file", nativeBomFile.get().asFile.absolutePath)
+    }
+}
+
+// The libosmscout submodule SHA, recorded as a component in every SBOM.
+fun submoduleSha(): String {
+    val dir = file("src/main/cpp/libosmscout")
+    val process = ProcessBuilder("git", "-C", dir.absolutePath, "rev-parse", "HEAD").start()
+    val out = process.inputStream.readBytes().toString(Charsets.UTF_8).trim()
+    val err = process.errorStream.readBytes().toString(Charsets.UTF_8)
+    val exit = process.waitFor()
+    if (exit != 0) {
+        throw GradleException(
+            "Could not read the libosmscout submodule HEAD at $dir ($err). " +
+                "Initialise the submodule: git submodule update --init --recursive"
+        )
+    }
+    return out
+}
+
+sbomVariants.forEach { variant ->
+    val variantLabel = variant.replaceFirstChar(Char::uppercaseChar)
+    // JVM section: resolved dependency graph of exactly this variant's
+    // runtime classpath (test configurations excluded by construction).
+    val jvmTask = tasks.register<CyclonedxDirectTask>("generateSbomJvm$variantLabel") {
+        group = "sbom"
+        description = "Generates the JVM dependency CycloneDX BOM for $variant."
+        includeConfigs = listOf("${variant}RuntimeClasspath")
+        skipConfigs = listOf("(?i).*test.*")
+        schemaVersion = Version.VERSION_17
+        projectType = Component.Type.APPLICATION
+        componentName = "NaviVeylin"
+        componentVersion = releaseVersion?.first ?: FALLBACK_VERSION_NAME
+        jsonOutput = sbomOutputRoot.map { it.dir(variant).file("jvm-bom.json") }
+        xmlOutput.unsetConvention()
+    }
+
+    // Final merged SBOM: JVM + native + submodule, validated.
+    val finalTask = tasks.register("generateSbom$variantLabel") {
+        group = "sbom"
+        description =
+            "Generates the full CycloneDX SBOM for $variant (JVM + native + submodule)."
+        val finalBom = sbomOutputRoot.map { it.dir(variant).file("bom.json") }
+        val jvmBom = jvmTask.flatMap { it.jsonOutput }
+        inputs.file(jvmBom)
+        inputs.file(nativeBomFile)
+        outputs.file(finalBom)
+        dependsOn(jvmTask, mergeNativeSbom, downloadSbomCli)
+        doLast {
+            val cli = sbomCliFile.get().asFile
+            val finalFile = finalBom.get().asFile
+            finalFile.parentFile.mkdirs()
+            val merged = finalFile.parentFile.resolve("merged-tmp.json")
+            runSbomCli(
+                cli,
+                "merge",
+                "--input-files", jvmBom.get().asFile.absolutePath,
+                "--input-files", nativeBomFile.get().asFile.absolutePath,
+                "--output-file", merged.absolutePath,
+                "--output-format", "json"
+            )
+            val bom = JsonParser().parse(merged)
+            dedupeComponents(bom)
+            // Submodule record — version is the checked-out SHA.
+            val sha = submoduleSha()
+            val libosmscout = Component().apply {
+                type = Component.Type.LIBRARY
+                group = "Framstag"
+                name = "libosmscout"
+                version = sha
+                purl = "pkg:github/framstag/libosmscout@$sha"
+                externalReferences = listOf(
+                    ExternalReference().apply {
+                        type = ExternalReference.Type.VCS
+                        url = "https://github.com/Framstag/libosmscout"
+                    }
+                )
+            }
+            bom.components = (bom.components ?: emptyList()) + libosmscout
+            // Top-level component: NaviVeylin at the build version.
+            val metadataComponent = bom.metadata?.component
+                ?: Component().also { bom.metadata?.component = it }
+            metadataComponent.apply {
+                type = Component.Type.APPLICATION
+                name = "NaviVeylin"
+                version = releaseVersion?.first ?: FALLBACK_VERSION_NAME
+            }
+            writeBom(finalFile, bom)
+            merged.delete()
+            runSbomCli(cli, "validate", "--input-file", finalFile.absolutePath)
+        }
+    }
+}
+
+// The release target ships both AABs with their SBOMs.
+tasks.named("release") {
+    dependsOn("generateSbomMobileRelease", "generateSbomAutomotiveRelease")
+}
 
 dependencies {
     // Compose BOM

@@ -15,6 +15,22 @@ package com.naviveylin.core
  */
 object SpeedZoomTable {
 
+    /**
+     * Zoom-change deadband: when the target magnification differs from the
+     * current one by less than this, the auto-zoom makes no change and no
+     * re-render is triggered (spec: auto-speed-zoom — Smooth zoom
+     * transitions, epsilon no-op scenario).
+     */
+    const val ZOOM_EPSILON = 0.05
+
+    /**
+     * Maximum magnification change per position update (spec:
+     * auto-speed-zoom — Smooth zoom transitions): the zoom converges toward
+     * the speed-derived target at most this many levels per update, so a
+     * multi-level transition takes multiple seconds instead of snapping.
+     */
+    const val MAX_ZOOM_STEP_PER_UPDATE = 0.5
+
     private data class SpeedZoomLevel(val speedKmH: Double, val magnification: Double)
 
     private val TABLE = listOf(
@@ -47,6 +63,22 @@ object SpeedZoomTable {
         }
 
         return TABLE.last().magnification
+    }
+
+    /**
+     * Rate-limited fractional convergence from [current] toward [target].
+     * Returns [current] unchanged when the difference is below [ZOOM_EPSILON]
+     * (no-op, so callers skip commits and renders); otherwise moves at most
+     * [maxStep] magnification levels per update, keeping the fractional value
+     * (no integer rounding). Shared by the phone (MapCanvasViewModel) and the
+     * Android Auto controller so both converge identically.
+     */
+    fun stepToward(current: Double, target: Double, maxStep: Double = MAX_ZOOM_STEP_PER_UPDATE): Double {
+        val delta = target - current
+        if (kotlin.math.abs(delta) < ZOOM_EPSILON) return current
+        if (delta > maxStep) return current + maxStep
+        if (delta < -maxStep) return current - maxStep
+        return target
     }
 
     /** Find the table index for the current speed band. */

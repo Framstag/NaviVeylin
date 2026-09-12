@@ -17,12 +17,20 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # vcpkg is pinned so the binary cache stays valid (the cache ABI hash
+  # vcpkg is pinned so restored packages stay ABI-compatible (the ABI hash
   # includes the vcpkg tool version). Bump to a newer commit to refresh
-  # ports — the cache key changes and packages rebuild.
+  # ports — new ABI versions land in the GitHub Packages NuGet feed and
+  # packages rebuild once, then self-heal.
   VCPKG_COMMIT: 94a541197763a4f449a1b91478df48c0584a6256
   VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-  VCPKG_BINARY_SOURCES: files,${{ github.workspace }}/.vcpkg-bincache,readwrite
+  # Compiled vcpkg packages are cached as NuGet packages in the GitHub
+  # Packages feed, each versioned by its ABI hash (restore matches per
+  # package, so toolchain/runner-image changes rebuild once and the cache
+  # self-heals). The old files provider + actions/cache keyed on the
+  # manifest hash restored stale archives that vcpkg rejected and never
+  # re-saved on a cache hit — a full rebuild on every run.
+  VCPKG_BINARY_SOURCES: clear;nuget,https://nuget.pkg.github.com/Framstag/index.json,readwrite
+  VCPKG_NUGET_REPOSITORY: https://nuget.pkg.github.com/Framstag/index.json
   ANDROID_HOME: ${{ github.workspace }}/android-sdk
   ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
   # vcpkg must build deps with the SAME NDK as the app (ndkVersion in
@@ -34,6 +42,13 @@ jobs:
   build:
     name: Build debug APK (all ABIs)
     runs-on: ubuntu-latest
+    # packages: write lets the GITHUB_TOKEN push/restore vcpkg binary
+    # packages to the GitHub Packages NuGet feed; actions: write is needed
+    # by the actions/cache entries for the Android SDK and Gradle caches.
+    permissions:
+      contents: read
+      actions: write
+      packages: write
     timeout-minutes: 360
     steps:
       - name: Checkout with submodules
@@ -107,24 +122,12 @@ jobs:
       - name: Install host build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf autoconf-archive automake libtool
+          # mono-complete: vcpkg's NuGet binary cache runs nuget.exe under
+          # mono; ubuntu-24.04/latest runners no longer preinstall mono
+          # (actions/runner-images#10636).
+          sudo apt-get install -y autoconf autoconf-archive automake libtool mono-complete
 
       # ── vcpkg ────────────────────────────────────────────────
-      - name: Compute vcpkg cache key
-        id: vcpkg-key
-        run: |
-          DEPS_HASH=$(find setup-vcpkg.sh vcpkg-overlays -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
-          echo "deps-hash=$DEPS_HASH" >> "$GITHUB_OUTPUT"
-
-      - name: Cache vcpkg binary cache
-        id: cache-vcpkg
-        uses: actions/cache@v5
-        with:
-          path: ${{ github.workspace }}/.vcpkg-bincache
-          key: vcpkg-bincache-${{ env.VCPKG_COMMIT }}-${{ steps.vcpkg-key.outputs.deps-hash }}
-          restore-keys: |
-            vcpkg-bincache-${{ env.VCPKG_COMMIT }}-
-
       - name: Clone vcpkg (pinned commit)
         run: |
           git init -q "$VCPKG_ROOT"
@@ -136,8 +139,32 @@ jobs:
         run: |
           "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
 
+      # vcpkg binary cache: built packages are stored as NuGet packages in
+      # the GitHub Packages feed (nuget.pkg.github.com/Framstag), each
+      # versioned by its ABI hash. A runner-image/toolchain update produces
+      # new ABI versions — exactly one rebuild, then the cache self-heals;
+      # dependency-list/overlay edits only rebuild the affected ports. The
+      # token is written to the runner-local user NuGet config (outside the
+      # checkout); the runner is ephemeral and destroyed after the job.
+      - name: Configure NuGet source for vcpkg binary cache
+        shell: bash
+        env:
+          NUGET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NUGET_EXE=$("$VCPKG_ROOT/vcpkg" fetch nuget | tail -n 1)
+          mono "$NUGET_EXE" sources add \
+            -ConfigFile "$HOME/.config/NuGet/NuGet.Config" \
+            -Source "https://nuget.pkg.github.com/Framstag/index.json" \
+            -StorePasswordInClearText \
+            -Name GitHubPackages \
+            -UserName "Framstag" \
+            -Password "$NUGET_TOKEN"
+          mono "$NUGET_EXE" setapikey "$NUGET_TOKEN" \
+            -ConfigFile "$HOME/.config/NuGet/NuGet.Config" \
+            -Source "https://nuget.pkg.github.com/Framstag/index.json"
+
       # Installs all deps for the 3 Android triplets; compiled packages
-      # come from / are stored in the binary cache.
+      # come from / are stored in the NuGet binary cache.
       - name: Install vcpkg dependencies
         run: ./setup-vcpkg.sh
 

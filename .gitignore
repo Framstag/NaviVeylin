@@ -42,6 +42,10 @@ Thumbs.db
 # vcpkg
 vcpkg/
 
+# Runner-local NuGet creds for the vcpkg binary cache (defensive; the
+# workflow writes them to the user-level NuGet.Config, outside the repo)
+NuGet.config
+
 # OpenSpec: open changes are local WIP — only archived changes are versioned
 openspec/changes/*/
 !openspec/changes/archive/

@@ -213,10 +213,11 @@ rm -rf vcpkg/buildtrees/<package>
 ### vcpkg usage pattern (CI)
 
 - **Classic mode, no manifest**: the dependency list is hardcoded in `setup-vcpkg.sh` (`DEPS=(...)`), not in a `vcpkg.json` manifest. Overlay ports (`vcpkg-overlays/`, e.g. marisa-trie) and overlay triplets are passed via `--overlay-ports`/`--overlay-triplets`.
-- **CI pins vcpkg**: `.github/workflows/build.yml` sets `VCPKG_COMMIT` to a specific commit and fetches it shallowly. Pinning keeps the binary-cache ABI hash stable — an unpinned daily clone would miss the cache every run.
-- **CI uses the binary cache**: `VCPKG_BINARY_SOURCES=files,<dir>,readwrite` stores compiled packages (~0.5–1 GB) instead of caching the full vcpkg tree (4–7 GB with buildtrees/installed). The cache key is `VCPKG_COMMIT` + hash of `setup-vcpkg.sh` + `vcpkg-overlays/**`.
-- **Adding/removing a dependency**: edit the `DEPS` list in `setup-vcpkg.sh` — the CI cache key changes automatically (script is hashed). For an unregistered port, add an overlay port under `vcpkg-overlays/`.
-- **Refreshing ports in CI**: bump `VCPKG_COMMIT` in the workflow — the cache key changes and packages rebuild.
+- **CI pins vcpkg**: `.github/workflows/build.yml` sets `VCPKG_COMMIT` to a specific commit and fetches it shallowly. Pinning keeps the vcpkg tool ABI-stable — an unpinned daily clone would make restored packages incompatible.
+- **CI binary cache = NuGet feed**: `VCPKG_BINARY_SOURCES=clear;nuget,https://nuget.pkg.github.com/Framstag/index.json,readwrite` stores each compiled package as a NuGet entry versioned by its vcpkg ABI hash (shared org feed, same as libosmscout). Per-package ABI versions mean a runner-image/toolchain update causes exactly one rebuild (new ABI versions pushed), then the cache self-heals; dependency-list/overlay edits rebuild only the affected ports. The job runs with `permissions: packages: write`; mono-complete is installed for `nuget.exe`. Fork PRs restore but skip pushes (read-only token) — never worse than uncached.
+- **Old files-provider design removed**: the previous `files,<dir>` + `actions/cache` setup restored stale archives on an exact key hit, vcpkg rejected them all, and the post-step never re-saved — a full dependency rebuild on nearly every run. Do not reintroduce it.
+- **Adding/removing a dependency**: edit the `DEPS` list in `setup-vcpkg.sh`. For an unregistered port, add an overlay port under `vcpkg-overlays/`; only that port's packages rebuild.
+- **Refreshing ports in CI**: bump `VCPKG_COMMIT` in the workflow — ports rebuild once and re-cache in the feed.
 - **`setup-vcpkg.sh` tolerates install failures** (`|| echo`), so CI runs an explicit `.pc` verification gate after it (see `Verify vcpkg packages` step).
 
 ## Common Patterns

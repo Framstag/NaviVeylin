@@ -24,41 +24,41 @@ class DarkModeResolutionTest {
     }
 
     @Test
-    fun sensorWinsWhenEnabledAndActive() {
+    fun sensorWinsWhenSensitivityActive() {
         // Sensor dark, system light -> dark.
         assertEquals(
             true,
-            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = false, sensorDark = true, sensorEnabled = true)
+            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = false, sensorDark = true, sensorSensitivity = AmbientLightSensitivity.HIGH)
         )
         // Sensor light, system dark -> light.
         assertEquals(
             false,
-            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = true, sensorDark = false, sensorEnabled = true)
+            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = true, sensorDark = false, sensorSensitivity = AmbientLightSensitivity.MEDIUM)
         )
     }
 
     @Test
-    fun sensorIgnoredWhenOptionDisabled() {
+    fun sensorIgnoredWhenSensitivityOff() {
         assertEquals(
             false,
-            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = false, sensorDark = true, sensorEnabled = false)
+            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = false, sensorDark = true, sensorSensitivity = AmbientLightSensitivity.OFF)
         )
         assertEquals(
             true,
-            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = true, sensorDark = false, sensorEnabled = false)
+            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = true, sensorDark = false, sensorSensitivity = AmbientLightSensitivity.OFF)
         )
     }
 
     @Test
     fun sensorUnavailableFallsBackToSystem() {
-        // Option enabled but no classification (null) -> system signal.
+        // Sensitivity active but no classification (null) -> system signal.
         assertEquals(
             true,
-            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = true, sensorDark = null, sensorEnabled = true)
+            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = true, sensorDark = null, sensorSensitivity = AmbientLightSensitivity.HIGH)
         )
         assertEquals(
             false,
-            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = false, sensorDark = null, sensorEnabled = true)
+            resolveDarkPresentation(DarkModePreference.AUTOMATIC, environmentDark = false, sensorDark = null, sensorSensitivity = AmbientLightSensitivity.HIGH)
         )
     }
 
@@ -66,11 +66,11 @@ class DarkModeResolutionTest {
     fun manualPreferenceOverridesSensor() {
         assertEquals(
             true,
-            resolveDarkPresentation(DarkModePreference.ON, environmentDark = false, sensorDark = false, sensorEnabled = true)
+            resolveDarkPresentation(DarkModePreference.ON, environmentDark = false, sensorDark = false, sensorSensitivity = AmbientLightSensitivity.HIGH)
         )
         assertEquals(
             false,
-            resolveDarkPresentation(DarkModePreference.OFF, environmentDark = true, sensorDark = true, sensorEnabled = true)
+            resolveDarkPresentation(DarkModePreference.OFF, environmentDark = true, sensorDark = true, sensorSensitivity = AmbientLightSensitivity.HIGH)
         )
     }
 }

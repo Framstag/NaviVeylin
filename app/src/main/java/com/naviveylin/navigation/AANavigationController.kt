@@ -16,7 +16,7 @@ import com.naviveylin.core.AutoNavigationController
 import com.naviveylin.core.NavigationState
 import com.naviveylin.location.LocationService
 import com.naviveylin.location.SpeedSpikeFilter
-import com.naviveylin.location.SpeedStaleness
+import com.naviveylin.core.SpeedStaleness
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.atan2

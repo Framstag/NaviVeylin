@@ -229,9 +229,21 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   follow-direction triangle stays ~70% of the button.
 - The speed badge SHALL use the standard overlay card container (theme
   surface at 0.92 alpha, 12dp rounded) — the same treatment as the turn card
-  and routing status; NEVER a fixed dark color (theme-unaware, poor contrast
-  with the overspeed warning color in light mode). Badge text SHALL be dark
-  (`onSurface`) on the light card in the normal state; never white-on-light.
+  and routing status — in the NORMAL state, with dark (`onSurface`) text;
+  never white-on-light. At or beyond the speed limit plus the overspeed
+  warning delta (`current >= max + delta`; the delta is a single global
+  setting in whole km/h, 0-30, default 5, shared with Android Auto — warn at
+  the limit when 0), the badge SHALL flip to the fixed warning red `#E53935`
+  fill at the same 0.92 alpha and
+  12dp rounding (semi-transparent overlay retained, spec `map-speed-widget`)
+  with white text; the white text appears only together with the red warning
+  fill. The warning red is fixed, not theme-derived, so white text stays
+  readable in both light and dark schemes — the M3 dark-scheme `error`
+  color is a light pink that would fail contrast with white text.
+- Phone-only: the overspeed delta is configurable in the location-options
+  sheet (slider 0-30, 1 km/h precision) and on Android Auto via the
+  preferences value picker — same global property, identical on both
+  surfaces (specs `map-speed-widget`, `auto-map-layout`, `location-options-ui`).
 - Phone-only: Android Auto sizes text via the host template; parity applies to
   labels and hierarchy, not pixel sizes.
 - Free-driving street label (phone, spec `current-road-info`): bottom-center
@@ -242,7 +254,8 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   `getRoadAt` lookup in free driving (spec `road-lookup-bearing`).
 - Android Auto surface indicators (spec `auto-map-layout`): compass rose 56dp,
   speed-limit sign 56dp with 7dp red ring and 24sp digits; the speed badge
-  (128×52, 20sp) is unchanged.
+  (128×52, 20sp) is unchanged except its overspeed state — red-600 fill at
+  the badge's 0xCC alpha with white text, same treatment as the phone.
 
 ## 9. Dark mode (phone + Android Auto)
 

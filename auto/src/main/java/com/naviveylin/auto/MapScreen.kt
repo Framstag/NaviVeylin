@@ -62,8 +62,10 @@ class MapScreen(
     private val initialZoom: Int = DEFAULT_AA_ZOOM,
     /** Destination name for the marker when [initialCenter] is set (details "Show" action). */
     private val initialDestinationName: String? = null,
-    /** Host day/night state (see [NavigationSession.hostDark]). */
-    private val hostDark: StateFlow<Boolean> = MutableStateFlow(carContext.isDarkMode())
+    /** Resolved dark presentation (preference × host signal; see [NavigationSession.resolvedDark]). */
+    private val resolvedDark: StateFlow<Boolean> = MutableStateFlow(carContext.isDarkMode()),
+    /** Notifies the session that the shared dark mode preference changed (PreferencesScreen saves). */
+    private val onDarkModeChanged: (String) -> Unit = {}
 ) : Screen(carContext) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -216,22 +218,23 @@ class MapScreen(
             if (!styleApplier.apply(style)) {
                 Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
             } else {
-                // DB is ready (style loaded) — (re)push the host day/night flag:
+                // DB is ready (style loaded) — (re)push the day/night flag:
                 // the startup push may have been dropped while the DB was still
                 // initializing (warmup race), leaving the map on the wrong variant.
-                pushHostDark()
+                pushDark()
             }
         }
     }
 
     /**
-     * (Re)push the host day/night state to the native stylesheet and force a
-     * full render. The applier is reset first so a push that was silently
-     * dropped by the native side (DB not initialized) is not deduped away.
+     * (Re)push the resolved dark presentation to the native stylesheet and
+     * force a full render. The applier is reset first so a push that was
+     * silently dropped by the native side (DB not initialized) is not deduped
+     * away.
      */
-    private fun pushHostDark() {
+    private fun pushDark() {
         daylightApplier.reset()
-        if (daylightApplier.apply(hostDark.value)) {
+        if (daylightApplier.apply(resolvedDark.value)) {
             mapRenderer.invalidateStyle()
         }
     }
@@ -370,7 +373,9 @@ class MapScreen(
                 screenManager.push(SearchScreen(carContext, navigationViewModel))
             })
             .addAction(MapStripActions.settingsAction {
-                screenManager.push(PreferencesScreen(carContext))
+                screenManager.push(
+                    PreferencesScreen(carContext, onDarkModeChanged = onDarkModeChanged)
+                )
             })
             .addAction(MapStripActions.zoomInAction { onZoomIn() })
             .addAction(MapStripActions.zoomOutAction { onZoomOut() })
@@ -400,10 +405,10 @@ class MapScreen(
                     .onFailure { Log.w(TAG, "setMapDpi failed", it) }
                 mapRenderer.updateProjectionDpi(surfaceDpi)
                 mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
-                // Re-push the host day/night flag before the first render: the
+                // Re-push the resolved day/night flag before the first render: the
                 // startup push may have been dropped while the DB was still
                 // initializing (warmup race).
-                pushHostDark()
+                pushDark()
                 // "Show location" maps: draw the destination marker and center
                 // it in the visible map area (the host's menu panel covers the
                 // left ~40% of the surface).
@@ -580,12 +585,13 @@ class MapScreen(
             }
         }
 
-        // Host day/night: push the stylesheet `daylight` flag and re-render on
-        // change (tunnel entry, dusk). Deduped by the applier; the native side
-        // reloads the variant on its DB thread. invalidateStyle forces a full
+        // Resolved day/night: push the stylesheet `daylight` flag and re-render
+        // on change (tunnel entry, dusk, or a dark mode preference change on the
+        // car). Deduped by the applier; the native side reloads the variant on
+        // its DB thread. invalidateStyle forces a full
         // render so the stale-variant overrun buffer is never blitted.
         scope.launch {
-            hostDark.collect { dark ->
+            resolvedDark.collect { dark ->
                 if (daylightApplier.apply(dark)) {
                     mapRenderer.invalidateStyle()
                 }

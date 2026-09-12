@@ -10,7 +10,7 @@ class PreferencesScreenMapperTest {
     fun rows_containsAllCarRelevantSettings() {
         val rows = PreferencesScreenMapper.rows(AutoSettings())
 
-        assertEquals(8, rows.size)
+        assertEquals(9, rows.size)
         assertEquals(
             listOf(
                 "followMode",
@@ -20,6 +20,7 @@ class PreferencesScreenMapperTest {
                 "darkMode",
                 "laneHintsEnabled",
                 "renderMode",
+                "overspeedWarningDeltaKmh",
                 "styleSheet"
             ),
             rows.map { it.key }
@@ -33,6 +34,7 @@ class PreferencesScreenMapperTest {
             autoZoomEnabled = false,
             darkMode = "ON",
             renderMode = "DIRECT",
+            overspeedWarningDeltaKmh = 3,
             styleSheet = "cycle"
         )
 
@@ -42,6 +44,8 @@ class PreferencesScreenMapperTest {
         assertEquals("Off", rows["autoZoomEnabled"]?.valueText)
         assertEquals("On", rows["darkMode"]?.valueText)
         assertEquals("Direct", rows["renderMode"]?.valueText)
+        assertEquals("3 km/h", rows["overspeedWarningDeltaKmh"]?.valueText)
+        assertEquals("Overspeed warning", rows["overspeedWarningDeltaKmh"]?.title)
         assertEquals("cycle", rows["styleSheet"]?.valueText)
         assertEquals("Map style", rows["styleSheet"]?.title)
     }

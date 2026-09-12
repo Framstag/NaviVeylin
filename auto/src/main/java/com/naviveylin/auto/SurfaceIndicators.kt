@@ -38,7 +38,11 @@ object SurfaceIndicators {
     private const val ROSE_NORTH = 0xFFE53935.toInt()
     private const val BADGE_BG = 0xCC1C1B1F.toInt()
     private const val BADGE_FG = 0xFFFFFFFF.toInt()
-    private const val BADGE_WARN = 0xFFE53935.toInt()
+    // Overspeed warning: the badge fill turns red-600 at the same 0xCC
+    // (80 %) alpha as the normal background, white text on top (spec:
+    // auto-map-layout — Limit exceeded warning: red background with white
+    // text). Same hue as the speed-limit sign ring and the phone widget.
+    private const val BADGE_WARN_BG = 0xCCE53935.toInt()
 
     /** Geometry of the indicator block at the top-right of the usable area. */
     data class IndicatorGeometry(
@@ -106,9 +110,29 @@ object SurfaceIndicators {
     }
 
     /**
+     * Badge visibility: 0 is a real value (stationary reads 0, spec:
+     * gps-speed-priority), so it counts as speed data; negatives and NaN
+     * mean unknown (native engine convention) and must never render.
+     */
+    internal fun shouldShowSpeedBadge(currentKmH: Double, maxKmH: Double): Boolean =
+        currentKmH >= 0.0 || maxKmH > 0.0
+
+    /**
+     * Badge text: the current speed when known (0 km/h included — stationary
+     * reads 0, not the road's limit), else the limit when only that is known,
+     * else empty. Falling back to the limit on a real 0 rendered the speed
+     * limit as the current speed at standstill.
+     */
+    internal fun speedBadgeLabel(currentKmH: Double, maxKmH: Double): String = when {
+        currentKmH >= 0.0 -> "${currentKmH.roundToInt()} km/h"
+        maxKmH > 0.0 -> "${maxKmH.roundToInt()} km/h"
+        else -> ""
+    }
+
+    /**
      * Draw the indicators. [angleRadians] rotates the rose so north points
-     * correctly; [currentKmH]/[maxKmH] drive the speed badge (red when over
-     * the limit), omitted when NaN.
+     * correctly; [currentKmH]/[maxKmH] drive the speed badge (red background
+     * with white text when over the limit), omitted when NaN.
      */
     fun draw(
         canvas: Canvas,
@@ -119,11 +143,13 @@ object SurfaceIndicators {
         angleRadians: Double,
         currentKmH: Double = Double.NaN,
         maxKmH: Double = Double.NaN,
+        overLimitDeltaKmh: Int = 5,
         drawSpeedLimitSign: Boolean = false
     ) {
-        // Values <= 0 mean "unknown" (native engine convention); NaN and
-        // negatives must never render (e.g. a stale "-1 km/h").
-        val hasSpeed = currentKmH > 0.0 || maxKmH > 0.0
+        // Values <= 0 count as "unknown" EXCEPT 0, which is a real stationary
+        // speed after the stall zeroing (spec: gps-speed-priority) — it must
+        // render "0 km/h", never hide the badge or show the limit.
+        val hasSpeed = shouldShowSpeedBadge(currentKmH, maxKmH)
         val g = geometry(
             stableBounds, surfaceWidth, density,
             showSpeed = hasSpeed,
@@ -132,7 +158,7 @@ object SurfaceIndicators {
         drawRose(canvas, g, angleRadians, density)
         val badge = g.badgeRect
         if (badge != null) {
-            drawSpeedBadge(canvas, badge, density, currentKmH, maxKmH)
+            drawSpeedBadge(canvas, badge, density, currentKmH, maxKmH, overLimitDeltaKmh)
         }
         val limit = g.speedLimitRect
         if (limit != null) {
@@ -193,16 +219,20 @@ object SurfaceIndicators {
         canvas.restore()
     }
 
-    private fun drawSpeedBadge(canvas: Canvas, rect: Rect, density: Float, currentKmH: Double, maxKmH: Double) {
-        // Compare the DISPLAYED (rounded) values: at exactly the limit the
-        // badge stays the standard color — float noise must not trigger red.
-        val overLimit = maxKmH > 0.0 && currentKmH > 0.0 &&
-            currentKmH.roundToInt() > maxKmH.roundToInt()
+    private fun drawSpeedBadge(canvas: Canvas, rect: Rect, density: Float, currentKmH: Double, maxKmH: Double, overLimitDeltaKmh: Int) {
+        // Warning rule shared with the phone widget (spec: auto-map-layout —
+        // Speed-limit indicator during navigation): warn at `current >= max +
+        // delta` with the single global delta (0-30, default 5). At exactly
+        // max + delta the badge turns red; unknown limit never triggers red.
+        val overLimit = maxKmH > 0.0 && currentKmH >= maxKmH + overLimitDeltaKmh
+        // Warning state: red fill at the badge's own semi-transparent alpha,
+        // white text; normal state: dark fill, white text. In both states the
+        // text stays white — the warning is carried by the background flip
+        // (spec: auto-map-layout — Limit exceeded warning).
         val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = BADGE_BG
+            color = if (overLimit) BADGE_WARN_BG else BADGE_BG
             style = Paint.Style.FILL
         }
-        val accent = if (overLimit) BADGE_WARN else BADGE_FG
         val corner = 10f * density
         canvas.drawRoundRect(
             RectF(rect.left.toFloat(), rect.top.toFloat(), rect.right.toFloat(), rect.bottom.toFloat()),
@@ -210,19 +240,12 @@ object SurfaceIndicators {
         )
 
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = accent
+            color = BADGE_FG
             textSize = 20f * density
             typeface = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.CENTER
         }
-        val label = when {
-            // Badge shows the current speed (both free driving and navigation);
-            // the limit is drawn as the round sign below (see drawSpeedLimitSign).
-            currentKmH > 0.0 -> "${currentKmH.roundToInt()} km/h"
-            // Fallback: only the limit known — show it in the badge.
-            maxKmH > 0.0 -> "${maxKmH.roundToInt()} km/h"
-            else -> ""
-        }
+        val label = speedBadgeLabel(currentKmH, maxKmH)
         canvas.drawText(
             label,
             rect.exactCenterX(),

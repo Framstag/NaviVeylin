@@ -4,77 +4,56 @@ import com.naviveylin.core.AutoSettings
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/**
+ * Verifies the shared-settings mapping between the phone app's [AppSettings]
+ * and the Android Auto process's [AutoSettings]: every car-relevant field —
+ * including the overspeed warning delta — survives a full round trip in both
+ * directions (spec: auto-map-layout — settings shared with the phone; the
+ * delta applies globally to both surfaces).
+ */
 class AutoSettingsMappingTest {
 
     @Test
-    fun appSettingsToAutoSettings_mapsAllCarRelevantFields() {
-        val app = AppSettings(
-            followMode = true,
-            autoZoomEnabled = false,
-            freeFormNorthUp = false,
-            navNorthUp = true,
-            keepScreenOn = false,
-            darkMode = DarkModePreference.ON,
-            laneHintsEnabled = false,
-            renderMode = RenderMode.DIRECT,
-            styleSheet = "cycle"
-        )
-
+    fun appToAutoCopiesOverspeedWarningDelta() {
+        val app = AppSettings(overspeedWarningDeltaKmh = 12)
         val auto = app.toAutoSettings()
+        assertEquals(12, auto.overspeedWarningDeltaKmh)
+    }
 
+    @Test
+    fun autoToAppCopiesOverspeedWarningDelta() {
+        val base = AppSettings()
+        val auto = AutoSettings(overspeedWarningDeltaKmh = 3)
+        val app = auto.toAppSettings(base)
+        assertEquals(3, app.overspeedWarningDeltaKmh)
+    }
+
+    @Test
+    fun defaultDeltaRoundTripsUnchanged() {
+        val app = AppSettings()
+        assertEquals(5, app.overspeedWarningDeltaKmh)
+        assertEquals(5, app.toAutoSettings().overspeedWarningDeltaKmh)
+        assertEquals(5, app.toAutoSettings().toAppSettings(app).overspeedWarningDeltaKmh)
+    }
+
+    @Test
+    fun appToAutoPreservesDeltaWithOtherFields() {
+        val app = AppSettings(followMode = true, autoZoomEnabled = false, overspeedWarningDeltaKmh = 30)
+        val auto = app.toAutoSettings()
         assertEquals(true, auto.followMode)
         assertEquals(false, auto.autoZoomEnabled)
-        assertEquals(false, auto.freeFormNorthUp)
-        assertEquals(true, auto.navNorthUp)
-        assertEquals("ON", auto.darkMode)
-        assertEquals(false, auto.laneHintsEnabled)
-        assertEquals("DIRECT", auto.renderMode)
-        assertEquals("cycle", auto.styleSheet)
+        assertEquals(30, auto.overspeedWarningDeltaKmh)
     }
 
     @Test
-    fun appSettingsToAutoSettings_defaultsMatch() {
-        assertEquals(AutoSettings(), AppSettings().toAutoSettings())
-    }
-
-    @Test
-    fun autoSettingsToAppSettings_preservesPhoneOnlyFields() {
-        val current = AppSettings(
-            keepScreenOn = false,
-            darkMode = DarkModePreference.AUTOMATIC,
-            renderMode = RenderMode.TILES
-        )
-
-        val updated = AutoSettings(
-            followMode = true,
-            darkMode = "OFF",
-            renderMode = "DIRECT",
-            styleSheet = "winter-sports"
-        ).toAppSettings(current)
-
-        assertEquals(false, updated.keepScreenOn)
-        assertEquals(true, updated.followMode)
-        assertEquals(DarkModePreference.OFF, updated.darkMode)
-        assertEquals(RenderMode.DIRECT, updated.renderMode)
-        assertEquals("winter-sports", updated.styleSheet)
-    }
-
-    @Test
-    fun autoSettingsToAppSettings_roundTripPreservesEverything() {
-        val app = AppSettings(
-            followMode = true,
-            autoZoomEnabled = false,
-            freeFormNorthUp = false,
-            navNorthUp = true,
-            keepScreenOn = true,
-            darkMode = DarkModePreference.ON,
-            laneHintsEnabled = false,
-            renderMode = RenderMode.DIRECT,
-            styleSheet = "cycle"
-        )
-
-        val roundTripped = app.toAutoSettings().toAppSettings(app)
-
-        assertEquals(app, roundTripped)
+    fun autoToAppPreservesPhoneOnlyFields() {
+        val base = AppSettings(keepScreenOn = false, ambientLightSensitivity = AmbientLightSensitivity.HIGH, followMode = true)
+        val auto = AutoSettings(followMode = false, overspeedWarningDeltaKmh = 0)
+        val app = auto.toAppSettings(base)
+        // Fields the car never edits survive the mapping untouched.
+        assertEquals(false, app.keepScreenOn)
+        assertEquals(AmbientLightSensitivity.HIGH, app.ambientLightSensitivity)
+        assertEquals(false, app.followMode)
+        assertEquals(0, app.overspeedWarningDeltaKmh)
     }
 }

@@ -14,6 +14,7 @@ import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.StructuredAddressSearch
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.toAppSettings
@@ -49,8 +50,14 @@ object AutoServiceModule {
     @Singleton
     fun provideAutoSearchProvider(client: OSMScoutClient): AutoSearchProvider {
         return AutoSearchProvider { query, limit ->
-            val results = client.searchLocations(query, limit, OSMScoutClient.NO_ADMIN_REGION)
-            results?.toList() ?: emptyList()
+            // Full formatted addresses resolve via the structured form search
+            // first (a postal code inside the query otherwise empties the
+            // native string search); structured house/street results rank
+            // above raw free-text results (spec: auto-search "Full formatted
+            // address resolution on car screen").
+            val raw = client.searchLocations(query, limit, OSMScoutClient.NO_ADMIN_REGION)
+                ?.toList() ?: emptyList()
+            StructuredAddressSearch.merge(StructuredAddressSearch.resolve(query, client), raw)
         }
     }
 

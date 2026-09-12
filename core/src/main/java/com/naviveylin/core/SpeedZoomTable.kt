@@ -31,6 +31,19 @@ object SpeedZoomTable {
      */
     const val MAX_ZOOM_STEP_PER_UPDATE = 0.5
 
+    /**
+     * Fraction of the remaining magnification gap applied per position update
+     * (proportional convergence). The step is proportional to the distance
+     * between the current and the target magnification: the zoom moves
+     * quickly when far away and slows down as it approaches the target
+     * (exponential-approach curve, capped at [MAX_ZOOM_STEP_PER_UPDATE]). A
+     * fixed-max-step follower instead chases small target jitter (speed noise
+     * around a table breakpoint) back and forth at full step size, which
+     * renders as zoom "pumping"; proportional stepping damps that motion to
+     * near-sub-threshold levels.
+     */
+    const val ZOOM_CONVERGENCE_GAIN = 0.3
+
     private data class SpeedZoomLevel(val speedKmH: Double, val magnification: Double)
 
     private val TABLE = listOf(
@@ -66,19 +79,30 @@ object SpeedZoomTable {
     }
 
     /**
-     * Rate-limited fractional convergence from [current] toward [target].
-     * Returns [current] unchanged when the difference is below [ZOOM_EPSILON]
-     * (no-op, so callers skip commits and renders); otherwise moves at most
-     * [maxStep] magnification levels per update, keeping the fractional value
-     * (no integer rounding). Shared by the phone (MapCanvasViewModel) and the
-     * Android Auto controller so both converge identically.
+     * Rate-limited, distance-proportional fractional convergence from
+     * [current] toward [target]. Returns [current] unchanged when the
+     * difference is below [ZOOM_EPSILON] (no-op, so callers skip commits and
+     * renders). Otherwise moves a constant fraction (ZOOM_CONVERGENCE_GAIN) of
+     * the remaining gap — capped at [maxStep] magnification levels per update
+     * — keeping the fractional value (no integer rounding). The step floor at
+     * [ZOOM_EPSILON] guarantees convergence lands inside the deadband in a
+     * bounded number of updates (a pure-gain step would shrink below the
+     * deadband and keep committing forever). Shared by the phone
+     * (MapCanvasViewModel) and the Android Auto controller so both converge
+     * identically.
      */
     fun stepToward(current: Double, target: Double, maxStep: Double = MAX_ZOOM_STEP_PER_UPDATE): Double {
         val delta = target - current
         if (kotlin.math.abs(delta) < ZOOM_EPSILON) return current
-        if (delta > maxStep) return current + maxStep
-        if (delta < -maxStep) return current - maxStep
-        return target
+        var step = delta * ZOOM_CONVERGENCE_GAIN
+        if (step > maxStep) step = maxStep
+        if (step < -maxStep) step = -maxStep
+        // Floor sub-epsilon proportional steps at the deadband size so the
+        // gap closes within a bounded number of updates; the next call then
+        // sees a below-epsilon delta and no-ops.
+        if (step > 0 && step < ZOOM_EPSILON) step = ZOOM_EPSILON
+        if (step < 0 && step > -ZOOM_EPSILON) step = -ZOOM_EPSILON
+        return current + step
     }
 
     /** Find the table index for the current speed band. */

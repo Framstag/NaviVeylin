@@ -1,6 +1,6 @@
 package com.naviveylin.ui.map
 import com.naviveylin.core.BasemapReloadNotifier
-import com.naviveylin.location.SpeedStaleness
+import com.naviveylin.core.SpeedStaleness
 
 import android.content.Context
 import android.location.Location
@@ -123,6 +123,61 @@ class MapCanvasViewModelSpeedWidgetTest {
         pushFix(51.5136, 7.4653, speedKmH = 48.0, time = 1_000L)
         val state = viewModel.uiState.first { it.gpsLocation != null }
         assertTrue(state.maxSpeedKmH.isNaN())
+    }
+
+    @Test
+    fun overspeedDeltaAppliesImmediatelyAndSurvivesReload() = runTest(mainDispatcherRule.dispatcher) {
+        // Test-controlled storage: write path (load → save) must run on the
+        // test scheduler, or the persisted value races the reload below.
+        val storage = SettingsStorage(context).also {
+            it.ioDispatcher = mainDispatcherRule.dispatcher
+        }
+        viewModel = MapCanvasViewModel(
+            viewportStorage = ViewportStorage(context),
+            settingsStorage = storage,
+            assetCopier = AssetCopier(context),
+            client = client,
+            favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context),
+            locationService = locationService,
+            darkModeController = DarkModeController(storage),
+            sharedLocationHandler = SharedLocationHandler(),
+            basemapReloadNotifier = BasemapReloadNotifier(),
+            context = context
+        )
+        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
+        // Settle the init settings-load before mutating, so its async copy
+        // cannot clobber the value set below.
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(5, viewModel.uiState.value.overspeedWarningDeltaKmh)
+
+        viewModel.onSetOverspeedWarningDelta(12)
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(12, viewModel.uiState.value.overspeedWarningDeltaKmh)
+
+        // Fresh ViewModel over the same settings storage: the persisted delta
+        // is restored on init (spec: location-options-ui — slider change
+        // persists globally).
+        val vm2 = MapCanvasViewModel(
+            viewportStorage = ViewportStorage(context),
+            settingsStorage = storage,
+            assetCopier = AssetCopier(context),
+            client = client,
+            favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context),
+            locationService = locationService,
+            darkModeController = DarkModeController(storage),
+            sharedLocationHandler = SharedLocationHandler(),
+            basemapReloadNotifier = BasemapReloadNotifier(),
+            context = context
+        )
+        vm2.defaultDispatcher = mainDispatcherRule.dispatcher
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        try {
+            assertEquals(12, vm2.uiState.value.overspeedWarningDeltaKmh)
+        } finally {
+            vm2.cancelScopeForTest()
+        }
     }
 
     @Test

@@ -54,8 +54,8 @@ import kotlinx.coroutines.withContext
 class NavigationScreen(
     carContext: CarContext,
     private val navigationViewModel: NavigationViewModel,
-    /** Host day/night state (see [NavigationSession.hostDark]). */
-    private val hostDark: StateFlow<Boolean> = MutableStateFlow(carContext.isDarkMode())
+    /** Resolved dark presentation (preference × host signal; see [NavigationSession.resolvedDark]). */
+    private val resolvedDark: StateFlow<Boolean> = MutableStateFlow(carContext.isDarkMode())
 ) : Screen(carContext) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -86,13 +86,14 @@ class NavigationScreen(
     }
 
     /**
-     * (Re)push the host day/night state to the native stylesheet and force a
-     * full render. The applier is reset first so a push that was silently
-     * dropped by the native side (DB not initialized) is not deduped away.
+     * (Re)push the resolved dark presentation to the native stylesheet and
+     * force a full render. The applier is reset first so a push that was
+     * silently dropped by the native side (DB not initialized) is not deduped
+     * away.
      */
-    private fun pushHostDark() {
+    private fun pushDark() {
         daylightApplier.reset()
-        if (daylightApplier.apply(hostDark.value)) {
+        if (daylightApplier.apply(resolvedDark.value)) {
             mapRenderer.invalidateStyle()
         }
     }
@@ -129,6 +130,9 @@ class NavigationScreen(
 
     /** Lane guidance visibility from the shared settings (default on). */
     private var laneHintsEnabled = true
+
+    /** Overspeed warning delta (km/h) from the shared settings (default 5). */
+    private var overspeedWarningDeltaKmh = 5
 
     /** Last route geometry ref — route re-renders on change (new navigation/reroute). */
     private var lastRouteLats: DoubleArray? = null
@@ -202,6 +206,7 @@ class NavigationScreen(
                     angleRadians = headingAngle,
                     currentKmH = state.currentSpeedKmH,
                     maxKmH = state.maxSpeedKmH,
+                    overLimitDeltaKmh = overspeedWarningDeltaKmh,
                     // Navigation shows the current speed in the badge and the
                     // speed limit as the round sign below it (spec:
                     // auto-map-layout — "Speed-limit indicator during navigation").
@@ -258,6 +263,7 @@ class NavigationScreen(
                     laneHintsEnabled = settings.laneHintsEnabled
                     navNorthUp = settings.navNorthUp
                     autoZoomEnabled = settings.autoZoomEnabled
+                    overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
                     // Apply the shared map style (loadStyleSheet blocks on the
                     // native DB thread — run off the main thread; deduped).
                     val style = settings.styleSheet
@@ -265,10 +271,10 @@ class NavigationScreen(
                         if (!styleApplier.apply(style)) {
                             Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
                         } else {
-                            // DB is ready (style loaded) — (re)push the host
+                            // DB is ready (style loaded) — (re)push the resolved
                             // day/night flag: the startup push may have been
                             // dropped while the DB was still initializing.
-                            pushHostDark()
+                            pushDark()
                         }
                     }
                     mapRenderer.requestRender()
@@ -395,11 +401,13 @@ class NavigationScreen(
                                 .onSuccess { settings ->
                                     if (settings.laneHintsEnabled != laneHintsEnabled ||
                                         settings.navNorthUp != navNorthUp ||
-                                        settings.autoZoomEnabled != autoZoomEnabled
+                                        settings.autoZoomEnabled != autoZoomEnabled ||
+                                        settings.overspeedWarningDeltaKmh != overspeedWarningDeltaKmh
                                     ) {
                                         laneHintsEnabled = settings.laneHintsEnabled
                                         navNorthUp = settings.navNorthUp
                                         autoZoomEnabled = settings.autoZoomEnabled
+                                        overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
                                         mapRenderer.requestRender()
                                     }
                                 }
@@ -460,12 +468,13 @@ class NavigationScreen(
             }
         }
 
-        // Host day/night: push the stylesheet `daylight` flag and re-render on
-        // change (tunnel entry, dusk). Deduped by the applier; the native side
-        // reloads the variant on its DB thread. invalidateStyle forces a full
-        // render so the stale-variant overrun buffer is never blitted.
+        // Resolved day/night: push the stylesheet `daylight` flag and re-render
+        // on change (tunnel entry, dusk, or a dark mode preference change on
+        // the car). Deduped by the applier; the native side reloads the variant
+        // on its DB thread. invalidateStyle forces a full render so the
+        // stale-variant overrun buffer is never blitted.
         scope.launch {
-            hostDark.collect { dark ->
+            resolvedDark.collect { dark ->
                 if (daylightApplier.apply(dark)) {
                     mapRenderer.invalidateStyle()
                 }
@@ -587,10 +596,10 @@ class NavigationScreen(
                     .onFailure { Log.w(TAG, "setMapDpi failed", it) }
                 mapRenderer.updateProjectionDpi(surfaceDpi)
                 mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
-                // Re-push the host day/night flag before the first render: the
+                // Re-push the resolved day/night flag before the first render: the
                 // startup push may have been dropped while the DB was still
                 // initializing (warmup race).
-                pushHostDark()
+                pushDark()
             }
 
             override fun onSurfaceDestroyed(surfaceContainer: SurfaceContainer) {

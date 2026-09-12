@@ -152,4 +152,26 @@ class SurfaceIndicatorsTest {
             angleRadians = Math.toRadians(-270.0)
         )
     }
+
+    @Test
+    fun stationaryZeroShowsBadgeWithZeroKmh() {
+        // Standstill zeroing (spec: gps-speed-priority — stationary reads 0)
+        // must keep the badge visible and render "0 km/h" — the road's limit
+        // must NOT appear in the badge at halt (regression: the old
+        // "currentKmH > 0.0" guard fell through to the maxKmH fallback and
+        // showed the speed limit as the current speed at standstill).
+        assertTrue(SurfaceIndicators.shouldShowSpeedBadge(0.0, 50.0))
+        assertTrue(SurfaceIndicators.shouldShowSpeedBadge(0.0, Double.NaN))
+        assertEquals("0 km/h", SurfaceIndicators.speedBadgeLabel(0.0, 50.0))
+        assertEquals("0 km/h", SurfaceIndicators.speedBadgeLabel(0.0, Double.NaN))
+        // Unknown current (negative/NaN) still falls back to the limit.
+        assertTrue(SurfaceIndicators.shouldShowSpeedBadge(Double.NaN, 50.0))
+        assertEquals("50 km/h", SurfaceIndicators.speedBadgeLabel(Double.NaN, 50.0))
+        assertTrue(SurfaceIndicators.shouldShowSpeedBadge(55.0, 50.0))
+        assertEquals("55 km/h", SurfaceIndicators.speedBadgeLabel(55.0, 50.0))
+        // Nothing known renders nothing (never a fake "-1 km/h").
+        assertTrue(!SurfaceIndicators.shouldShowSpeedBadge(-1.0, -1.0))
+        assertEquals("", SurfaceIndicators.speedBadgeLabel(-1.0, -1.0))
+        assertEquals("", SurfaceIndicators.speedBadgeLabel(Double.NaN, Double.NaN))
+    }
 }

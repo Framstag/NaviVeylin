@@ -13,9 +13,13 @@ import com.naviveylin.core.SpeedZoomTable
  * - linear-interpolated speed → magnification table ([SpeedZoomTable]);
  * - fractional commits: the interpolated target (e.g. 14.5 at 75 km/h) is
  *   committed without integer rounding;
- * - slow convergence: after the first commit the magnification moves at most
- *   [SpeedZoomTable.MAX_ZOOM_STEP_PER_UPDATE] (0.5) levels per speed update
- *   via [SpeedZoomTable.stepToward]; constant speed → epsilon no-op;
+ * - slow convergence: after the first commit the magnification moves a
+ *   distance-proportional fraction of the remaining gap per speed update
+ *   (ZOOM_CONVERGENCE_GAIN × |current−target|, capped at
+ *   [SpeedZoomTable.MAX_ZOOM_STEP_PER_UPDATE] 0.5 levels) via
+ *   [SpeedZoomTable.stepToward] — fast when far from the target, gentle near
+ *   it, so speed-noise target jitter is damped instead of chased (no zoom
+ *   "pumping"); constant speed → epsilon no-op;
  * - first commit jumps directly to the target (spec's "Speed unknown"
  *   scenario: no easing from the default map zoom);
  * - manual zoom suspends auto-zoom; a speed-band change re-engages it.

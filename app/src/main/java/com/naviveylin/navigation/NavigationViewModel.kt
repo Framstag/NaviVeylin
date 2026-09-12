@@ -17,7 +17,7 @@ import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.NavigationState
 import com.naviveylin.location.LocationService
 import com.naviveylin.location.SpeedSpikeFilter
-import com.naviveylin.location.SpeedStaleness
+import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.ui.route.RouteState
 import com.naviveylin.R

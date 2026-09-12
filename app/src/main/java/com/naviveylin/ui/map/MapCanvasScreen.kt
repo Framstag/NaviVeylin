@@ -1145,6 +1145,7 @@ fun MapCanvasScreen(
                         onCenterClick = reCenterAction,
                         onToggleOrientation = toggleOrientationAction,
                         speedInput = speedInput,
+                        overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                         driveToggle = {
                             DriveModeButton(
                                 mode = viewModel.mode,
@@ -1193,13 +1194,17 @@ fun MapCanvasScreen(
                                 onSetDarkModePreference = { pref ->
                                     viewModel.onSetDarkModePreference(pref)
                                 },
-                                ambientLightDarkMode = state.ambientLightDarkMode,
-                                onSetAmbientLightOption = { enabled ->
-                                    viewModel.onSetAmbientLightOption(enabled)
+                                ambientLightSensitivity = state.ambientLightSensitivity,
+                                onSetAmbientLightSensitivity = { level ->
+                                    viewModel.onSetAmbientLightSensitivity(level)
                                 },
                                 laneHintsEnabled = state.laneHintsEnabled,
                                 onToggleLaneHints = { enabled ->
                                     viewModel.onToggleLaneHints(enabled)
+                                },
+                                overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
+                                onSetOverspeedWarningDelta = { delta ->
+                                    viewModel.onSetOverspeedWarningDelta(delta)
                                 },
                                 renderMode = state.renderMode,
                                 onSetRenderMode = { mode ->
@@ -1270,6 +1275,7 @@ fun MapCanvasScreen(
                         onCenterClick = reCenterAction,
                         onToggleOrientation = toggleOrientationAction,
                         speedInput = speedInput,
+                        overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                         driveToggle = {
                             DriveModeButton(
                                 mode = viewModel.mode,
@@ -1318,13 +1324,17 @@ fun MapCanvasScreen(
                                 onSetDarkModePreference = { pref ->
                                     viewModel.onSetDarkModePreference(pref)
                                 },
-                                ambientLightDarkMode = state.ambientLightDarkMode,
-                                onSetAmbientLightOption = { enabled ->
-                                    viewModel.onSetAmbientLightOption(enabled)
+                                ambientLightSensitivity = state.ambientLightSensitivity,
+                                onSetAmbientLightSensitivity = { level ->
+                                    viewModel.onSetAmbientLightSensitivity(level)
                                 },
                                 laneHintsEnabled = state.laneHintsEnabled,
                                 onToggleLaneHints = { enabled ->
                                     viewModel.onToggleLaneHints(enabled)
+                                },
+                                overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
+                                onSetOverspeedWarningDelta = { delta ->
+                                    viewModel.onSetOverspeedWarningDelta(delta)
                                 },
                                 renderMode = state.renderMode,
                                 onSetRenderMode = { mode ->
@@ -1723,6 +1733,7 @@ fun MapCanvasScreen(
                                 viewModel.onSetNavOrientation(!state.navNorthUp)
                             },
                             speedInput = speedInput,
+                            overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                             reserveSpeedSlot = true,
                             locationOptions = {
                                 LocationOptionsOverlay(
@@ -1747,9 +1758,9 @@ fun MapCanvasScreen(
                                     onSetDarkModePreference = { pref ->
                                         viewModel.onSetDarkModePreference(pref)
                                     },
-                                    ambientLightDarkMode = state.ambientLightDarkMode,
-                                    onSetAmbientLightOption = { enabled ->
-                                        viewModel.onSetAmbientLightOption(enabled)
+                                    ambientLightSensitivity = state.ambientLightSensitivity,
+                                    onSetAmbientLightSensitivity = { level ->
+                                        viewModel.onSetAmbientLightSensitivity(level)
                                     },
                                     laneHintsEnabled = state.laneHintsEnabled,
                                     onToggleLaneHints = { enabled ->
@@ -1894,10 +1905,13 @@ private const val CROSSFADE_MS = 150.0f
 
 /**
  * Display-animation duration for auto-zoom commits (spec: smooth-zoom —
- * auto-zoom commits animate over ~500 ms, slower than discrete-input
- * 250 ms so the driving zoom glides instead of snapping).
+ * auto-zoom commits animate over ~650 ms, slower than discrete-input
+ * 250 ms so the driving zoom glides instead of snapping — the distance-
+ * proportional convergence step is additionally eased by this longer
+ * animation, which together suppress the zoom "pumping" that a faster
+ * animation (and a fixed-step follower) produced).
  */
-private const val AUTO_ZOOM_ANIMATION_MS = 500L
+private const val AUTO_ZOOM_ANIMATION_MS = 650L
 
 /**
  * Draw one front-buffer frame (main display or crossfade copy) with the
@@ -2309,6 +2323,7 @@ internal fun MapRightWidgetColumn(
     locationOptions: (@Composable () -> Unit)? = null,
     driveToggle: (@Composable () -> Unit)? = null,
     reserveSpeedSlot: Boolean = false,
+    overspeedWarningDeltaKmh: Int = 5,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -2333,7 +2348,8 @@ internal fun MapRightWidgetColumn(
                 currentSpeedKmH = speedInput?.currentSpeedKmH ?: Double.NaN,
                 maxSpeedKmH = speedInput?.maxSpeedKmH ?: Double.NaN,
                 reserveLimitSpace = reserveSpeedSlot,
-                reserveSlotWhenHidden = reserveSpeedSlot
+                reserveSlotWhenHidden = reserveSpeedSlot,
+                overspeedWarningDeltaKmh = overspeedWarningDeltaKmh
             )
         }
         if (locationOptions != null) {

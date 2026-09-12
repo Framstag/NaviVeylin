@@ -23,10 +23,19 @@ object PreferencesScreenMapper {
     private const val KEY_AUTO_ZOOM = "autoZoomEnabled"
     private const val KEY_FREE_FORM_NORTH_UP = "freeFormNorthUp"
     private const val KEY_NAV_NORTH_UP = "navNorthUp"
-    private const val KEY_DARK_MODE = "darkMode"
+
+    /** Dark mode preference row key (public so the screen can report changes). */
+    const val KEY_DARK_MODE = "darkMode"
     private const val KEY_LANE_HINTS = "laneHintsEnabled"
     private const val KEY_RENDER_MODE = "renderMode"
     private const val KEY_STYLE_SHEET = "styleSheet"
+
+    /**
+     * Overspeed warning delta row: selecting it opens the value picker
+     * (handled by [PreferencesScreen]); the row itself is not tapped to
+     * cycle. Public so the screen can route the click.
+     */
+    const val KEY_OVERSPEED_DELTA = "overspeedWarningDeltaKmh"
 
     /**
      * Fallback style list (the bundled libosmscout top-level `*.oss` set minus
@@ -47,6 +56,7 @@ object PreferencesScreenMapper {
         PreferenceRow(KEY_DARK_MODE, "Dark mode", darkModeText(settings.darkMode)),
         PreferenceRow(KEY_LANE_HINTS, "Lane hints", onOff(settings.laneHintsEnabled)),
         PreferenceRow(KEY_RENDER_MODE, "Render mode", renderModeText(settings.renderMode)),
+        PreferenceRow(KEY_OVERSPEED_DELTA, "Overspeed warning", "${settings.overspeedWarningDeltaKmh} km/h"),
         PreferenceRow(KEY_STYLE_SHEET, "Map style", settings.styleSheet)
     )
 

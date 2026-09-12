@@ -72,4 +72,31 @@ class NavigationSessionDarkModeTest {
         assertTrue(entries.any { it.contains("Host dark mode changed to true") })
         assertTrue(entries.any { it.contains("Host dark mode changed to false") })
     }
+
+    // --- resolveCarDark: shared dark mode preference x host signal ---
+
+    @Test
+    fun automaticFollowsHostDark() {
+        assertTrue(resolveCarDark("AUTOMATIC", hostDark = true))
+        assertFalse(resolveCarDark("AUTOMATIC", hostDark = false))
+    }
+
+    @Test
+    fun onForcesDarkRegardlessOfHost() {
+        assertTrue(resolveCarDark("ON", hostDark = false))
+        assertTrue(resolveCarDark("ON", hostDark = true))
+    }
+
+    @Test
+    fun offForcesLightRegardlessOfHost() {
+        assertFalse(resolveCarDark("OFF", hostDark = true))
+        assertFalse(resolveCarDark("OFF", hostDark = false))
+    }
+
+    @Test
+    fun unknownPreferenceFallsBackToHost() {
+        // Defensive: any unrecognized persisted value behaves like AUTOMATIC.
+        assertTrue(resolveCarDark("WEIRD", hostDark = true))
+        assertFalse(resolveCarDark("WEIRD", hostDark = false))
+    }
 }

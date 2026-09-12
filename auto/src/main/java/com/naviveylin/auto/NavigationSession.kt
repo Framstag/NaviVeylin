@@ -29,10 +29,13 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -95,6 +98,36 @@ class NavigationSession : Session() {
     }
     val hostDark: StateFlow<Boolean> by lazy { _hostDark.asStateFlow() }
 
+    /**
+     * Shared dark mode preference ("ON"/"OFF"/"AUTOMATIC") driving the car
+     * rendering, seeded from persisted settings at session start (default
+     * AUTOMATIC until then / on load failure). Updated by
+     * [PreferencesScreen] via [updateDarkModePreference].
+     */
+    private val _darkModePref: MutableStateFlow<String> by lazy {
+        MutableStateFlow("AUTOMATIC")
+    }
+
+    /**
+     * Resolved dark presentation for the car map screens: **ON** forces dark,
+     * **OFF** forces light, **AUTOMATIC** follows the host day/night signal
+     * (see [hostDark]). Screens collect this instead of [hostDark] so the
+     * shared dark mode preference takes effect on the car (spec:
+     * auto/preferences — dark mode preference applies to car rendering).
+     */
+    val resolvedDark: StateFlow<Boolean> by lazy {
+        combine(_hostDark, _darkModePref) { hostDark, pref ->
+            resolveCarDark(pref, hostDark)
+        }.stateIn(scope, SharingStarted.Eagerly, carContext.isDarkMode())
+    }
+
+    /** Feed the current dark mode preference into [resolvedDark]. */
+    fun updateDarkModePreference(pref: String) {
+        if (_darkModePref.value != pref) {
+            _darkModePref.value = pref
+        }
+    }
+
     override fun onCarConfigurationChanged(configuration: Configuration) {
         super.onCarConfigurationChanged(configuration)
         val dark = isNightUiMode(configuration)
@@ -110,6 +143,13 @@ class NavigationSession : Session() {
 
     init {
         SessionLog.sessionCreated()
+        // Seed the shared dark mode preference for the car rendering; best
+        // effort — AUTOMATIC stays the value until the load completes.
+        scope.launch {
+            runCatching { entryPoint.autoSettingsProvider().load().darkMode }
+                .onSuccess { updateDarkModePreference(it) }
+                .onFailure { Log.w(TAG, "dark mode preference load failed — default AUTOMATIC", it) }
+        }
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onDestroy(owner: LifecycleOwner) {
                 SessionLog.destroyed()
@@ -381,7 +421,12 @@ class NavigationSession : Session() {
         } else {
             // Open in map view by default; the menu is reachable via the map's
             // "Menu" action (RootScreen is no longer the stack root).
-            MapScreen(carContext, navigationViewModel, hostDark = hostDark)
+            MapScreen(
+                carContext,
+                navigationViewModel,
+                resolvedDark = resolvedDark,
+                onDarkModeChanged = ::updateDarkModePreference
+            )
         }
     }
 
@@ -460,7 +505,7 @@ class NavigationSession : Session() {
 
     private fun getNavigationScreen(): NavigationScreen {
         if (navigationScreen == null) {
-            navigationScreen = NavigationScreen(carContext, navigationViewModel, hostDark = hostDark)
+            navigationScreen = NavigationScreen(carContext, navigationViewModel, resolvedDark = resolvedDark)
         }
         return navigationScreen!!
     }
@@ -540,3 +585,15 @@ class NavigationSession : Session() {
 internal fun isNightUiMode(configuration: Configuration): Boolean =
     configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
         Configuration.UI_MODE_NIGHT_YES
+
+/**
+ * Resolve the car dark presentation from the shared dark mode preference
+ * ("ON"/"OFF"/"AUTOMATIC") and the host day/night signal: ON always dark,
+ * OFF always light, AUTOMATIC (and any unknown value) follows the host.
+ * Extracted from [NavigationSession.resolvedDark] for unit testing.
+ */
+internal fun resolveCarDark(pref: String, hostDark: Boolean): Boolean = when (pref) {
+    "ON" -> true
+    "OFF" -> false
+    else -> hostDark
+}

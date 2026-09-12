@@ -56,13 +56,18 @@ class AddressBookResolverTest {
         assertEquals(2, client.formSearchArgs.size)
         assertEquals(listOf("Berlin", "10115", "Main Street", "1"), client.formSearchArgs[0])
         assertEquals(listOf("Berlin", "", "Main Street", "1"), client.formSearchArgs[1])
-        // full (= street+city) -> street+city without house number -> street -> city
+        // full (= street+city) -> street+house+postal -> street+postal ->
+        // street+city without house number -> street+house. The bare city
+        // query is NOT included (city-only free-text results auto-resolve
+        // kilometers away — spec: address-book-search "Wrong-location
+        // free-text result not selected").
         assertEquals(
             listOf(
                 "Main Street 1 Berlin",
+                "Main Street 1 10115",
+                "Main Street 10115",
                 "Main Street Berlin",
-                "Main Street 1",
-                "Berlin"
+                "Main Street 1"
             ),
             client.searchQueries
         )
@@ -80,6 +85,8 @@ class AddressBookResolverTest {
 
         assertEquals(1, results.size)
         assertTrue(client.formSearchArgs.isEmpty())
+        // First (and only) query hits; the PLZ variants would follow only if
+        // the plain query found nothing.
         assertEquals(listOf("Main Street 1"), client.searchQueries)
     }
 
@@ -105,13 +112,15 @@ class AddressBookResolverTest {
 
         assertTrue(resolver.resolveAddress(address).isEmpty())
 
-        // full (= street+city) -> street+city without house number -> street -> city
+        // full (= street+city) -> street+house+postal -> street+postal ->
+        // street+city without house number -> street+house
         assertEquals(
             listOf(
                 "Main Street 1 Berlin",
+                "Main Street 1 10115",
+                "Main Street 10115",
                 "Main Street Berlin",
-                "Main Street 1",
-                "Berlin"
+                "Main Street 1"
             ),
             client.searchQueries
         )
@@ -138,9 +147,99 @@ class AddressBookResolverTest {
 
         val results = resolver.resolveAddress(address)
 
+        // "Somewhere Else" carries no street-token evidence and is dropped by
+        // the resolution gate (spec: address-book-search "Wrong-location
+        // free-text result not selected").
+        assertEquals(2, results.size)
         assertEquals("Main Street 1, Berlin", results[0].label)
         assertEquals("Main Street 9, Berlin", results[1].label)
-        assertEquals("Somewhere Else", results[2].label)
+    }
+
+    @Test
+    fun `postal code in street field is not taken as house number`() {
+        val client = FakeOSMScoutClient()
+        client.nextFormResults = arrayOf(entry("Erbstollenstraße 10", 51.45, 7.41).apply {
+            objectType = "address"
+            matchQuality = "match"
+        })
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(
+            ContactPostalAddress(
+                street = "Erbstollenstraße 10 58454",
+                postalCode = "58454",
+                city = "Witten"
+            )
+        )
+
+        assertEquals(1, results.size)
+        // Street WITHOUT the postal code, house number 10, postal area set.
+        assertEquals(listOf("Witten", "58454", "Erbstollenstraße", "10"), client.formSearchArgs[0])
+    }
+
+    @Test
+    fun `house missing from index falls back to street level`() {
+        val client = FakeOSMScoutClient()
+        // The form search returns only the street-level candidate (native
+        // partialMatch=true fallback): the house number is not in the index.
+        client.nextFormResults = arrayOf(entry("Erbstollenstraße", 51.4501, 7.4113).apply {
+            objectType = "place"
+            matchQuality = "candidate"
+            region = arrayOf("Witten")
+        })
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(
+            ContactPostalAddress(street = "Erbstollenstraße 10", postalCode = "58454", city = "Witten")
+        )
+
+        assertEquals(1, results.size)
+        assertEquals("Erbstollenstraße", results[0].label)
+    }
+
+    @Test
+    fun `city-only free-text noise is never auto-selected`() {
+        val client = FakeOSMScoutClient()
+        client.nextFormResults = emptyArray()
+        client.nextSearchResults = arrayOf(
+            entry("Witten-Bommern Bf", 51.4253, 7.3365).apply {
+                objectType = "poi"
+                matchQuality = "match"
+            }
+        )
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(
+            ContactPostalAddress(street = "Erbstollenstraße 10", city = "Witten")
+        )
+
+        // No result carries the street token "erbstollenstrasse" — the bus
+        // stop kilometers away must not resolve the contact.
+        assertTrue(results.isEmpty())
+    }
+
+    @Test
+    fun `admin region outranks poi for city-only ranking`() {
+        val client = FakeOSMScoutClient()
+        client.nextSearchResults = arrayOf(
+            entry("Witten-Bommern Bf", 51.4253, 7.3365).apply {
+                objectType = "poi"
+                matchQuality = "match"
+            },
+            entry("Witten", 51.4431, 7.3414).apply {
+                objectType = "boundary_administrative"
+                matchQuality = "match"
+                region = arrayOf("Witten")
+            }
+        )
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(
+            ContactPostalAddress(street = "Witten X", postalCode = "58454", city = "Witten")
+        )
+
+        assertTrue(results.isNotEmpty())
+        assertEquals("Witten", results[0].label)
     }
 
     @Test

@@ -8,11 +8,20 @@ import org.junit.Test
 /**
  * Tests for the ambient light hysteresis classifier and debounce — the pure
  * logic behind the phone's light-sensor dark mode (spec: dark-mode "Ambient
- * light sensor option" — no flapping near the threshold).
+ * light sensor option" — no flapping near the threshold; sensitivity levels
+ * enter dark with different reluctance).
  */
 class AmbientLightClassifierTest {
 
-    // --- classifyLux hysteresis ---
+    // --- classifyLux hysteresis (HIGH = current behavior) ---
+
+    @Test
+    fun highMatchesCurrentConstants() {
+        assertTrue(classifyLux(previousDark = false, lux = 5f, AmbientLightSensitivity.HIGH))
+        assertTrue(classifyLux(previousDark = true, lux = 5f, AmbientLightSensitivity.HIGH))
+        assertFalse(classifyLux(previousDark = false, lux = 200f, AmbientLightSensitivity.HIGH))
+        assertFalse(classifyLux(previousDark = true, lux = 200f, AmbientLightSensitivity.HIGH))
+    }
 
     @Test
     fun belowDarkLuxClassifiesDark() {
@@ -40,6 +49,47 @@ class AmbientLightClassifierTest {
         assertFalse(classifyLux(previousDark = false, lux = DARK_LUX))
         // Exactly LIGHT_LUX is not above it -> holds previous.
         assertTrue(classifyLux(previousDark = true, lux = LIGHT_LUX))
+    }
+
+    // --- sensitivity levels ---
+
+    @Test
+    fun offHoldsPreviousStateForAnyLux() {
+        assertFalse(classifyLux(previousDark = false, lux = 1f, AmbientLightSensitivity.OFF))
+        assertTrue(classifyLux(previousDark = true, lux = 300f, AmbientLightSensitivity.OFF))
+    }
+
+    @Test
+    fun lowerSensitivityEntriesDarkAtLowerLux() {
+        // 6 lux: dark under HIGH (6 < 10), light under MEDIUM (6 > 5) and LOW.
+        assertTrue(classifyLux(previousDark = false, lux = 6f, AmbientLightSensitivity.HIGH))
+        assertFalse(classifyLux(previousDark = false, lux = 6f, AmbientLightSensitivity.MEDIUM))
+        assertFalse(classifyLux(previousDark = false, lux = 6f, AmbientLightSensitivity.LOW))
+        // 3 lux: HIGH and MEDIUM dark (3 < 5), LOW still light (3 > 2).
+        assertTrue(classifyLux(previousDark = false, lux = 3f, AmbientLightSensitivity.HIGH))
+        assertTrue(classifyLux(previousDark = false, lux = 3f, AmbientLightSensitivity.MEDIUM))
+        assertFalse(classifyLux(previousDark = false, lux = 3f, AmbientLightSensitivity.LOW))
+        // 1 lux: all three dark.
+        assertTrue(classifyLux(previousDark = false, lux = 1f, AmbientLightSensitivity.HIGH))
+        assertTrue(classifyLux(previousDark = false, lux = 1f, AmbientLightSensitivity.MEDIUM))
+        assertTrue(classifyLux(previousDark = false, lux = 1f, AmbientLightSensitivity.LOW))
+    }
+
+    @Test
+    fun lowerSensitivityLeavesDarkAtHigherLux() {
+        // Rising from dark: 60 lux is light under HIGH (60 > 50), still dark
+        // under MEDIUM (60 < 100) and LOW (60 < 200).
+        assertFalse(classifyLux(previousDark = true, lux = 60f, AmbientLightSensitivity.HIGH))
+        assertTrue(classifyLux(previousDark = true, lux = 60f, AmbientLightSensitivity.MEDIUM))
+        assertTrue(classifyLux(previousDark = true, lux = 60f, AmbientLightSensitivity.LOW))
+        // 150 lux: HIGH and MEDIUM light, LOW still dark.
+        assertFalse(classifyLux(previousDark = true, lux = 150f, AmbientLightSensitivity.HIGH))
+        assertFalse(classifyLux(previousDark = true, lux = 150f, AmbientLightSensitivity.MEDIUM))
+        assertTrue(classifyLux(previousDark = true, lux = 150f, AmbientLightSensitivity.LOW))
+        // 250 lux: all light.
+        assertFalse(classifyLux(previousDark = true, lux = 250f, AmbientLightSensitivity.HIGH))
+        assertFalse(classifyLux(previousDark = true, lux = 250f, AmbientLightSensitivity.MEDIUM))
+        assertFalse(classifyLux(previousDark = true, lux = 250f, AmbientLightSensitivity.LOW))
     }
 
     // --- DebouncedSignal ---

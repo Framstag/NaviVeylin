@@ -4,6 +4,7 @@ import com.naviveylin.core.BasemapReloadNotifier
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
+import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
@@ -114,37 +115,39 @@ class MapCanvasViewModelDarkModeTest {
     }
 
     @Test
-    fun sensorWinsWhenOptionEnabled() = runTest(mainDispatcherRule.dispatcher) {
-        // System light, sensor dark, option on -> dark presentation.
+    fun sensorWinsWhenSensitivityActive() = runTest(mainDispatcherRule.dispatcher) {
+        // System light, sensor dark, sensitivity HIGH -> dark presentation.
         viewModel.setEnvironmentDark(false)
-        viewModel.onSetAmbientLightOption(true)
+        viewModel.onSetAmbientLightSensitivity(AmbientLightSensitivity.HIGH)
         viewModel.setSensorDark(true)
         assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)
         assertTrue(client.styleFlags.any { it.first == "daylight" && !it.second })
     }
 
     @Test
-    fun sensorIgnoredWhenOptionDisabled() = runTest(mainDispatcherRule.dispatcher) {
+    fun sensorIgnoredWhenSensitivityOff() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.setEnvironmentDark(false)
         viewModel.setSensorDark(true)
-        // Option off -> sensor classification ignored, system signal wins.
+        // Sensitivity OFF -> sensor classification ignored, system signal wins.
         assertFalse(viewModel.uiState.first { !it.isDarkPresentation }.isDarkPresentation)
     }
 
     @Test
     fun sensorInactiveFallsBackToSystem() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.setEnvironmentDark(true)
-        viewModel.onSetAmbientLightOption(true)
+        viewModel.onSetAmbientLightSensitivity(AmbientLightSensitivity.MEDIUM)
         // Sensor reports null (inactive/unavailable) -> system signal wins.
         viewModel.setSensorDark(null)
         assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)
     }
 
     @Test
-    fun ambientOptionPersistsInUiState() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.onSetAmbientLightOption(true)
-        assertTrue(viewModel.uiState.value.ambientLightDarkMode)
-        viewModel.onSetAmbientLightOption(false)
-        assertFalse(viewModel.uiState.value.ambientLightDarkMode)
+    fun ambientSensitivityPersistsInUiState() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.onSetAmbientLightSensitivity(AmbientLightSensitivity.HIGH)
+        assertEquals(AmbientLightSensitivity.HIGH, viewModel.uiState.value.ambientLightSensitivity)
+        viewModel.onSetAmbientLightSensitivity(AmbientLightSensitivity.LOW)
+        assertEquals(AmbientLightSensitivity.LOW, viewModel.uiState.value.ambientLightSensitivity)
+        viewModel.onSetAmbientLightSensitivity(AmbientLightSensitivity.OFF)
+        assertEquals(AmbientLightSensitivity.OFF, viewModel.uiState.value.ambientLightSensitivity)
     }
 }

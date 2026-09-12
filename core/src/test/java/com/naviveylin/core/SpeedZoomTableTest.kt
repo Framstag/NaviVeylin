@@ -57,16 +57,20 @@ class SpeedZoomTableTest {
     }
 
     @Test
-    fun `step toward clamps at half a level per update`() {
-        // 16.0 -> 14.5 with maxStep 0.5: moves half a level per update.
-        assertEquals(15.5, SpeedZoomTable.stepToward(16.0, 14.5), 0.001)
-        assertEquals(15.0, SpeedZoomTable.stepToward(15.5, 14.5), 0.001)
-        assertEquals(14.5, SpeedZoomTable.stepToward(15.0, 14.5), 0.001)
+    fun `step toward moves a proportional fraction clamped at half a level`() {
+        // 16.0 -> 14.5 (delta 1.5): proportional step = 0.3 × 1.5 = 0.45 (< 0.5 cap).
+        assertEquals(15.55, SpeedZoomTable.stepToward(16.0, 14.5), 0.001)
+        // 15.55 -> 14.5 (delta 1.05): 0.3 × 1.05 = 0.315.
+        assertEquals(15.235, SpeedZoomTable.stepToward(15.55, 14.5), 0.001)
+        // Large gap: proportional 0.3 × 3.25 = 0.975 clamps at the 0.5 cap.
+        assertEquals(15.5, SpeedZoomTable.stepToward(16.0, 12.75), 0.001)
     }
 
     @Test
     fun `step toward works in the zoom-in direction`() {
-        assertEquals(15.5, SpeedZoomTable.stepToward(15.0, 16.0), 0.001)
+        assertEquals(15.3, SpeedZoomTable.stepToward(15.0, 16.0), 0.001)
+        // Same cap applies in both directions.
+        assertEquals(12.5, SpeedZoomTable.stepToward(12.0, 17.5), 0.001)
     }
 
     @Test
@@ -75,6 +79,9 @@ class SpeedZoomTableTest {
         val stepped = SpeedZoomTable.stepToward(16.0, 12.75)
         assertEquals(15.5, stepped, 0.001)
         assertTrue("stepped value $stepped must not be an integer level", stepped % 1.0 != 0.0)
+        val nearTarget = SpeedZoomTable.stepToward(14.75, 14.5)
+        assertEquals(14.675, nearTarget, 0.001)
+        assertTrue("near-target step $nearTarget must stay fractional", nearTarget % 1.0 != 0.0)
     }
 
     @Test
@@ -87,7 +94,29 @@ class SpeedZoomTableTest {
 
     @Test
     fun `step toward reaches the exact target when within one step`() {
-        assertEquals(14.3, SpeedZoomTable.stepToward(14.5, 14.3), 0.001)
-        assertEquals(14.7, SpeedZoomTable.stepToward(14.5, 14.7), 0.001)
+        // Deltas inside the proportional region move only a fraction of the
+        // remaining gap (damped, no fixed-step snap toward the target).
+        assertEquals(14.44, SpeedZoomTable.stepToward(14.5, 14.3), 0.001)
+        assertEquals(14.56, SpeedZoomTable.stepToward(14.5, 14.7), 0.001)
+        // Sub-epsilon proportional motion is floored at ZOOM_EPSILON so
+        // convergence lands inside the deadband in bounded updates.
+        assertEquals(14.55, SpeedZoomTable.stepToward(14.5, 14.6), 0.001)
+    }
+
+    @Test
+    fun `step toward converges without overshoot and settles in the deadband`() {
+        // Repeated calls follow an exponential-approach curve: monotonic
+        // toward the target, never crossing it, no oscillation (pumping).
+        var mag = 16.0
+        val target = 14.5
+        var previous = mag
+        while (true) {
+            mag = SpeedZoomTable.stepToward(mag, target)
+            if (mag == previous) break
+            assertTrue("must approach the target", mag < previous)
+            assertTrue("must not overshoot", mag >= target)
+            previous = mag
+        }
+        assertTrue("settled inside the deadband", kotlin.math.abs(mag - target) <= SpeedZoomTable.ZOOM_EPSILON)
     }
 }

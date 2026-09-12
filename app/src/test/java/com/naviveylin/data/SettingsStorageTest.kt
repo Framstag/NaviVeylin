@@ -117,4 +117,34 @@ class SettingsStorageTest {
         assertEquals(RenderMode.DIRECT, loaded.renderMode)
         assertEquals("standard", loaded.styleSheet)
     }
+
+    @Test
+    fun roundTripPersistsOverspeedWarningDelta() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        storage.save(AppSettings(overspeedWarningDeltaKmh = 10))
+        val loaded = storage.load()
+        assertEquals(10, loaded.overspeedWarningDeltaKmh)
+    }
+
+    @Test
+    fun missingFileDefaultsOverspeedDeltaToFive() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        val loaded = storage.load()
+        assertEquals(5, loaded.overspeedWarningDeltaKmh)
+    }
+
+    @Test
+    fun oldSettingsJsonWithoutOverspeedDeltaLoadsAsFive() = runTest {
+        // Settings file written by an app version predating the delta — the
+        // missing key must decode to the default 5.
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val file = java.io.File(context.filesDir, "maps/settings.json")
+        file.parentFile?.mkdirs()
+        file.writeText("""{"followMode":true,"laneHintsEnabled":false}""")
+        val storage = SettingsStorage(context)
+        val loaded = storage.load()
+        assertEquals(true, loaded.followMode)
+        assertEquals(false, loaded.laneHintsEnabled)
+        assertEquals(5, loaded.overspeedWarningDeltaKmh)
+    }
 }

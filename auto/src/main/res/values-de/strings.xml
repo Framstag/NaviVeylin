@@ -22,6 +22,7 @@
     <string name="address_book">Adressbuch</string>
     <string name="search_contacts">Kontakte mit Adressen suchen</string>
     <string name="preferences">Einstellungen</string>
+    <string name="overspeed_warning">Geschwindigkeitswarnung</string>
     <string name="adjust_nav_settings">Navigationseinstellungen anpassen</string>
     <string name="view_crash_logs">Absturz- und Sitzungsprotokolle anzeigen</string>
     <string name="app_information">App-Informationen</string>

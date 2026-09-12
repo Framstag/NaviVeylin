@@ -1,5 +1,6 @@
 package com.naviveylin.location
 
+import com.naviveylin.core.SpeedStaleness
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

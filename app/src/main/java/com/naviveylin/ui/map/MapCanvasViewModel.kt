@@ -19,7 +19,9 @@ import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.data.AssetCopier
+import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.DarkModeController
+import com.naviveylin.data.StructuredAddressSearch
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.RenderMode
@@ -30,7 +32,7 @@ import com.naviveylin.data.ViewportState
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
-import com.naviveylin.location.SpeedStaleness
+import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.ui.route.RoutePanelViewModel
@@ -166,11 +168,18 @@ data class MapCanvasUiState(
     val navNorthUp: Boolean = false,
     val keepScreenOn: Boolean = true,
     val darkModePreference: DarkModePreference = DarkModePreference.AUTOMATIC,
-    val ambientLightDarkMode: Boolean = false,
+    val ambientLightSensitivity: AmbientLightSensitivity = AmbientLightSensitivity.OFF,
     val isDarkPresentation: Boolean = false,
     val gpsFixQuality: GpsFixQuality = GpsFixQuality.NONE,
     val laneHintsEnabled: Boolean = true,
     val renderMode: RenderMode = RenderMode.TILES,
+    /**
+     * Overspeed warning delta (km/h, 0-30, default 5): the speed badge
+     * warns when `current >= max + delta` (spec: map-speed-widget —
+     * Overspeed warning color). Single global value shared with Android
+     * Auto.
+     */
+    val overspeedWarningDeltaKmh: Int = 5,
     /** Selected map stylesheet (name without the .oss postfix), e.g. "standard". */
     val styleSheet: String = "standard",
     /** All bundled map styles offered by the picker (sorted, no .oss postfix). */
@@ -506,6 +515,20 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
+     * Set the overspeed warning delta (km/h, 0-30). Applies to the speed
+     * widget immediately and persists; the same global value drives the
+     * Android Auto badge (spec: map-speed-widget — Overspeed warning color;
+     * location-options-ui — Overspeed warning delta control).
+     */
+    fun onSetOverspeedWarningDelta(deltaKmh: Int) {
+        _uiState.value = _uiState.value.copy(overspeedWarningDeltaKmh = deltaKmh)
+        viewModelScope.launch {
+            val current = settingsStorage.load()
+            settingsStorage.save(current.copy(overspeedWarningDeltaKmh = deltaKmh))
+        }
+    }
+
+    /**
      * Set the map rendering mode (tile-cached vs direct). Persists the
      * selection and applies it immediately: the renderer is switched and a
      * forced full re-render clears any tiles/buffers from the other mode.
@@ -536,10 +559,10 @@ class MapCanvasViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(darkModePreference = preference)
     }
 
-    /** Toggle the ambient light sensor option; persists via controller. */
-    fun onSetAmbientLightOption(enabled: Boolean) {
-        darkModeController.setSensorOption(enabled)
-        _uiState.value = _uiState.value.copy(ambientLightDarkMode = enabled)
+    /** Set the ambient light sensor sensitivity; persists via controller. */
+    fun onSetAmbientLightSensitivity(sensitivity: AmbientLightSensitivity) {
+        darkModeController.setSensorSensitivity(sensitivity)
+        _uiState.value = _uiState.value.copy(ambientLightSensitivity = sensitivity)
     }
 
     /**
@@ -952,7 +975,11 @@ class MapCanvasViewModel @Inject constructor(
                         // curve/post-turn floors included) without integer
                         // rounding. The first commit jumps straight to the
                         // target (keeps the spec's "Speed unknown" scenario);
-                        // later commits converge at ≤ 0.5 levels per update.
+                        // later commits converge via a distance-proportional
+                        // step (ZOOM_CONVERGENCE_GAIN × remaining gap, capped
+                        // at ≤ 0.5 levels per update) — fast when far away,
+                        // gentle when near, so speed-noise target jitter is
+                        // damped instead of chased (no zoom "pumping").
                         // stepToward returns current unchanged below epsilon →
                         // no commit, and since the mag did not change, no
                         // re-render either.
@@ -1017,7 +1044,7 @@ class MapCanvasViewModel @Inject constructor(
         viewModelScope.launch {
             val settings = settingsStorage.load()
             darkModeController.restorePreference(settings.darkMode)
-            darkModeController.restoreSensorOption(settings.ambientLightDarkMode)
+            darkModeController.restoreSensorSensitivity(settings.ambientLightSensitivity)
             _uiState.value = _uiState.value.copy(
                 // followMode is deliberately NOT restored: the app always starts
                 // in BROWSE (spec: map-modes — always browse on start); free
@@ -1027,9 +1054,10 @@ class MapCanvasViewModel @Inject constructor(
                 navNorthUp = settings.navNorthUp,
                 keepScreenOn = settings.keepScreenOn,
                 darkModePreference = settings.darkMode,
-                ambientLightDarkMode = settings.ambientLightDarkMode,
+                ambientLightSensitivity = settings.ambientLightSensitivity,
                 laneHintsEnabled = settings.laneHintsEnabled,
                 renderMode = settings.renderMode,
+                overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh,
                 styleSheet = settings.styleSheet
             )
             // If initMap already ran before this load finished (fast user flow),
@@ -1269,8 +1297,15 @@ class MapCanvasViewModel @Inject constructor(
      */
     internal suspend fun mergeSearchResults(query: String): List<MergedSearchResult> {
         val nativeResults = searchLocations(query)
+        // Full formatted addresses (street + house + PLZ + city) resolve via
+        // the structured form search first; its house-level results rank
+        // above the raw string results, which drop such queries when a postal
+        // code sits inside the query (spec: location-search "Full formatted
+        // address resolution").
+        val structured = StructuredAddressSearch.resolve(query, client)
+        val combined = StructuredAddressSearch.merge(structured, nativeResults)
         val favorites = favoriteRepository.favorites.value.values.flatten()
-        return favoriteSearchMerger.merge(query, favorites, nativeResults)
+        return favoriteSearchMerger.merge(query, favorites, combined)
     }
 
     /** Initialise with a map database path. Call once from the screen. */
@@ -2091,12 +2126,53 @@ class MapCanvasViewModel @Inject constructor(
                     preNavFollow = _uiState.value.followMode
                     preNavSuspended = _uiState.value.driveSuspended
                 } else if (!navState.isNavigating && preNavFollow != null) {
+                    // Snapshot the exact position and zoom where routing ended
+                    // BEFORE the restore below mutates state (spec: map-modes —
+                    // "Navigation end keeps the viewport"). The representation
+                    // preset touches only orientation flags; the snapshot is
+                    // re-asserted afterwards so no intermediate update (render
+                    // listener, lifecycle save, re-init) can substitute the
+                    // persisted/app-start viewport.
+                    val endCenterLat = _uiState.value.viewport.centerLat
+                    val endCenterLon = _uiState.value.viewport.centerLon
+                    val endMagnification = _uiState.value.viewport.magnification
                     _uiState.value = _uiState.value.copy(
                         followMode = preNavFollow!!,
                         driveSuspended = preNavSuspended!!
                     )
                     preNavFollow = null
                     preNavSuspended = null
+                    // Landing in BROWSE (follow off and not a suspended drive)
+                    // must apply the BROWSE representation: north-up, no drift.
+                    // Position and zoom stay where routing ended (spec:
+                    // map-modes — navigation end restores prior mode). A
+                    // suspended FREE_DRIVE (driveSuspended) keeps its flags.
+                    if (!_uiState.value.followMode && !_uiState.value.driveSuspended) {
+                        applyBrowseRepresentation()
+                    }
+                    // Re-assert the routing-end center/zoom (the preset must
+                    // never move the viewport) and persist it immediately: any
+                    // later map restore (app restart, screen recreation via the
+                    // NavGraph key/back stack) then resumes where routing ended
+                    // instead of jumping back to the app-start position (fixes
+                    // "ending routing resets location and zoom to the start-of-
+                    // app state").
+                    _uiState.value = _uiState.value.copy(
+                        viewport = _uiState.value.viewport.copy(
+                            centerLat = endCenterLat,
+                            centerLon = endCenterLon,
+                            magnification = endMagnification
+                        )
+                    )
+                    viewportStorage.save(
+                        currentMapKey ?: "default",
+                        ViewportState(endCenterLat, endCenterLon, endMagnification)
+                    )
+                    Log.d(TAG, "setNavigationViewModel: navigation ended, " +
+                            "mode restored follow=${_uiState.value.followMode} suspended=${_uiState.value.driveSuspended}, " +
+                            "viewport kept at " + "%.6f".format(endCenterLat) + "," +
+                            "%.6f".format(endCenterLon) + " mag=$endMagnification")
+                    renderMap()
                 }
             }
         }
@@ -2349,11 +2425,12 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
-     * Exit FREE_DRIVE to BROWSE (spec: map-modes — mode toggle): follow off,
-     * north-up, staying at the current position.
+     * Apply the BROWSE representation preset (spec: map-modes — mode presets):
+     * follow off, north-up orientation, drive suspension and browse-drift flags
+     * cleared. The viewport center and zoom are intentionally kept where they
+     * are — representation settings only, not a viewport restore.
      */
-    fun exitFreeDrive() {
-        if (mode != MapMode.FREE_DRIVE) return
+    private fun applyBrowseRepresentation() {
         _uiState.value = _uiState.value.copy(
             followMode = false,
             freeFormNorthUp = true,
@@ -2361,6 +2438,15 @@ class MapCanvasViewModel @Inject constructor(
             browseDrifted = false,
             viewport = _uiState.value.viewport.copy(angle = 0.0)
         )
+    }
+
+    /**
+     * Exit FREE_DRIVE to BROWSE (spec: map-modes — mode toggle): follow off,
+     * north-up, staying at the current position and zoom.
+     */
+    fun exitFreeDrive() {
+        if (mode != MapMode.FREE_DRIVE) return
+        applyBrowseRepresentation()
         renderMap()
     }
 

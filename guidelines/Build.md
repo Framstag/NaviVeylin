@@ -77,9 +77,17 @@ All three skills follow the same contract:
   (4-digit year, zero-padded month/day, running number `N` without leading
   zeros), increments `versionCode` by one, then runs
   `:app:bundleMobileRelease` and `:app:bundleAutomotiveRelease`.
-- Version state lives in `app/release-version.properties` (**gitignored**):
-  `lastDate`, `runningNumber`, `versionCode`. Same day → `N+1`; new day → `N`
-  resets to 1; `versionCode` starts at 20.
+- Version state lives in `app/release-version.properties` (**gitignored**,
+  machine-local — keep it on the release machine): `lastDate`,
+  `runningNumber`, `versionCode`, `lastVersionName`. Same day → `N+1`; new day
+  → `N` resets to 1; `versionCode` starts at 20. `release` **fails fast** if the
+  file is missing or its `lastDate` is in the future (a silent reset would emit
+  a duplicate `versionName` or a `versionCode` at/below the published one, which
+  Play rejects). **Play's dedup key is `versionCode`, not `versionName`** — a
+  date-`-N` name can repeat across days, but every uploaded AAB needs a
+  versionCode strictly greater than every published one (incl. AABs built from
+  stale state). If the state lags reality (release published elsewhere), set
+  the values to the last published ones before running `release`.
 - The bump happens at configuration time, gated on the `release` task being
   requested — every other build uses the fixed fallback `1.0.0`/`19` and never
   touches the state file. Direct `bundleRelease` without `release` reuses the

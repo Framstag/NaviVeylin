@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -46,8 +47,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naviveylin.R
+import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
+import kotlin.math.roundToInt
 
 /**
  * Location options button that opens a full-width Material 3 bottom sheet for
@@ -70,10 +73,12 @@ fun LocationOptionsOverlay(
     onToggleKeepScreenOn: (Boolean) -> Unit = {},
     darkModePreference: DarkModePreference = DarkModePreference.AUTOMATIC,
     onSetDarkModePreference: (DarkModePreference) -> Unit = {},
-    ambientLightDarkMode: Boolean = false,
-    onSetAmbientLightOption: (Boolean) -> Unit = {},
+    ambientLightSensitivity: AmbientLightSensitivity = AmbientLightSensitivity.OFF,
+    onSetAmbientLightSensitivity: (AmbientLightSensitivity) -> Unit = {},
     laneHintsEnabled: Boolean = true,
     onToggleLaneHints: (Boolean) -> Unit = {},
+    overspeedWarningDeltaKmh: Int = 5,
+    onSetOverspeedWarningDelta: (Int) -> Unit = {},
     renderMode: RenderMode = RenderMode.TILES,
     onSetRenderMode: (RenderMode) -> Unit = {},
     availableStyles: List<String> = emptyList(),
@@ -123,10 +128,12 @@ fun LocationOptionsOverlay(
                 onToggleKeepScreenOn = onToggleKeepScreenOn,
                 darkModePreference = darkModePreference,
                 onSetDarkModePreference = onSetDarkModePreference,
-                ambientLightDarkMode = ambientLightDarkMode,
-                onSetAmbientLightOption = onSetAmbientLightOption,
+                ambientLightSensitivity = ambientLightSensitivity,
+                onSetAmbientLightSensitivity = onSetAmbientLightSensitivity,
                 laneHintsEnabled = laneHintsEnabled,
                 onToggleLaneHints = onToggleLaneHints,
+                overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
+                onSetOverspeedWarningDelta = onSetOverspeedWarningDelta,
                 renderMode = renderMode,
                 onSetRenderMode = onSetRenderMode,
                 availableStyles = availableStyles,
@@ -151,10 +158,12 @@ private fun LocationOptionsSheetContent(
     onToggleKeepScreenOn: (Boolean) -> Unit,
     darkModePreference: DarkModePreference,
     onSetDarkModePreference: (DarkModePreference) -> Unit,
-    ambientLightDarkMode: Boolean,
-    onSetAmbientLightOption: (Boolean) -> Unit,
+    ambientLightSensitivity: AmbientLightSensitivity,
+    onSetAmbientLightSensitivity: (AmbientLightSensitivity) -> Unit,
     laneHintsEnabled: Boolean,
     onToggleLaneHints: (Boolean) -> Unit,
+    overspeedWarningDeltaKmh: Int,
+    onSetOverspeedWarningDelta: (Int) -> Unit,
     renderMode: RenderMode,
     onSetRenderMode: (RenderMode) -> Unit,
     availableStyles: List<String>,
@@ -300,6 +309,42 @@ private fun LocationOptionsSheetContent(
             )
         }
 
+        // Overspeed warning delta — always visible, 0-30 km/h, 1 km/h
+        // precision (spec: location-options-ui — Overspeed warning delta
+        // control: slider over the integer range 0-30 with the current value
+        // shown; the value is global and shared with Android Auto).
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.overspeed_warning_delta),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.overspeed_delta_value, overspeedWarningDeltaKmh),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Slider(
+            value = overspeedWarningDeltaKmh.toFloat(),
+            onValueChange = { value ->
+                onSetOverspeedWarningDelta(value.roundToInt())
+            },
+            valueRange = 0f..30f,
+            steps = 29,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("overspeedDeltaSlider")
+        )
+
         // Dark mode section — always visible
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
 
@@ -328,25 +373,36 @@ private fun LocationOptionsSheetContent(
             )
         }
 
-        // Ambient light sensor option — only meaningful in Automatic mode.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        // Ambient light sensor sensitivity — only meaningful in Automatic mode.
+        Text(
+            text = stringResource(R.string.ambient_light_dark_mode),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.ambient_light_dark_mode),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f)
+                .padding(top = 16.dp, bottom = 8.dp)
+                .testTag("ambientLightSensitivity")
+        )
+
+        Column(modifier = Modifier.selectableGroup()) {
+            OrientationOption(
+                label = stringResource(R.string.off),
+                selected = ambientLightSensitivity == AmbientLightSensitivity.OFF,
+                onClick = { onSetAmbientLightSensitivity(AmbientLightSensitivity.OFF) }
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Switch(
-                checked = ambientLightDarkMode,
-                onCheckedChange = { enabled ->
-                    onSetAmbientLightOption(enabled)
-                },
-                modifier = Modifier.testTag("ambientLightToggle")
+            OrientationOption(
+                label = stringResource(R.string.sensitivity_high),
+                selected = ambientLightSensitivity == AmbientLightSensitivity.HIGH,
+                onClick = { onSetAmbientLightSensitivity(AmbientLightSensitivity.HIGH) }
+            )
+            OrientationOption(
+                label = stringResource(R.string.sensitivity_medium),
+                selected = ambientLightSensitivity == AmbientLightSensitivity.MEDIUM,
+                onClick = { onSetAmbientLightSensitivity(AmbientLightSensitivity.MEDIUM) }
+            )
+            OrientationOption(
+                label = stringResource(R.string.sensitivity_low),
+                selected = ambientLightSensitivity == AmbientLightSensitivity.LOW,
+                onClick = { onSetAmbientLightSensitivity(AmbientLightSensitivity.LOW) }
             )
         }
 

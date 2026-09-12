@@ -19,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.naviveylin.data.AmbientLightMonitor
+import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.MapStorageManager
@@ -75,20 +76,27 @@ class MainActivity : ComponentActivity() {
         handleSharedIntent(intent)
 
         // Ambient light sensor: active only when the preference is Automatic
-        // AND the option is enabled; stopped on activity stop (foreground-only
-        // listening, battery). Reports null on stop so the environment source
-        // reverts to the system night mode signal.
+        // AND a sensitivity level (!= OFF) is selected; stopped on activity stop
+        // (foreground-only listening, battery). Reports null on stop so the
+        // environment source reverts to the system night mode signal. The level
+        // is pushed into the monitor before start so the first reading already
+        // classifies with the selected thresholds; changing level re-pipelines.
         ambientLightMonitor = AmbientLightMonitor(
             sensorManager = getSystemService(SensorManager::class.java),
             onClassification = { dark -> darkModeController.setSensorDark(dark) }
         )
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(darkModeController.preference, darkModeController.sensorEnabled) { pref, enabled ->
-                    pref == DarkModePreference.AUTOMATIC && enabled
-                }.collect { active ->
-                    Log.d(TAG, "ambient light gating: active=$active (pref=${darkModeController.preference.value}, option=${darkModeController.sensorEnabled.value})")
-                    if (active) ambientLightMonitor.start() else ambientLightMonitor.stop()
+                combine(darkModeController.preference, darkModeController.sensorSensitivity) { pref, level ->
+                    Pair(pref == DarkModePreference.AUTOMATIC, level)
+                }.collect { (active, level) ->
+                    Log.d(TAG, "ambient light gating: active=$active (pref=${darkModeController.preference.value}, sensitivity=${darkModeController.sensorSensitivity.value})")
+                    if (active && level != AmbientLightSensitivity.OFF) {
+                        ambientLightMonitor.setSensitivity(level)
+                        ambientLightMonitor.start()
+                    } else {
+                        ambientLightMonitor.stop()
+                    }
                 }
             }
         }

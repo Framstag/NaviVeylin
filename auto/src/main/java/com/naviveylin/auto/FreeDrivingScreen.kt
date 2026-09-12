@@ -18,6 +18,7 @@ import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.SpeedStaleness
 import kotlin.math.roundToInt
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -93,6 +95,14 @@ class FreeDrivingScreen(
     @Volatile
     private var currentSpeedKmH: Double = Double.NaN
 
+    /**
+     * Wall-clock time of the last processed fix — staleness guard for the
+     * badge (spec: gps-speed-priority — stationary reads zero). The provider
+     * goes silent at standstill, so this ages until the next fix.
+     */
+    @Volatile
+    private var lastFixTimeMs: Long = 0L
+
     /** Latest road speed limit (km/h) for the limit sign; NaN when undefined. */
     @Volatile
     private var maxSpeedKmH: Double = Double.NaN
@@ -100,6 +110,10 @@ class FreeDrivingScreen(
     /** Auto-zoom from the shared settings (default on). */
     @Volatile
     private var autoZoomEnabled: Boolean = true
+
+    /** Overspeed warning delta (km/h) from the shared settings (default 5). */
+    @Volatile
+    private var overspeedWarningDeltaKmh: Int = 5
 
     /**
      * Effective speed/bearing derivation (spec: auto-smooth-follow — "Fix
@@ -133,9 +147,30 @@ class FreeDrivingScreen(
             runCatching { settingsProvider.load() }
                 .onSuccess { settings ->
                     autoZoomEnabled = settings.autoZoomEnabled
+                    overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
                     Log.d(TAG, "settings loaded: autoZoomEnabled=$autoZoomEnabled")
                 }
                 .onFailure { Log.w(TAG, "loading settings failed", it) }
+        }
+
+        // Stale-speed ticker (spec: gps-speed-priority — stationary reads
+        // zero). At standstill the provider goes silent (min-distance
+        // throttling), so the badge must decay to 0 once no fresh fix arrives
+        // instead of pinning the last pre-stop speed forever (mirror of the
+        // AANavigationController/phone-VM tickers; the screen's own volatile
+        // is not covered by them). Dispatchers.Default + real clock: must not
+        // feed the (virtual) test scheduler with an endless delay loop.
+        scope.launch(Dispatchers.Default) {
+            while (true) {
+                delay(SPEED_STALE_TICK_MS)
+                if (SpeedStaleness.isStale(lastFixTimeMs, System.currentTimeMillis()) &&
+                    currentSpeedKmH != 0.0
+                ) {
+                    currentSpeedKmH = 0.0
+                    Log.d(TAG, "stale fix — free-driving badge speed zeroed")
+                    mapRenderer.requestRender()
+                }
+            }
         }
 
         // Surface overlays: compass rose (rotates with the map) + current
@@ -153,6 +188,7 @@ class FreeDrivingScreen(
                 angleRadians = headingRadians ?: 0.0,
                 currentKmH = currentSpeedKmH,
                 maxKmH = maxSpeedKmH,
+                overLimitDeltaKmh = overspeedWarningDeltaKmh,
                 drawSpeedLimitSign = true
             )
             StreetNameLabel.draw(
@@ -283,6 +319,7 @@ class FreeDrivingScreen(
      */
     private fun onGpsFix(pos: AutoPosition) {
         val nowMs = System.currentTimeMillis()
+        lastFixTimeMs = nowMs
         val (speed, bearing) = fixDerivation.derive(pos, nowMs)
         Log.d(
             TAG,
@@ -483,6 +520,9 @@ class FreeDrivingScreen(
 
         /** City-level zoom for the surface before GPS arrives. */
         private const val DEFAULT_AA_ZOOM = 13
+
+        /** Stale-speed ticker cadence (1 Hz, same as the phone/controller). */
+        private const val SPEED_STALE_TICK_MS = 1_000L
 
         /**
          * Heading-up viewport rotation in radians; null when the bearing is

@@ -19,7 +19,8 @@ internal fun AppSettings.toAutoSettings(): AutoSettings = AutoSettings(
     darkMode = darkMode.name,
     laneHintsEnabled = laneHintsEnabled,
     renderMode = renderMode.name,
-    styleSheet = styleSheet
+    styleSheet = styleSheet,
+    overspeedWarningDeltaKmh = overspeedWarningDeltaKmh
 )
 
 /**
@@ -34,5 +35,6 @@ internal fun AutoSettings.toAppSettings(current: AppSettings): AppSettings = cur
     darkMode = DarkModePreference.valueOf(darkMode),
     laneHintsEnabled = laneHintsEnabled,
     renderMode = RenderMode.valueOf(renderMode),
-    styleSheet = styleSheet
+    styleSheet = styleSheet,
+    overspeedWarningDeltaKmh = overspeedWarningDeltaKmh
 )

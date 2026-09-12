@@ -16,6 +16,7 @@ import android.util.Log
  * [AmbientLightMonitor] for unit testing without Android sensors.
  */
 class AmbientLightPipeline(
+    private val sensitivity: AmbientLightSensitivity = AmbientLightSensitivity.HIGH,
     private val debounced: DebouncedSignal = DebouncedSignal(),
     private val nowMs: () -> Long = SystemClock::elapsedRealtime
 ) {
@@ -23,7 +24,7 @@ class AmbientLightPipeline(
 
     /** Feed a raw lux reading; returns the new stable classification or null. */
     fun onLux(lux: Float): Boolean? {
-        val dark = classifyLux(debounced.value, lux)
+        val dark = classifyLux(debounced.value, lux, sensitivity)
         val stable = debounced.update(dark, nowMs())
         return if (stable != lastDark) {
             lastDark = stable
@@ -46,7 +47,7 @@ class AmbientLightPipeline(
 class AmbientLightMonitor(
     private val sensorManager: SensorManager,
     private val onClassification: (Boolean?) -> Unit,
-    private val pipeline: AmbientLightPipeline = AmbientLightPipeline()
+    private var pipeline: AmbientLightPipeline = AmbientLightPipeline()
 ) : SensorEventListener {
 
     private val lightSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
@@ -74,6 +75,23 @@ class AmbientLightMonitor(
     /** True when the device has a light sensor. */
     val available: Boolean get() = lightSensor != null
 
+    /**
+     * Switch the sensitivity level: swaps in a fresh pipeline (new thresholds,
+     * debounce/hysteresis state reset) and re-feeds the last reading so the
+     * next event classifies with the new level. Call while stopped or before
+     * [start]; when running the fresh state takes effect on the next event.
+     */
+    fun setSensitivity(sensitivity: AmbientLightSensitivity) {
+        pipeline = AmbientLightPipeline(sensitivity = sensitivity)
+        lastLux?.let { lux ->
+            val flip = pipeline.onLux(lux)
+            if (flip != null) {
+                Log.d(TAG, "classification after sensitivity change ${if (flip) "dark" else "light"} (lux=$lux)")
+                onClassification(flip)
+            }
+        }
+    }
+
     fun start() {
         if (running) return
         if (lightSensor == null) {
@@ -97,7 +115,6 @@ class AmbientLightMonitor(
         Log.d(TAG, "ambient light sensor stopped")
         onClassification(null)
     }
-
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type != Sensor.TYPE_LIGHT) return
         val lux = event.values[0]

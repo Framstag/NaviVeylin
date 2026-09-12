@@ -1,6 +1,7 @@
 package com.naviveylin.auto
 
 import com.naviveylin.core.AutoPositionUtil
+import com.naviveylin.core.SpeedZoomTable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -29,14 +30,30 @@ class AutoZoomControllerTest {
     }
 
     @Test
-    fun fractionalConvergenceMovesHalfLevelPerUpdate() {
+    fun fractionalConvergenceIsDistanceProportional() {
         val c = AutoZoomController()
         assertEquals(16.0, c.onSpeed(40.0)!!, 0.001)
-        // 75 km/h → interpolated target 14.5: converge 0.5 levels per update.
-        assertEquals(15.5, c.onSpeed(75.0)!!, 0.001)
-        assertEquals(15.0, c.onSpeed(75.0)!!, 0.001)
-        assertEquals(14.5, c.onSpeed(75.0)!!, 0.001)
-        // Settled exactly at the fractional target — never rounded, never churned.
+        // 75 km/h → interpolated target 14.5. The step is proportional to the
+        // remaining gap (gain 0.3, capped at 0.5 levels per update): 0.45 on
+        // the first update, then shrinking — fast when far, gentle near the
+        // target so speed-noise jitter around the target never gets chased
+        // back and forth (no zoom "pumping").
+        assertEquals(15.55, c.onSpeed(75.0)!!, 0.001)
+        assertEquals(15.235, c.onSpeed(75.0)!!, 0.001)
+        assertEquals(15.0145, c.onSpeed(75.0)!!, 0.001)
+        // Converges monotonically toward 14.5 and settles inside the epsilon
+        // deadband (never rounded, never churned).
+        var mag = 15.0145
+        while (true) {
+            val next = c.onSpeed(75.0)
+                ?: break // null → settled within the deadband
+            assertTrue("must approach the target", next < mag)
+            assertTrue("must not overshoot", next >= 14.5)
+            mag = next
+        }
+        assertTrue("settled inside the deadband",
+            kotlin.math.abs(mag - 14.5) <= SpeedZoomTable.ZOOM_EPSILON)
+        // Constant speed afterwards: epsilon no-op, nothing to commit.
         assertNull(c.onSpeed(75.0))
     }
 

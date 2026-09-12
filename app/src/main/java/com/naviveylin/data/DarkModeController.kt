@@ -34,15 +34,15 @@ class DarkModeController @Inject constructor(
     /** Sensor classification; null = sensor inactive or unavailable. */
     private val _sensorDark = MutableStateFlow<Boolean?>(null)
 
-    /** Ambient light sensor option (persisted via [SettingsStorage]). */
-    private val _sensorEnabled = MutableStateFlow(false)
+    /** Ambient light sensor sensitivity option (persisted via [SettingsStorage]). */
+    private val _sensorSensitivity = MutableStateFlow(AmbientLightSensitivity.OFF)
 
-    /** Ambient light sensor option state. */
-    val sensorEnabled: StateFlow<Boolean> = _sensorEnabled.asStateFlow()
+    /** Ambient light sensor sensitivity option state. */
+    val sensorSensitivity: StateFlow<AmbientLightSensitivity> = _sensorSensitivity.asStateFlow()
 
     /** Resolved dark presentation (preference × environment). */
     val isDarkPresentation: StateFlow<Boolean> =
-        combine(_preference, _environmentDark, _sensorDark, _sensorEnabled, ::resolveDarkPresentation)
+        combine(_preference, _environmentDark, _sensorDark, _sensorSensitivity, ::resolveDarkPresentation)
             .stateIn(scope, kotlinx.coroutines.flow.SharingStarted.Eagerly, false)
 
     /**
@@ -62,21 +62,21 @@ class DarkModeController @Inject constructor(
     }
 
     /**
-     * Enable/disable the ambient light sensor as the environment source and
-     * persist the option.
+     * Set the ambient light sensor sensitivity (OFF disables the sensor as the
+     * environment source) and persist it.
      */
-    fun setSensorOption(enabled: Boolean) {
-        if (_sensorEnabled.value == enabled) return
-        _sensorEnabled.value = enabled
+    fun setSensorSensitivity(sensitivity: AmbientLightSensitivity) {
+        if (_sensorSensitivity.value == sensitivity) return
+        _sensorSensitivity.value = sensitivity
         scope.launch {
             val current = settingsStorage.load()
-            settingsStorage.save(current.copy(ambientLightDarkMode = enabled))
+            settingsStorage.save(current.copy(ambientLightSensitivity = sensitivity))
         }
     }
 
-    /** Restore the persisted sensor option (e.g. after settings load). */
-    fun restoreSensorOption(enabled: Boolean) {
-        _sensorEnabled.value = enabled
+    /** Restore the persisted sensor sensitivity (e.g. after settings load). */
+    fun restoreSensorSensitivity(sensitivity: AmbientLightSensitivity) {
+        _sensorSensitivity.value = sensitivity
     }
 
     /** Restore the persisted preference (e.g. after settings load). */
@@ -105,10 +105,10 @@ fun resolveDarkPresentation(
     preference: DarkModePreference,
     environmentDark: Boolean,
     sensorDark: Boolean? = null,
-    sensorEnabled: Boolean = false
+    sensorSensitivity: AmbientLightSensitivity = AmbientLightSensitivity.OFF
 ): Boolean = when (preference) {
     DarkModePreference.ON -> true
     DarkModePreference.OFF -> false
     DarkModePreference.AUTOMATIC ->
-        if (sensorEnabled && sensorDark != null) sensorDark else environmentDark
+        if (sensorSensitivity != AmbientLightSensitivity.OFF && sensorDark != null) sensorDark else environmentDark
 }

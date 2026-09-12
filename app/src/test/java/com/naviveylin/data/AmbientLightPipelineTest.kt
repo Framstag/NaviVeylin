@@ -21,6 +21,9 @@ class AmbientLightPipelineTest {
     private fun pipeline(clock: FakeClock): AmbientLightPipeline =
         AmbientLightPipeline(nowMs = { clock.now })
 
+    private fun pipeline(clock: FakeClock, sensitivity: AmbientLightSensitivity): AmbientLightPipeline =
+        AmbientLightPipeline(sensitivity = sensitivity, nowMs = { clock.now })
+
     @Test
     fun darkEntryAfterDebounce() {
         val clock = FakeClock()
@@ -84,5 +87,24 @@ class AmbientLightPipelineTest {
         assertEquals(false, p.onLux(200f))
         assertNull(p.onLux(180f)) // still light, no flip
         assertNull(p.onLux(300f)) // still light, no flip
+    }
+
+    @Test
+    fun mediumLevelDoesNotEnterDarkAtHighBoundaryLux() {
+        val clock = FakeClock()
+        // 6 lux is dark under HIGH (below 10) but light under MEDIUM (above 5).
+        val high = pipeline(clock, AmbientLightSensitivity.HIGH)
+
+        assertEquals(false, high.onLux(6f)) // bright-start classification
+        assertNull(high.onLux(6f))          // pending debounce
+        clock.tick(DEBOUNCE_MS)
+        assertEquals(true, high.onLux(6f))  // HIGH flips dark after the window
+
+        // Same readings under MEDIUM stay light.
+        val clock2 = FakeClock()
+        val medium = pipeline(clock2, AmbientLightSensitivity.MEDIUM)
+        assertEquals(false, medium.onLux(6f))
+        clock2.tick(DEBOUNCE_MS)
+        assertNull(medium.onLux(6f)) // still light at 6 lux under MEDIUM
     }
 }

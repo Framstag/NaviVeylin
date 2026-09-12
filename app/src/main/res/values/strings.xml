@@ -93,11 +93,16 @@
     <string name="auto_zoom">Auto zoom</string>
     <string name="keep_screen_on">Keep screen on</string>
     <string name="lane_instructions">Lane instructions</string>
+    <string name="overspeed_warning_delta">Overspeed warning</string>
+    <string name="overspeed_delta_value">+%1$d km/h</string>
     <string name="dark_mode">Dark mode</string>
     <string name="ambient_light_dark_mode">Adaptive by ambient light</string>
     <string name="on">On</string>
     <string name="off">Off</string>
     <string name="automatic">Automatic</string>
+    <string name="sensitivity_high">High</string>
+    <string name="sensitivity_medium">Medium</string>
+    <string name="sensitivity_low">Low</string>
     <string name="rendering">Rendering</string>
     <string name="tile_cache">Tile cache</string>
     <string name="direct">Direct</string>

@@ -44,7 +44,8 @@ fun SpeedWidget(
     maxSpeedKmH: Double,
     modifier: Modifier = Modifier,
     reserveLimitSpace: Boolean = false,
-    reserveSlotWhenHidden: Boolean = false
+    reserveSlotWhenHidden: Boolean = false,
+    overspeedWarningDeltaKmh: Int = 5
 ) {
     val hasSpeed = !currentSpeedKmH.isNaN() && currentSpeedKmH >= 0
     // No current speed (unknown or negative) → nothing to draw (spec:
@@ -52,7 +53,9 @@ fun SpeedWidget(
     if (!hasSpeed && !reserveSlotWhenHidden) return
 
     val showLimit = hasSpeed && !maxSpeedKmH.isNaN() && maxSpeedKmH > 0
-    val badgeColor = speedBadgeTextColor(isSpeedOverLimit(currentSpeedKmH, maxSpeedKmH))
+    val overLimit = hasSpeed &&
+        isSpeedOverLimit(currentSpeedKmH, maxSpeedKmH, overspeedWarningDeltaKmh)
+    val badgeColor = speedBadgeTextColor(overLimit)
 
     Column(
         modifier = modifier.then(
@@ -64,7 +67,7 @@ fun SpeedWidget(
         Box(
             modifier = Modifier
                 .background(
-                    if (hasSpeed) speedBadgeContainerColor() else Color.Transparent,
+                    if (hasSpeed) speedBadgeContainerColor(overLimit) else Color.Transparent,
                     RoundedCornerShape(12.dp)
                 )
                 .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -96,7 +99,7 @@ fun SpeedWidget(
                     .padding(top = 6.dp)
                     .size(64.dp)
                     .background(Color.White, CircleShape)
-                    .border(6.dp, Color(0xFFE53935), CircleShape)
+                    .border(6.dp, OVERSPEED_RED, CircleShape)
                     .testTag("speedLimitSign"),
                 contentAlignment = Alignment.Center
             ) {
@@ -123,24 +126,29 @@ fun SpeedWidget(
 
 /**
  * Badge text color: dark (`onSurface`) on the light card in the normal case;
- * the overspeed warning color when exceeding the limit by 5+ km/h (spec:
- * map-speed-widget — Overspeed warning color). Dark text on the light card
- * background; never white-on-light. Exposed for tests.
+ * white on the red warning background when exceeding the limit by 5+ km/h
+ * (spec: map-speed-widget — Overspeed warning color: red background with
+ * white text). Never white-on-light; white only appears together with the
+ * red warning background. Exposed for tests.
  */
 @Composable
 internal fun speedBadgeTextColor(overLimit: Boolean): Color =
-    if (overLimit) MaterialTheme.colorScheme.error
+    if (overLimit) Color.White
     else MaterialTheme.colorScheme.onSurface
 
 /**
- * Badge container color — the standard overlay card container shared with the
- * turn card and routing status (spec: map-speed-widget — Speed badge uses the
- * standard overlay card container), never a fixed dark color. Exposed for
+ * Badge container color — the standard overlay card container in the normal
+ * state (theme surface at 0.92 alpha, shared with the turn card and routing
+ * status, spec: map-speed-widget — Speed badge uses the standard overlay
+ * card container); the overspeed warning red at the same 0.92 alpha and 12dp
+ * rounded corners when over the limit, so the semi-transparent overlay
+ * treatment is retained while the badge is in the warning state. Exposed for
  * tests.
  */
 @Composable
-internal fun speedBadgeContainerColor(): Color =
-    MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+internal fun speedBadgeContainerColor(overLimit: Boolean): Color =
+    if (overLimit) OVERSPEED_RED.copy(alpha = 0.92f)
+    else MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
 
 /**
  * Badge current-speed text style — driver-seat readable size (spec:
@@ -159,18 +167,37 @@ internal fun speedBadgeTextStyle(): TextStyle = MaterialTheme.typography.headlin
 internal fun speedLimitDigitsStyle(): TextStyle = MaterialTheme.typography.headlineMedium
 
 /**
- * Overspeed rule (spec: map-speed-widget): the badge turns red when the
- * current speed exceeds the max speed by 5 km/h or more. Unknown max speed
- * (NaN or <= 0) never triggers red.
+ * Overspeed rule (spec: map-speed-widget — Overspeed warning color): the
+ * badge turns red when the current speed equals or exceeds the max speed
+ * plus the configured overspeed warning delta (`current >= max + delta`, so
+ * at exactly max + delta the warning triggers; a delta of 0 warns at the
+ * limit). The delta is the single global value shared with Android Auto
+ * (default 5, range 0-30). Unknown max speed (NaN or <= 0) never triggers
+ * red.
  */
-internal fun isSpeedOverLimit(currentSpeedKmH: Double, maxSpeedKmH: Double): Boolean =
-    !maxSpeedKmH.isNaN() && maxSpeedKmH > 0 && currentSpeedKmH > maxSpeedKmH + 5
+internal fun isSpeedOverLimit(
+    currentSpeedKmH: Double,
+    maxSpeedKmH: Double,
+    overspeedWarningDeltaKmh: Int = 5
+): Boolean =
+    !maxSpeedKmH.isNaN() && maxSpeedKmH > 0 &&
+        currentSpeedKmH >= maxSpeedKmH + overspeedWarningDeltaKmh
 
 /** Speed values to show in the widget; null when the widget must be hidden. */
 internal data class SpeedWidgetInput(
     val currentSpeedKmH: Double,
     val maxSpeedKmH: Double
 )
+
+/**
+ * Overspeed warning red (spec: map-speed-widget — Overspeed warning color):
+ * fixed red-600 used for the speed-limit sign ring and, at 0.92 alpha, the
+ * warning-state badge background. Fixed (not theme-derived) so white text
+ * stays readable in both light and dark color schemes — the M3 dark-scheme
+ * error color is a light pink that would fail contrast. Same hue the Android
+ * Auto badge uses (SurfaceIndicators BADGE_WARN).
+ */
+private val OVERSPEED_RED = Color(0xFFE53935)
 
 /**
  * Widest rendered speed value (3 digits max): reserves the badge width so the

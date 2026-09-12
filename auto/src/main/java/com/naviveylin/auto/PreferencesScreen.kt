@@ -31,21 +31,28 @@ import kotlinx.coroutines.launch
 class PreferencesScreen private constructor(
     carContext: CarContext,
     private val settingsProvider: AutoSettingsProvider,
-    private val stylesLoader: () -> List<String>
+    private val stylesLoader: () -> List<String>,
+    private val onDarkModeChanged: (String) -> Unit = {}
 ) : Screen(carContext) {
 
     /** Production path: resolve the provider and the live style list via Hilt. */
-    constructor(carContext: CarContext) : this(
+    constructor(carContext: CarContext, onDarkModeChanged: (String) -> Unit = {}) : this(
         carContext,
         settingsProviderFor(carContext),
-        stylesLoaderFor(carContext)
+        stylesLoaderFor(carContext),
+        onDarkModeChanged
     )
 
     /** Test path: injected provider and the bundled fallback style list. */
-    constructor(carContext: CarContext, settingsProvider: AutoSettingsProvider) : this(
+    constructor(
+        carContext: CarContext,
+        settingsProvider: AutoSettingsProvider,
+        onDarkModeChanged: (String) -> Unit = {}
+    ) : this(
         carContext,
         settingsProvider,
-        { BundledMapStyles.USER_SELECTABLE }
+        { BundledMapStyles.USER_SELECTABLE },
+        onDarkModeChanged
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -75,7 +82,18 @@ class PreferencesScreen private constructor(
                     Row.Builder()
                         .setTitle(row.title)
                         .addText(row.valueText)
-                        .setOnClickListener { onToggle(row.key) }
+                        .setOnClickListener {
+                            // The overspeed delta row opens the value picker
+                            // (0-30) instead of toggling (spec: auto-map-layout
+                            // — Overspeed delta presented as a value picker).
+                            if (row.key == PreferencesScreenMapper.KEY_OVERSPEED_DELTA) {
+                                screenManager.push(
+                                    OverspeedDeltaPickerScreen(carContext, settingsProvider)
+                                )
+                            } else {
+                                onToggle(row.key)
+                            }
+                        }
                         .build()
                 )
             }
@@ -99,6 +117,12 @@ class PreferencesScreen private constructor(
         settings = updated
         scope.launch {
             settingsProvider.save(updated)
+            // Notify the session so the car map re-resolves dark presentation
+            // (spec: auto/preferences — dark mode preference applies to car
+            // rendering, "Preference change applies live").
+            if (key == PreferencesScreenMapper.KEY_DARK_MODE) {
+                onDarkModeChanged(updated.darkMode)
+            }
             invalidate()
         }
     }

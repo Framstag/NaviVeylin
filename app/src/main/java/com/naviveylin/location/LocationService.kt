@@ -19,6 +19,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.SpeedStaleness
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -328,25 +329,6 @@ internal class SpeedSanity {
             kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2))
             .coerceIn(0.0, 1.0)
         return earthRadiusM * 2.0 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1.0 - a))
-    }
-}
-
-/**
- * Detects a stale speed feed (spec: gps-speed-priority / speed-spike-filtering).
- *
- * The location provider goes silent at standstill (min-distance throttling),
- * so the consumers' last-fix timestamp ages. Once it exceeds [STALE_SPEED_MS]
- * the displayed speed SHALL read 0 instead of the last delivered value.
- */
-internal class SpeedStaleness {
-
-    companion object {
-        /** Speed values this old are stale — display decays to 0 km/h. */
-        const val STALE_SPEED_MS = 3_000L
-
-        /** True when [lastFixTimeMs] is beyond the staleness window. */
-        fun isStale(lastFixTimeMs: Long, nowMs: Long): Boolean =
-            lastFixTimeMs > 0L && nowMs - lastFixTimeMs > STALE_SPEED_MS
     }
 }
 

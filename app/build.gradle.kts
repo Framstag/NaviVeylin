@@ -57,25 +57,50 @@ fun writeReleaseState(state: Properties) {
  * Computes the next release version and persists it.
  * Same day → running number +1; new day → running number resets to 1.
  * versionCode increments by exactly one from the persisted value (first run: 20).
+ *
+ * The state file is machine-local (gitignored). "Release" FAILS FAST without it:
+ * silently restarting the running number at 1 (or versionCode at 20) would emit
+ * a duplicate versionName or a versionCode at or below a published one, which
+ * Google Play rejects. Same for a state file stamped with a future date (clock/
+ * timezone drift between machines near midnight makes the day counter regress).
  */
 fun nextReleaseVersion(): Pair<String, Int> {
+    if (!releaseStateFile.exists()) {
+        throw GradleException(
+            "Refusing to bump the release version: app/release-version.properties is missing.\n" +
+                "Version state is machine-local (gitignored); running `release` without it would restart " +
+                "the running number at -1 and versionCode at 20, producing a duplicate versionName or a " +
+                "versionCode below the published one (Google Play rejects the upload).\n" +
+                "Restore the file from the release machine, or recreate it with the last published version " +
+                "(example: lastDate=/runningNumber=/versionCode=/lastVersionName= of the last AAB upload)."
+        )
+    }
     val state = readReleaseState()
     val today = LocalDate.now()
     val todayStr = today.toString() // ISO yyyy-MM-dd
-    val runningNumber = if (state.getProperty("lastDate") == todayStr) {
+    val lastDate = state.getProperty("lastDate")
+    if (lastDate != null && lastDate > todayStr) {
+        throw GradleException(
+            "Refusing to bump the release version: persisted lastDate $lastDate is after today ($todayStr).\n" +
+                "Likely clock/timezone drift between release machines near midnight — the day counter would " +
+                "regress and emit a duplicate versionName. Sync clocks or fix the state file."
+        )
+    }
+    val runningNumber = if (lastDate == todayStr) {
         (state.getProperty("runningNumber")?.toIntOrNull() ?: 0) + 1
     } else {
         1
     }
     val versionCode = (state.getProperty("versionCode")?.toIntOrNull() ?: FALLBACK_VERSION_CODE) + 1
-    state.setProperty("lastDate", todayStr)
-    state.setProperty("runningNumber", runningNumber.toString())
-    state.setProperty("versionCode", versionCode.toString())
-    writeReleaseState(state)
     val versionName = String.format(
         "%04d-%02d-%02d-%d",
         today.year, today.monthValue, today.dayOfMonth, runningNumber
     )
+    state.setProperty("lastDate", todayStr)
+    state.setProperty("runningNumber", runningNumber.toString())
+    state.setProperty("versionCode", versionCode.toString())
+    state.setProperty("lastVersionName", versionName)
+    writeReleaseState(state)
     return versionName to versionCode
 }
 

@@ -16,7 +16,7 @@ class AppSettingsTest {
         assertTrue(settings.freeFormNorthUp)
         assertFalse(settings.navNorthUp)
         assertEquals(DarkModePreference.AUTOMATIC, settings.darkMode)
-        assertFalse(settings.ambientLightDarkMode)
+        assertEquals(AmbientLightSensitivity.OFF, settings.ambientLightSensitivity)
     }
 
     @Test
@@ -47,15 +47,54 @@ class AppSettingsTest {
         assertTrue(decoded.freeFormNorthUp) // default
         assertFalse(decoded.navNorthUp)     // default
         assertEquals(DarkModePreference.AUTOMATIC, decoded.darkMode) // default
-        assertFalse(decoded.ambientLightDarkMode) // default
+        assertEquals(AmbientLightSensitivity.OFF, decoded.ambientLightSensitivity) // default
     }
 
     @Test
-    fun ambientLightOptionRoundTrip() {
-        val settings = AppSettings(ambientLightDarkMode = true)
-        val encoded = json.encodeToString(AppSettings.serializer(), settings)
-        val decoded = json.decodeFromString(AppSettings.serializer(), encoded)
-        assertTrue(decoded.ambientLightDarkMode)
+    fun ambientSensitivityRoundTrip() {
+        for (sensitivity in AmbientLightSensitivity.entries) {
+            val settings = AppSettings(ambientLightSensitivity = sensitivity)
+            val encoded = json.encodeToString(AppSettings.serializer(), settings)
+            val decoded = json.decodeFromString(AppSettings.serializer(), encoded)
+            assertEquals(sensitivity, decoded.ambientLightSensitivity)
+        }
+    }
+
+    @Test
+    fun legacyEnabledBooleanMapsToHigh() {
+        val normalized = migrateLegacySettings(
+            """{"followMode":true,"ambientLightDarkMode":true,"overspeedWarningDeltaKmh":12}"""
+        )
+        val decoded = json.decodeFromString(AppSettings.serializer(), normalized)
+        assertEquals(AmbientLightSensitivity.HIGH, decoded.ambientLightSensitivity)
+        assertTrue(decoded.followMode)
+        assertEquals(12, decoded.overspeedWarningDeltaKmh)
+        assertFalse("legacy key must be removed from the normalized text", normalized.contains("ambientLightDarkMode"))
+        assertTrue(normalized.contains("ambientLightSensitivity"))
+    }
+
+    @Test
+    fun legacyDisabledBooleanMapsToOff() {
+        val normalized = migrateLegacySettings("""{"ambientLightDarkMode":false,"followMode":true}""")
+        val decoded = json.decodeFromString(AppSettings.serializer(), normalized)
+        assertEquals(AmbientLightSensitivity.OFF, decoded.ambientLightSensitivity)
+        assertTrue(decoded.followMode)
+    }
+
+    @Test
+    fun missingLegacyKeyMapsToOff() {
+        // Already-normalized file (no legacy key) passes through unchanged and
+        // decodes with the OFF default.
+        val raw = """{"darkMode":"AUTOMATIC","ambientLightSensitivity":"MEDIUM"}"""
+        assertEquals(raw, migrateLegacySettings(raw))
+        val decoded = json.decodeFromString(AppSettings.serializer(), raw)
+        assertEquals(AmbientLightSensitivity.MEDIUM, decoded.ambientLightSensitivity)
+    }
+
+    @Test
+    fun nonJsonPassesThroughUnchanged() {
+        val raw = "not json at all"
+        assertEquals(raw, migrateLegacySettings(raw))
     }
 
     @Test

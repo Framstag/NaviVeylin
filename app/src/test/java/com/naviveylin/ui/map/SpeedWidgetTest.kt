@@ -36,17 +36,36 @@ class SpeedWidgetTest {
     @Test
     fun overLimitWhenExceedingMaxBy5Plus() {
         assertTrue(isSpeedOverLimit(56.0, 50.0))
+        // Explicit delta (range 0-30) honored.
+        assertTrue(isSpeedOverLimit(56.0, 50.0, overspeedWarningDeltaKmh = 5))
     }
 
     @Test
-    fun notOverLimitAtExactly5Over() {
-        assertFalse(isSpeedOverLimit(55.0, 50.0))
+    fun overLimitAtExactlyMaxPlusDelta() {
+        // `>=`: at exactly max + delta the warning triggers (was the old
+        // strict `>` boundary which stayed normal at 55/50).
+        assertTrue(isSpeedOverLimit(55.0, 50.0))
     }
 
     @Test
-    fun notOverLimitAtOrBelowMax() {
+    fun notOverLimitBelowMaxPlusDelta() {
+        assertFalse(isSpeedOverLimit(54.0, 50.0))
         assertFalse(isSpeedOverLimit(50.0, 50.0))
         assertFalse(isSpeedOverLimit(40.0, 50.0))
+    }
+
+    @Test
+    fun deltaZeroWarnsAtTheLimit() {
+        assertTrue(isSpeedOverLimit(50.0, 50.0, overspeedWarningDeltaKmh = 0))
+        assertFalse(isSpeedOverLimit(49.5, 50.0, overspeedWarningDeltaKmh = 0))
+    }
+
+    @Test
+    fun customDeltaChangesBoundary() {
+        assertTrue(isSpeedOverLimit(53.0, 50.0, overspeedWarningDeltaKmh = 3))
+        assertFalse(isSpeedOverLimit(52.0, 50.0, overspeedWarningDeltaKmh = 3))
+        assertTrue(isSpeedOverLimit(80.0, 50.0, overspeedWarningDeltaKmh = 30))
+        assertFalse(isSpeedOverLimit(79.0, 50.0, overspeedWarningDeltaKmh = 30))
     }
 
     @Test
@@ -54,6 +73,8 @@ class SpeedWidgetTest {
         assertFalse(isSpeedOverLimit(80.0, Double.NaN))
         assertFalse(isSpeedOverLimit(80.0, 0.0))
         assertFalse(isSpeedOverLimit(80.0, -1.0))
+        // Unknown max never warns regardless of the delta.
+        assertFalse(isSpeedOverLimit(80.0, Double.NaN, overspeedWarningDeltaKmh = 0))
     }
 
     // --- Rendering ---
@@ -346,12 +367,18 @@ class SpeedWidgetTest {
             "overspeed color must differ from the normal text color",
             normal != overLimit
         )
+        // Overspeed state = white text on the red warning background
+        // (spec: map-speed-widget — Overspeed warning color: red bg, white text).
+        assertTrue(
+            "overspeed text must be white on the red warning background (was $overLimit)",
+            overLimit!!.luminance() > 0.9f
+        )
     }
 
     @Test
     fun badgeBackgroundIsThemeCardNotFixedDark() {
         var color: Color? = null
-        composeRule.setContent { color = speedBadgeContainerColor() }
+        composeRule.setContent { color = speedBadgeContainerColor(overLimit = false) }
         composeRule.waitForIdle()
         assertNotNull(color)
         assertTrue(
@@ -365,5 +392,36 @@ class SpeedWidgetTest {
             color!!.alpha,
             1e-2f
         )
+    }
+
+    @Test
+    fun overLimitBadgeRedBackgroundWithWhiteText() {
+        var normal: Color? = null
+        var overLimit: Color? = null
+        var white: Color? = null
+        composeRule.setContent {
+            normal = speedBadgeContainerColor(overLimit = false)
+            overLimit = speedBadgeContainerColor(overLimit = true)
+            white = speedBadgeTextColor(overLimit = true)
+        }
+        composeRule.waitForIdle()
+        assertNotNull(normal)
+        assertNotNull(overLimit)
+        assertNotNull(white)
+        // Warning state = fixed red-600 at the same 0.92 alpha as the normal
+        // card (spec: map-speed-widget — Overspeed warning color, Warning
+        // background stays semi-transparent).
+        assertEquals(
+            "overspeed container must be red-600 at 0.92 alpha (was $overLimit)",
+            Color(0xFFE53935).copy(alpha = 0.92f),
+            overLimit
+        )
+        assertTrue(
+            "overspeed container must differ from the normal card container",
+            normal != overLimit
+        )
+        // White text on the warning fill (badgeTextColorDarkOnLightCard keeps
+        // the normal-state contract — both resolver contracts covered here).
+        assertEquals(Color.White, white)
     }
 }

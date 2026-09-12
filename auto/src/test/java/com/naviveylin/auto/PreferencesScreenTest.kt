@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,8 +59,8 @@ class PreferencesScreenTest {
 
         val template = screen.onGetTemplate()
 
-        // All eight car-relevant preferences on the single list.
-        assertEquals(8, template.singleList!!.items.size)
+        // All nine car-relevant preferences on the single list.
+        assertEquals(9, template.singleList!!.items.size)
     }
 
     @Test
@@ -87,5 +88,44 @@ class PreferencesScreenTest {
 
         // DEFAULT_STYLES is sorted: standard → winter-sports.
         coVerify { provider.save(AutoSettings(styleSheet = "winter-sports")) }
+    }
+
+    @Test
+    fun darkModeToggleReportsNewValueViaCallback() = runTest(testDispatcher) {
+        coEvery { provider.load() } returns AutoSettings(darkMode = "AUTOMATIC")
+        coEvery { provider.save(any()) } returns Unit
+        val reported = mutableListOf<String>()
+
+        val screen = PreferencesScreen(
+            carContext,
+            provider,
+            onDarkModeChanged = { reported.add(it) }
+        )
+        advanceUntilIdle()
+
+        // AUTOMATIC -> ON (nextDarkMode cycle direction).
+        screen.onToggle(PreferencesScreenMapper.KEY_DARK_MODE)
+        advanceUntilIdle()
+
+        assertEquals(listOf("ON"), reported)
+        coVerify { provider.save(AutoSettings(darkMode = "ON")) }
+    }
+
+    @Test
+    fun nonDarkModeToggleDoesNotReport() = runTest(testDispatcher) {
+        coEvery { provider.load() } returns AutoSettings()
+        coEvery { provider.save(any()) } returns Unit
+        val reported = mutableListOf<String>()
+
+        val screen = PreferencesScreen(
+            carContext,
+            provider,
+            onDarkModeChanged = { reported.add(it) }
+        )
+        advanceUntilIdle()
+        screen.onToggle("followMode")
+        advanceUntilIdle()
+
+        assertTrue(reported.isEmpty())
     }
 }

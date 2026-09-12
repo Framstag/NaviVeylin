@@ -143,4 +143,27 @@ class AmbientLightMonitorTest {
         assertTrue(shadow.getListeners().isEmpty())
         assertTrue(classifications.isEmpty())
     }
+
+    @Test
+    fun setSensitivityRepipelinesAndReclassifiesLastReading() {
+        val sm = sensorManager()
+        addLightSensor(sm)
+        val classifications = mutableListOf<Boolean?>()
+        val monitor = AmbientLightMonitor(sm, onClassification = { classifications.add(it) })
+
+        monitor.start()
+        val sensor = sm.getDefaultSensor(Sensor.TYPE_LIGHT)!!
+
+        // Bright reading -> light classification.
+        val bright = newSensorEvent(1).apply { this.sensor = sensor; values[0] = 200f }
+        monitor.onSensorChanged(bright)
+
+        // Drop to 6 lux under the default HIGH: pending dark flip.
+        val dim = newSensorEvent(1).apply { this.sensor = sensor; values[0] = 6f }
+        monitor.onSensorChanged(dim)
+        // Switch to MEDIUM (6 lux is light there): the fresh pipeline must not
+        // carry the HIGH pending flip; the re-classification reports no flip.
+        monitor.setSensitivity(AmbientLightSensitivity.MEDIUM)
+        assertEquals(listOf<Boolean?>(false, false), classifications)
+    }
 }

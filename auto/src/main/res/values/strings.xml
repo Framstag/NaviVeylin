@@ -22,6 +22,7 @@
     <string name="address_book">Address book</string>
     <string name="search_contacts">Search contacts with addresses</string>
     <string name="preferences">Preferences</string>
+    <string name="overspeed_warning">Overspeed warning</string>
     <string name="adjust_nav_settings">Adjust navigation settings</string>
     <string name="view_crash_logs">View crash and session logs</string>
     <string name="app_information">App information</string>

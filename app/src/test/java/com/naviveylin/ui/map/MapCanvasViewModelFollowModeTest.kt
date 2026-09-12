@@ -123,14 +123,16 @@ class MapCanvasViewModelFollowModeTest {
     @Test
     fun onManualRotationDisengagesFollowModeAndNorthUp() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onToggleFollowMode(true)
+        viewModel.onSetNavOrientation(true) // driving north-up
         assertTrue(viewModel.uiState.first { it.followMode }.followMode)
-        assertTrue(viewModel.uiState.value.freeFormNorthUp)
+        assertTrue(viewModel.uiState.value.navNorthUp)
 
         viewModel.onManualRotation(0.5)
 
         val state = viewModel.uiState.value
         assertFalse("follow mode must be disengaged", state.followMode)
-        assertFalse("always-north must be cleared", state.freeFormNorthUp)
+        assertTrue("drive suspension must be set", state.driveSuspended)
+        assertFalse("driving always-north must be cleared", state.navNorthUp)
         assertEquals("rotation delta must be applied", 0.5, state.viewport.angle, 1e-9)
     }
 
@@ -152,44 +154,38 @@ class MapCanvasViewModelFollowModeTest {
     }
 
     @Test
-    fun recenterButtonVisibleWhenFollowOffAndGpsGood() {
-        // Simulate state: followMode=false, gpsFixQuality=GOOD
-        val state = MapCanvasUiState(
-            followMode = false,
-            gpsFixQuality = GpsFixQuality.GOOD
-        )
-        val buttonVisible = !state.followMode && state.gpsFixQuality != GpsFixQuality.NONE
-        assertTrue("Re-center button should be visible", buttonVisible)
+    fun recenterButtonVisibleWhenBrowseDriftedAndGpsGood() {
+        // BROWSE with a drifted viewport and a good GPS fix: button visible.
+        val visible = MapCanvasViewModel.shouldShowReCenterButton(
+            MapMode.BROWSE, driveSuspended = false, browseDrifted = true
+        ) && GpsFixQuality.GOOD != GpsFixQuality.NONE
+        assertTrue("Re-center button should be visible when browse drifted", visible)
     }
 
     @Test
-    fun recenterButtonHiddenWhenFollowActive() {
-        val state = MapCanvasUiState(
-            followMode = true,
-            gpsFixQuality = GpsFixQuality.GOOD
+    fun recenterButtonHiddenWhenDriveActive() {
+        // FREE_DRIVE active (no suspension): button hidden.
+        val visible = MapCanvasViewModel.shouldShowReCenterButton(
+            MapMode.FREE_DRIVE, driveSuspended = false, browseDrifted = false
         )
-        val buttonVisible = !state.followMode && state.gpsFixQuality != GpsFixQuality.NONE
-        assertFalse("Re-center button should be hidden when follow mode active", buttonVisible)
+        assertFalse("Re-center button should be hidden when drive active", visible)
     }
 
     @Test
     fun recenterButtonHiddenWhenNoGpsFix() {
-        val state = MapCanvasUiState(
-            followMode = false,
-            gpsFixQuality = GpsFixQuality.NONE
-        )
-        val buttonVisible = !state.followMode && state.gpsFixQuality != GpsFixQuality.NONE
-        assertFalse("Re-center button should be hidden when no GPS fix", buttonVisible)
+        // BROWSE drifted but no GPS fix: button hidden (GPS gate).
+        val visible = MapCanvasViewModel.shouldShowReCenterButton(
+            MapMode.BROWSE, driveSuspended = false, browseDrifted = true
+        ) && GpsFixQuality.NONE != GpsFixQuality.NONE
+        assertFalse("Re-center button should be hidden when no GPS fix", visible)
     }
 
     @Test
-    fun recenterButtonHiddenWhenFollowActiveAndNoGps() {
-        val state = MapCanvasUiState(
-            followMode = true,
-            gpsFixQuality = GpsFixQuality.NONE
-        )
-        val buttonVisible = !state.followMode && state.gpsFixQuality != GpsFixQuality.NONE
-        assertFalse("Re-center button should be hidden", buttonVisible)
+    fun recenterButtonHiddenWhenDriveActiveAndNoGps() {
+        val visible = MapCanvasViewModel.shouldShowReCenterButton(
+            MapMode.FREE_DRIVE, driveSuspended = false, browseDrifted = false
+        ) && GpsFixQuality.NONE != GpsFixQuality.NONE
+        assertFalse("Re-center button should be hidden", visible)
     }
 
     // --- GPS location state (Compose overlay input comes from renderer marker snapshot) ---
@@ -252,13 +248,14 @@ class MapCanvasViewModelFollowModeTest {
      * Enable follow mode with follow-direction (not north-up). The init
      * settings load overwrites the state with persisted values when the test
      * scheduler advances — flush it, then re-apply so the test state sticks.
+     * FREE_DRIVE orientation is the driving orientation (navNorthUp).
      */
     private fun TestScope.enableFollowDirectionMode() {
         viewModel.onToggleFollowMode(true)
-        viewModel.onSetFreeFormOrientation(false)
+        viewModel.onSetNavOrientation(false)
         advanceUntilIdle()
         viewModel.onToggleFollowMode(true)
-        viewModel.onSetFreeFormOrientation(false)
+        viewModel.onSetNavOrientation(false)
     }
 
     private fun gpsFix(
@@ -277,7 +274,7 @@ class MapCanvasViewModelFollowModeTest {
     @Test
     fun smallSmoothedBearingChangeWithinDeadbandDoesNotRotateMap() = runTest(mainDispatcherRule.dispatcher) {
         enableFollowDirectionMode()
-        viewModel.uiState.first { it.followMode && !it.freeFormNorthUp }
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
 
         // First fix establishes the rendered angle (north-up).
         locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 0.0, time = 1_000L))
@@ -293,7 +290,7 @@ class MapCanvasViewModelFollowModeTest {
     @Test
     fun largeSmoothedBearingChangeRotatesMap() = runTest(mainDispatcherRule.dispatcher) {
         enableFollowDirectionMode()
-        viewModel.uiState.first { it.followMode && !it.freeFormNorthUp }
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
 
         locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 0.0, time = 1_000L))
         viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
@@ -311,7 +308,7 @@ class MapCanvasViewModelFollowModeTest {
     @Test
     fun mapRotationFollowsSmoothedBearingNotMarkerBearing() = runTest(mainDispatcherRule.dispatcher) {
         enableFollowDirectionMode()
-        viewModel.uiState.first { it.followMode && !it.freeFormNorthUp }
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
 
         // markerBearing = 90 (east), smoothedBearing = 0 (north): the marker arrow
         // would point east while the map stays north-up — decoupled.
@@ -326,7 +323,7 @@ class MapCanvasViewModelFollowModeTest {
     @Test
     fun markerBearingUpdatesOnEveryFixWithoutRender() = runTest(mainDispatcherRule.dispatcher) {
         enableFollowDirectionMode()
-        viewModel.uiState.first { it.followMode && !it.freeFormNorthUp }
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
 
         // First fix: marker bearing 45°.
         locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 45.0, time = 1_000L))

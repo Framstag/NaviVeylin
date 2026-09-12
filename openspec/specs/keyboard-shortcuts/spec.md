@@ -37,18 +37,18 @@ The system SHALL zoom out by one magnification level when the `-` or `_` key is 
 
 ### Requirement: Search via `/` key
 
-The system SHALL open the search panel when the user presses the `/` key while the map canvas has focus.
+The system SHALL open the unified search dialog when the user presses the `/` key while the map canvas has focus.
 
 #### Scenario: Slash key opens search
 
 - **WHEN** the map canvas has keyboard focus
 - **AND** the user presses the `/` key
-- **THEN** the search panel SHALL open
+- **THEN** the unified search dialog SHALL open
 - **AND** the search input SHALL be auto-focused
 
 #### Scenario: Slash key when search is already open
 
-- **WHEN** the search panel is already open
+- **WHEN** the unified search dialog is already open
 - **AND** the user presses the `/` key
 - **THEN** the search input SHALL be focused
 - **AND** any existing search text SHALL be selected

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.naviveylin.R
+import com.naviveylin.core.ProjectionUtils
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -52,6 +53,8 @@ private val GpsFillGoodFix = Color(0xFFC8E6C9) // light green
  * @param isNorthUp True if orientation is "always north" (north-up), false for "follow direction".
  * @param mapAngleRadians Current map rotation in radians (0 = north up).
  * @param gpsFixQuality Current GPS fix quality for the fill color.
+ * @param bearingDegrees Geographic bearing of travel in degrees, or null when
+ *   unavailable; used by the follow-direction triangle. Ignored in north-up mode.
  * @param onCenterClick Called on short press to re-center on location.
  * @param onToggleOrientation Called on long press to toggle north-up / follow-direction.
  */
@@ -63,10 +66,13 @@ fun CompassButton(
     gpsFixQuality: GpsFixQuality,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit,
+    bearingDegrees: Double? = null,
     modifier: Modifier = Modifier
 ) {
-    // Convert radians to degrees for rotation, negate so compass points north
-    val targetDegrees = (-Math.toDegrees(mapAngleRadians)).toFloat()
+    // Needle rotation = screen direction of the indicated geographic direction:
+    // north in north-up mode, travel direction in follow mode. Single convention
+    // lives in ProjectionUtils — never inline a negation here (spec: compass-button).
+    val targetDegrees = compassNeedleTarget(isNorthUp, bearingDegrees, mapAngleRadians).toFloat()
     val animatedDegrees by animateFloatAsState(
         targetValue = targetDegrees,
         animationSpec = tween(durationMillis = 300),
@@ -117,6 +123,30 @@ fun CompassButton(
             // Compass needle
             drawCompassNeedle(animatedDegrees, isNorthUp, needleColor, textMeasurer, northLabel)
         }
+    }
+}
+
+/**
+ * Screen rotation (degrees, clockwise from screen-up) for the compass needle.
+ *
+ * North-up mode points at the map's north: [ProjectionUtils.compassRotationDegrees].
+ * Follow mode points at the travel direction on screen: [ProjectionUtils.screenBearing]
+ * with the geographic bearing, which is 0 (straight up) while heading-up follow is
+ * active and follows the travel direction after a manual map rotation. When the
+ * bearing is unknown (null, NaN, or negative), the needle falls back to pointing
+ * at map north.
+ */
+internal fun compassNeedleTarget(
+    isNorthUp: Boolean,
+    bearingDegrees: Double?,
+    mapAngleRadians: Double
+): Double {
+    if (isNorthUp) return ProjectionUtils.compassRotationDegrees(mapAngleRadians)
+    val bearing = bearingDegrees
+    return if (bearing != null && !bearing.isNaN() && bearing >= 0.0) {
+        ProjectionUtils.screenBearing(bearing, mapAngleRadians)
+    } else {
+        ProjectionUtils.compassRotationDegrees(mapAngleRadians)
     }
 }
 

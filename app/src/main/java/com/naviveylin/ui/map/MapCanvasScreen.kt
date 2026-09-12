@@ -36,8 +36,9 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -78,11 +79,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.focus.focusTarget
-import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -96,6 +93,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.naviveylin.ui.addressbook.AddressBookSearchContent
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.naviveylin.ui.about.AboutDialog
@@ -167,8 +165,6 @@ fun MapCanvasScreen(
     }
 
     var menuExpanded by remember { mutableStateOf(false) }
-    var showSearchPanel by remember { mutableStateOf(false) }
-    var showSearchHistory by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showFavoritePicker by remember { mutableStateOf(false) }
     var favoritePickerField by remember { mutableStateOf<ActiveField?>(null) }
@@ -569,15 +565,6 @@ fun MapCanvasScreen(
         viewModel.initMap(mapPath)
     }
 
-    // Shared-location query: open the search panel with the query filled.
-    LaunchedEffect(state.openSearchPanel) {
-        if (state.openSearchPanel) {
-            showSearchPanel = true
-            viewModel.onSearchPanelOpened()
-            viewModel.consumeSearchPanelSignal()
-        }
-    }
-
     // Save viewport on pause, stop location updates
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -633,15 +620,45 @@ fun MapCanvasScreen(
             followMaxSpeedKmH = state.maxSpeedKmH,
             followMode = state.followMode
         )
-        val compassNorthUp = if (navState.isNavigating) state.navNorthUp else state.freeFormNorthUp
+        val compassNorthUp = when (viewModel.mode) {
+            MapMode.NAVIGATION, MapMode.FREE_DRIVE -> state.navNorthUp
+            MapMode.BROWSE -> state.freeFormNorthUp
+        }
+        // Re-center action is mode-dependent (spec: map-modes): BROWSE centers
+        // on GPS and stays in browse; FREE_DRIVE resets the suspended drive
+        // preset; NAVIGATION re-engages follow on the current position.
         val reCenterAction = {
-            val loc = viewModel.getCurrentLocation()
-            if (loc != null) {
-                viewModel.onToggleFollowMode(true)
-                viewModel.updateCenter(loc.lat, loc.lon)
-                viewModel.renderMap()
-            } else {
-                viewModel.showSnackbar("No GPS location available")
+            when (viewModel.mode) {
+                MapMode.BROWSE -> viewModel.recenterInBrowse()
+                MapMode.FREE_DRIVE -> viewModel.resetDrivePreset()
+                MapMode.NAVIGATION -> {
+                    val loc = viewModel.getCurrentLocation()
+                    if (loc != null) {
+                        viewModel.onToggleFollowMode(true)
+                        viewModel.updateCenter(loc.lat, loc.lon)
+                        viewModel.renderMap()
+                    } else {
+                        viewModel.showSnackbar("No GPS location available")
+                    }
+                }
+            }
+        }
+        // Mode toggle (spec: map-modes — mode toggle button): the compass
+        // short-press switches BROWSE <-> FREE_DRIVE; hidden during NAVIGATION
+        // (the nav layout uses the short-press for re-center instead).
+        val modeToggleAction = {
+            when (viewModel.mode) {
+                MapMode.BROWSE -> viewModel.enterFreeDrive()
+                MapMode.FREE_DRIVE -> viewModel.exitFreeDrive()
+                MapMode.NAVIGATION -> Unit
+            }
+        }
+        // Orientation toggle follows the active state's orientation setting
+        // (spec: location-options-ui — orientation controls per state).
+        val toggleOrientationAction = {
+            when (viewModel.mode) {
+                MapMode.BROWSE -> viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
+                MapMode.FREE_DRIVE, MapMode.NAVIGATION -> viewModel.onSetNavOrientation(!state.navNorthUp)
             }
         }
 
@@ -987,33 +1004,24 @@ fun MapCanvasScreen(
                             }
                         }
                         .onKeyEvent { event ->
-                            when {
-                                // / key: open search
-                                event.type == KeyEventType.KeyUp &&
-                                event.key == Key.Slash -> {
-                                    showSearchPanel = true
-                                    true
-                                }
-                                event.type == KeyEventType.KeyUp &&
-                                (event.key == Key.Plus || event.key == Key.Equals) -> {
+                            dispatchMapCanvasKey(
+                                event = event,
+                                onOpenSearch = { viewModel.openSearch() },
+                                onZoomIn = {
                                     attributionInteractionTick++
                                     viewModel.disengageFollowMode()
                                     viewModel.zoomIn()
                                     viewModel.renderMap()
                                     animateDiscreteZoomToCenter()
-                                    true
-                                }
-                                event.type == KeyEventType.KeyUp &&
-                                event.key == Key.Minus -> {
+                                },
+                                onZoomOut = {
                                     attributionInteractionTick++
                                     viewModel.disengageFollowMode()
                                     viewModel.zoomOut()
                                     viewModel.renderMap()
                                     animateDiscreteZoomToCenter()
-                                    true
                                 }
-                                else -> false
-                            }
+                            )
                         }
                 ) {
                     val canvasWidth = size.width
@@ -1102,10 +1110,7 @@ fun MapCanvasScreen(
                         MapActionColumn(
                             isLandscape = true,
                             onToggleMenu = { menuExpanded = true },
-                            onOpenSearch = {
-                                showSearchPanel = true
-                                viewModel.onSearchPanelOpened()
-                            },
+                            onOpenSearch = { viewModel.openSearch() },
                             onToggleFavorites = { viewModel.toggleFavoritesSheet() }
                         )
                     }
@@ -1121,20 +1126,17 @@ fun MapCanvasScreen(
                         isLandscape = true,
                         compassNorthUp = compassNorthUp,
                         mapAngleRadians = state.viewport.angle,
+                        bearingDegrees = state.gpsMarkerBearing,
                         gpsFixQuality = state.gpsFixQuality,
-                        onCenterClick = {
-                            val loc = viewModel.getCurrentLocation()
-                            if (loc != null) {
-                                viewModel.onToggleFollowMode(true)
-                                viewModel.updateCenter(loc.lat, loc.lon)
-                            } else {
-                                viewModel.showSnackbar("No GPS location available")
-                            }
-                        },
-                        onToggleOrientation = {
-                            viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
-                        },
+                        onCenterClick = reCenterAction,
+                        onToggleOrientation = toggleOrientationAction,
                         speedInput = speedInput,
+                        driveToggle = {
+                            DriveModeButton(
+                                mode = viewModel.mode,
+                                onToggle = modeToggleAction
+                            )
+                        },
                         canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
                         canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
                         currentMag = state.viewport.magnification,
@@ -1156,10 +1158,7 @@ fun MapCanvasScreen(
                         },
                         locationOptions = {
                             LocationOptionsOverlay(
-                                followMode = state.followMode,
-                                onToggleFollowMode = { enabled ->
-                                    viewModel.onToggleFollowMode(enabled)
-                                },
+                                mode = viewModel.mode,
                                 freeFormNorthUp = state.freeFormNorthUp,
                                 onSetFreeFormOrientation = { northUp ->
                                     viewModel.onSetFreeFormOrientation(northUp)
@@ -1196,8 +1195,7 @@ fun MapCanvasScreen(
                                 styleSheet = state.styleSheet,
                                 onSetStyleSheet = { style ->
                                     viewModel.onStyleSheetSelected(style)
-                                },
-                                isNavigating = navState.isNavigating
+                                }
                             )
                         },
                         modifier = Modifier
@@ -1214,7 +1212,7 @@ fun MapCanvasScreen(
                 // (see navigation overlay branch).
                 if (!navState.isNavigating &&
                     MapCanvasViewModel.shouldShowReCenterButton(
-                        state.followMode, state.autoZoomPaused, navState.isNavigating
+                        viewModel.mode, state.driveSuspended, state.browseDrifted
                     ) && state.gpsFixQuality != GpsFixQuality.NONE) {
                     MapReCenterButton(
                         onReCenter = reCenterAction,
@@ -1239,10 +1237,7 @@ fun MapCanvasScreen(
                         MapActionColumn(
                             isLandscape = false,
                             onToggleMenu = { menuExpanded = true },
-                            onOpenSearch = {
-                                showSearchPanel = true
-                                viewModel.onSearchPanelOpened()
-                            },
+                            onOpenSearch = { viewModel.openSearch() },
                             onToggleFavorites = { viewModel.toggleFavoritesSheet() }
                         )
                     }
@@ -1256,20 +1251,17 @@ fun MapCanvasScreen(
                         isLandscape = false,
                         compassNorthUp = compassNorthUp,
                         mapAngleRadians = state.viewport.angle,
+                        bearingDegrees = state.gpsMarkerBearing,
                         gpsFixQuality = state.gpsFixQuality,
-                        onCenterClick = {
-                            val loc = viewModel.getCurrentLocation()
-                            if (loc != null) {
-                                viewModel.onToggleFollowMode(true)
-                                viewModel.updateCenter(loc.lat, loc.lon)
-                            } else {
-                                viewModel.showSnackbar("No GPS location available")
-                            }
-                        },
-                        onToggleOrientation = {
-                            viewModel.onSetFreeFormOrientation(!state.freeFormNorthUp)
-                        },
+                        onCenterClick = reCenterAction,
+                        onToggleOrientation = toggleOrientationAction,
                         speedInput = speedInput,
+                        driveToggle = {
+                            DriveModeButton(
+                                mode = viewModel.mode,
+                                onToggle = modeToggleAction
+                            )
+                        },
                         canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
                         canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
                         currentMag = state.viewport.magnification,
@@ -1291,10 +1283,7 @@ fun MapCanvasScreen(
                         },
                         locationOptions = {
                             LocationOptionsOverlay(
-                                followMode = state.followMode,
-                                onToggleFollowMode = { enabled ->
-                                    viewModel.onToggleFollowMode(enabled)
-                                },
+                                mode = viewModel.mode,
                                 freeFormNorthUp = state.freeFormNorthUp,
                                 onSetFreeFormOrientation = { northUp ->
                                     viewModel.onSetFreeFormOrientation(northUp)
@@ -1331,8 +1320,7 @@ fun MapCanvasScreen(
                                 styleSheet = state.styleSheet,
                                 onSetStyleSheet = { style ->
                                     viewModel.onStyleSheetSelected(style)
-                                },
-                                isNavigating = navState.isNavigating
+                                }
                             )
                         },
                         modifier = Modifier
@@ -1349,7 +1337,7 @@ fun MapCanvasScreen(
                 // (see navigation overlay branch).
                 if (!navState.isNavigating &&
                     MapCanvasViewModel.shouldShowReCenterButton(
-                        state.followMode, state.autoZoomPaused, navState.isNavigating
+                        viewModel.mode, state.driveSuspended, state.browseDrifted
                     ) && state.gpsFixQuality != GpsFixQuality.NONE) {
                     MapReCenterButton(
                         onReCenter = reCenterAction,
@@ -1367,10 +1355,8 @@ fun MapCanvasScreen(
                 onDismiss = { menuExpanded = false },
                 onDownloadMaps = { onNavigateToMapManager() },
                 onOpenFavorites = { viewModel.toggleFavoritesSheet() },
-                onOpenPoiSearch = { viewModel.openPoiSearch() },
-                onOpenAddressBook = { viewModel.openAddressBookSheet() },
+                onOpenSearch = { viewModel.openSearch() },
                 onOpenAbout = { showAboutDialog = true },
-                addressBookAvailable = state.addressBookAvailable,
                 toasterTopPadding = if (isLandscape) 8.dp else 4.dp
             )
         }
@@ -1386,9 +1372,26 @@ fun MapCanvasScreen(
                 .navigationBarsPadding()
         )
 
-        // Search panel overlay
-        if (showSearchPanel) {
-            SearchPanel(
+        // Unified search dialog (spec: search-dialog) — one surface for
+        // Places / POIs / Contacts search, opened by the search button, the
+        // menu Search entry, the `/` key, and shared-location queries.
+        if (state.searchOpen) {
+            val addressBookViewModel: com.naviveylin.ui.addressbook.AddressBookViewModel =
+                hiltViewModel()
+            val addressBookState by addressBookViewModel.uiState.collectAsState()
+            val history by viewModel.searchHistory.collectAsState()
+            val favoriteGroups by viewModel.favoriteGroups.collectAsState()
+            // Load contacts when the Contacts mode is entered (spec:
+            // address-book-search — searchable list of persons with addresses).
+            LaunchedEffect(state.searchMode) {
+                if (state.searchMode == SearchMode.CONTACTS) {
+                    addressBookViewModel.start()
+                }
+            }
+            SearchDialog(
+                searchMode = state.searchMode,
+                onModeSelected = { viewModel.setSearchMode(it) },
+                onDismiss = { viewModel.closeSearch() },
                 query = state.searchQuery,
                 results = state.searchResults,
                 isSearching = state.isSearching,
@@ -1396,60 +1399,46 @@ fun MapCanvasScreen(
                 adminRegionName = state.searchAdminRegionName,
                 centerLat = state.viewport.centerLat,
                 centerLon = state.viewport.centerLon,
+                historyEntries = history,
+                favoriteGroups = favoriteGroups,
                 onQueryChanged = { viewModel.onSearchQueryChanged(it) },
                 onResultSelected = { entry ->
                     viewModel.onSearchResultSelected(entry)
-                    showSearchPanel = false
+                    viewModel.closeSearch()
                 },
                 onSelectCurrentLocation = {
                     viewModel.selectCurrentLocation()
-                    showSearchPanel = false
+                    viewModel.closeSearch()
                 },
-                onSelectFavorite = {
-                    viewModel.toggleFavoritesSheet()
-                    showSearchPanel = false
+                onSelectFavorite = { fav ->
+                    viewModel.onFavoriteSelected(fav)
+                    viewModel.closeSearch()
                 },
-                onSelectFromHistory = {
-                    showSearchHistory = true
-                },
-                onDismiss = {
-                    viewModel.clearSearch()
-                    showSearchPanel = false
-                }
-            )
-        }
-
-        // POI search sheet
-        if (state.poiSearchOpen) {
-            PoiSearchPanel(
-                category = state.poiCategory,
-                radiusMeters = state.poiRadiusMeters,
-                results = state.poiResults,
-                isSearching = state.isPoiSearching,
-                error = state.poiSearchError,
+                onHistoryEntrySelected = { viewModel.onHistoryEntrySelected(it) },
+                poiCategory = state.poiCategory,
+                poiRadiusMeters = state.poiRadiusMeters,
+                poiResults = state.poiResults,
+                isPoiSearching = state.isPoiSearching,
+                poiError = state.poiSearchError,
                 client = viewModel.osmscoutClient,
-                centerLat = state.poiSearchCenterLat,
-                centerLon = state.poiSearchCenterLon,
+                poiCenterLat = state.poiSearchCenterLat,
+                poiCenterLon = state.poiSearchCenterLon,
                 currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
                 selectedPoi = if (state.poiSelectedLat.isNaN()) null else state.poiSelectedLat to state.poiSelectedLon,
-                onCategorySelected = { viewModel.onPoiCategorySelected(it) },
-                onRadiusChanged = { viewModel.onPoiRadiusChanged(it) },
-                onSearch = { viewModel.performPoiSearch() },
-                onEntryClick = { viewModel.onPoiEntryClick(it) },
-                onDismiss = { viewModel.closePoiSearch() }
-            )
-        }
-
-        // Search history sheet (opened from "Select from history")
-        if (showSearchHistory) {
-            val history by viewModel.searchHistory.collectAsState()
-            SearchHistorySheet(
-                entries = history,
-                onEntrySelected = { text ->
-                    viewModel.onHistoryEntrySelected(text)
-                    showSearchHistory = false
-                },
-                onDismiss = { showSearchHistory = false }
+                onPoiCategorySelected = { viewModel.onPoiCategorySelected(it) },
+                onPoiRadiusChanged = { viewModel.onPoiRadiusChanged(it) },
+                onPoiSearch = { viewModel.performPoiSearch() },
+                onPoiEntryClick = { viewModel.onPoiEntryClick(it) },
+                addressBookAvailable = state.addressBookAvailable,
+                contactsQuery = addressBookState.query,
+                onContactsQueryChanged = { addressBookViewModel.onQueryChanged(it) },
+                contactsContent = {
+                    AddressBookSearchContent(
+                        onResultSelected = { entry ->
+                            viewModel.onAddressBookResultSelected(entry)
+                        }
+                    )
+                }
             )
         }
 
@@ -1511,14 +1500,6 @@ fun MapCanvasScreen(
                     }
                     viewModel.openRoutePanelWithStart(entry)
                 }
-            )
-        }
-
-        // Address-book person search sheet (full-screen)
-        if (state.showAddressBookSheet) {
-            com.naviveylin.ui.addressbook.AddressBookSheet(
-                onDismiss = { viewModel.closeAddressBookSheet() },
-                onResultSelected = { entry -> viewModel.onAddressBookResultSelected(entry) }
             )
         }
 
@@ -1651,6 +1632,26 @@ fun MapCanvasScreen(
             )
         }
     
+        // Free-driving street label (spec: current-road-info): bottom-center
+        // pill with the road's ref + name, shown only when no route is active
+        // (the navigation road-info row covers the navigating case).
+        if (!navState.isNavigating) {
+            val roadText = state.currentRoadInfo?.let {
+                listOfNotNull(
+                    it.ref.takeIf { r -> r.isNotEmpty() },
+                    it.name.takeIf { n -> n.isNotEmpty() }
+                ).joinToString(" ")
+            }
+            if (!roadText.isNullOrEmpty()) {
+                StreetNamePill(
+                    text = roadText,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp)
+                )
+            }
+        }
+
         // Navigation overlays: full-width turn hints at the top, the right-side
         // widget column (compass directly above the speed widget, zoom at the
         // bottom below all other controls) spanning from above the routing status
@@ -1693,6 +1694,7 @@ fun MapCanvasScreen(
                             isLandscape = isLandscape,
                             compassNorthUp = compassNorthUp,
                             mapAngleRadians = state.viewport.angle,
+                            bearingDegrees = state.gpsMarkerBearing,
                             gpsFixQuality = state.gpsFixQuality,
                             onCenterClick = {
                                 val loc = viewModel.getCurrentLocation()
@@ -1708,6 +1710,48 @@ fun MapCanvasScreen(
                             },
                             speedInput = speedInput,
                             reserveSpeedSlot = true,
+                            locationOptions = {
+                                LocationOptionsOverlay(
+                                    mode = viewModel.mode,
+                                    freeFormNorthUp = state.freeFormNorthUp,
+                                    onSetFreeFormOrientation = { northUp ->
+                                        viewModel.onSetFreeFormOrientation(northUp)
+                                    },
+                                    navNorthUp = state.navNorthUp,
+                                    onSetNavOrientation = { northUp ->
+                                        viewModel.onSetNavOrientation(northUp)
+                                    },
+                                    autoZoomEnabled = state.autoZoomEnabled,
+                                    onToggleAutoZoom = { enabled ->
+                                        viewModel.onToggleAutoZoom(enabled)
+                                    },
+                                    keepScreenOn = state.keepScreenOn,
+                                    onToggleKeepScreenOn = { enabled ->
+                                        viewModel.onToggleKeepScreenOn(enabled)
+                                    },
+                                    darkModePreference = state.darkModePreference,
+                                    onSetDarkModePreference = { pref ->
+                                        viewModel.onSetDarkModePreference(pref)
+                                    },
+                                    ambientLightDarkMode = state.ambientLightDarkMode,
+                                    onSetAmbientLightOption = { enabled ->
+                                        viewModel.onSetAmbientLightOption(enabled)
+                                    },
+                                    laneHintsEnabled = state.laneHintsEnabled,
+                                    onToggleLaneHints = { enabled ->
+                                        viewModel.onToggleLaneHints(enabled)
+                                    },
+                                    renderMode = state.renderMode,
+                                    onSetRenderMode = { mode ->
+                                        viewModel.onSetRenderMode(mode)
+                                    },
+                                    availableStyles = state.availableStyleSheets,
+                                    styleSheet = state.styleSheet,
+                                    onSetStyleSheet = { style ->
+                                        viewModel.onStyleSheetSelected(style)
+                                    }
+                                )
+                            },
                             canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
                             canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
                             currentMag = state.viewport.magnification,
@@ -1731,7 +1775,7 @@ fun MapCanvasScreen(
                     // screen-bottom placement is covered by NavigationStateOverlay
                     // during navigation, so anchor the re-center button here.
                     if (MapCanvasViewModel.shouldShowReCenterButton(
-                            state.followMode, state.autoZoomPaused, navState.isNavigating
+                            viewModel.mode, state.driveSuspended, state.browseDrifted
                         ) && state.gpsFixQuality != GpsFixQuality.NONE) {
                         MapReCenterButton(
                             onReCenter = reCenterAction,
@@ -2064,10 +2108,8 @@ internal fun MapMenu(
     onDismiss: () -> Unit,
     onDownloadMaps: () -> Unit,
     onOpenFavorites: () -> Unit,
-    onOpenPoiSearch: () -> Unit,
-    onOpenAddressBook: () -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenAbout: () -> Unit,
-    addressBookAvailable: Boolean,
     toasterTopPadding: Dp
 ) {
     BackHandler(enabled = expanded) { onDismiss() }
@@ -2112,25 +2154,13 @@ internal fun MapMenu(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.poi_search_title)) },
+                        text = { Text(stringResource(R.string.search_menu_title)) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         onClick = {
                             onDismiss()
-                            onOpenPoiSearch()
+                            onOpenSearch()
                         }
                     )
-                    // Address book entry — only while READ_CONTACTS is granted
-                    // (spec: address-book-permission — visibility).
-                    if (addressBookAvailable) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.address_book_menu_title)) },
-                            leadingIcon = { Icon(Icons.Default.Contacts, contentDescription = null) },
-                            onClick = {
-                                onDismiss()
-                                onOpenAddressBook()
-                            }
-                        )
-                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.about)) },
                         leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
@@ -2167,7 +2197,7 @@ private fun MapOverlayIconButton(
  * (spec: map-canvas-screen, landscape-layout).
  */
 @Composable
-private fun MapActionColumn(
+internal fun MapActionColumn(
     isLandscape: Boolean,
     onToggleMenu: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -2218,6 +2248,7 @@ private fun MapActionColumn(
 private fun MapCompassBlock(
     isNorthUp: Boolean,
     mapAngleRadians: Double,
+    bearingDegrees: Double?,
     gpsFixQuality: GpsFixQuality,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit
@@ -2225,6 +2256,7 @@ private fun MapCompassBlock(
     CompassButton(
         isNorthUp = isNorthUp,
         mapAngleRadians = mapAngleRadians,
+        bearingDegrees = bearingDegrees,
         gpsFixQuality = gpsFixQuality,
         onCenterClick = onCenterClick,
         onToggleOrientation = onToggleOrientation
@@ -2243,6 +2275,7 @@ internal fun MapRightWidgetColumn(
     isLandscape: Boolean,
     compassNorthUp: Boolean,
     mapAngleRadians: Double,
+    bearingDegrees: Double? = null,
     gpsFixQuality: GpsFixQuality,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit,
@@ -2253,6 +2286,7 @@ internal fun MapRightWidgetColumn(
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
     locationOptions: (@Composable () -> Unit)? = null,
+    driveToggle: (@Composable () -> Unit)? = null,
     reserveSpeedSlot: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -2263,10 +2297,15 @@ internal fun MapRightWidgetColumn(
         MapCompassBlock(
             isNorthUp = compassNorthUp,
             mapAngleRadians = mapAngleRadians,
+            bearingDegrees = bearingDegrees,
             gpsFixQuality = gpsFixQuality,
             onCenterClick = onCenterClick,
             onToggleOrientation = onToggleOrientation
         )
+        if (driveToggle != null) {
+            Spacer(modifier = Modifier.size(8.dp))
+            driveToggle()
+        }
         if (speedInput != null || reserveSpeedSlot) {
             Spacer(modifier = Modifier.size(8.dp))
             SpeedWidget(
@@ -2302,6 +2341,30 @@ internal fun MapReCenterButton(
         imageVector = Icons.Default.MyLocation,
         contentDescription = stringResource(R.string.recenter_on_location),
         onClick = onReCenter,
+        modifier = modifier
+    )
+}
+
+/**
+ * Drive mode toggle (spec: map-modes — mode toggle button): a dedicated
+ * control in the right-side widget column, car icon in BROWSE (tap →
+ * FREE_DRIVE), exit icon in FREE_DRIVE (tap → BROWSE). Hidden during
+ * NAVIGATION.
+ */
+@Composable
+internal fun DriveModeButton(
+    mode: MapMode,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (mode == MapMode.NAVIGATION) return
+    val isDriving = mode == MapMode.FREE_DRIVE
+    MapOverlayIconButton(
+        imageVector = if (isDriving) Icons.Default.Stop else Icons.Default.DirectionsCar,
+        contentDescription = stringResource(
+            if (isDriving) R.string.exit_free_drive else R.string.start_free_drive
+        ),
+        onClick = onToggle,
         modifier = modifier
     )
 }

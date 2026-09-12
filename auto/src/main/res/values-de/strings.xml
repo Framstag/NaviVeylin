@@ -5,6 +5,9 @@
     <string name="starred_favorites">Markierte Favoriten</string>
     <string name="all_favorites">Alle Favoriten</string>
     <string name="search_pois">POIs suchen</string>
+    <string name="search_pois_near_me">POIs in meiner Nähe suchen</string>
+    <string name="search_contacts_action">Kontakte suchen</string>
+    <string name="recent_searches">Letzte Suchanfragen</string>
     <string name="search_history">Suchverlauf</string>
     <string name="diagnostics">Diagnose</string>
     <string name="about">Über</string>

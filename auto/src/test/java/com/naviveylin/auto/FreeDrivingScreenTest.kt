@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import com.naviveylin.core.AutoPositionUtil
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -38,26 +39,6 @@ class FreeDrivingScreenTest {
         // independent of settings" — never snaps to north on a bad fix).
         assertNull(FreeDrivingScreen.headingAngleRadians(Double.NaN))
         assertNull(FreeDrivingScreen.headingAngleRadians(-1.0))
-    }
-
-    // ── movementSpeedKmH (GPX replay without a GPS speed) ──
-
-    @Test
-    fun movementSpeedDerivedFromDistanceAndTime() {
-        // 0.1° latitude ≈ 11.1 km in 600 s → ≈ 66.7 km/h.
-        val s = FreeDrivingScreen.movementSpeedKmH(51.0, 7.0, 51.1, 7.0, 600_000L)!!
-        assertEquals(66.7, s, 1.0)
-    }
-
-    @Test
-    fun movementSpeedNullWhenTimeTooShort() {
-        assertNull(FreeDrivingScreen.movementSpeedKmH(51.0, 7.0, 51.1, 7.0, 100L))
-    }
-
-    @Test
-    fun movementSpeedNullWhenMovedTooLittle() {
-        // ~0.55 m in 10 s — below the 1 m trust threshold.
-        assertNull(FreeDrivingScreen.movementSpeedKmH(51.0, 7.0, 51.000005, 7.0, 10_000L))
     }
 
     // ── autoZoomTarget (spec: auto/map-pan — auto-zoom suspended while

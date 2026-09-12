@@ -6,6 +6,7 @@ import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
+import com.naviveylin.core.ProjectionUtils
 import kotlin.math.roundToInt
 
 /**
@@ -147,7 +148,13 @@ object SurfaceIndicators {
         canvas.drawCircle(g.compassCenterX, g.compassCenterY, g.compassRadius, bg)
 
         canvas.save()
-        canvas.rotate(-Math.toDegrees(angleRadians).toFloat(), g.compassCenterX, g.compassCenterY)
+        // North pointer rendered at the screen direction of north, per the
+        // shared core convention (ProjectionUtils.compassRotationDegrees) — the
+        // same convention the phone compass uses (spec: auto-map-layout).
+        canvas.rotate(
+            ProjectionUtils.compassRotationDegrees(angleRadians).toFloat(),
+            g.compassCenterX, g.compassCenterY
+        )
 
         val tickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = ROSE_FG

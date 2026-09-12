@@ -237,6 +237,26 @@ class NavigationSession : Session() {
                         lastWarmupStep = "Native client ready"
                         SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
 
+                        // Init the favorites repository as soon as the client is
+                        // built: favorites depend only on the client (JNI + JSON
+                        // file), not on map databases, so they become available
+                        // before the (slower) map database open. Best effort —
+                        // failures are logged, not fatal.
+                        lastStepAt = System.currentTimeMillis()
+                        lastWarmupStep = "Initializing favorites"
+                        SessionLog.warmupStep(lastWarmupStep, 0)
+                        try {
+                            val favoritesFile = File(
+                                carContext.applicationContext.filesDir,
+                                FAVORITES_FILE
+                            ).absolutePath
+                            entryPoint.autoFavoritesProvider().init(favoritesFile)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "favorites init failed", e)
+                        }
+                        lastWarmupStep = "Favorites ready"
+                        SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
+
                         // Activate the AA navigation controller: its init wires
                         // itself into the shared state provider, so "Navigate
                         // here" and turn-by-turn work without the phone UI.
@@ -253,8 +273,8 @@ class NavigationSession : Session() {
 
                         // Mirror the phone app's initMap(): open every installed
                         // map database so the map renders and search/geocoding
-                        // find results, and init the favorites repository.
-                        // Best effort — failures are logged, not fatal.
+                        // find results. Best effort — failures are logged, not
+                        // fatal.
                         lastStepAt = System.currentTimeMillis()
                         lastWarmupStep = "Opening installed map databases"
                         SessionLog.warmupStep(lastWarmupStep, 0)
@@ -265,21 +285,6 @@ class NavigationSession : Session() {
                             Log.w(TAG, "openMapDatabases failed", e)
                         }
                         lastWarmupStep = "Opening map databases done"
-                        SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
-
-                        lastStepAt = System.currentTimeMillis()
-                        lastWarmupStep = "Initializing favorites"
-                        SessionLog.warmupStep(lastWarmupStep, 0)
-                        try {
-                            val favoritesFile = File(
-                                carContext.applicationContext.filesDir,
-                                FAVORITES_FILE
-                            ).absolutePath
-                            entryPoint.autoFavoritesProvider().init(favoritesFile)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "favorites init failed", e)
-                        }
-                        lastWarmupStep = "Favorites ready"
                         SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
                     }
                     val total = System.currentTimeMillis() - start

@@ -194,6 +194,28 @@ object ProjectionUtils {
     }
 
     /**
+     * Screen direction of north, in degrees clockwise from screen-up (0° = up,
+     * 90° = right), for a map rendered at [mapAngleRadians].
+     *
+     * Convention: the native MercatorProjection angle is counter-clockwise in
+     * math coordinates, but on a screen (y-down) the rendered map's north glyph
+     * sits at `+angle` clockwise from up — the same convention [screenBearing]
+     * applies (verified by the GPS marker arrow and its tests). Heading-up
+     * follow mode stores `angle = -bearing`, so a westbound heading (270°,
+     * angle ≡ +90°) puts north 90° clockwise from up — the driver's right.
+     * Compass needles and roses SHALL use this function, never an inline
+     * negation, so the sign convention cannot drift again.
+     */
+    fun compassRotationDegrees(mapAngleRadians: Double): Double {
+        var result = Math.toDegrees(mapAngleRadians).mod(360.0)
+        return when {
+            result < 0 -> result + 360.0
+            result >= 360.0 -> result - 360.0
+            else -> result
+        }
+    }
+
+    /**
      * Inverse hyperbolic tangent.
      */
     fun atanh(x: Double): Double = 0.5 * ln((1.0 + x) / (1.0 - x))

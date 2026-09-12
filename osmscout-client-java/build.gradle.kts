@@ -1,6 +1,7 @@
 plugins {
     id("java-library")
     id("idea")
+    id("jacoco")
 }
 
 java {
@@ -34,7 +35,8 @@ tasks.named<JavaCompile>("compileJava") {
             "**/OSMScoutClient.java",
             "**/MapDownloadManager.java",
             "**/AvailableMapEntry.java",
-            "**/BasemapManager.java"
+            "**/BasemapManager.java",
+            "**/RoadInfo.java"
         )
     })
 }
@@ -46,6 +48,19 @@ tasks.named<Jar>("jar") {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// ── Test coverage (JaCoCo) ───────────────────────────────────────────────
+// Pure-Java module (no Kotlin plugin): Kover cannot measure it (empty
+// reports), so the standard Gradle JaCoCo plugin is used here. Report-only;
+// HTML + XML at build/reports/jacoco/test. Not part of the root Kover merge.
+// See guidelines/Build.md → Code coverage.
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.named("test"))
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+    }
 }
 
 dependencies {

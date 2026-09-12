@@ -36,7 +36,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,16 +50,16 @@ import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
 
 /**
- * Location options button that opens a full-width Material 3 bottom sheet
- * for toggling map behaviour: follow mode, orientation, and auto-zoom.
- *
- * Orientation controls show the current mode's setting (free-form or navigation).
+ * Location options button that opens a full-width Material 3 bottom sheet for
+ * toggling map behaviour. The sheet shows a header naming the current map
+ * state (Browse / Free drive / Navigation) and that state's options only —
+ * mode switching is performed exclusively through the right-column mode
+ * toggle button, never from config (spec: location-options-ui).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationOptionsOverlay(
-    followMode: Boolean,
-    onToggleFollowMode: (Boolean) -> Unit,
+    mode: MapMode,
     freeFormNorthUp: Boolean = true,
     onSetFreeFormOrientation: (Boolean) -> Unit = {},
     navNorthUp: Boolean = false,
@@ -80,12 +79,10 @@ fun LocationOptionsOverlay(
     availableStyles: List<String> = emptyList(),
     styleSheet: String = "standard",
     onSetStyleSheet: (String) -> Unit = {},
-    isNavigating: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var showSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
 
     Column(modifier = modifier) {
         FilledTonalIconButton(
@@ -100,7 +97,7 @@ fun LocationOptionsOverlay(
             Icon(
                 imageVector = Icons.Default.Settings,
                 contentDescription = stringResource(R.string.location_options),
-                tint = if (followMode) {
+                tint = if (mode != MapMode.BROWSE) {
                     MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -115,10 +112,7 @@ fun LocationOptionsOverlay(
             sheetState = sheetState
         ) {
             LocationOptionsSheetContent(
-                followMode = followMode,
-                onToggleFollowMode = { enabled ->
-                    onToggleFollowMode(enabled)
-                },
+                mode = mode,
                 freeFormNorthUp = freeFormNorthUp,
                 onSetFreeFormOrientation = onSetFreeFormOrientation,
                 navNorthUp = navNorthUp,
@@ -137,8 +131,7 @@ fun LocationOptionsOverlay(
                 onSetRenderMode = onSetRenderMode,
                 availableStyles = availableStyles,
                 styleSheet = styleSheet,
-                onSetStyleSheet = onSetStyleSheet,
-                isNavigating = isNavigating
+                onSetStyleSheet = onSetStyleSheet
             )
         }
     }
@@ -147,8 +140,7 @@ fun LocationOptionsOverlay(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LocationOptionsSheetContent(
-    followMode: Boolean,
-    onToggleFollowMode: (Boolean) -> Unit,
+    mode: MapMode,
     freeFormNorthUp: Boolean,
     onSetFreeFormOrientation: (Boolean) -> Unit,
     navNorthUp: Boolean,
@@ -167,11 +159,13 @@ private fun LocationOptionsSheetContent(
     onSetRenderMode: (RenderMode) -> Unit,
     availableStyles: List<String>,
     styleSheet: String,
-    onSetStyleSheet: (String) -> Unit,
-    isNavigating: Boolean
+    onSetStyleSheet: (String) -> Unit
 ) {
-    val currentNorthUp = if (isNavigating) navNorthUp else freeFormNorthUp
-    val onSetOrientation = if (isNavigating) onSetNavOrientation else onSetFreeFormOrientation
+    // FREE_DRIVE and NAVIGATION share the driving config (auto-zoom +
+    // orientation); BROWSE has its own orientation only.
+    val driving = mode == MapMode.FREE_DRIVE || mode == MapMode.NAVIGATION
+    val currentNorthUp = if (driving) navNorthUp else freeFormNorthUp
+    val onSetOrientation = if (driving) onSetNavOrientation else onSetFreeFormOrientation
 
     Column(
         modifier = Modifier
@@ -180,54 +174,21 @@ private fun LocationOptionsSheetContent(
             .padding(bottom = 32.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Section: Map follows position
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.map_follows_position),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Switch(
-                checked = followMode,
-                onCheckedChange = { enabled ->
-                    onToggleFollowMode(enabled)
-                }
-            )
-        }
-
-        HorizontalDivider()
-
-        // Section: Orientation
+        // Mode header — names the current state; no mode switch here
+        // (spec: location-options-ui — mode header without mode switch).
         Text(
-            text = stringResource(R.string.orientation),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            text = when (mode) {
+                MapMode.BROWSE -> stringResource(R.string.mode_browse)
+                MapMode.FREE_DRIVE -> stringResource(R.string.mode_free_drive)
+                MapMode.NAVIGATION -> stringResource(R.string.mode_navigation)
+            },
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        Column(modifier = Modifier.selectableGroup()) {
-            OrientationOption(
-                label = stringResource(R.string.north_up),
-                selected = currentNorthUp,
-                onClick = { onSetOrientation(true) }
-            )
-            OrientationOption(
-                label = stringResource(R.string.follow_direction),
-                selected = !currentNorthUp,
-                onClick = { onSetOrientation(false) }
-            )
-        }
-
-        // Auto-zoom toggle — only visible during active navigation
-        if (isNavigating) {
-            HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-
+        if (driving) {
+            // Driving section: auto-zoom + orientation (spec:
+            // location-options-ui — auto-zoom visible in driving states).
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -245,6 +206,50 @@ private fun LocationOptionsSheetContent(
                     onCheckedChange = { enabled ->
                         onToggleAutoZoom(enabled)
                     }
+                )
+            }
+
+            HorizontalDivider()
+
+            Text(
+                text = stringResource(R.string.orientation),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            )
+
+            Column(modifier = Modifier.selectableGroup()) {
+                OrientationOption(
+                    label = stringResource(R.string.follow_direction),
+                    selected = !currentNorthUp,
+                    onClick = { onSetOrientation(false) }
+                )
+                OrientationOption(
+                    label = stringResource(R.string.north_up),
+                    selected = currentNorthUp,
+                    onClick = { onSetOrientation(true) }
+                )
+            }
+        } else {
+            // Browse section: orientation only (spec: location-options-ui —
+            // browse orientation controls).
+            Text(
+                text = stringResource(R.string.orientation),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            )
+
+            Column(modifier = Modifier.selectableGroup()) {
+                OrientationOption(
+                    label = stringResource(R.string.north_up),
+                    selected = currentNorthUp,
+                    onClick = { onSetOrientation(true) }
+                )
+                OrientationOption(
+                    label = stringResource(R.string.free_rotation),
+                    selected = !currentNorthUp,
+                    onClick = { onSetOrientation(false) }
                 )
             }
         }

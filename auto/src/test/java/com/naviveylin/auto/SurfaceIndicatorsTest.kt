@@ -3,6 +3,7 @@ package com.naviveylin.auto
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Rect
+import com.naviveylin.core.ProjectionUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -127,6 +128,28 @@ class SurfaceIndicatorsTest {
         SurfaceIndicators.draw(
             canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density, angleRadians = 0.0,
             currentKmH = 50.0, maxKmH = -1.0, drawSpeedLimitSign = true
+        )
+    }
+
+    @Test
+    fun roseRotationPointsAtRenderedNorth() {
+        // Spec: auto-map-layout / auto/free-driving — the rose north pointer
+        // faces true north on the head-unit screen. drawRose rotates by the
+        // shared core convention (ProjectionUtils.compassRotationDegrees); the
+        // same function feeds the phone compass (spec: compass-button), so a
+        // sign drift is structurally impossible. Pin the heading-up cases:
+        // westbound (bearing 270°, θ = −270° ≡ +90°) → north pointer at 90°
+        // (driver's right); eastbound (θ = −90° ≡ +270°) → 270° (driver's left).
+        assertEquals(90.0, ProjectionUtils.compassRotationDegrees(Math.toRadians(-270.0)), 1e-10)
+        assertEquals(270.0, ProjectionUtils.compassRotationDegrees(Math.toRadians(-90.0)), 1e-10)
+
+        // Smoke: the rose draws with a westbound heading-up angle (the rotation
+        // path through canvas.rotate must not throw with the same input that
+        // FreeDrivingScreen feeds it — headingRadians = -bearing).
+        val canvas = Canvas(Bitmap.createBitmap(1920, 1080, Bitmap.Config.ARGB_8888))
+        SurfaceIndicators.draw(
+            canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density,
+            angleRadians = Math.toRadians(-270.0)
         )
     }
 }

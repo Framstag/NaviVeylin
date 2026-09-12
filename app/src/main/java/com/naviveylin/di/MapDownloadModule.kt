@@ -58,6 +58,7 @@ object MapDownloadModule {
             .withPhysicalDpi(physicalDpi)
             .withFontSizeMm(2.5)
             .withStyleSheetDirectory(stylesheetsDir)
+            .withBasemapStyleSheet("basemap-render")
             .withCustomPoiType("_favorite")
             .withCustomPoiType("_search_selected")
             .withCustomPoiType("_route_start")

@@ -7,34 +7,15 @@ Allow users to search for locations, addresses, and points of interest via free-
 ## Requirements
 
 ### Requirement: Search button on map screen
-The map screen SHALL display a search button overlay positioned at the top-left area (below status bar padding). Pressing the button SHALL open the search panel.
+The map screen SHALL display a search button overlay positioned at the top-left area (below status bar padding). Pressing the button SHALL open the unified search dialog in Places mode.
 
 #### Scenario: Search button visible
 - **WHEN** the map screen is displayed
 - **THEN** a search button (magnifying glass icon) SHALL be visible in the top-left corner
 
-#### Scenario: Search button opens panel
+#### Scenario: Search button opens unified dialog
 - **WHEN** user taps the search button
-- **THEN** a draggable bottom-sheet search panel SHALL open with the search input auto-focused
-
-### Requirement: Stable sheet height
-The search bottom sheet SHALL maintain a fixed minimum height from open to dismiss. Sheet height SHALL NOT change when results load, update, or clear. Content exceeding the allocated space SHALL scroll internally.
-
-#### Scenario: Sheet height stable during search lifecycle
-- **WHEN** the search panel opens
-- **THEN** the sheet SHALL display at its minimum height immediately
-- **AND** the height SHALL remain constant while the user types, results load, results display, or results clear
-- **AND** the sheet SHALL NOT resize when transitioning between empty, loading, results, and no-results states
-
-#### Scenario: Many results scroll internally
-- **WHEN** search returns more results than fit in the allocated space
-- **THEN** the result list SHALL scroll within the sheet
-- **AND** the sheet SHALL NOT expand to show additional items
-
-#### Scenario: Map visible behind sheet
-- **WHEN** the search panel is open
-- **THEN** the map SHALL remain partially visible behind the sheet
-- **AND** the sheet height SHALL leave at least 30% of the screen visible for the map
+- **THEN** the unified search dialog SHALL open in Places mode with the search input auto-focused
 
 ### Requirement: Auto-focused search input
 When the search panel opens, the text input field SHALL receive focus automatically and the keyboard SHALL appear.
@@ -165,26 +146,27 @@ When the user selects a search result while follow-location mode is active, the 
 - **AND** subsequent GPS position updates SHALL NOT re-center the map on the current position
 
 ### Requirement: Convenience entries on empty query
-When the search field is empty, the search panel SHALL show "Current Location" (if GPS is available) and "Select Favorite" entries above the results area. Typing a query SHALL hide both entries and show location search results only; clearing the field SHALL restore both entries immediately.
+When the search field is empty in Places mode, the search dialog SHALL show suggestion sources above the results area: recent searches as chips, favorite locations as rows, and a "Current Location" row (if GPS is available). Typing a query SHALL hide all suggestions and show location search results only; clearing the field SHALL restore them immediately.
 
-#### Scenario: Empty query shows convenience entries
-- **WHEN** the search panel opens with an empty query
-- **THEN** a "Current Location" entry SHALL be visible (if GPS is available)
-- **AND** a "Select Favorite" entry SHALL be visible
+#### Scenario: Empty query shows suggestions
+- **WHEN** the search dialog opens in Places mode with an empty query
+- **THEN** a "Current Location" row SHALL be visible (if GPS is available)
+- **AND** favorite rows SHALL be visible
+- **AND** recent-search chips SHALL be visible
 
-#### Scenario: Typing hides convenience entries
+#### Scenario: Typing hides suggestions
 - **WHEN** the user types a query
-- **THEN** the "Current Location" and "Select Favorite" entries SHALL be hidden
+- **THEN** the suggestion rows and chips SHALL be hidden
 - **AND** only location search results SHALL be listed
 
-#### Scenario: Clearing restores convenience entries
+#### Scenario: Clearing restores suggestions
 - **WHEN** the user clears the query
-- **THEN** the "Current Location" and "Select Favorite" entries SHALL reappear immediately
+- **THEN** the suggestion rows and chips SHALL reappear immediately
 
-#### Scenario: Current location entry hidden without GPS
+#### Scenario: Current location row hidden without GPS
 - **WHEN** GPS location is not available
-- **THEN** the "Current Location" entry SHALL be hidden
-- **AND** the "Select Favorite" entry SHALL remain visible
+- **THEN** the "Current Location" row SHALL be hidden
+- **AND** the favorite rows and recent-search chips SHALL remain visible
 
 ### Requirement: Search scoped by current admin region
 When a usable GPS fix is available, the map screen search panel SHALL resolve the admin region containing the current position and pass it as the default admin region to the native search call. The search scope SHALL be the highest ancestor of the resolved region at or finer than the maximum region level cap (walking up the parent chain while each parent is at or finer than the cap), so addresses and POIs match when the user omits the region qualifier even if they lie in a neighboring subregion of the same scope (the scope's recursive search covers all its subregions in one pass). When the resolved region has no parent, or every ancestor is coarser than the cap, the scope SHALL be the resolved region alone. The cap SHALL default to level 5 (Regierungsbezirk/district on the OSM admin_level scale: 2=country, 4=state, 5=Regierungsbezirk, 6=county, 8=municipality), so a kreisfreie Stadt (level 6) and its surrounding towns share a scope. The search SHALL still match fully qualified queries regardless of the default region. Without a usable GPS fix (no fix or poor accuracy), the search SHALL run unconstrained, exactly as before this change. The last known position SHALL remain valid for region scoping regardless of fix age; the region SHALL be re-resolved when a fresh fix shows movement beyond the movement threshold. Search initiated from the route panel SHALL remain unconstrained.
@@ -255,7 +237,7 @@ The resolved admin region used for search SHALL track the user's position. Once 
 - **THEN** the admin region SHALL remain constant for all queries of that session unless the position moved beyond the movement threshold
 
 ### Requirement: Search scope region name shown in search panel
-When an admin region has been resolved for the current GPS position, the search panel SHALL display the name of the search scope region above the search input: the parent region when the scope is expanded, else the resolved region itself. The displayed name SHALL follow the currently resolved region: it SHALL appear when resolution succeeds, update when the region is re-resolved after movement, and disappear when no usable GPS fix exists or resolution fails.
+When an admin region has been resolved for the current GPS position, the search dialog SHALL display the name of the search scope region above the search input: the parent region when the scope is expanded, else the resolved region itself. The displayed name SHALL follow the currently resolved region: it SHALL appear when resolution succeeds, update when the region is re-resolved after movement, and disappear when no usable GPS fix exists or resolution fails.
 
 #### Scenario: Scope region name shown above search field
 - **WHEN** an admin region is resolved for the current position
@@ -269,7 +251,7 @@ When an admin region has been resolved for the current GPS position, the search 
 
 #### Scenario: No name without resolved region
 - **WHEN** no usable GPS fix exists or region resolution failed
-- **AND** the search panel is open
+- **AND** the search dialog is open
 - **THEN** no region name SHALL be displayed above the search input field
 
 #### Scenario: Name follows re-resolution

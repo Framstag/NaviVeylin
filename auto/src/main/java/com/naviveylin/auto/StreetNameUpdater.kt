@@ -57,6 +57,17 @@ class StreetNameUpdater(
         const val DEFAULT_MIN_INTERVAL_MS = 2000L
 
         /**
+         * "ref name" display text (e.g. "B 1 Hauptstrasse"), or null when
+         * neither ref nor name is present. Shared by the navigation and
+         * free-driving street labels (spec: auto/navigation-view,
+         * auto/free-driving — ref shown with the street name).
+         */
+        fun roadDisplayText(ref: String, name: String): String? {
+            val parts = listOfNotNull(ref.takeIf { it.isNotBlank() }, name.takeIf { it.isNotBlank() })
+            return parts.joinToString(" ").takeIf { it.isNotBlank() }
+        }
+
+        /**
          * Equirectangular distance approximation (m), fine for the throttle
          * threshold (25 m) at map-level latitudes.
          */

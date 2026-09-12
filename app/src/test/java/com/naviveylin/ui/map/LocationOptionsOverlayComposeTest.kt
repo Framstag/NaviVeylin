@@ -18,11 +18,10 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Compose UI tests for the map settings bottom sheet ([LocationOptionsOverlay]):
- * the gear button opens it, and the map style control is a compact exposed
- * dropdown (one row) listing every bundled style (name without the `.oss`
- * postfix); selecting reports the style. There is no style entry in the
- * overflow menu (spec: map-styles — phone settings entry lives in the on-map
- * settings view).
+ * the gear button opens it, the sheet shows a mode header naming the current
+ * state and that state's options only, and there is no mode-switch control
+ * (spec: location-options-ui — mode header without mode switch). The map style
+ * control is a compact exposed dropdown listing every bundled style.
  */
 @RunWith(RobolectricTestRunner::class)
 class LocationOptionsOverlayComposeTest {
@@ -30,15 +29,15 @@ class LocationOptionsOverlayComposeTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val styles: List<String> = BundledMapStyles.ALL
+    private val styles: List<String> = BundledMapStyles.USER_SELECTABLE
 
     private fun openSheet(
+        mode: MapMode = MapMode.BROWSE,
         onSetStyleSheet: (String) -> Unit = {}
     ) {
         composeRule.setContent {
             LocationOptionsOverlay(
-                followMode = false,
-                onToggleFollowMode = {},
+                mode = mode,
                 availableStyles = styles,
                 styleSheet = "standard",
                 onSetStyleSheet = onSetStyleSheet
@@ -84,8 +83,7 @@ class LocationOptionsOverlayComposeTest {
         var option: Boolean? = null
         composeRule.setContent {
             LocationOptionsOverlay(
-                followMode = false,
-                onToggleFollowMode = {},
+                mode = MapMode.BROWSE,
                 ambientLightDarkMode = false,
                 onSetAmbientLightOption = { option = it }
             )
@@ -108,8 +106,7 @@ class LocationOptionsOverlayComposeTest {
     fun ambientLightToggleReflectsState() {
         composeRule.setContent {
             LocationOptionsOverlay(
-                followMode = false,
-                onToggleFollowMode = {},
+                mode = MapMode.BROWSE,
                 ambientLightDarkMode = true,
                 onSetAmbientLightOption = {}
             )
@@ -120,5 +117,48 @@ class LocationOptionsOverlayComposeTest {
         composeRule.onNodeWithText("Adaptive by ambient light")
             .performScrollTo()
             .assertIsDisplayed()
+    }
+
+    // --- Mode header + per-state sections (spec: location-options-ui) ---
+
+    @Test
+    fun browseHeaderShowsBrowseAndBrowseSection() {
+        openSheet(mode = MapMode.BROWSE)
+
+        composeRule.onNodeWithText("Browse").assertIsDisplayed()
+        // Browse section: orientation with "Free rotation" (browse-specific).
+        composeRule.onNodeWithText("Free rotation").performScrollTo().assertIsDisplayed()
+        // Driving options must NOT appear in browse.
+        composeRule.onNodeWithText("Auto zoom").assertDoesNotExist()
+        composeRule.onNodeWithText("Follow direction").assertDoesNotExist()
+    }
+
+    @Test
+    fun freeDriveHeaderShowsDrivingSection() {
+        openSheet(mode = MapMode.FREE_DRIVE)
+
+        composeRule.onNodeWithText("Free drive").assertIsDisplayed()
+        // Driving section: auto-zoom + driving orientation.
+        composeRule.onNodeWithText("Auto zoom").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Follow direction").performScrollTo().assertIsDisplayed()
+        // Browse-specific option must NOT appear in driving.
+        composeRule.onNodeWithText("Free rotation").assertDoesNotExist()
+    }
+
+    @Test
+    fun navigationHeaderShowsDrivingSection() {
+        openSheet(mode = MapMode.NAVIGATION)
+
+        composeRule.onNodeWithText("Navigation").assertIsDisplayed()
+        composeRule.onNodeWithText("Auto zoom").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Follow direction").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun sheetHasNoModeSwitchControl() {
+        openSheet(mode = MapMode.BROWSE)
+
+        // The old "Map follows position" toggle is gone; no mode switch exists.
+        composeRule.onNodeWithText("Map follows position").assertDoesNotExist()
     }
 }

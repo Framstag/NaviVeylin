@@ -84,6 +84,22 @@ object CarGlyphs {
         }
     } }
 
+    /** Favorite marker: a heart (two top circles + a downward triangle). */
+    val favorite: CarIcon by lazy { glyph { c, p ->
+        val r = 7f
+        val cx = 24f
+        val cy = 22f
+        c.drawCircle(cx - r * 0.55f, cy - r * 0.45f, r, p)
+        c.drawCircle(cx + r * 0.55f, cy - r * 0.45f, r, p)
+        val path = android.graphics.Path().apply {
+            moveTo(cx - r * 1.1f, cy - r * 0.2f)
+            lineTo(cx + r * 1.1f, cy - r * 0.2f)
+            lineTo(cx, cy + r * 1.25f)
+            close()
+        }
+        c.drawPath(path, p)
+    } }
+
     private fun glyph(draw: (Canvas, Paint) -> Unit): CarIcon {
         val size = 48
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)

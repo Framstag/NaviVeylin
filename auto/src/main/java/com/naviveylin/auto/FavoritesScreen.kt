@@ -12,13 +12,14 @@ import androidx.car.app.model.SectionedItemList
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Android Auto screen for browsing favorite locations using [ListTemplate]
@@ -49,13 +50,25 @@ class FavoritesScreen(
 
     init {
         enableBackNavigation()
+        // Collect the favorites flow reactively (parity with MapScreen,
+        // DetailsScreen and the phone app): the screen updates in place when
+        // the store finishes loading, so favorites appear without leaving and
+        // re-entering the screen (spec: auto-favorites — favorites appear
+        // without re-entering the screen).
         scope.launch {
-            favoritesData = withContext(Dispatchers.Default) {
-                favoritesProvider.favoriteLocations().first()
+            favoritesProvider.favoriteLocations().collect { favorites ->
+                favoritesData = favorites
+                loaded = true
+                invalidate()
             }
-            loaded = true
-            invalidate()
         }
+        // Cancel the collect when the screen is destroyed so collectors do not
+        // accumulate across open/close cycles (pattern from MapScreen).
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onDestroy(owner: LifecycleOwner) {
+                scope.cancel()
+            }
+        })
     }
 
     override fun onGetTemplate(): ListTemplate {

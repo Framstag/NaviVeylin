@@ -29,10 +29,11 @@ object PreferencesScreenMapper {
     private const val KEY_STYLE_SHEET = "styleSheet"
 
     /**
-     * Fallback style list (the bundled libosmscout top-level `*.oss` set,
-     * sorted); the production preferences screen passes the live device list.
+     * Fallback style list (the bundled libosmscout top-level `*.oss` set minus
+     * the basemap's internal stylesheet, sorted); the production preferences
+     * screen passes the live device list.
      */
-    val DEFAULT_STYLES: List<String> = BundledMapStyles.ALL
+    val DEFAULT_STYLES: List<String> = BundledMapStyles.USER_SELECTABLE
 
     /**
      * Build the preference rows for [settings]. Phone-only settings

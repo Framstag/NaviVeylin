@@ -38,6 +38,7 @@ class MapCanvasViewModelStyleTest {
     private lateinit var client: FakeOSMScoutClient
     private lateinit var settingsStorage: SettingsStorage
     private lateinit var viewModel: MapCanvasViewModel
+    private lateinit var basemapReloadNotifier: BasemapReloadNotifier
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -61,6 +62,7 @@ class MapCanvasViewModelStyleTest {
         val favoriteRepository = FavoriteRepository(client).also {
             it.defaultDispatcher = mainDispatcherRule.dispatcher
         }
+        basemapReloadNotifier = BasemapReloadNotifier()
         val vm = MapCanvasViewModel(
             viewportStorage = viewportStorage,
             settingsStorage = settingsStorage,
@@ -71,7 +73,7 @@ class MapCanvasViewModelStyleTest {
             locationService = LocationService(context),
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
-            basemapReloadNotifier = BasemapReloadNotifier(),
+            basemapReloadNotifier = basemapReloadNotifier,
             context = context
         )
         vm.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -101,6 +103,64 @@ class MapCanvasViewModelStyleTest {
     }
 
     @Test
+    fun initMapConfiguresNativeTileDataCacheAfterDatabaseOpens() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.setScreenSize(100, 100)
+
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue("database must have opened", client.openedDatabases.contains("/data/maps/testmap"))
+        assertEquals(
+            "native tile data cache capacity must be configured after a successful open",
+            listOf(MapCanvasViewModel.NATIVE_TILE_DATA_CACHE_SIZE),
+            client.nativeDataCacheSizes
+        )
+    }
+
+    @Test
+    fun initMapSkipsCacheConfigWhenDatabaseOpenFails() = runTest(mainDispatcherRule.dispatcher) {
+        client.openDatabaseResult = false
+        viewModel.setScreenSize(100, 100)
+
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue("cache config must not run when the database fails to open", client.nativeDataCacheSizes.isEmpty())
+    }
+
+    @Test
+    fun basemapReloadKeepsSingleCacheConfigPoint() = runTest(mainDispatcherRule.dispatcher) {
+        // Full lifecycle: initMap configures the native cache once. A basemap
+        // change (download/update/delete) then invalidates the rendered tiles
+        // via the notifier (renderer invalidation is covered by
+        // MapRendererInvalidateDataTest), but must NOT re-configure the cache
+        // from Kotlin — the C++ render job re-applies the stored size to every
+        // open database INCLUDING the basemap on each render (design D1;
+        // covers basemap-only viewports that never pass through the regional
+        // loadDbData lambda). This pins the single application point:
+        // removing the initMap call, or adding redundant Kotlin re-configuration
+        // on basemap reload, breaks here.
+        viewModel.setScreenSize(100, 100)
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "configured once after a successful open",
+            listOf(MapCanvasViewModel.NATIVE_TILE_DATA_CACHE_SIZE),
+            client.nativeDataCacheSizes
+        )
+
+        basemapReloadNotifier.bump()
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "basemap reload must not re-configure the cache from Kotlin",
+            listOf(MapCanvasViewModel.NATIVE_TILE_DATA_CACHE_SIZE),
+            client.nativeDataCacheSizes
+        )
+    }
+
+    @Test
     fun selectingStyleAppliesImmediately() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.onStyleSheetSelected("cycle")
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
@@ -121,8 +181,13 @@ class MapCanvasViewModelStyleTest {
     fun availableStyleSheetsExposedInUiState() = runTest(mainDispatcherRule.dispatcher) {
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
         assertEquals(
-            BundledMapStyles.ALL,
+            BundledMapStyles.USER_SELECTABLE,
             viewModel.uiState.value.availableStyleSheets
+        )
+        // The basemap's internal stylesheet is never offered (spec: map-styles).
+        assertTrue(
+            "basemap-render must not be user-selectable",
+            BundledMapStyles.BASEMAP_STYLE_NAME !in viewModel.uiState.value.availableStyleSheets
         )
     }
 

@@ -374,6 +374,32 @@ car Surface:
 
 ---
 
+## 16. Basemap stylesheet contract
+
+- The basemap database has its own type config (basemap.ost, ~11 types + water-index
+  tiles), so it is rendered with a **dedicated stylesheet** (`basemap-render.oss`)
+  instead of the user-selected main style. Loading the main style into the basemap DB
+  would emit ~450 "Unknown type" parser warnings per load.
+- Native side: `DBThread` holds a `basemapStyleFilename` (absolute path, configured
+  via `OSMScoutClientBuilder.withBasemapStyleSheet`); `LoadStyleInternal` loads it for
+  the basemap database and the main style for the regular databases. Empty filename =
+  fall back to the main style (default). The renderer already uses per-database style
+  configs (`mapData.styleConfig = db->GetStyleConfig()`), so no render-path change is
+  needed.
+- `basemap-render.oss` references ONLY basemap types — zero unknown-type warnings. It
+  mirrors `include/place.oss` magnification ranges (labels persist at the same zoom
+  levels as the standard stylesheet) and handles the `daylight` flag (dark mode).
+  Symbols (`place_capital_city`, `place_city`) are duplicated locally, NOT included
+  via `MODULE "include/place"` — the module would pull in style rules for types not
+  present in the basemap DB and reintroduce warnings.
+- `basemap-render` is NOT offered in the style picker: `MapCanvasViewModel` filters it
+  from `getAvailableStyleSheets()` (spec: map-styles). It is the basemap's internal
+  style, not a user-facing map style.
+- Style switches and the `daylight` flag reload BOTH styles through
+  `LoadStyleInternal`; the basemap style is unaffected by main-style switches.
+
+---
+
 ## Parameter Overview
 
 | Parameter | Value | Purpose |

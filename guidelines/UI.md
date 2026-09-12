@@ -105,22 +105,113 @@ Source: `DetailsResolver` in `:core` (specs `auto-destination-details`,
 - One `DetailsData` bundle (`DetailsResolver.resolve`) is consumed by both UIs —
   never re-derive per view; extend the resolver instead.
 
-## 7. Phone map re-center button (follow / auto-zoom)
+## 6a. Phone search surface (unified search dialog)
 
-Source: spec `map-recenter-button`.
+Source: spec `search-dialog` (phone only).
+
+- ONE full-screen Material 3 search dialog on the phone map screen, opened by
+  the search button, the menu "Search" entry, and the `/` key. No separate
+  POI-search, history, or address-book sheets on the phone.
+- Mode switch (SegmentedButton): Places (free-text location search, default),
+  POIs (category chips + radius slider + explicit search button), Contacts
+  (address book, hidden without `READ_CONTACTS`).
+- Empty Places query shows suggestions: recent searches as chips (youngest
+  first), favorite rows, current location.
+- **Typed Places query also searches favorites** (spec `favorite-search`):
+  favorites matching the query by name (case-insensitive substring, query ≥ 2
+  chars) are listed **above** native results, each marked with a heart icon.
+  Native results whose coordinates match an existing favorite (~11 m) are
+  heart-marked too; a native result identical to a favorite hit is
+  deduplicated (the favorite hit wins). Selecting a favorite hit behaves like
+  any search result (records history, opens details).
+- The shared search field is mode-aware: location query in Places, category
+  filter in POIs, contact filter in Contacts.
+- Android Auto has its own search surface — see §6b below. It is NOT a
+  mirror of the phone dialog: the car `SearchTemplate` shows empty-query
+  suggestions (mode rows + recent searches) instead of the phone's
+  mode-switch + chips layout.
+
+## 6b. Android Auto search surface (SearchTemplate)
+
+Source: specs `auto-search`, `auto-search-suggestions` (change `unify-auto-search`).
+
+- The car `SearchTemplate` shows **empty-query suggestions** instead of an
+  empty list: mode rows + recent searches.
+- Mode rows: "Search POIs near me" (opens the POI category picker) and
+  "Search contacts" (opens the address-book person search, shown only while
+  `READ_CONTACTS` is granted — same gate as the root list entry).
+- Recent searches come from the shared history store (same JSON store as the
+  phone, so phone searches appear on the car screen). Tapping a history row
+  pushes a prefilled `SearchScreen` (the host owns the field text after
+  construction, so the query cannot be set inline — design D2).
+- **Typing replaces suggestions**: as soon as the user types, the mode/history
+  rows are replaced by places search results; clearing the field restores the
+  suggestions.
+- **Favorites are searchable on the car screen too** (spec `favorite-search`,
+  parity with §6a): the same rules as the phone dialog — case-insensitive
+  substring name match on queries ≥ 2 chars, favorite hits listed **above**
+  native results with a heart icon, native results whose coordinates match an
+  existing favorite (~11 m) heart-marked too, and a native result identical
+  to a favorite hit deduplicated (the favorite hits win). Same matching,
+  prioritization, marking, and deduplication on both surfaces.
+- **No-results state keeps mode rows**: a query with no results shows the
+  "No results found" row followed by the mode rows, so the driver can pivot
+  to POI/contacts search without clearing the field.
+- **Action-phrase labels — documented parity deviation**: the suggestion rows
+  use action phrases ("Search POIs near me", "Search contacts"), not the
+  phone's mode labels ("Places" / "POIs" / "Contacts"). This is the
+  established AA pattern (the root list already deviates: "Points of
+  interest" vs "POIs") and Google Maps uses action phrases on the car
+  display. The elements are new, not shared, so `cross-variant-ui-parity`
+  (§1) is unaffected.
+- The keyboard stays shown by default (`setShowKeyboardByDefault(true)`);
+  the suggestion rows are scrollable below the field.
+
+## 7. Phone map modes (Browse / Free drive / Navigation)
+
+Source: spec `map-modes`.
+
+- The phone map has an explicit mode model with three states, derived from a
+  single source of truth (`MapMode` in `MapCanvasViewModel`):
+  - **BROWSE** — follow off, north-up, last persisted viewport. The app
+    ALWAYS starts in BROWSE; `followMode` is runtime state, never restored
+    from settings (free drive is per-session intent).
+  - **FREE_DRIVE** — follow on, auto-zoom on, heading-up, speed-based driving
+    zoom. Entered with one tap on the compass button (short press).
+  - **NAVIGATION** — route active; overrides follow mode. On navigation end
+    the map returns to the mode active before navigation started.
+- The drive mode toggle is a dedicated button in the right-side widget column
+  directly below the compass: car icon in BROWSE (tap → FREE_DRIVE), exit icon
+  in FREE_DRIVE (tap → BROWSE). Hidden during NAVIGATION. The compass button
+  keeps its orientation role; its short press re-centers via the mode-dependent
+  re-center action.
+- Exiting FREE_DRIVE stays at the current position (follow off, north-up).
+- The location-options sheet shows a header naming the current state and that
+  state's options only — it never switches modes. BROWSE shows orientation;
+  FREE_DRIVE and NAVIGATION share the driving section (auto-zoom + driving
+  orientation). The sheet is reachable during navigation (gear in the nav
+  right column).
+
+## 7a. Phone map re-center button (per-mode)
+
+Source: spec `map-modes` (drive suspension and reset; browse re-center).
 
 - The re-center button (crosshair/my-location icon, content description
-  "Re-center on location") appears when the viewport is no longer auto-driven
-  **and** a GPS fix is available:
-  - follow mode was disengaged by a pan/zoom (follow mode off), or
-  - auto-zoom is suspended while navigating (pinch/button zoom leaves follow
-    mode on but stops auto zoom).
-- Placement: bottom-left in free-form mode; while navigating it is anchored
+  "Re-center on location") appears only when the viewport has drifted from the
+  auto state **and** a GPS fix is available:
+  - **FREE_DRIVE**: any manual pan/zoom/rotate suspends the drive preset
+    (`driveSuspended`); the button appears and tapping it resets to the
+    standard drive values (follow on, auto-zoom on, heading-up, driving zoom)
+    and hides the button.
+  - **BROWSE**: a manual pan/zoom away from the GPS position (`browseDrifted`)
+    shows the button; tapping it centers on the current GPS position, stays in
+    BROWSE, and hides the button. At start (no drift) the button is hidden.
+  - **NAVIGATION**: a manual zoom suspends auto-zoom; tapping re-centers on the
+    current position (existing behavior).
+- Placement: bottom-left in BROWSE/FREE_DRIVE; while navigating it is anchored
   directly above the routing status bar (the screen-bottom area is covered by
   `NavigationStateOverlay`, so the button must never sit at the bottom edge
   during navigation).
-- Tapping it re-enables follow mode, unsuspends auto-zoom, re-centers on the
-  current GPS position, and hides the button (existing `reCenterAction`).
 - There is no automatic re-engage: a manual interaction stops follow/auto-zoom
   until the driver taps the button — the button's presence is the only signal.
 - Phone-only: the car display has its own follow behavior via the car
@@ -143,6 +234,12 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   (`onSurface`) on the light card in the normal state; never white-on-light.
 - Phone-only: Android Auto sizes text via the host template; parity applies to
   labels and hierarchy, not pixel sizes.
+- Free-driving street label (phone, spec `current-road-info`): bottom-center
+  pill, `surfaceVariant` at 0.92 alpha, 10dp rounded, `titleMedium` text,
+  shown only when no route is active and a road is resolved; text is the
+  road's "ref name" (e.g. "B 1 Hauptstraße"), blank when the road has no
+  name/ref. Source: route way info while navigating, bearing-aware
+  `getRoadAt` lookup in free driving (spec `road-lookup-bearing`).
 - Android Auto surface indicators (spec `auto-map-layout`): compass rose 56dp,
   speed-limit sign 56dp with 7dp red ring and 24sp digits; the speed badge
   (128×52, 20sp) is unchanged.

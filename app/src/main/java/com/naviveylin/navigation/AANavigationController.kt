@@ -1,6 +1,7 @@
 package com.naviveylin.navigation
 
 import android.util.Log
+import com.framstag.libosmscout.client.CurrentRoadInfo
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.NavigationController
 import com.framstag.libosmscout.client.NavigationListener
@@ -14,6 +15,8 @@ import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.AutoNavigationController
 import com.naviveylin.core.NavigationState
 import com.naviveylin.location.LocationService
+import com.naviveylin.location.SpeedSpikeFilter
+import com.naviveylin.location.SpeedStaleness
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.atan2
@@ -24,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,14 +60,24 @@ class AANavigationController @Inject constructor(
     private var lastTunnelOrNoSignalTime = 0L
     private var lastOnRouteTime = 0L
 
+    // Road-info lookup throttle (same rules as the phone VM).
+    private var lastRoadInfoTime = 0L
+    private var lastRoadInfoLat = Double.NaN
+    private var lastRoadInfoLon = Double.NaN
+
     /** In-flight route calculation (coalesces reroute storms to one at a time). */
     private var routeJob: Job? = null
 
     /** Last reroute trigger time (throttle — the engine fires one per GPS fix while off-route). */
     private var lastRerouteTime = 0L
 
-    /** Last plausible speed (spike filter, same as the phone's MapCanvasViewModel). */
-    private var lastValidSpeedKmH = Double.NaN
+    // Last plausible speed, spike-filtered with stale-value decay. Shared
+    // pure logic — see SpeedSpikeFilter (spec: speed-spike-filtering).
+    private val speedSpikeFilter = SpeedSpikeFilter(maxPlausibleSpeedKmH = MAX_PLAUSIBLE_SPEED_KMH)
+
+    // Last fix timestamp seen (staleness guard for the displayed speed;
+    // spec: gps-speed-priority).
+    private var lastFixTime = 0L
 
     init {
         // Mirror into the shared provider so AA screens get live navigation
@@ -76,6 +90,7 @@ class AANavigationController @Inject constructor(
         scope.launch {
             locationService.location.collect { fix ->
                 if (fix != null) {
+                    lastFixTime = fix.time
                     val locSpeedKmH = if (!fix.speedKmH.isNaN()) fix.speedKmH else -1.0
                     processLocation(
                         fix.lat,
@@ -87,10 +102,27 @@ class AANavigationController @Inject constructor(
                     // Display speed from the location provider (the emulator's
                     // simulated driving speed is sane; the engine's SpeedAgent
                     // derives absurd values from GPS jumps) — spike-filtered.
-                    val filtered = filterSpeed(locSpeedKmH)
+                    val filtered = speedSpikeFilter.filter(locSpeedKmH)
                     _state.value = _state.value.copy(
                         currentSpeedKmH = filtered.takeIf { it >= 0.0 } ?: Double.NaN
                     )
+                }
+            }
+        }
+
+        // Stale-speed ticker (spec: gps-speed-priority — stationary reads zero).
+        // The provider goes silent at standstill (min-distance throttling), so
+        // once no fresh fix arrives beyond the staleness window the displayed
+        // speed decays to 0 instead of pinning the last delivered value.
+        // Dispatchers.Default + real clock: must not feed the (virtual) test
+        // scheduler with an endless delay loop.
+        scope.launch(Dispatchers.Default) {
+            while (true) {
+                delay(SPEED_STALE_TICK_MS)
+                if (_state.value.isNavigating &&
+                    SpeedStaleness.isStale(lastFixTime, System.currentTimeMillis())
+                ) {
+                    _state.value = _state.value.copy(currentSpeedKmH = 0.0)
                 }
             }
         }
@@ -200,6 +232,9 @@ class AANavigationController @Inject constructor(
         lastGpsAccuracy = -1.0
         lastTunnelOrNoSignalTime = 0L
         lastOnRouteTime = 0L
+        // Fresh navigation must not immediately hit the stale-speed zero
+        // (no fix has arrived yet in this session).
+        lastFixTime = System.currentTimeMillis()
 
         _state.value = _state.value.copy(
             isNavigating = true,
@@ -245,16 +280,42 @@ class AANavigationController @Inject constructor(
     }
 
     /**
-     * Filter speed spikes: reject speed above the plausibility cap, keep the
-     * last good speed (same rule as the phone's MapCanvasViewModel — GPS
-     * jumps otherwise produce absurd readings). Cap at 250 km/h so real
-     * high-speed driving (Autobahn, up to ~220 km/h) is never clipped.
+     * Road info for the car surface (spec: current-road-info). On route with
+     * a resolved way, the engine's way IS the route's street — its name/ref/type
+     * are used directly, no area search and no throttle. Off route or without
+     * way info, a throttled bearing-aware lookup (`getRoadAt`) runs off the
+     * main thread. Mirrors the phone VM's rules so both surfaces agree.
      */
-    private fun filterSpeed(rawSpeedKmH: Double): Double {
-        if (rawSpeedKmH >= 0.0 && rawSpeedKmH <= MAX_PLAUSIBLE_SPEED_KMH) {
-            lastValidSpeedKmH = rawSpeedKmH
+    internal fun updateRoadInfoFromPosition(position: NavigationPosition) {
+        val onRoute = position.state == com.framstag.libosmscout.client.NavigationState.OnRoute
+        if (onRoute && (position.wayName.isNotEmpty() || position.wayRef.isNotEmpty())) {
+            _state.value = _state.value.copy(
+                currentRoadInfo = CurrentRoadInfo(position.wayRef, position.wayType, position.wayName)
+            )
+            return
         }
-        return lastValidSpeedKmH
+
+        val now = System.currentTimeMillis()
+        if (now - lastRoadInfoTime < ROAD_INFO_THROTTLE_MS) return
+        if (!lastRoadInfoLat.isNaN() && !lastRoadInfoLon.isNaN()) {
+            val dx = position.lat - lastRoadInfoLat
+            val dy = position.lon - lastRoadInfoLon
+            if (dx * dx + dy * dy < 0.0005 * 0.0005) return
+        }
+        lastRoadInfoTime = now
+        lastRoadInfoLat = position.lat
+        lastRoadInfoLon = position.lon
+
+        scope.launch(Dispatchers.Default) {
+            try {
+                val road = client.getRoadAt(position.lat, position.lon, position.bearing)
+                _state.value = _state.value.copy(
+                    currentRoadInfo = road?.let { CurrentRoadInfo(it.ref, it.typeName, it.name) } ?: null
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Road info lookup failed", e)
+            }
+        }
     }
 
     private fun createListener(): NavigationListener {
@@ -269,6 +330,7 @@ class AANavigationController @Inject constructor(
                         else -> {}
                     }
                     _state.value = _state.value.copy(position = position)
+                    updateRoadInfoFromPosition(position)
                 }
             }
 
@@ -396,10 +458,16 @@ class AANavigationController @Inject constructor(
         /** Min interval between reroute recalculations (engine fires per fix). */
         private const val REROUTE_MIN_INTERVAL_MS = 10_000L
 
+        /** Frequency of the stale-speed decay check (spec: gps-speed-priority). */
+        private const val SPEED_STALE_TICK_MS = 1_000L
+
         /** Plausibility cap for the speed display filter (Autobahn ~200+). */
         private const val MAX_PLAUSIBLE_SPEED_KMH = 250.0
 
         private const val MAX_REROUTE_ACCURACY = 25.0
         private const val TUNNEL_REROUTE_GUARD_MS = 15_000L
+
+        /** Min interval between road-info lookups (off-route fallback). */
+        private const val ROAD_INFO_THROTTLE_MS = 2000L
     }
 }

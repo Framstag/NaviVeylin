@@ -85,10 +85,13 @@ class BackGestureComposeTest {
     }
 
     @Test
-    fun backClosesSearchPanel() {
+    fun backClosesSearchDialog() {
         var dismissed = false
         composeRule.setContent {
-            SearchPanel(
+            SearchDialog(
+                searchMode = SearchMode.PLACES,
+                onModeSelected = {},
+                onDismiss = { dismissed = true },
                 query = "",
                 results = emptyList(),
                 isSearching = false,
@@ -96,21 +99,40 @@ class BackGestureComposeTest {
                 adminRegionName = null,
                 centerLat = 51.5136,
                 centerLon = 7.4653,
+                historyEntries = emptyList(),
+                favoriteGroups = emptyMap(),
                 onQueryChanged = {},
                 onResultSelected = {},
                 onSelectCurrentLocation = {},
                 onSelectFavorite = {},
-                onSelectFromHistory = {},
-                onDismiss = { dismissed = true }
+                onHistoryEntrySelected = {},
+                poiCategory = null,
+                poiRadiusMeters = 5000.0,
+                poiResults = emptyList(),
+                isPoiSearching = false,
+                poiError = null,
+                client = null,
+                poiCenterLat = Double.NaN,
+                poiCenterLon = Double.NaN,
+                currentPosition = null,
+                selectedPoi = null,
+                onPoiCategorySelected = {},
+                onPoiRadiusChanged = {},
+                onPoiSearch = {},
+                onPoiEntryClick = {},
+                addressBookAvailable = false,
+                contactsQuery = "",
+                onContactsQueryChanged = {},
+                contactsContent = {}
             )
         }
         composeRule.waitForIdle()
-        // Let the ModalBottomSheet entrance animation finish so its back
-        // handler is enabled (sheetState.isVisible).
+        // Let the SearchBar expansion animation finish so its back handler
+        // is enabled.
         composeRule.mainClock.advanceTimeBy(2000)
 
-        pressBackInDialog()
+        pressBack()
 
-        assertTrue("back must dismiss the search panel", dismissed)
+        assertTrue("back must dismiss the search dialog", dismissed)
     }
 }

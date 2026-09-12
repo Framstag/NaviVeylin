@@ -156,6 +156,62 @@ class LocationServiceTest {
         assertEquals(moved.longitude, service.location.value!!.lon, 1e-9)
     }
 
+    // --- SpeedSanity wiring (spec: gps-speed-priority — stationary reads zero) ---
+
+    @Test
+    fun fusedPath_snapStationaryResidualSpeedToZero() {
+        grantLocationPermission()
+        val service = LocationService(context(), playServicesAvailable = true)
+        service.startLocationUpdates()
+        assertTrue("Fused path must be active", service.isFusedActive())
+
+        // Moving fix: 30 km/h passes through sanitized.
+        deliver(service, 48.8566, 2.3522, speed = 30.0f, time = 1_000L)
+        assertEquals(30.0, service.location.value!!.speedKmH, 1e-2)
+
+        // Stationary (~1 m jitter) with a residual 7 km/h velocity estimate
+        // → must snap to 0.
+        deliver(service, 48.8566 + (1.0 / 111_320.0), 2.3522, speed = 7.0f, time = 2_000L)
+        assertEquals(0.0, service.location.value!!.speedKmH, 1e-9)
+
+        // Real movement (10 m) with low reported speed → stays reported.
+        deliver(service, 48.8566 + (10.0 / 111_320.0), 2.3522, speed = 2.0f, time = 3_000L)
+        assertEquals(2.0, service.location.value!!.speedKmH, 1e-2)
+
+        // Real movement at speed → passes through.
+        deliver(service, 48.8566 + (30.0 / 111_320.0), 2.3522, speed = 50.0f, time = 4_000L)
+        assertEquals(50.0, service.location.value!!.speedKmH, 1e-2)
+    }
+
+    @Test
+    fun fusedPath_unknownSpeedStaysNaN() {
+        grantLocationPermission()
+        val service = LocationService(context(), playServicesAvailable = true)
+        service.startLocationUpdates()
+        assertTrue("Fused path must be active", service.isFusedActive())
+
+        deliver(service, 48.8566, 2.3522, speed = 30.0f, time = 1_000L)
+        val noSpeed = Location(LocationManager.GPS_PROVIDER).apply {
+            latitude = 48.8566 + (1.0 / 111_320.0)
+            longitude = 2.3522
+            time = 2_000L
+            // no speed set → hasSpeed() false
+        }
+        service.simulateFusedLocation(noSpeed)
+        assertTrue("missing speed must stay NaN (native -1.0 contract)", service.location.value!!.speedKmH.isNaN())
+    }
+
+    /** Deliver a speed-bearing fix through the active Fused callback. */
+    private fun deliver(service: LocationService, lat: Double, lon: Double, speed: Float, time: Long) {
+        val fix = Location(LocationManager.GPS_PROVIDER).apply {
+            latitude = lat
+            longitude = lon
+            this.time = time
+            this.speed = speed / 3.6f
+        }
+        service.simulateFusedLocation(fix)
+    }
+
     // --- BearingFilter (spec: gps-bearing-smoothing) ---
 
     @Test

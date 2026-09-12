@@ -11,9 +11,13 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
 import com.framstag.libosmscout.client.PoiEntry
+import com.framstag.libosmscout.client.RoadInfo
 import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.BundledMapStyles
 import com.naviveylin.core.SpeedZoomTable
+import com.naviveylin.core.search.FavoriteSearchMerger
+import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
@@ -26,6 +30,7 @@ import com.naviveylin.data.ViewportState
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
+import com.naviveylin.location.SpeedStaleness
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.ui.route.RoutePanelViewModel
@@ -40,6 +45,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,13 +83,27 @@ enum class SearchMode {
     CONTACTS
 }
 
+/**
+ * Explicit map mode (spec: map-modes). Derived from the two existing sources
+ * of truth — navigation state and follow mode — never stored independently, so
+ * there is a single source for "am I navigating" and "am I following".
+ */
+enum class MapMode {
+    /** Free-form map: follow off, north-up, last viewport. Default on start. */
+    BROWSE,
+    /** Follow on, auto-zoom on, heading-up — the one-tap drive preset. */
+    FREE_DRIVE,
+    /** Turn-by-turn route active; overrides follow mode. */
+    NAVIGATION
+}
+
 data class MapCanvasUiState(
     val viewport: ViewportState = ViewportState(),
     val renderedBitmap: ImageBitmap? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val searchQuery: String = "",
-    val searchResults: List<LocationEntry> = emptyList(),
+    val searchResults: List<MergedSearchResult> = emptyList(),
     val isSearching: Boolean = false,
     /** Whether the unified search dialog is open. */
     val searchOpen: Boolean = false,
@@ -127,9 +147,14 @@ data class MapCanvasUiState(
     val canvasOverrun: Double = MapRenderer.DEFAULT_CANVAS_OVERRUN,
     val followMode: Boolean = false,
     val autoZoomEnabled: Boolean = true,
-    /** True while auto-zoom is suspended by a user zoom gesture; drives the re-center
-     *  button so the driver sees that auto zoom stopped and can re-engage it. */
-    val autoZoomPaused: Boolean = false,
+    /** True while the FREE_DRIVE preset is suspended by a manual pan/zoom/rotate
+     *  gesture; drives the re-center button so the driver can reset to the
+     *  standard drive values (spec: map-modes — drive suspension and reset). */
+    val driveSuspended: Boolean = false,
+    /** True while the BROWSE viewport has drifted from the GPS position by a
+     *  manual pan/zoom; drives the re-center button (spec: map-modes — browse
+     *  re-center). Cleared on re-center. */
+    val browseDrifted: Boolean = false,
     val freeFormNorthUp: Boolean = true,
     val navNorthUp: Boolean = false,
     val keepScreenOn: Boolean = true,
@@ -157,7 +182,9 @@ data class MapCanvasUiState(
     /** Current vehicle speed from the GPS fix (km/h); NaN when unknown. Drives the on-map speed widget in follow mode. */
     val currentSpeedKmH: Double = Double.NaN,
     /** Max speed of the road at the GPS position (km/h); NaN when unknown. Drives the on-map speed widget in follow mode. */
-    val maxSpeedKmH: Double = Double.NaN
+    val maxSpeedKmH: Double = Double.NaN,
+    /** Road at the GPS position from the bearing-aware lookup (spec: current-road-info free driving); null when none. */
+    val currentRoadInfo: RoadInfo? = null
 )
 
 @HiltViewModel
@@ -178,6 +205,17 @@ class MapCanvasViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MapCanvasUiState())
     val uiState: StateFlow<MapCanvasUiState> = _uiState.asStateFlow()
 
+    /**
+     * The current map mode (spec: map-modes), derived from navigation state and
+     * follow mode — the single source of truth for the map's driving state.
+     */
+    val mode: MapMode
+        get() = when {
+            _navigationViewModel?.state?.value?.isNavigating == true -> MapMode.NAVIGATION
+            _uiState.value.followMode || _uiState.value.driveSuspended -> MapMode.FREE_DRIVE
+            else -> MapMode.BROWSE
+        }
+
     /** Search history, youngest first. Loaded from disk on ViewModel init. */
     val searchHistory: StateFlow<List<SearchHistoryEntry>> = searchHistoryRepository.history
 
@@ -187,6 +225,9 @@ class MapCanvasViewModel @Inject constructor(
 
     private val _gpsFixQuality = MutableStateFlow(GpsFixQuality.NONE)
     val gpsFixQuality: StateFlow<GpsFixQuality> = _gpsFixQuality.asStateFlow()
+
+    /** Merges favorite hits with native search results (spec: favorite-search). */
+    private val favoriteSearchMerger = FavoriteSearchMerger()
 
     // Admin-region scoping for search: resolved region handle + the position
     // it was resolved at (NaN = none). Reused across keystrokes of a search
@@ -228,6 +269,16 @@ class MapCanvasViewModel @Inject constructor(
      * does not clobber").
      */
     private var viewportRestored = false
+
+    /**
+     * The in-flight [initMap] coroutine. Cancelled on re-entry (map path
+     * change: MAIN screen after a download/update/delete, basemap reload) so
+     * a superseded init — still suspended between DB open and viewport
+     * restore — can never apply its stale restore, re-arm [viewportRestored],
+     * or overwrite [mapRenderer] with a second renderer (spec:
+     * viewport-persist, "Re-entry supersedes an in-flight map init").
+     */
+    private var initJob: Job? = null
     private val epoch = AtomicLong(0)
 
     // Screen dimensions for zoom computation
@@ -261,9 +312,15 @@ class MapCanvasViewModel @Inject constructor(
     private var lastMaxSpeedLat = Double.NaN
     private var lastMaxSpeedLon = Double.NaN
     private var lastMaxSpeedResolveMs = 0L
+    // Current-road resolution throttle (spec: current-road-info free driving).
+    private var lastRoadLat = Double.NaN
+    private var lastRoadLon = Double.NaN
+    private var lastRoadResolveMs = 0L
     private var lastGpsLat = Double.NaN
     private var lastGpsLon = Double.NaN
     private var lastGpsTime: Long = 0L
+    /** Last fix timestamp for the follow-mode stale-speed decay (spec: gps-speed-priority). */
+    private var lastSpeedFixTime: Long = 0L
     private var smoothedCenterLat = Double.NaN
     private var smoothedCenterLon = Double.NaN
     // No center smoothing in follow mode: the viewport center must stay on the
@@ -279,7 +336,7 @@ class MapCanvasViewModel @Inject constructor(
     /** Keep the internal suspension flag and its uiState mirror in sync. */
     private fun setAutoZoomSuspended(suspended: Boolean) {
         autoZoomSuspended = suspended
-        _uiState.value = _uiState.value.copy(autoZoomPaused = suspended)
+        _uiState.value = _uiState.value.copy(driveSuspended = suspended)
     }
     private var lastSpeedBandIndex: Int = -1
     private var currentTargetMag: Double = 15.0
@@ -587,10 +644,10 @@ class MapCanvasViewModel @Inject constructor(
                 .flatMapLatest { query ->
                     if (query.length < 2) {
                         _uiState.value = _uiState.value.copy(searchResults = emptyList(), isSearching = false)
-                        return@flatMapLatest flowOf(emptyList<LocationEntry>())
+                        return@flatMapLatest flowOf(emptyList<MergedSearchResult>())
                     }
                     _uiState.value = _uiState.value.copy(isSearching = true)
-                    flowOf(searchLocations(query))
+                    flowOf(mergeSearchResults(query))
                 }
                 .collect { results ->
                     _uiState.value = _uiState.value.copy(
@@ -653,6 +710,26 @@ class MapCanvasViewModel @Inject constructor(
             }
         }
 
+        // Stale-speed decay (spec: gps-speed-priority — stationary reads zero).
+        // The provider goes silent at standstill (min-distance throttling), so
+        // the follow-mode speed must decay to 0 once no fresh fix arrives — the
+        // location flow still delivers the LAST fix, which the collect below
+        // would otherwise keep re-rendering with its pre-stop speed.
+        // Runs on Dispatchers.Default with the REAL clock: the state holders
+        // must not feed the (virtual) test scheduler with an endless delay
+        // loop, and the follow-mode gate keeps tests that never enable follow
+        // mode free of stray zero-writes.
+        viewModelScope.launch(Dispatchers.Default) {
+            while (true) {
+                delay(SPEED_STALE_TICK_MS)
+                if (_uiState.value.followMode &&
+                    SpeedStaleness.isStale(lastSpeedFixTime, System.currentTimeMillis())
+                ) {
+                    _uiState.value = _uiState.value.copy(currentSpeedKmH = 0.0)
+                }
+            }
+        }
+
         // Follow mode: keep map center and marker in sync.
         viewModelScope.launch {
             var lastRenderedLat = Double.NaN
@@ -677,6 +754,7 @@ class MapCanvasViewModel @Inject constructor(
                     gpsLocation = fix,
                     currentSpeedKmH = fix.speedKmH
                 )
+                lastSpeedFixTime = fix.time
 
                 if (logCount++ % 30 == 0) {
                     Log.d(TAG, "GPS loc=${"%.6f".format(fix.lat)},${"%.6f".format(fix.lon)} " +
@@ -715,6 +793,9 @@ class MapCanvasViewModel @Inject constructor(
                 // Resolve the road's max speed for the follow-mode speed widget
                 // (throttled: only on significant movement or after a cooldown).
                 resolveMaxSpeed(fix.lat, fix.lon)
+                // Resolve the current road for the free-driving street label
+                // (bearing-aware, throttled; spec: current-road-info).
+                resolveCurrentRoad(fix.lat, fix.lon, fix.markerBearing)
 
                 // Feed navigation engine early so it sees every distinct fix.
                 _navigationViewModel?.processLocation(
@@ -724,7 +805,9 @@ class MapCanvasViewModel @Inject constructor(
                     fix.time
                 )
 
-                if (!_uiState.value.followMode) {
+                if (!_uiState.value.followMode ||
+                    (mode == MapMode.FREE_DRIVE && _uiState.value.driveSuspended)
+                ) {
                     // The marker is a Compose overlay: update it on every fix so it
                     // tracks the vehicle immediately, independent of the render cadence.
                     updateMarkerState(markerLat, markerLon, freshestBearing, accuracy)
@@ -756,7 +839,10 @@ class MapCanvasViewModel @Inject constructor(
                 // Map rotation uses the location layer's smoothed bearing; the
                 // marker arrow uses the freshest bearing (no added lag). Provider
                 // knowledge (Fused vs LocationManager) stays inside LocationService.
-                val isNorthUp = if (isNavigating) _uiState.value.navNorthUp else _uiState.value.freeFormNorthUp
+                val isNorthUp = when (mode) {
+                    MapMode.NAVIGATION, MapMode.FREE_DRIVE -> _uiState.value.navNorthUp
+                    MapMode.BROWSE -> _uiState.value.freeFormNorthUp
+                }
                 val effectiveBearing = if (!fix.smoothedBearing.isNaN()) fix.smoothedBearing else lastUsedBearing
                 // The marker arrow tracks the freshest direction signal so it points
                 // along the new driving direction immediately after a turn, while the
@@ -921,7 +1007,9 @@ class MapCanvasViewModel @Inject constructor(
             darkModeController.restorePreference(settings.darkMode)
             darkModeController.restoreSensorOption(settings.ambientLightDarkMode)
             _uiState.value = _uiState.value.copy(
-                followMode = settings.followMode,
+                // followMode is deliberately NOT restored: the app always starts
+                // in BROWSE (spec: map-modes — always browse on start); free
+                // drive is per-session intent entered via the mode toggle.
                 autoZoomEnabled = settings.autoZoomEnabled,
                 freeFormNorthUp = settings.freeFormNorthUp,
                 navNorthUp = settings.navNorthUp,
@@ -941,11 +1029,14 @@ class MapCanvasViewModel @Inject constructor(
         }
 
         // Load the bundled map styles for the picker (off main; a directory
-        // scan on the device stylesheet dir).
+        // scan on the device stylesheet dir). basemap-render is the basemap's
+        // internal stylesheet, not a user-selectable map style — exclude it
+        // (spec: map-styles).
         viewModelScope.launch {
             val styles = withContext(defaultDispatcher) {
                 try {
                     client.getAvailableStyleSheets()
+                        .filterNot { it == BundledMapStyles.BASEMAP_STYLE_NAME }
                 } catch (e: Exception) {
                     Log.w(TAG, "getAvailableStyleSheets failed", e)
                     emptyList()
@@ -1121,6 +1212,32 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Resolve the road at [lat]/[lon] for the free-driving street label
+     * (spec: current-road-info — current road shown when no route is active).
+     * Bearing-aware native lookup, throttled like [resolveMaxSpeed]: re-resolves
+     * only after significant movement or a cooldown, off the main thread.
+     */
+    private fun resolveCurrentRoad(lat: Double, lon: Double, bearing: Double) {
+        val now = System.currentTimeMillis()
+        val moved = lastRoadLat.isNaN() ||
+            distanceMeters(lastRoadLat, lastRoadLon, lat, lon) > ROAD_RESOLVE_MOVE_M
+        val cooldownElapsed = now - lastRoadResolveMs >= ROAD_RESOLVE_INTERVAL_MS
+        if (!moved && !cooldownElapsed) return
+        lastRoadLat = lat
+        lastRoadLon = lon
+        lastRoadResolveMs = now
+        viewModelScope.launch(defaultDispatcher) {
+            val road = try {
+                client.getRoadAt(lat, lon, bearing)
+            } catch (e: Exception) {
+                Log.w(TAG, "getRoadAt failed", e)
+                null
+            }
+            _uiState.value = _uiState.value.copy(currentRoadInfo = road)
+        }
+    }
+
     internal suspend fun searchLocations(query: String): List<LocationEntry> = withContext(defaultDispatcher) {
         val handle = currentSearchAdminRegionHandle()
         Log.d(TAG, "searchLocations: query='$query', adminRegionHandle=$handle")
@@ -1133,6 +1250,17 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Native location search merged with favorites matching the query
+     * (spec: favorite-search): favorite hits first, native results marked
+     * when they match a favorite, identical objects deduplicated.
+     */
+    internal suspend fun mergeSearchResults(query: String): List<MergedSearchResult> {
+        val nativeResults = searchLocations(query)
+        val favorites = favoriteRepository.favorites.value.values.flatten()
+        return favoriteSearchMerger.merge(query, favorites, nativeResults)
+    }
+
     /** Initialise with a map database path. Call once from the screen. */
     fun initMap(mapPath: String) {
         Log.d(TAG, "initMap: initialising with path=$mapPath")
@@ -1141,13 +1269,20 @@ class MapCanvasViewModel @Inject constructor(
         // applied below, a lifecycle save must not write the default viewport.
         viewportRestored = false
 
+        // Supersede any in-flight init: its coroutine may be suspended (e.g.
+        // favoriteRepository.init runs withContext(defaultDispatcher)), and if
+        // it resumed after the re-entry it would apply a stale restore, re-arm
+        // the save guard, and overwrite mapRenderer with a second renderer.
+        // Cancellation aborts it at its first suspension point.
+        initJob?.cancel()
+
         // Tear down any previous renderer so a re-entry (MAIN screen after
         // map downloads) initialises cleanly instead of stacking renderers.
         rendererScope?.cancel()
         mapRenderer?.shutdown()
         mapRenderer = null
 
-        viewModelScope.launch {
+        initJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             val density = context.resources.displayMetrics.densityDpi.toDouble()
@@ -1184,6 +1319,16 @@ class MapCanvasViewModel @Inject constructor(
             }
 
             Log.d(TAG, "initMap: database opened successfully")
+
+            // Configure the native tile data cache capacity (regional database
+            // and any future basemap). Stored in the client and applied by the
+            // render path before tile data loads, so it also covers databases
+            // that open asynchronously after this call. Perf-only, idempotent.
+            try {
+                client.setNativeDataCacheSize(NATIVE_TILE_DATA_CACHE_SIZE)
+            } catch (e: Exception) {
+                Log.w(TAG, "initMap: setNativeDataCacheSize failed", e)
+            }
 
             // Open all other installed maps too, so every downloaded region
             // renders via viewport coverage — no switching needed (multi-map).
@@ -1252,6 +1397,14 @@ class MapCanvasViewModel @Inject constructor(
             renderer.screenWidth = screenWidth
             renderer.screenHeight = screenHeight
             mapRenderer = renderer
+
+            // Sync the renderer to the restored viewport BEFORE any init-time
+            // submit (dark/style pushes, favorites): those render at the
+            // renderer's current viewport, which is DEFAULT (mag 5) until the
+            // first state-driven renderMap. On re-entry there is no size-change
+            // renderMap, so the first frame would show a zoomed-out map until a
+            // manual refresh (observed after basemap reload + switch back).
+            renderer.prepareViewport(vp.centerLat, vp.centerLon, vp.magnification, vp.angle)
 
             // Apply the restored viewport BEFORE wiring the view-change listener:
             // the listener persists every completed render, and an early render
@@ -1450,8 +1603,6 @@ class MapCanvasViewModel @Inject constructor(
             // subsequent GPS updates do not re-center the viewport.
             if (_uiState.value.followMode) {
                 _uiState.value = _uiState.value.copy(followMode = false)
-                val current = settingsStorage.load()
-                settingsStorage.save(current.copy(followMode = false))
             }
             _uiState.value = _uiState.value.copy(
                 selectedLocation = entry,
@@ -1916,6 +2067,27 @@ class MapCanvasViewModel @Inject constructor(
                 _navPosition = pos
             }
         }
+        // Pre-navigation mode snapshot (spec: map-modes — navigation end
+        // restores prior mode): startNavigation forces follow on, so remember
+        // the follow/suspension state before navigation starts and restore it
+        // when navigation stops — a browse-before-nav user lands back in BROWSE.
+        viewModelScope.launch {
+            var preNavFollow: Boolean? = null
+            var preNavSuspended: Boolean? = null
+            vm.state.collect { navState ->
+                if (navState.isNavigating && preNavFollow == null) {
+                    preNavFollow = _uiState.value.followMode
+                    preNavSuspended = _uiState.value.driveSuspended
+                } else if (!navState.isNavigating && preNavFollow != null) {
+                    _uiState.value = _uiState.value.copy(
+                        followMode = preNavFollow!!,
+                        driveSuspended = preNavSuspended!!
+                    )
+                    preNavFollow = null
+                    preNavSuspended = null
+                }
+            }
+        }
     }
 
     /** Set the RoutePanelViewModel (injected via Hilt from the screen). */
@@ -2073,13 +2245,10 @@ class MapCanvasViewModel @Inject constructor(
     /** Get all favorite group names. */
     fun getFavoriteGroupNames(): List<String> = favoriteRepository.getGroupNames()
 
-    /** Toggle follow mode on/off. */
+    /** Toggle follow mode on/off (runtime state — not persisted; the app
+     *  always starts in BROWSE, spec: map-modes). */
     fun onToggleFollowMode(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(followMode = enabled)
-        viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(followMode = enabled))
-        }
         if (enabled) {
             // Reset auto-zoom state for fresh navigation start
             setAutoZoomSuspended(false)
@@ -2100,7 +2269,10 @@ class MapCanvasViewModel @Inject constructor(
             if (loc != null) {
                 // Apply orientation: if north-up, reset angle; if follow-direction, use bearing
                 val isNavigating = _navigationViewModel?.state?.value?.isNavigating == true
-                val isNorthUp = if (isNavigating) _uiState.value.navNorthUp else _uiState.value.freeFormNorthUp
+                val isNorthUp = when (mode) {
+                    MapMode.NAVIGATION, MapMode.FREE_DRIVE -> _uiState.value.navNorthUp
+                    MapMode.BROWSE -> _uiState.value.freeFormNorthUp
+                }
                 val angle = if (!isNorthUp && !loc.markerBearing.isNaN()) {
                     computeMapAngle(isNorthUp, loc.markerBearing)
                 } else 0.0
@@ -2117,10 +2289,121 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
-    /** Disengage follow mode (called on manual pan/zoom). */
+    /**
+     * Disengage follow mode (called on manual pan/zoom/rotate). In FREE_DRIVE
+     * this suspends the drive preset (spec: map-modes — drive suspension); in
+     * BROWSE it marks the viewport as drifted from the GPS position (spec:
+     * map-modes — browse re-center).
+     */
     fun disengageFollowMode() {
-        if (_uiState.value.followMode) {
-            _uiState.value = _uiState.value.copy(followMode = false)
+        val s = _uiState.value
+        if (s.followMode) {
+            _uiState.value = s.copy(followMode = false, driveSuspended = true)
+        } else if (mode == MapMode.BROWSE) {
+            _uiState.value = s.copy(browseDrifted = true)
+        }
+    }
+
+    /**
+     * Enter FREE_DRIVE mode (spec: map-modes — mode toggle): applies the drive
+     * preset — follow on, auto-zoom on, heading-up, centered on the current GPS
+     * position at the driving zoom. Runtime state only; per-mode sub-options
+     * (auto-zoom, orientation) stay user-adjustable in the config sheet.
+     */
+    fun enterFreeDrive() {
+        if (mode == MapMode.NAVIGATION) return
+        val loc = locationService.location.value
+        setAutoZoomSuspended(false)
+        _uiState.value = _uiState.value.copy(
+            followMode = true,
+            autoZoomEnabled = true,
+            navNorthUp = false,
+            driveSuspended = false,
+            browseDrifted = false,
+            viewport = _uiState.value.viewport.copy(
+                magnification = 15.0,
+                centerLat = loc?.lat ?: _uiState.value.viewport.centerLat,
+                centerLon = loc?.lon ?: _uiState.value.viewport.centerLon,
+                angle = if (loc != null && !loc.markerBearing.isNaN()) {
+                    computeMapAngle(false, loc.markerBearing)
+                } else 0.0
+            )
+        )
+        // Reset auto-zoom state for a fresh drive start
+        lastSpeedBandIndex = -1
+        currentTargetMag = 15.0
+        pendingZoomTarget = 15.0
+        zoomTargetStableSamples = 0
+        lastAutoZoomCommitMs = 0L
+        turnPassedDistance = Double.NaN
+        lastValidSpeedKmH = 20.0
+        renderMap()
+    }
+
+    /**
+     * Exit FREE_DRIVE to BROWSE (spec: map-modes — mode toggle): follow off,
+     * north-up, staying at the current position.
+     */
+    fun exitFreeDrive() {
+        if (mode != MapMode.FREE_DRIVE) return
+        _uiState.value = _uiState.value.copy(
+            followMode = false,
+            freeFormNorthUp = true,
+            driveSuspended = false,
+            browseDrifted = false,
+            viewport = _uiState.value.viewport.copy(angle = 0.0)
+        )
+        renderMap()
+    }
+
+    /**
+     * Reset a suspended FREE_DRIVE to the standard drive values (spec:
+     * map-modes — drive suspension and reset): follow on, auto-zoom on,
+     * heading-up, speed-based driving zoom.
+     */
+    fun resetDrivePreset() {
+        if (mode != MapMode.FREE_DRIVE) return
+        val loc = locationService.location.value
+        setAutoZoomSuspended(false)
+        _uiState.value = _uiState.value.copy(
+            followMode = true,
+            autoZoomEnabled = true,
+            navNorthUp = false,
+            driveSuspended = false,
+            viewport = _uiState.value.viewport.copy(
+                centerLat = loc?.lat ?: _uiState.value.viewport.centerLat,
+                centerLon = loc?.lon ?: _uiState.value.viewport.centerLon,
+                angle = if (loc != null && !loc.markerBearing.isNaN()) {
+                    computeMapAngle(false, loc.markerBearing)
+                } else 0.0
+            )
+        )
+        lastSpeedBandIndex = -1
+        currentTargetMag = 15.0
+        pendingZoomTarget = 15.0
+        zoomTargetStableSamples = 0
+        lastAutoZoomCommitMs = 0L
+        turnPassedDistance = Double.NaN
+        lastValidSpeedKmH = 20.0
+        renderMap()
+    }
+
+    /**
+     * Re-center in BROWSE (spec: map-modes — browse re-center): center on the
+     * current GPS position, stay in BROWSE, clear the drifted flag.
+     */
+    fun recenterInBrowse() {
+        if (mode != MapMode.BROWSE) return
+        val loc = locationService.location.value
+        if (loc != null) {
+            _uiState.value = _uiState.value.copy(
+                browseDrifted = false,
+                viewport = _uiState.value.viewport.copy(
+                    centerLat = loc.lat,
+                    centerLon = loc.lon
+                )
+            )
+            renderMap()
         }
     }
 
@@ -2356,14 +2639,16 @@ class MapCanvasViewModel @Inject constructor(
      */
     fun onManualRotationStart() {
         disengageFollowMode()
-        val isNavigating = _navigationViewModel?.state?.value?.isNavigating == true
-        if (isNavigating) {
-            if (_uiState.value.navNorthUp) {
-                _uiState.value = _uiState.value.copy(navNorthUp = false)
+        when (mode) {
+            MapMode.NAVIGATION, MapMode.FREE_DRIVE -> {
+                if (_uiState.value.navNorthUp) {
+                    _uiState.value = _uiState.value.copy(navNorthUp = false)
+                }
             }
-        } else {
-            if (_uiState.value.freeFormNorthUp) {
-                _uiState.value = _uiState.value.copy(freeFormNorthUp = false)
+            MapMode.BROWSE -> {
+                if (_uiState.value.freeFormNorthUp) {
+                    _uiState.value = _uiState.value.copy(freeFormNorthUp = false)
+                }
             }
         }
     }
@@ -2375,12 +2660,23 @@ class MapCanvasViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             viewport = _uiState.value.viewport.copy(magnification = clamped)
         )
-        // Detect user-initiated zoom → suspend auto-zoom
-        if (_uiState.value.autoZoomEnabled && !autoZoomSuspended) {
-            setAutoZoomSuspended(true)
-            val navVm = _navigationViewModel
-            val rawSpeed = navVm?.state?.value?.currentSpeedKmH ?: Double.NaN
-            lastSpeedBandIndex = if (!rawSpeed.isNaN() && rawSpeed >= 0) SpeedZoomTable.bandIndex(filterSpeed(rawSpeed)) else -1
+        // Detect user-initiated zoom: in driving modes suspend the drive preset
+        // (auto-zoom included); in BROWSE mark the viewport as drifted from GPS
+        // (spec: map-modes — drive suspension and reset / browse re-center).
+        when (mode) {
+            MapMode.FREE_DRIVE, MapMode.NAVIGATION -> {
+                if (_uiState.value.autoZoomEnabled && !autoZoomSuspended) {
+                    setAutoZoomSuspended(true)
+                    val navVm = _navigationViewModel
+                    val rawSpeed = navVm?.state?.value?.currentSpeedKmH ?: Double.NaN
+                    lastSpeedBandIndex = if (!rawSpeed.isNaN() && rawSpeed >= 0) SpeedZoomTable.bandIndex(filterSpeed(rawSpeed)) else -1
+                }
+            }
+            MapMode.BROWSE -> {
+                if (!_uiState.value.browseDrifted) {
+                    _uiState.value = _uiState.value.copy(browseDrifted = true)
+                }
+            }
         }
     }
 
@@ -2459,10 +2755,14 @@ class MapCanvasViewModel @Inject constructor(
          * (pinch/button zoom leaves follow mode on but stops auto zoom).
          */
         internal fun shouldShowReCenterButton(
-            followMode: Boolean,
-            autoZoomPaused: Boolean,
-            isNavigating: Boolean
-        ): Boolean = !followMode || (autoZoomPaused && isNavigating)
+            mode: MapMode,
+            driveSuspended: Boolean,
+            browseDrifted: Boolean
+        ): Boolean = when (mode) {
+            MapMode.FREE_DRIVE -> driveSuspended
+            MapMode.BROWSE -> browseDrifted
+            MapMode.NAVIGATION -> driveSuspended
+        }
 
         private const val TAG = "MapCanvasVM"
         private const val FAVORITES_FILE = "favorites.json"
@@ -2471,6 +2771,9 @@ class MapCanvasViewModel @Inject constructor(
         private const val SHARE_CANDIDATE_ZOOM = 16
         private const val GPS_FIX_FRESHNESS_MS = 5_000L
         private const val GPS_FIX_MAX_ACCURACY_M = 50f
+
+        /** Frequency of the follow-mode stale-speed check (spec: gps-speed-priority). */
+        private const val SPEED_STALE_TICK_MS = 1_000L
 
         /** Plausibility cap for the speed filter (Autobahn ~200+). */
         private const val MAX_PLAUSIBLE_SPEED_KMH = 250.0
@@ -2491,6 +2794,8 @@ class MapCanvasViewModel @Inject constructor(
         // re-resolve only after significant movement or a cooldown.
         private const val MAX_SPEED_RESOLVE_INTERVAL_MS = 5_000L
         private const val MAX_SPEED_RESOLVE_MOVE_M = 50.0
+        private const val ROAD_RESOLVE_INTERVAL_MS = 5_000L
+        private const val ROAD_RESOLVE_MOVE_M = 50.0
         /** Minimum magnification for the zoom control (buttons, keys, scroll wheel).
          *  Floor of 4 matches the gesture range and the specs (map-pan-zoom, map-rotation-gesture):
          *  lower zooms render huge world tiles natively (z=2 ~5s, z=1 hangs), stalling the render worker. */
@@ -2498,6 +2803,14 @@ class MapCanvasViewModel @Inject constructor(
         /** Minimum magnification for the pinch/rotation gesture commit (keeps 4–20). */
         const val GESTURE_MIN_MAG = 4.0
         const val MAX_MAG = 20.0
+
+        /**
+         * Capacity of libosmscout's native tile data caches (specs:
+         * native-tile-data-cache). Applied to every open database before the
+         * next render via setNativeDataCacheSize; the library default is 25
+         * tiles. 512 is a perf-only knob — rendering output is unchanged.
+         */
+        const val NATIVE_TILE_DATA_CACHE_SIZE = 512
 
         /** POI search radius steps in meters (mirrors JavaScout PoiSearchOverlay, extended to 100 km). */
         val POI_RADIUS_STEPS_M = doubleArrayOf(500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0, 100000.0)

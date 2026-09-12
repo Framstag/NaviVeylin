@@ -22,9 +22,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Compose UI tests for the map menu ([MapMenu]): the "Search POIs" entry is
- * present and opens the POI search (spec: POI search accessible from the map
- * menu), alongside the existing entries.
+ * Compose UI tests for the map menu ([MapMenu]): the "Search" entry is
+ * present and opens the unified search dialog (spec: map-menu — entries),
+ * alongside the existing entries. No separate POI search or Address book
+ * entries exist.
  */
 @RunWith(RobolectricTestRunner::class)
 class MapMenuComposeTest {
@@ -35,17 +36,15 @@ class MapMenuComposeTest {
     private var dismissed = false
     private var downloadMaps = 0
     private var favorites = 0
-    private var poiSearch = 0
-    private var addressBook = 0
+    private var search = 0
     private var about = 0
     private var expandedState: MutableState<Boolean>? = null
 
-    private fun launchMenu(addressBookAvailable: Boolean = true) {
+    private fun launchMenu() {
         dismissed = false
         downloadMaps = 0
         favorites = 0
-        poiSearch = 0
-        addressBook = 0
+        search = 0
         about = 0
         composeRule.setContent {
             val expanded = remember { mutableStateOf(true) }
@@ -56,10 +55,8 @@ class MapMenuComposeTest {
                     onDismiss = { expanded.value = false },
                     onDownloadMaps = { downloadMaps++ },
                     onOpenFavorites = { favorites++ },
-                    onOpenPoiSearch = { poiSearch++ },
-                    onOpenAddressBook = { addressBook++ },
+                    onOpenSearch = { search++ },
                     onOpenAbout = { about++ },
-                    addressBookAvailable = addressBookAvailable,
                     toasterTopPadding = 4.dp
                 )
             }
@@ -82,10 +79,8 @@ class MapMenuComposeTest {
                     onDismiss = { dismissed = true },
                     onDownloadMaps = { downloadMaps++ },
                     onOpenFavorites = { favorites++ },
-                    onOpenPoiSearch = { poiSearch++ },
-                    onOpenAddressBook = { addressBook++ },
+                    onOpenSearch = { search++ },
                     onOpenAbout = { about++ },
-                    addressBookAvailable = false,
                     toasterTopPadding = 4.dp
                 )
             }
@@ -93,8 +88,7 @@ class MapMenuComposeTest {
 
         composeRule.onNodeWithText("Download Maps").assertDoesNotExist()
         composeRule.onNodeWithText("Favorites").assertDoesNotExist()
-        composeRule.onNodeWithText("Search POIs").assertDoesNotExist()
-        composeRule.onNodeWithText("Address book").assertDoesNotExist()
+        composeRule.onNodeWithText("Search").assertDoesNotExist()
         composeRule.onNodeWithText("About").assertDoesNotExist()
     }
 
@@ -115,18 +109,17 @@ class MapMenuComposeTest {
 
         composeRule.onNodeWithText("Download Maps").assertIsDisplayed()
         composeRule.onNodeWithText("Favorites").assertIsDisplayed()
-        composeRule.onNodeWithText("Search POIs").assertIsDisplayed()
-        composeRule.onNodeWithText("Address book").assertIsDisplayed()
+        composeRule.onNodeWithText("Search").assertIsDisplayed()
         composeRule.onNodeWithText("About").assertIsDisplayed()
     }
 
     @Test
-    fun poiSearchEntryOpensPoiSearch() {
+    fun searchEntryOpensSearchDialog() {
         launchMenu()
 
-        composeRule.onNodeWithText("Search POIs").performClick()
+        composeRule.onNodeWithText("Search").performClick()
 
-        assertEquals(1, poiSearch)
+        assertEquals(1, search)
         assertTrue("menu dismissed on selection", expandedState?.value == false)
         assertEquals(0, downloadMaps)
         assertEquals(0, favorites)
@@ -134,22 +127,11 @@ class MapMenuComposeTest {
     }
 
     @Test
-    fun addressBookEntryVisibleWhenPermissionGranted() {
-        launchMenu(addressBookAvailable = true)
+    fun noPoiSearchOrAddressBookEntries() {
+        launchMenu()
 
-        composeRule.onNodeWithText("Address book").assertIsDisplayed()
-        composeRule.onNodeWithText("Address book").performClick()
-
-        assertEquals(1, addressBook)
-        assertTrue("menu dismissed on selection", expandedState?.value == false)
-    }
-
-    @Test
-    fun addressBookEntryHiddenWhenPermissionDenied() {
-        launchMenu(addressBookAvailable = false)
-
+        composeRule.onNodeWithText("Search POIs").assertDoesNotExist()
         composeRule.onNodeWithText("Address book").assertDoesNotExist()
-        composeRule.onNodeWithText("Search POIs").assertIsDisplayed()
     }
 
     @Test

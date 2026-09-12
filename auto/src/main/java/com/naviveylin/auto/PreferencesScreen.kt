@@ -45,7 +45,7 @@ class PreferencesScreen private constructor(
     constructor(carContext: CarContext, settingsProvider: AutoSettingsProvider) : this(
         carContext,
         settingsProvider,
-        { BundledMapStyles.ALL }
+        { BundledMapStyles.USER_SELECTABLE }
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -118,7 +118,7 @@ class PreferencesScreen private constructor(
             )
             runCatching {
                 entryPoint.autoClientProvider().client().getAvailableStyleSheets()
-            }.getOrDefault(BundledMapStyles.ALL)
+            }.getOrDefault(BundledMapStyles.USER_SELECTABLE)
         }
     }
 }

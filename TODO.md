@@ -1,8 +1,6 @@
-# NaviVeylin TODO — Features JavaScout Has, NaviVeylin Doesn't
+# NaviVeylin TODO 
 
-Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/master/JavaScout) (libosmscout's reference JavaFX app) and its [OpenSpec specs](https://github.com/Framstag/libosmscout/tree/master/openspec/specs).
-
-**Legend:** ✗ = missing | ⏳ = in progress / blocked
+**Legend:** ✗ = missing | ⏳ = in progress / blocked | ✅ = done
 
 ---
 
@@ -11,7 +9,6 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Avoid tolls/ferries checkboxes | ✗ | `RoutingProfile` supports avoid flags — no UI yet |
-| Bug: route polyline persists after navigation stop | ✗ | Stopping navigation (`stopNavigation()` + `setNavigating(false)`) clears `NavigationState` but route polyline + markers remain on map. Plumbing exists (`clearRouteSignal` → `mapRenderer.clearRoute()`) but is not triggered on nav stop — wire `routePanelViewModel.clearRoute()` into the stop path. |
 
 ## 2. Turn-by-Turn Navigation
 
@@ -41,8 +38,6 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Responsive layout (small screen support) | ✗ | JavaScout `SMALL_SCREEN_THRESHOLD` (600px) |
-| DPI-aware UI scaling | ✗ | JavaScout `UIScale.java` |
-| Internationalisation (i18n) | ✗ | Multi-language UI support (strings, units, formats) |
 | Double-tap to zoom | ✗ | Candidate feature (not in JavaScout either). No double-tap gesture exists (`map-pan-zoom` covers pan/pinch only). If added later, wire it into the smooth-zoom animation path and the continuous fractional magnification (see `continuous-pinch-zoom`). |
 
 ## 6. Rendering
@@ -53,6 +48,10 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 
 ## 7. Android Auto
 
+| Feature | Status | Notes |
+|---------|--------|-------|
+| MapScreen renderer init off main thread | ✗ | `MapScreen.mapRenderer` lazy init calls `client()` + `getDatabaseBoundingBox()` on the main thread; if warmup is still building the native client, the main thread blocks (delays template delivery + screen coroutines — suspected cause of the favorites screen showing "Loading" for seconds). Make renderer init async ("renderer not ready" state + deferred renders) or move the blocking calls off the main thread. See change `fix-aa-favorites-latency` (A+B) for the favorites data-path fix; this is the separate startup-jank hardening. |
+
 ## 8. GPS / Position
 
 | Feature | Status | Notes |
@@ -61,7 +60,7 @@ Based on analysis of [JavaScout](https://github.com/Framstag/libosmscout/tree/ma
 
 ### PositionSimulator — aggregated design notes (from GPS jump investigation)
 
-**Problem:** free driving mode shows random GPS/map jumps on real devices. Root cause: `LocationService` runs Fused AND raw `LocationManager` (GPS/NETWORK/PASSIVE) in parallel on Play Services devices; raw fixes bypass OS smoothing. Fix for that is change `gps-strict-fallback` (Fused only when available). This entry covers the *next* gap: when there is no GPS fix at all.
+**Problem:** free driving mode shows random GPS/map jumps on real devices. Root cause: `LocationService` ran Fused AND raw `LocationManager` (GPS/NETWORK/PASSIVE) in parallel on Play Services devices; raw fixes bypassed OS smoothing. Fixed by change `gps-strict-fallback` (Fused only when available). This entry covers the *next* gap: when there is no GPS fix at all.
 
 **Goal:** when GPS is lost, estimate vehicle movement instead of freezing the marker at the last fix (current behavior in free mode).
 
@@ -91,9 +90,33 @@ GPS back                     →  REAL
 3. Marker UX: ESTIMATED position visually distinct from REAL (color/opacity)?
 4. Where: new Kotlin `@Singleton` service feeding a derived position flow with state (REAL/ESTIMATED/LOST); consumers = marker, center, nav engine, AA.
 
-## 9. Spec / Documentation Maintenance
+## 9. Viewport Save — Residual Bug
+
+- **FIXED (`71e8662`)**: `saveViewport()` on `ON_PAUSE` could persist the default viewport if the app was backgrounded while `initMap` was still suspended at `viewportStorage.load` (the `isValid()` guard passes — the default center is valid-looking; the reorder does not cover this path since `saveViewport` does not go through the renderer). Rare (background within ~100 ms of launch), same bug class as the fixed `fix-viewport-save-race` change. Fix: `viewportRestored` flag set in `initMap` when the restore is applied; `saveViewport()` no-ops (with log line) until set. Regression test `MapCanvasViewModelViewportRestoreTest` (3 tests, green 2026-09-08 via `:app:testMobileDebugUnitTest`). Found 2026-09-06 while adding that test.
+- **Residual: initMap re-entry race can re-arm `viewportRestored` with a stale restore** ✗: `initMap` re-entry (MAIN screen after map download/update/delete) re-arms `viewportRestored = false` and cancels `rendererScope`, but cancels *not* the previous initMap's `viewModelScope.launch`. If the old coroutine is still in flight (e.g. suspended at `viewportStorage.load`), it can later set `viewportRestored = true` — and `_uiState.viewport` — AFTER the newer initMap re-armed the flag, so a lifecycle `saveViewport()` or the view-change listener persists the older map's (or default) viewport under the new map key. Low odds (re-entry during restore window), untested. Fix candidate: track the initMap `Job` and cancel it on re-entry, or gate the post-restore assignment on an initMap generation counter. Found 2026-09-08 while verifying the §9 fix (bug 1).
+
+## 14. Build hygiene notes (from add-kover-coverage)
+
+- **Pre-existing Kotlin opt-in warning** ℹ: `app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelRoadInfoTest.kt:102` — `ExperimentalCoroutinesApi` usage missing `@OptIn`. Not caused by the coverage change; appears in every `testDebugUnitTest` compile. Fix: add the opt-in annotation to the test class. Land with whichever change touches that file next.
+- **Kover 0.9.8 emits a Gradle 9.6 deprecation** ⏳: Kover's own internals (`kotlinx.kover.gradle.plugin.appliers.PrepareKoverKt`) add a `Project`-object dependency notation — deprecated in Gradle 9.6, hard failure in Gradle 10. Not fixable from our scripts (we use string notation everywhere). Revisit on Gradle 10 upgrade / newer Kover. See `guidelines/Build.md` §7.
+
+## 10. Pending On-Device Verification
 
 | Item | Status | Notes |
 |------|--------|-------|
-| `openspec/specs/app/spec.md` still requires Room persistence | ✗ | Room dependency removed from build + docs (no `@Database`/`@Dao`/`@Entity` anywhere). Spec still says "SHALL use Room for local storage of map metadata, favorites, and search history" — actual persistence is JSON files (JNI favorites, settings, search history). Spec-code drift; needs an OpenSpec change (proposal → spec update) to fix. |
-| `:app:lintMobileDebug` fails with 3 pre-existing MissingClass errors | ✗ | `app/src/main/AndroidManifest.xml:44` references `androidx.car.app.connection.provider` but the class is missing from the project/libraries (committed in 447049b, unrelated to smooth-zoom, found 2026-08-29). Either the provider declaration is a leftover (remove it) or a car-app library variant that exports it is missing from the mobileDebug classpath. Fix + re-run lint, then track warnings. |
+| Continuous pinch zoom — real-device sanity check | ⏳ | Emulator pinch is synthetic input; user confirmed pinch on emulator 2026-08-29 (task 5.2 closed), real-device check remains (task 5.2 tail). Verify: pinch in/out continuity, limits, fractional mag persistence, GPS marker anchor, follow-mode pinch, no FATAL. |
+| AA street-name label vs host ETA card — real head unit | ⏳ | AAOS emulator cannot run full navigation (Fused throttles emulator GPS fixes, no map data, phone-only map-download UI). Emulator proved boot/render only. Verify on user's real head unit: street-name label sits above host ETA card while navigating; free-driving unchanged. |
+| Basemap live reload — download/update/delete without restart | ⏳ | Implementation committed (change `fix-basemap-live-reload`, HEAD `c2231ee`); remaining change tasks 7.1–7.5 are on-device. Verify: fresh install → download basemap → return to map → visible WITHOUT restart (`adb logcat -s NaviVeylin` shows "Basemap loaded from ..." + tile re-render logs); delete/update while running re-renders without restart; region-with-no-map shows basemap borders/country names; Android Auto surface refreshes after download. |
+| Multi-DB POI search — NRW/Dortmund repro | ✅ | Fixed (submodule `5371eb122`, change `fix-multi-db-poi-search`): results merged across loaded maps — bbox-containing DBs searched first, dedup by rounded coordinates, distance-ascending + limit; verified on-device multi-map (Dortmund first, no dupes) and single-map (same object set, deterministic order). |
+
+## 11. Lint Report Baseline Drift
+
+- **Lint report counts drift with the dirty tree** ℹ: pre-fix report (2026-08-29) showed 3 errors/80 warnings; after `fix-lint-missing-class` the committed tree shows 0 errors (lint gate green). The +1 `UnusedResources` warning in the interim came from uncommitted i18n work. The tree still carries uncommitted search-related work (`unify-auto-search` in progress) — regenerate lint reports once that lands to get a stable baseline.
+
+## 13. Map rotation stuck after north-up toggle while moving
+
+- **Pre-existing bug found during on-device verify of fix-compass-north-orientation** ✗ (`MapCanvasViewModel` GPS-collect loop, ~L842-875): `onSetNavOrientation(true)` renders angle 0 immediately, but the next GPS fix re-applies `else { if (!lastUsedAngle.isNaN()) lastUsedAngle else 0.0 }` — `lastUsedAngle` still holds the pre-toggle follow angle (−bearing). Result: toggling to north-up WHILE moving (free drive / navigation) keeps the map rotated at the old follow angle instead of 0°, while fixes keep arriving. Repro on emulator: follow west (angle ≈ −270° ≡ +90°), long-press compass → map rotates to 0 for one render, reverts to +89° on next fix; `settings.json` shows `navNorthUp: true` while the map stays rotated. Not compass-related (compass needle correctly tracks the rendered viewport angle; unit-tested). Fix candidate: reset `lastUsedAngle = 0.0` when entering north-up (`onSetNavOrientation(northUp=true)`), or in the collect loop force angle 0 when `isNorthUp` (drop the `lastUsedAngle` fallback for north-up). Add regression test in `MapCanvasViewModel` tests. Found 2026-09-11 via GMS-disabled emulator (LocationManager fallback course bearing) + `adb emu geo fix` westward sequence.
+
+## 12. Regional maps emit unknown-type warnings loading standard.oss
+
+- **Pre-existing, not caused by basemap-own-stylesheet** ℹ: on-device logcat shows ~9159 "Unknown type" warnings per startup from loading `standard.oss` (incl. `include/basemap.oss`, `include/place.oss`, `include/tourism.oss`, `include/natural.oss`) into the REGIONAL map databases (Iceland/NRW/Dortmund on the test emulator). The regional maps lack types standard.oss references: `basemap_boundary_country`, `boundary_municipality`, `boundary_suburb`, `place_ocean`, `place_sea`, `tourism_apartment`, `natural_rock`, etc. Likely the installed maps were imported with an older map.ost (newer types missing) — re-importing with the current submodule should clear most of them. The basemap itself now loads `basemap-render.oss` with zero warnings (change `basemap-own-stylesheet`). Investigate: check map import date/version vs current map.ost; consider whether standard.oss should guard `include/basemap.oss` behind a flag (it already has `IF boundary` for some rules).

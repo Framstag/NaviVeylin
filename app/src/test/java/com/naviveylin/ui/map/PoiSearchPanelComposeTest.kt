@@ -27,11 +27,12 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Compose UI tests for the POI search sheet (spec: poi-search): no category
- * preselected, Search disabled until a category is chosen, the searchable
- * category dropdown filters by typed text, re-selecting the chosen category
- * clears it, single click opens details, and closing the details sheet via
- * the Route action closes both the details sheet and the POI sheet.
+ * Compose UI tests for the search dialog's POIs mode (spec: poi-search,
+ * search-dialog — POIs mode search flow): no category preselected, Search
+ * disabled until a category chip is chosen, the shared search field filters
+ * the category chips, re-selecting the chosen chip clears it, single click
+ * opens details, and the Route/Show actions close both the dialog and the
+ * details sheet.
  */
 @RunWith(RobolectricTestRunner::class)
 class PoiSearchPanelComposeTest {
@@ -64,7 +65,7 @@ class PoiSearchPanelComposeTest {
             this.brand = brand
         }
 
-    private fun launchPanel(
+    private fun launchDialog(
         category: String? = null,
         results: List<PoiEntry> = emptyList(),
         isSearching: Boolean = false,
@@ -72,31 +73,57 @@ class PoiSearchPanelComposeTest {
     ) {
         selectedCategory = category
         composeRule.setContent {
-            PoiSearchPanel(
-                category = selectedCategory,
-                radiusMeters = 5000.0,
-                results = results,
-                isSearching = isSearching,
-                error = error,
-                onCategorySelected = { selectedCategory = it },
-                onRadiusChanged = {},
-                onSearch = { searchCount++ },
-                onEntryClick = { clickedEntries.add(it) },
-                onDismiss = {}
+            SearchDialog(
+                searchMode = SearchMode.POIS,
+                onModeSelected = {},
+                onDismiss = {},
+                query = "",
+                results = emptyList(),
+                isSearching = false,
+                gpsAvailable = false,
+                adminRegionName = null,
+                centerLat = 51.5136,
+                centerLon = 7.4653,
+                historyEntries = emptyList(),
+                favoriteGroups = emptyMap(),
+                onQueryChanged = {},
+                onResultSelected = {},
+                onSelectCurrentLocation = {},
+                onSelectFavorite = {},
+                onHistoryEntrySelected = {},
+                poiCategory = selectedCategory,
+                poiRadiusMeters = 5000.0,
+                poiResults = results,
+                isPoiSearching = isSearching,
+                poiError = error,
+                client = null,
+                poiCenterLat = Double.NaN,
+                poiCenterLon = Double.NaN,
+                currentPosition = null,
+                selectedPoi = null,
+                onPoiCategorySelected = { selectedCategory = it },
+                onPoiRadiusChanged = {},
+                onPoiSearch = { searchCount++ },
+                onPoiEntryClick = { clickedEntries.add(it) },
+                addressBookAvailable = false,
+                contactsQuery = "",
+                onContactsQueryChanged = {},
+                contactsContent = {}
             )
         }
+        composeRule.waitForIdle()
     }
+
+    /** The category dropdown field (the only editable field in POIs mode). */
+    private fun categoryField() = composeRule.onNode(hasSetTextAction())
 
     /** A category row inside the dropdown menu (not the field text). */
     private fun categoryItem(name: String) =
         composeRule.onNode(hasText(name) and hasAnyAncestor(hasTestTag("poi_category_menu")))
 
-    /** The editable category filter field. */
-    private fun categoryField() = composeRule.onNode(hasSetTextAction())
-
     @Test
     fun noCategoryPreselected() {
-        launchPanel()
+        launchDialog()
 
         // No category label in the field and the search trigger is disabled
         composeRule.onNodeWithText("Hotels").assertDoesNotExist()
@@ -105,7 +132,7 @@ class PoiSearchPanelComposeTest {
 
     @Test
     fun searchDisabledUntilCategoryChosen() {
-        launchPanel()
+        launchDialog()
 
         composeRule.onNodeWithText("Search").assertIsNotEnabled()
 
@@ -117,7 +144,7 @@ class PoiSearchPanelComposeTest {
 
     @Test
     fun typingFilterNarrowsCategories() {
-        launchPanel()
+        launchDialog()
 
         categoryField().performClick()
         categoryField().performTextInput("Rest")
@@ -129,7 +156,7 @@ class PoiSearchPanelComposeTest {
 
     @Test
     fun filterNoMatchShowsNoCategories() {
-        launchPanel()
+        launchDialog()
 
         categoryField().performClick()
         categoryField().performTextInput("zzz")
@@ -141,7 +168,7 @@ class PoiSearchPanelComposeTest {
 
     @Test
     fun reselectingCategoryClearsSelection() {
-        launchPanel()
+        launchDialog()
 
         categoryField().performClick()
         categoryItem("Hotels").performClick()
@@ -158,7 +185,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun singleClickOpensDetails() {
         val entry = poiEntry("Hotel Central", "tourism_hotel", 1200.0)
-        launchPanel(category = PoiCategories.HOTELS, results = listOf(entry))
+        launchDialog(category = PoiCategories.HOTELS, results = listOf(entry))
 
         composeRule.onNodeWithText("Hotel Central").performClick()
         assertEquals(listOf(entry), clickedEntries)
@@ -166,14 +193,14 @@ class PoiSearchPanelComposeTest {
 
     @Test
     fun resultRowShowsTypeAndDistance() {
-        launchPanel(category = PoiCategories.HOTELS, results = listOf(poiEntry("Hotel Central", "tourism_hotel", 1200.0)))
+        launchDialog(category = PoiCategories.HOTELS, results = listOf(poiEntry("Hotel Central", "tourism_hotel", 1200.0)))
 
         composeRule.onNodeWithText("tourism_hotel · 1.2 km").assertIsDisplayed()
     }
 
     @Test
     fun emptyStateShownWhenNoResults() {
-        launchPanel(category = PoiCategories.HOTELS, results = emptyList())
+        launchDialog(category = PoiCategories.HOTELS, results = emptyList())
 
         composeRule.onNodeWithText("No POIs found").assertIsDisplayed()
     }
@@ -186,26 +213,51 @@ class PoiSearchPanelComposeTest {
             lat = entry.lat
             lon = entry.lon
         }
-        var showPoi by mutableStateOf(true)
+        var showDialog by mutableStateOf(true)
         var showDetails by mutableStateOf(false)
         var routeInvoked = false
 
         composeRule.setContent {
-            if (showPoi) {
-                PoiSearchPanel(
-                    category = PoiCategories.HOTELS,
-                    radiusMeters = 5000.0,
-                    results = listOf(entry),
+            if (showDialog) {
+                SearchDialog(
+                    searchMode = SearchMode.POIS,
+                    onModeSelected = {},
+                    onDismiss = { showDialog = false },
+                    query = "",
+                    results = emptyList(),
                     isSearching = false,
-                    error = null,
-                    onCategorySelected = {},
-                    onRadiusChanged = {},
-                    onSearch = {},
-                    onEntryClick = {
-                        showPoi = false
+                    gpsAvailable = false,
+                    adminRegionName = null,
+                    centerLat = 51.5136,
+                    centerLon = 7.4653,
+                    historyEntries = emptyList(),
+                    favoriteGroups = emptyMap(),
+                    onQueryChanged = {},
+                    onResultSelected = {},
+                    onSelectCurrentLocation = {},
+                    onSelectFavorite = {},
+                    onHistoryEntrySelected = {},
+                    poiCategory = PoiCategories.HOTELS,
+                    poiRadiusMeters = 5000.0,
+                    poiResults = listOf(entry),
+                    isPoiSearching = false,
+                    poiError = null,
+                    client = null,
+                    poiCenterLat = Double.NaN,
+                    poiCenterLon = Double.NaN,
+                    currentPosition = null,
+                    selectedPoi = null,
+                    onPoiCategorySelected = {},
+                    onPoiRadiusChanged = {},
+                    onPoiSearch = {},
+                    onPoiEntryClick = {
+                        showDialog = false
                         showDetails = true
                     },
-                    onDismiss = { showPoi = false }
+                    addressBookAvailable = false,
+                    contactsQuery = "",
+                    onContactsQueryChanged = {},
+                    contactsContent = {}
                 )
             }
             if (showDetails) {
@@ -230,38 +282,63 @@ class PoiSearchPanelComposeTest {
         composeRule.onNodeWithText("Calculate route").performClick()
 
         assertTrue(routeInvoked)
-        composeRule.onNodeWithText("Search POIs").assertDoesNotExist()
+        assertFalse(showDialog)
         composeRule.onNodeWithText("Calculate route").assertDoesNotExist()
     }
 
     @Test
-    fun showActionClosesDetailsAndKeepsPoiClosed() {
+    fun showActionClosesDetailsAndKeepsDialogClosed() {
         val entry = poiEntry("Hotel Central", "tourism_hotel", 1200.0)
         val locEntry = LocationEntry().apply {
             label = entry.label
             lat = entry.lat
             lon = entry.lon
         }
-        var showPoi by mutableStateOf(true)
+        var showDialog by mutableStateOf(true)
         var showDetails by mutableStateOf(false)
         var showInvoked = false
 
         composeRule.setContent {
-            if (showPoi) {
-                PoiSearchPanel(
-                    category = PoiCategories.HOTELS,
-                    radiusMeters = 5000.0,
-                    results = listOf(entry),
+            if (showDialog) {
+                SearchDialog(
+                    searchMode = SearchMode.POIS,
+                    onModeSelected = {},
+                    onDismiss = { showDialog = false },
+                    query = "",
+                    results = emptyList(),
                     isSearching = false,
-                    error = null,
-                    onCategorySelected = {},
-                    onRadiusChanged = {},
-                    onSearch = {},
-                    onEntryClick = {
-                        showPoi = false
+                    gpsAvailable = false,
+                    adminRegionName = null,
+                    centerLat = 51.5136,
+                    centerLon = 7.4653,
+                    historyEntries = emptyList(),
+                    favoriteGroups = emptyMap(),
+                    onQueryChanged = {},
+                    onResultSelected = {},
+                    onSelectCurrentLocation = {},
+                    onSelectFavorite = {},
+                    onHistoryEntrySelected = {},
+                    poiCategory = PoiCategories.HOTELS,
+                    poiRadiusMeters = 5000.0,
+                    poiResults = listOf(entry),
+                    isPoiSearching = false,
+                    poiError = null,
+                    client = null,
+                    poiCenterLat = Double.NaN,
+                    poiCenterLon = Double.NaN,
+                    currentPosition = null,
+                    selectedPoi = null,
+                    onPoiCategorySelected = {},
+                    onPoiRadiusChanged = {},
+                    onPoiSearch = {},
+                    onPoiEntryClick = {
+                        showDialog = false
                         showDetails = true
                     },
-                    onDismiss = { showPoi = false }
+                    addressBookAvailable = false,
+                    contactsQuery = "",
+                    onContactsQueryChanged = {},
+                    contactsContent = {}
                 )
             }
             if (showDetails) {
@@ -288,8 +365,7 @@ class PoiSearchPanelComposeTest {
         composeRule.onNodeWithText("Show").performClick()
 
         assertTrue(showInvoked)
-        assertFalse(showPoi)
-        composeRule.onNodeWithText("Search POIs").assertDoesNotExist()
+        assertFalse(showDialog)
     }
 
     // --- POI result label composition (spec: poi-search — POI results list) ---
@@ -297,7 +373,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun resultLabelShowsNameAndBrand() {
         val entry = poiEntry("Tankstelle", "amenity_fuel", 500.0, operator = "Shell GmbH", brand = "Shell")
-        launchPanel(category = PoiCategories.FUEL, results = listOf(entry))
+        launchDialog(category = PoiCategories.FUEL, results = listOf(entry))
 
         composeRule.onNodeWithText("Tankstelle (Shell)").assertIsDisplayed()
     }
@@ -305,7 +381,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun resultLabelShowsNameAndOperatorWithoutBrand() {
         val entry = poiEntry("Filiale Mitte", "amenity_atm", 300.0, operator = "Sparkasse", brand = null)
-        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+        launchDialog(category = PoiCategories.ATM, results = listOf(entry))
 
         composeRule.onNodeWithText("Filiale Mitte (Sparkasse)").assertIsDisplayed()
     }
@@ -313,7 +389,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun resultLabelPrefersBrandOverOperator() {
         val entry = poiEntry("Tankstelle", "amenity_fuel", 500.0, operator = "Shell GmbH", brand = "Shell")
-        launchPanel(category = PoiCategories.FUEL, results = listOf(entry))
+        launchDialog(category = PoiCategories.FUEL, results = listOf(entry))
 
         composeRule.onNodeWithText("Tankstelle (Shell)").assertIsDisplayed()
         composeRule.onNodeWithText("Tankstelle (Shell GmbH)").assertDoesNotExist()
@@ -322,7 +398,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun resultLabelShowsBrandAloneWhenUnnamed() {
         val entry = poiEntry("", "amenity_fast_food", 200.0, operator = "McDonald's Deutschland", brand = "McDonald's")
-        launchPanel(category = PoiCategories.RESTAURANTS, results = listOf(entry))
+        launchDialog(category = PoiCategories.RESTAURANTS, results = listOf(entry))
 
         composeRule.onNodeWithText("McDonald's").assertIsDisplayed()
     }
@@ -330,7 +406,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun resultLabelShowsOperatorAloneWhenUnnamedAndNoBrand() {
         val entry = poiEntry("", "amenity_atm", 150.0, operator = "Sparkasse", brand = null)
-        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+        launchDialog(category = PoiCategories.ATM, results = listOf(entry))
 
         composeRule.onNodeWithText("Sparkasse").assertIsDisplayed()
     }
@@ -338,7 +414,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun resultLabelDoesNotDuplicateNameEqualToBrand() {
         val entry = poiEntry("Shell", "amenity_fuel", 500.0, operator = null, brand = "Shell")
-        launchPanel(category = PoiCategories.FUEL, results = listOf(entry))
+        launchDialog(category = PoiCategories.FUEL, results = listOf(entry))
 
         composeRule.onNodeWithText("Shell").assertIsDisplayed()
         composeRule.onNodeWithText("Shell (Shell)").assertDoesNotExist()
@@ -347,7 +423,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun resultLabelDoesNotDuplicateNameEqualToOperator() {
         val entry = poiEntry("Sparkasse", "amenity_atm", 300.0, operator = "Sparkasse", brand = null)
-        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+        launchDialog(category = PoiCategories.ATM, results = listOf(entry))
 
         composeRule.onNodeWithText("Sparkasse").assertIsDisplayed()
         composeRule.onNodeWithText("Sparkasse (Sparkasse)").assertDoesNotExist()
@@ -356,7 +432,7 @@ class PoiSearchPanelComposeTest {
     @Test
     fun resultLabelShowsUnnamedWhenNothingAvailable() {
         val entry = poiEntry("", "amenity_atm", 100.0, operator = null, brand = null)
-        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+        launchDialog(category = PoiCategories.ATM, results = listOf(entry))
 
         composeRule.onNodeWithText("(unnamed)").assertIsDisplayed()
     }
@@ -366,7 +442,7 @@ class PoiSearchPanelComposeTest {
         // name == brand suppresses the brand parenthetical, but a differing
         // operator is still shown (it is additional info, not a duplicate).
         val entry = poiEntry("Sparda-Bank", "amenity_atm", 300.0, operator = "Sparda-Bank West eG", brand = "Sparda-Bank")
-        launchPanel(category = PoiCategories.ATM, results = listOf(entry))
+        launchDialog(category = PoiCategories.ATM, results = listOf(entry))
 
         composeRule.onNodeWithText("Sparda-Bank (Sparda-Bank West eG)").assertIsDisplayed()
         composeRule.onNodeWithText("Sparda-Bank (Sparda-Bank)").assertDoesNotExist()
@@ -377,7 +453,7 @@ class PoiSearchPanelComposeTest {
         // name == operator suppresses the operator parenthetical, but a
         // differing brand is still shown.
         val entry = poiEntry("Shell", "amenity_fuel", 500.0, operator = "Shell", brand = "Shell GmbH")
-        launchPanel(category = PoiCategories.FUEL, results = listOf(entry))
+        launchDialog(category = PoiCategories.FUEL, results = listOf(entry))
 
         composeRule.onNodeWithText("Shell (Shell GmbH)").assertIsDisplayed()
         composeRule.onNodeWithText("Shell (Shell)").assertDoesNotExist()
@@ -387,17 +463,17 @@ class PoiSearchPanelComposeTest {
 
     @Test
     fun emptyResultsShowsEmptyState() {
-        launchPanel(category = PoiCategories.ATM, results = emptyList())
+        launchDialog(category = PoiCategories.ATM, results = emptyList())
 
         composeRule.onNodeWithText("No POIs found").assertIsDisplayed()
     }
 
     @Test
-    fun searchFailureShowsErrorAndKeepsSheetUsable() {
-        launchPanel(category = PoiCategories.ATM, error = "POI search failed")
+    fun searchFailureShowsErrorAndKeepsDialogUsable() {
+        launchDialog(category = PoiCategories.ATM, error = "POI search failed")
 
         composeRule.onNodeWithText("POI search failed").assertIsDisplayed()
-        // The sheet stays usable: the search trigger remains enabled.
+        // The dialog stays usable: the search trigger remains enabled.
         composeRule.onNodeWithText("Search").assertIsEnabled()
     }
 }

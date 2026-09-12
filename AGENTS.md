@@ -149,6 +149,9 @@ return code and build output. Use them for any build/test/release work.
 
 # Run Android instrumented tests
 ./gradlew connectedAndroidTest
+
+# Code coverage (report-only; no gate) — Kover merge for app/auto/core + JaCoCo for the Java JNI module
+./gradlew :koverHtmlReport :koverXmlReport :osmscout-client-java:jacocoTestReport
 ```
 
 ### Release versioning

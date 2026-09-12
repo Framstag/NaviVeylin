@@ -14,6 +14,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.DiagnosticsLog
@@ -25,8 +26,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.cos
-import kotlin.math.sqrt
 
 /**
  * Android Auto free-driving screen (spec: auto/free-driving): a
@@ -97,18 +96,17 @@ class FreeDrivingScreen(
     @Volatile
     private var maxSpeedKmH: Double = Double.NaN
 
-    /** Last derived speed (km/h), kept when a fix is too close to derive from. */
-    private var lastEffectiveSpeed = Double.NaN
-
     /** Auto-zoom from the shared settings (default on). */
     @Volatile
     private var autoZoomEnabled: Boolean = true
 
-    /** Last fix position + effective bearing, for GPX replay without a GPS bearing. */
-    private var lastFixLat = Double.NaN
-    private var lastFixLon = Double.NaN
-    private var lastFixTimeMs = 0L
-    private var lastEffectiveBearing = Double.NaN
+    /**
+     * Effective speed/bearing derivation (spec: auto-smooth-follow — "Fix
+     * feed from follow-mode screens"): GPS value when valid, else
+     * movement-derived, else the last effective value. Shared with
+     * [NavigationScreen] via core [com.naviveylin.core.AutoPositionUtil].
+     */
+    private val fixDerivation = AutoFixDerivation()
 
     private val mapRenderer: AutoMapRenderer by lazy {
         val renderDpi = carContext.resources.displayMetrics.densityDpi.toDouble()
@@ -283,10 +281,8 @@ class FreeDrivingScreen(
      * movement direction between fixes so heading-up still engages.
      */
     private fun onGpsFix(pos: AutoPosition) {
-        // Speed first: it reads the previous fix position, which
-        // effectiveBearing overwrites below.
-        val speed = effectiveSpeed(pos)
-        val bearing = effectiveBearing(pos)
+        val nowMs = System.currentTimeMillis()
+        val (speed, bearing) = fixDerivation.derive(pos, nowMs)
         Log.d(
             TAG,
             "GPS fix lat=${pos.lat} lon=${pos.lon} bearing=${pos.bearing} " +
@@ -296,7 +292,7 @@ class FreeDrivingScreen(
         mapRenderer.setGpsMarker(
             pos.lat, pos.lon, bearing, pos.accuracy,
             speedKmH = speed,
-            timeMs = System.currentTimeMillis()
+            timeMs = nowMs
         )
 
         // Heading-up always (spec: "Heading-up orientation"), independent of
@@ -334,64 +330,30 @@ class FreeDrivingScreen(
     }
 
     /**
-     * Effective speed: GPS speed when valid, else derived from the movement
-     * between consecutive fixes (GPX replay tracks usually carry no speed).
-     */
-    private fun effectiveSpeed(pos: AutoPosition): Double {
-        val nowMs = System.currentTimeMillis()
-        val derived = if (pos.speedKmH >= 0.0) {
-            pos.speedKmH
-        } else {
-            movementSpeedKmH(lastFixLat, lastFixLon, pos.lat, pos.lon, nowMs - lastFixTimeMs)
-                ?: lastEffectiveSpeed
-        }
-        if (derived >= 0.0) lastEffectiveSpeed = derived
-        lastFixTimeMs = nowMs
-        return derived
-    }
-
-    /**
-     * Effective bearing: GPS bearing when valid, else movement direction
-     * between consecutive fixes (null when moved too little — keep the last
-     * effective bearing so the map does not snap back to north-up).
-     */
-    private fun effectiveBearing(pos: AutoPosition): Double {
-        val derived = if (pos.bearing >= 0.0) {
-            pos.bearing
-        } else {
-            movementBearing(lastFixLat, lastFixLon, pos.lat, pos.lon) ?: lastEffectiveBearing
-        }
-        if (derived >= 0.0) lastEffectiveBearing = derived
-        lastFixLat = pos.lat
-        lastFixLon = pos.lon
-        return derived
-    }
-
-    /**
-     * Throttled reverse geocode + speed-limit lookup (design D4): native calls
-     * off the main thread; on success update/clear the label and the limit
-     * sign and mark the position as geocoded — on failure keep the last
-     * values.
+     * Throttled bearing-aware road lookup (design D4): native call off the
+     * main thread; on success update/clear the label and the limit sign and
+     * mark the position as resolved — on failure keep the last values. One
+     * `getRoadAt` call feeds both the street label (name + ref) and the
+     * speed-limit sign, so they always describe the same road (spec:
+     * auto/free-driving, road-lookup-bearing).
      */
     private fun resolveStreetName(pos: AutoPosition) {
         if (!streetNameUpdater.shouldGeocode(pos.lat, pos.lon)) return
         if (streetJob?.isActive == true) return
         streetJob = scope.launch {
-            val result = withContext(Dispatchers.Default) {
+            val road = withContext(Dispatchers.Default) {
                 try {
-                    val address = client.getAddressAt(pos.lat, pos.lon)
-                    val maxSpeed = client.getMaxSpeedAt(pos.lat, pos.lon)
-                    address to maxSpeed
+                    client.getRoadAt(pos.lat, pos.lon, pos.bearing)
                 } catch (e: Exception) {
                     Log.w(TAG, "road info lookup failed", e)
                     null
                 }
             }
-            if (result != null) {
-                streetName = streetNameUpdater.streetFromAddress(result.first)
-                // getMaxSpeedAt returns negative when the road has no limit —
-                // hide the sign (spec: "No sign without a limit").
-                maxSpeedKmH = result.second.takeIf { it > 0.0 } ?: Double.NaN
+            if (road != null) {
+                streetName = StreetNameUpdater.roadDisplayText(road.ref, road.name)
+                // getRoadAt returns NaN when the road has no limit — hide the
+                // sign (spec: "No sign without a limit").
+                maxSpeedKmH = road.maxSpeedKmH.takeIf { !it.isNaN() } ?: Double.NaN
                 streetNameUpdater.markGeocoded(pos.lat, pos.lon)
                 mapRenderer.requestRender()
             }
@@ -528,61 +490,5 @@ class FreeDrivingScreen(
          */
         internal fun headingAngleRadians(bearingDegrees: Double): Double? =
             if (bearingDegrees >= 0.0) -Math.toRadians(bearingDegrees) else null
-
-        /** Minimum movement (m) before a derived bearing is trusted. */
-        private const val MIN_BEARING_MOVE_M = 3.0
-
-        /**
-         * Bearing (degrees 0..360, clockwise from north) of the movement from
-         * (lat1,lon1) to (lat2,lon2); null when the movement is below
-         * [MIN_BEARING_MOVE_M] (too noisy to trust). Used for GPX replay
-         * tracks without a GPS bearing.
-         */
-        internal fun movementBearing(
-            lat1: Double,
-            lon1: Double,
-            lat2: Double,
-            lon2: Double
-        ): Double? {
-            val dLat = Math.toRadians(lat2 - lat1)
-            val dLon = Math.toRadians(lon2 - lon1)
-            val midLat = Math.toRadians((lat1 + lat2) / 2.0)
-            val x = dLon * cos(midLat)
-            val dist = EARTH_RADIUS_M * sqrt(dLat * dLat + x * x)
-            if (dist < MIN_BEARING_MOVE_M) return null
-            var deg = Math.toDegrees(Math.atan2(x, dLat))
-            if (deg < 0.0) deg += 360.0
-            return deg
-        }
-
-        private const val EARTH_RADIUS_M = 6371000.0
-
-        /** Minimum time (ms) between fixes before a derived speed is trusted. */
-        private const val MIN_SPEED_DT_MS = 500L
-
-        /** Minimum movement (m) before a derived speed is trusted. */
-        private const val MIN_SPEED_MOVE_M = 1.0
-
-        /**
-         * Speed (km/h) implied by the movement from (lat1,lon1) to
-         * (lat2,lon2) over [dtMs]; null when the time delta or movement is
-         * too small to trust. Used for GPX replay tracks without a GPS speed.
-         */
-        internal fun movementSpeedKmH(
-            lat1: Double,
-            lon1: Double,
-            lat2: Double,
-            lon2: Double,
-            dtMs: Long
-        ): Double? {
-            if (dtMs < MIN_SPEED_DT_MS) return null
-            val dLat = Math.toRadians(lat2 - lat1)
-            val dLon = Math.toRadians(lon2 - lon1)
-            val midLat = Math.toRadians((lat1 + lat2) / 2.0)
-            val x = dLon * cos(midLat)
-            val dist = EARTH_RADIUS_M * sqrt(dLat * dLat + x * x)
-            if (dist < MIN_SPEED_MOVE_M) return null
-            return dist / (dtMs / 1000.0) * 3.6
-        }
     }
 }

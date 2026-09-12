@@ -1,5 +1,6 @@
 plugins {
     id("com.android.library")
+    id("org.jetbrains.kotlinx.kover")
 }
 
 android {
@@ -32,6 +33,29 @@ android {
         lintConfig = file("lint.xml")
         checkReleaseBuilds = true
         abortOnError = true
+    }
+}
+
+// ── Test coverage (Kover) ───────────────────────────────────────────────
+// JVM unit test coverage, report-only. Generated code (BuildConfig, R,
+// Hilt/Dagger/KSP wiring) is excluded so metrics reflect hand-written
+// logic. See guidelines/Build.md → Code coverage.
+kover {
+    reports {
+        filters {
+            excludes {
+                classes(
+                    "*.BuildConfig",
+                    "*.R",
+                    "*.R$*",
+                    "dagger.hilt.*",
+                    "hilt_aggregated_deps.*",
+                    "*.Hilt_*",
+                    "*_Hilt*",
+                    "*.Dagger*Component*"
+                )
+            }
+        }
     }
 }
 

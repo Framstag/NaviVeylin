@@ -99,3 +99,55 @@ All three skills follow the same contract:
   cause "already loaded in another classloader" failures in full-suite runs.
 - Instrumented tests need a connected device/emulator; if none is available,
   say so instead of running them.
+
+## 7. Code coverage
+
+Coverage is **report-only** — no threshold gate. `./gradlew test` never fails
+on coverage percentages; measurement is an explicit, separate step.
+
+**Engines** — JVM unit tests only (Robolectric runs on the host JVM and is
+covered; no instrumented/device coverage):
+
+| Module | Engine | Report task | Output |
+|---|---|---|---|
+| `app`, `auto`, `core` | Kover 0.9.8 | `./gradlew :koverHtmlReport :koverXmlReport` (root merge) | `build/reports/kover/` (root merged), `app|auto|core/build/reports/kover/` (per module) |
+| `osmscout-client-java` | Gradle JaCoCo | `./gradlew :osmscout-client-java:jacocoTestReport` | `osmscout-client-java/build/reports/jacoco/test/` |
+
+Rationale for two engines: Kover measures Kotlin sources accurately (lambdas,
+inline functions) and cannot measure a pure-Java module without the Kotlin
+plugin (empty reports); the Java-only JNI bridge module therefore uses the
+standard JaCoCo plugin and is reported separately, outside the Kover merge.
+
+**Usage**
+
+```bash
+# One command: all coverage (root Kover merge + JaCoCo report)
+./gradlew :koverHtmlReport :koverXmlReport :osmscout-client-java:jacocoTestReport
+
+# Per-module Kover report (HTML + XML)
+./gradlew :app:koverHtmlReport :app:koverXmlReport
+```
+
+Running a Kover report task automatically runs the unit tests of the merged
+modules under instrumentation (full suite ≈ a few minutes).
+
+**Generated-code exclusions** — Kover report filters (per module AND at the
+root merge) exclude `BuildConfig`, `R`/`R$*`, and Hilt/Dagger/KSP-generated
+classes (`dagger.hilt.*`, `hilt_aggregated_deps.*`, `*.Hilt_*`, `*_Hilt*`,
+`*.Dagger*Component*`) so numbers reflect hand-written logic. Hand-written
+`*Factory` classes are intentionally NOT excluded.
+
+**Baseline (2026-09-11)** — merged report: 662 classes, 59.7 % line
+(8839/14805), 58.2 % instruction; per module: `app` 58.9 %, `auto` 53.8 %,
+`core` 67.3 % (line). `osmscout-client-java`: LINE 5 covered / 1 missed.
+Re-measure after meaningful test work; a future change may add a
+`koverVerify` threshold gate on top of this baseline.
+
+**CI** — `.github/workflows/build.yml` generates the reports after "Run unit
+tests" and uploads them as the `coverage-reports` artifact
+(`if-no-files-found: error`).
+
+**Known upstream issue** — Kover 0.9.8 emits a Gradle deprecation warning on
+Gradle 9.6 (Project-object dependency notation from its own internals); the
+project's own scripts use string notation. This becomes a hard error in
+Gradle 10 — revisit when upgrading either dependency (tracked in TODO.md).

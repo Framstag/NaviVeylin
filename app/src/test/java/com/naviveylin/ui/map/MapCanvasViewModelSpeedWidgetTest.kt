@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.location.SpeedStaleness
 
 import android.content.Context
 import android.location.Location
@@ -147,5 +148,55 @@ class MapCanvasViewModelSpeedWidgetTest {
         val state = viewModel.uiState.first { it.maxSpeedKmH == 30.0 }
         assertEquals(30.0, state.maxSpeedKmH, 1e-9)
         assertEquals(2, client.maxSpeedLookupCoords.size)
+    }
+
+    // --- Stale-speed decay (spec: gps-speed-priority — stationary reads zero) ---
+
+    private fun pushStaleFix(time: Long, speedKmH: Double) {
+        pushFix(51.5136, 7.4653, speedKmH, time)
+    }
+
+    /** Poll the real-time state until [condition] holds (the decay ticker runs
+     *  on Dispatchers.Default with the real clock, not the test scheduler). */
+    @Test
+    fun freshFixRecoversSpeedAfterStaleness() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.onToggleFollowMode(true)
+        pushStaleFix(System.currentTimeMillis() - 9_000, speedKmH = 7.0)
+        testScheduler.advanceUntilIdle()
+        awaitSpeedCondition { viewModel.uiState.value.currentSpeedKmH == 0.0 }
+
+        // A fresh moving fix restores the real speed immediately. Poll with a
+        // SHORT window: the decay ticker re-zeroes once the fix ages past the
+        // staleness window (~3 s), and a long poll could cross that boundary.
+        pushStaleFix(System.currentTimeMillis(), speedKmH = 60.0)
+        testScheduler.advanceUntilIdle()
+        // Float round-trip (60f/3.6f*3.6 ≈ 59.9999977): tolerate ±0.01.
+        awaitSpeedCondition(deadlineMs = 1_500) {
+            kotlin.math.abs(viewModel.uiState.value.currentSpeedKmH - 60.0) < 0.01
+        }
+    }
+
+    /** Poll the real-time state until [condition] holds (the decay ticker runs
+     *  on Dispatchers.Default with the real clock, not the test scheduler). */
+    private fun awaitSpeedCondition(
+        deadlineMs: Long = 5_000,
+        condition: () -> Boolean
+    ) {
+        val deadline = System.currentTimeMillis() + deadlineMs
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) return
+            Thread.sleep(10)
+        }
+        val s = viewModel.uiState.value
+        throw AssertionError("speed condition not met within ${deadlineMs}ms; state=${s.currentSpeedKmH} " +
+            "gpsTime=${s.gpsLocation?.time} gpsSpeed=${s.gpsLocation?.speedKmH} follow=${s.followMode}")
+    }
+
+    @Test
+    fun staleFixDecaysFollowSpeedToZero() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.onToggleFollowMode(true) // follow mode — the decay ticker is active
+        pushStaleFix(System.currentTimeMillis() - 9_000, speedKmH = 7.0)
+        testScheduler.advanceUntilIdle() // let the location flow deliver the fix
+        awaitSpeedCondition { viewModel.uiState.value.currentSpeedKmH == 0.0 }
     }
 }

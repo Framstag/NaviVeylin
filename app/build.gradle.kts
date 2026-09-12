@@ -9,6 +9,7 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlinx.kover")
 }
 
 // Release signing credentials: app/keystore.properties (gitignored) or env vars.
@@ -230,6 +231,29 @@ android {
     }
 }
 
+// ── Test coverage (Kover) ───────────────────────────────────────────────
+// JVM unit test coverage, report-only. Generated code (BuildConfig, R,
+// Hilt/Dagger/KSP wiring) is excluded so metrics reflect hand-written
+// logic. See guidelines/Build.md → Code coverage.
+kover {
+    reports {
+        filters {
+            excludes {
+                classes(
+                    "*.BuildConfig",
+                    "*.R",
+                    "*.R$*",
+                    "dagger.hilt.*",
+                    "hilt_aggregated_deps.*",
+                    "*.Hilt_*",
+                    "*_Hilt*",
+                    "*.Dagger*Component*"
+                )
+            }
+        }
+    }
+}
+
 // i18n gate (fallback for lint HardcodedText, which does not flag Compose
 // literals): fail the build on string literals in UI text positions.
 // See guidelines/UI.md — Internationalisation / Localisation.
@@ -365,6 +389,9 @@ dependencies {
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("org.robolectric:robolectric:4.16")
+    // Mocking for ViewModel state in Compose UI tests (final Kotlin classes)
+    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     // Compose UI tests under Robolectric (createComposeRule)
     testImplementation(composeBom)
     testImplementation("androidx.compose.ui:ui-test-junit4")

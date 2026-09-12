@@ -85,4 +85,28 @@ class StreetNameUpdaterTest {
         assertNull(updater.streetFromAddress(null))
         assertNull(updater.streetFromAddress(emptyArray()))
     }
+
+    // ── roadDisplayText (spec: auto/navigation-view + auto/free-driving —
+    // ref shown with the street name) ──
+
+    @Test
+    fun roadDisplayText_refAndName() {
+        assertEquals("B 1 Hauptstrasse", StreetNameUpdater.roadDisplayText("B 1", "Hauptstrasse"))
+    }
+
+    @Test
+    fun roadDisplayText_refOnly() {
+        assertEquals("A 44", StreetNameUpdater.roadDisplayText("A 44", ""))
+    }
+
+    @Test
+    fun roadDisplayText_nameOnly() {
+        assertEquals("Hauptstrasse", StreetNameUpdater.roadDisplayText("", "Hauptstrasse"))
+    }
+
+    @Test
+    fun roadDisplayText_blankWhenNeitherPresent() {
+        assertNull(StreetNameUpdater.roadDisplayText("", ""))
+        assertNull(StreetNameUpdater.roadDisplayText("  ", "  "))
+    }
 }

@@ -1,5 +1,9 @@
 package com.naviveylin.auto
 
+import com.framstag.libosmscout.client.CurrentRoadInfo
+import com.naviveylin.core.AutoFixDerivation
+import com.naviveylin.core.AutoPosition
+import com.naviveylin.core.NavigationState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -50,6 +54,27 @@ class NavigationScreenTest {
     fun northUpOrUnknownBearingDoNotRotate() {
         assertFalse(NavigationScreen.shouldRotateHeadingUp(panning = false, navNorthUp = true, bearing = 90.0))
         assertFalse(NavigationScreen.shouldRotateHeadingUp(panning = false, navNorthUp = false, bearing = -1.0))
+    }
+
+    // ── streetNameFromState (spec: auto/navigation-view — street from the
+    // route's way, not an area search) ──
+
+    @Test
+    fun streetNameFromState_usesRoadInfoRefAndName() {
+        val state = NavigationState(currentRoadInfo = CurrentRoadInfo("B 1", "highway_primary", "Hauptstrasse"))
+        assertEquals("B 1 Hauptstrasse", NavigationScreen.streetNameFromState(state))
+    }
+
+    @Test
+    fun streetNameFromState_refOnly() {
+        val state = NavigationState(currentRoadInfo = CurrentRoadInfo("A 44", "highway_motorway", ""))
+        assertEquals("A 44", NavigationScreen.streetNameFromState(state))
+    }
+
+    @Test
+    fun streetNameFromState_nullWhenNoRoadInfo() {
+        assertNull(NavigationScreen.streetNameFromState(NavigationState()))
+        assertNull(NavigationScreen.streetNameFromState(null))
     }
 
     // ── autoZoomTarget (spec: auto/map-pan — auto-zoom suspended while
@@ -117,9 +142,47 @@ class NavigationScreenTest {
         assertEquals("Hauptstraße", NavigationScreen.tripTextFor(mapLabelSafe = false, streetName = "Hauptstraße"))
     }
 
+    // ── effectiveFixArgs (spec: auto-smooth-follow — fix feed; regression:
+    // the routing view used to drop the speed, leaving the renderer's
+    // extrapolation gate closed and the map snapping per 1 Hz fix) ──
+
     @Test
-    fun tripTextNullWhenNameUnknown() {
-        // No street name resolved yet: nothing to show in the card.
-        assertNull(NavigationScreen.tripTextFor(mapLabelSafe = false, streetName = null))
+    fun effectiveFixArgsPassesGpsSpeedToRenderer() {
+        val args = NavigationScreen.effectiveFixArgs(
+            AutoPosition(lat = 51.0, lon = 7.0, bearing = 90.0, speedKmH = 60.0),
+            nowMs = 5_000L,
+            derivation = AutoFixDerivation()
+        )
+        assertEquals(60.0, args.speedKmH, 1e-9)
+        assertEquals(90.0, args.bearing, 1e-9)
+        assertEquals(51.0, args.lat, 1e-9)
+        assertEquals(5_000L, args.timeMs)
+    }
+
+    @Test
+    fun effectiveFixArgsDerivesSpeedWhenGpsSpeedMissing() {
+        // Second fix moves 0.1° north over 600 s → ≈ 66.7 km/h derived; the
+        // renderer must receive it (not the NaN default) so smooth scrolling
+        // runs on receivers without a GPS speed.
+        val d = AutoFixDerivation()
+        NavigationScreen.effectiveFixArgs(
+            AutoPosition(lat = 51.0, lon = 7.0, speedKmH = Double.NaN), nowMs = 0L, derivation = d
+        )
+        val args = NavigationScreen.effectiveFixArgs(
+            AutoPosition(lat = 51.1, lon = 7.0, speedKmH = Double.NaN), nowMs = 600_000L, derivation = d
+        )
+        assertEquals(66.7, args.speedKmH, 1.0)
+    }
+
+    @Test
+    fun effectiveFixArgsDerivesBearingWhenGpsBearingMissing() {
+        val d = AutoFixDerivation()
+        NavigationScreen.effectiveFixArgs(
+            AutoPosition(lat = 51.0, lon = 7.0, bearing = Double.NaN), nowMs = 0L, derivation = d
+        )
+        val args = NavigationScreen.effectiveFixArgs(
+            AutoPosition(lat = 51.1, lon = 7.0, bearing = Double.NaN), nowMs = 600_000L, derivation = d
+        )
+        assertEquals(0.0, args.bearing, 0.5)
     }
 }

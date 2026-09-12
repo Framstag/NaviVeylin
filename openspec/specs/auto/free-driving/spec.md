@@ -62,6 +62,19 @@ The system SHALL orient the free-driving map heading-up, rotating with the vehic
 - **WHEN** the vehicle drives in a direction while free driving
 - **THEN** the map rotates so the driving direction points up on the surface (viewport angle = negative bearing, matching the phone app convention)
 
+### Requirement: Free-driving compass rose points at true north
+The free-driving compass rose SHALL draw its north pointer at the screen direction of true north under the heading-up map rotation, using the same convention as the navigation rose (`auto-map-layout`): with heading-up rotation (map angle = −bearing), the north pointer SHALL sit at `360 − bearing` degrees clockwise from screen-up.
+
+#### Scenario: Westbound free driving, north on the driver's right
+- **WHEN** the free-driving view is visible with heading-up rotation
+- **AND** the vehicle heading is 270° (driving west), map angle = −270° ≡ +90°
+- **THEN** the rose north pointer SHALL point 90° clockwise from screen-up — the driver's right, where true north is
+
+#### Scenario: Eastbound free driving, north on the driver's left
+- **WHEN** the free-driving view is visible with heading-up rotation
+- **AND** the vehicle heading is 90° (driving east), map angle = −90° ≡ +270°
+- **THEN** the rose north pointer SHALL point 270° clockwise from screen-up — the driver's left
+
 ### Requirement: Auto-zoom by speed
 While free driving, the system SHALL adjust the map magnification from the vehicle speed using the shared speed-to-magnification table when follow mode and the auto-zoom setting are active.
 
@@ -82,15 +95,23 @@ While free driving, the system SHALL adjust the map magnification from the vehic
 - **THEN** auto-zoom re-engages and adjusts to the speed-appropriate magnification
 
 ### Requirement: Current street name shown
-The system SHALL display the current street name on the free-driving view, derived from the map data at the GPS position, centered at the bottom of the view, and SHALL keep the label within the area the host guarantees visible.
+The system SHALL display the current street name and ref on the free-driving view, derived from the bearing-aware road lookup at the GPS position (the street the vehicle is actually driving on, not the nearest address point), centered at the bottom of the view, and SHALL keep the label within the area the host guarantees visible.
 
 #### Scenario: Street name displayed while driving
 - **WHEN** the free-driving view is visible and the GPS position is on a named street
 - **THEN** the view shows that street name centered at the bottom
 
+#### Scenario: Ref shown with the street name
+- **WHEN** the street at the GPS position has a ref tag
+- **THEN** the label shows the ref together with the name (e.g. "B 1 Hauptstrasse")
+
 #### Scenario: Street name updates on street change
 - **WHEN** the vehicle moves onto a different named street while free driving
 - **THEN** the displayed street name updates to the new street
+
+#### Scenario: Main road preferred over side street
+- **WHEN** the vehicle drives on a main road and a side street branches off near the GPS position
+- **THEN** the label shows the main road (matching the vehicle bearing), not the side street
 
 #### Scenario: No street name when unnamed
 - **WHEN** the GPS position is not on a named street while free driving

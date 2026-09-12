@@ -144,9 +144,16 @@ fun MapManagerScreen(
                 )
             }
 
-            // World basemap section (basemap-ui spec)
-            item(key = "basemap-section") {
-                BasemapSection(viewModel = basemapViewModel)
+            // Loading indicator (top of content area, below provider row)
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
 
             // Search field
@@ -188,20 +195,13 @@ fun MapManagerScreen(
                 }
             }
 
-            // Loading indicator
-            if (uiState.isLoading) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
+            // World basemap section (basemap-ui spec)
+            item(key = "basemap-section") {
+                BasemapSection(viewModel = basemapViewModel)
             }
 
-            // Installed maps section (always on top)
-            if (installedEntries.isNotEmpty()) {
+            // Installed maps section (hidden while searching)
+            if (searchQuery.isBlank() && installedEntries.isNotEmpty()) {
                 item(key = "installed-header") {
                     Text(
                         text = stringResource(R.string.installed_maps),
@@ -246,7 +246,7 @@ fun MapManagerScreen(
                         text = stringResource(R.string.available_maps),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                     )
                 }
@@ -273,7 +273,7 @@ fun MapManagerScreen(
                         }
                     )
                 }
-            } else if (!uiState.isLoading && installedEntries.isEmpty()) {
+            } else if (searchQuery.isBlank() && !uiState.isLoading && installedEntries.isEmpty()) {
                 item {
                     Text(
                         text = stringResource(R.string.tap_refresh_hint),
@@ -351,6 +351,7 @@ private fun ActiveDownloadsSection(
             Text(
                 text = pluralStringResource(
                     R.plurals.active_downloads,
+                    downloads.size + if (basemapDownloading) 1 else 0,
                     downloads.size + if (basemapDownloading) 1 else 0
                 ),
                 style = MaterialTheme.typography.titleSmall,

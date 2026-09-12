@@ -75,9 +75,9 @@ In landscape orientation, the system SHALL use the landscape layout arrangement 
 The map canvas screen SHALL respond to the system back gesture/button by dismissing the topmost open overlay (sheet, panel, or dialog) instead of exiting the application.
 
 #### Scenario: Back dismisses search panel
-- **WHEN** the search panel overlay is open on the map canvas
+- **WHEN** the unified search dialog is open on the map canvas
 - **AND** user performs the system back gesture or presses the back button
-- **THEN** the search panel SHALL close
+- **THEN** the search dialog SHALL close
 - **AND** the map canvas SHALL remain visible
 
 #### Scenario: Back dismisses favorites sheet

@@ -184,6 +184,22 @@ jobs:
       - name: Run unit tests
         run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test
 
+      # Code coverage (report-only, no gate): root Kover tasks merge
+      # app/auto/core unit-test coverage into one HTML+XML report; the
+      # pure-Java osmscout-client-java module is measured by its own JaCoCo
+      # report. See guidelines/Build.md → Code coverage.
+      - name: Generate coverage reports
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverHtmlReport :koverXmlReport :osmscout-client-java:jacocoTestReport
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v5
+        with:
+          name: coverage-reports
+          path: |
+            build/reports/kover/**
+            osmscout-client-java/build/reports/jacoco/test/**
+          if-no-files-found: error
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:

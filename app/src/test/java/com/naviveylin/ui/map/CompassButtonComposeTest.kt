@@ -84,4 +84,46 @@ class CompassButtonComposeTest {
             size.width >= layoutPx - 1f && size.height >= layoutPx - 1f
         )
     }
+
+    @Test
+    fun followDirectionNeedlePointsUpWhileHeadingUp() {
+        // Spec: compass-button — follow triangle points at the on-screen travel
+        // direction = bearing + θ, which is 0 (straight up) while heading-up
+        // follow is active. Westbound: heading 270°, θ = −270° → target 0°.
+        // (Where NORTH renders — 90°, the driver's right — is the
+        // compassRotationDegrees part, pinned in ProjectionUtilsTest.)
+        val mapAngle = Math.toRadians(-270.0)
+        composeRule.setContent {
+            CompassButton(
+                isNorthUp = false,
+                mapAngleRadians = mapAngle,
+                gpsFixQuality = GpsFixQuality.GOOD,
+                onCenterClick = {},
+                onToggleOrientation = {},
+                bearingDegrees = 270.0
+            )
+        }
+        composeRule.onNodeWithContentDescription("Compass").fetchSemanticsNode()
+        assertEquals(
+            "westbound follow needle must point up (travel direction)",
+            0.0, compassNeedleTarget(false, 270.0, mapAngle), 1e-10
+        )
+    }
+
+    @Test
+    fun northUpNeedleComposesWithUnknownBearing() {
+        // North-up mode ignores the bearing; the needle points at map north (0°).
+        composeRule.setContent {
+            CompassButton(
+                isNorthUp = true,
+                mapAngleRadians = 0.0,
+                gpsFixQuality = GpsFixQuality.GOOD,
+                onCenterClick = {},
+                onToggleOrientation = {},
+                bearingDegrees = null
+            )
+        }
+        composeRule.onNodeWithContentDescription("Compass").fetchSemanticsNode()
+        assertEquals(0.0, compassNeedleTarget(true, null, 0.0), 1e-10)
+    }
 }

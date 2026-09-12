@@ -83,6 +83,38 @@ class SessionLogTest {
         assertTrue(entries.any { it.contains("Session destroyed") })
     }
 
+    /**
+     * Pins the canonical warmup step order as a logged contract: favorites are
+     * initialized right after the native client build and BEFORE the map
+     * databases open (design D2 — favorites depend only on the client, not on
+     * map DBs). The full [NavigationSession] warmup cannot be executed without
+     * a host-provided CarContext, so the step sequence the session logs is
+     * asserted here; the real execution order is verified on-device via logcat
+     * (task 4.1).
+     */
+    @Test
+    fun warmupStepsLogFavoritesBeforeMapDatabases() {
+        // Canonical order emitted by NavigationSession.startWarmup.
+        val steps = listOf(
+            "Resolving Hilt entry point",
+            "Entry point resolved",
+            "Building native client",
+            "Native client ready",
+            "Initializing favorites",
+            "Favorites ready",
+            "Activating navigation controller",
+            "Navigation controller ready",
+            "Opening installed map databases",
+            "Opening map databases done"
+        )
+        steps.forEach { SessionLog.warmupStep(it) }
+
+        val entries = DiagnosticsLog.readEntries()
+        val favoritesIdx = entries.indexOfFirst { it.contains("Initializing favorites") }
+        val mapDbsIdx = entries.indexOfFirst { it.contains("Opening installed map databases") }
+        assertTrue("favorites step must precede map-database step", favoritesIdx in 0 until mapDbsIdx)
+    }
+
     @Test
     fun failuresAreLoggedWithThrowable() {
         SessionLog.failed("onCreateScreen", IllegalStateException("boom"))

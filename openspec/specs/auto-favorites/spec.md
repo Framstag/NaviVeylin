@@ -21,6 +21,10 @@ The system SHALL display a `PlaceListTemplate` on the Android Auto screen showin
 - **WHEN** user starts navigation from a favorite selection
 - **THEN** the `PlaceListTemplate` is replaced by the `NavigationTemplate`
 
+#### Scenario: Favorites appear without re-entering the screen
+- **WHEN** the favorites screen is open before the favorites store has finished loading
+- **THEN** the list updates in place with the loaded favorites once the store is ready, without the user leaving and re-entering the screen
+
 ### Requirement: Favorites grouped by category
 The system SHALL display favorites grouped by their category/group name, with group headers in the `PlaceListTemplate`.
 
@@ -59,4 +63,3 @@ The favorite provider SHALL support adding and removing favorite locations, and 
 - **WHEN** the details screen is open
 - **AND** the favorites store changes
 - **THEN** the details screen SHALL reflect the destination's current favorite state
-

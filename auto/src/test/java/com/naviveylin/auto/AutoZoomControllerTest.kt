@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import com.naviveylin.core.AutoPositionUtil
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -93,25 +94,25 @@ class AutoZoomControllerTest {
 
     @Test
     fun movementBearingNorthIsZero() {
-        val b = FreeDrivingScreen.movementBearing(51.0, 7.0, 51.1, 7.0)!!
+        val b = AutoPositionUtil.movementBearing(51.0, 7.0, 51.1, 7.0)!!
         assertEquals(0.0, b, 0.5)
     }
 
     @Test
     fun movementBearingEastIsNinety() {
-        val b = FreeDrivingScreen.movementBearing(51.0, 7.0, 51.0, 7.1)!!
+        val b = AutoPositionUtil.movementBearing(51.0, 7.0, 51.0, 7.1)!!
         assertEquals(90.0, b, 0.5)
     }
 
     @Test
     fun movementBearingSouthIsHundredEighty() {
-        val b = FreeDrivingScreen.movementBearing(51.1, 7.0, 51.0, 7.0)!!
+        val b = AutoPositionUtil.movementBearing(51.1, 7.0, 51.0, 7.0)!!
         assertEquals(180.0, b, 0.5)
     }
 
     @Test
     fun tinyMovementReturnsNull() {
         // ~1.1 m north — below the 3 m trust threshold.
-        assertNull(FreeDrivingScreen.movementBearing(51.0, 7.0, 51.00001, 7.0))
+        assertNull(AutoPositionUtil.movementBearing(51.0, 7.0, 51.00001, 7.0))
     }
 }

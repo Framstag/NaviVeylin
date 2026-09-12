@@ -30,6 +30,8 @@ public class OSMScoutClientBuilder {
     private String units;
     /** Directory containing .oss stylesheet files. */
     private String stylesheetDirectory;
+    /** Basemap stylesheet name (file name without the .oss postfix). */
+    private String basemapStyleSheet;
     /** Synthetic POI types to register in the type config at runtime. */
     private String[] customPoiTypes;
     /** Default directory for downloaded maps. */
@@ -114,6 +116,23 @@ public class OSMScoutClientBuilder {
      */
     public OSMScoutClientBuilder withStyleSheetDirectory(String stylesheetDirectory) {
         this.stylesheetDirectory = stylesheetDirectory;
+        return this;
+    }
+
+    /**
+     * Set the stylesheet used to render the basemap database.
+     *
+     * The basemap database has its own type config (basemap.ost) with only a
+     * few types, so it is rendered with a dedicated stylesheet (e.g.
+     * "basemap-render") instead of the user-selected main map style. The name
+     * is the file name without the {@code .oss} postfix, resolved against the
+     * stylesheet directory. When unset, the basemap uses the main style.
+     *
+     * @param basemapStyleSheet basemap stylesheet name, e.g. "basemap-render"
+     * @return this builder for chaining
+     */
+    public OSMScoutClientBuilder withBasemapStyleSheet(String basemapStyleSheet) {
+        this.basemapStyleSheet = basemapStyleSheet;
         return this;
     }
 

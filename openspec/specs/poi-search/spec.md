@@ -7,11 +7,16 @@ Lets users search for points of interest (hotels, restaurants, grocery stores) a
 ## Requirements
 
 ### Requirement: POI search accessible from the map menu
-The app SHALL provide a "Search POIs" entry in the map screen menu that opens the POI search sheet.
+The app SHALL provide POI search as the POIs mode of the unified search dialog, reachable from the map screen search button, the "Search" menu entry, and the `/` key.
 
 #### Scenario: Open POI search from menu
-- **WHEN** the user opens the map screen menu and selects "Search POIs"
-- **THEN** the POI search sheet opens over the map
+- **WHEN** the user opens the map screen menu and selects "Search"
+- **THEN** the unified search dialog SHALL open
+- **AND** the POIs mode SHALL be selectable
+
+#### Scenario: Open POI search from unified dialog
+- **WHEN** the user opens the unified search dialog and selects the POIs mode
+- **THEN** the POI search UI SHALL be shown within the dialog
 
 ### Requirement: No category preselected and no preloaded results
 The POI search sheet SHALL open with no category selected and SHALL NOT run a search or load results until the user explicitly selects a category and triggers the search.
@@ -25,7 +30,7 @@ The POI search sheet SHALL open with no category selected and SHALL NOT run a se
 - **THEN** the search trigger is disabled
 
 ### Requirement: Category and radius selection
-The POI search sheet SHALL let the user pick one POI category from the supported set using a searchable dropdown and choose a search radius, then trigger a search around the current map center. The dropdown SHALL accommodate any number of supported categories and SHALL let the user filter the category list by typing.
+The POI search UI SHALL let the user pick one POI category from a searchable dropdown listing the supported set and choose a search radius, then trigger a search around the current map center with an explicit search button. The dropdown SHALL accommodate any number of supported categories and SHALL let the user filter the category list by typing.
 
 #### Scenario: Search with selected category and radius
 - **WHEN** the user selects a category and a radius and triggers the search
@@ -56,11 +61,41 @@ The POI search sheet SHALL let the user pick one POI category from the supported
 - **THEN** the selection is cleared and the search trigger is disabled
 
 ### Requirement: POI results list
-The app SHALL display POI search results in a list showing the POI label, its object type, and its distance from the search center, styled consistently with the app's other result lists.
+The app SHALL display POI search results in a list showing the POI name, its
+operator or brand when available, its object type, and its distance from the
+search center, styled consistently with the app's other result lists. When a POI
+has a name and an operator or brand, the entry SHALL show the name with the brand
+(preferred) or operator in parentheses; when the POI has no name, the brand or
+operator SHALL be shown alone; "(unnamed)" SHALL be shown only when the POI has no
+name, operator, or brand.
 
 #### Scenario: Results displayed
 - **WHEN** a POI search returns entries
-- **THEN** each entry is shown with its label, object type, and distance from the search center
+- **THEN** each entry is shown with its name, object type, and distance from the search center
+
+#### Scenario: Name and brand shown
+- **WHEN** a POI search returns an entry that has both a name and a brand
+- **THEN** the entry shows the name with the brand in parentheses (e.g. "Tankstelle (Shell)")
+
+#### Scenario: Name and operator shown without brand
+- **WHEN** a POI search returns an entry that has a name and an operator but no brand
+- **THEN** the entry shows the name with the operator in parentheses (e.g. "Filiale Mitte (Sparkasse)")
+
+#### Scenario: Brand preferred over operator
+- **WHEN** a POI search returns an entry that has a name, a brand, and an operator
+- **THEN** the entry shows the name with the brand in parentheses, not the operator
+
+#### Scenario: No name, brand or operator shown alone
+- **WHEN** a POI search returns an entry that has no name but has a brand or operator
+- **THEN** the entry shows the brand or operator as the primary text (e.g. "McDonald's")
+
+#### Scenario: Name equals brand or operator
+- **WHEN** a POI search returns an entry whose name equals its brand or operator
+- **THEN** the entry shows the name once, without a duplicated parenthetical
+
+#### Scenario: Completely unnamed entry
+- **WHEN** a POI search returns an entry that has no name, operator, or brand
+- **THEN** the entry shows "(unnamed)" as the primary text
 
 #### Scenario: Empty results
 - **WHEN** a POI search returns no entries
@@ -123,14 +158,14 @@ When the location details dialog is closed via a selective action (route to loca
 - **THEN** the POI search sheet remains open with its results
 
 ### Requirement: POI results map embedded in the search sheet
-The POI search sheet SHALL embed an interactive map that shows the location of every search result and the current position when a GPS fix is available. The map SHALL be shown above the result list on portrait screens and to the left of the result list on landscape screens. The embedded map SHALL be independent of the main map's viewport (panning/zooming it SHALL NOT move the main map).
+The POI search UI SHALL embed an interactive map that shows the location of every search result and the current position when a GPS fix is available. The map SHALL be shown above the result list on portrait screens and to the left of the result list on landscape screens. The embedded map SHALL be independent of the main map's viewport (panning/zooming it SHALL NOT move the main map).
 
 #### Scenario: Map above results in portrait
-- **WHEN** the POI search sheet shows results on a portrait-oriented screen
+- **WHEN** the POI search UI shows results on a portrait-oriented screen
 - **THEN** the embedded map is displayed above the result list
 
 #### Scenario: Map left of results in landscape
-- **WHEN** the POI search sheet shows results on a landscape-oriented screen
+- **WHEN** the POI search UI shows results on a landscape-oriented screen
 - **THEN** the embedded map is displayed to the left of the result list
 
 #### Scenario: All results marked on the map
@@ -138,15 +173,15 @@ The POI search sheet SHALL embed an interactive map that shows the location of e
 - **THEN** the embedded map shows a marker at the location of each result
 
 #### Scenario: Current position shown when available
-- **WHEN** the POI search sheet shows results and a GPS fix is available
+- **WHEN** the POI search UI shows results and a GPS fix is available
 - **THEN** the embedded map also shows a current-position marker
 
 #### Scenario: No current position
-- **WHEN** the POI search sheet shows results and no GPS fix is available
+- **WHEN** the POI search UI shows results and no GPS fix is available
 - **THEN** the embedded map shows only the result markers, without error or placeholder
 
 #### Scenario: Embedded map interaction does not move the main map
-- **WHEN** the user pans or zooms the embedded map inside the POI search sheet
+- **WHEN** the user pans or zooms the embedded map inside the POI search UI
 - **THEN** the main map's viewport, center, and magnification SHALL remain unchanged
 
 ### Requirement: Selection changes the maps
@@ -159,3 +194,41 @@ Selecting a POI result SHALL update both the embedded map and the main map: the 
 #### Scenario: Main map centers on the selected result
 - **WHEN** the user taps a result in the list
 - **THEN** the main map centers on the selected POI (existing "Details via single click" behavior is unchanged)
+
+### Requirement: POI search covers all loaded maps with deterministic ordering
+When multiple map databases are loaded, a POI search SHALL consider every loaded
+(non-basemap) database whose type set contains the searched category, SHALL prefer
+databases whose bounding box contains the search center over databases whose
+bounding box does not, SHALL return each distinct object at most once even when
+databases overlap geographically, and SHALL order the returned entries by distance
+from the search center, ascending.
+
+#### Scenario: All loaded maps contribute results
+- **WHEN** two or more maps are loaded and a POI search runs
+- **THEN** the result list may contain entries from every loaded map whose
+  bounding box lies within the search radius, not only from the first map in
+  database load order
+
+#### Scenario: Bounding-box-containing map's results dominate
+- **WHEN** a map whose bounding box contains the search center and a map whose
+  bounding box does not both contain matching POIs
+- **THEN** entries from the containing map appear in the results ahead of entries
+  from the non-containing map
+
+#### Scenario: Overlapping databases do not duplicate results
+- **WHEN** two loaded maps overlap and both contain the same POI within the search
+  radius
+- **THEN** the object appears at most once in the result list
+
+#### Scenario: Results sorted by distance ascending
+- **WHEN** a POI search returns entries from one or more maps
+- **THEN** the entries are ordered by distance from the search center, ascending
+
+#### Scenario: Basemap still excluded
+- **WHEN** a POI search runs and the low-zoom basemap is loaded
+- **THEN** the basemap contributes no results
+
+#### Scenario: Result limit still applied
+- **WHEN** merged results across all loaded maps exceed the search limit
+- **THEN** the returned list is truncated to the search limit, keeping the
+  closest entries

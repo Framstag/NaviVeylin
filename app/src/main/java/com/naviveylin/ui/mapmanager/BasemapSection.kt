@@ -17,7 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -73,20 +72,18 @@ fun BasemapSection(
 
         when {
             state.isDownloading -> {
-                // Download in progress
-                Text(
-                    text = stringResource(R.string.downloading_progress, state.progress),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Download in progress: compact status line, full progress lives
+                // in the active-downloads section (basemap-ui spec).
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    LinearProgressIndicator(
-                        progress = { state.progress / 100f },
-                        modifier = Modifier.weight(1f).height(6.dp)
+                    Text(
+                        text = stringResource(R.string.basemap_downloading),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
                     )
                     TextButton(onClick = { viewModel.cancel() }) {
                         Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelSmall)

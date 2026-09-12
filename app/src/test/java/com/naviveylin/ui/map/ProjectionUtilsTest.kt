@@ -324,15 +324,17 @@ class ProjectionUtilsTest {
 
     @Test
     fun `screenBearing adds map rotation`() {
-        // Map rotated 30 degrees CCW; arrow with absolute bearing 90 (east) should
-        // appear at 120 degrees on screen.
+        // Map rotated +30 degrees (clockwise on screen, per the marker-arrow
+        // convention); arrow with absolute bearing 90 (east) should appear at
+        // 120 degrees on screen.
         val screen = ProjectionUtils.screenBearing(90.0, Math.toRadians(30.0))
         assertEquals(120.0, screen, 1e-10)
     }
 
     @Test
     fun `screenBearing normalizes negative results`() {
-        // Map rotated 45 degrees CCW; arrow with absolute bearing 0 (north).
+        // Map rotated -45 degrees (counter-clockwise on screen); arrow with
+        // absolute bearing 0 (north) appears at 315 degrees on screen.
         val screen = ProjectionUtils.screenBearing(0.0, -Math.toRadians(45.0))
         assertEquals(315.0, screen, 1e-10)
     }
@@ -345,6 +347,39 @@ class ProjectionUtilsTest {
         val mapAngle = -Math.toRadians(bearing)
         val screen = ProjectionUtils.screenBearing(bearing, mapAngle)
         assertEquals(0.0, screen, 1e-7)
+    }
+
+    @Test
+    fun `compassRotationDegrees north-up is zero`() {
+        assertEquals(0.0, ProjectionUtils.compassRotationDegrees(0.0), 1e-10)
+    }
+
+    @Test
+    fun `compassRotationDegrees positive angle points right`() {
+        // +90 degrees map angle (clockwise on screen): north renders to the right.
+        assertEquals(90.0, ProjectionUtils.compassRotationDegrees(Math.toRadians(90.0)), 1e-10)
+    }
+
+    @Test
+    fun `compassRotationDegrees negative angle normalizes to left`() {
+        // -90 degrees map angle: north renders to the left = 270 degrees clockwise.
+        assertEquals(270.0, ProjectionUtils.compassRotationDegrees(-Math.toRadians(90.0)), 1e-10)
+    }
+
+    @Test
+    fun `compassRotationDegrees westbound follow puts north on the drivers right`() {
+        // Heading 270° (west), follow mode stores angle = -270° ≡ +90°:
+        // north must appear 90° clockwise from screen-up — the driver's right.
+        val angle = ProjectionUtils.compassRotationDegrees(Math.toRadians(-270.0))
+        assertEquals(90.0, angle, 1e-10)
+    }
+
+    @Test
+    fun `compassRotationDegrees eastbound follow puts north on the drivers left`() {
+        // Heading 90° (east), follow mode stores angle = -90° ≡ +270°:
+        // north must appear 270° clockwise from screen-up — the driver's left.
+        val angle = ProjectionUtils.compassRotationDegrees(Math.toRadians(-90.0))
+        assertEquals(270.0, angle, 1e-10)
     }
 
     @Test

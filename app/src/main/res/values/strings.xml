@@ -9,7 +9,6 @@
     <string name="delete">Delete</string>
     <string name="collapse">Collapse</string>
     <string name="expand">Expand</string>
-    <string name="poi_search_title">Search POIs</string>
     <string name="poi_search_close">Close POI search</string>
     <string name="poi_search_category">Category</string>
     <string name="poi_search_radius">Search area: %1$s</string>
@@ -32,7 +31,6 @@
     <string name="poi_category_hospital">Hospital</string>
     <string name="poi_category_doctors">Doctors</string>
     <string name="poi_category_public_transport">Public transport</string>
-    <string name="address_book_menu_title">Address book</string>
     <string name="address_book_rationale_title">Address book access</string>
     <string name="address_book_rationale_text">NaviVeylin can read your address book so you can search for contacts with addresses and navigate to them. Access is optional — you can deny it and use all other features normally.</string>
     <string name="address_book_rationale_continue">Continue</string>
@@ -55,15 +53,19 @@
     <string name="compass">Compass</string>
     <string name="compass_north" translatable="false">N</string>
     <string name="whats_here">What\'s here?</string>
-    <string name="search_history_title">Search history</string>
-    <string name="search_history_empty">No search history yet</string>
     <string name="searching_in_region">Searching in %1$s</string>
     <string name="search_location_placeholder">Search location...</string>
     <string name="clear_search">Clear search</string>
     <string name="current_location">Current Location</string>
     <string name="select_favorite">Select Favorite</string>
-    <string name="select_from_history">Select from history</string>
     <string name="no_results_found">No results found</string>
+    <string name="search_mode_places">Places</string>
+    <string name="search_mode_pois">POIs</string>
+    <string name="search_mode_contacts">Contacts</string>
+    <string name="search_recent">Recent searches</string>
+    <string name="search_favorites_section">Favorites</string>
+    <string name="favorite_marker">Favorite</string>
+    <string name="search_menu_title">Search</string>
     <string name="coordinates_format" translatable="false">%.5f, %.5f</string>
     <string name="address_label">Address:</string>
     <string name="area_label">Area:</string>
@@ -79,6 +81,12 @@
     <string name="save">Save</string>
     <string name="location_options">Location options</string>
     <string name="map_follows_position">Map follows position</string>
+    <string name="mode_browse">Browse</string>
+    <string name="mode_free_drive">Free drive</string>
+    <string name="mode_navigation">Navigation</string>
+    <string name="start_free_drive">Start free drive</string>
+    <string name="exit_free_drive">Exit free drive</string>
+    <string name="free_rotation">Free rotation</string>
     <string name="orientation">Orientation</string>
     <string name="north_up">North up</string>
     <string name="follow_direction">Follow direction</string>
@@ -137,6 +145,7 @@
     <string name="basemap_variant_prompt">Available on server — choose a variant:</string>
     <string name="download_basemap">Download Basemap</string>
     <string name="basemap_unavailable">Basemap unavailable</string>
+    <string name="basemap_downloading">Downloading world basemap…</string>
     <string name="back">Back</string>
     <string name="search_maps">Search maps…</string>
     <string name="installed_maps">Installed Maps</string>
@@ -185,7 +194,6 @@
     <string name="new_location_group">New location</string>
     <string name="star">Star</string>
     <string name="unstar">Unstar</string>
-    <string name="downloading_progress">Downloading… %1$d%%</string>
     <string name="installed_with_size">Installed (%1$s)</string>
     <string name="distance_unit_km">%1$s km</string>
     <string name="distance_unit_m">%1$s m</string>

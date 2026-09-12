@@ -274,6 +274,118 @@ internal class BearingFilter(private val source: BearingSource) {
 }
 
 /**
+ * Sanitizes the GPS speed of each fix (spec: gps-speed-priority).
+ *
+ * Enforces the invariant "standing still ⇒ speed 0": when the reported speed
+ * is below the dead-band AND consecutive fixes show negligible displacement
+ * (stationary evidence), the residual/stale velocity estimate is overridden
+ * with 0. Real movement — even slow crawling — is passed through unchanged
+ * as long as the position actually moves more than the displacement floor.
+ */
+internal class SpeedSanity {
+
+    /**
+     * Reported speeds at or below this (km/h) count as "effectively standing".
+     * Above the GPS velocity noise floor (observed residual after braking:
+     * up to ~7 km/h) so stationary residuals snap, while genuinely moving
+     * vehicles almost always exceed the displacement floor and stay reported
+     * (real crawl > 2 m/s moves past the 2 m/fix displacement threshold).
+     */
+    private val DEAD_BAND_KMH = 8.0
+    /** Consecutive fixes closer than this (m) provide no movement evidence. */
+    private val STATIONARY_DISPLACEMENT_M = 2.0
+    /** Movement evidence is only valid across fixes within this gap (ms). */
+    private val MAX_EVIDENCE_GAP_MS = 3_000L
+
+    private var lastLat: Double = Double.NaN
+    private var lastLon: Double = Double.NaN
+    private var lastTime: Long = -1L
+
+    /**
+     * @return the effective speed in km/h: 0 when the reported speed is at or
+     * below the dead-band and consecutive fixes moved less than the
+     * displacement floor, otherwise the reported value passes through
+     * unchanged (NaN stays NaN — "no GPS speed data").
+     */
+    fun process(lat: Double, lon: Double, reportedSpeedKmH: Double, time: Long): Double {
+        var displacement = Double.MAX_VALUE
+        if (!lastLat.isNaN() && time >= lastTime && time - lastTime <= MAX_EVIDENCE_GAP_MS) {
+            displacement = distanceMeters(lastLat, lastLon, lat, lon)
+        }
+        lastLat = lat
+        lastLon = lon
+        lastTime = time
+        return if (displacement < STATIONARY_DISPLACEMENT_M && reportedSpeedKmH <= DEAD_BAND_KMH) 0.0 else reportedSpeedKmH
+    }
+
+    /** Approximate great-circle distance in meters (haversine). */
+    private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val earthRadiusM = 6_371_000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = (kotlin.math.sin(dLat / 2) * kotlin.math.sin(dLat / 2) +
+            kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
+            kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2))
+            .coerceIn(0.0, 1.0)
+        return earthRadiusM * 2.0 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1.0 - a))
+    }
+}
+
+/**
+ * Detects a stale speed feed (spec: gps-speed-priority / speed-spike-filtering).
+ *
+ * The location provider goes silent at standstill (min-distance throttling),
+ * so the consumers' last-fix timestamp ages. Once it exceeds [STALE_SPEED_MS]
+ * the displayed speed SHALL read 0 instead of the last delivered value.
+ */
+internal class SpeedStaleness {
+
+    companion object {
+        /** Speed values this old are stale — display decays to 0 km/h. */
+        const val STALE_SPEED_MS = 3_000L
+
+        /** True when [lastFixTimeMs] is beyond the staleness window. */
+        fun isStale(lastFixTimeMs: Long, nowMs: Long): Boolean =
+            lastFixTimeMs > 0L && nowMs - lastFixTimeMs > STALE_SPEED_MS
+    }
+}
+
+/**
+ * Spike filter with stale-value decay (spec: speed-spike-filtering).
+ *
+ * Valid speeds (0..[maxPlausibleSpeedKmH]) refresh the last known good. A
+ * value outside that window (spike, or unknown/negative) returns the last
+ * known good while it is still fresh, but once the last valid value ages
+ * beyond the staleness window it decays to 0 — the frozen pre-stop value is
+ * never pinned forever. Shared by the phone nav VM and the AA controller so
+ * both surfaces behave identically.
+ */
+internal class SpeedSpikeFilter(
+    private val maxPlausibleSpeedKmH: Double,
+    private val nowMs: () -> Long = System::currentTimeMillis
+) {
+    private var lastValidSpeedKmH = Double.NaN
+    private var lastValidSpeedTime = 0L
+
+    /** @return the speed to display; NaN until the first valid speed arrives. */
+    fun filter(rawSpeedKmH: Double): Double {
+        val now = nowMs()
+        if (rawSpeedKmH >= 0.0 && rawSpeedKmH <= maxPlausibleSpeedKmH) {
+            lastValidSpeedKmH = rawSpeedKmH
+            lastValidSpeedTime = now
+        } else if (SpeedStaleness.isStale(lastValidSpeedTime, now)) {
+            return 0.0
+        }
+        return lastValidSpeedKmH
+    }
+
+    fun reset() {
+        lastValidSpeedKmH = Double.NaN
+        lastValidSpeedTime = 0L
+    }
+}
+
+/**
  * Provides GPS location updates from Fused (Play Services) or LocationManager.
  * Strict fallback: Fused is the sole source when Play Services is available
  * (the OS location service applies its own smoothing); LocationManager
@@ -348,6 +460,9 @@ class LocationService @Inject constructor(
     private val bearingFilter: BearingFilter by lazy {
         BearingFilter(if (useFusedProvider) BearingSource.FUSED else BearingSource.MANAGER)
     }
+
+    /** Stationary dead-band for the fix speed; sanitizes every emitted fix. */
+    private val speedSanity = SpeedSanity()
 
     private fun isPlayServicesAvailable(): Boolean {
         val availability = GoogleApiAvailability.getInstance()
@@ -554,7 +669,12 @@ class LocationService @Inject constructor(
             lat = loc.latitude,
             lon = loc.longitude,
             accuracy = if (loc.hasAccuracy()) loc.accuracy.toDouble() else -1.0,
-            speedKmH = if (loc.hasSpeed()) loc.speed * 3.6 else Double.NaN,
+            speedKmH = speedSanity.process(
+                loc.latitude,
+                loc.longitude,
+                if (loc.hasSpeed()) loc.speed * 3.6 else Double.NaN,
+                loc.time
+            ),
             smoothedBearing = smoothed,
             markerBearing = marker,
             time = loc.time

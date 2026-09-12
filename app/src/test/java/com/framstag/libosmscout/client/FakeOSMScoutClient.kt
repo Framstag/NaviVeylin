@@ -39,6 +39,9 @@ class FakeOSMScoutClient : OSMScoutClient() {
     @Volatile
     var lastRenderMag: Double = -1.0
 
+    /** Magnifications of every native render, in order (for render-order assertions). */
+    val renderMags = java.util.concurrent.CopyOnWriteArrayList<Double>()
+
     /** Latitude of the last render (NaN until first render). */
     @Volatile
     var lastRenderLat: Double = Double.NaN
@@ -65,8 +68,8 @@ class FakeOSMScoutClient : OSMScoutClient() {
         return styleSheetLoadResult
     }
 
-    /** Styles returned by [getAvailableStyleSheets] (default: all bundled). */
-    var availableStyleSheetNames: List<String> = BundledMapStyles.ALL
+    /** Styles returned by [getAvailableStyleSheets] (default: user-selectable set). */
+    var availableStyleSheetNames: List<String> = BundledMapStyles.USER_SELECTABLE
 
     override fun getAvailableStyleSheets(): List<String> = availableStyleSheetNames
 
@@ -94,6 +97,13 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     override fun setMapDpi(dpi: Double) {
         mapDpis.add(dpi)
+    }
+
+    /** Cache sizes passed to [setNativeDataCacheSize] in call order. */
+    val nativeDataCacheSizes = mutableListOf<Int>()
+
+    override fun setNativeDataCacheSize(cacheSize: Int) {
+        nativeDataCacheSizes.add(cacheSize)
     }
 
     /** Bounding box returned by [getDatabaseBoundingBox] (null = none). */
@@ -126,6 +136,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
         lastRenderLat = lat
         lastRenderLon = lon
         lastRenderMag = magnification
+        renderMags.add(magnification)
         return createTestPixels(width, height)
     }
 
@@ -145,6 +156,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
         lastRenderLat = lat
         lastRenderLon = lon
         lastRenderMag = magnification
+        renderMags.add(magnification)
         if (renderWithRouteAndPoisDelayMs > 0L) {
             Thread.sleep(renderWithRouteAndPoisDelayMs)
         }
@@ -230,6 +242,22 @@ class FakeOSMScoutClient : OSMScoutClient() {
         maxSpeedLookupCoords.add(lat to lon)
         maxSpeedAtError?.let { throw it }
         return maxSpeedAt
+    }
+
+    /** Road returned by [getRoadAt] (null = no road found). */
+    @Volatile
+    var roadAt: RoadInfo? = null
+
+    /** When set, [getRoadAt] throws this instead of returning. */
+    var roadAtError: Exception? = null
+
+    /** (lat, lon, bearing) passed to [getRoadAt] in call order. */
+    val roadAtLookupCalls = mutableListOf<Triple<Double, Double, Double>>()
+
+    override fun getRoadAt(lat: Double, lon: Double, bearing: Double): RoadInfo? {
+        roadAtLookupCalls.add(Triple(lat, lon, bearing))
+        roadAtError?.let { throw it }
+        return roadAt
     }
 
     /** Handles passed to [searchLocations] in call order. */

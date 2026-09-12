@@ -52,8 +52,19 @@ class MainActivity : ComponentActivity() {
 
         // Android Automotive OS: the phone UI is not the entry point there —
         // the car experience runs through CarAppActivity (template host).
+        // Forward the incoming intent (deep links / shares) so the car session
+        // can start navigation to the parsed destination.
         if (AutomotiveDevice.isAutomotive(this)) {
-            startActivity(Intent(this, CarAppActivity::class.java))
+            val carIntent = Intent(this, CarAppActivity::class.java)
+            carIntent.action = intent?.action
+            carIntent.data = intent?.data
+            intent?.getStringExtra(Intent.EXTRA_TEXT)?.let {
+                carIntent.putExtra(Intent.EXTRA_TEXT, it)
+            }
+            intent?.getStringExtra("android.intent.extra.QUERY")?.let {
+                carIntent.putExtra("android.intent.extra.QUERY", it)
+            }
+            startActivity(carIntent)
             finish()
             return
         }

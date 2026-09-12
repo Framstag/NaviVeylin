@@ -19,6 +19,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.AutoPosition
+import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.stringResolver
@@ -149,6 +150,16 @@ class NavigationScreen(
     private val streetNameUpdater = StreetNameUpdater()
     private var streetName: String? = null
     private var streetJob: Job? = null
+
+    /**
+     * Effective speed/bearing derivation (spec: auto-smooth-follow — "Fix
+     * feed from follow-mode screens"): GPS value when valid, else
+     * movement-derived, else the last effective value. Shared with free
+     * driving via core [com.naviveylin.core.AutoPositionUtil]. The derived
+     * speed feeds the renderer so the extrapolation loop (smooth scrolling)
+     * runs — without it the routing map snaps per 1 Hz fix.
+     */
+    private val fixDerivation = AutoFixDerivation()
 
     private val mapRenderer: AutoMapRenderer by lazy {
         val client = entryPoint.autoClientProvider().client()
@@ -357,6 +368,21 @@ class NavigationScreen(
                     // Destination marker follows the navigation context
                     // (spec: auto-destination-details); NaN clears it.
                     mapRenderer.setDestinationMarker(state.destLat, state.destLon, state.destinationName)
+                    // Current street from the route's way (spec:
+                    // auto/navigation-view — street from the route, not an area
+                    // search): updates when the road changes, without a template
+                    // rebuild. The GPS-driven fallback (resolveStreetName) only
+                    // runs when no road info is in state (off-route).
+                    val roadText = streetNameFromState(state)
+                    if (roadText != null && roadText != streetName) {
+                        streetName = roadText
+                        mapRenderer.requestRender()
+                        // The host ETA card carries the street name when the map
+                        // label is not safe (design D5) — needs a template rebuild.
+                        if (!mapLabelSafe()) {
+                            invalidate()
+                        }
+                    }
                     if (changed) {
                         invalidate()
                         // Redraw the surface hints without waiting for a GPS tick.
@@ -386,16 +412,28 @@ class NavigationScreen(
         scope.launch {
             locationProvider.position().collect { pos ->
                 if (pos != null) {
-                    mapRenderer.setGpsMarker(pos.lat, pos.lon, pos.bearing, pos.accuracy)
+                    // Effective speed/bearing: GPS when valid, else derived
+                    // from movement (spec: auto-smooth-follow — "Fix feed from
+                    // follow-mode screens"). The speed opens the renderer's
+                    // extrapolation gate so the map glides between 1 Hz fixes
+                    // instead of snapping (spec: auto/navigation-view —
+                    // "Smooth follow-mode scrolling during navigation").
+                    val nowMs = System.currentTimeMillis()
+                    val fix = effectiveFixArgs(pos, nowMs, fixDerivation)
+                    mapRenderer.setGpsMarker(
+                        fix.lat, fix.lon, fix.bearing, fix.accuracy,
+                        speedKmH = fix.speedKmH,
+                        timeMs = fix.timeMs
+                    )
                     // Speed-driven auto-zoom (shared setting) + heading-up
                     // rotation: one viewport commit per fix. The zoom feed is
                     // gated on !panning (design D2) so the controller state
                     // stays frozen during a pan; the commit is gated on
                     // !panning too (design D1) so a band-crossing zoom can
                     // never re-engage follow mid-pan.
-                    val zoom = autoZoomTarget(panHandler.panning, autoZoomEnabled, pos.speedKmH, autoZoomController)
-                    val angle = if (shouldRotateHeadingUp(panHandler.panning, navNorthUp, pos.bearing)) {
-                        -Math.toRadians(pos.bearing)
+                    val zoom = autoZoomTarget(panHandler.panning, autoZoomEnabled, fix.speedKmH, autoZoomController)
+                    val angle = if (shouldRotateHeadingUp(panHandler.panning, navNorthUp, fix.bearing)) {
+                        -Math.toRadians(fix.bearing)
                     } else {
                         null
                     }
@@ -441,27 +479,31 @@ class NavigationScreen(
     }
 
     /**
-     * Throttled reverse geocode for the current street name (spec:
-     * auto/navigation-view — "Current street name shown during navigation").
-     * Native lookup off the main thread; failures keep the last label,
-     * unnamed roads clear it (design D4, same as free driving).
+     * Throttled street-name fallback for off-route / no-road-info states
+     * (spec: auto/navigation-view — street from the route while on route, so
+     * the GPS-driven lookup only runs when the route way is unavailable).
+     * Bearing-aware native lookup off the main thread; failures keep the last
+     * label, unnamed roads clear it (design D4, same as free driving).
      */
     private fun resolveStreetName(pos: AutoPosition) {
+        // On route, the street comes from the route's way via state — the
+        // GPS-driven fallback must not fight it.
+        if (lastState?.currentRoadInfo != null) return
         if (!streetNameUpdater.shouldGeocode(pos.lat, pos.lon)) return
         if (streetJob?.isActive == true) return
         streetJob = scope.launch {
-            val name = withContext(Dispatchers.Default) {
+            val road = withContext(Dispatchers.Default) {
                 try {
-                    val address = entryPoint.autoClientProvider().client().getAddressAt(pos.lat, pos.lon)
-                    streetNameUpdater.streetFromAddress(address)
+                    entryPoint.autoClientProvider().client().getRoadAt(pos.lat, pos.lon, pos.bearing)
                 } catch (e: Exception) {
                     Log.w(TAG, "street name lookup failed", e)
                     null
                 }
             }
-            if (name != null) {
+            if (road != null) {
                 streetNameUpdater.markGeocoded(pos.lat, pos.lon)
             }
+            val name = road?.let { StreetNameUpdater.roadDisplayText(it.ref, it.name) }
             val changed = name != streetName
             streetName = name
             mapRenderer.requestRender()
@@ -600,6 +642,30 @@ class NavigationScreen(
     }
 
     companion object {
+        /**
+         * Effective fix for the map renderer (spec: auto-smooth-follow —
+         * "Fix feed from follow-mode screens"): GPS speed/bearing when valid,
+         * else movement-derived via [AutoFixDerivation]. The derived speed is
+         * what opens the renderer's extrapolation gate — passing nothing (the
+         * NaN default) left the routing map snapping per fix. Exposed as a
+         * pure seam for tests.
+         */
+        internal fun effectiveFixArgs(
+            pos: AutoPosition,
+            nowMs: Long,
+            derivation: AutoFixDerivation
+        ): GpsFixArgs {
+            val (speed, bearing) = derivation.derive(pos, nowMs)
+            return GpsFixArgs(
+                lat = pos.lat,
+                lon = pos.lon,
+                bearing = bearing,
+                accuracy = pos.accuracy,
+                speedKmH = speed,
+                timeMs = nowMs
+            )
+        }
+
         private const val TAG = "NavigationScreen"
         private const val TEMPLATE_TAG = "TEMPLATE"
         private const val DEFAULT_DPI = 160.0
@@ -622,6 +688,16 @@ class NavigationScreen(
          */
         fun tripTextFor(mapLabelSafe: Boolean, streetName: String?): String? =
             if (mapLabelSafe) null else streetName
+
+        /**
+         * Street label text from the shared navigation state (spec:
+         * auto/navigation-view — street from the route's way, not an area
+         * search): "ref name" from [NavigationState.currentRoadInfo], or null
+         * when no road info is in state (off-route / not navigating — the
+         * GPS-driven fallback then owns the label).
+         */
+        fun streetNameFromState(state: NavigationState?): String? =
+            state?.currentRoadInfo?.let { StreetNameUpdater.roadDisplayText(it.ref, it.name) }
 
         /**
          * Back affordance during navigation: stops navigation (spec:
@@ -673,3 +749,18 @@ class NavigationScreen(
         private const val DEFAULT_AA_ZOOM = 17
     }
 }
+
+/**
+ * Renderer fix parameters derived from a GPS fix on the navigation view
+ * (spec: auto-smooth-follow — "Fix feed from follow-mode screens"). Pure
+ * carrier so the derivation seam [NavigationScreen.effectiveFixArgs] is
+ * testable without a live CarContext.
+ */
+internal data class GpsFixArgs(
+    val lat: Double,
+    val lon: Double,
+    val bearing: Double,
+    val accuracy: Double,
+    val speedKmH: Double,
+    val timeMs: Long
+)

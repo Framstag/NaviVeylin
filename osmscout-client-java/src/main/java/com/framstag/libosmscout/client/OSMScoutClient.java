@@ -162,6 +162,20 @@ public class OSMScoutClient {
     public native void setMapDpi(double dpi);
 
     /**
+     * Configure the capacity of libosmscout's native tile data caches
+     * (regional database and basemap).
+     *
+     * The value is stored natively and applied to every open database's
+     * {@code MapService} before data is loaded for the next render, so it also
+     * covers databases that open asynchronously after this call (basemap
+     * reload, map scan). Idempotent; a zero or negative value keeps the
+     * library default.
+     *
+     * @param cacheSize desired tile count (> 0); <= 0 keeps the library default
+     */
+    public native void setNativeDataCacheSize(int cacheSize);
+
+    /**
      * Close the client and release native resources.
      *
      * @return true if closed successfully
@@ -306,6 +320,20 @@ public class OSMScoutClient {
      * @return max speed in km/h, or NaN if undefined / no road found
      */
     public native double getMaxSpeedAt(double lat, double lon);
+
+    /**
+     * Bearing-aware road lookup: resolve the road the vehicle is actually
+     * driving on at the given coordinate, preferring ways whose direction
+     * at the nearest point matches the vehicle bearing over nearer ways
+     * with a mismatched direction (e.g. a side street).
+     *
+     * @param lat     latitude in degrees
+     * @param lon     longitude in degrees
+     * @param bearing vehicle bearing in degrees, or NaN when unknown
+     * @return the resolved road (name, ref, type, max speed), or null when
+     *         no way is found within the lookup radius
+     */
+    public native RoadInfo getRoadAt(double lat, double lon, double bearing);
 
     /**
      * Get the bounding box of the most reasonable visible object

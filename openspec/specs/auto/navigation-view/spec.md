@@ -127,12 +127,23 @@ The system SHALL show the remaining travel time and remaining distance to the de
 
 ### Requirement: Current street name shown during navigation
 
-The system SHALL display the name of the current street on the navigation display while navigating, updating when the vehicle changes roads. The label SHALL remain fully visible — not covered by host-rendered UI such as the travel-estimate (ETA) card.
+The system SHALL display the name and ref of the current street on the navigation display while navigating, taken from the route's way at the current point (not an area search), updating when the vehicle changes roads. The label SHALL remain fully visible — not covered by host-rendered UI such as the travel-estimate (ETA) card.
 
 #### Scenario: Street name displayed while driving
 
 - **WHEN** navigation is active and current-road data is available
 - **THEN** the current street name is drawn on the map surface
+
+#### Scenario: Ref shown with the street name
+
+- **WHEN** the current street has a ref tag
+- **THEN** the label shows the ref together with the name (e.g. "B 1 Hauptstrasse")
+
+#### Scenario: Street name from the route, not an area search
+
+- **WHEN** navigation is active and the vehicle is on the planned route
+- **THEN** the street name comes from the route's way at the current point
+- **AND** no reverse-geocode or description lookup is performed at the GPS position
 
 #### Scenario: Street name updates on street change
 

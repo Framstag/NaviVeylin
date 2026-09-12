@@ -16,6 +16,8 @@ import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.NavigationState
 import com.naviveylin.location.LocationService
+import com.naviveylin.location.SpeedSpikeFilter
+import com.naviveylin.location.SpeedStaleness
 import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.ui.route.RouteState
 import com.naviveylin.R
@@ -23,6 +25,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,6 +66,27 @@ class NavigationViewModel @Inject constructor(
         // navigation can start from the car (deep link / car-only flow).
         // Permission-guarded no-op without ACCESS_FINE_LOCATION.
         locationService.startLocationUpdates()
+
+        // Stale-speed ticker (spec: gps-speed-priority — stationary reads zero).
+        // At standstill the provider goes silent (min-distance throttling), so
+        // the last native speed would stay pinned forever; once no fresh fix
+        // arrives beyond the staleness window the displayed speed decays to 0.
+        // Stale-speed ticker (spec: gps-speed-priority — stationary reads zero).
+        // At standstill the provider goes silent (min-distance throttling), so
+        // the last native speed would stay pinned forever; once no fresh fix
+        // arrives beyond the staleness window the displayed speed decays to 0.
+        // Dispatchers.Default + real clock: must not feed the (virtual) test
+        // scheduler with an endless delay loop.
+        viewModelScope.launch(Dispatchers.Default) {
+            while (true) {
+                delay(SPEED_STALE_TICK_MS)
+                if (_state.value.isNavigating &&
+                    SpeedStaleness.isStale(lastFixTime, System.currentTimeMillis())
+                ) {
+                    _state.value = _state.value.copy(currentSpeedKmH = 0.0)
+                }
+            }
+        }
     }
 
     // Road info lookup throttle
@@ -73,20 +97,13 @@ class NavigationViewModel @Inject constructor(
     // Last GPS accuracy from processLocation; used as extra guard with tunnel guard
     private var lastGpsAccuracy: Double = -1.0
 
-    // Last plausible speed for the spike filter (same rule as AA/MapCanvasViewModel).
-    private var lastValidSpeedKmH = Double.NaN
+    // Last fix timestamp seen by processLocation (staleness guard for the
+    // displayed speed; spec: gps-speed-priority).
+    private var lastFixTime = 0L
 
-    /**
-     * Filter speed spikes: reject speed > 150 km/h, keep the last good speed
-     * (same rule as MapCanvasViewModel — GPS jumps otherwise produce absurd
-     * readings on the speed display).
-     */
-    private fun filterSpeed(rawSpeedKmH: Double): Double {
-        if (rawSpeedKmH >= 0.0 && rawSpeedKmH <= 150.0) {
-            lastValidSpeedKmH = rawSpeedKmH
-        }
-        return lastValidSpeedKmH
-    }
+    // Last plausible speed, spike-filtered with stale-value decay. Shared
+    // pure logic — see SpeedSpikeFilter (spec: speed-spike-filtering).
+    private val speedSpikeFilter = SpeedSpikeFilter(maxPlausibleSpeedKmH = 150.0)
 
     // Reroute confirmation gate: fast first trigger + post-reroute cooldown.
     // Native controller fires every ~5s while off-route (RouteStateAgent.cpp:84).
@@ -148,6 +165,9 @@ class NavigationViewModel @Inject constructor(
         lastTunnelOrNoSignalTime = 0L
         lastOnRouteTime = 0L
         lastGpsAccuracy = -1.0
+        // Fresh navigation must not immediately hit the stale-speed zero
+        // (no fix has arrived yet in this session).
+        lastFixTime = System.currentTimeMillis()
 
         val totalDistance = computeRouteDistance(routeEntry.latitudes, routeEntry.longitudes)
         _state.value = _state.value.copy(isNavigating = true, currentStepIndex = 0,
@@ -339,6 +359,7 @@ class NavigationViewModel @Inject constructor(
     /** Process a GPS location update during navigation. */
     fun processLocation(lat: Double, lon: Double, speed: Double, accuracy: Double, timestamp: Long) {
         lastGpsAccuracy = accuracy
+        lastFixTime = timestamp
         nativeController?.processLocation(lat, lon, speed, accuracy, timestamp)
     }
 
@@ -356,7 +377,7 @@ class NavigationViewModel @Inject constructor(
                     _state.value = _state.value.copy(position = position)
                     showFirstInstructionOnStart = false
                     _positionFlow.value = position
-                    updateRoadInfoFromPosition(position.lat, position.lon)
+                    updateRoadInfoFromPosition(position)
                 }
             }
 
@@ -420,7 +441,7 @@ class NavigationViewModel @Inject constructor(
             override fun onCurrentSpeed(speedKmH: Double) {
                 viewModelScope.launch(Dispatchers.Main) {
                     // Spike-filtered; native sends negative when unknown — normalize to NaN.
-                    val filtered = filterSpeed(speedKmH)
+                    val filtered = speedSpikeFilter.filter(speedKmH)
                     _state.value = _state.value.copy(currentSpeedKmH = filtered.takeIf { it >= 0.0 } ?: Double.NaN)
                 }
             }
@@ -518,45 +539,43 @@ class NavigationViewModel @Inject constructor(
     }
 
     /**
-     * Look up road info at the given coordinate using the description service.
-     * Throttled to avoid DB queries on every position update.
+     * Look up road info for the given position estimate.
+     *
+     * On route with a resolved way, the engine's way IS the route's street —
+     * its name/ref/type are used directly, no area search and no throttle
+     * (a free state copy per estimate; spec: current-road-info). Off route or
+     * without way info, a throttled bearing-aware lookup (`getRoadAt`) runs
+     * off the main thread (spec: current-road-info off-route scenario).
      */
-    private fun updateRoadInfoFromPosition(lat: Double, lon: Double) {
+    internal fun updateRoadInfoFromPosition(position: NavigationPosition) {
+        val onRoute = position.state == com.framstag.libosmscout.client.NavigationState.OnRoute
+        if (onRoute && (position.wayName.isNotEmpty() || position.wayRef.isNotEmpty())) {
+            _state.value = _state.value.copy(
+                currentRoadInfo = CurrentRoadInfo(position.wayRef, position.wayType, position.wayName)
+            )
+            return
+        }
+
         val now = System.currentTimeMillis()
         if (now - lastRoadInfoTime < ROAD_INFO_THROTTLE_MS) return
 
         // Skip if position hasn't moved significantly (~50m at mid-latitudes)
         if (!lastRoadInfoLat.isNaN() && !lastRoadInfoLon.isNaN()) {
-            val dx = lat - lastRoadInfoLat
-            val dy = lon - lastRoadInfoLon
+            val dx = position.lat - lastRoadInfoLat
+            val dy = position.lon - lastRoadInfoLon
             if (dx * dx + dy * dy < 0.0005 * 0.0005) return
         }
 
         lastRoadInfoTime = now
-        lastRoadInfoLat = lat
-        lastRoadInfoLon = lon
+        lastRoadInfoLat = position.lat
+        lastRoadInfoLon = position.lon
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val desc = client.getDescription(lat, lon, ROAD_INFO_MAGNIFICATION)
-                if (desc == null) {
-                    _state.value = _state.value.copy(currentRoadInfo = null)
-                    return@launch
-                }
-
-                var ref = ""
-                var typeName = ""
-                var name = ""
-                for (entry in desc.entries) {
-                    if (entry.sectionKey != "General") continue
-                    when (entry.labelKey) {
-                        "NameRef" -> ref = entry.value
-                        "Type" -> typeName = entry.value
-                        "Name" -> name = entry.value
-                    }
-                }
-                val info = CurrentRoadInfo(ref, typeName, name)
-                _state.value = _state.value.copy(currentRoadInfo = info)
+                val road = client.getRoadAt(position.lat, position.lon, position.bearing)
+                _state.value = _state.value.copy(
+                    currentRoadInfo = road?.let { CurrentRoadInfo(it.ref, it.typeName, it.name) } ?: null
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Road info lookup failed", e)
             }
@@ -565,8 +584,10 @@ class NavigationViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "NavigationVM"
+
+        /** Frequency of the stale-speed decay check (spec: gps-speed-priority). */
+        private const val SPEED_STALE_TICK_MS = 1_000L
         private const val ROAD_INFO_THROTTLE_MS = 2000L
-        private const val ROAD_INFO_MAGNIFICATION = 15
         private const val MAX_REROUTE_ACCURACY = 100.0
         private const val MIN_REROUTE_CONFIRM_COUNT = 2
         private const val REROUTE_CONFIRM_WINDOW_MS = 60_000L

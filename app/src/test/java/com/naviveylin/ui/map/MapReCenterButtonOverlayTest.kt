@@ -12,9 +12,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Verifies the re-center button visibility matrix (spec: map-recenter-button):
- * the button appears when follow mode is off, or when auto-zoom is suspended
- * while navigating, given a GPS fix. Uses the production predicate
+ * Verifies the re-center button visibility matrix (spec: map-modes — drive
+ * suspension and reset / browse re-center): the button appears when the
+ * FREE_DRIVE preset is suspended, or when the BROWSE viewport has drifted from
+ * the GPS position, or when auto-zoom is suspended during NAVIGATION — given a
+ * GPS fix. Uses the production predicate
  * [MapCanvasViewModel.shouldShowReCenterButton] and the production button
  * composable, mirroring the MapCanvasScreen overlay wiring.
  */
@@ -25,16 +27,16 @@ class MapReCenterButtonOverlayTest {
     val composeRule = createComposeRule()
 
     private class Harness {
-        var followMode = false
-        var autoZoomPaused = false
-        var isNavigating = false
+        var mode = MapMode.BROWSE
+        var driveSuspended = false
+        var browseDrifted = false
         var gpsQuality = GpsFixQuality.GOOD
         var recenterTaps = 0
     }
 
     @Composable
     private fun Overlay(h: Harness) {
-        if (MapCanvasViewModel.shouldShowReCenterButton(h.followMode, h.autoZoomPaused, h.isNavigating) &&
+        if (MapCanvasViewModel.shouldShowReCenterButton(h.mode, h.driveSuspended, h.browseDrifted) &&
             h.gpsQuality != GpsFixQuality.NONE
         ) {
             MapReCenterButton(onReCenter = { h.recenterTaps++ }, modifier = Modifier)
@@ -46,44 +48,40 @@ class MapReCenterButtonOverlayTest {
     }
 
     @Test
-    fun buttonHiddenWhileAutoZoomDriving() {
+    fun buttonHiddenWhileDriveActive() {
         val h = Harness().apply {
-            followMode = true
-            autoZoomPaused = false
-            isNavigating = true
+            mode = MapMode.FREE_DRIVE
+            driveSuspended = false
         }
         setContent(h)
         composeRule.onNodeWithContentDescription("Re-center on location").assertDoesNotExist()
     }
 
     @Test
-    fun buttonVisibleWhenAutoZoomPausedWhileNavigating() {
+    fun buttonVisibleWhenDriveSuspended() {
         val h = Harness().apply {
-            followMode = true
-            autoZoomPaused = true
-            isNavigating = true
+            mode = MapMode.FREE_DRIVE
+            driveSuspended = true
         }
         setContent(h)
         composeRule.onNodeWithContentDescription("Re-center on location").assertExists()
     }
 
     @Test
-    fun buttonHiddenWhenAutoZoomPausedButNotNavigating() {
+    fun buttonVisibleWhenAutoZoomPausedWhileNavigating() {
         val h = Harness().apply {
-            followMode = true
-            autoZoomPaused = true
-            isNavigating = false
+            mode = MapMode.NAVIGATION
+            driveSuspended = true
         }
         setContent(h)
-        composeRule.onNodeWithContentDescription("Re-center on location").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Re-center on location").assertExists()
     }
 
     @Test
-    fun buttonVisibleWhenFollowModeOff() {
+    fun buttonVisibleWhenBrowseDrifted() {
         val h = Harness().apply {
-            followMode = false
-            autoZoomPaused = false
-            isNavigating = true
+            mode = MapMode.BROWSE
+            browseDrifted = true
         }
         setContent(h)
         composeRule.onNodeWithContentDescription("Re-center on location").assertExists()
@@ -92,7 +90,8 @@ class MapReCenterButtonOverlayTest {
     @Test
     fun buttonHiddenWithoutGpsFix() {
         val h = Harness().apply {
-            followMode = false
+            mode = MapMode.BROWSE
+            browseDrifted = true
             gpsQuality = GpsFixQuality.NONE
         }
         setContent(h)
@@ -102,9 +101,8 @@ class MapReCenterButtonOverlayTest {
     @Test
     fun tapInvokesReCenterAction() {
         val h = Harness().apply {
-            followMode = true
-            autoZoomPaused = true
-            isNavigating = true
+            mode = MapMode.NAVIGATION
+            driveSuspended = true
         }
         setContent(h)
         composeRule.onNodeWithContentDescription("Re-center on location").performClick()

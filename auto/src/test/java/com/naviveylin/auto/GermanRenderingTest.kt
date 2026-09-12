@@ -29,4 +29,20 @@ class GermanRenderingTest {
             mapDataRow.texts.first().toString().contains("Open Database License")
         )
     }
+
+    @Test
+    fun searchSuggestionsRenderGerman() {
+        // New empty-query suggestion strings (change unify-auto-search) must
+        // render in German, not fall back to English.
+        val rows = SearchScreenMapper.buildModeRows(
+            testCarContext(), showContactsRow = true, onPoiSearch = {}, onContactsSearch = {}
+        )
+        assertEquals("POIs in meiner Nähe suchen", rows[0].title.toString())
+        assertEquals("Kontakte suchen", rows[1].title.toString())
+
+        val historyRows = SearchScreenMapper.buildHistoryRows(
+            testCarContext(), history = listOf("Dortmund"), onHistorySelected = {}
+        )
+        assertEquals("Letzte Suchanfragen", historyRows[0].title.toString())
+    }
 }

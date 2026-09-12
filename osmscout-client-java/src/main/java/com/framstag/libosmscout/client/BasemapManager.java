@@ -558,7 +558,13 @@ public class BasemapManager {
                 Thread.currentThread().interrupt();
                 listener.onError(mapName, "Download cancelled");
             } catch (Exception e) {
-                listener.onError(mapName, e.getMessage());
+                if (ad.isCancelled()) {
+                    // cancel() may abort a blocked read by closing the stream,
+                    // surfacing as an IOException — report the cancel intent.
+                    listener.onError(mapName, "Download cancelled");
+                } else {
+                    listener.onError(mapName, e.getMessage());
+                }
             } finally {
                 activeDownloads.remove(ad);
             }
@@ -625,6 +631,13 @@ public class BasemapManager {
                     }
                 } finally {
                     ad.setCurrentStream(null);
+                }
+
+                if (ad.isCancelled()) {
+                    // Cancel landed after the last chunk but before install:
+                    // the download must not be installed.
+                    System.err.println("[BasemapManager] Download cancelled");
+                    throw new InterruptedException("Download cancelled");
                 }
 
                 System.err.println("[BasemapManager] Download complete: " + downloaded + " bytes");

@@ -39,6 +39,12 @@ Thumbs.db
 *.so
 *.a
 
+# Test-only JNI stubs (host-compiled, OSMScoutClient static loadLibrary) —
+# committed so CI runners have them; keep them out of the APK by staying in
+# src/test/jniLibs
+!app/src/test/jniLibs/*.so
+!auto/src/test/jniLibs/*.so
+
 # vcpkg
 vcpkg/
 

@@ -165,14 +165,17 @@ return code and build output. Use them for any build/test/release work.
 - Unit tests cover the dialog display (see `AboutDialogComposeTest.kt`); the date-format logic is inline in the Gradle DSL and verified behaviorally (run `release` twice on the same day)
 
 ### JNI stub for unit tests
-`app/src/test/jniLibs/` contains a tiny host-compiled stub (ELF, no symbols,
+`app/src/test/jniLibs/` and `auto/src/test/jniLibs/` each contain a tiny host-compiled stub (ELF, no symbols,
 named both `libosmscout_client_java.so` and `libosmscout_client_javad.so`)
 so `OSMScoutClient`'s static `System.loadLibrary` succeeds in JVM/Robolectric
 unit tests — the Android .so cannot load on the host JVM. The `_javad` variant
 is the fallback name the loader tries second; without it full-suite runs can
-fail flakily. Tests override native methods via fakes (see
+fail flakily. The stubs are **committed** (`.gitignore` re-includes them via
+`!app/src/test/jniLibs/*.so` and `!auto/src/test/jniLibs/*.so`) so CI runners
+and fresh checkouts have them; AGP puts each module's own `src/test/jniLibs`
+on the unit-test `java.library.path`. Keep the stubs only in the test source
+set; never use them in the app. Tests override native methods via fakes (see
 `app/src/test/java/com/framstag/libosmscout/client/FakeOSMScoutClient.kt`).
-Keep the stub only in the test source set; never use it in the app.
 
 **Classloader rule**: any test class that instantiates `FakeOSMScoutClient`
 (or otherwise triggers `OSMScoutClient`'s static `System.loadLibrary`) MUST run

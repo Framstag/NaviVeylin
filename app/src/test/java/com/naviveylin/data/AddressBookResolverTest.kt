@@ -11,8 +11,9 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Verifies address resolution (spec: address-book-search — address
- * resolution): query building from address components, progressive fallback
- * when structured search finds nothing, and token-overlap ranking.
+ * resolution): component merging with the formatted address, the
+ * evidence-driven candidate chain (a street-less result set is a miss, not a
+ * hit), progressive fallback, and token-overlap ranking.
  * Runs under Robolectric because it instantiates [FakeOSMScoutClient]
  * (native stub classloader rule).
  */
@@ -56,13 +57,14 @@ class AddressBookResolverTest {
         assertEquals(2, client.formSearchArgs.size)
         assertEquals(listOf("Berlin", "10115", "Main Street", "1"), client.formSearchArgs[0])
         assertEquals(listOf("Berlin", "", "Main Street", "1"), client.formSearchArgs[1])
-        // full (= street+city) -> street+house+postal -> street+postal ->
-        // street+city without house number -> street+house. The bare city
-        // query is NOT included (city-only free-text results auto-resolve
-        // kilometers away — spec: address-book-search "Wrong-location
-        // free-text result not selected").
+        // Full formatted address (street+house+postal+city) -> the components
+        // without postal code -> street+house+postal -> street+postal ->
+        // street+city -> street+house. Street-less queries are never issued
+        // (city-only free-text results auto-resolve kilometers away — spec:
+        // address-book-search "Wrong-location free-text result not selected").
         assertEquals(
             listOf(
+                "Main Street 1 10115 Berlin",
                 "Main Street 1 Berlin",
                 "Main Street 1 10115",
                 "Main Street 10115",
@@ -85,9 +87,27 @@ class AddressBookResolverTest {
 
         assertEquals(1, results.size)
         assertTrue(client.formSearchArgs.isEmpty())
-        // First (and only) query hits; the PLZ variants would follow only if
-        // the plain query found nothing.
-        assertEquals(listOf("Main Street 1"), client.searchQueries)
+        // The full address query hits; the looser city-less variants would
+        // follow only if it found nothing.
+        assertEquals(listOf("Main Street 1 10115"), client.searchQueries)
+    }
+
+    @Test
+    fun `city-less address never issues a bare street query`() {
+        val client = FakeOSMScoutClient()
+        client.nextSearchResults = emptyArray()
+        val resolver = AddressBookResolver(client)
+
+        assertTrue(
+            resolver.resolveAddress(
+                ContactPostalAddress(street = "Main Street 1", postalCode = "10115")
+            ).isEmpty()
+        )
+
+        assertEquals(
+            listOf("Main Street 1 10115", "Main Street 1", "Main Street 10115"),
+            client.searchQueries
+        )
     }
 
     @Test
@@ -112,10 +132,12 @@ class AddressBookResolverTest {
 
         assertTrue(resolver.resolveAddress(address).isEmpty())
 
-        // full (= street+city) -> street+house+postal -> street+postal ->
-        // street+city without house number -> street+house
+        // The chain runs to exhaustion: full formatted address -> components
+        // without postal code -> street+house+postal -> street+postal ->
+        // street+city -> street+house.
         assertEquals(
             listOf(
+                "Main Street 1 10115 Berlin",
                 "Main Street 1 Berlin",
                 "Main Street 1 10115",
                 "Main Street 10115",
@@ -340,6 +362,203 @@ class AddressBookResolverTest {
         assertTrue(resolver.resolveAddress(ContactPostalAddress()).isEmpty())
         assertTrue(client.searchQueries.isEmpty())
     }
+
+    // --- evidence-driven candidate chain (spec: address-book-search
+    // "Street-less result does not abort the candidate chain",
+    // "Not found requires the whole chain to fail")
+
+    @Test
+    fun `street-less form result does not abort the chain`() {
+        val client = FakeOSMScoutClient()
+        // Native partialMatch=true: the form search returns an admin-region
+        // fallback entry instead of nothing.
+        client.nextFormResults = arrayOf(regionEntry("Witten"))
+        client.searchResultsByQuery["Main Street 1 10115 Berlin"] = arrayOf(regionEntry("Berlin"))
+        client.nextSearchResults = arrayOf(entry("Main Street 1", 52.5, 13.4))
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(address)
+
+        assertEquals(1, results.size)
+        assertEquals("Main Street 1", results[0].label)
+        // Both form attempts were street-less, the first string query too —
+        // the chain kept going and hit on the second string query.
+        assertEquals(2, client.formSearchArgs.size)
+        assertEquals(
+            listOf("Main Street 1 10115 Berlin", "Main Street 1 Berlin"),
+            client.searchQueries
+        )
+    }
+
+    @Test
+    fun `street-less string result does not abort the chain`() {
+        val client = FakeOSMScoutClient()
+        client.nextFormResults = emptyArray()
+        client.searchResultsByQuery["Main Street 1 10115 Berlin"] = arrayOf(regionEntry("Berlin"))
+        client.searchResultsByQuery["Main Street 1 Berlin"] = arrayOf(entry("Main Street 1", 52.5, 13.4))
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(address)
+
+        assertEquals(1, results.size)
+        assertEquals("Main Street 1", results[0].label)
+        assertEquals(
+            listOf("Main Street 1 10115 Berlin", "Main Street 1 Berlin"),
+            client.searchQueries
+        )
+    }
+
+    @Test
+    fun `not found only after every candidate was street-less`() {
+        val client = FakeOSMScoutClient()
+        client.nextFormResults = arrayOf(regionEntry("Berlin"))
+        // Every candidate answers with a street-less fallback entry.
+        client.nextSearchResults = arrayOf(regionEntry("Berlin"))
+        val resolver = AddressBookResolver(client)
+
+        assertTrue(resolver.resolveAddress(address).isEmpty())
+
+        // The whole chain ran — no candidate short-circuited it.
+        assertEquals(
+            listOf(
+                "Main Street 1 10115 Berlin",
+                "Main Street 1 Berlin",
+                "Main Street 1 10115",
+                "Main Street 10115",
+                "Main Street Berlin",
+                "Main Street 1"
+            ),
+            client.searchQueries
+        )
+    }
+
+    @Test
+    fun `formatted-only contact resolves through the form search`() {
+        val client = FakeOSMScoutClient()
+        client.nextFormResults = arrayOf(entry("Erbstollenstraße 10", 51.45, 7.41).apply {
+            objectType = "address"
+            matchQuality = "match"
+        })
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(
+            ContactPostalAddress(formatted = "Erbstollenstraße 10, 58454 Witten")
+        )
+
+        assertEquals(1, results.size)
+        assertEquals("Erbstollenstraße 10", results[0].label)
+        assertEquals(
+            listOf("Witten", "58454", "Erbstollenstraße", "10"),
+            client.formSearchArgs[0]
+        )
+    }
+
+    @Test
+    fun `formatted address completes a missing city for the form search`() {
+        val client = FakeOSMScoutClient()
+        client.nextFormResults = arrayOf(entry("Erbstollenstraße 10", 51.45, 7.41))
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(
+            ContactPostalAddress(
+                street = "Erbstollenstraße 10",
+                formatted = "Erbstollenstraße 10, 58454 Witten"
+            )
+        )
+
+        assertEquals(1, results.size)
+        assertEquals(
+            listOf("Witten", "58454", "Erbstollenstraße", "10"),
+            client.formSearchArgs[0]
+        )
+    }
+
+    @Test
+    fun `formatted address is a candidate of its own`() {
+        val client = FakeOSMScoutClient()
+        client.nextFormResults = emptyArray()
+        client.nextSearchResults = emptyArray()
+        val resolver = AddressBookResolver(client)
+
+        assertTrue(
+            resolver.resolveAddress(
+                ContactPostalAddress(
+                    street = "Erbstollenstraße 10",
+                    city = "Witten",
+                    formatted = "Erbstollenstraße 10, 58454 Witten"
+                )
+            ).isEmpty()
+        )
+
+        // The raw provider text is tried verbatim, like the typed query in the
+        // unified search dialog would be.
+        assertTrue(client.searchQueries.contains("Erbstollenstraße 10, 58454 Witten"))
+    }
+
+    @Test
+    fun `address without a street only tries the formatted text`() {
+        val client = FakeOSMScoutClient()
+        client.nextSearchResults = arrayOf(regionEntry("Witten"))
+        val resolver = AddressBookResolver(client)
+
+        assertTrue(
+            resolver.resolveAddress(
+                ContactPostalAddress(postalCode = "58454", city = "Witten")
+            ).isEmpty()
+        )
+
+        // No form search without a street, and no city-only string query:
+        // with no street and no formatted text there is nothing to search.
+        assertTrue(client.formSearchArgs.isEmpty())
+        assertTrue(client.searchQueries.isEmpty())
+    }
+
+    @Test
+    fun `address without a street searches the formatted text when present`() {
+        val client = FakeOSMScoutClient()
+        client.nextSearchResults = arrayOf(regionEntry("Witten"))
+        val resolver = AddressBookResolver(client)
+
+        assertTrue(
+            resolver.resolveAddress(
+                ContactPostalAddress(
+                    postalCode = "58454",
+                    city = "Witten",
+                    formatted = "58454 Witten"
+                )
+            ).isEmpty()
+        )
+
+        // Exactly one candidate — the provider text — and its street-less
+        // result cannot resolve the contact.
+        assertEquals(listOf("58454 Witten"), client.searchQueries)
+    }
+
+    @Test
+    fun `house number absent from index resolves to the street with partial matching`() {
+        val client = FakeOSMScoutClient()
+        client.nextFormResults = arrayOf(
+            entry("Erbstollenstraße 10", 51.45, 7.41).apply { objectType = "address" },
+            entry("Erbstollenstraße", 51.4501, 7.4113).apply { objectType = "place" }
+        )
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(
+            ContactPostalAddress(street = "Erbstollenstraße 99", postalCode = "58454", city = "Witten")
+        )
+
+        // Both entries carry the street token; the house-number match of the
+        // requested number is absent, so ranking decides.
+        assertTrue(results.isNotEmpty())
+        assertTrue(results.all { it.label!!.contains("Erbstollenstraße") })
+    }
+
+    private fun regionEntry(label: String): LocationEntry =
+        entry(label, 51.44, 7.34).apply {
+            objectType = "boundary_administrative"
+            matchQuality = "match"
+            region = arrayOf(label)
+        }
 
     private fun entry(label: String, lat: Double, lon: Double): LocationEntry =
         LocationEntry().apply {

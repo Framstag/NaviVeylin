@@ -1,6 +1,7 @@
 package com.naviveylin.auto
 
 import com.naviveylin.core.AutoSettings
+import com.naviveylin.core.VehicleAnchorPosition
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -10,7 +11,7 @@ class PreferencesScreenMapperTest {
     fun rows_containsAllCarRelevantSettings() {
         val rows = PreferencesScreenMapper.rows(AutoSettings())
 
-        assertEquals(9, rows.size)
+        assertEquals(11, rows.size)
         assertEquals(
             listOf(
                 "followMode",
@@ -21,6 +22,8 @@ class PreferencesScreenMapperTest {
                 "laneHintsEnabled",
                 "renderMode",
                 "overspeedWarningDeltaKmh",
+                "routingAnchor",
+                "freeDrivingAnchor",
                 "styleSheet"
             ),
             rows.map { it.key }
@@ -48,6 +51,22 @@ class PreferencesScreenMapperTest {
         assertEquals("Overspeed warning", rows["overspeedWarningDeltaKmh"]?.title)
         assertEquals("cycle", rows["styleSheet"]?.valueText)
         assertEquals("Map style", rows["styleSheet"]?.title)
+        // Vehicle anchors: current preset labels from the shared enum.
+        assertEquals("Center", rows["routingAnchor"]?.valueText)
+        assertEquals("Center", rows["freeDrivingAnchor"]?.valueText)
+        assertEquals("Vehicle position (navigation)", rows["routingAnchor"]?.title)
+        assertEquals("Vehicle position (free driving)", rows["freeDrivingAnchor"]?.title)
+    }
+
+    @Test
+    fun rows_showsConfiguredAnchorLabels() {
+        val settings = AutoSettings(
+            routingAnchorId = VehicleAnchorPosition.BOTTOM_RIGHT.id,
+            freeDrivingAnchorId = VehicleAnchorPosition.TOP_CENTER.id
+        )
+        val rows = PreferencesScreenMapper.rows(settings).associateBy { it.key }
+        assertEquals("Bottom right", rows["routingAnchor"]?.valueText)
+        assertEquals("Top center", rows["freeDrivingAnchor"]?.valueText)
     }
 
     @Test

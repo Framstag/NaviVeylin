@@ -32,6 +32,11 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,10 +52,20 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naviveylin.R
+import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
 import kotlin.math.roundToInt
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * Location options button that opens a full-width Material 3 bottom sheet for
@@ -79,6 +94,10 @@ fun LocationOptionsOverlay(
     onToggleLaneHints: (Boolean) -> Unit = {},
     overspeedWarningDeltaKmh: Int = 5,
     onSetOverspeedWarningDelta: (Int) -> Unit = {},
+    routingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
+    onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit = {},
+    freeDrivingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
+    onSetFreeDrivingAnchor: (VehicleAnchorPosition) -> Unit = {},
     renderMode: RenderMode = RenderMode.TILES,
     onSetRenderMode: (RenderMode) -> Unit = {},
     availableStyles: List<String> = emptyList(),
@@ -134,6 +153,10 @@ fun LocationOptionsOverlay(
                 onToggleLaneHints = onToggleLaneHints,
                 overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
                 onSetOverspeedWarningDelta = onSetOverspeedWarningDelta,
+                routingAnchor = routingAnchor,
+                onSetRoutingAnchor = onSetRoutingAnchor,
+                freeDrivingAnchor = freeDrivingAnchor,
+                onSetFreeDrivingAnchor = onSetFreeDrivingAnchor,
                 renderMode = renderMode,
                 onSetRenderMode = onSetRenderMode,
                 availableStyles = availableStyles,
@@ -164,12 +187,20 @@ private fun LocationOptionsSheetContent(
     onToggleLaneHints: (Boolean) -> Unit,
     overspeedWarningDeltaKmh: Int,
     onSetOverspeedWarningDelta: (Int) -> Unit,
+    routingAnchor: VehicleAnchorPosition,
+    onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit,
+    freeDrivingAnchor: VehicleAnchorPosition,
+    onSetFreeDrivingAnchor: (VehicleAnchorPosition) -> Unit,
     renderMode: RenderMode,
     onSetRenderMode: (RenderMode) -> Unit,
     availableStyles: List<String>,
     styleSheet: String,
     onSetStyleSheet: (String) -> Unit
 ) {
+    // Vehicle anchor grid dialog target (spec: location-options-ui — Vehicle
+    // anchor position controls): null = no picker open.
+    var pickerFor by remember { mutableStateOf<AnchorPickerFor?>(null) }
+
     // FREE_DRIVE and NAVIGATION share the driving config (auto-zoom +
     // orientation); BROWSE has its own orientation only.
     val driving = mode == MapMode.FREE_DRIVE || mode == MapMode.NAVIGATION
@@ -345,6 +376,41 @@ private fun LocationOptionsSheetContent(
                 .testTag("overspeedDeltaSlider")
         )
 
+        // Vehicle anchor presets (spec: location-options-ui — Vehicle anchor
+        // position controls): one row per mode, each opening a 5×3 grid
+        // picker; the value labels come from the shared enum so the phone and
+        // Android Auto pickers stay in label parity (guidelines/UI.md).
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AnchorPreferenceRow(
+            title = stringResource(R.string.vehicle_position_routing),
+            value = routingAnchor.label,
+            onClick = { pickerFor = AnchorPickerFor.ROUTING }
+        )
+        AnchorPreferenceRow(
+            title = stringResource(R.string.vehicle_position_free_driving),
+            value = freeDrivingAnchor.label,
+            onClick = { pickerFor = AnchorPickerFor.FREE_DRIVING }
+        )
+
+        pickerFor?.let { target ->
+            val current = when (target) {
+                AnchorPickerFor.ROUTING -> routingAnchor
+                AnchorPickerFor.FREE_DRIVING -> freeDrivingAnchor
+            }
+            AnchorGridPickerDialog(
+                current = current,
+                onSelect = { anchor ->
+                    when (target) {
+                        AnchorPickerFor.ROUTING -> onSetRoutingAnchor(anchor)
+                        AnchorPickerFor.FREE_DRIVING -> onSetFreeDrivingAnchor(anchor)
+                    }
+                    pickerFor = null
+                },
+                onDismiss = { pickerFor = null },
+                closeLabel = stringResource(R.string.close)
+            )
+        }
+
         // Dark mode section — always visible
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
 
@@ -519,6 +585,111 @@ private fun OrientationOption(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+/** Which per-mode anchor the grid picker is editing. */
+private enum class AnchorPickerFor { ROUTING, FREE_DRIVING }
+
+/**
+ * One vehicle-position preference row: title + the current preset label;
+ * tapping opens the grid picker (spec: location-options-ui — Anchor rows
+ * visible in the sheet).
+ */
+@Composable
+private fun AnchorPreferenceRow(
+    title: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * 5×3 grid picker for one vehicle anchor (spec: location-options-ui —
+ * Picker offers the 5×3 grid): all 15 presets, the current one marked,
+ * labels shared with the Android Auto picker.
+ */
+@Composable
+private fun AnchorGridPickerDialog(
+    current: VehicleAnchorPosition,
+    onSelect: (VehicleAnchorPosition) -> Unit,
+    onDismiss: () -> Unit,
+    closeLabel: String
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.vehicle_position)) },
+        text = {
+            Column {
+                VehicleAnchorPosition.entries.chunked(5).forEach { rowAnchors ->
+                    Row {
+                        rowAnchors.forEach { anchor ->
+                            AnchorGridCell(
+                                anchor = anchor,
+                                selected = anchor == current,
+                                onClick = { onSelect(anchor) }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(closeLabel) }
+        }
+    )
+}
+
+/** One 5×3 grid cell: compact preset label, selected preset highlighted. */
+@Composable
+private fun AnchorGridCell(
+    anchor: VehicleAnchorPosition,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val border = if (selected) {
+        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+    } else {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(76.dp)
+            .height(56.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .border(border)
+            .clickable(onClick = onClick)
+            .padding(2.dp),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+    ) {
+        Text(
+            text = anchor.label,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 10.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

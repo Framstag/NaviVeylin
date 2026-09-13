@@ -16,8 +16,10 @@ import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.AutoPosition
+import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.SpeedStaleness
 import kotlin.math.roundToInt
 import dagger.hilt.android.EntryPointAccessors
@@ -55,6 +57,7 @@ class FreeDrivingScreen(
     )
     private val locationProvider = entryPoint.autoLocationProvider()
     private val settingsProvider = entryPoint.autoSettingsProvider()
+    private val drivingModeProvider = entryPoint.autoDrivingModeProvider()
     private val client by lazy { entryPoint.autoClientProvider().client() }
 
     private val streetNameUpdater = StreetNameUpdater()
@@ -111,6 +114,10 @@ class FreeDrivingScreen(
     @Volatile
     private var autoZoomEnabled: Boolean = true
 
+    /** Free-driving vehicle anchor from the shared settings (default center). */
+    @Volatile
+    private var freeDrivingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
+
     /** Overspeed warning delta (km/h) from the shared settings (default 5). */
     @Volatile
     private var overspeedWarningDeltaKmh: Int = 5
@@ -148,7 +155,9 @@ class FreeDrivingScreen(
                 .onSuccess { settings ->
                     autoZoomEnabled = settings.autoZoomEnabled
                     overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
-                    Log.d(TAG, "settings loaded: autoZoomEnabled=$autoZoomEnabled")
+                    freeDrivingAnchor = VehicleAnchorPosition.fromId(settings.freeDrivingAnchorId)
+                    mapRenderer.setFollowAnchor(freeDrivingAnchor)
+                    Log.d(TAG, "settings loaded: autoZoomEnabled=$autoZoomEnabled anchor=$freeDrivingAnchor")
                 }
                 .onFailure { Log.w(TAG, "loading settings failed", it) }
         }
@@ -224,6 +233,12 @@ class FreeDrivingScreen(
                 invalidate()
             }
         }
+
+        // Surface vote for the shared free-driving flag (design: retain-on-death).
+        // Published on entry; cleared on explicit exit ([exitFreeDriving]) — the
+        // screen's onDestroy is deliberately silent so a session destroy
+        // mid-free-drive keeps the flag (and the ongoing notification) alive.
+        drivingModeProvider.setFreeDriving(DrivingModeProvider.SURFACE_AUTO, true)
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
@@ -408,6 +423,7 @@ class FreeDrivingScreen(
 
     private fun exitFreeDriving() {
         Log.d(TAG, "Exit free driving")
+        drivingModeProvider.setFreeDriving(DrivingModeProvider.SURFACE_AUTO, false)
         screenManager.pop()
     }
 

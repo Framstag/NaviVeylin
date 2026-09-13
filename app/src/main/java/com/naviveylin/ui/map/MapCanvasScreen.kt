@@ -114,6 +114,8 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.VehicleAnchorPosition
+import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.ZoomAnimation
 import kotlinx.coroutines.isActive
 import com.naviveylin.data.DarkModePreference
@@ -478,10 +480,17 @@ fun MapCanvasScreen(
                             followDisplayLat, followDisplayLon,
                             vp.lat, vp.lon, vp.mag, vp.angle,
                             bitmap.width, bitmap.height,
-                            canvasSize.width, canvasSize.height, dpi
+                            canvasSize.width, canvasSize.height, dpi,
+                            ui.activeFollowAnchor.fx, ui.activeFollowAnchor.fy
                         )
-                        followOffsetX = offset.clampedX.toFloat()
-                        followOffsetY = offset.clampedY.toFloat()
+                        // Anchor bias: the overrun frame is drawn centered; to place the
+                        // vehicle content at the anchor fraction (not the surface center)
+                        // the frame is additionally shifted by the anchor offset
+                        // (spec: smooth-follow — Vehicle position anchor in follow mode).
+                        val anchorOX = (ui.activeFollowAnchor.fx - 0.5) * canvasSize.width
+                        val anchorOY = (ui.activeFollowAnchor.fy - 0.5) * canvasSize.height
+                        followOffsetX = (offset.clampedX - anchorOX).toFloat()
+                        followOffsetY = (offset.clampedY - anchorOY).toFloat()
                         if (offset.clamped && nowMs - lastRenderRequestMs > 500) {
                             lastRenderRequestMs = nowMs
                             viewModel.updateCenter(followDisplayLat, followDisplayLon)
@@ -1081,8 +1090,20 @@ fun MapCanvasScreen(
                     val markerLat = if (followActive) followDisplayLat else state.gpsMarkerLat
                     val markerLon = if (followActive) followDisplayLon else state.gpsMarkerLon
                     val markerViewport = if (followActive) {
+                        // Project against the anchor center of the last committed
+                        // frame: the marker then sits at the anchor (plus the glide
+                        // drift), exactly on the map content it rides (spec:
+                        // smooth-follow — Vehicle position anchor in follow mode).
+                        val anchor = state.activeFollowAnchor
+                        val rv = state.renderViewport
+                        val (aLat, aLon) = anchorCenter(
+                            rv?.lat ?: followDisplayLat, rv?.lon ?: followDisplayLon,
+                            anchor, rv?.mag ?: 0.0, canvasSize.width, canvasSize.height,
+                            context.resources.displayMetrics.densityDpi.toDouble(),
+                            rv?.angle ?: 0.0
+                        )
                         MapRenderer.RenderViewport(
-                            followDisplayLat, followDisplayLon,
+                            aLat, aLon,
                             state.renderViewport?.mag ?: 0.0, state.renderViewport?.angle ?: 0.0
                         )
                     } else {
@@ -1096,7 +1117,8 @@ fun MapCanvasScreen(
                         viewport = markerViewport,
                         dpi = context.resources.displayMetrics.densityDpi.toDouble(),
                         zoomScale = zoomAnimScale,
-                        zoomAnchor = zoomAnchor
+                        zoomAnchor = zoomAnchor,
+                        dark = state.isDarkPresentation
                     )
                 }
             }
@@ -1205,6 +1227,14 @@ fun MapCanvasScreen(
                                 overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                                 onSetOverspeedWarningDelta = { delta ->
                                     viewModel.onSetOverspeedWarningDelta(delta)
+                                },
+                                routingAnchor = state.routingAnchor,
+                                onSetRoutingAnchor = { anchor ->
+                                    viewModel.setRoutingAnchor(anchor)
+                                },
+                                freeDrivingAnchor = state.freeDrivingAnchor,
+                                onSetFreeDrivingAnchor = { anchor ->
+                                    viewModel.setFreeDrivingAnchor(anchor)
                                 },
                                 renderMode = state.renderMode,
                                 onSetRenderMode = { mode ->
@@ -1335,6 +1365,14 @@ fun MapCanvasScreen(
                                 overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                                 onSetOverspeedWarningDelta = { delta ->
                                     viewModel.onSetOverspeedWarningDelta(delta)
+                                },
+                                routingAnchor = state.routingAnchor,
+                                onSetRoutingAnchor = { anchor ->
+                                    viewModel.setRoutingAnchor(anchor)
+                                },
+                                freeDrivingAnchor = state.freeDrivingAnchor,
+                                onSetFreeDrivingAnchor = { anchor ->
+                                    viewModel.setFreeDrivingAnchor(anchor)
                                 },
                                 renderMode = state.renderMode,
                                 onSetRenderMode = { mode ->

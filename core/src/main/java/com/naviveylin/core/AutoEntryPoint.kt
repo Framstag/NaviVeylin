@@ -48,4 +48,7 @@ interface AutoEntryPoint {
 
     /** Shared navigation settings (view + edit) for the preferences screen. */
     fun autoSettingsProvider(): AutoSettingsProvider
+
+    /** Shared free-driving indicator (phone + car), surface-independent. */
+    fun autoDrivingModeProvider(): DrivingModeProvider
 }

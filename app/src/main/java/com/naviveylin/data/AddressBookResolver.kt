@@ -12,19 +12,27 @@ import javax.inject.Singleton
  * Resolves a contact's postal address into map locations through the offline
  * libosmscout search backend (spec: address-book-search — address resolution).
  *
- * `OSMScoutClient.searchLocations` tokenizes the query and searches the
- * location index: the house-number token is what produces address-level
- * (house) results, the postal code disambiguates when the index has postal
- * areas, and every result carries an `objectType` (`address`/`place`/`poi`/
- * `boundary_administrative`) plus a native `matchQuality` (`match`/`candidate`).
+ * `OSMScoutClient.searchLocations` / `searchLocationByForm` tokenize the query
+ * and search the location index; every result carries an `objectType`
+ * (`address`/`place`/`poi`/`boundary_administrative`) plus a native
+ * `matchQuality`. Both native entry points run with partial matching enabled
+ * (see `fix-address-lookup-accuracy`), so a query whose street/house part does
+ * not match still yields an administrative-region or postal-area fallback
+ * entry instead of an empty result set.
  *
- * Strategy: structured form search first (city + postal area + street +
- * house number via `OSMScoutClient.searchLocationByForm`, which returns
- * house-level results with precise coordinates when the index has them),
- * then progressive string-query loosening, and a ranking that prefers
- * house-level addresses over streets over POIs, native exact matches over
- * candidates, and results whose region/postal area actually contains the
- * contact's city and postal code.
+ * Acceptance contract: a candidate (form search or string query) only counts
+ * as a hit when it produces at least one entry carrying the address's street
+ * evidence. A result set of nothing but street-less fallback entries is a
+ * miss — the resolver continues with the next candidate and reports "not
+ * found" only after every candidate failed that way. This is what keeps a
+ * partially matching query from aborting the progressive chain (spec:
+ * address-book-search "Street-less result does not abort the candidate chain",
+ * "Not found requires the whole chain to fail") while still refusing
+ * free-text noise ("Wrong-location free-text result not selected").
+ *
+ * Components are the structured fields merged with the formatted address
+ * (see [AddressParser.components]); candidates are ordered from the most
+ * precise (form search, full formatted address) to the loosest (street alone).
  */
 @Singleton
 class AddressBookResolver @Inject constructor(
@@ -34,78 +42,90 @@ class AddressBookResolver @Inject constructor(
     override fun resolveAddress(address: ContactPostalAddress): List<LocationEntry> {
         if (address.isBlank) return emptyList()
 
+        val components = AddressParser.components(
+            street = address.street,
+            postalCode = address.postalCode,
+            city = address.city,
+            region = address.region,
+            formatted = address.formatted
+        )
+        val tokens = Tokens(
+            street = AddressParser.tokenize(components.street),
+            city = AddressParser.tokenize(components.city),
+            house = AddressParser.tokenize(components.houseNumber)
+        )
+
         // 1. Structured form search (precise house-level matches): city
         // (admin region) + optional postal area + street (WITHOUT house
         // number — the form's location field is the street name) + house
-        // number as the address field. The street field is normalized first:
-        // an embedded postal code ("Erbstollenstraße 10 58454") must not be
-        // mistaken for the house number (spec: address-book-search "Postal
-        // code in street field parses correctly").
-        val city = address.city.trim().ifEmpty { address.region.trim() }
-        val (streetName, houseNumber, postalFromStreet) = AddressParser.normalizeStreetField(
-            address.street, address.postalCode
-        )
-        val postalCode = address.postalCode.trim().ifEmpty { postalFromStreet }
-        if (city.isNotEmpty() && streetName.isNotEmpty()) {
-            val formResults = searchByForm(
-                adminRegion = city,
-                postalArea = postalCode,
-                location = streetName,
-                address = houseNumber
-            )
-            if (formResults.isNotEmpty()) {
-                Log.d(TAG, "resolveAddress: form search -> ${formResults.size} results")
-                return ranked(address, formResults, streetName, houseNumber, city, postalCode)
+        // number as the address field. Retried without the postal area: a
+        // postal code the index does not know must not block the street/house
+        // lookup.
+        if (components.street.isNotEmpty() && components.city.isNotEmpty()) {
+            val postalAreaAttempts = buildList {
+                add(components.postalCode)
+                if (components.postalCode.isNotBlank()) add("")
             }
-            // Retry without the postal area — a postal code the index does
-            // not know would otherwise block the street/house lookup.
-            if (postalCode.isNotBlank()) {
-                val formNoPostal = searchByForm(city, "", streetName, houseNumber)
-                if (formNoPostal.isNotEmpty()) {
-                    Log.d(TAG, "resolveAddress: form search (no postal) -> ${formNoPostal.size} results")
-                    return ranked(address, formNoPostal, streetName, houseNumber, city, postalCode)
-                }
+            for ((index, postalArea) in postalAreaAttempts.withIndex()) {
+                val source = if (index == 0) "form" else "form (no postal)"
+                val results = searchByForm(
+                    adminRegion = components.city,
+                    postalArea = postalArea,
+                    location = components.street,
+                    address = components.houseNumber
+                )
+                accept(address, results, components, tokens, source)?.let { return it }
             }
         }
 
         // 2. String search fallback chain (progressive loosening).
-        for (query in buildQueries(address, postalCode, streetName, houseNumber)) {
+        for (query in buildQueries(components, address)) {
             if (query.isBlank()) continue
             val results = search(query)
-            if (results.isNotEmpty()) {
-                Log.d(TAG, "resolveAddress: '$query' -> ${results.size} results")
-                return ranked(address, results, streetName, houseNumber, city, postalCode)
-            }
+            accept(address, results, components, tokens, "'$query'")?.let { return it }
         }
-        Log.d(TAG, "resolveAddress: no results for '${address.displayText}'")
+
+        Log.d(TAG, "resolveAddress: no street-evidenced result for '${address.displayText}'")
         return emptyList()
     }
 
-    /** Rank, then gate out results without street evidence (see [AddressRanker]). */
-    private fun ranked(
+    /**
+     * Rank a candidate's results and return them when at least one entry
+     * carries the address's street evidence; null (= miss) otherwise. Ranking
+     * prefers house-level addresses over streets over POIs, native exact
+     * matches over candidates, and results whose region/postal area actually
+     * contains the contact's city and postal code.
+     *
+     * Without a street in the address there can be no street evidence, so the
+     * candidate cannot be accepted — a city-only query must never auto-resolve
+     * a contact to a free-text result (spec: address-book-search
+     * "Wrong-location free-text result not selected").
+     */
+    private fun accept(
         address: ContactPostalAddress,
         results: List<LocationEntry>,
-        streetName: String,
-        houseNumber: String,
-        city: String,
-        postalCode: String
-    ): List<LocationEntry> {
-        val streetTokens = AddressParser.tokenize(streetName)
-        val cityTokens = AddressParser.tokenize(city)
+        components: AddressComponents,
+        tokens: Tokens,
+        source: String
+    ): List<LocationEntry>? {
         val ranked = AddressRanker.rank(
             results = results,
-            streetTokens = streetTokens,
-            cityTokens = cityTokens,
-            houseNumberParts = AddressParser.tokenize(houseNumber),
-            postalCode = postalCode
+            streetTokens = tokens.street,
+            cityTokens = tokens.city,
+            houseNumberParts = tokens.house,
+            postalCode = components.postalCode
         )
-        if (streetTokens.isEmpty()) return ranked
-        // City-only free-text noise (bus stops whose name merely contains the
-        // city token) must never auto-resolve a contact: only results with
-        // street-token evidence qualify (spec: address-book-search
-        // "Wrong-location free-text result not selected").
-        val evidenced = ranked.filter { AddressRanker.hasStreetEvidence(it, streetTokens) }
-        return if (evidenced.isNotEmpty()) evidenced else emptyList()
+        val evidenced = if (tokens.street.isEmpty()) {
+            emptyList()
+        } else {
+            ranked.filter { AddressRanker.hasStreetEvidence(it, tokens.street) }
+        }
+        Log.d(
+            TAG,
+            "resolveAddress: $source -> ${ranked.size} results, " +
+                "${evidenced.size} with street evidence (${address.displayText})"
+        )
+        return evidenced.ifEmpty { null }
     }
 
     private fun searchByForm(
@@ -130,35 +150,57 @@ class AddressBookResolver @Inject constructor(
     }
 
     /**
-     * Progressive fallback: full address -> street+city (no postal code) ->
-     * street+house+postal -> street+postal -> street+city without house number
-     * (indexes without house data) -> street alone. Distinct and non-blank.
-     * The bare city query is intentionally NOT included: city-only free-text
-     * results (bus stops named after the city) would auto-resolve kilometers
-     * away from the address (spec: address-book-search "Wrong-location
-     * free-text result not selected").
+     * Progressive fallback, precise to loose: full formatted address
+     * (street + house + postal code + city — the query the unified search
+     * dialog sends), the provider's raw formatted address, the components
+     * without postal code, street + house + postal code, street + postal code,
+     * street + city, street + house. Distinct and non-blank.
+     *
+     * Street-less queries are never issued: city-only free-text results (bus
+     * stops named after the city) would auto-resolve kilometers away from the
+     * address (spec: address-book-search "Wrong-location free-text result not
+     * selected"). When the address has no street at all, only the raw
+     * formatted text remains as a candidate.
      */
     private fun buildQueries(
-        address: ContactPostalAddress,
-        postalCode: String,
-        streetName: String,
-        houseNumber: String
+        components: AddressComponents,
+        address: ContactPostalAddress
     ): List<String> {
-        val city = address.city.trim()
-        val streetCity = listOf(streetName, houseNumber, city)
-            .filter { it.isNotBlank() }.joinToString(" ")
-        val streetHousePostal = listOf(streetName, houseNumber, postalCode)
-            .filter { it.isNotBlank() }.joinToString(" ")
-        val streetPostal = listOf(streetName, postalCode)
-            .filter { it.isNotBlank() }.joinToString(" ")
-        val streetCityNoHouse = listOf(streetName, city)
-            .filter { it.isNotBlank() }.joinToString(" ")
-        val streetAlone = listOf(streetName, houseNumber)
-            .filter { it.isNotBlank() }.joinToString(" ")
-        return listOf(address.queryText, streetCity, streetHousePostal, streetPostal, streetCityNoHouse, streetAlone)
+        val formatted = address.formatted.trim()
+        val street = components.street
+        val house = components.houseNumber
+        val postal = components.postalCode
+        val city = components.city
+        val candidates = if (street.isBlank()) {
+            // Nothing but the provider's own text remains; without it the
+            // address is not resolvable (a city-only query is never issued).
+            listOf(listOf(formatted))
+        } else {
+            // Street + city only when the address actually has a city: a
+            // street alone must never be searched city-less by accident.
+            val streetCity = if (city.isNotBlank()) listOf(street, city) else emptyList()
+            listOf(
+                listOf(street, house, postal, city),
+                listOf(formatted),
+                listOf(address.queryText),
+                listOf(street, house, postal),
+                listOf(street, postal),
+                streetCity,
+                listOf(street, house)
+            )
+        }
+        return candidates
+            .map { parts -> parts.filter { it.isNotBlank() }.joinToString(" ") }
             .filter { it.isNotBlank() }
             .distinct()
     }
+
+    /** Token forms of the address components, used for evidence and ranking. */
+    private data class Tokens(
+        val street: List<String>,
+        val city: List<String>,
+        val house: List<String>
+    )
 
     private companion object {
         const val TAG = "AddressBookResolver"

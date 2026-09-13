@@ -266,21 +266,32 @@ class FollowPrediction {
         }
 
         /**
-         * Compute the display offset (bitmap px) for a displayed position against
+         * Compute the display drift (bitmap px) for a displayed position against
          * the current frame's viewport, clamped to the overrun margin.
          *
          * The bitmap has the viewport rotation baked in, so the north-up geo delta
          * is rotated by the viewport angle first (same rotation the renderer's blit
          * applies) — otherwise the map scrolls in the wrong direction in a rotated
-         * (heading-up) viewport. The clamp keeps the visible window inside the
-         * overrun buffer so no edge strip is revealed.
+         * (heading-up) viewport.
+         *
+         * [anchorX]/[anchorY] are the vehicle-anchor screen fractions (0..1,
+         * defaults 0.5/0.5 = surface center). The returned [DisplayOffset.rawX]/[
+         * DisplayOffset.rawY] and [DisplayOffset.clampedX]/[clampedY] are the DRIFT
+         * of the displayed position from its anchor, not the absolute offset from
+         * the buffer center: the bitmap already contains the vehicle at the anchor
+         * pixel, so the blit shifts the bitmap only by the drift (a full-offset
+         * shift would cancel the anchor and land the vehicle content at the surface
+         * center while the marker draws at the anchor). With the default center
+         * anchor the drift equals the absolute offset and the behavior is
+         * identical to the pre-anchor implementation.
          */
         fun displayOffsetPx(
             displayLat: Double, displayLon: Double,
             frameLat: Double, frameLon: Double,
             mag: Double, angle: Double,
             bitmapW: Int, bitmapH: Int,
-            canvasW: Int, canvasH: Int, dpi: Double
+            canvasW: Int, canvasH: Int, dpi: Double,
+            anchorX: Double = 0.5, anchorY: Double = 0.5
         ): DisplayOffset {
             val (sx, sy) = ProjectionUtils.geoToScreen(
                 displayLat, displayLon, bitmapW, bitmapH, mag, frameLat, frameLon, dpi
@@ -293,9 +304,15 @@ class FollowPrediction {
             val oyR = ox * sinA + oy * cosA
             val marginX = (bitmapW - canvasW) / 2.0
             val marginY = (bitmapH - canvasH) / 2.0
+            // Anchor offset in the viewport frame: the anchor is defined in the
+            // surface frame, so its rotated-frame offset is (fx-0.5)*W, (fy-0.5)*H.
+            val anchorOX = (anchorX - 0.5) * canvasW
+            val anchorOY = (anchorY - 0.5) * canvasH
+            val driftX = oxR - anchorOX
+            val driftY = oyR - anchorOY
             return DisplayOffset(
-                oxR, oyR,
-                oxR.coerceIn(-marginX, marginX), oyR.coerceIn(-marginY, marginY)
+                driftX, driftY,
+                driftX.coerceIn(-marginX, marginX), driftY.coerceIn(-marginY, marginY)
             )
         }
     }

@@ -55,6 +55,12 @@ class MapCanvasViewModelNavEndRestoreTest {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         viewportStorage = ViewportStorage(context)
+        // File IO must run on the test scheduler: the navigation-end persistence
+        // assertion below reads back what the view model saved, and a real
+        // Dispatchers.IO write cannot be awaited by advanceUntilIdle() — the
+        // read would race the write and intermittently see no file at all
+        // (same pattern as MapCanvasViewModelViewportRestoreTest).
+        viewportStorage.ioDispatcher = mainDispatcherRule.dispatcher
         viewModel = MapCanvasViewModel(
             viewportStorage = viewportStorage,
             settingsStorage = SettingsStorage(context),

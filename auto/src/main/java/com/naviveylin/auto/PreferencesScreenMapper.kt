@@ -2,6 +2,7 @@ package com.naviveylin.auto
 
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.BundledMapStyles
+import com.naviveylin.core.VehicleAnchorPosition
 
 /**
  * A single preference row on the [PreferencesScreen]: a stable [key] used to
@@ -37,6 +38,12 @@ object PreferencesScreenMapper {
      */
     const val KEY_OVERSPEED_DELTA = "overspeedWarningDeltaKmh"
 
+    /** Routing vehicle anchor row: opens the position picker (handled by [PreferencesScreen]). */
+    const val KEY_ROUTING_ANCHOR = "routingAnchor"
+
+    /** Free-driving vehicle anchor row: opens the position picker (handled by [PreferencesScreen]). */
+    const val KEY_FREE_DRIVING_ANCHOR = "freeDrivingAnchor"
+
     /**
      * Fallback style list (the bundled libosmscout top-level `*.oss` set minus
      * the basemap's internal stylesheet, sorted); the production preferences
@@ -57,6 +64,10 @@ object PreferencesScreenMapper {
         PreferenceRow(KEY_LANE_HINTS, "Lane hints", onOff(settings.laneHintsEnabled)),
         PreferenceRow(KEY_RENDER_MODE, "Render mode", renderModeText(settings.renderMode)),
         PreferenceRow(KEY_OVERSPEED_DELTA, "Overspeed warning", "${settings.overspeedWarningDeltaKmh} km/h"),
+        PreferenceRow(KEY_ROUTING_ANCHOR, "Vehicle position (navigation)",
+            VehicleAnchorPosition.fromId(settings.routingAnchorId).label),
+        PreferenceRow(KEY_FREE_DRIVING_ANCHOR, "Vehicle position (free driving)",
+            VehicleAnchorPosition.fromId(settings.freeDrivingAnchorId).label),
         PreferenceRow(KEY_STYLE_SHEET, "Map style", settings.styleSheet)
     )
 

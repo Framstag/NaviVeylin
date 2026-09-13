@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Android Auto (projection) -->
@@ -99,6 +100,15 @@
         <service
             android:name=".service.MapDownloadService"
             android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
+        <!-- Ongoing navigation/free-driving notification + process protection.
+             `location` type: navigation is the canonical location FGS; the type
+             also legitimises continuation of while-in-use background location
+             while driving (spec: navigation-ongoing-notification). -->
+        <service
+            android:name=".service.NavigationNotificationService"
+            android:foregroundServiceType="location"
             android:exported="false" />
 
         <!-- Android Auto (projection) -->

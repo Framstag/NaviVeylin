@@ -13,6 +13,7 @@ import com.naviveylin.core.AutoSearchHistoryProvider
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.StructuredAddressSearch
 import com.naviveylin.data.SearchHistoryRepository
@@ -183,6 +184,12 @@ object AutoServiceModule {
     fun provideAutoNavigationController(
         impl: com.naviveylin.navigation.AANavigationController
     ): AutoNavigationController = impl
+
+    @Provides
+    @Singleton
+    fun provideDrivingModeProvider(
+        impl: com.naviveylin.navigation.DrivingModeProviderImpl
+    ): DrivingModeProvider = impl
 
     private const val TAG = "AutoServiceModule"
 }

@@ -85,10 +85,26 @@ class PreferencesScreen private constructor(
                         .setOnClickListener {
                             // The overspeed delta row opens the value picker
                             // (0-30) instead of toggling (spec: auto-map-layout
-                            // — Overspeed delta presented as a value picker).
+                            // — Overspeed delta presented as a value picker);
+                            // the vehicle position rows open the 5×3 anchor
+                            // picker for their mode.
                             if (row.key == PreferencesScreenMapper.KEY_OVERSPEED_DELTA) {
                                 screenManager.push(
                                     OverspeedDeltaPickerScreen(carContext, settingsProvider)
+                                )
+                            } else if (row.key == PreferencesScreenMapper.KEY_ROUTING_ANCHOR) {
+                                screenManager.push(
+                                    VehicleAnchorPickerScreen(
+                                        carContext, settingsProvider,
+                                        VehicleAnchorPickerScreen.Mode.ROUTING
+                                    )
+                                )
+                            } else if (row.key == PreferencesScreenMapper.KEY_FREE_DRIVING_ANCHOR) {
+                                screenManager.push(
+                                    VehicleAnchorPickerScreen(
+                                        carContext, settingsProvider,
+                                        VehicleAnchorPickerScreen.Mode.FREE_DRIVING
+                                    )
                                 )
                             } else {
                                 onToggle(row.key)

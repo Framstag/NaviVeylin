@@ -237,4 +237,60 @@ class FollowPredictionTest {
         assertTrue(off.clampedY < 0.0) // east on the map points up on screen
         assertFalse(off.clamped)
     }
+
+    @Test
+    fun `off center anchor is zero drift and unclamped when aligned`() {
+        // Follow framing: the frame center IS the anchor center of the vehicle
+        // (the vehicle sits at the anchor inside the frame), so the vehicle's
+        // DRIFT from the anchor is zero — the frame must not look permanently
+        // clamped (which would force a full render every frame). The absolute
+        // offset is 0.4*canvas but is not what the clamp bounds.
+        val (fcLat, fcLon) = anchorCenter(48.0, 2.0, VehicleAnchorPosition.MIDDLE_FAR_RIGHT, 14.0, 1080, 1920, 320.0)
+        val off = FollowPrediction.displayOffsetPx(
+            48.0, 2.0, fcLat, fcLon, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0,
+            anchorX = 0.9, anchorY = 0.5
+        )
+        assertEquals(0.0, off.clampedX, 1e-3)
+        assertEquals(0.0, off.clampedY, 1e-3)
+        assertFalse(off.clamped)
+    }
+
+    @Test
+    fun `off center anchor clamps only after drifting the margin`() {
+        // Anchor-aligned frame, then move ~50 m east of the vehicle:
+        // within the margin → unclamped, drift equals the geo delta.
+        val (fcLat, fcLon) = anchorCenter(48.0, 2.0, VehicleAnchorPosition.MIDDLE_FAR_RIGHT, 14.0, 1080, 1920, 320.0)
+        val dLon = 50.0 / FollowPrediction.METERS_PER_DEG_LON
+        val off = FollowPrediction.displayOffsetPx(
+            48.0, 2.0 + dLon, fcLat, fcLon, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0,
+            anchorX = 0.9, anchorY = 0.5
+        )
+        assertTrue(off.clampedX > 0.0)
+        assertTrue(off.clampedX < 108.0) // within the 0.1 * 1080 margin
+        assertFalse(off.clamped)
+        // ~500 m east: drift clamps at the margin and is flagged.
+        val dLon2 = 500.0 / FollowPrediction.METERS_PER_DEG_LON
+        val off2 = FollowPrediction.displayOffsetPx(
+            48.0, 2.0 + dLon2, fcLat, fcLon, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0,
+            anchorX = 0.9, anchorY = 0.5
+        )
+        assertEquals(108.0, off2.clampedX, 1e-6)
+        assertTrue(off2.clamped)
+    }
+
+    @Test
+    fun `explicit center anchor matches the default behavior`() {
+        val dLon = 50.0 / FollowPrediction.METERS_PER_DEG_LON
+        val withDefault = FollowPrediction.displayOffsetPx(
+            48.0, 2.0 + dLon, 48.0, 2.0, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0
+        )
+        val explicit = FollowPrediction.displayOffsetPx(
+            48.0, 2.0 + dLon, 48.0, 2.0, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0,
+            anchorX = 0.5, anchorY = 0.5
+        )
+        assertEquals(withDefault.clampedX, explicit.clampedX, 1e-9)
+        assertEquals(withDefault.clampedY, explicit.clampedY, 1e-9)
+        assertEquals(withDefault.rawX, explicit.rawX, 1e-9)
+        assertEquals(withDefault.clamped, explicit.clamped)
+    }
 }

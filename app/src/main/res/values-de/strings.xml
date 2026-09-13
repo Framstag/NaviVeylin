@@ -90,6 +90,9 @@
     <string name="keep_screen_on">Bildschirm an lassen</string>
     <string name="lane_instructions">Spurhinweise</string>
     <string name="overspeed_warning_delta">Geschwindigkeitswarnung</string>
+    <string name="vehicle_position">Fahrzeugposition</string>
+    <string name="vehicle_position_routing">Fahrzeugposition (Navigation)</string>
+    <string name="vehicle_position_free_driving">Fahrzeugposition (freies Fahren)</string>
     <string name="overspeed_delta_value">+%1$d km/h</string>
     <string name="dark_mode">Dunkelmodus</string>
     <string name="ambient_light_dark_mode">Adaptiv nach Umgebungslicht</string>
@@ -126,6 +129,7 @@
     <string name="clear_route">Route löschen</string>
     <string name="calculating_route">Route wird berechnet...</string>
     <string name="stop_navigation">Navigation beenden</string>
+    <string name="navigation_notification_channel_description">Zeigt während der Fahrt die aktuelle Navigationsführung an</string>
     <string name="start_navigation">Navigation starten</string>
     <string name="show_route">Route anzeigen</string>
     <string name="route_calculation_failed">Routenberechnung fehlgeschlagen</string>

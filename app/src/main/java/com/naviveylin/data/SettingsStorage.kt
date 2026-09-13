@@ -49,7 +49,21 @@ data class AppSettings(
      * map-speed-widget — Overspeed warning color; auto-map-layout). Range
      * 0-30, default 5.
      */
-    val overspeedWarningDeltaKmh: Int = 5
+    val overspeedWarningDeltaKmh: Int = 5,
+    /**
+     * Vehicle anchor preset for navigation (spec: auto/navigation-view —
+     * Vehicle anchor during navigation). Persisted as the preset's stable id
+     * (see `VehicleAnchorPosition` in `:core`); default `"center"`.
+     * Single global value shared with Android Auto.
+     */
+    val routingAnchorId: String = com.naviveylin.core.VehicleAnchorPosition.DEFAULT.id,
+    /**
+     * Vehicle anchor preset for free driving (spec: auto/free-driving —
+     * Follow mode activated). Persisted as the preset's stable id (see
+     * `VehicleAnchorPosition` in `:core`); default `"center"`.
+     * Single global value shared with Android Auto.
+     */
+    val freeDrivingAnchorId: String = com.naviveylin.core.VehicleAnchorPosition.DEFAULT.id
 )
 
 /** Persists [AppSettings] to a JSON file in app internal storage. */

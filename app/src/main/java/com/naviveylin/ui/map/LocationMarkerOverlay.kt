@@ -1,22 +1,30 @@
 package com.naviveylin.ui.map
 
+import android.graphics.BlurMaskFilter
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.VehicleMarkerGeometry
+import android.graphics.Paint as AndroidPaint
 
 /**
  * Compose overlay that renders the GPS location marker on top of the map.
@@ -42,7 +50,8 @@ fun LocationMarkerOverlay(
     dpi: Double,
     modifier: Modifier = Modifier,
     zoomScale: Float = 1f,
-    zoomAnchor: Offset = Offset.Zero
+    zoomAnchor: Offset = Offset.Zero,
+    dark: Boolean = false
 ) {
     if (lat.isNaN() || lon.isNaN() || viewport == null) return
     if (dpi <= 0.0) return
@@ -78,7 +87,7 @@ fun LocationMarkerOverlay(
             drawAccuracyCircle(center, accuracyRadiusPx)
         }
 
-        drawCompassArrowWithShadow(center, bearingDegrees)
+        drawCompassArrowWithShadow(center, bearingDegrees, dark)
         if (markerLogCount++ % 10 == 0) {
             Log.d("Marker", "draw sx=${center.x.toInt()}, sy=${center.y.toInt()} " +
                     "bearing=${bearing.toInt()} screenBearing=${bearingDegrees.toInt()} " +
@@ -139,49 +148,95 @@ private fun DrawScope.drawAccuracyCircle(center: Offset, radiusPx: Float) {
     )
 }
 
-private fun DrawScope.drawCompassArrowWithShadow(center: Offset, bearingDegrees: Float) {
-    val arrowSize = ARROW_SIZE_DP.toPx()
-    val halfSize = arrowSize / 2f
-    val shadowOffset = SHADOW_OFFSET_DP.toPx()
+private fun DrawScope.drawCompassArrowWithShadow(center: Offset, bearingDegrees: Float, dark: Boolean) {
+    // Unified marker geometry (spec: gps-location-marker, cross-variant parity):
+    // the shape/palette come from VehicleMarkerGeometry and match Android Auto.
+    val hPx = (VehicleMarkerGeometry.SIZE_DP.dp).toPx() / 2f
+    val shadowOffsetPx = VehicleMarkerGeometry.SHADOW_OFFSET_DP.dp.toPx()
+    val blurPx = VehicleMarkerGeometry.SHADOW_BLUR_DP.dp.toPx()
+    val rimPx = VehicleMarkerGeometry.RIM_WIDTH_H * hPx
 
-    // Compass-style arrow: two triangles forming a clear direction indicator
-    // Forward triangle (long, wide) + backward triangle (short, narrow tail)
-    val arrowPath = Path().apply {
-        // Forward triangle — tip at front, wide base across center
-        moveTo(0f, -halfSize)                    // tip
-        lineTo(-halfSize * 0.45f, 0f)             // left base (wider)
-        lineTo(halfSize * 0.45f, 0f)              // right base (wider)
-        close()
-
-        // Backward triangle — short tail pointing opposite direction
-        moveTo(0f, halfSize * 0.25f)              // tail tip (shorter)
-        lineTo(-halfSize * 0.25f, 0f)              // left base
-        lineTo(halfSize * 0.25f, 0f)               // right base
-        close()
+    // Path builder — rounded cap via quad to the tip point (same on both
+    // renderers; vertices from VehicleMarkerGeometry.outlineVertices).
+    fun buildCore(): Path {
+        val path = Path()
+        val vertices = VehicleMarkerGeometry.outlineVertices()
+        val (x0, y0) = vertices[0]
+        val (x1, y1) = vertices[1]
+        path.moveTo(x0 * hPx, y0 * hPx)
+        path.quadraticBezierTo(0f, -hPx, x1 * hPx, y1 * hPx)
+        for (i in 2 until vertices.size) {
+            val (x, y) = vertices[i]
+            path.lineTo(x * hPx, y * hPx)
+        }
+        path.close()
+        return path
     }
 
-    // Shadow
-    translate(left = center.x + shadowOffset, top = center.y + shadowOffset) {
+    // Soft blurred shadow, offset down-right in screen space (drawn before
+    // the arrow, rotated to the bearing) — floating-chip depth instead of the
+    // former hard-offset triangle.
+    val shadowPath = buildCore()
+    translate(left = center.x + shadowOffsetPx, top = center.y + shadowOffsetPx) {
         rotate(degrees = bearingDegrees, pivot = Offset.Zero) {
-            drawPath(path = arrowPath, color = SHADOW_COLOR, style = Fill)
+            drawBlurredPath(shadowPath, blurPx, Color(VehicleMarkerGeometry.COLOR_SHADOW))
         }
     }
 
-    // Main arrow
+    // Layered arrow (casing -> rim -> gradient core), rotated about position.
+    val corePath = buildCore()
     translate(left = center.x, top = center.y) {
         rotate(degrees = bearingDegrees, pivot = Offset.Zero) {
-            drawPath(path = arrowPath, color = MARKER_COLOR, style = Fill)
+        // White casing ring: core scaled about the center. In dark
+        // presentation the casing turns deep blue-black (COLOR_CASING_DARK)
+        // so no stencil-white halo shows against dark land (user feedback:
+        // unified-vehicle-marker). Dark flag rides the app's resolved dark
+        // presentation (state.isDarkPresentation at the call site).
+        val casing = buildCore()
+        casing.transform(
+            Matrix().apply {
+                scale(VehicleMarkerGeometry.CASING_SCALE, VehicleMarkerGeometry.CASING_SCALE)
+            }
+        )
+        drawPath(
+            casing,
+            Color(if (dark) VehicleMarkerGeometry.COLOR_CASING_DARK else VehicleMarkerGeometry.COLOR_CASING)
+        )
+
+            // Dark accent rim: stroke around the core (tri-layer arrow).
+            drawPath(
+                corePath,
+                color = Color(VehicleMarkerGeometry.COLOR_RIM),
+                style = Stroke(width = rimPx)
+            )
+
+            // Core: vertical gradient, light from above.
+            val gradient = Brush.linearGradient(
+                start = Offset(0f, -hPx),
+                end = Offset(0f, VehicleMarkerGeometry.TAIL_Y * hPx),
+                colors = listOf(
+                    Color(VehicleMarkerGeometry.COLOR_GRADIENT_TOP),
+                    Color(VehicleMarkerGeometry.COLOR_GRADIENT_BOTTOM)
+                )
+            )
+            drawPath(corePath, brush = gradient)
         }
+    }
+}
+
+/** Soft blurred fill of a path via the native canvas (BlurMaskFilter). */
+private fun DrawScope.drawBlurredPath(path: Path, blurPx: Float, color: Color) {
+    drawIntoCanvas { canvas ->
+        val paint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+            this.color = color.toArgb()
+            maskFilter = BlurMaskFilter(blurPx, BlurMaskFilter.Blur.NORMAL)
+        }
+        canvas.nativeCanvas.drawPath(path.asAndroidPath(), paint)
     }
 }
 
 private val ACCURACY_FILL_COLOR = Color(0x1A4A90D9)   // ~10% blue
 private val ACCURACY_BORDER_COLOR = Color(0x664A90D9) // ~40% blue
-private val MARKER_COLOR = Color(0xFF4A90D9)           // solid blue
-private val SHADOW_COLOR = Color(0x40000000)            // 25% black
-
-private val ARROW_SIZE_DP: Dp = 56.dp
 private val MIN_RADIUS_DP: Dp = 4.dp
-private val SHADOW_OFFSET_DP: Dp = 2.dp
 internal const val MARGIN_PX = 100
 private const val POOR_ACCURACY_THRESHOLD_PX = 20f

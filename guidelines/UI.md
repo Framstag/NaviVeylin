@@ -33,6 +33,41 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Add favorite | "Add to Favorites" (outlined button) | "★ Add to Favorites" (clickable row) |
 | Remove favorite | "Remove from Favorites" (error-colored button) | "☆ Remove from Favorites" (clickable row) |
 
+### Vehicle position setting (follow-mode anchor)
+
+Source: change `vehicle-position-presets` (specs `auto-map-layout`,
+`location-options-ui`).
+
+- Phone and Android Auto present the same two rows — "Vehicle position
+  (navigation)" / "Vehicle position (free driving)" — and the same 15 preset
+  labels ("Center", "Bottom right", …) **by construction**: the labels come
+  from the single shared `VehicleAnchorPosition` enum in `:core`; no
+  per-surface strings.
+- Layout deviation (justified by platform constraints, §1): the phone picker
+  is a 5×3 grid dialog (touch), the Android Auto picker is a 15-row
+  `ListTemplate` list (car templates cannot host grids). Labels/hierarchy stay
+  identical.
+- The value is global: editing on either surface changes both.
+
+### Ongoing navigation notification (background driving)
+
+Source: spec `navigation-ongoing-notification` (change
+`background-navigation-notification`).
+
+- The ongoing navigation notification is a **single notification** shared by
+  all three surfaces (phone shade, Android Auto projection shade relay, AAOS
+  head-unit shade): the same title and content labels appear everywhere
+  (parity by construction — one formatter, no per-surface strings).
+- NAVIGATION content: destination name (or the neutral "Navigation active"
+  when unknown), the manoeuvre instruction in the same wording as the on-screen
+  next-turn display, the distance-to-turn, arrival/remaining time and remaining
+  distance, and the "Stop Navigation" action (same label as the on-screen stop
+  button, §1).
+- FREE_DRIVE content: the current street/ref (same text as the free-driving
+  view's street label) and the current speed; no destination-dependent guidance
+  and no stop action.
+- The notification is silent and ongoing; it never plays a sound or vibrates.
+
 ## 2. Action glyphs on the car display
 
 Source: spec `auto-destination-details` — "Details actions visually marked".
@@ -256,10 +291,19 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   speed-limit sign 56dp with 7dp red ring and 24sp digits; the speed badge
   (128×52, 20sp) is unchanged except its overspeed state — red-600 fill at
   the badge's 0xCC alpha with white text, same treatment as the phone.
+- Vehicle position marker (phone + AA, spec `gps-location-marker` /
+  `auto-map-renderer`, change `unified-vehicle-marker`): one unified compass
+  arrow on both surfaces — 32 dp density-aware (same visual size on every
+  screen), white casing ring + dark rim + vertical blue gradient core
+  (#42A5F5 → #0D47A1) + soft blurred shadow. No day/night color branch: the
+  layered style stays legible on both light and dark map variants. Geometry
+  and palette live in `:core` `VehicleMarkerGeometry`, shared by both
+  renderers (parity by construction, spec `cross-variant-ui-parity`); the
+  accuracy circle is untouched.
 
 ## 9. Dark mode (phone + Android Auto)
 
-Source: spec `dark-mode` (changes `aa-dark-mode-follow-host`, `phone-ambient-light-dark-mode`).
+Source: spec `dark-mode` (changes `aa-dark-mode-follow-host`, `phone-ambient-light-dark-mode`, `aa-chrome-theme-documentation`).
 
 - **Phone**: three-state preference (On / Off / Automatic) in the on-map
   settings sheet, plus the "Adaptive by ambient light" toggle (default off).
@@ -267,10 +311,21 @@ Source: spec `dark-mode` (changes `aa-dark-mode-follow-host`, `phone-ambient-lig
   follows the light sensor (hysteresis 10/50 lux, 10 s debounce) instead.
   Sensor listening is foreground-only and gated on Automatic + option enabled.
   Devices without a light sensor fall back to the system signal.
-- **Android Auto**: the map surface follows the HOST's day/night state
-  (`CarContext.isDarkMode()`, live via `onCarConfigurationChanged`) — never
-  the phone's system mode. Templates are host-rendered and follow the host
-  automatically; only the app-drawn map surface needs the flag push.
+- **Android Auto**: two layers, owned differently.
+  - **Template chrome** (menus, dialogs, lists, panels, navigation banner,
+    ETA card) is host-rendered and host-themed — never app-themed (the car
+    app library exposes no chrome-color API; verified on 1.7.0). Day/night of
+    the chrome follows the host's own display theme: `Android Auto >
+    Settings > Display > Theme` on projection, or the head unit's system
+    theme on AAOS (often OEM-pinned dark). Chrome was dark-only by default
+    from 2019; Google's system light theme started rolling out from late
+    2025. A user report of "UI always black, map flips" is expected host
+    behavior, not an app bug — the host-side theme switch is the control.
+  - **Map surface** (app-drawn) follows the HOST's day/night state
+    (`CarContext.isDarkMode()`, live via `onCarConfigurationChanged`) — never
+    the phone's system mode; only the surface needs the daylight-flag push.
+  - The app's dark-mode preference (On/Off/Automatic) affects the surface and
+    app-drawn controls only; it never influences host chrome.
 - Parity: both variants render the same stylesheet variants (daylight flag
   set/unset); the environment source differs by platform (see
   `guidelines/MapRendering.md` §15).

@@ -42,8 +42,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Android Auto session that manages the screen stack.
- * Shows [RootScreen] when idle, [NavigationScreen] during active navigation.
- * Displays error messages from [NavigationState.errorMessage] as temporary overlays.
+ * The stack root is always the browse-map [MapScreen] (design D1 — the root
+ * cannot be popped, so a transient-mode view must never be rooted);
+ * [NavigationScreen] is pushed while navigation is active, free driving on
+ * demand. Displays error messages from [NavigationState.errorMessage] as
+ * temporary overlays.
  *
  * Handles phone → car deep links ([DeepLinkParser]) in [onCreateScreen] and
  * [onNewIntent], starting navigation to the parsed destination.
@@ -70,6 +73,15 @@ class NavigationSession : Session() {
     private var errorJob: Job? = null
     private var warmupJob: Job? = null
     private var navigationScreen: NavigationScreen? = null
+
+    /**
+     * True while the cached [navigationScreen] sits on the stack (D4).
+     * [showNavigationScreen] skips the push when it is already up — the screen
+     * re-renders from its own state collector, so a navigation restart needs
+     * no duplicate screen. [ScreenManager] exposes no public top-screen getter,
+     * hence the flag.
+     */
+    private var navScreenPushed = false
 
     @Volatile
     private var sessionDestroyed = false
@@ -220,6 +232,10 @@ class NavigationSession : Session() {
                 // finishes (see onWarmupComplete).
                 pendingIntent = intent
             }
+            // Restore a still-active car mode (free driving) as a PUSHED screen
+            // once the observer is live — never as the session root (D1). The
+            // navigation case is covered by the observer's first emission.
+            restoreDrivingMode()
             screen
         }.getOrElse { e ->
             SessionLog.failed("onCreateScreen", e)
@@ -379,6 +395,7 @@ class NavigationSession : Session() {
             }
             startLocation()
             startObserving()
+            restoreDrivingMode()
         }.onFailure { e ->
             SessionLog.failed("onWarmupComplete", e)
             showStartupFailure("Startup failed: ${e.message ?: e.javaClass.simpleName}")
@@ -416,18 +433,20 @@ class NavigationSession : Session() {
     }
 
     private fun initialScreen(): Screen {
-        return if (navigationViewModel.state.value.isNavigating) {
-            getNavigationScreen()
-        } else {
-            // Open in map view by default; the menu is reachable via the map's
-            // "Menu" action (RootScreen is no longer the stack root).
-            MapScreen(
-                carContext,
-                navigationViewModel,
-                resolvedDark = resolvedDark,
-                onDarkModeChanged = ::updateDarkModePreference
-            )
-        }
+        // The session root is ALWAYS the browse map (design D1, spec:
+        // auto/navigation-view — "Leave navigation at any time"): the car-app
+        // ScreenManager cannot pop the root, so a transient-mode view
+        // (navigation or free driving) restored at session start must never be
+        // rooted — when its mode ends, the stack could never leave it (bare
+        // map + dead back "X"). Restored modes are PUSHED on top instead:
+        // navigation via the observer's first state emission, free driving via
+        // [restoreDrivingMode].
+        return MapScreen(
+            carContext,
+            navigationViewModel,
+            resolvedDark = resolvedDark,
+            onDarkModeChanged = ::updateDarkModePreference
+        )
     }
 
     /**
@@ -512,16 +531,45 @@ class NavigationSession : Session() {
 
     private fun showNavigationScreen() {
         Log.d(TAG, "Switching to NavigationScreen")
+        if (navScreenPushed) {
+            // The navigation screen is already on the stack; it re-renders in
+            // place from its own state collector (D4). Never push a duplicate.
+            Log.d(TAG, "NavigationScreen already on stack — no re-push")
+            return
+        }
         SessionLog.push("NavigationScreen")
         val screen = getNavigationScreen()
         carContext.getCarService(ScreenManager::class.java).push(screen)
+        navScreenPushed = true
     }
 
     private fun showRootScreen() {
         Log.d(TAG, "Switching to RootScreen")
         SessionLog.popToRoot()
         navigationScreen = null
+        navScreenPushed = false
         carContext.getCarService(ScreenManager::class.java).popToRoot()
+    }
+
+    /**
+     * Restore a still-active free-driving session as a PUSHED screen (D1).
+     * Called after the observer is live so the stack root (always the browse
+     * map) is already in place; navigation restore needs no such helper — the
+     * observer's first emission pushes the navigation screen. Gated on
+     * `!isNavigating`: the free-driving and navigation modes are mutually
+     * exclusive (the navigation controller clears the free-driving flag on
+     * navigation start), and the gate keeps a race from stacking both views.
+     */
+    private fun restoreDrivingMode() {
+        if (sessionDestroyed) return
+        val shouldRestore = shouldRestoreFreeDriving(
+            isNavigating = navigationViewModel.state.value.isNavigating,
+            freeDrivingActive = entryPoint.autoDrivingModeProvider().freeDrivingActive.value
+        )
+        if (shouldRestore) {
+            SessionLog.push("FreeDrivingScreen (restore)")
+            carContext.getCarService(ScreenManager::class.java).push(FreeDrivingScreen(carContext))
+        }
     }
 
     private fun showError(message: String) {
@@ -585,6 +633,17 @@ class NavigationSession : Session() {
 internal fun isNightUiMode(configuration: Configuration): Boolean =
     configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
         Configuration.UI_MODE_NIGHT_YES
+
+/**
+ * Whether a restored session should push the free-driving view (design D1,
+ * spec: auto/free-driving — session restore). The free-driving and navigation
+ * modes are mutually exclusive: navigation is restored by the observer's state
+ * emission, free driving by an explicit push — never both, and never as the
+ * session root. Pure seam for unit testing ([NavigationSession] cannot be
+ * constructed in Robolectric).
+ */
+internal fun shouldRestoreFreeDriving(isNavigating: Boolean, freeDrivingActive: Boolean): Boolean =
+    freeDrivingActive && !isNavigating
 
 /**
  * Resolve the car dark presentation from the shared dark mode preference

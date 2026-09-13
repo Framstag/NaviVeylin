@@ -2,10 +2,15 @@ package com.naviveylin
 
 import android.app.Application
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.navigation.NavigationNotificationController
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
 class NaviVeylinApp : Application() {
+
+    @Inject
+    lateinit var notificationController: NavigationNotificationController
 
     override fun onCreate() {
         DiagnosticsLog.init(this)
@@ -16,6 +21,12 @@ class NaviVeylinApp : Application() {
             NativeLogBridge.install()
             super.onCreate()
             DiagnosticsLog.installCrashHandler()
+        }
+        // Eager: the ongoing-navigation-notification controller must observe
+        // driving-state transitions from process start, including sessions
+        // started only from the car (deep link, no phone UI).
+        DiagnosticsLog.time("NotificationController.activate") {
+            notificationController
         }
     }
 

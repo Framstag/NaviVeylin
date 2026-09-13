@@ -59,8 +59,9 @@ class PreferencesScreenTest {
 
         val template = screen.onGetTemplate()
 
-        // All nine car-relevant preferences on the single list.
-        assertEquals(9, template.singleList!!.items.size)
+        // All eleven car-relevant preferences on the single list (nine base +
+        // the two vehicle-position anchors).
+        assertEquals(11, template.singleList!!.items.size)
     }
 
     @Test

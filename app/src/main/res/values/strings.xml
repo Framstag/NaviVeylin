@@ -94,6 +94,9 @@
     <string name="keep_screen_on">Keep screen on</string>
     <string name="lane_instructions">Lane instructions</string>
     <string name="overspeed_warning_delta">Overspeed warning</string>
+    <string name="vehicle_position">Vehicle position</string>
+    <string name="vehicle_position_routing">Vehicle position (navigation)</string>
+    <string name="vehicle_position_free_driving">Vehicle position (free driving)</string>
     <string name="overspeed_delta_value">+%1$d km/h</string>
     <string name="dark_mode">Dark mode</string>
     <string name="ambient_light_dark_mode">Adaptive by ambient light</string>
@@ -130,6 +133,7 @@
     <string name="clear_route">Clear Route</string>
     <string name="calculating_route">Calculating route...</string>
     <string name="stop_navigation">Stop Navigation</string>
+    <string name="navigation_notification_channel_description">Shows live navigation guidance while driving</string>
     <string name="start_navigation">Start Navigation</string>
     <string name="show_route">Show Route</string>
     <string name="route_calculation_failed">Route calculation failed</string>

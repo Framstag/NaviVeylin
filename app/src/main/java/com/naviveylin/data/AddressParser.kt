@@ -1,6 +1,7 @@
 package com.naviveylin.data
 
 import com.framstag.libosmscout.client.LocationEntry
+import com.naviveylin.core.addressbook.ContactPostalAddress
 
 /**
  * Parsed components of a free-text address query (spec: fix-address-lookup-accuracy —
@@ -14,6 +15,19 @@ data class ParsedAddress(
     val postalCode: String,
     val city: String,
     val region: String
+)
+
+/**
+ * Effective address components of a contact after merging its structured
+ * fields with its formatted address (spec: address-book-search — formatted
+ * address source). Structured values always win; the formatted text only
+ * fills components the structured fields do not supply.
+ */
+data class AddressComponents(
+    val street: String,
+    val houseNumber: String,
+    val postalCode: String,
+    val city: String
 )
 
 /**
@@ -110,6 +124,69 @@ object AddressParser {
         val house = houseNumber(raw).orEmpty()
         val name = streetWithoutHouseNumber(raw)
         return Triple(name, house, postal)
+    }
+
+    /**
+     * Merge a contact's structured address fields with its formatted address
+     * (`ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS`)
+     * into the components used for resolution (spec: address-book-search —
+     * resolution from formatted address only, formatted address completes
+     * partial components).
+     *
+     * Structured values win; [formatted] is parsed only when a component is
+     * missing (street, city, or postal code) and fills exactly the gaps. The
+     * street field is normalized first, so an embedded postal code is never
+     * taken as the house number. The [region] is the last resort for the city.
+     */
+    fun components(
+        street: String,
+        postalCode: String,
+        city: String,
+        region: String,
+        formatted: String
+    ): AddressComponents {
+        val (streetName, houseNumber, postalFromStreet) = normalizeStreetField(street, postalCode)
+        val structuredCity = city.trim()
+        val parsed = if (streetName.isEmpty() ||
+            structuredCity.isEmpty() ||
+            postalFromStreet.isEmpty()
+        ) {
+            parse(formatted)
+        } else {
+            null
+        }
+        return AddressComponents(
+            street = streetName.ifEmpty { parsed?.street.orEmpty() },
+            houseNumber = houseNumber.ifEmpty { parsed?.houseNumber.orEmpty() },
+            postalCode = postalFromStreet.ifEmpty { parsed?.postalCode.orEmpty() },
+            city = structuredCity.ifEmpty { parsed?.city.orEmpty() }.ifEmpty { region.trim() }
+        )
+    }
+
+    /**
+     * Stable identity of a contact address, used to collapse the same address
+     * stored twice (e.g. the person exists in two synchronized address books)
+     * and to key the address picker list (spec: address-book-search "Identical
+     * addresses from two accounts collapse").
+     *
+     * Components are merged with the formatted address first, so a
+     * component-only row and a formatted-only row of the same address compare
+     * equal, then normalized (trimmed, lower-cased, `ß` folded to `ss`).
+     */
+    fun identityKey(address: ContactPostalAddress): String {
+        val components = components(
+            street = address.street,
+            postalCode = address.postalCode,
+            city = address.city,
+            region = address.region,
+            formatted = address.formatted
+        )
+        return listOf(
+            components.street,
+            components.houseNumber,
+            components.postalCode,
+            components.city
+        ).joinToString("|") { it.trim().lowercase().replace("ß", "ss") }
     }
 
     /** Trailing or leading house number of a street string, e.g. "1", "12a", "1-3". */

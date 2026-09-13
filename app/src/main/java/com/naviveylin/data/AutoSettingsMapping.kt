@@ -20,7 +20,9 @@ internal fun AppSettings.toAutoSettings(): AutoSettings = AutoSettings(
     laneHintsEnabled = laneHintsEnabled,
     renderMode = renderMode.name,
     styleSheet = styleSheet,
-    overspeedWarningDeltaKmh = overspeedWarningDeltaKmh
+    overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
+    routingAnchorId = routingAnchorId,
+    freeDrivingAnchorId = freeDrivingAnchorId
 )
 
 /**
@@ -36,5 +38,7 @@ internal fun AutoSettings.toAppSettings(current: AppSettings): AppSettings = cur
     laneHintsEnabled = laneHintsEnabled,
     renderMode = RenderMode.valueOf(renderMode),
     styleSheet = styleSheet,
-    overspeedWarningDeltaKmh = overspeedWarningDeltaKmh
+    overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
+    routingAnchorId = routingAnchorId,
+    freeDrivingAnchorId = freeDrivingAnchorId
 )

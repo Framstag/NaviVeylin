@@ -36,6 +36,35 @@ class NavigationScreenTest {
         assertTrue("back must be enabled during navigation", callback.isEnabled)
     }
 
+    // ── navigationBackBehavior (design D3, spec: auto/navigation-view —
+    // "Leave navigation at any time"; back must never be a dead no-op) ──
+
+    @Test
+    fun backDuringNavigationStopsNavigation() {
+        var stopped = false
+        var left = false
+        NavigationScreen.navigationBackBehavior(
+            isNavigating = true,
+            onStopNavigation = { stopped = true },
+            onLeaveNavigationView = { left = true }
+        )
+        assertTrue("back during navigation must stop navigation", stopped)
+        assertFalse("back during navigation must not leave the view directly", left)
+    }
+
+    @Test
+    fun backWhenNotNavigatingLeavesView() {
+        var stopped = false
+        var left = false
+        NavigationScreen.navigationBackBehavior(
+            isNavigating = false,
+            onStopNavigation = { stopped = true },
+            onLeaveNavigationView = { left = true }
+        )
+        assertTrue("back with navigation inactive must leave the view", left)
+        assertFalse("back with navigation inactive must not call stop navigation", stopped)
+    }
+
     // ── shouldRotateHeadingUp (spec: auto/map-pan — rotation frozen while panned) ──
 
     @Test

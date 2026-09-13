@@ -592,6 +592,7 @@ class MapScreen(
         // render so the stale-variant overrun buffer is never blitted.
         scope.launch {
             resolvedDark.collect { dark ->
+                mapRenderer.setDarkPresentation(dark)
                 if (daylightApplier.apply(dark)) {
                     mapRenderer.invalidateStyle()
                 }

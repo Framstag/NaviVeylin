@@ -18,7 +18,10 @@ import javax.inject.Singleton
  * app and, through it, the Android Auto screen.
  *
  * Called from a background dispatcher (never the main thread). Contacts are
- * read on demand and never persisted.
+ * read on demand and never persisted. Identical postal rows of one contact
+ * (the same address stored by two synchronized accounts) are collapsed to a
+ * single address (spec: address-book-search "Identical addresses from two
+ * accounts collapse").
  */
 @Singleton
 class ContactsRepository @Inject constructor(
@@ -36,7 +39,13 @@ class ContactsRepository @Inject constructor(
         val names = queryDisplayNames(byContact.keys)
 
         return byContact
-            .map { (id, addresses) -> ContactAddressBookEntry(id, names[id] ?: "", addresses) }
+            .map { (id, addresses) ->
+                ContactAddressBookEntry(
+                    id,
+                    names[id] ?: "",
+                    addresses.distinctBy { AddressParser.identityKey(it) }
+                )
+            }
             .sortedBy { it.name.lowercase() }
     }
 

@@ -3,6 +3,9 @@ package com.naviveylin.auto
 import android.graphics.Canvas
 import android.view.Surface
 import com.framstag.libosmscout.client.FakeAutoRenderClient
+import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.VehicleAnchorPosition
+import com.naviveylin.core.anchorCenter
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -495,5 +498,63 @@ class AutoMapRendererTest {
         val displayAfter = renderer.markerPosition()
         assertEquals(displayBefore.first, displayAfter.first, 1e-12)
         assertEquals(displayBefore.second, displayAfter.second, 1e-12)
+    }
+
+    @Test
+    fun defaultFollowAnchorKeepsCenterFraming() {
+        // Default anchor (center/center) must reproduce the pre-feature
+        // framing: the follow render target equals the vehicle position.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.setGpsMarker(51.5142273, 7.4652789, 45.0, 10.0)
+        renderer.reCenter()
+        assertEquals(51.5142273, renderer.markerViewport().first, 1e-9)
+        assertEquals(7.4652789, renderer.markerViewport().second, 1e-9)
+    }
+
+    @Test
+    fun offCenterAnchorShiftsFollowRenderTarget() {
+        // Bottom-right anchor: after reCenter the render target must be the
+        // anchor center of the fix — projecting the fix against it lands on
+        // the 70%/90% fractions (spec: auto/free-driving — Follow mode
+        // activated; auto/navigation-view — Vehicle anchor during navigation).
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.setFollowAnchor(VehicleAnchorPosition.BOTTOM_RIGHT)
+        renderer.setGpsMarker(51.5142273, 7.4652789, 45.0, 10.0)
+        renderer.reCenter()
+
+        val vp = renderer.markerViewport()
+        assertFalse(vp.first == 51.5142273 && vp.second == 7.4652789)
+        val proj = ProjectionUtils.viewport(
+            vp.first, vp.second, renderer.fractionalZoom(), 100, 100, 240.0,
+            renderer.viewportState.value.angle
+        )
+        val (x, y) = proj.geoToScreen(51.5142273, 7.4652789)
+        assertEquals(0.7 * 100, x, 0.5)
+        assertEquals(0.9 * 100, y, 0.5)
+    }
+
+    @Test
+    fun reengageFollowAnchorsViewportToFix() {
+        // Re-engage after a pan must return the marker to the anchor, not the
+        // surface center (spec: auto/navigation-view — Anchor restored after
+        // manual pan).
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.setFollowAnchor(VehicleAnchorPosition.BOTTOM_CENTER)
+        renderer.setGpsMarker(51.5142273, 7.4652789, 45.0, 10.0)
+        renderer.setViewport(51.5142273, 7.4652789, 12, 0.0)
+        renderer.reengageFollow()
+
+        val expected = anchorCenter(
+            51.5142273, 7.4652789, VehicleAnchorPosition.BOTTOM_CENTER,
+            renderer.fractionalZoom(), 100, 100, 240.0, renderer.viewportState.value.angle
+        )
+        assertEquals(expected.first, renderer.markerViewport().first, 1e-9)
+        assertEquals(expected.second, renderer.markerViewport().second, 1e-9)
     }
 }

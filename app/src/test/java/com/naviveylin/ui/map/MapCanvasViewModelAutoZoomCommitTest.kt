@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
@@ -34,15 +35,28 @@ import org.robolectric.RobolectricTestRunner
 /**
  * Verifies the fractional auto-zoom commit path (spec: auto-speed-zoom —
  * Smooth zoom transitions): fractional magnifications committed via
- * SpeedZoomTable.stepToward, epsilon no-op at constant speed, first-commit
- * direct jump (spec's "Speed unknown" scenario), and the autoZoomCommitTick
- * bumped only on real commits (spec: smooth-zoom).
+ * SpeedZoomTable.stepToward with the distance-proportional step (gain 0.3,
+ * capped at 0.5 levels per update, settling inside the ZOOM_EPSILON deadband),
+ * epsilon no-op at constant speed, first-commit direct jump (spec's "Speed
+ * unknown" scenario), and the autoZoomCommitTick bumped only on real commits
+ * (spec: smooth-zoom).
  *
  * Classloader rule (AGENTS.md): FakeOSMScoutClient-backed tests run under
  * Robolectric with the DEFAULT sandbox — no @Config(sdk=...).
  */
 @RunWith(RobolectricTestRunner::class)
 class MapCanvasViewModelAutoZoomCommitTest {
+
+    private companion object {
+        /** Speed whose interpolated target is 14.5 (table: 60 km/h → 16, 90 km/h → 13). */
+        const val HIGHWAY_SPEED_KMH = 75.0
+
+        /** Interpolated target magnification at [HIGHWAY_SPEED_KMH]. */
+        const val HIGHWAY_TARGET_MAG = 14.5
+
+        /** Iteration guard for the convergence helper (settles in ~10 updates). */
+        const val MAX_SETTLE_PUMPS = 30
+    }
 
     private lateinit var context: Context
     private lateinit var client: FakeOSMScoutClient
@@ -135,8 +149,49 @@ class MapCanvasViewModelAutoZoomCommitTest {
         scope.runCurrent()
     }
 
+    /**
+     * Pump [HIGHWAY_SPEED_KMH] fixes until the proportional auto-zoom stops
+     * committing (the remaining gap fell inside [SpeedZoomTable.ZOOM_EPSILON]),
+     * asserting the documented curve: monotonic approach, no overshoot, never
+     * rounded, one `autoZoomCommitTick` bump per commit. An exact landing on the
+     * target is asymptotically unreachable under the gain, so the settle check
+     * asserts the deadband instead. Returns the settled magnification.
+     */
+    private fun TestScope.pumpUntilAutoZoomSettles(firstStep: Int): Double {
+        var previous = viewModel.uiState.value.viewport.magnification
+        var commits = viewModel.uiState.value.autoZoomCommitTick
+        val zoomingOut = HIGHWAY_TARGET_MAG < previous
+        var step = firstStep
+        while (step < firstStep + MAX_SETTLE_PUMPS) {
+            pumpFix(this, step, HIGHWAY_SPEED_KMH)
+            val current = viewModel.uiState.value.viewport.magnification
+            if (current == previous) break
+            if (zoomingOut) {
+                assertTrue("must approach the target ($current after $previous)", current < previous)
+                assertTrue("must not overshoot the target ($current)", current >= HIGHWAY_TARGET_MAG)
+            } else {
+                assertTrue("must approach the target ($current after $previous)", current > previous)
+                assertTrue("must not overshoot the target ($current)", current <= HIGHWAY_TARGET_MAG)
+            }
+            assertTrue("must stay fractional, never rounded ($current)", current % 1.0 != 0.0)
+            commits += 1
+            assertEquals("each commit bumps the tick", commits, viewModel.uiState.value.autoZoomCommitTick)
+            previous = current
+            step += 1
+        }
+        assertTrue(
+            "auto-zoom must settle before the iteration guard ($previous)",
+            step < firstStep + MAX_SETTLE_PUMPS
+        )
+        assertTrue(
+            "settled inside the deadband ($previous)",
+            kotlin.math.abs(previous - HIGHWAY_TARGET_MAG) <= SpeedZoomTable.ZOOM_EPSILON
+        )
+        return previous
+    }
+
     @Test
-    fun `auto zoom commits fractional magnifications stepping half a level per update`() = runTest(mainDispatcherRule.dispatcher) {
+    fun `auto zoom converges proportionally and settles inside the deadband`() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.enterFreeDrive()
         // First fix at city speed: first-commit exception jumps to target 16.0.
         pumpFix(this, 1, 30.0)
@@ -148,23 +203,32 @@ class MapCanvasViewModelAutoZoomCommitTest {
         assertEquals(16.0, viewModel.uiState.value.viewport.magnification, 0.001)
         assertEquals("constant speed must not re-commit", 1, viewModel.uiState.value.autoZoomCommitTick)
 
-        // Accelerate to 75 km/h → target 14.5: converge at most 0.5/update.
-        pumpFix(this, 3, 75.0)
-        assertEquals("step 1 of 3", 15.5, viewModel.uiState.value.viewport.magnification, 0.001)
+        // Accelerate to 75 km/h → target 14.5: the step is the proportional
+        // fraction (gain 0.3) of the remaining gap, capped at 0.5 per update.
+        // A 1.5-level gap therefore steps 0.45, NOT a fixed 0.5 (design D1/D5),
+        // so the sequence is 16.0 → 15.55 → 15.235 → 15.0145 …
+        pumpFix(this, 3, HIGHWAY_SPEED_KMH)
+        assertEquals("proportional step 1 (0.3 × 1.5)", 15.55, viewModel.uiState.value.viewport.magnification, 0.001)
         assertEquals(2, viewModel.uiState.value.autoZoomCommitTick)
 
-        pumpFix(this, 4, 75.0)
-        assertEquals("step 2 of 3", 15.0, viewModel.uiState.value.viewport.magnification, 0.001)
+        pumpFix(this, 4, HIGHWAY_SPEED_KMH)
+        assertEquals("proportional step 2 (0.3 × 1.05)", 15.235, viewModel.uiState.value.viewport.magnification, 0.001)
         assertEquals(3, viewModel.uiState.value.autoZoomCommitTick)
 
-        pumpFix(this, 5, 75.0)
-        assertEquals("settles at the fractional target, never rounded", 14.5, viewModel.uiState.value.viewport.magnification, 0.001)
+        pumpFix(this, 5, HIGHWAY_SPEED_KMH)
+        assertEquals("proportional step 3 (0.3 × 0.735)", 15.0145, viewModel.uiState.value.viewport.magnification, 0.001)
         assertEquals(4, viewModel.uiState.value.autoZoomCommitTick)
 
-        // Speed unchanged: epsilon no-op, no further commits.
-        pumpFix(this, 6, 75.0)
-        assertEquals(14.5, viewModel.uiState.value.viewport.magnification, 0.001)
-        assertEquals("stable target must not churn", 4, viewModel.uiState.value.autoZoomCommitTick)
+        // The exponential approach continues (sub-epsilon steps floored at
+        // 0.05) and settles inside the ±0.05 deadband around 14.5; the loop
+        // asserts monotonicity, no overshoot and the per-commit tick bump.
+        val settled = pumpUntilAutoZoomSettles(firstStep = 6)
+
+        // Speed unchanged: epsilon no-op, no further commits, no churn.
+        val settledTick = viewModel.uiState.value.autoZoomCommitTick
+        pumpFix(this, 6 + MAX_SETTLE_PUMPS, HIGHWAY_SPEED_KMH)
+        assertEquals("stable target must not churn", settled, viewModel.uiState.value.viewport.magnification, 0.0)
+        assertEquals("stable target must not re-commit", settledTick, viewModel.uiState.value.autoZoomCommitTick)
     }
 
     @Test
@@ -183,7 +247,7 @@ class MapCanvasViewModelAutoZoomCommitTest {
     }
 
     @Test
-    fun `manual zoom suspends auto zoom and a band change re-engages with fractional convergence`() = runTest(mainDispatcherRule.dispatcher) {
+    fun `manual zoom suspends auto zoom and a band change re-engages with proportional convergence`() = runTest(mainDispatcherRule.dispatcher) {
         viewModel.enterFreeDrive()
         pumpFix(this, 1, 30.0)
         assertEquals(16.0, viewModel.uiState.value.viewport.magnification, 0.001)
@@ -209,22 +273,28 @@ class MapCanvasViewModelAutoZoomCommitTest {
 
         // Speed crosses a band boundary (28 km/h band 2 → 75 km/h band 4):
         // re-engage, converge fractionally from the suspended level (11.0)
-        // toward the 14.5 target at 75 km/h.
-        pumpFix(this, 3, 75.0)
+        // toward the 14.5 target at 75 km/h. A 3.5-level gap exceeds
+        // 0.5 / gain = 1.667 levels, so the first four updates run at the 0.5
+        // cap; from a 1.5-level gap on, the proportional fraction takes over
+        // (0.45, not 0.5) and the approach settles inside the deadband.
+        pumpFix(this, 3, HIGHWAY_SPEED_KMH)
         assertTrue("band-crossing clears the suspension", !viewModel.uiState.value.driveSuspended)
-        assertEquals("re-engage converges, no snap", 11.5, viewModel.uiState.value.viewport.magnification, 0.001)
+        assertEquals("re-engage converges at the cap, no snap", 11.5, viewModel.uiState.value.viewport.magnification, 0.001)
         assertEquals("re-engage commits and bumps the tick", tickBefore + 1, viewModel.uiState.value.autoZoomCommitTick)
-        pumpFix(this, 4, 75.0)
-        assertEquals(12.0, viewModel.uiState.value.viewport.magnification, 0.001)
-        pumpFix(this, 5, 75.0)
-        assertEquals(12.5, viewModel.uiState.value.viewport.magnification, 0.001)
-        pumpFix(this, 6, 75.0)
-        assertEquals(13.0, viewModel.uiState.value.viewport.magnification, 0.001)
-        pumpFix(this, 7, 75.0)
-        assertEquals(13.5, viewModel.uiState.value.viewport.magnification, 0.001)
-        pumpFix(this, 8, 75.0)
-        assertEquals(14.0, viewModel.uiState.value.viewport.magnification, 0.001)
-        pumpFix(this, 9, 75.0)
-        assertEquals("settles at the suburban target", 14.5, viewModel.uiState.value.viewport.magnification, 0.001)
+
+        pumpFix(this, 4, HIGHWAY_SPEED_KMH)
+        assertEquals("capped step (0.3 × 3.0 clamps at 0.5)", 12.0, viewModel.uiState.value.viewport.magnification, 0.001)
+        pumpFix(this, 5, HIGHWAY_SPEED_KMH)
+        assertEquals("capped step (0.3 × 2.5 clamps at 0.5)", 12.5, viewModel.uiState.value.viewport.magnification, 0.001)
+        pumpFix(this, 6, HIGHWAY_SPEED_KMH)
+        assertEquals("capped step (0.3 × 2.0 clamps at 0.5)", 13.0, viewModel.uiState.value.viewport.magnification, 0.001)
+
+        pumpFix(this, 7, HIGHWAY_SPEED_KMH)
+        assertEquals("proportional step at a 1.5-level gap", 13.45, viewModel.uiState.value.viewport.magnification, 0.001)
+        pumpFix(this, 8, HIGHWAY_SPEED_KMH)
+        assertEquals("proportional step at a 1.05-level gap", 13.765, viewModel.uiState.value.viewport.magnification, 0.001)
+
+        // Settles inside the deadband, still never rounding to a whole level.
+        pumpUntilAutoZoomSettles(firstStep = 9)
     }
 }

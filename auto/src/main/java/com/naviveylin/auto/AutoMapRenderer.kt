@@ -1,21 +1,25 @@
 package com.naviveylin.auto
 
 import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PointF
+import android.graphics.Shader
 import android.view.Surface
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.VehicleAnchorPosition
+import com.naviveylin.core.VehicleMarkerGeometry
+import com.naviveylin.core.anchorCenter
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.math.sin
-import kotlin.math.cos
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -97,6 +101,17 @@ class AutoMapRenderer(
     @Volatile private var gpsMarkerAccuracy = 0.0
     @Volatile private var gpsMarkerVisible = false
 
+    // Resolved dark presentation (preference x host signal) — drives the
+    // scheme-aware marker casing (white in day, deep blue-black in dark) and
+    // is pushed by the screen alongside the native stylesheet daylight flag.
+    @Volatile
+    private var darkPresentation = false
+
+    /** Update the dark presentation used by surface-drawn overlays (marker casing). */
+    fun setDarkPresentation(dark: Boolean) {
+        darkPresentation = dark
+    }
+
     @Volatile private var favoriteLats: DoubleArray? = null
     @Volatile private var favoriteLons: DoubleArray? = null
     @Volatile private var routeLats: DoubleArray? = null
@@ -149,6 +164,16 @@ class AutoMapRenderer(
 
     // Follow mode
     @Volatile private var followMode = initialFollowMode
+
+    /**
+     * Follow-mode vehicle anchor (spec: auto/navigation-view — Vehicle anchor
+     * during navigation; auto/free-driving — Follow mode activated). When
+     * follow mode frames the map, the render target is the [anchorCenter] of
+     * the displayed position, so the vehicle marker projects to the anchor
+     * screen fraction instead of the surface center. Defaults to the surface
+     * center = the pre-feature framing.
+     */
+    @Volatile private var followAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
 
     /**
      * True while the owning screen is stopped: the render loop skips frames
@@ -296,8 +321,9 @@ class AutoMapRenderer(
             if (!moving && fixMoved) {
                 displayLat = lat
                 displayLon = lon
-                viewportLat = lat
-                viewportLon = lon
+                val (aLat, aLon) = anchorCenterFor(lat, lon)
+                viewportLat = aLat
+                viewportLon = aLon
                 emitViewportState()
                 blitEligible = true
                 requestRender()
@@ -465,8 +491,9 @@ class AutoMapRenderer(
     fun reCenter() {
         followMode = true
         if (gpsMarkerVisible) {
-            viewportLat = gpsMarkerLat
-            viewportLon = gpsMarkerLon
+            val (aLat, aLon) = anchorCenterFor(gpsMarkerLat, gpsMarkerLon)
+            viewportLat = aLat
+            viewportLon = aLon
             displayLat = gpsMarkerLat
             displayLon = gpsMarkerLon
             emitViewportState()
@@ -494,8 +521,9 @@ class AutoMapRenderer(
     fun reengageFollow() {
         followMode = true
         if (gpsMarkerVisible) {
-            viewportLat = gpsMarkerLat
-            viewportLon = gpsMarkerLon
+            val (aLat, aLon) = anchorCenterFor(gpsMarkerLat, gpsMarkerLon)
+            viewportLat = aLat
+            viewportLon = aLon
             emitViewportState()
         }
     }
@@ -668,7 +696,8 @@ class AutoMapRenderer(
             val offset = FollowPrediction.displayOffsetPx(
                 displayLat, displayLon,
                 overrunLat, overrunLon, overrunMag, overrunAngle,
-                current.width, current.height, w, h, projectionDpi
+                current.width, current.height, w, h, projectionDpi,
+                followAnchor.fx, followAnchor.fy
             )
             // Diagnostic (mirrors the phone's MapCanvasScreen follow log): fix
             // vs predicted vs displayed vs offset, so an AA logcat shows
@@ -694,8 +723,9 @@ class AutoMapRenderer(
                 if (nowMs - lastRenderRequestMs > RENDER_REQUEST_INTERVAL_MS) {
                     lastRenderRequestMs = nowMs
                     blitEligible = false
-                    viewportLat = displayLat
-                    viewportLon = displayLon
+                    val (aLat, aLon) = anchorCenterFor(displayLat, displayLon)
+                    viewportLat = aLat
+                    viewportLon = aLon
                     emitViewportState()
                     requestRender()
                 }
@@ -727,7 +757,9 @@ class AutoMapRenderer(
                 val offset = FollowPrediction.displayOffsetPx(
                     viewportLat, viewportLon,
                     overrunLat, overrunLon, overrunMag, overrunAngle,
-                    ob.width, ob.height, w, h, projectionDpi
+                    ob.width, ob.height, w, h, projectionDpi,
+                    if (followMode) followAnchor.fx else 0.5,
+                    if (followMode) followAnchor.fy else 0.5
                 )
                 if (!offset.clamped) {
                     // Viewport change within the overrun region → blit, no
@@ -960,7 +992,6 @@ class AutoMapRenderer(
         if (x < -200 || x > w + 200 || y < -200 || y > h + 200) return
 
         val density = (projectionDpi / 160.0).toFloat()
-        val arrowSize = 14f * density
         val minRadius = 4f * density
         val accuracyThreshold = 20f * density
 
@@ -994,39 +1025,92 @@ class AutoMapRenderer(
         // Screen bearing: raw GPS bearing + map rotation (same convention as
         // the phone overlay's ProjectionUtils.screenBearing).
         val rawBearing = if (gpsMarkerBearing >= 0.0) gpsMarkerBearing else 0.0
-        val screenBearingDeg = ProjectionUtils.screenBearing(rawBearing, viewportAngle)
-        val dirRad = Math.toRadians(screenBearingDeg)
-        val dirX = sin(dirRad).toFloat()
-        val dirY = -cos(dirRad).toFloat()
+        val screenBearingDeg = ProjectionUtils.screenBearing(rawBearing, viewportAngle).toFloat()
 
-        val tip = PointF(centerX + dirX * arrowSize, centerY + dirY * arrowSize)
-        val back = PointF(centerX - dirX * arrowSize * 0.5f, centerY - dirY * arrowSize * 0.5f)
-        val perpX = -dirY
-        val perpY = dirX
-        val left = PointF(back.x + perpX * arrowSize * 0.55f, back.y + perpY * arrowSize * 0.55f)
-        val right = PointF(back.x - perpX * arrowSize * 0.55f, back.y - perpY * arrowSize * 0.55f)
+        // Unified marker (spec: gps-location-marker, cross-variant parity) —
+        // the same shape and palette as the phone overlay, driven by
+        // VehicleMarkerGeometry (32 dp density-aware, casing + rim + gradient
+        // + soft shadow; legible on both daylight and dark map variants).
+        val hPx = VehicleMarkerGeometry.SIZE_DP * density / 2f
 
-        fun arrow(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        fun buildCore(): Path {
+            val path = Path()
+            val vertices = VehicleMarkerGeometry.outlineVertices()
+            val (x0, y0) = vertices[0]
+            val (x1, y1) = vertices[1]
+            path.moveTo(x0 * hPx, y0 * hPx)
+            path.quadTo(0f, -hPx, x1 * hPx, y1 * hPx)
+            for (i in 2 until vertices.size) {
+                val (x, y) = vertices[i]
+                path.lineTo(x * hPx, y * hPx)
+            }
+            path.close()
+            return path
+        }
+
+        fun fillPaint(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
             this.color = color
         }
 
-        // Drop shadow, then the arrow itself.
-        val shadow = Path().apply {
-            moveTo(tip.x, tip.y + 2f * density)
-            lineTo(left.x, left.y + 2f * density)
-            lineTo(right.x, right.y + 2f * density)
-            close()
+        // Soft blurred shadow, offset in screen space (drawn before the
+        // arrow, rotated to the bearing) — floating-chip depth.
+        val shadowOffsetPx = VehicleMarkerGeometry.SHADOW_OFFSET_DP * density
+        canvas.save()
+        canvas.translate(centerX + shadowOffsetPx, centerY + shadowOffsetPx)
+        canvas.rotate(screenBearingDeg)
+        val shadowPaint = fillPaint(VehicleMarkerGeometry.COLOR_SHADOW.toInt()).apply {
+            maskFilter = BlurMaskFilter(
+                VehicleMarkerGeometry.SHADOW_BLUR_DP * density,
+                BlurMaskFilter.Blur.NORMAL
+            )
         }
-        canvas.drawPath(shadow, arrow(0x66000000.toInt()))
+        canvas.drawPath(buildCore(), shadowPaint)
+        canvas.restore()
 
-        val arrowPath = Path().apply {
-            moveTo(tip.x, tip.y)
-            lineTo(left.x, left.y)
-            lineTo(right.x, right.y)
-            close()
+        // Layered arrow (casing -> rim -> gradient core), rotated about position.
+        canvas.save()
+        canvas.translate(centerX, centerY)
+        canvas.rotate(screenBearingDeg)
+
+        // White casing ring: core scaled about the center. In dark
+        // presentation the casing turns deep blue-black (`COLOR_CASING_DARK`)
+        // so no stencil-white halo shows against dark land — the silhouette
+        // stays clean-cut (user feedback on unified-vehicle-marker). Dark
+        // rides the resolved dark presentation pushed by the screen.
+        val casing = buildCore()
+        val scaleMatrix = Matrix()
+        scaleMatrix.setScale(VehicleMarkerGeometry.CASING_SCALE, VehicleMarkerGeometry.CASING_SCALE)
+        casing.transform(scaleMatrix)
+        canvas.drawPath(
+            casing,
+            fillPaint(if (darkPresentation) VehicleMarkerGeometry.COLOR_CASING_DARK.toInt() else VehicleMarkerGeometry.COLOR_CASING.toInt())
+        )
+
+        // Dark accent rim: stroke around the core (tri-layer arrow).
+        val core = buildCore()
+        val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            color = VehicleMarkerGeometry.COLOR_RIM.toInt()
+            strokeWidth = VehicleMarkerGeometry.RIM_WIDTH_H * hPx
         }
-        canvas.drawPath(arrowPath, arrow(0xFF2196F3.toInt()))
+        canvas.drawPath(core, rimPaint)
+
+        // Core: vertical gradient, light from above.
+        val gradientPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            shader = LinearGradient(
+                0f, -hPx, 0f, VehicleMarkerGeometry.TAIL_Y * hPx,
+                intArrayOf(
+                    VehicleMarkerGeometry.COLOR_GRADIENT_TOP.toInt(),
+                    VehicleMarkerGeometry.COLOR_GRADIENT_BOTTOM.toInt()
+                ),
+                null,
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawPath(core, gradientPaint)
+        canvas.restore()
     }
 
     /**
@@ -1116,15 +1200,40 @@ class AutoMapRenderer(
         }
 
     /**
-     * Viewport the overlays project against: the displayed center in follow
-     * mode, else the render target. Exposed for tests.
+     * Set the follow-mode vehicle anchor preset. When follow mode frames the
+     * map (navigation, free driving, re-center), the render target becomes the
+     * anchor center of the displayed position so the vehicle marker projects
+     * to the anchor screen fraction (spec: auto/navigation-view — Vehicle
+     * anchor during navigation). Callers pass the mode's anchor from the
+     * shared settings (routing vs free-driving). A pending render picks up the
+     * new anchor on the next commit.
      */
-    internal fun markerViewport(): Pair<Double, Double> =
-        if (followMode && !displayLat.isNaN() && !displayLon.isNaN()) {
-            displayLat to displayLon
-        } else {
-            viewportLat to viewportLon
-        }
+    fun setFollowAnchor(anchor: VehicleAnchorPosition) {
+        followAnchor = anchor
+    }
+
+    /** Current follow anchor — exposed for tests. */
+    internal fun followAnchor(): VehicleAnchorPosition = followAnchor
+
+    /**
+     * Follow-framing center for a vehicle position: the [anchorCenter] of the
+     * position under the current surface size, magnification and rotation.
+     * Falls back to the raw position when the surface is not ready.
+     */
+    private fun anchorCenterFor(lat: Double, lon: Double): Pair<Double, Double> {
+        if (surfaceWidth <= 0 || surfaceHeight <= 0) return lat to lon
+        return anchorCenter(
+            lat, lon, followAnchor,
+            viewportZoomFraction, surfaceWidth, surfaceHeight, projectionDpi, viewportAngle
+        )
+    }
+
+    /**
+     * Viewport the overlays project against: the follow render target in
+     * follow mode (the anchor center — what the overrun bitmap was rendered
+     * with), else the render target. Exposed for tests.
+     */
+    internal fun markerViewport(): Pair<Double, Double> = viewportLat to viewportLon
 
     /** Size of the current overrun buffer, or null when none. Exposed for tests. */
     internal fun overrunSize(): Pair<Int, Int>? =

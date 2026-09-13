@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Navigation arrow glyph (map-marker style) for the ongoing
+         navigation notification small icon. Mono only — the system tints it. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2 L21,21 L12,17.25 L3,21 Z" />
+</vector>

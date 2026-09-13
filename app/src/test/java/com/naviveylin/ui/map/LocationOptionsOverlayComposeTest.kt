@@ -3,6 +3,7 @@ package com.naviveylin.ui.map
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import com.naviveylin.core.BundledMapStyles
+import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AmbientLightSensitivity
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -251,5 +252,75 @@ class LocationOptionsOverlayComposeTest {
         composeRule.waitForIdle()
 
         assertEquals(0, reported)
+    }
+
+    @Test
+    fun anchorRowsShowCurrentPresets() {
+        composeRule.setContent {
+            LocationOptionsOverlay(
+                mode = MapMode.NAVIGATION,
+                routingAnchor = VehicleAnchorPosition.BOTTOM_RIGHT,
+                freeDrivingAnchor = VehicleAnchorPosition.TOP_CENTER
+            )
+        }
+        composeRule.onNodeWithContentDescription("Location options").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Vehicle position (navigation)").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Bottom right").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Vehicle position (free driving)").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Top center").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun anchorPickerOffersTheFiveByThreeGridWithCurrentMarked() {
+        var selected: VehicleAnchorPosition? = null
+        composeRule.setContent {
+            LocationOptionsOverlay(
+                mode = MapMode.NAVIGATION,
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = { selected = it }
+            )
+        }
+        composeRule.onNodeWithContentDescription("Location options").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Vehicle position (navigation)").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        // All 15 presets appear with the shared enum labels (label parity with
+        // the Android Auto picker, spec: location-options-ui — Picker labels
+        // match Android Auto).
+        for (anchor in VehicleAnchorPosition.entries) {
+            assertTrue(
+                "preset '${anchor.label}' must appear in the grid picker",
+                composeRule.onAllNodesWithText(anchor.label).fetchSemanticsNodes().isNotEmpty()
+            )
+        }
+
+        // Picking replaces the current anchor and reports the selection.
+        composeRule.onNodeWithText(VehicleAnchorPosition.BOTTOM_LEFT.label).performClick()
+        composeRule.waitForIdle()
+        assertEquals(VehicleAnchorPosition.BOTTOM_LEFT, selected)
+    }
+
+    @Test
+    fun anchorPickerFreeDrivingReportsSelection() {
+        var selected: VehicleAnchorPosition? = null
+        composeRule.setContent {
+            LocationOptionsOverlay(
+                mode = MapMode.FREE_DRIVE,
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = { selected = it }
+            )
+        }
+        composeRule.onNodeWithContentDescription("Location options").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Vehicle position (free driving)").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(VehicleAnchorPosition.BOTTOM_CENTER.label).performClick()
+        composeRule.waitForIdle()
+        assertEquals(VehicleAnchorPosition.BOTTOM_CENTER, selected)
     }
 }

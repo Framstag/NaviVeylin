@@ -23,6 +23,8 @@
     <string name="search_contacts">Kontakte mit Adressen suchen</string>
     <string name="preferences">Einstellungen</string>
     <string name="overspeed_warning">Geschwindigkeitswarnung</string>
+    <string name="vehicle_position_routing">Fahrzeugposition (Navigation)</string>
+    <string name="vehicle_position_free_driving">Fahrzeugposition (freies Fahren)</string>
     <string name="adjust_nav_settings">Navigationseinstellungen anpassen</string>
     <string name="view_crash_logs">Absturz- und Sitzungsprotokolle anzeigen</string>
     <string name="app_information">App-Informationen</string>

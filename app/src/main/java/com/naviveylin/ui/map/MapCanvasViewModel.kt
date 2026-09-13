@@ -15,7 +15,9 @@ import com.framstag.libosmscout.client.RoadInfo
 import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.BundledMapStyles
+import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.SpeedZoomTable
+import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.data.AssetCopier
@@ -36,6 +38,7 @@ import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.ui.route.RoutePanelViewModel
+import com.naviveylin.ui.route.RouteResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
@@ -54,6 +57,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -148,6 +152,17 @@ data class MapCanvasUiState(
     val snackbarMessage: String? = null,
     val canvasOverrun: Double = MapRenderer.DEFAULT_CANVAS_OVERRUN,
     val followMode: Boolean = false,
+    /**
+     * Active follow-mode vehicle anchor (spec: smooth-follow — Vehicle
+     * position anchor in follow mode): routing anchor while route guidance is
+     * active, free-driving anchor otherwise. The map canvas applies it as the
+     * marker's target screen fraction.
+     */
+    val activeFollowAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
+    /** Configured routing anchor (picker value; the active anchor follows guidance state). */
+    val routingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
+    /** Configured free-driving anchor (picker value; the active anchor follows guidance state). */
+    val freeDrivingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
     val autoZoomEnabled: Boolean = true,
     /**
      * Monotonic counter bumped exactly when the speed-driven auto-zoom
@@ -215,6 +230,7 @@ class MapCanvasViewModel @Inject constructor(
     private val darkModeController: DarkModeController,
     private val sharedLocationHandler: SharedLocationHandler,
     private val basemapReloadNotifier: BasemapReloadNotifier,
+    private val drivingModeProvider: DrivingModeProvider? = null,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -349,6 +365,11 @@ class MapCanvasViewModel @Inject constructor(
     private var lastValidSpeedKmH: Double = 20.0
     private var autoZoomSuspended: Boolean = false
 
+    // Vehicle anchors from the shared settings (spec: smooth-follow — Vehicle
+    // position anchor): routing while guidance is active, free-driving otherwise.
+    private var routingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
+    private var freeDrivingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
+
     /** Keep the internal suspension flag and its uiState mirror in sync. */
     private fun setAutoZoomSuspended(suspended: Boolean) {
         autoZoomSuspended = suspended
@@ -386,6 +407,11 @@ class MapCanvasViewModel @Inject constructor(
     // Route geometry for curve detection
     private var routeLats: DoubleArray? = null
     private var routeLons: DoubleArray? = null
+
+    // Last route result the camera was fitted to (spec: route-map-overview —
+    // stale re-emissions must not move a user-moved viewport). Reset to null
+    // when the route is cleared so an identical re-calculation can refit.
+    private var lastFittedResult: RouteResult? = null
 
     /** Get the current navigation position for marker rendering. */
     fun getNavigationPosition(): com.framstag.libosmscout.client.NavigationPosition? = _navPosition
@@ -644,6 +670,22 @@ class MapCanvasViewModel @Inject constructor(
         viewModelScope.launch { searchHistoryRepository.load() }
         refreshAddressBookAvailability()
 
+        // Publish FREE_DRIVE mode to the shared driving-state provider: the
+        // phone surface's vote is `followMode || driveSuspended` (identical to
+        // this ViewModel's mode derivation, spec: map-modes). One observer on
+        // the source of truth — no per-transition publish sites to miss. The
+        // provider is nullable only for Robolectric tests that omit it.
+        val drivingModeProvider = drivingModeProvider
+        if (drivingModeProvider != null) {
+            viewModelScope.launch {
+                _uiState.map { it.followMode || it.driveSuspended }
+                    .distinctUntilChanged()
+                    .collect { freeDriving ->
+                        drivingModeProvider.setFreeDriving(DrivingModeProvider.SURFACE_PHONE, freeDriving)
+                    }
+            }
+        }
+
         // Basemap data changes (download/update/delete while the app runs):
         // invalidate cached tiles and force a re-render so the change shows
         // without an app restart (spec: basemap-loading — current view
@@ -794,6 +836,13 @@ class MapCanvasViewModel @Inject constructor(
                 // Use navigation position if available (filtered by engine), else raw GPS
                 val navPos = _navPosition
                 val isNavigating = _navigationViewModel?.state?.value?.isNavigating == true
+                // Vehicle anchor: routing while route guidance is active, else the
+                // free-driving anchor (spec: smooth-follow — Vehicle position
+                // anchor in follow mode).
+                val activeAnchor = if (isNavigating) routingAnchor else freeDrivingAnchor
+                if (activeAnchor != _uiState.value.activeFollowAnchor) {
+                    _uiState.value = _uiState.value.copy(activeFollowAnchor = activeAnchor)
+                }
                 val markerLat = if (isNavigating && navPos != null && !navPos.lat.isNaN()) navPos.lat else fix.lat
                 val markerLon = if (isNavigating && navPos != null && !navPos.lon.isNaN()) navPos.lon else fix.lon
 
@@ -1060,6 +1109,13 @@ class MapCanvasViewModel @Inject constructor(
                 overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh,
                 styleSheet = settings.styleSheet
             )
+            routingAnchor = VehicleAnchorPosition.fromId(settings.routingAnchorId)
+            freeDrivingAnchor = VehicleAnchorPosition.fromId(settings.freeDrivingAnchorId)
+            _uiState.value = _uiState.value.copy(
+                routingAnchor = routingAnchor,
+                freeDrivingAnchor = freeDrivingAnchor,
+                activeFollowAnchor = if (isNavigatingNow()) routingAnchor else freeDrivingAnchor
+            )
             // If initMap already ran before this load finished (fast user flow),
             // re-apply the persisted style — initMap may have used the default.
             if (mapRenderer != null) {
@@ -1212,6 +1268,47 @@ class MapCanvasViewModel @Inject constructor(
     /** Compare two angles in radians, tolerating wrap-around and floating-point noise. */
     private fun isAngleSame(a: Double, b: Double): Boolean {
         return kotlin.math.abs(normalizeAngle(a - b)) < 1e-4
+    }
+
+    /**
+     * Whether turn-by-turn route guidance is currently active — selects the
+     * routing vs free-driving vehicle anchor.
+     */
+    private fun isNavigatingNow(): Boolean =
+        _navigationViewModel?.state?.value?.isNavigating == true
+
+    /**
+     * Set the routing vehicle anchor (spec: auto-map-layout /
+     * location-options-ui — vehicle position controls). Persists through the
+     * shared settings storage so Android Auto reads the same value.
+     */
+    fun setRoutingAnchor(anchor: VehicleAnchorPosition) {
+        routingAnchor = anchor
+        _uiState.value = _uiState.value.copy(
+            routingAnchor = anchor,
+            activeFollowAnchor = if (isNavigatingNow()) routingAnchor else freeDrivingAnchor
+        )
+        viewModelScope.launch {
+            val current = settingsStorage.load()
+            settingsStorage.save(current.copy(routingAnchorId = anchor.id))
+        }
+    }
+
+    /**
+     * Set the free-driving vehicle anchor (spec: auto-map-layout /
+     * location-options-ui — vehicle position controls). Persists through the
+     * shared settings storage so Android Auto reads the same value.
+     */
+    fun setFreeDrivingAnchor(anchor: VehicleAnchorPosition) {
+        freeDrivingAnchor = anchor
+        _uiState.value = _uiState.value.copy(
+            freeDrivingAnchor = anchor,
+            activeFollowAnchor = if (isNavigatingNow()) routingAnchor else freeDrivingAnchor
+        )
+        viewModelScope.launch {
+            val current = settingsStorage.load()
+            settingsStorage.save(current.copy(freeDrivingAnchorId = anchor.id))
+        }
     }
 
     private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -2199,16 +2296,36 @@ class MapCanvasViewModel @Inject constructor(
                         routeLats = result.routeLats
                         routeLons = result.routeLons
                         renderMap()
+                        // Route-overview fit (spec: route-map-overview): fit once
+                        // per result and never while navigating or following — the
+                        // driver's viewport must not be yanked to an overview
+                        // (reroute mid-drive, restart, free-drive).
+                        if (result != lastFittedResult &&
+                            _navigationViewModel?.state?.value?.isNavigating != true &&
+                            !_uiState.value.followMode
+                        ) {
+                            lastFittedResult = result
+                            fitViewportToRoute(
+                                result.routeLats, result.routeLons,
+                                result.startLat, result.startLon,
+                                result.destLat, result.destLon
+                            )
+                        }
                     }
                 }
         }
 
-        // Collect clear route signals
+        // Collect clear route signals. drop(1): the StateFlow's initial no-signal
+        // value must not race the combine collector on re-subscription (screen
+        // re-entry) — resetting lastFittedResult there would re-fit a stale
+        // emission and move a user-moved viewport (spec: route-map-overview).
         viewModelScope.launch {
-            vm.clearRouteSignal.collect {
+            vm.clearRouteSignal.drop(1).collect {
                 mapRenderer?.clearRoute()
                 routeLats = null
                 routeLons = null
+                // Allow an identical re-calculation to refit the overview.
+                lastFittedResult = null
                 renderMap()
             }
         }
@@ -2707,6 +2824,61 @@ class MapCanvasViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Fit the camera to the route bounding box (spec: route-map-overview —
+     * start, target, and polyline all visible). Centers on the bbox midpoint
+     * and picks a magnification that fits the larger bbox dimension; the
+     * area-favorites floor is overridden with [MIN_MAG] so long trips zoom
+     * out far enough. Leaves the viewport untouched when the canvas size is
+     * unknown or no usable coordinates exist (spec R3 — degenerate geometry).
+     */
+    fun fitViewportToRoute(
+        routeLats: DoubleArray?,
+        routeLons: DoubleArray?,
+        startLat: Double,
+        startLon: Double,
+        destLat: Double,
+        destLon: Double
+    ) {
+        if (screenWidth <= 0 || screenHeight <= 0) return
+        if (routeLats == null || routeLons == null || routeLats.size != routeLons.size) return
+
+        var minLat = Double.POSITIVE_INFINITY
+        var maxLat = Double.NEGATIVE_INFINITY
+        var minLon = Double.POSITIVE_INFINITY
+        var maxLon = Double.NEGATIVE_INFINITY
+        fun include(lat: Double, lon: Double) {
+            if (lat.isNaN() || lon.isNaN() || lat.isInfinite() || lon.isInfinite()) return
+            if (lat < minLat) minLat = lat
+            if (lat > maxLat) maxLat = lat
+            if (lon < minLon) minLon = lon
+            if (lon > maxLon) maxLon = lon
+        }
+        for (i in routeLats.indices) include(routeLats[i], routeLons[i])
+        include(startLat, startLon)
+        include(destLat, destLon)
+
+        // Nothing usable (empty polyline and invalid endpoints).
+        if (minLat.isInfinite() || minLon.isInfinite()) return
+
+        // Degenerate span (point/vertical/horizontal) degrades to NODE_ZOOM
+        // inside computeAreaZoom — center still moves to the endpoints' midpoint.
+        val mag = computeAreaZoom(
+            doubleArrayOf(minLat, maxLat, minLon, maxLon),
+            screenWidth, screenHeight,
+            minZoom = MIN_MAG
+        )
+        val centerLat = (minLat + maxLat) / 2.0
+        val centerLon = (minLon + maxLon) / 2.0
+        updateCenter(centerLat, centerLon)
+        _uiState.value = _uiState.value.copy(
+            viewport = _uiState.value.viewport.copy(magnification = mag)
+        )
+        renderMap()
+        Log.d(TAG, "fitViewportToRoute: center=" + String.format("%.5f", centerLat) + "," +
+            String.format("%.5f", centerLon) + " mag=" + mag)
+    }
+
     /** Update map rotation angle (called from two-finger rotation gesture). */
     fun updateAngle(angleRadians: Double) {
         _uiState.value = _uiState.value.copy(
@@ -2927,9 +3099,12 @@ class MapCanvasViewModel @Inject constructor(
          * @param bbox double[4] = [minLat, maxLat, minLon, maxLon]
          * @param vpWidth viewport width in pixels
          * @param vpHeight viewport height in pixels
-         * @return magnification level clamped to [MIN_MAG, MAX_MAG]
+         * @param minZoom floor of the returned magnification; defaults to the
+         *   area-favorites floor ([MIN_AREA_ZOOM]), route overviews pass
+         *   [MIN_MAG] so long trips fit (spec: route-map-overview)
+         * @return magnification level clamped to [minZoom, MAX_MAG]
          */
-        fun computeAreaZoom(bbox: DoubleArray, vpWidth: Int, vpHeight: Int): Double {
+        fun computeAreaZoom(bbox: DoubleArray, vpWidth: Int, vpHeight: Int, minZoom: Double = MIN_AREA_ZOOM): Double {
             if (vpWidth <= 0 || vpHeight <= 0) return NODE_ZOOM
 
             val minLat = bbox[0]
@@ -2970,7 +3145,7 @@ class MapCanvasViewModel @Inject constructor(
                 Math.log(earthCircumference / (256.0 * targetMetersPerPixel)) / Math.log(2.0)
             ).toInt()
 
-            return mag.toDouble().coerceIn(MIN_AREA_ZOOM, MAX_MAG)
+            return mag.toDouble().coerceIn(minZoom, MAX_MAG)
         }
     }
 }

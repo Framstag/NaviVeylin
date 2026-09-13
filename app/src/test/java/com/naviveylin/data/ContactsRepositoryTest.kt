@@ -120,6 +120,98 @@ class ContactsRepositoryTest {
         assertTrue(ContactsRepository(context).contactsWithAddresses().isEmpty())
     }
 
+    // --- identical addresses from two synchronized accounts
+    // (spec: address-book-search "Identical addresses from two accounts
+    // collapse")
+
+    @Test
+    fun `identical addresses of one contact collapse to one`() {
+        registerProvider(
+            postal = listOf(
+                postalRow(1, 10),
+                postalRow(2, 10)
+            ),
+            contacts = listOf(contactRow(10, "Alice"))
+        )
+
+        val entries = ContactsRepository(context).contactsWithAddresses()
+
+        assertEquals(1, entries.size)
+        assertEquals(1, entries[0].addresses.size)
+        assertEquals("Main Street 1", entries[0].addresses[0].street)
+    }
+
+    @Test
+    fun `identical addresses are collapsed case- and whitespace-insensitively`() {
+        registerProvider(
+            postal = listOf(
+                postalRow(1, 10, street = "Main Street 1", postcode = "10115", city = "Berlin"),
+                postalRow(2, 10, street = " main street 1 ", postcode = "10115", city = "BERLIN")
+            ),
+            contacts = listOf(contactRow(10, "Alice"))
+        )
+
+        val entries = ContactsRepository(context).contactsWithAddresses()
+
+        assertEquals(1, entries[0].addresses.size)
+    }
+
+    @Test
+    fun `component-only and formatted-only rows of the same address collapse`() {
+        registerProvider(
+            postal = listOf(
+                postalRow(1, 10, street = "Main Street 1", postcode = "10115", city = "Berlin"),
+                postalRow(
+                    2,
+                    10,
+                    street = "",
+                    postcode = "",
+                    city = "",
+                    formatted = "Main Street 1, 10115 Berlin"
+                )
+            ),
+            contacts = listOf(contactRow(10, "Alice"))
+        )
+
+        val entries = ContactsRepository(context).contactsWithAddresses()
+
+        assertEquals(1, entries[0].addresses.size)
+        // The structured row wins (first in provider order).
+        assertEquals("Main Street 1", entries[0].addresses[0].street)
+    }
+
+    @Test
+    fun `distinct addresses of one contact are both kept`() {
+        registerProvider(
+            postal = listOf(
+                postalRow(1, 10, street = "Main Street 1", city = "Berlin", postcode = "10115"),
+                postalRow(2, 10, street = "Main Street 2", city = "Berlin", postcode = "10115"),
+                postalRow(3, 10, street = "Other Street 1", city = "Potsdam", postcode = "14467")
+            ),
+            contacts = listOf(contactRow(10, "Alice"))
+        )
+
+        val entries = ContactsRepository(context).contactsWithAddresses()
+
+        assertEquals(3, entries[0].addresses.size)
+    }
+
+    @Test
+    fun `deduplication is per contact and does not merge different people`() {
+        registerProvider(
+            postal = listOf(
+                postalRow(1, 10),
+                postalRow(2, 11)
+            ),
+            contacts = listOf(contactRow(10, "Alice"), contactRow(11, "Bob"))
+        )
+
+        val entries = ContactsRepository(context).contactsWithAddresses()
+
+        assertEquals(listOf("Alice", "Bob"), entries.map { it.name })
+        assertTrue(entries.all { it.addresses.size == 1 })
+    }
+
     /** Minimal in-memory contacts provider for the shadow content resolver. */
     private class FakeContactsProvider(
         private val postal: List<Map<String, Any?>>,

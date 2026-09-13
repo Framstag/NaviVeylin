@@ -23,6 +23,7 @@ import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.stringResolver
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
@@ -141,6 +142,9 @@ class NavigationScreen(
     private val autoZoomController = AutoZoomController()
     private var autoZoomEnabled: Boolean = true
 
+    /** Routing vehicle anchor from the shared settings (default center). */
+    private var routingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
+
     /**
      * Host pan-mode handling (spec: auto/map-pan): disengages follow and
      * suspends auto-zoom on pan entry, re-engages follow on exit, and
@@ -181,11 +185,22 @@ class NavigationScreen(
     }
 
     init {
-        // Back during navigation stops it; the session observer then pops the
-        // screen back to the root menu.
+        // Back leaves the navigation view in EVERY state (design D3, spec:
+        // auto/navigation-view — "Leave navigation at any time"): during
+        // navigation it stops navigation (the session observer then pops the
+        // screen back to the root menu); once navigation is already inactive
+        // it must still leave — the not-navigating fallback template (bare
+        // map + lone strip BACK) is otherwise a dead end whose only affordance
+        // does nothing.
         carContext.getOnBackPressedDispatcher().addCallback(
             this,
-            backCallback { navigationViewModel.stopNavigation() }
+            backCallback {
+                navigationBackBehavior(
+                    isNavigating = navigationViewModel.state.value.isNavigating,
+                    onStopNavigation = { navigationViewModel.stopNavigation() },
+                    onLeaveNavigationView = { screenManager.popToRoot() }
+                )
+            }
         )
 
         // Surface overlays: right-edge indicators (rotating compass rose +
@@ -365,6 +380,18 @@ class NavigationScreen(
                 .collect { state ->
                     val changed = hasStateChanged(state)
                     lastState = state
+                    // Navigation ended while this screen is visible: leave
+                    // immediately (design D2). The not-navigating fallback is
+                    // a dead end — the lone strip BACK would stop nothing — so
+                    // the screen exits itself instead of relying on the
+                    // session observer, which may not be collecting yet (e.g.
+                    // navigation ended during the warmup window). popToRoot is
+                    // idempotent: the session pops too, and whichever runs
+                    // first wins, the other is a no-op.
+                    if (!state.isNavigating) {
+                        screenManager.popToRoot()
+                        return@collect
+                    }
                     // Route polyline for the map renderer ("_route" style);
                     // re-renders when a new route (navigation start/reroute)
                     // arrives and clears when navigation stops.
@@ -402,12 +429,15 @@ class NavigationScreen(
                                     if (settings.laneHintsEnabled != laneHintsEnabled ||
                                         settings.navNorthUp != navNorthUp ||
                                         settings.autoZoomEnabled != autoZoomEnabled ||
-                                        settings.overspeedWarningDeltaKmh != overspeedWarningDeltaKmh
+                                        settings.overspeedWarningDeltaKmh != overspeedWarningDeltaKmh ||
+                                        VehicleAnchorPosition.fromId(settings.routingAnchorId) != routingAnchor
                                     ) {
                                         laneHintsEnabled = settings.laneHintsEnabled
                                         navNorthUp = settings.navNorthUp
                                         autoZoomEnabled = settings.autoZoomEnabled
                                         overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
+                                        routingAnchor = VehicleAnchorPosition.fromId(settings.routingAnchorId)
+                                        mapRenderer.setFollowAnchor(routingAnchor)
                                         mapRenderer.requestRender()
                                     }
                                 }
@@ -724,6 +754,21 @@ class NavigationScreen(
                     onBack()
                 }
             }
+
+        /**
+         * Back behavior decision (design D3, spec: auto/navigation-view —
+         * "Leave navigation at any time"): while navigating, back stops
+         * navigation; once navigation is already inactive, back leaves the
+         * (dead-end fallback) navigation view. Pure seam so the branching is
+         * unit-testable without a live CarContext.
+         */
+        fun navigationBackBehavior(
+            isNavigating: Boolean,
+            onStopNavigation: () -> Unit,
+            onLeaveNavigationView: () -> Unit
+        ) {
+            if (isNavigating) onStopNavigation() else onLeaveNavigationView()
+        }
 
         /**
          * Heading-up rotation decision: rotate with the bearing unless the

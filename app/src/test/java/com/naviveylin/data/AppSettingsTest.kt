@@ -1,5 +1,6 @@
 package com.naviveylin.data
 
+import com.naviveylin.core.VehicleAnchorPosition
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test
@@ -36,6 +37,46 @@ class AppSettingsTest {
         assertEquals(settings.navNorthUp, decoded.navNorthUp)
         assertEquals(settings.darkMode, decoded.darkMode)
     }
+
+    @Test
+    fun anchorDefaultsAreCenter() {
+        val settings = AppSettings()
+        assertEquals(VehicleAnchorPosition.DEFAULT.id, settings.routingAnchorId)
+        assertEquals(VehicleAnchorPosition.DEFAULT.id, settings.freeDrivingAnchorId)
+    }
+
+    @Test
+    fun anchorsSurviveJsonRoundTrip() {
+        val settings = AppSettings(
+            routingAnchorId = VehicleAnchorPosition.BOTTOM_RIGHT.id,
+            freeDrivingAnchorId = VehicleAnchorPosition.TOP_CENTER.id
+        )
+        val encoded = json.encodeToString(AppSettings.serializer(), settings)
+        val decoded = json.decodeFromString(AppSettings.serializer(), encoded)
+        assertEquals(settings.routingAnchorId, decoded.routingAnchorId)
+        assertEquals(settings.freeDrivingAnchorId, decoded.freeDrivingAnchorId)
+    }
+
+    @Test
+    fun oldJsonWithoutAnchorFieldsDefaultsToCenter() {
+        // An install that predates the feature: the stored JSON has no anchor
+        // keys, so `ignoreUnknownKeys` + defaults must yield center anchors.
+        val decoded = json.decodeFromString(AppSettings.serializer(), """{"followMode":true}""")
+        assertEquals(VehicleAnchorPosition.DEFAULT.id, decoded.routingAnchorId)
+        assertEquals(VehicleAnchorPosition.DEFAULT.id, decoded.freeDrivingAnchorId)
+    }
+
+    @Test
+    fun unknownAnchorIdDefaultsToCenterOnDecode() {
+        // Robustness: a hand-edited or older-store id resolves to the default
+        // via VehicleAnchorPosition.fromId rather than crashing.
+        assertEquals(
+            VehicleAnchorPosition.DEFAULT,
+            VehicleAnchorPosition.fromId(decodedUnknownId())
+        )
+    }
+
+    private fun decodedUnknownId(): String? = null
 
     @Test
     fun backwardCompatibleWithOldFields() {

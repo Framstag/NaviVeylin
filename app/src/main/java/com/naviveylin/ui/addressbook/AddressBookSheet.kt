@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.R
 import com.naviveylin.core.addressbook.ContactAddressBookEntry
+import com.naviveylin.data.AddressParser
 
 /**
  * Address-book person search embedded as the Contacts mode of the unified
@@ -180,7 +181,15 @@ private fun AddressPicker(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            items(contact.addresses, key = { it.hashCode() }) { address ->
+            // Addresses are deduplicated at the read boundary; distinctBy here
+            // keeps the item keys unique even if a caller passes duplicates
+            // (spec: address-book-search — the address selection list renders
+            // each distinct address exactly once and never fails on duplicate
+            // entries).
+            items(
+                contact.addresses.distinctBy { AddressParser.identityKey(it) },
+                key = { AddressParser.identityKey(it) }
+            ) { address ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

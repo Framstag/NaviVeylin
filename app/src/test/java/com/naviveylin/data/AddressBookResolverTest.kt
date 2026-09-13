@@ -553,6 +553,41 @@ class AddressBookResolverTest {
         assertTrue(results.all { it.label!!.contains("Erbstollenstraße") })
     }
 
+    @Test
+    fun `house-prefix street with ss spelling resolves like the form search`() {
+        val client = FakeOSMScoutClient()
+        // Native result label carries the index spelling (ß); the contact's
+        // street field holds the sync-transliterated form (ss). The evidence
+        // gate folds ß->ss on both sides, so the entry is accepted — the
+        // Kotlin mirror of the native transliterate matcher (spec:
+        // address-book-search — resolution from formatted address only).
+        client.nextFormResults = arrayOf(entry("Erbstollenstraße 10", 51.45, 7.41).apply {
+            objectType = "address"
+            matchQuality = "match"
+        })
+        val resolver = AddressBookResolver(client)
+
+        val results = resolver.resolveAddress(
+            ContactPostalAddress(
+                street = "10 Erbstollenstrasse",
+                postalCode = "58454",
+                city = "Witten"
+            )
+        )
+
+        assertEquals(1, results.size)
+        assertEquals("Erbstollenstraße 10", results[0].label)
+        // Prefix house number stripped, postal/city kept: the form search
+        // sees the street without the house and the house as the address
+        // field (same call the ß-spelled twin in the other tests makes).
+        assertEquals(
+            listOf("Witten", "58454", "Erbstollenstrasse", "10"),
+            client.formSearchArgs[0]
+        )
+        // Form search succeeded — no string search fallback.
+        assertTrue(client.searchQueries.isEmpty())
+    }
+
     private fun regionEntry(label: String): LocationEntry =
         entry(label, 51.44, 7.34).apply {
             objectType = "boundary_administrative"

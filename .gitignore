@@ -17,7 +17,7 @@ app/release-version.properties
 # Gradle build outputs
 .gradle/
 .kotlin/
-build/
+/build/
 */build/
 
 # CMake external build dirs

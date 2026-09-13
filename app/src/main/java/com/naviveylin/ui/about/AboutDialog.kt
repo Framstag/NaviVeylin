@@ -34,6 +34,7 @@ import com.naviveylin.ui.attribution.openUrl
 fun AboutDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     var showDiagnostics by remember { mutableStateOf(false) }
+    var showLicenses by remember { mutableStateOf(false) }
 
     val versionName = BuildConfig.VERSION_NAME.ifBlank { "?" }
 
@@ -85,6 +86,20 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // The bundled dependency licenses, generated from the same SBOM
+                // the license gate validates at build time.
+                TextButton(
+                    onClick = { showLicenses = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.licenses_title),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -150,6 +165,10 @@ fun AboutDialog(onDismiss: () -> Unit) {
 
     if (showDiagnostics) {
         DiagnosticsDialog(onDismiss = { showDiagnostics = false })
+    }
+
+    if (showLicenses) {
+        LicensesDialog(onDismiss = { showLicenses = false })
     }
 }
 

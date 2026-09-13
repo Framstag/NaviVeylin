@@ -218,3 +218,93 @@ VCPKG_BINARY_SOURCES=clear ./vcpkg/vcpkg install gettext:arm64-android --recurse
 
 (with `ANDROID_SDK_ROOT`/`ANDROID_NDK_HOME` set as in `setup-vcpkg.sh`) and
 re-run; the task names the exact missing file.
+
+## 9. License compliance
+
+The SBOM also carries license data, and that data is what the app shows and
+what the gate enforces. Three pieces fit together:
+
+| Piece | Where | Purpose |
+|---|---|---|
+| Curated data | `licenses/native-license-map.json`, `licenses/license-policy.json`, `licenses/texts/` | what each native component declares, what the build permits, where each license text comes from |
+| Evaluation logic | `buildSrc/src/main/kotlin/com/naviveylin/build/licensing/` | pure Kotlin: expression/election resolution, policy gate, scope classification, asset generation — unit-tested by the build itself |
+| Generated output | `licenses/dependencies.json` + `licenses/texts/*` in each APK's assets; `NOTICE` next to each SBOM | what users read, tied to the artifact that was built |
+
+**SBOM license data.** Each component of a variant SBOM carries at least one
+license identifier (`license.id`, or a `licenses[].expression` for a
+`LicenseRef-`), plus properties: `naviveylin:license:scope`
+(`shipped`/`buildTimeOnly`), `naviveylin:license:scope-evidence` (why),
+`naviveylin:license:scope-ambiguity` (shipped without symbol evidence),
+`naviveylin:license:notice`, and `naviveylin:license:caveat` (an unresolved
+doubt, reported rather than hidden).
+
+**Scope is derived from the built artifact** — the variant's stripped native
+libraries under `intermediates/stripped_native_libs/<variant>/`, filtered to
+the ABIs this build produces. A component is *shipped* when a packaged object
+carries its name, or a probe symbol from `probeSymbols` appears in a packaged
+object, or one of its static archives reaches a native `target_link_libraries`
+call (recorded as ambiguous when no symbol of the component itself was found —
+`expat` is the current example). Find-module cache defaults such as
+`LIBXML2_LIBRARY` are **not** link inputs; counting them once made protobuf and
+libxml2 look shipped. Everything else is `buildTimeOnly`. The curated `scope` in
+the map is a cross-check: a disagreement fails the build rather than passing
+silently. The SBOM task therefore depends on the variant's native libraries.
+
+**The gate.** `checkLicensePolicy<Variant>` reads the generated SBOM and
+`licenses/license-policy.json` and fails when a component's license is missing,
+unresolved, not permitted for its scope, or a choice without a recorded
+election. `checkLicensePolicy` covers the CI variant; the `release` target gates
+both release flavors. It is deliberately **not** wired into `assemble`: a policy
+failure must not block unrelated local work, but it must fail the gate that runs
+it. Warnings name licenses still awaiting the application's own license decision
+(`reviewRequired`) and every recorded caveat.
+
+> The gate enforces the policy **declared** in this repository. It is not a
+> legal assessment, and passing it does not mean the project's obligations are
+> satisfied. The application's own license is undecided (`LICENSE` is a bare
+> GPLv2 text, `README.md` says "License information TBD") — see `TODO.md`.
+
+**Policy file** (`licenses/license-policy.json`):
+
+- `permitted.shipped` / `permitted.buildTimeOnly` — two separate lists on
+  purpose: `GPL-3.0-only` (the `gettext` build tool) is permitted as build-time
+  tooling, and the same license on a *shipped* component fails.
+- `elections` — for a component whose license offers a choice, the alternative
+  relied upon, and it must be one the declaration actually offers. Currently
+  cairo `MPL-1.1`, freetype `FTL`, marisa-trie `BSD-2-Clause`, glib
+  `LGPL-2.1-or-later AND LGPL-2.1-only`.
+- `licenseRefs` — SPDX's mechanism for licenses outside the SPDX list.
+  `LicenseRef-AndroidSDK` (Play Services, terms at a URL, text not distributed)
+  and `LicenseRef-NaviVeylin` (first-party code, license undecided).
+- `textSources` — where each identifier's text comes from, declared rather than
+  inferred: `file` (canonical text under `licenses/texts/`), `vcpkgPort` (a
+  port's `copyright`), `androidNdk` (the NDK's `NOTICE.toolchain`), or `none`.
+  An identifier used by a distributed component without a source fails the
+  build. Two examples of why inference was abandoned: the `Apache-2.0` text
+  came out as the entire NDK bundle, and `LGPL-2.1-or-later` came out as
+  marisa-trie's one-line statement instead of the license text.
+- `noticeRequired` — identifiers whose notice must travel with redistribution.
+  Only *distributed* components are asked for one.
+- `reviewRequired` — identifiers awaiting the project owner's license decision.
+
+**Generated assets.** `generateLicenseAssets<Variant>` (a `buildSrc` task,
+`GenerateLicenseAssets`) writes `licenses/dependencies.json` and
+`licenses/texts/*` into `build/generated/assets-licenses/<variant>/`, wired as
+that variant's assets source through the Variant API
+(`variant.sources.assets.addGeneratedSourceDirectory`), plus `NOTICE` next to the
+variant's SBOM. Two constraints learned the hard way: AGP rejects Provider
+instances in the SourceSet API, and a single shared generated root leaks one
+variant's inventory into another's APK (the automotive merged assets had picked
+up `licenses/mobile/debug/`). The app reads `licenses/dependencies.json` from its
+own assets — no shared directory, no runtime lookup by flavor.
+
+**buildSrc.** `./gradlew -p buildSrc test` runs the license suite (45 tests); the
+`build` task Gradle runs on every invocation includes them, and unchanged inputs
+are up-to-date. Java 17 toolchain is pinned there so Kotlin and Java targets
+agree (a newer daemon JVM otherwise emits an inconsistent-target warning).
+
+**CI.** `Check license policy` runs after the SBOM step, and
+`Upload license inventory` publishes the generated inventory
+(`app/build/generated/assets-licenses/mobileDebug/licenses/**`) so a reviewer can
+read it without unpacking an APK.
+

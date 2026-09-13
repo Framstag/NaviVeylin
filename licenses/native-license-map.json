@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "description": [
+    "Curated license map for native components of the NaviVeylin build.",
+    "Authoritative for every native component in the SBOM: the build resolves each",
+    "component's license from this file and fails when a component has no entry.",
+    "`declared` is the license expression as stated by the component's own metadata;",
+    "where it offers a choice, the election relied upon lives in license-policy.json",
+    "(one place for elections, one place for component facts).",
+    "`scope` records whether the component's code is distributed: \"shipped\" means the",
+    "code is linked into a shared object packaged in the APK (evidence: the packaged",
+    "artifact plus the CMake link list), \"buildTimeOnly\" means it is installed on the",
+    "build machine but contributes no shipped binary. License *text* is required only",
+    "for shipped components, because only those texts are distributed by the app.",
+    "`caveat` flags an entry whose claim is not fully evidenced and must be surfaced",
+    "(the gate reports caveats rather than silently accepting them)."
+  ],
+  "textSources": {
+    "vcpkgPort": "vcpkg/installed/<triplet>/share/<port>/copyright",
+    "libosmscout": "app/src/main/cpp/libosmscout/LICENSE and README.md",
+    "androidNdk": "<ANDROID_NDK_HOME>/NOTICE.toolchain"
+  },
+  "probeSymbolsNote": [
+    "How each shipped component's code is recognised inside a packaged shared",
+    "object. `exact` matches a defined dynamic symbol; `prefix` matches a symbol",
+    "prefix (used where the component's symbols are C++ mangled). Components",
+    "without probes are recognised by their packaged object name (libosmscout,",
+    "libomp) or, as a fallback, by their static archives appearing in the native",
+    "link configuration (expat exports no symbol the probe can match)."
+  ],
+  "probeSymbols": {
+    "bzip2": { "exact": ["BZ2_bzCompress"] },
+    "brotli": { "exact": ["BrotliDecoderCreateInstance"] },
+    "cairo": { "exact": ["cairo_create"] },
+    "fontconfig": { "exact": ["FcInit"] },
+    "freetype": { "exact": ["FT_Init_FreeType"] },
+    "libpng": { "exact": ["png_read_image"] },
+    "marisa-trie": { "prefix": ["_ZN6marisa"] },
+    "pixman": { "exact": ["pixman_image_create_bits"] },
+    "zlib": { "exact": ["zlibVersion"] }
+  },
+  "components": {
+    "bzip2": {
+      "declared": "bzip2-1.0.6",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/bzip2/vcpkg.json; linked into libosmscout_map_cairo*.so (libbz2.a in app/src/main/cpp/CMakeLists.txt)",
+      "textSource": "vcpkgPort"
+    },
+    "cairo": {
+      "declared": "LGPL-2.1-only OR MPL-1.1",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/cairo/vcpkg.json; cairo_create defined in packaged libosmscout_map_cairo*.so",
+      "textSource": "vcpkgPort"
+    },
+    "expat": {
+      "declared": "MIT",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/expat/vcpkg.json; libexpat.a in app/src/main/cpp/CMakeLists.txt",
+      "textSource": "vcpkgPort"
+    },
+    "fontconfig": {
+      "declared": "MIT",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/fontconfig/vcpkg.json; FcInit defined in packaged libosmscout_map_cairo*.so",
+      "textSource": "vcpkgPort"
+    },
+    "freetype": {
+      "declared": "FTL OR GPL-2.0-or-later",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/freetype/vcpkg.json; FT_Init_FreeType defined in packaged libosmscout_map_cairo*.so",
+      "textSource": "vcpkgPort"
+    },
+    "libosmscout": {
+      "declared": "LGPL-2.1-or-later",
+      "scope": "shipped",
+      "evidence": "libosmscout submodule README.md §License (\"The libraries itself are under LGPL\"); packaged as separate libosmscout*.so files",
+      "textSource": "libosmscout",
+      "caveat": "The submodule LICENSE file contains the GNU GPL v2 text and no Lesser section, while README.md states LGPL; no source file carries a version clause. The LGPL-2.1-or-later value follows the upstream statement and must be confirmed by the owner of the application license decision."
+    },
+    "libpng": {
+      "declared": "libpng-2.0",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/libpng/vcpkg.json; png_read_image defined in packaged libosmscout_map_cairo*.so",
+      "textSource": "vcpkgPort"
+    },
+    "libomp": {
+      "declared": "Apache-2.0 WITH LLVM-exception",
+      "scope": "shipped",
+      "evidence": "Packaged as lib/<abi>/libomp.so and NEEDED by libosmscout*.so; runtime ships with the Android NDK LLVM toolchain (app/build.gradle.kts ndkVersion)",
+      "textSource": "androidNdk"
+    },
+    "marisa-trie": {
+      "declared": "BSD-2-Clause OR LGPL-2.1-or-later",
+      "scope": "shipped",
+      "evidence": "vcpkg-overlays port; marisa symbols defined in packaged libosmscoutd.so (libmarisa.a via app/src/main/cpp/CMakeLists.txt)",
+      "textSource": "vcpkgPort"
+    },
+    "pixman": {
+      "declared": "MIT AND BSD-2-Clause",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/pixman/vcpkg.json; libpixman-1.a in app/src/main/cpp/CMakeLists.txt (cairo dependency)",
+      "textSource": "vcpkgPort"
+    },
+    "brotli": {
+      "declared": "MIT",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/brotli/vcpkg.json; libbrotlidec.a/libbrotlicommon.a in app/src/main/cpp/CMakeLists.txt",
+      "textSource": "vcpkgPort"
+    },
+    "zlib": {
+      "declared": "Zlib",
+      "scope": "shipped",
+      "evidence": "vcpkg/ports/zlib/vcpkg.json; zlibVersion defined in packaged libosmscout_map_cairo*.so",
+      "textSource": "vcpkgPort"
+    },
+    "abseil": {
+      "declared": "Apache-2.0",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/abseil/vcpkg.json; no shipped symbol or archive attribution",
+      "textSource": null
+    },
+    "dirent": {
+      "declared": "MIT",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/dirent/vcpkg.json; installs no library for Android (share/dirent holds only vcpkg_abi_info.txt and vcpkg.spdx.json)",
+      "textSource": null,
+      "caveat": "Port ships no copyright file; the identifier comes from the port's own vcpkg.json declaration."
+    },
+    "fribidi": {
+      "declared": "LGPL-2.1-or-later",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/fribidi/vcpkg.json; no pango/fribidi code linked (pango not part of the app's link set)",
+      "textSource": null
+    },
+    "gettext": {
+      "declared": "GPL-3.0-only",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/gettext/vcpkg.json; build-time message tooling, no shipped code",
+      "textSource": null
+    },
+    "gettext-libintl": {
+      "declared": "LGPL-2.1-or-later",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/gettext-libintl/vcpkg.json; not part of the shipped link set",
+      "textSource": null
+    },
+    "glib": {
+      "declared": "LGPL-2.1-or-later AND (LGPL-2.1-only OR MPL-1.1)",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/glib/vcpkg.json; no glib symbols in any packaged shared object",
+      "textSource": null
+    },
+    "harfbuzz": {
+      "declared": "MIT-Modern-Variant AND MIT",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/harfbuzz/vcpkg.json; no harfbuzz symbols in any packaged shared object",
+      "textSource": null
+    },
+    "libffi": {
+      "declared": "MIT",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/libffi/vcpkg.json; glib dependency, no shipped code",
+      "textSource": null
+    },
+    "libiconv": {
+      "declared": "LGPL-2.1-or-later",
+      "scope": "buildTimeOnly",
+      "evidence": "installs no library for Android; the iconv symbols in the packaged cairo object come from the app's own app/src/main/cpp/iconv_stub.c",
+      "textSource": null,
+      "caveat": "Port declares no license and ships no copyright file; the identifier follows upstream GNU libiconv. No libiconv code is distributed."
+    },
+    "liblzma": {
+      "declared": "0BSD",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg installed copyright states liblzma is under the BSD Zero Clause License; not part of the shipped link set",
+      "textSource": null,
+      "caveat": "Port declares no license field; the identifier comes from the installed copyright text."
+    },
+    "libuuid": {
+      "declared": "BSD-3-Clause",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/libuuid/vcpkg.json; glib dependency, no shipped code",
+      "textSource": null
+    },
+    "libxml2": {
+      "declared": "MIT",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/libxml2/vcpkg.json; no libxml2 evidence in the packaged shared objects",
+      "textSource": null
+    },
+    "pango": {
+      "declared": "LGPL-2.0-or-later",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/pango/vcpkg.json; zero pango traces in the packaged shared objects (the cairo backend builds without PANGOCAIRO)",
+      "textSource": null
+    },
+    "pcre2": {
+      "declared": "BSD-3-Clause",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/pcre2/vcpkg.json; glib dependency, no shipped code",
+      "textSource": null
+    },
+    "protobuf": {
+      "declared": "BSD-3-Clause",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/protobuf/vcpkg.json; no protobuf evidence in the packaged shared objects",
+      "textSource": null
+    },
+    "pthread": {
+      "declared": "MIT",
+      "scope": "buildTimeOnly",
+      "evidence": "installs no library for Android (share/pthread holds only vcpkg_abi_info.txt and vcpkg.spdx.json)",
+      "textSource": null,
+      "caveat": "Port declares no license and ships no copyright file; winpthreads from mingw-w64 is MIT. No code is distributed."
+    },
+    "pthreads": {
+      "declared": "Apache-2.0",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/pthreads/vcpkg.json; installs no library for Android",
+      "textSource": null,
+      "caveat": "Port ships no copyright file; the identifier comes from the port's own vcpkg.json declaration. No code is distributed."
+    },
+    "utf8-range": {
+      "declared": "MIT",
+      "scope": "buildTimeOnly",
+      "evidence": "vcpkg/ports/utf8-range/vcpkg.json; protobuf dependency, no shipped code",
+      "textSource": null
+    }
+  }
+}

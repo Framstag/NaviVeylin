@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "description": [
+    "License policy for the NaviVeylin build. The gate evaluates every SBOM",
+    "component against this file and fails the build on a missing identifier, an",
+    "unresolved choice, or a license outside the permitted set for the component's",
+    "distribution scope.",
+    "`permitted.shipped` applies to components whose code is distributed in the APK;",
+    "`permitted.buildTimeOnly` applies to build tooling and libraries that contribute",
+    "no shipped binary. The two lists are deliberately separate so that a build-time",
+    "license which must not be distributed (for example a GPL build tool) cannot",
+    "silently become a shipped license: moving a component between scopes moves it",
+    "between lists, and a shipped component missing from `permitted.shipped` fails.",
+    "`elections` records, per component, the license actually relied upon where the",
+    "component's expression offers a choice. An election must resolve to alternatives",
+    "the expression offers; a component with a choice and no election fails the gate.",
+    "`reviewRequired` lists licenses that need the application license decision before",
+    "distribution; the gate reports them and never treats presence in this file as",
+    "clearance. This file states what the build permits - it is not a legal opinion.",
+    "`licenseRefs` declares identifiers for licenses that have no SPDX identifier:",
+    "such a license may only be reported through a declared `LicenseRef-` entry, an",
+    "undeclared non-SPDX license fails the gate, and `textDistributed: false` means the",
+    "license screen links to `source` instead of embedding text.",
+    "The application's own license is undecided (LICENSE is a bare GPLv2 text and",
+    "README.md says \"License information TBD\"); the shipped set below records what is",
+    "in use today, not a settled position."
+  ],
+  "permitted": {
+    "shipped": [
+      "Apache-2.0",
+      "Apache-2.0 WITH LLVM-exception",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "FTL",
+      "LicenseRef-AndroidSDK",
+      "LicenseRef-NaviVeylin",
+      "MIT",
+      "MIT-Modern-Variant",
+      "MPL-1.1",
+      "Zlib",
+      "bzip2-1.0.6",
+      "libpng-2.0",
+      "LGPL-2.1-or-later"
+    ],
+    "buildTimeOnly": [
+      "0BSD",
+      "Apache-2.0",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "GPL-3.0-only",
+      "LGPL-2.0-or-later",
+      "LGPL-2.1-only",
+      "LGPL-2.1-or-later",
+      "MIT",
+      "MIT-Modern-Variant",
+      "MPL-1.1"
+    ]
+  },
+  "licenseRefs": {
+    "LicenseRef-AndroidSDK": {
+      "name": "Android Software Development Kit License",
+      "source": "https://developer.android.com/studio/terms.html",
+      "textDistributed": false,
+      "appliesTo": [
+        "com.google.android.gms:play-services-base",
+        "com.google.android.gms:play-services-basement",
+        "com.google.android.gms:play-services-location",
+        "com.google.android.gms:play-services-tasks"
+      ],
+      "reason": "Google's SDK terms carry no SPDX identifier; the artifacts declare only a license name and a URL. The license screen links to the canonical terms instead of embedding a copy, which would redistribute a third party's terms and age silently."
+    },
+    "LicenseRef-NaviVeylin": {
+      "name": "NaviVeylin project license",
+      "source": "LICENSE",
+      "textDistributed": false,
+      "appliesTo": [
+        "NaviVeylin",
+        "auto",
+        "core",
+        "osmscout-client-java"
+      ],
+      "reason": "First-party code. The project's own license is undecided (LICENSE is a bare GPLv2 text and README.md says 'License information TBD'), so first-party components carry a declared LicenseRef rather than being exempted from the rules the third-party components follow."
+    }
+  },
+  "elections": {
+    "cairo": {
+      "from": "LGPL-2.1-only OR MPL-1.1",
+      "to": "MPL-1.1",
+      "reason": "MPL-1.1 is a permissive-choice alternative to LGPL-2.1-only and avoids the LGPL relinking obligation for a statically linked library."
+    },
+    "freetype": {
+      "from": "FTL OR GPL-2.0-or-later",
+      "to": "FTL",
+      "reason": "The FreeType License requires attribution only; GPL-2.0-or-later would impose copyleft on a shipped library."
+    },
+    "glib": {
+      "from": "LGPL-2.1-or-later AND (LGPL-2.1-only OR MPL-1.1)",
+      "to": "LGPL-2.1-or-later AND LGPL-2.1-only",
+      "reason": "Keeps glib under its own LGPL terms instead of the MPL alternative offered for a subset of files. Build-time only, so no distribution consequence."
+    },
+    "marisa-trie": {
+      "from": "BSD-2-Clause OR LGPL-2.1-or-later",
+      "to": "BSD-2-Clause",
+      "reason": "BSD-2-Clause avoids copyleft for a library statically linked into the shipped libosmscout shared object."
+    }
+  },
+  "textSources": {
+    "Apache-2.0": { "kind": "vcpkgPort", "port": "abseil" },
+    "Apache-2.0 WITH LLVM-exception": { "kind": "androidNdk" },
+    "BSD-2-Clause": { "kind": "file", "path": "BSD-2-Clause.txt" },
+    "FTL": { "kind": "vcpkgPort", "port": "freetype" },
+    "LGPL-2.1-or-later": { "kind": "vcpkgPort", "port": "fribidi" },
+    "MIT": { "kind": "vcpkgPort", "port": "expat" },
+    "MPL-1.1": { "kind": "vcpkgPort", "port": "cairo" },
+    "Zlib": { "kind": "vcpkgPort", "port": "zlib" },
+    "bzip2-1.0.6": { "kind": "vcpkgPort", "port": "bzip2" },
+    "libpng-2.0": { "kind": "vcpkgPort", "port": "libpng" }
+  },
+  "noticeRequired": [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "FTL",
+    "LGPL-2.1-or-later",
+    "MIT",
+    "MPL-1.1",
+    "Zlib",
+    "bzip2-1.0.6",
+    "libpng-2.0"
+  ],
+  "reviewRequired": [
+    {
+      "license": "LicenseRef-NaviVeylin",
+      "components": ["NaviVeylin", "auto", "core", "osmscout-client-java"],
+      "note": "The project's own license is undecided (LICENSE is a bare GPLv2 text, README.md says 'License information TBD')."
+    },
+    {
+      "license": "LGPL-2.1-or-later",
+      "components": ["libosmscout"],
+      "note": "libosmscout is distributed as separate shared objects and its stated license is LGPL while its LICENSE file carries GPLv2 text (see native-license-map.json caveat). Needs the application license decision."
+    }
+  ]
+}

@@ -185,7 +185,14 @@
     <string name="longitude">Längengrad</string>
     <string name="version_format">Version %1$s</string>
     <string name="about_description">Eine Android-Navigations-App auf Basis von libosmscout. Bietet Offline-Kartendarstellung und Routenberechnung mit OpenStreetMap-Daten.</string>
-    <string name="about_oss_statement">Diese Anwendung verwendet Open-Source-Software. Quellcode und Lizenzinformationen sind verfügbar unter:</string>
+    <string name="about_oss_statement">Diese Anwendung verwendet Open-Source-Software. Der Quellcode des Projekts ist verfügbar unter:</string>
+    <string name="licenses_title">Open-Source-Lizenzen</string>
+    <string name="licenses_loading">Lizenzinformationen werden geladen…</string>
+    <string name="licenses_unavailable">Lizenzinformationen sind in diesem Build nicht verfügbar (%1$s).</string>
+    <string name="licenses_intro">In diesem Build enthaltene Fremdkomponenten mit der jeweils verwendeten Lizenz. Wähle eine Komponente, um ihre Lizenz zu lesen.</string>
+    <string name="licenses_build_time_only">nur zur Build-Zeit</string>
+    <string name="licenses_link_explanation">Die Bedingungen dieser Lizenz werden nicht mit der Anwendung ausgeliefert. Öffne sie unter:</string>
+    <string name="licenses_back">Zurück zur Liste</string>
     <string name="diagnostics">Diagnose</string>
     <string name="no_log_entries">Noch keine Protokolleinträge.</string>
     <string name="share">Teilen</string>

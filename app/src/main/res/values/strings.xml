@@ -192,8 +192,15 @@
     <string name="author_name" translatable="false">Tim Teulings</string>
     <string name="copyright" translatable="false">Copyright 2026</string>
     <string name="about_description">An Android navigation app built on libosmscout. Provides offline map rendering and routing using OpenStreetMap data.</string>
-    <string name="about_oss_statement">This application uses open source software. Source code and license information are available at:</string>
+    <string name="about_oss_statement">This application uses open source software. Project source code is available at:</string>
     <string name="about_source_url" translatable="false">github.com/Framstag/libosmscout</string>
+    <string name="licenses_title">Open source licenses</string>
+    <string name="licenses_loading">Loading license information…</string>
+    <string name="licenses_unavailable">License information is unavailable in this build (%1$s).</string>
+    <string name="licenses_intro">Third-party components bundled in this build, each with the license it is used under. Select a component to read its license.</string>
+    <string name="licenses_build_time_only">build-time only</string>
+    <string name="licenses_link_explanation">The terms of this license are not distributed with the application. Open them at:</string>
+    <string name="licenses_back">Back to list</string>
     <string name="diagnostics">Diagnostics</string>
     <string name="no_log_entries">No log entries yet.</string>
     <string name="share">Share</string>

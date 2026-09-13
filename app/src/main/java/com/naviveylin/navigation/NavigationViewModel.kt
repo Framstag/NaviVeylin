@@ -171,6 +171,11 @@ class NavigationViewModel @Inject constructor(
 
         val totalDistance = computeRouteDistance(routeEntry.latitudes, routeEntry.longitudes)
         _state.value = _state.value.copy(isNavigating = true, currentStepIndex = 0,
+            // Clear the previous route's steps (reroute restart): the old
+            // route's last maneuver must not render over the new route until
+            // the engine emits its first instruction list.
+            instructions = emptyList(),
+            nextInstruction = null,
             totalDistance = totalDistance,
             // Progress starts at 0%: remaining distance equals the total until
             // the first arrival estimate arrives (routing-progress-indicator).
@@ -398,17 +403,18 @@ class NavigationViewModel @Inject constructor(
 
             override fun onNextRouteInstruction(instruction: RouteInstruction) {
                 viewModelScope.launch(Dispatchers.Main) {
-                    val idx = _state.value.instructions.indexOfFirst {
-                        it.description == instruction.description
-                    }
-                    val newIndex = if (idx >= 0) idx else _state.value.currentStepIndex
+                    val idx = nextStepIndex(
+                        _state.value.instructions,
+                        _state.value.currentStepIndex,
+                        instruction
+                    )
                     _state.value = _state.value.copy(
                         nextInstruction = instruction,
-                        currentStepIndex = newIndex
+                        currentStepIndex = idx
                     )
                     // Keep the route panel summary's active step in sync
                     // (spec: routing-summary — active step highlighting).
-                    routePanelViewModel?.setActiveStepIndex(newIndex)
+                    routePanelViewModel?.setActiveStepIndex(idx)
                 }
             }
 

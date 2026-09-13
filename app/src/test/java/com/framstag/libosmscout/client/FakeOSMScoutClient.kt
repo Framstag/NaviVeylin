@@ -175,6 +175,10 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Route delivered by [calculateRouteWithProfile]; null → [deliverRouteError]. */
     var routeToDeliver: RouteEntry? = null
 
+    /** Navigation listener captured from the last [startNavigationWithVehicle] call. */
+    @Volatile
+    var navigationListener: NavigationListener? = null
+
     /** Error text delivered when [routeToDeliver] is null. */
     var deliverRouteError: String? = null
 
@@ -201,6 +205,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
         vehicle: Vehicle,
         listener: NavigationListener
     ): NavigationController? {
+        navigationListener = listener
         return null
     }
 
@@ -272,6 +277,13 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Results returned by the next [searchLocations] call (default: empty). */
     var nextSearchResults: Array<LocationEntry>? = emptyArray()
 
+    /**
+     * Per-query results overriding [nextSearchResults] for matching queries —
+     * lets a test script different answers for different steps of a fallback
+     * chain. Queries not present fall back to [nextSearchResults].
+     */
+    val searchResultsByQuery = mutableMapOf<String, Array<LocationEntry>?>()
+
     /** When set, [searchLocations] throws this instead of returning. */
     var searchLocationsError: Exception? = null
 
@@ -280,7 +292,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
         searchQueries.add(query)
         searchLimits.add(limit)
         searchLocationsError?.let { throw it }
-        return nextSearchResults
+        return searchResultsByQuery[query] ?: nextSearchResults
     }
 
     /** (adminRegion, postalArea, location, address) passed to [searchLocationByForm] in call order. */
@@ -288,6 +300,13 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     /** Results returned by the next [searchLocationByForm] call (default: empty). */
     var nextFormResults: Array<LocationEntry>? = emptyArray()
+
+    /**
+     * When non-empty, [searchLocationByForm] consumes one entry per call
+     * (FIFO) instead of returning [nextFormResults] — lets a test script a
+     * street-less first attempt followed by a hit.
+     */
+    val formResultsQueue = mutableListOf<Array<LocationEntry>?>()
 
     /** When set, [searchLocationByForm] throws this instead of returning. */
     var formSearchError: Exception? = null
@@ -301,6 +320,9 @@ class FakeOSMScoutClient : OSMScoutClient() {
     ): Array<LocationEntry>? {
         formSearchArgs.add(listOf(adminRegion, postalArea, location, address))
         formSearchError?.let { throw it }
+        if (formResultsQueue.isNotEmpty()) {
+            return formResultsQueue.removeAt(0)
+        }
         return nextFormResults
     }
 

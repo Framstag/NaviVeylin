@@ -301,6 +301,28 @@ class NavigationTemplateMapperTest {
     }
 
     @Test
+    fun routingInfoFromState_rendersArrivalAsDestinationStep() {
+        // The arrival instruction now carries the real remaining distance
+        // (spec: auto/navigation-view — step distance not frozen at zero):
+        // it must render as a destination maneuver with that distance, not an
+        // empty step.
+        val arrive = RouteInstruction(
+            250.0, TurnType.TARGET_REACHED, "", "Arrive", "Arrive"
+        )
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            instructions = listOf(instr(500.0, TurnType.LEFT, "Home St"), arrive),
+            nextInstruction = arrive
+        )
+        val info = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false, resolver = resolver
+        )!!
+        assertEquals(Maneuver.TYPE_DESTINATION, info.currentStep!!.maneuver!!.type)
+        assertEquals(250.0, info.currentDistance!!.displayDistance, 0.01)
+    }
+
+    @Test
     fun routingInfoFromState_noNextStepWhenLast() {
         val state = NavigationState(
             isNavigating = true,

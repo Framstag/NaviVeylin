@@ -239,6 +239,13 @@ class AANavigationController @Inject constructor(
         _state.value = _state.value.copy(
             isNavigating = true,
             currentStepIndex = 0,
+            // Clear the previous route's steps: a reroute starts a fresh
+            // engine whose first onRouteInstructions emission replaces them;
+            // until then the old route's last maneuver must not render over
+            // the new route (spec: auto/navigation-view — "Distance correct
+            // after reroute").
+            instructions = emptyList(),
+            nextInstruction = null,
             totalDistance = computeRouteDistance(routeEntry.latitudes, routeEntry.longitudes),
             // Route geometry for the map renderer ("_route" style).
             routeLats = routeEntry.latitudes,
@@ -353,12 +360,14 @@ class AANavigationController @Inject constructor(
 
             override fun onNextRouteInstruction(instruction: RouteInstruction) {
                 scope.launch(Dispatchers.Main) {
-                    val idx = _state.value.instructions.indexOfFirst {
-                        it.description == instruction.description
-                    }
+                    val idx = nextStepIndex(
+                        _state.value.instructions,
+                        _state.value.currentStepIndex,
+                        instruction
+                    )
                     _state.value = _state.value.copy(
                         nextInstruction = instruction,
-                        currentStepIndex = if (idx >= 0) idx else _state.value.currentStepIndex
+                        currentStepIndex = idx
                     )
                 }
             }

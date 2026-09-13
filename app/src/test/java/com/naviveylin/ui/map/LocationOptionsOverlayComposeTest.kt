@@ -2,12 +2,18 @@ package com.naviveylin.ui.map
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import com.naviveylin.core.BundledMapStyles
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AmbientLightSensitivity
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -290,12 +296,15 @@ class LocationOptionsOverlayComposeTest {
 
         // All 15 presets appear with the shared enum labels (label parity with
         // the Android Auto picker, spec: location-options-ui — Picker labels
-        // match Android Auto).
+        // match Android Auto). Each is a clickable cell inside the dialog and
+        // displayed: weighted cells share the dialog width as five equal
+        // columns (regression: fixed 76.dp cells overflowed the AlertDialog
+        // content width on phones, clipping the grid to a ragged ~3-4 columns).
         for (anchor in VehicleAnchorPosition.entries) {
-            assertTrue(
-                "preset '${anchor.label}' must appear in the grid picker",
-                composeRule.onAllNodesWithText(anchor.label).fetchSemanticsNodes().isNotEmpty()
-            )
+            val cell = composeRule.onAllNodes(
+                hasAnyAncestor(isDialog()) and hasText(anchor.label) and hasClickAction()
+            ).onFirst()
+            cell.performScrollTo().assertIsDisplayed()
         }
 
         // Picking replaces the current anchor and reports the selection.

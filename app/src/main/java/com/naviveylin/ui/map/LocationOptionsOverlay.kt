@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -640,14 +641,26 @@ private fun AnchorGridPickerDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.vehicle_position)) },
         text = {
-            Column {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Bounded height so the grid scrolls on small/landscape
+                    // screens instead of overflowing the dialog window.
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 VehicleAnchorPosition.entries.chunked(5).forEach { rowAnchors ->
-                    Row {
+                    Row(modifier = Modifier.fillMaxWidth()) {
                         rowAnchors.forEach { anchor ->
                             AnchorGridCell(
                                 anchor = anchor,
                                 selected = anchor == current,
-                                onClick = { onSelect(anchor) }
+                                onClick = { onSelect(anchor) },
+                                // Weighted cells share the dialog width evenly:
+                                // five equal columns instead of fixed 76.dp cells
+                                // that overflow the AlertDialog content width
+                                // (only ~3-4 fit on phones) into a ragged grid.
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
@@ -665,7 +678,8 @@ private fun AnchorGridPickerDialog(
 private fun AnchorGridCell(
     anchor: VehicleAnchorPosition,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val border = if (selected) {
         BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
@@ -674,8 +688,7 @@ private fun AnchorGridCell(
     }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(76.dp)
+        modifier = modifier
             .height(56.dp)
             .clip(RoundedCornerShape(8.dp))
             .border(border)

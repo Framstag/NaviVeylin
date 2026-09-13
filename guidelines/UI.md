@@ -32,6 +32,15 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Show on map | "Show" (outlined button) | "◎ Show" (clickable row) |
 | Add favorite | "Add to Favorites" (outlined button) | "★ Add to Favorites" (clickable row) |
 | Remove favorite | "Remove from Favorites" (error-colored button) | "☆ Remove from Favorites" (clickable row) |
+| Open-source license list | Reachable from About → "Open source licenses": components with identifiers, full license texts, links for licenses whose terms stay with their owner | Not surfaced — the car About screen keeps app identity and the map-data attribution only |
+
+### Why the license list is phone-only
+
+The bundled dependency list is a several-hundred-row browser with a per-component
+detail view. Car host `PaneTemplate` rows are not actionable (§3) and the display
+is a driver surface, so the list stays on phone/tablet and the car screen keeps
+its identity + ODbL attribution. This is a deliberate parity deviation, not an
+omission (spec: `about-dialog` — "License list is not surfaced in the car app").
 
 ### Vehicle position setting (follow-mode anchor)
 

@@ -63,6 +63,8 @@ To include libosmscout with map rendering and routing:
 │   └── build.gradle.kts
 ├── osmscout-jni/              # JNI bridge AAR (placeholder — real JNI in submodule)
 ├── auto/                      # Android Auto (placeholder)
+├── buildSrc/                  # Build-time logic + its own tests (license policy, classification, license assets)
+├── licenses/                  # Curated license data: native license map, policy, canonical license texts
 ├── initialize.sh              # Add submodule + write CMakeLists.txt
 ├── setup-vcpkg.sh             # Cross-compile native deps via vcpkg
 ├── AGENTS.md                  # AI agent context
@@ -100,6 +102,10 @@ To include libosmscout with map rendering and routing:
 
 # Android Auto module
 ./gradlew :auto:assembleDebug
+
+# License compliance: policy gate over the generated SBOM, and the logic unit tests
+./gradlew :app:checkLicensePolicy
+./gradlew -p buildSrc test
 
 # Full clean
 ./gradlew clean

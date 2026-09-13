@@ -33,9 +33,28 @@ Pick the right doc: `guidelines/Design.md` = architecture principles; `guideline
 :auto                 → Android Auto screens + session (Car App Library)
 :core                 → Shared app helpers (`com.naviveylin.core.*`)
 :osmscout-client-java → Java side of the JNI bridge: local overrides over the libosmscout-client-java submodule sources
+buildSrc              → Build-time logic with its own tests: license policy evaluation, shipped/build-time classification, license asset and NOTICE generation
+licenses/             → Curated license data: native license map, license policy, canonical license texts (input to the build, not generated)
 ```
 
 ## Key Conventions
+
+### License compliance
+
+- `licenses/native-license-map.json` and `licenses/license-policy.json` are the
+  curated inputs; `buildSrc` holds the pure logic (`./gradlew -p buildSrc test`,
+  45 tests, run as part of every build).
+- Task group `license`: `generateLicenseAssets<Variant>` (writes each variant's
+  `licenses/dependencies.json`, `licenses/texts/*`, and the `NOTICE` next to the
+  SBOM) and `checkLicensePolicy<Variant>` / `checkLicensePolicy` (the gate; not
+  part of `assemble`, run by CI and by `release` for both flavors).
+- The SBOM carries license identifiers plus `naviveylin:license:*` properties
+  (scope, evidence, ambiguity, notice, caveat). Scope is derived from the
+  packaged native libraries, never maintained by hand.
+- The app shows exactly the inventory the gate validated, read from
+  `licenses/dependencies.json` in its own APK assets.
+- Details, including why text sources are declared rather than inferred: see
+  `guidelines/Build.md` §9.
 
 ### Code Style
 - Kotlin: official style (per `gradle.properties`)

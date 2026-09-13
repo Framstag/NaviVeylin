@@ -29,7 +29,7 @@ rules:
     - Name the previous specifications that will be changed by the new proposal
     - Reference the guidelines/ document(s) affected (UI.md, MapRendering.md, Design.md)
     - State whether the change is additive or breaking, and the rollback path
-    - For native/JNI changes, state: submodule patch (minimal, upstreamable) or local override in the bridge module
+    - "For native/JNI changes, state: submodule patch (minimal, upstreamable) or local override in the bridge module"
     - Assure that scope is clear. Is this a general feature, a feature only for the android auto integration or only for phone
 
   specs:
@@ -38,7 +38,7 @@ rules:
     - Scenarios must be testable — no "system should work" scenarios
     - Specs define the contract, not the implementation — avoid prescribing how
     - Reference Android framework APIs where relevant (e.g., LocationManager, CarAppService)
-    - For features affecting both phone and AA: state the parity requirement (same labels/hierarchy) or the platform constraint forcing deviation
+    - "For features affecting both phone and AA: state the parity requirement (same labels/hierarchy) or the platform constraint forcing deviation"
     - If a spec contradicts a guidelines/ doc, update the guideline in the same change
     - Include performance requirements where relevant (frame budget, allocation-free hot paths)
 
@@ -47,7 +47,7 @@ rules:
     - Reference specific files, modules, and Gradle configurations that will change
     - Include risk assessment per approach
     - State the threading model (dispatcher, main vs background) and lifecycle handling per new component — see guidelines/Design.md §4
-    - Describe verification: unit tests + on-device checks (logcat, GPX replay where relevant)
+    - "Describe verification: unit tests + on-device checks (logcat, GPX replay where relevant)"
     - Follow the design principles in guidelines/Design.md — architecture, state management, threading, native boundary, rendering, Android Auto, and build conventions
 
   tasks:

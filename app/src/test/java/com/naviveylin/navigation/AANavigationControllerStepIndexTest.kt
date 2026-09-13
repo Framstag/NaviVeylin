@@ -83,9 +83,14 @@ class AANavigationControllerStepIndexTest {
         }
 
         // Reroute: a new route is calculated and navigation restarts — stale
-        // steps must not survive into the new route's display.
+        // steps must not survive into the new route's display. The route is
+        // delivered on Dispatchers.Default and applied via a Main post, so
+        // wait on the delivery counter and the actual invariant (the new
+        // startNavigation clears the steps) — `isNavigating` is still true
+        // from the previous route and cannot mark the handover.
         controller.navigateTo(52.5300, 13.4100)
-        awaitState { controller.state.value.isNavigating }
+        awaitState { client.routeCalculationCount == 2 }
+        awaitState { controller.state.value.instructions.isEmpty() }
 
         assertTrue(controller.state.value.instructions.isEmpty())
         assertNull(controller.state.value.nextInstruction)

@@ -183,6 +183,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
     var deliverRouteError: String? = null
 
     /** Number of [calculateRouteWithProfile] invocations. */
+    @Volatile
     var routeCalculationCount = 0
 
     override fun calculateRouteWithProfile(

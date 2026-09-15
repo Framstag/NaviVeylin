@@ -12,6 +12,7 @@ import io.mockk.slot
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -556,5 +557,70 @@ class AutoMapRendererTest {
         )
         assertEquals(expected.first, renderer.markerViewport().first, 1e-9)
         assertEquals(expected.second, renderer.markerViewport().second, 1e-9)
+    }
+
+    // --- Host pane insets + marker/content alignment -------------------------
+    // (spec: auto/navigation-view — "Panel clearance via side anchor"; change
+    // anchor-per-surface-visible-area)
+
+    @Test
+    fun hostPaneClampsTheLeadingEdgeAnchorOnly() {
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+
+        // Default (center) keeps its exact fraction on both pane sides: the AA default
+        // framing contract is unchanged.
+        assertEquals(0.5, renderer.resolvedFollowAnchor().fx, 1e-9)
+        renderer.setHostPaneRtl(true)
+        assertEquals(0.5, renderer.resolvedFollowAnchor().fx, 1e-9)
+        renderer.setHostPaneRtl(false)
+
+        // A preset inside the host's 40% leading band moves to the nearest free
+        // position (band edge + the grid's own 10% margin), not behind the panel.
+        renderer.setFollowAnchor(VehicleAnchorPosition.TOP_FAR_LEFT)
+        val clamped = renderer.resolvedFollowAnchor()
+        assertEquals(VehicleAnchorPosition.TOP_FAR_LEFT.fy, clamped.fy, 1e-9)
+        assertTrue("far-left must move out of the 40% band (was ${clamped.fx})", clamped.fx >= 0.4)
+
+        // A preset already clear of the band is untouched.
+        renderer.setFollowAnchor(VehicleAnchorPosition.BOTTOM_RIGHT)
+        assertEquals(VehicleAnchorPosition.BOTTOM_RIGHT.fx, renderer.resolvedFollowAnchor().fx, 1e-9)
+
+        // RTL hosts mirror the panel: the far-RIGHT preset is the clamped one.
+        renderer.setHostPaneRtl(true)
+        renderer.setFollowAnchor(VehicleAnchorPosition.TOP_FAR_RIGHT)
+        val rtlClamped = renderer.resolvedFollowAnchor()
+        assertTrue("far-right must move out of the band in RTL", rtlClamped.fx <= 0.6 + 1e-9)
+        renderer.setFollowAnchor(VehicleAnchorPosition.TOP_FAR_LEFT)
+        assertEquals(
+            VehicleAnchorPosition.TOP_FAR_LEFT.fx,
+            renderer.resolvedFollowAnchor().fx, 1e-9
+        )
+    }
+
+    @Test
+    fun markerRidesTheBlittedContentWithABlitOffset() {
+        // The displayed frame is blitted by the display drift; the marker must move by
+        // the same offset (else it leads the map content between commits and snaps back
+        // on the next commit — the AA counterpart of the phone fix).
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.setGpsMarker(51.5142273, 7.4652789, 0.0, 10.0)
+        renderer.reCenter()
+
+        val (x0, y0) = renderer.markerScreenPosition(100, 100)
+        renderer.setBlitOffsetForTest(7.0, -3.0)
+        val (x1, y1) = renderer.markerScreenPosition(100, 100)
+        assertEquals("marker x must follow the blit offset", x0 - 7.0, x1, 1e-9)
+        assertEquals("marker y must follow the blit offset", y0 + 3.0, y1, 1e-9)
+
+        // With the default center anchor and no display drift the marker sits at the
+        // anchor it was framed for (center), and lands on the content position.
+        renderer.setBlitOffsetForTest(0.0, 0.0)
+        val (x2, y2) = renderer.markerScreenPosition(100, 100)
+        assertEquals(50.0, x2, 0.5)
+        assertEquals(50.0, y2, 0.5)
     }
 }

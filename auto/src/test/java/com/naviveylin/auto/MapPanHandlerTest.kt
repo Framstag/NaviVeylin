@@ -24,7 +24,7 @@ class MapPanHandlerTest {
     fun setUp() {
         renderer = AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0)
         autoZoom = AutoZoomController()
-        handler = MapPanHandler(renderer, autoZoom) { 1920 to 1080 }
+        handler = MapPanHandler({ renderer }, autoZoom) { 1920 to 1080 }
     }
 
     @Test

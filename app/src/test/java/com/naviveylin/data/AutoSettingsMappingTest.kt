@@ -10,7 +10,11 @@ import org.junit.Test
  * and the Android Auto process's [AutoSettings]: every car-relevant field —
  * including the overspeed warning delta — survives a full round trip in both
  * directions (spec: auto-map-layout — settings shared with the phone; the
- * delta applies globally to both surfaces).
+ * delta applies globally to both surfaces). The vehicle anchors are the
+ * exception: they are stored PER SURFACE, so a car-side write lands in the
+ * car's own fields and the car inherits the phone's value only until it has
+ * one of its own (spec: auto-map-layout, change
+ * `anchor-per-surface-visible-area`).
  */
 class AutoSettingsMappingTest {
 
@@ -59,20 +63,66 @@ class AutoSettingsMappingTest {
     }
 
     @Test
-    fun appToAutoCopiesVehicleAnchors() {
+    fun appToAutoResolvesTheCarAnchorFromThePhoneUntilTheCarHasItsOwn() {
+        // No car value yet → the car inherits the phone's value (pre-split behavior,
+        // no migration write needed).
         val app = AppSettings(routingAnchorId = "bottom-right", freeDrivingAnchorId = "top-center")
         val auto = app.toAutoSettings()
         assertEquals("bottom-right", auto.routingAnchorId)
         assertEquals("top-center", auto.freeDrivingAnchorId)
+
+        // Once the car has its own value, that value wins.
+        val own = app.copy(autoRoutingAnchorId = "middle-far-left", autoFreeDrivingAnchorId = "top-right")
+        assertEquals("middle-far-left", own.toAutoSettings().routingAnchorId)
+        assertEquals("top-right", own.toAutoSettings().freeDrivingAnchorId)
     }
 
     @Test
-    fun autoToAppCopiesVehicleAnchors() {
-        val base = AppSettings()
+    fun autoToAppWritesOnlyTheCarAnchorFields() {
+        // Per-surface split: the car view carries the car's own value, and a generic
+        // write-back leaves both the phone's and the car's stored anchors alone (the
+        // car's value is written by AutoSettingsProvider.saveCarAnchor).
+        val base = AppSettings(routingAnchorId = "bottom-right", freeDrivingAnchorId = "top-center")
         val auto = AutoSettings(routingAnchorId = "bottom-far-left", freeDrivingAnchorId = "top-far-right")
         val app = auto.toAppSettings(base)
-        assertEquals("bottom-far-left", app.routingAnchorId)
-        assertEquals("top-far-right", app.freeDrivingAnchorId)
+        assertEquals("bottom-right", app.routingAnchorId)
+        assertEquals("top-center", app.freeDrivingAnchorId)
+        assertEquals(null, app.autoRoutingAnchorId)
+        assertEquals(null, app.autoFreeDrivingAnchorId)
+        // and the car view resolves to what it was shown.
+        assertEquals("bottom-right", app.toAutoSettings().routingAnchorId)
+        assertEquals("top-center", app.toAutoSettings().freeDrivingAnchorId)
+    }
+
+    @Test
+    fun genericCarWriteNeverTouchesTheCarAnchorFields() {
+        // An unrelated settings write on the car (dark mode) re-submits the resolved
+        // value it was shown; that must not freeze the car's own anchor, otherwise a
+        // later phone change would stop reaching the car. Freezing happens only in
+        // AutoSettingsProvider.saveCarAnchor (anchor picker).
+        val base = AppSettings(
+            routingAnchorId = "middle-far-right",
+            freeDrivingAnchorId = "top-left",
+            darkMode = DarkModePreference.ON
+        )
+        val resolved = base.toAutoSettings()
+        val written = resolved.copy(darkMode = DarkModePreference.OFF.name).toAppSettings(base)
+        assertEquals(null, written.autoRoutingAnchorId)
+        assertEquals(null, written.autoFreeDrivingAnchorId)
+        assertEquals("middle-far-right", written.routingAnchorId)
+        // The car still follows a later phone change (until an anchor is picked there).
+        assertEquals(
+            "bottom-center",
+            written.copy(routingAnchorId = "bottom-center").toAutoSettings().routingAnchorId
+        )
+        // Once the car has its own value (written by the picker), the phone no longer
+        // influences it.
+        val frozen = written.copy(autoRoutingAnchorId = "top-center")
+        assertEquals("top-center", frozen.toAutoSettings().routingAnchorId)
+        assertEquals(
+            "top-center",
+            frozen.copy(routingAnchorId = "bottom-left").toAutoSettings().routingAnchorId
+        )
     }
 
     @Test
@@ -90,14 +140,21 @@ class AutoSettingsMappingTest {
     @Test
     fun everyAnchorIdSurvivesRoundTripInBothDirections() {
         for (anchor in VehicleAnchorPosition.entries) {
+            // Phone value → car view → back to the phone's own value.
             val app = AppSettings(routingAnchorId = anchor.id, freeDrivingAnchorId = anchor.id)
             val throughAuto = app.toAutoSettings().toAppSettings(app)
             assertEquals(anchor.id, throughAuto.routingAnchorId)
             assertEquals(anchor.id, throughAuto.freeDrivingAnchorId)
+            // Car value → car's own fields (frozen by the picker) → back to the car view.
             val auto = AutoSettings(routingAnchorId = anchor.id, freeDrivingAnchorId = anchor.id)
-            assertEquals(anchor.id, auto.toAppSettings(AppSettings()).routingAnchorId)
-            // And back through the car-relevant subset.
-            assertEquals(anchor.id, auto.toAppSettings(AppSettings()).toAutoSettings().freeDrivingAnchorId)
+            val carApp = AppSettings(
+                autoRoutingAnchorId = auto.routingAnchorId,
+                autoFreeDrivingAnchorId = auto.freeDrivingAnchorId
+            )
+            assertEquals(anchor.id, carApp.autoRoutingAnchorId)
+            assertEquals(anchor.id, carApp.autoFreeDrivingAnchorId)
+            assertEquals(anchor.id, carApp.toAutoSettings().routingAnchorId)
+            assertEquals(anchor.id, carApp.toAutoSettings().freeDrivingAnchorId)
         }
     }
 }

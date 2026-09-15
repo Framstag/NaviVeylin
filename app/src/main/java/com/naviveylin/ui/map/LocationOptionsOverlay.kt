@@ -95,10 +95,15 @@ fun LocationOptionsOverlay(
     onToggleLaneHints: (Boolean) -> Unit = {},
     overspeedWarningDeltaKmh: Int = 5,
     onSetOverspeedWarningDelta: (Int) -> Unit = {},
-    routingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
-    onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit = {},
-    freeDrivingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
-    onSetFreeDrivingAnchor: (VehicleAnchorPosition) -> Unit = {},
+    // Vehicle anchor rows: REQUIRED (no defaults). The rows render in EVERY mode,
+    // so an optional callback would let a call site (e.g. the routing view) compile
+    // into a picker that silently ignores the selection and keeps showing "Center"
+    // (regression: navigation view used the defaults). Making them required moves
+    // that class of bug to the compiler (change fix-anchor-picker-in-navigation).
+    routingAnchor: VehicleAnchorPosition,
+    onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit,
+    freeDrivingAnchor: VehicleAnchorPosition,
+    onSetFreeDrivingAnchor: (VehicleAnchorPosition) -> Unit,
     renderMode: RenderMode = RenderMode.TILES,
     onSetRenderMode: (RenderMode) -> Unit = {},
     availableStyles: List<String> = emptyList(),

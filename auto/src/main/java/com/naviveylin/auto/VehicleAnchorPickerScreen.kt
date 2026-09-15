@@ -107,13 +107,18 @@ class VehicleAnchorPickerScreen(
      * verified in unit tests, where the screen is not attached to a host.
      */
     internal suspend fun persistSelection(anchorId: String) {
-        val current = settings ?: return
-        settings = if (mode == Mode.ROUTING) {
-            current.copy(routingAnchorId = anchorId)
+        // Freeze the CAR's own value (does not touch the phone's anchors): the car
+        // inherits the phone's anchor only until the driver picks one here
+        // (spec: auto-map-layout — "Anchor selection persisted for Android Auto").
+        if (mode == Mode.ROUTING) {
+            settingsProvider.saveCarAnchor(routingAnchorId = anchorId)
         } else {
-            current.copy(freeDrivingAnchorId = anchorId)
+            settingsProvider.saveCarAnchor(freeDrivingAnchorId = anchorId)
         }
-        settingsProvider.save(settings!!)
+        settings = settings?.let { current ->
+            if (mode == Mode.ROUTING) current.copy(routingAnchorId = anchorId)
+            else current.copy(freeDrivingAnchorId = anchorId)
+        }
     }
 
     /** Row title: the preset label plus a "(current)" marker on the active one. */

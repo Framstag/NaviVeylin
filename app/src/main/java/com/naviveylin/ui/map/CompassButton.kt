@@ -17,7 +17,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -47,43 +46,39 @@ private val GpsFillGoodFix = Color(0xFFC8E6C9) // light green
  * button fill color, and supporting short-press (re-center) and long-press
  * (toggle orientation).
  *
+ * The needle indicates geographic NORTH in every orientation mode — its screen
+ * direction follows the map rotation only, never the vehicle heading (spec:
+ * compass-button — Compass shows north direction). The widget takes no bearing
+ * input by design, so a noisy/absent GPS bearing cannot move it.
+ *
  * Larger than the other overlay buttons (56dp layout / 48dp visual vs
  * 48dp / 40dp) so it reads at a glance while driving, with the same shadow.
  *
- * @param isNorthUp True if orientation is "always north" (north-up), false for "follow direction".
  * @param mapAngleRadians Current map rotation in radians (0 = north up).
  * @param gpsFixQuality Current GPS fix quality for the fill color.
- * @param bearingDegrees Geographic bearing of travel in degrees, or null when
- *   unavailable; used by the follow-direction triangle. Ignored in north-up mode.
  * @param onCenterClick Called on short press to re-center on location.
  * @param onToggleOrientation Called on long press to toggle north-up / follow-direction.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CompassButton(
-    isNorthUp: Boolean,
     mapAngleRadians: Double,
     gpsFixQuality: GpsFixQuality,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit,
-    bearingDegrees: Double? = null,
     modifier: Modifier = Modifier
 ) {
-    // Needle rotation = screen direction of the indicated geographic direction:
-    // north in north-up mode, travel direction in follow mode. Single convention
-    // lives in ProjectionUtils — never inline a negation here (spec: compass-button).
-    val targetDegrees = compassNeedleTarget(isNorthUp, bearingDegrees, mapAngleRadians).toFloat()
+    // Needle rotation = screen direction of geographic north for the current map
+    // rotation. Single convention lives in ProjectionUtils — never inline a
+    // negation or a bearing term here (spec: compass-button).
+    val targetDegrees = compassNeedleTarget(mapAngleRadians).toFloat()
     val animatedDegrees by animateFloatAsState(
         targetValue = targetDegrees,
         animationSpec = tween(durationMillis = 300),
         label = "compassRotation"
     )
 
-    val fillColor = when (gpsFixQuality) {
-        GpsFixQuality.NONE -> GpsFillNoFix
-        GpsFixQuality.POOR -> GpsFillPoorFix
-        GpsFixQuality.GOOD -> GpsFillGoodFix
-    }
+    val fillColor = compassFillColor(gpsFixQuality)
 
     val borderColor = MaterialTheme.colorScheme.outline
     // Same symbol color as the other overlay buttons (FilledTonalIconButton icons)
@@ -121,46 +116,43 @@ fun CompassButton(
             )
 
             // Compass needle
-            drawCompassNeedle(animatedDegrees, isNorthUp, needleColor, textMeasurer, northLabel)
+            drawCompassNeedle(animatedDegrees, needleColor, textMeasurer, northLabel)
         }
     }
 }
 
 /**
- * Screen rotation (degrees, clockwise from screen-up) for the compass needle.
- *
- * North-up mode points at the map's north: [ProjectionUtils.compassRotationDegrees].
- * Follow mode points at the travel direction on screen: [ProjectionUtils.screenBearing]
- * with the geographic bearing, which is 0 (straight up) while heading-up follow is
- * active and follows the travel direction after a manual map rotation. When the
- * bearing is unknown (null, NaN, or negative), the needle falls back to pointing
- * at map north.
+ * Button fill for a GPS fix quality: light red (no fix), light yellow (poor),
+ * light green (good) — spec: compass-button, "GPS fix status fill color".
  */
-internal fun compassNeedleTarget(
-    isNorthUp: Boolean,
-    bearingDegrees: Double?,
-    mapAngleRadians: Double
-): Double {
-    if (isNorthUp) return ProjectionUtils.compassRotationDegrees(mapAngleRadians)
-    val bearing = bearingDegrees
-    return if (bearing != null && !bearing.isNaN() && bearing >= 0.0) {
-        ProjectionUtils.screenBearing(bearing, mapAngleRadians)
-    } else {
-        ProjectionUtils.compassRotationDegrees(mapAngleRadians)
-    }
+internal fun compassFillColor(gpsFixQuality: GpsFixQuality): Color = when (gpsFixQuality) {
+    GpsFixQuality.NONE -> GpsFillNoFix
+    GpsFixQuality.POOR -> GpsFillPoorFix
+    GpsFixQuality.GOOD -> GpsFillGoodFix
 }
 
 /**
- * Draw the compass needle.
+ * Screen rotation (degrees, clockwise from screen-up) for the compass needle:
+ * the direction in which north renders on the map, i.e.
+ * [ProjectionUtils.compassRotationDegrees] of the map rotation.
  *
- * In "always north" mode: north half and "N" in the standard symbol color,
- * neutral south half. In "follow direction" mode: a compass-needle-like
- * triangle pointing in the travel direction whose base line is smaller than
- * its height, sized to 70% of the button. Rotated by [degrees] (0 = north up).
+ * Deliberately a function of the map angle ALONE. The needle indicates north in
+ * north-up and in follow-direction (heading-up) mode: a heading-up view stores
+ * `angle = -bearing`, so driving south puts north at 180° (behind the vehicle)
+ * and driving east puts it at 270° (the driver's left). The vehicle bearing is
+ * not an input — the marker arrow and the map rotation already carry the travel
+ * direction (spec: compass-button).
+ */
+internal fun compassNeedleTarget(mapAngleRadians: Double): Double =
+    ProjectionUtils.compassRotationDegrees(mapAngleRadians)
+
+/**
+ * Draw the compass needle: north half and "N" in the standard symbol color,
+ * neutral south half, rotated by [degrees] (0 = north up). One shape for every
+ * orientation mode — the needle always means north.
  */
 private fun DrawScope.drawCompassNeedle(
     degrees: Float,
-    isNorthUp: Boolean,
     needleColor: Color,
     textMeasurer: androidx.compose.ui.text.TextMeasurer,
     northLabel: String
@@ -173,36 +165,35 @@ private fun DrawScope.drawCompassNeedle(
     val dirX = sin(radians).toFloat()
     val dirY = -cos(radians).toFloat()
 
-    if (isNorthUp) {
-        // Icon area is 24dp; needle spans ~20dp centered on the button
-        val needleLength = 10.dp.toPx()
-        val northX = centerX + dirX * needleLength
-        val northY = centerY + dirY * needleLength
-        val southX = centerX - dirX * needleLength
-        val southY = centerY - dirY * needleLength
+    // Icon area is 24dp; needle spans ~20dp centered on the button
+    val needleLength = 10.dp.toPx()
+    val northX = centerX + dirX * needleLength
+    val northY = centerY + dirY * needleLength
+    val southX = centerX - dirX * needleLength
+    val southY = centerY - dirY * needleLength
 
-        // "Always north" mode: north half in symbol color, neutral south half
-        drawLine(
+    // North half in the symbol color, neutral south half
+    drawLine(
+        color = needleColor,
+        start = Offset(centerX, centerY),
+        end = Offset(northX, northY),
+        strokeWidth = 3f,
+        cap = StrokeCap.Round
+    )
+
+    drawLine(
+        color = needleColor.copy(alpha = 0.4f),
+        start = Offset(centerX, centerY),
+        end = Offset(southX, southY),
+        strokeWidth = 3f,
+        cap = StrokeCap.Round
+    )
+
+    // "N" at north tip
+    val textResult = textMeasurer.measure(
+        text = northLabel,
+        style = TextStyle(
             color = needleColor,
-            start = Offset(centerX, centerY),
-            end = Offset(northX, northY),
-            strokeWidth = 3f,
-            cap = StrokeCap.Round
-        )
-
-        drawLine(
-            color = needleColor.copy(alpha = 0.4f),
-            start = Offset(centerX, centerY),
-            end = Offset(southX, southY),
-            strokeWidth = 3f,
-            cap = StrokeCap.Round
-        )
-
-        // "N" at north tip
-        val textResult = textMeasurer.measure(
-            text = northLabel,
-            style = TextStyle(
-                color = needleColor,
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp
             )
@@ -213,28 +204,4 @@ private fun DrawScope.drawCompassNeedle(
             textLayoutResult = textResult,
             topLeft = Offset(nOffsetX, nOffsetY)
         )
-    } else {
-        // "Follow direction" mode: compass-needle-like triangle, base < height,
-        // sized to 70% of the button (28dp on a 40dp visual)
-        val height = 0.7f * size.minDimension
-        val baseHalfWidth = height * 0.3125f // base ≈ 17.5dp < height = 28dp
-
-        // Perpendicular to the travel direction
-        val perpX = -dirY
-        val perpY = dirX
-
-        // Tip points in the travel direction; base sits behind the center
-        val tipX = centerX + dirX * (height / 2f)
-        val tipY = centerY + dirY * (height / 2f)
-        val baseCenterX = centerX - dirX * (height / 2f)
-        val baseCenterY = centerY - dirY * (height / 2f)
-
-        val triangle = Path().apply {
-            moveTo(tipX, tipY)
-            lineTo(baseCenterX + perpX * baseHalfWidth, baseCenterY + perpY * baseHalfWidth)
-            lineTo(baseCenterX - perpX * baseHalfWidth, baseCenterY - perpY * baseHalfWidth)
-            close()
-        }
-        drawPath(path = triangle, color = needleColor)
-    }
 }

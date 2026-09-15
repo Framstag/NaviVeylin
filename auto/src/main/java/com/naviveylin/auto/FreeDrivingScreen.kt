@@ -58,7 +58,6 @@ class FreeDrivingScreen(
     private val locationProvider = entryPoint.autoLocationProvider()
     private val settingsProvider = entryPoint.autoSettingsProvider()
     private val drivingModeProvider = entryPoint.autoDrivingModeProvider()
-    private val client by lazy { entryPoint.autoClientProvider().client() }
 
     private val streetNameUpdater = StreetNameUpdater()
     private val autoZoomController = AutoZoomController()
@@ -70,7 +69,7 @@ class FreeDrivingScreen(
      * is not forced before the surface is available.
      */
     private val panHandler: MapPanHandler by lazy {
-        MapPanHandler(mapRenderer, autoZoomController) { surfaceWidth to surfaceHeight }
+        MapPanHandler({ rendererGate.rendererOrNull() }, autoZoomController) { surfaceWidth to surfaceHeight }
     }
 
     private var surfaceWidth = 0
@@ -130,16 +129,16 @@ class FreeDrivingScreen(
      */
     private val fixDerivation = AutoFixDerivation()
 
-    private val mapRenderer: AutoMapRenderer by lazy {
-        val renderDpi = carContext.resources.displayMetrics.densityDpi.toDouble()
-        AutoMapRenderer(
-            client,
-            renderDpi,
-            DEFAULT_LAT,
-            DEFAULT_LON,
-            DEFAULT_AA_ZOOM
-        )
-    }
+    /**
+     * Renderer-bound state buffers here until the renderer is ready (spec:
+     * auto-map-renderer — "Renderer initialization off the car-app main
+     * thread"): native client first-touch and the renderer construction run in
+     * the [rendererInitJob] coroutine on a background dispatcher, so the
+     * constructor never blocks the main thread and never first-touches the
+     * Hilt native-client singleton on the host thread.
+     */
+    private val rendererGate = RendererGate()
+    private var rendererInitJob: Job? = null
 
     /** Surface-refresh (invalidate) attempts left for this screen start. */
     private var surfaceRefreshAttempts = 0
@@ -149,6 +148,52 @@ class FreeDrivingScreen(
         // "Exit free driving" — back returns to the map view).
         enableBackNavigation()
 
+        // Async renderer init (design D2): first-touch the native client
+        // singleton off the main thread and build the renderer (fixed fallback
+        // viewport — free driving centers on the vehicle via follow).
+        rendererInitJob = scope.launch {
+            val renderer = withContext(Dispatchers.Default) {
+                val client = entryPoint.autoClientProvider().client()
+                rendererGate.pendingSurfaceDpi()?.let { dpi ->
+                    runCatching { client.setMapDpi(dpi) }
+                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                }
+                Log.d(TAG, "Free driving renderer ready")
+                AutoMapRenderer(
+                    client,
+                    carContext.resources.displayMetrics.densityDpi.toDouble(),
+                    DEFAULT_LAT,
+                    DEFAULT_LON,
+                    DEFAULT_AA_ZOOM
+                )
+            }
+            rendererGate.publish(renderer)
+        }
+
+        // Renderer readiness: wire surface-failure recovery once the renderer
+        // exists (must never first-touch the native client on the main
+        // thread).
+        scope.launch {
+            rendererGate.renderer.collect { renderer ->
+                if (renderer == null) return@collect
+                // If the host delivered a surface we cannot lock (AAOS emulator
+                // quirk: it locks surfaces it re-delivers after a screen
+                // transition), drop it and ask the host for a fresh one.
+                // Throttled inside the renderer and capped per screen start so a
+                // persistently-bad surface does not invalidate the template
+                // forever.
+                renderer.onSurfaceFailed = {
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                        surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
+                    ) {
+                        surfaceRefreshAttempts++
+                        Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
+                        invalidate()
+                    }
+                }
+            }
+        }
+
         // Shared settings: auto-zoom (speed → magnification) applies live.
         scope.launch {
             runCatching { settingsProvider.load() }
@@ -156,7 +201,9 @@ class FreeDrivingScreen(
                     autoZoomEnabled = settings.autoZoomEnabled
                     overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
                     freeDrivingAnchor = VehicleAnchorPosition.fromId(settings.freeDrivingAnchorId)
-                    mapRenderer.setFollowAnchor(freeDrivingAnchor)
+                    rendererGate.setFollowAnchor(freeDrivingAnchor)
+                    // Host panel edge (left in LTR, right in RTL) — visible-area anchor.
+                    rendererGate.setHostPaneRtl(isHostPaneOnRight(carContext))
                     Log.d(TAG, "settings loaded: autoZoomEnabled=$autoZoomEnabled anchor=$freeDrivingAnchor")
                 }
                 .onFailure { Log.w(TAG, "loading settings failed", it) }
@@ -177,7 +224,7 @@ class FreeDrivingScreen(
                 ) {
                     currentSpeedKmH = 0.0
                     Log.d(TAG, "stale fix — free-driving badge speed zeroed")
-                    mapRenderer.requestRender()
+                    rendererGate.requestRender()
                 }
             }
         }
@@ -186,7 +233,7 @@ class FreeDrivingScreen(
         // speed readout below it (badge shows the current speed — free driving
         // has no speed-limit data) + the street-name label at the bottom. No
         // navigation hint panel — free driving has no target.
-        mapRenderer.overlayDrawer = { canvas, w, h ->
+        rendererGate.setOverlayDrawer({ canvas, w, h ->
             val density = (surfaceDpi / 160.0).toFloat()
             SurfaceIndicators.draw(
                 canvas = canvas,
@@ -217,22 +264,7 @@ class FreeDrivingScreen(
                 density = density,
                 usableBounds = stableArea
             )
-        }
-
-        // If the host delivered a surface we cannot lock (AAOS emulator quirk:
-        // it locks surfaces it re-delivers after a screen transition), drop it
-        // and ask the host for a fresh one. Throttled inside the renderer and
-        // capped per screen start so a persistently-bad surface does not
-        // invalidate the template forever.
-        mapRenderer.onSurfaceFailed = {
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
-                surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
-            ) {
-                surfaceRefreshAttempts++
-                Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
-                invalidate()
-            }
-        }
+        })
 
         // Surface vote for the shared free-driving flag (design: retain-on-death).
         // Published on entry; cleared on explicit exit ([exitFreeDriving]) — the
@@ -244,18 +276,19 @@ class FreeDrivingScreen(
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
                 registerSurfaceCallback()
-                mapRenderer.resume()
+                rendererGate.resume()
                 startObserving()
             }
             override fun onStop(owner: LifecycleOwner) {
                 stopObserving()
-                mapRenderer.pause()
+                rendererGate.pause()
                 // Release the surface: a screen stopped underneath a pushed
                 // screen never gets onSurfaceDestroyed (the host notifies only
                 // the current callback), so the stale surface would keep the
                 // host's buffer queue held and break the next screen's
-                // surface. Release on stop, re-acquire on start.
-                mapRenderer.releaseSurface()
+                // surface. Release on stop, re-acquire on start. No-op while
+                // the renderer is still initializing.
+                rendererGate.releaseSurface()
                 // NOTE: no unregisterSurfaceCallback() here. The car-app
                 // library starts the new screen BEFORE stopping the old one
                 // (ScreenManager.pushInternal), so an onStop unregister would
@@ -266,7 +299,11 @@ class FreeDrivingScreen(
             override fun onDestroy(owner: LifecycleOwner) {
                 stopObserving()
                 unregisterSurfaceCallback()
-                mapRenderer.shutdown()
+                // Cancel a still-running init first, so no renderer work
+                // continues after the screen is destroyed; the gate shuts
+                // down a published renderer.
+                rendererInitJob?.cancel()
+                rendererGate.destroy()
                 scope.cancel()
             }
         })
@@ -321,7 +358,7 @@ class FreeDrivingScreen(
         scope.launch {
             entryPoint.basemapReloadNotifier().revision.collect { revision ->
                 if (revision > 0L) {
-                    mapRenderer.invalidateData()
+                    rendererGate.invalidateData()
                 }
             }
         }
@@ -342,7 +379,7 @@ class FreeDrivingScreen(
                 "effBearing=$bearing speedKmH=${pos.speedKmH} effSpeed=$speed"
         )
         currentSpeedKmH = speed
-        mapRenderer.setGpsMarker(
+        rendererGate.setGpsMarker(
             pos.lat, pos.lon, bearing, pos.accuracy,
             speedKmH = speed,
             timeMs = nowMs
@@ -362,21 +399,22 @@ class FreeDrivingScreen(
         val newZoom = autoZoomTarget(panHandler.panning, autoZoomEnabled, speed, autoZoomController)
 
         if (shouldCommitViewport(panHandler.panning, angle, newZoom)) {
+            val commitRenderer = rendererGate.rendererOrNull() ?: return
             // setViewport disengages follow mode, so re-engage + re-center
             // right after (same pattern as NavigationScreen). While panned the
             // commit is gated off — heading-up is always computed here, so
             // without the gate every fix would re-engage follow and yank the
             // map back (spec: auto/map-pan — follow suspended while panned).
-            val vp = mapRenderer.viewportState.value
+            val vp = commitRenderer.viewportState.value
             val zoom = newZoom ?: vp.zoom.toDouble()
             // The integer slot keeps the viewport model level; the 5th arg is
             // the fractional render magnification (spec: auto-speed-zoom —
             // Smooth zoom transitions delta — same shape as pinch zoomStep).
-            mapRenderer.setViewport(vp.lat, vp.lon, zoom.roundToInt(), angle ?: vp.angle, zoom)
+            rendererGate.setViewport(vp.lat, vp.lon, zoom.roundToInt(), angle ?: vp.angle, zoom)
             // Re-engage follow WITHOUT snapping: the extrapolation loop eases
             // the display to the fix (smooth correction, spec:
             // auto-smooth-follow). reCenter() would snap the map back per fix.
-            mapRenderer.reengageFollow()
+            rendererGate.reengageFollow()
             if (newZoom != null) {
                 Log.d(TAG, "autoZoom commit speed=${pos.speedKmH} mag=$newZoom")
             }
@@ -399,7 +437,7 @@ class FreeDrivingScreen(
         streetJob = scope.launch {
             val road = withContext(Dispatchers.Default) {
                 try {
-                    client.getRoadAt(pos.lat, pos.lon, pos.bearing)
+                    entryPoint.autoClientProvider().client().getRoadAt(pos.lat, pos.lon, pos.bearing)
                 } catch (e: Exception) {
                     Log.w(TAG, "road info lookup failed", e)
                     null
@@ -411,7 +449,7 @@ class FreeDrivingScreen(
                 // sign (spec: "No sign without a limit").
                 maxSpeedKmH = road.maxSpeedKmH.takeIf { !it.isNaN() } ?: Double.NaN
                 streetNameUpdater.markGeocoded(pos.lat, pos.lon)
-                mapRenderer.requestRender()
+                rendererGate.requestRender()
             }
         }
     }
@@ -428,21 +466,23 @@ class FreeDrivingScreen(
     }
 
     private fun onZoomIn() {
+        val renderer = rendererGate.rendererOrNull() ?: return
         autoZoomController.suspend()
-        val vp = mapRenderer.viewportState.value
+        val vp = renderer.viewportState.value
         val zoom = (vp.zoom + 1).coerceAtMost(AutoMapRenderer.MAX_ZOOM)
         Log.d(TAG, "free driving zoom+ $zoom (auto-zoom suspended)")
-        mapRenderer.setViewport(vp.lat, vp.lon, zoom, vp.angle, zoom.toDouble())
-        mapRenderer.reCenter()
+        rendererGate.setViewport(vp.lat, vp.lon, zoom, vp.angle, zoom.toDouble())
+        rendererGate.reCenter()
     }
 
     private fun onZoomOut() {
+        val renderer = rendererGate.rendererOrNull() ?: return
         autoZoomController.suspend()
-        val vp = mapRenderer.viewportState.value
+        val vp = renderer.viewportState.value
         val zoom = (vp.zoom - 1).coerceAtLeast(AutoMapRenderer.MIN_ZOOM)
         Log.d(TAG, "free driving zoom- $zoom (auto-zoom suspended)")
-        mapRenderer.setViewport(vp.lat, vp.lon, zoom, vp.angle, zoom.toDouble())
-        mapRenderer.reCenter()
+        rendererGate.setViewport(vp.lat, vp.lon, zoom, vp.angle, zoom.toDouble())
+        rendererGate.reCenter()
     }
 
     private fun registerSurfaceCallback() {
@@ -458,10 +498,17 @@ class FreeDrivingScreen(
                     "FREEDRIVE",
                     "Surface available ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi"
                 )
-                runCatching { client.setMapDpi(surfaceDpi) }
-                    .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                mapRenderer.updateProjectionDpi(surfaceDpi)
-                mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
+                // Render at the CAR display's DPI — the client is built with
+                // the phone metrics, which would scale the map ~1.8x too
+                // zoomed on a ~236-dpi head unit. Takes effect on the next
+                // render. Only safe on the main thread once the client is built
+                // (renderer published); a pre-ready DPI is applied by the
+                // off-main init coroutine and replayed with the surface.
+                if (rendererGate.rendererOrNull() != null) {
+                    runCatching { entryPoint.autoClientProvider().client().setMapDpi(surfaceDpi) }
+                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                }
+                rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
             }
 
             override fun onSurfaceDestroyed(surfaceContainer: SurfaceContainer) {
@@ -471,7 +518,7 @@ class FreeDrivingScreen(
                 surfaceDpi = DEFAULT_DPI
                 stableArea.setEmpty()
                 visibleArea.setEmpty()
-                mapRenderer.onSurfaceDestroyed()
+                rendererGate.onSurfaceDestroyed()
             }
 
             override fun onVisibleAreaChanged(visible: Rect) {
@@ -481,12 +528,12 @@ class FreeDrivingScreen(
                 // street-name label anchors to the more conservative of the
                 // two (design D1).
                 visibleArea.set(visible)
-                mapRenderer.requestRender()
+                rendererGate.requestRender()
             }
 
             override fun onStableAreaChanged(newStableArea: Rect) {
                 stableArea.set(newStableArea)
-                mapRenderer.requestRender()
+                rendererGate.requestRender()
             }
 
             // Pan gestures (spec: auto/map-pan): the host forwards them only

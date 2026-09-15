@@ -92,16 +92,6 @@ class VehicleAnchorTest {
     }
 
     @Test
-    fun `anchor offset is the plain fraction delta from center`() {
-        val (ox, oy) = anchorOffsetPx(VehicleAnchorPosition.BOTTOM_RIGHT, 1000, 2000)
-        assertEquals(200.0, ox, 1e-9) // (0.7 - 0.5) * 1000
-        assertEquals(800.0, oy, 1e-9) // (0.9 - 0.5) * 2000
-        val (cx, cy) = anchorOffsetPx(VehicleAnchorPosition.CENTER, 1000, 2000)
-        assertEquals(0.0, cx, 1e-9)
-        assertEquals(0.0, cy, 1e-9)
-    }
-
-    @Test
     fun `anchor center shifts so the vehicle is not centered`() {
         // Bottom-right anchor: the render center must move up-left relative to
         // the vehicle so the vehicle appears at the bottom-right fraction.

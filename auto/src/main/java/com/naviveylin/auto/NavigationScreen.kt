@@ -93,9 +93,14 @@ class NavigationScreen(
      * away.
      */
     private fun pushDark() {
+        // Skip until the renderer exists: the native client may still be
+        // building off the main thread, and applying the stylesheet flag must
+        // never first-touch it here. Re-pushed from the readiness observer and
+        // after surface arrival once the init coroutine built the client.
+        if (rendererGate.rendererOrNull() == null) return
         daylightApplier.reset()
         if (daylightApplier.apply(resolvedDark.value)) {
-            mapRenderer.invalidateStyle()
+            rendererGate.invalidateStyle()
         }
     }
 
@@ -152,7 +157,7 @@ class NavigationScreen(
      * is not forced before the surface is available.
      */
     private val panHandler: MapPanHandler by lazy {
-        MapPanHandler(mapRenderer, autoZoomController) { surfaceWidth to surfaceHeight }
+        MapPanHandler({ rendererGate.rendererOrNull() }, autoZoomController) { surfaceWidth to surfaceHeight }
     }
 
     /** Throttled street-name resolution (same pattern as free driving). */
@@ -170,19 +175,16 @@ class NavigationScreen(
      */
     private val fixDerivation = AutoFixDerivation()
 
-    private val mapRenderer: AutoMapRenderer by lazy {
-        val client = entryPoint.autoClientProvider().client()
-        // The native renderer projects with the client's configured physical
-        // DPI (from the phone display metrics), not the car surface DPI.
-        val renderDpi = carContext.resources.displayMetrics.densityDpi.toDouble()
-        AutoMapRenderer(
-            client,
-            renderDpi,
-            DEFAULT_LAT,
-            DEFAULT_LON,
-            DEFAULT_AA_ZOOM
-        )
-    }
+    /**
+     * Renderer-bound state buffers here until the renderer is ready (spec:
+     * auto-map-renderer — "Renderer initialization off the car-app main
+     * thread"): native client first-touch and the renderer construction run in
+     * the [rendererInitJob] coroutine on a background dispatcher, so the
+     * constructor never blocks the main thread and never first-touches the
+     * Hilt native-client singleton on the host thread.
+     */
+    private val rendererGate = RendererGate()
+    private var rendererInitJob: Job? = null
 
     init {
         // Back leaves the navigation view in EVERY state (design D3, spec:
@@ -207,7 +209,7 @@ class NavigationScreen(
         // speed badge) and the current street-name label at the bottom.
         // The host instruction panel renders the navigation instructions
         // (maneuver, steps, lanes) — nothing instruction-related on the surface.
-        mapRenderer.overlayDrawer = { canvas, w, h ->
+        rendererGate.setOverlayDrawer({ canvas, w, h ->
             val state = lastState
             val density = (surfaceDpi / 160.0).toFloat()
             if (state != null) {
@@ -254,21 +256,58 @@ class NavigationScreen(
                 density = density,
                 usableBounds = stableArea
             )
+        })
+
+        // Renderer readiness: wire surface-failure recovery and re-push the
+        // day/night stylesheet flag once the renderer exists (the pre-ready
+        // push is skipped — pushDark must never first-touch the native client
+        // on the main thread).
+        scope.launch {
+            rendererGate.renderer.collect { renderer ->
+                if (renderer == null) return@collect
+                // If the host delivered a surface we cannot lock (AAOS emulator quirk:
+                // it locks surfaces it re-delivers after a screen transition), drop it
+                // and ask the host for a fresh one. Throttled inside the renderer and
+                // capped per screen start so a persistently-bad surface does not
+                // invalidate the template forever.
+                renderer.onSurfaceFailed = {
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                        surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
+                    ) {
+                        surfaceRefreshAttempts++
+                        Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
+                        invalidate()
+                    }
+                }
+                // The startup push was skipped while the client was still
+                // building — apply the resolved presentation now.
+                pushDark()
+            }
         }
 
-        // If the host delivered a surface we cannot lock (AAOS emulator quirk:
-        // it locks surfaces it re-delivers after a screen transition), drop it
-        // and ask the host for a fresh one. Throttled inside the renderer and
-        // capped per screen start so a persistently-bad surface does not
-        // invalidate the template forever.
-        mapRenderer.onSurfaceFailed = {
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
-                surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
-            ) {
-                surfaceRefreshAttempts++
-                Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
-                invalidate()
+        // Async renderer init (design D2): first-touch the native client
+        // singleton off the main thread and build the renderer (fixed fallback
+        // viewport — navigation centers on the vehicle via follow).
+        rendererInitJob = scope.launch {
+            val renderer = withContext(Dispatchers.Default) {
+                val client = entryPoint.autoClientProvider().client()
+                rendererGate.pendingSurfaceDpi()?.let { dpi ->
+                    runCatching { client.setMapDpi(dpi) }
+                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                }
+                Log.d(TAG, "Nav renderer ready")
+                // The native renderer projects with the client's configured
+                // physical DPI (from the phone display metrics), not the car
+                // surface DPI.
+                AutoMapRenderer(
+                    client,
+                    carContext.resources.displayMetrics.densityDpi.toDouble(),
+                    DEFAULT_LAT,
+                    DEFAULT_LON,
+                    DEFAULT_AA_ZOOM
+                )
             }
+            rendererGate.publish(renderer)
         }
 
         // Shared settings: lane hints + navigation orientation + auto-zoom.
@@ -292,7 +331,7 @@ class NavigationScreen(
                             pushDark()
                         }
                     }
-                    mapRenderer.requestRender()
+                    rendererGate.requestRender()
                 }
                 .onFailure { Log.w(TAG, "loading settings failed", it) }
         }
@@ -301,19 +340,20 @@ class NavigationScreen(
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
                 registerSurfaceCallback()
-                mapRenderer.resume()
+                rendererGate.resume()
                 startObserving()
             }
             override fun onStop(owner: LifecycleOwner) {
                 stopObserving()
                 autoZoomController.suspend()
-                mapRenderer.pause()
+                rendererGate.pause()
                 // Release the surface: a screen stopped underneath a pushed
                 // screen never gets onSurfaceDestroyed (the host notifies only
                 // the current callback), so the stale surface would keep the
                 // host's buffer queue held and break the next screen's
-                // surface. Release on stop, re-acquire on start.
-                mapRenderer.releaseSurface()
+                // surface. Release on stop, re-acquire on start. No-op while
+                // the renderer is still initializing.
+                rendererGate.releaseSurface()
                 // NOTE: no unregisterSurfaceCallback() here — see
                 // FreeDrivingScreen: an onStop unregister nulls the callback
                 // the next screen registered (car-app starts the new screen
@@ -324,7 +364,11 @@ class NavigationScreen(
                 stopObserving()
                 autoZoomController.suspend()
                 unregisterSurfaceCallback()
-                mapRenderer.shutdown()
+                // Cancel a still-running init first, so no renderer work
+                // continues after the screen is destroyed; the gate shuts
+                // down a published renderer.
+                rendererInitJob?.cancel()
+                rendererGate.destroy()
                 scope.cancel()
             }
         })
@@ -397,11 +441,11 @@ class NavigationScreen(
                     // arrives and clears when navigation stops.
                     if (state.routeLats !== lastRouteLats) {
                         lastRouteLats = state.routeLats
-                        mapRenderer.setRoute(state.routeLats, state.routeLons)
+                        rendererGate.setRoute(state.routeLats, state.routeLons)
                     }
                     // Destination marker follows the navigation context
                     // (spec: auto-destination-details); NaN clears it.
-                    mapRenderer.setDestinationMarker(state.destLat, state.destLon, state.destinationName)
+                    rendererGate.setDestinationMarker(state.destLat, state.destLon, state.destinationName)
                     // Current street from the route's way (spec:
                     // auto/navigation-view — street from the route, not an area
                     // search): updates when the road changes, without a template
@@ -410,7 +454,7 @@ class NavigationScreen(
                     val roadText = streetNameFromState(state)
                     if (roadText != null && roadText != streetName) {
                         streetName = roadText
-                        mapRenderer.requestRender()
+                        rendererGate.requestRender()
                         // The host ETA card carries the street name when the map
                         // label is not safe (design D5) — needs a template rebuild.
                         if (!mapLabelSafe()) {
@@ -420,7 +464,7 @@ class NavigationScreen(
                     if (changed) {
                         invalidate()
                         // Redraw the surface hints without waiting for a GPS tick.
-                        mapRenderer.requestRender()
+                        rendererGate.requestRender()
                         // Live settings: lane hints + orientation + auto-zoom
                         // apply without a screen restart (throttled by state changes).
                         scope.launch {
@@ -437,8 +481,11 @@ class NavigationScreen(
                                         autoZoomEnabled = settings.autoZoomEnabled
                                         overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
                                         routingAnchor = VehicleAnchorPosition.fromId(settings.routingAnchorId)
-                                        mapRenderer.setFollowAnchor(routingAnchor)
-                                        mapRenderer.requestRender()
+                                        rendererGate.setFollowAnchor(routingAnchor)
+                                        // The host's panel edge (left in LTR, right in RTL): the
+                                        // anchor resolves against the visible surface area.
+                                        rendererGate.setHostPaneRtl(isHostPaneOnRight(carContext))
+                                        rendererGate.requestRender()
                                     }
                                 }
                                 .onFailure { Log.w(TAG, "settings reload failed", it) }
@@ -459,7 +506,7 @@ class NavigationScreen(
                     // "Smooth follow-mode scrolling during navigation").
                     val nowMs = System.currentTimeMillis()
                     val fix = effectiveFixArgs(pos, nowMs, fixDerivation)
-                    mapRenderer.setGpsMarker(
+                    rendererGate.setGpsMarker(
                         fix.lat, fix.lon, fix.bearing, fix.accuracy,
                         speedKmH = fix.speedKmH,
                         timeMs = fix.timeMs
@@ -470,27 +517,30 @@ class NavigationScreen(
                     // stays frozen during a pan; the commit is gated on
                     // !panning too (design D1) so a band-crossing zoom can
                     // never re-engage follow mid-pan.
-                    val zoom = autoZoomTarget(panHandler.panning, autoZoomEnabled, fix.speedKmH, autoZoomController)
-                    val angle = if (shouldRotateHeadingUp(panHandler.panning, navNorthUp, fix.bearing)) {
-                        -Math.toRadians(fix.bearing)
-                    } else {
-                        null
-                    }
-                    if (shouldCommitViewport(panHandler.panning, angle, zoom)) {
-                        val vp = mapRenderer.viewportState.value
-                        val newZoom = zoom ?: vp.zoom.toDouble()
-                        // The integer slot keeps the viewport model level; the
-                        // 5th arg is the fractional render magnification
-                        // (spec: auto-speed-zoom — Smooth zoom transitions
-                        // delta — same shape as pinch zoomStep).
-                        mapRenderer.setViewport(
-                            vp.lat, vp.lon, newZoom.roundToInt(), angle ?: vp.angle, newZoom
-                        )
-                        // Re-engage follow WITHOUT snapping (smooth correction
-                        // via the extrapolation loop, spec: auto-smooth-follow).
-                        mapRenderer.reengageFollow()
-                        if (zoom != null) {
-                            Log.d(TAG, "nav autoZoom commit speed=${pos.speedKmH} mag=$zoom")
+                    val commitRenderer = rendererGate.rendererOrNull()
+                    if (commitRenderer != null) {
+                        val zoom = autoZoomTarget(panHandler.panning, autoZoomEnabled, fix.speedKmH, autoZoomController)
+                        val angle = if (shouldRotateHeadingUp(panHandler.panning, navNorthUp, fix.bearing)) {
+                            -Math.toRadians(fix.bearing)
+                        } else {
+                            null
+                        }
+                        if (shouldCommitViewport(panHandler.panning, angle, zoom)) {
+                            val vp = commitRenderer.viewportState.value
+                            val newZoom = zoom ?: vp.zoom.toDouble()
+                            // The integer slot keeps the viewport model level; the
+                            // 5th arg is the fractional render magnification
+                            // (spec: auto-speed-zoom — Smooth zoom transitions
+                            // delta — same shape as pinch zoomStep).
+                            rendererGate.setViewport(
+                                vp.lat, vp.lon, newZoom.roundToInt(), angle ?: vp.angle, newZoom
+                            )
+                            // Re-engage follow WITHOUT snapping (smooth correction
+                            // via the extrapolation loop, spec: auto-smooth-follow).
+                            rendererGate.reengageFollow()
+                            if (zoom != null) {
+                                Log.d(TAG, "nav autoZoom commit speed=${pos.speedKmH} mag=$zoom")
+                            }
                         }
                     }
                     resolveStreetName(pos)
@@ -505,8 +555,12 @@ class NavigationScreen(
         // stale-variant overrun buffer is never blitted.
         scope.launch {
             resolvedDark.collect { dark ->
-                if (daylightApplier.apply(dark)) {
-                    mapRenderer.invalidateStyle()
+                rendererGate.setDarkPresentation(dark)
+                // Stylesheet flag applies only once the client is built; a
+                // pre-ready dark is re-pushed by the readiness observer via
+                // pushDark() (which skips until ready).
+                if (rendererGate.rendererOrNull() != null && daylightApplier.apply(dark)) {
+                    rendererGate.invalidateStyle()
                 }
             }
         }
@@ -516,7 +570,7 @@ class NavigationScreen(
         scope.launch {
             entryPoint.basemapReloadNotifier().revision.collect { revision ->
                 if (revision > 0L) {
-                    mapRenderer.invalidateData()
+                    rendererGate.invalidateData()
                 }
             }
         }
@@ -550,7 +604,7 @@ class NavigationScreen(
             val name = road?.let { StreetNameUpdater.roadDisplayText(it.ref, it.name) }
             val changed = name != streetName
             streetName = name
-            mapRenderer.requestRender()
+            rendererGate.requestRender()
             // The host ETA card carries the street name when the map label is
             // not safe (design D5) — the card text needs a template rebuild.
             if (changed && !mapLabelSafe()) {
@@ -592,21 +646,23 @@ class NavigationScreen(
     }
 
     private fun onZoomIn() {
+        val renderer = rendererGate.rendererOrNull() ?: return
         autoZoomController.suspend()
-        val vp = mapRenderer.viewportState.value
+        val vp = renderer.viewportState.value
         val zoom = (vp.zoom + 1).coerceAtMost(AutoMapRenderer.MAX_ZOOM)
         Log.d(TAG, "nav zoom+ $zoom")
-        mapRenderer.setViewport(vp.lat, vp.lon, zoom, vp.angle, zoom.toDouble())
-        mapRenderer.reCenter()
+        rendererGate.setViewport(vp.lat, vp.lon, zoom, vp.angle, zoom.toDouble())
+        rendererGate.reCenter()
     }
 
     private fun onZoomOut() {
+        val renderer = rendererGate.rendererOrNull() ?: return
         autoZoomController.suspend()
-        val vp = mapRenderer.viewportState.value
+        val vp = renderer.viewportState.value
         val zoom = (vp.zoom - 1).coerceAtLeast(AutoMapRenderer.MIN_ZOOM)
         Log.d(TAG, "nav zoom- $zoom")
-        mapRenderer.setViewport(vp.lat, vp.lon, zoom, vp.angle, zoom.toDouble())
-        mapRenderer.reCenter()
+        rendererGate.setViewport(vp.lat, vp.lon, zoom, vp.angle, zoom.toDouble())
+        rendererGate.reCenter()
     }
 
     private fun registerSurfaceCallback() {
@@ -622,10 +678,17 @@ class NavigationScreen(
                     "NAV",
                     "Surface available ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi"
                 )
-                runCatching { entryPoint.autoClientProvider().client().setMapDpi(surfaceDpi) }
-                    .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                mapRenderer.updateProjectionDpi(surfaceDpi)
-                mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
+                // Render at the CAR display's DPI — the client is built with
+                // the phone metrics, which would scale the map ~1.8x too
+                // zoomed on a ~236-dpi head unit. Takes effect on the next
+                // render. Only safe on the main thread once the client is built
+                // (renderer published); a pre-ready DPI is applied by the
+                // off-main init coroutine and replayed with the surface.
+                if (rendererGate.rendererOrNull() != null) {
+                    runCatching { entryPoint.autoClientProvider().client().setMapDpi(surfaceDpi) }
+                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                }
+                rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
                 // Re-push the resolved day/night flag before the first render: the
                 // startup push may have been dropped while the DB was still
                 // initializing (warmup race).
@@ -639,7 +702,7 @@ class NavigationScreen(
                 surfaceDpi = DEFAULT_DPI
                 stableArea.setEmpty()
                 visibleArea.setEmpty()
-                mapRenderer.onSurfaceDestroyed()
+                rendererGate.onSurfaceDestroyed()
             }
 
             override fun onVisibleAreaChanged(visible: Rect) {
@@ -650,7 +713,7 @@ class NavigationScreen(
                 // the more conservative of the two (design D1).
                 val wasSafe = mapLabelSafe()
                 visibleArea.set(visible)
-                mapRenderer.requestRender()
+                rendererGate.requestRender()
                 // Safety flip (design D5): the street name moves between the
                 // map label and the host ETA card — rebuild the template.
                 if (wasSafe != mapLabelSafe()) {
@@ -661,7 +724,7 @@ class NavigationScreen(
             override fun onStableAreaChanged(newStableArea: Rect) {
                 val wasSafe = mapLabelSafe()
                 stableArea.set(newStableArea)
-                mapRenderer.requestRender()
+                rendererGate.requestRender()
                 if (wasSafe != mapLabelSafe()) {
                     invalidate()
                 }

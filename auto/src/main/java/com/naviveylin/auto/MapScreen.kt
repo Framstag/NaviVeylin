@@ -19,7 +19,6 @@ import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
-import com.framstag.libosmscout.client.InstalledMaps
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.ProjectionUtils
@@ -38,7 +37,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 /**
  * Android Auto screen that displays a libosmscout-rendered map via [MapTemplate].
@@ -70,6 +68,7 @@ class MapScreen(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var observeJob: Job? = null
+    private var rendererInitJob: Job? = null
 
     private val entryPoint = EntryPointAccessors.fromApplication(
         carContext.applicationContext,
@@ -96,32 +95,14 @@ class MapScreen(
     }
 
     /**
-     * Initial viewport for the renderer: last phone-app viewport, else the
-     * first installed map's bounding box, else the global default. Picked at
-     * city zoom so downloaded map data is visible immediately.
+     * Renderer-bound state buffers here until the renderer is ready (spec:
+     * auto-map-renderer — "Renderer initialization off the car-app main
+     * thread"): native client first-touch and the initial-viewport resolution
+     * run in the [rendererInitJob] coroutine on a background dispatcher, so
+     * the constructor never blocks the main thread and never first-touches the
+     * Hilt native-client singleton on the host thread.
      */
-    private data class InitialViewport(val lat: Double, val lon: Double, val zoom: Int)
-
-    private val initialViewport: InitialViewport by lazy { computeInitialViewport() }
-
-    private val mapRenderer: AutoMapRenderer by lazy {
-        val clientProvider = entryPoint.autoClientProvider()
-        val client = clientProvider.client()
-        // The native renderer projects with the client's configured physical
-        // DPI (from the phone display metrics), not the car surface DPI — all
-        // overlay math (gestures, GPS marker) must use the same value.
-        val renderDpi = carContext.resources.displayMetrics.densityDpi.toDouble()
-        AutoMapRenderer(
-            client,
-            renderDpi,
-            initialViewport.lat,
-            initialViewport.lon,
-            initialViewport.zoom,
-            // "Show location" maps must stay on the requested destination —
-            // follow mode would snap the viewport to every GPS fix.
-            initialFollowMode = initialCenter == null
-        )
-    }
+    private val rendererGate = RendererGate()
 
     private var mapController: MapController? = null
     private var surfaceWidth = 0
@@ -138,37 +119,92 @@ class MapScreen(
         // never forwards surface gestures, so all interactive controls live in
         // host action strips. (The compass rose is navigation-only.)
 
-        // If the host delivered a surface we cannot lock (AAOS emulator quirk:
-        // it locks surfaces it re-delivers after a screen transition), drop it
-        // and ask the host for a fresh one. Throttled inside the renderer and
-        // capped per screen start so a persistently-bad surface does not
-        // invalidate the template forever.
-        mapRenderer.onSurfaceFailed = {
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
-                surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
-            ) {
-                surfaceRefreshAttempts++
-                Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
-                invalidate()
+        // Renderer readiness: wire surface-failure recovery and re-push the
+        // day/night stylesheet flag once the renderer exists (the pre-ready
+        // push is skipped — pushDark must never first-touch the native client
+        // on the main thread).
+        scope.launch {
+            rendererGate.renderer.collect { renderer ->
+                if (renderer == null) return@collect
+                // If the host delivered a surface we cannot lock (AAOS emulator
+                // quirk: it locks surfaces it re-delivers after a screen
+                // transition), drop it and ask the host for a fresh one.
+                // Throttled inside the renderer and capped per screen start so a
+                // persistently-bad surface does not invalidate the template
+                // forever.
+                renderer.onSurfaceFailed = {
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                        surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
+                    ) {
+                        surfaceRefreshAttempts++
+                        Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
+                        invalidate()
+                    }
+                }
+                // The startup push was skipped while the client was still
+                // building — apply the resolved presentation now.
+                pushDark()
             }
+        }
+
+        // Async renderer init (design D2): first-touch the native client
+        // singleton off the main thread, resolve the initial viewport (saved
+        // phone viewport JSON / map bbox — file IO + native bounding-box
+        // queries), build the renderer and publish it into the gate. Until
+        // then the gate buffers surface/dark/viewport/marker state; the
+        // constructor stays on the main thread only for cheap bookkeeping.
+        rendererInitJob = scope.launch {
+            val renderer = withContext(Dispatchers.Default) {
+                val client = entryPoint.autoClientProvider().client()
+                rendererGate.pendingSurfaceDpi()?.let { dpi ->
+                    runCatching { client.setMapDpi(dpi) }
+                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                }
+                val viewport = resolveInitialAutoViewport(
+                    mapsRootDir = File(carContext.filesDir, "maps"),
+                    client = client,
+                    initialCenter = initialCenter,
+                    initialZoom = initialZoom,
+                    defaultZoom = DEFAULT_AA_ZOOM,
+                    defaultCenter = DEFAULT_LAT to DEFAULT_LON
+                )
+                Log.d(TAG, "AA renderer ready at ${viewport.lat},${viewport.lon} mag=${viewport.zoom}")
+                // The native renderer projects with the client's configured
+                // physical DPI (from the phone display metrics), not the car
+                // surface DPI — all overlay math (gestures, GPS marker) must
+                // use the same value.
+                AutoMapRenderer(
+                    client,
+                    carContext.resources.displayMetrics.densityDpi.toDouble(),
+                    viewport.lat,
+                    viewport.lon,
+                    viewport.zoom,
+                    // "Show location" maps must stay on the requested
+                    // destination — follow mode would snap the viewport to
+                    // every GPS fix.
+                    initialFollowMode = initialCenter == null
+                )
+            }
+            rendererGate.publish(renderer)
         }
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
                 registerSurfaceCallback()
-                mapRenderer.resume()
+                rendererGate.resume()
                 startObserving()
             }
             override fun onStop(owner: LifecycleOwner) {
                 stopObserving()
-                mapRenderer.pause()
+                rendererGate.pause()
                 // Release the surface: a screen stopped underneath a pushed
                 // screen never gets onSurfaceDestroyed (the host notifies only
                 // the current callback), so the stale surface would keep the
                 // host's buffer queue held and break the next screen's
-                // surface. Release on stop, re-acquire on start.
-                mapRenderer.releaseSurface()
+                // surface. Release on stop, re-acquire on start. No-op while
+                // the renderer is still initializing.
+                rendererGate.releaseSurface()
                 // NOTE: no unregisterSurfaceCallback() here — see
                 // FreeDrivingScreen: an onStop unregister nulls the callback
                 // the next screen registered (car-app starts the new screen
@@ -177,7 +213,12 @@ class MapScreen(
             }
             override fun onDestroy(owner: LifecycleOwner) {
                 unregisterSurfaceCallback()
-                mapRenderer.shutdown()
+                // Cancel a still-running init first, so no renderer work
+                // continues after the screen is destroyed; the gate shuts
+                // down a published renderer (spec: "Renderer still
+                // initializing when the screen stops").
+                rendererInitJob?.cancel()
+                rendererGate.destroy()
                 scope.cancel()
             }
         })
@@ -200,16 +241,20 @@ class MapScreen(
         // When opened via the details "Show" action (initialCenter set), the
         // map must stay centered on the requested destination — follow mode
         // would snap it back to the current GPS position.
-        if (settings.followMode && !mapRenderer.isFollowMode() && initialCenter == null) {
+        if (settings.followMode && !rendererGate.isFollowMode() && initialCenter == null) {
             Log.d(TAG, "settings: follow mode on -> re-center")
-            mapRenderer.reCenter()
+            rendererGate.reCenter()
         }
         if (settings.freeFormNorthUp) {
-            val vp = mapRenderer.viewportState.value
-            if (vp.angle != 0.0) {
-                Log.d(TAG, "settings: north-up -> reset angle")
-                mapRenderer.setViewport(vp.lat, vp.lon, vp.zoom, 0.0, vp.zoom.toDouble())
+            val r = rendererGate.rendererOrNull()
+            if (r != null) {
+                val vp = r.viewportState.value
+                if (vp.angle != 0.0) {
+                    Log.d(TAG, "settings: north-up -> reset angle")
+                    rendererGate.setViewport(vp.lat, vp.lon, vp.zoom, 0.0, vp.zoom.toDouble())
+                }
             }
+            // Renderer not ready yet: it is constructed with angle 0.0 (north-up).
         }
         // Apply the shared map style (loadStyleSheet blocks on the native DB
         // thread — run off the main thread; deduped by the applier).
@@ -233,9 +278,14 @@ class MapScreen(
      * away.
      */
     private fun pushDark() {
+        // Skip until the renderer exists: the native client may still be
+        // building off the main thread, and applying the stylesheet flag must
+        // never first-touch it here. Re-pushed from the readiness observer and
+        // after surface arrival once the init coroutine built the client.
+        if (rendererGate.rendererOrNull() == null) return
         daylightApplier.reset()
         if (daylightApplier.apply(resolvedDark.value)) {
-            mapRenderer.invalidateStyle()
+            rendererGate.invalidateStyle()
         }
     }
 
@@ -247,72 +297,6 @@ class MapScreen(
         } catch (e: Exception) {
             DiagnosticsLog.logThrowable(TEMPLATE_TAG, "MapTemplate build failed", e)
             SafeScreen.errorTemplate(carContext, e.message)
-        }
-    }
-
-    private fun computeInitialViewport(): InitialViewport {
-        initialCenter?.let { (lat, lon) ->
-            Log.d(TAG, "Show map: initialCenter=$lat,$lon zoom=$initialZoom")
-            return InitialViewport(lat, lon, initialZoom)
-        }
-        latestSavedViewport()?.let { return it }
-        firstInstalledMapBbox()?.let { bbox ->
-            return InitialViewport(
-                (bbox[0] + bbox[2]) / 2.0,
-                (bbox[1] + bbox[3]) / 2.0,
-                DEFAULT_AA_ZOOM
-            )
-        }
-        return InitialViewport(DEFAULT_LAT, DEFAULT_LON, DEFAULT_AA_ZOOM)
-    }
-
-    /** Most recently modified phone-app viewport (`maps/viewport-*.json`). */
-    private fun latestSavedViewport(): InitialViewport? {
-        return try {
-            val mapsDir = File(carContext.filesDir, "maps")
-            val file = mapsDir.listFiles { f ->
-                f.isFile && f.name.startsWith("viewport-") && f.name.endsWith(".json")
-            }?.maxByOrNull { it.lastModified() } ?: return null
-            val json = JSONObject(file.readText())
-            val lat = json.optDouble("centerLat", Double.NaN)
-            val lon = json.optDouble("centerLon", Double.NaN)
-            if (lat.isNaN() || lon.isNaN()) return null
-            val mag = json.optInt("magnification", DEFAULT_AA_ZOOM)
-                .coerceIn(AutoMapRenderer.MIN_ZOOM, AutoMapRenderer.MAX_ZOOM)
-            Log.d(TAG, "initial viewport from saved ${file.name}: $lat,$lon mag=$mag")
-            InitialViewport(lat, lon, mag)
-        } catch (e: Exception) {
-            Log.w(TAG, "latestSavedViewport failed", e)
-            null
-        }
-    }
-
-    /** Bounding box of the first installed (non-basemap) map database. */
-    private fun firstInstalledMapBbox(): DoubleArray? {
-        return try {
-            val mapsDir = File(carContext.filesDir, "maps")
-            // Shared with the phone app + AA warmup (InstalledMaps): recursive
-            // scan for database directories, excluding the basemap overlay.
-            val dirs = InstalledMaps.findDatabaseDirectories(
-                mapsDir.absolutePath,
-                File(mapsDir, "basemap").absolutePath
-            ).sorted()
-            if (dirs.isEmpty()) return null
-            val client = entryPoint.autoClientProvider().client()
-            for (dir in dirs) {
-                try {
-                    val bbox = client.getDatabaseBoundingBox(dir)
-                    if (bbox != null && bbox.size >= 4) {
-                        Log.d(TAG, "initial viewport from map ${File(dir).name} bbox ${bbox.toList()}")
-                        return bbox
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "bbox for ${File(dir).name} failed", e)
-                }
-            }
-            null
-        } catch (e: Exception) {
-            null
         }
     }
 
@@ -328,11 +312,12 @@ class MapScreen(
             .setPanModeListener(object : PanModeListener {
                 override fun onPanModeChanged(panMode: Boolean) {
                     Log.d(TAG, "pan mode: $panMode")
-                    if (panMode) {
-                        // Disengage follow so the map does not snap back to GPS.
-                        val vp = mapRenderer.viewportState.value
-                        mapRenderer.setViewport(vp.lat, vp.lon, vp.zoom, vp.angle, vp.zoom.toDouble())
-                    }
+                        if (panMode) {
+                            // Disengage follow so the map does not snap back to GPS.
+                            val renderer = rendererGate.rendererOrNull() ?: return@onPanModeChanged
+                            val vp = renderer.viewportState.value
+                            rendererGate.setViewport(vp.lat, vp.lon, vp.zoom, vp.angle, vp.zoom.toDouble())
+                        }
                 }
             })
             .build()
@@ -400,11 +385,14 @@ class MapScreen(
                 // Render at the CAR display's DPI — the client is built with
                 // the phone metrics, which would scale the map ~1.8x too
                 // zoomed on a ~236-dpi head unit. Takes effect on the next
-                // render.
-                runCatching { entryPoint.autoClientProvider().client().setMapDpi(surfaceDpi) }
-                    .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                mapRenderer.updateProjectionDpi(surfaceDpi)
-                mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
+                // render. Only safe on the main thread once the client is built
+                // (renderer published); a pre-ready DPI is applied by the
+                // off-main init coroutine and replayed with the surface.
+                if (rendererGate.rendererOrNull() != null) {
+                    runCatching { entryPoint.autoClientProvider().client().setMapDpi(surfaceDpi) }
+                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                }
+                rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
                 // Re-push the resolved day/night flag before the first render: the
                 // startup push may have been dropped while the DB was still
                 // initializing (warmup race).
@@ -413,14 +401,14 @@ class MapScreen(
                 // it in the visible map area (the host's menu panel covers the
                 // left ~40% of the surface).
                 initialCenter?.let { (clat, clon) ->
-                    mapRenderer.setDestinationMarker(clat, clon, initialDestinationName)
+                    rendererGate.setDestinationMarker(clat, clon, initialDestinationName)
                     val rtl = carContext.resources.configuration.layoutDirection ==
                         View.LAYOUT_DIRECTION_RTL
                     val (vlat, vlon) = paneOffsetCenter(
                         clat, clon, initialZoom.toDouble(),
                         surfaceWidth, surfaceHeight, surfaceDpi, rtl
                     )
-                    mapRenderer.setViewport(vlat, vlon, initialZoom, 0.0)
+                    rendererGate.setViewport(vlat, vlon, initialZoom, 0.0)
                 }
             }
 
@@ -429,21 +417,24 @@ class MapScreen(
                 surfaceWidth = 0
                 surfaceHeight = 0
                 surfaceDpi = DEFAULT_DPI
-                mapRenderer.onSurfaceDestroyed()
+                rendererGate.onSurfaceDestroyed()
             }
 
             override fun onScroll(distanceX: Float, distanceY: Float) {
                 // Convert scroll to viewport change. Use the same DPI as the
                 // native render (not the surface DPI) so the pan tracks the
                 // finger 1:1. Positive deltas move the map with the finger.
-                val vp = mapRenderer.viewportState.value
+                // Gestures can only arrive with a surface, which implies the
+                // renderer is (nearly always) published; before that, no-op.
+                val renderer = rendererGate.rendererOrNull() ?: return
+                val vp = renderer.viewportState.value
                 val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
                     distanceX.toDouble(), distanceY.toDouble(),
                     vp.angle,
                     vp.zoom.toDouble(),
                     surfaceWidth.toDouble(), surfaceHeight.toDouble(),
                     vp.lat, vp.lon,
-                    mapRenderer.projectionDpi
+                    renderer.projectionDpi
                 )
                 Log.d(
                     TAG,
@@ -459,18 +450,19 @@ class MapScreen(
                         "onScroll dx=$distanceX dy=$distanceY center=${vp.lat},${vp.lon} mag=${vp.zoom} -> $newLat,$newLon"
                     )
                 }
-                mapRenderer.setViewport(newLat, newLon, vp.zoom, vp.angle)
+                rendererGate.setViewport(newLat, newLon, vp.zoom, vp.angle)
             }
 
             override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {
+                val renderer = rendererGate.rendererOrNull() ?: return
                 // Ignore jitter so tiny finger spread during a pan never triggers a zoom step
                 if (abs(scaleFactor - 1f) < SCALE_JITTER_THRESHOLD) return
 
-                val vp = mapRenderer.viewportState.value
+                val vp = renderer.viewportState.value
                 // Continuous zoom accumulation: each onScale event nudges the
                 // fractional zoom by log2(scaleFactor); only whole-level changes render.
-                val (newFraction, newZoom) = mapRenderer.zoomStep(scaleFactor)
-                if (newZoom == vp.zoom && newFraction == mapRenderer.fractionalZoom()) return
+                val (newFraction, newZoom) = renderer.zoomStep(scaleFactor)
+                if (newZoom == vp.zoom && newFraction == renderer.fractionalZoom()) return
 
                 // Host may report an unavailable focal point (negative coords, e.g.
                 // rotary-knob zoom) — zoom around the screen center in that case.
@@ -481,20 +473,21 @@ class MapScreen(
                     vp.zoom.toDouble(), newFraction,
                     surfaceWidth.toDouble(), surfaceHeight.toDouble(),
                     vp.lat, vp.lon,
-                    mapRenderer.projectionDpi
+                    renderer.projectionDpi
                 )
                 Log.d(TAG, "onScale focus=($fx,$fy) factor=$scaleFactor -> mag=$newZoom center=$newLat,$newLon")
-                mapRenderer.setViewport(newLat, newLon, newZoom, vp.angle, newFraction)
+                rendererGate.setViewport(newLat, newLon, newZoom, vp.angle, newFraction)
             }
 
             override fun onClick(x: Float, y: Float) {
+                val renderer = rendererGate.rendererOrNull() ?: return
                 // Convert screen coordinates to geo coordinates
-                val vp = mapRenderer.viewportState.value
+                val vp = renderer.viewportState.value
                 val (lat, lon) = ProjectionUtils.screenToGeo(
                     x.toDouble(), y.toDouble(),
                     surfaceWidth, surfaceHeight,
                     vp.zoom.toDouble(), vp.lat, vp.lon,
-                    mapRenderer.projectionDpi
+                    renderer.projectionDpi
                 )
                 Log.d(TAG, "onClick ($x,$y) -> $lat,$lon mag=${vp.zoom}")
                 onLocationSelected(lat, lon)
@@ -516,7 +509,7 @@ class MapScreen(
      */
     private fun onLocationSelected(lat: Double, lon: Double) {
         val client = entryPoint.autoClientProvider().client()
-        val mag = mapRenderer.viewportState.value.zoom
+        val mag = rendererGate.rendererOrNull()?.viewportState?.value?.zoom ?: initialZoom
         val screenManager = carContext.getCarService(ScreenManager::class.java)
 
         CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
@@ -557,7 +550,7 @@ class MapScreen(
             // process has no phone UI mirroring into navigationViewModel).
             locationProvider.position().collect { pos ->
                 if (pos != null) {
-                    mapRenderer.setGpsMarker(
+                    rendererGate.setGpsMarker(
                         pos.lat, pos.lon, pos.bearing, pos.accuracy,
                         speedKmH = pos.speedKmH,
                         timeMs = System.currentTimeMillis()
@@ -581,7 +574,7 @@ class MapScreen(
         scope.launch {
             favoritesProvider.favoriteLocations().collect { favorites ->
                 val allFavorites = favorites.values.flatten()
-                mapRenderer.setFavoriteLocations(allFavorites)
+                rendererGate.setFavoriteLocations(allFavorites)
             }
         }
 
@@ -592,9 +585,12 @@ class MapScreen(
         // render so the stale-variant overrun buffer is never blitted.
         scope.launch {
             resolvedDark.collect { dark ->
-                mapRenderer.setDarkPresentation(dark)
-                if (daylightApplier.apply(dark)) {
-                    mapRenderer.invalidateStyle()
+                rendererGate.setDarkPresentation(dark)
+                // Stylesheet flag applies only once the client is built; a
+                // pre-ready dark is re-pushed by the readiness observer via
+                // pushDark() (which skips until ready).
+                if (rendererGate.rendererOrNull() != null && daylightApplier.apply(dark)) {
+                    rendererGate.invalidateStyle()
                 }
             }
         }
@@ -606,7 +602,7 @@ class MapScreen(
         scope.launch {
             entryPoint.basemapReloadNotifier().revision.collect { revision ->
                 if (revision > 0L) {
-                    mapRenderer.invalidateData()
+                    rendererGate.invalidateData()
                 }
             }
         }
@@ -618,22 +614,22 @@ class MapScreen(
     }
 
     private fun onZoomIn() {
-        val current = mapRenderer.viewportState.value
+        val renderer = rendererGate.rendererOrNull() ?: return
+        val current = renderer.viewportState.value
         val zoom = (current.zoom + 1).coerceAtMost(AutoMapRenderer.MAX_ZOOM)
-        mapRenderer.setViewport(current.lat, current.lon, zoom, current.angle, zoom.toDouble())
+        rendererGate.setViewport(current.lat, current.lon, zoom, current.angle, zoom.toDouble())
     }
 
     private fun onZoomOut() {
-        val current = mapRenderer.viewportState.value
+        val renderer = rendererGate.rendererOrNull() ?: return
+        val current = renderer.viewportState.value
         val zoom = (current.zoom - 1).coerceAtLeast(AutoMapRenderer.MIN_ZOOM)
-        mapRenderer.setViewport(current.lat, current.lon, zoom, current.angle, zoom.toDouble())
+        rendererGate.setViewport(current.lat, current.lon, zoom, current.angle, zoom.toDouble())
     }
 
     companion object {
         private const val TAG = "MapScreen"
         private const val TEMPLATE_TAG = "TEMPLATE"
-        private const val SURFACE_WIDTH = 1920
-        private const val SURFACE_HEIGHT = 1080
         private const val DEFAULT_DPI = 160.0
         private const val SCALE_JITTER_THRESHOLD = 0.02f
 

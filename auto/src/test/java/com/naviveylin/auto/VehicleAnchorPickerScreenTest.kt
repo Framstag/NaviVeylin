@@ -90,7 +90,7 @@ class VehicleAnchorPickerScreenTest {
     @Test
     fun routingSelectionPersistsToRoutingAnchor() = runTest(testDispatcher) {
         coEvery { provider.load() } returns AutoSettings()
-        coEvery { provider.save(any()) } returns Unit
+        coEvery { provider.saveCarAnchor(any(), any()) } returns Unit
 
         val screen = VehicleAnchorPickerScreen(carContext, provider, VehicleAnchorPickerScreen.Mode.ROUTING)
         advanceUntilIdle()
@@ -98,13 +98,21 @@ class VehicleAnchorPickerScreenTest {
         screen.persistSelection(VehicleAnchorPosition.TOP_CENTER.id)
         advanceUntilIdle()
 
-        coVerify { provider.save(AutoSettings(routingAnchorId = VehicleAnchorPosition.TOP_CENTER.id)) }
+        // The car's OWN routing anchor is frozen (per-surface storage); the phone's
+        // anchors are not part of this write (spec: auto-map-layout).
+        coVerify {
+            provider.saveCarAnchor(
+                routingAnchorId = VehicleAnchorPosition.TOP_CENTER.id,
+                freeDrivingAnchorId = null
+            )
+        }
+        coVerify(exactly = 0) { provider.save(any()) }
     }
 
     @Test
     fun freeDrivingSelectionPersistsToFreeDrivingAnchor() = runTest(testDispatcher) {
         coEvery { provider.load() } returns AutoSettings()
-        coEvery { provider.save(any()) } returns Unit
+        coEvery { provider.saveCarAnchor(any(), any()) } returns Unit
 
         val screen = VehicleAnchorPickerScreen(carContext, provider, VehicleAnchorPickerScreen.Mode.FREE_DRIVING)
         advanceUntilIdle()
@@ -112,7 +120,13 @@ class VehicleAnchorPickerScreenTest {
         screen.persistSelection(VehicleAnchorPosition.BOTTOM_FAR_LEFT.id)
         advanceUntilIdle()
 
-        coVerify { provider.save(AutoSettings(freeDrivingAnchorId = VehicleAnchorPosition.BOTTOM_FAR_LEFT.id)) }
+        coVerify {
+            provider.saveCarAnchor(
+                routingAnchorId = null,
+                freeDrivingAnchorId = VehicleAnchorPosition.BOTTOM_FAR_LEFT.id
+            )
+        }
+        coVerify(exactly = 0) { provider.save(any()) }
     }
 
     @Test

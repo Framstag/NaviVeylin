@@ -16,7 +16,9 @@ import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.VehicleMarkerGeometry
+import com.naviveylin.core.ResolvedAnchor
 import com.naviveylin.core.anchorCenter
+import com.naviveylin.core.clampAnchorOutOfPane
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -174,6 +176,22 @@ class AutoMapRenderer(
      * center = the pre-feature framing.
      */
     @Volatile private var followAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
+
+    /**
+     * True when the host draws its panel on the RIGHT edge (RTL layouts). Set by the
+     * owning screen from the car context; the follow anchor resolves against the
+     * surface minus the panel (same side convention as [paneOffsetCenter]).
+     */
+    @Volatile private var hostPaneRtl = false
+
+    /**
+     * Screen-space offset the currently DISPLAYED frame was blitted by (0 = a fresh
+     * render). Overlays that represent map content must be shifted by the same
+     * offset, otherwise they lead the content between commits (see
+     * `markerScreenPosition`).
+     */
+    @Volatile private var blitOffsetX = 0.0
+    @Volatile private var blitOffsetY = 0.0
 
     /**
      * True while the owning screen is stopped: the render loop skips frames
@@ -852,6 +870,10 @@ class AutoMapRenderer(
         // renderers (MapScreen + FreeDrivingScreen) can lock the same Surface
         // concurrently → IllegalArgumentException from lockCanvas ("surface
         // already locked"). Serialize lock/draw/unlock across all renderers.
+        // A fresh render is drawn centered (no blit offset), so the map-content
+        // overlays must not be shifted.
+        blitOffsetX = 0.0
+        blitOffsetY = 0.0
         synchronized(surfaceLock) {
             var canvas: Canvas? = null
             try {
@@ -903,6 +925,11 @@ class AutoMapRenderer(
      * surface goes through the same failure path as a full render.
      */
     private fun blitToSurface(surf: Surface, bitmap: Bitmap, ox: Double, oy: Double, w: Int, h: Int) {
+        // Remember the offset the displayed frame is shifted by: every overlay that
+        // represents map content (vehicle marker, destination pin) has to be shifted
+        // by the same amount, otherwise it leads the content between commits.
+        blitOffsetX = ox
+        blitOffsetY = oy
         synchronized(surfaceLock) {
             var canvas: Canvas? = null
             try {
@@ -981,12 +1008,7 @@ class AutoMapRenderer(
     private fun drawGpsMarker(canvas: Canvas, w: Int, h: Int) {
         if (!gpsMarkerVisible || gpsMarkerLat.isNaN() || gpsMarkerLon.isNaN()) return
 
-        val (markerLat, markerLon) = markerPosition()
-        val (vpLat, vpLon) = markerViewport()
-        val vp = ProjectionUtils.viewport(
-            vpLat, vpLon, viewportZoomFraction, w, h, projectionDpi, viewportAngle
-        )
-        val (x, y) = vp.geoToScreenRotated(markerLat, markerLon)
+        val (x, y) = markerScreenPosition(w, h)
 
         if (x.isNaN() || y.isNaN()) return
         if (x < -200 || x > w + 200 || y < -200 || y > h + 200) return
@@ -1126,7 +1148,9 @@ class AutoMapRenderer(
         val vp = ProjectionUtils.viewport(
             vpLat, vpLon, viewportZoomFraction, w, h, projectionDpi, viewportAngle
         )
-        val (x, y) = vp.geoToScreenRotated(destMarkerLat, destMarkerLon)
+        val (destX0, destY0) = vp.geoToScreenRotated(destMarkerLat, destMarkerLon)
+        val x = destX0 - blitOffsetX
+        val y = destY0 - blitOffsetY
         if (x.isNaN() || y.isNaN()) return
         if (x < -200 || x > w + 200 || y < -200 || y > h + 200) return
 
@@ -1184,6 +1208,36 @@ class AutoMapRenderer(
         }
     }
 
+    /**
+     * Surface position of the GPS marker: the displayed (eased predicted) position
+     * projected against the frame viewport and shifted by the offset the frame was
+     * blitted with — i.e. the position of the map content the marker rides
+     * (spec: auto-smooth-follow; change `anchor-per-surface-visible-area`).
+     *
+     * Projecting against the frame viewport alone leaves the marker ahead of the
+     * content by the blit offset between commits (drifts, then snaps on the next
+     * commit). Exposed for tests.
+     */
+    internal fun markerScreenPosition(w: Int, h: Int): Pair<Double, Double> {
+        val (markerLat, markerLon) = markerPosition()
+        val (vpLat, vpLon) = markerViewport()
+        val vp = ProjectionUtils.viewport(
+            vpLat, vpLon, viewportZoomFraction, w, h, projectionDpi, viewportAngle
+        )
+        val (x, y) = vp.geoToScreenRotated(markerLat, markerLon)
+        return (x - blitOffsetX) to (y - blitOffsetY)
+    }
+
+    /** Current blit offset of the displayed frame — exposed for tests. */
+    internal fun blitOffset(): Pair<Double, Double> = blitOffsetX to blitOffsetY
+
+    /** Test hook: pretend the displayed frame was blitted by (x, y). */
+    @androidx.annotation.VisibleForTesting
+    internal fun setBlitOffsetForTest(x: Double, y: Double) {
+        blitOffsetX = x
+        blitOffsetY = y
+    }
+
     private fun emitViewportState() {
         _viewportState.value = ViewportState(viewportLat, viewportLon, viewportZoom, viewportAngle)
     }
@@ -1217,14 +1271,46 @@ class AutoMapRenderer(
 
     /**
      * Follow-framing center for a vehicle position: the [anchorCenter] of the
-     * position under the current surface size, magnification and rotation.
-     * Falls back to the raw position when the surface is not ready.
+     * position under the current surface size, magnification and rotation, with the
+     * preset clamped out of the host's panel region (spec: auto/navigation-view —
+     * "Panel clearance via side anchor"; change `anchor-per-surface-visible-area`).
+     * The host panel covers [PANE_FRACTION] of the surface width on the leading edge
+     * (left in LTR, right in RTL — same convention as [paneOffsetCenter]), so a preset
+     * inside that band moves to the nearest free position; every other preset keeps
+     * its exact fraction, so the default framing is unchanged. Falls back to the raw
+     * position when the surface is not ready.
      */
     private fun anchorCenterFor(lat: Double, lon: Double): Pair<Double, Double> {
         if (surfaceWidth <= 0 || surfaceHeight <= 0) return lat to lon
+        val resolved = resolvedFollowAnchor()
         return anchorCenter(
-            lat, lon, followAnchor,
+            lat, lon, resolved.fx, resolved.fy,
             viewportZoomFraction, surfaceWidth, surfaceHeight, projectionDpi, viewportAngle
+        )
+    }
+
+    /**
+     * Tell the renderer on which side the host draws its panel (left in LTR, right
+     * in RTL). A follow anchor inside that band is clamped out of it.
+     */
+    fun setHostPaneRtl(rtl: Boolean) {
+        hostPaneRtl = rtl
+    }
+
+    /** Current host-pane side flag — exposed for tests. */
+    internal fun hostPaneRtl(): Boolean = hostPaneRtl
+
+    /**
+     * Resolved follow anchor fraction (host panel clamped) — exposed for tests.
+     */
+    internal fun resolvedFollowAnchor(): ResolvedAnchor {
+        val paneInset = (surfaceWidth * PANE_FRACTION).toInt().coerceAtLeast(0)
+        return clampAnchorOutOfPane(
+            followAnchor,
+            paneLeftPx = if (hostPaneRtl) 0 else paneInset,
+            paneRightPx = if (hostPaneRtl) paneInset else 0,
+            screenW = surfaceWidth,
+            screenH = surfaceHeight
         )
     }
 

@@ -54,14 +54,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -260,6 +263,15 @@ fun MapCanvasScreen(
     var followDisplayLon by remember { mutableStateOf(Double.NaN) }
     var followOffsetX by remember { mutableStateOf(0f) }
     var followOffsetY by remember { mutableStateOf(0f) }
+
+    // Regions the phone's own overlays cover (px), measured so the follow anchor
+    // resolves into the VISIBLE map area (spec: smooth-follow — visible-area
+    // scenarios): turn card at the top, routing status at the bottom, widget column
+    // on the right, street-name pill at the bottom in free driving.
+    var overlayTopInset by remember { mutableIntStateOf(0) }
+    var overlayBottomInset by remember { mutableIntStateOf(0) }
+    var overlayRightInset by remember { mutableIntStateOf(0) }
+    var overlayPillInset by remember { mutableIntStateOf(0) }
     var followLogCount by remember { mutableStateOf(0) }
 
     // smooth-zoom (spec: smooth-zoom): eased front-buffer zoom animation for
@@ -483,18 +495,19 @@ fun MapCanvasScreen(
                             canvasSize.width, canvasSize.height, dpi,
                             ui.activeFollowAnchor.fx, ui.activeFollowAnchor.fy
                         )
-                        // Anchor bias: the overrun frame is drawn centered; to place the
-                        // vehicle content at the anchor fraction (not the surface center)
-                        // the frame is additionally shifted by the anchor offset
-                        // (spec: smooth-follow — Vehicle position anchor in follow mode).
-                        val anchorOX = (ui.activeFollowAnchor.fx - 0.5) * canvasSize.width
-                        val anchorOY = (ui.activeFollowAnchor.fy - 0.5) * canvasSize.height
-                        followOffsetX = (offset.clampedX - anchorOX).toFloat()
-                        followOffsetY = (offset.clampedY - anchorOY).toFloat()
+                        // The frame is rendered anchor-centered (spec: smooth-follow —
+                        // Anchor-centered follow framing), so the blit offset carries the
+                        // prediction drift only. Applying the anchor here as well would push
+                        // the frame outside the overrun margin and leave an uncovered strip
+                        // of surface color; the clamp keeps the offset inside the margin.
+                        followOffsetX = offset.clampedX.toFloat()
+                        followOffsetY = offset.clampedY.toFloat()
                         if (offset.clamped && nowMs - lastRenderRequestMs > 500) {
                             lastRenderRequestMs = nowMs
-                            viewModel.updateCenter(followDisplayLat, followDisplayLon)
-                            viewModel.renderMap()
+                            // Re-anchor on the displayed position (not the viewport
+                            // center): the frame stays anchor-centered and the display
+                            // lands back inside the margin.
+                            viewModel.renderFollowFrameAt(followDisplayLat, followDisplayLon)
                         }
                         // Diagnostic: log the prediction state on fix arrival so a
                         // device logcat shows exactly where the overshoot comes from
@@ -643,10 +656,6 @@ fun MapCanvasScreen(
             followMaxSpeedKmH = state.maxSpeedKmH,
             followMode = state.followMode
         )
-        val compassNorthUp = when (viewModel.mode) {
-            MapMode.NAVIGATION, MapMode.FREE_DRIVE -> state.navNorthUp
-            MapMode.BROWSE -> state.freeFormNorthUp
-        }
         // Re-center action is mode-dependent (spec: map-modes): BROWSE centers
         // on GPS and stays in browse; FREE_DRIVE resets the suspended drive
         // preset; NAVIGATION re-engages follow on the current position.
@@ -1089,22 +1098,31 @@ fun MapCanvasScreen(
                     // centered on the same position so the marker lands on the road.
                     val markerLat = if (followActive) followDisplayLat else state.gpsMarkerLat
                     val markerLon = if (followActive) followDisplayLon else state.gpsMarkerLon
+                    // The marker projects against the displayed bitmap's viewport. In
+                    // follow mode that viewport is the anchor center of the DISPLAYED
+                    // (eased predicted) position — the frame itself is anchor-centered
+                    // on its own position and then blitted by the drift (spec:
+                    // smooth-follow — Anchor-centered follow framing), so this is the one
+                    // projection that lands the marker on the map content it rides at the
+                    // anchor instead of ahead of it by the blit offset (spec:
+                    // gps-location-marker — Marker projects against displayed bitmap
+                    // viewport).
                     val markerViewport = if (followActive) {
-                        // Project against the anchor center of the last committed
-                        // frame: the marker then sits at the anchor (plus the glide
-                        // drift), exactly on the map content it rides (spec:
-                        // smooth-follow — Vehicle position anchor in follow mode).
-                        val anchor = state.activeFollowAnchor
-                        val rv = state.renderViewport
+                        val shown = state.renderViewport
+                        // Anchor fraction = the value the ViewModel resolved against
+                        // the VISIBLE map area (spec: smooth-follow — visible-area
+                        // scenarios); a second derivation here would break the
+                        // marker/content alignment on surfaces with overlays.
                         val (aLat, aLon) = anchorCenter(
-                            rv?.lat ?: followDisplayLat, rv?.lon ?: followDisplayLon,
-                            anchor, rv?.mag ?: 0.0, canvasSize.width, canvasSize.height,
+                            markerLat, markerLon,
+                            state.resolvedAnchor.fx, state.resolvedAnchor.fy,
+                            shown?.mag ?: 0.0, canvasSize.width, canvasSize.height,
                             context.resources.displayMetrics.densityDpi.toDouble(),
-                            rv?.angle ?: 0.0
+                            shown?.angle ?: 0.0
                         )
                         MapRenderer.RenderViewport(
                             aLat, aLon,
-                            state.renderViewport?.mag ?: 0.0, state.renderViewport?.angle ?: 0.0
+                            shown?.mag ?: 0.0, shown?.angle ?: 0.0
                         )
                     } else {
                         state.renderViewport
@@ -1125,6 +1143,10 @@ fun MapCanvasScreen(
         }
 
         // Orientation-aware overlay layout
+        // Orientation-aware overlay layout.
+        CompositionLocalProvider(
+            LocalOverlayWidthProbe provides { width -> overlayRightInset = width }
+        ) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -1160,9 +1182,7 @@ fun MapCanvasScreen(
                 if (!navState.isNavigating) {
                     MapRightWidgetColumn(
                         isLandscape = true,
-                        compassNorthUp = compassNorthUp,
                         mapAngleRadians = state.viewport.angle,
-                        bearingDegrees = state.gpsMarkerBearing,
                         gpsFixQuality = state.gpsFixQuality,
                         onCenterClick = reCenterAction,
                         onToggleOrientation = toggleOrientationAction,
@@ -1298,9 +1318,7 @@ fun MapCanvasScreen(
                 if (!navState.isNavigating) {
                     MapRightWidgetColumn(
                         isLandscape = false,
-                        compassNorthUp = compassNorthUp,
                         mapAngleRadians = state.viewport.angle,
-                        bearingDegrees = state.gpsMarkerBearing,
                         gpsFixQuality = state.gpsFixQuality,
                         onCenterClick = reCenterAction,
                         onToggleOrientation = toggleOrientationAction,
@@ -1710,6 +1728,7 @@ fun MapCanvasScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 16.dp)
+                        .onSizeChanged { overlayPillInset = it.height }
                 )
             }
         }
@@ -1718,6 +1737,19 @@ fun MapCanvasScreen(
         // widget column (compass directly above the speed widget, zoom at the
         // bottom below all other controls) spanning from above the routing status
         // up to the top, and the routing status covering the bottom of the window.
+        //
+        // Publishes what the map overlays cover so the follow anchor stays inside
+        // the part of the map the driver can actually see (spec: smooth-follow —
+        // "Bottom anchor stays visible above the routing status card"). Runs in every
+        // mode: browse/free driving measure no turn/status card, so their insets are
+        // the (usually zero) measured values of the widgets actually shown.
+        LaunchedEffect(navState.isNavigating, overlayTopInset, overlayBottomInset, overlayRightInset, overlayPillInset) {
+            viewModel.setMapOverlayInsets(
+                top = if (navState.isNavigating) overlayTopInset else 0,
+                bottom = if (navState.isNavigating) overlayBottomInset else overlayPillInset,
+                right = overlayRightInset
+            )
+        }
         if (navState.isNavigating) {
             Column(
                 modifier = Modifier
@@ -1734,7 +1766,9 @@ fun MapCanvasScreen(
                     laneSuggestedTo = navState.laneSuggestedTo,
                     laneTurns = navState.laneTurns,
                     laneHintsEnabled = state.laneHintsEnabled,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { overlayTopInset = it.height }
                 )
                 // Middle: right-side widget column (compass directly above the
                 // speed widget, zoom at the bottom below all other controls),
@@ -1754,9 +1788,7 @@ fun MapCanvasScreen(
                         Spacer(modifier = Modifier.weight(1f))
                         MapRightWidgetColumn(
                             isLandscape = isLandscape,
-                            compassNorthUp = compassNorthUp,
                             mapAngleRadians = state.viewport.angle,
-                            bearingDegrees = state.gpsMarkerBearing,
                             gpsFixQuality = state.gpsFixQuality,
                             onCenterClick = {
                                 val loc = viewModel.getCurrentLocation()
@@ -1812,6 +1844,19 @@ fun MapCanvasScreen(
                                     styleSheet = state.styleSheet,
                                     onSetStyleSheet = { style ->
                                         viewModel.onStyleSheetSelected(style)
+                                    },
+                                    // Vehicle anchor rows in the ROUTING view too: the
+                                    // rows are rendered in every mode, so leaving the
+                                    // defaults here made the picker a no-op during
+                                    // navigation (spec: location-options-ui — anchor
+                                    // rows; change fix-anchor-picker-in-navigation).
+                                    routingAnchor = state.routingAnchor,
+                                    onSetRoutingAnchor = { anchor ->
+                                        viewModel.setRoutingAnchor(anchor)
+                                    },
+                                    freeDrivingAnchor = state.freeDrivingAnchor,
+                                    onSetFreeDrivingAnchor = { anchor ->
+                                        viewModel.setFreeDrivingAnchor(anchor)
                                     }
                                 )
                             },
@@ -1868,7 +1913,8 @@ fun MapCanvasScreen(
                     onStopNavigation = { navigationViewModel.stopNavigation()
                         routePanelViewModel.setNavigating(false)
                         routePanelViewModel.clearRouteFromMap() },
-                    onClick = { showNavDetails = true }
+                    onClick = { showNavDetails = true },
+                    modifier = Modifier.onSizeChanged { overlayBottomInset = it.height }
                 )
             }
         }
@@ -1893,6 +1939,7 @@ fun MapCanvasScreen(
         // Reset the expanded view when navigation ends
         LaunchedEffect(navState.isNavigating) {
             if (!navState.isNavigating) showNavDetails = false
+        }
         }
     }
 }
@@ -2316,20 +2363,24 @@ internal fun MapActionColumn(
     }
 }
 
+/**
+ * Reports the measured width (px) of an overlay cluster to the map screen, so the
+ * follow anchor can stay clear of it (spec: smooth-follow — visible-area
+ * scenarios). Defaults to a no-op so the cluster stays usable in isolation
+ * (tests, previews).
+ */
+internal val LocalOverlayWidthProbe = staticCompositionLocalOf<(Int) -> Unit> { {} }
+
 /** Compass block, shared by both orientations (spec: compass-button). */
 @Composable
 private fun MapCompassBlock(
-    isNorthUp: Boolean,
     mapAngleRadians: Double,
-    bearingDegrees: Double?,
     gpsFixQuality: GpsFixQuality,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit
 ) {
     CompassButton(
-        isNorthUp = isNorthUp,
         mapAngleRadians = mapAngleRadians,
-        bearingDegrees = bearingDegrees,
         gpsFixQuality = gpsFixQuality,
         onCenterClick = onCenterClick,
         onToggleOrientation = onToggleOrientation
@@ -2346,9 +2397,7 @@ private fun MapCompassBlock(
 @Composable
 internal fun MapRightWidgetColumn(
     isLandscape: Boolean,
-    compassNorthUp: Boolean,
     mapAngleRadians: Double,
-    bearingDegrees: Double? = null,
     gpsFixQuality: GpsFixQuality,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit,
@@ -2364,14 +2413,15 @@ internal fun MapRightWidgetColumn(
     overspeedWarningDeltaKmh: Int = 5,
     modifier: Modifier = Modifier
 ) {
+    // Read the probe outside the size-change lambda: a CompositionLocal can only be
+    // read from composable scope.
+    val measuredWidthProbe = LocalOverlayWidthProbe.current
     Column(
-        modifier = modifier,
+        modifier = modifier.onSizeChanged { measuredWidthProbe(it.width) },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         MapCompassBlock(
-            isNorthUp = compassNorthUp,
             mapAngleRadians = mapAngleRadians,
-            bearingDegrees = bearingDegrees,
             gpsFixQuality = gpsFixQuality,
             onCenterClick = onCenterClick,
             onToggleOrientation = onToggleOrientation

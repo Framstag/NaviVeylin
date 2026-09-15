@@ -18,6 +18,9 @@ import com.naviveylin.core.BundledMapStyles
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.core.VehicleAnchorPosition
+import com.naviveylin.core.ResolvedAnchor
+import com.naviveylin.core.anchorCenter
+import com.naviveylin.core.resolveAnchorFraction
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.data.AssetCopier
@@ -150,19 +153,31 @@ data class MapCanvasUiState(
     val routeStartLocation: LocationEntry? = null,
     val routeDestLocation: LocationEntry? = null,
     val snackbarMessage: String? = null,
-    val canvasOverrun: Double = MapRenderer.DEFAULT_CANVAS_OVERRUN,
     val followMode: Boolean = false,
     /**
-     * Active follow-mode vehicle anchor (spec: smooth-follow — Vehicle
-     * position anchor in follow mode): routing anchor while route guidance is
-     * active, free-driving anchor otherwise. The map canvas applies it as the
-     * marker's target screen fraction.
+     * Active follow-mode vehicle anchor (spec: smooth-follow — Anchor-centered
+     * follow framing): routing anchor while route guidance is active,
+     * free-driving anchor otherwise. The ViewModel applies it to the follow
+     * render target; the map canvas and the marker inherit it through the
+     * emitted frame viewport. Kept in the state for the settings pickers.
      */
     val activeFollowAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
     /** Configured routing anchor (picker value; the active anchor follows guidance state). */
     val routingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
     /** Configured free-driving anchor (picker value; the active anchor follows guidance state). */
     val freeDrivingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT,
+    /**
+     * The active anchor resolved into a screen fraction inside the **visible map
+     * area** (spec: smooth-follow — visible-area scenarios): the preset mapped into
+     * the canvas minus the regions the phone's own overlays cover (next-turn card,
+     * routing-status card, widget column, street-name pill). Published once and
+     * consumed by BOTH the follow render target (ViewModel) and the marker
+     * projection (screen) — never re-derived. Equals the preset fraction when no
+     * overlay is measured.
+     */
+    val resolvedAnchor: ResolvedAnchor = ResolvedAnchor(
+        VehicleAnchorPosition.DEFAULT.fx, VehicleAnchorPosition.DEFAULT.fy
+    ),
     val autoZoomEnabled: Boolean = true,
     /**
      * Monotonic counter bumped exactly when the speed-driven auto-zoom
@@ -369,6 +384,87 @@ class MapCanvasViewModel @Inject constructor(
     // position anchor): routing while guidance is active, free-driving otherwise.
     private var routingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
     private var freeDrivingAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
+
+    // Regions of the map canvas covered by the phone's own overlays (px), pushed by
+    // the screen on every real size change (spec: smooth-follow — visible-area
+    // scenarios). 0 = nothing measured = the preset fraction itself, which is the
+    // pre-feature framing and the AA behavior.
+    private var overlayInsetLeftPx: Int = 0
+    private var overlayInsetTopPx: Int = 0
+    private var overlayInsetRightPx: Int = 0
+    private var overlayInsetBottomPx: Int = 0
+
+    /** Projection DPI of the phone display (the value the renderer renders at). */
+    private val projectionDpi: Double
+        get() = context.resources.displayMetrics.densityDpi.toDouble()
+
+    /**
+     * Report the regions the map's own overlays cover (px), so the anchor preset
+     * resolves against the **visible map area** rather than the whole canvas
+     * (spec: smooth-follow — "Bottom anchor stays visible above the routing status
+     * card" and the sibling scenarios). The screen calls this from
+     * `Modifier.onSizeChanged`, i.e. only on a real size change; insets that did not
+     * change cause no state emission.
+     */
+    fun setMapOverlayInsets(top: Int, bottom: Int, right: Int, left: Int = 0) {
+        val t = top.coerceAtLeast(0)
+        val b = bottom.coerceAtLeast(0)
+        val r = right.coerceAtLeast(0)
+        val l = left.coerceAtLeast(0)
+        if (t == overlayInsetTopPx && b == overlayInsetBottomPx &&
+            r == overlayInsetRightPx && l == overlayInsetLeftPx
+        ) {
+            return
+        }
+        overlayInsetTopPx = t
+        overlayInsetBottomPx = b
+        overlayInsetRightPx = r
+        overlayInsetLeftPx = l
+        publishResolvedAnchor()
+    }
+
+    /**
+     * Resolve the active preset into the visible map area and publish it as
+     * [MapCanvasUiState.resolvedAnchor] (single source used by the render target and
+     * the marker projection). Called whenever the preset, the canvas size or the
+     * overlay insets change.
+     */
+    private fun publishResolvedAnchor(
+        anchor: VehicleAnchorPosition = _uiState.value.activeFollowAnchor
+    ) {
+        val resolved = resolveAnchorFraction(
+            anchor,
+            leftPx = overlayInsetLeftPx,
+            topPx = overlayInsetTopPx,
+            rightPx = overlayInsetRightPx,
+            bottomPx = overlayInsetBottomPx,
+            screenW = screenWidth,
+            screenH = screenHeight
+        )
+        if (resolved != _uiState.value.resolvedAnchor) {
+            _uiState.value = _uiState.value.copy(resolvedAnchor = resolved)
+        }
+    }
+
+    /**
+     * Anchor-centered render target for [lat]/[lon] under the active follow
+     * anchor (spec: smooth-follow — Anchor-centered follow framing): the
+     * viewport center that projects the position to the *resolved* anchor screen
+     * fraction (visible-area mapped, see [publishResolvedAnchor]) under [angle].
+     * The anchor is applied HERE and nowhere else — the follow blit then carries
+     * the prediction drift only. Falls back to the raw position while the canvas
+     * size is unknown.
+     */
+    internal fun followRenderTarget(
+        lat: Double, lon: Double, mag: Double, angle: Double
+    ): Pair<Double, Double> {
+        if (screenWidth <= 0 || screenHeight <= 0) return lat to lon
+        val anchor = _uiState.value.resolvedAnchor
+        return anchorCenter(
+            lat, lon, anchor.fx, anchor.fy, mag,
+            screenWidth, screenHeight, projectionDpi, normalizeAngle(angle)
+        )
+    }
 
     /** Keep the internal suspension flag and its uiState mirror in sync. */
     private fun setAutoZoomSuspended(suspended: Boolean) {
@@ -842,6 +938,8 @@ class MapCanvasViewModel @Inject constructor(
                 val activeAnchor = if (isNavigating) routingAnchor else freeDrivingAnchor
                 if (activeAnchor != _uiState.value.activeFollowAnchor) {
                     _uiState.value = _uiState.value.copy(activeFollowAnchor = activeAnchor)
+                    // Re-resolve into the visible map area for the new mode's preset.
+                    publishResolvedAnchor(activeAnchor)
                 }
                 val markerLat = if (isNavigating && navPos != null && !navPos.lat.isNaN()) navPos.lat else fix.lat
                 val markerLon = if (isNavigating && navPos != null && !navPos.lon.isNaN()) navPos.lon else fix.lon
@@ -935,22 +1033,37 @@ class MapCanvasViewModel @Inject constructor(
                 updateMarkerState(followMarkerLat, followMarkerLon, markerBearing, accuracy)
                 val smoothedAngle = if (!isNorthUp && !effectiveBearing.isNaN()) computeMapAngle(isNorthUp, effectiveBearing) else Double.NaN
                 val renderedAngle = normalizeAngle(mapRenderer?.renderedAngle ?: _uiState.value.viewport.angle)
-                val angle = if (!isNorthUp && !smoothedAngle.isNaN()) {
-                    val deltaDeg = Math.toDegrees(normalizeAngle(smoothedAngle - renderedAngle))
-                    if (kotlin.math.abs(deltaDeg) < MIN_BEARING_DELTA_DEG) {
-                        renderedAngle
-                    } else {
-                        val maxDeltaRad = Math.toRadians(MAX_ANGLE_RATE_DEG_PER_RENDER)
-                        val deltaRad = normalizeAngle(smoothedAngle - renderedAngle)
-                        val clampedDelta = deltaRad.coerceIn(-maxDeltaRad, maxDeltaRad)
-                        normalizeAngle(renderedAngle + clampedDelta)
+                // "Always north" commits 0 on EVERY update: the last-angle fallback is
+                // a follow-direction rule only, so a stale heading-up angle can never
+                // rotate the map while north-up is selected (spec: compass-settings —
+                // "Switching to north-up while driving stops further rotation";
+                // gps-render-coalescing — "Course unavailable").
+                val angle = when {
+                    isNorthUp -> 0.0
+                    !smoothedAngle.isNaN() -> {
+                        val deltaDeg = Math.toDegrees(normalizeAngle(smoothedAngle - renderedAngle))
+                        if (kotlin.math.abs(deltaDeg) < MIN_BEARING_DELTA_DEG) {
+                            renderedAngle
+                        } else {
+                            val maxDeltaRad = Math.toRadians(MAX_ANGLE_RATE_DEG_PER_RENDER)
+                            val deltaRad = normalizeAngle(smoothedAngle - renderedAngle)
+                            val clampedDelta = deltaRad.coerceIn(-maxDeltaRad, maxDeltaRad)
+                            normalizeAngle(renderedAngle + clampedDelta)
+                        }
                     }
-                } else {
-                    // No valid course yet: stay at the last used angle (or North-Up if none).
-                    if (!lastUsedAngle.isNaN()) lastUsedAngle else 0.0
+                    // Follow direction without a valid course yet: stay at the last
+                    // used follow-direction angle (or North-Up if none) so the map
+                    // neither spins nor snaps to north (spec: gps-render-coalescing —
+                    // "Keep last valid course bearing").
+                    !lastUsedAngle.isNaN() -> lastUsedAngle
+                    else -> 0.0
                 }
                 if (!effectiveBearing.isNaN()) lastUsedBearing = effectiveBearing
-                if (!angle.isNaN()) lastUsedAngle = angle
+                // Only follow-direction angles are remembered: a north-up period must
+                // not erase the last driving direction, so switching back to follow
+                // direction without a usable bearing resumes it instead of snapping
+                // to north (design D2).
+                if (!isNorthUp && !angle.isNaN()) lastUsedAngle = angle
 
                 // Distance since last actual render; used to decide whether a new
                 // native render is worth the cost.
@@ -962,9 +1075,19 @@ class MapCanvasViewModel @Inject constructor(
                 val angleChanged = !isAngleSame(angle, _uiState.value.viewport.angle)
                 val shouldRender = positionChanged || angleChanged
 
+                // Anchor-centered follow framing (spec: smooth-follow — Anchor-centered
+                // follow framing): one place applies the anchor — the render target.
+                // The follow blit then carries the prediction drift only, and the
+                // marker overlay needs no anchor of its own. viewport.center stays the
+                // geo position at the screen center (the anchor center in follow mode),
+                // so gesture math and the mini-map keep working unchanged.
+                fun followTarget(mag: Double) = followRenderTarget(smoothedLat, smoothedLon, mag, angle)
+
+                val (targetLat, targetLon) = followTarget(_uiState.value.viewport.magnification)
+
                 // Always keep renderer's target viewport current so the next
-                // render (coalesced or not) is centered on the latest position.
-                mapRenderer?.prepareViewport(smoothedLat, smoothedLon, _uiState.value.viewport.magnification, angle)
+                // render (coalesced or not) is centered on the anchor center.
+                mapRenderer?.prepareViewport(targetLat, targetLon, _uiState.value.viewport.magnification, angle)
 
                 // Coalesce follow-mode renders so GPS ticks cannot overrun the render pipeline.
                 val now = System.currentTimeMillis()
@@ -1060,10 +1183,13 @@ class MapCanvasViewModel @Inject constructor(
                 if (viewportMoved) {
                     lastRenderedLat = smoothedLat
                     lastRenderedLon = smoothedLon
+                    // Committed center = anchor center for the final magnification
+                    // (auto-zoom may have changed it in this tick).
+                    val (commitLat, commitLon) = followTarget(newMag)
                     _uiState.value = _uiState.value.copy(
                         viewport = _uiState.value.viewport.copy(
-                            centerLat = smoothedLat,
-                            centerLon = smoothedLon,
+                            centerLat = commitLat,
+                            centerLon = commitLon,
                             angle = normalizeAngle(angle),
                             magnification = newMag
                         ),
@@ -1076,11 +1202,11 @@ class MapCanvasViewModel @Inject constructor(
                             _uiState.value.autoZoomCommitTick
                         }
                     )
-                    mapRenderer?.prepareViewport(smoothedLat, smoothedLon, newMag, angle)
+                    mapRenderer?.prepareViewport(commitLat, commitLon, newMag, angle)
                     // In follow mode the marker represents the current vehicle position and
-                    // is drawn by the Compose overlay at the raw/navigation GPS fix. The
-                    // viewport center is not smoothed, so the marker stays exactly on the
-                    // road/track. The viewport moved — render it.
+                    // is drawn by the Compose overlay at the raw/navigation GPS fix, projected
+                    // against the emitted frame viewport (which is anchor-centered). The
+                    // viewport moved — render the anchor-centered frame.
                     renderMap()
                     lastFollowRenderMs = System.currentTimeMillis()
                 } else {
@@ -1116,6 +1242,8 @@ class MapCanvasViewModel @Inject constructor(
                 freeDrivingAnchor = freeDrivingAnchor,
                 activeFollowAnchor = if (isNavigatingNow()) routingAnchor else freeDrivingAnchor
             )
+            // Resolve the persisted preset into the visible map area.
+            publishResolvedAnchor()
             // If initMap already ran before this load finished (fast user flow),
             // re-apply the persisted style — initMap may have used the default.
             if (mapRenderer != null) {
@@ -1278,9 +1406,10 @@ class MapCanvasViewModel @Inject constructor(
         _navigationViewModel?.state?.value?.isNavigating == true
 
     /**
-     * Set the routing vehicle anchor (spec: auto-map-layout /
-     * location-options-ui — vehicle position controls). Persists through the
-     * shared settings storage so Android Auto reads the same value.
+     * Set the routing vehicle anchor **for the phone** (spec: location-options-ui —
+     * vehicle position controls). Persists through the shared settings storage in the
+     * PHONE's own field, so a picker change here never alters Android Auto's anchor
+     * (that one is configured on the car).
      */
     fun setRoutingAnchor(anchor: VehicleAnchorPosition) {
         routingAnchor = anchor
@@ -1288,6 +1417,7 @@ class MapCanvasViewModel @Inject constructor(
             routingAnchor = anchor,
             activeFollowAnchor = if (isNavigatingNow()) routingAnchor else freeDrivingAnchor
         )
+        publishResolvedAnchor()
         viewModelScope.launch {
             val current = settingsStorage.load()
             settingsStorage.save(current.copy(routingAnchorId = anchor.id))
@@ -1295,9 +1425,9 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
-     * Set the free-driving vehicle anchor (spec: auto-map-layout /
-     * location-options-ui — vehicle position controls). Persists through the
-     * shared settings storage so Android Auto reads the same value.
+     * Set the free-driving vehicle anchor **for the phone** (spec:
+     * location-options-ui — vehicle position controls). Persists in the phone's own
+     * field; Android Auto keeps its own value.
      */
     fun setFreeDrivingAnchor(anchor: VehicleAnchorPosition) {
         freeDrivingAnchor = anchor
@@ -1305,6 +1435,7 @@ class MapCanvasViewModel @Inject constructor(
             freeDrivingAnchor = anchor,
             activeFollowAnchor = if (isNavigatingNow()) routingAnchor else freeDrivingAnchor
         )
+        publishResolvedAnchor()
         viewModelScope.launch {
             val current = settingsStorage.load()
             settingsStorage.save(current.copy(freeDrivingAnchorId = anchor.id))
@@ -1634,6 +1765,8 @@ class MapCanvasViewModel @Inject constructor(
         val wasZero = screenWidth <= 0 || screenHeight <= 0
         screenWidth = width
         screenHeight = height
+        // The visible-area resolution depends on the canvas size (rotation, fold).
+        publishResolvedAnchor()
         mapRenderer?.let {
             it.screenWidth = width
             it.screenHeight = height
@@ -2464,7 +2597,7 @@ class MapCanvasViewModel @Inject constructor(
             lastValidSpeedKmH = 20.0
             // Set initial magnification to routing-sensible default
             _uiState.value = _uiState.value.copy(
-                viewport = _uiState.value.viewport.copy(magnification = 15.0)
+                viewport = _uiState.value.viewport.copy(magnification = DRIVE_PRESET_MAG)
             )
 
             // Immediately center on current GPS position
@@ -2480,10 +2613,15 @@ class MapCanvasViewModel @Inject constructor(
                     computeMapAngle(isNorthUp, loc.markerBearing)
                 } else 0.0
 
+                // Anchor-centered from the first frame (spec: smooth-follow —
+                // Anchor restored after manual pan or re-center).
+                val (targetLat, targetLon) = followRenderTarget(
+                    loc.lat, loc.lon, _uiState.value.viewport.magnification, angle
+                )
                 _uiState.value = _uiState.value.copy(
                     viewport = _uiState.value.viewport.copy(
-                        centerLat = loc.lat,
-                        centerLon = loc.lon,
+                        centerLat = targetLat,
+                        centerLon = targetLon,
                         angle = angle
                     )
                 )
@@ -2501,7 +2639,21 @@ class MapCanvasViewModel @Inject constructor(
     fun disengageFollowMode() {
         val s = _uiState.value
         if (s.followMode) {
-            _uiState.value = s.copy(followMode = false, driveSuspended = true)
+            // Leave follow mode on the framing the user actually sees: the viewport
+            // center becomes the displayed frame's center (the anchor center), so the
+            // first pan/zoom continues from the shown frame instead of jumping by the
+            // anchor offset (spec: smooth-follow — Anchor restored after manual pan or
+            // re-center).
+            val shown = s.renderViewport
+            _uiState.value = s.copy(
+                followMode = false,
+                driveSuspended = true,
+                viewport = if (shown != null) {
+                    s.viewport.copy(centerLat = shown.lat, centerLon = shown.lon)
+                } else {
+                    s.viewport
+                }
+            )
         } else if (mode == MapMode.BROWSE) {
             _uiState.value = s.copy(browseDrifted = true)
         }
@@ -2517,6 +2669,16 @@ class MapCanvasViewModel @Inject constructor(
         if (mode == MapMode.NAVIGATION) return
         val loc = locationService.location.value
         setAutoZoomSuspended(false)
+        val angle = if (loc != null && !loc.markerBearing.isNaN()) {
+            computeMapAngle(false, loc.markerBearing)
+        } else 0.0
+        // Anchor-centered framing for the drive preset (spec: smooth-follow —
+        // Anchor-centered follow framing).
+        val (targetLat, targetLon) = if (loc != null) {
+            followRenderTarget(loc.lat, loc.lon, DRIVE_PRESET_MAG, angle)
+        } else {
+            _uiState.value.viewport.centerLat to _uiState.value.viewport.centerLon
+        }
         _uiState.value = _uiState.value.copy(
             followMode = true,
             autoZoomEnabled = true,
@@ -2524,12 +2686,10 @@ class MapCanvasViewModel @Inject constructor(
             driveSuspended = false,
             browseDrifted = false,
             viewport = _uiState.value.viewport.copy(
-                magnification = 15.0,
-                centerLat = loc?.lat ?: _uiState.value.viewport.centerLat,
-                centerLon = loc?.lon ?: _uiState.value.viewport.centerLon,
-                angle = if (loc != null && !loc.markerBearing.isNaN()) {
-                    computeMapAngle(false, loc.markerBearing)
-                } else 0.0
+                magnification = DRIVE_PRESET_MAG,
+                centerLat = targetLat,
+                centerLon = targetLon,
+                angle = angle
             )
         )
         // Reset auto-zoom state for a fresh drive start
@@ -2576,17 +2736,25 @@ class MapCanvasViewModel @Inject constructor(
         if (mode != MapMode.FREE_DRIVE) return
         val loc = locationService.location.value
         setAutoZoomSuspended(false)
+        val angle = if (loc != null && !loc.markerBearing.isNaN()) {
+            computeMapAngle(false, loc.markerBearing)
+        } else 0.0
+        // Re-engage on the anchor-centered frame (spec: smooth-follow — Anchor
+        // restored after manual pan or re-center).
+        val (targetLat, targetLon) = if (loc != null) {
+            followRenderTarget(loc.lat, loc.lon, _uiState.value.viewport.magnification, angle)
+        } else {
+            _uiState.value.viewport.centerLat to _uiState.value.viewport.centerLon
+        }
         _uiState.value = _uiState.value.copy(
             followMode = true,
             autoZoomEnabled = true,
             navNorthUp = false,
             driveSuspended = false,
             viewport = _uiState.value.viewport.copy(
-                centerLat = loc?.lat ?: _uiState.value.viewport.centerLat,
-                centerLon = loc?.lon ?: _uiState.value.viewport.centerLon,
-                angle = if (loc != null && !loc.markerBearing.isNaN()) {
-                    computeMapAngle(false, loc.markerBearing)
-                } else 0.0
+                centerLat = targetLat,
+                centerLon = targetLon,
+                angle = angle
             )
         )
         lastSpeedBandIndex = -1
@@ -2605,15 +2773,36 @@ class MapCanvasViewModel @Inject constructor(
         if (mode != MapMode.BROWSE) return
         val loc = locationService.location.value
         if (loc != null) {
+            // Re-center commits the anchor-centered frame (spec: smooth-follow —
+            // Anchor restored after manual pan or re-center): the vehicle reappears
+            // at the configured anchor, and the viewport center stays the geo
+            // position at the screen center.
+            val vp = _uiState.value.viewport
+            val (targetLat, targetLon) = followRenderTarget(loc.lat, loc.lon, vp.magnification, vp.angle)
             _uiState.value = _uiState.value.copy(
                 browseDrifted = false,
-                viewport = _uiState.value.viewport.copy(
-                    centerLat = loc.lat,
-                    centerLon = loc.lon
-                )
+                viewport = vp.copy(centerLat = targetLat, centerLon = targetLon)
             )
             renderMap()
         }
+    }
+
+    /**
+     * Re-anchor the follow framing on a displayed (predicted) position and render
+     * (spec: smooth-follow — Anchor-centered follow framing). The follow display
+     * loop calls this when the blit offset has reached the overrun margin, so the
+     * frame is re-rendered with the display position back inside the margin —
+     * still anchor-centered, so the vehicle does not jump to the screen center.
+     */
+    fun renderFollowFrameAt(lat: Double, lon: Double) {
+        if (!_uiState.value.followMode) return
+        if (lat.isNaN() || lon.isNaN()) return
+        val vp = _uiState.value.viewport
+        val (targetLat, targetLon) = followRenderTarget(lat, lon, vp.magnification, vp.angle)
+        _uiState.value = _uiState.value.copy(
+            viewport = vp.copy(centerLat = targetLat, centerLon = targetLon)
+        )
+        renderMap()
     }
 
     /** Set free-form orientation: true = north-up, false = follow direction. */
@@ -3030,6 +3219,9 @@ class MapCanvasViewModel @Inject constructor(
 
         private const val TAG = "MapCanvasVM"
         private const val FAVORITES_FILE = "favorites.json"
+
+        /** Magnification applied when a drive preset (re)engages follow mode. */
+        private const val DRIVE_PRESET_MAG = 15.0
 
         /** Fixed high zoom for shared-location candidate lookup (street level). */
         private const val SHARE_CANDIDATE_ZOOM = 16

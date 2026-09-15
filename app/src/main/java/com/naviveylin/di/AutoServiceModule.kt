@@ -159,9 +159,22 @@ object AutoServiceModule {
 
             override suspend fun save(settings: AutoSettings) {
                 // Preserve phone-only fields (e.g. keepScreenOn) by applying the
-                // car-edited subset onto the current persisted settings.
+                // car-edited subset onto the current persisted settings. The car's
+                // own anchor values are NOT part of that subset — they are written
+                // only by saveCarAnchor (below), so a generic settings write cannot
+                // freeze an anchor the car merely inherited from the phone.
                 val current = settingsStorage.load()
                 settingsStorage.save(settings.toAppSettings(current))
+            }
+
+            override suspend fun saveCarAnchor(routingAnchorId: String?, freeDrivingAnchorId: String?) {
+                val current = settingsStorage.load()
+                settingsStorage.save(
+                    current.copy(
+                        autoRoutingAnchorId = routingAnchorId ?: current.autoRoutingAnchorId,
+                        autoFreeDrivingAnchorId = freeDrivingAnchorId ?: current.autoFreeDrivingAnchorId
+                    )
+                )
             }
         }
     }

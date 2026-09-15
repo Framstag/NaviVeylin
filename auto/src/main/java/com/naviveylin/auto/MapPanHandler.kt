@@ -19,7 +19,8 @@ import kotlin.math.abs
  * to the fix, design D4).
  */
 class MapPanHandler(
-    private val mapRenderer: AutoMapRenderer,
+    /** Resolves the current renderer (may be null before readiness — no-op then). */
+    private val rendererProvider: () -> AutoMapRenderer?,
     private val autoZoomController: AutoZoomController,
     private val surfaceSize: () -> Pair<Int, Int>
 ) : PanModeListener {
@@ -29,6 +30,7 @@ class MapPanHandler(
         private set
 
     override fun onPanModeChanged(panMode: Boolean) {
+        val mapRenderer = rendererProvider() ?: return
         panning = panMode
         if (panMode) {
             // Disengage follow so the map does not snap back to GPS, and
@@ -48,6 +50,7 @@ class MapPanHandler(
     /** Convert a pan gesture to a viewport move (host forwards only in pan mode). */
     fun onScroll(distanceX: Float, distanceY: Float) {
         if (!panning) return
+        val mapRenderer = rendererProvider() ?: return
         val vp = mapRenderer.viewportState.value
         val (w, h) = surfaceSize()
         val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
@@ -77,6 +80,7 @@ class MapPanHandler(
         // Ignore jitter so tiny finger spread during a pan never triggers a zoom step.
         if (abs(scaleFactor - 1f) < SCALE_JITTER_THRESHOLD) return
 
+        val mapRenderer = rendererProvider() ?: return
         val vp = mapRenderer.viewportState.value
         val (newFraction, newZoom) = mapRenderer.zoomStep(scaleFactor)
         if (newZoom == vp.zoom && newFraction == mapRenderer.fractionalZoom()) return

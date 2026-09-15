@@ -278,12 +278,14 @@ class FollowPrediction {
          * defaults 0.5/0.5 = surface center). The returned [DisplayOffset.rawX]/[
          * DisplayOffset.rawY] and [DisplayOffset.clampedX]/[clampedY] are the DRIFT
          * of the displayed position from its anchor, not the absolute offset from
-         * the buffer center: the bitmap already contains the vehicle at the anchor
-         * pixel, so the blit shifts the bitmap only by the drift (a full-offset
-         * shift would cancel the anchor and land the vehicle content at the surface
-         * center while the marker draws at the anchor). With the default center
-         * anchor the drift equals the absolute offset and the behavior is
-         * identical to the pre-anchor implementation.
+         * the buffer center: the frame is rendered anchor-centered (the renderer
+         * applies the anchor via `anchorCenter`, see spec `smooth-follow`), so it
+         * already contains the vehicle at the anchor pixel. The returned value is
+         * therefore the COMPLETE blit offset — no caller may apply the anchor a
+         * second time; a full-offset shift would cancel the anchor and land the
+         * vehicle content at the surface center while the marker draws at the
+         * anchor. With the default center anchor the drift equals the absolute
+         * offset and the behavior is identical to the pre-anchor implementation.
          */
         fun displayOffsetPx(
             displayLat: Double, displayLon: Double,

@@ -47,6 +47,15 @@ enum class VehicleAnchorPosition(
         /** Default preset: surface center — reproduces the pre-feature framing. */
         val DEFAULT: VehicleAnchorPosition = CENTER
 
+        /**
+         * Lowest/highest anchor screen fraction the framing can use. Equal to the
+         * overrun margin of the 1.2x frame (`(1.2 - 1) / 2`): an anchor outside it
+         * would push the anchor-centered frame past the buffer and uncover a strip
+         * of surface color, so the visible-area mapping clamps into this band.
+         */
+        const val MIN_FRACTION: Double = 0.1
+        const val MAX_FRACTION: Double = 0.9
+
         private val byId = entries.associateBy { it.id }
 
         /**
@@ -59,13 +68,105 @@ enum class VehicleAnchorPosition(
 }
 
 /**
- * Map center that projects the vehicle geo position to the [anchor] screen
- * fraction under the current viewport rotation.
+ * Resolved anchor screen fraction (0..1 from the top-left), after visible-area
+ * mapping: the position the vehicle is kept at inside the part of the surface
+ * the driver can actually see.
+ */
+data class ResolvedAnchor(
+    /** Horizontal screen fraction from the left edge. */
+    val fx: Double,
+    /** Vertical screen fraction from the top edge. */
+    val fy: Double
+)
+
+/**
+ * Resolve a preset into a screen fraction inside the **visible map area**: the
+ * surface minus the regions covered by the surface's own overlays
+ * ([leftPx]/[topPx]/[rightPx]/[bottomPx], 0 = nothing measured).
+ *
+ * With no overlay measured the result is the preset fraction itself, so a
+ * surface without measured overlays (and the pre-feature framing) is unchanged.
+ * The result is clamped to [VehicleAnchorPosition.MIN_FRACTION]..
+ * [VehicleAnchorPosition.MAX_FRACTION] (the overrun-margin band) so the
+ * anchor-centered framing can never uncover a strip — with the shipped phone
+ * overlays the resolved values sit well inside the band (a 0.9 row resolves to
+ * roughly 0.76 with a 0.19/0.18 top/bottom coverage).
+ */
+fun resolveAnchorFraction(
+    anchor: VehicleAnchorPosition,
+    leftPx: Int = 0,
+    topPx: Int = 0,
+    rightPx: Int = 0,
+    bottomPx: Int = 0,
+    screenW: Int,
+    screenH: Int
+): ResolvedAnchor {
+    if (screenW <= 0 || screenH <= 0) return ResolvedAnchor(anchor.fx, anchor.fy)
+    val visibleW = (screenW - leftPx.coerceAtLeast(0) - rightPx.coerceAtLeast(0)).coerceAtLeast(1)
+    val visibleH = (screenH - topPx.coerceAtLeast(0) - bottomPx.coerceAtLeast(0)).coerceAtLeast(1)
+    val fx = (leftPx.coerceAtLeast(0) + anchor.fx * visibleW) / screenW
+    val fy = (topPx.coerceAtLeast(0) + anchor.fy * visibleH) / screenH
+    return ResolvedAnchor(
+        fx.coerceIn(VehicleAnchorPosition.MIN_FRACTION, VehicleAnchorPosition.MAX_FRACTION),
+        fy.coerceIn(VehicleAnchorPosition.MIN_FRACTION, VehicleAnchorPosition.MAX_FRACTION)
+    )
+}
+
+/**
+ * Move a preset out of a region the **host** covers (its route-status/turn panel) —
+ * the Android Auto case.
+ *
+ * The host panel is wide and asymmetric (40% of the surface width on the leading
+ * edge, left in LTR), so *remapping* every preset into the remaining strip — what
+ * [resolveAnchorFraction] does for the phone's balanced cards — would move the
+ * DEFAULT preset off the surface center and break the specified "default anchors
+ * reproduce today's framing" contract of both AA capabilities. Instead, a preset
+ * that would land inside the covered band moves to the nearest free position (the
+ * band edge plus the same 10% margin the grid uses at the surface edge), while
+ * presets outside the band keep their exact fraction. Semantics: a side preset means
+ * "as far to that side as the visible surface allows".
+ */
+fun clampAnchorOutOfPane(
+    anchor: VehicleAnchorPosition,
+    paneLeftPx: Int = 0,
+    paneRightPx: Int = 0,
+    screenW: Int,
+    screenH: Int
+): ResolvedAnchor {
+    if (screenW <= 0 || screenH <= 0) return ResolvedAnchor(anchor.fx, anchor.fy)
+    val left = paneLeftPx.coerceIn(0, screenW)
+    val right = paneRightPx.coerceIn(0, screenW)
+    val visibleW = (screenW - left - right).coerceAtLeast(1)
+    // Position just inside the visible strip with the grid's own edge margin, so a
+    // clamped preset is not glued to the panel edge.
+    val freeLeft = (left + VehicleAnchorPosition.MIN_FRACTION * visibleW) / screenW
+    val freeRight = (left + (1.0 - VehicleAnchorPosition.MIN_FRACTION) * visibleW) / screenW
+    val fx = when {
+        anchor.fx < freeLeft -> freeLeft
+        anchor.fx > freeRight -> freeRight
+        else -> anchor.fx
+    }
+    return ResolvedAnchor(
+        fx.coerceIn(VehicleAnchorPosition.MIN_FRACTION, VehicleAnchorPosition.MAX_FRACTION),
+        anchor.fy.coerceIn(VehicleAnchorPosition.MIN_FRACTION, VehicleAnchorPosition.MAX_FRACTION)
+    )
+}
+
+/**
+ * Map center that projects the vehicle geo position to the given screen
+ * fraction [fx]/[fy] under the current viewport rotation — the follow-mode
+ * render target.
+ *
+ * The follow renderer renders each frame with this center, so the vehicle sits
+ * at the anchor *inside the frame* and the display offset between frames is the
+ * projection drift only (never a fraction of the surface). Nothing else may
+ * apply the anchor again: a second shift of the drawn frame or of the marker
+ * would push the frame outside the overrun margin (uncovered strip).
  *
  * Mirror trick (same as `PaneOffset.paneOffsetCenter`): with a viewport
  * centered on [vehicleLat]/[vehicleLon], the geo point occupying the screen
  * pixel (1−fx)·W, (1−fy)·H is the center that moves the vehicle to (fx·W,
- * fx·H) — a screen-space mirror because re-centering on that geo projects the
+ * fy·H) — a screen-space mirror because re-centering on that geo projects the
  * old center to the mirrored pixel. [screenToGeoRotated] carries the rotation:
  * the offset is rotated back by [angle] first, so the vehicle stays pinned at
  * the anchor in heading-up views too.
@@ -76,20 +177,27 @@ enum class VehicleAnchorPosition(
  */
 fun anchorCenter(
     vehicleLat: Double, vehicleLon: Double,
-    anchor: VehicleAnchorPosition,
+    fx: Double, fy: Double,
     mag: Double,
     screenW: Int, screenH: Int,
     dpi: Double,
     angle: Double = 0.0
 ): Pair<Double, Double> {
     val vp = ProjectionUtils.viewport(vehicleLat, vehicleLon, mag, screenW, screenH, dpi, angle)
-    return vp.screenToGeoRotated((1.0 - anchor.fx) * screenW, (1.0 - anchor.fy) * screenH)
+    return vp.screenToGeoRotated((1.0 - fx) * screenW, (1.0 - fy) * screenH)
 }
 
 /**
- * Screen-space offset of the anchor from the surface center in pixels,
- * in the viewport (rotated) frame. The anchor is defined in the surface
- * frame, so its rotated-frame offset is the plain (fx−0.5)·W, (fy−0.5)·H.
+ * [anchorCenter] for a preset without visible-area mapping (the identity case:
+ * Android Auto today, browse mode, and any surface that measures no overlay).
  */
-fun anchorOffsetPx(anchor: VehicleAnchorPosition, screenW: Int, screenH: Int): Pair<Double, Double> =
-    (anchor.fx - 0.5) * screenW to (anchor.fy - 0.5) * screenH
+fun anchorCenter(
+    vehicleLat: Double, vehicleLon: Double,
+    anchor: VehicleAnchorPosition,
+    mag: Double,
+    screenW: Int, screenH: Int,
+    dpi: Double,
+    angle: Double = 0.0
+): Pair<Double, Double> = anchorCenter(
+    vehicleLat, vehicleLon, anchor.fx, anchor.fy, mag, screenW, screenH, dpi, angle
+)

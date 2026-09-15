@@ -45,6 +45,53 @@ travel while the map itself rotates at its own pace.
 - **Removed:** the old screen-space tile-split helpers (`TileCache.storeTiles`/`compose`,
   `computeTileGrid`, `MapRenderer.blitSubRegion`) are gone; the tile cache is geographic-only.
 
+### 1.1 Follow framing — the anchor applies to the RENDER TARGET (read before touching follow mode)
+
+- **Rule: the vehicle anchor is applied in exactly one place — the follow render target.** The
+  frame is rendered with its center at `anchorCenter(vehicle, resolveAnchorFraction(activeAnchor, insets))`
+  (`core/VehicleAnchor.kt`), so the vehicle sits at the anchor *inside the bitmap*. The blit/
+  display offset then carries the prediction drift only (`FollowPrediction.displayOffsetPx` with the
+  anchor parameters). Subtracting the anchor a second time from the drawn offset pushes the frame
+  outside the overrun margin and paints an uncovered strip of `surfaceColor`.
+- **The anchor fraction is relative to the VISIBLE map area, and the resolved value is published once.**
+  `resolveAnchorFraction(preset, left/top/right/bottom insets, W, H)` maps the preset into the canvas
+  minus the regions the app's own overlays cover (phone: next-turn card, routing-status card, widget
+  column, street-name pill — measured via `onSizeChanged` and pushed with
+  `MapCanvasViewModel.setMapOverlayInsets`), and clamps the result into `0.1..0.9`. The ViewModel
+  publishes it as `MapCanvasUiState.resolvedAnchor`; the follow render target and the Compose marker
+  overlay both consume that value — never re-derive it. With no measured overlay (browse mode, tests)
+  the resolution is the identity, which is the pre-feature framing.
+  **Android Auto is the exception**: the host panel is 40% of the surface width on the leading edge
+  (`PANE_FRACTION`, side from `isHostPaneOnRight`), and remapping the whole grid into the remaining
+  strip would move the default preset to 0.7 and change the specified default framing. There the
+  panel is a forbidden band instead: `clampAnchorOutOfPane` moves only the presets that fall inside it
+  (`AutoMapRenderer.anchorCenterFor`).
+- The anchor presets are bounded to `0.1..0.9` on purpose: that is exactly the overrun margin
+  (`(1.2 − 1)/2 = 0.1` of the surface), so the visible window always lies inside the rendered frame.
+  A new preset outside that range would require a larger `canvasOverrun`, and
+  `resolveAnchorFraction` clamps into the band for the same reason.
+- The drawn offset MUST stay inside `(bitmap − canvas)/2`; `FollowPrediction.displayOffsetPx`
+  returns the clamped value and a `clamped` flag, and the follow display loop requests a full render
+  at the displayed position when the flag is set (the map keeps scrolling instead of sticking at the
+  buffer edge).
+- **Marker projection:** the GPS marker is drawn by a separate Compose overlay with no offset of
+  its own, so its viewport must absorb the blit offset: in follow mode the marker projects against
+  the **anchor center of the displayed (eased predicted) position** — the viewport for which that
+  position projects to the anchor. Projecting against the *frame's own* center leaves the marker
+  ahead of the map content by exactly the blit offset (drifts, then snaps on the next commit).
+  In browse (follow off) no offset is applied and the marker projects against `renderViewport`.
+- **Android Auto overlays are drawn INTO the surface** (`AutoMapRenderer.drawGpsMarker`,
+  `drawDestinationMarker`), so they cannot pick a different viewport per overlay: the renderer
+  remembers the offset the displayed frame was blitted by (`blitOffsetX/Y` — set in `blitToSurface`,
+  reset for a fresh render in `drawToSurface`) and every map-content overlay subtracts it. Same rule,
+  different mechanism: an overlay that projects map content must carry the blit offset.
+- **`viewport.center` vs render target:** `MapCanvasUiState.viewport.center*` always means "the geo
+  position at the screen center" — in follow mode that IS the anchor center, and it is what gesture
+  commits (`rotateZoomAtFocalPoint`), the mini-map and the route-fit helpers must use. The emitted
+  `renderViewport` is the frame's geometry (center/mag/angle) for the marker and the display loop.
+  Leaving the vehicle position in `viewport.center` would make it a lie of up to 0.4 screen and jump
+  on the first pan after re-engage.
+
 ## 2. Bitmap Lifecycle (CRITICAL — caused "jumps" multiple times)
 
 - `Bitmap.createBitmap(src, x, y, w, h)` and `frontBuffer` SHARE pixel memory with `src`.
@@ -104,6 +151,19 @@ travel while the map itself rotates at its own pace.
 - Kotlin overlay convention (same sign): `ProjectionUtils.screenBearing(bearingDeg, angleRad)` =
   `bearingDeg + toDegrees(angle)`. The marker is drawn by the Compose overlay, so the C++ side no
   longer computes a screen bearing — keep both sides on the same formula.
+- **The orientation mode decides the fallback, never a stale angle.** In the follow collector the
+  angle is committed as: `isNorthUp -> 0.0`; else the deadband/rate-limited `smoothedAngle`; else
+  `lastUsedAngle` (or 0). "Always north" therefore commits 0 on EVERY update and the last-angle
+  fallback is a follow-direction rule only — a heading-up angle from before the toggle (or from a
+  previous drive) must never rotate the map once north-up is selected. `lastUsedAngle` is written
+  only from follow-direction angles, so a north-up period does not erase the last driving
+  direction. Regression tests: `MapCanvasViewModelFollowModeTest.northUpStaysAtZeroOverConsecutiveHeadingChanges`,
+  `togglingToNorthUpWhileDrivingStopsFurtherRotation` (both fail on the pre-fix branch).
+- At a standstill or after a course-history reset the "map does not spin / does not snap to north"
+  guarantee comes from the deadband path: the location layer keeps the previous bearing, so
+  `smoothedAngle` equals the rendered angle and the commit keeps it. The explicit
+  `lastUsedAngle` fallback is defensive (it is only reachable if no bearing was ever seen, in which
+  case it is NaN and yields 0).
 
 ## 7. Bearing Smoothing (location layer)
 
@@ -204,10 +264,23 @@ Provider-aware inside `LocationService` only:
 
 ## 11. Auto-Zoom
 
-- Hysteresis on the RAW target value (`abs(finalTarget - currentMag)`), not on rounded integer
-  values. Rounded comparisons reported `diff=0.0` at target 15.666 vs. current 16 →
-  sub-level zoom pumping.
-- Commit only after cooldown + `ZOOM_COMMIT_SAMPLES` stable samples + ≥ 1 full zoom level.
+- Convergence is distance-proportional, not gated. `SpeedZoomTable.stepToward(current, target)`
+  (`core/src/main/java/com/naviveylin/core/SpeedZoomTable.kt`) moves a constant fraction of the
+  remaining gap (`ZOOM_CONVERGENCE_GAIN = 0.3`), capped at `MAX_ZOOM_STEP_PER_UPDATE = 0.5`
+  magnification levels per position update. The zoom moves quickly when far from the target and
+  slows down near it, so a large speed change converges over several seconds instead of snapping.
+- The old commit gate is REMOVED (`ZOOM_COOLDOWN_MS` + `ZOOM_COMMIT_SAMPLES` stable samples +
+  ≥ 1 full zoom level). Its ≥ 1-level rule was itself visible as full-level snap jumps; the
+  sub-level pumping it guarded against (`diff=0.0` from comparing rounded values at target 15.666
+  vs. current 16) is now prevented structurally by the deadband below.
+- Deadband replaces target hysteresis: when `abs(target - current) < ZOOM_EPSILON` (0.05 levels)
+  the step returns the current magnification unchanged, so the caller commits nothing and triggers
+  no re-render. Compare the RAW fractional values — never rounded integer magnifications.
+- Commit the fractional target: never round to a whole level at commit time (the `2^z` scale
+  conversion stays at the JNI boundary, sec 12). The displayed zoom then eases to the target over
+  ~650 ms through the front-buffer animation (spec `smooth-zoom`), not a single-frame jump.
+- Phone and Android Auto share the convergence primitive (`SpeedZoomTable.stepToward`); Android
+  Auto commits the fractional magnification through the fractional viewport-render parameter.
 
 ## 12. Front-Buffer Emission
 

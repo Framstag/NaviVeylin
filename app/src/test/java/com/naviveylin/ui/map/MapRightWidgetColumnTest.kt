@@ -45,7 +45,6 @@ class MapRightWidgetColumnTest {
     private fun WidgetColumn(h: Harness) {
         MapRightWidgetColumn(
             isLandscape = h.isLandscape,
-            compassNorthUp = true,
             mapAngleRadians = 0.0,
             gpsFixQuality = GpsFixQuality.GOOD,
             onCenterClick = {},
@@ -72,6 +71,28 @@ class MapRightWidgetColumnTest {
 
     private fun setContent(h: Harness) {
         composeRule.setContent { WidgetColumn(h) }
+    }
+
+    @Test
+    fun widgetColumnReportsItsMeasuredWidth() {
+        // The column reports its width so the follow anchor can stay clear of it
+        // (spec: smooth-follow — visible-area scenarios; change
+        // anchor-per-surface-visible-area). The map screen forwards this probe to
+        // the ViewModel.
+        var reportedWidth = 0
+        val h = Harness()
+        composeRule.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                LocalOverlayWidthProbe provides { width -> reportedWidth = width }
+            ) {
+                WidgetColumn(h)
+            }
+        }
+        composeRule.waitForIdle()
+        assertTrue(
+            "widget column must report a positive measured width (was $reportedWidth)",
+            reportedWidth > 0
+        )
     }
 
     @Test

@@ -21,8 +21,11 @@ internal fun AppSettings.toAutoSettings(): AutoSettings = AutoSettings(
     renderMode = renderMode.name,
     styleSheet = styleSheet,
     overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
-    routingAnchorId = routingAnchorId,
-    freeDrivingAnchorId = freeDrivingAnchorId
+    // Per-surface anchors: the car sees its OWN value, falling back to the phone's
+    // until an anchor is chosen on the car (spec: auto-map-layout — "Car falls back
+    // to the phone value until configured on the car").
+    routingAnchorId = autoRoutingAnchorId ?: routingAnchorId,
+    freeDrivingAnchorId = autoFreeDrivingAnchorId ?: freeDrivingAnchorId
 )
 
 /**
@@ -39,6 +42,10 @@ internal fun AutoSettings.toAppSettings(current: AppSettings): AppSettings = cur
     renderMode = RenderMode.valueOf(renderMode),
     styleSheet = styleSheet,
     overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
-    routingAnchorId = routingAnchorId,
-    freeDrivingAnchorId = freeDrivingAnchorId
+    // The car's own anchor fields are deliberately NOT written here: they are set
+    // only by an explicit anchor selection on the car
+    // (AutoSettingsProvider.saveCarAnchor). A generic settings write (dark mode,
+    // zoom, ...) must not freeze a value the car is merely inheriting from the
+    // phone (spec: auto-map-layout — "Car falls back to the phone value until
+    // configured on the car").
 )

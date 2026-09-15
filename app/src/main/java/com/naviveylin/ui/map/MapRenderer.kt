@@ -66,7 +66,7 @@ class MapRenderer(
     // ---- Canvas dimensions ----
     @Volatile var screenWidth = 0
     @Volatile var screenHeight = 0
-    @Volatile var canvasOverrun = 1.2
+    @Volatile var canvasOverrun = DEFAULT_CANVAS_OVERRUN
 
     // ---- Overlay data ----
     @Volatile private var favoriteLats: DoubleArray? = null

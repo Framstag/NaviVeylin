@@ -11,6 +11,16 @@ import com.naviveylin.core.ProjectionUtils
 internal const val PANE_FRACTION = 0.4
 
 /**
+ * True when the host draws its panel on the RIGHT edge of the surface (RTL
+ * layouts) — the same side convention [paneOffsetCenter] uses. The follow anchor
+ * resolves against the surface minus that panel, so a preset at the leading edge
+ * does not land behind the host UI (spec: auto/navigation-view — "Panel clearance
+ * via side anchor").
+ */
+internal fun isHostPaneOnRight(carContext: android.content.Context): Boolean =
+    carContext.resources.configuration.layoutDirection == android.view.View.LAYOUT_DIRECTION_RTL
+
+/**
  * Viewport center that projects the given geo point to the center of the
  * visible map area — the part not covered by the host's pane panel.
  *

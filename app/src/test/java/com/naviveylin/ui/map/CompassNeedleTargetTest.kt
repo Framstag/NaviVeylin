@@ -1,71 +1,81 @@
 package com.naviveylin.ui.map
 
+import com.naviveylin.core.ProjectionUtils
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Plain-JUnit tests for [compassNeedleTarget] — the pure needle-rotation
- * decision (spec: compass-button — north needle points at rendered north;
- * follow triangle points at the travel direction). No Robolectric needed:
- * the function has no Android dependencies.
+ * decision (spec: compass-button — Compass shows north direction, North pointer
+ * points at rendered north; change compass-always-north-phone).
+ *
+ * The needle indicates NORTH in every orientation mode. Bearing independence is
+ * enforced by the signature: the needle is a function of the map rotation alone,
+ * so an unstable or absent GPS bearing cannot move it (the standstill "swirl").
+ * No Robolectric needed: the function has no Android dependencies.
  */
 class CompassNeedleTargetTest {
 
     @Test
-    fun `north-up needle points at map north`() {
-        // θ = +90° (map rotated a quarter turn): north renders to the right.
-        assertEquals(90.0, compassNeedleTarget(true, null, Math.toRadians(90.0)), 1e-10)
-        // θ = 0: north-up map, needle straight up.
-        assertEquals(0.0, compassNeedleTarget(true, 123.0, 0.0), 1e-10)
+    fun `needle points at north for the current map rotation`() {
+        // North-up map: north is straight up.
+        assertEquals(0.0, compassNeedleTarget(0.0), 1e-10)
+        // θ = +90°: north renders a quarter turn clockwise — to the driver's right.
+        assertEquals(90.0, compassNeedleTarget(Math.toRadians(90.0)), 1e-10)
+        // θ = −90° ≡ +270°: north to the driver's left.
+        assertEquals(270.0, compassNeedleTarget(Math.toRadians(-90.0)), 1e-10)
     }
 
     @Test
-    fun `follow needle points up while heading-up`() {
-        // Follow mode stores θ = −bearing; bearing + θ = 0 → straight up.
-        val bearing = 123.0
-        assertEquals(0.0, compassNeedleTarget(false, bearing, -Math.toRadians(bearing)), 1e-10)
+    fun `heading-up southbound puts north behind the vehicle`() {
+        // Driving south (bearing 180) in heading-up follow stores θ = −180 ≡ 180°,
+        // so north points down — behind the vehicle. This is the reported case.
+        assertEquals(180.0, compassNeedleTarget(Math.toRadians(-180.0)), 1e-10)
+        // Driving north: θ = 0 → north straight up (in front).
+        assertEquals(0.0, compassNeedleTarget(0.0), 1e-10)
     }
 
     @Test
-    fun `westbound follow points up while heading-up`() {
-        // Heading 270° (west), θ = −270°: follow needle = travel direction on
-        // screen = bearing + θ = 0 → straight up (the map is rotated heading-up).
-        // (The north POSITION on the rotated map is compassRotationDegrees(θ)
-        // = 90° — the driver's right — pinned in ProjectionUtilsTest.)
-        val target = compassNeedleTarget(false, 270.0, Math.toRadians(-270.0))
-        assertEquals(0.0, target, 1e-10)
+    fun `heading-up eastbound puts north on the driver's left`() {
+        // Driving east (bearing 90): θ = −90 ≡ 270 → needle left.
+        assertEquals(270.0, compassNeedleTarget(Math.toRadians(-90.0)), 1e-10)
     }
 
     @Test
-    fun `eastbound follow points up while heading-up`() {
-        // Heading 90° (east), θ = −90°: follow needle → bearing + θ = 0 → up.
-        val target = compassNeedleTarget(false, 90.0, Math.toRadians(-90.0))
-        assertEquals(0.0, target, 1e-10)
-    }
-
-    @Test
-    fun `follow needle follows travel direction after manual rotation`() {
-        // User rotated the map +30° beyond heading-up: travel direction on
-        // screen = bearing + θ = 270 + (−270 + 30) = 30°.
-        val bearing = 270.0
+    fun `manually rotated map keeps the north needle on the map north`() {
+        // Follow direction with a manual rotation of +30° beyond heading-up
+        // (westbound): θ = −270 + 30 = −240 ≡ 120° on screen. The vehicle bearing is
+        // not an input, so the needle cannot follow the travel direction instead.
         val mapAngle = Math.toRadians(-270.0 + 30.0)
-        assertEquals(30.0, compassNeedleTarget(false, bearing, mapAngle), 1e-10)
+        assertEquals(120.0, compassNeedleTarget(mapAngle), 1e-10)
     }
 
     @Test
-    fun `unknown bearing falls back to map north`() {
+    fun `normalization table matches compassRotationDegrees`() {
+        listOf(0.0, 45.0, -45.0, 90.0, 180.0, -90.0, 270.0, 450.0, -450.0).forEach { deg ->
+            val angle = Math.toRadians(deg)
+            val target = compassNeedleTarget(angle)
+            assertEquals("angle $deg", ProjectionUtils.compassRotationDegrees(angle), target, 1e-10)
+            assertTrue("angle $deg must be in [0,360)", target >= 0.0 && target < 360.0)
+            assertTrue("angle $deg must not be NaN", !target.isNaN())
+        }
+    }
+
+    @Test
+    fun `needle is independent of the vehicle bearing`() {
+        // Compile-time guarantee: compassNeedleTarget takes no bearing argument, so
+        // two situations that differ only in the (noisy, standstill or absent)
+        // vehicle bearing produce the same needle for the same map rotation. This
+        // test pins the API shape the behavior depends on: one parameter, and the
+        // value equals the map-north direction.
         val mapAngle = Math.toRadians(-270.0)
+        assertEquals(90.0, compassNeedleTarget(mapAngle), 1e-10)
         assertEquals(
-            "null bearing must fall back",
-            90.0, compassNeedleTarget(false, null, mapAngle), 1e-10
-        )
-        assertEquals(
-            "NaN bearing must fall back",
-            90.0, compassNeedleTarget(false, Double.NaN, mapAngle), 1e-10
-        )
-        assertEquals(
-            "negative bearing must fall back",
-            90.0, compassNeedleTarget(false, -1.0, mapAngle), 1e-10
+            "needle must be the map-north direction regardless of driving direction",
+            ProjectionUtils.compassRotationDegrees(mapAngle),
+            compassNeedleTarget(mapAngle),
+            0.0
         )
     }
 }

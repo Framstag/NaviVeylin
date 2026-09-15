@@ -51,19 +51,30 @@ data class AppSettings(
      */
     val overspeedWarningDeltaKmh: Int = 5,
     /**
-     * Vehicle anchor preset for navigation (spec: auto/navigation-view —
-     * Vehicle anchor during navigation). Persisted as the preset's stable id
-     * (see `VehicleAnchorPosition` in `:core`); default `"center"`.
-     * Single global value shared with Android Auto.
+     * Vehicle anchor preset for navigation **on the phone** (spec: smooth-follow —
+     * Vehicle position anchor in follow mode). Persisted as the preset's stable id
+     * (see `VehicleAnchorPosition` in `:core`); default `"center"`. The anchors are
+     * stored per surface: Android Auto keeps its own values in
+     * [autoRoutingAnchorId]/[autoFreeDrivingAnchorId], because the regions its
+     * surface covers differ from the phone's.
      */
     val routingAnchorId: String = com.naviveylin.core.VehicleAnchorPosition.DEFAULT.id,
     /**
-     * Vehicle anchor preset for free driving (spec: auto/free-driving —
-     * Follow mode activated). Persisted as the preset's stable id (see
-     * `VehicleAnchorPosition` in `:core`); default `"center"`.
-     * Single global value shared with Android Auto.
+     * Vehicle anchor preset for free driving **on the phone** (spec: smooth-follow —
+     * Vehicle position anchor in follow mode). Persisted as the preset's stable id;
+     * default `"center"`.
      */
-    val freeDrivingAnchorId: String = com.naviveylin.core.VehicleAnchorPosition.DEFAULT.id
+    val freeDrivingAnchorId: String = com.naviveylin.core.VehicleAnchorPosition.DEFAULT.id,
+    /**
+     * Android Auto's OWN routing anchor. `null` means "not configured on the car
+     * yet": the car then inherits [routingAnchorId] (the pre-split behavior), so
+     * settings written before the per-surface split need no migration. The first
+     * anchor chosen on the car freezes this value (spec: auto-map-layout —
+     * "Car falls back to the phone value until configured on the car").
+     */
+    val autoRoutingAnchorId: String? = null,
+    /** Android Auto's own free-driving anchor; `null` = inherit [freeDrivingAnchorId]. */
+    val autoFreeDrivingAnchorId: String? = null
 )
 
 /** Persists [AppSettings] to a JSON file in app internal storage. */

@@ -15,7 +15,13 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Compose UI tests for [CompassButton]: short-press re-centers, long-press
- * toggles orientation mode.
+ * toggles orientation mode, the needle indicates north in every orientation
+ * mode (spec: compass-button — change compass-always-north-phone).
+ *
+ * The needle has one drawing path (north half + neutral south half + "N") and
+ * takes no orientation/bearing input, so "no travel-direction triangle" is
+ * structurally guaranteed — there is no second branch to select. These tests
+ * pin the composition, the needle angle and the widget geometry.
  */
 @RunWith(RobolectricTestRunner::class)
 class CompassButtonComposeTest {
@@ -29,7 +35,6 @@ class CompassButtonComposeTest {
         var toggleClicks = 0
         composeRule.setContent {
             CompassButton(
-                isNorthUp = true,
                 mapAngleRadians = 0.0,
                 gpsFixQuality = GpsFixQuality.GOOD,
                 onCenterClick = { centerClicks++ },
@@ -49,7 +54,6 @@ class CompassButtonComposeTest {
         var toggleClicks = 0
         composeRule.setContent {
             CompassButton(
-                isNorthUp = false,
                 mapAngleRadians = 0.0,
                 gpsFixQuality = GpsFixQuality.POOR,
                 onCenterClick = { centerClicks++ },
@@ -69,7 +73,6 @@ class CompassButtonComposeTest {
         // larger than the other overlay buttons (48dp / 40dp).
         composeRule.setContent {
             CompassButton(
-                isNorthUp = true,
                 mapAngleRadians = 0.0,
                 gpsFixQuality = GpsFixQuality.GOOD,
                 onCenterClick = {},
@@ -86,44 +89,48 @@ class CompassButtonComposeTest {
     }
 
     @Test
-    fun followDirectionNeedlePointsUpWhileHeadingUp() {
-        // Spec: compass-button — follow triangle points at the on-screen travel
-        // direction = bearing + θ, which is 0 (straight up) while heading-up
-        // follow is active. Westbound: heading 270°, θ = −270° → target 0°.
-        // (Where NORTH renders — 90°, the driver's right — is the
-        // compassRotationDegrees part, pinned in ProjectionUtilsTest.)
+    fun headingUpFollowShowsTheNorthNeedle() {
+        // Heading-up follow (westbound: heading 270°, θ = −270°): the needle is the
+        // NORTH pointer and sits 90° clockwise from up — the driver's right — not at
+        // 0° (which the removed travel-direction triangle would have shown).
         val mapAngle = Math.toRadians(-270.0)
         composeRule.setContent {
             CompassButton(
-                isNorthUp = false,
                 mapAngleRadians = mapAngle,
                 gpsFixQuality = GpsFixQuality.GOOD,
                 onCenterClick = {},
-                onToggleOrientation = {},
-                bearingDegrees = 270.0
+                onToggleOrientation = {}
             )
         }
         composeRule.onNodeWithContentDescription("Compass").fetchSemanticsNode()
         assertEquals(
-            "westbound follow needle must point up (travel direction)",
-            0.0, compassNeedleTarget(false, 270.0, mapAngle), 1e-10
+            "westbound heading-up: north is to the driver's right",
+            90.0, compassNeedleTarget(mapAngle), 1e-10
         )
     }
 
     @Test
-    fun northUpNeedleComposesWithUnknownBearing() {
-        // North-up mode ignores the bearing; the needle points at map north (0°).
+    fun northUpShowsTheNorthNeedle() {
+        // North-up mode is unchanged: north is straight up.
         composeRule.setContent {
             CompassButton(
-                isNorthUp = true,
                 mapAngleRadians = 0.0,
                 gpsFixQuality = GpsFixQuality.GOOD,
                 onCenterClick = {},
-                onToggleOrientation = {},
-                bearingDegrees = null
+                onToggleOrientation = {}
             )
         }
         composeRule.onNodeWithContentDescription("Compass").fetchSemanticsNode()
-        assertEquals(0.0, compassNeedleTarget(true, null, 0.0), 1e-10)
+        assertEquals(0.0, compassNeedleTarget(0.0), 1e-10)
+    }
+
+    @Test
+    fun fillColorReflectsGpsFixQuality() {
+        // Spec: compass-button — GPS fix status fill color. The palette itself is
+        // internal; what the spec requires (and what must not regress with the
+        // needle change) is that the three fix qualities stay distinguishable.
+        val colors = listOf(GpsFixQuality.NONE, GpsFixQuality.POOR, GpsFixQuality.GOOD)
+            .map { compassFillColor(it) }
+        assertEquals("one distinct fill color per fix quality", 3, colors.toSet().size)
     }
 }

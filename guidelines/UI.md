@@ -105,6 +105,29 @@ Verified against car-app 1.7.0 (`androidx.car.app`):
 - `ListTemplate` scrolls and the host **pages** when the list exceeds one page —
   the mechanism for showing arbitrarily many attributes.
 
+## 3a. Map renderer startup (never on the host thread)
+
+The car map renderer MUST initialize off the car-app main thread (spec:
+`auto-map-renderer` — "Renderer initialization off the car-app main thread"):
+
+- **First-touch rule**: the Hilt `OSMScoutClient` singleton (native `build()`:
+  dlopen + stylesheet sync) and the initial-viewport resolution (saved
+  viewport JSON / `getDatabaseBoundingBox`) run on `Dispatchers.Default` in a
+  screen-scoped coroutine — never in a `Screen` constructor/`init` block and
+  never via a lazy renderer forced from a main-thread call site (surface
+  callbacks, lifecycle observers, settings coroutines, template builders). A
+  frozen host thread during warmup delayed template delivery for every screen
+  in the session.
+- **Ready handle**: all surface screens use [`RendererGate`] (buffered
+  last-wins slots, replay order surface → dark → viewport intents → marker →
+  frames). Pre-ready surface delivery, dark presentation, GPS fixes, follow
+  re-center and frame requests are replayed on readiness; `onDestroy` cancels
+  a still-running init and shuts down a published renderer.
+- **Pan handler**: `MapPanHandler` takes a renderer *supplier* — constructing
+  it must never force the renderer (template build happens on the main
+  thread).
+- Applies to `MapScreen`, `NavigationScreen`, `FreeDrivingScreen`.
+
 ## 4. Details attribute list (Android Auto)
 
 Source: spec `auto-destination-details` — all description attributes shown.
@@ -269,8 +292,14 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   distance 32sp bold, turn description/destination 22sp, next-next hint 20sp
   (smaller than the primary instruction).
 - The compass button SHALL be larger than the other overlay buttons
-  (56dp layout / 48dp visual vs 48dp / 40dp) so it reads at a glance; the
-  follow-direction triangle stays ~70% of the button.
+  (56dp layout / 48dp visual vs 48dp / 40dp) so it reads at a glance. Its needle
+  SHALL indicate geographic north in EVERY orientation mode (north-up and
+  follow direction / heading-up alike), rotated from the map angle alone with the
+  single `ProjectionUtils.compassRotationDegrees` convention shared with the
+  Android Auto compass rose; the needle takes no vehicle-bearing input, so a
+  noisy or absent bearing at a standstill cannot move it. There is no
+  travel-direction triangle (change `compass-always-north-phone`): the travel
+  direction is shown by the vehicle marker arrow and by the map's own rotation.
 - The speed badge SHALL use the standard overlay card container (theme
   surface at 0.92 alpha, 12dp rounded) — the same treatment as the turn card
   and routing status — in the NORMAL state, with dark (`onSurface`) text;
@@ -284,6 +313,17 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   fill. The warning red is fixed, not theme-derived, so white text stays
   readable in both light and dark schemes — the M3 dark-scheme `error`
   color is a light pink that would fail contrast with white text.
+- Phone/AA anchor parity (specs `smooth-follow`, `auto-map-layout`, `location-options-ui`,
+  changes `vehicle-position-presets`, `anchor-per-surface-visible-area`): the two surfaces share the
+  same 15-position grid, the same labels and the same hierarchy, but each stores its **own** routing
+  and free-driving anchor — the covered regions differ (phone: turn card, routing-status card,
+  widget column; AA: a host pane that can cover ~40% of the width), so one shared value would be
+  wrong on one of them. On the phone the preset fraction is relative to the **visible map area**
+  (canvas minus the measured overlays), so an outer preset such as bottom-center stays visible above
+  the routing-status card; on Android Auto the host's panel is a **forbidden band**, not a remap: a
+  preset inside it moves to the nearest free position while every other preset (including the default
+  center/center) keeps its exact fraction, so the head-unit default framing is unchanged.
+  Picker labels/hierarchy stay identical, so the logical position is comparable across surfaces.
 - Phone-only: the overspeed delta is configurable in the location-options
   sheet (slider 0-30, 1 km/h precision) and on Android Auto via the
   preferences value picker — same global property, identical on both

@@ -50,6 +50,10 @@ class LocationOptionsOverlayComposeTest {
     ) {
         composeRule.setContent {
             LocationOptionsOverlay(
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = {},
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = {},
                 mode = mode,
                 availableStyles = styles,
                 styleSheet = "standard",
@@ -96,6 +100,10 @@ class LocationOptionsOverlayComposeTest {
         var reported: AmbientLightSensitivity? = null
         composeRule.setContent {
             LocationOptionsOverlay(
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = {},
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = {},
                 mode = MapMode.BROWSE,
                 ambientLightSensitivity = AmbientLightSensitivity.OFF,
                 onSetAmbientLightSensitivity = { reported = it }
@@ -119,6 +127,10 @@ class LocationOptionsOverlayComposeTest {
     fun ambientSensitivityReflectsState() {
         composeRule.setContent {
             LocationOptionsOverlay(
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = {},
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = {},
                 mode = MapMode.BROWSE,
                 ambientLightSensitivity = AmbientLightSensitivity.MEDIUM,
                 onSetAmbientLightSensitivity = {}
@@ -192,6 +204,10 @@ class LocationOptionsOverlayComposeTest {
     fun overspeedSliderShowsCurrentValue() {
         composeRule.setContent {
             LocationOptionsOverlay(
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = {},
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = {},
                 mode = MapMode.BROWSE,
                 overspeedWarningDeltaKmh = 10,
                 onSetOverspeedWarningDelta = {}
@@ -210,6 +226,10 @@ class LocationOptionsOverlayComposeTest {
         val reported = mutableListOf<Int>()
         composeRule.setContent {
             LocationOptionsOverlay(
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = {},
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = {},
                 mode = MapMode.BROWSE,
                 overspeedWarningDeltaKmh = 0,
                 onSetOverspeedWarningDelta = { reported.add(it) }
@@ -241,6 +261,10 @@ class LocationOptionsOverlayComposeTest {
         var reported: Int? = null
         composeRule.setContent {
             LocationOptionsOverlay(
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = {},
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = {},
                 mode = MapMode.BROWSE,
                 overspeedWarningDeltaKmh = 20,
                 onSetOverspeedWarningDelta = { reported = it }
@@ -264,6 +288,8 @@ class LocationOptionsOverlayComposeTest {
     fun anchorRowsShowCurrentPresets() {
         composeRule.setContent {
             LocationOptionsOverlay(
+                onSetRoutingAnchor = {},
+                onSetFreeDrivingAnchor = {},
                 mode = MapMode.NAVIGATION,
                 routingAnchor = VehicleAnchorPosition.BOTTOM_RIGHT,
                 freeDrivingAnchor = VehicleAnchorPosition.TOP_CENTER
@@ -283,6 +309,8 @@ class LocationOptionsOverlayComposeTest {
         var selected: VehicleAnchorPosition? = null
         composeRule.setContent {
             LocationOptionsOverlay(
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = {},
                 mode = MapMode.NAVIGATION,
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = { selected = it }
@@ -318,6 +346,8 @@ class LocationOptionsOverlayComposeTest {
         var selected: VehicleAnchorPosition? = null
         composeRule.setContent {
             LocationOptionsOverlay(
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = {},
                 mode = MapMode.FREE_DRIVE,
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = { selected = it }

@@ -337,4 +337,127 @@ class MapCanvasViewModelFollowModeTest {
         viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
         assertEquals("marker bearing must update without a render", 90.0, viewModel.uiState.value.gpsMarkerBearing, 1e-9)
     }
+
+    // --- North-up orientation vs the last-angle fallback ---------------------
+    // (spec: compass-settings — "Switching to north-up while driving stops
+    // further rotation"; gps-render-coalescing — "Course unavailable", "Keep last
+    // valid course bearing"; change fix-north-up-orientation-angle)
+
+    @Test
+    fun northUpStaysAtZeroOverConsecutiveHeadingChanges() = runTest(mainDispatcherRule.dispatcher) {
+        // Prime the last used angle in follow direction (as any real drive does),
+        // then select "always north" — that stale angle is what the pre-fix code
+        // re-applied on every following fix.
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 270.0, marker = 270.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+        assertEquals(Math.toRadians(90.0), viewModel.uiState.value.viewport.angle, 1e-6)
+        viewModel.onSetNavOrientation(true)
+
+        // Three fixes, each implying a different heading and each far enough apart
+        // (0.002° ≈ 220 m) that a commit is due: north-up must stay 0° for all of
+        // them.
+        listOf(0.0, 45.0, 120.0).forEachIndexed { i, bearing ->
+            Thread.sleep(250)
+            locationService.setGpsFixForTest(
+                gpsFix(
+                    51.5136 + (i + 1) * 0.002, 7.4653 + (i + 1) * 0.002,
+                    smoothed = bearing, marker = bearing, time = 2_000L + i
+                )
+            )
+            viewModel.uiState.first { it.gpsLocation?.time == 2_000L + i }
+            assertEquals(
+                "north-up must stay at 0° after fix $i (bearing $bearing)",
+                0.0, viewModel.uiState.value.viewport.angle, 1e-9
+            )
+        }
+    }
+
+    @Test
+    fun togglingToNorthUpWhileDrivingStopsFurtherRotation() = runTest(mainDispatcherRule.dispatcher) {
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
+
+        // Heading-up, westbound (TODO.md §13 repro): the map rotates to +90°.
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 270.0, marker = 270.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+        assertEquals(Math.toRadians(90.0), viewModel.uiState.value.viewport.angle, 1e-6)
+
+        // Long-press / sheet: "always north".
+        viewModel.onSetNavOrientation(true)
+        assertEquals(0.0, viewModel.uiState.value.viewport.angle, 1e-9)
+
+        // A fix with a bearing must not rotate the map back to the follow angle.
+        Thread.sleep(250)
+        locationService.setGpsFixForTest(gpsFix(51.5156, 7.4673, smoothed = 270.0, marker = 270.0, time = 2_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
+        assertEquals(
+            "north-up must not rotate back to the previously used follow angle",
+            0.0, viewModel.uiState.value.viewport.angle, 1e-9
+        )
+
+        // ... and a fix without any bearing must not rotate it either.
+        Thread.sleep(250)
+        locationService.setGpsFixForTest(
+            gpsFix(51.5176, 7.4693, smoothed = Double.NaN, marker = Double.NaN, time = 3_000L)
+        )
+        viewModel.uiState.first { it.gpsLocation?.time == 3_000L }
+        assertEquals("north-up must hold with no bearing too", 0.0, viewModel.uiState.value.viewport.angle, 1e-9)
+    }
+
+    @Test
+    fun followDirectionKeepsTheLastAngleWithoutABearing() = runTest(mainDispatcherRule.dispatcher) {
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
+
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 45.0, marker = 45.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+        assertEquals(-Math.toRadians(45.0), viewModel.uiState.value.viewport.angle, 1e-6)
+
+        // Bearings unavailable (course window too short / provider silence) with a
+        // position change that would otherwise trigger a rotation render: the map
+        // must keep the last follow-direction angle instead of spinning or snapping
+        // to north.
+        Thread.sleep(250)
+        locationService.setGpsFixForTest(
+            gpsFix(51.5156, 7.4673, smoothed = Double.NaN, marker = Double.NaN, time = 2_000L)
+        )
+        viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
+        assertEquals(
+            "follow direction must keep the last angle without a bearing",
+            -Math.toRadians(45.0), viewModel.uiState.value.viewport.angle, 1e-6
+        )
+    }
+
+    @Test
+    fun returningToFollowDirectionKeepsTheLastDrivingAngle() = runTest(mainDispatcherRule.dispatcher) {
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
+
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 45.0, marker = 45.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+        assertEquals(-Math.toRadians(45.0), viewModel.uiState.value.viewport.angle, 1e-6)
+
+        // North-up period, still driving.
+        viewModel.onSetNavOrientation(true)
+        Thread.sleep(250)
+        locationService.setGpsFixForTest(gpsFix(51.5156, 7.4673, smoothed = 45.0, marker = 45.0, time = 2_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
+        assertEquals(0.0, viewModel.uiState.value.viewport.angle, 1e-9)
+
+        // Back to follow direction with the fix carrying no bearing: the last known
+        // driving direction is remembered, so the map resumes ~-45° instead of
+        // snapping to north-up (design D2).
+        viewModel.onSetNavOrientation(false)
+        Thread.sleep(250)
+        locationService.setGpsFixForTest(
+            gpsFix(51.5176, 7.4693, smoothed = Double.NaN, marker = Double.NaN, time = 3_000L)
+        )
+        viewModel.uiState.first { it.gpsLocation?.time == 3_000L }
+        assertEquals(
+            "follow direction must resume the last driving angle, not north-up",
+            -Math.toRadians(45.0), viewModel.uiState.value.viewport.angle, 1e-6
+        )
+    }
 }

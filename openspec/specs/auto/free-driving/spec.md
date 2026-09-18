@@ -37,11 +37,39 @@ The system SHALL show the current GPS position as a marker on the free-driving m
 - **THEN** the position marker moves to the new position without user interaction
 
 ### Requirement: Follow mode activated
-The system SHALL keep the map centered on the GPS position while free driving (follow mode active).
+
+The system SHALL keep the vehicle marker during free driving at the configured free-driving anchor position while follow mode is active, instead of at the screen center. The anchor is one of 15 positions on a 5×3 grid (horizontal 10/30/50/70/90% of the surface width, vertical 10/50/90% of the surface height). The default free-driving anchor is center/center (50% width, 50% height), which reproduces the pre-feature framing exactly. To place the marker at the anchor, the map render target SHALL be shifted so the vehicle's geographic position projects to the anchor under the heading-up rotation (free driving is always heading-up).
 
 #### Scenario: Map re-centers on GPS position
+
 - **WHEN** the GPS position moves while free driving and the user does not pan the map
-- **THEN** the map viewport re-centers on the new position
+- **THEN** the map render target shifts so the map keeps the vehicle marker at the configured anchor position
+- **AND** with the default center/center anchor this reproduces re-centering the viewport on the GPS position
+
+#### Scenario: Default anchor reproduces today's framing
+
+- **GIVEN** the free-driving anchor is at its default center/center
+- **WHEN** free driving is active in follow mode
+- **THEN** the vehicle marker projects to the center of the free-driving surface
+- **AND** the map framing is identical to free driving without anchor presets
+
+#### Scenario: Anchor kept under heading-up rotation
+
+- **WHEN** the vehicle bearing changes while free driving
+- **THEN** the map rotates heading-up with the bearing
+- **AND** the vehicle marker keeps projecting to the chosen anchor position
+
+#### Scenario: Anchor restored after manual pan
+
+- **WHEN** the user pans the map during free driving (follow suspended)
+- **AND** the user then stops panning
+- **THEN** follow mode re-engages and the vehicle marker returns to the free-driving anchor without a snap
+
+#### Scenario: Auto-zoom keeps the anchored vehicle in view
+
+- **WHEN** speed-driven auto-zoom changes the magnification while free driving
+- **THEN** the map zooms around the anchor position
+- **AND** the vehicle marker stays at the chosen anchor
 
 ### Requirement: Heading-up orientation
 The system SHALL orient the free-driving map heading-up, rotating with the vehicle bearing, with north-up disabled.
@@ -95,11 +123,11 @@ While free driving, the system SHALL adjust the map magnification from the vehic
 - **THEN** auto-zoom re-engages and adjusts to the speed-appropriate magnification
 
 ### Requirement: Current street name shown
-The system SHALL display the current street name and ref on the free-driving view, derived from the bearing-aware road lookup at the GPS position (the street the vehicle is actually driving on, not the nearest address point), centered at the bottom of the view, and SHALL keep the label within the area the host guarantees visible.
+The system SHALL display the current street name and ref on the free-driving view, derived from the bearing-aware road lookup at the GPS position (the street the vehicle is actually driving on, not the nearest address point), horizontally centered, and SHALL anchor the label opposite the vehicle anchor row to the edge of the guaranteed-visible map band: the band is the surface minus the chrome insets the host reports — the TOP inset is the host's currently-visible top edge (the real coverage, so the label hugs the visible chrome; the stable-area top is the fallback when no visible rect is known), the BOTTOM inset is the surface height minus the stable-area bottom edge — falling back to the real surface edge when no insets are reported (no visible and no stable area, or one spanning the full surface). A bottom-row anchor preset (`fy = 0.9`) SHALL anchor the label at the top of the band with a small padding from the band's top edge; a top-row anchor preset (`fy = 0.1`) SHALL anchor it at the bottom of the band; a middle-row preset (including the default center) SHALL anchor it at the bottom of the band. The label SHALL NOT sit under an inset band and SHALL NOT be positioned at the band center; the top edge SHALL follow the host's currently-visible area so the label never floats mid-screen and never hides under chrome. Anchor rule is shared with the phone free-driving label and the browse label (same rows, same labels — guideline parity rule).
 
 #### Scenario: Street name displayed while driving
 - **WHEN** the free-driving view is visible and the GPS position is on a named street
-- **THEN** the view shows that street name centered at the bottom
+- **THEN** the view shows that street name horizontally centered, anchored at the bottom edge (default/middle-row preset)
 
 #### Scenario: Ref shown with the street name
 - **WHEN** the street at the GPS position has a ref tag
@@ -118,11 +146,27 @@ The system SHALL display the current street name and ref on the free-driving vie
 - **THEN** the view shows no street name (or an empty placeholder) and does not show stale text from a previous street
 
 #### Scenario: Street name stays within host-visible area
-- **WHEN** the free-driving view is visible and the host has not delivered a stable area
-- **THEN** the street-name label is still drawn within the host's visible area, not at the raw surface bottom
+- **WHEN** the free-driving view is visible and the host has delivered no insets (no stable area and no visible area)
+- **THEN** the street-name label is still anchored to the real surface edge with the fixed padding — no host area rects move it (no mid-screen floating label)
+
+#### Scenario: Street name at top for bottom-row anchors
+- **WHEN** the free-driving anchor preset is in the bottom row (bottom-center, bottom-left, bottom-right, bottom-far-left, bottom-far-right) and the GPS position is on a named street
+- **THEN** the street name is displayed horizontally centered at the top of the view with a small padding from the top edge, so it never sits between the vehicle and the way ahead
+
+#### Scenario: Street name at bottom for top-row anchors
+- **WHEN** the free-driving anchor preset is in the top row (top-center, top-left, top-right, top-far-left, top-far-right)
+- **THEN** the street name is displayed horizontally centered at the bottom edge of the view
+
+#### Scenario: Street name anchored to the real surface edge
+- **WHEN** the free-driving view is visible and the host delivers a stable area spanning the full surface (no insets)
+- **THEN** the street-name label sits at the real surface top or bottom edge with the fixed padding
+
+#### Scenario: Street name clear of the host/system chrome bands
+- **WHEN** the free-driving view is visible and the host stable area excludes the top and/or bottom band (e.g. the AAOS status bar at the top and the AAOS task bar at the bottom)
+- **THEN** the street-name label sits inside the guaranteed-visible band: below the top inset with the fixed padding for a bottom-row preset, above the bottom inset with the fixed padding for a top/middle-row preset — never under an inset band
 
 ### Requirement: Current driving speed shown
-The system SHALL display the current driving speed on the free-driving view, on the right side below the compass.
+The system SHALL display the current driving speed on the free-driving view, on the right side below the compass. When the current speed exceeds the current road's speed limit, the speed readout SHALL be shown in the warning state — a red badge background with white text — matching the overspeed visual of the navigation speed badge.
 
 #### Scenario: Speed shown below compass
 - **WHEN** the free-driving view is visible and the GPS fix reports a ground speed
@@ -135,6 +179,14 @@ The system SHALL display the current driving speed on the free-driving view, on 
 #### Scenario: Speed derived from movement without GPS speed
 - **WHEN** the GPS fix has no speed (e.g. GPX track replay) but the vehicle moved since the previous fix
 - **THEN** the speed readout and auto-zoom use the speed implied by the movement between fixes
+
+#### Scenario: Overspeed warning in free driving
+- **WHEN** the free-driving view is visible and the current speed exceeds the road's speed limit
+- **THEN** the speed readout is shown with a red background and white text
+
+#### Scenario: Normal colors at or below the limit
+- **WHEN** the free-driving view is visible and the current speed does not exceed the road's speed limit
+- **THEN** the speed readout is shown with the normal badge background and white text
 
 ### Requirement: Speed limit sign shown
 The system SHALL show a speed-limit sign on the free-driving view when the current road has a defined speed limit, placed below the current-speed widget.

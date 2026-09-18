@@ -87,7 +87,7 @@ The system SHALL use the map template's required content slot as the app menu, h
 
 ### Requirement: Speed-limit indicator during navigation
 
-The system SHALL display the current speed and the current speed limit on the navigation display in the right visualisation region: a speed badge with the current speed, the speed limit as a round sign below the badge, and a warning color on the badge when the current speed exceeds the limit. The round speed-limit sign SHALL be at least 56dp in diameter with a red ring of at least 7dp and digits of at least 24sp bold.
+The system SHALL display the current speed and the current speed limit on the navigation display in the right visualisation region: a speed badge with the current speed, the speed limit as a round sign below the badge, and a warning state consisting of a red badge background with white text when the current speed equals or exceeds the speed limit plus the overspeed warning delta (`current >= max + delta`). The delta is the single global setting shared with the phone app: a whole number of km/h between 0 and 30 inclusive, default 5, precise to 1 km/h, and it applies identically on Android Auto and on the phone. The round speed-limit sign SHALL be at least 56dp in diameter with a red ring of at least 7dp and digits of at least 24sp bold.
 
 #### Scenario: Limit badge shown during navigation
 
@@ -101,8 +101,19 @@ The system SHALL display the current speed and the current speed limit on the na
 
 #### Scenario: Limit exceeded warning
 
-- **WHEN** current speed exceeds the displayed speed limit
-- **THEN** the speed badge changes to a warning color
+- **WHEN** current speed equals or exceeds the displayed speed limit plus the configured overspeed warning delta
+- **THEN** the speed badge shows a red background with white text (warning state)
+
+#### Scenario: Warning below the delta
+
+- **GIVEN** the overspeed warning delta is 5 km/h and the limit is 50 km/h
+- **WHEN** the current speed is 54 km/h
+- **THEN** the speed badge shows the normal colors (no warning state)
+
+#### Scenario: Warning background keeps semi-transparency
+
+- **WHEN** the speed badge is in the warning state
+- **THEN** the red background retains the same semi-transparent alpha as the normal badge background
 
 #### Scenario: No sign without a limit
 
@@ -121,7 +132,7 @@ The system SHALL display the current speed and the current speed limit on the na
 
 ### Requirement: Settings dialog reachable while driving
 
-The system SHALL provide a settings action on the Android Auto map display that opens a settings dialog whose content mirrors the phone's location-options dialog: follow mode, browse orientation, navigation orientation, auto-zoom, dark mode, lane hints, and render mode. The dialog SHALL be reachable while the vehicle is moving.
+The system SHALL provide a settings action on the Android Auto map display that opens a settings dialog whose content mirrors the phone's location-options dialog: follow mode, browse orientation, navigation orientation, auto-zoom, dark mode, lane hints, render mode, the overspeed warning delta, and the vehicle anchor positions for routing and free driving. The dialog SHALL be reachable while the vehicle is moving.
 
 #### Scenario: Settings dialog opens while driving
 
@@ -131,7 +142,19 @@ The system SHALL provide a settings action on the Android Auto map display that 
 #### Scenario: Settings content matches phone dialog
 
 - **WHEN** the settings dialog is open
-- **THEN** it presents the same settings as the phone's location-options dialog: follow mode, browse orientation, navigation orientation, auto-zoom, dark mode, lane hints, and render mode
+- **THEN** it presents the same settings as the phone's location-options dialog: follow mode, browse orientation, navigation orientation, auto-zoom, dark mode, lane hints, render mode, the overspeed warning delta, and the vehicle anchor positions
+
+#### Scenario: Overspeed delta presented as a value picker
+
+- **WHEN** the user selects the overspeed warning delta row in the settings dialog
+- **THEN** a value picker opens offering every whole km/h value from 0 to 30 inclusive
+- **AND** the currently configured delta is marked
+
+#### Scenario: Delta selection persisted globally
+
+- **WHEN** the user picks a delta value in the picker
+- **THEN** the change persists through the shared settings storage
+- **AND** the new value applies to the speed badge on Android Auto and on the phone
 
 #### Scenario: Setting changes apply to map
 
@@ -142,3 +165,21 @@ The system SHALL provide a settings action on the Android Auto map display that 
 
 - **WHEN** the settings dialog is open
 - **THEN** it does not expose the phone-only keep-screen-on option
+
+#### Scenario: Anchor rows shown for both modes
+
+- **WHEN** the settings dialog is open
+- **THEN** it shows a "Vehicle position" row for routing and one for free driving
+- **AND** each row displays the currently configured anchor
+
+#### Scenario: Anchor picker shows the 5×3 grid
+
+- **WHEN** the user selects a vehicle position row in the settings dialog
+- **THEN** a position picker opens offering the 15 presets of the 5×3 grid (horizontal 10/30/50/70/90% of the surface width, vertical 10/50/90% of the surface height)
+- **AND** the currently configured anchor is marked
+
+#### Scenario: Anchor selection persisted globally
+
+- **WHEN** the driver picks an anchor position in the picker
+- **THEN** the change persists through the shared settings storage
+- **AND** the new anchor applies to the vehicle positioning on Android Auto and on the phone

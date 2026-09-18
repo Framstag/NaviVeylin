@@ -82,14 +82,32 @@ validation as part of generation.
 - **THEN** the output SHALL pass CycloneDX JSON schema validation
 
 ### Requirement: Missing native SBOM data fails generation
-If a required native dependency's SBOM source data is missing (e.g. a vcpkg
-package installed without its SPDX file), generation SHALL fail with an
-actionable error message rather than produce an incomplete SBOM.
+
+If a required native dependency's source data is missing — its vcpkg SPDX file,
+its license declaration, or the license text distributed for a shipped
+component — generation SHALL fail with an actionable error message rather than
+produce an incomplete SBOM.
 
 #### Scenario: Missing vcpkg SPDX file fails build
+
 - **GIVEN** an installed vcpkg package whose `vcpkg.spdx.json` file is absent
 - **WHEN** SBOM generation runs
 - **THEN** generation SHALL fail and SHALL report which package/SPDX file is missing
+
+#### Scenario: Missing license source data fails build
+
+- **GIVEN** an installed vcpkg package whose license text source data is absent
+- **AND** that package's code is distributed in the application
+- **WHEN** SBOM generation runs
+- **THEN** generation SHALL fail and SHALL report which package's license data is
+  missing
+
+#### Scenario: Packaged native library without SBOM component fails build
+
+- **GIVEN** the application's packaged native library directory contains a library
+  with no corresponding SBOM component
+- **WHEN** SBOM generation runs
+- **THEN** generation SHALL fail and SHALL name the unrecorded library
 
 ### Requirement: SBOM generation does not mutate release version state
 Running SBOM generation — standalone, in CI, or as part of `release` — SHALL
@@ -112,3 +130,86 @@ build artifact so the CI run exposes the dependency inventory.
 #### Scenario: CI run uploads SBOM
 - **WHEN** the CI workflow builds the debug APK
 - **THEN** the workflow SHALL also produce the corresponding SBOM and upload it as a build artifact alongside the APK
+
+### Requirement: SBOM components declare license and distribution scope
+
+Each SBOM component SHALL carry at least one SPDX license identifier and SHALL
+declare whether the component is shipped in the distributed application or used
+only during the build. A component that cannot be resolved to a license and a
+distribution scope SHALL fail generation.
+
+#### Scenario: Component carries license and scope
+
+- **WHEN** an SBOM is generated
+- **THEN** every component SHALL declare at least one SPDX license identifier
+- **AND** every component SHALL declare its distribution scope (shipped or
+  build-time only)
+
+#### Scenario: Native components are no longer assertion-less
+
+- **GIVEN** a natively built dependency included in the SBOM
+- **WHEN** the SBOM is generated
+- **THEN** the component SHALL report an SPDX license identifier
+- **AND** it SHALL NOT report a placeholder or assertion-less license value
+
+### Requirement: SBOM records shipped native runtime libraries
+
+The SBOM SHALL record every native library that is packaged in the application
+artifact, including native libraries that are not provided by the project's
+vcpkg dependency tree.
+
+#### Scenario: Shipped runtime library present
+
+- **GIVEN** a native library packaged in the application's native library
+  directory and referenced by a shipped shared object
+- **WHEN** the SBOM is generated
+- **THEN** the SBOM SHALL contain a component for that library with its license
+  identifier and a shipped distribution scope
+
+#### Scenario: Runtime library is not silently omitted
+
+- **GIVEN** a native library present in the packaged application artifact
+- **WHEN** the SBOM is generated
+- **THEN** generation SHALL fail if that library has no corresponding SBOM
+  component
+
+### Requirement: SBOM root component carries the application license
+
+The SBOM's root (application) component SHALL carry the application's own SPDX
+license identifier, recorded per distribution flavor. The root SHALL NOT be
+distributed with an absent or unresolved license field.
+
+#### Scenario: Root component has the application license
+
+- **WHEN** an SBOM is generated for a distribution flavor
+- **THEN** the SBOM's root component SHALL declare the application's SPDX license
+  identifier (`GPL-3.0-or-later`)
+- **AND** the identifier SHALL be a valid SPDX id (no `LicenseRef-` and no
+  `NOASSERTION`)
+
+#### Scenario: Root license matches both flavors
+
+- **WHEN** SBOMs are generated for `mobileRelease` and `automotiveRelease`
+- **THEN** both root components SHALL carry the same application license
+  identifier
+
+### Requirement: First-party components resolve to the application license
+
+Components for the application's own modules (`:app`, `:auto`, `:core`,
+`:osmscout-client-java`) SHALL resolve to the application's SPDX license
+identifier rather than to a declared `LicenseRef-` placeholder for the project's
+own license.
+
+#### Scenario: First-party components carry the SPDX identifier
+
+- **WHEN** an SBOM is generated
+- **THEN** each first-party component SHALL declare `GPL-3.0-or-later` as its
+  license
+- **AND** no first-party component SHALL carry `LicenseRef-NaviVeylin`
+
+#### Scenario: First-party license requires distributed text
+
+- **WHEN** the license inventory is produced for a distribution flavor
+- **THEN** the application's license text SHALL be part of the inventory's
+  embedded texts (a full copy of the GNU GPL version 3 text)
+- **AND** the text SHALL be reachable offline from the bundled license list

@@ -12,6 +12,7 @@ The system SHALL provide two orientation modes for each of the two map modes (fr
 
 - In free-form mode, "North always up" SHALL keep the map at 0° rotation regardless of GPS bearing. "Follow direction" SHALL rotate the map to match the device's GPS bearing when follow mode is active.
 - In navigation mode, "North always up" SHALL keep the map at 0° rotation during turn-by-turn guidance. "Follow direction" SHALL rotate the map to match the driving direction (the bearing from the navigation engine).
+- "North always up" SHALL hold the map at 0° on **every** map commit, not only at the moment the mode is selected: no previously used rotation angle and no missing/noisy bearing signal SHALL rotate the map while this mode is active.
 - The selected orientation for each mode SHALL be independent — changing free-form orientation SHALL NOT affect navigation orientation and vice versa.
 - The orientation mode SHALL be togglable from two UI surfaces: the location options bottom sheet AND the compass button long press. Both SHALL update the same underlying state and SHALL stay in sync.
 
@@ -35,6 +36,14 @@ The system SHALL provide two orientation modes for each of the two map modes (fr
 - **AND** orientation is set to "North always up"
 - **THEN** the map SHALL stay at 0° rotation during guidance
 - **AND** the map SHALL NOT rotate to driving direction
+
+#### Scenario: Switching to north-up while driving stops further rotation
+
+- **WHEN** the map is following the driving direction (heading-up)
+- **AND** the user selects "North always up" (compass long press or location options sheet)
+- **AND** further GPS fixes arrive, with or without a usable bearing
+- **THEN** the map rotation SHALL be 0° for every subsequent commit
+- **AND** the map SHALL NOT rotate back to the previously used heading-up angle
 
 #### Scenario: Navigation follow direction rotates to driving bearing
 

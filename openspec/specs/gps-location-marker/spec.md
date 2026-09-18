@@ -170,6 +170,8 @@ The system SHALL project every overlay drawn on the map surface (the GPS marker 
 - The frame's blit offset SHALL be published together with the frame it describes, so a frame completing concurrently in another thread can never make an overlay use a different frame's offset
 - The marker SHALL be reprojected on every displayed frame
 - A viewport write whose frame has not been committed yet (a follow re-anchor on a GPS fix, a heading rotation, a zoom change) SHALL NOT move any overlay before that frame is on the surface
+- In follow mode the marker SHALL be projected against the anchor center of the displayed (predicted) position: the frame is rendered anchor-centered on its own position and then blitted by the prediction drift, so only this projection places the marker on the map content at the anchor. Projecting against the anchor-centered frame's own center would leave the marker ahead of the content by the blit offset
+- The marker and the map content SHALL share one projection and one offset: the marker SHALL NOT be clamped, shifted or held back independently of the map content, so marker and road cannot drift apart while the displayed frame lags behind the prediction
 - Both follow-mode implementations SHALL satisfy this: the phone projects against the committed render viewport, and the Android Auto renderer SHALL publish the displayed frame's own center, magnification and rotation and project its overlays against that published frame
 
 #### Scenario: Marker stays anchored during pan
@@ -201,6 +203,18 @@ The system SHALL project every overlay drawn on the map surface (the GPS marker 
 - **WHEN** the destination pin and the vehicle marker are drawn on the same displayed frame
 - **THEN** both SHALL use the same displayed-frame center, magnification and rotation
 - **AND** both SHALL move together with the map content of that frame
+
+#### Scenario: Marker sits on the anchor of the displayed frame
+
+- **WHEN** follow mode is active with a non-center anchor and the displayed frame was rendered for the current vehicle position
+- **THEN** the marker SHALL be drawn at the anchor screen fraction of that frame
+- **AND** the map content under the marker SHALL be the vehicle's road position
+
+#### Scenario: Marker at the anchor while the frame lags the prediction
+
+- **WHEN** the displayed position has moved ahead of the position the displayed frame was rendered for
+- **THEN** the marker SHALL be drawn at the same screen position as the map content of the displayed position (the anchor fraction)
+- **AND** the marker SHALL NOT be displaced from the content by the blit offset
 
 ### Requirement: Marker glides between fixes
 

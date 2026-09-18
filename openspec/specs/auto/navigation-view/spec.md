@@ -127,17 +127,17 @@ The system SHALL show the remaining travel time and remaining distance to the de
 
 ### Requirement: Current street name shown during navigation
 
-The system SHALL display the name and ref of the current street on the navigation display while navigating, taken from the route's way at the current point (not an area search), updating when the vehicle changes roads. The label SHALL remain fully visible — not covered by host-rendered UI such as the travel-estimate (ETA) card.
+The system SHALL display the name and ref of the current street on the navigation display while navigating, taken from the route's way at the current point (not an area search) when on route, updating when the vehicle changes roads. The street name SHALL be rendered as an element of the host's routing status view — inside the travel-estimate (ETA) card via `TravelEstimate.setTripText` — and SHALL never be drawn on the map surface, regardless of the host's delivered stable/visible areas. When navigation is active but no road info is in state (off route), the street name SHALL come from the throttled bearing-aware road lookup at the GPS position.
 
 #### Scenario: Street name displayed while driving
 
 - **WHEN** navigation is active and current-road data is available
-- **THEN** the current street name is drawn on the map surface
+- **THEN** the host travel-estimate card shows the street name via `setTripText`
 
 #### Scenario: Ref shown with the street name
 
 - **WHEN** the current street has a ref tag
-- **THEN** the label shows the ref together with the name (e.g. "B 1 Hauptstrasse")
+- **THEN** the ETA card shows the ref together with the name (e.g. "B 1 Hauptstrasse")
 
 #### Scenario: Street name from the route, not an area search
 
@@ -148,32 +148,42 @@ The system SHALL display the name and ref of the current street on the navigatio
 #### Scenario: Street name updates on street change
 
 - **WHEN** the vehicle enters a new road during navigation
-- **THEN** the displayed street name updates to the new road's name
+- **THEN** the ETA-card trip text updates to the new road's name
 
 #### Scenario: No street name when unnamed
 
 - **WHEN** navigation is active but no street name is available
-- **THEN** no street-name label is drawn
+- **THEN** no trip text is set on the travel estimate
 
 #### Scenario: Street name not covered by host ETA card
 
 - **WHEN** navigation is active, a travel estimate is shown by the host, and the current street name is displayed
-- **THEN** the street-name label is drawn entirely above the host's ETA card region, within the area the host guarantees visible
+- **THEN** the street name is an element of the travel-estimate card itself, so no host-rendered UI can cover it
 
 #### Scenario: Street name stays clear when host geometry is unknown
 
 - **WHEN** navigation is active and the host has not delivered a stable area
-- **THEN** the street-name label is still drawn within the host's visible area, not at the raw surface bottom
+- **THEN** the street name is still shown in the travel-estimate card, positioned by the host, with no dependence on the surface-rect geometry
 
 #### Scenario: Street name in host ETA card when map area is not safe
 
-- **WHEN** navigation is active, a travel estimate is shown by the host, and the host delivers no stable or visible area that clears the surface bottom (the ETA card may cover the map label)
+- **WHEN** navigation is active, a travel estimate is shown by the host, and the host delivers no stable or visible area that clears the surface bottom
 - **THEN** the street name is rendered inside the host's travel-estimate card via `setTripText`, and no street-name label is drawn on the map surface
 
 #### Scenario: Street name on map when host area is safe
 
 - **WHEN** navigation is active, a travel estimate is shown by the host, and the host delivers a stable or visible area that clears the surface bottom
-- **THEN** the street-name label is drawn on the map surface and the travel-estimate card carries no trip text
+- **THEN** the street name is still rendered in the travel-estimate card via `setTripText` and never on the map surface (a bottom-clear area does not move the street name off the card)
+
+#### Scenario: No street-name label on the map surface
+
+- **WHEN** navigation is active
+- **THEN** no street-name text is drawn on the map surface (the map surface carries only the compass rose, speed badge and attribution)
+
+#### Scenario: Off-route street name from GPS lookup
+
+- **WHEN** navigation is active and the vehicle is off the planned route (no road info in the navigation state)
+- **THEN** the street name comes from the throttled bearing-aware road lookup at the GPS position and updates the ETA-card trip text
 
 ### Requirement: Speed-driven auto-zoom during navigation
 
@@ -249,3 +259,41 @@ The system SHALL scroll the navigation map smoothly to follow the vehicle betwee
 - **WHEN** the user pans the map during navigation
 - **THEN** smooth follow is suspended and the map stays where the user left it
 - **AND** it resumes smoothly without a snap when the user exits pan mode
+
+### Requirement: Vehicle anchor during navigation
+
+The system SHALL keep the vehicle marker on the navigation surface during follow mode at the configured routing anchor position instead of at the screen center. The anchor is one of 15 positions on a 5×3 grid (horizontal 10/30/50/70/90% of the surface width, vertical 10/50/90% of the surface height). The default routing anchor is center/center (50% width, 50% height), which reproduces the pre-feature framing exactly. To place the marker at the anchor, the map render target SHALL be shifted so the vehicle's geographic position projects to the anchor under the current viewport rotation — in heading-up AND north-up navigation.
+
+#### Scenario: Default anchor reproduces today's framing
+
+- **GIVEN** the routing anchor is at its default center/center
+- **WHEN** navigation is active in follow mode
+- **THEN** the vehicle marker projects to the center of the navigation surface
+- **AND** the map framing is identical to navigation without anchor presets
+
+#### Scenario: Road-ahead bias via bottom anchor
+
+- **GIVEN** the user selected the bottom-center anchor (50% width, 90% height) for routing
+- **WHEN** navigation is active in follow mode
+- **THEN** the vehicle marker stays at the bottom-center anchor
+- **AND** more of the map ahead of the vehicle is visible than behind it
+
+#### Scenario: Panel clearance via side anchor
+
+- **GIVEN** the host draws its route-status/turn-instruction UI over the left part of the surface
+- **GIVEN** the user selected a right-side anchor (e.g. 70% or 90% width) for routing
+- **WHEN** navigation is active in follow mode
+- **THEN** the vehicle marker stays clear of the host UI region
+- **AND** the visible map area on the open side is used for the road ahead
+
+#### Scenario: Marker stays on anchor during heading-up rotation
+
+- **WHEN** navigation is active with heading-up orientation and the vehicle bearing changes
+- **THEN** the vehicle marker keeps projecting to the chosen anchor position
+- **AND** the map content rotates about the display with the bearing
+
+#### Scenario: Anchor restored after manual pan
+
+- **WHEN** the user pans the map during navigation (follow suspended)
+- **AND** the user then stops panning
+- **THEN** follow mode re-engages and the vehicle marker returns to the routing anchor without a snap

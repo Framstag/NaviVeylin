@@ -105,3 +105,52 @@ The options bottom sheet SHALL contain an "Auto zoom" toggle that is visible onl
 - **WHEN** the user is in free-form mode
 - **WHEN** the options bottom sheet is open
 - **THEN** the "Auto zoom" toggle SHALL NOT be visible
+
+### Requirement: Overspeed warning delta control
+
+The options bottom sheet SHALL contain an overspeed warning threshold control: a slider over the integer range 0–30 km/h with 1 km/h precision (no coarser steps), showing the current value. The setting is global — changing it SHALL persist to the shared settings storage, apply immediately to the speed widget's warning state, and SHALL be visible on Android Auto with the same value. The default SHALL be 5 km/h. A delta of 0 warns the moment the current speed reaches the limit.
+
+#### Scenario: Slider offers 1 km/h precision
+
+- **WHEN** the options bottom sheet is open
+- **THEN** an overspeed warning control is shown with a current value displayed in km/h
+- **AND** every whole value from 0 to 30 km/h can be selected
+
+#### Scenario: Slider value applies to the widget
+
+- **GIVEN** the overspeed warning delta is set to 3 km/h and the max speed is 50 km/h
+- **WHEN** the current speed reaches 53 km/h
+- **THEN** the speed widget shows the warning state
+
+#### Scenario: Slider change persists globally
+
+- **WHEN** the user moves the slider to a new value (e.g. 10 km/h)
+- **THEN** the value is persisted in the shared settings storage
+- **AND** the Android Auto speed badge uses the same new value
+
+### Requirement: Vehicle anchor position controls
+
+The location options bottom sheet SHALL contain a "Vehicle position" control with an entry for routing and one for free driving. Selecting an entry SHALL open a 5×3 position picker (horizontal 10/30/50/70/90% of the screen width, vertical 10/50/90% of the screen height, 15 presets total) with the currently configured anchor marked. The control labels SHALL match the Android Auto settings dialog labels, and changes SHALL persist globally so both surfaces share the same value.
+
+#### Scenario: Anchor rows visible in the sheet
+
+- **WHEN** the location options bottom sheet is open
+- **THEN** it shows a "Vehicle position" row for routing and one for free driving
+- **AND** each row displays the currently configured anchor
+
+#### Scenario: Picker offers the 5×3 grid
+
+- **WHEN** the user selects a vehicle position row
+- **THEN** a position picker opens offering the 15 presets of the 5×3 grid
+- **AND** the currently configured anchor is marked
+
+#### Scenario: Selection persists globally
+
+- **WHEN** the user picks an anchor position in the picker
+- **THEN** the change persists through the shared settings storage
+- **AND** the new anchor applies to vehicle positioning on the phone and on Android Auto
+
+#### Scenario: Picker labels match Android Auto
+
+- **WHEN** the user compares the phone anchor picker with the Android Auto anchor picker
+- **THEN** the two pickers use the same position labels and hierarchy

@@ -2,6 +2,7 @@
 
 package com.naviveylin.auto
 
+import android.graphics.Rect
 import android.os.SystemClock
 import android.util.Log
 import android.view.View
@@ -20,9 +21,12 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.AutoPosition
+import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.VehicleAnchorPosition
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
 import kotlin.math.abs
@@ -104,6 +108,22 @@ class MapScreen(
      */
     private val rendererGate = RendererGate()
 
+    /** Throttled street-name resolution (same pattern as free driving). */
+    private val streetNameUpdater = StreetNameUpdater()
+    private var streetJob: Job? = null
+
+    /** Current street name label text; null/blank = nothing drawn. */
+    @Volatile
+    private var streetName: String? = null
+
+    /**
+     * Browse follow anchor from the shared free-driving setting (design D7,
+     * spec: auto/browse — the browse view SHALL use the shared free-driving
+     * anchor setting for the vehicle anchor row). Defaults to center.
+     */
+    @Volatile
+    private var browseAnchor: VehicleAnchorPosition = VehicleAnchorPosition.DEFAULT
+
     private var mapController: MapController? = null
     private var surfaceWidth = 0
     private var surfaceHeight = 0
@@ -111,13 +131,36 @@ class MapScreen(
     private var lastGestureLogMs = 0L
     private var lastSettingsReloadMs = 0L
 
+    /** Host guaranteed-visible area (design D8: street pill band insets). */
+    private val stableArea = Rect()
+
+    /** Host currently-visible area (design D8: pill top edge — real coverage). */
+    private val visibleArea = Rect()
+
     /** Surface-refresh (invalidate) attempts left for this screen start. */
     private var surfaceRefreshAttempts = 0
 
     init {
-        // Browse mode has no surface overlays: the host on this class of unit
-        // never forwards surface gestures, so all interactive controls live in
-        // host action strips. (The compass rose is navigation-only.)
+        // Browse-mode overlay: the street-name pill only (design D5/D8, spec:
+        // auto/browse). Draw-only, no interactive elements — the
+        // surface-gesture constraint of auto-map-layout is untouched. The
+        // pill anchors to the edge of the guaranteed-visible band (surface -
+        // host chrome insets from the stable area) opposite the browse anchor
+        // row (row rule shared with free driving).
+        rendererGate.setOverlayDrawer({ canvas, w, h ->
+            val density = (surfaceDpi / 160.0).toFloat()
+            val (topInset, bottomInset) = hostInsetsPx()
+            StreetNameLabel.draw(
+                canvas = canvas,
+                surfaceWidth = w,
+                surfaceHeight = h,
+                density = density,
+                name = streetName.orEmpty(),
+                placement = StreetNameLabel.placementFor(browseAnchor),
+                topInset = topInset,
+                bottomInset = bottomInset
+            )
+        })
 
         // Renderer readiness: wire surface-failure recovery and re-push the
         // day/night stylesheet flag once the renderer exists (the pre-ready
@@ -233,11 +276,13 @@ class MapScreen(
 
     /**
      * Apply shared settings that affect the browse map live: follow mode
-     * (re-center on GPS) and north-up orientation. Settings are re-read
-     * periodically so changes from the settings screen take effect without a
-     * screen restart.
+     * (re-center on GPS), north-up orientation and the browse vehicle anchor
+     * row (the street pill re-places with it — design D7). Settings are
+     * re-read periodically so changes from the settings screen take effect
+     * without a screen restart.
      */
     private fun applySettings(settings: com.naviveylin.core.AutoSettings) {
+        browseAnchor = VehicleAnchorPosition.fromId(settings.freeDrivingAnchorId)
         // When opened via the details "Show" action (initialCenter set), the
         // map must stay centered on the requested destination — follow mode
         // would snap it back to the current GPS position.
@@ -251,7 +296,7 @@ class MapScreen(
                 val vp = r.viewportState.value
                 if (vp.angle != 0.0) {
                     Log.d(TAG, "settings: north-up -> reset angle")
-                    rendererGate.setViewport(vp.lat, vp.lon, vp.zoom, 0.0, vp.zoom.toDouble())
+                    rendererGate.setViewport(vp.lat, vp.lon, vp.zoom, 0.0, vp.zoomFraction)
                 }
             }
             // Renderer not ready yet: it is constructed with angle 0.0 (north-up).
@@ -316,7 +361,7 @@ class MapScreen(
                             // Disengage follow so the map does not snap back to GPS.
                             val renderer = rendererGate.rendererOrNull() ?: return@onPanModeChanged
                             val vp = renderer.viewportState.value
-                            rendererGate.setViewport(vp.lat, vp.lon, vp.zoom, vp.angle, vp.zoom.toDouble())
+                            rendererGate.setViewport(vp.lat, vp.lon, vp.zoom, vp.angle, vp.zoomFraction)
                         }
                 }
             })
@@ -393,6 +438,10 @@ class MapScreen(
                         .onFailure { Log.w(TAG, "setMapDpi failed", it) }
                 }
                 rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
+                // Host chrome (the AAOS status/task bars) is derived from the
+                // host's stable area once delivered; until then the insets are 0.
+                rendererGate.setHostTopInset(hostInsetsPx().first)
+                rendererGate.setHostBottomInset(hostInsetsPx().second)
                 // Re-push the resolved day/night flag before the first render: the
                 // startup push may have been dropped while the DB was still
                 // initializing (warmup race).
@@ -417,7 +466,32 @@ class MapScreen(
                 surfaceWidth = 0
                 surfaceHeight = 0
                 surfaceDpi = DEFAULT_DPI
+                stableArea.setEmpty()
+                visibleArea.setEmpty()
+                rendererGate.setHostTopInset(0)
+                rendererGate.setHostBottomInset(0)
                 rendererGate.onSurfaceDestroyed()
+            }
+
+            override fun onVisibleAreaChanged(visible: Rect) {
+                // Pill TOP edge from the currently-visible top (real coverage);
+                // the stable area can over-reserve a top band the host never
+                // draws (design D8 revision, street-name-host-views).
+                visibleArea.set(visible)
+                val (topInset, _) = hostInsetsPx()
+                Log.d(TAG, "visible area $visible -> pillTopInset=$topInset")
+                rendererGate.requestRender()
+            }
+
+            override fun onStableAreaChanged(newStableArea: Rect) {
+                stableArea.set(newStableArea)
+                val (topInset, bottomInset) = hostInsetsPx()
+                Log.d(TAG, "stable area $newStableArea -> topInset=$topInset bottomInset=$bottomInset")
+                // The street pill anchors inside the guaranteed-visible band
+                // (design D8) — the AAOS bars are host chrome, not surface.
+                rendererGate.setHostTopInset(topInset)
+                rendererGate.setHostBottomInset(bottomInset)
+                rendererGate.requestRender()
             }
 
             override fun onScroll(distanceX: Float, distanceY: Float) {
@@ -431,7 +505,7 @@ class MapScreen(
                 val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
                     distanceX.toDouble(), distanceY.toDouble(),
                     vp.angle,
-                    vp.zoom.toDouble(),
+                    vp.zoomFraction,
                     surfaceWidth.toDouble(), surfaceHeight.toDouble(),
                     vp.lat, vp.lon,
                     renderer.projectionDpi
@@ -501,6 +575,20 @@ class MapScreen(
     }
 
     /**
+     * Host-covered bands at the surface top/bottom (px) that the pill anchors
+     * inside (design D8): the TOP inset is the currently-visible top (real
+     * coverage; fallback: stable-area top, then 0) — the stable area can
+     * over-reserve a top band the host never draws; the BOTTOM inset stays
+     * from the stable area (its reported band matches the real task bar).
+     * (0, 0) when unknown.
+     */
+    private fun hostInsetsPx(): Pair<Int, Int> {
+        if (surfaceHeight <= 0) return 0 to 0
+        return HostInsets.topInset(visibleArea, stableArea) to
+            HostInsets.fromStableArea(surfaceHeight, stableArea).second
+    }
+
+    /**
      * Called when a location is selected on the map (via tap or favorite marker).
      * Queries the ranked candidate objects at the point off the main thread:
      * several candidates → push the candidate picker; exactly one → details
@@ -555,6 +643,9 @@ class MapScreen(
                         speedKmH = pos.speedKmH,
                         timeMs = System.currentTimeMillis()
                     )
+                    // Current street for the browse pill (spec: auto/browse):
+                    // throttled bearing-aware road lookup at the GPS position.
+                    resolveStreetName(pos)
                     // Periodic settings refresh so changes made in the settings
                     // screen take effect live (no flow on the provider yet).
                     val now = SystemClock.elapsedRealtime()
@@ -604,6 +695,39 @@ class MapScreen(
                 if (revision > 0L) {
                     rendererGate.invalidateData()
                 }
+            }
+        }
+    }
+
+    /**
+     * Throttled street-name resolution for the browse pill (spec:
+     * auto/browse — current street derived from a bearing-aware road lookup
+     * at the GPS position, throttled to avoid a lookup on every GPS tick).
+     * Bearing-aware native lookup off the main thread, guarded by the shared
+     * throttle ([StreetNameUpdater]); unnamed roads clear the label (no stale
+     * text). Mirrors [FreeDrivingScreen].
+     */
+    private fun resolveStreetName(pos: AutoPosition) {
+        if (!streetNameUpdater.shouldGeocode(pos.lat, pos.lon)) return
+        if (streetJob?.isActive == true) return
+        streetJob = scope.launch {
+            val road = withContext(Dispatchers.Default) {
+                try {
+                    entryPoint.autoClientProvider().client().getRoadAt(pos.lat, pos.lon, pos.bearing)
+                } catch (e: Exception) {
+                    Log.w(TAG, "road info lookup failed", e)
+                    null
+                }
+            }
+            if (road != null) {
+                streetNameUpdater.markGeocoded(pos.lat, pos.lon)
+            }
+            val name = road?.let { StreetNameUpdater.roadDisplayText(it.ref, it.name) }
+            val changed = name != streetName
+            streetName = name
+            rendererGate.requestRender()
+            if (changed) {
+                Log.d(TAG, "browse street name -> $name")
             }
         }
     }

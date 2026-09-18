@@ -30,6 +30,7 @@
     <string name="app_information">App information</string>
     <string name="no_location_found">No location found for this address</string>
     <string name="loading">Loading...</string>
+    <string name="settings_unavailable">Settings unavailable</string>
     <string name="navigate_to">▶ Navigate to</string>
     <string name="show">◎ Show</string>
     <string name="add_to_favorites">★ Add to Favorites</string>

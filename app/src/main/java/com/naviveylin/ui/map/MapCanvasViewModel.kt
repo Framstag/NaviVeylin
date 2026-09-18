@@ -376,6 +376,27 @@ class MapCanvasViewModel @Inject constructor(
     private val centerSmoothAlpha = 1.0
     private val centerSmoothMaxJumpM = 500.0
 
+    // ---- Single follow center (spec: smooth-follow — Prediction state update,
+    // delta fix-follow-vehicle-jumps) ----
+    // The displayed (eased predicted) position owned by the display loop.
+    // MapCanvasScreen writes it every display frame; every follow render reads it
+    // as the anchor-center source, so the per-fix and clamp-driven render paths
+    // can no longer alternate between a raw-fix center and a predicted center
+    // (the whole-frame jump). NaN until the first display frame — the marker fix
+    // (the same position the display extrapolates from: engine position while
+    // navigating, raw GPS otherwise) is the fallback.
+    @Volatile
+    internal var followDisplayLat: Double = Double.NaN
+    @Volatile
+    internal var followDisplayLon: Double = Double.NaN
+
+    /** Follow render center: the displayed position once the display loop runs, else the marker fix. */
+    private fun followRenderCenterLat(): Double =
+        if (!followDisplayLat.isNaN()) followDisplayLat else smoothedCenterLat
+
+    private fun followRenderCenterLon(): Double =
+        if (!followDisplayLon.isNaN()) followDisplayLon else smoothedCenterLon
+
     // Auto-zoom state
     private var lastValidSpeedKmH: Double = 20.0
     private var autoZoomSuspended: Boolean = false
@@ -1073,7 +1094,13 @@ class MapCanvasViewModel @Inject constructor(
 
                 val positionChanged = distanceMeters > 5.0 || lastRenderedLat.isNaN()
                 val angleChanged = !isAngleSame(angle, _uiState.value.viewport.angle)
-                val shouldRender = positionChanged || angleChanged
+                // Single-follow-center (delta fix-follow-vehicle-jumps): position
+                // scroll is owned by the display loop (blit within the overrun margin),
+                // so a fix no longer triggers a render on its own. Renders fire for
+                // rotation changes, zoom commits, and the initial frame before the
+                // display loop has a position.
+                val displayActive = !followDisplayLat.isNaN() && !followDisplayLon.isNaN()
+                val shouldRender = (positionChanged && !displayActive) || angleChanged
 
                 // Anchor-centered follow framing (spec: smooth-follow — Anchor-centered
                 // follow framing): one place applies the anchor — the render target.
@@ -1081,7 +1108,14 @@ class MapCanvasViewModel @Inject constructor(
                 // marker overlay needs no anchor of its own. viewport.center stays the
                 // geo position at the screen center (the anchor center in follow mode),
                 // so gesture math and the mini-map keep working unchanged.
-                fun followTarget(mag: Double) = followRenderTarget(smoothedLat, smoothedLon, mag, angle)
+                //
+                // Single follow center (delta fix-follow-vehicle-jumps): the frame is
+                // anchored on the DISPLAYED (eased predicted) position, not on the raw
+                // fix — the renderer target stays on the position the display loop
+                // scrolls, and the marker (same source) stays on the road.
+                fun followTarget(mag: Double) = followRenderTarget(
+                    followRenderCenterLat(), followRenderCenterLon(), mag, angle
+                )
 
                 val (targetLat, targetLon) = followTarget(_uiState.value.viewport.magnification)
 
@@ -1093,13 +1127,6 @@ class MapCanvasViewModel @Inject constructor(
                 val now = System.currentTimeMillis()
                 val throttleElapsed = now - lastFollowRenderMs >= GPS_FOLLOW_RENDER_INTERVAL_MS
                 if (!throttleElapsed && shouldRender) {
-                    return@collect
-                }
-
-                if (!shouldRender) {
-                    // Marker/center did not move enough; the overlay already shows the
-                    // marker at the raw GPS fix so it stays on the road/track even when
-                    // the camera barely shifts.
                     return@collect
                 }
 
@@ -1173,16 +1200,20 @@ class MapCanvasViewModel @Inject constructor(
                     }
                 }
 
-                // Center moves only when the GPS actually moved > 5 m. An exact
-                // double comparison would re-render on every GPS tick (sub-meter
-                // jitter) — that caused an endless render loop.
-                val viewportMoved = positionChanged ||
-                        angleChanged ||
+                // Center renders only for rotation, zoom, or the initial frame — the
+                // display loop scrolls position within the overrun margin (spec:
+                // smooth-follow — Prediction state update). An exact double comparison
+                // would re-render on every GPS tick (sub-meter jitter) — that caused
+                // an endless render loop.
+                val viewportMoved = shouldRender ||
                         newMag != _uiState.value.viewport.magnification
 
                 if (viewportMoved) {
-                    lastRenderedLat = smoothedLat
-                    lastRenderedLon = smoothedLon
+                    // Track the position the frame is anchored on (displayed center,
+                    // or the marker fix before the display loop is active) so the next
+                    // distance check is against the actual rendered center.
+                    lastRenderedLat = followRenderCenterLat()
+                    lastRenderedLon = followRenderCenterLon()
                     // Committed center = anchor center for the final magnification
                     // (auto-zoom may have changed it in this tick).
                     val (commitLat, commitLon) = followTarget(newMag)
@@ -2789,10 +2820,16 @@ class MapCanvasViewModel @Inject constructor(
 
     /**
      * Re-anchor the follow framing on a displayed (predicted) position and render
-     * (spec: smooth-follow — Anchor-centered follow framing). The follow display
-     * loop calls this when the blit offset has reached the overrun margin, so the
-     * frame is re-rendered with the display position back inside the margin —
-     * still anchor-centered, so the vehicle does not jump to the screen center.
+     * (spec: smooth-follow — Anchor-centered follow framing, Prediction state
+     * update). The follow display loop calls this when the blit offset has reached
+     * the overrun margin, so the frame is re-rendered with the display position
+     * back inside the margin — still anchor-centered, so the vehicle does not jump
+     * to the screen center.
+     *
+     * Single follow center (delta fix-follow-vehicle-jumps): this and the per-fix
+     * zoom/rotation renders are the ONLY follow re-renders, and both anchor on
+     * [MapCanvasViewModel.followDisplayLat/Lon] — a fix never re-commits the
+     * follow center on its own.
      */
     fun renderFollowFrameAt(lat: Double, lon: Double) {
         if (!_uiState.value.followMode) return

@@ -217,7 +217,7 @@ class LicenseDataTest {
                 """{ "license": { "id": "MIT" } }""",
                 "shipped",
                 noticeRequired = true,
-                note = "README says LGPL, LICENSE file carries GPLv2 text"
+                note = "upstream states LGPL without a version; LGPL-2.1-or-later is the conservative mapping"
             )
         )
         LicenseData.writeAssets(
@@ -234,7 +234,7 @@ class LicenseDataTest {
         @Suppress("UNCHECKED_CAST")
         val components = json["components"] as List<Map<String, Any?>>
         assertEquals(
-            "README says LGPL, LICENSE file carries GPLv2 text",
+            "upstream states LGPL without a version; LGPL-2.1-or-later is the conservative mapping",
             components.single()["note"]
         )
     }

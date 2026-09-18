@@ -101,6 +101,11 @@ strong preference.
   code never aborts the process (asserts kill it).
 - Native method contracts are API; fix behavioral issues in Kotlin, not by
   changing native semantics.
+- A defect *inside* the library behind an unchanged JNI contract (e.g. its
+  transliteration or matching logic) is fixed upstream as a minimal,
+  upstreamable patch instead of being worked around in Kotlin: a workaround
+  would have to guess at the library's internal semantics and would leave
+  every other caller of the same code broken.
 - Mirror upstream APIs exactly so submodule syncs stay clean; keep submodule
   patches minimal and upstreamable.
 - Android-specific deviations live as local overrides in a bridge module,

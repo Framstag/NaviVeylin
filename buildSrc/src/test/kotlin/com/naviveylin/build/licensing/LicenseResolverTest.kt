@@ -72,12 +72,6 @@ class LicenseResolverTest {
                 name = "Android Software Development Kit License",
                 source = "https://developer.android.com/studio/terms.html",
                 textDistributed = false
-            ),
-            "LicenseRef-NaviVeylin" to LicenseRefDeclaration(
-                id = "LicenseRef-NaviVeylin",
-                name = "NaviVeylin project license",
-                source = "LICENSE",
-                textDistributed = false
             )
         )
     )
@@ -135,9 +129,18 @@ class LicenseResolverTest {
 
     @Test
     fun `declared license ref identifier resolves when declared in the policy`() {
-        val resolution = resolver.resolve(spdx("core", "LicenseRef-NaviVeylin", Scope.SHIPPED))
+        val resolution = resolver.resolve(spdx("play-services", "LicenseRef-AndroidSDK", Scope.SHIPPED))
         assertEquals(
-            LicenseResolution.Resolved("LicenseRef-NaviVeylin", listOf("LicenseRef-NaviVeylin")),
+            LicenseResolution.Resolved("LicenseRef-AndroidSDK", listOf("LicenseRef-AndroidSDK")),
+            resolution
+        )
+    }
+
+    @Test
+    fun `application license spdx identifier resolves for first party components`() {
+        val resolution = resolver.resolve(spdx("NaviVeylin", "GPL-3.0-or-later", Scope.SHIPPED))
+        assertEquals(
+            LicenseResolution.Resolved("GPL-3.0-or-later", listOf("GPL-3.0-or-later")),
             resolution
         )
     }

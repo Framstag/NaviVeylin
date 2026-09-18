@@ -8,10 +8,16 @@ import com.naviveylin.core.VehicleAnchorPosition
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.Runs
+import io.mockk.spyk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -69,6 +75,38 @@ class VehicleAnchorPickerScreenTest {
             VehicleAnchorPosition.entries.last().label,
             (items.last() as Row).title.toString()
         )
+    }
+
+    @Test
+    fun placeholderUntilLoadCompletes() = runTest(testDispatcher) {
+        coEvery { provider.load() } coAnswers { delay(300); AutoSettings() }
+
+        val screen = VehicleAnchorPickerScreen(carContext, provider, VehicleAnchorPickerScreen.Mode.ROUTING)
+        assertEquals(1, (screen.onGetTemplate().singleList as ItemList).items.size)
+
+        advanceTimeBy(400)
+        advanceUntilIdle()
+        assertEquals(15, (screen.onGetTemplate().singleList as ItemList).items.size)
+    }
+
+    @Test
+    fun loadFailureShowsErrorRowThenRetryLoadsContent() = runTest(testDispatcher) {
+        var loadCalls = 0
+        coEvery { provider.load() } answers {
+            if (++loadCalls == 1) throw RuntimeException("storage down") else AutoSettings()
+        }
+
+        val screen = VehicleAnchorPickerScreen(carContext, provider, VehicleAnchorPickerScreen.Mode.ROUTING)
+        advanceUntilIdle()
+
+        val errorItems = (screen.onGetTemplate().singleList as ItemList).items
+        assertEquals(2, errorItems.size)
+        assertEquals("Settings unavailable", (errorItems[0] as Row).title.toString())
+        assertEquals("Retry", (errorItems[1] as Row).title.toString())
+
+        screen.onRetry()
+        advanceUntilIdle()
+        assertEquals(15, (screen.onGetTemplate().singleList as ItemList).items.size)
     }
 
     @Test
@@ -134,5 +172,68 @@ class VehicleAnchorPickerScreenTest {
         val screen = VehicleAnchorPickerScreen(carContext, provider)
         assertEquals("Center", screen.anchorRowTitle(VehicleAnchorPosition.CENTER, selected = false))
         assertEquals("Bottom far right (current)", screen.anchorRowTitle(VehicleAnchorPosition.BOTTOM_FAR_RIGHT, selected = true))
+    }
+
+    // ── persist-before-pop (spec: auto-map-layout — selection survives
+    // immediate dismissal) ──
+
+    @Test
+    fun selectionPopsOnlyAfterPersistSucceeds() = runTest(testDispatcher) {
+        coEvery { provider.load() } returns AutoSettings()
+        coEvery { provider.saveCarAnchor(any(), any()) } returns Unit
+
+        val screen = spyk(VehicleAnchorPickerScreen(carContext, provider, VehicleAnchorPickerScreen.Mode.ROUTING))
+        every { screen.finishSelection() } just Runs
+        advanceUntilIdle()
+
+        screen.onSelect(VehicleAnchorPosition.BOTTOM_RIGHT.id)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            provider.saveCarAnchor(
+                routingAnchorId = VehicleAnchorPosition.BOTTOM_RIGHT.id,
+                freeDrivingAnchorId = null
+            )
+        }
+        verify(exactly = 1) { screen.finishSelection() }
+    }
+
+    @Test
+    fun doubleTapIgnoresSecondSelectionWhilePersisting() = runTest(testDispatcher) {
+        coEvery { provider.load() } returns AutoSettings()
+        coEvery { provider.saveCarAnchor(any(), any()) } coAnswers { delay(200); Unit }
+
+        val screen = spyk(VehicleAnchorPickerScreen(carContext, provider, VehicleAnchorPickerScreen.Mode.ROUTING))
+        every { screen.finishSelection() } just Runs
+        advanceUntilIdle()
+
+        screen.onSelect(VehicleAnchorPosition.BOTTOM_RIGHT.id)
+        screen.onSelect(VehicleAnchorPosition.TOP_CENTER.id)
+
+        advanceTimeBy(100)
+        coVerify(exactly = 1) { provider.saveCarAnchor(any(), any()) }
+        advanceUntilIdle()
+        verify(exactly = 1) { screen.finishSelection() }
+    }
+
+    @Test
+    fun failedPersistKeepsPickerOpenWithErrorRow() = runTest(testDispatcher) {
+        coEvery { provider.load() } returns AutoSettings()
+        coEvery { provider.saveCarAnchor(any(), any()) } throws RuntimeException("write failed")
+
+        val screen = spyk(VehicleAnchorPickerScreen(carContext, provider, VehicleAnchorPickerScreen.Mode.ROUTING))
+        every { screen.finishSelection() } just Runs
+        advanceUntilIdle()
+
+        screen.onSelect(VehicleAnchorPosition.BOTTOM_RIGHT.id)
+        advanceUntilIdle()
+
+        // The picker does NOT pop; the guard error/retry row shows instead —
+        // a dropped write is visible, never silent.
+        verify(exactly = 0) { screen.finishSelection() }
+        val items = (screen.onGetTemplate().singleList as ItemList).items
+        assertEquals(2, items.size)
+        assertEquals("Settings unavailable", (items[0] as Row).title.toString())
+        assertEquals("Retry", (items[1] as Row).title.toString())
     }
 }

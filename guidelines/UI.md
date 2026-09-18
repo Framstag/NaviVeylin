@@ -128,6 +128,37 @@ The car map renderer MUST initialize off the car-app main thread (spec:
   thread).
 - Applies to `MapScreen`, `NavigationScreen`, `FreeDrivingScreen`.
 
+## 3b. Settings-screen loading (never trust a single invalidate)
+
+The car settings screens must self-recover from a stalling or silently
+dropped template refresh (spec: `auto/preferences` — "Settings screens never
+wedge on a loading placeholder"; real hosts can drop `invalidate()` requests
+while the template pipeline is busy). Settings screens with a loading
+placeholder MUST use [`SettingsLoadGuard`]:
+
+- **Watcher rule**: a one-shot watchdog re-invalidates when the placeholder is
+  still showing after the load timeout — the first refresh may have been
+  lost.
+- **Guarded invalidate**: every `invalidate()` is wrapped; a host failure
+  (`HostException`) must never kill the screen's load coroutine.
+- **Recovery cap**: recovery invalidates are capped (two per load cycle,
+  mirroring the surface-refresh cap) — exhaustion renders an explicit error
+  row with Retry, never an infinite spinner.
+- **Re-render on resume**: the screen re-renders on `onStart`/re-visibility,
+  so a stale placeholder template from a previous visit cannot stick.
+- **Re-read on re-visibility**: settings-bearing screens MUST re-READ the
+  persisted settings on `onStart`, not just re-render the last in-memory
+  snapshot — a value changed in a pushed picker (vehicle position, overspeed
+  delta) appears on the row when the picker pops back (spec:
+  `auto/preferences` — "Re-read on re-visibility").
+- **Persist before dismissal**: picker screens that close immediately on
+  selection MUST await the settings write before popping — dismissing the
+  picker must never drop the write (spec: `auto-map-layout` — "Anchor
+  selection survives immediate dismissal").
+- **Scope hygiene**: `onDestroy` cancels the screen coroutine scope.
+- Applies to `PreferencesScreen`, `VehicleAnchorPickerScreen`,
+  `OverspeedDeltaPickerScreen`.
+
 ## 4. Details attribute list (Android Auto)
 
 Source: spec `auto-destination-details` — all description attributes shown.
@@ -336,6 +367,22 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   road's "ref name" (e.g. "B 1 Hauptstraße"), blank when the road has no
   name/ref. Source: route way info while navigating, bearing-aware
   `getRoadAt` lookup in free driving (spec `road-lookup-bearing`).
+- Street-name presentation (phone free-driving pill + Android Auto
+  free-driving/browse labels, specs `current-road-info`, `auto/free-driving`,
+  `auto/browse`; change `street-name-host-views` supersedes
+  `street-name-overlay-avoid-bottom-anchor`):
+  - **Routing (AA)**: the street name lives in the host travel-estimate card
+    via `TravelEstimate.setTripText` — never on the map surface (spec
+    `auto/navigation-view`).
+  - **Free driving (AA), browse (AA) and phone free driving**: row-rule pill —
+    a bottom-row anchor preset (`fy = 0.9`, e.g. bottom-center/left/right)
+    places the label at the **top** edge (small padding), a top-row preset
+    (`fy = 0.1`) and the middle row (including the default center) place it at
+    the **bottom** edge. Placement is keyed on the anchor row, anchored to the
+    real surface edges (16 dp padding) — never to host stable/visible-area
+    rects, so the pill cannot float mid-screen. Parity rule: identical row
+    rule on phone and Android Auto — only the layout container differs
+    (Compose alignment vs Canvas anchor).
 - Android Auto surface indicators (spec `auto-map-layout`): compass rose 56dp,
   speed-limit sign 56dp with 7dp red ring and 24sp digits; the speed badge
   (128×52, 20sp) is unchanged except its overspeed state — red-600 fill at

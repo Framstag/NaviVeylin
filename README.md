@@ -159,4 +159,14 @@ Install via APK sideloading or alternative stores (F-Droid, GitHub Releases). Fo
 
 ## License
 
-[License information TBD]
+NaviVeylin is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version (**SPDX-License-Identifier: GPL-3.0-or-later**).
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the LICENSE file for the full license text.
+
+Map data © OpenStreetMap contributors, available under the Open Database
+License (ODbL) — see https://www.openstreetmap.org/copyright.

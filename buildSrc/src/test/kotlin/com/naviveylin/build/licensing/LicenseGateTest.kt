@@ -19,7 +19,7 @@ class LicenseGateTest {
                 textDistributed = false
             )
         ),
-        reviewRequired = setOf("LGPL-2.1-or-later")
+        reviewRequired = listOf(ReviewRequiredEntry("LGPL-2.1-or-later"))
     )
 
     private val gate = LicenseGate(policy)
@@ -141,12 +141,37 @@ class LicenseGateTest {
                     "LGPL-2.1-or-later",
                     declaredIsSpdx = true,
                     scope = Scope.SHIPPED,
-                    caveat = "LICENSE file carries GPLv2 text while the README states LGPL"
+                    caveat = "upstream states LGPL without a version; LGPL-2.1-or-later is the conservative mapping"
                 )
             )
         )
         assertTrue(result.violations.toString(), result.passed)
-        assertTrue(result.warnings.any { it.contains("GPLv2 text") })
+        assertTrue(result.warnings.any { it.contains("conservative mapping") })
+    }
+
+    @Test
+    fun `application license not permitted for shipped scope fails the gate`() {
+        // This fixture's permittedShipped does not list GPL-3.0-or-later: the
+        // pre-decision state, in which the application license would fail.
+        val result = gate.evaluate(listOf(shipped("NaviVeylin", "GPL-3.0-or-later")))
+        assertFalse(result.passed)
+        assertTrue(
+            result.violations.any {
+                it.contains("NaviVeylin") && it.contains("not permitted for scope 'shipped'")
+            }
+        )
+    }
+
+    @Test
+    fun `application license passes for shipped components once permitted`() {
+        val policyWithGpl = LicensePolicy(
+            permittedShipped = setOf("GPL-3.0-or-later", "MIT", "Apache-2.0"),
+            permittedBuildTimeOnly = setOf("MIT", "Apache-2.0"),
+            reviewRequired = listOf(ReviewRequiredEntry("LGPL-2.1-or-later"))
+        )
+        val result = LicenseGate(policyWithGpl)
+            .evaluate(listOf(shipped("NaviVeylin", "GPL-3.0-or-later"), shipped("core", "GPL-3.0-or-later")))
+        assertTrue(result.violations.toString(), result.passed)
     }
 
     @Test
@@ -154,6 +179,78 @@ class LicenseGateTest {
         val result = gate.evaluate(listOf(shipped("libosmscout", "LGPL-2.1-or-later")))
         assertTrue(result.passed)
         assertTrue(result.warnings.any { it.contains("needs the application license decision") })
+    }
+
+    @Test
+    fun `scoped review required entry warns only the named component`() {
+        val scoped = LicensePolicy(
+            permittedShipped = setOf("LGPL-2.1-or-later"),
+            permittedBuildTimeOnly = setOf("LGPL-2.1-or-later"),
+            reviewRequired = listOf(ReviewRequiredEntry("LGPL-2.1-or-later", setOf("libosmscout")))
+        )
+        val result = LicenseGate(scoped).evaluate(
+            listOf(
+                shipped("Framstag:libosmscout", "LGPL-2.1-or-later"),
+                shipped("fribidi", "LGPL-2.1-or-later")
+            )
+        )
+        assertTrue(result.violations.toString(), result.passed)
+        val decisionWarnings =
+            result.warnings.filter { it.contains("needs the application license decision") }
+        assertEquals(1, decisionWarnings.size)
+        assertTrue(decisionWarnings.single().contains("Framstag:libosmscout"))
+    }
+
+    @Test
+    fun `review required entry scoping matches the plain component name`() {
+        // The policy scopes by the plain map name ("libosmscout") while the gate
+        // key is qualified ("Framstag:libosmscout"): both forms must be honoured.
+        val scoped = LicensePolicy(
+            permittedShipped = setOf("LGPL-2.1-or-later"),
+            permittedBuildTimeOnly = setOf("LGPL-2.1-or-later"),
+            reviewRequired = listOf(ReviewRequiredEntry("LGPL-2.1-or-later", setOf("libosmscout")))
+        )
+        val result = LicenseGate(scoped).evaluate(
+            listOf(shipped("Framstag:libosmscout", "LGPL-2.1-or-later"))
+        )
+        assertEquals(1, result.warnings.size)
+        assertTrue(result.warnings.single().contains("Framstag:libosmscout"))
+    }
+
+    @Test
+    fun `unscoped review required entry warns every carrier`() {
+        val unscoped = LicensePolicy(
+            permittedShipped = setOf("LGPL-2.1-or-later"),
+            permittedBuildTimeOnly = setOf("LGPL-2.1-or-later"),
+            reviewRequired = listOf(ReviewRequiredEntry("LGPL-2.1-or-later"))
+        )
+        val result = LicenseGate(unscoped).evaluate(
+            listOf(
+                shipped("libosmscout", "LGPL-2.1-or-later"),
+                shipped("fribidi", "LGPL-2.1-or-later")
+            )
+        )
+        assertEquals(
+            2,
+            result.warnings.filter { it.contains("needs the application license decision") }.size
+        )
+    }
+
+    @Test
+    fun `empty review required list yields no decision warnings`() {
+        val noReview = LicensePolicy(
+            permittedShipped = setOf("LGPL-2.1-or-later"),
+            permittedBuildTimeOnly = setOf("LGPL-2.1-or-later"),
+            reviewRequired = emptyList()
+        )
+        val result = LicenseGate(noReview).evaluate(
+            listOf(
+                shipped("libosmscout", "LGPL-2.1-or-later"),
+                shipped("fribidi", "LGPL-2.1-or-later")
+            )
+        )
+        assertTrue(result.passed)
+        assertFalse(result.warnings.any { it.contains("needs the application license decision") })
     }
 
     @Test

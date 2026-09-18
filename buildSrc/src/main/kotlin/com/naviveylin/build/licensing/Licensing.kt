@@ -40,6 +40,20 @@ data class LicenseRefDeclaration(
 data class Election(val from: String, val to: String)
 
 /**
+ * One `reviewRequired` policy entry: a license whose identifiers still need the
+ * application license decision before distribution, optionally scoped to named
+ * components.
+ *
+ * @param license the identifier the entry is about
+ * @param components the components the entry applies to; empty means every
+ *   component carrying the license (the unscoped form)
+ */
+data class ReviewRequiredEntry(
+    val license: String,
+    val components: Set<String> = emptySet(),
+)
+
+/**
  * The declared license policy, loaded from `licenses/license-policy.json`.
  *
  * @param permittedShipped licenses permitted for distributed components
@@ -47,7 +61,8 @@ data class Election(val from: String, val to: String)
  * @param elections elections by component name
  * @param licenseRefs `LicenseRef-` declarations by identifier
  * @param reviewRequired identifiers that need the application license decision;
- *   reported as warnings, never treated as clearance
+ *   reported as warnings, never treated as clearance. Entries honour their
+ *   `components` scoping (empty = all carriers).
  * @param noticeRequired identifiers whose licenses require the notice text to
  *   accompany redistribution
  */
@@ -56,7 +71,7 @@ data class LicensePolicy(
     val permittedBuildTimeOnly: Set<String>,
     val elections: Map<String, Election> = emptyMap(),
     val licenseRefs: Map<String, LicenseRefDeclaration> = emptyMap(),
-    val reviewRequired: Set<String> = emptySet(),
+    val reviewRequired: List<ReviewRequiredEntry> = emptyList(),
     val noticeRequired: Set<String> = emptySet(),
 )
 
@@ -236,6 +251,14 @@ class LicenseGate(policy: LicensePolicy) {
     private val licenseRefs = policy.licenseRefs
     private val reviewRequired = policy.reviewRequired
 
+    /** True when [entry]'s scoping covers [component] (empty scope = all). */
+    private fun appliesTo(entry: ReviewRequiredEntry, component: ComponentLicense): Boolean {
+        if (entry.components.isEmpty()) return true
+        val qualified = component.component
+        val plain = component.component.substringAfter(':', component.component)
+        return entry.components.any { it == qualified || it == plain }
+    }
+
     fun evaluate(components: List<ComponentLicense>): GateResult {
         val violations = mutableListOf<String>()
         val warnings = mutableListOf<String>()
@@ -263,7 +286,7 @@ class LicenseGate(policy: LicensePolicy) {
                             violations += "${component.component}: license '$id' is not permitted " +
                                 "for scope '${component.scope.id}'"
                         }
-                        if (id in reviewRequired) {
+                        if (reviewRequired.any { it.license == id && appliesTo(it, component) }) {
                             warnings += "${component.component}: license '$id' needs the " +
                                 "application license decision before distribution"
                         }

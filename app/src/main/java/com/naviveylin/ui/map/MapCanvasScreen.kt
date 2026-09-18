@@ -116,6 +116,7 @@ import com.naviveylin.ui.route.routeProgressPercent
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.anchorCenter
@@ -258,6 +259,11 @@ fun MapCanvasScreen(
     // the offset within the overrun margin. Predicted positions are display-only
     // — the navigation engine keeps receiving real fixes.
     val followPrediction = remember { FollowPrediction() }
+    // Monotonic forward display (spec: smooth-follow — Correction easing, delta
+    // fix-follow-vehicle-jumps): eases toward the predicted position each frame
+    // and HOLDS when the fix-arrival target drops behind — the display never
+    // slides backward along travel (the per-fix jump sawtooth).
+    val followDisplayState = remember { FollowDisplayState() }
     var followActive by remember { mutableStateOf(false) }
     var followDisplayLat by remember { mutableStateOf(Double.NaN) }
     var followDisplayLon by remember { mutableStateOf(Double.NaN) }
@@ -460,8 +466,18 @@ fun MapCanvasScreen(
                     // GPS fix timestamps can be ahead of the system clock (GPS
                     // time vs UTC), which would make the extrapolation window
                     // negative and hold the position instead of scrolling.
+                    //
+                    // Single position source (delta fix-follow-vehicle-jumps, spec:
+                    // smooth-follow — Display center extrapolation "Prediction base
+                    // matches the rendered position during guidance"): the
+                    // prediction extrapolates from the SAME position the ViewModel
+                    // renders with — the engine position while navigating, the raw
+                    // GPS fix otherwise — so the frame center and the prediction
+                    // cannot disagree at a junction snap.
+                    val srcLat = if (!ui.gpsMarkerLat.isNaN()) ui.gpsMarkerLat else fix.lat
+                    val srcLon = if (!ui.gpsMarkerLon.isNaN()) ui.gpsMarkerLon else fix.lon
                     followPrediction.update(
-                        fix.lat, fix.lon,
+                        srcLat, srcLon,
                         if (fix.speedKmH.isNaN()) Double.NaN else fix.speedKmH / 3.6,
                         if (fix.smoothedBearing.isNaN()) Double.NaN else fix.smoothedBearing,
                         nowMs
@@ -470,17 +486,25 @@ fun MapCanvasScreen(
                 }
                 val dtSec = if (lastFrameMs > 0) (nowMs - lastFrameMs) / 1000.0 else 0.016
                 lastFrameMs = nowMs
-                if (ui.followMode && fix != null && !fix.speedKmH.isNaN() && fix.speedKmH > 1.8) {
+                val moving = ui.followMode && fix != null &&
+                        !fix.speedKmH.isNaN() && fix.speedKmH > FOLLOW_MIN_SPEED_KMH
+                if (moving) {
                     val predicted = followPrediction.predictedPosition(nowMs)
-                    val alpha = FollowPrediction.easeAlpha(dtSec)
-                    if (followDisplayLat.isNaN()) {
-                        followDisplayLat = predicted.first
-                        followDisplayLon = predicted.second
-                    } else {
-                        followDisplayLat += (predicted.first - followDisplayLat) * alpha
-                        followDisplayLon += (predicted.second - followDisplayLon) * alpha
-                    }
+                    val heading = if (fix!!.smoothedBearing.isNaN()) Double.NaN else fix.smoothedBearing
+                    // Monotonic forward display (spec: smooth-follow — Correction
+                    // easing): never slides backward along travel at fix arrival.
+                    val (dLat, dLon) = followDisplayState.advance(
+                        predicted.first, predicted.second, dtSec, heading
+                    )
+                    followDisplayLat = dLat
+                    followDisplayLon = dLon
                     followActive = true
+                    // Single follow center (spec: smooth-follow — Prediction state
+                    // update): the displayed position IS the follow center the
+                    // ViewModel anchors every follow render on — a fix never
+                    // re-commits the center on its own.
+                    viewModel.followDisplayLat = dLat
+                    viewModel.followDisplayLon = dLon
                     // Compute the display offset against the current frame and clamp
                     // to the overrun margin; request a render when clamped so the map
                     // keeps scrolling instead of sticking at the edge.
@@ -493,7 +517,16 @@ fun MapCanvasScreen(
                             vp.lat, vp.lon, vp.mag, vp.angle,
                             bitmap.width, bitmap.height,
                             canvasSize.width, canvasSize.height, dpi,
-                            ui.activeFollowAnchor.fx, ui.activeFollowAnchor.fy
+                            // Single resolved anchor (spec: smooth-follow — Single
+                            // resolved anchor across render, blit and marker): the SAME
+                            // fraction followRenderTarget renders the frame with and the
+                            // marker projects against. The raw preset (activeFollowAnchor)
+                            // differs from it whenever navigation overlays resolve the
+                            // anchor away from the preset (bottom-center above the routing
+                            // card), and a mismatch here places the displayed content at
+                            // the raw fraction while the marker draws at the resolved one
+                            // — the marker rides ahead of the track by the anchor delta.
+                            ui.resolvedAnchor.fx, ui.resolvedAnchor.fy
                         )
                         // The frame is rendered anchor-centered (spec: smooth-follow —
                         // Anchor-centered follow framing), so the blit offset carries the
@@ -530,12 +563,35 @@ fun MapCanvasScreen(
                                 " clamped=" + offset.clamped)
                         }
                     }
+                } else if (ui.followMode && fix != null) {
+                    // Frozen stop/go (spec: smooth-follow — Extrapolation loop
+                    // gating; gps-location-marker — "Marker stays put at a brief
+                    // stop"): below the movement threshold the displayed position
+                    // and the blit offset stay FROZEN, never reset — the resume
+                    // continues from here without a snap.
+                    if (!followDisplayState.hasPosition) {
+                        // Seed the display at the marker source on the first fix at
+                        // standstill so the marker has a consistent, road-true point.
+                        val seedLat = if (!ui.gpsMarkerLat.isNaN()) ui.gpsMarkerLat else fix!!.lat
+                        val seedLon = if (!ui.gpsMarkerLon.isNaN()) ui.gpsMarkerLon else fix!!.lon
+                        followDisplayState.advance(seedLat, seedLon, 0.0, Double.NaN)
+                        followDisplayLat = seedLat
+                        followDisplayLon = seedLon
+                        viewModel.followDisplayLat = seedLat
+                        viewModel.followDisplayLon = seedLon
+                    }
+                    followActive = true
                 } else {
+                    // Follow mode disengaged or no fix: only now is the display
+                    // reset (offsets zeroed) — next engagement re-initializes.
                     followActive = false
                     followDisplayLat = Double.NaN
                     followDisplayLon = Double.NaN
                     followOffsetX = 0f
                     followOffsetY = 0f
+                    followDisplayState.reset()
+                    viewModel.followDisplayLat = Double.NaN
+                    viewModel.followDisplayLon = Double.NaN
                 }
             }
         }
@@ -1713,8 +1769,10 @@ fun MapCanvasScreen(
         }
     
         // Free-driving street label (spec: current-road-info): bottom-center
-        // pill with the road's ref + name, shown only when no route is active
-        // (the navigation road-info row covers the navigating case).
+        // pill by default, top-center when the active follow anchor preset is
+        // in the bottom row (so the pill never covers the vehicle marker);
+        // shown only when no route is active (the navigation road-info row
+        // covers the navigating case).
         if (!navState.isNavigating) {
             val roadText = state.currentRoadInfo?.let {
                 listOfNotNull(
@@ -1722,15 +1780,11 @@ fun MapCanvasScreen(
                     it.name.takeIf { n -> n.isNotEmpty() }
                 ).joinToString(" ")
             }
-            if (!roadText.isNullOrEmpty()) {
-                StreetNamePill(
-                    text = roadText,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp)
-                        .onSizeChanged { overlayPillInset = it.height }
-                )
-            }
+            FreeDrivingStreetPill(
+                roadText = roadText,
+                anchor = state.activeFollowAnchor,
+                onPillInset = { overlayPillInset = it }
+            )
         }
 
         // Navigation overlays: full-width turn hints at the top, the right-side
@@ -1743,10 +1797,15 @@ fun MapCanvasScreen(
         // "Bottom anchor stays visible above the routing status card"). Runs in every
         // mode: browse/free driving measure no turn/status card, so their insets are
         // the (usually zero) measured values of the widgets actually shown.
-        LaunchedEffect(navState.isNavigating, overlayTopInset, overlayBottomInset, overlayRightInset, overlayPillInset) {
+        // Only a bottom pill must reserve space below the follow anchor: when
+        // the pill sits on top (bottom-row anchor), the bottom inset is zeroed.
+        // Keyed on [pillAtTop] too — the pill size does not change on an anchor
+        // toggle, so the inset decision must not depend on a size callback alone.
+        val pillAtTop = state.activeFollowAnchor.fy == 0.9
+        LaunchedEffect(navState.isNavigating, overlayTopInset, overlayBottomInset, overlayRightInset, overlayPillInset, pillAtTop) {
             viewModel.setMapOverlayInsets(
                 top = if (navState.isNavigating) overlayTopInset else 0,
-                bottom = if (navState.isNavigating) overlayBottomInset else overlayPillInset,
+                bottom = if (navState.isNavigating) overlayBottomInset else if (pillAtTop) 0 else overlayPillInset,
                 right = overlayRightInset
             )
         }
@@ -1987,6 +2046,13 @@ private const val MAX_GESTURE_ZOOM = 16.0f
 
 /** Duration of the render-completion crossfade in ms (smooth-zoom / zoom-transition-scaling delta). */
 private const val CROSSFADE_MS = 150.0f
+
+/**
+ * Movement threshold (km/h) for the follow-mode extrapolation loop: below it
+ * the display is frozen (spec: smooth-follow — Extrapolation loop gating,
+ * delta fix-follow-vehicle-jumps).
+ */
+private const val FOLLOW_MIN_SPEED_KMH = 1.8
 
 /**
  * Display-animation duration for auto-zoom commits (spec: smooth-zoom —

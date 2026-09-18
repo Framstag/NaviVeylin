@@ -1,6 +1,7 @@
 package com.naviveylin.auto
 
 import com.naviveylin.core.AutoPositionUtil
+import com.naviveylin.core.VehicleAnchorPosition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -56,6 +57,68 @@ class FreeDrivingScreenTest {
             FreeDrivingScreen.autoZoomTarget(
                 panning = true, autoZoomEnabled = true, speedKmH = 100.0, controller = controller
             )
+        )
+    }
+
+    // ── anchorDiff (spec: auto/free-driving — anchor applies live during
+    // the session) ──
+
+    @Test
+    fun anchorDiffReturnsNewAnchorWhenChanged() {
+        assertEquals(
+            VehicleAnchorPosition.BOTTOM_RIGHT,
+            FreeDrivingScreen.anchorDiff(VehicleAnchorPosition.DEFAULT, VehicleAnchorPosition.BOTTOM_RIGHT.id)
+        )
+    }
+
+    @Test
+    fun anchorDiffIsNoOpWhenUnchanged() {
+        assertNull(FreeDrivingScreen.anchorDiff(VehicleAnchorPosition.DEFAULT, VehicleAnchorPosition.DEFAULT.id))
+    }
+
+    @Test
+    fun anchorDiffIsNoOpForUnresolvableId() {
+        // An unknown id resolves to the default — the same no-op shape as a
+        // failed re-read, which mutates nothing (spec: "Free-driving anchor
+        // survives a settings re-read failure").
+        assertNull(FreeDrivingScreen.anchorDiff(VehicleAnchorPosition.DEFAULT, "not-an-anchor"))
+    }
+
+    // ── Street-pill placement row rule (design D2/D4, spec:
+    // auto/free-driving — same rows as the browse and phone labels) ──
+
+    @Test
+    fun bottomRowAnchorPlacesLabelAtTop() {
+        // Bottom-row presets (fy == 0.9) move the pill to the top edge so it
+        // never sits between the vehicle and the way ahead.
+        assertEquals(
+            StreetNameLabel.Placement.TOP,
+            StreetNameLabel.placementFor(VehicleAnchorPosition.BOTTOM_CENTER)
+        )
+        assertEquals(
+            StreetNameLabel.Placement.TOP,
+            StreetNameLabel.placementFor(VehicleAnchorPosition.BOTTOM_RIGHT)
+        )
+        assertEquals(
+            StreetNameLabel.Placement.TOP,
+            StreetNameLabel.placementFor(VehicleAnchorPosition.BOTTOM_FAR_LEFT)
+        )
+    }
+
+    @Test
+    fun topAndMiddleRowAnchorsPlaceLabelAtBottom() {
+        // Top-row and middle-row presets keep the bottom placement.
+        assertEquals(
+            StreetNameLabel.Placement.BOTTOM,
+            StreetNameLabel.placementFor(VehicleAnchorPosition.TOP_CENTER)
+        )
+        assertEquals(
+            StreetNameLabel.Placement.BOTTOM,
+            StreetNameLabel.placementFor(VehicleAnchorPosition.CENTER)
+        )
+        assertEquals(
+            StreetNameLabel.Placement.BOTTOM,
+            StreetNameLabel.placementFor(VehicleAnchorPosition.MIDDLE_LEFT)
         )
     }
 }

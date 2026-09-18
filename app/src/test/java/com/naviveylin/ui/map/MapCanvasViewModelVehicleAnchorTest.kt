@@ -477,6 +477,32 @@ class MapCanvasViewModelVehicleAnchorTest {
     }
 
     @Test
+    fun defaultCenterStaysExactlyCenteredUnderNavigationInsets() =
+        runTest(mainDispatcherRule.dispatcher) {
+            recreateViewModel()
+            advanceUntilIdle()
+            emitFix(52.51, 13.40)
+            advanceUntilIdle()
+            // Full phone navigation overlay set (spec smooth-follow — "Default
+            // anchors reproduce today's framing"; device regression 2026-09-16): the
+            // default center/center must resolve to the exact canvas center, never
+            // the center of the reduced visible rect the old rescale resolved to.
+            viewModel.setMapOverlayInsets(top = 400, bottom = 400, right = 80)
+            advanceUntilIdle()
+            val resolved = viewModel.uiState.value.resolvedAnchor
+            assertEquals(0.5, resolved.fx, 1e-9)
+            assertEquals(0.5, resolved.fy, 1e-9)
+
+            // The follow render target projects the vehicle to the exact center.
+            val (targetLat, targetLon) = viewModel.followRenderTarget(52.51, 13.40, 15.0, 0.0)
+            val (expLat, expLon) = anchorCenter(
+                52.51, 13.40, 0.5, 0.5, 15.0, SCREEN_W, SCREEN_H, dpi, 0.0
+            )
+            assertEquals(expLat, targetLat, 1e-9)
+            assertEquals(expLon, targetLon, 1e-9)
+        }
+
+    @Test
     fun unchangedOverlayInsetsDoNotEmitState() = runTest(mainDispatcherRule.dispatcher) {
         recreateViewModel()
         advanceUntilIdle()

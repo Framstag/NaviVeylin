@@ -75,14 +75,14 @@ class FreeDrivingScreen(
     private var surfaceWidth = 0
     private var surfaceHeight = 0
     private var surfaceDpi = DEFAULT_DPI
-    // Host-reported stable area (surface pixels; empty = unknown): the street
-    // label and compass rose stay inside it so host chrome never covers them.
+    // Host-reported stable/visible areas (surface pixels; empty = unknown):
+    // the compass rose and the attribution stay inside the stable area so
+    // host chrome never covers them. The street-name pill anchors inside the
+    // guaranteed-visible band (design D8, street-name-host-views): top edge
+    // from the CURRENTLY-visible top (the real coverage — the stable area can
+    // over-reserve a top band the host never draws), bottom from the stable
+    // area's bottom (its reported band matches the real task bar).
     private val stableArea = Rect()
-
-    // Host-reported visible area (surface pixels; empty = unknown): the
-    // *current* guaranteed-visible region, tracked separately from the stable
-    // area (design D1) — the street-name label anchors to the more
-    // conservative of the two.
     private val visibleArea = Rect()
 
     /** Current street name label text; null/blank = nothing drawn. */
@@ -128,6 +128,38 @@ class FreeDrivingScreen(
      * [NavigationScreen] via core [com.naviveylin.core.AutoPositionUtil].
      */
     private val fixDerivation = AutoFixDerivation()
+
+    /**
+     * (Re)load the shared settings — auto-zoom, overspeed and the
+     * free-driving anchor — on init and on every re-visibility. A changed
+     * anchor re-frames follow mode live (no screen restart) and, because the
+     * street-name label placement is derived from the anchor at draw time,
+     * re-places the label with it (spec: auto/free-driving — "Free-driving
+     * anchor applies when the setting changes during a session", "Street
+     * label follows the anchor"). A failed re-read keeps the previously
+     * applied values and is logged; it does not disrupt driving (spec:
+     * "Free-driving anchor survives a settings re-read failure").
+     */
+    private fun loadSettings() {
+        scope.launch {
+            runCatching { settingsProvider.load() }
+                .onSuccess { settings ->
+                    autoZoomEnabled = settings.autoZoomEnabled
+                    overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
+                    val newAnchor = anchorDiff(freeDrivingAnchor, settings.freeDrivingAnchorId)
+                    if (newAnchor != null) {
+                        freeDrivingAnchor = newAnchor
+                        rendererGate.setFollowAnchor(freeDrivingAnchor)
+                        rendererGate.requestRender()
+                        Log.d(TAG, "applied free-driving anchor $freeDrivingAnchor")
+                    }
+                    // Host panel edge (left in LTR, right in RTL) — visible-area anchor.
+                    rendererGate.setHostPaneRtl(isHostPaneOnRight(carContext))
+                    Log.d(TAG, "settings loaded: autoZoomEnabled=$autoZoomEnabled anchor=$freeDrivingAnchor")
+                }
+                .onFailure { Log.w(TAG, "loading settings failed", it) }
+        }
+    }
 
     /**
      * Renderer-bound state buffers here until the renderer is ready (spec:
@@ -195,19 +227,7 @@ class FreeDrivingScreen(
         }
 
         // Shared settings: auto-zoom (speed → magnification) applies live.
-        scope.launch {
-            runCatching { settingsProvider.load() }
-                .onSuccess { settings ->
-                    autoZoomEnabled = settings.autoZoomEnabled
-                    overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
-                    freeDrivingAnchor = VehicleAnchorPosition.fromId(settings.freeDrivingAnchorId)
-                    rendererGate.setFollowAnchor(freeDrivingAnchor)
-                    // Host panel edge (left in LTR, right in RTL) — visible-area anchor.
-                    rendererGate.setHostPaneRtl(isHostPaneOnRight(carContext))
-                    Log.d(TAG, "settings loaded: autoZoomEnabled=$autoZoomEnabled anchor=$freeDrivingAnchor")
-                }
-                .onFailure { Log.w(TAG, "loading settings failed", it) }
-        }
+        loadSettings()
 
         // Stale-speed ticker (spec: gps-speed-priority — stationary reads
         // zero). At standstill the provider goes silent (min-distance
@@ -231,10 +251,16 @@ class FreeDrivingScreen(
 
         // Surface overlays: compass rose (rotates with the map) + current
         // speed readout below it (badge shows the current speed — free driving
-        // has no speed-limit data) + the street-name label at the bottom. No
-        // navigation hint panel — free driving has no target.
+        // has no speed-limit data) + the street-name label. No navigation hint
+        // panel — free driving has no target. The street pill anchors to the
+        // edge of the guaranteed-visible band opposite the vehicle anchor row
+        // (row rule, design D2/D8): the band is the surface minus the host
+        // chrome insets from the stable area (AAOS status/task bars), so the
+        // pill is never hidden under host chrome; bottom-row anchor → top of
+        // the band, top/middle rows → bottom.
         rendererGate.setOverlayDrawer({ canvas, w, h ->
             val density = (surfaceDpi / 160.0).toFloat()
+            val (topInset, bottomInset) = hostInsetsPx()
             SurfaceIndicators.draw(
                 canvas = canvas,
                 surfaceWidth = w,
@@ -252,10 +278,10 @@ class FreeDrivingScreen(
                 surfaceWidth = w,
                 surfaceHeight = h,
                 density = density,
-                stableBounds = stableArea,
-                visibleBounds = visibleArea,
-                name = streetName.orEmpty()
-                // No bottom reserve: free driving has no host ETA card (design D3).
+                name = streetName.orEmpty(),
+                placement = StreetNameLabel.placementFor(freeDrivingAnchor),
+                topInset = topInset,
+                bottomInset = bottomInset
             )
             SurfaceAttribution.draw(
                 canvas = canvas,
@@ -277,6 +303,11 @@ class FreeDrivingScreen(
                 surfaceRefreshAttempts = 0
                 registerSurfaceCallback()
                 rendererGate.resume()
+                // Re-read the shared settings on re-visibility (spec:
+                // auto/free-driving — "Free-driving anchor applies when the
+                // setting changes during a session"): a new anchor chosen in the
+                // settings screens re-frames follow mode without a restart.
+                loadSettings()
                 startObserving()
             }
             override fun onStop(owner: LifecycleOwner) {
@@ -406,7 +437,14 @@ class FreeDrivingScreen(
             // without the gate every fix would re-engage follow and yank the
             // map back (spec: auto/map-pan — follow suspended while panned).
             val vp = commitRenderer.viewportState.value
-            val zoom = newZoom ?: vp.zoom.toDouble()
+            // Keep the CURRENT FRACTIONAL magnification when the controller has no new
+            // target (spec: auto-speed-zoom — Fractional target is committed, not
+            // rounded; change `aa-follow-framing-and-zoom-parity`). `vp.zoom` is the
+            // integer model level only: using it here rounded the committed
+            // magnification to the whole level on every fix without a zoom target, so
+            // the display oscillated between (e.g.) 13.08 and 13.00 once per fix —
+            // the map breathing in and out radially about the anchor.
+            val zoom = newZoom ?: vp.zoomFraction
             // The integer slot keeps the viewport model level; the 5th arg is
             // the fractional render magnification (spec: auto-speed-zoom —
             // Smooth zoom transitions delta — same shape as pinch zoomStep).
@@ -509,6 +547,10 @@ class FreeDrivingScreen(
                         .onFailure { Log.w(TAG, "setMapDpi failed", it) }
                 }
                 rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
+                // Host chrome (the AAOS status/task bars) is derived from the
+                // host's stable area once delivered; until then the insets are 0.
+                rendererGate.setHostTopInset(hostInsetsPx().first)
+                rendererGate.setHostBottomInset(hostInsetsPx().second)
             }
 
             override fun onSurfaceDestroyed(surfaceContainer: SurfaceContainer) {
@@ -518,21 +560,33 @@ class FreeDrivingScreen(
                 surfaceDpi = DEFAULT_DPI
                 stableArea.setEmpty()
                 visibleArea.setEmpty()
+                rendererGate.setHostTopInset(0)
+                rendererGate.setHostBottomInset(0)
                 rendererGate.onSurfaceDestroyed()
             }
 
             override fun onVisibleAreaChanged(visible: Rect) {
-                // Tracked separately from the stable area: the visible area is
-                // the *current* guaranteed-visible region, the stable area
-                // accounts for occlusions "as if always present". The
-                // street-name label anchors to the more conservative of the
-                // two (design D1).
+                // The pill's TOP edge anchors to the currently-visible top (the
+                // real coverage) rather than the stable top — some hosts
+                // over-reserve a top band in the stable area that is not
+                // actually drawn, which pushed the label down (design D8
+                // revision, street-name-host-views). Bottom stays stable-based.
                 visibleArea.set(visible)
+                val (topInset, _) = hostInsetsPx()
+                Log.d(TAG, "visible area $visible -> pillTopInset=$topInset")
                 rendererGate.requestRender()
             }
 
             override fun onStableAreaChanged(newStableArea: Rect) {
                 stableArea.set(newStableArea)
+                val (topInset, bottomInset) = hostInsetsPx()
+                Log.d(TAG, "stable area $newStableArea -> topInset=$topInset bottomInset=$bottomInset")
+                // The street pill anchors inside the guaranteed-visible band
+                // (design D8) and bottom-row follow anchors clamp above the
+                // host's stable-area bottom (design: anchor-per-surface-visible-area
+                // AA vertical clamp) — the AAOS bars are host chrome, not surface.
+                rendererGate.setHostTopInset(topInset)
+                rendererGate.setHostBottomInset(bottomInset)
                 rendererGate.requestRender()
             }
 
@@ -547,6 +601,20 @@ class FreeDrivingScreen(
                 panHandler.onScale(focusX, focusY, scaleFactor)
             }
         })
+    }
+
+    /**
+     * Host-covered bands at the surface top/bottom (px) that the pill anchors
+     * inside (design D8): the TOP inset is the currently-visible top (the real
+     * coverage; fallback: the stable-area top, then 0) — the stable area can
+     * over-reserve a top band that the host never actually draws, which pushed
+     * the label too far down; the BOTTOM inset stays from the stable area (its
+     * reported bottom matches the real task-bar band). (0, 0) when unknown.
+     */
+    private fun hostInsetsPx(): Pair<Int, Int> {
+        if (surfaceHeight <= 0) return 0 to 0
+        return HostInsets.topInset(visibleArea, stableArea) to
+            HostInsets.fromStableArea(surfaceHeight, stableArea).second
     }
 
     private fun unregisterSurfaceCallback() {
@@ -569,6 +637,23 @@ class FreeDrivingScreen(
             controller: AutoZoomController
         ): Double? =
             if (!panning && autoZoomEnabled && speedKmH >= 0.0) controller.onSpeed(speedKmH) else null
+
+        /**
+         * Anchor change decision for the free-driving settings reload (spec:
+         * auto/free-driving — "Free-driving anchor applies when the setting
+         * changes during a session"): the resolved anchor when it differs
+         * from the currently applied one, `null` when unchanged or
+         * unresolvable. A `null` re-frame decision is the same no-op as a
+         * failed re-read — only the success path mutates state (spec:
+         * "Free-driving anchor survives a settings re-read failure").
+         */
+        internal fun anchorDiff(
+            current: VehicleAnchorPosition,
+            newAnchorId: String
+        ): VehicleAnchorPosition? {
+            val resolved = VehicleAnchorPosition.fromId(newAnchorId)
+            return resolved.takeIf { it != current }
+        }
 
         private const val TAG = "FreeDrivingScreen"
         private const val TEMPLATE_TAG = "TEMPLATE"

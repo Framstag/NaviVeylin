@@ -18,6 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.AutoSettings
 import kotlin.math.roundToInt
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoFixDerivation
@@ -45,8 +46,10 @@ import kotlinx.coroutines.withContext
  * right-edge action strip holds the visualisation buttons (zoom). The host
  * instruction panel renders the current-step maneuver + distance, the next
  * step and lane guidance (spec: auto/navigation-view); the map surface
- * carries only the compass rose, the speed badge ([SurfaceIndicators]) and
- * the current street name ([StreetNameLabel]). The host ETA card stop button
+ * carries only the compass rose and the speed badge ([SurfaceIndicators]).
+ * The current street name is rendered in the host ETA card via
+ * `TravelEstimate.setTripText` (design D1, street-name-host-views), never
+ * on the map surface. The host ETA card stop button
  * (via [NavigationManagerController]) and system back are the leave
  * affordances during navigation (spec: auto/navigation-view —
  * "Leave navigation at any time"); the map action strip carries the
@@ -113,23 +116,6 @@ class NavigationScreen(
     // Host-reported stable area (surface pixels; empty = unknown): the hint
     // panel stays inside it so host chrome never covers the hints.
     private val stableArea = Rect()
-
-    // Host-reported visible area (surface pixels; empty = unknown): the
-    // *current* guaranteed-visible region, tracked separately from the stable
-    // area (design D1) — the street-name label anchors to the more
-    // conservative of the two.
-    private val visibleArea = Rect()
-
-    /**
-     * The map label is safe only when the host delivered an area that clears
-     * the surface bottom (design D5): otherwise the host ETA card may cover
-     * it and the street name goes into the card via [TravelEstimate.setTripText]
-     * instead.
-     */
-    private fun mapLabelSafe(): Boolean {
-        val density = (surfaceDpi / 160.0).toFloat()
-        return StreetNameLabel.isMapLabelSafe(stableArea, visibleArea, surfaceHeight, density)
-    }
 
     /** Navigation orientation: north-up unless the shared setting says otherwise. */
     private var navNorthUp = true
@@ -206,9 +192,11 @@ class NavigationScreen(
         )
 
         // Surface overlays: right-edge indicators (rotating compass rose +
-        // speed badge) and the current street-name label at the bottom.
-        // The host instruction panel renders the navigation instructions
-        // (maneuver, steps, lanes) — nothing instruction-related on the surface.
+        // speed badge) and the attribution. The street name is NOT drawn on
+        // the surface during navigation — the host ETA card owns it via
+        // setTripText (design D1). The host instruction panel renders the
+        // navigation instructions (maneuver, steps, lanes) — nothing
+        // instruction-related on the surface.
         rendererGate.setOverlayDrawer({ canvas, w, h ->
             val state = lastState
             val density = (surfaceDpi / 160.0).toFloat()
@@ -230,25 +218,12 @@ class NavigationScreen(
                     drawSpeedLimitSign = true
                 )
             }
-            // The map label is drawn only when the host geometry is safe
-            // (design D5): a full-surface/empty stable+visible area means the
-            // ETA card may cover the bottom-center, so the street name is
-            // rendered by the host in the ETA card (setTripText) instead.
-            if (mapLabelSafe()) {
-                StreetNameLabel.draw(
-                    canvas = canvas,
-                    surfaceWidth = w,
-                    surfaceHeight = h,
-                    density = density,
-                    stableBounds = stableArea,
-                    visibleBounds = visibleArea,
-                    name = streetName.orEmpty(),
-                    // Navigation reserve: the host ETA card sits at the bottom
-                    // (bottom-left on the user's head unit); the reserve keeps the
-                    // label clear even when the host geometry is wrong (design D3).
-                    bottomReserveDp = STREET_NAME_BOTTOM_RESERVE_DP
-                )
-            }
+            // The street name is never drawn on the map surface during
+            // navigation (design D1, spec: auto/navigation-view — "No
+            // street-name label on the map surface"): it lives in the host
+            // travel-estimate card via TravelEstimate.setTripText. The
+            // surface carries only the compass rose, the speed badge and
+            // the attribution.
             SurfaceAttribution.draw(
                 canvas = canvas,
                 surfaceWidth = w,
@@ -419,6 +394,11 @@ class NavigationScreen(
     /** Start observing state when screen becomes visible. */
     fun startObserving() {
         if (observeJob != null) return
+        // Fresh settings on every resume: a routing anchor chosen in the
+        // settings screens applies without waiting for a navigation-state
+        // change (spec: auto/navigation-view — "Anchor applies on resume
+        // without a maneuver change").
+        reloadLiveSettings()
         observeJob = scope.launch {
             navigationViewModel.state
                 .collect { state ->
@@ -447,49 +427,27 @@ class NavigationScreen(
                     // (spec: auto-destination-details); NaN clears it.
                     rendererGate.setDestinationMarker(state.destLat, state.destLon, state.destinationName)
                     // Current street from the route's way (spec:
-                    // auto/navigation-view — street from the route, not an area
-                    // search): updates when the road changes, without a template
-                    // rebuild. The GPS-driven fallback (resolveStreetName) only
-                    // runs when no road info is in state (off-route).
+                    // auto/navigation-view — street from the route, not an
+                    // area search): updates when the road changes. The
+                    // ETA-card trip text carries it always (design D1) — a
+                    // name change needs a template rebuild. The GPS-driven
+                    // fallback (resolveStreetName) only runs when no road
+                    // info is in state (off-route).
                     val roadText = streetNameFromState(state)
-                    if (roadText != null && roadText != streetName) {
+                    if (needsEtaCardRebuild(roadText != null && roadText != streetName)) {
                         streetName = roadText
                         rendererGate.requestRender()
-                        // The host ETA card carries the street name when the map
-                        // label is not safe (design D5) — needs a template rebuild.
-                        if (!mapLabelSafe()) {
-                            invalidate()
-                        }
+                        invalidate()
                     }
                     if (changed) {
                         invalidate()
                         // Redraw the surface hints without waiting for a GPS tick.
                         rendererGate.requestRender()
                         // Live settings: lane hints + orientation + auto-zoom
-                        // apply without a screen restart (throttled by state changes).
-                        scope.launch {
-                            runCatching { settingsProvider.load() }
-                                .onSuccess { settings ->
-                                    if (settings.laneHintsEnabled != laneHintsEnabled ||
-                                        settings.navNorthUp != navNorthUp ||
-                                        settings.autoZoomEnabled != autoZoomEnabled ||
-                                        settings.overspeedWarningDeltaKmh != overspeedWarningDeltaKmh ||
-                                        VehicleAnchorPosition.fromId(settings.routingAnchorId) != routingAnchor
-                                    ) {
-                                        laneHintsEnabled = settings.laneHintsEnabled
-                                        navNorthUp = settings.navNorthUp
-                                        autoZoomEnabled = settings.autoZoomEnabled
-                                        overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
-                                        routingAnchor = VehicleAnchorPosition.fromId(settings.routingAnchorId)
-                                        rendererGate.setFollowAnchor(routingAnchor)
-                                        // The host's panel edge (left in LTR, right in RTL): the
-                                        // anchor resolves against the visible surface area.
-                                        rendererGate.setHostPaneRtl(isHostPaneOnRight(carContext))
-                                        rendererGate.requestRender()
-                                    }
-                                }
-                                .onFailure { Log.w(TAG, "settings reload failed", it) }
-                        }
+                        // apply without a screen restart (throttled by state changes);
+                        // each reload re-applies and only acts on change (see
+                        // [applyLiveSettings]).
+                        reloadLiveSettings()
                     }
                 }
         }
@@ -527,7 +485,15 @@ class NavigationScreen(
                         }
                         if (shouldCommitViewport(panHandler.panning, angle, zoom)) {
                             val vp = commitRenderer.viewportState.value
-                            val newZoom = zoom ?: vp.zoom.toDouble()
+                            // Keep the CURRENT FRACTIONAL magnification when the
+                            // controller has no new target (spec: auto-speed-zoom —
+                            // Fractional target is committed, not rounded; change
+                            // `aa-follow-framing-and-zoom-parity`): `vp.zoom` is the
+                            // integer model level only, so using it rounded the
+                            // committed magnification to the whole level on every fix
+                            // without a zoom target and the display oscillated between
+                            // the fractional and the rounded value.
+                            val newZoom = zoom ?: vp.zoomFraction
                             // The integer slot keeps the viewport model level; the
                             // 5th arg is the fractional render magnification
                             // (spec: auto-speed-zoom — Smooth zoom transitions
@@ -605,9 +571,9 @@ class NavigationScreen(
             val changed = name != streetName
             streetName = name
             rendererGate.requestRender()
-            // The host ETA card carries the street name when the map label is
-            // not safe (design D5) — the card text needs a template rebuild.
-            if (changed && !mapLabelSafe()) {
+            // The ETA-card trip text carries the street name always (design
+            // D1) — a name change needs a template rebuild.
+            if (needsEtaCardRebuild(changed)) {
                 invalidate()
             }
         }
@@ -617,6 +583,45 @@ class NavigationScreen(
     fun stopObserving() {
         observeJob?.cancel()
         observeJob = null
+    }
+
+    /**
+     * Apply the shared settings the navigation surface consumes live — lane
+     * hints, orientation, auto-zoom, overspeed and the routing anchor. The
+     * anchor re-frames follow mode when it changes; unchanged values are
+     * no-ops (spec: auto/navigation-view — "Routing anchor applies when the
+     * setting changes during navigation").
+     */
+    private fun applyLiveSettings(settings: AutoSettings) {
+        if (settingsDiffer(
+                settings,
+                laneHintsEnabled,
+                navNorthUp,
+                autoZoomEnabled,
+                overspeedWarningDeltaKmh,
+                routingAnchor
+            )
+        ) {
+            laneHintsEnabled = settings.laneHintsEnabled
+            navNorthUp = settings.navNorthUp
+            autoZoomEnabled = settings.autoZoomEnabled
+            overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
+            routingAnchor = VehicleAnchorPosition.fromId(settings.routingAnchorId)
+            rendererGate.setFollowAnchor(routingAnchor)
+            // The host's panel edge (left in LTR, right in RTL): the
+            // anchor resolves against the visible surface area.
+            rendererGate.setHostPaneRtl(isHostPaneOnRight(carContext))
+            rendererGate.requestRender()
+        }
+    }
+
+    /** (Re)load the shared settings and apply them (init + every resume). */
+    private fun reloadLiveSettings() {
+        scope.launch {
+            runCatching { settingsProvider.load() }
+                .onSuccess { applyLiveSettings(it) }
+                .onFailure { Log.w(TAG, "settings reload failed", it) }
+        }
     }
 
     private fun hasStateChanged(newState: NavigationState): Boolean {
@@ -637,11 +642,12 @@ class NavigationScreen(
 
         val builder = TravelEstimate.Builder(remainingDistance, zonedDateTime)
             .setRemainingTimeSeconds(remainingTimeSeconds)
-        // Street name in the host ETA card when the map label is not safe
-        // (design D5): the host positions the card, so the name is never
-        // covered. When the map label is safe, no trip text — the map label
-        // carries the name.
-        tripTextFor(mapLabelSafe(), streetName)?.let { builder.setTripText(CarText.create(it)) }
+        // Street name ALWAYS in the host ETA card via setTripText (design D1,
+        // spec: auto/navigation-view — the host positions the card, so the
+        // name is never covered and is never drawn on the map surface). No
+        // trip text when no name is available (spec: "No street name when
+        // unnamed").
+        etaCardText(streetName)?.let { builder.setTripText(CarText.create(it)) }
         return builder.build()
     }
 
@@ -689,6 +695,9 @@ class NavigationScreen(
                         .onFailure { Log.w(TAG, "setMapDpi failed", it) }
                 }
                 rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
+                // Bottom chrome (the AAOS bottom bar) is derived from the host's
+                // stable area once delivered; until then the inset is 0.
+                rendererGate.setHostBottomInset(hostBottomInsetPx())
                 // Re-push the resolved day/night flag before the first render: the
                 // startup push may have been dropped while the DB was still
                 // initializing (warmup race).
@@ -701,33 +710,23 @@ class NavigationScreen(
                 surfaceHeight = 0
                 surfaceDpi = DEFAULT_DPI
                 stableArea.setEmpty()
-                visibleArea.setEmpty()
+                rendererGate.setHostBottomInset(0)
                 rendererGate.onSurfaceDestroyed()
             }
 
             override fun onVisibleAreaChanged(visible: Rect) {
-                // Tracked separately from the stable area: the visible area is
-                // the *current* guaranteed-visible region (excludes the ETA
-                // card while shown), the stable area accounts for occlusions
-                // "as if always present". The street-name label anchors to
-                // the more conservative of the two (design D1).
-                val wasSafe = mapLabelSafe()
-                visibleArea.set(visible)
+                // No longer feeds the street name — the ETA card owns it
+                // (design D1). Keep the surface refresh on host-area changes.
                 rendererGate.requestRender()
-                // Safety flip (design D5): the street name moves between the
-                // map label and the host ETA card — rebuild the template.
-                if (wasSafe != mapLabelSafe()) {
-                    invalidate()
-                }
             }
 
             override fun onStableAreaChanged(newStableArea: Rect) {
-                val wasSafe = mapLabelSafe()
                 stableArea.set(newStableArea)
+                // Bottom-row anchor presets clamp above the host's stable-area
+                // bottom (design: anchor-per-surface-visible-area AA vertical
+                // clamp) — the AAOS bottom bar is host chrome, not surface.
+                rendererGate.setHostBottomInset(hostBottomInsetPx())
                 rendererGate.requestRender()
-                if (wasSafe != mapLabelSafe()) {
-                    invalidate()
-                }
             }
 
             // Pan gestures (spec: auto/map-pan): the host forwards them only
@@ -741,6 +740,17 @@ class NavigationScreen(
                 panHandler.onScale(focusX, focusY, scaleFactor)
             }
         })
+    }
+
+    /**
+     * Host-covered band at the surface bottom (px): the stable area's bottom
+     * edge, i.e. how much of the surface the host's bottom chrome covers
+     * (0 when unknown/empty or the stable area spans the full surface).
+     */
+    private fun hostBottomInsetPx(): Int {
+        if (surfaceHeight <= 0) return 0
+        val stableBottom = stableArea.takeIf { !it.isEmpty() }?.bottom ?: surfaceHeight
+        return (surfaceHeight - stableBottom).coerceAtLeast(0)
     }
 
     private fun unregisterSurfaceCallback() {
@@ -773,28 +783,34 @@ class NavigationScreen(
             )
         }
 
+        /**
+         * Live-settings diff for the navigation surface (spec:
+         * auto/navigation-view — "Routing anchor applies when the setting
+         * changes during navigation"): true when any consumed value (lane
+         * hints, orientation, auto-zoom, overspeed, routing anchor) differs
+         * from the currently applied one. Pure seam for tests — the anchor
+         * change must be detected without a navigation-state change.
+         */
+        internal fun settingsDiffer(
+            settings: AutoSettings,
+            laneHintsEnabled: Boolean,
+            navNorthUp: Boolean,
+            autoZoomEnabled: Boolean,
+            overspeedWarningDeltaKmh: Int,
+            routingAnchor: VehicleAnchorPosition
+        ): Boolean =
+            settings.laneHintsEnabled != laneHintsEnabled ||
+                settings.navNorthUp != navNorthUp ||
+                settings.autoZoomEnabled != autoZoomEnabled ||
+                settings.overspeedWarningDeltaKmh != overspeedWarningDeltaKmh ||
+                VehicleAnchorPosition.fromId(settings.routingAnchorId) != routingAnchor
+
         private const val TAG = "NavigationScreen"
         private const val TEMPLATE_TAG = "TEMPLATE"
         private const val DEFAULT_DPI = 160.0
 
         /** Max invalidate() calls to recover a dead surface per screen start. */
         private const val MAX_SURFACE_REFRESH_ATTEMPTS = 2
-
-        /**
-         * Bottom reserve (dp) for the street-name label while navigating: a
-         * safety margin above the resolved stable/visible bottom so the host
-         * ETA card never covers the label (design D3). Free driving passes 0.
-         */
-        private const val STREET_NAME_BOTTOM_RESERVE_DP = 24f
-
-        /**
-         * Street name for the host ETA card (design D5): only when the map
-         * label is not safe (the host delivered no area clearing the surface
-         * bottom, so the card may cover the label). When the map label is
-         * safe, the card carries no trip text — the map label shows the name.
-         */
-        fun tripTextFor(mapLabelSafe: Boolean, streetName: String?): String? =
-            if (mapLabelSafe) null else streetName
 
         /**
          * Street label text from the shared navigation state (spec:
@@ -805,6 +821,25 @@ class NavigationScreen(
          */
         fun streetNameFromState(state: NavigationState?): String? =
             state?.currentRoadInfo?.let { StreetNameUpdater.roadDisplayText(it.ref, it.name) }
+
+        /**
+         * ETA-card trip text (design D1, street-name-host-views): ALWAYS the
+         * street name when available — the host positions the card, so the
+         * name is never covered and never competes with surface geometry.
+         * Null when no name is available (spec: "No street name when
+         * unnamed"). This is what replaced the old gated `tripTextFor`
+         * (which only set trip text when the map label was unsafe).
+         */
+        fun etaCardText(streetName: String?): String? =
+            streetName?.takeIf { it.isNotBlank() }
+
+        /**
+         * Street-name change → template rebuild (design D1): unconditional —
+         * the ETA card always owns the name, so every change needs a rebuild
+         * (there is no map-surface path left to skip). Replaced the old
+         * `if (!streetNameOnSurface()) invalidate()` gating.
+         */
+        fun needsEtaCardRebuild(changed: Boolean): Boolean = changed
 
         /**
          * Back affordance during navigation: stops navigation (spec:

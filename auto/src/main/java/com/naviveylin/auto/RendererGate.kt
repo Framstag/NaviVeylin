@@ -64,6 +64,8 @@ internal class RendererGate {
     private var dark: Boolean? = null
     private var followAnchor: VehicleAnchorPosition? = null
     private var hostPaneRtl: Boolean? = null
+    private var hostBottomInsetPx: Int? = null
+    private var hostTopInsetPx: Int? = null
     private var reCenter = false
     private var viewport: ViewportPending? = null
     private var reengageFollow = false
@@ -113,6 +115,14 @@ internal class RendererGate {
         hostPaneRtl?.let {
             renderer.setHostPaneRtl(it)
             hostPaneRtl = null
+        }
+        hostBottomInsetPx?.let {
+            renderer.setHostBottomInset(it)
+            hostBottomInsetPx = null
+        }
+        hostTopInsetPx?.let {
+            renderer.setHostTopInset(it)
+            hostTopInsetPx = null
         }
         viewport?.let {
             renderer.setViewport(it.lat, it.lon, it.zoom, it.angle, it.zoomFraction)
@@ -206,6 +216,16 @@ internal class RendererGate {
     fun setHostPaneRtl(rtl: Boolean) {
         val ready = rendererOrNull()
         if (ready != null) ready.setHostPaneRtl(rtl) else hostPaneRtl = rtl
+    }
+
+    fun setHostBottomInset(px: Int) {
+        val ready = rendererOrNull()
+        if (ready != null) ready.setHostBottomInset(px) else hostBottomInsetPx = px
+    }
+
+    fun setHostTopInset(px: Int) {
+        val ready = rendererOrNull()
+        if (ready != null) ready.setHostTopInset(px) else hostTopInsetPx = px
     }
 
     fun reengageFollow() {
@@ -302,6 +322,7 @@ internal class RendererGate {
         dark = null
         followAnchor = null
         hostPaneRtl = null
+        hostBottomInsetPx = null
         reCenter = false
         viewport = null
         reengageFollow = false

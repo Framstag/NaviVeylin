@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
@@ -60,18 +61,61 @@ class PreferencesScreen private constructor(
     private var settings: AutoSettings? = null
     private var loaded = false
 
+    /**
+     * Render-recovery for the async settings load (spec: auto/preferences —
+     * "Settings screens never wedge on a loading placeholder"): watchdog
+     * re-invalidate, guarded invalidate, capped recovery ending in the error
+     * row, re-render on re-visibility.
+     */
+    private val guard = SettingsLoadGuard(
+        scope = scope,
+        invalidate = { invalidate() },
+        contentLoaded = { loaded && settings != null }
+    )
+
     init {
         enableBackNavigation()
+        loadSettings()
+        // Re-read on re-visibility: a value changed in a pushed picker must
+        // appear on the rows when the picker pops back (spec: auto/preferences
+        // — "Re-read on re-visibility", auto-map-layout — "Anchor settings
+        // reflect the persisted value on re-visibility"), not a stale snapshot.
+        observeSettingsLifecycle(scope, guard, onReVisible = ::loadSettings)
+    }
+
+    private fun loadSettings() {
+        guard.onLoadStarted()
         scope.launch {
-            settings = settingsProvider.load()
-            loaded = true
-            invalidate()
+            val result = runCatching { settingsProvider.load() }
+            settings = result.getOrNull()
+            loaded = result.isSuccess
+            if (result.isFailure) {
+                Log.w(TAG, "settings load failed", result.exceptionOrNull())
+                guard.onLoadFailed()
+            } else {
+                guard.onLoadSucceeded()
+            }
         }
     }
 
+    /** Error-row Retry action: start a fresh load cycle (guard resets its budget). */
+    internal fun onRetry() = loadSettings()
+
     override fun onGetTemplate(): ListTemplate {
         val current = settings
-        val itemList = if (!loaded || current == null) {
+        val itemList = if (guard.failed) {
+            // Recovery exhausted (or the load itself failed): explicit error
+            // row with Retry instead of an inert infinite placeholder.
+            ItemList.Builder()
+                .addItem(Row.Builder().setTitle(carContext.getString(R.string.settings_unavailable)).build())
+                .addItem(
+                    Row.Builder()
+                        .setTitle(carContext.getString(R.string.retry))
+                        .setOnClickListener { onRetry() }
+                        .build()
+                )
+                .build()
+        } else if (!loaded || current == null) {
             ItemList.Builder()
                 .addItem(Row.Builder().setTitle(carContext.getString(R.string.loading)).build())
                 .build()
@@ -139,11 +183,14 @@ class PreferencesScreen private constructor(
             if (key == PreferencesScreenMapper.KEY_DARK_MODE) {
                 onDarkModeChanged(updated.darkMode)
             }
-            invalidate()
+            // Guarded refresh: a host failure here must not lose the toggle.
+            guard.refreshContent()
         }
     }
 
     private companion object {
+        private const val TAG = "PreferencesScreen"
+
         fun settingsProviderFor(carContext: CarContext): AutoSettingsProvider =
             EntryPointAccessors.fromApplication(
                 carContext.applicationContext,

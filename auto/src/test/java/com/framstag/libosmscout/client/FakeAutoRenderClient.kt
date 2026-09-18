@@ -13,6 +13,16 @@ class FakeAutoRenderClient : OSMScoutClient() {
     /** Return value of the next [loadStyleSheet] call (true = success). */
     var styleSheetLoadResult: Boolean = true
 
+    /**
+     * Invoked at the start of [render] and [renderWithRouteAndPois] — lets a test
+     * mutate renderer state while a native render is in flight (the renderer runs
+     * the native render outside its surface lock).
+     */
+    var onRender: (() -> Unit)? = null
+
+    /** `[lat, lon, angle, magnification]` of every native render call, in order. */
+    val renderCalls = mutableListOf<List<Double>>()
+
     override fun loadStyleSheet(name: String): Boolean {
         styleSheetLoads.add(name)
         return styleSheetLoadResult
@@ -22,6 +32,8 @@ class FakeAutoRenderClient : OSMScoutClient() {
         lat: Double, lon: Double,
         angle: Double, magnification: Double
     ): IntArray? {
+        renderCalls.add(listOf(lat, lon, angle, magnification))
+        onRender?.invoke()
         return IntArray(width * height) { 0xFFCCCCCC.toInt() }
     }
 
@@ -33,6 +45,8 @@ class FakeAutoRenderClient : OSMScoutClient() {
         searchSelLat: Double, searchSelLon: Double,
         trackLats: DoubleArray?, trackLons: DoubleArray?
     ): IntArray? {
+        renderCalls.add(listOf(lat, lon, angle, magnification))
+        onRender?.invoke()
         return IntArray(width * height) { 0xFFCCCCCC.toInt() }
     }
 }

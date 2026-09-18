@@ -1,21 +1,28 @@
 package com.naviveylin.auto
 
 import androidx.car.app.CarContext
+import androidx.car.app.model.Row
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleRegistry
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
+import com.naviveylin.core.VehicleAnchorPosition
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -62,6 +69,76 @@ class PreferencesScreenTest {
         // All eleven car-relevant preferences on the single list (nine base +
         // the two vehicle-position anchors).
         assertEquals(11, template.singleList!!.items.size)
+    }
+
+    @Test
+    fun placeholderUntilLoadCompletes() = runTest(testDispatcher) {
+        coEvery { provider.load() } coAnswers { delay(300); AutoSettings() }
+
+        val screen = PreferencesScreen(carContext, provider)
+
+        // Before the load finishes the single row is the loading placeholder.
+        assertEquals(1, screen.onGetTemplate().singleList!!.items.size)
+        assertEquals("Loading...", (screen.onGetTemplate().singleList!!.items[0] as Row).title.toString())
+
+        advanceTimeBy(400)
+        advanceUntilIdle()
+        assertEquals(11, screen.onGetTemplate().singleList!!.items.size)
+    }
+
+    @Test
+    fun loadFailureShowsErrorRowWithRetry() = runTest(testDispatcher) {
+        coEvery { provider.load() } throws RuntimeException("storage down")
+
+        val screen = PreferencesScreen(carContext, provider)
+        advanceUntilIdle()
+
+        val items = screen.onGetTemplate().singleList!!.items
+        assertEquals(2, items.size)
+        assertEquals("Settings unavailable", (items[0] as Row).title.toString())
+        assertEquals("Retry", (items[1] as Row).title.toString())
+    }
+
+    @Test
+    fun retryAfterFailureLoadsContent() = runTest(testDispatcher) {
+        var loadCalls = 0
+        coEvery { provider.load() } answers {
+            if (++loadCalls == 1) throw RuntimeException("storage down") else AutoSettings()
+        }
+
+        val screen = PreferencesScreen(carContext, provider)
+        advanceUntilIdle()
+        assertEquals(2, screen.onGetTemplate().singleList!!.items.size) // error row + retry
+
+        screen.onRetry()
+        advanceUntilIdle()
+
+        assertEquals(11, screen.onGetTemplate().singleList!!.items.size)
+    }
+
+    @Test
+    fun stalledLoadEndsInErrorThenLateContentRecovers() = runTest(testDispatcher) {
+        // Load hangs far beyond the guard's watchdog budget.
+        coEvery { provider.load() } coAnswers { delay(10_000); AutoSettings() }
+
+        val screen = PreferencesScreen(carContext, provider)
+
+        // First watchdog window (t=2000): one re-invalidate, still placeholder.
+        advanceTimeBy(2_000L)
+        assertEquals(1, screen.onGetTemplate().singleList!!.items.size)
+
+        // t=5000: second recovery attempt done, budget not yet exhausted.
+        advanceTimeBy(3_000L)
+        assertEquals(1, screen.onGetTemplate().singleList!!.items.size)
+
+        // t=7000: budget exhausted — the error row replaces the placeholder
+        // even though the load has not returned yet.
+        advanceTimeBy(2_000L)
+        assertEquals(2, screen.onGetTemplate().singleList!!.items.size)
+
+        // The load finally completes (t=10000): content comes back, error clears.
+        advanceUntilIdle()
+        assertEquals(11, screen.onGetTemplate().singleList!!.items.size)
     }
 
     @Test
@@ -128,5 +205,37 @@ class PreferencesScreenTest {
         advanceUntilIdle()
 
         assertTrue(reported.isEmpty())
+    }
+
+    @Test
+    fun reVisibilityReReadsSettingsAndShowsNewAnchor() = runTest(testDispatcher) {
+        coEvery { provider.load() } returnsMany listOf(
+            AutoSettings(routingAnchorId = VehicleAnchorPosition.CENTER.id),
+            AutoSettings(routingAnchorId = VehicleAnchorPosition.BOTTOM_RIGHT.id)
+        )
+
+        val screen = PreferencesScreen(carContext, provider)
+        advanceUntilIdle()
+        // First render: the persisted value at the first load.
+        assertTrue(vehiclePositionNavigationValue(screen).contains("Center"))
+        assertFalse(vehiclePositionNavigationValue(screen).contains("Bottom right"))
+
+        // Re-visibility (picker pop-back): the screen re-reads the persisted
+        // settings and the row shows the NEW anchor, not the first-load
+        // snapshot (spec: auto/preferences — "Re-read on re-visibility",
+        // auto-map-layout — "Anchor settings reflect the persisted value on
+        // re-visibility").
+        (screen.lifecycle as LifecycleRegistry).currentState = Lifecycle.State.STARTED
+        advanceUntilIdle()
+        assertTrue(vehiclePositionNavigationValue(screen).contains("Bottom right"))
+
+        (screen.lifecycle as LifecycleRegistry).currentState = Lifecycle.State.DESTROYED
+    }
+
+    /** The value text of the "Vehicle position (navigation)" row. */
+    private fun vehiclePositionNavigationValue(screen: PreferencesScreen): String {
+        val rows = screen.onGetTemplate().singleList!!.items
+        val row = rows.first { (it as Row).title.toString() == "Vehicle position (navigation)" } as Row
+        return row.texts?.joinToString(",") { it.toString() } ?: ""
     }
 }

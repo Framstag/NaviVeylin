@@ -3,7 +3,9 @@ package com.naviveylin.auto
 import com.framstag.libosmscout.client.CurrentRoadInfo
 import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.AutoPosition
+import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.VehicleAnchorPosition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -77,6 +79,39 @@ class NavigationScreenTest {
     @Test
     fun headingUpRotatesWhenNotPanning() {
         assertTrue(NavigationScreen.shouldRotateHeadingUp(panning = false, navNorthUp = false, bearing = 90.0))
+    }
+
+    // ── settingsDiffer (spec: auto/navigation-view — routing anchor applies
+    // on resume without a maneuver change) ──
+
+    @Test
+    fun settingsDifferDetectsNewRoutingAnchorWithoutStateChange() {
+        val settings = AutoSettings(routingAnchorId = VehicleAnchorPosition.BOTTOM_RIGHT.id)
+        assertTrue(
+            NavigationScreen.settingsDiffer(
+                settings,
+                laneHintsEnabled = true,
+                navNorthUp = false,
+                autoZoomEnabled = true,
+                overspeedWarningDeltaKmh = 5,
+                routingAnchor = VehicleAnchorPosition.DEFAULT
+            )
+        )
+    }
+
+    @Test
+    fun settingsDifferIsFalseWhenNothingChanged() {
+        val settings = AutoSettings()
+        assertFalse(
+            NavigationScreen.settingsDiffer(
+                settings,
+                laneHintsEnabled = true,
+                navNorthUp = false,
+                autoZoomEnabled = true,
+                overspeedWarningDeltaKmh = 5,
+                routingAnchor = VehicleAnchorPosition.DEFAULT
+            )
+        )
     }
 
     @Test
@@ -154,21 +189,30 @@ class NavigationScreenTest {
         )
     }
 
-    // ── tripTextFor (design D5: street name in host ETA card when the map
-    // label is not safe) ──
+    // ── ETA-card street name (design D1: ALWAYS in the host travel-estimate
+    // card, never on the map surface) ──
 
     @Test
-    fun tripTextNullWhenMapLabelSafe() {
-        // Safe host geometry: the map label carries the name, the ETA card
-        // shows no trip text.
-        assertNull(NavigationScreen.tripTextFor(mapLabelSafe = true, streetName = "Hauptstraße"))
+    fun etaCardTextAlwaysCarriesStreetName() {
+        // The card owns the name unconditionally — safe host geometry no
+        // longer moves it off the card (replaced the gated tripTextFor).
+        assertEquals("Hauptstraße", NavigationScreen.etaCardText("Hauptstraße"))
     }
 
     @Test
-    fun tripTextCarriesNameWhenMapLabelUnsafe() {
-        // Unsafe host geometry (full-surface/empty areas): the street name
-        // goes into the host ETA card so it is never covered.
-        assertEquals("Hauptstraße", NavigationScreen.tripTextFor(mapLabelSafe = false, streetName = "Hauptstraße"))
+    fun etaCardTextNullWhenNoStreetName() {
+        // Spec: "No street name when unnamed" — no trip text without a name.
+        assertNull(NavigationScreen.etaCardText(null))
+        assertNull(NavigationScreen.etaCardText(""))
+    }
+
+    @Test
+    fun streetNameChangeAlwaysRebuildsTemplate() {
+        // Unconditional invalidate: there is no map-surface path left to skip,
+        // so every change needs a rebuild (replaced the `if (!streetNameOnSurface())
+        // invalidate()` gating). True when the name changed, false otherwise.
+        assertTrue(NavigationScreen.needsEtaCardRebuild(changed = true))
+        assertEquals(false, NavigationScreen.needsEtaCardRebuild(changed = false))
     }
 
     // ── effectiveFixArgs (spec: auto-smooth-follow — fix feed; regression:

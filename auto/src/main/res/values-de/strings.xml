@@ -30,6 +30,7 @@
     <string name="app_information">App-Informationen</string>
     <string name="no_location_found">Kein Ort für diese Adresse gefunden</string>
     <string name="loading">Wird geladen...</string>
+    <string name="settings_unavailable">Einstellungen nicht verfügbar</string>
     <string name="navigate_to">▶ Navigation starten</string>
     <string name="show">◎ Anzeigen</string>
     <string name="add_to_favorites">★ Zu Favoriten hinzufügen</string>

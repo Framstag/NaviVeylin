@@ -5,11 +5,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Visible-area anchor resolution (spec: smooth-follow — visible-area scenarios;
- * change `anchor-per-surface-visible-area`): a preset fraction is mapped into the
- * part of the surface the app's own overlays do not cover, so an outer preset
- * (bottom-center during phone navigation) stays visible above the routing-status
- * card instead of behind it.
+ * Anchor collision resolution (spec: smooth-follow — collision/visible-area
+ * scenarios; change `anchor-per-surface-visible-area`): a preset keeps its exact
+ * fraction unless the marker footprint (+ padding) falls inside a region the
+ * surface's own overlays cover; only then it moves, per axis, to the nearest free
+ * position. The default center/center collides with nothing and stays exactly at
+ * the canvas center with overlays measured (device regression 2026-09-16, which
+ * replaced the earlier visible-area *rescale*).
  *
  * Plain JUnit: pure math, no Android/JNI dependencies.
  */
@@ -75,6 +77,67 @@ class AnchorVisibleAreaTest {
             "resolved fx ${resolved.fx} must stay left of the widget column ($visibleRight)",
             resolved.fx < visibleRight + 1e-9
         )
+    }
+
+    @Test
+    fun `default center stays exactly centered under the full navigation overlay set`() {
+        // Device regression (2026-09-16): a visible-area rescale moved the default
+        // preset left (widget column) and up (bottom card). Under the collision
+        // rule the default center/center collides with nothing, so it must resolve
+        // to the exact canvas center with every phone navigation overlay measured
+        // (spec smooth-follow — "Default anchors reproduce today's framing").
+        val resolved = resolve(
+            VehicleAnchorPosition.CENTER, top = navTop, bottom = navBottom, right = navRight
+        )
+        assertEquals(0.5, resolved.fx, 1e-12)
+        assertEquals(0.5, resolved.fy, 1e-12)
+    }
+
+    @Test
+    fun `a non-covered preset keeps its exact fraction with overlays present`() {
+        // 70% width is well left of the covered column band: the mere presence of
+        // the column must not move the preset (spec smooth-follow — "Non-covered
+        // preset keeps its exact fraction").
+        val middleRight = resolve(VehicleAnchorPosition.MIDDLE_RIGHT, right = navRight)
+        assertEquals(VehicleAnchorPosition.MIDDLE_RIGHT.fx, middleRight.fx, 1e-12)
+        assertEquals(0.5, middleRight.fy, 1e-12)
+
+        val middleLeft = resolve(VehicleAnchorPosition.MIDDLE_LEFT, left = navRight)
+        assertEquals(VehicleAnchorPosition.MIDDLE_LEFT.fx, middleLeft.fx, 1e-12)
+    }
+
+    @Test
+    fun `corner preset covered on both axes moves both`() {
+        // Bottom-far-right (90%, 90%) is covered by the routing-status card AND the
+        // widget column, so it moves up AND left (spec smooth-follow — "Corner
+        // preset moves on both axes").
+        val resolved = resolve(
+            VehicleAnchorPosition.BOTTOM_FAR_RIGHT, top = navTop, bottom = navBottom, right = navRight
+        )
+        assertTrue("fx must move left", resolved.fx < VehicleAnchorPosition.BOTTOM_FAR_RIGHT.fx)
+        assertTrue(
+            "resolved fx ${resolved.fx} must stay left of the widget column",
+            resolved.fx < 1.0 - navRight.toDouble() / screenW + 1e-9
+        )
+        assertTrue("fy must move up", resolved.fy < VehicleAnchorPosition.BOTTOM_FAR_RIGHT.fy)
+        assertTrue(
+            "resolved fy ${resolved.fy} must stay above the status card",
+            resolved.fy < 1.0 - navBottom.toDouble() / screenH + 1e-9
+        )
+    }
+
+    @Test
+    fun `collision test uses the marker footprint, not just the center`() {
+        // Center of 90% width (972px of 1080) clears a column band starting at
+        // 1005px (right = 75), but the marker footprint (half 64px) reaches 1036px
+        // into the band — the preset counts as covered and moves (spec smooth-follow
+        // — "Collision uses the marker footprint and padding"). With a narrower
+        // band (right = 30, band starts 1050px) even the footprint is clear:
+        // no move, the preset keeps its exact fraction.
+        val covered = resolve(VehicleAnchorPosition.MIDDLE_FAR_RIGHT, right = 75)
+        assertTrue("footprint into the band must move the preset", covered.fx < 0.9)
+        val free = resolve(VehicleAnchorPosition.MIDDLE_FAR_RIGHT, right = 30)
+        assertEquals(0.9, free.fx, 1e-12)
     }
 
     @Test

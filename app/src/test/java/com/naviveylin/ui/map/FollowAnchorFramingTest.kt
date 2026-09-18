@@ -264,4 +264,60 @@ class FollowAnchorFramingTest {
         )
         assertEquals(kotlin.math.abs(off.rawY), kotlin.math.abs(wrongY - rightY), 1.0)
     }
+
+    @Test
+    fun `blit against the raw preset while frame and marker use the resolved anchor leaves the marker off the content`() {
+        // Regression: the production call site previously passed the RAW preset to
+        // displayOffsetPx while the render target (followRenderTarget) and the marker
+        // projection used the RESOLVED fraction (spec: smooth-follow — Single
+        // resolved anchor across render, blit and marker). The frame is rendered
+        // anchor-centered on the resolved fraction, so the raw-anchor blit places the
+        // displayed content at the raw fraction while the marker draws at the resolved
+        // one: the marker rides ahead of the road by the anchor delta, and the blit is
+        // permanently outside the overrun margin (500 ms render churn).
+        val anchor = VehicleAnchorPosition.BOTTOM_CENTER
+        val resolved = com.naviveylin.core.resolveAnchorFraction(
+            anchor, 0, (screenH * 0.19).toInt(), (screenW * 0.07).toInt(), (screenH * 0.18).toInt(),
+            screenW, screenH
+        )
+        assertTrue("resolved fy must move up into the visible area", resolved.fy < anchor.fy)
+
+        // Frame rendered for the fix, anchor-centered on the RESOLVED fraction (VM
+        // followRenderTarget); display drifts within the margin (spec scenario).
+        val (fLat, fLon) = anchorCenter(lat, lon, resolved.fx, resolved.fy, mag, screenW, screenH, dpi)
+        val (dispLat, dispLon) = offset(lat, lon, metersNorth = 40.0, metersEast = 15.0)
+
+        // The buggy blit: anchor args = raw preset (what the screen passed before).
+        val offRaw = drift(dispLat, dispLon, fLat, fLon, anchor)
+        val offResolved = driftResolved(dispLat, dispLon, fLat, fLon, resolved.fx, resolved.fy)
+        assertTrue("raw-anchor blit sits outside the margin (render churn)", offRaw.clamped)
+        assertFalse("resolved-anchor blit stays inside the margin", offResolved.clamped)
+
+        // Content position of the displayed point under the raw-anchor (buggy) blit.
+        val frameVp = ProjectionUtils.viewport(fLat, fLon, mag, bitmapW, bitmapH, dpi)
+        val (bx, by) = frameVp.geoToScreenRotated(dispLat, dispLon)
+        val contentX = screenW / 2.0 - offRaw.clampedX + (bx - bitmapW / 2.0)
+        val contentY = screenH / 2.0 - offRaw.clampedY + (by - bitmapH / 2.0)
+
+        // Marker projection used by the phone: the RESOLVED fraction of the display.
+        val (mLat, mLon) = anchorCenter(dispLat, dispLon, resolved.fx, resolved.fy, mag, screenW, screenH, dpi)
+        val (mx, my) = ProjectionUtils.viewport(mLat, mLon, mag, screenW, screenH, dpi)
+            .geoToScreenRotated(dispLat, dispLon)
+        assertEquals("marker sits at the resolved anchor x", resolved.fx * screenW, mx, 1e-6)
+        assertEquals("marker sits at the resolved anchor y", resolved.fy * screenH, my, 1e-6)
+
+        // The marker is displaced from its own map content by the anchor delta (the
+        // reported "vehicle ahead of the track in the driving direction"): on a
+        // y-down screen the resolved anchor lies above the raw anchor, so the marker
+        // ends up ABOVE the content it represents. Compare against the aligned blit:
+        // with the resolved anchor everywhere the two coincide.
+        val contentXAligned = screenW / 2.0 - offResolved.clampedX + (bx - bitmapW / 2.0)
+        val contentYAligned = screenH / 2.0 - offResolved.clampedY + (by - bitmapH / 2.0)
+        assertEquals("aligned blit puts the content on the marker x", mx, contentXAligned, 1e-6)
+        assertEquals("aligned blit puts the content on the marker y", my, contentYAligned, 1e-6)
+        assertTrue(
+            "raw-anchor blit displaces the content from the marker by the anchor delta",
+            kotlin.math.abs(contentX - mx) + kotlin.math.abs(contentY - my) > 50.0
+        )
+    }
 }

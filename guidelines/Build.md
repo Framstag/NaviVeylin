@@ -198,8 +198,11 @@ only real `pkg:vcpkg/` components are kept, deduplicated by
 group+name+version across the three triplets (arm64 / arm-neon / x64 share the
 same software). The final merge combines JVM + native via the core-java model
 and records the submodule SHA (`git rev-parse HEAD` of
-`app/src/main/cpp/libosmscout`) as a `libosmscout` component. Every output
-passes `cyclonedx validate` inside the task.
+`app/src/main/cpp/libosmscout`) as a `libosmscout` component. The root
+component (`metadata.component`) is the application itself, stamped at the
+build version **with the application license** (`GPL-3.0-or-later`, the same
+`FIRST_PARTY_LICENSE_REF` constant the first-party components resolve
+through). Every output passes `cyclonedx validate` inside the task.
 
 **Known cyclonedx-cli quirks** (handled in the Gradle code — do not
 re-introduce): `--input-files` must be repeated per file (a single
@@ -256,13 +259,20 @@ unresolved, not permitted for its scope, or a choice without a recorded
 election. `checkLicensePolicy` covers the CI variant; the `release` target gates
 both release flavors. It is deliberately **not** wired into `assemble`: a policy
 failure must not block unrelated local work, but it must fail the gate that runs
-it. Warnings name licenses still awaiting the application's own license decision
-(`reviewRequired`) and every recorded caveat.
+it. Warnings surface every recorded caveat (unresolved evidence or a claim
+needing re-confirmation — e.g. libosmscout's version-less LGPL mapping on
+submodule bumps) and any license still awaiting the application's own license
+decision (`reviewRequired`; currently empty — the GPL-3.0-or-later decision
+covers the verified compatible shipped set).
 
 > The gate enforces the policy **declared** in this repository. It is not a
 > legal assessment, and passing it does not mean the project's obligations are
-> satisfied. The application's own license is undecided (`LICENSE` is a bare
-> GPLv2 text, `README.md` says "License information TBD") — see `TODO.md`.
+> satisfied. The application's own code is licensed under **GPL-3.0-or-later**
+> (`LICENSE` declares `SPDX-License-Identifier: GPL-3.0-or-later`; README §License
+> repeats it). Because GPL §5 requires a copy of the license with the program,
+> the full GPLv3 text is embedded in the inventory (`GPL-3.0-or-later.txt`).
+> Older *released* APKs built before this decision carry the previous TBD
+> inventory data — immutable, and not re-generated retroactively.
 
 **Policy file** (`licenses/license-policy.json`):
 
@@ -275,7 +285,10 @@ it. Warnings name licenses still awaiting the application's own license decision
   `LGPL-2.1-or-later AND LGPL-2.1-only`.
 - `licenseRefs` — SPDX's mechanism for licenses outside the SPDX list.
   `LicenseRef-AndroidSDK` (Play Services, terms at a URL, text not distributed)
-  and `LicenseRef-NaviVeylin` (first-party code, license undecided).
+  is the only remaining entry: first-party code used to resolve through
+  `LicenseRef-NaviVeylin`, but since the application license decision it
+  resolves to the plain SPDX id `GPL-3.0-or-later` (in `permitted.shipped`, with
+  embedded text).
 - `textSources` — where each identifier's text comes from, declared rather than
   inferred: `file` (canonical text under `licenses/texts/`), `vcpkgPort` (a
   port's `copyright`), `androidNdk` (the NDK's `NOTICE.toolchain`), or `none`.
@@ -284,8 +297,19 @@ it. Warnings name licenses still awaiting the application's own license decision
   came out as the entire NDK bundle, and `LGPL-2.1-or-later` came out as
   marisa-trie's one-line statement instead of the license text.
 - `noticeRequired` — identifiers whose notice must travel with redistribution.
-  Only *distributed* components are asked for one.
-- `reviewRequired` — identifiers awaiting the project owner's license decision.
+  Only *distributed* components are asked for one. `GPL-3.0-or-later` is listed
+  so the first-party license text is embedded like any other distributed
+  license.
+- `reviewRequired` — identifiers awaiting the project owner's license decision;
+  the gate reports them and never treats presence in the file as clearance.
+  Currently **empty**: the GPL-3.0-or-later application license decision covers
+  the third-party set verified GPLv3-compatible. Entries declare a `components`
+  scope (empty = every carrier); the decoder honours it, so a scoped entry warns
+  only the named components. The residual evidence duty for libosmscout (no
+  version clause → `LGPL-2.1-or-later` conservative mapping) lives in
+  `native-license-map.json`'s caveat (submodule LICENSE since 2026-03, commit
+  f4a9dabe7: LGPL plus app-store exceptions, **no GPL text**) and is reported by
+  the gate as a caveat on every build.
 
 **Generated assets.** `generateLicenseAssets<Variant>` (a `buildSrc` task,
 `GenerateLicenseAssets`) writes `licenses/dependencies.json` and
@@ -298,7 +322,7 @@ variant's inventory into another's APK (the automotive merged assets had picked
 up `licenses/mobile/debug/`). The app reads `licenses/dependencies.json` from its
 own assets — no shared directory, no runtime lookup by flavor.
 
-**buildSrc.** `./gradlew -p buildSrc test` runs the license suite (45 tests); the
+**buildSrc.** `./gradlew -p buildSrc test` runs the license suite (52 tests); the
 `build` task Gradle runs on every invocation includes them, and unchanged inputs
 are up-to-date. Java 17 toolchain is pinned there so Kotlin and Java targets
 agree (a newer daemon JVM otherwise emits an inconsistent-target warning).

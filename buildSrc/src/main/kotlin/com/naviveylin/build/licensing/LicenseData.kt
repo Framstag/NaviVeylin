@@ -88,7 +88,15 @@ object LicenseData {
                     textDistributed = value["textDistributed"] as? Boolean ?: false,
                 )
             },
-            reviewRequired = reviewRequired.mapNotNull { it["license"] as? String }.toSet(),
+            reviewRequired = reviewRequired.map { entry ->
+                ReviewRequiredEntry(
+                    license = entry["license"]?.toString() ?: "",
+                    components = (entry["components"] as? List<*>)
+                        ?.map { it.toString() }
+                        ?.toSet()
+                        .orEmpty(),
+                )
+            }.filter { it.license.isNotBlank() },
             noticeRequired = (root["noticeRequired"] as? List<*>).orEmpty()
                 .map { it.toString() }
                 .toSet(),
@@ -347,11 +355,19 @@ object LicenseData {
         val entries = components
             .filter { it.noticeRequired && it.identifiers.isNotEmpty() }
             .map { component ->
+                val qualified = component.group?.let { "$it:${component.name}" } ?: component.name
                 NoticeEntry(
-                    component = component.group?.let { "$it:${component.name}" } ?: component.name,
+                    component = qualified,
                     identifier = component.identifiers.joinToString(" AND "),
                     shipped = component.scope == Scope.SHIPPED.id,
-                    reviewRequired = component.identifiers.any { it in policy.reviewRequired },
+                    reviewRequired = component.identifiers.any { id ->
+                        policy.reviewRequired.any { entry ->
+                            entry.license == id &&
+                                (entry.components.isEmpty() || entry.components.any { scoped ->
+                                    scoped == component.name || scoped == qualified
+                                })
+                        }
+                    },
                 )
             }
 

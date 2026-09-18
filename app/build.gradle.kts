@@ -657,10 +657,14 @@ val licenseMapFile = rootProject.file("licenses/native-license-map.json")
 val licensePolicyFile = rootProject.file("licenses/license-policy.json")
 val licenseTextsDir = rootProject.file("licenses/texts")
 
-// Our own components resolve to a declared LicenseRef: the project's own license
-// is undecided, so the gate records that fact instead of exempting first-party
-// code from the rules the third-party components follow.
-val FIRST_PARTY_LICENSE_REF = "LicenseRef-NaviVeylin"
+// Our own components use the application's SPDX identifier: the project license
+// is GPL-3.0-or-later (LICENSE declares `SPDX-License-Identifier:`). First-party
+// code follows the same gate rules as third-party components, so the identifier
+// is in `permitted.shipped`.
+val FIRST_PARTY_LICENSE_REF = "GPL-3.0-or-later"
+
+/** Display name shown for the application's own license on the license screen. */
+val FIRST_PARTY_LICENSE_NAME = "GNU General Public License v3.0 or later"
 
 /** Group that our own Gradle modules and the application component use. */
 val FIRST_PARTY_GROUP = "NaviVeylin"
@@ -908,10 +912,10 @@ fun applyLicenseData(
             }
             firstParty -> {
                 declared = FIRST_PARTY_LICENSE_REF
-                declaredIsSpdx = false
+                declaredIsSpdx = true
                 scope = Scope.SHIPPED
-                caveat = "first-party code: the project's own license is undecided"
-                evidence = "first-party component ($name)"
+                caveat = null
+                evidence = "first-party component ($name); license declared in LICENSE"
             }
             else -> {
                 val (value, isSpdx) = declaredJvmLicense(component)
@@ -947,7 +951,15 @@ fun applyLicenseData(
                     if (resolution.identifier.startsWith(LicenseGate.LICENSE_REF_PREFIX)) {
                         addExpression(Expression(resolution.identifier))
                     } else {
-                        resolution.ids.forEach { addLicense(License().apply { id = it }) }
+                        resolution.ids.forEach { id ->
+                            val license = License().apply { this.id = id }
+                            // First-party components carry the application's license;
+                            // spell out its name so the license screen can show it.
+                            if (id == FIRST_PARTY_LICENSE_REF) {
+                                license.setName(FIRST_PARTY_LICENSE_NAME)
+                            }
+                            addLicense(license)
+                        }
                     }
                 }
                 resolution.ids.any { it in policy.noticeRequired } && scope == Scope.SHIPPED
@@ -1133,13 +1145,21 @@ sbomVariants.forEach { variant ->
                 description =
                     "LLVM OpenMP runtime shipped with the Android NDK toolchain (NDK ${android.ndkVersion})"
             }
-            // Top-level component: NaviVeylin at the build version.
+            // Top-level component: NaviVeylin at the build version, carrying the
+            // application license on the SBOM root (same source of truth as the
+            // first-party components; design D4).
             val metadataComponent = bom.metadata?.component
                 ?: Component().also { bom.metadata?.component = it }
             metadataComponent.apply {
                 type = Component.Type.APPLICATION
                 name = "NaviVeylin"
                 version = releaseVersion?.first ?: FALLBACK_VERSION_NAME
+                licenses = LicenseChoice().apply {
+                    addLicense(License().apply {
+                        id = FIRST_PARTY_LICENSE_REF
+                        setName(FIRST_PARTY_LICENSE_NAME)
+                    })
+                }
             }
             // License data: resolve every component, record distribution scope
             // and the evidence behind it, then validate the result.

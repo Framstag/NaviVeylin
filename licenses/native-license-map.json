@@ -75,7 +75,7 @@
       "scope": "shipped",
       "evidence": "libosmscout submodule README.md §License (\"The libraries itself are under LGPL\"); packaged as separate libosmscout*.so files",
       "textSource": "libosmscout",
-      "caveat": "The submodule LICENSE file contains the GNU GPL v2 text and no Lesser section, while README.md states LGPL; no source file carries a version clause. The LGPL-2.1-or-later value follows the upstream statement and must be confirmed by the owner of the application license decision."
+      "caveat": "The submodule LICENSE (upstream since 2026-03, commit f4a9dabe7) is a GNU Lesser General Public License document with five clarifications (app-store static linking, config/build-script edits, subclassing, inlined headers) and contains no GPL text; README.md states LGPL without a version, so LGPL-2.1-or-later is the conservative mapping. The application license decision (GPL-3.0-or-later) is compatible; re-confirm the mapping when the submodule is bumped."
     },
     "libpng": {
       "declared": "libpng-2.0",

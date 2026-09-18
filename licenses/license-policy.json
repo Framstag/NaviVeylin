@@ -17,13 +17,17 @@
     "`reviewRequired` lists licenses that need the application license decision before",
     "distribution; the gate reports them and never treats presence in this file as",
     "clearance. This file states what the build permits - it is not a legal opinion.",
+    "`reviewRequired` is currently empty: the application license decision",
+    "(GPL-3.0-or-later) is made and the third-party shipped set is verified",
+    "GPLv3-compatible; the residual libosmscout mapping duty (re-confirm on submodule",
+    "bump) lives in native-license-map.json's caveat, which the gate reports.",
     "`licenseRefs` declares identifiers for licenses that have no SPDX identifier:",
     "such a license may only be reported through a declared `LicenseRef-` entry, an",
     "undeclared non-SPDX license fails the gate, and `textDistributed: false` means the",
     "license screen links to `source` instead of embedding text.",
-    "The application's own license is undecided (LICENSE is a bare GPLv2 text and",
-    "README.md says \"License information TBD\"); the shipped set below records what is",
-    "in use today, not a settled position."
+    "The application's own code is licensed under GPL-3.0-or-later (LICENSE declares",
+    "`SPDX-License-Identifier: GPL-3.0-or-later`); first-party components resolve to",
+    "that SPDX identifier, which is therefore part of `permitted.shipped`."
   ],
   "permitted": {
     "shipped": [
@@ -32,8 +36,8 @@
       "BSD-2-Clause",
       "BSD-3-Clause",
       "FTL",
+      "GPL-3.0-or-later",
       "LicenseRef-AndroidSDK",
-      "LicenseRef-NaviVeylin",
       "MIT",
       "MIT-Modern-Variant",
       "MPL-1.1",
@@ -68,18 +72,6 @@
         "com.google.android.gms:play-services-tasks"
       ],
       "reason": "Google's SDK terms carry no SPDX identifier; the artifacts declare only a license name and a URL. The license screen links to the canonical terms instead of embedding a copy, which would redistribute a third party's terms and age silently."
-    },
-    "LicenseRef-NaviVeylin": {
-      "name": "NaviVeylin project license",
-      "source": "LICENSE",
-      "textDistributed": false,
-      "appliesTo": [
-        "NaviVeylin",
-        "auto",
-        "core",
-        "osmscout-client-java"
-      ],
-      "reason": "First-party code. The project's own license is undecided (LICENSE is a bare GPLv2 text and README.md says 'License information TBD'), so first-party components carry a declared LicenseRef rather than being exempted from the rules the third-party components follow."
     }
   },
   "elections": {
@@ -109,6 +101,7 @@
     "Apache-2.0 WITH LLVM-exception": { "kind": "androidNdk" },
     "BSD-2-Clause": { "kind": "file", "path": "BSD-2-Clause.txt" },
     "FTL": { "kind": "vcpkgPort", "port": "freetype" },
+    "GPL-3.0-or-later": { "kind": "file", "path": "GPL-3.0-or-later.txt" },
     "LGPL-2.1-or-later": { "kind": "vcpkgPort", "port": "fribidi" },
     "MIT": { "kind": "vcpkgPort", "port": "expat" },
     "MPL-1.1": { "kind": "vcpkgPort", "port": "cairo" },
@@ -122,6 +115,7 @@
     "BSD-2-Clause",
     "BSD-3-Clause",
     "FTL",
+    "GPL-3.0-or-later",
     "LGPL-2.1-or-later",
     "MIT",
     "MPL-1.1",
@@ -129,16 +123,5 @@
     "bzip2-1.0.6",
     "libpng-2.0"
   ],
-  "reviewRequired": [
-    {
-      "license": "LicenseRef-NaviVeylin",
-      "components": ["NaviVeylin", "auto", "core", "osmscout-client-java"],
-      "note": "The project's own license is undecided (LICENSE is a bare GPLv2 text, README.md says 'License information TBD')."
-    },
-    {
-      "license": "LGPL-2.1-or-later",
-      "components": ["libosmscout"],
-      "note": "libosmscout is distributed as separate shared objects and its stated license is LGPL while its LICENSE file carries GPLv2 text (see native-license-map.json caveat). Needs the application license decision."
-    }
-  ]
+  "reviewRequired": [],
 }

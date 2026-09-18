@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
@@ -47,17 +48,56 @@ class VehicleAnchorPickerScreen(
 
     private var settings: AutoSettings? = null
 
+    /**
+     * Render-recovery for the async settings load (spec: auto/preferences —
+     * "Settings screens never wedge on a loading placeholder"): watchdog
+     * re-invalidate, guarded invalidate, capped recovery ending in the error
+     * row, re-render on re-visibility.
+     */
+    private val guard = SettingsLoadGuard(
+        scope = scope,
+        invalidate = { invalidate() },
+        contentLoaded = { settings != null }
+    )
+
     init {
         enableBackNavigation()
+        loadSettings()
+        observeSettingsLifecycle(scope, guard)
+    }
+
+    private fun loadSettings() {
+        guard.onLoadStarted()
         scope.launch {
-            settings = settingsProvider.load()
-            invalidate()
+            val result = runCatching { settingsProvider.load() }
+            settings = result.getOrNull()
+            if (result.isFailure) {
+                Log.w(TAG, "settings load failed", result.exceptionOrNull())
+                guard.onLoadFailed()
+            } else {
+                guard.onLoadSucceeded()
+            }
         }
     }
 
+    /** Error-row Retry action: start a fresh load cycle (guard resets its budget). */
+    internal fun onRetry() = loadSettings()
+
     override fun onGetTemplate(): ListTemplate {
         val current = settings
-        val itemList = if (current == null) {
+        val itemList = if (guard.failed) {
+            // Recovery exhausted (or the load itself failed): explicit error
+            // row with Retry instead of an inert infinite placeholder.
+            ItemList.Builder()
+                .addItem(Row.Builder().setTitle(carContext.getString(R.string.settings_unavailable)).build())
+                .addItem(
+                    Row.Builder()
+                        .setTitle(carContext.getString(R.string.retry))
+                        .setOnClickListener { onRetry() }
+                        .build()
+                )
+                .build()
+        } else if (current == null) {
             ItemList.Builder()
                 .addItem(Row.Builder().setTitle(carContext.getString(R.string.loading)).build())
                 .build()
@@ -92,12 +132,34 @@ class VehicleAnchorPickerScreen(
     private fun headerTitleRes(): Int =
         if (mode == Mode.ROUTING) R.string.vehicle_position_routing else R.string.vehicle_position_free_driving
 
+    /** True while a persist is in flight — rejects a second tap (double-pop guard). */
+    private var saveInFlight = false
+
     /**
-     * Persist the chosen anchor id to the shared settings and return to the
-     * preferences screen. The value keeps its identity on the phone.
+     * Persist the chosen anchor id to the shared settings, then return to the
+     * preferences screen — the pop runs only AFTER the write completed, so
+     * dismissing the picker can never drop the selection (spec: auto-map-layout
+     * — "Anchor selection survives immediate dismissal"). A failed save keeps
+     * the picker open with the guard's error/retry row instead of silently
+     * losing the value.
      */
     internal fun onSelect(anchorId: String) {
-        scope.launch { persistSelection(anchorId) }
+        if (saveInFlight) return
+        saveInFlight = true
+        scope.launch {
+            val saved = runCatching { persistSelection(anchorId) }.isSuccess
+            if (saved) {
+                finishSelection()
+            } else {
+                saveInFlight = false
+                Log.w(TAG, "persist failed — keeping picker open")
+                guard.onLoadFailed()
+            }
+        }
+    }
+
+    /** Pop back to the preferences screen after the selection is persisted. */
+    internal fun finishSelection() {
         screenManager.pop()
     }
 
@@ -126,6 +188,8 @@ class VehicleAnchorPickerScreen(
         anchor.label + if (selected) " (current)" else ""
 
     private companion object {
+        private const val TAG = "VehicleAnchorPickerScreen"
+
         fun settingsProviderFor(carContext: CarContext): AutoSettingsProvider =
             EntryPointAccessors.fromApplication(
                 carContext.applicationContext,

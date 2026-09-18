@@ -53,19 +53,29 @@ travel while the map itself rotates at its own pace.
   display offset then carries the prediction drift only (`FollowPrediction.displayOffsetPx` with the
   anchor parameters). Subtracting the anchor a second time from the drawn offset pushes the frame
   outside the overrun margin and paints an uncovered strip of `surfaceColor`.
-- **The anchor fraction is relative to the VISIBLE map area, and the resolved value is published once.**
-  `resolveAnchorFraction(preset, left/top/right/bottom insets, W, H)` maps the preset into the canvas
-  minus the regions the app's own overlays cover (phone: next-turn card, routing-status card, widget
-  column, street-name pill — measured via `onSizeChanged` and pushed with
-  `MapCanvasViewModel.setMapOverlayInsets`), and clamps the result into `0.1..0.9`. The ViewModel
-  publishes it as `MapCanvasUiState.resolvedAnchor`; the follow render target and the Compose marker
-  overlay both consume that value — never re-derive it. With no measured overlay (browse mode, tests)
-  the resolution is the identity, which is the pre-feature framing.
-  **Android Auto is the exception**: the host panel is 40% of the surface width on the leading edge
-  (`PANE_FRACTION`, side from `isHostPaneOnRight`), and remapping the whole grid into the remaining
-  strip would move the default preset to 0.7 and change the specified default framing. There the
-  panel is a forbidden band instead: `clampAnchorOutOfPane` moves only the presets that fall inside it
-  (`AutoMapRenderer.anchorCenterFor`).
+- **The anchor fraction is relative to the map canvas, and the resolved value is published once.**
+  `resolveAnchorFraction(preset, left/top/right/bottom insets, W, H)` keeps the preset fraction exact
+  unless the marker — its footprint plus padding — falls inside a covered region (phone: next-turn card,
+  routing-status card, widget column, street-name pill — measured via `onSizeChanged` and pushed with
+  `MapCanvasViewModel.setMapOverlayInsets`); a covered preset moves per axis to the nearest free position
+  (covered-region edge + the grid's 10% margin), and the result is clamped into `0.1..0.9`. The ViewModel
+  publishes it as `MapCanvasUiState.resolvedAnchor`; the follow render target, the Compose marker
+  overlay **and the follow blit offset** (`FollowPrediction.displayOffsetPx`) all consume that value —
+  never re-derive it and never pass the raw preset: a blit computed against the preset while the frame
+  renders on the resolved fraction leaves the marker ahead of the content by the anchor delta and keeps
+  the offset outside the overrun margin (500 ms re-render churn). With no measured overlay (browse mode, tests)
+  every preset resolves to its exact fraction; non-covered presets (including the default center/center)
+  do the same with overlays present, so the default framing is exactly the pre-feature framing in every
+  mode and orientation (a 2026-09-16 on-device report — vehicle left of center in portrait navigation —
+  showed the earlier visible-area *remap* moving the default; collision-remap replaced it).
+  **Android Auto uses the same collision rule** for its host panel: the panel is 40% of the surface
+  width on the leading edge (`PANE_FRACTION`, side from `isHostPaneOnRight`), treated as a forbidden
+  band — `clampAnchorOutOfPane` moves only the presets that fall inside it and never the default
+  (`AutoMapRenderer.anchorCenterFor`). The AA follow blit offset uses that same resolved value
+  (`resolvedFollowAnchor()` at both `displayOffsetPx` call sites) — passing the raw preset there keeps
+  the offset outside the overrun margin for pane-band presets, turning every tick into a full render.
+  A remap of the whole grid into the remaining strip was tried and
+  rejected: it moves the default preset to 0.7 and changes the specified default framing.
 - The anchor presets are bounded to `0.1..0.9` on purpose: that is exactly the overrun margin
   (`(1.2 − 1)/2 = 0.1` of the surface), so the visible window always lies inside the rendered frame.
   A new preset outside that range would require a larger `canvasOverrun`, and
@@ -85,12 +95,55 @@ travel while the map itself rotates at its own pace.
   remembers the offset the displayed frame was blitted by (`blitOffsetX/Y` — set in `blitToSurface`,
   reset for a fresh render in `drawToSurface`) and every map-content overlay subtracts it. Same rule,
   different mechanism: an overlay that projects map content must carry the blit offset.
+- **Displayed frame, not the pending render target (delta `overlay-projects-against-displayed-frame`):**
+  `AutoMapRenderer` keeps TWO frame descriptions: the pending render target (`viewportLat/Lon`,
+  `viewportZoomFraction`, `viewportAngle` — written by `setViewport`, `reCenter`, `reengageFollow` and
+  the extrapolation clamp branch) and the DISPLAYED frame (`overrunLat/Lon`, `overrunMag`,
+  `overrunAngle` plus the blit offset — published when a frame is committed in `fullRender` or blitted
+  in `blitToSurface`). Every overlay projects against the DISPLAYED frame through
+  `displayedLat/Lon/Mag/Angle` (falling back to the target before the first frame exists). The two
+  differ for one render latency (100 ms debounce + one Cairo render) after EVERY viewport write, and
+  the AA fix path (`setViewport` + `reengageFollow`) re-anchors the target on each fix — projecting the
+  marker/pin against the target detaches them from the map content by that delta (one fix step: ~17 px
+  at 50 km/h, mag 16, and margin-sized when the clamp branch also moves the target) and snaps them back
+  on the commit. The phone has the same separation (`renderViewport` is committed atomically with
+  `renderedBitmap`); do not "simplify" either side into a single frame field.
+- **The follow blit offset is measured on the displayed vehicle position**, not on the frame center:
+  `renderFrame` passes the displayed position (`markerPosition()`) to
+  `FollowPrediction.displayOffsetPx`, with `overrunLat/Lon` as the frame. A frame *center* is not a
+  point of the rendered bitmap, so passing it charges the offset with the anchor displacement
+  (`(fy − 0.5) × h` — 240 px for a bottom-row preset on a 600 px surface) against a 60 px margin: the
+  offset is permanently clamped and every follow viewport change (i.e. every fix while heading-up)
+  falls back to a full native render. Measured before the fix: **101 full renders for 105 fixes** in
+  104 s; the blit path was reachable only for the exact center anchor.
 - **`viewport.center` vs render target:** `MapCanvasUiState.viewport.center*` always means "the geo
   position at the screen center" — in follow mode that IS the anchor center, and it is what gesture
   commits (`rotateZoomAtFocalPoint`), the mini-map and the route-fit helpers must use. The emitted
   `renderViewport` is the frame's geometry (center/mag/angle) for the marker and the display loop.
   Leaving the vehicle position in `viewport.center` would make it a lie of up to 0.4 screen and jump
   on the first pan after re-engage.
+- **Single follow center (delta fix-follow-vehicle-jumps):** the displayed (eased predicted)
+  position IS the follow center. The display loop (`MapCanvasScreen`) writes
+  `MapCanvasViewModel.followDisplayLat/Lon` every frame; BOTH follow render paths (the per-fix
+  zoom/rotation commit and the clamp re-anchor `renderFollowFrameAt`) anchor on it via
+  `followRenderTarget` — never on a raw-fix-derived center. A fix updates prediction/state only;
+  position scroll happens in the display loop within the overrun margin (the fix-arrival sawtooth
+  was the per-fix re-centers alternating with the clamp re-centers). Fallback to the marker fix
+  only before the first display frame.
+- **Frozen stop/go (same delta):** below `FOLLOW_MIN_SPEED_KMH` the displayed position and the
+  blit offset are FROZEN, never reset, and the marker keeps riding the frozen displayed position;
+  the display is reset (offsets zeroed) only when follow mode disengages. The monotonic
+  forward-only ease lives in `core/FollowDisplayState` (holds when the fix-arrival target drops
+  behind; snaps when the target gap exceeds `TELEPORT_SNAP_METERS`).
+- **AA follow loop shares the same contract (delta fix-aa-follow-vehicle-jumps):**
+  `AutoMapRenderer`'s extrapolation loop drives the displayed position through the SAME
+  `FollowDisplayState` (phone and AA now use one tested forward-only rule) — `extrapolationTick`
+  re-syncs the state after any frozen gap and copies the advance back into the `@Volatile`
+  display fields. The stopped gate FROZES the display + marker (no NaN reset / raw-fix fallback;
+  a stationary fix re-seeds the viewport to the fix ONCE per stop episode, then jitter fixes are
+  inert). The margin render request is throttled at `RENDER_REQUEST_INTERVAL_MS` = 200 ms (phone
+  parity), shrinking the freeze-then-advance step at the overrun edge; the resolved-anchor blit
+  call sites in the same function stay untouched (single resolved anchor rule above).
 
 ## 2. Bitmap Lifecycle (CRITICAL — caused "jumps" multiple times)
 

@@ -41,9 +41,12 @@ licenses/             → Curated license data: native license map, license poli
 
 ### License compliance
 
+- The application's own code is licensed under **GPL-3.0-or-later** (`LICENSE`,
+  `SPDX-License-Identifier: GPL-3.0-or-later`). First-party components resolve to
+  that SPDX identifier; there is no `LicenseRef-NaviVeylin` anymore.
 - `licenses/native-license-map.json` and `licenses/license-policy.json` are the
   curated inputs; `buildSrc` holds the pure logic (`./gradlew -p buildSrc test`,
-  45 tests, run as part of every build).
+  52 tests, run as part of every build).
 - Task group `license`: `generateLicenseAssets<Variant>` (writes each variant's
   `licenses/dependencies.json`, `licenses/texts/*`, and the `NOTICE` next to the
   SBOM) and `checkLicensePolicy<Variant>` / `checkLicensePolicy` (the gate; not

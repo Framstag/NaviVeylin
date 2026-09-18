@@ -1,32 +1,6 @@
-# Android Auto Map Renderer (auto-map-renderer)
+# Spec Delta: auto-map-renderer
 
-## Purpose
-
-Render libosmscout map tiles to the Android Auto display using `MapTemplate` with a custom `Surface` renderer, providing visual map context alongside turn-by-turn navigation.
-
-## Requirements
-
-### Requirement: Map rendered on car display
-The system SHALL render a libosmscout map on the Android Auto car display using `MapTemplate` with a custom `Surface` renderer backed by `OSMScoutClient.renderWithRouteAndPois()`.
-
-#### Scenario: Map shown when not navigating
-- **WHEN** Android Auto is connected and no navigation is active
-- **THEN** the car screen shows a browsable map centered on the current GPS position (or last known position)
-
-#### Scenario: Map shown during navigation
-- **WHEN** navigation is active on Android Auto
-- **THEN** the car screen shows the `NavigationTemplate` with turn-by-turn guidance (existing behavior unchanged)
-
-### Requirement: Map renders at correct center and zoom
-The system SHALL render the map at the correct geographic center, zoom level, and rotation angle matching the current viewport state.
-
-#### Scenario: Map renders at GPS position
-- **WHEN** the car map is displayed and GPS position is available
-- **THEN** the map centers on the current GPS latitude/longitude at a default zoom level
-
-#### Scenario: Map rotation follows navigation heading
-- **WHEN** navigation is active and the car map is visible
-- **THEN** the map rotates to match the driving direction (north-up mode available as toggle)
+## MODIFIED Requirements
 
 ### Requirement: GPS position marker on car map
 
@@ -75,17 +49,6 @@ The system SHALL display the current GPS position as a marker on the car map, re
 - **WHEN** the Android Auto marker is drawn
 - **THEN** it renders the same geometry and palette as the phone marker (rounded-tip arrow with tail, casing, rim, gradient core, blurred shadow)
 
-### Requirement: Favorites markers on car map
-The system SHALL display favorite location markers on the car map, reusing `FavoriteRepository.favorites` data.
-
-#### Scenario: Favorites shown on map
-- **WHEN** the car map is displayed and favorites exist
-- **THEN** favorite location markers appear on the map
-
-#### Scenario: Favorites update on change
-- **WHEN** a favorite is added, removed, or modified on the phone
-- **THEN** the car map markers update to reflect the change
-
 ### Requirement: Map re-renders on viewport change
 
 The system SHALL update the displayed map when the viewport center, zoom, or rotation changes. A viewport center change within the overrun region SHALL be served by blitting the overrun buffer; a full re-render SHALL occur only when the center exits the overrun region or when zoom or rotation changes. This SHALL hold for every vehicle anchor preset: the blit offset SHALL be derived from the displayed vehicle position, never from the frame center, because a frame center is not a point of the rendered bitmap and charging the offset with the anchor displacement pushes it outside the overrun margin for every preset away from the surface center.
@@ -118,32 +81,3 @@ The system SHALL update the displayed map when the viewport center, zoom, or rot
 - **THEN** the surface SHALL be updated by blitting the overrun buffer
 - **AND** no full native render SHALL be initiated for that center change
 - **AND** the vehicle content SHALL hold the resolved anchor fraction
-
-### Requirement: Map follows host day/night
-
-The system SHALL render the car map surface using the host's day/night state: the dark style sheet variant (the `daylight` flag unset) when the host reports night mode, and the daylight variant when the host reports day mode. The host's state SHALL be read from the car environment (`CarContext.isDarkMode()`), not from the phone's system night mode. A change in the host's day/night state while the car app is running SHALL re-render the visible map without user interaction and SHALL NOT show cached tiles or patterns from the previous variant.
-
-#### Scenario: Map renders dark at night
-
-- **WHEN** the car app starts while the host reports night mode
-- **THEN** the map surface is rendered with the dark style sheet variant
-
-#### Scenario: Map renders light during the day
-
-- **WHEN** the car app starts while the host reports day mode
-- **THEN** the map surface is rendered with the daylight style sheet variant
-
-#### Scenario: Map switches live on host change
-
-- **WHEN** the host changes its day/night state while the car app is running (e.g. entering a tunnel)
-- **THEN** the map surface re-renders with the new variant without user interaction
-
-#### Scenario: Map darkens from the start
-
-- **WHEN** a map database is opened while the host reports night mode
-- **THEN** the first render uses the dark style sheet variant
-
-#### Scenario: Phone night mode does not drive the car map
-
-- **WHEN** the phone's system night mode differs from the host's day/night state
-- **THEN** the car map surface follows the host's state, not the phone's

@@ -17,7 +17,7 @@ The system SHALL render the AA map at a size larger than the car surface (approx
 
 ### Requirement: Sub-region blit on viewport change
 
-The system SHALL serve a viewport change within the overrun region by drawing the shifted overrun buffer to the surface instead of performing a full native render.
+The system SHALL serve a viewport change within the overrun region by drawing the shifted overrun buffer to the surface instead of performing a full native render. This SHALL hold for every vehicle anchor preset: the blit offset SHALL be derived from the displayed vehicle position within the frame, never from the frame center, since the overrun buffer is rendered anchor-centered and a frame center is not a point of the rendered bitmap.
 
 #### Scenario: Small GPS move served by blit
 
@@ -30,6 +30,20 @@ The system SHALL serve a viewport change within the overrun region by drawing th
 - **WHEN** the viewport center moves beyond the overrun region
 - **THEN** a full native render SHALL be initiated at the new center
 - **AND** the overrun buffer SHALL be refreshed
+
+#### Scenario: Follow-mode fix re-anchor served by blit
+
+- **WHEN** a GPS fix re-anchors the follow frame and the new frame center stays within the overrun region
+- **THEN** the surface SHALL be updated by blitting the overrun buffer
+- **AND** no full native render SHALL be initiated by that fix
+- **AND** the frame SHALL hold the vehicle at the resolved anchor fraction
+
+#### Scenario: Non-center anchor preset does not force a full render
+
+- **WHEN** the follow anchor resolves away from the surface center (e.g. a bottom-row preset)
+- **AND** the frame center moves by a delta that stays within the overrun region
+- **THEN** the blit offset SHALL remain inside the overrun margin
+- **AND** the frame SHALL be served by a blit instead of a full native render
 
 ### Requirement: Display center extrapolation
 
@@ -116,3 +130,25 @@ The system SHALL feed every GPS fix's speed, heading and timestamp to the map re
 - **WHEN** a fix arrives with no GPS bearing while a follow-mode screen is active
 - **THEN** the screen uses the movement direction between the consecutive fixes as the heading for the prediction
 - **AND** keeps the last effective bearing when the fix moved too little to yield a direction
+
+### Requirement: Single resolved anchor in the AA follow blit
+
+In AA follow mode the follow blit offset SHALL be computed against the same **resolved** anchor screen fraction the AA frame render target uses — the `clampAnchorOutOfPane` result against the host pane band (left in LTR, right in RTL) — never the raw preset.
+
+- The blit offset (`FollowPrediction.displayOffsetPx`) SHALL receive the resolved fraction at both blit sites (the extrapolation-loop blit and `renderFrame`'s blit path), so the pane-band presets are held at their resolved screen fraction
+- With the frame rendered anchor-centered on the resolved fraction and the blit computed against it, the blit SHALL stay a pure prediction drift inside the overrun margin — never permanently clamped for a pane-band preset (a permanently clamped offset converts every tick into a full native render instead of a sub-region blit)
+- The AA marker SHALL keep riding the blitted content (marker projection subtracts the same blit offset); the change SHALL NOT alter the marker-to-content glue
+
+#### Scenario: Far-left preset against an LTR host pane
+
+- **WHEN** the user selects a far-left preset (fx 0.1), the host draws its pane on the left (LTR) covering 40% of the surface width, and follow mode drives the map in navigation or free driving
+- **THEN** the frame SHALL render anchor-centered on the resolved fraction (moved out of the pane band)
+- **AND** the blit offset SHALL be computed against that same resolved fraction
+- **AND** the blit offset SHALL NOT be clamped while the display and the rendered frame are aligned (no full-render churn)
+- **AND** the vehicle marker SHALL stay on the map content at the resolved screen fraction
+
+#### Scenario: Far-right preset against an RTL host pane
+
+- **WHEN** the user selects a far-right preset (fx 0.9) and an RTL host draws its pane on the right
+- **THEN** the far-right preset SHALL resolve out of the pane band and the blit SHALL use the resolved fraction exactly as in the LTR case
+- **AND** presets outside the band (including the default center) SHALL keep their exact fraction and unchanged behavior

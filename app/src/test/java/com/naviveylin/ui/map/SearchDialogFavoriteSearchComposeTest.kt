@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.SearchReference
 import com.naviveylin.data.SearchHistoryEntry
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -46,8 +47,7 @@ class SearchDialogFavoriteSearchComposeTest {
                 isSearching = false,
                 gpsAvailable = false,
                 adminRegionName = null,
-                centerLat = 51.5136,
-                centerLon = 7.4653,
+                distanceReference = SearchReference(51.5136, 7.4653),
                 historyEntries = emptyList<SearchHistoryEntry>(),
                 favoriteGroups = emptyMap(),
                 onQueryChanged = {},

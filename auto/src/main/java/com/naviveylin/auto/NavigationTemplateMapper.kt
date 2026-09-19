@@ -2,12 +2,16 @@ package com.naviveylin.auto
 
 import androidx.car.app.CarContext
 import androidx.car.app.model.CarIcon
+import androidx.car.app.model.DateTimeWithZone
 import androidx.car.app.model.Distance
+import androidx.car.app.navigation.model.Destination
 import androidx.car.app.navigation.model.Lane
 import androidx.car.app.navigation.model.LaneDirection
 import androidx.car.app.navigation.model.Maneuver
 import androidx.car.app.navigation.model.RoutingInfo
 import androidx.car.app.navigation.model.Step
+import androidx.car.app.navigation.model.TravelEstimate
+import androidx.car.app.navigation.model.Trip
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
@@ -18,6 +22,7 @@ import com.naviveylin.core.TurnInstructionLocalizer
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.roundDistanceMeters
 import com.naviveylin.core.stringResolver
+import java.util.TimeZone
 
 /**
  * Pure mapping functions for converting navigation state to Android Auto template values.
@@ -228,5 +233,119 @@ object NavigationTemplateMapper {
                 old.isRerouting != newState.isRerouting ||
                 old.laneCount != newState.laneCount ||
                 old.laneTurns != newState.laneTurns
+    }
+
+    /**
+     * Host [Trip] for the cluster / heads-up display (spec: auto-navigation-hints
+     * — "Trip metadata for cluster and heads-up display"): the current step
+     * with its maneuver icon, cue and road, the step's travel estimate, the
+     * destination and the current road.
+     *
+     * Null when navigation is not active — `NavigationManager.updateTrip`
+     * rejects updates outside an active navigation session, so free driving
+     * publishes nothing. While the route is recalculating, or while the arrival
+     * time is not known yet, a loading trip without steps is returned (the API
+     * forbids steps in the loading state), which is what the host shows as a
+     * transient state.
+     *
+     * @param iconForTurn maneuver artwork provider (shared with the template)
+     * @param nowMillis wall clock used for the step's remaining time; injectable
+     *   for tests
+     * @param timeZone time zone of the arrival times; injectable for tests
+     */
+    fun tripFromState(
+        state: NavigationState,
+        iconForTurn: (TurnType) -> CarIcon,
+        resolver: StringResolver,
+        nowMillis: Long = System.currentTimeMillis(),
+        timeZone: TimeZone = TimeZone.getDefault()
+    ): Trip? {
+        if (!state.isNavigating) return null
+        if (state.isRerouting) return loadingTrip()
+
+        val current = state.nextInstruction
+            ?: state.instructions.getOrNull(state.currentStepIndex)
+            ?: return loadingTrip()
+        if (state.etaMillis <= 0L) return loadingTrip()
+
+        val step = stepForInstruction(current, iconForTurn(current.turnType), resolver = resolver)
+        val stepArrivalMillis = if (current.timeTo > 0.0) {
+            nowMillis + (current.timeTo * 1000.0).toLong()
+        } else {
+            state.etaMillis
+        }
+        val stepEstimate = TravelEstimate.Builder(
+            distanceForDisplay(current.distanceTo),
+            DateTimeWithZone.create(stepArrivalMillis, timeZone)
+        ).apply {
+            if (current.timeTo > 0.0) setRemainingTimeSeconds(current.timeTo.toLong())
+        }.build()
+
+        val builder = Trip.Builder().addStep(step, stepEstimate)
+        destinationFromState(state, nowMillis, timeZone)?.let { (destination, estimate) ->
+            builder.addDestination(destination, estimate)
+        }
+        current.streetName?.takeIf { it.isNotBlank() }?.let { builder.setCurrentRoad(it) }
+        return builder.build()
+    }
+
+    /** Transient host state: recalculating, or no usable step/arrival time yet. */
+    private fun loadingTrip(): Trip = Trip.Builder().setLoading(true).build()
+
+    /**
+     * Destination and its travel estimate, or null when the route carries no
+     * usable destination text (the API rejects a destination without name or
+     * address).
+     */
+    private fun destinationFromState(
+        state: NavigationState,
+        nowMillis: Long,
+        timeZone: TimeZone
+    ): Pair<Destination, TravelEstimate>? {
+        val name = state.destinationName?.takeIf { it.isNotBlank() }
+            ?: coordinatesText(state)
+            ?: return null
+        val destination = Destination.Builder().setName(name).build()
+        val estimate = TravelEstimate.Builder(
+            distanceForDisplay(state.remainingDistance),
+            DateTimeWithZone.create(state.etaMillis, timeZone)
+        ).apply {
+            // Never a negative duration: the API rejects anything negative but
+            // REMAINING_TIME_UNKNOWN. An ETA in the past keeps the unknown value.
+            val remainingSeconds = (state.etaMillis - nowMillis) / 1000
+            if (remainingSeconds > 0) setRemainingTimeSeconds(remainingSeconds)
+        }.build()
+        return destination to estimate
+    }
+
+    /**
+     * Coordinates as the destination text when the route has no name. Locale
+     * stable (like the location labels): a coordinate string is data, not
+     * display text.
+     */
+    private fun coordinatesText(state: NavigationState): String? {
+        if (state.destLat.isNaN() || state.destLon.isNaN()) return null
+        return String.format(java.util.Locale.US, "%.5f, %.5f", state.destLat, state.destLon)
+    }
+
+    /**
+     * Whether the host-visible trip content changed (spec: auto-navigation-hints
+     * — "Trip publishing cadence"): maneuver, rounded distance, remaining time
+     * or the loading state. Speed-only and position-only updates do not
+     * publish, so the host is not flooded at the position update rate.
+     */
+    fun hasTripChanged(previous: NavigationState?, current: NavigationState): Boolean {
+        val old = previous ?: return true
+        return old.isNavigating != current.isNavigating ||
+                old.isRerouting != current.isRerouting ||
+                old.nextInstruction?.turnType != current.nextInstruction?.turnType ||
+                old.nextInstruction?.shortDescription != current.nextInstruction?.shortDescription ||
+                old.nextInstruction?.streetName != current.nextInstruction?.streetName ||
+                roundDistanceMeters(old.nextInstruction?.distanceTo ?: 0.0) !=
+                    roundDistanceMeters(current.nextInstruction?.distanceTo ?: 0.0) ||
+                roundDistanceMeters(old.remainingDistance) !=
+                    roundDistanceMeters(current.remainingDistance) ||
+                old.etaMillis / 1000 != current.etaMillis / 1000 ||
+                old.destinationName != current.destinationName
     }
 }

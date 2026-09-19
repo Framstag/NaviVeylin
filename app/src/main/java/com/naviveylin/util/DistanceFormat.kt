@@ -1,26 +1,6 @@
 package com.naviveylin.util
 
 import java.util.Locale
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
-
-/** Earth radius in meters, matching the haversine implementations in MapRenderer and MapCanvasViewModel. */
-private const val EARTH_RADIUS_METERS = 6371000.0
-
-/**
- * Great-circle (haversine) distance between two coordinates in meters.
- * Returns [Double.POSITIVE_INFINITY] when any coordinate is NaN.
- */
-fun haversineDistanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-    if (lat1.isNaN() || lon1.isNaN() || lat2.isNaN() || lon2.isNaN()) return Double.POSITIVE_INFINITY
-    val dLat = Math.toRadians(lat2 - lat1)
-    val dLon = Math.toRadians(lon2 - lon1)
-    val a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2)
-    return 2 * EARTH_RADIUS_METERS * atan2(sqrt(a), sqrt(1 - a))
-}
 
 /**
  * Format a distance in meters as a kilometer string for display, mirroring
@@ -28,18 +8,13 @@ fun haversineDistanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Doub
  * decimal place so nearby results are distinguishable, larger distances round
  * to whole kilometers.
  *
- * Locale-aware (German comma decimals). Returns the numeric part only; the
- * "km" unit suffix comes from a string resource (`distance_unit_km`).
+ * Delegates to the single implementation in `:core` (`formatDistanceKm`), which
+ * the Android Auto search rows also use, so both surfaces format a search
+ * distance identically.
  *
  * @param meters distance in meters
  * @param locale locale for decimal separators (default: device locale)
  * @return formatted value, e.g. "0.5" or "12"
  */
-fun formatDistanceKm(meters: Double, locale: Locale = Locale.getDefault()): String {
-    val km = meters / 1000.0
-    return if (km < 10.0) {
-        String.format(locale, "%.1f", km)
-    } else {
-        String.format(locale, "%.0f", km)
-    }
-}
+fun formatDistanceKm(meters: Double, locale: Locale = Locale.getDefault()): String =
+    com.naviveylin.core.formatDistanceKm(meters, locale)

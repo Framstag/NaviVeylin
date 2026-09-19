@@ -16,6 +16,7 @@ import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.BundledMapStyles
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.ResolvedAnchor
@@ -23,6 +24,9 @@ import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.resolveAnchorFraction
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.SearchQueryParser
+import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.SearchResultRanker
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.DarkModeController
@@ -130,6 +134,14 @@ data class MapCanvasUiState(
     val showCandidatePicker: Boolean = false,
     /** Selected POI category id, null while none is selected (never preselected). */
     val poiCategory: String? = null,
+    /**
+     * Reference point the current Places result list was ranked and measured
+     * against (last known GPS fix, else the map center), null when neither is
+     * available. Ranking and the displayed distance both read this one value,
+     * so the numbers cannot contradict the order (spec: search-result-ranking
+     * — "Distance reference for ordering and display").
+     */
+    val searchReference: SearchReference? = null,
     /** POI search radius in meters. */
     val poiRadiusMeters: Double = MapCanvasViewModel.DEFAULT_POI_RADIUS_METERS,
     /** POI search results, empty until the user triggers a search. */
@@ -529,6 +541,17 @@ class MapCanvasViewModel @Inject constructor(
     // stale re-emissions must not move a user-moved viewport). Reset to null
     // when the route is cleared so an identical re-calculation can refit.
     private var lastFittedResult: RouteResult? = null
+
+    // Pending route-overview fit (spec: route-map-overview, Decision 8). The fit
+    // runs one settle delay after the result arrives so the route panel reports
+    // its final measured height; a newer result, a cleared route, or a user
+    // gesture inside the window cancels it.
+    private var routeFitJob: Job? = null
+
+    // Covered height (px) of the open route panel, reported by RoutePanel from
+    // the Material3 sheet offset. The fit shrinks the fitting height by it and
+    // moves the center so the overview lands in the visible map area.
+    private var routePanelCoveredHeightPx: Int = 0
 
     /** Get the current navigation position for marker rendering. */
     fun getNavigationPosition(): com.framstag.libosmscout.client.NavigationPosition? = _navPosition
@@ -1539,10 +1562,23 @@ class MapCanvasViewModel @Inject constructor(
 
     internal suspend fun searchLocations(query: String): List<LocationEntry> = withContext(defaultDispatcher) {
         val handle = currentSearchAdminRegionHandle()
-        Log.d(TAG, "searchLocations: query='$query', adminRegionHandle=$handle")
         try {
-            val entries = client.searchLocations(query, 20, handle)
-            entries?.toList() ?: emptyList()
+            // A candidate set larger than the displayed list: the ranker needs
+            // the candidates the backend's own order would have truncated away
+            // (spec: search-result-ranking — "Candidate set larger than
+            // displayed list").
+            val startedNs = System.nanoTime()
+            val entries = client.searchLocations(query, SearchResultRanker.CANDIDATE_LIMIT, handle)
+            val results = entries?.toList() ?: emptyList()
+            // Candidate count and elapsed native time: the device check for the
+            // larger candidate set (design D3) reads this line.
+            Log.d(
+                TAG,
+                "searchLocations: query='$query', adminRegionHandle=$handle, " +
+                    "candidates=${results.size}, limit=${SearchResultRanker.CANDIDATE_LIMIT}, " +
+                    "nativeMs=${(System.nanoTime() - startedNs) / 1_000_000}"
+            )
+            results
         } catch (e: Exception) {
             Log.e(TAG, "searchLocations failed", e)
             emptyList()
@@ -1550,21 +1586,67 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
+     * Reference point for search distances and ranking: the last known GPS fix
+     * (however old — the region scope uses it the same way), else the current map
+     * center; null when neither is usable, in which case the list is ordered
+     * without distances and shows none (spec: search-result-ranking).
+     */
+    private fun searchDistanceReference(): SearchReference? {
+        val fix = _uiState.value.gpsLocation
+        if (fix != null && fix.lat.isFinite() && fix.lon.isFinite()) {
+            return SearchReference(fix.lat, fix.lon)
+        }
+        val viewport = _uiState.value.viewport
+        return if (viewport.centerLat.isFinite() && viewport.centerLon.isFinite()) {
+            SearchReference(viewport.centerLat, viewport.centerLon)
+        } else {
+            null
+        }
+    }
+
+    /**
      * Native location search merged with favorites matching the query
      * (spec: favorite-search): favorite hits first, native results marked
      * when they match a favorite, identical objects deduplicated.
+     *
+     * Native results are ranked by the match tier rule before merging (spec:
+     * search-result-ranking), the perfect-match fact is attached to each row so
+     * the marking and the order come from one decision, and the list is cut to
+     * the displayed maximum as the best-ranked prefix of the candidate set.
      */
     internal suspend fun mergeSearchResults(query: String): List<MergedSearchResult> {
         val nativeResults = searchLocations(query)
-        // Full formatted addresses (street + house + PLZ + city) resolve via
-        // the structured form search first; its house-level results rank
-        // above the raw string results, which drop such queries when a postal
-        // code sits inside the query (spec: location-search "Full formatted
-        // address resolution").
-        val structured = StructuredAddressSearch.resolve(query, client)
-        val combined = StructuredAddressSearch.merge(structured, nativeResults)
-        val favorites = favoriteRepository.favorites.value.values.flatten()
-        return favoriteSearchMerger.merge(query, favorites, combined)
+        // Everything after the native string search is CPU work over up to
+        // CANDIDATE_LIMIT entries plus a second native query (the structured form
+        // search) — kept off the main thread together with the ranking
+        // (guidelines/Design.md §4, design D12). The state write below stays on
+        // the caller's context.
+        val (merged, reference) = withContext(defaultDispatcher) {
+            // Full formatted addresses (street + house + PLZ + city) resolve via
+            // the structured form search first; its house-level results rank
+            // above the raw string results, which drop such queries when a postal
+            // code sits inside the query (spec: location-search "Full formatted
+            // address resolution").
+            val structured = StructuredAddressSearch.resolve(query, client)
+            val combined = StructuredAddressSearch.merge(structured, nativeResults)
+            val favorites = favoriteRepository.favorites.value.values.flatten()
+            val criteria = SearchQueryParser.criteriaOf(query)
+            val reference = searchDistanceReference()
+            val ranked = SearchResultRanker.rank(combined, criteria, reference)
+            val results = favoriteSearchMerger.merge(query, favorites, ranked)
+                .map { result ->
+                    result.copy(
+                        isPerfectMatch = SearchResultRanker.isPerfectMatch(result.entry, criteria)
+                    )
+                }
+                .take(SearchResultRanker.DISPLAY_LIMIT)
+            results to reference
+        }
+        // Publish the reference the ranking used: the rows measure their
+        // distance against the same point instead of recomputing it (one value,
+        // so the numbers cannot contradict the order).
+        _uiState.value = _uiState.value.copy(searchReference = reference)
+        return merged
     }
 
     /** Initialise with a map database path. Call once from the screen. */
@@ -1824,6 +1906,13 @@ class MapCanvasViewModel @Inject constructor(
     fun onFavoriteSelected(fav: com.framstag.libosmscout.client.FavoriteLocation) {
         Log.d(TAG, "onFavoriteSelected: name='${fav.name}', lat=${fav.lat}, lon=${fav.lon}")
         viewModelScope.launch {
+            // Deactivate follow mode so the picked destination stays visible and a
+            // deliberate route calculation always produces the overview (spec:
+            // route-map-overview — favorite while free-driving). Mirrors the
+            // search / POI / contacts selection paths.
+            if (_uiState.value.followMode) {
+                _uiState.value = _uiState.value.copy(followMode = false)
+            }
             val entry = LocationEntry().apply {
                 label = fav.name
                 lat = fav.lat
@@ -1866,7 +1955,7 @@ class MapCanvasViewModel @Inject constructor(
 
             // Determine target zoom: area bounding box → compute, else fixed node zoom
             val targetMag = if (bbox != null && bbox.size == 4) {
-                computeAreaZoom(bbox, screenWidth, screenHeight)
+                computeAreaZoom(bbox, screenWidth, screenHeight, dpi = projectionDpi)
             } else {
                 NODE_ZOOM
             }
@@ -2192,7 +2281,7 @@ class MapCanvasViewModel @Inject constructor(
             kotlin.math.min(lon1, entry.lon) - marginLon,
             kotlin.math.max(lon1, entry.lon) + marginLon
         )
-        return computeAreaZoom(bbox, screenWidth, screenHeight)
+        return computeAreaZoom(bbox, screenWidth, screenHeight, dpi = projectionDpi)
     }
 
     /**
@@ -2464,12 +2553,11 @@ class MapCanvasViewModel @Inject constructor(
                         // per result and never while navigating or following — the
                         // driver's viewport must not be yanked to an overview
                         // (reroute mid-drive, restart, free-drive).
-                        if (result != lastFittedResult &&
-                            _navigationViewModel?.state?.value?.isNavigating != true &&
-                            !_uiState.value.followMode
-                        ) {
+                        if (result != lastFittedResult && canFitRouteOverview()) {
+                            // Mark at arrival: re-emissions of the same result must
+                            // never reschedule a fit (stale-result guard).
                             lastFittedResult = result
-                            fitViewportToRoute(
+                            scheduleRouteOverviewFit(
                                 result.routeLats, result.routeLons,
                                 result.startLat, result.startLon,
                                 result.destLat, result.destLon
@@ -2488,16 +2576,75 @@ class MapCanvasViewModel @Inject constructor(
                 mapRenderer?.clearRoute()
                 routeLats = null
                 routeLons = null
-                // Allow an identical re-calculation to refit the overview.
+                // Allow an identical re-calculation to refit the overview, and
+                // drop a pending fit for the cleared route.
                 lastFittedResult = null
+                routeFitJob?.cancel()
+                routeFitJob = null
                 renderMap()
             }
+        }
+
+        // Route panel covered height (spec: route-map-overview, Decision 8): the
+        // sheet reports how much of the canvas it hides, so the overview fits the
+        // visible map area instead of the full canvas. Later height changes do
+        // not refit — the overview is shown once per result.
+        viewModelScope.launch {
+            vm.sheetCoveredHeightPx.collect { coveredPx ->
+                routePanelCoveredHeightPx = coveredPx
+            }
+        }
+    }
+
+    /**
+     * Whether a route overview may be fitted right now (spec: route-map-overview,
+     * R2): never while navigating (reroute/restart) and never while follow mode
+     * is engaged (free driving) — the driver's viewport must not be yanked.
+     */
+    private fun canFitRouteOverview(): Boolean =
+        _navigationViewModel?.state?.value?.isNavigating != true && !_uiState.value.followMode
+
+    /**
+     * Schedule the one-shot route overview fit one settle delay after the result
+     * arrived (spec: route-map-overview, Decision 8). The panel grows from
+     * Calculating to Done content, so fitting synchronously would consume a stale
+     * covered height. Before applying, the guards and the viewport snapshot taken
+     * at arrival are re-checked: navigation starting or a user gesture inside the
+     * window wins over the pending overview.
+     */
+    private fun scheduleRouteOverviewFit(
+        routeLats: DoubleArray?,
+        routeLons: DoubleArray?,
+        startLat: Double,
+        startLon: Double,
+        destLat: Double,
+        destLon: Double
+    ) {
+        routeFitJob?.cancel()
+        val viewportAtArrival = _uiState.value.viewport
+        routeFitJob = viewModelScope.launch {
+            delay(ROUTE_FIT_SETTLE_DELAY_MS)
+            if (!canFitRouteOverview()) {
+                Log.d(TAG, "route overview fit skipped: navigating or following")
+                return@launch
+            }
+            if (_uiState.value.viewport != viewportAtArrival) {
+                Log.d(TAG, "route overview fit cancelled: viewport changed during settle window")
+                return@launch
+            }
+            fitViewportToRoute(routeLats, routeLons, startLat, startLon, destLat, destLon)
         }
     }
 
     /** Open route panel with destination prefilled from details sheet, start = current location. */
     fun openRoutePanelWithStart(entry: LocationEntry?) {
         val vm = _routePanelViewModel ?: return
+        // A user-chosen destination means an overview calculation: leave follow
+        // mode (spec: route-map-overview) so the driving guard cannot suppress
+        // the fit — the search / POI / contacts paths do the same.
+        if (_uiState.value.followMode) {
+            _uiState.value = _uiState.value.copy(followMode = false)
+        }
         if (entry != null) {
             vm.setDestLocation(entry)
             val loc = locationService.location.value
@@ -3057,6 +3204,12 @@ class MapCanvasViewModel @Inject constructor(
      * area-favorites floor is overridden with [MIN_MAG] so long trips zoom
      * out far enough. Leaves the viewport untouched when the canvas size is
      * unknown or no usable coordinates exist (spec R3 — degenerate geometry).
+     *
+     * Sheet-aware (Decision 8): the fit uses the visible map area (canvas minus
+     * the covered height of the open route panel) and moves the camera so the
+     * bbox midpoint lands on the visible-area center — otherwise the lower part
+     * of the route stays hidden behind the panel. A closed panel (coveredPx == 0)
+     * keeps the full-canvas behavior; a fully covered canvas skips the fit.
      */
     fun fitViewportToRoute(
         routeLats: DoubleArray?,
@@ -3087,22 +3240,81 @@ class MapCanvasViewModel @Inject constructor(
         // Nothing usable (empty polyline and invalid endpoints).
         if (minLat.isInfinite() || minLon.isInfinite()) return
 
+        // Visible map area: the open route panel covers the bottom of the canvas.
+        val coveredPx = routePanelCoveredHeightPx.coerceIn(0, screenHeight)
+        if (coveredPx >= screenHeight) return
+        val visibleHeightPx = screenHeight - coveredPx
+
         // Degenerate span (point/vertical/horizontal) degrades to NODE_ZOOM
         // inside computeAreaZoom — center still moves to the endpoints' midpoint.
-        val mag = computeAreaZoom(
-            doubleArrayOf(minLat, maxLat, minLon, maxLon),
-            screenWidth, screenHeight,
-            minZoom = MIN_MAG
+        val bbox = doubleArrayOf(minLat, maxLat, minLon, maxLon)
+        val midLat = (minLat + maxLat) / 2.0
+        val midLon = (minLon + maxLon) / 2.0
+        val angle = _uiState.value.viewport.angle
+        // Whole-level rounding (shared with the favorites zoom) can round the
+        // exact fit down by up to half a level, and a rotated view needs a larger
+        // screen hull than the north-up bbox suggests. The overview must never
+        // clip the route, so the projected bbox is verified and the fit stepped
+        // one level out while it does not stay inside the visible area.
+        var mag = computeAreaZoom(
+            bbox, screenWidth, visibleHeightPx,
+            minZoom = MIN_MAG, dpi = projectionDpi
         )
-        val centerLat = (minLat + maxLat) / 2.0
-        val centerLon = (minLon + maxLon) / 2.0
+        while (mag > MIN_MAG && !routeFitsVisibleArea(bbox, midLat, midLon, mag, coveredPx, angle)) {
+            mag -= 1.0
+        }
+        // The camera center is drawn at the canvas center, so to put the bbox
+        // midpoint on the visible-area center (coveredPx / 2 px above it) the
+        // camera must sit that far below the midpoint on screen — the content
+        // shifts up, clear of the panel. Projected with the renderer's own
+        // projection (DPI- and rotation-aware), so the shift is exact.
+        val fittedViewport = ProjectionUtils.viewport(
+            midLat, midLon, mag, screenWidth, screenHeight, projectionDpi, angle
+        )
+        val (centerLat, centerLon) = fittedViewport.screenToGeoRotated(
+            screenWidth / 2.0, screenHeight / 2.0 + coveredPx / 2.0
+        )
         updateCenter(centerLat, centerLon)
         _uiState.value = _uiState.value.copy(
             viewport = _uiState.value.viewport.copy(magnification = mag)
         )
         renderMap()
         Log.d(TAG, "fitViewportToRoute: center=" + String.format("%.5f", centerLat) + "," +
-            String.format("%.5f", centerLon) + " mag=" + mag)
+            String.format("%.5f", centerLon) + " mag=" + mag + " coveredPx=" + coveredPx)
+    }
+
+    /**
+     * Whether the bbox, projected at [mag] around the bbox midpoint, stays inside
+     * the visible map area (canvas minus [coveredPx]) once the camera is moved so
+     * the midpoint lands on that area's center. The rotated screen hull of a
+     * Mercator bbox has its extremes at the bbox corners, so the corner check is
+     * exact for any viewport angle.
+     */
+    private fun routeFitsVisibleArea(
+        bbox: DoubleArray,
+        midLat: Double,
+        midLon: Double,
+        mag: Double,
+        coveredPx: Int,
+        angleRad: Double
+    ): Boolean {
+        val vp = ProjectionUtils.viewport(
+            midLat, midLon, mag, screenWidth, screenHeight, projectionDpi, angleRad
+        )
+        // The projection puts the bbox midpoint at the canvas center; the fit then
+        // moves the content up by coveredPx / 2, so the visible band sits at
+        // [coveredPx / 2, coveredPx / 2 + visibleHeight] in this frame.
+        val visibleHeightPx = screenHeight - coveredPx
+        val bandTop = coveredPx / 2.0
+        val bandBottom = bandTop + visibleHeightPx
+        for (lat in doubleArrayOf(bbox[0], bbox[1])) {
+            for (lon in doubleArrayOf(bbox[2], bbox[3])) {
+                val (x, y) = vp.geoToScreenRotated(lat, lon)
+                if (x < 0.0 || x > screenWidth.toDouble()) return false
+                if (y < bandTop || y > bandBottom) return false
+            }
+        }
+        return true
     }
 
     /** Update map rotation angle (called from two-finger rotation gesture). */
@@ -3319,21 +3531,50 @@ class MapCanvasViewModel @Inject constructor(
         /** Fixed zoom level for node-type favorites (points, POIs). */
         private const val NODE_ZOOM = 17.0
 
+        /** Settle delay before the route-overview fit applies (spec: route-map-overview,
+         *  Decision 8) — long enough for the route panel to report its final height. */
+        private const val ROUTE_FIT_SETTLE_DELAY_MS = 150L
+
+        /** Meters per degree of latitude (spherical approximation, matches the fit math). */
+        private const val METERS_PER_DEG_LAT = 111320.0
+
+        /** Earth circumference at the equator, used for the meters-per-pixel formula. */
+        private const val EARTH_CIRCUMFERENCE_M = 40075016.686
+
         /** Minimum zoom level for area-type favorites (prevents too-zoomed-out view). */
         private const val MIN_AREA_ZOOM = 14.0
 
         /**
          * Compute a magnification that fits the given bounding box within the viewport.
          *
+         * The magnification is defined against the renderer's ground resolution:
+         * the renderer draws at the display DPI (`client.setMapDpi(density)`,
+         * [ProjectionUtils] scales by `REFERENCE_DPI / dpi`, confirmed by the tile
+         * geometry in `MapRenderer.tileSizePx`) and Mercator ground distances
+         * shrink by `cos(lat)` relative to the equator. Ignoring either factor
+         * over-zooms — by `dpi / 96` and by `1 / cos(lat)` — so the fitted bbox
+         * would overflow the viewport (≈2x at 48° north on a 160-dpi display).
+         * Callers pass the DPI they render at; the default keeps the 96-dpi
+         * reference used by pure math callers and tests.
+         *
          * @param bbox double[4] = [minLat, maxLat, minLon, maxLon]
          * @param vpWidth viewport width in pixels
-         * @param vpHeight viewport height in pixels
+         * @param vpHeight viewport height in pixels (the *visible* map height when
+         *   part of the canvas is covered by a sheet)
          * @param minZoom floor of the returned magnification; defaults to the
          *   area-favorites floor ([MIN_AREA_ZOOM]), route overviews pass
          *   [MIN_MAG] so long trips fit (spec: route-map-overview)
+         * @param dpi display DPI the map is rendered at ([REFERENCE_DPI] = 96 when
+         *   unknown); values <= 0 fall back to the reference
          * @return magnification level clamped to [minZoom, MAX_MAG]
          */
-        fun computeAreaZoom(bbox: DoubleArray, vpWidth: Int, vpHeight: Int, minZoom: Double = MIN_AREA_ZOOM): Double {
+        fun computeAreaZoom(
+            bbox: DoubleArray,
+            vpWidth: Int,
+            vpHeight: Int,
+            minZoom: Double = MIN_AREA_ZOOM,
+            dpi: Double = ProjectionUtils.REFERENCE_DPI
+        ): Double {
             if (vpWidth <= 0 || vpHeight <= 0) return NODE_ZOOM
 
             val minLat = bbox[0]
@@ -3346,13 +3587,13 @@ class MapCanvasViewModel @Inject constructor(
             if (dLat <= 0.0 || dLon <= 0.0) return NODE_ZOOM
 
             // Earth circumference at equator ~40075 km
-            // Convert degree span to approximate meters
+            // Convert degree span to approximate meters (ground distance)
             val avgLat = (minLat + maxLat) / 2.0
             val latRad = Math.toRadians(avgLat)
-            val metersPerDegLat = 111320.0
-            val metersPerDegLon = 111320.0 * Math.cos(latRad)
+            val cosLat = Math.cos(latRad)
+            val metersPerDegLon = METERS_PER_DEG_LAT * cosLat
 
-            val heightMeters = dLat * metersPerDegLat
+            val heightMeters = dLat * METERS_PER_DEG_LAT
             val widthMeters = dLon * metersPerDegLon
 
             if (heightMeters <= 0.0 || widthMeters <= 0.0) return NODE_ZOOM
@@ -3360,18 +3601,18 @@ class MapCanvasViewModel @Inject constructor(
             // Use 80% of the smaller viewport dimension as the "fitting size"
             val fitSizePx = minOf(vpWidth, vpHeight) * 0.8
 
-            // Resolution at zoom level: meters per pixel at equator
-            // Base: at zoom 0, world is 256px. Each zoom doubles resolution.
-            // Earth circumference ~40075016.686 m at equator
-            // metersPerPixel = circumference / (256 * 2^zoom)
-            // So zoom = log2(circumference / (256 * metersPerPixel))
-            // We want metersPerPixel such that the larger dimension fits in fitSizePx
+            // Ground resolution at the route latitude:
+            //   metersPerPixel = circumference / (256 * 2^mag)
+            //                    * (REFERENCE_DPI / dpi) * cos(lat)
+            // (equator-referenced Mercator resolution, corrected for the display
+            // DPI the renderer draws at and for the Mercator ground shrink).
+            // Solved for the magnification that fits maxMeters into fitSizePx.
             val maxMeters = maxOf(heightMeters, widthMeters)
             val targetMetersPerPixel = maxMeters / fitSizePx
+            val dpiScale = if (dpi > 0.0) dpi / ProjectionUtils.REFERENCE_DPI else 1.0
 
-            val earthCircumference = 40075016.686
             val mag = Math.round(
-                Math.log(earthCircumference / (256.0 * targetMetersPerPixel)) / Math.log(2.0)
+                Math.log(EARTH_CIRCUMFERENCE_M * cosLat / (256.0 * targetMetersPerPixel * dpiScale)) / Math.log(2.0)
             ).toInt()
 
             return mag.toDouble().coerceIn(minZoom, MAX_MAG)

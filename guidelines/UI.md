@@ -33,6 +33,7 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Add favorite | "Add to Favorites" (outlined button) | "★ Add to Favorites" (clickable row) |
 | Remove favorite | "Remove from Favorites" (error-colored button) | "☆ Remove from Favorites" (clickable row) |
 | Open-source license list | Reachable from About → "Open source licenses": components with identifiers, full license texts, links for licenses whose terms stay with their owner | Not surfaced — the car About screen keeps app identity and the map-data attribution only |
+| Auto-zoom magnification changes | Animated — `smooth-zoom` scales the displayed map from the current scale toward the target while the debounced native render is queued | Animated too, by a **different mechanism** — a magnification request larger than the blit window is WALKED across rendered frames (`AutoMapRenderer.advanceZoomWalk`, spec `auto-speed-zoom` — Auto-zoom entry transition); the observable contract (no single-frame jump, anchored, ends on an exact render) is the parity requirement, the mechanism is not shared. Gesture/zoom-button paths keep their immediate response |
 
 ### Why the license list is phone-only
 
@@ -60,21 +61,39 @@ Source: change `vehicle-position-presets` (specs `auto-map-layout`,
 
 ### Ongoing navigation notification (background driving)
 
-Source: spec `navigation-ongoing-notification` (change
-`background-navigation-notification`).
+Source: specs `navigation-ongoing-notification` (change
+`background-navigation-notification`) and `auto-navigation-hints` (change
+`car-turn-by-turn-rail-widget`).
 
-- The ongoing navigation notification is a **single notification** shared by
-  all three surfaces (phone shade, Android Auto projection shade relay, AAOS
-  head-unit shade): the same title and content labels appear everywhere
-  (parity by construction — one formatter, no per-surface strings).
+- **Surfaces.** The notification reaches the car as a turn-by-turn hint in the
+  rail widget at the bottom of the car screen (plus an optional heads-up
+  notification, which this app does not request). It is **not** relayed to a car
+  notification shade: car hosts never show turn-by-turn navigation
+  notifications in their Notification Center, by design. Free driving stays
+  phone-only — while free driving the app is not the active navigation app, so
+  the host suppresses turn hints and `NavigationManager.updateTrip` rejects
+  trip updates. Those are platform constraints, not defects.
+- **Parity.** Labels and guidance wording are shared: one formatter produces
+  the phone text and the car hint, and the manoeuvre instruction uses the same
+  wording as the on-screen next-turn display. The car may use **car-only text
+  roles** through `CarAppExtender` — the instruction is its primary text and the
+  distance/arrival its secondary text, while the phone notification keeps the
+  destination name first. That is a rendering difference from one content
+  source, not a second set of strings.
 - NAVIGATION content: destination name (or the neutral "Navigation active"
   when unknown), the manoeuvre instruction in the same wording as the on-screen
   next-turn display, the distance-to-turn, arrival/remaining time and remaining
   distance, and the "Stop Navigation" action (same label as the on-screen stop
-  button, §1).
+  button, §1). The car hint shows the instruction, the distance-to-turn with the
+  arrival time, the manoeuvre arrow as large icon and the same stop action.
 - FREE_DRIVE content: the current street/ref (same text as the free-driving
   view's street label) and the current speed; no destination-dependent guidance
   and no stop action.
+- **Channels.** The phone channel stays silent and badge-free; on Android
+  Automotive OS the notification uses a car channel of at least
+  `IMPORTANCE_DEFAULT`, because the platform does not represent
+  low-importance foreground-service notifications at all. No importance level
+  requests a heads-up notification for turn hints.
 - The notification is silent and ongoing; it never plays a sound or vibrates.
 
 ## 2. Action glyphs on the car display
@@ -222,6 +241,26 @@ Source: spec `search-dialog` (phone only).
   heart-marked too; a native result identical to a favorite hit is
   deduplicated (the favorite hit wins). Selecting a favorite hit behaves like
   any search result (records history, opens details).
+- **Result order is the match tier rule** (spec `search-result-ranking`, change
+  `search-result-ranking`): perfect matches first (nearest first), then close
+  matches by match quality and distance, with a label tie-break. A perfect
+  match is one whose every queried attribute matched exactly and which carries
+  no criterion-class attribute the query did not name (admin region and postal
+  area are context and are only criteria when the query names them). The
+  dialog fetches a larger candidate set than it shows and displays the
+  best-ranked 20, so a perfect match the backend's own order pushed past the
+  page still appears. Favorites keep their unconditional position above native
+  results (§ favorite-search) regardless of tier.
+- **Row marking is one composite glyph** (`:core` `ResultMarkings`, the single
+  artwork source): heart for a favorite, tick for a perfect match, both drawn
+  into one bitmap when a row is both. The phone tints it with the primary
+  color and exposes the facts through the content description ("Favorite",
+  "Exact match", "Exact match and favorite"); the row shows the composite
+  instead of stacking two icons.
+- **Row distance is measured from the ranking reference**: the last known GPS
+  fix, else the map center, else none (no distance shown). The same value
+  ranked the list, so the km labels never contradict the order. The route-panel
+  start/destination picker uses the same rule and the same marking.
 - The shared search field is mode-aware: location query in Places, category
   filter in POIs, contact filter in Contacts.
 - Android Auto has its own search surface — see §6b below. It is NOT a
@@ -255,6 +294,18 @@ Source: specs `auto-search`, `auto-search-suggestions` (change `unify-auto-searc
 - **No-results state keeps mode rows**: a query with no results shows the
   "No results found" row followed by the mode rows, so the driver can pivot
   to POI/contacts search without clearing the field.
+- **Same order, marking and distance as the phone** (spec
+  `search-result-ranking`, change `search-result-ranking`): the car pipeline
+  ranks with the same rule and the same candidate/display limits, marks rows
+  with the same composite glyph, and shows the distance as a second text line
+  using the same km formatting as §6a. The distance reference is the last known
+  GPS fix, else the car map viewport center (the map screen passes its
+  renderer's center; screens opened from the root/history have no map, so their
+  results are ordered by tier and quality without distances). **Platform
+  constraint (documented deviation)**: a car `Row` has a single image slot and
+  at most two text lines and carries no accessibility text channel, so the
+  marking is glyph-only on the car and the two facts cannot be announced — the
+  phone row's content description has no car equivalent.
 - **Action-phrase labels — documented parity deviation**: the suggestion rows
   use action phrases ("Search POIs near me", "Search contacts"), not the
   phone's mode labels ("Places" / "POIs" / "Contacts"). This is the

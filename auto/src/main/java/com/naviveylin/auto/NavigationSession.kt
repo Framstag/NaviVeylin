@@ -14,11 +14,15 @@ import androidx.car.app.model.Row
 import androidx.car.app.navigation.NavigationManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.car.app.navigation.model.Trip
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.DeepLinkParser
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.StringResolver
+import com.naviveylin.core.stringResolver
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +75,7 @@ class NavigationSession : Session() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var observeJob: Job? = null
     private var errorJob: Job? = null
+    private var tripJob: Job? = null
     private var warmupJob: Job? = null
     private var navigationScreen: NavigationScreen? = null
 
@@ -469,7 +474,10 @@ class NavigationSession : Session() {
         scope.launch {
             val results = withContext(Dispatchers.Default) {
                 try {
-                    entryPoint.autoSearchProvider().searchLocations(query, MAX_GEOCODE_RESULTS)
+                    // No position context for a deep link: a null reference orders
+                    // the candidates by match tier and quality, which is what a
+                    // "best match" pick wants (spec: search-result-ranking).
+                    entryPoint.autoSearchProvider().searchLocations(query, MAX_GEOCODE_RESULTS, null)
                 } catch (e: Exception) {
                     Log.e(TAG, "Deep link geocoding failed", e)
                     emptyList()
@@ -502,6 +510,20 @@ class NavigationSession : Session() {
                     }
                 }
         }
+        // Trip metadata for the cluster / heads-up display (spec:
+        // auto-navigation-hints — "Trip metadata for cluster and heads-up
+        // display"). Separate collector: this one needs every state emission,
+        // not just the isNavigating edges. Launched after the navigation-state
+        // collector, which is what declares the app as the active navigation
+        // app before any updateTrip is sent. The first emission also seeds a
+        // session that was created (or restored) mid-navigation.
+        tripJob = scope.launch {
+            navigationViewModel.state.collect { navState ->
+                navigationManagerController().publishTrip(navState) { state ->
+                    carTripFor(state, carContext.stringResolver())
+                }
+            }
+        }
         // Observe error messages
         errorJob = scope.launch {
             navigationViewModel.state
@@ -520,6 +542,8 @@ class NavigationSession : Session() {
         observeJob = null
         errorJob?.cancel()
         errorJob = null
+        tripJob?.cancel()
+        tripJob = null
     }
 
     private fun getNavigationScreen(): NavigationScreen {
@@ -644,6 +668,16 @@ internal fun isNightUiMode(configuration: Configuration): Boolean =
  */
 internal fun shouldRestoreFreeDriving(isNavigating: Boolean, freeDrivingActive: Boolean): Boolean =
     freeDrivingActive && !isNavigating
+
+/**
+ * Trip factory used by the car session's trip publisher (spec:
+ * auto-navigation-hints — "Trip metadata for cluster and heads-up display"):
+ * the template's maneuver artwork and the car string resolver, so the rail
+ * card, the cluster step and the notification hint cannot disagree. Pure seam
+ * for unit testing ([NavigationSession] cannot be constructed in Robolectric).
+ */
+internal fun carTripFor(state: NavigationState, resolver: StringResolver): Trip? =
+    NavigationTemplateMapper.tripFromState(state, ManeuverGlyphs::forTurnType, resolver)
 
 /**
  * Resolve the car dark presentation from the shared dark mode preference

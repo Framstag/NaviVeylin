@@ -15,35 +15,8 @@ import java.util.Locale
  */
 class DistanceFormatTest {
 
-    // ---- haversineDistanceMeters ----
-
-    @Test
-    fun zeroDistanceBetweenIdenticalCoordinates() {
-        assertEquals(0.0, haversineDistanceMeters(51.5136, 7.4653, 51.5136, 7.4653), 0.001)
-    }
-
-    @Test
-    fun berlinToHamburgApproximately255Km() {
-        // Berlin (52.5200, 13.4050) -> Hamburg (53.5511, 9.9937) is ~255 km.
-        val meters = haversineDistanceMeters(52.5200, 13.4050, 53.5511, 9.9937)
-        assertEquals(255000.0, meters, 255000.0 * 0.02)
-    }
-
-    @Test
-    fun nanCoordinatesYieldInfinity() {
-        assertEquals(
-            Double.POSITIVE_INFINITY,
-            haversineDistanceMeters(Double.NaN, 7.4653, 52.52, 13.405),
-            0.0
-        )
-    }
-
-    @Test
-    fun distanceIsSymmetric() {
-        val a = haversineDistanceMeters(51.5136, 7.4653, 52.52, 13.405)
-        val b = haversineDistanceMeters(52.52, 13.405, 51.5136, 7.4653)
-        assertEquals(a, b, 0.001)
-    }
+    // The haversine cases moved to `:core` with the single implementation
+    // (GeoDistanceTest); this class covers the app-facing formatting helpers.
 
     // ---- formatDistanceKm (numeric part only; unit comes from resources) ----
 

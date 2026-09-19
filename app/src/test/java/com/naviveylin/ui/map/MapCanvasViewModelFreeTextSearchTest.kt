@@ -15,6 +15,7 @@ import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
+import com.naviveylin.core.search.SearchResultRanker
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -115,7 +116,10 @@ class MapCanvasViewModelFreeTextSearchTest {
         viewModel.searchLocations("cafe central")
 
         assertEquals(listOf("cafe central"), client.searchQueries)
-        assertEquals(listOf(20), client.searchLimits)
+        // A candidate set larger than the displayed list, so the ranking can
+        // promote what the backend's own order would have put past the page
+        // (spec: search-result-ranking).
+        assertEquals(listOf(SearchResultRanker.CANDIDATE_LIMIT), client.searchLimits)
         // No live fix → unconstrained search (handle 0), same as structured search.
         assertEquals(listOf(0L), client.searchAdminRegionHandles)
     }

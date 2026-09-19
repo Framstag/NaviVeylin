@@ -144,6 +144,41 @@ travel while the map itself rotates at its own pace.
   inert). The margin render request is throttled at `RENDER_REQUEST_INTERVAL_MS` = 200 ms (phone
   parity), shrinking the freeze-then-advance step at the overrun edge; the resolved-anchor blit
   call sites in the same function stay untouched (single resolved anchor rule above).
+- **AA follow render target = the DISPLAYED position; rotation commit deadband (delta
+  `aa-follow-framing-and-zoom-parity`):** on AA the follow render target is the anchor center of
+  the displayed (eased predicted) position — the same point the extrapolation loop advances — never
+  the raw fix (raw fix only before the first display frame), so a fix commits a centre-only change
+  the overrun blit serves and no longer re-anchors/steps the whole map per fix. The heading commit
+  gets a deadband in the shared commit gate (`MapPanHandler.resolveCommittedAngle`,
+  `HEADING_DEADBAND_RAD` ≈ 1.5°): the rotation is re-committed only when the smoothed heading moved
+  more than the deadband from the COMMITTED rotation (measured against the committed value — the
+  heading-up lag can never accumulate). Below it the fix keeps the committed rotation (centre-only
+  commit, blit-able); above it the rotation commits with the fix as before. A rotation cannot be
+  blitted, so the deadband removes the ~1 forced full render per fix for the ~0.9°/s heading signal
+  while a real turn still tracks (lag ≤ deadband).
+- **AA magnification changes are a transition, not a single-frame step (same delta):** a committed
+  auto-zoom/turn-zoom magnification change is applied across display frames by scaling the overrun
+  blit about the FOLLOW ANCHOR (not the surface center), easing the displayed magnification toward
+  the committed value at the display rate; a step beyond the blit-able window (≈0.26 levels at
+  `OVERRUN_FACTOR = 1.2`) falls back to a full native render at the committed magnification, and
+  every transition ends on an exact native render at the committed value. This removes the measured
+  7–12 % single-frame scale snap (20–40 px at the frame edges).
+- **A larger magnification request is WALKED, not landed (delta `aa-entry-zoom-animation`):** a
+  transition-eligible zoom commit (`setViewport(..., walkZoom = true)` — the auto-zoom commit path
+  of `FreeDrivingScreen`/`NavigationScreen`) farther than `ZOOM_BLIT_LIMIT` from the committed
+  magnification becomes a WALK TARGET instead of being applied in one frame: `advanceZoomWalk`
+  commits one step per LANDED render (render-synchronous — the committed value never leads the
+  frame by more than one blit window, so the display never has to snap), each step ≤ the blit
+  window, and the last step lands EXACTLY on the requested value (entering free driving walked
+  `13.0 -> 17.0` in 16 steps instead of a 16x area jump; measured `mag 13.000 -> 17.000` in one
+  frame before). The walk runs on its OWN loop (`startZoomWalkLoop`, `ZOOM_WALK_FRAME_MS`) —
+  deliberately NOT the extrapolation loop, which is movement-gated (`MOVEMENT_SPEED_MS`) and would
+  stall a transition started while parked. While the extrapolation loop is closed that loop also
+  owns `advanceDisplayedMagnification`, otherwise the frames would land at the new magnification
+  while the displayed scale stayed behind. A request inside the blit window commits directly (no
+  walk, no extra render), a fix that re-commits the value it read back does NOT cancel a pending
+  walk, and the newest request wins (monotonic per leg, never past the requested value). Gesture
+  and zoom-button paths keep their immediate response by not passing `walkZoom`.
 
 ## 2. Bitmap Lifecycle (CRITICAL — caused "jumps" multiple times)
 

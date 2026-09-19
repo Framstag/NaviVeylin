@@ -144,6 +144,7 @@ class FreeDrivingScreen(
         scope.launch {
             runCatching { settingsProvider.load() }
                 .onSuccess { settings ->
+                    val wasAutoZoomEnabled = autoZoomEnabled
                     autoZoomEnabled = settings.autoZoomEnabled
                     overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
                     val newAnchor = anchorDiff(freeDrivingAnchor, settings.freeDrivingAnchorId)
@@ -156,6 +157,12 @@ class FreeDrivingScreen(
                     // Host panel edge (left in LTR, right in RTL) — visible-area anchor.
                     rendererGate.setHostPaneRtl(isHostPaneOnRight(carContext))
                     Log.d(TAG, "settings loaded: autoZoomEnabled=$autoZoomEnabled anchor=$freeDrivingAnchor")
+                    // Re-enabling auto-zoom applies the target NOW, from the last known
+                    // speed, instead of waiting for the next fix (spec: auto-speed-zoom —
+                    // Auto-zoom re-enabled after a manual zoom; design D5).
+                    if (!wasAutoZoomEnabled && autoZoomEnabled) {
+                        applyAutoZoomOnReEnable(currentSpeedKmH)
+                    }
                 }
                 .onFailure { Log.w(TAG, "loading settings failed", it) }
         }
@@ -396,6 +403,28 @@ class FreeDrivingScreen(
     }
 
     /**
+     * Re-enable path (spec: auto-speed-zoom — Auto-zoom re-enabled after a manual zoom;
+     * design D5): resolve the target from the shared rule ONCE and commit it
+     * transition-eligible, so a step larger than the blit window is walked across rendered
+     * frames instead of landing in one frame.
+     */
+    private fun applyAutoZoomOnReEnable(speedKmH: Double) {
+        val newZoom = autoZoomOnReEnable(
+            wasEnabled = false,
+            enabled = true,
+            speedKmH = speedKmH,
+            panning = panHandler.panning,
+            controller = autoZoomController
+        ) ?: return
+        applyZoomCommit(newZoom, "re-enabled speed=$speedKmH")
+    }
+
+    /** Commit an auto-zoom magnification, transition-eligible (design D1/D2). */
+    private fun applyZoomCommit(newZoom: Double, reason: String) {
+        commitAutoZoom(rendererGate, newZoom, reason)
+    }
+
+    /**
      * Apply a GPS fix: marker, heading-up rotation, auto-zoom, street name.
      * GPX replay tracks usually lack a GPS bearing — fall back to the
      * movement direction between fixes so heading-up still engages.
@@ -418,9 +447,9 @@ class FreeDrivingScreen(
 
         // Heading-up always (spec: "Heading-up orientation"), independent of
         // the shared navNorthUp setting.
-        val angle = headingAngleRadians(bearing)
-        if (angle != null) {
-            headingRadians = angle
+        val rawAngle = headingAngleRadians(bearing)
+        if (rawAngle != null) {
+            headingRadians = rawAngle
         }
         // Speed-driven auto-zoom (shared setting; speed → magnification).
         // The feed is gated on !panning (design D2) so the controller state
@@ -429,7 +458,17 @@ class FreeDrivingScreen(
         // mid-pan.
         val newZoom = autoZoomTarget(panHandler.panning, autoZoomEnabled, speed, autoZoomController)
 
-        if (shouldCommitViewport(panHandler.panning, angle, newZoom)) {
+        // Heading commit deadband (design D2): the rotation is re-committed only
+        // when the smoothed heading moved beyond the deadband from the COMMITTED
+        // rotation — below it the fix commits a centre-only change served by the
+        // overrun blit instead of a full native render (~1 forced render per fix
+        // for a ~0.9°/s signal before the change; spec: auto-smooth-follow —
+        // Heading commit deadband / Re-anchor below the heading deadband is
+        // served by a blit).
+        val committedAngle = rendererGate.rendererOrNull()?.viewportState?.value?.angle
+        val commitAngle = resolveCommittedAngle(panHandler.panning, rawAngle, committedAngle)
+
+        if (shouldCommitViewport(panHandler.panning, commitAngle, committedAngle, newZoom)) {
             val commitRenderer = rendererGate.rendererOrNull() ?: return
             // setViewport disengages follow mode, so re-engage + re-center
             // right after (same pattern as NavigationScreen). While panned the
@@ -448,7 +487,9 @@ class FreeDrivingScreen(
             // The integer slot keeps the viewport model level; the 5th arg is
             // the fractional render magnification (spec: auto-speed-zoom —
             // Smooth zoom transitions delta — same shape as pinch zoomStep).
-            rendererGate.setViewport(vp.lat, vp.lon, zoom.roundToInt(), angle ?: vp.angle, zoom)
+            // `commitAngle ?: vp.angle` keeps the committed rotation when the
+            // fix's heading change is below the deadband.
+            rendererGate.setViewport(vp.lat, vp.lon, zoom.roundToInt(), commitAngle ?: vp.angle, zoom, walkZoom = newZoom != null)
             // Re-engage follow WITHOUT snapping: the extrapolation loop eases
             // the display to the fix (smooth correction, spec:
             // auto-smooth-follow). reCenter() would snap the map back per fix.
@@ -624,11 +665,40 @@ class FreeDrivingScreen(
 
     companion object {
         /**
+         * Commit an auto-zoom magnification immediately and transition-eligible (spec:
+         * auto-speed-zoom — Auto-zoom entry transition / Auto-zoom re-enabled after a manual
+         * zoom; design D1/D2, D5): `setViewport` disengages follow mode, so follow is re-engaged
+         * right after without snapping (the displayed position is the follow target — the same
+         * pattern as the fix path). Returns false when the renderer is not ready yet. Shared by
+         * both car screens, so their re-enable/entry commits cannot drift.
+         */
+        internal fun commitAutoZoom(
+            rendererGate: RendererGate,
+            magnification: Double,
+            reason: String
+        ): Boolean {
+            val ready = rendererGate.rendererOrNull() ?: return false
+            val vp = ready.viewportState.value
+            rendererGate.setViewport(
+                vp.lat, vp.lon, magnification.roundToInt(), vp.angle, magnification, walkZoom = true
+            )
+            rendererGate.reengageFollow()
+            Log.d(TAG, "autoZoom commit ($reason) mag=$magnification")
+            return true
+        }
+
+        /**
          * Speed-driven auto-zoom target: never while panned (spec:
-         * auto/map-pan — auto-zoom suspended while panned), otherwise when
-         * enabled and the speed is valid. Same gate as
-         * [NavigationScreen.autoZoomTarget] — the two screens share the
-         * pan-suspension semantics (design D2).
+         * auto/map-pan — auto-zoom suspended while panned), otherwise whenever auto-zoom is
+         * enabled. THE single rule both car screens use ([NavigationScreen] calls it) — gating
+         * the feed (not just the commit) freezes the controller state during the pan, so a
+         * band-crossing re-engage mid-pan cannot advance its stability state and commit a zoom
+         * the driver did not ask for right after pan exit (design D2).
+         *
+         * An UNKNOWN speed is passed through, not rejected: [AutoZoomController] resolves it to
+         * its seeded 20 km/h default, so the first position estimate already yields a
+         * "reasonable initial zoom" (spec: auto-speed-zoom — Speed unknown; parity with the
+         * phone's `MapCanvasViewModel.lastValidSpeedKmH` seed).
          */
         fun autoZoomTarget(
             panning: Boolean,
@@ -636,7 +706,30 @@ class FreeDrivingScreen(
             speedKmH: Double,
             controller: AutoZoomController
         ): Double? =
-            if (!panning && autoZoomEnabled && speedKmH >= 0.0) controller.onSpeed(speedKmH) else null
+            if (!panning && autoZoomEnabled) controller.onSpeed(speedKmH) else null
+
+        /**
+         * Re-enable decision (spec: auto-speed-zoom — Auto-zoom re-enabled after a manual
+         * zoom; design D5): turning auto-zoom back on applies the target immediately from
+         * the LAST KNOWN speed instead of waiting for the next fix, so the transition
+         * starts without a delay. `null` only when the setting did not flip on. A speed that is
+         * not known yet is no longer a no-op: the controller's seeded 20 km/h default resolves it
+         * to a target (spec: auto-speed-zoom — Speed unknown / Auto-zoom re-enabled after a manual
+         * zoom), so the transition begins without waiting for the first fix. Shared by both car
+         * screens (`NavigationScreen` calls it too), so the two cannot drift.
+         */
+        fun autoZoomOnReEnable(
+            wasEnabled: Boolean,
+            enabled: Boolean,
+            speedKmH: Double,
+            panning: Boolean,
+            controller: AutoZoomController
+        ): Double? =
+            if (!wasEnabled && enabled) {
+                autoZoomTarget(panning, enabled, speedKmH, controller)
+            } else {
+                null
+            }
 
         /**
          * Anchor change decision for the free-driving settings reload (spec:

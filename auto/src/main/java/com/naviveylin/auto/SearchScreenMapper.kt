@@ -1,9 +1,17 @@
 package com.naviveylin.auto
 
 import androidx.car.app.CarContext
+import androidx.car.app.model.CarIcon
 import androidx.car.app.model.Row
+import androidx.core.graphics.drawable.IconCompat
 import com.framstag.libosmscout.client.LocationEntry
+import com.naviveylin.core.ResultMarkings
+import com.naviveylin.core.formatDistanceKm
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.ResultMarking
+import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.SearchResultRanker
+import com.naviveylin.core.search.resultMarkingOf
 
 /**
  * Pure functions for building [SearchScreen] content.
@@ -31,22 +39,46 @@ object SearchScreenMapper {
     }
 
     /**
-     * Build a result row for a [MergedSearchResult]: title + description, with
-     * a heart icon when the result is a favorite (spec: favorite-search).
-     * [onClick] is invoked on row tap.
+     * Build a result row for a [MergedSearchResult]: title, description, the
+     * distance from [reference], and the marking the row carries — the favorite
+     * heart, the perfect-match glyph, or the composite when the row is both
+     * (spec: search-result-ranking — "Perfect-match marking and cross-surface
+     * parity"). [onClick] is invoked on row tap.
+     *
+     * @param reference point the row distances are measured from — the same one
+     *   the list was ranked against; null shows no distance
      */
     fun buildResultRow(
         carContext: CarContext,
         result: MergedSearchResult,
+        reference: SearchReference? = null,
         onClick: () -> Unit
     ): Row {
         val entry = result.entry
         val builder = Row.Builder()
             .setTitle(entry.label ?: "Unknown")
-            .addText(buildDescription(entry))
-        if (result.isFavorite) {
-            builder.setImage(CarGlyphs.favorite)
+
+        val description = buildDescription(entry)
+        if (description.isNotEmpty()) {
+            builder.addText(description)
         }
+        // Second text line (a Row allows two): the distance, same wording as the
+        // phone result list.
+        SearchResultRanker.distanceMeters(entry, reference)?.let { meters ->
+            builder.addText(
+                carContext.getString(R.string.distance_unit_km, formatDistanceKm(meters))
+            )
+        }
+
+        val marking = resultMarkingOf(result.isFavorite, result.isPerfectMatch)
+        if (marking != ResultMarking.NONE) {
+            // One image slot on a car Row, so the marking is drawn as a single
+            // composite glyph rather than stacking two icons.
+            builder.setImage(
+                CarIcon.Builder(IconCompat.createWithBitmap(ResultMarkings.bitmapFor(marking))).build()
+            )
+        }
+
         return builder
             .setOnClickListener(onClick)
             .build()

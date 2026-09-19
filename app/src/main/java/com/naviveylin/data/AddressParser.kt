@@ -255,7 +255,7 @@ object AddressRanker {
                 // Admin regions must beat free-text POIs for city-only queries.
                 "boundary_administrative" -> score += 20
             }
-            if (entry.matchQuality == "match") score += 25
+            if (matchedExactly(entry)) score += 25
             if (houseNumberParts.isNotEmpty() && houseNumberParts.any { labelTokens.contains(it) }) {
                 score += 10
             }
@@ -283,5 +283,31 @@ object AddressRanker {
     fun hasStreetEvidence(entry: LocationEntry, streetTokens: List<String>): Boolean {
         val label = AddressParser.normalizedLower(entry.label ?: "")
         return streetTokens.isNotEmpty() && streetTokens.any { label.contains(it) }
+    }
+
+    /**
+     * True when one of the entry's *name* attributes matched the query exactly
+     * (spec: search-result-ranking — "Perfect match classification uses native
+     * per-attribute quality").
+     *
+     * Reads the per-attribute qualities rather than the collapsed
+     * `matchQuality`: that field is search-tier-specific — it counts a
+     * GPS-scope-derived admin-region match as a match, and since
+     * `search-result-ranking` it no longer reports `match` for a text-index hit
+     * whose name merely contains the query tokens.
+     *
+     * Falls back to the collapsed field only when the native library is older
+     * and reports no per-attribute quality at all (design D11).
+     */
+    private fun matchedExactly(entry: LocationEntry): Boolean {
+        val nameQualities = listOf(
+            entry.locationMatchQuality,
+            entry.addressMatchQuality,
+            entry.poiMatchQuality
+        )
+        if (nameQualities.any { it != null }) {
+            return nameQualities.any { it == "match" }
+        }
+        return entry.matchQuality == "match"
     }
 }

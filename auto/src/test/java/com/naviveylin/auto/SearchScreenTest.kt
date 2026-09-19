@@ -12,7 +12,10 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoSearchHistoryProvider
+import com.naviveylin.core.AutoLocationProvider
+import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoSearchProvider
+import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.addressbook.AddressBookContactsProvider
 import com.naviveylin.core.addressbook.AddressBookSearchProvider
@@ -61,6 +64,7 @@ class SearchScreenTest {
     private val searchProvider = mockk<AutoSearchProvider>()
     private val historyProvider = mockk<AutoSearchHistoryProvider>()
     private val favoritesProvider = mockk<AutoFavoritesProvider>(relaxed = true)
+    private val locationProvider = mockk<AutoLocationProvider>(relaxed = true)
 
     @Before
     fun setUp() {
@@ -76,6 +80,10 @@ class SearchScreenTest {
         every { entryPoint.autoSearchHistoryProvider() } returns historyProvider
         every { entryPoint.autoFavoritesProvider() } returns favoritesProvider
         every { favoritesProvider.favoriteLocations() } returns MutableStateFlow(emptyMap())
+        // No GPS fix: the reference falls back to the (absent) car viewport
+        // center, so the rows show no distance (spec: search-result-ranking).
+        every { entryPoint.autoLocationProvider() } returns locationProvider
+        every { locationProvider.position() } returns MutableStateFlow(null)
         // AddressBookScreen (pushed from the contacts mode row) loads contacts
         // in init; keep it inert so the push is side-effect free.
         every { entryPoint.addressBookContactsProvider() } returns mockk<AddressBookContactsProvider>(relaxed = true)
@@ -146,7 +154,7 @@ class SearchScreenTest {
     fun typingReplacesSuggestionsWithResults() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns listOf("Dortmund Hbf")
         every {
-            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS)
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any())
         } returns listOf(resultEntry("Dortmund Hbf"))
         val screen = newScreen()
         advanceUntilIdle()
@@ -163,10 +171,62 @@ class SearchScreenTest {
     }
 
     @Test
+    fun typedSearchPassesTheGpsFixAsTheDistanceReference() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { historyProvider.load() } returns emptyList()
+        val fix = AutoPosition(lat = 51.5, lon = 7.4)
+        every { locationProvider.position() } returns MutableStateFlow(fix)
+        every {
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any())
+        } returns listOf(resultEntry("Dortmund Hbf"))
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        screen.SearchCallbackImpl().onSearchTextChanged("Dortmund")
+        advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+        advanceUntilIdle()
+
+        verify {
+            searchProvider.searchLocations(
+                "Dortmund",
+                SearchScreenMapper.MAX_RESULTS,
+                SearchReference(51.5, 7.4)
+            )
+        }
+    }
+
+    @Test
+    fun withoutAFixTheCarViewportCenterIsTheReference() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { historyProvider.load() } returns emptyList()
+        every {
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any())
+        } returns emptyList()
+        val screen = SearchScreen(
+            carContext,
+            navigationViewModel,
+            viewportCenter = { 51.5136 to 7.4653 },
+            mainDispatcher = mainDispatcherRule.dispatcher,
+            ioDispatcher = mainDispatcherRule.dispatcher
+        )
+        advanceUntilIdle()
+
+        screen.SearchCallbackImpl().onSearchTextChanged("Dortmund")
+        advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+        advanceUntilIdle()
+
+        verify {
+            searchProvider.searchLocations(
+                "Dortmund",
+                SearchScreenMapper.MAX_RESULTS,
+                SearchReference(51.5136, 7.4653)
+            )
+        }
+    }
+
+    @Test
     fun clearingRestoresSuggestions() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns listOf("Dortmund Hbf")
         every {
-            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS)
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any())
         } returns listOf(resultEntry("Dortmund Hbf"))
         val screen = newScreen()
         advanceUntilIdle()
@@ -187,7 +247,7 @@ class SearchScreenTest {
     fun noResultsShowsNoResultsRowThenModeRows() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns emptyList()
         every {
-            searchProvider.searchLocations("xyz", SearchScreenMapper.MAX_RESULTS)
+            searchProvider.searchLocations("xyz", SearchScreenMapper.MAX_RESULTS, any())
         } returns emptyList()
         val screen = newScreen()
         advanceUntilIdle()
@@ -207,7 +267,7 @@ class SearchScreenTest {
     fun historyTapPushesScreenWithQuery() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns listOf("Dortmund Hbf")
         every {
-            searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS)
+            searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS, any())
         } returns emptyList()
         val screen = newScreen()
         advanceUntilIdle()
@@ -219,14 +279,14 @@ class SearchScreenTest {
         // The pushed screen runs the search for the tapped query (design D2).
         advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
         advanceUntilIdle()
-        verify { searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS) }
+        verify { searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS, any()) }
     }
 
     @Test
     fun favoriteHitListedAboveNativeResults() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns emptyList()
         every {
-            searchProvider.searchLocations("home", SearchScreenMapper.MAX_RESULTS)
+            searchProvider.searchLocations("home", SearchScreenMapper.MAX_RESULTS, any())
         } returns listOf(resultEntry("Home Street"))
         every { favoritesProvider.favoriteLocations() } returns MutableStateFlow(
             mapOf("Home" to listOf(FavoriteLocation("Home", 51.5, 7.4)))

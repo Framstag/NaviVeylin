@@ -18,6 +18,9 @@ import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.SearchQueryParser
+import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.SearchResultRanker
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +49,13 @@ class SearchScreen(
     carContext: CarContext,
     private val navigationViewModel: NavigationViewModel,
     private val initialQuery: String? = null,
+    /**
+     * Current car map viewport center, used as the search distance reference
+     * when no GPS fix exists (spec: search-result-ranking — distance
+     * reference). Null when this screen was opened from a surface that shows no
+     * map (then the results are ordered by tier and quality without distances).
+     */
+    private val viewportCenter: () -> Pair<Double, Double>? = { null },
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : Screen(carContext) {
@@ -58,6 +68,7 @@ class SearchScreen(
         AutoEntryPoint::class.java
     )
     private val searchProvider = entryPoint.autoSearchProvider()
+    private val locationProvider = entryPoint.autoLocationProvider()
     private val historyProvider = entryPoint.autoSearchHistoryProvider()
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
 
@@ -66,6 +77,9 @@ class SearchScreen(
 
     /** Recent searches; null until the async load completes (design D4). */
     private var history: List<String>? = null
+
+    /** Reference point the current result list was ranked against (row distances). */
+    private var lastReference: SearchReference? = null
 
     init {
         enableBackNavigation()
@@ -104,16 +118,52 @@ class SearchScreen(
         return builder.build()
     }
 
+    /**
+     * Reference point for ordering and for the row distances: the last known GPS
+     * fix, else the car map viewport center, else none (spec:
+     * search-result-ranking). Read inside the search coroutine, and used for both
+     * the ranking (passed to the provider) and the displayed distance, so the
+     * numbers cannot contradict the order.
+     */
+    private fun searchReference(): SearchReference? {
+        val fix = locationProvider.position().value
+        if (fix != null && fix.lat.isFinite() && fix.lon.isFinite()) {
+            return SearchReference(fix.lat, fix.lon)
+        }
+        val center = viewportCenter()
+        return if (center != null && center.first.isFinite() && center.second.isFinite()) {
+            SearchReference(center.first, center.second)
+        } else {
+            null
+        }
+    }
+
     private fun runSearch(searchText: String) {
         searchJob?.cancel()
         searchJob = scope.launch {
             delay(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
-            val results = withContext(ioDispatcher) {
-                val native = searchProvider.searchLocations(searchText, SearchScreenMapper.MAX_RESULTS)
+            val (results, reference) = withContext(ioDispatcher) {
+                val reference = searchReference()
+                val native = searchProvider.searchLocations(
+                    searchText,
+                    SearchScreenMapper.MAX_RESULTS,
+                    reference
+                )
                 val favorites = favoritesProvider.favoriteLocations().value.values.flatten()
-                favoriteSearchMerger.merge(searchText, favorites, native)
+                val criteria = SearchQueryParser.criteriaOf(searchText)
+                val merged = favoriteSearchMerger.merge(searchText, favorites, native)
+                    .map { result ->
+                        result.copy(
+                            isPerfectMatch = SearchResultRanker.isPerfectMatch(result.entry, criteria)
+                        )
+                    }
+                    .take(SearchScreenMapper.MAX_RESULTS)
+                // Returned, not assigned here: the reference is published on the
+                // screen's dispatcher and read while building the template.
+                merged to reference
             }
             Log.d(TAG, "Search results: ${results.size} for '$searchText'")
+            lastReference = reference
             lastResults = results
             lastQuery = searchText
             invalidate()
@@ -156,6 +206,7 @@ class SearchScreen(
                 SearchScreenMapper.buildResultRow(
                     carContext,
                     result,
+                    reference = lastReference,
                     onClick = {
                         val entry = result.entry
                         Log.d(TAG, "Details for: ${entry.label} (${entry.lat}, ${entry.lon})")

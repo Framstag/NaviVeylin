@@ -4,6 +4,7 @@ import androidx.car.app.OnDoneCallback
 import androidx.car.app.model.Row
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.SearchReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -204,5 +205,97 @@ class SearchScreenMapperTest {
 
         click(row)
         assertEquals(true, tapped)
+    }
+
+    // ── Perfect-match marking and distance (spec: search-result-ranking) ──
+
+    private fun perfectEntry(label: String, lat: Double = 51.5, lon: Double = 7.4): LocationEntry =
+        resultEntry(label).apply {
+            this.lat = lat
+            this.lon = lon
+            matchedName = label
+            matchedComponent = "location"
+            locationMatchQuality = "match"
+        }
+
+    @Test
+    fun buildResultRow_perfectMatchShowsMarkingImage() {
+        val result = MergedSearchResult(
+            perfectEntry("Waltrop"),
+            isFavorite = false,
+            isFavoriteHit = false,
+            isPerfectMatch = true
+        )
+
+        val row = SearchScreenMapper.buildResultRow(carContext, result, onClick = {})
+
+        assertNotNull("perfect-match row must carry the marking glyph", row.image)
+    }
+
+    @Test
+    fun buildResultRow_favoriteAndPerfectRowShowsOneCompositeMarking() {
+        val result = MergedSearchResult(
+            perfectEntry("Waltrop"),
+            isFavorite = true,
+            isFavoriteHit = false,
+            isPerfectMatch = true
+        )
+
+        val row = SearchScreenMapper.buildResultRow(carContext, result, onClick = {})
+
+        // One image slot on a car Row: both facts live in the composite glyph.
+        assertNotNull(row.image)
+        assertEquals("Waltrop", row.title.toString())
+    }
+
+    @Test
+    fun buildResultRow_closeMatchHasNoMarkingImage() {
+        val result = MergedSearchResult(
+            resultEntry("Waltroper Straße"),
+            isFavorite = false,
+            isFavoriteHit = false,
+            isPerfectMatch = false
+        )
+
+        val row = SearchScreenMapper.buildResultRow(carContext, result, onClick = {})
+
+        assertNull(row.image)
+    }
+
+    @Test
+    fun buildResultRow_showsDistanceFromTheReferenceAsASecondTextLine() {
+        // ~1.0 km north of the reference (0.009° latitude).
+        val result = MergedSearchResult(
+            perfectEntry("Waltrop", lat = 51.5226, lon = 7.4653),
+            isFavorite = false,
+            isFavoriteHit = false,
+            isPerfectMatch = true
+        )
+
+        val row = SearchScreenMapper.buildResultRow(
+            carContext,
+            result,
+            reference = SearchReference(51.5136, 7.4653),
+            onClick = {}
+        )
+
+        assertEquals(
+            listOf("44339 — Eving, Dortmund", "1.0 km"),
+            row.texts.map { it.toString() }
+        )
+    }
+
+    @Test
+    fun buildResultRow_showsNoDistanceWithoutAReference() {
+        val result = MergedSearchResult(
+            perfectEntry("Waltrop"),
+            isFavorite = false,
+            isFavoriteHit = false,
+            isPerfectMatch = true
+        )
+
+        val row = SearchScreenMapper.buildResultRow(carContext, result, reference = null, onClick = {})
+
+        assertEquals(listOf("44339 — Eving, Dortmund"), row.texts.map { it.toString() })
     }
 }

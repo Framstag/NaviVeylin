@@ -22,6 +22,10 @@ import com.naviveylin.core.SpeedZoomTable
  *   "pumping"); constant speed → epsilon no-op;
  * - first commit jumps directly to the target (spec's "Speed unknown"
  *   scenario: no easing from the default map zoom);
+ * - an unknown or invalid speed (negative, NaN, or a > 150 km/h spike) resolves to
+ *   [DEFAULT_SPEED_KMH] = 20 km/h, the same seed the phone's auto-zoom filter carries
+ *   (`MapCanvasViewModel.lastValidSpeedKmH`), so the first position estimate already yields a
+ *   "reasonable initial zoom" instead of no target at all (spec: auto-speed-zoom — Speed unknown);
  * - manual zoom suspends auto-zoom; a speed-band change re-engages it.
  */
 class AutoZoomController(
@@ -29,7 +33,9 @@ class AutoZoomController(
     private val maxMag: Double = AutoMapRenderer.MAX_ZOOM.toDouble()
 ) {
 
-    private var lastValidSpeedKmH = Double.NaN
+    /** Last good speed (km/h): SEEDED with [DEFAULT_SPEED_KMH], so an invalid speed before the
+     *  first valid one resolves to the spec's default rather than to "no target". */
+    private var lastValidSpeedKmH = DEFAULT_SPEED_KMH
     private var suspended = false
     private var lastBand = -1
     // NaN = never committed; first commit jumps straight to the target.
@@ -45,9 +51,11 @@ class AutoZoomController(
 
     /**
      * Feed a speed fix. Returns the fractional magnification to commit, or
-     * null when nothing should change (speed invalid, suspended, or the
-     * target differs from the committed magnification by less than the
-     * epsilon — constant speed never re-commits).
+     * null when nothing should change (suspended, or the target differs from
+     * the committed magnification by less than the epsilon — constant speed
+     * never re-commits). An INVALID speed (negative / NaN / spike) is not a
+     * no-op: it resolves to [DEFAULT_SPEED_KMH] until a valid speed arrives
+     * (spec: auto-speed-zoom — Speed unknown).
      */
     fun onSpeed(rawSpeedKmH: Double): Double? {
         val speed = filterSpeed(rawSpeedKmH)
@@ -83,7 +91,11 @@ class AutoZoomController(
         return stepped
     }
 
-    /** Reject speed spikes (> 150 km/h) and NaN; keep the last good speed. */
+    /**
+     * Reject speed spikes (> 150 km/h) and NaN; keep the last good speed
+     * (which starts at the seeded [DEFAULT_SPEED_KMH], so `filterSpeed` never
+     * yields an unusable value).
+     */
     private fun filterSpeed(rawSpeedKmH: Double): Double {
         if (rawSpeedKmH >= 0.0 && rawSpeedKmH <= MAX_SPEED_KMH) {
             lastValidSpeedKmH = rawSpeedKmH
@@ -93,5 +105,12 @@ class AutoZoomController(
 
     companion object {
         const val MAX_SPEED_KMH = 150.0
+
+        /**
+         * Speed (km/h) used until a VALID speed has been reported (spec:
+         * auto-speed-zoom — Speed unknown: "a default speed of 20 km/h to compute a reasonable
+         * initial zoom"). Mirrors the phone's seed (`MapCanvasViewModel.lastValidSpeedKmH`).
+         */
+        const val DEFAULT_SPEED_KMH = 20.0
     }
 }

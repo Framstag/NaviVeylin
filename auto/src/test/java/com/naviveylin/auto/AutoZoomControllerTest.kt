@@ -67,13 +67,17 @@ class AutoZoomControllerTest {
     }
 
     @Test
-    fun invalidSpeedReturnsNullAndKeepsLastGoodSpeed() {
+    fun invalidSpeedUsesTheSeededDefault() {
+        // The controller is seeded with the spec's default speed (20 km/h -> the 16.0 level), so an
+        // invalid speed resolves to that target instead of "no target" (spec: auto-speed-zoom —
+        // Speed unknown; parity with the phone's `MapCanvasViewModel.lastValidSpeedKmH`).
         val c = AutoZoomController()
-        assertNull(c.onSpeed(Double.NaN))
-        // Speed spike > 150 km/h is rejected; last good speed is kept.
+        assertEquals(16.0, c.onSpeed(Double.NaN)!!, 0.001)
+        // Speed spike > 150 km/h is rejected too — the last good speed (the seed) is kept, which
+        // maps to the same level, so nothing re-commits.
         assertNull(c.onSpeed(500.0))
-        // A valid speed still commits directly afterwards.
-        assertEquals(16.0, c.onSpeed(30.0)!!, 0.001)
+        // A valid speed then drives the zoom from the seed's level (16.0 -> 15.5 = the 0.5 cap).
+        assertEquals(15.5, c.onSpeed(120.0)!!, 0.001)
     }
 
     @Test

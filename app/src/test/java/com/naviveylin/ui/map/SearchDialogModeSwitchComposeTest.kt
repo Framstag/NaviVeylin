@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.naviveylin.core.search.SearchReference
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -42,8 +43,7 @@ class SearchDialogModeSwitchComposeTest {
                 isSearching = false,
                 gpsAvailable = false,
                 adminRegionName = null,
-                centerLat = 51.5136,
-                centerLon = 7.4653,
+                distanceReference = SearchReference(51.5136, 7.4653),
                 historyEntries = emptyList(),
                 favoriteGroups = emptyMap(),
                 onQueryChanged = { query = it },

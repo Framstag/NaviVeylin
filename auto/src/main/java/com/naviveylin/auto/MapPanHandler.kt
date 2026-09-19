@@ -112,15 +112,63 @@ class MapPanHandler(
 }
 
 /**
+ * Heading commit deadband (radians, design D2; spec: auto-smooth-follow —
+ * Heading commit deadband): the follow-mode rotation is re-committed only when
+ * the smoothed heading moved more than this from the COMMITTED rotation.
+ * Measured against the committed value, so the heading-up lag can never
+ * accumulate beyond the deadband. ~1.5°: the measured heading moves ~0.9°/s
+ * mean (max ~2.7°/fix), so this removes most rotation commits — and with them
+ * the forced full native render per fix (a rotation cannot be blitted) —
+ * while a real turn still re-commits promptly and the map keeps following the
+ * direction of travel. Tuning constant, verified on device (task 7.2).
+ */
+val HEADING_DEADBAND_RAD: Double = Math.toRadians(1.5)
+
+/**
+ * The rotation a fix should commit, applying the heading deadband: returns
+ * [heading] when it differs from the committed rotation by more than
+ * [HEADING_DEADBAND_RAD] (or when there is no committed rotation yet — first
+ * rotation commits as today), null when the change falls below the deadband,
+ * so the caller keeps the committed rotation and the fix commits a
+ * centre/zoom-only change that the overrun blit can serve. Never while
+ * panned (spec: auto/map-pan — follow suspended while panned). Shared by
+ * [NavigationScreen] and [FreeDrivingScreen] so the two screens can never
+ * drift apart (design D2).
+ */
+fun resolveCommittedAngle(panning: Boolean, heading: Double?, committedAngle: Double?): Double? {
+    if (panning || heading == null) return null
+    if (committedAngle == null) return heading
+    return if (Math.abs(angleDeltaRadians(heading, committedAngle)) > HEADING_DEADBAND_RAD) {
+        heading
+    } else {
+        null
+    }
+}
+
+/**
+ * Normalized signed difference `a - b` into (-π, π], so heading deltas cross the
+ * ±180° wrap correctly (bearings are 0..360°, committed rotations are negative
+ * radians of the same convention).
+ */
+internal fun angleDeltaRadians(a: Double, b: Double): Double {
+    var d = a - b
+    while (d > Math.PI) d -= 2.0 * Math.PI
+    while (d < -Math.PI) d += 2.0 * Math.PI
+    return d
+}
+
+/**
  * Whether a GPS fix should commit a viewport change: never while panned
  * (spec: auto/map-pan — follow suspended while panned), otherwise when the
- * heading or the zoom changed. Shared by [NavigationScreen] and
- * [FreeDrivingScreen] so the two screens can never drift apart (design D1).
+ * heading moved beyond the deadband (see [resolveCommittedAngle] — [angle]
+ * here is already the resolved rotation) or the zoom changed. Shared by
+ * [NavigationScreen] and [FreeDrivingScreen] so the two screens can never
+ * drift apart (design D1).
  *
  * The panning gate is the critical one: while panned, a speed-band crossing
  * can make the auto-zoom controller return a zoom (it re-engages on band
  * change by design — manual-zoom semantics), and without the gate that zoom
  * would reach the commit block and re-engage follow mid-pan.
  */
-fun shouldCommitViewport(panning: Boolean, angle: Double?, newZoom: Double?): Boolean =
-    !panning && (angle != null || newZoom != null)
+fun shouldCommitViewport(panning: Boolean, angle: Double?, committedAngle: Double?, newZoom: Double?): Boolean =
+    !panning && (newZoom != null || resolveCommittedAngle(panning, angle, committedAngle) != null)

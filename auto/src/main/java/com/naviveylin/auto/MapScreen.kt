@@ -400,7 +400,16 @@ class MapScreen(
         // unit; surface gestures are not forwarded).
         val actionStrip = ActionStrip.Builder()
             .addAction(MapStripActions.searchAction {
-                screenManager.push(SearchScreen(carContext, navigationViewModel))
+                // The map screen knows its viewport center, which is the search
+                // distance reference when no GPS fix exists (spec:
+                // search-result-ranking — distance reference).
+                screenManager.push(
+                    SearchScreen(
+                        carContext,
+                        navigationViewModel,
+                        viewportCenter = { rendererGate.renderer.value?.markerViewport() }
+                    )
+                )
             })
             .addAction(MapStripActions.settingsAction {
                 screenManager.push(

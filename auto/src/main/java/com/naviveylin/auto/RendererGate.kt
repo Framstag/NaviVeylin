@@ -43,7 +43,8 @@ internal class RendererGate {
         val lon: Double,
         val zoom: Int,
         val angle: Double,
-        val zoomFraction: Double
+        val zoomFraction: Double,
+        val walkZoom: Boolean = false
     )
 
     private data class GpsMarkerPending(
@@ -125,7 +126,7 @@ internal class RendererGate {
             hostTopInsetPx = null
         }
         viewport?.let {
-            renderer.setViewport(it.lat, it.lon, it.zoom, it.angle, it.zoomFraction)
+            renderer.setViewport(it.lat, it.lon, it.zoom, it.angle, it.zoomFraction, it.walkZoom)
             viewport = null
         }
         if (reengageFollow) {
@@ -238,12 +239,19 @@ internal class RendererGate {
         if (ready != null) ready.reCenter() else reCenter = true
     }
 
-    fun setViewport(lat: Double, lon: Double, zoom: Int, angle: Double, zoomFraction: Double = zoom.toDouble()) {
+    fun setViewport(
+        lat: Double,
+        lon: Double,
+        zoom: Int,
+        angle: Double,
+        zoomFraction: Double = zoom.toDouble(),
+        walkZoom: Boolean = false
+    ) {
         val ready = rendererOrNull()
         if (ready != null) {
-            ready.setViewport(lat, lon, zoom, angle, zoomFraction)
+            ready.setViewport(lat, lon, zoom, angle, zoomFraction, walkZoom)
         } else {
-            viewport = ViewportPending(lat, lon, zoom, angle, zoomFraction)
+            viewport = ViewportPending(lat, lon, zoom, angle, zoomFraction, walkZoom)
         }
     }
 

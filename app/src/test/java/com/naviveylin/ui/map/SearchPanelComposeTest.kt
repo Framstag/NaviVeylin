@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.SearchReference
 import com.naviveylin.data.SearchHistoryEntry
 import org.junit.Rule
 import org.junit.Test
@@ -18,8 +19,8 @@ import org.robolectric.RobolectricTestRunner
  * Compose UI tests for the unified search dialog's Places mode (spec:
  * search-dialog, location-search): the resolved admin region name is shown
  * above the search input only while a region is resolved, results show the
- * distance from the map center, and the recent-search suggestions are visible
- * on an empty query and hidden while typing.
+ * distance from the ranking reference point, and the recent-search suggestions
+ * are visible on an empty query and hidden while typing.
  */
 @RunWith(RobolectricTestRunner::class)
 class SearchPanelComposeTest {
@@ -31,8 +32,7 @@ class SearchPanelComposeTest {
         adminRegionName: String?,
         query: String = "",
         results: List<MergedSearchResult> = emptyList(),
-        centerLat: Double = 51.5136,
-        centerLon: Double = 7.4653,
+        distanceReference: SearchReference = SearchReference(51.5136, 7.4653),
         historyEntries: List<SearchHistoryEntry> = emptyList(),
         gpsAvailable: Boolean = true,
         onQueryChanged: (String) -> Unit = {}
@@ -47,8 +47,7 @@ class SearchPanelComposeTest {
                 isSearching = false,
                 gpsAvailable = gpsAvailable,
                 adminRegionName = adminRegionName,
-                centerLat = centerLat,
-                centerLon = centerLon,
+                distanceReference = distanceReference,
                 historyEntries = historyEntries,
                 favoriteGroups = emptyMap(),
                 onQueryChanged = onQueryChanged,
@@ -99,15 +98,15 @@ class SearchPanelComposeTest {
     }
 
     @Test
-    fun resultShowsDistanceFromMapCenter() {
+    fun resultShowsDistanceFromReferencePoint() {
         launchDialog(adminRegionName = null, query = "Dort", results = listOf(MergedSearchResult(distanceEntry(), isFavorite = false, isFavoriteHit = false)))
         composeRule.onNodeWithText("1.0 km").assertIsDisplayed()
     }
 
     @Test
-    fun distanceFollowsMapCenter() {
+    fun distanceFollowsReferencePoint() {
         val entry = distanceEntry()
-        var centerLat by mutableStateOf(51.5136)
+        var reference by mutableStateOf(SearchReference(51.5136, 7.4653))
         composeRule.setContent {
             SearchDialog(
                 searchMode = SearchMode.PLACES,
@@ -118,8 +117,7 @@ class SearchPanelComposeTest {
                 isSearching = false,
                 gpsAvailable = true,
                 adminRegionName = null,
-                centerLat = centerLat,
-                centerLon = 7.4653,
+                distanceReference = reference,
                 historyEntries = emptyList(),
                 favoriteGroups = emptyMap(),
                 onQueryChanged = {},
@@ -148,8 +146,8 @@ class SearchPanelComposeTest {
             )
         }
         composeRule.onNodeWithText("1.0 km").assertIsDisplayed()
-        // Move center ~2 km north of the entry: distance must recompute.
-        centerLat = 51.5406
+        // Move the reference ~2 km north of the entry: distance must recompute.
+        reference = SearchReference(51.5406, 7.4653)
         composeRule.waitForIdle()
         composeRule.onNodeWithText("2.0 km").assertIsDisplayed()
     }
@@ -183,8 +181,7 @@ class SearchPanelComposeTest {
                 isSearching = false,
                 gpsAvailable = true,
                 adminRegionName = null,
-                centerLat = 51.5136,
-                centerLon = 7.4653,
+                distanceReference = SearchReference(51.5136, 7.4653),
                 historyEntries = listOf(SearchHistoryEntry("Café Central", 1000L)),
                 favoriteGroups = emptyMap(),
                 onQueryChanged = { query = it },

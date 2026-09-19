@@ -14,6 +14,8 @@ import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.search.SearchQueryParser
+import com.naviveylin.core.search.SearchResultRanker
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.StructuredAddressSearch
 import com.naviveylin.data.SearchHistoryRepository
@@ -50,15 +52,24 @@ object AutoServiceModule {
     @Provides
     @Singleton
     fun provideAutoSearchProvider(client: OSMScoutClient): AutoSearchProvider {
-        return AutoSearchProvider { query, limit ->
+        return AutoSearchProvider { query, limit, reference ->
             // Full formatted addresses resolve via the structured form search
             // first (a postal code inside the query otherwise empties the
             // native string search); structured house/street results rank
             // above raw free-text results (spec: auto-search "Full formatted
             // address resolution on car screen").
-            val raw = client.searchLocations(query, limit, OSMScoutClient.NO_ADMIN_REGION)
-                ?.toList() ?: emptyList()
-            StructuredAddressSearch.merge(StructuredAddressSearch.resolve(query, client), raw)
+            //
+            // The candidate set is larger than the displayed list so the
+            // ranking can promote a perfect match the backend's own order put
+            // past the page (spec: search-result-ranking).
+            val raw = client.searchLocations(
+                query,
+                SearchResultRanker.CANDIDATE_LIMIT,
+                OSMScoutClient.NO_ADMIN_REGION
+            )?.toList() ?: emptyList()
+            val combined = StructuredAddressSearch.merge(StructuredAddressSearch.resolve(query, client), raw)
+            SearchResultRanker.rank(combined, SearchQueryParser.criteriaOf(query), reference)
+                .take(limit)
         }
     }
 

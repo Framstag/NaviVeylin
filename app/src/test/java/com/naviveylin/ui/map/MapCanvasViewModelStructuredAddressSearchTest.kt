@@ -66,11 +66,24 @@ class MapCanvasViewModelStructuredAddressSearchTest {
         viewModel.cancelScopeForTest()
     }
 
+    // Both fakes model a real native entry: the per-attribute qualities and the
+    // name the label was derived from are what the ranking reads (spec:
+    // search-result-ranking). The house-level entry matches the queried house
+    // number, the street-level entry does not carry one.
     private fun houseEntry(label: String, lat: Double, lon: Double): LocationEntry =
         LocationEntry().apply {
             this.label = label
             objectType = "address"
             matchQuality = "match"
+            matchedName = "Erbstollenstraße"
+            matchedComponent = "location"
+            locationMatchQuality = "match"
+            addressMatchQuality = "match"
+            adminRegionMatchQuality = "match"
+            postalArea = "58454"
+            postalAreaMatchQuality = "match"
+            hasHouseNumber = true
+            region = arrayOf("Witten")
             this.lat = lat
             this.lon = lon
             objectFileOffset = 123L
@@ -81,6 +94,13 @@ class MapCanvasViewModelStructuredAddressSearchTest {
             this.label = label
             objectType = "place"
             matchQuality = "match"
+            matchedName = label
+            matchedComponent = "location"
+            locationMatchQuality = "match"
+            adminRegionMatchQuality = "match"
+            postalArea = "58454"
+            postalAreaMatchQuality = "match"
+            region = arrayOf("Witten")
             this.lat = lat
             this.lon = lon
         }

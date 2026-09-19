@@ -4,6 +4,7 @@ import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoPositionUtil
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -119,5 +120,30 @@ class AutoPositionUtilTest {
         assertEquals(90.0, bearing, 1e-9)
         // Sanity: a real speed is never replaced by a sentinel.
         assertTrue(speed >= 0.0)
+    }
+
+    @Test
+    fun unknownSpeedStaysUnknownWithoutMovement() {
+        // The auto-zoom default-speed seed (20 km/h) is a TARGET-computation default and must NOT
+        // leak into this derivation: the effective speed feeds the follow extrapolation and the
+        // movement gate, so a parked car with no reported speed has to stay "unknown" (-1) —
+        // otherwise the map would glide as if it were doing 20 km/h (spec: auto-smooth-follow —
+        // "Fix feed from follow-mode screens"; change task 7.2).
+        val d = AutoFixDerivation()
+        val first = AutoPosition(
+            lat = 51.0, lon = 7.0, bearing = Double.NaN, speedKmH = Double.NaN
+        )
+        val (speed, bearing) = d.derive(first, 1_000L)
+        assertFalse("must not be a usable speed (got $speed)", speed >= 0.0)
+        assertFalse("unknown bearing too (got $bearing)", bearing >= 0.0)
+
+        // A second fix that moved too little to derive a speed keeps the unknown sentinel as well.
+        val second = AutoPosition(
+            lat = 51.0, lon = 7.0, bearing = Double.NaN, speedKmH = Double.NaN
+        )
+        assertFalse(
+            "still unknown (got ${d.derive(second, 2_000L).first})",
+            d.derive(second, 3_000L).first >= 0.0
+        )
     }
 }

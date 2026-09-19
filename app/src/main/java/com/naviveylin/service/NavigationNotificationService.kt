@@ -1,7 +1,6 @@
 package com.naviveylin.service
 
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -9,11 +8,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
-import androidx.core.app.NotificationCompat
 import com.naviveylin.AutomotiveDevice
 import com.naviveylin.MainActivity
-import com.naviveylin.R
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.ManeuverSymbols
+import com.naviveylin.core.stringResolver
 import com.naviveylin.navigation.NavigationStateProvider
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -52,15 +51,17 @@ class NavigationNotificationService : Service() {
     override fun onCreate() {
         super.onCreate()
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        createNotificationChannel()
+        isAutomotive = AutomotiveDevice.isAutomotive(this)
+        channelId = NavigationNotificationBuilder.channelIdFor(isAutomotive)
+        NavigationNotificationBuilder.createChannels(this, isAutomotive)
+            .forEach(notificationManager::createNotificationChannel)
         // FGS contract: must post the foreground notification within 5s of
         // the startForegroundService call — render the current state now and
         // keep re-rendering from the observer.
-        val initialContent = NavigationNotificationContentFormatter.format(
-            stateProvider.state.value,
-            drivingModeProvider.freeDrivingActive.value
-        )
-        startForeground(NOTIFICATION_ID, buildNotification(initialContent))
+        val state = stateProvider.state.value
+        val freeDriving = drivingModeProvider.freeDrivingActive.value
+        val content = NavigationNotificationContentFormatter.format(state, freeDriving)
+        startForeground(NOTIFICATION_ID, buildNotification(content, carHintFor(state)))
         observeDrivingState()
     }
 
@@ -116,10 +117,22 @@ class NavigationNotificationService : Service() {
 
     private fun render(navState: com.naviveylin.core.NavigationState, freeDriving: Boolean) {
         val content = NavigationNotificationContentFormatter.format(navState, freeDriving)
-        notificationManager.notify(NOTIFICATION_ID, buildNotification(content))
+        val hint = carHintFor(navState)
+        notificationManager.notify(NOTIFICATION_ID, buildNotification(content, hint))
     }
 
-    private fun buildNotification(content: NavigationNotificationContent): Notification {
+    /**
+     * Car-screen hint for the current state, or null when no car hint applies
+     * (free driving — spec: auto-navigation-hints, "No car surface for free
+     * driving"). Null means the notification is not extended for the car host.
+     */
+    private fun carHintFor(navState: com.naviveylin.core.NavigationState): CarHintContent? =
+        NavigationNotificationContentFormatter.carHint(navState, stringResolver())
+
+    private fun buildNotification(
+        content: NavigationNotificationContent,
+        hint: CarHintContent?
+    ): Notification {
         val openIntent = PendingIntent.getActivity(
             this,
             0,
@@ -138,54 +151,36 @@ class NavigationNotificationService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_nav_notification)
-            .setContentTitle(content.title)
-            .setContentText(content.contentText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(content.bigTextLines.joinToString("\n")))
-            .setContentIntent(openIntent)
-            .setOngoing(true)
-            .setSilent(true)
-            .setOnlyAlertOnce(true)
-            .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .apply {
-                if (content.showStopAction) {
-                    addAction(0, getString(R.string.stop_navigation), stopIntent)
-                }
-            }
-            .build()
+        return NavigationNotificationBuilder.build(
+            context = this,
+            content = content,
+            hint = hint,
+            channelId = channelId,
+            openIntent = openIntent,
+            stopIntent = stopIntent,
+            turnBitmap = ManeuverSymbols::bitmapForTurnType
+        )
     }
 
     /** Phone → MainActivity; automotive → the car template host activity. */
     private fun openTargetActivity(): Class<*> {
-        return if (AutomotiveDevice.isAutomotive(this)) {
+        return if (isAutomotive) {
             CarAppActivity::class.java
         } else {
             MainActivity::class.java
         }
     }
 
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = getString(R.string.navigation_notification_channel_description)
-            setShowBadge(false)
-            // Silent by design: guidance is visual-only while driving.
-            setSound(null, null)
-        }
-        notificationManager.createNotificationChannel(channel)
-    }
-
     private lateinit var notificationManager: NotificationManager
+
+    /** True on Android Automotive OS hardware; decides the notification channel. */
+    private var isAutomotive: Boolean = false
+
+    /** Channel the ongoing notification is posted on (see [NavigationNotificationBuilder]). */
+    private lateinit var channelId: String
 
     companion object {
         private const val TAG = "NavigationNotificationService"
-        const val CHANNEL_ID = "navigation"
-        private const val CHANNEL_NAME = "Navigation"
         private const val NOTIFICATION_ID = 1002
         const val ACTION_START = "com.naviveylin.action.START_NAV_NOTIFICATION"
         const val ACTION_STOP = "com.naviveylin.action.STOP_NAV_NOTIFICATION"

@@ -1,5 +1,6 @@
 package com.naviveylin.ui.route
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,18 +36,32 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.R
+import com.naviveylin.core.ResultMarkings
+import com.naviveylin.core.search.ResultMarking
+import com.naviveylin.core.search.SearchQueryParser
+import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.SearchResultRanker
 import com.naviveylin.util.formatDistanceKm
-import com.naviveylin.util.haversineDistanceMeters
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,10 +73,36 @@ fun RoutePanel(
     onStopNavigation: () -> Unit = {},
     isNavigating: Boolean = false,
     centerLat: Double,
-    centerLon: Double
+    centerLon: Double,
+    /** Height of the map canvas in pixels; 0 while unknown (no reporting then). */
+    canvasHeightPx: Int = 0
 ) {
     val state by viewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    // Report the sheet's covered height (px) so the map fits the route overview
+    // into the visible area above the panel (spec: route-map-overview, Decision 8).
+    // `SheetState.offset` is internal in Material3; requireOffset() is the public
+    // equivalent and is measured against the sheet's window, which the
+    // edge-to-edge map canvas fills, so the covered height is
+    // canvasHeight - offset (Hidden anchor = canvasHeight, Expanded = canvas - sheet).
+    LaunchedEffect(sheetState, canvasHeightPx) {
+        if (canvasHeightPx <= 0) return@LaunchedEffect
+        snapshotFlow { runCatching { sheetState.requireOffset() }.getOrNull() }
+            .filterNotNull()
+            .map { offset -> (canvasHeightPx - offset).roundToInt().coerceIn(0, canvasHeightPx) }
+            .distinctUntilChanged()
+            .collect { viewModel.setSheetCoveredHeightPx(it) }
+    }
+    // A disposed panel covers nothing — the map fits the full canvas again.
+    DisposableEffect(Unit) {
+        onDispose { viewModel.setSheetCoveredHeightPx(0) }
+    }
+    // The map center is the search reference fallback when no GPS fix exists
+    // (spec: search-result-ranking — distance reference).
+    LaunchedEffect(centerLat, centerLon) {
+        viewModel.setFallbackSearchCenter(centerLat, centerLon)
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -122,8 +163,7 @@ fun RoutePanel(
                             results = state.searchResults,
                             isSearching = state.isSearching,
                             gpsAvailable = state.gpsAvailable,
-                            centerLat = centerLat,
-                            centerLon = centerLon,
+                            reference = state.searchReference,
                             onSelectCurrentLocation = { viewModel.selectCurrentLocation() },
                             onSelectFavorite = { onOpenFavoritePicker(ActiveField.START) },
                             onSelectResult = { viewModel.selectSearchResult(it) }
@@ -164,8 +204,7 @@ fun RoutePanel(
                             results = state.searchResults,
                             isSearching = state.isSearching,
                             gpsAvailable = state.gpsAvailable,
-                            centerLat = centerLat,
-                            centerLon = centerLon,
+                            reference = state.searchReference,
                             onSelectCurrentLocation = { viewModel.selectCurrentLocation() },
                             onSelectFavorite = { onOpenFavoritePicker(ActiveField.DEST) },
                             onSelectResult = { viewModel.selectSearchResult(it) }
@@ -403,12 +442,14 @@ private fun RouteSearchResults(
     results: List<LocationEntry>,
     isSearching: Boolean,
     gpsAvailable: Boolean,
-    centerLat: Double,
-    centerLon: Double,
+    reference: SearchReference?,
     onSelectCurrentLocation: () -> Unit,
     onSelectFavorite: () -> Unit,
     onSelectResult: (LocationEntry) -> Unit
 ) {
+    // The perfect-match fact is derived from the same query the ranking used, so
+    // the marking and the order agree (spec: search-result-ranking).
+    val criteria = remember(query) { SearchQueryParser.criteriaOf(query) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -488,14 +529,16 @@ private fun RouteSearchResults(
                     modifier = Modifier.heightIn(max = 160.dp)
                 ) {
                     items(results) { entry ->
-                        // Distance from the current map center, right-aligned in
-                        // a smaller font (see Result distance display spec).
-                        val meters = haversineDistanceMeters(centerLat, centerLon, entry.lat, entry.lon)
-                        val distanceText = if (meters.isFinite()) {
+                        // Distance from the ranking reference, right-aligned in a
+                        // smaller font (spec: location-search — Result distance
+                        // display); the same point the order was computed from.
+                        val meters = SearchResultRanker.distanceMeters(entry, reference)
+                        val distanceText = if (meters != null) {
                             stringResource(R.string.distance_unit_km, formatDistanceKm(meters))
                         } else {
                             null
                         }
+                        val isPerfect = SearchResultRanker.isPerfectMatch(entry, criteria)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -503,6 +546,14 @@ private fun RouteSearchResults(
                                 .padding(vertical = 10.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            if (isPerfect) {
+                                Image(
+                                    bitmap = ResultMarkings.bitmapFor(ResultMarking.PERFECT).asImageBitmap(),
+                                    contentDescription = stringResource(R.string.search_result_exact_match),
+                                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier.padding(end = 12.dp)
+                                )
+                            }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = entry.label,

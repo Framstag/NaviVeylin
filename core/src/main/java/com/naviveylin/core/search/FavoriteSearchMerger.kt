@@ -14,11 +14,15 @@ import com.framstag.libosmscout.client.LocationEntry
  *   result whose coordinates match an existing favorite
  * @property isFavoriteHit true when the entry came from the favorites list
  *   (rendered in the prioritized top section)
+ * @property isPerfectMatch true when the entry is the exact answer to the
+ *   query (spec: search-result-ranking); set by the caller that also ranked the
+ *   list, so the row marking and the ordering come from the same decision
  */
 data class MergedSearchResult(
     val entry: LocationEntry,
     val isFavorite: Boolean,
-    val isFavoriteHit: Boolean
+    val isFavoriteHit: Boolean,
+    val isPerfectMatch: Boolean = false
 )
 
 /**

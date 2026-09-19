@@ -1,6 +1,11 @@
 package com.naviveylin.service
 
+import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.R
+import com.naviveylin.core.StringResolver
+import com.naviveylin.core.TurnInstructionLocalizer
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.ui.navigation.currentRoadText
@@ -27,6 +32,26 @@ data class NavigationNotificationContent(
 )
 
 /**
+ * Car-screen hint content (spec: auto-navigation-hints — "Car hint content"):
+ * how the ongoing navigation notification is rendered on the car screen, where
+ * the maneuver instruction leads and the destination name does not (the phone
+ * notification keeps its destination-first roles).
+ *
+ * @param title primary car text — the maneuver instruction in the wording of
+ *   the on-screen next-turn display, or the neutral fallback while no maneuver
+ *   is known yet
+ * @param text secondary car text — distance to the maneuver (to the
+ *   destination while no maneuver is known) plus the arrival time
+ * @param turnType turn type for the car large icon; null when no maneuver is
+ *   known yet, in which case no large icon is offered
+ */
+data class CarHintContent(
+    val title: String,
+    val text: String,
+    val turnType: TurnType?
+)
+
+/**
  * Pure mapping from (driving mode + navigation state) to notification
  * content (spec: navigation-ongoing-notification — R3 navigation guidance
  * content, R5 free-driving content). No Android dependencies — unit-testable
@@ -37,6 +62,9 @@ object NavigationNotificationContentFormatter {
 
     private const val TITLE_NAVIGATION_ACTIVE = "Navigation active"
     private const val TITLE_FREE_DRIVING = "Free driving"
+
+    /** Arrival time placeholder when no ETA is known. */
+    private const val ETA_UNKNOWN = "--:--"
 
     /**
      * Format the content for [state] and driving mode.
@@ -58,6 +86,55 @@ object NavigationNotificationContentFormatter {
         } else {
             freeDriveContent(state, freeDrivingActive, locale)
         }
+    }
+
+    /**
+     * Car-screen hint content while NAVIGATION mode is active (spec:
+     * auto-navigation-hints — "Car hint content"). Null when navigation is not
+     * active: free driving has no car surface, so the app offers the host no
+     * turn-by-turn hint (spec: "No car surface for free driving").
+     *
+     * @param state live navigation state
+     * @param resolver localizes the maneuver instruction exactly like the
+     *   on-screen next-turn display
+     * @param etaClock wall-clock formatter for the arrival time; injectable for
+     *   tests, defaults to device-locale "HH:mm"
+     */
+    fun carHint(
+        state: NavigationState,
+        resolver: StringResolver,
+        etaClock: (Long) -> String = ::formatEtaClock,
+        locale: Locale = Locale.getDefault()
+    ): CarHintContent? {
+        if (!state.isNavigating) return null
+        // Same instruction source as the phone path: the live next instruction
+        // when the engine emits one, otherwise the frozen route list entry.
+        val instruction = state.nextInstruction
+            ?: state.instructions.getOrNull(state.currentStepIndex)
+        val eta = if (state.etaMillis > 0) etaClock(state.etaMillis) else ETA_UNKNOWN
+        val distance = formatDistanceCompact(
+            instruction?.distanceTo ?: state.remainingDistance,
+            locale
+        )
+        return CarHintContent(
+            title = instructionText(instruction, resolver),
+            text = resolver.get(R.string.nav_hint_distance_eta, distance, eta),
+            turnType = instruction?.turnType
+        )
+    }
+
+    /**
+     * The maneuver instruction in the wording of the on-screen next-turn
+     * display ([com.naviveylin.ui.navigation.splitInstruction]'s generic line):
+     * the localized short description, falling back to the native description
+     * and finally to the neutral text while no maneuver is known.
+     */
+    private fun instructionText(instruction: RouteInstruction?, resolver: StringResolver): String {
+        if (instruction == null) return resolver.get(R.string.nav_hint_neutral)
+        return TurnInstructionLocalizer.shortDescription(resolver, instruction)
+            .takeIf { it.isNotBlank() }
+            ?: instruction.description.takeIf { it.isNotBlank() }
+            ?: resolver.get(R.string.nav_hint_neutral)
     }
 
     private fun navigationContent(

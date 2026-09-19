@@ -140,6 +140,16 @@ class AutoMapRenderer(
      */
     @Volatile private var displayMag = 0.0
 
+    /**
+     * Zoom transition target (spec: auto-speed-zoom — Auto-zoom entry transition): a
+     * magnification a commit requested that is farther than the blit window
+     * ([ZOOM_BLIT_LIMIT]) from the magnification on screen. The frame walks toward it in
+     * blit-serviceable steps, one step per LANDED render, so no single frame carries the
+     * whole change — entering free driving no longer snaps 13.0 -> 17.0 in one frame.
+     * NaN = no transition pending.
+     */
+    @Volatile private var zoomWalkTarget = Double.NaN
+
     @Volatile private var overrunBitmap: Bitmap? = null
     @Volatile private var overrunLat = Double.NaN
     @Volatile private var overrunLon = Double.NaN
@@ -176,6 +186,9 @@ class AutoMapRenderer(
     @Volatile private var lastFixLon = Double.NaN
     private var extrapolationJob: Job? = null
 
+    /** Zoom-transition loop (spec: auto-speed-zoom — Auto-zoom entry transition). */
+    private var zoomWalkJob: Job? = null
+
     // True when the next render may be served by a sub-region blit (pure
     // viewport or canvas-overlay change). Overlay/native-content changes
     // (favorites, route, DPI, surface) force a full render.
@@ -185,6 +198,10 @@ class AutoMapRenderer(
     // viewport move must not increment [fullRenderCount].
     @Volatile internal var fullRenderCount = 0
     @Volatile internal var blitCount = 0
+
+    // Whether the last committed viewport change was served by a sub-region
+    // blit or a full native render (diagnostic, task 4.1).
+    @Volatile internal var lastCommitWasBlit = true
 
     /** Test seam: when false, the async render/extrapolation loops do not run. */
     @Volatile internal var asyncLoopsEnabled = true
@@ -266,6 +283,7 @@ class AutoMapRenderer(
     init {
         startRenderLoop()
         startExtrapolationLoop()
+        startZoomWalkLoop()
     }
 
     // Exposed viewport state for UI
@@ -295,7 +313,8 @@ class AutoMapRenderer(
 
     /**
      * Optional overlay drawn on the surface after the map bitmap and GPS
-     * marker, e.g. the navigation hint panel (see [NavigationHintsOverlay]).
+     * marker, e.g. the navigation hint panel (see
+     * [com.naviveylin.core.ManeuverSymbols]).
      * Invoked on the render loop with the surface canvas and its size.
      */
     var overlayDrawer: ((Canvas, Int, Int) -> Unit)? = null
@@ -480,16 +499,35 @@ class AutoMapRenderer(
         lon: Double,
         zoom: Int,
         angle: Double,
-        zoomFraction: Double = zoom.toDouble()
+        zoomFraction: Double = zoom.toDouble(),
+        walkZoom: Boolean = false
     ) {
         followMode = false
+        val committed = viewportZoomFraction
+        // A zoom request farther than the blit window from what is on screen is WALKED
+        // across rendered frames instead of being applied in one frame (spec:
+        // auto-speed-zoom — Auto-zoom entry transition; design D1/D2). `walkZoom` marks
+        // the commits whose magnification comes from auto-zoom, so the car gesture and
+        // the zoom buttons keep their immediate response.
+        val walked = walkZoom && committed > 0.0 && abs(zoomFraction - committed) > ZOOM_BLIT_LIMIT
+        // A re-commit of the value already committed (a fix with no new zoom target)
+        // must NOT cancel a pending walk: the screens commit the fraction they read back
+        // from the viewport state on every fix.
+        val reCommit = !walked && zoomFraction == committed && !zoomWalkTarget.isNaN()
         val zoomChanged = zoom != viewportZoom
         val angleChanged = angle != viewportAngle
         viewportLat = lat
         viewportLon = lon
-        viewportZoom = zoom
-        viewportZoomFraction = zoomFraction
         viewportAngle = angle
+        when {
+            walked -> zoomWalkTarget = zoomFraction
+            reCommit -> Unit
+            else -> {
+                zoomWalkTarget = Double.NaN
+                viewportZoom = zoom
+                viewportZoomFraction = zoomFraction
+            }
+        }
         emitViewportState()
         // A pure center change (same zoom/angle) can be served by a blit within
         // the overrun region; zoom/rotation changes need a full render.
@@ -638,8 +676,10 @@ class AutoMapRenderer(
      */
     fun shutdown() {
         isShutdown = true
+        zoomWalkTarget = Double.NaN
         renderJob?.cancel()
         extrapolationJob?.cancel()
+        zoomWalkJob?.cancel()
         scope.cancel()
         synchronized(surfaceLock) {
             surface?.release()
@@ -743,6 +783,90 @@ class AutoMapRenderer(
     }
 
     /**
+     * Zoom-transition loop (spec: auto-speed-zoom — Auto-zoom entry transition; design D2).
+     *
+     * Deliberately NOT the extrapolation loop: that one is gated on vehicle movement
+     * ([MOVEMENT_SPEED_MS], [extrapolationGateActive]), which would stall a transition
+     * started while parked — entering free driving at standstill would keep the old
+     * magnification until the vehicle moves. This loop only needs a usable surface, and
+     * while the extrapolation loop is closed it also owns the displayed-magnification
+     * easing; otherwise the frames would land at the new magnification while the displayed
+     * scale stayed behind (the overrun blit can only show one blit window of it).
+     */
+    private fun startZoomWalkLoop() {
+        zoomWalkJob = scope.launch {
+            var lastFrameMs = 0L
+            while (isActive) {
+                val usable = asyncLoopsEnabled && !isShutdown && !paused && !surfaceFailed &&
+                    surface != null
+                if (usable) {
+                    val nowMs = System.currentTimeMillis()
+                    val dtSec = if (lastFrameMs > 0) {
+                        (nowMs - lastFrameMs) / 1000.0
+                    } else {
+                        ZOOM_WALK_FRAME_MS / 1000.0
+                    }
+                    lastFrameMs = nowMs
+                    if (!extrapolationGateActive(nowMs)) advanceDisplayedMagnification(dtSec)
+                    advanceZoomWalk()
+                } else {
+                    lastFrameMs = 0L
+                }
+                delay(ZOOM_WALK_FRAME_MS)
+            }
+        }
+    }
+
+    /**
+     * One step of a pending zoom transition (spec: auto-speed-zoom — Auto-zoom entry
+     * transition; design D2). Render-synchronous: a step is committed only once the
+     * previous step's frame has LANDED ([overrunMag] caught up with the committed
+     * magnification), so the committed value never leads the frame by more than one blit
+     * window and the display never has to snap. Steps are bounded by [ZOOM_BLIT_LIMIT],
+     * and the last step lands EXACTLY on the requested magnification. Returns the
+     * committed magnification when a step was committed, else null. Exposed for tests.
+     */
+    internal fun advanceZoomWalk(): Double? {
+        val target = zoomWalkTarget
+        if (target.isNaN()) return null
+        if (overrunMag <= 0.0) {
+            // No frame on screen yet (cold start): nothing to transition from, so the
+            // request lands directly — the spec's "jumps directly to the target instead of
+            // smoothing from the default map zoom".
+            zoomWalkTarget = Double.NaN
+            commitZoom(target)
+            return target
+        }
+        val committed = viewportZoomFraction
+        // Render-synchronous: wait for the previous step's frame.
+        if (abs(overrunMag - committed) > ZOOM_WALK_SETTLE) return null
+        val delta = target - committed
+        if (abs(delta) < ZOOM_WALK_SETTLE) {
+            zoomWalkTarget = Double.NaN
+            return null
+        }
+        // Landing step: reach the requested value exactly, not through an arithmetic sum.
+        val next = if (abs(delta) <= ZOOM_BLIT_LIMIT) {
+            target
+        } else {
+            committed + delta.coerceIn(-ZOOM_BLIT_LIMIT, ZOOM_BLIT_LIMIT)
+        }
+        if (next == target) zoomWalkTarget = Double.NaN
+        commitZoom(next)
+        return next
+    }
+
+    /** Commit a walked magnification: full render at [fraction] (a zoom change cannot be
+     *  served by a blit of the previous frame) + viewport state for the screens. */
+    private fun commitZoom(fraction: Double) {
+        viewportZoomFraction = fraction
+        viewportZoom = fraction.roundToInt()
+        blitEligible = false
+        emitViewportState()
+        requestRender()
+    }
+
+    /**
      * Gate for the extrapolation loop (design D6): resumed + follow mode +
      * moving + valid surface. A stale fix does NOT gate the loop off —
      * [FollowPrediction] holds the position beyond its extrapolation window,
@@ -762,14 +886,9 @@ class AutoMapRenderer(
      * Exposed for deterministic tests.
      */
     internal fun extrapolationTick(nowMs: Long, dtSec: Double) {
-        // TEMPORARY investigation trace (rate raised from every-30-ticks): the
-        // per-tick display step, frame target, offset and counters, so a sub-second
-        // excursion can be read directly instead of derived. Reduce to the throttled
-        // follow line before archiving.
-        val tracePrevDispLat = displayLat
-        val tracePrevDispLon = displayLon
-        val tracePrevRenders = fullRenderCount
-        val tracePrevBlits = blitCount
+        // The follow diagnostic (throttled, 1 line / 30 ticks) carries the
+        // display step, frame target, offset and counters; the per-tick traces
+        // were removed when the on-device investigation closed (task 10.3).
         // Delta fix-aa-follow-vehicle-jumps (spec: auto-smooth-follow —
         // "Vehicle stops" / "Vehicle resumes after a stop"): while the gate
         // is closed (stopped / paused / follow disengaged / no surface) the
@@ -853,31 +972,15 @@ class AutoMapRenderer(
                         " mag=" + "%.2f".format(overrunMag) + " ang=" + "%.3f".format(overrunAngle) +
                         " pending=" + "%.6f".format(viewportLat) + "," + "%.6f".format(viewportLon) +
                         " mag=" + "%.2f".format(viewportZoomFraction) + " ang=" + "%.3f".format(viewportAngle) +
+                        // Committed-vs-displayed deltas + last-commit path (task 4.1):
+                        // `dAng` is the pending rotation minus the displayed frame's
+                        // rotation (normalized), `dMag` the pending minus the displayed
+                        // magnification, `last` whether the previous commit was blitted
+                        // or rendered — the on-device ranking of P2/P3 from one line.
+                        " dAng=" + "%.3f".format(angleDeltaRadians(viewportAngle, overrunAngle)) +
+                        " dMag=" + "%.3f".format(viewportZoomFraction - overrunMag) +
+                        " last=" + (if (lastCommitWasBlit) "blit" else "render") +
                         " renders=" + fullRenderCount + " blits=" + blitCount
-                )
-            }
-            // TEMPORARY investigation trace: one line per tick with the display's own
-            // step, the frame target the overlays/blit use, the offset and the path
-            // counters. A seamless follow shows a monotonic forward step and an offset
-            // that only steps with the display; an excursion shows up here as a display
-            // step reversal or an offset/centre step that does not match it.
-            run {
-                val stepM = if (!tracePrevDispLat.isNaN() && !displayLat.isNaN()) {
-                    val dLat = (displayLat - tracePrevDispLat) * 111320.0
-                    val dLon = (displayLon - tracePrevDispLon) * 69400.0
-                    kotlin.math.sqrt(dLat * dLat + dLon * dLon)
-                } else {
-                    Double.NaN
-                }
-                android.util.Log.d(
-                    TAG,
-                    "tick disp=" + "%.6f".format(displayLat) + "," + "%.6f".format(displayLon) +
-                        " step=" + "%.2f".format(stepM) + "m" +
-                        " frame=" + "%.6f".format(overrunLat) + "," + "%.6f".format(overrunLon) +
-                        " off=" + "%.1f".format(offset.clampedX) + "," + "%.1f".format(offset.clampedY) +
-                        " clamped=" + offset.clamped +
-                        " dRenders=" + (fullRenderCount - tracePrevRenders) +
-                        " dBlits=" + (blitCount - tracePrevBlits)
                 )
             }
             if (offset.clamped) {
@@ -1119,6 +1222,9 @@ class AutoMapRenderer(
                 }
             }
             fullRenderCount++
+            // The last committed viewport change was served by a full native
+            // render (diagnostic, task 4.1).
+            lastCommitWasBlit = false
             // A freshly rendered frame is drawn with the SAME placement rule as a blit:
             // the offset that puts the current DISPLAYED position on the resolved anchor
             // (spec: smooth-follow — Anchor-centered follow framing; change
@@ -1194,15 +1300,6 @@ class AutoMapRenderer(
                 // offset (measured bias +0.9 px in the drawn-frame continuity check).
                 val dx = ((w - bitmap.width) / 2f).roundToInt() - roundOffset(ox)
                 val dy = ((h - bitmap.height) / 2f).roundToInt() - roundOffset(oy)
-                android.util.Log.d(
-                    TAG,
-                    "draw-render dx=" + dx + " dy=" + dy +
-                        " bmp=" + System.identityHashCode(bitmap) +
-                        " frame=" + "%.6f".format(overrunLat) + "," + "%.6f".format(overrunLon) +
-                        " disp=" + "%.6f".format(displayLat) + "," + "%.6f".format(displayLon) +
-                        " mag=" + "%.3f".format(overrunMag) + " ang=" + "%.5f".format(overrunAngle) +
-                        " scale=" + "%.4f".format(displayedScale())
-                )
                 // P3 (see blitToSurface): the scale that eases the displayed magnification
                 // toward the committed target, about the follow anchor.
                 val scale = displayedScale()
@@ -1280,19 +1377,6 @@ class AutoMapRenderer(
                 }
                 val dx = ((w - bitmap.width) / 2f).roundToInt() - roundOffset(ox)
                 val dy = ((h - bitmap.height) / 2f).roundToInt() - roundOffset(oy)
-                // TEMPORARY (with the tick trace): actual placement of a freshly rendered frame.
-                // the quantity the eye sees. A jump here that the display's advance does not
-                // explain IS the reported excursion.
-                android.util.Log.d(
-                    TAG,
-                    "draw-blit dx=" + dx + " dy=" + dy +
-                        " off=" + "%.2f".format(ox) + "," + "%.2f".format(oy) +
-                        " bmp=" + System.identityHashCode(bitmap) +
-                        " frame=" + "%.6f".format(overrunLat) + "," + "%.6f".format(overrunLon) +
-                        " disp=" + "%.6f".format(displayLat) + "," + "%.6f".format(displayLon) +
-                        " mag=" + "%.3f".format(overrunMag) + " ang=" + "%.5f".format(overrunAngle) +
-                        " scale=" + "%.4f".format(displayedScale())
-                )
                 // P3: apply the displayed-magnification scale about the follow anchor, so a
                 // committed magnification change reaches the eye across frames instead of as
                 // one scale step (the anchors themselves stay unscaled). A scale of 1 is a
@@ -1324,6 +1408,9 @@ class AutoMapRenderer(
             }
         }
         blitCount++
+        // The last committed viewport change was served by a sub-region blit
+        // (diagnostic, task 4.1).
+        lastCommitWasBlit = true
     }
 
     /** Recycle and drop the overrun buffer (surface change / shutdown). */
@@ -1792,6 +1879,18 @@ class AutoMapRenderer(
 
         /** Ease time constant (s) of the displayed magnification transition. */
         const val ZOOM_EASE_TAU_SEC = 0.25
+
+        // --- aa-entry-zoom-animation: zoom transition walk ---
+
+        /**
+         * Walk loop period. The walk itself is render-synchronous (one step per landed
+         * render), so this is only the granularity at which a landed frame is noticed —
+         * short enough that the transition is not visibly paced by the poll.
+         */
+        const val ZOOM_WALK_FRAME_MS = 20L
+
+        /** Tolerance for "the previous step's frame has landed" (committed == rendered). */
+        const val ZOOM_WALK_SETTLE = 1e-3
 
         /** Throttle for full-render requests from the extrapolation loop
          *  (delta fix-aa-follow-vehicle-jumps): 200 ms = phone parity with

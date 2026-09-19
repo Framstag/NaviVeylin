@@ -142,7 +142,9 @@ class NavigationScreenTest {
     }
 
     // ── autoZoomTarget (spec: auto/map-pan — auto-zoom suspended while
-    // panned; design D2 — the zoom feed is gated, not just the commit) ──
+    // panned; design D2 — the zoom feed is gated, not just the commit). The rule itself is ONE
+    // shared function (`FreeDrivingScreen.autoZoomTarget`); these cases pin the navigation
+    // surface's contract against it. ──
 
     @Test
     fun panningSuppressesAutoZoomFeed() {
@@ -154,7 +156,7 @@ class NavigationScreenTest {
         controller.onSpeed(45.0) // city band
         controller.suspend()
         assertNull(
-            NavigationScreen.autoZoomTarget(
+            FreeDrivingScreen.autoZoomTarget(
                 panning = true, autoZoomEnabled = true, speedKmH = 100.0, controller = controller
             )
         )
@@ -165,7 +167,7 @@ class NavigationScreenTest {
         // Two fresh controllers, same input: the gate must not swallow the
         // call — the result equals a direct onSpeed consultation.
         val direct = AutoZoomController().onSpeed(100.0)
-        val viaGate = NavigationScreen.autoZoomTarget(
+        val viaGate = FreeDrivingScreen.autoZoomTarget(
             panning = false, autoZoomEnabled = true, speedKmH = 100.0, AutoZoomController()
         )
         assertEquals(direct, viaGate)
@@ -174,18 +176,23 @@ class NavigationScreenTest {
     @Test
     fun disabledAutoZoomReturnsNull() {
         assertNull(
-            NavigationScreen.autoZoomTarget(
+            FreeDrivingScreen.autoZoomTarget(
                 panning = false, autoZoomEnabled = false, speedKmH = 100.0, AutoZoomController()
             )
         )
     }
 
     @Test
-    fun invalidSpeedReturnsNull() {
-        assertNull(
-            NavigationScreen.autoZoomTarget(
+    fun unknownSpeedFallsBackToTheSeededDefault() {
+        // A negative (unknown) speed is NOT a no-op: it resolves to the controller's seeded
+        // 20 km/h default, so the navigation surface gets its "reasonable initial zoom"
+        // (spec: auto-speed-zoom — Speed unknown) instead of keeping the default map zoom.
+        assertEquals(
+            16.0,
+            FreeDrivingScreen.autoZoomTarget(
                 panning = false, autoZoomEnabled = true, speedKmH = -1.0, AutoZoomController()
-            )
+            ) ?: Double.NaN,
+            1e-9
         )
     }
 

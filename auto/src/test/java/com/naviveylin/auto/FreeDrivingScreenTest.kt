@@ -1,8 +1,12 @@
 package com.naviveylin.auto
 
+import com.framstag.libosmscout.client.FakeAutoRenderClient
 import com.naviveylin.core.AutoPositionUtil
 import com.naviveylin.core.VehicleAnchorPosition
+import io.mockk.spyk
+import io.mockk.verify
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -58,6 +62,122 @@ class FreeDrivingScreenTest {
                 panning = true, autoZoomEnabled = true, speedKmH = 100.0, controller = controller
             )
         )
+    }
+
+    // ── autoZoomOnReEnable (spec: auto-speed-zoom — Auto-zoom re-enabled after a
+    // manual zoom; design D5) ──
+
+    @Test
+    fun reEnablingAutoZoomAppliesTheTargetFromTheLastKnownSpeed() {
+        // The re-enable path has no fix in hand, so it must use the last known speed —
+        // otherwise the adjustment would wait for the next fix (up to ~1 s) and the
+        // scenario "begins without waiting for the next GPS fix" would not hold.
+        val controller = AutoZoomController()
+        val target = FreeDrivingScreen.autoZoomOnReEnable(
+            wasEnabled = false, enabled = true, speedKmH = 30.0, panning = false, controller = controller
+        )
+        assertEquals("city speed 30 km/h -> magnification 16.0", 16.0, target ?: Double.NaN, 1e-9)
+    }
+
+    @Test
+    fun reEnableIsANoOpWhenTheSettingDidNotFlipOn() {
+        val controller = AutoZoomController()
+        assertNull(
+            "an already-enabled setting must not re-commit the zoom",
+            FreeDrivingScreen.autoZoomOnReEnable(
+                wasEnabled = true, enabled = true, speedKmH = 30.0, panning = false, controller = controller
+            )
+        )
+        assertNull(
+            "and disabling must not either",
+            FreeDrivingScreen.autoZoomOnReEnable(
+                wasEnabled = true, enabled = false, speedKmH = 30.0, panning = false, controller = controller
+            )
+        )
+    }
+
+    @Test
+    fun reEnableWaitsWithoutAUsableSpeed() {
+        val controller = AutoZoomController()
+        assertEquals(
+            "no speed seen yet: the controller's seeded 20 km/h default still gives a target, " +
+                "so the re-enable does not wait for the first fix (task 7.3)",
+            16.0,
+            FreeDrivingScreen.autoZoomOnReEnable(
+                wasEnabled = false, enabled = true, speedKmH = Double.NaN, panning = false, controller = controller
+            ) ?: Double.NaN,
+            1e-9
+        )
+    }
+
+    @Test
+    fun reEnableKeepsThePanGate() {
+        val controller = AutoZoomController()
+        assertNull(
+            "a panned map must not be yanked back by a re-enable",
+            FreeDrivingScreen.autoZoomOnReEnable(
+                wasEnabled = false, enabled = true, speedKmH = 30.0, panning = true, controller = controller
+            )
+        )
+    }
+
+    // ── commitAutoZoom (spec: auto-speed-zoom — Auto-zoom entry transition / Auto-zoom
+    // re-enabled after a manual zoom; design D1/D2, D5) — the commit body both car screens
+    // share for their re-enable/entry paths ──
+
+    @Test
+    fun commitAutoZoomIsTransitionEligibleAndReengagesFollow() {
+        // The commit must carry the transition-eligible flag (otherwise the entry lands the whole
+        // difference in one frame again) and must re-engage follow without snapping, because
+        // `setViewport` disengages it.
+        val gate = RendererGate()
+        val renderer = spyk(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0))
+        gate.publish(renderer)
+
+        val applied = FreeDrivingScreen.commitAutoZoom(gate, 16.0, "test")
+
+        assertTrue("the commit is applied", applied)
+        verify { renderer.setViewport(any(), any(), 16, any(), 16.0, true) }
+        verify { renderer.reengageFollow() }
+
+        // The spy runs the real renderer, whose three background loops would otherwise
+        // outlive the test (small unit-test heap).
+        gate.destroy()
+    }
+
+    @Test
+    fun commitAutoZoomIsANoOpBeforeTheRendererIsPublished() {
+        // The renderer is built off the car-app main thread; a re-enable that arrives first must
+        // not commit anything (and must not throw).
+        val gate = RendererGate()
+
+        assertFalse(
+            "no renderer yet -> nothing is committed",
+            FreeDrivingScreen.commitAutoZoom(gate, 16.0, "test")
+        )
+    }
+
+    // ── autoZoomTarget with an unknown speed (spec: auto-speed-zoom — Speed unknown) ──
+
+    @Test
+    fun unknownSpeedUsesTheSeededDefault() {
+        // The car surface MUST reach a "reasonable initial zoom" before the first reported speed,
+        // exactly as the phone does through its own seed (`MapCanvasViewModel.lastValidSpeedKmH =
+        // 20.0`): a negative (unknown) speed resolves to the seeded default, 20 km/h -> 16.0, and
+        // that target is then WALKED from the displayed magnification by the renderer's entry
+        // transition (spec: auto-speed-zoom — Speed unknown / Speed unknown while a magnification
+        // is displayed; change tasks 7.1-7.3).
+        val controller = AutoZoomController()
+
+        assertEquals(
+            "20 km/h (the spec's default speed) is the slow-city level 16.0",
+            16.0,
+            FreeDrivingScreen.autoZoomTarget(
+                panning = false, autoZoomEnabled = true, speedKmH = -1.0, controller = controller
+            ) ?: Double.NaN,
+            1e-9
+        )
+        assertNull("and a constant unknown speed never re-commits", controller.onSpeed(-1.0))
     }
 
     // ── anchorDiff (spec: auto/free-driving — anchor applies live during

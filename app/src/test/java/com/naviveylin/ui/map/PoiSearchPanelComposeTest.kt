@@ -18,6 +18,7 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.PoiCategories
 import com.framstag.libosmscout.client.PoiEntry
+import com.naviveylin.core.search.SearchReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -82,8 +83,7 @@ class PoiSearchPanelComposeTest {
                 isSearching = false,
                 gpsAvailable = false,
                 adminRegionName = null,
-                centerLat = 51.5136,
-                centerLon = 7.4653,
+                distanceReference = SearchReference(51.5136, 7.4653),
                 historyEntries = emptyList(),
                 favoriteGroups = emptyMap(),
                 onQueryChanged = {},
@@ -228,8 +228,7 @@ class PoiSearchPanelComposeTest {
                     isSearching = false,
                     gpsAvailable = false,
                     adminRegionName = null,
-                    centerLat = 51.5136,
-                    centerLon = 7.4653,
+                    distanceReference = SearchReference(51.5136, 7.4653),
                     historyEntries = emptyList(),
                     favoriteGroups = emptyMap(),
                     onQueryChanged = {},
@@ -309,8 +308,7 @@ class PoiSearchPanelComposeTest {
                     isSearching = false,
                     gpsAvailable = false,
                     adminRegionName = null,
-                    centerLat = 51.5136,
-                    centerLon = 7.4653,
+                    distanceReference = SearchReference(51.5136, 7.4653),
                     historyEntries = emptyList(),
                     favoriteGroups = emptyMap(),
                     onQueryChanged = {},

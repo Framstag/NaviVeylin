@@ -120,6 +120,38 @@ class RendererGateTest {
     }
 
     @Test
+    fun walkZoomFlagSurvivesTheBufferedViewportPath() {
+        // The car screens commit the auto-zoom magnification while the renderer may still be
+        // initializing (native first-touch runs off the main thread), so the commit goes
+        // through the buffered slot. The transition-eligible flag MUST survive that path —
+        // dropped here, the entry would land the whole difference in one frame again
+        // (spec: auto-speed-zoom — Auto-zoom entry transition; change aa-entry-zoom-animation).
+        val gate = RendererGate()
+        val renderer = rendererSpy()
+
+        gate.onSurfaceAvailable(surfaceMock(), 640, 360, 240.0)
+        gate.setViewport(51.5, 7.46, 17, 0.0, 17.0, walkZoom = true)
+        gate.publish(renderer)
+
+        verify { renderer.setViewport(51.5, 7.46, 17, 0.0, 17.0, true) }
+    }
+
+    @Test
+    fun viewportCommitWithoutTheWalkFlagStaysDirect() {
+        // The gesture/zoom-button commits (and every non-auto-zoom viewport write) keep their
+        // immediate response: the flag defaults to off (spec: auto-speed-zoom — Auto-zoom
+        // entry transition; design scope note).
+        val gate = RendererGate()
+        val renderer = rendererSpy()
+        gate.publish(renderer)
+
+        gate.setViewport(50.0, 6.0, 17, 0.0, 17.0)
+        gate.setViewport(50.0, 6.0, 17, 0.0, 17.0, walkZoom = false)
+
+        verify(exactly = 2) { renderer.setViewport(50.0, 6.0, 17, 0.0, 17.0, false) }
+    }
+
+    @Test
     fun destroyDropsPendingAndShutsDownLatePublish() {
         val gate = RendererGate()
         val renderer = rendererSpy()

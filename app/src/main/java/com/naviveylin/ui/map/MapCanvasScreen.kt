@@ -1533,8 +1533,7 @@ fun MapCanvasScreen(
                 isSearching = state.isSearching,
                 gpsAvailable = state.gpsFixQuality != GpsFixQuality.NONE,
                 adminRegionName = state.searchAdminRegionName,
-                centerLat = state.viewport.centerLat,
-                centerLon = state.viewport.centerLon,
+                distanceReference = state.searchReference,
                 historyEntries = history,
                 favoriteGroups = favoriteGroups,
                 onQueryChanged = { viewModel.onSearchQueryChanged(it) },
@@ -1662,7 +1661,10 @@ fun MapCanvasScreen(
                     routePanelViewModel.clearRouteFromMap() },
                 isNavigating = navState.isNavigating,
                 centerLat = state.viewport.centerLat,
-                centerLon = state.viewport.centerLon
+                centerLon = state.viewport.centerLon,
+                // Covered-height source for the route overview fit (spec:
+                // route-map-overview, Decision 8).
+                canvasHeightPx = canvasSize.height
             )
         }
 

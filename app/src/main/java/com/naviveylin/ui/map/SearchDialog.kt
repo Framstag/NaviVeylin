@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,8 +55,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.FavoriteLocation
@@ -64,10 +68,14 @@ import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.PoiCategories
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.R
+import com.naviveylin.core.ResultMarkings
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.ResultMarking
+import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.SearchResultRanker
+import com.naviveylin.core.search.resultMarkingOf
 import com.naviveylin.data.SearchHistoryEntry
 import com.naviveylin.util.formatDistanceKm
-import com.naviveylin.util.haversineDistanceMeters
 import kotlin.math.roundToInt
 
 /**
@@ -89,8 +97,14 @@ fun SearchDialog(
     isSearching: Boolean,
     gpsAvailable: Boolean,
     adminRegionName: String?,
-    centerLat: Double,
-    centerLon: Double,
+    /**
+     * Point the row distances are measured from — the same value the result
+     * list was ranked against, published by the search that produced it (spec:
+     * search-result-ranking — "Distance reference for ordering and display");
+     * null when neither a GPS fix nor a map center was available, in which case
+     * no distance is shown.
+     */
+    distanceReference: SearchReference?,
     historyEntries: List<SearchHistoryEntry>,
     favoriteGroups: Map<String, List<FavoriteLocation>>,
     onQueryChanged: (String) -> Unit,
@@ -185,8 +199,7 @@ fun SearchDialog(
                 isSearching = isSearching,
                 gpsAvailable = gpsAvailable,
                 adminRegionName = adminRegionName,
-                centerLat = centerLat,
-                centerLon = centerLon,
+                distanceReference = distanceReference,
                 historyEntries = historyEntries,
                 favoriteGroups = favoriteGroups,
                 onResultSelected = onResultSelected,
@@ -264,8 +277,7 @@ private fun PlacesContent(
     isSearching: Boolean,
     gpsAvailable: Boolean,
     adminRegionName: String?,
-    centerLat: Double,
-    centerLon: Double,
+    distanceReference: SearchReference?,
     historyEntries: List<SearchHistoryEntry>,
     favoriteGroups: Map<String, List<FavoriteLocation>>,
     onResultSelected: (LocationEntry) -> Unit,
@@ -350,10 +362,11 @@ private fun PlacesContent(
                         val detail = buildDisambiguationDetail(entry)
                         detail.ifEmpty { null }
                     } else null
-                    val distanceText = distanceFromCenter(entry, centerLat, centerLon)
+                    val distanceText = distanceFromReference(entry, distanceReference)
                     SearchResultItem(
                         entry = entry,
                         isFavorite = result.isFavorite,
+                        isPerfect = result.isPerfectMatch,
                         isDuplicate = isDuplicate,
                         disambiguationDetail = disambiguationDetail,
                         distanceText = distanceText,
@@ -675,6 +688,7 @@ private fun PoiContent(
 private fun SearchResultItem(
     entry: LocationEntry,
     isFavorite: Boolean = false,
+    isPerfect: Boolean = false,
     isDuplicate: Boolean = false,
     disambiguationDetail: String? = null,
     distanceText: String? = null,
@@ -687,11 +701,14 @@ private fun SearchResultItem(
             .padding(vertical = 12.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (isFavorite) {
-            Icon(
-                imageVector = Icons.Default.Favorite,
-                contentDescription = stringResource(R.string.favorite_marker),
-                tint = MaterialTheme.colorScheme.primary,
+        val marking = resultMarkingOf(isFavorite = isFavorite, isPerfect = isPerfect)
+        if (marking != ResultMarking.NONE) {
+            // One composite artwork for both facts (spec: search-result-ranking —
+            // marking parity); tinted because the artwork is white for the car host.
+            Image(
+                bitmap = ResultMarkings.bitmapFor(marking).asImageBitmap(),
+                contentDescription = markingContentDescription(marking),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                 modifier = Modifier.padding(end = 12.dp)
             )
         }
@@ -726,15 +743,20 @@ private fun SearchResultItem(
     }
 }
 
-/** Distance from the map center to a result as a km string, or null when not computable. */
+/** Accessibility label for a row's marking; states both facts when both apply. */
 @Composable
-private fun distanceFromCenter(entry: LocationEntry, centerLat: Double, centerLon: Double): String? {
-    val meters = haversineDistanceMeters(centerLat, centerLon, entry.lat, entry.lon)
-    return if (meters.isFinite()) {
-        stringResource(R.string.distance_unit_km, formatDistanceKm(meters))
-    } else {
-        null
-    }
+private fun markingContentDescription(marking: ResultMarking): String? = when (marking) {
+    ResultMarking.NONE -> null
+    ResultMarking.FAVORITE -> stringResource(R.string.favorite_marker)
+    ResultMarking.PERFECT -> stringResource(R.string.search_result_exact_match)
+    ResultMarking.FAVORITE_AND_PERFECT -> stringResource(R.string.search_result_exact_match_and_favorite)
+}
+
+/** Distance from the ranking reference to a result as a km string, or null when not computable. */
+@Composable
+private fun distanceFromReference(entry: LocationEntry, reference: SearchReference?): String? {
+    val meters = SearchResultRanker.distanceMeters(entry, reference) ?: return null
+    return stringResource(R.string.distance_unit_km, formatDistanceKm(meters))
 }
 
 internal fun buildDisambiguationDetail(entry: LocationEntry): String {
@@ -777,12 +799,14 @@ internal fun PoiResultsWithMap(
     BoxWithConstraints(modifier = modifier) {
         val landscape = landscapeOverride ?: (maxWidth > maxHeight)
         val density = LocalDensity.current
+        // DPI the mini map renders at (MiniMap passes it to ProjectionUtils).
+        val dpi = LocalContext.current.resources.displayMetrics.densityDpi.toDouble()
         val mapWpx = with(density) { (if (landscape) maxWidth / 2 else maxWidth).toPx() }.toInt()
         val mapHpx = with(density) {
             (if (landscape) maxHeight else minOf(maxHeight * 0.5f, 240.dp)).toPx()
         }.toInt()
-        val fitMag = remember(results, centerLat, centerLon, radiusMeters, currentPosition, mapWpx, mapHpx) {
-            poiFitMagnification(results, centerLat, centerLon, currentPosition, radiusMeters, mapWpx, mapHpx)
+        val fitMag = remember(results, centerLat, centerLon, radiusMeters, currentPosition, mapWpx, mapHpx, dpi) {
+            poiFitMagnification(results, centerLat, centerLon, currentPosition, radiusMeters, mapWpx, mapHpx, dpi)
         }
 
         if (landscape) {
@@ -914,7 +938,8 @@ private fun PoiResultItem(
  * Magnification that fits the search center, all results, and the current
  * position (30% margin) into a [mapW]x[mapH] pixel viewport. Falls back to a
  * radius-derived bounding box when there are no results or everything is at
- * the same point.
+ * the same point. [dpi] is the display DPI the mini map renders at — the fit
+ * zooms against the renderer's ground resolution, not the 96-dpi reference.
  */
 private fun poiFitMagnification(
     results: List<PoiEntry>,
@@ -923,7 +948,8 @@ private fun poiFitMagnification(
     currentPosition: Pair<Double, Double>?,
     radiusMeters: Double,
     mapW: Int,
-    mapH: Int
+    mapH: Int,
+    dpi: Double
 ): Double {
     fun radiusBbox(): DoubleArray {
         val latRad = Math.toRadians(centerLat)
@@ -959,7 +985,7 @@ private fun poiFitMagnification(
     if (dLat <= 1e-9 && dLon <= 1e-9) {
         // Everything sits at one point (or only the center is known):
         // fall back to fitting the search radius.
-        return MapCanvasViewModel.computeAreaZoom(radiusBbox(), mapW, mapH)
+        return MapCanvasViewModel.computeAreaZoom(radiusBbox(), mapW, mapH, dpi = dpi)
     }
     val marginLat = dLat * 0.3
     val marginLon = dLon * 0.3
@@ -967,7 +993,7 @@ private fun poiFitMagnification(
         minLat - marginLat, maxLat + marginLat,
         minLon - marginLon, maxLon + marginLon
     )
-    return MapCanvasViewModel.computeAreaZoom(bbox, mapW, mapH)
+    return MapCanvasViewModel.computeAreaZoom(bbox, mapW, mapH, dpi = dpi)
 }
 
 /** Map a radius in meters to the nearest slider index in [steps]. */

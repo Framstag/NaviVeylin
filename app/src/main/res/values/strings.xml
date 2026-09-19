@@ -65,6 +65,8 @@
     <string name="search_recent">Recent searches</string>
     <string name="search_favorites_section">Favorites</string>
     <string name="favorite_marker">Favorite</string>
+    <string name="search_result_exact_match">Exact match</string>
+    <string name="search_result_exact_match_and_favorite">Exact match and favorite</string>
     <string name="search_menu_title">Search</string>
     <string name="coordinates_format" translatable="false">%.5f, %.5f</string>
     <string name="address_label">Address:</string>
@@ -133,7 +135,10 @@
     <string name="clear_route">Clear Route</string>
     <string name="calculating_route">Calculating route...</string>
     <string name="stop_navigation">Stop Navigation</string>
+    <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Shows live navigation guidance while driving</string>
+    <string name="navigation_notification_channel_car_name">Navigation (car)</string>
+    <string name="navigation_notification_channel_car_description">Shows turn hints on the car screen while navigating</string>
     <string name="start_navigation">Start Navigation</string>
     <string name="show_route">Show Route</string>
     <string name="route_calculation_failed">Route calculation failed</string>

@@ -8,6 +8,7 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.ui.favorites.FavoritesSheet
 import com.naviveylin.ui.favorites.FavoritesViewModel
+import com.naviveylin.core.search.SearchReference
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -97,8 +98,7 @@ class BackGestureComposeTest {
                 isSearching = false,
                 gpsAvailable = true,
                 adminRegionName = null,
-                centerLat = 51.5136,
-                centerLon = 7.4653,
+                distanceReference = SearchReference(51.5136, 7.4653),
                 historyEntries = emptyList(),
                 favoriteGroups = emptyMap(),
                 onQueryChanged = {},

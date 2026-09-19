@@ -28,4 +28,9 @@
     <string name="nav_keep_onto">%1$s auf %2$s</string>
     <string name="nav_exit_onto">Ausfahrt %1$d auf %2$s</string>
     <string name="nav_enter_onto">Auffahren auf %1$s</string>
+
+    <!-- Car-screen hint fallback while no maneuver is known yet (rerouting, before the first instruction). -->
+    <string name="nav_hint_neutral">Navigation aktiv</string>
+    <!-- Car-screen hint secondary text: distance to the maneuver plus arrival time. -->
+    <string name="nav_hint_distance_eta">%1$s · %2$s</string>
 </resources>

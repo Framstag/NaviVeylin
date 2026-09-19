@@ -14,6 +14,9 @@ import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
+import com.naviveylin.core.search.SearchQueryParser
+import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.SearchResultRanker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
@@ -60,6 +63,13 @@ data class RoutePanelUiState(
     val searchQuery: String = "",
     val searchResults: List<LocationEntry> = emptyList(),
     val isSearching: Boolean = false,
+    /**
+     * Point the current start/destination result list was ranked and measured
+     * against — the last known GPS fix, else the map center the screen reported
+     * (spec: search-result-ranking — "Distance reference for ordering and
+     * display"), null when neither is available.
+     */
+    val searchReference: SearchReference? = null,
     val gpsAvailable: Boolean = false,
     val showSummaryDialog: Boolean = false,
     val activeStepIndex: Int? = null,
@@ -120,6 +130,24 @@ class RoutePanelViewModel @Inject constructor(
     val clearRouteSignal: StateFlow<Int> = _clearRouteSignal.asStateFlow()
 
     /**
+     * Covered height of the route panel in pixels — the vertical slice of the
+     * map canvas the sheet hides. Reported by `RoutePanel` from the Material3
+     * sheet offset (0 when closed) and consumed by `MapCanvasViewModel` so the
+     * route overview fits the visible map area instead of the full canvas
+     * (spec: route-map-overview, Decision 8).
+     */
+    private val _sheetCoveredHeightPx = MutableStateFlow(0)
+    val sheetCoveredHeightPx: StateFlow<Int> = _sheetCoveredHeightPx.asStateFlow()
+
+    /** Report the current covered height of the route panel (pixels, >= 0). */
+    fun setSheetCoveredHeightPx(coveredPx: Int) {
+        val clamped = coveredPx.coerceAtLeast(0)
+        if (clamped != _sheetCoveredHeightPx.value) {
+            _sheetCoveredHeightPx.value = clamped
+        }
+    }
+
+    /**
      * Whether the calculated route is currently drawn on the map. Stopping
      * navigation hides the route (spec: stop-navigation-hides-route) while
      * keeping the panel state; restarting navigation shows it again.
@@ -142,12 +170,35 @@ class RoutePanelViewModel @Inject constructor(
 
     private var searchJob: Job? = null
 
+    /**
+     * Map center reported by the screen, used as the search reference only when
+     * no GPS fix exists (spec: search-result-ranking).
+     */
+    private var fallbackSearchCenter: SearchReference? = null
+
     init {
         viewModelScope.launch {
             locationService.location.collect { loc ->
                 _uiState.value = _uiState.value.copy(gpsAvailable = loc != null)
             }
         }
+    }
+
+    /** Report the map center the screen currently shows (search reference fallback). */
+    fun setFallbackSearchCenter(lat: Double, lon: Double) {
+        fallbackSearchCenter = if (lat.isFinite() && lon.isFinite()) SearchReference(lat, lon) else null
+    }
+
+    /**
+     * Reference point for the start/destination result list: the last known GPS
+     * fix, else the map center; null when neither is usable.
+     */
+    private fun searchDistanceReference(): SearchReference? {
+        val fix = locationService.location.value
+        if (fix != null && fix.lat.isFinite() && fix.lon.isFinite()) {
+            return SearchReference(fix.lat, fix.lon)
+        }
+        return fallbackSearchCenter
     }
 
     fun setActiveField(field: ActiveField) {
@@ -169,11 +220,29 @@ class RoutePanelViewModel @Inject constructor(
         searchJob = viewModelScope.launch {
             delay(300)
             _uiState.value = _uiState.value.copy(isSearching = true)
+            val criteria = SearchQueryParser.criteriaOf(query)
+            val reference = searchDistanceReference()
             val results = withContext(defaultDispatcher) {
-                try { client.searchLocations(query, 20, OSMScoutClient.NO_ADMIN_REGION)?.toList() ?: emptyList() }
-                catch (e: Exception) { Log.e(TAG, "searchLocations failed", e); emptyList() }
+                try {
+                    // Larger candidate set than displayed, so the ranking can
+                    // promote a result the backend's order put past the page
+                    // (spec: search-result-ranking).
+                    val raw = client.searchLocations(
+                        query,
+                        SearchResultRanker.CANDIDATE_LIMIT,
+                        OSMScoutClient.NO_ADMIN_REGION
+                    )?.toList() ?: emptyList()
+                    SearchResultRanker.rankForDisplay(raw, criteria, reference)
+                } catch (e: Exception) {
+                    Log.e(TAG, "searchLocations failed", e)
+                    emptyList()
+                }
             }
-            _uiState.value = _uiState.value.copy(searchResults = results, isSearching = false)
+            _uiState.value = _uiState.value.copy(
+                searchResults = results,
+                isSearching = false,
+                searchReference = reference
+            )
         }
     }
 

@@ -1,5 +1,6 @@
-package com.naviveylin.auto
+package com.naviveylin.core
 
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
@@ -11,14 +12,35 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * Canvas rendering of the navigation turn/lane symbols, shared by the phone
- * surface arrows and the host-maneuver icons ([ManeuverGlyphs]).
+ * Canvas rendering of the navigation turn/lane symbols — the single source of
+ * the maneuver artwork. Consumers: the Android Auto host-maneuver icons (the
+ * `:auto` module's `ManeuverGlyphs`) and the ongoing notification's car large
+ * icon (spec: auto-navigation-hints — "Car hint content"), so the rail widget
+ * arrow and the host instruction panel arrow cannot drift apart.
  *
  * All arrow geometry is a direct port of the phone's
  * `NavigationArrowRenderer` (Compose DrawScope → android.graphics), using the
  * same normalized constants so the on-car symbols match the phone symbols.
  */
-object NavigationHintsOverlay {
+object ManeuverSymbols {
+
+    /** Edge length of a rendered maneuver bitmap, in pixels. */
+    const val BITMAP_SIZE = 48
+
+    /** Cached maneuver bitmaps, keyed by turn type (`null` = unknown/straight-on fallback). */
+    private val bitmapCache = HashMap<TurnType?, Bitmap>()
+
+    /**
+     * White maneuver arrow bitmap for [type], cached per turn type. The car
+     * large icon of the ongoing navigation notification (spec:
+     * auto-navigation-hints — "Car hint content"), drawn with the same
+     * geometry as the host instruction panel arrows.
+     */
+    fun bitmapForTurnType(type: TurnType?): Bitmap = bitmapCache.getOrPut(type) {
+        val bitmap = Bitmap.createBitmap(BITMAP_SIZE, BITMAP_SIZE, Bitmap.Config.ARGB_8888)
+        drawTurnSymbol(Canvas(bitmap), type, BITMAP_SIZE.toFloat(), 0xFFFFFFFF.toInt(), 0f, 0f)
+        bitmap
+    }
 
     // ── Arrow geometry constants (normalized 0..1, port of the phone renderer) ──
     private const val HW = 0.045f // shaft half-width

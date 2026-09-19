@@ -1502,7 +1502,7 @@ class AutoMapRenderer(
 
         // Unified marker (spec: gps-location-marker, cross-variant parity) —
         // the same shape and palette as the phone overlay, driven by
-        // VehicleMarkerGeometry (32 dp density-aware, casing + rim + gradient
+        // VehicleMarkerGeometry (38 dp density-aware, casing + rim + gradient
         // + soft shadow; legible on both daylight and dark map variants).
         val hPx = VehicleMarkerGeometry.SIZE_DP * density / 2f
 
@@ -1569,14 +1569,18 @@ class AutoMapRenderer(
         }
         canvas.drawPath(core, rimPaint)
 
-        // Core: vertical gradient, light from above.
+        // Core: vertical gradient, light from above. Dark presentation uses the
+        // lighter dark-presentation stops so the marker reads on dark land
+        // instead of blending into it (spec: gps-location-marker, scenario
+        // "Arrow legible on dark map").
+        val (gradientTop, gradientBottom) = VehicleMarkerGeometry.gradientColors(darkPresentation)
         val gradientPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
             shader = LinearGradient(
                 0f, -hPx, 0f, VehicleMarkerGeometry.TAIL_Y * hPx,
                 intArrayOf(
-                    VehicleMarkerGeometry.COLOR_GRADIENT_TOP.toInt(),
-                    VehicleMarkerGeometry.COLOR_GRADIENT_BOTTOM.toInt()
+                    gradientTop.toInt(),
+                    gradientBottom.toInt()
                 ),
                 null,
                 Shader.TileMode.CLAMP

@@ -210,13 +210,16 @@ private fun DrawScope.drawCompassArrowWithShadow(center: Offset, bearingDegrees:
                 style = Stroke(width = rimPx)
             )
 
-            // Core: vertical gradient, light from above.
+            // Core: vertical gradient, light from above. Dark presentation
+            // swaps in the lighter dark-presentation stops so the marker reads
+            // on dark land (spec: gps-location-marker).
+            val (gradientTop, gradientBottom) = VehicleMarkerGeometry.gradientColors(dark)
             val gradient = Brush.linearGradient(
                 start = Offset(0f, -hPx),
                 end = Offset(0f, VehicleMarkerGeometry.TAIL_Y * hPx),
                 colors = listOf(
-                    Color(VehicleMarkerGeometry.COLOR_GRADIENT_TOP),
-                    Color(VehicleMarkerGeometry.COLOR_GRADIENT_BOTTOM)
+                    Color(gradientTop),
+                    Color(gradientBottom)
                 )
             )
             drawPath(corePath, brush = gradient)

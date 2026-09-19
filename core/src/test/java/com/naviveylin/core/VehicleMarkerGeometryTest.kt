@@ -17,8 +17,8 @@ import org.junit.Test
 class VehicleMarkerGeometryTest {
 
     @Test
-    fun sizeIs32dpDensityAwareAnchor() {
-        assertEquals("Marker footprint anchor for both surfaces", 32f, VehicleMarkerGeometry.SIZE_DP, 1e-6f)
+    fun sizeIs38dpDensityAwareAnchor() {
+        assertEquals("Marker footprint anchor for both surfaces", 38f, VehicleMarkerGeometry.SIZE_DP, 1e-6f)
         assertTrue("casing must enlarge the core", VehicleMarkerGeometry.CASING_SCALE > 1f)
         assertTrue("rim must be visible", VehicleMarkerGeometry.RIM_WIDTH_H > 0f)
     }
@@ -97,6 +97,76 @@ class VehicleMarkerGeometryTest {
         assertTrue("dark casing must be much darker than the white day casing",
             VehicleMarkerGeometry.COLOR_CASING.lightness() - darkCasing.lightness() > 0.5)
         assertTrue("dark casing still reads on dark land", darkCasing.lightness() < 0.15)
+    }
+
+    @Test
+    fun darkCoreIsLighterThanDarkCasingAndNotWhite() {
+        // User feedback (map-marker-route-contrast): on dark land the near-black
+        // casing plus the dark end of the day gradient made the marker read as a
+        // dark blob. The dark core is lighter — but deliberately NOT white, so it
+        // cannot reintroduce the stencil halo the dark casing exists to avoid.
+        val (darkTop, darkBottom) = VehicleMarkerGeometry.gradientColors(dark = true)
+        val darkCasing = VehicleMarkerGeometry.COLOR_CASING_DARK
+        val white = VehicleMarkerGeometry.COLOR_CASING
+
+        assertTrue("dark core top must be markedly lighter than the dark casing",
+            darkTop.lightness() - darkCasing.lightness() > 0.5)
+        assertTrue("dark core bottom must still read against the dark casing",
+            darkBottom.lightness() - darkCasing.lightness() > 0.3)
+        assertTrue("dark core must be lighter than the day core (spec: lighter on dark land)",
+            darkTop.lightness() > VehicleMarkerGeometry.COLOR_GRADIENT_TOP.lightness())
+        assertTrue("dark core top must not be white",
+            darkTop != white && darkTop.lightness() < 0.9)
+        assertTrue("dark core bottom must not be white",
+            darkBottom != white && darkBottom.lightness() < 0.9)
+        assertTrue("dark gradient stays light-from-above", darkTop.lightness() > darkBottom.lightness())
+    }
+
+    @Test
+    fun gradientColorsSelectsPaletteOnly() {
+        val (dayTop, dayBottom) = VehicleMarkerGeometry.gradientColors(dark = false)
+        val (darkTop, darkBottom) = VehicleMarkerGeometry.gradientColors(dark = true)
+
+        assertEquals("day palette unchanged", VehicleMarkerGeometry.COLOR_GRADIENT_TOP, dayTop)
+        assertEquals("day palette unchanged", VehicleMarkerGeometry.COLOR_GRADIENT_BOTTOM, dayBottom)
+        assertEquals("dark palette from the dark constants", VehicleMarkerGeometry.COLOR_GRADIENT_TOP_DARK, darkTop)
+        assertEquals("dark palette from the dark constants", VehicleMarkerGeometry.COLOR_GRADIENT_BOTTOM_DARK, darkBottom)
+        assertTrue("presentations must differ", dayTop != darkTop && dayBottom != darkBottom)
+    }
+
+    @Test
+    fun dayPaletteValuesUnchanged() {
+        // This change must not touch the daylight marker appearance.
+        assertEquals(0xFF42A5F5L, VehicleMarkerGeometry.COLOR_GRADIENT_TOP)
+        assertEquals(0xFF0D47A1L, VehicleMarkerGeometry.COLOR_GRADIENT_BOTTOM)
+        assertEquals(0xFFFFFFFFL, VehicleMarkerGeometry.COLOR_CASING)
+        assertEquals(0xFF0D47A1L, VehicleMarkerGeometry.COLOR_RIM)
+        assertEquals(0xFF0E1622L, VehicleMarkerGeometry.COLOR_CASING_DARK)
+        assertEquals(0xFFBBDEFBL, VehicleMarkerGeometry.COLOR_GRADIENT_TOP_DARK)
+        assertEquals(0xFF1E88E5L, VehicleMarkerGeometry.COLOR_GRADIENT_BOTTOM_DARK)
+    }
+
+    @Test
+    fun geometryIsPaletteIndependent() {
+        // Only the palette branches on presentation; the geometry does not
+        // (spec: gps-location-marker, scenario "Marker geometry identical in
+        // both presentations").
+        assertEquals(1.16f, VehicleMarkerGeometry.CASING_SCALE, 1e-6f)
+        assertEquals(0.10f, VehicleMarkerGeometry.RIM_WIDTH_H, 1e-6f)
+        assertEquals(3f, VehicleMarkerGeometry.SHADOW_OFFSET_DP, 1e-6f)
+        assertEquals(3f, VehicleMarkerGeometry.SHADOW_BLUR_DP, 1e-6f)
+        assertEquals(0.5f, VehicleMarkerGeometry.BODY_HALF_W, 1e-6f)
+        assertEquals(0.35f, VehicleMarkerGeometry.TAIL_Y, 1e-6f)
+        assertEquals(0.25f, VehicleMarkerGeometry.TAIL_HALF_W, 1e-6f)
+        assertEquals(0.08f, VehicleMarkerGeometry.TIP_ROUND_T, 1e-6f)
+        // Same vertex list regardless of which palette is selected: the
+        // builder takes no presentation argument at all.
+        val h = 19f
+        assertEquals(7, VehicleMarkerGeometry.outlineVerticesPx(h).size)
+        assertEquals(
+            VehicleMarkerGeometry.outlineVertices().map { (x, y) -> x * h to y * h },
+            VehicleMarkerGeometry.outlineVerticesPx(h)
+        )
     }
 }
 

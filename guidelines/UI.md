@@ -439,14 +439,43 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   (128×52, 20sp) is unchanged except its overspeed state — red-600 fill at
   the badge's 0xCC alpha with white text, same treatment as the phone.
 - Vehicle position marker (phone + AA, spec `gps-location-marker` /
-  `auto-map-renderer`, change `unified-vehicle-marker`): one unified compass
-  arrow on both surfaces — 32 dp density-aware (same visual size on every
-  screen), white casing ring + dark rim + vertical blue gradient core
-  (#42A5F5 → #0D47A1) + soft blurred shadow. No day/night color branch: the
-  layered style stays legible on both light and dark map variants. Geometry
-  and palette live in `:core` `VehicleMarkerGeometry`, shared by both
-  renderers (parity by construction, spec `cross-variant-ui-parity`); the
-  accuracy circle is untouched.
+  `auto-map-renderer`, changes `unified-vehicle-marker`,
+  `map-marker-route-contrast`): one unified compass arrow on both surfaces —
+  38 dp density-aware (same visual size on every screen), casing ring + dark
+  rim + vertical blue gradient core + soft blurred shadow. The palette
+  branches on the resolved dark presentation, the geometry never does:
+  - light presentation: white casing ring, dark rim, core `#42A5F5` →
+    `#0D47A1`
+  - dark presentation: deep blue-black casing `#0E1622` (no bright halo on
+    dark land), dark rim `#0D47A1`, lighter core `#BBDEFB` → `#1E88E5` —
+    lighter than the daylight core but deliberately **not** white
+  Geometry and palette live in `:core` `VehicleMarkerGeometry`, shared by
+  both renderers (parity by construction, spec `cross-variant-ui-parity`);
+  growing the marker changes phone and car identically. The accuracy circle
+  is untouched.
+- Active route appearance (phone + AA, spec `route-appearance`, change
+  `map-marker-route-contrast`): one stylesheet rule (`_route` in the
+  libosmscout submodule `stylesheets/include/route.oss`) colors the route on
+  both surfaces, driven by the same `daylight` flag both surfaces push.
+  Every bundled style that draws a route includes that rule (`standard`,
+  `winter-sports`, `cycle` — the cycle style's own semi-transparent
+  single-color rule was removed), so switching map style keeps the route
+  colors. `public-transport` has no route rule at all and draws no route
+  (pre-existing, tracked in `TODO.md`).
+  - light presentation: opaque violet fill `#7b1fa2` with a dark violet
+    casing `#311b92` — no daylight road class is violet, and the dark casing
+    stays visible on white residential roads where the former white casing
+    disappeared
+  - dark presentation: unchanged red fill `#ff000088` with a white casing
+  The casing stroke stays wider than the fill (`displayWidth` 2.2 mm vs
+  1.5 mm) and keeps its priority, so the route is bordered on both sides,
+  is opaque in daylight, and needs no extra render pass. Parity rule: both
+  surfaces show identical route colors for the same presentation; no surface
+  overrides them. Stylesheet hex literals MUST be **lowercase** —
+  `osmscout::Color::FromHexString` accepts `0-9a-f` only and asserts on
+  uppercase, which fails the whole stylesheet load and then crashes the
+  renderer; `StylesheetHexColorCaseTest` guards this for every packaged
+  stylesheet.
 
 ## 9. Dark mode (phone + Android Auto)
 

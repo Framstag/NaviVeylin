@@ -17,14 +17,18 @@ package com.naviveylin.core
  * Layering (bottom to top): blurred shadow (screen-space offset below) ->
  * casing ring (core scaled — white in day, deep blue-black in dark
  * presentation so no stencil-white halo remains) -> dark rim stroke ->
- * vertical blue gradient core. Only the casing color branches on
- * presentation; the shape never changes (spec scenarios "Arrow legible on
- * daylight/dark map").
+ * vertical blue gradient core (the standard blue in day, a lighter blue in
+ * dark presentation so the marker reads on dark land).
+ *
+ * Only the PALETTE branches on presentation (casing and gradient stops); the
+ * geometry never does — vertices, casing scale, rim width and shadow are
+ * identical in both presentations (spec scenarios "Arrow legible on
+ * daylight/dark map", "Marker geometry identical in both presentations").
  */
 object VehicleMarkerGeometry {
 
     /** Marker footprint in dp — same on phone and Android Auto. */
-    const val SIZE_DP = 32f
+    const val SIZE_DP = 38f
 
     /** Half-width of the arrow body at the center line (x = +/-this*H, y = 0). */
     const val BODY_HALF_W = 0.5f
@@ -55,6 +59,16 @@ object VehicleMarkerGeometry {
      */
     const val COLOR_CASING_DARK = 0xFF0E1622
 
+    /**
+     * Dark-presentation core gradient stops. User feedback: on dark land the
+     * near-black casing plus the dark end of the day gradient made the whole
+     * marker read as a dark blob. The dark core is therefore markedly lighter
+     * than the day core while deliberately NOT white — a white core would read
+     * as the same stencil halo the dark casing exists to avoid.
+     */
+    const val COLOR_GRADIENT_TOP_DARK = 0xFFBBDEFB
+    const val COLOR_GRADIENT_BOTTOM_DARK = 0xFF1E88E5
+
     /** Dark rim stroke width, as a fraction of H. */
     const val RIM_WIDTH_H = 0.10f
 
@@ -84,6 +98,18 @@ object VehicleMarkerGeometry {
         (-TAIL_HALF_W) to TAIL_Y,
         (-BODY_HALF_W) to 0f
     )
+
+    /**
+     * Presentation palette for the marker core gradient: the light-from-above
+     * vertical stops, standard blue in day and the lighter dark core in dark
+     * presentation. Renderers pick the pair with their resolved dark flag; the
+     * geometry they draw with it is the same in both cases.
+     */
+    fun gradientColors(dark: Boolean): Pair<Long, Long> = if (dark) {
+        COLOR_GRADIENT_TOP_DARK to COLOR_GRADIENT_BOTTOM_DARK
+    } else {
+        COLOR_GRADIENT_TOP to COLOR_GRADIENT_BOTTOM
+    }
 
     /** Convenience: vertices scaled by H (screen px) — used by tests and debug. */
     fun outlineVerticesPx(h: Float): List<Pair<Float, Float>> =

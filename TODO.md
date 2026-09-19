@@ -5,17 +5,14 @@
 ---
 
 
-## 34. Two sessions on one tree rewrote the libosmscout branch (`naviveylin-local`)
+## 41. Favorite store writes are not serialised against each other (pre-existing)
 
-- **Observed 2026-09-19 during `update-to-current-libosmscout-master`** ⚠: the submodule branch was force-rewritten while the update was running. This session pushed the two JNI commits (`05c99f60b`, `39078b23c`) as a fast-forward (`5b1f7bd46..39078b23c`); a parallel session then pushed *its own copies of the same two changes* under the same messages but different SHAs (`240ed7d99`, `e1ed9c82e`) on top of its own, older upstream merge (`2b6e06cf7`) — so `git fetch` reported a forced update and the branch tip no longer descended from the pushed SHA. The peer tip also did not contain the 15 incoming upstream commits (its tree lacked ~3900 lines of upstream specs/docs; `origin/master` was not an ancestor). Reconciliation (no force-push, nothing lost): verify the peer tip's content equals ours, `git merge origin/naviveylin-local` (clean), push the merge `d7d84af60` as a fast-forward. Both lines are ancestors of the tip now, and the parent commit `9de1a82`'s pinned SHA `39078b23c` stays reachable. Fix option: one session owns the submodule update at a time (the two sessions duplicated the same JNI commits because both saw the same working-tree edits as "uncommitted work of mine"), and use `git ls-remote origin <branch>` immediately before pushing instead of trusting the local remote-tracking ref.
+- **Noticed 2026-09-19 during `fav-order-in-group`** ℹ: every `FavoriteRepository` write is a read-modify-write pair — mutate the native service through JNI, then `refreshState()` + `persist()` (`saveFavoriteLocations`, which rebuilds the store from the Java array handed in). Two writes issued close together (e.g. tapping star twice quickly, or a rename while a delete is still persisting) can interleave: the second write's `refreshState()` may read a store the first write has not finished persisting, so the file and the exposed `StateFlow` can end up reflecting different orders/sets. The native service is mutex-protected, so no corruption or crash is possible — the risk is a lost update in the file. `fav-order-in-group` guards only its own reorder commits (single in-flight flag in `FavoritesViewModel.moveFavorite`) because widening the fix would change rename/star/delete behavior in a reorder change. Fix candidate: one `Mutex` in `FavoriteRepository` around its write operations (mutate + refresh + persist as one critical section), or a single-slot serialising channel, plus a test that fires two writes concurrently and asserts the file matches the final state. Not introduced by this change.
 
 ## 33. `:auto` unit-test fork overflows its 512 MB heap once the whole suite runs
 
 - **Observed 2026-09-19 while applying `aa-entry-zoom-animation`** ⏳: the full `:auto:testDebugUnitTest` run (47 classes, ~490 Robolectric/MockK tests) died with `java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kotlinx.coroutines.DefaultExecutor"` plus `java.lang.instrument ASSERTION FAILED: "!errorOutstanding" with message can't create name string` — dozens of classes then failed with bare `java.lang.OutOfMemoryError` (`DetailsScreenTest`, `FavoritesScreenTest`, `GermanRenderingTest`, `MapScreenTest`, ...) and **no per-class XMLs were written**, so the failure looks like a mass regression instead of an infra limit. Root cause candidates: AGP's default `maxHeapSize = 512m` for the unit-test fork (confirmed: the test JVM is launched with `-Xmx512m`), the suite's accumulation in ONE JVM (Robolectric sandboxes + MockK/byte-buddy instrumentation + leaked `AutoMapRenderer` instances whose background loops and 1296×720 overrun bitmaps outlive their test), and machine pressure — the same suite was green earlier the same day (`2026-09-19 09:17/09:20`, 488 tests) with a free box, and OOMed again with a concurrent `:app:testMobileDebugUnitTest` running from a second session. Three-class runs stay green (`2026-09-19 09:45`, 95 tests, 0 failures). Fix options: set `android.testOptions.unitTests.all { maxHeapSize = "2g" }` (and consider `forkEvery`) in `auto/build.gradle.kts`, and/or shut renderers down in the tests that start their loops (`AutoMapRendererTest.noRenderRequestAfterSurfaceLoss`, the `spyk(AutoMapRenderer(...))` cases) — the latter were added where they were the offender. Not introduced by `aa-entry-zoom-animation`: the change touches no build file (its proposal states "no Gradle configuration change"), so the ceiling is pre-existing and this change's additions only moved the suite closer to it.
-
-## 35. Address resolution loses the "exact match" bonus for free-text hits
-
-- **Side effect of `search-result-ranking` (2026-09-19)** ✅ **Resolved in the same change during its verification pass**: `AddressParser.matchedExactly` now reads the per-attribute qualities (`locationMatchQuality`/`addressMatchQuality`/`poiMatchQuality`) and falls back to the collapsed `matchQuality` only when a native library reports no per-attribute quality at all, so address scoring no longer depends on a field whose meaning became search-tier-specific (design D6; tasks 8.2). Original finding kept for context: the JNI bridge no longer stamps every MARISA text-index hit with `matchQuality = "match"`; a hit reports `"match"` only when the indexed name really equals the query, otherwise `"candidate"` (spec `search-free-text`), while `AddressParser.kt:258` awarded `+25` on that field — free-text-derived candidates in `AddressBookResolver`/`AddressRanker` scored 25 points lower than before. No test depended on the old weight.
+- **Second observation, same defect (2026-09-19 during `map-marker-route-contrast` task 4.2)** ⏳: `./gradlew test` died inside `:auto:testDebugUnitTest` the same way (first at `AutoMapRendererTest.kt:1385 renderer.renderFrame()`, then `DetailsScreenTest`, `SearchScreenMapperTest`, `GermanRenderingTest`, `NavigationTemplateMapperTest`, `StartupScreensTest`). `:core` (297 tests) and `:app` (1015 tests, both flavors) were green, and a targeted `:auto` run of `AutoMapRendererTest` + `CarDaylightApplierTest` + `NavigationSessionDarkModeTest` was green — the suite fails on accumulation, not on one class. Retried with `--max-workers=1` and after `./gradlew --stop`: same OOM. Host has 15 GB with ~5 GB available (Rancher Desktop's 4 GB VM plus a browser). The same OOM also blocks coverage runs (`:koverHtmlReport :koverXmlReport :osmscout-client-java:jacocoTestReport` re-runs the `:auto` tests). Workaround used since: run `:auto` in explicit class groups (four JVMs, e.g. 12 + 12 + 12 + 11 classes, all green at 499 tests) — see `aa-entry-zoom-animation` tasks 3.2/3.3. Additional fix candidates: take a heap dump during a run to size the worker.
 
 ## 34. Car search opened from the root/history screens has no distance reference
 
@@ -200,10 +197,6 @@ GPS back                     →  REAL
 
 - **Pre-existing, noticed 2026-09-13 during `license-compliance-baseline` task 8.4** ℹ: `README.md` › Build Commands still lists `./gradlew :app:assembleRelease` and `:osmscout-jni:assembleRelease`, and the project-structure tree lists `osmscout-jni/` as a JNI bridge AAR — neither exists: the module is `:osmscout-client-java`, and the app builds per flavor (`:app:assembleMobileDebug`, `:app:assembleAutomotiveDebug`, `./gradlew release` for both AABs). The license additions from this change were added to the same document, so the two stale commands now sit next to correct ones. Fix: replace the stale commands with the flavor-aware ones and correct the structure tree.
 
-## 19. libosmscout license statement is self-inconsistent
-
-- **Found 2026-09-13 during `license-compliance-baseline` task 1.3** ✅ (GPLv2-text part): the submodule `README.md` says "The libraries itself are under LGPL. For details see the LICENSE file", but at the time `app/src/main/cpp/libosmscout/LICENSE` contained the plain GNU GPL v2 text with no Lesser section and no version clause, and no source file carries a license header. The license map records `LGPL-2.1-or-later` (following the README) with an explicit caveat, and `licenses/license-policy.json` lists it under `reviewRequired`. **Resolved 2026-09-17 by `app-license-gpl-3-0-or-later` + upstream**: since 2026-03-06 (upstream commit f4a9dabe7) the submodule LICENSE is a 21-line LGPL + five exceptions/clarifications document with no GPL text; the application license decision was made (GPL-3.0-or-later) and the policy caveat was refreshed accordingly. Open item only: upstream states no license version — raising LGPL 2.1 vs 3 with Framstag stays as `reviewRequired`; the conservative `LGPL-2.1-or-later` mapping remains.
-
 ## 20. OpenSpec config rules: add `openspec doctor` to CI
 
 - **Residual hardening after the `config.yaml` rules bug (2026-09-13)** ℹ: three rule sets in `openspec/config.yaml` (proposal/specs/design) were silently dropped — colon+space entries parsed as YAML mappings, the array failed the array-of-strings check; quoting the entries fixed it. No CI guard exists (checked `build.yml`); add `openspec doctor`, or a tasks.md marker-style validation (§17), so a silently dropped rules file fails loudly.
@@ -228,26 +221,233 @@ GPS back                     →  REAL
 
 - **Found 2026-09-18 during `route-overview-fit` (DPI/`cos(lat)` ground-resolution fix)** ℹ: the shared bbox→magnification helper rounds to whole levels (`Math.round`), which can round the exact fit down by up to half a level, so the fitted content ends up to ~13% larger than the 80%-margin target. The route overview is now protected by an explicit projection check (`routeFitsVisibleArea`, design Decision 8), but the other two callers — the area-favorites zoom (`onFavoriteSelected`, the details/area zoom helper) and the POI/radius search fit (`SearchDialog.poiFitMagnification`) — have no such verification, so their fitted bbox can slightly overflow the mini map / map viewport (previously masked by the over-zoom the ground-resolution fix removed). Fix candidate: round *up* for fit callers (never clip, at the cost of ≤1 level more zoom-out) or reuse the projection check; note that the favorites zoom is additionally clamped to 14–20, which hides the effect for small objects.
 
-## 29. On-device re-check of the area-favorites and POI-search fit zooms
+## 35. On-device re-check of the area-favorites and POI-search fit zooms
 
 - **Created 2026-09-18 by `route-overview-fit`** ℹ: that change corrected `computeAreaZoom`'s ground resolution (display DPI + Mercator `cos(lat)`), which *intentionally* changes the zoom the phone picks when selecting an area favorite and when the POI search fits its results — both now zoom out to the geometrically correct level (previously over-zoomed by `dpi / 96 * (1 / cos(lat))`, ≈2 levels on a 420-dpi phone). Unit tests stay green, but no on-device/visual check of those two flows is part of that change. Follow-up: pick an area favorite and run a POI radius search on a real phone/emulator and confirm the framing is sane (not too far out, markers inside the visible area).
 
-## 30. `public-transport` stylesheet draws no route
+## 36. `public-transport` stylesheet draws no route
 
 - **Found 2026-09-19 during `map-marker-route-contrast`** ℹ: `stylesheets/public-transport.oss` declares `GROUP _route` in its `ORDER WAYS` block but has no `[TYPE _route]` rule, so an active route is not drawn at all while that style is selected (it is user-selectable via `BundledMapStyles.USER_SELECTABLE`). The route rule lives in `stylesheets/include/route.oss`; that change made `cycle.oss` include it like `standard.oss`/`winter-sports.oss`, and left `public-transport` untouched because the missing rule is a pre-existing gap, not one of the reported appearance defects. Fix candidate: add `MODULE "include/route"` to its MODULE block (same pattern) and verify on-device that a route then appears in that style.
 
-## 31. `:auto` unit suite hits `OutOfMemoryError` on this machine
-
-- **Observed 2026-09-19 during `map-marker-route-contrast` task 4.2** ⏳: `./gradlew test` dies inside `:auto:testDebugUnitTest` with `java.lang.OutOfMemoryError` (first at `AutoMapRendererTest.kt:1385 renderer.renderFrame()`, then in `DetailsScreenTest`, `SearchScreenMapperTest`, `GermanRenderingTest`, `NavigationTemplateMapperTest`, `StartupScreensTest`) plus `java.lang.instrument ASSERTION FAILED ... can't create name string`. `:core` (297 tests) and `:app` (1015 tests, both flavors) are green, and a targeted `:auto` run of `AutoMapRendererTest` + `CarDaylightApplierTest` + `NavigationSessionDarkModeTest` is green — so the suite fails on accumulation, not on one class. Retried with `--max-workers=1` and after `./gradlew --stop`: same OOM. Host has 15 GB with ~5 GB available (Rancher Desktop's 4 GB VM plus a browser). Not attributable to `map-marker-route-contrast` (Kotlin constants and one stylesheet branch, no new allocation), but no clean-tree baseline run was made. The same OOM also blocks task 4.3 (coverage: `:koverHtmlReport :koverXmlReport :osmscout-client-java:jacocoTestReport` re-runs the `:auto` tests). Fix candidates: raise the test-worker heap, run `:auto` in class chunks, or take a heap dump during a run to size the worker.
-
-## 32. Pre-existing Kotlin deprecation warning in the marker overlay
+## 37. Pre-existing Kotlin deprecation warning in the marker overlay
 
 - **Observed 2026-09-19 during `map-marker-route-contrast` task 4.1** ℹ: every `:app` build prints `w: .../ui/map/LocationMarkerOverlay.kt:167:14 'fun quadraticBezierTo(x1, y1, x2, y2)' is deprecated. Use quadraticTo() for consistency with cubicTo()`. Pre-existing — that change only replaced the gradient color selection in the same function. Fix: rename the call (behavior-identical) in a build-hygiene change, or wait until the Compose version makes it an error.
 
-## 33. A rejected stylesheet crashes the renderer instead of degrading
+## 38. A rejected stylesheet crashes the renderer instead of degrading
 
 - **Observed 2026-09-19 during `map-marker-route-contrast`** ⏳: when a stylesheet fails to load (that change's first device run had an uppercase hex literal in `include/route.oss`, which asserts in `Color::GetHexValue`), the sequence is: `Style error:243,8 Error: Cannot load module '.../include/route.oss'` → `Failed to load stylesheet .../standard.oss` → `Fatal signal 11 (SIGSEGV) in osmscout::StyleConfig::HasNodeTextStyles` called from `MapPainter::PrepareNode`. The client keeps rendering with a rejected `StyleConfig` instead of falling back to a previous style or refusing to render, so a stylesheet defect becomes an app crash. Not introduced by that change (the uppercase literal was; the crash path is pre-existing) — `app/src/test/java/com/naviveylin/data/StylesheetHexColorCaseTest.kt` now guards the specific trigger, but not the fragility itself. Fix candidates: on a failed stylesheet load, keep the previously loaded `StyleConfig` and surface an error to the user (`DiagnosticsLog` + a snackbar), and/or validate a stylesheet on the client side before swapping it in.
+- **Split into two OpenSpec changes (2026-09-19)** ⏳: the guard belongs to the client library, the reporting to the app.
+  - **libosmscout** (`app/src/main/cpp/libosmscout/openspec/changes/client-style-load-resilience`, capability
+    `client-java-style-switching`): adopt a candidate style configuration only after a clean parse, keep the
+    previously active style, install the (currently unused) safe configuration when nothing has loaded yet,
+    never hand a rejected/absent configuration to the painter, report the per-database outcome and the active
+    style on every load path. Verified facts: `StyleConfig::Load` returns `false` on parser errors
+    (`StyleConfig.cpp:1785`), `DBInstance::LoadStyle` then leaves the database without a configuration
+    (`DBInstance.cpp:56-70`), `DBThread::LoadStyleInternal` ignores that result and only logs
+    (`DBThread.cpp:440-473`), and the safe configuration created at `DBThread.cpp:61`/`:447` is never installed.
+    **Done 2026-09-19:** implemented, tested (`Tests/src/StyleLoadResilienceTest.cpp`, revert-checked),
+    committed `9f99f7edf`/`ac8168f25` and pushed to `origin/naviveylin-local`; the change is 20/20 and
+    archive-ready (its deltas are still unsynced).
+  - **NaviVeylin** (`openspec/changes/fix-stylesheet-load-crash`): report the failure to the user (one wording,
+    non-blocking, phone + car), keep the previous style visible, verify the crash-free degradation on device,
+    and bump the submodule gitlink — sequenced after the client change lands. **In progress 2026-09-19:**
+    gitlink bumped (`f8ffe98`), phone reporting (seam `MapStyleLoadReporter` + snackbar, switch/flag/persisted
+    paths with `standard` startup fallback) and car reporting (notification `map_style` via
+    `CarStyleLoadNotifier`, owner decision — see design D2's correction) implemented and unit-tested; the
+    build/test/doc gates and the on-device pass remain.
 
-## 34. Real-life and Android Auto verification for the marker/route colors
+## 39. Real-life and Android Auto verification for the marker/route colors
 
 - **Created 2026-09-19 by `map-marker-route-contrast`** ⏳: the visual checks (daylight route over a primary road and a white residential road, GPX track and search marker alongside, dark-presentation route unchanged, lighter dark marker without a white ring, 38 dp marker size, map-style switch to `cycle`/`winter-sports`) were performed on the phone emulator and reported working, but the user noted the concrete colors still need real-life validation, and the Android Auto half (host day/night, route/marker parity) was accepted by assumption instead of being measured on a head unit or the `Automotive_Distant_Display_with_Google_Play` AVD. Follow-up: check the violet route and the lighter dark marker on a real display outdoors and in a dark car interior, and run the AA day/night comparison once on the automotive AVD or a head unit. If the violet reads too close to the magenta search marker or the blue GPX track in practice, the hue can be adjusted in `stylesheets/include/route.oss` alone (the spec pins the contrast contract, not the hex).
+
+---
+
+## 40. Guardrails extracted from `ki_processing_failures.log` (2026-09-19)
+
+Every entry of that log was processed on 2026-09-19 and removed; each action below is what prevents
+re-making the mistake. The parenthetical names the artifact that should carry it. Items marked **[open]**
+are not implemented yet; items referencing an existing TODO section are already tracked there and are
+listed only so the guardrail is not lost.
+
+Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignored, like the other
+`.pi` skills — copy to `~/.pi/agent/skills/` for cross-project use).
+
+### A. Harness / shell / Gradle invocations
+
+1. Never plan on `python3`, `perl` or `tesseract` — all blocked by the lean-ctx shell allowlist (permanent).
+   Use `jq`, `sed -i -E`, `openspec … --json` + grep; there is no OCR route without a config change.
+   **[open]** (guidelines/Build.md — shell constraints)
+2. Never `pkill -f "gradlew …"`: `-f` matches the calling tool's own command line, kills the shell, and the
+   rest of the chained command (e.g. a `git commit`) silently never runs. Kill by PID
+   (`ps -o pid,args` → `kill -9 <pid>`). **[open]** (guidelines/Build.md)
+3. Long builds/tests (`./gradlew test`, `release`, full CMake) exceed the shell output cap — run detached
+   (`nohup ./gradlew … > /tmp/x.log 2>&1 &`) and poll with short `tail`/`grep`. Live in `run-tests`;
+   **[open]** for `build-app` and `release-build`.
+4. Never start a second Gradle build against the same output directories while an aborted one is still
+   running (the daemon keeps rewriting SBOM/assets; the next build then reports bogus parse errors).
+   **[open]** (guidelines/Build.md)
+5. A `BUILD SUCCESSFUL in 5s` / `… up-to-date` line is not test evidence — see §17. Quote executed-task
+   count + elapsed time and verify counts from the result XMLs. (tracked: §17)
+6. Verify artifacts by comparing them to their inputs (content/mtime), never by the existence of an output
+   path: build-cache-restored APKs in `outputs/apk` and stale `build/outputs/sbom/*` look like product bugs.
+   **[open]** (guidelines/Build.md)
+7. Do not use `/tmp` as a workspace for large map imports (RAM tmpfs, ~7.7 GB quota); use a disk path.
+   **[open]** (guidelines/Build.md)
+8. `:auto` heap ceiling and chunking: see §33 — including that `--tests "com.x.[A-E]*"` is NOT a glob in
+   Gradle (one pattern per prefix or explicit class names), that per-batch XMLs must be copied out because
+   Gradle cleans `test-results` on each invocation, and that coverage must run in a separate invocation
+   from the test gate (Kover instruments the workers on top of Robolectric/Compose → OOM). (tracked: §33)
+
+### B. Editing discipline (edit/ctx_patch)
+
+9. Multi-edit calls are atomic: one ambiguous or missing `oldText` rejects the WHOLE call, silently leaving
+   the other edits unapplied. Re-read every changed region before compiling, and make each anchor unique
+   with its distinguishing surrounding line. **[open]** (guidelines/Design.md or a skill note)
+10. Never retype prose/code from memory into `oldText` — copy it from the read output. Never emit
+    overlapping/nested `oldText` regions in one call; for pure insertions keep the entire matched block in
+    `newText` and append to it. **[open]**
+11. After an edit reports a missing `oldText`, re-read the file before re-issuing: a corrective pass can
+    silently duplicate a helper (duplicate blocks then make exact-match edits ambiguous). **[open]**
+12. One mutation per revert check — a combined mutation masks the other behaviour and the assertion becomes
+    vacuously true. **[open]** (guidelines/Build.md — test evidence)
+
+### C. Kotlin / Compose / car-app build traps
+
+13. `while (isActive)` in a coroutine needs the explicit `kotlinx.coroutines.isActive` import.
+    **[open]** (guidelines/Design.md)
+14. `KProperty0.isInitialized` works only for `lateinit`; for `by lazy` state use a nullable `var` or a flag.
+    **[open]**
+15. Test coroutine extensions need a receiver: declare helpers as `private fun TestScope.foo()`;
+    `advanceTimeBy(Long)` is an extension, `advanceUntilIdle` a `TestScope`/`TestCoroutineScope` extension.
+    **[open]**
+16. Lifetime background tickers (`while (true) { delay(1s) }`) must run on a real dispatcher
+    (`Dispatchers.Default`) with test hooks — on the test scheduler they hang every `runTest`.
+    **[open]**
+17. Compose plurals containing `%d` need the count as an explicit format argument
+    (`pluralStringResource(id, count, count)`). **[open]**
+18. Never call `composeRule.setContent {}` twice in one test; collect all values in the single composition.
+    **[open]**
+19. Never nest two `verticalScroll` containers; give an embedded scrollable an opt-out parameter.
+    **[open]**
+20. Robolectric's Compose root is clamped to 320×470 dp — assert against the screen, not hardcoded sizes, and
+    read the failing bounds from the assertion message. **[open]**
+21. Robolectric's shadow canvas discards `drawBitmap`/`drawPath` (0 opaque pixels) and
+    `@GraphicsMode(NATIVE)` does not fix it here — assert the bitmap contract (size/config/caching/no-throw)
+    and leave visuals to on-device; do not add a second Robolectric sandbox config. **[open]**
+22. Compose dropdown popups do not appear in `uiautomator` dumps — assert the field's text instead.
+    **[open]** (guidelines/UI.md)
+23. Java types from the JNI bridge: positional constructor args only (no named arguments), read the ctor
+    before writing helpers (`RouteInstruction` has 5- and 10-arg forms), and update EVERY call site in the
+    same change when such a ctor changes — stale test bytecode surfaces as `NoSuchMethodError`, not a
+    compile error. **[open]**
+24. Do not mock Kotlin `object` `@JvmStatic` methods (mockk cannot intercept them); stub the real
+    `applicationContext` and the Java delegate the object calls (`dagger.hilt.EntryPoints`). **[open]**
+25. `Notification.actions` is nullable (`actions?.isEmpty() != false`); use `getIcon()` (the Kotlin field is
+    deprecated and breaks warning-free builds). **[open]**
+26. Every user-facing number/coordinate formatter takes an explicit locale
+    (`String.format(Locale.US, …)`) — default-locale formatting broke tests and reads ambiguously in German
+    (also §31). `"%.5f".format()` rounds, it does not truncate. **[open]**
+27. `NavigationTemplateMapper.distanceForDisplay` reports display units — assert `displayDistance` plus
+    `displayUnit`, not metres. **[open]**
+28. Verify constructor-argument edits against the file's imports in the same pass (a rename dropped a
+    still-used import and invented a non-existent class). **[open]**
+29. For car-app screens, check the real API surface first (getter names, resolved lifecycle version, no
+    `Lifecycle.getObservers()`); drive lifecycle through `dispatchLifecycleEvent`, ON_CREATE + ON_START
+    before ON_DESTROY. **[open]**
+30. `:app:testDebugUnitTest` does not exist (two distribution flavors) — always use the flavor-qualified
+    task name. **[open]** (guidelines/Build.md)
+
+### D. Test / verification discipline
+
+31. Never pace a unit test off a timer or a debounce (`Thread.sleep`): control the loop
+    (`asyncLoopsEnabled = false/true`) and land a frame deterministically (`renderFrame()`).
+    **[open]** (guidelines/Build.md)
+32. After a boundary-signature semantic change, grep the tests for the observable field first
+    (`lastRenderMag` now holds the raw scale → compare `2^level`). **[open]**
+33. Compute `log2` expectations with a calculator, not mentally. **[open]**
+34. Native index test fixtures must be FULL (non-eco) imports — `--eco true` skips the POI indexes.
+    **[open]**
+35. `DBThread` loads databases sequentially: wait for two consecutive identical results before asserting.
+    **[open]**
+36. Verify `md5` after any `git stash` cycle before rebuilding — a stash+pop silently reverted a submodule
+    patch and the "patched" host library was unpatched. **[open]**
+37. Coverage: Kover/JaCoCo per-class numbers are meaningless for Robolectric-only classes (sandbox
+    classloader, §15) — use revert-checks as evidence; never apply Kover to a Kotlin-plugin-free module
+    (use the Gradle `jacoco` plugin there). (tracked: §14, §15)
+38. Test-harness flakes of unknown origin get an entry with the rerun evidence instead of a silent retry —
+    see §18/§26 (both still open). (tracked: §18, §26)
+
+### E. On-device / emulator preconditions
+
+39. Never install an ABI-filtered APK (`-Pandroid.injected.build.abi=…`): packaging strips the other ABIs,
+    the install succeeds and the app dies at `System.loadLibrary`. Verify with `unzip -l <apk> | grep <abi>`
+    and check the APK mtime against the newest source edit before an on-device run. **[open]**
+    (guidelines/Build.md — on-device verification)
+40. Emulator GPS cannot inject a bearing: `geo fix` has no bearing argument (always `bear=0.0`), and NMEA RMC
+    is dropped by FusedLocationProviderClient ("too close / too fast"). Do not plan bearing/heading on-device
+    tests on a GMS emulator — cover them with unit tests. **[open]**
+41. Headless emulators need `-dns-server 8.8.8.8` (broken DNS → "Unable to resolve host" while raw IP works) —
+    compare `adb shell ping` against the app's network code before debugging the app. **[open]**
+42. Check which maps are already installed BEFORE attempting a catalog download — `adb install -r` preserves
+    data. **[open]**
+43. After toggling `location_mode`, re-send `geo fix` (Fused may need provider re-registration). **[open]**
+44. `adb shell input text` goes through the active IME (GBoard rewrote `Erbstollenstrasse` →
+    `Er Stollenstraße`): disable the IME for the replay and assert the field's actual value from the
+    `uiautomator dump` before interpreting results. **[open]**
+45. The AAOS/car AVD is not usable for on-device steps in a headless agent session: car system-UI ANRs swallow
+    `input tap`, `uiautomator dump` returns an empty hierarchy, `geo fix` is answered OK but no fix reaches the
+    app, and the host `RendererService` disconnects ~40 s after launch. Plan car verification for an
+    interactive window or a real head unit, and state the blocker instead of burning a session.
+    **[open]** (guidelines/Build.md + the OpenSpec apply guidance for car changes)
+46. Before an apply/verify pass, check for a concurrent writer in the tree (`find <module> -newermt "-10 minutes"`,
+    active Gradle clients) — one writer per tree; if a peer is mid-edit, quote the evidence already collected and
+    stop. **[open]** (AGENTS.md — parallel sessions)
+
+### F. Native / libosmscout
+
+47. Any change inside an `#ifdef OSMSCOUT_HAVE_LIB_MARISA` block must be verified in BOTH configurations — the
+    Android build always defines it (vcpkg provides marisa), so CI's non-Marisa path is invisible here.
+    Reproduce locally: insert `#undef OSMSCOUT_HAVE_LIB_MARISA` after the include block of
+    `OSMScoutClient.cpp`, build `:app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a`, then remove
+    the `#undef`. **[open]** (guidelines/Build.md — native verification)
+48. Native test binaries are not directly executable (allowlist): run them through `ctest -R <Test>
+    --output-on-failure` from the build directory. `ctest` does not build — `ninja -C <build> <Target>` first, and
+    filter `ctest -N` output for `Test #` lines. **[open]**
+49. `System.loadLibrary` needs the plain-name `.so` — versioned `.so.1` symlinks are not found. **[open]**
+50. Plain `openDatabase(containerRoot)` wipes the DBThread (the root has no `types.dat`); load a container of maps
+    through the builder's map-lookup scan. **[open]**
+51. The `:osmscout-client-java` Gradle JAR excludes `OSMScoutClient.java`/`Builder` — never feed it to JavaScout
+    Maven (a stale `~/.m2` JAR breaks the signature); build the JAR from the submodule `java/` sources.
+    **[open]**
+52. JavaScout Maven tests need `JAVA_HOME=java-21` on this machine (JUnit 5.10.2 on Java 26 discovers but
+    executes 0 tests). **[open]**
+53. Stale meson host builds: `sed` the ninja link line to a stub path before rebuilding (`/usr/lib` is not
+    writable, no sudo). **[open]**
+54. Before pushing a submodule branch, run `git ls-remote origin <branch>` (not the local remote-tracking ref)
+    immediately before the push, and let ONE session own the submodule update — two sessions created the same
+    JNI commits and force-rewrote `naviveylin-local` (reconciled by a merge, no force-push, nothing lost).
+    **[open]** (AGENTS.md — submodule workflow)
+55. Stylesheet hex literals are lowercase-only (`Color::GetHexValue` asserts; a rejected style then crashes the
+    renderer, §38), and a stylesheet defect does NOT fail the build: run the app once after the first stylesheet
+    change and grep `adb logcat -s NaviVeylin | grep -i "style error"`. (tracked: §38)
+
+### G. Design / scope discipline
+
+56. Verify the premise before building a change on it: the tile-path condition (pinned by
+    `TileCacheRenderTest`), the real pixels-per-degree the renderer produces (DPI × `cos(lat)`, cross-checked
+    through `ProjectionUtils` rather than re-derived with the formula under test), and the "single source of
+    truth" location of a dedup change (removing the duplicate must not remove the only instance). **[open]**
+    (guidelines/Design.md)
+57. Log BOTH sides of a seam (pending vs displayed frame, both path counters) in one grep-able line — five
+    changes shipped while the AA follow defect was live because no log line compared the two frames.
+    **[open]** (guidelines/MapRendering.md)
+58. When two layers can both own a transition, decide the pacing (render vs fix) before coding; never call a
+    stateful controller twice for a check-then-use pair; scope a renderer-wide rule with an explicit opt-in
+    flag. **[open]** (guidelines/Design.md)
+59. Write down which coordinate frame each number lives in before comparing (pre-shift projection vs post-shift
+    visible band). **[open]**
+60. In ViewModel tests, assert pre-state through an entry path that does not mutate the snapshot field
+    synchronously before the collector resumes. **[open]**
+61. Initialize progress state to the "0 % traveled" invariant (`remainingDistance = totalDistance`), not the
+    data-class default; state machines with wall-clock state need a "never set" sentinel and an explicit
+    first-event branch. **[open]**

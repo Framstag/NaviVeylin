@@ -81,4 +81,9 @@
     <string name="distance_unit_km">%1$s km</string>
     <string name="distance_unit_m">%1$s m</string>
     <string name="distance_away_m">%1$s m entfernt</string>
+
+    <!-- Map style load failure on the car surfaces (spec: map-styles). -->
+    <string name="map_style_notification_channel_name">Kartenstil</string>
+    <string name="map_style_notification_channel_description">Meldet einen Kartenstil, der nicht geladen werden konnte</string>
+    <string name="map_style_notification_title">Problem mit dem Kartenstil</string>
 </resources>

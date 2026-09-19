@@ -33,4 +33,8 @@
     <string name="nav_hint_neutral">Navigation aktiv</string>
     <!-- Car-screen hint secondary text: distance to the maneuver plus arrival time. -->
     <string name="nav_hint_distance_eta">%1$s · %2$s</string>
+
+    <!-- Map style load failure (spec: map-styles). -->
+    <string name="map_style_load_failed">Kartenstil \"%1$s\" konnte nicht geladen werden</string>
+    <string name="map_style_load_failed_kept">Kartenstil \"%1$s\" konnte nicht geladen werden — \"%2$s\" bleibt aktiv</string>
 </resources>

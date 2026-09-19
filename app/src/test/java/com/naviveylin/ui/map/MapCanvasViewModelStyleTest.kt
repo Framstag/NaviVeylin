@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -203,5 +204,83 @@ class MapCanvasViewModelStyleTest {
         viewModel.onStyleSheetSelected("motorways")
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
         assertTrue(client.styleSheetLoads.contains("motorways"))
+    }
+
+    @Test
+    fun failedSwitchReportsTheKeptStyleOnce() = runTest(mainDispatcherRule.dispatcher) {
+        // The stylesheet of the requested style cannot be parsed; the native
+        // client keeps "standard.oss" active (spec: map-styles — "Unparsable
+        // stylesheet keeps current style" / "Failure is reported once per
+        // attempt").
+        client.failingStyleSheetLoads.add("cycle")
+        client.activeStyleSheetName = "standard.oss"
+
+        viewModel.onStyleSheetSelected("cycle")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "the failure names the requested style and the one still in effect",
+            "Map style \"cycle\" could not be loaded — still using \"standard.oss\"",
+            viewModel.uiState.value.snackbarMessage
+        )
+        assertEquals(
+            "one load attempt for the requested style",
+            1,
+            client.styleSheetLoads.count { it == "cycle" }
+        )
+
+        // The report is consumed once: clearing it leaves no repeated message.
+        viewModel.clearSnackbar()
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.snackbarMessage)
+    }
+
+    @Test
+    fun persistedStyleFailsAtStartupFallsBackToTheDefaultStyle() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Persisted style is unparsable: the first map display must not be
+            // empty, so the default style is loaded (spec: map-styles —
+            // "Persisted style fails at startup") and the failure is reported.
+            settingsStorage.save(AppSettings(styleSheet = "cycle"))
+            viewModel = createViewModel()
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+            client.failingStyleSheetLoads.add("cycle")
+            // Nothing else has loaded yet, so the client reports the configured
+            // (persisted) style as the active one — the message then does not
+            // claim a different style is in effect.
+            client.activeStyleSheetName = "cycle"
+            viewModel.setScreenSize(100, 100)
+            viewModel.initMap("/data/maps/testmap")
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(
+                "the default style must be loaded as the startup fallback",
+                client.styleSheetLoads.contains(BundledMapStyles.DEFAULT_STYLE_NAME)
+            )
+            assertEquals(
+                "one report for the failed persisted style, none for the fallback",
+                "Map style \"cycle\" could not be loaded",
+                viewModel.uiState.value.snackbarMessage
+            )
+        }
+
+    @Test
+    fun failedStyleFlagReloadIsReported() = runTest(mainDispatcherRule.dispatcher) {
+        // A style-flag (daylight/night) change reloads the active stylesheet;
+        // when that reload is rejected the previous variant stays and the
+        // failure is reported (spec: map-styles — "Style flag change fails").
+        client.activeStyleSheetName = "winter-sports.oss"
+        client.styleLoadSuccessful = false
+
+        viewModel.setScreenSize(100, 100)
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "the flag failure is reported for the stylesheet that failed to reload",
+            "Map style \"winter-sports.oss\" could not be loaded",
+            viewModel.uiState.value.snackbarMessage
+        )
     }
 }

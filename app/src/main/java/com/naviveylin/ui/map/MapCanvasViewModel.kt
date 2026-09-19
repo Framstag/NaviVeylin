@@ -15,8 +15,11 @@ import com.framstag.libosmscout.client.RoadInfo
 import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.BundledMapStyles
+import com.naviveylin.core.BundledMapStyles.DEFAULT_STYLE_NAME
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.MapStyleLoadReporter
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.stringResolver
 import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.ResolvedAnchor
@@ -223,7 +226,7 @@ data class MapCanvasUiState(
      */
     val overspeedWarningDeltaKmh: Int = 5,
     /** Selected map stylesheet (name without the .oss postfix), e.g. "standard". */
-    val styleSheet: String = "standard",
+    val styleSheet: String = DEFAULT_STYLE_NAME,
     /** All bundled map styles offered by the picker (sorted, no .oss postfix). */
     val availableStyleSheets: List<String> = emptyList(),
     /** Last GPS fix for marker overlay; null if unavailable. */
@@ -744,6 +747,10 @@ class MapCanvasViewModel @Inject constructor(
         lastPushedDark = dark
         try {
             client.setStyleSheetFlag("daylight", !dark)
+            // The flag change reloads the active stylesheet; when that load is
+            // rejected the previously active style stays in effect and the
+            // failure is reported (spec: map-styles — "Style flag change fails").
+            reportStyleLoadFailure(client.getActiveStyleSheet())
         } catch (e: Exception) {
             Log.e(TAG, "setStyleSheetFlag failed", e)
         }
@@ -753,11 +760,17 @@ class MapCanvasViewModel @Inject constructor(
     /**
      * Load the map style [name] on the native database thread (blocking — runs
      * off the main thread) and re-render on success. On failure the native side
-     * keeps the previous style; the dedupe marker is reset so the next push
+     * keeps the previous style and the failure is reported once through
+     * [MapStyleLoadReporter]; the dedupe marker is reset so the next push
      * retries.
+     *
+     * [allowDefaultFallback] is used on the startup path only: a persisted style
+     * whose stylesheet cannot be loaded falls back to the default `standard`
+     * style, so the first map display is never empty (spec: map-styles —
+     * "Persisted style fails at startup").
      */
-    private suspend fun applyStyleSheet(name: String) {
-        if (lastPushedStyleSheet == name) return
+    private suspend fun applyStyleSheet(name: String, allowDefaultFallback: Boolean = false): Boolean {
+        if (lastPushedStyleSheet == name) return true
         val ok = withContext(defaultDispatcher) {
             try {
                 client.loadStyleSheet(name)
@@ -769,9 +782,49 @@ class MapCanvasViewModel @Inject constructor(
         if (ok) {
             lastPushedStyleSheet = name
             mapRenderer?.invalidateStyle()
-        } else {
-            lastPushedStyleSheet = null
-            Log.e(TAG, "loadStyleSheet returned false for '$name' — previous style kept")
+            return true
+        }
+
+        lastPushedStyleSheet = null
+        Log.e(TAG, "loadStyleSheet returned false for '$name' — previous style kept")
+        reportStyleLoadFailure(name)
+
+        if (allowDefaultFallback && name != DEFAULT_STYLE_NAME) {
+            Log.w(TAG, "Persisted style '$name' unavailable — falling back to '$DEFAULT_STYLE_NAME'")
+            return applyStyleSheet(DEFAULT_STYLE_NAME)
+        }
+
+        return false
+    }
+
+    /**
+     * Reports one failed stylesheet load through the shared seam: a diagnostics
+     * entry plus the non-blocking message shown next to the map (spec:
+     * map-styles). Called once per load attempt; a report produced while no map
+     * surface is visible stays in the UI state and is shown when the map is next
+     * composed.
+     */
+    private fun reportStyleLoadFailure(requestedStyle: String) {
+        val succeeded = try {
+            client.wasLastStyleLoadSuccessful()
+        } catch (e: Exception) {
+            Log.e(TAG, "wasLastStyleLoadSuccessful failed", e)
+            true
+        }
+        val activeStyle = try {
+            client.getActiveStyleSheet()
+        } catch (e: Exception) {
+            Log.e(TAG, "getActiveStyleSheet failed", e)
+            null
+        }
+        val message = MapStyleLoadReporter.reportFailure(
+            resolver = context.stringResolver(),
+            requestedStyle = requestedStyle,
+            activeStyle = activeStyle,
+            loadSucceeded = succeeded
+        )
+        if (message != null) {
+            showSnackbar(message)
         }
     }
 
@@ -1865,7 +1918,7 @@ class MapCanvasViewModel @Inject constructor(
             // the selected style. The value comes from the settings load that
             // ran at ViewModel init.
             lastPushedStyleSheet = null
-            applyStyleSheet(_uiState.value.styleSheet)
+            applyStyleSheet(_uiState.value.styleSheet, allowDefaultFallback = true)
 
             Log.d(TAG, "initMap: triggering first render")
             renderer.requestRender(vp.centerLat, vp.centerLon, vp.magnification)

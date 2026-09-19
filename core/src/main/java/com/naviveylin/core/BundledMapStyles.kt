@@ -13,6 +13,13 @@ package com.naviveylin.core
  */
 object BundledMapStyles {
     /**
+     * The default map style, used when the user has never chosen one and as the
+     * startup fallback when a persisted style cannot be loaded (spec:
+     * map-styles — "Persisted style fails at startup").
+     */
+    const val DEFAULT_STYLE_NAME = "standard"
+
+    /**
      * The basemap's internal stylesheet (basemap-render.oss). Loaded by the
      * native client for the basemap database; never offered as a
      * user-selectable map style (spec: map-styles).

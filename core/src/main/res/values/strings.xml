@@ -35,4 +35,10 @@
     <string name="nav_hint_neutral">Navigation active</string>
     <!-- Car-screen hint secondary text: distance to the maneuver plus arrival time. -->
     <string name="nav_hint_distance_eta">%1$s · %2$s</string>
+
+    <!-- Map style load failure (spec: map-styles). Same wording on phone and car;
+         the first form is used when no stylesheet ever loaded (empty map area),
+         the second when the previously active style stays in effect. -->
+    <string name="map_style_load_failed">Map style \"%1$s\" could not be loaded</string>
+    <string name="map_style_load_failed_kept">Map style \"%1$s\" could not be loaded — still using \"%2$s\"</string>
 </resources>

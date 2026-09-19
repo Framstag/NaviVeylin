@@ -535,6 +535,36 @@ car Surface:
 
 ---
 
+## 15a. Stylesheet load failure (app side) — never render a rejected style, never crash
+
+- **Client contract (libosmscout, branch `naviveylin-local`; change `client-style-load-resilience`):
+  a stylesheet that fails to parse NEVER becomes the active style.** The previously installed style
+  configuration stays; a database that never had one gets the empty configuration (draws no content);
+  the painter is never handed a rejected or absent configuration. The load outcome is reported per
+  attempt through `OSMScoutClient.wasLastStyleLoadSuccessful()` and the active style through
+  `getActiveStyleSheet()` (which now reports what is *actually* installed, not what was requested).
+  Before that change a rejected stylesheet left the database without a style and the render pipeline
+  faulted (`Fatal signal 11` in `osmscout::StyleConfig::HasNodeTextStyles` from
+  `MapPainter::PrepareNode`).
+- **App side**: every load path reports the failure once through the shared seam
+  `com.naviveylin.core.MapStyleLoadReporter` (one `DiagnosticsLog` entry + the same wording on both
+  surfaces; strings `map_style_load_failed` / `map_style_load_failed_kept` in `:core`, EN + DE):
+  - phone: `MapCanvasViewModel.applyStyleSheet` (style switch, persisted style at start) and
+    `pushDarkPresentation` (style-flag reload) → message via `uiState.snackbarMessage`;
+  - car: `CarStyleApplier.onLoadFailed` on both map screens → `reportCarStyleLoadFailure` +
+    `CarStyleLoadNotifier` (channel `map_style`, IMPORTANCE_LOW, silent, auto-cancel). The car
+    templates have no general message slot, so a notification is the non-blocking surface — do not
+    add a template slot for this without a decision (design D2 of the change).
+- **Startup fallback**: a persisted style whose stylesheet cannot be loaded falls back to
+  `BundledMapStyles.DEFAULT_STYLE_NAME` (`standard`) so the first map display is never empty; the
+  failure is still reported. Do not "fix" this by clearing the user's selection.
+- **Verification**: a stylesheet defect is NOT caught by building — the app must be run once with
+  `adb logcat -s NaviVeylin | grep -i "style error"`; the expected outcome is a degraded map (no
+  content for the affected database) plus the message, and no `Fatal signal 11`.
+  `StylesheetHexColorCaseTest` guards the one packaging-time trigger it detects (uppercase hex).
+
+---
+
 ## 16. Basemap stylesheet contract
 
 - The basemap database has its own type config (basemap.ost, ~11 types + water-index

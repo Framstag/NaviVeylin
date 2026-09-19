@@ -66,4 +66,33 @@ class CarStyleApplierTest {
 
         assertEquals("failed load must be attempted again", 2, loaded.size)
     }
+
+    @Test
+    fun failedLoadIsSurfacedOncePerAttempt() {
+        // The car screens pass the failure to the shared reporting seam
+        // (spec: map-styles — "Car reports the failure"); the callback fires
+        // exactly once per failed attempt, including a retry of the same style.
+        val requested = mutableListOf<String>()
+        val applier = CarStyleApplier(
+            onLoadFailed = { style -> requested.add(style) },
+            loadStyle = { false }
+        )
+
+        assertFalse(applier.apply("cycle"))
+        assertFalse(applier.apply("cycle"))
+        assertEquals(listOf("cycle", "cycle"), requested)
+    }
+
+    @Test
+    fun successfulLoadDoesNotReportAFailure() {
+        val requested = mutableListOf<String>()
+        val applier = CarStyleApplier(
+            onLoadFailed = { style -> requested.add(style) },
+            loadStyle = { true }
+        )
+
+        assertTrue(applier.apply("cycle"))
+        assertTrue("already applied is not a failure", applier.apply("cycle"))
+        assertTrue(requested.isEmpty())
+    }
 }

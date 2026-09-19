@@ -81,4 +81,10 @@
     <string name="distance_unit_km">%1$s km</string>
     <string name="distance_unit_m">%1$s m</string>
     <string name="distance_away_m">%1$s m away</string>
+
+    <!-- Map style load failure on the car surfaces (spec: map-styles). The
+         notification text itself is the shared :core wording. -->
+    <string name="map_style_notification_channel_name">Map style</string>
+    <string name="map_style_notification_channel_description">Reports a map style that could not be loaded</string>
+    <string name="map_style_notification_title">Map style problem</string>
 </resources>

@@ -2,6 +2,7 @@ package com.framstag.libosmscout.client
 
 import com.naviveylin.core.BundledMapStyles
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * Test double for [OSMScoutClient] that records style flag pushes instead of
@@ -63,9 +64,19 @@ class FakeOSMScoutClient : OSMScoutClient() {
     @Volatile
     var styleSheetLoadResult: Boolean = true
 
+    /**
+     * Style names whose load fails even while [styleSheetLoadResult] is true
+     * (per-style failures, for the startup-fallback path).
+     */
+    val failingStyleSheetLoads: MutableSet<String> = CopyOnWriteArraySet()
+
     override fun loadStyleSheet(name: String): Boolean {
         styleSheetLoads.add(name)
-        return styleSheetLoadResult
+        // The native client records the outcome of every load attempt (change
+        // `client-style-load-resilience`); keep the two in sync so tests that
+        // assert through `wasLastStyleLoadSuccessful` see the same result.
+        styleLoadSuccessful = styleSheetLoadResult && name !in failingStyleSheetLoads
+        return styleLoadSuccessful
     }
 
     /** Styles returned by [getAvailableStyleSheets] (default: user-selectable set). */
@@ -77,6 +88,16 @@ class FakeOSMScoutClient : OSMScoutClient() {
     var activeStyleSheetName: String = "standard.oss"
 
     override fun getActiveStyleSheet(): String = activeStyleSheetName
+
+    /**
+     * Result returned by [wasLastStyleLoadSuccessful] (default: true). Set to
+     * false to simulate a rejected stylesheet on a load path that does not
+     * report through [loadStyleSheet]'s return value (style-flag reload).
+     */
+    @Volatile
+    var styleLoadSuccessful: Boolean = true
+
+    override fun wasLastStyleLoadSuccessful(): Boolean = styleLoadSuccessful
 
     // --- Database / density stubs (needed to exercise initMap) ---
 

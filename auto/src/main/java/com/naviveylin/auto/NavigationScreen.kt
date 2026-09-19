@@ -74,9 +74,23 @@ class NavigationScreen(
     private val settingsProvider = entryPoint.autoSettingsProvider()
 
     /** Applies the shared map style to the native client (deduped). */
-    private val styleApplier = CarStyleApplier { style ->
-        entryPoint.autoClientProvider().client().loadStyleSheet(style)
-    }
+    private val styleApplier = CarStyleApplier(
+        onLoadFailed = { style ->
+            // A rejected stylesheet keeps the previous style active and is
+            // reported through the shared seam + the car notice (spec:
+            // map-styles — "Car reports the failure").
+            Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
+            reportCarStyleLoadFailure(
+                appContext = carContext.applicationContext,
+                client = entryPoint.autoClientProvider().client(),
+                requestedStyle = style
+            )?.let { styleLoadNotifier.notify(it) }
+        },
+        loadStyle = { style -> entryPoint.autoClientProvider().client().loadStyleSheet(style) }
+    )
+
+    /** Posts the car-side stylesheet-failure notice (non-blocking; no template change). */
+    private val styleLoadNotifier = CarStyleLoadNotifier(carContext.applicationContext)
 
     /** Applies the host day/night state to the stylesheet `daylight` flag (deduped). */
     private val daylightApplier = CarDaylightApplier { dark ->

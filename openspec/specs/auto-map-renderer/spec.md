@@ -30,7 +30,7 @@ The system SHALL render the map at the correct geographic center, zoom level, an
 
 ### Requirement: GPS position marker on car map
 
-The system SHALL display the current GPS position as a marker on the car map, reusing the existing `LocationService.location` data. In follow mode between fixes, the marker SHALL be drawn at the predicted position (extrapolated from the last fix, speed, and heading) so the marker glides with the blitted map. The marker SHALL be projected against the displayed frame's own center, magnification and rotation (not the pending render target) and shifted by that frame's blit offset, so it stays on the map content it rides while a re-render is in flight. The marker SHALL use the unified marker style shared with the phone marker: a rounded-tip direction arrow (tip + tail triangles) with a white casing ring, a dark accent rim, a vertical blue gradient core (light from above), and a soft blurred drop shadow — no hard-offset shadow. The size SHALL be density-aware (`32 × surface density` dp) so the marker is the same visual size as the phone marker. Only the casing color SHALL branch on the host night state — white casing in day, deep blue-black casing in dark — so no bright halo appears against dark land; it SHALL remain legible on both daylight and dark map variants.
+The system SHALL display the current GPS position as a marker on the car map, reusing the existing `LocationService.location` data. In follow mode between fixes, the marker SHALL be drawn at the predicted position (extrapolated from the last fix, speed, and heading) so the marker glides with the blitted map. The marker SHALL be projected against the displayed frame's own center, magnification and rotation (not the pending render target) and shifted by that frame's blit offset, so it stays on the map content it rides while a re-render is in flight. The marker SHALL use the unified marker style shared with the phone marker: a rounded-tip direction arrow (tip + tail triangles) with a casing ring, a dark accent rim, a vertical blue gradient core (light from above), and a soft blurred drop shadow — no hard-offset shadow. The size SHALL be density-aware (`38 × surface density` dp) so the marker is the same visual size as the phone marker. The palette SHALL branch on the host night state: in day the casing is white with the standard blue gradient core (`#42A5F5` to `#0D47A1`); in night the casing is deep blue-black (no bright halo against dark land) and the core gradient is lighter (`#BBDEFB` to `#1E88E5`) so the marker reads as a light object on dark land. The night core SHALL NOT be white, and the geometry SHALL NOT branch on the night state — only the palette does.
 
 #### Scenario: GPS marker shown
 
@@ -60,15 +60,22 @@ The system SHALL display the current GPS position as a marker on the car map, re
 - **WHEN** the car map renders the daylight style variant with the marker visible
 - **THEN** the arrow's white casing ring and dark rim keep the blue core distinguishable from the light land background
 
+#### Scenario: Marker legible on dark map
+
+- **WHEN** the host reports night state and the car map renders the dark style variant
+- **THEN** the arrow's core uses the lighter dark-presentation blue gradient
+- **AND** the core is markedly lighter than the casing, so the marker is distinguishable from the dark land background
+
 #### Scenario: No white halo in dark host mode
 
 - **WHEN** the host reports night state and the car map renders the dark style variant
 - **THEN** the marker's casing renders deep blue-black and the arrow silhouette shows no bright white halo
+- **AND** the lighter night core SHALL NOT be white
 
 #### Scenario: Marker size uniform with phone
 
 - **WHEN** the car marker and the phone marker are both visible
-- **THEN** both arrows render at 32 dp (density-aware), the same visual size on both surfaces
+- **THEN** both arrows render at 38 dp (density-aware), the same visual size on both surfaces
 
 #### Scenario: Marker style unified with phone
 

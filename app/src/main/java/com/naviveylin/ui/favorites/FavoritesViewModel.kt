@@ -28,6 +28,14 @@ class FavoritesViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FavoritesUiState())
     val uiState: StateFlow<FavoritesUiState> = _uiState.asStateFlow()
 
+    /**
+     * True while a favorite move is being persisted. Read and written from the
+     * main thread (`viewModelScope`); volatile so the coroutine continuation of
+     * the completing move observes the current value.
+     */
+    @Volatile
+    private var reorderInFlight = false
+
     init {
         viewModelScope.launch {
             favoriteRepository.favorites.collect { groups ->
@@ -103,6 +111,30 @@ class FavoritesViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 snackbarMessage = if (success) "Renamed to '$newName'" else "Failed to rename"
             )
+        }
+    }
+
+    /**
+     * Move a favorite to a new position within its group.
+     *
+     * A reorder commit arriving while another one is still being persisted is
+     * dropped: the two writes would otherwise interleave and the later state
+     * refresh could restore an order the user did not ask for.
+     */
+    fun moveFavorite(groupName: String, favName: String, newIndex: Int) {
+        if (reorderInFlight) return
+        reorderInFlight = true
+        viewModelScope.launch {
+            try {
+                val success = favoriteRepository.moveFavorite(groupName, favName, newIndex)
+                if (!success) {
+                    _uiState.value = _uiState.value.copy(
+                        snackbarMessage = "Failed to reorder '$favName'"
+                    )
+                }
+            } finally {
+                reorderInFlight = false
+            }
         }
     }
 

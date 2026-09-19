@@ -400,6 +400,22 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     private val favGroups = mutableListOf<FavoriteLocationGroup>()
 
+    /** Number of [saveFavoriteLocations] invocations (one per persisted write). */
+    val saveFavoriteLocationsCalls = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /** Recorded move requests as (group name, favorite name, target index). */
+    val moveFavoriteCalls: MutableList<Triple<String, String, Int>> = CopyOnWriteArrayList()
+
+    /** Set to false to simulate a failing native move. */
+    var moveFavoriteResult: Boolean = true
+
+    /**
+     * Favorite order handed to the last [saveFavoriteLocations] call, as
+     * (group name, favorite names in save order). The native save path rebuilds
+     * its store from this array, so the recorded order is what would be written.
+     */
+    var lastSavedFavoriteOrder: List<Pair<String, List<String>>> = emptyList()
+
     override fun loadFavoriteLocations(filePath: String): Boolean {
         favGroups.clear()
         return true
@@ -408,10 +424,30 @@ class FakeOSMScoutClient : OSMScoutClient() {
     override fun saveFavoriteLocations(
         filePath: String,
         groups: Array<out FavoriteLocationGroup>
-    ): Boolean = true
+    ): Boolean {
+        saveFavoriteLocationsCalls.incrementAndGet()
+        lastSavedFavoriteOrder = groups.map { group ->
+            group.name to group.favorites.map { it.name }
+        }
+        return true
+    }
 
     override fun getFavoriteGroups(): Array<FavoriteLocationGroup> =
-        favGroups.toTypedArray()
+        // Fresh objects per call, like the JNI bridge (which reconstructs them
+        // from the native store). Without this, an attribute-only change (e.g.
+        // starring) yields an equal map and the repository's StateFlow collapses
+        // the emission, so the UI would never see the change.
+        favGroups.map { group ->
+            FavoriteLocationGroup(group.name).also { groupCopy ->
+                groupCopy.attributes.putAll(group.attributes)
+                group.favorites.forEach { fav ->
+                    FavoriteLocation(fav.name, fav.lat, fav.lon).also { favCopy ->
+                        favCopy.attributes.putAll(fav.attributes)
+                        groupCopy.favorites.add(favCopy)
+                    }
+                }
+            }
+        }.toTypedArray()
 
     override fun addGroup(name: String): Boolean {
         if (favGroups.any { it.name == name }) return false
@@ -453,6 +489,17 @@ class FakeOSMScoutClient : OSMScoutClient() {
         val fav = group.favorites.firstOrNull { it.name == oldName } ?: return false
         if (group.favorites.any { it.name == newName }) return false
         fav.name = newName
+        return true
+    }
+
+    override fun moveFavorite(groupName: String, favName: String, newIndex: Int): Boolean {
+        moveFavoriteCalls.add(Triple(groupName, favName, newIndex))
+        if (!moveFavoriteResult) return false
+        val group = favGroups.firstOrNull { it.name == groupName } ?: return false
+        val currentIndex = group.favorites.indexOfFirst { it.name == favName }
+        if (currentIndex < 0) return false
+        val fav = group.favorites.removeAt(currentIndex)
+        group.favorites.add(newIndex.coerceIn(0, group.favorites.size), fav)
         return true
     }
 

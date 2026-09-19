@@ -34,6 +34,16 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Remove favorite | "Remove from Favorites" (error-colored button) | "☆ Remove from Favorites" (clickable row) |
 | Open-source license list | Reachable from About → "Open source licenses": components with identifiers, full license texts, links for licenses whose terms stay with their owner | Not surfaced — the car About screen keeps app identity and the map-data attribution only |
 | Auto-zoom magnification changes | Animated — `smooth-zoom` scales the displayed map from the current scale toward the target while the debounced native render is queued | Animated too, by a **different mechanism** — a magnification request larger than the blit window is WALKED across rendered frames (`AutoMapRenderer.advanceZoomWalk`, spec `auto-speed-zoom` — Auto-zoom entry transition); the observable contract (no single-frame jump, anchored, ends on an exact render) is the parity requirement, the mechanism is not shared. Gesture/zoom-button paths keep their immediate response |
+| Reorder favorites inside a group | Drag handle on each favorite row in the group detail list (`sh.calvin.reorderable`); the position the drag ends in is persisted | Not offered — Car App Library templates have no drag gesture. The car `PlaceListTemplate` shows the **same stored order** read-only, so the data is at parity, the interaction is not (see below) |
+
+### Why favorite reordering is phone-only
+
+The order itself is shared (spec `fav-ordering`): a reorder made on the phone is
+what the car list renders. What cannot be shared is the gesture — Car App Library
+templates expose rows, actions and clicks, but no drag; the alternative would be
+a per-row "move up/down" action strip on a driver-facing list, which duplicates a
+management task the phone already offers (same split as rename and group color).
+The deliberate deviation is the interaction only, not the data.
 
 ### Why the license list is phone-only
 

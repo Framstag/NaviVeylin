@@ -147,6 +147,26 @@ open class FavoriteRepository @Inject constructor(
             success
         }
 
+    /**
+     * Move a favorite to a new position within its group. The target index is
+     * 0-based over the group's favorite list after the favorite has been removed
+     * from its current position; out-of-range indices are clamped by the native
+     * store. Returns false if not loaded, or if the group/favorite is unknown.
+     *
+     * The move is persisted with a single write, so the whole reorder is one
+     * JNI call plus one file write.
+     */
+    open suspend fun moveFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
+        withContext(defaultDispatcher) {
+            if (!loaded) return@withContext false
+            val success = client!!.moveFavorite(groupName, favName, newIndex)
+            if (success) {
+                refreshState()
+                persist()
+            }
+            success
+        }
+
     // ---- Group Attributes ----
 
     /** Set a color for a group. Pass null to remove the color. */

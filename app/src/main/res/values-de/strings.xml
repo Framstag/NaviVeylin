@@ -167,6 +167,7 @@
     <string name="favorites_empty_hint">Ort suchen und zu Favoriten hinzufügen</string>
     <string name="add_current_location">Aktuellen Kartenstandort hinzufügen</string>
     <string name="add_favorite">Favorit hinzufügen</string>
+    <string name="reorder_favorite">Favorit verschieben</string>
     <string name="no_favorites_in_group">Keine Favoriten in dieser Gruppe</string>
     <string name="search_favorites">Favoriten suchen</string>
     <string name="no_favorites_match">Keine Favoriten passen zu Ihrer Suche</string>

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MyLocation
@@ -71,6 +73,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.naviveylin.R
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -205,47 +209,20 @@ fun FavoritesSheet(
                 }
             }
 
-            LazyColumn(
-                state = groupDetailListState,
+            GroupDetailList(
+                groupName = groupName,
+                favorites = favs,
+                listState = groupDetailListState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-            ) {
-                item {
-                    TextButton(
-                        onClick = { showAddFavDialog = groupName },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                        Text(stringResource(R.string.add_favorite))
-                    }
-                    HorizontalDivider()
-                }
-
-                if (favs.isEmpty()) {
-                    item {
-                        Text(
-                            text = stringResource(R.string.no_favorites_in_group),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(32.dp)
-                        )
-                    }
-                } else {
-                    items(favs, key = { "fav_${groupName}_${it.name}" }) { fav ->
-                        FavoriteItem(
-                            favorite = fav,
-                            isStarred = fav.attributes["starred"] == "true",
-                            onClick = { onFavoriteClick(fav) },
-                            onDelete = { showDeleteFavDialog = groupName to fav.name },
-                            onRename = { showRenameFavDialog = groupName to fav.name },
-                            onToggleStar = { viewModel.toggleStar(groupName, fav.name) }
-                        )
-                    }
-                }
-            }
+                    .padding(padding),
+                onAddFavorite = { showAddFavDialog = groupName },
+                onFavoriteClick = onFavoriteClick,
+                onDelete = { showDeleteFavDialog = groupName to it.name },
+                onRename = { showRenameFavDialog = groupName to it.name },
+                onToggleStar = { viewModel.toggleStar(groupName, it.name) },
+                onReorder = { favName, newIndex -> viewModel.moveFavorite(groupName, favName, newIndex) }
+            )
         } else {
             // Group grid view with search
             Column(
@@ -484,6 +461,121 @@ fun FavoritesSheet(
 }
 
 @Composable
+internal fun GroupDetailList(
+    groupName: String,
+    favorites: List<FavoriteLocation>,
+    listState: LazyListState,
+    modifier: Modifier = Modifier,
+    onAddFavorite: () -> Unit,
+    onFavoriteClick: (FavoriteLocation) -> Unit,
+    onDelete: (FavoriteLocation) -> Unit,
+    onRename: (FavoriteLocation) -> Unit,
+    onToggleStar: (FavoriteLocation) -> Unit,
+    onReorder: (favName: String, newIndex: Int) -> Unit
+) {
+    // Working copy owned by this composable: the drag reorders this list, the
+    // store is only told about the position the favorite ends up in.
+    var workingFavorites by remember(groupName) { mutableStateOf(favorites) }
+
+    // A drag end records the intended position here. The effect below commits
+    // it while the sheet is still composed, so a sheet dismissed mid-drag
+    // (back gesture) cancels the commit instead of writing a half-dragged order.
+    var pendingReorder by remember(groupName) { mutableStateOf<Pair<String, Int>?>(null) }
+
+    val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
+        // The list starts with the "Add favorite" header item, which is not
+        // reorderable, so the library's indices are off by one.
+        workingFavorites = FavoriteOrder.move(
+            favorites = workingFavorites,
+            fromIndex = FavoriteOrder.favoriteIndex(from.index),
+            toIndex = FavoriteOrder.favoriteIndex(to.index)
+        )
+    }
+
+    // Re-sync from the stored order whenever nothing is being dragged.
+    LaunchedEffect(favorites, reorderableState.isAnyItemDragging) {
+        if (!reorderableState.isAnyItemDragging) {
+            workingFavorites = favorites
+        }
+    }
+
+    LaunchedEffect(pendingReorder) {
+        pendingReorder?.let { (favName, newIndex) ->
+            pendingReorder = null
+            onReorder(favName, newIndex)
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier
+    ) {
+        item(key = "add_favorite_$groupName") {
+            TextButton(
+                onClick = onAddFavorite,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+                Text(stringResource(R.string.add_favorite))
+            }
+            HorizontalDivider()
+        }
+
+        if (workingFavorites.isEmpty()) {
+            item(key = "empty_$groupName") {
+                Text(
+                    text = stringResource(R.string.no_favorites_in_group),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(32.dp)
+                )
+            }
+        } else {
+            items(workingFavorites, key = { "fav_${groupName}_${it.name}" }) { fav ->
+                ReorderableItem(
+                    state = reorderableState,
+                    key = "fav_${groupName}_${fav.name}"
+                ) { isDragging ->
+                    FavoriteItem(
+                        favorite = fav,
+                        isStarred = fav.attributes["starred"] == "true",
+                        isDragging = isDragging,
+                        onClick = { onFavoriteClick(fav) },
+                        onDelete = { onDelete(fav) },
+                        onRename = { onRename(fav) },
+                        onToggleStar = { onToggleStar(fav) },
+                        dragHandle = {
+                            Icon(
+                                imageVector = Icons.Default.DragHandle,
+                                contentDescription = stringResource(R.string.reorder_favorite),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .longPressDraggableHandle(
+                                        onDragStopped = {
+                                            // WYSIWYG: persist the position the favorite
+                                            // ended up in, unless nothing changed.
+                                            FavoriteOrder.commitIndex(
+                                                working = workingFavorites,
+                                                stored = favorites,
+                                                favName = fav.name
+                                            )?.let { newIndex ->
+                                                pendingReorder = fav.name to newIndex
+                                            }
+                                        }
+                                    )
+                            )
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun GroupCard(
     groupName: String,
     favCount: Int,
@@ -598,19 +690,31 @@ private fun GroupCard(
 private fun FavoriteItem(
     favorite: FavoriteLocation,
     isStarred: Boolean = false,
+    isDragging: Boolean = false,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onRename: () -> Unit,
-    onToggleStar: () -> Unit = {}
+    onToggleStar: () -> Unit = {},
+    dragHandle: (@Composable () -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .background(
+                if (isDragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
+            )
             .padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        dragHandle?.invoke()
+        // The tap target is the content area, not the whole row: a clickable
+        // ancestor cancels the drag handle's long press, so the handle must live
+        // outside it (spec fav-management-ui — drag reorders, tap opens).
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onClick)
+        ) {
             Text(
                 text = favorite.name,
                 style = MaterialTheme.typography.bodyLarge

@@ -1323,6 +1323,10 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
+    // Drag-and-drop reordering of favorites inside a group (Apache-2.0);
+    // Compose 1.7.x compatible, see design D3 of fav-order-in-group.
+    implementation("sh.calvin.reorderable:reorderable:3.1.0")
+
     // Lifecycle + ViewModel
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")

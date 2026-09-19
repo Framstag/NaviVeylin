@@ -172,6 +172,7 @@
     <string name="favorites_empty_hint">Search for a location and add it to favorites</string>
     <string name="add_current_location">Add current map location</string>
     <string name="add_favorite">Add favorite</string>
+    <string name="reorder_favorite">Reorder favorite</string>
     <string name="no_favorites_in_group">No favorites in this group</string>
     <string name="search_favorites">Search favorites</string>
     <string name="no_favorites_match">No favorites match your search</string>

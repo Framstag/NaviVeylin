@@ -13,12 +13,16 @@ import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.EntryPoints
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.Runs
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -123,6 +127,49 @@ class FavoritesScreenTest {
         // Still the pre-destroy data: the cancelled collect did not re-render.
         assertEquals(listOf("Home"), sectionTitles(screen.onGetTemplate()))
     }
+
+    @Test
+    fun listFollowsTheStoredFavoriteOrder() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen()
+        favoritesProvider.flow.value = mapOf(
+            "Cities" to listOf(fav("Rome"), fav("Berlin"), fav("Paris"))
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf("Rome", "Berlin", "Paris"), sectionTitles(screen.onGetTemplate()))
+    }
+
+    @Test
+    fun aReorderedStoreUpdatesTheListInPlace() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen()
+        favoritesProvider.flow.value = mapOf("Cities" to listOf(fav("Berlin"), fav("Rome")))
+        advanceUntilIdle()
+        assertEquals(listOf("Berlin", "Rome"), sectionTitles(screen.onGetTemplate()))
+
+        // Same group, favorites reordered on the phone.
+        favoritesProvider.flow.value = mapOf("Cities" to listOf(fav("Rome"), fav("Berlin")))
+        advanceUntilIdle()
+
+        assertEquals(listOf("Rome", "Berlin"), sectionTitles(screen.onGetTemplate()))
+    }
+
+    @Test
+    fun rowsOfferNoReorderAffordanceAndSelectionStillNavigates() =
+        runTest(mainDispatcherRule.dispatcher) {
+            every { navigationViewModel.navigateTo(any(), any()) } just Runs
+            val screen = newScreen()
+            favoritesProvider.flow.value = mapOf("Cities" to listOf(fav("Rome"), fav("Berlin")))
+            advanceUntilIdle()
+
+            val rows = screen.onGetTemplate().sectionedLists.flatMap { section ->
+                section.itemList.items.map { it as Row }
+            }
+            assertTrue("car rows must not carry reorder actions", rows.all { it.actions.isEmpty() })
+
+            // Selecting a row still starts the destination-picker flow.
+            rows.first().onClickDelegate?.sendClick(mockk(relaxed = true))
+            verify { navigationViewModel.navigateTo(51.5136, 7.4653) }
+        }
 
     /** In-memory [AutoFavoritesProvider] backed by a [MutableStateFlow]. */
     private class FakeFavoritesProvider : AutoFavoritesProvider {

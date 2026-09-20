@@ -25,6 +25,19 @@ android {
         unitTests {
             // Robolectric tests resolve localized strings from module resources
             isIncludeAndroidResources = true
+
+            // Unit-test fork budget (change `fix-auto-unit-test-heap-overflow`, spec
+            // `unit-test-suite-runtime` — "Unit-test fork budget is declared and bounded").
+            // AGP's default fork heap (512 MB) cannot hold this suite in one JVM — measured
+            // 2026-09-20 after the renderer-teardown fix: 141 `OutOfMemoryError` failures,
+            // no result XMLs, BUILD FAILED after 9m8s — while 1024 MB does (49 classes,
+            // 516 tests, one fork, green). Declared explicitly so a fresh checkout and CI get
+            // the same budget. If a machine cannot afford one 1024 MB fork, `forkEvery`
+            // (e.g. 24) bounds the peak at the cost of a JVM start per batch — see
+            // guidelines/Build.md §6 for the measured numbers and the rule.
+            all {
+                it.maxHeapSize = "1024m"
+            }
         }
     }
 

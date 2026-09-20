@@ -1,11 +1,11 @@
 package com.naviveylin.auto
 
-import com.framstag.libosmscout.client.FakeAutoRenderClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -21,9 +21,14 @@ class MapPanHandlerTest {
     private lateinit var autoZoom: AutoZoomController
     private lateinit var handler: MapPanHandler
 
+    /** Shuts [renderer] down after every test: its loops start in `init` and would
+     *  otherwise outlive the test (change `fix-auto-unit-test-heap-overflow`). */
+    @get:Rule
+    val renderers = RendererTestRule()
+
     @Before
     fun setUp() {
-        renderer = AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0)
+        renderer = renderers.newRenderer()
         autoZoom = AutoZoomController()
         handler = MapPanHandler({ renderer }, autoZoom) { 1920 to 1080 }
     }

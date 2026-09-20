@@ -268,6 +268,21 @@ android {
         unitTests {
             // Robolectric Compose UI tests need Android resources
             isIncludeAndroidResources = true
+
+            // Unit-test fork budget (change `fix-auto-unit-test-heap-overflow`, spec
+            // `unit-test-suite-runtime` — "Unit-test fork budget is declared and bounded").
+            // 146 Robolectric classes in one fork need more than the AGP default (512 MB):
+            // at the default, `FavoritesSheetReorderComposeTest` fails deterministically in
+            // every full-suite run with `ComposeTimeoutException` after 5000 ms (its Compose
+            // wait expiring under GC pressure, TODO.md §43 — the class is green alone and with
+            // its own package), while 1024 MB is green for both flavors (automotive measured
+            // 2026-09-20: 146 classes, 1054 tests, 0 failures, 1m49s) and 2048 MB likewise.
+            // Declared explicitly so a fresh checkout and CI get the same budget.
+            // `forkEvery` (e.g. 40) bounds per-fork accumulation if a machine cannot afford
+            // one 1024 MB fork — see guidelines/Build.md §6.
+            all {
+                it.maxHeapSize = "1024m"
+            }
         }
     }
 

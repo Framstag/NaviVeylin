@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -22,6 +23,12 @@ import org.robolectric.RobolectricTestRunner
  */
 @RunWith(RobolectricTestRunner::class)
 class FreeDrivingScreenTest {
+
+    /** Shuts a spied renderer down after the test: the spy runs the real renderer,
+     *  whose loops start in `init` and would otherwise outlive the test
+     *  (change `fix-auto-unit-test-heap-overflow`, `TODO.md` §33). */
+    @get:Rule
+    val renderers = RendererTestRule()
 
     @Test
     fun bearingRotatesHeadingUp() {
@@ -131,7 +138,7 @@ class FreeDrivingScreenTest {
         // difference in one frame again) and must re-engage follow without snapping, because
         // `setViewport` disengages it.
         val gate = RendererGate()
-        val renderer = spyk(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0))
+        val renderer = renderers.track(spyk(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0)))
         gate.publish(renderer)
 
         val applied = FreeDrivingScreen.commitAutoZoom(gate, 16.0, "test")

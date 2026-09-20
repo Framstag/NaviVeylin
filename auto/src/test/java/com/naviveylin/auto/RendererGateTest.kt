@@ -12,6 +12,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -28,8 +29,14 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class RendererGateTest {
 
+    /** Shuts every spied renderer down after the test: the spies run the real
+     *  renderer, whose loops start in `init` and would otherwise outlive the test
+     *  (change `fix-auto-unit-test-heap-overflow`, `TODO.md` §33). */
+    @get:Rule
+    val renderers = RendererTestRule()
+
     private fun rendererSpy() =
-        spyk(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0))
+        renderers.track(spyk(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0)))
 
     private fun surfaceMock() = mockk<Surface>(relaxed = true).also { s ->
         // The render loop draws asynchronously once the surface slot replays.
@@ -89,7 +96,7 @@ class RendererGateTest {
     @Test
     fun publishAppliesObservableState() {
         val gate = RendererGate()
-        val renderer = AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0)
+        val renderer = renderers.track(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0))
 
         gate.onSurfaceAvailable(surfaceMock(), 100, 100, 200.0)
         gate.setViewport(51.5, 7.46, 12, 0.5, 12.0)

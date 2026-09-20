@@ -109,6 +109,45 @@ All three skills follow the same contract:
   run under `@RunWith(RobolectricTestRunner::class)` with the DEFAULT sandbox
   config — do NOT set `@Config(sdk=...)` or `@GraphicsMode(...)`. Violations
   cause "already loaded in another classloader" failures in full-suite runs.
+- **Teardown rule — release what the test starts.** Any test that constructs a
+  component owning long-lived background work (its own coroutine scope, timers, a
+  render loop, a native surface, a large retained bitmap) MUST release it before
+  the test returns. `AutoMapRenderer` is the case that made this a rule: it starts
+  its render, extrapolation and zoom-walk loops in `init`, and only `shutdown()`
+  ends them — every `:auto` renderer test that forgot it leaked a ~30 Hz loop on
+  `Dispatchers.Default` plus a 1296×720 overrun bitmap (3.7 MB) per test, which
+  made the module suite die with `OutOfMemoryError` in one JVM (`TODO.md` §33,
+  change `fix-auto-unit-test-heap-overflow`). The pattern to use is
+  `auto/src/test/java/com/naviveylin/auto/RendererTestRule.kt`: a JUnit rule that
+  hands out the component, shuts every tracked instance down after the test and
+  FAILS the test when one still reports active background work (`AutoMapRenderer
+  .activeBackgroundJobCount()`; `Job.isActive` is false immediately after
+  `cancel()`, so nothing needs waiting for). A leak must fail its own class, not
+  starve the suite's heap later.
+- **Declared unit-test fork budgets.** Two modules need more than the AGP default
+  fork heap (512 MB) to hold their whole suite in one JVM; both declare it in
+  `testOptions { unitTests { all { it.maxHeapSize = … } } }` so a fresh checkout and
+  CI get the same budget (spec `unit-test-suite-runtime`, change
+  `fix-auto-unit-test-heap-overflow`):
+
+  | Module | Suite | Declared | Measured |
+  |---|---|---|---|
+  | `:auto` | 49 classes / 516 tests | `1024m` | 512 MB → FAILED (141 `OutOfMemoryError` lines, 0 result XMLs, 9m08s); 1024 MB → green (one fork, 20s) |
+  | `:app` | 146 classes / 1054 tests per flavor | `1024m` | 512 MB → deterministic `FavoritesSheetReorderComposeTest` failure (`ComposeTimeoutException` after 5000 ms, `TODO.md` §43); 1024 MB → green (1m49s); 2048 MB → green (2m06s) |
+
+  Both values are the measured minimum plus headroom, deliberately not 2g: a full
+  `./gradlew test` holds up to two `:app` forks, one `:auto` fork and one `:core`
+  fork at once. If a machine cannot afford the ceiling, `forkEvery` (e.g. 24 for
+  `:auto`, 40 for `:app`) bounds per-fork accumulation at the cost of a JVM start
+  per batch — prefer that over raising the ceiling. Verify a budget by CONTENT,
+  not by the build result: the fork args (`-Xmx…`, `--info`) and the per-class
+  result XMLs (§4, §17).
+- **One invocation per suite.** `:auto` and `:app` each complete in a single
+  Gradle invocation at the declared budget; splitting a suite into class batches is
+  a diagnostic fallback (e.g. to isolate one class), never the procedure, and a
+  batched run is not evidence for the suite as it really runs. A Gradle
+  build-cache hit (`FROM-CACHE`, `BUILD SUCCESSFUL in 2s` with no test executor)
+  is not test evidence either — use `--rerun` when the run itself is the evidence.
 - Instrumented tests need a connected device/emulator; if none is available,
   say so instead of running them.
 

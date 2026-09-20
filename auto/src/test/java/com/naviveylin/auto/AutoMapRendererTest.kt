@@ -19,6 +19,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -32,10 +33,16 @@ class AutoMapRendererTest {
     private lateinit var client: FakeAutoRenderClient
     private lateinit var renderer: AutoMapRenderer
 
+    /** Shuts [renderer] down after every test: the renderer's loops start in `init`
+     *  and would otherwise outlive the test (change `fix-auto-unit-test-heap-overflow`,
+     *  `TODO.md` §33). */
+    @get:Rule
+    val renderers = RendererTestRule()
+
     @Before
     fun setUp() {
         client = FakeAutoRenderClient()
-        renderer = AutoMapRenderer(client, initialProjectionDpi = 240.0)
+        renderer = renderers.newRenderer(client)
     }
 
     @Test

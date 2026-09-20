@@ -1834,6 +1834,20 @@ class AutoMapRenderer(
     internal fun overrunSize(): Pair<Int, Int>? =
         overrunBitmap?.let { it.width to it.height }
 
+    /**
+     * How many of this renderer's background jobs ([renderJob], [extrapolationJob],
+     * [zoomWalkJob]) are still active. Exposed for the test teardown rule
+     * (change `fix-auto-unit-test-heap-overflow`): a test that constructs a
+     * renderer must shut it down, and the rule asserts this is 0 afterwards, so a
+     * leaked render/extrapolation loop fails its own test class instead of
+     * starving the `:auto` suite's heap later.
+     *
+     * `Job.isActive` is false as soon as [shutdown] calls `cancel()`, so the
+     * assertion needs no waiting or retry.
+     */
+    internal fun activeBackgroundJobCount(): Int =
+        listOfNotNull(renderJob, extrapolationJob, zoomWalkJob).count { it.isActive }
+
     companion object {
         private const val TAG = "AutoMapRenderer"
         private const val RENDER_DEBOUNCE_MS = 100L

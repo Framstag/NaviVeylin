@@ -69,7 +69,7 @@ The system SHALL use the speed value from the `onCurrentSpeed(double speedKmH)` 
 - **AND** the magnification jumps directly to the target instead of smoothing from the default map zoom
 
 ### Requirement: Smooth zoom transitions
-The system SHALL commit the fractional magnification target computed from the speed-to-magnification table (and turn/curve/post-turn floors) without rounding it to an integer level, and SHALL move the zoom toward that target with a distance-proportional step — a constant fraction (gain 0.3) of the remaining gap, capped at 0.5 magnification levels per position update — using fractional values for smooth convergence over multiple seconds. Because the step strength depends on the "is → target" distance, the zoom moves quickly when far away and slows down when near; small target jitter from speed noise is damped to sub-threshold motion instead of being chased (no zoom "pumping"). When the difference between the target and the currently displayed magnification is smaller than a small epsilon (≈ 0.05 levels, i.e. the speed is effectively constant), the system SHALL make no zoom change and SHALL NOT trigger a re-render.
+The system SHALL commit the fractional magnification target computed from the speed-to-magnification table (and turn/curve/post-turn floors) without rounding it to an integer level, and SHALL move the zoom toward that target with a distance-proportional step — a constant fraction (gain 0.3) of the remaining gap, capped at 0.5 magnification levels per position update — using fractional values for smooth convergence over multiple seconds. Because the step strength depends on the "is → target" distance, the zoom moves quickly when far away and slows down when near; small target jitter from speed noise is damped to sub-threshold motion instead of being chased (no zoom "pumping"). When the difference between the target and the currently displayed magnification is smaller than a small epsilon (≈ 0.05 levels, i.e. the speed is effectively constant), the system SHALL make no zoom change and SHALL NOT trigger a re-render. Each committed fraction SHALL additionally be applied to the DISPLAYED map as a transition across display frames, not as a single-frame scale step: between commits the displayed magnification SHALL approach the committed value at the display rate (parity with the phone's `smooth-zoom`), so a speed change never scales the whole frame in one frame. A commit that carries no new zoom target SHALL keep the currently committed FRACTIONAL magnification: the viewport state a caller reads back SHALL carry it, and no commit SHALL round it to the whole level.
 
 #### Scenario: Speed changes abruptly after tunnel
 - **GIVEN** the vehicle exits a tunnel and speed jumps from unknown to 60 km/h
@@ -90,6 +90,21 @@ The system SHALL commit the fractional magnification target computed from the sp
 - **WHEN** another position estimate arrives
 - **THEN** the magnification SHALL NOT change
 - **AND** no re-render SHALL be triggered for the zoom
+
+#### Scenario: Committed magnification is reached across frames
+- **GIVEN** the committed magnification changes from 13.0 to 12.83 while the map is in follow mode
+- **WHEN** display frames are emitted before the next commit
+- **THEN** the displayed scale SHALL approach 12.83 across those frames
+- **AND** the frame SHALL NOT change scale by the full 0.17 level in a single frame
+- **AND** the vehicle SHALL stay anchored: the transition SHALL be applied about the follow anchor
+
+#### Scenario: A commit without a new zoom target keeps the fraction
+- **GIVEN** the committed magnification is 13.08 (fractional)
+- **AND** a fix arrives whose speed does not move the auto-zoom target beyond the epsilon
+- **WHEN** the fix commits the viewport (rotation and/or center only)
+- **THEN** the committed magnification SHALL remain 13.08
+- **AND** it SHALL NOT be rounded to the whole level 13.0
+- **AND** consecutive fixes SHALL NOT alternate between 13.08 and 13.0 (no scale oscillation of the displayed map)
 
 ### Requirement: Initial zoom uses routing-sensible default
 The system SHALL initialize the current magnification to 15.0 instead of the default map magnification (5) when navigation is active.

@@ -235,7 +235,7 @@ The system SHALL let the user stop active navigation from the car display at any
 
 ### Requirement: Smooth follow-mode scrolling during navigation
 
-The system SHALL scroll the navigation map smoothly to follow the vehicle between GPS fixes while navigating in follow mode (no per-fix snap), using the same display extrapolation and correction easing as free driving, and SHALL keep the navigation engine fed exclusively with real fixes.
+The system SHALL scroll the navigation map smoothly to follow the vehicle between GPS fixes while navigating in follow mode (no per-fix snap), using the same display extrapolation and correction easing as free driving, and SHALL keep the navigation engine fed exclusively with real fixes. The per-fix viewport commit SHALL anchor the follow render target on the displayed (eased predicted) position, never on the raw fix, so a fix never steps the map by the extrapolation lead; and the rotation SHALL be re-committed only beyond the shared heading deadband, so a sub-degree heading change does not force a full native render. Free driving SHALL observe the same two rules (parity within the car app).
 
 #### Scenario: Map glides between fixes
 
@@ -259,6 +259,13 @@ The system SHALL scroll the navigation map smoothly to follow the vehicle betwee
 - **WHEN** the user pans the map during navigation
 - **THEN** smooth follow is suspended and the map stays where the user left it
 - **AND** it resumes smoothly without a snap when the user exits pan mode
+
+#### Scenario: Fix does not step the navigation map
+
+- **WHEN** a GPS fix arrives during navigation while the displayed position leads the fix
+- **THEN** the committed frame SHALL be centered on the anchor center of the displayed position
+- **AND** the map SHALL NOT step by the lead at the commit
+- **AND** free driving SHALL behave identically for the same fix stream
 
 ### Requirement: Vehicle anchor during navigation
 
@@ -297,3 +304,19 @@ The system SHALL keep the vehicle marker on the navigation surface during follow
 - **WHEN** the user pans the map during navigation (follow suspended)
 - **AND** the user then stops panning
 - **THEN** follow mode re-engages and the vehicle marker returns to the routing anchor without a snap
+
+### Requirement: Routing anchor applies when the setting changes during navigation
+
+The navigation follow-mode map SHALL re-frame at the routing anchor when the setting changes during active navigation: the change SHALL apply without restarting the navigation screen and without waiting for the next maneuver change.
+
+#### Scenario: Anchor change applies during navigation
+
+- **WHEN** the driver changes the routing anchor in the settings dialog during an active navigation session
+- **AND** returns to the navigation map
+- **THEN** follow mode re-frames the map at the new routing anchor
+
+#### Scenario: Anchor applies on resume without a maneuver change
+
+- **GIVEN** navigation is active and no maneuver change is pending
+- **WHEN** the driver returns from the settings dialog with a new routing anchor
+- **THEN** the map re-frames at the new anchor without requiring the next instruction change to trigger it

@@ -47,7 +47,7 @@ The system SHALL serve a viewport change within the overrun region by drawing th
 
 ### Requirement: Display center extrapolation
 
-The system SHALL extrapolate the displayed viewport center between GPS fixes in follow mode. The predicted position SHALL be computed from the last fix position, GPS speed, smoothed heading, and elapsed time since the fix. The map SHALL be scrolled to the predicted position by blitting the overrun buffer each display frame.
+The system SHALL extrapolate the displayed viewport center between GPS fixes in follow mode. The predicted position SHALL be computed from the last fix position, GPS speed, smoothed heading, and elapsed time since the fix. The map SHALL be scrolled to the predicted position by blitting the overrun buffer each display frame. The follow render target (the anchor center a commit frames the map on) SHALL be the anchor center of the DISPLAYED position — the same point the extrapolation loop advances — and never the raw fix: a GPS fix SHALL update the prediction state only and SHALL NOT move the render target, so a fix commits a center-only change that the overrun blit can serve. The raw fix SHALL be the fallback only while no displayed position exists yet.
 
 #### Scenario: Vehicle moves at constant speed between fixes
 
@@ -61,9 +61,53 @@ The system SHALL extrapolate the displayed viewport center between GPS fixes in 
 - **THEN** the displayed viewport SHALL remain at the last fix position until the next fix
 - **AND** no extrapolation SHALL be applied
 
+#### Scenario: Fix arrival does not step the map
+
+- **WHEN** a GPS fix arrives while the displayed position is ahead of it by the extrapolation lead
+- **AND** the follow render target is re-anchored on the fix
+- **THEN** the map content SHALL NOT jump by the lead when the re-anchored frame is committed
+- **AND** the render target SHALL be the anchor center of the displayed position, so the commit changes the center by the display's own advance only
+
+#### Scenario: Re-anchor below the heading deadband is served by a blit
+
+- **WHEN** a GPS fix arrives and the heading changed by less than the heading deadband
+- **THEN** the rotation SHALL NOT be re-committed
+- **AND** the frame SHALL be served by an overrun blit instead of a full native render
+
+#### Scenario: Every drawn frame places the display on the anchor
+
+- **WHEN** a frame is drawn, whether served by an overrun blit or freshly rendered
+- **THEN** its placement SHALL put the current displayed position on the resolved anchor fraction
+- **AND** a freshly rendered frame SHALL NOT be drawn unshifted while the display has advanced past the frame's own anchor position (the native render takes 25-300 ms, during which the display keeps moving) — that leaves the whole scene, map and marker, the advance away from the previous frame and the next blit tick moves it back
+- **AND** the content's placement SHALL use the same (rounded, not truncated) offset the overlays use
+
+### Requirement: Heading commit deadband
+
+The system SHALL re-commit the follow-mode viewport rotation only when the smoothed heading changed by more than a small deadband since the committed rotation. Below the deadband the previous rotation SHALL stand and the fix SHALL commit a center-only change, so the frame can be served by an overrun blit. Above it the rotation SHALL be committed with the fix as today. The deadband SHALL bound the heading lag to at most its own value and SHALL NOT change the heading-up semantics (the map still rotates to the direction of travel).
+
+#### Scenario: Small heading change keeps the committed rotation
+
+- **WHEN** a fix arrives whose smoothed heading differs from the committed rotation by less than the deadband
+- **THEN** the viewport rotation SHALL remain unchanged
+- **AND** the fix SHALL NOT force a full native render
+
+#### Scenario: Heading change beyond the deadband commits the rotation
+
+- **WHEN** the smoothed heading differs from the committed rotation by more than the deadband
+- **THEN** the rotation SHALL be committed with the fix
+- **AND** the map SHALL be rendered at the new rotation
+
+#### Scenario: Heading-up semantics unchanged
+
+- **WHEN** the vehicle turns and the heading keeps changing beyond the deadband
+- **THEN** the map SHALL follow the direction of travel as before
+- **AND** the heading lag SHALL stay within the deadband
+
 ### Requirement: Correction easing
 
 The system SHALL ease the displayed viewport from the predicted position toward the true fix on arrival over approximately 200-300 ms instead of snapping. The easing SHALL absorb extrapolation drift caused by curves and acceleration.
+
+The correction SHALL be forward-only: the displayed position SHALL NEVER move backward along the direction of travel on fix arrival. When the true fix (or the predicted target derived from it) lies behind the current displayed position, the display SHALL hold at its current position until the extrapolation from the new fix advances beyond it. The residual forward lead SHALL be bounded (at most the eased lead of one fix interval) and SHALL NOT accumulate across fixes.
 
 #### Scenario: Prediction drifts before fix arrival
 
@@ -76,6 +120,18 @@ The system SHALL ease the displayed viewport from the predicted position toward 
 - **WHEN** the true fix is within 2 m of the predicted position
 - **THEN** the correction SHALL be imperceptible (sub-pixel easing)
 - **AND** no full render SHALL be triggered solely by the correction
+
+#### Scenario: Fix arrival behind the display holds
+
+- **WHEN** a fix arrives whose position lies behind the current displayed position along the direction of travel (the extrapolated prediction overshot into a curve or a deceleration)
+- **THEN** the displayed position SHALL hold at its current position
+- **AND** the display SHALL resume advancing once the extrapolation from the new fix passes the held position
+
+#### Scenario: Forward-only across consecutive fixes
+
+- **WHEN** the vehicle drives a series of curves at highway speed and a fix arrives every second
+- **THEN** the displayed position SHALL never decrease its progress along the direction of travel between fixes
+- **AND** the per-fix backward correction slide SHALL NOT occur (no "moved then jumped back" sawtooth)
 
 ### Requirement: Display-only prediction
 
@@ -91,11 +147,21 @@ The system SHALL feed predicted positions only to the map display (viewport blit
 
 The system SHALL run the extrapolation display loop only when the renderer is resumed, follow mode is active, and the vehicle is moving. The loop SHALL respect the surface lifecycle (pause, surface destroyed, surface failure) and the shared surface lock across renderers.
 
+While the gate is closed (vehicle stopped), the displayed position and the vehicle marker SHALL remain frozen at the last displayed position — the renderer SHALL NOT reset the displayed position to the last raw fix and SHALL NOT re-anchor the viewport on stationary fixes. A stationary fix may re-seed the displayed position to the fix at most once per moving-to-stopped transition, after which the display SHALL stay frozen until movement resumes and the loop advances from the frozen position.
+
 #### Scenario: Vehicle stops
 
 - **WHEN** the vehicle speed drops below the movement threshold
 - **THEN** the extrapolation loop SHALL stop
 - **AND** the displayed viewport SHALL remain at the last position
+- **AND** the vehicle marker SHALL remain at the displayed position (SHALL NOT fall back to the last raw fix)
+- **AND** the map content SHALL NOT re-frame on stationary GPS-jitter fixes
+
+#### Scenario: Vehicle resumes after a stop
+
+- **WHEN** the vehicle starts moving again after a stop
+- **THEN** the display SHALL continue advancing from the frozen position toward the prediction
+- **AND** the map SHALL NOT snap to the new fix or to a re-initialized display position
 
 #### Scenario: Screen paused or surface destroyed
 

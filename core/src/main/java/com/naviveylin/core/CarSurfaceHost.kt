@@ -15,16 +15,30 @@ import android.view.Surface
  * popped", "Registration superseded").
  *
  * [onCarSurfaceAvailable] hands over a surface the caller may draw on until
- * [onCarSurfaceDestroyed]; neither call transfers ownership, so an implementation
- * SHALL NOT call [Surface.release] — [CarSurfaceHost] owns the surface's lifetime.
+ * [onCarSurfaceRevoked] or [onCarSurfaceDestroyed]; neither call transfers
+ * ownership, so an implementation SHALL NOT call [Surface.release] — the
+ * [CarSurfaceHost] owns the surface's lifetime.
+ *
+ * Exactly one owner draws at a time: the host revokes the surface from the
+ * previous owner in the moment another screen takes over, so a screen that is
+ * still started underneath a newly started one never draws the surface the new
+ * owner already draws through.
  */
 interface CarSurfaceOwner {
     /** The session's surface is available for drawing (adopt it in the renderer). */
     fun onCarSurfaceAvailable(surface: Surface, width: Int, height: Int, dpi: Double)
 
+    /**
+     * Stop drawing on the session's surface: another screen became the owner, or
+     * this screen's ownership was superseded (the surface itself still exists and
+     * is not released here).
+     */
+    fun onCarSurfaceRevoked() {
+        onCarSurfaceDestroyed()
+    }
+
     /** Stop drawing: the session's surface is gone or replaced. */
     fun onCarSurfaceDestroyed()
-
     /** Host-reported currently-visible area of the surface. */
     fun onCarVisibleAreaChanged(visible: Rect) {}
 
@@ -51,11 +65,11 @@ interface CarSurfaceOwner {
  * **One registration per session**: [startSession] registers this host as the
  * car-app surface callback and [endSession] clears it, so the host never
  * re-registers (and never re-delivers) on a screen transition.
- * **One owner at a time**: [attach] makes a screen the owner and immediately
- * hands it a retained surface when one arrived while no screen owned it;
- * [detach] only clears the owner if the caller still *is* the owner, so an
- * outgoing screen's stop cannot clear the surface of the screen that superseded
- * it.
+ * **One owner at a time**: [attach] makes a screen the owner, revokes the surface
+ * from the owner it supersedes, and immediately hands the retained surface to the
+ * new owner when one arrived while no screen owned it; [detach] only clears the
+ * owner if the caller still *is* the owner, so an outgoing screen's stop cannot
+ * clear the surface of the screen that superseded it.
  *
  * **The session owns the surface's lifetime**: the host releases a surface
  * exactly once, when the host reports it destroyed, when it is replaced, or when
@@ -66,8 +80,11 @@ interface CarSurfaceOwner {
  */
 interface CarSurfaceHost {
     /**
-     * Register as the car-app surface callback for this session. Idempotent:
-     * only the first call registers.
+     * Register as the car-app surface callback for this session. Idempotent for
+     * the same context: re-entry with the same context does not register again,
+     * while a context of a different session replaces the registration, so a
+     * session that follows a dropped connection registers its own callback
+     * instead of talking to the host through a dead context.
      *
      * Takes a plain [Context] because `:core` does not depend on the car-app
      * library; the car-app implementation performs the registration (and the

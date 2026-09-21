@@ -192,19 +192,38 @@ strong preference.
   **scoped to the surface instance it names**: a destroy of a superseded surface
   (the host delivered a newer one first — AAOS does re-deliver after a transition)
   releases that instance only and must not clear or release the live one.
-  Pause/resume renderers on screen stop/start; unlock in `finally`; validate before
-  drawing; never lock or draw a released or replaced surface; recover from a dead
-  surface with a **main-thread**, capped invalidate.
+  Lifetime is tracked **per delivery**, not per instance: an instance delivered
+  again after its release is a new delivery (it may be drawn on and is released
+  once more), and a released instance is never adopted for drawing.
+  **One renderer locks the surface at a time**: the session revokes the surface
+  from the owner it supersedes (`CarSurfaceOwner.onCarSurfaceRevoked`, delivered
+  from `attach`) *before* the incoming owner is told it may draw, and a screen
+  that stops detaches (`rendererGate.detachSurface()`), so a stopped screen's
+  renderer holds no surface reference and no overrun frame buffer and re-acquires
+  the surface through the session on its next start. A session registers with
+  **its own** `CarContext` (a second session replaces the registration), so a
+  session that follows a dropped connection never calls host APIs through a dead
+  host. Pause/resume renderers on screen stop/start; unlock in `finally`; validate
+  before drawing; never lock or draw a released or replaced surface; recover from a
+  dead surface with a **main-thread**, capped invalidate.
 - **MUST**: nothing native runs on a host callback or in a screen constructor —
   car providers are resolved off the host thread (lazy `Provider`/`Lazy`), a
-  host callback only retains state (including the surface **tap** path: the native
-  client is resolved inside the background block, not in the callback), and no
+  host callback only retains state (including the surface **tap** path and the
+  **surface delivery**: the native client is resolved inside the background block,
+  and the stylesheet day/night flag is *published* (`RendererGate.daylightPush`) and
+  applied by a background collector instead of being pushed from
+  `onCarSurfaceAvailable`, which reloads the style variant on the DB thread), and no
   fault escapes a host callback or a host-facing path (trip build, host navigation
   call, notification build/post, frame draw): the car-app library rethrows an app
   exception on the main thread, which kills the process. Degrade and log instead.
   **Every** car screen's template build goes through the `car*Template` wrappers
   (`SafeScreen.kt`) — the map/navigation/free-driving screens were guarded while
-  eleven other screens' `onGetTemplate` could still kill the process.
+  eleven other screens' `onGetTemplate` could still kill the process. The screen
+  observation seam (`CarScreenObservations`) carries a
+  `CoroutineExceptionHandler` for the same reason: an exception from a collector
+  body would otherwise reach the main thread's uncaught handler and kill the
+  process — an app process that dies while a car session is live is what takes
+  the templates host down with it.
 - **MUST**: while the car app is not the visible car app, host traffic is
   bounded — the session mutates no host state (no screen push/pop, no template
   invalidate, no host navigation-state change) and the ongoing notification is

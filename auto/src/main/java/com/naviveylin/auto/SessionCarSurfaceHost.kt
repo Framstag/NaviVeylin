@@ -1,6 +1,7 @@
 package com.naviveylin.auto
 
 import android.content.Context
+import android.util.Log
 import android.view.Surface
 import androidx.car.app.AppManager
 import androidx.car.app.CarContext
@@ -28,9 +29,8 @@ import java.util.WeakHashMap
 class SessionCarSurfaceHost : CarSurfaceHost, SurfaceCallback {
 
     private var carContext: CarContext? = null
-    private var registered = false
 
-    /** The session's current surface (drawable), or null when none was delivered. */
+    /** The surface (drawable), or null when none was delivered. */
     private var active: Surface? = null
     private var activeWidth = 0
     private var activeHeight = 0
@@ -49,18 +49,27 @@ class SessionCarSurfaceHost : CarSurfaceHost, SurfaceCallback {
         Collections.newSetFromMap(WeakHashMap<Surface, Boolean>())
 
     override fun startSession(context: Context) {
-        if (registered) return
-        val carContext = context as? CarContext ?: return
-        this.carContext = carContext
-        registered = true
-        carContext.getCarService(AppManager::class.java).setSurfaceCallback(this)
+        val newContext = context as? CarContext ?: return
+        // Idempotent for the same session (lifecycle re-entry), but a *different* context
+        // is a new session: the previous one may have ended without running endSession
+        // (the host dropped the connection), and keeping its context would leave this
+        // session without a registration and make the app call host APIs through a dead
+        // host (spec: car-host-fault-isolation — Session registration follows the host
+        // session).
+        if (carContext === newContext) return
+        carContext?.let { previous ->
+            runCatching { previous.getCarService(AppManager::class.java)?.setSurfaceCallback(null) }
+                .onFailure { Log.w(TAG, "clearing the previous session's registration failed", it) }
+        }
+        carContext = newContext
+        newContext.getCarService(AppManager::class.java).setSurfaceCallback(this)
     }
 
     override fun endSession() {
-        if (registered) {
-            carContext?.getCarService(AppManager::class.java)?.setSurfaceCallback(null)
+        carContext?.let { current ->
+            runCatching { current.getCarService(AppManager::class.java)?.setSurfaceCallback(null) }
+                .onFailure { Log.w(TAG, "clearing the registration failed", it) }
         }
-        registered = false
         carContext = null
         if (active != null) {
             dispatch("onCarSurfaceDestroyed") { owner?.onCarSurfaceDestroyed() }
@@ -70,6 +79,15 @@ class SessionCarSurfaceHost : CarSurfaceHost, SurfaceCallback {
     }
 
     override fun attach(owner: CarSurfaceOwner) {
+        val previous = this.owner
+        if (previous != null && previous !== owner) {
+            // Revoke before the new owner draws. The car-app host starts the
+            // incoming screen before it stops the outgoing one, so the outgoing
+            // screen is still started (and still holds this surface) while the
+            // incoming one already renders: without this revocation two renderers
+            // would lock the one session surface at the same time.
+            dispatch("onCarSurfaceRevoked") { previous.onCarSurfaceRevoked() }
+        }
         this.owner = owner
         active?.let { surface ->
             dispatch("onCarSurfaceAvailable") {
@@ -95,6 +113,17 @@ class SessionCarSurfaceHost : CarSurfaceHost, SurfaceCallback {
         if (active !== null && active !== surface) {
             // A genuinely new surface: the host expects the previous one released.
             release(active)
+        }
+        // The car-app contract is per *delivery*: an instance delivered again after
+        // its destroy is a new delivery, not the one already released. Its release
+        // state is dropped here so it can be adopted, drawn on, and released once
+        // again when it is superseded.
+        if (released.remove(surface)) {
+            android.util.Log.d(TAG, "surface instance re-delivered after its release ${System.identityHashCode(surface)}")
+            DiagnosticsLog.log(
+                HOST_TAG,
+                "surface re-delivered ${System.identityHashCode(surface)} (released before) — treated as a new delivery"
+            )
         }
         active = surface
         activeWidth = surfaceContainer.width

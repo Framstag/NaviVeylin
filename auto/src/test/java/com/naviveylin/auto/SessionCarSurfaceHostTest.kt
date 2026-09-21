@@ -12,6 +12,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,6 +39,7 @@ class SessionCarSurfaceHostTest {
         var width = 0
         var height = 0
         var dpi = 0.0
+        var revokedCount = 0
         var destroyedCount = 0
         var visible: Rect? = null
         var stable: Rect? = null
@@ -51,6 +53,11 @@ class SessionCarSurfaceHostTest {
             this.width = width
             this.height = height
             this.dpi = dpi
+        }
+
+        override fun onCarSurfaceRevoked() {
+            revokedCount++
+            adopted = null
         }
 
         override fun onCarSurfaceDestroyed() {
@@ -88,6 +95,7 @@ class SessionCarSurfaceHostTest {
             throw IllegalStateException("available")
 
         override fun onCarSurfaceDestroyed() = throw IllegalStateException("destroyed")
+        override fun onCarSurfaceRevoked() = throw IllegalStateException("revoked")
         override fun onCarVisibleAreaChanged(visible: Rect) = throw IllegalStateException("visible")
         override fun onCarStableAreaChanged(stable: Rect) = throw IllegalStateException("stable")
         override fun onCarScroll(distanceX: Float, distanceY: Float) = throw IllegalStateException("scroll")
@@ -134,6 +142,58 @@ class SessionCarSurfaceHostTest {
         host.startSession(carContext)
 
         verify(exactly = 2) { appManager.setSurfaceCallback(host) }
+    }
+
+    @Test
+    fun sessionStartsAfterADroppedConnection() {
+        // Spec: car-host-fault-isolation — Session registration follows the host session.
+        // The host dropped the connection, so the previous session never ran its end and
+        // its registration is still in place. The new session must register with ITS context:
+        // otherwise the app keeps no callback (no surface, black map) and calls host APIs
+        // through a CarContext whose host session is gone.
+        val newManager = mockk<AppManager>(relaxed = true)
+        val newContext = mockk<CarContext>(relaxed = true).apply {
+            every { getCarService(AppManager::class.java) } returns newManager
+        }
+        host.startSession(carContext)
+
+        host.startSession(newContext)
+
+        verify(exactly = 1) { appManager.setSurfaceCallback(null) }
+        verify(exactly = 1) { newManager.setSurfaceCallback(host) }
+
+        // The host's delivery for the new session reaches the app.
+        host.onSurfaceAvailable(container(surface()))
+        assertTrue(host.hasSurface())
+    }
+
+    @Test
+    fun registrationIsNotDuplicatedWithinOneSession() {
+        // Spec: car-host-fault-isolation — Session registration is not duplicated within
+        // one session. A lifecycle re-entry with the same context must not register twice.
+        host.startSession(carContext)
+        host.startSession(carContext)
+        host.startSession(carContext)
+
+        verify(exactly = 1) { appManager.setSurfaceCallback(host) }
+        verify(exactly = 0) { appManager.setSurfaceCallback(null) }
+    }
+
+    @Test
+    fun sessionEndClearsTheRegistrationForTheNextSession() {
+        // Spec: car-host-fault-isolation — Session ends: the registration is cleared, and a
+        // later session registers with its own context.
+        val newManager = mockk<AppManager>(relaxed = true)
+        val newContext = mockk<CarContext>(relaxed = true).apply {
+            every { getCarService(AppManager::class.java) } returns newManager
+        }
+        host.startSession(carContext)
+
+        host.endSession()
+        host.startSession(newContext)
+
+        verify(exactly = 1) { appManager.setSurfaceCallback(null) }
+        verify(exactly = 1) { newManager.setSurfaceCallback(host) }
     }
 
     // ── owner dispatch ──
@@ -231,6 +291,9 @@ class SessionCarSurfaceHostTest {
         host.onFling(1f, 1f)
         host.onScale(1f, 1f, 2f)
         host.onClick(1f, 1f)
+        // Superseding a throwing owner must not escape either (the outgoing screen's
+        // stop-drawing step runs through the same guard).
+        host.attach(RecordingOwner())
         host.onSurfaceDestroyed(container(s))
         host.endSession()
 
@@ -256,7 +319,95 @@ class SessionCarSurfaceHostTest {
         verify(exactly = 0) { s.release() }
         assertTrue(host.hasSurface())
         assertSame(s, incoming.adopted)
+        // The outgoing screen is told to stop drawing (revoked) but the surface it
+        // drew through is neither destroyed nor released.
+        assertEquals(1, outgoing.revokedCount)
         assertEquals(0, outgoing.destroyedCount)
+        assertNull("the superseded owner no longer holds the surface", outgoing.adopted)
+    }
+
+    @Test
+    fun incomingScreenStartsBeforeTheOutgoingOneStops() {
+        // Spec: car-host-fault-isolation — Single-owner car surface. The car-app contract
+        // starts the incoming screen before it stops the outgoing one, so during that window
+        // the outgoing screen is still started: the session revokes its surface at the moment
+        // the incoming owner attaches, so at most one renderer draws the one session surface.
+        val s = surface()
+        val outgoing = RecordingOwner()
+        val incoming = RecordingOwner()
+        host.startSession(carContext)
+        host.attach(outgoing)
+        host.onSurfaceAvailable(container(s))
+
+        host.attach(incoming)
+
+        // Revoked first, then handed over: the outgoing owner stops drawing before the
+        // incoming one is told it may draw.
+        assertEquals(1, outgoing.revokedCount)
+        assertNull(outgoing.adopted)
+        assertSame(s, incoming.adopted)
+        verify(exactly = 0) { s.release() }
+    }
+
+    @Test
+    fun reAttachingTheSameOwnerDoesNotRevokeIt() {
+        // The same screen returning from a background round trip keeps its ownership.
+        val s = surface()
+        val owner = RecordingOwner()
+        host.startSession(carContext)
+        host.attach(owner)
+        host.onSurfaceAvailable(container(s))
+
+        host.detach(owner)
+        host.attach(owner)
+
+        assertEquals(0, owner.revokedCount)
+        assertSame(s, owner.adopted)
+    }
+
+    @Test
+    fun reDeliveredSurfaceInstanceIsAdoptedAndReleasedAgain() {
+        // Spec: car-host-fault-isolation — Single-owner car surface. The contract is per
+        // delivery: an instance delivered again after its destroy is a new delivery, so it
+        // must be drawable (and released once more when it is destroyed again).
+        val s = surface()
+        val owner = RecordingOwner()
+        host.startSession(carContext)
+        host.attach(owner)
+        host.onSurfaceAvailable(container(s))
+
+        host.onSurfaceDestroyed(container(s))
+        verify(exactly = 1) { s.release() }
+
+        host.onSurfaceAvailable(container(s))
+        assertSame("the re-delivered instance is drawable again", s, owner.adopted)
+        assertTrue(host.hasSurface())
+
+        host.onSurfaceDestroyed(container(s))
+        verify(exactly = 2) { s.release() }
+        assertFalse(host.hasSurface())
+    }
+
+    @Test
+    fun reDeliveryIsRecordedForDiagnosis() {
+        val file = java.io.File.createTempFile("diag", ".log")
+        DiagnosticsLog.initForTest(file)
+        try {
+            val s = surface()
+            host.startSession(carContext)
+            host.onSurfaceAvailable(container(s))
+            host.onSurfaceDestroyed(container(s))
+            host.onSurfaceAvailable(container(s))
+
+            val entries = DiagnosticsLog.readEntries()
+            assertTrue(
+                "the re-delivery is visible in the app's own log: $entries",
+                entries.any { it.contains("re-delivered") }
+            )
+        } finally {
+            DiagnosticsLog.reset()
+            file.delete()
+        }
     }
 
     @Test

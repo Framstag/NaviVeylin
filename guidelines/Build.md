@@ -415,12 +415,24 @@ echo "created:   $(echo "$L" | grep -c 'surface created')"  # surface adoptions
 echo "releases:  $(echo "$L" | grep -c 'releasing session surface')"
 echo "failures:  $(echo "$L" | grep -c 'surface invalid\|lockCanvas failed')"
 echo "drops:     $(echo "$L" | grep -c 'dropping frame')"   # stale frames dropped
+echo "detached:  $(echo "$L" | grep -c 'detaching surface')" # screen stop released its surface + buffer
+echo "re-deliver: $(echo "$L" | grep -c 're-delivered')"     # a released instance came back
 ```
 
 Expected after a push/pop or a background round trip: a `surface created` for the incoming
 screen **with the same surface id** the outgoing one had, **no** `releasing session surface`
-in between, and `lock OK` continuing. Any `surface invalid`/`lockCanvas failed` (or an
+in between, and `lock OK` continuing. A `detaching surface` for the outgoing screen should
+precede the incoming `surface created` (the session revokes the superseded owner at `attach`)
+and appear once per screen stop — a stop **without** it means the screen's `onStop` did not
+detach, so that renderer still holds the surface and its overrun buffer. Any `surface
+invalid`/`lockCanvas failed` (or an
 `invalidate … attempt` line from a screen's surface-refresh recovery) is a defect, not noise.
+
+`re-delivered` means the host handed back a `Surface` instance this session had already
+released (change `fix-car-surface-ownership-and-host-callbacks` tracks lifetimes per delivery,
+so the instance is adopted and released again). It is expected only when the host really
+re-delivers; a run that shows it repeatedly is worth keeping, because it is the case the
+per-instance bookkeeping used to leak the buffer-queue producer on.
 
 **Host-side failure.** The AVD's logcat covers `system_server`, the templates host and
 `systemui`, so the host's stack trace is retrievable even though the app has none:

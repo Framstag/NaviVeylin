@@ -26,6 +26,13 @@ class FakeMapScreenClient(
     /** Stylesheet flags pushed to the native side, in call order. */
     val styleSheetFlags = mutableListOf<Pair<String, Boolean>>()
 
+    /**
+     * Thread names of the [setStyleSheetFlag] calls, in call order: the flag reloads the
+     * style variant on the DB thread, so a host callback must never be the caller
+     * (spec: car-host-fault-isolation — Host callbacks answer promptly).
+     */
+    val styleSheetFlagThreads = mutableListOf<String>()
+
     override fun loadStyleSheet(name: String): Boolean {
         styleSheetLoads.add(name)
         return styleSheetLoadResult
@@ -33,9 +40,41 @@ class FakeMapScreenClient(
 
     override fun setStyleSheetFlag(key: String, value: Boolean) {
         styleSheetFlags.add(key to value)
+        styleSheetFlagThreads.add(Thread.currentThread().name)
     }
 
     override fun setMapDpi(dpi: Double) = Unit
+
+    /**
+     * The screen's renderer may render once a surface is delivered; the native render
+     * cannot run in a JVM test, so dummy pixel data answers instead (same shape as
+     * [FakeAutoRenderClient]).
+     */
+    override fun render(
+        width: Int,
+        height: Int,
+        lat: Double,
+        lon: Double,
+        angle: Double,
+        magnification: Double
+    ): IntArray = IntArray(width * height) { 0xFFCCCCCC.toInt() }
+
+    override fun renderWithRouteAndPois(
+        width: Int,
+        height: Int,
+        lat: Double,
+        lon: Double,
+        angle: Double,
+        magnification: Double,
+        routeLats: DoubleArray?,
+        routeLons: DoubleArray?,
+        favoriteLats: DoubleArray?,
+        favoriteLons: DoubleArray?,
+        searchSelLat: Double,
+        searchSelLon: Double,
+        trackLats: DoubleArray?,
+        trackLons: DoubleArray?
+    ): IntArray = IntArray(width * height) { 0xFFCCCCCC.toInt() }
 
     override fun getStyleSheetDirectory(): String = ""
 

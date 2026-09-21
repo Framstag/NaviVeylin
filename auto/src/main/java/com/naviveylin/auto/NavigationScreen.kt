@@ -134,9 +134,11 @@ class NavigationScreen(
         if (rendererGate.rendererOrNull() == null) return
         val dark = resolvedDark.value
         if (!daylightApplier.needsPush(dark, force)) return
-        if (daylightApplier.apply(dark, force)) {
-            rendererGate.invalidateStyle()
-        }
+        // Publish, do not push: setStyleSheetFlag reloads the style variant on the DB
+        // thread, and this runs from the host's surface callback (spec:
+        // car-host-fault-isolation — Host callbacks answer promptly). The collector started
+        // in init applies it on a background dispatcher.
+        rendererGate.requestDaylightPush(dark, force)
     }
 
     private var surfaceWidth = 0
@@ -378,6 +380,24 @@ class NavigationScreen(
             }
         }
 
+        // Stylesheet day/night pushes (spec: car-host-fault-isolation — Host callbacks
+        // answer promptly): the request is published by pushDark, and the native flag is set
+        // here, off the main thread — including the one the host's surface delivery asks for.
+        scope.launch {
+            rendererGate.daylightPush.collect { request ->
+                if (request == null) return@collect
+                val applied = withContext(Dispatchers.Default) {
+                    runCatching { daylightApplier.apply(request.dark, request.force) }
+                        .onFailure { Log.w(TAG, "setStyleSheetFlag failed", it) }
+                        .getOrDefault(false)
+                }
+                // A changed variant invalidates the rendered frame (the overrun buffer holds
+                // the previous variant); the gate's own thread is the main one, so this
+                // stays here.
+                if (applied) rendererGate.invalidateStyle()
+            }
+        }
+
         // Shared settings: lane hints + navigation orientation + auto-zoom.
         scope.launch {
             runCatching { settingsProvider.load() }
@@ -422,10 +442,15 @@ class NavigationScreen(
                 observations.stop()
                 autoZoomController.suspend()
                 rendererGate.pause()
-                // Detach only: the session owns the surface's lifetime, so a screen
-                // that stops underneath a pushed screen neither clears the new
-                // screen's surface nor releases the queue it draws through (spec:
-                // car-host-fault-isolation — Single-owner car surface).
+                // Stop drawing on the session's surface (spec: auto-map-renderer — A
+                // stopped renderer holds no surface or frame buffer): the host starts the
+                // incoming screen before it stops this one, so a kept surface reference
+                // would let this renderer lock the one session surface while the incoming
+                // screen draws through it. Detach only: the session owns the surface's
+                // lifetime, so a screen that stops underneath a pushed screen neither
+                // clears the new screen's surface nor releases the queue it draws through
+                // (spec: car-host-fault-isolation — Single-owner car surface).
+                rendererGate.detachSurface()
                 surfaceHost.detach(surfaceOwner)
             }
             override fun onDestroy(owner: LifecycleOwner) {

@@ -157,7 +157,11 @@ The car map renderer MUST initialize off the car-app main thread (spec:
 - **Host callbacks retain state only**: `onSurfaceAvailable` buffers the surface
   DPI (`RendererGate.surfaceDpi`) and a background collector applies
   `setMapDpi` — resolving the client from a callback is forbidden even when the
-  renderer already exists, because the callback runs on the host thread.
+  renderer already exists, because the callback runs on the host thread. The same
+  applies to the stylesheet day/night flag: it is *published*
+  (`RendererGate.daylightPush`, one distinct request per push so a dropped one
+  stays retryable) and applied by a background collector, never set from the
+  delivery callback (change `fix-car-surface-ownership-and-host-callbacks`).
 - **Construct-and-publish is atomic on main**: the heavy work (client,
   viewport) returns from `withContext`, and the `AutoMapRenderer` is constructed
   and published on the main thread with no suspension in between, so a cancelled
@@ -168,6 +172,13 @@ The car map renderer MUST initialize off the car-app main thread (spec:
   frames). Pre-ready surface delivery, dark presentation, GPS fixes, follow
   re-center and frame requests are replayed on readiness; `onDestroy` cancels
   a still-running init and shuts down a published renderer.
+- **One owner draws, and `onStop` detaches**: each screen owns its renderer, and
+  the session owns the one car surface. The session revokes the surface from the
+  owner it supersedes (`CarSurfaceOwner.onCarSurfaceRevoked`, delivered from
+  `attach`) before the incoming owner may draw, and a screen that stops calls
+  `rendererGate.detachSurface()` after `pause()`, so a stopped screen holds no
+  surface (and no overrun buffer) and cannot lock the surface another screen is
+  drawing through during the start-before-stop transition.
 - **Pan handler**: `MapPanHandler` takes a renderer *supplier* — constructing
   it must never force the renderer (template build happens on the main
   thread).

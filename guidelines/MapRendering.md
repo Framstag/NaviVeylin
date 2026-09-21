@@ -469,7 +469,8 @@ car Surface:
 - **CRITICAL — the renderer never owns the surface**: the car Surface's lifetime belongs to
   the session (`SessionCarSurfaceHost`, change `fix-aaos-host-crash`, spec
   `car-host-fault-isolation`): one `SurfaceCallback` registration per session, one owner screen
-  at a time, released exactly once on the host's `onSurfaceDestroyed` or at session end. A
+  at a time, released exactly once per **delivery** on the host's `onSurfaceDestroyed`, on
+  replacement, or at session end. A
   renderer draws, stops drawing (`detachSurface`, `pause`) and clears its reference — it never
   calls `Surface.release()`. Releasing it here (the earlier shape, on replace/stop/shutdown)
   disconnected the buffer queue the host — or the screen that superseded this one — was still
@@ -477,8 +478,19 @@ car Surface:
   was replaced or destroyed during the long native render is dropped (`isCurrentSurface`), and
   a stale surface is never reported as a failure of the live one (that used to wedge the render
   loop for the live surface until another delivery).
+- **CRITICAL — the stop path detaches**: a screen's `onStop` is `pause()` **plus**
+  `rendererGate.detachSurface()` (change `fix-car-surface-ownership-and-host-callbacks`). The host
+  starts the incoming screen before it stops the outgoing one, so a renderer that kept the surface
+  reference could lock the one session surface while the incoming screen drew through it; the
+  session also revokes the surface from the owner it supersedes
+  (`CarSurfaceOwner.onCarSurfaceRevoked`) at `attach`, so at most one renderer locks it. Detaching
+  drops the reference, clears `surfaceFailed` (a failure recorded while the screen was visible must
+  not gate the next start) and releases the overrun buffer — the buffer is per screen, and up to
+  four car screens can sit in the stack.
 - **Overrun buffer**: every full native render is at `OVERRUN_FACTOR` (1.2×) the surface size and
-  is KEPT as the overrun buffer (not recycled) for sub-region blits. The visible region is drawn
+  is KEPT as the overrun buffer (not recycled) for sub-region blits — until the screen stops, which
+  releases it; the first frame after the next start is therefore a full render, never a blit of a
+  frame that predates the stop. The visible region is drawn
   centered: `dx = (surfaceW - bitmapW) / 2`.
 - **Sub-region blit**: a viewport change within the overrun region is served by
   `lockCanvas → drawBitmap(overrun, dx, dy) → unlockCanvasAndPost` — no native render. The blit

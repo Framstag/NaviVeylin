@@ -375,12 +375,13 @@ class FreeDrivingScreen(
                 // while stopped is not scoped to the started period).
                 observations.stop()
                 rendererGate.pause()
-                // Release the surface: a screen stopped underneath a pushed
-                // screen never gets onSurfaceDestroyed (the host notifies only
-                // the current callback), so the stale surface would keep the
-                // host's buffer queue held and break the next screen's
-                // surface. Release on stop, re-acquire on start. No-op while
-                // the renderer is still initializing.
+                // Stop drawing on the session's surface (spec: auto-map-renderer — A
+                // stopped renderer holds no surface or frame buffer): detach the surface
+                // reference (re-acquired through the session on start) and drop the
+                // overrun frame buffer. Detach only: the session owns the surface's
+                // lifetime, so a screen stopped underneath a pushed screen never releases
+                // the queue the incoming screen draws through.
+                rendererGate.detachSurface()
                 surfaceHost.detach(surfaceOwner)
                 // NOTE: no unregisterSurfaceCallback() here. The car-app
                 // library starts the new screen BEFORE stopping the old one

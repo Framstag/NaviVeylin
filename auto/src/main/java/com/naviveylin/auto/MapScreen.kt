@@ -307,6 +307,24 @@ class MapScreen(
             }
         }
 
+        // Stylesheet day/night pushes (spec: car-host-fault-isolation — Host callbacks
+        // answer promptly): the request is published by pushDark, and the native flag is set
+        // here, off the main thread — including the one the host's surface delivery asks for.
+        scope.launch {
+            rendererGate.daylightPush.collect { request ->
+                if (request == null) return@collect
+                val applied = withContext(Dispatchers.Default) {
+                    runCatching { daylightApplier.apply(request.dark, request.force) }
+                        .onFailure { Log.w(TAG, "setStyleSheetFlag failed", it) }
+                        .getOrDefault(false)
+                }
+                // A changed variant invalidates the rendered frame (the overrun buffer holds
+                // the previous variant); the gate's own thread is the main one, so this
+                // stays here.
+                if (applied) rendererGate.invalidateStyle()
+            }
+        }
+
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
@@ -320,11 +338,17 @@ class MapScreen(
                 // started period).
                 observations.stop()
                 rendererGate.pause()
-                // Detach only: the session owns the surface's lifetime, so a screen
-                // that stops underneath a pushed screen neither clears the new
-                // screen's surface nor releases the queue it draws through (spec:
-                // car-host-fault-isolation — Single-owner car surface). No-op while
-                // the renderer is still initializing.
+                // Stop drawing on the session's surface: the host starts the incoming
+                // screen before it stops this one, so a renderer that kept the surface
+                // reference could lock the one session surface while the incoming
+                // screen draws through it. Dropping it also releases this screen's
+                // overrun frame buffer (spec: auto-map-renderer — A stopped renderer
+                // holds no surface or frame buffer). Detach only: the session owns the
+                // surface's lifetime, so a screen that stops underneath a pushed screen
+                // neither clears the new screen's surface nor releases the queue it
+                // draws through (spec: car-host-fault-isolation — Single-owner car
+                // surface). No-op while the renderer is still initializing.
+                rendererGate.detachSurface()
                 surfaceHost.detach(surfaceOwner)
             }
             override fun onDestroy(owner: LifecycleOwner) {
@@ -419,9 +443,11 @@ class MapScreen(
         if (rendererGate.rendererOrNull() == null) return
         val dark = resolvedDark.value
         if (!daylightApplier.needsPush(dark, force)) return
-        if (daylightApplier.apply(dark, force)) {
-            rendererGate.invalidateStyle()
-        }
+        // Publish, do not push: setStyleSheetFlag reloads the style variant on the DB
+        // thread, and this runs from the host's surface callback (spec:
+        // car-host-fault-isolation — Host callbacks answer promptly). The collector started
+        // in init applies it on a background dispatcher.
+        rendererGate.requestDaylightPush(dark, force)
     }
 
     override fun onGetTemplate(): Template {

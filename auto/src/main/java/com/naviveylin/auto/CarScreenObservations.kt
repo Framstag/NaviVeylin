@@ -1,6 +1,10 @@
 package com.naviveylin.auto
 
+import android.util.Log
+import com.naviveylin.core.DiagnosticsLog
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,6 +39,13 @@ import kotlinx.coroutines.launch
  * work). The screen's own constructor-time work (renderer construction, one-shot
  * loads) does not belong here and stays on the screen's own scope.
  *
+ * **A fault stays inside its observation** (spec: auto/screen-observation — An
+ * observation fault is confined to its observation): the period's scope carries a
+ * [CoroutineExceptionHandler], so an exception from a collector body is logged with
+ * the observation's key and ends that observation only. Without it the exception
+ * reaches the main thread's uncaught handler — the process dies, and a car session
+ * that loses its process is what takes the host down with it (TODO.md §51/§59).
+ *
  * @param dispatcher dispatcher the observations run on; the main dispatcher by
  *   default, injectable so a unit test can share one test scheduler with the
  *   class under test
@@ -64,7 +75,7 @@ internal class CarScreenObservations(
      */
     fun start() {
         if (scope != null) return
-        scope = CoroutineScope(SupervisorJob() + dispatcher)
+        scope = CoroutineScope(SupervisorJob() + dispatcher + faultHandler())
     }
 
     /**
@@ -92,6 +103,34 @@ internal class CarScreenObservations(
     fun observe(key: String, block: suspend CoroutineScope.() -> Unit) {
         val current = scope ?: return
         if (running[key]?.isActive == true) return
-        running[key] = current.launch(block = block)
+        // The key rides the coroutine's context so the period's exception handler can
+        // name the observation that failed.
+        running[key] = current.launch(CoroutineName(key), block = block)
+    }
+
+    /**
+     * Confines a fault to the observation that raised it (spec: auto/screen-observation
+     * — An observation fault is confined to its observation): log it with the
+     * observation's key and let the period's other observations keep running. This runs
+     * on the failing coroutine's own thread, so it only logs — never works.
+     */
+    private fun faultHandler(): CoroutineExceptionHandler =
+        CoroutineExceptionHandler { context, throwable ->
+            val key = context[CoroutineName]?.name ?: UNKNOWN_OBSERVATION
+            Log.w(TAG, "observation '$key' failed — confined to it", throwable)
+            DiagnosticsLog.log(
+                DIAG_TAG,
+                "observation '$key' failed: $throwable${throwable.stackTrace.firstOrNull()?.let { " at $it" } ?: ""}"
+            )
+        }
+
+    private companion object {
+        const val TAG = "CarScreenObservations"
+
+        /** Diagnostics tag for what a car screen observed (sibling of the MAP/HOST tags). */
+        const val DIAG_TAG = "SCREEN"
+
+        /** Key reported when an observation faulted without a [CoroutineName] in its context. */
+        const val UNKNOWN_OBSERVATION = "?"
     }
 }

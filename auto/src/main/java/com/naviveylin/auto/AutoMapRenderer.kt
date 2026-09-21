@@ -1492,6 +1492,13 @@ class AutoMapRenderer(
     internal fun isCurrentSurface(surf: Surface): Boolean = surface === surf
 
     /**
+     * Whether this renderer currently considers its surface dead (a failed lock or an
+     * invalid surface). Exposed for tests: the stop path clears it (spec:
+     * auto-map-renderer — A stopped renderer holds no surface or frame buffer).
+     */
+    internal fun isSurfaceFailed(): Boolean = surfaceFailed
+
+    /**
      * Report a draw failure only while [surf] is still the renderer's surface: a
      * surface that was destroyed or replaced while a render was in flight is stale,
      * not a failure of the current one — reporting it would set `surfaceFailed` and

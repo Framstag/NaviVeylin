@@ -10,6 +10,7 @@ import io.mockk.verify
 import io.mockk.verifyOrder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -41,6 +42,8 @@ class RendererGateTest {
     private fun surfaceMock() = mockk<Surface>(relaxed = true).also { s ->
         // The render loop draws asynchronously once the surface slot replays.
         every { s.lockCanvas(any()) } returns mockk<Canvas>(relaxed = true)
+        // A usable surface: the renderer treats an invalid one as dead and never locks it.
+        every { s.isValid } returns true
         every { s.release() } returns Unit
     }
 
@@ -59,6 +62,48 @@ class RendererGateTest {
         gate.onSurfaceAvailable(surface, 1920, 720, 236.0)
 
         assertEquals(236.0, gate.surfaceDpi.value, 0.0)
+    }
+
+    @Test
+    fun daylightRequestsArePublishedForTheBackgroundCollector() {
+        // Spec: car-host-fault-isolation — Host callbacks answer promptly. The surface delivery
+        // publishes the stylesheet request instead of setting the native flag, which reloads the
+        // style variant on the DB thread.
+        val gate = RendererGate()
+        assertNull("nothing requested yet", gate.daylightPush.value)
+
+        gate.requestDaylightPush(dark = true)
+        assertEquals(true, gate.daylightPush.value?.dark)
+        assertEquals(false, gate.daylightPush.value?.force)
+
+        gate.requestDaylightPush(dark = false, force = true)
+        assertEquals(false, gate.daylightPush.value?.dark)
+        assertEquals(true, gate.daylightPush.value?.force)
+    }
+
+    @Test
+    fun anIdenticalDaylightRequestStaysRetryable() {
+        // A state flow suppresses an equal value, so a request the native side dropped must be
+        // distinguishable from the one that was already handled — otherwise the retry after a
+        // warmup race never reaches the collector.
+        val gate = RendererGate()
+
+        gate.requestDaylightPush(dark = false)
+        val first = gate.daylightPush.value!!.token
+        gate.requestDaylightPush(dark = false)
+        val second = gate.daylightPush.value!!.token
+
+        assertTrue("a repeated request carries a new token", second > first)
+    }
+
+    @Test
+    fun destroyDropsAPendingDaylightRequest() {
+        val gate = RendererGate()
+        gate.requestDaylightPush(dark = true)
+
+        gate.destroy()
+
+        assertNull("a destroyed gate pushes nothing", gate.daylightPush.value)
     }
 
     @Test
@@ -216,5 +261,93 @@ class RendererGateTest {
         // resume was buffered and applied; pause/release were no-ops.
         verify { renderer.resume() }
         verify(inverse = true) { renderer.pause() }
+    }
+
+    // ── the stop path (spec: auto-map-renderer — A stopped renderer holds no surface or frame buffer) ──
+
+    @Test
+    fun theStopPathDetachesTheRendererAndReleasesItsFrameBuffer() {
+        // Screen onStop is pause() + detachSurface(): the renderer must hold neither the
+        // session's surface nor the overrun frame it rendered through it, so a stopped
+        // screen can never lock the surface another screen draws through — and its
+        // ~3.7-8 MB buffer is not retained for as long as the screen sits in the stack.
+        val gate = RendererGate()
+        val renderer = renderers.track(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0))
+        renderer.asyncLoopsEnabled = false
+        val surface = surfaceMock()
+        gate.onSurfaceAvailable(surface, 1920, 720, 240.0)
+        gate.publish(renderer)
+
+        renderer.renderFrame()
+        verify(exactly = 1) { surface.lockCanvas(any()) }
+        assertNotNull("a rendered frame is retained as the overrun buffer", renderer.overrunSize())
+
+        gate.pause()
+        gate.detachSurface()
+
+        assertFalse("the stopped renderer no longer holds the session surface", renderer.isCurrentSurface(surface))
+        assertNull("the overrun frame buffer is released", renderer.overrunSize())
+        // Never released: the session owns the surface's lifetime.
+        verify(exactly = 0) { surface.release() }
+    }
+
+    @Test
+    fun aStartAfterAStopReacquiresTheSurfaceAndRendersAFullFrame() {
+        // Spec: auto-map-renderer — "the first frame after the start is not blitted from a
+        // buffer that predates the stop". The session hands the same retained instance to
+        // the screen again on attach, so the renderer re-acquires it without a host
+        // re-delivery, and its first frame is a full native render (the buffer is gone).
+        val gate = RendererGate()
+        val renderer = renderers.track(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0))
+        renderer.asyncLoopsEnabled = false
+        val surface = surfaceMock()
+        gate.onSurfaceAvailable(surface, 1920, 720, 240.0)
+        gate.publish(renderer)
+
+        renderer.renderFrame()
+        gate.pause()
+        gate.detachSurface()
+
+        // Screen onStart: the session re-delivers the retained surface, then resume().
+        gate.onSurfaceAvailable(surface, 1920, 720, 240.0)
+        gate.resume()
+
+        assertTrue(renderer.isCurrentSurface(surface))
+        assertEquals("the first frame after the start is a full render", 1, renderer.fullRenderCount)
+
+        renderer.renderFrame()
+
+        assertEquals("no blit of a pre-stop buffer", 2, renderer.fullRenderCount)
+        verify(exactly = 2) { surface.lockCanvas(any()) }
+    }
+
+    @Test
+    fun aStopClearsASurfaceFailureSoTheNextStartIsNotReportedAsFailed() {
+        // Spec: auto-map-renderer — Stopped renderer reports no failure. A surface failure
+        // recorded while the screen was visible must not survive the stop: it would gate
+        // the renderer off at the next start and ask the host for a fresh surface (a
+        // template refresh) with nothing to fetch.
+        val gate = RendererGate()
+        val renderer = renderers.track(AutoMapRenderer(FakeAutoRenderClient(), initialProjectionDpi = 240.0))
+        renderer.asyncLoopsEnabled = false
+        // A dead surface: relaxed mock -> isValid false.
+        val dead = mockk<Surface>(relaxed = true)
+        gate.onSurfaceAvailable(dead, 1920, 720, 240.0)
+        gate.publish(renderer)
+        renderer.renderFrame()
+        assertTrue(renderer.isSurfaceFailed())
+
+        gate.pause()
+        gate.detachSurface()
+        assertFalse(renderer.isSurfaceFailed())
+
+        // The next start with a usable surface renders like any other start.
+        val usable = surfaceMock()
+        gate.onSurfaceAvailable(usable, 1920, 720, 240.0)
+        gate.resume()
+        renderer.renderFrame()
+
+        verify { usable.lockCanvas(any()) }
+        assertFalse(renderer.isSurfaceFailed())
     }
 }

@@ -9,14 +9,18 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Tests for [CarScreenObservations] (spec: auto/screen-observation — One instance
  * of each observation per started period; A stopped screen performs no renderer or
- * host work; design D1).
+ * host work; An observation fault is confined to its observation; design D1/D4).
  *
- * No `CarContext`, no Robolectric: the class is the pure lifetime seam the car
- * screens drive from their lifecycle callbacks.
+ * The class is the pure lifetime seam the car screens drive from their lifecycle
+ * callbacks (no `CarContext`), but it runs under Robolectric (default sandbox): the
+ * fault-confinement cases assert the failure is *logged*, and `android.util.Log` has no
+ * working stub in a plain unit test.
  *
  * Every "one emission reaches one observation" assertion is written as a
  * **delta** against the counter taken just before the emission: a `StateFlow`
@@ -26,6 +30,7 @@ import org.junit.Test
  * number of past starts.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class CarScreenObservationsTest {
 
     @get:Rule
@@ -197,5 +202,96 @@ class CarScreenObservationsTest {
             gps.emissions - beforeRestart
         )
         assertTrue(observations.isRunning)
+    }
+
+    // ── fault confinement (spec: auto/screen-observation — An observation fault is confined to its observation) ──
+
+    @Test
+    fun anObservationBodyThatThrowsEndsOnlyThatObservation() = runTest(mainDispatcher.dispatcher) {
+        // Without the period's exception handler the exception reaches the main thread's
+        // uncaught handler: the process dies, and an app process that dies while a car
+        // session is live is what takes the templates host down with it (TODO.md §51).
+        val file = java.io.File.createTempFile("diag", ".log")
+        com.naviveylin.core.DiagnosticsLog.initForTest(file)
+        try {
+            val healthy = CountingObservation()
+            observations.start()
+            observations.observe("gps") { throw IllegalStateException("boom") }
+            observations.observe("favorites") { healthy.collectForever() }
+
+            advanceUntilIdle()
+
+            assertEquals("the faulting observation ended", 1, observations.liveObservationCount)
+            val entries = com.naviveylin.core.DiagnosticsLog.readEntries()
+            assertTrue(
+                "the fault is logged with the observation's key: $entries",
+                entries.any { it.contains("observation 'gps' failed") }
+            )
+        } finally {
+            com.naviveylin.core.DiagnosticsLog.reset()
+            file.delete()
+        }
+    }
+
+    @Test
+    fun siblingsKeepRunningAfterAFault() = runTest(mainDispatcher.dispatcher) {
+        // Spec: auto/screen-observation — "the surviving observations still deliver their
+        // updates". A screen that lost one observation must still work; a GPS fault must not
+        // blind its favorites or its day/night observation.
+        val favorites = CountingObservation()
+        val basemap = CountingObservation()
+        observations.start()
+        observations.observe("gps") { throw IllegalStateException("boom") }
+        observations.observe("favorites") { favorites.collectForever() }
+        observations.observe("basemap") { basemap.collectForever() }
+        advanceUntilIdle()
+
+        val favoritesBefore = favorites.emissions
+        val basemapBefore = basemap.emissions
+        favorites.flow.value = 1
+        basemap.flow.value = 1
+        advanceUntilIdle()
+
+        assertEquals("favorites still deliver", favoritesBefore + 1, favorites.emissions)
+        assertEquals("basemap revisions still deliver", basemapBefore + 1, basemap.emissions)
+    }
+
+    @Test
+    fun guidanceKeepsRunningAfterAFault() = runTest(mainDispatcher.dispatcher) {
+        // Spec: auto/screen-observation — "Faulting observation while navigating". The
+        // navigation screen's observations are independent: a fault in one of them must not
+        // stop the others from driving guidance, the ETA card or the host trip.
+        val navigation = CountingObservation()
+        observations.start()
+        observations.observe("gps") { throw IllegalStateException("boom") }
+        observations.observe("navigation") { navigation.collectForever() }
+        advanceUntilIdle()
+
+        val before = navigation.emissions
+        navigation.flow.value = 42
+        advanceUntilIdle()
+
+        assertEquals("navigation state still reaches the screen", before + 1, navigation.emissions)
+    }
+
+    @Test
+    fun aFaultDoesNotConsumeTheStartedPeriod() = runTest(mainDispatcher.dispatcher) {
+        // Spec: auto/screen-observation — "A fault does not consume the started period":
+        // the next start establishes the observation again, alongside the others.
+        observations.start()
+        observations.observe("gps") { throw IllegalStateException("boom") }
+        advanceUntilIdle()
+
+        observations.stop()
+        observations.start()
+        val gps = CountingObservation()
+        observations.observe("gps") { gps.collectForever() }
+        observations.observe("favorites") { CountingObservation().collectForever() }
+        advanceUntilIdle()
+
+        assertEquals(2, observations.liveObservationCount)
+        gps.flow.value = 3
+        advanceUntilIdle()
+        assertTrue("the re-established observation delivers", gps.emissions >= 2)
     }
 }

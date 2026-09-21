@@ -68,6 +68,33 @@ internal class RendererGate {
     private val _surfaceDpi = MutableStateFlow(0.0)
     val surfaceDpi: StateFlow<Double> = _surfaceDpi.asStateFlow()
 
+    /**
+     * A stylesheet day/night flag the owning screen wants pushed to the native client.
+     *
+     * [force] re-pushes a value the native side may have dropped (a stylesheet was just
+     * reloaded, or the database became ready after an earlier push). [token] makes two
+     * requests with the same value distinct: a state flow suppresses an equal value, and
+     * a dropped push must stay retryable.
+     */
+    data class DaylightPush(val dark: Boolean, val force: Boolean, val token: Long)
+
+    private val _daylightPush = MutableStateFlow<DaylightPush?>(null)
+
+    /**
+     * Requests for a native stylesheet-flag push, applied by the owning screen's background
+     * collector. Setting the flag reloads the style variant on the DB thread, so a host
+     * callback (the surface delivery) publishes the request instead of running it (spec:
+     * car-host-fault-isolation — Host callbacks answer promptly). Main thread.
+     */
+    val daylightPush: StateFlow<DaylightPush?> = _daylightPush.asStateFlow()
+
+    private var daylightToken = 0L
+
+    /** Publish a stylesheet-flag request; the screen's collector applies it off the main thread. */
+    fun requestDaylightPush(dark: Boolean, force: Boolean = false) {
+        _daylightPush.value = DaylightPush(dark, force, ++daylightToken)
+    }
+
     /** Read-only handle; non-null once [publish] delivered the renderer. */
     val renderer: StateFlow<AutoMapRenderer?> = _renderer.asStateFlow()
 
@@ -355,5 +382,6 @@ internal class RendererGate {
         invalidateStyle = false
         invalidateData = false
         requestRender = false
+        _daylightPush.value = null
     }
 }

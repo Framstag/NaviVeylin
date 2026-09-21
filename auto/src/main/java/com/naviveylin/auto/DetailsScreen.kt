@@ -250,10 +250,15 @@ class DetailsScreen(
             }
             override fun onStop(owner: LifecycleOwner) {
                 rendererGate.pause()
-                // Detach only: the session owns the surface's lifetime, so a screen
-                // that stops underneath a pushed screen neither clears the new
-                // screen's surface nor releases the queue it draws through (spec:
-                // car-host-fault-isolation — Single-owner car surface).
+                // Stop drawing on the session's surface (spec: auto-map-renderer — A
+                // stopped renderer holds no surface or frame buffer): detach the surface
+                // reference and drop the overrun frame buffer, so this renderer cannot lock
+                // the one session surface while another screen draws through it. Detach
+                // only: the session owns the surface's lifetime, so a screen that stops
+                // underneath a pushed screen neither clears the new screen's surface nor
+                // releases the queue it draws through (spec: car-host-fault-isolation —
+                // Single-owner car surface).
+                rendererGate.detachSurface()
                 surfaceHost.detach(surfaceOwner)
             }
             override fun onDestroy(owner: LifecycleOwner) {

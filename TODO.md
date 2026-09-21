@@ -10,6 +10,7 @@
 - **Why it is not attributed to the change** ℹ: the change only *reduces* per-rebuild work (the lane-guidance bitmap is reused while its state is unchanged, the template distance comparisons are bucketed); it adds no buffer, cache or thread. The host-side growth is on Google's side of the IPC.
 - **Not measured** ✗: the samples are single snapshots before/after the drive, the vehicle walked past the destination (so routes/tiles across a wide area were loaded), and the car path uses the library's default 25-tile cache per database (§63). A leak therefore cannot be separated from legitimate tile/cache growth from these numbers.
 - **Next step**: repeat with a *stationary* session and a *repeat* of the identical route, sampling `dumpsys meminfo` every minute, so growth without new tiles can be told from cache fill. If the app side still grows, the candidates in §49 (per-render transient buffers) and §62 (paused renderers keep their overrun bitmap) are the first places to look.
+- **Partially addressed 2026-09-21** ✅ by `fix-car-surface-ownership-and-host-callbacks`: §62's per-screen overrun buffer is now released on every screen stop, so the car stack no longer retains up to four extra ~3.7–8 MB buffers while its screens sit stopped. §49 (per-render transient buffers) and §63 (the tile cache) stay open, and the stationary-route measurement above is still the next step.
 
 ## 64. The car template rebuild rate is still bounded by the arrival estimate, not by the distance buckets — Found 2026-09-21 during `fix-host-crash-residual-paths` (task 4.2/4.4)
 

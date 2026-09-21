@@ -27,7 +27,9 @@ idea {
 }
 
 // Include all submodule Java sources except files provided locally
-// (with Android-compatible HTTP and debug-suffix-aware library loading)
+// (with Android-compatible HTTP and debug-suffix-aware library loading).
+// RoadInfo.java is NOT overridden: upstream's version is byte-identical in
+// behavior (public ctor + hasInfo), so the submodule file compiles as-is.
 tasks.named<JavaCompile>("compileJava") {
     source(fileTree(clientJavaDir).matching {
         exclude(
@@ -35,8 +37,7 @@ tasks.named<JavaCompile>("compileJava") {
             "**/OSMScoutClient.java",
             "**/MapDownloadManager.java",
             "**/AvailableMapEntry.java",
-            "**/BasemapManager.java",
-            "**/RoadInfo.java"
+            "**/BasemapManager.java"
         )
     })
 }

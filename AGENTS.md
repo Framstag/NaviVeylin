@@ -84,8 +84,8 @@ licenses/             → Curated license data: native license map, license poli
     - `libosmscout-client-java/src/OSMScoutClient.cpp` → `libosmscout_client_java.so` (CMake target `osmscout_client_java`)
     - Depends on: `OSMScout::OSMScout`, `OSMScout::Map`, `OSMScout::MapCairo`, `OSMScout::Client`
   - Java side: Gradle module `:osmscout-client-java` (repo root)
-    - Compiles submodule `libosmscout-client-java/java` sources EXCEPT 6 overridden files
-      (`OSMScoutClient`, `OSMScoutClientBuilder`, `RoadInfo`, `BasemapManager`, `MapDownloadManager`, `AvailableMapEntry`)
+    - Compiles submodule `libosmscout-client-java/java` sources EXCEPT 5 overridden files
+      (`OSMScoutClient`, `OSMScoutClientBuilder`, `BasemapManager`, `MapDownloadManager`, `AvailableMapEntry`)
       which come from `osmscout-client-java/src/main/java` (plus local-only `InstalledMaps`)
     - Overrides = Android ports: HttpURLConnection map downloads (no `java.net.http` desugaring), debug-suffix library loading (`osmscout_client_java` → `osmscout_client_javad` fallback), `reloadBasemap` decl, public constructors
     - Produces `libosmscoutclientjava.jar`

@@ -44,6 +44,23 @@ class RendererGateTest {
         every { s.release() } returns Unit
     }
 
+    /**
+     * The gate publishes the delivered surface DPI (spec: auto-map-renderer — Renderer
+     * initialization off the car-app main thread; spec: car-host-fault-isolation —
+     * Host callbacks answer promptly): the screens push the native client's DPI from a
+     * background collector on this flow, so a host callback only retains the value.
+     */
+    @Test
+    fun surfaceDpiIsPublishedForTheBackgroundDpiCollector() {
+        val gate = RendererGate()
+        assertEquals("no surface delivered yet", 0.0, gate.surfaceDpi.value, 0.0)
+
+        val surface = surfaceMock()
+        gate.onSurfaceAvailable(surface, 1920, 720, 236.0)
+
+        assertEquals(236.0, gate.surfaceDpi.value, 0.0)
+    }
+
     @Test
     fun bufferedSlotsReplayOnPublishInDefinedOrder() {
         val gate = RendererGate()
@@ -190,7 +207,7 @@ class RendererGateTest {
 
         // Must not throw and must not buffer anything replayable.
         gate.pause()
-        gate.releaseSurface()
+        gate.detachSurface()
         gate.onSurfaceDestroyed()
         gate.resume()
 

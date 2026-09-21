@@ -1,13 +1,11 @@
 package com.naviveylin.auto
 
 import android.util.Log
+import android.view.Surface
 import android.view.View
-import androidx.car.app.AppManager
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.ScreenManager
-import androidx.car.app.SurfaceCallback
-import androidx.car.app.SurfaceContainer
 import androidx.car.app.model.Action
 import androidx.car.app.model.Header
 import androidx.car.app.model.ItemList
@@ -23,6 +21,7 @@ import com.framstag.libosmscout.client.ObjectDescription
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoPosition
+import com.naviveylin.core.CarSurfaceOwner
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.details.DetailsInput
@@ -37,6 +36,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -78,15 +78,23 @@ class DetailsScreen(
     private val locationProvider = entryPoint.autoLocationProvider()
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
 
-    /** Static map preview centered on the destination (no gestures). */
-    private val mapRenderer: AutoMapRenderer by lazy {
-        val client = entryPoint.autoClientProvider().client()
-        // The native renderer projects with the client's configured physical
-        // DPI (from the phone display metrics), not the car surface DPI — all
-        // overlay math must use the same value (same as MapScreen).
-        val renderDpi = carContext.resources.displayMetrics.densityDpi.toDouble()
-        AutoMapRenderer(client, renderDpi, lat, lon, mag)
-    }
+    /**
+     * Session-scoped car surface owner (spec: car-host-fault-isolation — Single-owner
+     * car surface): the session's host forwards the car surface and gesture events to
+     * this screen while it is attached, and the host — not the screen — releases the
+     * surface.
+     */
+    private val surfaceHost = entryPoint.autoSurfaceHost()
+
+    /**
+     * Renderer-bound state buffers here until the renderer is ready (spec:
+     * auto-map-renderer — "Renderer initialization off the car-app main thread"):
+     * the native client first-touch and the renderer construction run in
+     * [rendererInitJob] on a background dispatcher, so neither this constructor nor a
+     * host callback builds the native client on the car-app main thread.
+     */
+    private val rendererGate = RendererGate()
+    private var rendererInitJob: Job? = null
 
     private var surfaceWidth = 0
     private var surfaceHeight = 0
@@ -97,13 +105,61 @@ class DetailsScreen(
 
     init {
         enableBackNavigation()
-        val client = entryPoint.autoClientProvider().client()
+        // Async renderer init (design D2): first-touch the native client singleton off
+        // the main thread and build the renderer, then publish it into the gate. The
+        // constructor stays on the main thread only for cheap bookkeeping.
+        rendererInitJob = loadScope.launch {
+            val client = withContext(Dispatchers.Default) {
+                val client = entryPoint.autoClientProvider().client()
+                rendererGate.pendingSurfaceDpi()?.let { dpi ->
+                    runCatching { client.setMapDpi(dpi) }
+                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                }
+                client
+            }
+            // Constructed and published on the main thread with no suspension in
+            // between, so a cancellation during the background work can never drop an
+            // already-constructed renderer (spec: auto-map-renderer — "Renderer
+            // constructed while the screen is being destroyed").
+            //
+            // The native renderer projects with the client's configured physical DPI
+            // (from the phone display metrics), not the car surface DPI — all overlay
+            // math must use the same value (same as MapScreen).
+            rendererGate.publish(
+                AutoMapRenderer(
+                    client,
+                    carContext.resources.displayMetrics.densityDpi.toDouble(),
+                    lat,
+                    lon,
+                    mag
+                )
+            )
+        }
+
+        // The native client's DPI follows the car surface, applied on a background
+        // dispatcher: the host's surface callback only retains the value (spec:
+        // car-host-fault-isolation — Host callbacks answer promptly).
+        loadScope.launch {
+            rendererGate.surfaceDpi.collect { dpi ->
+                if (dpi > 0.0 && rendererGate.rendererOrNull() != null) {
+                    withContext(Dispatchers.Default) {
+                        runCatching { entryPoint.autoClientProvider().client().setMapDpi(dpi) }
+                            .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                    }
+                }
+            }
+        }
+
         // Reverse-geocode + describe the selected location off the main
         // thread; invalidate when the JNI results arrive. When the caller
         // already resolved the object (single candidate), the description is
         // passed in and not re-queried.
         loadScope.launch {
             val result = withContext(Dispatchers.Default) {
+                // The native client is resolved here, on the background dispatcher —
+                // never in the constructor (spec: auto-map-renderer — Renderer
+                // initialization off the car-app main thread).
+                val client = entryPoint.autoClientProvider().client()
                 var addr: Array<String>? = null
                 var desc: ObjectDescription? = preloadedDescription
                 try {
@@ -123,7 +179,7 @@ class DetailsScreen(
             address = result.first
             description = result.second
             // Refresh the destination marker label once the name is known.
-            mapRenderer.setDestinationMarker(lat, lon, destinationName())
+            rendererGate.setDestinationMarker(lat, lon, destinationName())
             invalidate()
         }
 
@@ -133,7 +189,7 @@ class DetailsScreen(
         loadScope.launch {
             favoritesProvider.favoriteLocations().collect { favorites ->
                 this@DetailsScreen.favorites = favorites
-                mapRenderer.setFavoriteLocations(favorites.values.flatten())
+                rendererGate.setFavoriteLocations(favorites.values.flatten())
                 invalidate()
             }
         }
@@ -143,7 +199,7 @@ class DetailsScreen(
         loadScope.launch {
             entryPoint.basemapReloadNotifier().revision.collect { revision ->
                 if (revision > 0L) {
-                    mapRenderer.invalidateData()
+                    rendererGate.invalidateData()
                 }
             }
         }
@@ -156,50 +212,66 @@ class DetailsScreen(
             locationProvider.position().collect { pos ->
                 gpsPosition = pos
                 if (pos != null) {
-                    mapRenderer.setGpsMarker(pos.lat, pos.lon, pos.bearing, pos.accuracy)
+                    rendererGate.setGpsMarker(pos.lat, pos.lon, pos.bearing, pos.accuracy)
                     applyViewport()
                 }
             }
         }
 
-        // If the host delivered a surface we cannot lock (AAOS emulator
-        // quirk), drop it and ask the host for a fresh one. Throttled inside
-        // the renderer and capped per screen start (same as MapScreen).
-        mapRenderer.onSurfaceFailed = {
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
-                surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
-            ) {
-                surfaceRefreshAttempts++
-                Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
-                invalidate()
+        // If the host delivered a surface we cannot lock, drop it and ask the host for
+        // a fresh one. Throttled inside the renderer and capped per screen start (same
+        // as MapScreen). Wired once the renderer exists: resolving it here must not
+        // build the native client on the main thread.
+        loadScope.launch {
+            rendererGate.renderer.collect { renderer ->
+                if (renderer == null) return@collect
+                renderer.onSurfaceFailed = {
+                    // Reported from the render thread; the car-app library wants the refresh
+                    // on the main thread (spec: car-host-fault-isolation — Template
+                    // invalidation is main-thread only).
+                    postTemplateRefresh {
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                            surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
+                        ) {
+                            surfaceRefreshAttempts++
+                            Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
+                            invalidate()
+                        }
+                    }
+                }
             }
         }
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
-                registerSurfaceCallback()
-                mapRenderer.resume()
+                surfaceHost.attach(surfaceOwner)
+                rendererGate.resume()
             }
             override fun onStop(owner: LifecycleOwner) {
-                mapRenderer.pause()
-                // Release the surface: a screen stopped underneath a pushed
-                // screen never gets onSurfaceDestroyed (the host notifies only
-                // the current callback), so the stale surface would keep the
-                // host's buffer queue held and break the next screen's
-                // surface. Release on stop, re-acquire on start (same as
-                // MapScreen).
-                mapRenderer.releaseSurface()
+                rendererGate.pause()
+                // Detach only: the session owns the surface's lifetime, so a screen
+                // that stops underneath a pushed screen neither clears the new
+                // screen's surface nor releases the queue it draws through (spec:
+                // car-host-fault-isolation — Single-owner car surface).
+                surfaceHost.detach(surfaceOwner)
             }
             override fun onDestroy(owner: LifecycleOwner) {
-                unregisterSurfaceCallback()
-                mapRenderer.shutdown()
+                surfaceHost.detach(surfaceOwner)
+                // Cancel a still-running init first, so no renderer work continues after
+                // the screen is destroyed (spec: auto-map-renderer — "Renderer still
+                // initializing when the screen stops").
+                rendererInitJob?.cancel()
+                rendererGate.destroy()
                 loadScope.cancel()
             }
         })
     }
 
-    override fun onGetTemplate(): Template {
+    override fun onGetTemplate(): Template = carScreenTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carScreenTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): Template {
         val onNavigate: () -> Unit = {
             Log.d(TAG, "Navigate to: $lat, $lon")
             navigationViewModel.navigateTo(lat, lon, destinationName())
@@ -284,45 +356,40 @@ class DetailsScreen(
     private fun isFavorite(): Boolean =
         favorites.values.flatten().any { it.lat == lat && it.lon == lon }
 
-    private fun registerSurfaceCallback() {
-        val appManager = carContext.getCarService(AppManager::class.java)
-        appManager.setSurfaceCallback(object : SurfaceCallback {
-            override fun onSurfaceAvailable(surfaceContainer: SurfaceContainer) {
-                val surface = surfaceContainer.surface ?: return
-                surfaceWidth = surfaceContainer.width
-                surfaceHeight = surfaceContainer.height
-                surfaceDpi = surfaceContainer.dpi.takeIf { it > 0 }?.toDouble() ?: DEFAULT_DPI
-                Log.d(TAG, "Details surface available: ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi")
-                // Render at the CAR display's DPI (same as MapScreen).
-                runCatching { entryPoint.autoClientProvider().client().setMapDpi(surfaceDpi) }
-                    .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                mapRenderer.updateProjectionDpi(surfaceDpi)
-                mapRenderer.setDestinationMarker(lat, lon, destinationName())
-                mapRenderer.onSurfaceCreated(surface, surfaceWidth, surfaceHeight)
-                // Center the destination in the visible map area (the part
-                // not covered by the host's pane panel) once the surface
-                // dimensions are known.
-                applyViewport()
-            }
+    /**
+     * Car-surface owner for this screen (spec: car-host-fault-isolation — Single-owner
+     * car surface; design D1). Registered with the session's [surfaceHost] on start and
+     * detached on stop; adoption of a retained surface happens in [attach].
+     */
+    private val surfaceOwner: CarSurfaceOwner = object : CarSurfaceOwner {
+        override fun onCarSurfaceAvailable(surface: Surface, width: Int, height: Int, dpi: Double) {
+            surfaceWidth = width
+            surfaceHeight = height
+            surfaceDpi = dpi.takeIf { it > 0.0 } ?: DEFAULT_DPI
+            Log.d(TAG, "Details surface available: ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi")
+            // The native client's DPI follows rendererGate.surfaceDpi, applied by the
+            // background collector (see init): a host callback must not resolve the
+            // client (spec: car-host-fault-isolation — Host callbacks answer promptly).
+            rendererGate.setDestinationMarker(lat, lon, destinationName())
+            rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
+            // Center the destination in the visible map area (the part
+            // not covered by the host's pane panel) once the surface
+            // dimensions are known.
+            applyViewport()
+        }
 
-            override fun onSurfaceDestroyed(surfaceContainer: SurfaceContainer) {
-                Log.d(TAG, "Details surface destroyed")
-                surfaceWidth = 0
-                surfaceHeight = 0
-                surfaceDpi = DEFAULT_DPI
-                mapRenderer.onSurfaceDestroyed()
-            }
+        override fun onCarSurfaceDestroyed() {
+            Log.d(TAG, "Details surface destroyed")
+            surfaceWidth = 0
+            surfaceHeight = 0
+            surfaceDpi = DEFAULT_DPI
+            rendererGate.onSurfaceDestroyed()
+        }
 
-            // Static preview: no gesture handling (design decision 2).
-            override fun onScroll(distanceX: Float, distanceY: Float) = Unit
-            override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) = Unit
-            override fun onClick(x: Float, y: Float) = Unit
-        })
-    }
-
-    private fun unregisterSurfaceCallback() {
-        val appManager = carContext.getCarService(AppManager::class.java)
-        appManager.setSurfaceCallback(null)
+        // Static preview: no gesture handling (design decision 2).
+        override fun onCarScroll(distanceX: Float, distanceY: Float) = Unit
+        override fun onCarScale(focusX: Float, focusY: Float, scaleFactor: Float) = Unit
+        override fun onCarClick(x: Float, y: Float) = Unit
     }
 
     /**
@@ -340,10 +407,10 @@ class DetailsScreen(
             val midLat = (lat + pos.lat) / 2.0
             val midLon = (lon + pos.lon) / 2.0
             val (clat, clon) = paneOffsetCenter(midLat, midLon, zoom.toDouble(), surfaceWidth, surfaceHeight, surfaceDpi, rtl)
-            mapRenderer.setViewport(clat, clon, zoom, 0.0)
+            rendererGate.setViewport(clat, clon, zoom, 0.0)
         } else {
             val (clat, clon) = paneOffsetCenter(lat, lon, mag.toDouble(), surfaceWidth, surfaceHeight, surfaceDpi, rtl)
-            mapRenderer.setViewport(clat, clon, mag, 0.0)
+            rendererGate.setViewport(clat, clon, mag, 0.0)
         }
     }
 

@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
@@ -28,6 +30,22 @@ open class FavoriteRepository @Inject constructor(
 
     private var favoritesFile: String? = null
     private var loaded = false
+
+    /**
+     * Serialises the write operations against each other.
+     *
+     * Each write is a read-modify-write triple: mutate the native store, then
+     * [refreshState] and [persist]. The persist replaces the whole native store
+     * with the data it is handed, so two writes that interleave could persist a
+     * snapshot that predates the other write's mutation and drop it. Holding
+     * this lock across the whole triple makes one write atomic with respect to
+     * the others, so no successful write is lost.
+     *
+     * Not reentrant: the private `*Locked` helpers assume the lock is already
+     * held, and a nested write (see [addFavoriteLocked]) calls those rather than
+     * a public entry point.
+     */
+    private val writeMutex = Mutex()
 
     /**
      * Dispatcher for all JNI/file persistence work. Test hook: point it at a
@@ -71,7 +89,16 @@ open class FavoriteRepository @Inject constructor(
     // ---- Group CRUD ----
 
     /** Add a new empty group. Returns false if name already exists. */
-    open suspend fun addGroup(name: String): Boolean = withContext(defaultDispatcher) {
+    open suspend fun addGroup(name: String): Boolean = writeMutex.withLock {
+        addGroupLocked(name)
+    }
+
+    /**
+     * Add a group with the write lock already held, so a caller that is inside
+     * the critical section (see [addFavoriteLocked]) does not re-enter the
+     * non-reentrant [writeMutex].
+     */
+    private suspend fun addGroupLocked(name: String): Boolean = withContext(defaultDispatcher) {
         if (!loaded) return@withContext false
         val success = client!!.addGroup(name)
         if (success) {
@@ -82,7 +109,11 @@ open class FavoriteRepository @Inject constructor(
     }
 
     /** Delete a group and all its favorites. Returns false if not found. */
-    open suspend fun deleteGroup(name: String): Boolean = withContext(defaultDispatcher) {
+    open suspend fun deleteGroup(name: String): Boolean = writeMutex.withLock {
+        deleteGroupLocked(name)
+    }
+
+    private suspend fun deleteGroupLocked(name: String): Boolean = withContext(defaultDispatcher) {
         if (!loaded) return@withContext false
         val success = client!!.deleteGroup(name)
         if (success) {
@@ -93,26 +124,37 @@ open class FavoriteRepository @Inject constructor(
     }
 
     /** Rename a group. Returns false if old name not found or new name already exists. */
-    open suspend fun renameGroup(oldName: String, newName: String): Boolean = withContext(defaultDispatcher) {
-        if (!loaded) return@withContext false
-        val success = client!!.renameGroup(oldName, newName)
-        if (success) {
-            refreshState()
-            persist()
-        }
-        success
+    open suspend fun renameGroup(oldName: String, newName: String): Boolean = writeMutex.withLock {
+        renameGroupLocked(oldName, newName)
     }
+
+    private suspend fun renameGroupLocked(oldName: String, newName: String): Boolean =
+        withContext(defaultDispatcher) {
+            if (!loaded) return@withContext false
+            val success = client!!.renameGroup(oldName, newName)
+            if (success) {
+                refreshState()
+                persist()
+            }
+            success
+        }
 
     // ---- Favorite CRUD ----
 
     /** Add a favorite to a group. Creates the group first if it does not exist yet. Returns false if group creation fails (duplicate name) or duplicate favorite name. */
     open suspend fun addFavorite(groupName: String, favName: String, lat: Double, lon: Double): Boolean =
+        writeMutex.withLock {
+            addFavoriteLocked(groupName, favName, lat, lon)
+        }
+
+    private suspend fun addFavoriteLocked(groupName: String, favName: String, lat: Double, lon: Double): Boolean =
         withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             // Auto-create the group (e.g. the details-sheet "+ New group" flow).
-            // If creation fails (name already exists), adding fails as well.
+            // If creation fails (name already exists), adding fails as well. The
+            // locking helper is used because the write lock is already held here.
             if (groupName !in _favorites.value.keys) {
-                val created = addGroup(groupName)
+                val created = addGroupLocked(groupName)
                 if (!created) return@withContext false
             }
             val success = client!!.addFavorite(groupName, favName, lat, lon)
@@ -125,6 +167,11 @@ open class FavoriteRepository @Inject constructor(
 
     /** Delete a favorite from a group. Returns false if not found. */
     open suspend fun deleteFavorite(groupName: String, favName: String): Boolean =
+        writeMutex.withLock {
+            deleteFavoriteLocked(groupName, favName)
+        }
+
+    private suspend fun deleteFavoriteLocked(groupName: String, favName: String): Boolean =
         withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             val success = client!!.deleteFavorite(groupName, favName)
@@ -137,6 +184,11 @@ open class FavoriteRepository @Inject constructor(
 
     /** Rename a favorite within a group. Returns false if old not found or new name exists. */
     open suspend fun renameFavorite(groupName: String, oldName: String, newName: String): Boolean =
+        writeMutex.withLock {
+            renameFavoriteLocked(groupName, oldName, newName)
+        }
+
+    private suspend fun renameFavoriteLocked(groupName: String, oldName: String, newName: String): Boolean =
         withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             val success = client!!.renameFavorite(groupName, oldName, newName)
@@ -157,6 +209,11 @@ open class FavoriteRepository @Inject constructor(
      * JNI call plus one file write.
      */
     open suspend fun moveFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
+        writeMutex.withLock {
+            moveFavoriteLocked(groupName, favName, newIndex)
+        }
+
+    private suspend fun moveFavoriteLocked(groupName: String, favName: String, newIndex: Int): Boolean =
         withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             val success = client!!.moveFavorite(groupName, favName, newIndex)
@@ -171,6 +228,11 @@ open class FavoriteRepository @Inject constructor(
 
     /** Set a color for a group. Pass null to remove the color. */
     open suspend fun setGroupColor(groupName: String, colorHex: String?): Boolean =
+        writeMutex.withLock {
+            setGroupColorLocked(groupName, colorHex)
+        }
+
+    private suspend fun setGroupColorLocked(groupName: String, colorHex: String?): Boolean =
         withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             // Strip # prefix if present; C++ expects 6 hex chars
@@ -194,6 +256,11 @@ open class FavoriteRepository @Inject constructor(
 
     /** Star or unstar a favorite. */
     open suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean =
+        writeMutex.withLock {
+            setFavoriteStarredLocked(groupName, favName, starred)
+        }
+
+    private suspend fun setFavoriteStarredLocked(groupName: String, favName: String, starred: Boolean): Boolean =
         withContext(defaultDispatcher) {
             if (!loaded) return@withContext false
             val ok = client!!.setStarred(groupName, favName, starred)

@@ -62,6 +62,14 @@ class NavigationViewModel @Inject constructor(
     init {
         // Wire state to the singleton provider for Android Auto
         stateProvider.observe(this)
+        // Process-wide stop requests (notification stop action, car-host stop):
+        // every controller stops its own navigation, so no surface has to own a
+        // callback slot the other could overwrite (spec: navigation-ongoing-
+        // notification — "Stop action for navigation"). stopNavigation() must
+        // never request a stop itself — that would loop through this collector.
+        viewModelScope.launch {
+            stateProvider.stopRequests.collect { stopNavigation() }
+        }
         // Ensure GPS updates run even when the phone UI is not open, so
         // navigation can start from the car (deep link / car-only flow).
         // Permission-guarded no-op without ACCESS_FINE_LOCATION.
@@ -211,6 +219,14 @@ class NavigationViewModel @Inject constructor(
         nativeController = null
         _state.value = NavigationState()
         onFollowModeChanged?.invoke(false)
+        // Stop-path parity (spec: navigation-ongoing-notification — "Stop action
+        // for navigation"): the notification's stop action reaches this method
+        // without passing the Compose stop buttons, so the route-panel cleanup
+        // lives here and every stop path leaves the panel non-navigating with
+        // the route hidden. Idempotent — the screen lambdas keep their calls for
+        // an immediate UI response.
+        routePanelViewModel?.setNavigating(false)
+        routePanelViewModel?.clearRouteFromMap()
         lastRoadInfoTime = 0L
         lastRoadInfoLat = Double.NaN
         lastRoadInfoLon = Double.NaN
@@ -542,6 +558,10 @@ class NavigationViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopNavigation()
+        // The cleared ViewModel must stop claiming the shared mirror: a dead
+        // surface may not keep a driving state (or the ongoing notification)
+        // alive (see TODO.md §46).
+        stateProvider.unregister(this)
     }
 
     /**

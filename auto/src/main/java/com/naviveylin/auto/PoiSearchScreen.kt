@@ -39,7 +39,10 @@ class PoiSearchScreen(
         enableBackNavigation()
     }
 
-    override fun onGetTemplate(): Template {
+    override fun onGetTemplate(): Template = carScreenTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carScreenTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): Template {
         val categories = PoiCategories.getCategoryTypes().keys.toList()
 
         val listBuilder = ItemList.Builder()

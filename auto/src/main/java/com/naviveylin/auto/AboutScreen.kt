@@ -23,7 +23,10 @@ class AboutScreen(carContext: CarContext) : Screen(carContext) {
         enableBackNavigation()
     }
 
-    override fun onGetTemplate(): PaneTemplate {
+    override fun onGetTemplate(): PaneTemplate = carPaneTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carPaneTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): PaneTemplate {
         val version = try {
             val info = carContext.packageManager.getPackageInfo(carContext.packageName, 0)
             info.versionName ?: ""

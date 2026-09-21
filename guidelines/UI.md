@@ -105,6 +105,11 @@ Source: specs `navigation-ongoing-notification` (change
   `IMPORTANCE_DEFAULT`, because the platform does not represent
   low-importance foreground-service notifications at all. No importance level
   requests a heads-up notification for turn hints.
+- **Update cadence.** The notification is re-posted only when its host-visible
+  content changed (manoeuvre, distance bucket, current road, remaining distance,
+  arrival minute, free-driving speed) — the state stream emits at the position
+  rate, and the car host re-renders its rail widget for every post. Guidance
+  changes still post immediately, and trip metadata stays content-deduplicated.
 - The notification is silent and ongoing; it never plays a sound or vibrates.
 
 ## 2. Action glyphs on the car display
@@ -147,7 +152,17 @@ The car map renderer MUST initialize off the car-app main thread (spec:
   never via a lazy renderer forced from a main-thread call site (surface
   callbacks, lifecycle observers, settings coroutines, template builders). A
   frozen host thread during warmup delayed template delivery for every screen
-  in the session.
+  in the session. The car providers are injected as `Provider`/`Lazy` for this
+  reason: resolving one must not build the client.
+- **Host callbacks retain state only**: `onSurfaceAvailable` buffers the surface
+  DPI (`RendererGate.surfaceDpi`) and a background collector applies
+  `setMapDpi` — resolving the client from a callback is forbidden even when the
+  renderer already exists, because the callback runs on the host thread.
+- **Construct-and-publish is atomic on main**: the heavy work (client,
+  viewport) returns from `withContext`, and the `AutoMapRenderer` is constructed
+  and published on the main thread with no suspension in between, so a cancelled
+  init can never drop an already-constructed renderer (its loops would poll
+  forever).
 - **Ready handle**: all surface screens use [`RendererGate`] (buffered
   last-wins slots, replay order surface → dark → viewport intents → marker →
   frames). Pre-ready surface delivery, dark presentation, GPS fixes, follow
@@ -156,7 +171,9 @@ The car map renderer MUST initialize off the car-app main thread (spec:
 - **Pan handler**: `MapPanHandler` takes a renderer *supplier* — constructing
   it must never force the renderer (template build happens on the main
   thread).
-- Applies to `MapScreen`, `NavigationScreen`, `FreeDrivingScreen`.
+- Applies to `MapScreen`, `NavigationScreen`, `FreeDrivingScreen`,
+  `DetailsScreen` (all four own a surface and a renderer; `DetailsScreen` gained
+  the same async init in change `fix-aaos-host-crash`).
 
 ## 3b. Settings-screen loading (never trust a single invalidate)
 

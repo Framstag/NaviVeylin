@@ -7,6 +7,7 @@ import androidx.core.app.NotificationCompat
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.MapStyleLoadReporter
+import com.naviveylin.core.NotificationIds
 import com.naviveylin.core.stringResolver
 
 /**
@@ -89,6 +90,13 @@ internal class CarStyleLoadNotifier(private val appContext: Context) {
     companion object {
         const val TAG = "CarStyleLoadNotifier"
         const val CHANNEL_ID = "map_style"
-        const val NOTIFICATION_ID = 1002
+
+        /**
+         * Notification identity of the style notice. It must **not** be the ongoing
+         * navigation id: that notification is the foreground-service notification and the
+         * carrier of the car rail-widget turn hint, so a notice on its id takes the hint off
+         * the rail (spec: navigation-ongoing-notification — Distinct notification identity).
+         */
+        val NOTIFICATION_ID: Int = NotificationIds.MAP_STYLE_NOTICE
     }
 }

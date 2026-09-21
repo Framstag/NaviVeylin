@@ -58,6 +58,16 @@ internal class RendererGate {
 
     private val _renderer = MutableStateFlow<AutoMapRenderer?>(null)
 
+    /**
+     * DPI of the last car surface the host delivered (0 before one arrives). The
+     * native client's DPI follows it, applied by the owning screen on a background
+     * dispatcher — a host callback only retains state (spec: car-host-fault-isolation —
+     * Host callbacks answer promptly; spec: auto-map-renderer — Renderer initialization
+     * off the car-app main thread).
+     */
+    private val _surfaceDpi = MutableStateFlow(0.0)
+    val surfaceDpi: StateFlow<Double> = _surfaceDpi.asStateFlow()
+
     /** Read-only handle; non-null once [publish] delivered the renderer. */
     val renderer: StateFlow<AutoMapRenderer?> = _renderer.asStateFlow()
 
@@ -191,6 +201,7 @@ internal class RendererGate {
     fun pendingSurfaceDpi(): Double? = surface?.dpi
 
     fun onSurfaceAvailable(surface: Surface, width: Int, height: Int, dpi: Double) {
+        _surfaceDpi.value = dpi
         val ready = rendererOrNull()
         if (ready != null) {
             ready.updateProjectionDpi(dpi)
@@ -306,8 +317,8 @@ internal class RendererGate {
         rendererOrNull()?.pause()
     }
 
-    fun releaseSurface() {
-        rendererOrNull()?.releaseSurface()
+    fun detachSurface() {
+        rendererOrNull()?.detachSurface()
     }
 
     fun invalidateStyle() {

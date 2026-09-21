@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.car.app.navigation.NavigationManager
 import androidx.car.app.navigation.NavigationManagerCallback
 import androidx.car.app.navigation.model.Trip
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationState
 
 /**
@@ -46,34 +47,74 @@ class NavigationManagerController(
     /** Last state whose trip was published, for the change throttle. */
     private var lastPublishedState: NavigationState? = null
 
-    /** Call when navigation starts, before showing the navigation screen. */
+    /**
+     * Call when navigation starts, before showing the navigation screen.
+     *
+     * Guarded (spec: car-host-fault-isolation — No fault escapes into the host path):
+     * the car-app library throws from these calls (`"No callback has been set"`, an
+     * already-started session) and this runs on the session's main thread, where an
+     * escaping exception kills the process. A rejected start leaves the controller not
+     * navigating, so no trip is published to a host that refused the session.
+     */
     fun onNavigationStarted() {
-        navigationManager.setNavigationManagerCallback(callback)
-        navigationManager.navigationStarted()
+        runCatching { navigationManager.setNavigationManagerCallback(callback) }
+            .onFailure { Log.w(TAG, "setNavigationManagerCallback failed", it) }
+        runCatching { navigationManager.navigationStarted() }
+            .onFailure {
+                Log.w(TAG, "navigationStarted rejected — the host does not drive this session", it)
+                navigating = false
+                lastPublishedState = null
+                return
+            }
         navigating = true
         lastPublishedState = null
+        DiagnosticsLog.log(HOST_TAG, "navigationStarted")
     }
 
-    /** Call when navigation ends (user stop, destination reached, host stop). */
+    /**
+     * Call when navigation ends (user stop, destination reached, host stop). Guarded:
+     * `navigationEnded` / `clearNavigationManagerCallback` throw while the library still
+     * considers the app navigating, and the host connection may already be gone
+     * (spec: car-host-fault-isolation — "Host navigation call rejected").
+     */
     fun onNavigationEnded() {
         navigating = false
-        navigationManager.navigationEnded()
-        navigationManager.clearNavigationManagerCallback()
+        DiagnosticsLog.log(HOST_TAG, "navigationEnded")
+        runCatching { navigationManager.navigationEnded() }
+            .onFailure { Log.w(TAG, "navigationEnded failed", it) }
+        runCatching { navigationManager.clearNavigationManagerCallback() }
+            .onFailure { Log.w(TAG, "clearNavigationManagerCallback failed", it) }
     }
 
     /**
      * Publish the host trip for [state] when the displayed trip content changed
      * (spec: auto-navigation-hints — "Trip metadata for cluster and heads-up
-     * display", "Trip publishing cadence"). No-op when navigation is not
-     * active; host failures are swallowed (the connection may already be
-     * gone), and [tripFor] returning null publishes nothing.
+     * display", "Trip publishing cadence"). No-op when navigation is not active.
+     *
+     * Both the trip construction and the host call are guarded (spec:
+     * car-host-fault-isolation — "Trip metadata cannot be built"): the mapper runs
+     * library validators that throw, and an escape would kill the collector that owns
+     * the car session. A rejected update means the host's navigation session is gone,
+     * so the controller treats it as ended instead of publishing into the void.
      */
     fun publishTrip(state: NavigationState, tripFor: (NavigationState) -> Trip?) {
         if (!navigating) return
         if (!NavigationTemplateMapper.hasTripChanged(lastPublishedState, state)) return
-        val trip = tripFor(state) ?: return
+        val trip = runCatching { tripFor(state) }
+            .onFailure { Log.w(TAG, "trip build failed — nothing published", it) }
+            .getOrNull() ?: return
         runCatching { navigationManager.updateTrip(trip) }
-            .onFailure { Log.w(TAG, "trip update failed", it) }
+            .onFailure {
+                Log.w(TAG, "trip update rejected — treating the host session as ended", it)
+                navigating = false
+                return
+            }
+        // What the host was sent, with the content that changed (spec:
+        // car-host-fault-isolation — Host interaction is diagnosable).
+        DiagnosticsLog.log(
+            HOST_TAG,
+            "trip update remaining=${state.remainingDistance.toLong()}m eta=${state.etaMillis}"
+        )
         lastPublishedState = state
     }
 
@@ -91,5 +132,8 @@ class NavigationManagerController(
 
     private companion object {
         private const val TAG = "NavigationManagerCtl"
+
+        /** Diagnostics tag for what the session sent the host (spec: car-host-fault-isolation — Host interaction is diagnosable). */
+        const val HOST_TAG = "HOST"
     }
 }

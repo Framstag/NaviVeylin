@@ -324,17 +324,12 @@ class AutoMapRenderer(
      */
     fun onSurfaceCreated(surface: Surface, width: Int, height: Int) {
         synchronized(surfaceLock) {
-            // The car-app API contract requires every Surface received via
-            // onSurfaceAvailable to be released once replaced or destroyed.
-            // NOT releasing (as before) keeps the old buffer queue alive and
-            // the host then re-delivers a surface whose queue it still owns
-            // → every lockCanvas throws IllegalArgumentException from
-            // nativeLockCanvas.
-            val previous = this.surface
-            if (previous != null && previous !== surface) {
-                android.util.Log.d(TAG, "renderer#$rendererId releasing replaced surface ${System.identityHashCode(previous)}")
-                previous.release()
-            }
+            // The session owns the surface's lifetime (spec: car-host-fault-isolation
+            // — Single-owner car surface): a renderer never releases the surface it
+            // draws on — not on replace, not on stop, not on shutdown. Releasing it
+            // here (as before) disconnected the buffer queue the host — or another
+            // screen — was still using, which is what made the host re-deliver a
+            // surface whose queue it owned.
             this.surface = surface
             this.surfaceWidth = width
             this.surfaceHeight = height
@@ -354,7 +349,7 @@ class AutoMapRenderer(
     fun onSurfaceDestroyed() {
         synchronized(surfaceLock) {
             android.util.Log.d(TAG, "renderer#$rendererId surface destroyed: ${surface?.let { System.identityHashCode(it) }}")
-            surface?.release()
+            // Stop drawing only: the session releases the surface (see onSurfaceCreated).
             surface = null
             surfaceWidth = 0
             surfaceHeight = 0
@@ -574,10 +569,13 @@ class AutoMapRenderer(
      * buffer queue stays held and the next surface it delivers fails every
      * lockCanvas.
      */
-    fun releaseSurface() {
+    /**
+     * Stop drawing on the current surface without releasing it (the session owns
+     * the surface's lifetime — spec: car-host-fault-isolation, design D1).
+     */
+    fun detachSurface() {
         synchronized(surfaceLock) {
-            android.util.Log.d(TAG, "renderer#$rendererId releasing surface: ${surface?.let { System.identityHashCode(it) }}")
-            surface?.release()
+            android.util.Log.d(TAG, "renderer#$rendererId detaching surface: ${surface?.let { System.identityHashCode(it) }}")
             surface = null
             surfaceWidth = 0
             surfaceHeight = 0
@@ -668,6 +666,43 @@ class AutoMapRenderer(
     // vehicle would otherwise queue a render every frame while clamped).
     private var lastRenderRequestMs = 0L
 
+    /**
+     * True while a full native render is running (spec: car-host-fault-isolation —
+     * Bounded periodic render work; design D7): the extrapolation loop must not queue
+     * another full render behind a running one.
+     */
+    @Volatile
+    private var renderInFlight = false
+
+    /**
+     * Duration of the last full native render (ms). The request interval stretches to
+     * it, so on a slow head unit the loop does not saturate the render thread by
+     * re-requesting a frame that cannot keep up.
+     */
+    @Volatile
+    private var lastRenderDurationMs = 0L
+
+    /**
+     * Whether the extrapolation loop may request another full render (spec:
+     * car-host-fault-isolation — Bounded periodic render work; design D7): never while a
+     * full render is in flight, and not before the request interval — which is the base
+     * constant or the measured render duration, whichever is longer. Exposed (with
+     * injectable state) for deterministic tests.
+     */
+    internal fun shouldRequestFullRender(
+        nowMs: Long,
+        lastRequestMs: Long,
+        renderInFlightNow: Boolean = renderInFlight,
+        lastDurationMs: Long = lastRenderDurationMs
+    ): Boolean = !renderInFlightNow &&
+        nowMs - lastRequestMs > maxOf(RENDER_REQUEST_INTERVAL_MS, lastDurationMs)
+
+    /** Whether a full render is running right now — exposed for tests. */
+    internal fun isRenderInFlight(): Boolean = renderInFlight
+
+    /** Duration of the last full render in ms — exposed for tests. */
+    internal fun lastRenderDuration(): Long = lastRenderDurationMs
+
     // Throttle for the follow diagnostic (mirrors the phone's follow log).
     private var followLogCount = 0
 
@@ -682,7 +717,7 @@ class AutoMapRenderer(
         zoomWalkJob?.cancel()
         scope.cancel()
         synchronized(surfaceLock) {
-            surface?.release()
+            // No release: the session owns the surface (spec: car-host-fault-isolation).
             surface = null
             surfaceWidth = 0
             surfaceHeight = 0
@@ -986,7 +1021,7 @@ class AutoMapRenderer(
             if (offset.clamped) {
                 // Display hit the overrun margin → full render at the display
                 // position (throttled so a fast vehicle cannot queue renders).
-                if (nowMs - lastRenderRequestMs > RENDER_REQUEST_INTERVAL_MS) {
+                if (shouldRequestFullRender(nowMs, lastRenderRequestMs)) {
                     lastRenderRequestMs = nowMs
                     blitEligible = false
                     val (aLat, aLon) = anchorCenterFor(displayLat, displayLon)
@@ -1117,7 +1152,19 @@ class AutoMapRenderer(
                 false
             }
         }
-        if (!blit) fullRender(surf, w, h)
+        if (!blit) {
+            // Mark the render in flight for the extrapolation loop and measure it, so
+            // the next request can wait for the duration the render actually takes
+            // (spec: car-host-fault-isolation — Bounded periodic render work).
+            renderInFlight = true
+            val renderStartedMs = System.currentTimeMillis()
+            try {
+                fullRender(surf, w, h)
+            } finally {
+                lastRenderDurationMs = System.currentTimeMillis() - renderStartedMs
+                renderInFlight = false
+            }
+        }
     }
 
     /**
@@ -1254,7 +1301,17 @@ class AutoMapRenderer(
             } else {
                 0.0 to 0.0
             }
-            drawToSurface(surf, bitmap, w, h, drawOx, drawOy)
+            val stillCurrent = synchronized(surfaceLock) { isCurrentSurface(surf) }
+            if (stillCurrent) {
+                drawToSurface(surf, bitmap, w, h, drawOx, drawOy)
+            } else {
+                // The native render ran outside the lock and outlived its surface
+                // (destroyed or replaced meanwhile): the frame belongs to a surface
+                // the session already released, so it is dropped instead of drawn
+                // (spec: car-host-fault-isolation — "After release the system SHALL
+                // NOT lock or draw the released surface").
+                android.util.Log.d(TAG, "renderer#$rendererId dropping frame: surface changed during the render")
+            }
         }
     }
 
@@ -1284,14 +1341,14 @@ class AutoMapRenderer(
                 // buffer queue; lockCanvas would throw IAE. Skip the frame
                 // (throttled diagnostics) instead of failing every render.
                 if (!surf.isValid) {
-                    reportSurfaceFailure(surf, null, "surface invalid (isValid=false)")
+                    reportFailureIfCurrent(surf, null, "surface invalid (isValid=false)")
                     return
                 }
                 canvas = surf.lockCanvas(null)
                 if (canvas == null) {
                     // Same condition as a failed lock (already-locked or
                     // invalid surface); treat it as a dead surface.
-                    reportSurfaceFailure(surf, null, "lockCanvas returned null")
+                    reportFailureIfCurrent(surf, null, "lockCanvas returned null")
                     return
                 }
                 android.util.Log.d(TAG, "renderer#$rendererId lock OK surface=${System.identityHashCode(surf)}")
@@ -1322,7 +1379,7 @@ class AutoMapRenderer(
                 // Surface may be invalid (e.g., during lifecycle transitions)
                 // or locked by the host. Log the full stack trace — the
                 // message alone is often null.
-                reportSurfaceFailure(surf, e, "lockCanvas failed")
+                reportFailureIfCurrent(surf, e, "lockCanvas failed")
             } finally {
                 // ALWAYS unlock: skipping unlock on an exception leaves the
                 // surface permanently locked, so every later lockCanvas returns
@@ -1367,12 +1424,12 @@ class AutoMapRenderer(
             var canvas: Canvas? = null
             try {
                 if (!surf.isValid) {
-                    reportSurfaceFailure(surf, null, "surface invalid (isValid=false)")
+                    reportFailureIfCurrent(surf, null, "surface invalid (isValid=false)")
                     return
                 }
                 canvas = surf.lockCanvas(null)
                 if (canvas == null) {
-                    reportSurfaceFailure(surf, null, "lockCanvas returned null")
+                    reportFailureIfCurrent(surf, null, "lockCanvas returned null")
                     return
                 }
                 val dx = ((w - bitmap.width) / 2f).roundToInt() - roundOffset(ox)
@@ -1396,7 +1453,7 @@ class AutoMapRenderer(
                 drawDestinationMarker(canvas, w, h)
                 overlayDrawer?.invoke(canvas, w, h)
             } catch (e: Exception) {
-                reportSurfaceFailure(surf, e, "blit lockCanvas failed")
+                reportFailureIfCurrent(surf, e, "blit lockCanvas failed")
             } finally {
                 if (canvas != null) {
                     try {
@@ -1424,6 +1481,32 @@ class AutoMapRenderer(
         displayLat = Double.NaN
         displayLon = Double.NaN
         followDisplayState.reset()
+    }
+
+    /**
+     * Whether [surf] is still the surface this renderer draws on. A frame whose
+     * surface was destroyed or replaced while the native render was in flight must be
+     * dropped (spec: car-host-fault-isolation — "After release the system SHALL NOT
+     * lock or draw the released surface"). Exposed for tests.
+     */
+    internal fun isCurrentSurface(surf: Surface): Boolean = surface === surf
+
+    /**
+     * Report a draw failure only while [surf] is still the renderer's surface: a
+     * surface that was destroyed or replaced while a render was in flight is stale,
+     * not a failure of the current one — reporting it would set `surfaceFailed` and
+     * stop the render loop for the live surface (observed on the automotive AVD:
+     * a background round trip replaced the surface and the map stayed frozen).
+     */
+    private fun reportFailureIfCurrent(surf: Surface, e: Throwable?, why: String) {
+        if (isCurrentSurface(surf)) {
+            reportSurfaceFailure(surf, e, why)
+        } else {
+            android.util.Log.d(
+                TAG,
+                "renderer#$rendererId $why on a replaced surface ${System.identityHashCode(surf)} — ignored"
+            )
+        }
     }
 
     /**

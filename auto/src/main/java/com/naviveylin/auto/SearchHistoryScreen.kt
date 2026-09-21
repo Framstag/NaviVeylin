@@ -45,7 +45,10 @@ class SearchHistoryScreen(
         }
     }
 
-    override fun onGetTemplate(): ListTemplate {
+    override fun onGetTemplate(): ListTemplate = carListTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carListTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): ListTemplate {
         val itemList = ItemList.Builder()
         val list = entries
         if (list == null) {

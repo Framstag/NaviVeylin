@@ -6,11 +6,6 @@ import android.util.Log
 import androidx.car.app.Screen
 import androidx.car.app.ScreenManager
 import androidx.car.app.Session
-import androidx.car.app.model.Action
-import androidx.car.app.model.Header
-import androidx.car.app.model.Pane
-import androidx.car.app.model.PaneTemplate
-import androidx.car.app.model.Row
 import androidx.car.app.navigation.NavigationManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -94,6 +89,22 @@ class NavigationSession : Session() {
     @Volatile
     private var warmupCompleted = false
 
+    /**
+     * Host-mutation gate (spec: car-host-fault-isolation — Bounded host-facing traffic
+     * while not visible): the session's observers keep running while the app is
+     * backgrounded (guidance and trip metadata must keep updating), but the host state
+     * is only mutated while the session is started.
+     */
+    private val hostGate = SessionHostGate()
+
+    /**
+     * At-most-once bookkeeping for the free-driving restore (spec: auto/free-driving —
+     * Free-driving restore is idempotent): [restoreDrivingMode] runs from two session
+     * paths and the free-driving flag survives a session destroy, so the push must be
+     * consumed once per session.
+     */
+    private val freeDrivingRestore = FreeDrivingRestoreGate()
+
     @Volatile
     private var lastWarmupStep: String = "warmup not started"
 
@@ -168,6 +179,30 @@ class NavigationSession : Session() {
                 .onFailure { Log.w(TAG, "dark mode preference load failed — default AUTOMATIC", it) }
         }
         lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                // The car-app host keeps ONE surface callback per app: registering it
+                // per session (not per screen) is what stops a screen transition from
+                // re-delivering the surface, and it is why no screen releases a
+                // surface another screen draws through (spec: car-host-fault-isolation
+                // — Single-owner car surface; design D1).
+                runCatching { surfaceHost().startSession(carContext) }
+                    .onFailure { Log.w(TAG, "surface host start failed", it) }
+                SessionLog.push("surface callback registered")
+                // A transition that happened while the session was stopped is applied
+                // once now (spec: car-host-fault-isolation — Bounded host-facing traffic
+                // while not visible).
+                if (hostGate.onSessionStart()) {
+                    SessionLog.push("host sync after background")
+                    syncHostWithCurrentState()
+                }
+            }
+
+            override fun onStop(owner: LifecycleOwner) {
+                // Host mutations (screen push/pop, template refresh, host navigation
+                // state) are deferred from here on.
+                hostGate.onSessionStop()
+            }
+
             override fun onDestroy(owner: LifecycleOwner) {
                 SessionLog.destroyed()
                 if (warmupJob?.isActive == true) {
@@ -182,6 +217,10 @@ class NavigationSession : Session() {
                 navigationManagerController?.onDestroy()
                 sessionDestroyed = true
                 stopObserving()
+                // Releases a still-held surface and clears the host registration
+                // (spec: car-host-fault-isolation — "Session ends with a surface held").
+                runCatching { surfaceHost().endSession() }
+                    .onFailure { Log.w(TAG, "surface host end failed", it) }
                 scope.cancel()
             }
         })
@@ -214,6 +253,9 @@ class NavigationSession : Session() {
             AutoEntryPoint::class.java
         )
     }
+
+    /** Session-scoped car surface owner (spec: car-host-fault-isolation). */
+    private fun surfaceHost(): com.naviveylin.core.CarSurfaceHost = entryPoint.autoSurfaceHost()
 
     override fun onCreateScreen(intent: Intent): Screen {
         SessionLog.onCreateScreen(
@@ -420,6 +462,12 @@ class NavigationSession : Session() {
     /** Surface an actionable error (with Retry) on top of the root screen. */
     private fun showStartupFailure(message: String) {
         if (sessionDestroyed) return
+        if (!hostGate.allowHostMutation()) {
+            // Backgrounded: no visible screen to show it on. The failure is recorded in
+            // the diagnostics log; the retry affordance is not needed off-screen.
+            DiagnosticsLog.log(SessionLog.SESSION_TAG, "Startup failure while backgrounded: $message")
+            return
+        }
         DiagnosticsLog.log(SessionLog.SESSION_TAG, "Showing ErrorScreen: $message")
         runCatching {
             carContext.getCarService(ScreenManager::class.java)
@@ -434,6 +482,9 @@ class NavigationSession : Session() {
         if (sessionDestroyed) return
         SessionLog.retry()
         carContext.getCarService(ScreenManager::class.java).popToRoot()
+        // The stack is back at the root: a still-active free-driving mode may be
+        // restored again (spec: auto/free-driving — Free-driving restore is idempotent).
+        freeDrivingRestore.reset()
         startWarmup()
     }
 
@@ -501,6 +552,14 @@ class NavigationSession : Session() {
                 .map { it.isNavigating }
                 .distinctUntilChanged()
                 .collect { isNavigating ->
+                    // Host navigation state and the screen stack are both host
+                    // mutations: while the session is not started they are deferred and
+                    // re-applied once on the next start (spec: car-host-fault-isolation —
+                    // Bounded host-facing traffic while not visible).
+                    if (!hostGate.allowHostMutation()) {
+                        Log.d(TAG, "session not started — navigation view sync deferred")
+                        return@collect
+                    }
                     if (isNavigating) {
                         navigationManagerController().onNavigationStarted()
                         showNavigationScreen()
@@ -561,6 +620,10 @@ class NavigationSession : Session() {
             Log.d(TAG, "NavigationScreen already on stack — no re-push")
             return
         }
+        if (!hostGate.allowHostMutation()) {
+            Log.d(TAG, "session not started — navigation screen push deferred")
+            return
+        }
         SessionLog.push("NavigationScreen")
         val screen = getNavigationScreen()
         carContext.getCarService(ScreenManager::class.java).push(screen)
@@ -568,11 +631,34 @@ class NavigationSession : Session() {
     }
 
     private fun showRootScreen() {
+        if (!hostGate.allowHostMutation()) {
+            Log.d(TAG, "session not started — root screen pop deferred")
+            return
+        }
         Log.d(TAG, "Switching to RootScreen")
         SessionLog.popToRoot()
         navigationScreen = null
         navScreenPushed = false
         carContext.getCarService(ScreenManager::class.java).popToRoot()
+    }
+
+    /**
+     * Apply the state the session finds on its first started emission after a deferred
+     * (backgrounded) transition (spec: car-host-fault-isolation — Bounded host-facing
+     * traffic while not visible): the navigation screen and the host navigation state
+     * are brought in line exactly once, so a transition that happened while stopped is
+     * not lost.
+     */
+    private fun syncHostWithCurrentState() {
+        if (navigationViewModel.state.value.isNavigating) {
+            navigationManagerController().onNavigationStarted()
+            showNavigationScreen()
+        } else {
+            navigationManagerController()?.onNavigationEnded()
+            showRootScreen()
+        }
+        // An error raised while the session was stopped is shown once now.
+        navigationViewModel.state.value.errorMessage?.let { showError(it) }
     }
 
     /**
@@ -583,46 +669,39 @@ class NavigationSession : Session() {
      * `!isNavigating`: the free-driving and navigation modes are mutually
      * exclusive (the navigation controller clears the free-driving flag on
      * navigation start), and the gate keeps a race from stacking both views.
+     *
+     * At most once per session (spec: auto/free-driving — Free-driving restore is
+     * idempotent): [onCreateScreen] and [onWarmupComplete] both call this, and the
+     * free-driving flag survives a session destroy, so an unguarded restore pushed the
+     * view twice (two renderers, plus a ghost view under the top one).
      */
     private fun restoreDrivingMode() {
         if (sessionDestroyed) return
-        val shouldRestore = shouldRestoreFreeDriving(
+        val shouldRestore = freeDrivingRestore.shouldPush(
             isNavigating = navigationViewModel.state.value.isNavigating,
             freeDrivingActive = entryPoint.autoDrivingModeProvider().freeDrivingActive.value
         )
-        if (shouldRestore) {
-            SessionLog.push("FreeDrivingScreen (restore)")
-            carContext.getCarService(ScreenManager::class.java).push(FreeDrivingScreen(carContext))
+        if (!shouldRestore) return
+        if (!hostGate.allowHostMutation()) {
+            // Deferred, not consumed: the next started sync restores it.
+            Log.d(TAG, "session not started — free-driving restore deferred")
+            return
         }
+        freeDrivingRestore.recordPush()
+        SessionLog.push("FreeDrivingScreen (restore)")
+        carContext.getCarService(ScreenManager::class.java).push(FreeDrivingScreen(carContext))
     }
 
     private fun showError(message: String) {
+        if (!hostGate.allowHostMutation()) {
+            Log.d(TAG, "session not started — error screen deferred")
+            return
+        }
         Log.d(TAG, "Showing error: $message")
         SessionLog.errorOverlay(message)
-        val errorScreen = object : Screen(carContext) {
-            init {
-                enableBackNavigation()
-            }
-
-            override fun onGetTemplate(): PaneTemplate {
-                val backAction = Action.Builder()
-                    .setTitle(carContext.getString(R.string.back))
-                    .setOnClickListener { screenManager.pop() }
-                    .build()
-                val pane = Pane.Builder()
-                    .addRow(
-                        Row.Builder()
-                            .setTitle(message)
-                            .addAction(backAction)
-                            .build()
-                    )
-                    .build()
-                return PaneTemplate.Builder(pane)
-                    .setHeader(Header.Builder().setTitle(carContext.getString(R.string.error)).setStartHeaderAction(Action.BACK).build())
-                    .build()
-            }
-        }
-        carContext.getCarService(ScreenManager::class.java).push(errorScreen)
+        // The overlay's template build is guarded like every other car screen's
+        // (spec: car-host-fault-isolation — No fault escapes into the host path).
+        carContext.getCarService(ScreenManager::class.java).push(ErrorOverlayScreen(carContext, message))
 
         // Auto-dismiss error after 4 seconds, clear error state
         scope.launch {

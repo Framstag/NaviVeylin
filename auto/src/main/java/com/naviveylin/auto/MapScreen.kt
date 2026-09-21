@@ -5,13 +5,11 @@ package com.naviveylin.auto
 import android.graphics.Rect
 import android.os.SystemClock
 import android.util.Log
+import android.view.Surface
 import android.view.View
-import androidx.car.app.AppManager
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.ScreenManager
-import androidx.car.app.SurfaceCallback
-import androidx.car.app.SurfaceContainer
 import androidx.car.app.model.ActionStrip
 import androidx.car.app.navigation.model.MapController
 import androidx.car.app.navigation.model.MapWithContentTemplate
@@ -25,6 +23,7 @@ import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.CarSurfaceOwner
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.VehicleAnchorPosition
 import dagger.hilt.android.EntryPointAccessors
@@ -71,7 +70,6 @@ class MapScreen(
 ) : Screen(carContext) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var observeJob: Job? = null
     private var rendererInitJob: Job? = null
 
     private val entryPoint = EntryPointAccessors.fromApplication(
@@ -81,6 +79,14 @@ class MapScreen(
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
     private val locationProvider = entryPoint.autoLocationProvider()
     private val settingsProvider = entryPoint.autoSettingsProvider()
+
+    /**
+     * Session-scoped car surface owner (spec: car-host-fault-isolation — Single-owner
+     * car surface): the session's host forwards the car surface and gesture events to
+     * this screen while it is attached, and the host — not the screen — releases the
+     * surface, so a transition or a background round trip keeps the surface usable.
+     */
+    private val surfaceHost = entryPoint.autoSurfaceHost()
 
     /** Applies the shared map style to the native client (deduped). */
     private val styleApplier = CarStyleApplier(
@@ -121,6 +127,33 @@ class MapScreen(
      * Hilt native-client singleton on the host thread.
      */
     private val rendererGate = RendererGate()
+
+    /**
+     * Shared-state observations for this screen (spec: auto/screen-observation;
+     * design D2): [CarScreenObservations] owns how long each observation lives,
+     * [MapScreenObservations] owns what is observed. Started in `onStart`, stopped in
+     * `onStop`, so a background round trip or a push/pop cycle can never leave a
+     * duplicate observer behind.
+     */
+    private val observations = CarScreenObservations()
+    private val screenObservations = MapScreenObservations(
+        observations = observations,
+        locationProvider = locationProvider,
+        favoritesProvider = favoritesProvider,
+        basemapNotifier = entryPoint.basemapReloadNotifier(),
+        resolvedDark = resolvedDark,
+        onFix = ::onGpsFix,
+        onFavorites = { rendererGate.setFavoriteLocations(it) },
+        onDark = { dark ->
+            rendererGate.setDarkPresentation(dark)
+            // Stylesheet flag applies only once the client is built; a pre-ready dark
+            // is re-pushed by the readiness observer via pushDark() (which skips until
+            // ready). Deduped by value: an unchanged resolved value neither reloads
+            // the variant nor forces a full render.
+            pushDark()
+        },
+        onBasemapRevision = { rendererGate.invalidateData() }
+    )
 
     /** Throttled street-name resolution (same pattern as free driving). */
     private val streetNameUpdater = StreetNameUpdater()
@@ -190,12 +223,17 @@ class MapScreen(
                 // persistently-bad surface does not invalidate the template
                 // forever.
                 renderer.onSurfaceFailed = {
-                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
-                        surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
-                    ) {
-                        surfaceRefreshAttempts++
-                        Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
-                        invalidate()
+                    // Reported from the render thread; the car-app library wants the
+                    // refresh on the main thread (spec: car-host-fault-isolation —
+                    // Template invalidation is main-thread only).
+                    postTemplateRefresh {
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                            surfaceRefreshAttempts < MAX_SURFACE_REFRESH_ATTEMPTS
+                        ) {
+                            surfaceRefreshAttempts++
+                            Log.w(TAG, "surface failed — invalidating to request a fresh surface (attempt $surfaceRefreshAttempts)")
+                            invalidate()
+                        }
                     }
                 }
                 // The startup push was skipped while the client was still
@@ -211,7 +249,10 @@ class MapScreen(
         // then the gate buffers surface/dark/viewport/marker state; the
         // constructor stays on the main thread only for cheap bookkeeping.
         rendererInitJob = scope.launch {
-            val renderer = withContext(Dispatchers.Default) {
+            // Everything that touches the native client stays on a background
+            // dispatcher (spec: auto-map-renderer — Renderer initialization off the
+            // car-app main thread).
+            val prepared = withContext(Dispatchers.Default) {
                 val client = entryPoint.autoClientProvider().client()
                 rendererGate.pendingSurfaceDpi()?.let { dpi ->
                     runCatching { client.setMapDpi(dpi) }
@@ -226,56 +267,76 @@ class MapScreen(
                     defaultCenter = DEFAULT_LAT to DEFAULT_LON
                 )
                 Log.d(TAG, "AA renderer ready at ${viewport.lat},${viewport.lon} mag=${viewport.zoom}")
-                // The native renderer projects with the client's configured
-                // physical DPI (from the phone display metrics), not the car
-                // surface DPI — all overlay math (gestures, GPS marker) must
-                // use the same value.
+                client to viewport
+            }
+            // Constructed and published on the main thread with no suspension in
+            // between, so a cancellation during the background work can never drop an
+            // already-constructed renderer (spec: auto-map-renderer — "Renderer
+            // constructed while the screen is being destroyed"). The constructor does
+            // no native work: it initialises fields and its own loops only.
+            //
+            // The native renderer projects with the client's configured physical DPI
+            // (from the phone display metrics), not the car surface DPI — all overlay
+            // math (gestures, GPS marker) must use the same value.
+            rendererGate.publish(
                 AutoMapRenderer(
-                    client,
+                    prepared.first,
                     carContext.resources.displayMetrics.densityDpi.toDouble(),
-                    viewport.lat,
-                    viewport.lon,
-                    viewport.zoom,
+                    prepared.second.lat,
+                    prepared.second.lon,
+                    prepared.second.zoom,
                     // "Show location" maps must stay on the requested
                     // destination — follow mode would snap the viewport to
                     // every GPS fix.
                     initialFollowMode = initialCenter == null
                 )
+            )
+        }
+
+        // The native client's DPI follows the car surface, applied on a background
+        // dispatcher: the host's surface callback only retains the value (spec:
+        // car-host-fault-isolation — Host callbacks answer promptly).
+        scope.launch {
+            rendererGate.surfaceDpi.collect { dpi ->
+                if (dpi > 0.0 && rendererGate.rendererOrNull() != null) {
+                    withContext(Dispatchers.Default) {
+                        runCatching { entryPoint.autoClientProvider().client().setMapDpi(dpi) }
+                            .onFailure { Log.w(TAG, "setMapDpi failed", it) }
+                    }
+                }
             }
-            rendererGate.publish(renderer)
         }
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
-                registerSurfaceCallback()
+                surfaceHost.attach(surfaceOwner)
                 rendererGate.resume()
-                startObserving()
+                screenObservations.start()
             }
             override fun onStop(owner: LifecycleOwner) {
-                stopObserving()
+                // Every observation ends with the started period (spec:
+                // auto/screen-observation — One instance of each observation per
+                // started period).
+                observations.stop()
                 rendererGate.pause()
-                // Release the surface: a screen stopped underneath a pushed
-                // screen never gets onSurfaceDestroyed (the host notifies only
-                // the current callback), so the stale surface would keep the
-                // host's buffer queue held and break the next screen's
-                // surface. Release on stop, re-acquire on start. No-op while
+                // Detach only: the session owns the surface's lifetime, so a screen
+                // that stops underneath a pushed screen neither clears the new
+                // screen's surface nor releases the queue it draws through (spec:
+                // car-host-fault-isolation — Single-owner car surface). No-op while
                 // the renderer is still initializing.
-                rendererGate.releaseSurface()
-                // NOTE: no unregisterSurfaceCallback() here — see
-                // FreeDrivingScreen: an onStop unregister nulls the callback
-                // the next screen registered (car-app starts the new screen
-                // before stopping the old one), forcing a second surface
-                // delivery that the host locks. Unregister only on destroy.
+                surfaceHost.detach(surfaceOwner)
             }
             override fun onDestroy(owner: LifecycleOwner) {
-                unregisterSurfaceCallback()
+                surfaceHost.detach(surfaceOwner)
                 // Cancel a still-running init first, so no renderer work
                 // continues after the screen is destroyed; the gate shuts
                 // down a published renderer (spec: "Renderer still
                 // initializing when the screen stops").
                 rendererInitJob?.cancel()
                 rendererGate.destroy()
+                // A destroy without a stop must not leave an observation running.
+                observations.stop()
                 scope.cancel()
             }
         })
@@ -319,40 +380,57 @@ class MapScreen(
         // thread — run off the main thread; deduped by the applier).
         val style = settings.styleSheet
         scope.launch(Dispatchers.Default) {
+            val styleChanged = style != pushedForStyleSheet
             if (!styleApplier.apply(style)) {
                 Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
             } else {
-                // DB is ready (style loaded) — (re)push the day/night flag:
-                // the startup push may have been dropped while the DB was still
-                // initializing (warmup race), leaving the map on the wrong variant.
-                pushDark()
+                pushedForStyleSheet = style
+                // Force the push only when the stylesheet was (re)loaded: that is the
+                // DB-ready re-push for the warmup race. An unchanged settings re-read
+                // must not reload the variant nor force a full render (spec:
+                // car-host-fault-isolation — Bounded periodic render work).
+                pushDark(force = styleChanged)
             }
         }
     }
 
     /**
-     * (Re)push the resolved dark presentation to the native stylesheet and
-     * force a full render. The applier is reset first so a push that was
-     * silently dropped by the native side (DB not initialized) is not deduped
-     * away.
+     * Stylesheet whose day/night flag was pushed last: a *changed* stylesheet means the
+     * native side reloaded the style variant, so the flag is re-pushed once. Written
+     * from the settings re-read (background dispatcher), hence volatile.
      */
-    private fun pushDark() {
+    @Volatile
+    private var pushedForStyleSheet: String? = null
+
+    /**
+     * (Re)push the resolved dark presentation to the native stylesheet and force a full
+     * render when it actually changed (spec: car-host-fault-isolation — Bounded
+     * periodic render work; design D5): the settings re-read runs every few seconds and
+     * must not reload the style variant plus a full native render each time.
+     *
+     * @param force re-push a value the native side may have dropped (the stylesheet was
+     *   just (re)loaded, or the DB became ready after an earlier push)
+     */
+    private fun pushDark(force: Boolean = false) {
         // Skip until the renderer exists: the native client may still be
         // building off the main thread, and applying the stylesheet flag must
         // never first-touch it here. Re-pushed from the readiness observer and
         // after surface arrival once the init coroutine built the client.
         if (rendererGate.rendererOrNull() == null) return
-        daylightApplier.reset()
-        if (daylightApplier.apply(resolvedDark.value)) {
+        val dark = resolvedDark.value
+        if (!daylightApplier.needsPush(dark, force)) return
+        if (daylightApplier.apply(dark, force)) {
             rendererGate.invalidateStyle()
         }
     }
 
     override fun onGetTemplate(): Template {
         return try {
-            val template = buildTemplate()
-            DiagnosticsLog.log("MAP", "MapTemplate delivered")
-            template
+            // No per-build log line: template builds are host-paced and unbounded,
+            // and a host callback must not do filesystem work on its answering path
+            // (spec: auto-diagnostics — Logging never blocks the caller, design D6).
+            // A build failure still lands through logThrowable below.
+            buildTemplate()
         } catch (e: Exception) {
             DiagnosticsLog.logThrowable(TEMPLATE_TAG, "MapTemplate build failed", e)
             SafeScreen.errorTemplate(carContext, e.message)
@@ -437,34 +515,29 @@ class MapScreen(
         return MapTemplateFactory.buildTemplate(mapController!!, content, actionStrip)
     }
 
-    private fun registerSurfaceCallback() {
-        val appManager = carContext.getCarService(AppManager::class.java)
-        appManager.setSurfaceCallback(object : SurfaceCallback {
-            override fun onSurfaceAvailable(surfaceContainer: SurfaceContainer) {
-                val surface = surfaceContainer.surface ?: return
-                surfaceWidth = surfaceContainer.width
-                surfaceHeight = surfaceContainer.height
-                surfaceDpi = surfaceContainer.dpi.takeIf { it > 0 }?.toDouble() ?: DEFAULT_DPI
-                Log.d(TAG, "Map surface available: ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi")
-                DiagnosticsLog.log(
-                    "MAP",
-                    "Surface available ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi"
-                )
-                // Render at the CAR display's DPI — the client is built with
-                // the phone metrics, which would scale the map ~1.8x too
-                // zoomed on a ~236-dpi head unit. Takes effect on the next
-                // render. Only safe on the main thread once the client is built
-                // (renderer published); a pre-ready DPI is applied by the
-                // off-main init coroutine and replayed with the surface.
-                if (rendererGate.rendererOrNull() != null) {
-                    runCatching { entryPoint.autoClientProvider().client().setMapDpi(surfaceDpi) }
-                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                }
-                rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
-                // Host chrome (the AAOS status/task bars) is derived from the
-                // host's stable area once delivered; until then the insets are 0.
-                rendererGate.setHostTopInset(hostInsetsPx().first)
-                rendererGate.setHostBottomInset(hostInsetsPx().second)
+    /**
+     * Car-surface owner for this screen (spec: car-host-fault-isolation — Single-owner
+     * car surface; design D1). Attached to the session's [surfaceHost] on start and
+     * detached on stop; the host hands over a retained surface immediately on attach.
+     */
+    private val surfaceOwner: CarSurfaceOwner = object : CarSurfaceOwner {
+        override fun onCarSurfaceAvailable(surface: Surface, width: Int, height: Int, dpi: Double) {
+            surfaceWidth = width
+            surfaceHeight = height
+            surfaceDpi = dpi.takeIf { it > 0.0 } ?: DEFAULT_DPI
+            Log.d(TAG, "Map surface available: ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi")
+            DiagnosticsLog.log(
+                "MAP",
+                "Surface available ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi"
+            )
+            // The native client's DPI follows rendererGate.surfaceDpi, applied by the
+            // background collector (see init): a host callback must not resolve the
+            // client (spec: car-host-fault-isolation — Host callbacks answer promptly).
+            rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
+            // Host chrome (the AAOS status/task bars) is derived from the
+            // host's stable area once delivered; until then the insets are 0.
+            rendererGate.setHostTopInset(hostInsetsPx().first)
+            rendererGate.setHostBottomInset(hostInsetsPx().second)
                 // Re-push the resolved day/night flag before the first render: the
                 // startup push may have been dropped while the DB was still
                 // initializing (warmup race).
@@ -484,7 +557,7 @@ class MapScreen(
                 }
             }
 
-            override fun onSurfaceDestroyed(surfaceContainer: SurfaceContainer) {
+            override fun onCarSurfaceDestroyed() {
                 Log.d(TAG, "Map surface destroyed")
                 surfaceWidth = 0
                 surfaceHeight = 0
@@ -496,7 +569,7 @@ class MapScreen(
                 rendererGate.onSurfaceDestroyed()
             }
 
-            override fun onVisibleAreaChanged(visible: Rect) {
+            override fun onCarVisibleAreaChanged(visible: Rect) {
                 // Pill TOP edge from the currently-visible top (real coverage);
                 // the stable area can over-reserve a top band the host never
                 // draws (design D8 revision, street-name-host-views).
@@ -506,10 +579,10 @@ class MapScreen(
                 rendererGate.requestRender()
             }
 
-            override fun onStableAreaChanged(newStableArea: Rect) {
-                stableArea.set(newStableArea)
+            override fun onCarStableAreaChanged(stable: Rect) {
+                stableArea.set(stable)
                 val (topInset, bottomInset) = hostInsetsPx()
-                Log.d(TAG, "stable area $newStableArea -> topInset=$topInset bottomInset=$bottomInset")
+                Log.d(TAG, "stable area $stable -> topInset=$topInset bottomInset=$bottomInset")
                 // The street pill anchors inside the guaranteed-visible band
                 // (design D8) — the AAOS bars are host chrome, not surface.
                 rendererGate.setHostTopInset(topInset)
@@ -517,7 +590,7 @@ class MapScreen(
                 rendererGate.requestRender()
             }
 
-            override fun onScroll(distanceX: Float, distanceY: Float) {
+            override fun onCarScroll(distanceX: Float, distanceY: Float) {
                 // Convert scroll to viewport change. Use the same DPI as the
                 // native render (not the surface DPI) so the pan tracks the
                 // finger 1:1. Positive deltas move the map with the finger.
@@ -550,7 +623,7 @@ class MapScreen(
                 rendererGate.setViewport(newLat, newLon, vp.zoom, vp.angle)
             }
 
-            override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {
+            override fun onCarScale(focusX: Float, focusY: Float, scaleFactor: Float) {
                 val renderer = rendererGate.rendererOrNull() ?: return
                 // Ignore jitter so tiny finger spread during a pan never triggers a zoom step
                 if (abs(scaleFactor - 1f) < SCALE_JITTER_THRESHOLD) return
@@ -576,7 +649,7 @@ class MapScreen(
                 rendererGate.setViewport(newLat, newLon, newZoom, vp.angle, newFraction)
             }
 
-            override fun onClick(x: Float, y: Float) {
+            override fun onCarClick(x: Float, y: Float) {
                 val renderer = rendererGate.rendererOrNull() ?: return
                 // Convert screen coordinates to geo coordinates
                 val vp = renderer.viewportState.value
@@ -589,12 +662,6 @@ class MapScreen(
                 Log.d(TAG, "onClick ($x,$y) -> $lat,$lon mag=${vp.zoom}")
                 onLocationSelected(lat, lon)
             }
-        })
-    }
-
-    private fun unregisterSurfaceCallback() {
-        val appManager = carContext.getCarService(AppManager::class.java)
-        appManager.setSurfaceCallback(null)
     }
 
     /**
@@ -617,16 +684,24 @@ class MapScreen(
      * several candidates → push the candidate picker; exactly one → details
      * screen directly with that description; none → details screen with
      * coordinates (existing behavior).
+     *
+     * Internal so the host-callback contract is unit-testable (spec:
+     * car-host-fault-isolation — Host callbacks answer promptly): this is what
+     * [CarSurfaceOwner.onCarClick] calls, and it must return without constructing
+     * the native client.
      */
-    private fun onLocationSelected(lat: Double, lon: Double) {
-        val client = entryPoint.autoClientProvider().client()
+    internal fun onLocationSelected(lat: Double, lon: Double) {
+        // Host-callback path: only state is retained here (spec: car-host-fault-isolation —
+        // Host callbacks answer promptly). The native client is resolved inside the
+        // background block — its first touch builds it — and the work runs in the screen's own
+        // scope, which is cancelled on destroy (a per-tap scope is never reclaimed).
         val mag = rendererGate.rendererOrNull()?.viewportState?.value?.zoom ?: initialZoom
         val screenManager = carContext.getCarService(ScreenManager::class.java)
 
-        CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
+        scope.launch {
             val candidates = withContext(Dispatchers.Default) {
                 try {
-                    client.getDescriptionCandidates(lat, lon, mag)
+                    entryPoint.autoClientProvider().client().getDescriptionCandidates(lat, lon, mag)
                 } catch (e: Exception) {
                     Log.w(TAG, "getDescriptionCandidates failed", e)
                     emptyList()
@@ -654,70 +729,29 @@ class MapScreen(
     }
 
 
-    private fun startObserving() {
-        if (observeJob != null) return
-        observeJob = scope.launch {
-            // GPS position: prefer the AA location provider (the AA-only
-            // process has no phone UI mirroring into navigationViewModel).
-            locationProvider.position().collect { pos ->
-                if (pos != null) {
-                    rendererGate.setGpsMarker(
-                        pos.lat, pos.lon, pos.bearing, pos.accuracy,
-                        speedKmH = pos.speedKmH,
-                        timeMs = System.currentTimeMillis()
-                    )
-                    // Current street for the browse pill (spec: auto/browse):
-                    // throttled bearing-aware road lookup at the GPS position.
-                    resolveStreetName(pos)
-                    // Periodic settings refresh so changes made in the settings
-                    // screen take effect live (no flow on the provider yet).
-                    val now = SystemClock.elapsedRealtime()
-                    if (now - lastSettingsReloadMs > SETTINGS_RELOAD_INTERVAL_MS) {
-                        lastSettingsReloadMs = now
-                        scope.launch {
-                            runCatching { settingsProvider.load() }
-                                .onSuccess { applySettings(it) }
-                                .onFailure { Log.w(TAG, "settings reload failed", it) }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Observe favorites for markers
-        scope.launch {
-            favoritesProvider.favoriteLocations().collect { favorites ->
-                val allFavorites = favorites.values.flatten()
-                rendererGate.setFavoriteLocations(allFavorites)
-            }
-        }
-
-        // Resolved day/night: push the stylesheet `daylight` flag and re-render
-        // on change (tunnel entry, dusk, or a dark mode preference change on the
-        // car). Deduped by the applier; the native side reloads the variant on
-        // its DB thread. invalidateStyle forces a full
-        // render so the stale-variant overrun buffer is never blitted.
-        scope.launch {
-            resolvedDark.collect { dark ->
-                rendererGate.setDarkPresentation(dark)
-                // Stylesheet flag applies only once the client is built; a
-                // pre-ready dark is re-pushed by the readiness observer via
-                // pushDark() (which skips until ready).
-                if (rendererGate.rendererOrNull() != null && daylightApplier.apply(dark)) {
-                    rendererGate.invalidateStyle()
-                }
-            }
-        }
-
-        // Basemap data changes (download/update/delete while the app runs):
-        // re-render without an app restart, bypassing the overrun blit
-        // (spec: basemap-loading — current view re-renders with/without the
-        // basemap overlay active).
-        scope.launch {
-            entryPoint.basemapReloadNotifier().revision.collect { revision ->
-                if (revision > 0L) {
-                    rendererGate.invalidateData()
-                }
+    /**
+     * One GPS fix for the browse map (spec: auto/browse — the street pill follows
+     * the position; auto/screen-observation — observed only while the screen is
+     * started).
+     */
+    private fun onGpsFix(pos: AutoPosition) {
+        rendererGate.setGpsMarker(
+            pos.lat, pos.lon, pos.bearing, pos.accuracy,
+            speedKmH = pos.speedKmH,
+            timeMs = System.currentTimeMillis()
+        )
+        // Current street for the browse pill (spec: auto/browse):
+        // throttled bearing-aware road lookup at the GPS position.
+        resolveStreetName(pos)
+        // Periodic settings refresh so changes made in the settings
+        // screen take effect live (no flow on the provider yet).
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastSettingsReloadMs > SETTINGS_RELOAD_INTERVAL_MS) {
+            lastSettingsReloadMs = now
+            scope.launch {
+                runCatching { settingsProvider.load() }
+                    .onSuccess { applySettings(it) }
+                    .onFailure { Log.w(TAG, "settings reload failed", it) }
             }
         }
     }
@@ -753,11 +787,6 @@ class MapScreen(
                 Log.d(TAG, "browse street name -> $name")
             }
         }
-    }
-
-    private fun stopObserving() {
-        observeJob?.cancel()
-        observeJob = null
     }
 
     private fun onZoomIn() {

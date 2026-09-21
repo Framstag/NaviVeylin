@@ -34,6 +34,7 @@ class DiagnosticsLogTest {
 
     @After
     fun tearDown() {
+        DiagnosticsLog.maxBytes = DiagnosticsLog.MAX_BYTES
         DiagnosticsLog.reset()
         logFile.delete()
         File(logFile.parentFile, DiagnosticsLog.ROTATED_FILE).delete()
@@ -56,6 +57,7 @@ class DiagnosticsLogTest {
 
         val target = File(context.filesDir, "diagnostics/${DiagnosticsLog.LOG_FILE}")
         DiagnosticsLog.log("TEST", "stale-repoint")
+        assertTrue("the entry reaches the worker's file", DiagnosticsLog.flushNow())
         assertTrue("log must be re-pointed to the app file", target.exists())
         assertTrue(target.readText().contains("stale-repoint"))
     }
@@ -100,7 +102,7 @@ class DiagnosticsLogTest {
     @Test
     fun shareIntentCarriesLogText() {
         DiagnosticsLog.log("TEST", "share me")
-        val intent = DiagnosticsLog.shareIntent()
+        val intent = DiagnosticsLog.shareIntent(DiagnosticsLog.exportText())
         assertEquals(Intent.ACTION_SEND, intent.action)
         assertEquals("text/plain", intent.type)
         assertTrue(intent.getStringExtra(Intent.EXTRA_TEXT)!!.contains("share me"))

@@ -442,10 +442,19 @@ class FakeOSMScoutClient : OSMScoutClient() {
         return true
     }
 
+    /**
+     * Optional hook invoked at the very start of [saveFavoriteLocations],
+     * before the call is recorded. Lets a test park a write inside its persist
+     * step and run another write during that window (the window the write
+     * serialisation in `FavoriteRepository` has to close).
+     */
+    var beforeSaveFavoriteLocations: (() -> Unit)? = null
+
     override fun saveFavoriteLocations(
         filePath: String,
         groups: Array<out FavoriteLocationGroup>
     ): Boolean {
+        beforeSaveFavoriteLocations?.invoke()
         saveFavoriteLocationsCalls.incrementAndGet()
         lastSavedFavoriteOrder = groups.map { group ->
             group.name to group.favorites.map { it.name }

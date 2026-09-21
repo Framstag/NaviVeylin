@@ -14,6 +14,7 @@ import com.naviveylin.core.StringResolver
 import com.naviveylin.core.stringResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -445,10 +446,80 @@ class NavigationTemplateMapperTest {
     }
 
     @Test
-    fun hasStateChanged_detectsMeterLevelDistanceChange() {
+    fun hasStateChanged_detectsRemainingDistanceAcrossTheDisplayedBucket() {
+        // The ETA card shows the rounded remaining distance (50 m steps below 1 km,
+        // 100 m above), so the template is rebuilt when that displayed number changes — not
+        // for every metre of progress.
+        val old = NavigationState(remainingDistance = 1000.0)
+        val new = NavigationState(remainingDistance = 1100.0)
+        assertTrue(NavigationTemplateMapper.hasStateChanged(old, new))
+    }
+
+    @Test
+    fun hasStateChanged_ignoresASubBucketRemainingDistanceChange() {
         val old = NavigationState(remainingDistance = 1000.0)
         val new = NavigationState(remainingDistance = 999.4)
+        assertFalse(NavigationTemplateMapper.hasStateChanged(old, new))
+    }
+
+    // --- rebuild bound: the distance is compared as the host displays it ---
+
+    @Test
+    fun hasStateChanged_ignoresAStepDistanceChangeInsideTheDisplayedBucket() {
+        // 505 m and 520 m both display as 500 m: rebuilding for the sub-bucket change
+        // would send the host a new template (and a new lane image) per GPS update
+        // (spec: car-host-fault-isolation — Bounded host-facing traffic while not visible).
+        val old = NavigationState(isNavigating = true, nextInstruction = instr(505.0, TurnType.LEFT, "Main St"))
+        val new = NavigationState(isNavigating = true, nextInstruction = instr(520.0, TurnType.LEFT, "Main St"))
+        assertFalse(NavigationTemplateMapper.hasStateChanged(old, new))
+    }
+
+    @Test
+    fun hasStateChanged_detectsAStepDistanceChangeAcrossTheDisplayedBucket() {
+        val old = NavigationState(isNavigating = true, nextInstruction = instr(505.0, TurnType.LEFT, "Main St"))
+        val new = NavigationState(isNavigating = true, nextInstruction = instr(560.0, TurnType.LEFT, "Main St"))
         assertTrue(NavigationTemplateMapper.hasStateChanged(old, new))
+    }
+
+    @Test
+    fun hasStateChanged_ignoresASubBucketChangeOverOneKilometre() {
+        val old = NavigationState(isNavigating = true, nextInstruction = instr(2_010.0, TurnType.LEFT, "Main St"))
+        val new = NavigationState(isNavigating = true, nextInstruction = instr(2_040.0, TurnType.LEFT, "Main St"))
+        assertFalse(NavigationTemplateMapper.hasStateChanged(old, new))
+    }
+
+    @Test
+    fun displayedDistanceBucket_isAbsentWithoutACurrentStep() {
+        assertEquals(-1L, NavigationTemplateMapper.displayedDistanceBucket(null))
+        assertEquals(-1L, NavigationTemplateMapper.displayedDistanceBucket(Double.NaN))
+    }
+
+    @Test
+    fun displayedDistanceBucket_followsTheDisplayedRounding() {
+        assertEquals(
+            NavigationTemplateMapper.displayedDistanceBucket(505.0),
+            NavigationTemplateMapper.displayedDistanceBucket(520.0)
+        )
+        assertNotEquals(
+            NavigationTemplateMapper.displayedDistanceBucket(505.0),
+            NavigationTemplateMapper.displayedDistanceBucket(560.0)
+        )
+        assertEquals(
+            NavigationTemplateMapper.displayedDistanceBucket(2_010.0),
+            NavigationTemplateMapper.displayedDistanceBucket(2_040.0)
+        )
+        assertNotEquals(
+            NavigationTemplateMapper.displayedDistanceBucket(2_010.0),
+            NavigationTemplateMapper.displayedDistanceBucket(2_100.0)
+        )
+    }
+
+    @Test
+    fun displayedDistanceBucket_clampsNegativeDistances() {
+        assertEquals(
+            NavigationTemplateMapper.displayedDistanceBucket(0.0),
+            NavigationTemplateMapper.displayedDistanceBucket(-5.0)
+        )
     }
 
     @Test

@@ -52,6 +52,15 @@ data class CarHintContent(
 )
 
 /**
+ * One notification post: what the phone shade shows and what the car host renders
+ * (spec: car-host-fault-isolation — Host interaction is diagnosable).
+ */
+data class NotificationPost(
+    val content: NavigationNotificationContent,
+    val hint: CarHintContent?
+)
+
+/**
  * Pure mapping from (driving mode + navigation state) to notification
  * content (spec: navigation-ongoing-notification — R3 navigation guidance
  * content, R5 free-driving content). No Android dependencies — unit-testable
@@ -65,6 +74,21 @@ object NavigationNotificationContentFormatter {
 
     /** Arrival time placeholder when no ETA is known. */
     private const val ETA_UNKNOWN = "--:--"
+
+    /**
+     * Whether the host-visible notification content changed since [previous], i.e.
+     * whether a re-post is justified (spec: car-host-fault-isolation — Bounded
+     * host-facing traffic while not visible; design D5).
+     *
+     * Both parts are compared by value and both are already formatted to display
+     * precision (rounded distance buckets, arrival to the minute, the current road,
+     * the free-driving speed), so the ~1 Hz navigation-state stream does not re-post
+     * for a position-only, speed-only or sub-bucket change — while a manoeuvre, road,
+     * distance-bucket, remaining-distance or arrival change still does. A failed post
+     * leaves the previous value in place, so the next emission retries it.
+     */
+    fun hostVisibleContentChanged(previous: NotificationPost?, current: NotificationPost): Boolean =
+        previous != current
 
     /**
      * Format the content for [state] and driving mode.

@@ -22,9 +22,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 
 /**
- * Compose UI tests for the phone-side diagnostics view (task 3.2):
- * log entries rendered in the dialog and the share intent.
- * Default Robolectric sandbox, no @Config.
+ * Compose UI tests for the phone-side diagnostics view.
+ *
+ * The layout and the share intent are driven through the pure
+ * [DiagnosticsLogView] with fixed data (deterministic — no load, no dispatcher
+ * hop); [AboutDialog] itself is covered for opening the view. The background load
+ * that feeds the view is covered by `DiagnosticsLogWritePathTest`
+ * (`backgroundReadsMatchTheSynchronousOnes`) and, end to end, by the car screen's
+ * `DiagnosticsScreenTest`. Default Robolectric sandbox, no @Config.
  */
 @RunWith(RobolectricTestRunner::class)
 class AboutDiagnosticsComposeTest {
@@ -41,8 +46,6 @@ class AboutDiagnosticsComposeTest {
         logFile.parentFile?.mkdirs()
         logFile.delete()
         DiagnosticsLog.initForTest(logFile)
-        DiagnosticsLog.log("SESSION", "entry-one")
-        DiagnosticsLog.log("CRASH", "entry-two")
     }
 
     @After
@@ -52,18 +55,55 @@ class AboutDiagnosticsComposeTest {
     }
 
     @Test
-    fun diagnosticsDialogShowsLogEntries() {
-        composeRule.setContent { AboutDialog(onDismiss = {}) }
-        composeRule.onNodeWithText("Diagnostics").performScrollTo().performClick()
+    fun diagnosticsDialogShowsLogEntriesNewestFirst() {
+        composeRule.setContent {
+            DiagnosticsLogView(
+                entries = listOf("[t] SESSION entry-one", "[t] CRASH entry-two"),
+                shareText = "entry-one\nentry-two",
+                onRefresh = {},
+                onDismiss = {}
+            )
+        }
 
         composeRule.onNodeWithText("entry-one", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("entry-two", substring = true).assertIsDisplayed()
     }
 
     @Test
-    fun shareButtonStartsSendIntent() {
-        composeRule.setContent { AboutDialog(onDismiss = {}) }
-        composeRule.onNodeWithText("Diagnostics").performScrollTo().performClick()
+    fun diagnosticsDialogShowsEmptyState() {
+        composeRule.setContent {
+            DiagnosticsLogView(entries = emptyList(), shareText = "", onRefresh = {}, onDismiss = {})
+        }
+
+        composeRule.onNodeWithText("No log entries yet", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun refreshInvokesItsCallback() {
+        var refreshes = 0
+        composeRule.setContent {
+            DiagnosticsLogView(
+                entries = listOf("[t] SESSION entry-one"),
+                shareText = "entry-one",
+                onRefresh = { refreshes++ },
+                onDismiss = {}
+            )
+        }
+
+        composeRule.onNodeWithText("Refresh").performClick()
+        assertEquals(1, refreshes)
+    }
+
+    @Test
+    fun shareButtonStartsSendIntentWithTheLoadedText() {
+        composeRule.setContent {
+            DiagnosticsLogView(
+                entries = listOf("[t] SESSION entry-one"),
+                shareText = "[t] SESSION entry-one",
+                onRefresh = {},
+                onDismiss = {}
+            )
+        }
         composeRule.onNodeWithText("Share").performClick()
 
         val started = shadowOf(
@@ -75,5 +115,16 @@ class AboutDiagnosticsComposeTest {
         assertEquals(Intent.ACTION_SEND, inner!!.action)
         assertEquals("text/plain", inner.type)
         assertTrue(inner.getStringExtra(Intent.EXTRA_TEXT)!!.contains("entry-one"))
+    }
+
+    @Test
+    fun aboutDialogOpensTheDiagnosticsView() {
+        composeRule.setContent { AboutDialog(onDismiss = {}) }
+        composeRule.onNodeWithText("Diagnostics").performScrollTo().performClick()
+
+        // The loading state renders no rows, so the dialog's title and its actions
+        // are what proves the view opened.
+        composeRule.onNodeWithText("Refresh").assertIsDisplayed()
+        composeRule.onNodeWithText("Share").assertIsDisplayed()
     }
 }

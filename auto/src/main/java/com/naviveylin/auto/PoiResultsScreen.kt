@@ -75,7 +75,10 @@ class PoiResultsScreen(
         }
     }
 
-    override fun onGetTemplate(): Template {
+    override fun onGetTemplate(): Template = carScreenTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carScreenTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): Template {
         val listBuilder = ItemList.Builder()
 
         when {

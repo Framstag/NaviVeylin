@@ -69,6 +69,12 @@ licenses/             → Curated license data: native license map, license poli
 - Hilt for DI, ViewModel + StateFlow for state
 - JSON-file persistence (JNI favorites, settings, search history)
 - `FavoriteRepository` wraps JNI CRUD for favorites, exposes `StateFlow`
+- Favorite writes are serialised on both sides and must stay that way: `osmscout::FavoriteStore`
+  (`libosmscout-client`) owns `FavoriteLocationService` behind one mutex and replaces the store as a
+  whole (`ReplaceByPath`, `ReplaceAndSave`), while `FavoriteRepository` holds one write lock across
+  `mutate + refreshState + persist` per operation. Do not call the native favourite methods outside
+  the store, and do not add a repository write that bypasses the lock — the persist rebuilds the whole
+  store from the array it is handed, so an unserialised write can drop another write's favourite.
 - Native calls go through the JNI bridge: C++ side = `libosmscout-client-java` inside the libosmscout submodule; Java side = `:osmscout-client-java` module overrides (see Native Integration)
 
 ### Native Integration
@@ -112,7 +118,7 @@ licenses/             → Curated license data: native license map, license poli
 - The bridge links `osmscout_client_java` and is the **only** place in the native build allowed to use Android logging APIs — libosmscout must stay platform-independent
 
 #### Kotlin (app) logging
-- Use `android.util.Log` (`Log.d/i/w/e`) with per-class `TAG` constants; app diagnostics helpers live in `com.naviveylin.core.DiagnosticsLog`
+- Use `android.util.Log` (`Log.d/i/w/e`) with per-class `TAG` constants; app diagnostics helpers live in `com.naviveylin.core.DiagnosticsLog` (buffered in memory and written by its own worker thread — logging never touches the file on the caller's thread, and readers use `readEntriesAsync`/`exportTextAsync` instead of reading it in a host callback or during composition)
 - Kotlin logs and forwarded native logs are separate streams; native lines always come from the bridge under the `NaviVeylin` tag
 
 ### Stylesheets
@@ -124,6 +130,51 @@ licenses/             → Curated license data: native license map, license poli
 - `AssetCopier` refreshes the on-device copy from the APK on every app start (per-file size+SHA-256 compare, deletes stale files), so existing installs get new styles after an update without clearing data
 
 ### Android Auto / Android Automotive OS
+
+**Car surface + host safety (change `fix-aaos-host-crash`, spec `car-host-fault-isolation`).**
+The car-app host is a different process and its callbacks run on the app's main thread, so the
+car path has hard rules:
+
+- **One surface, one owner per session.** `SessionCarSurfaceHost` (`:auto`, bound in
+  `AutoServiceModule`, reached via `AutoEntryPoint.autoSurfaceHost()`) registers the single
+  `SurfaceCallback` for the whole session and forwards events to the one attached screen
+  (`CarSurfaceOwner` in `:core`). The session releases the surface exactly once — on the host's
+  `onSurfaceDestroyed` or at session end. **No screen and no renderer ever calls
+  `Surface.release()`**: the library starts the incoming screen before it stops the outgoing one,
+  so a release in `onStop` kills the buffer queue the incoming screen draws through. Screens
+  `attach` on start, `detach` on stop (identity-guarded) and keep drawing after a background
+  round trip. A host destroy is **scoped to the surface instance it names**: if the host reports
+  the destroy of a surface it already superseded (AAOS re-delivers after a transition), only that
+  instance is released and the live one is kept.
+- **Nothing native on the host thread.** Car providers (`AutoClientProvider`, `AutoSearchProvider`,
+  `AutoFavoritesProvider`) are injected as `Provider`/`Lazy`, and a host callback only retains
+  state (surface DPI goes to `RendererGate.surfaceDpi` and a background collector applies
+  `setMapDpi`). The renderer is constructed *and* published on the main thread with no suspension
+  between, so a cancelled init cannot leak a renderer.
+- **No fault escapes the host path.** Owner dispatch is guarded in `SessionCarSurfaceHost`, the
+  `NavigationManager` calls and the trip build in `NavigationManagerController`, the notification
+  build/post and the foreground start in `NavigationNotificationService`, and **every** car
+  screen's template build (`car*Template` wrappers in `SafeScreen.kt`) — the car-app library
+  rethrows an app exception on the main thread, which kills the process.
+- **`invalidate()` is main-thread only** (`postTemplateRefresh`) and **backgrounded host traffic is
+  bounded**: `SessionHostGate` defers screen push/pop, template refresh and host navigation-state
+  changes while the session is stopped (re-applied once on start), and the ongoing notification is
+  re-posted only when its host-visible content changed.
+- **Screen observations are scoped to the started period (change `fix-car-screen-observer-leak`,
+  spec `auto/screen-observation`).** A car screen is stopped and started on every background round
+  trip and on every push/pop of another screen, so per-collector job bookkeeping leaks: the screen
+  ran a second copy of its GPS/favorites/dark/basemap observations after every start, each copy
+  requesting renders, native lookups and template refreshes. `CarScreenObservations` (`:auto`) owns
+  the lifetime — one child scope per started period, `start()` idempotent, `stop()` cancels every
+  observation, at most one instance per key per period — and each screen's `<Screen>Observations`
+  class owns what is observed. `onStart` calls `screenObservations.start()`, `onStop`/`onDestroy`
+  call `observations.stop()`; **add a new observation to the screen's `*Observations` class, never as
+  a bare `scope.launch`**, and keep work that must survive a stop (the free-driving stale-speed
+  ticker) on the screen's own scope.
+- **Diagnosis:** every host-facing send is recorded under the diagnostics tag `HOST` (surface
+  adopt/release, notification posts, trip updates, navigation state) and the client build under
+  `WARMUP` **with the thread** — see `guidelines/Build.md` §10 for the on-device recipe.
+
 - Real implementation: `:auto` library module (screens, `NavigationSession`); `NaviVeylinCarAppService` lives in the app's base package (`com.naviveylin`) as the car-app spec requires
 - Manifest conventions (`app/src/main/AndroidManifest.xml`):
   - Android Auto (projection): `com.google.android.gms.car.application` metadata → `automotive_app_desc.xml` (`<uses name="template" />`); `NaviVeylinCarAppService` with `androidx.car.app.CarAppService` action + `androidx.car.app.category.NAVIGATION`; template/access-surface permissions (`NAVIGATION_TEMPLATES`, `MAP_TEMPLATES`, `ACCESS_SURFACE`)

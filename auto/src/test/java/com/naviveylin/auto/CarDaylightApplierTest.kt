@@ -68,10 +68,11 @@ class CarDaylightApplierTest {
     }
 
     @Test
-    fun resetForcesRepushEvenAfterSuccess() {
+    fun forceRepushesEvenAfterSuccess() {
         // The native side can silently drop a push while the DB is still
-        // initializing (warmup race) — reset() must force a re-push so the
-        // style-load / surface-creation re-apply is not deduped away.
+        // initializing (warmup race) or when the stylesheet is reloaded — a caller
+        // that knows this passes force instead of defeating the dedupe for every later
+        // call (spec: car-host-fault-isolation — Bounded periodic render work).
         val pushed = mutableListOf<Boolean>()
         val applier = CarDaylightApplier { dark ->
             pushed.add(dark)
@@ -82,8 +83,18 @@ class CarDaylightApplierTest {
         assertTrue(applier.apply(true)) // deduped
         assertEquals(1, pushed.size)
 
-        applier.reset()
-        assertTrue(applier.apply(true)) // re-pushed despite same value
+        assertTrue(applier.apply(true, force = true)) // re-pushed despite same value
         assertEquals(2, pushed.size)
+    }
+
+    @Test
+    fun needsPushReportsWhetherAPushWouldHappen() {
+        val applier = CarDaylightApplier { true }
+
+        assertTrue("nothing pushed yet", applier.needsPush(true))
+        applier.apply(true)
+        assertFalse("same value, no force", applier.needsPush(true))
+        assertTrue("a different value", applier.needsPush(false))
+        assertTrue("forced", applier.needsPush(true, force = true))
     }
 }

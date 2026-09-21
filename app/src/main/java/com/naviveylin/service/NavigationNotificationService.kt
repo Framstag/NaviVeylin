@@ -11,7 +11,10 @@ import android.util.Log
 import com.naviveylin.AutomotiveDevice
 import com.naviveylin.MainActivity
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.ManeuverSymbols
+import com.naviveylin.core.NavigationStopRequests
+import com.naviveylin.core.NotificationIds
 import com.naviveylin.core.stringResolver
 import com.naviveylin.navigation.NavigationStateProvider
 import dagger.hilt.android.AndroidEntryPoint
@@ -61,19 +64,30 @@ class NavigationNotificationService : Service() {
         val state = stateProvider.state.value
         val freeDriving = drivingModeProvider.freeDrivingActive.value
         val content = NavigationNotificationContentFormatter.format(state, freeDriving)
-        startForeground(NOTIFICATION_ID, buildNotification(content, carHintFor(state)))
+        val hint = carHintFor(state)
+        // The foreground post is unconditional (the FGS contract), but it also seeds
+        // the dedup baseline for the observer's later posts.
+        // The foreground call is refused by the platform in one documented case (a
+        // location-typed FGS started while the app is backgrounded without an eligible
+        // state): degrade to stopping the service instead of dying
+        // (spec: car-host-fault-isolation — No fault escapes into the host path).
+        val started = runGuardedNotification("startForeground") {
+            startForeground(NOTIFICATION_ID, buildNotification(content, hint))
+        }
+        if (!started) {
+            stopSelf()
+            return
+        }
+        lastPost = NotificationPost(content, hint)
+        recordNotificationPost(lastPost!!)
         observeDrivingState()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_STOP_NAVIGATION -> {
-                // Stop action from the notification shade: end the route.
-                // stateProvider mirrors stopNavigation() to the active
-                // navigation controller (phone VM or car controller).
-                stateProvider.stopNavigation()
-            }
-        }
+        // Logged so a device run can tell "action delivered" from "wrong stop
+        // target" (the failure mode recorded in TODO.md §46).
+        Log.d(TAG, "onStartCommand action=${intent?.action ?: "-"} startId=$startId")
+        handleAction(intent?.action, stateProvider)
         // The observer in onCreate stops the service when the driving state
         // clears; a re-delivered start with no driving state also self-stops.
         if (!drivingStateActive()) {
@@ -118,7 +132,23 @@ class NavigationNotificationService : Service() {
     private fun render(navState: com.naviveylin.core.NavigationState, freeDriving: Boolean) {
         val content = NavigationNotificationContentFormatter.format(navState, freeDriving)
         val hint = carHintFor(navState)
-        notificationManager.notify(NOTIFICATION_ID, buildNotification(content, hint))
+        val post = NotificationPost(content, hint)
+        // Re-post only when the host-visible content changed (spec:
+        // car-host-fault-isolation — Bounded host-facing traffic while not visible):
+        // the state flow emits at the position/speed rate (~1 Hz), and re-posting
+        // identical content makes the host re-render its rail widget for nothing.
+        if (!NavigationNotificationContentFormatter.hostVisibleContentChanged(lastPost, post)) return
+        // A failed rebuild/post must not kill the service that carries the driving
+        // session (spec: car-host-fault-isolation — No fault escapes into the host path).
+        val posted = runGuardedNotification("notification post") {
+            notificationManager.notify(NOTIFICATION_ID, buildNotification(content, hint))
+        }
+        // Baseline moves only on a successful post, so a dropped one is retried on the
+        // next emission instead of being deduped away.
+        if (posted) {
+            lastPost = post
+            recordNotificationPost(post)
+        }
     }
 
     /**
@@ -171,6 +201,12 @@ class NavigationNotificationService : Service() {
         }
     }
 
+    /**
+     * Baseline for the content dedup (spec: car-host-fault-isolation — Bounded
+     * host-facing traffic while not visible): the last content the host actually saw.
+     */
+    private var lastPost: NotificationPost? = null
+
     private lateinit var notificationManager: NotificationManager
 
     /** True on Android Automotive OS hardware; decides the notification channel. */
@@ -181,9 +217,66 @@ class NavigationNotificationService : Service() {
 
     companion object {
         private const val TAG = "NavigationNotificationService"
-        private const val NOTIFICATION_ID = 1002
+
+        /**
+         * Notification identity of the ongoing notification: the foreground-service
+         * notification and the carrier of the car rail-widget turn hint. Shared so no other
+         * notice can post on it (spec: navigation-ongoing-notification — Distinct
+         * notification identity).
+         */
+        private val NOTIFICATION_ID: Int = NotificationIds.NAVIGATION_ONGOING
         const val ACTION_START = "com.naviveylin.action.START_NAV_NOTIFICATION"
         const val ACTION_STOP = "com.naviveylin.action.STOP_NAV_NOTIFICATION"
         const val ACTION_STOP_NAVIGATION = "com.naviveylin.action.STOP_NAVIGATION"
+
+        /**
+         * Route a start-command action. Pure and testable without the service
+         * lifecycle: [ACTION_STOP_NAVIGATION] (the shade's stop action, phone and
+         * car extender alike) broadcasts a stop request — whichever controller is
+         * navigating stops itself, and an idle one does nothing. Any other action
+         * (including [ACTION_START] and [ACTION_STOP], which are handled by the
+         * driving-state observer) is ignored.
+         */
+        internal fun handleAction(action: String?, stopRequests: NavigationStopRequests) {
+            if (action == ACTION_STOP_NAVIGATION) {
+                stopRequests.requestStop()
+            }
+        }
     }
+}
+
+/**
+ * Runs one car-facing notification action, confining a fault to it (spec:
+ * car-host-fault-isolation — No fault escapes into the host path; design D3). The
+ * notification is built from library validators and posted to the platform, both of
+ * which can throw (`SecurityException`/`ForegroundServiceStartNotAllowedException` for
+ * a refused foreground start, `IllegalArgumentException` for an unserializable
+ * payload); an escape from the service's `onCreate` would kill the driving session's
+ * process.
+ *
+ * @return true when [block] completed, false when it threw (logged)
+ */
+internal fun runGuardedNotification(why: String, block: () -> Unit): Boolean = try {
+    block()
+    true
+} catch (t: Throwable) {
+    Log.w("NavigationNotificationService", "$why failed — degraded", t)
+    false
+}
+
+/** Diagnostics tag for what the app sent the car host. */
+internal const val HOST_TAG = "HOST"
+
+/**
+ * Record a notification post (spec: car-host-fault-isolation — Host interaction is
+ * diagnosable): the car host renders its rail widget from this notification, so
+ * correlating a host failure needs the posts with the content that triggered them. A
+ * deduped (unchanged) emission never reaches here — it is dropped before the post.
+ */
+internal fun recordNotificationPost(post: NotificationPost) {
+    DiagnosticsLog.log(
+        HOST_TAG,
+        "NOTIF post title='${post.content.title}' text='${post.content.contentText}' " +
+            "hint='${post.hint?.title ?: "-"}'"
+    )
 }

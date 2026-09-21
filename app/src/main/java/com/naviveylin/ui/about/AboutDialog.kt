@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -174,11 +175,49 @@ fun AboutDialog(onDismiss: () -> Unit) {
 
 /**
  * Shows the captured crash/session log with a share button.
+ *
+ * The log is loaded on a background dispatcher (spec: auto-diagnostics — Reading
+ * diagnostics does not block the UI): reading the file inside composition blocked
+ * the main thread, and the share text is built from the same loaded snapshot so
+ * the click does not read the file either. [DiagnosticsLogView] below is the pure
+ * render half, so the layout and the share intent are testable without a load.
  */
 @Composable
 private fun DiagnosticsDialog(onDismiss: () -> Unit) {
+    // null until the first background load returns (loading state).
+    var entries by remember { mutableStateOf<List<String>?>(null) }
+    var shareText by remember { mutableStateOf("") }
+    var reloadKey by remember { mutableStateOf(0) }
+
+    LaunchedEffect(reloadKey) {
+        // Share text first: once [entries] is published the share text is there too,
+        // so clicking Share can never race the load (and nothing is read twice on
+        // one thread).
+        shareText = DiagnosticsLog.exportTextAsync()
+        entries = DiagnosticsLog.readEntriesAsync()
+    }
+
+    DiagnosticsLogView(
+        entries = entries,
+        shareText = shareText,
+        onRefresh = { reloadKey++ },
+        onDismiss = onDismiss
+    )
+}
+
+/**
+ * Pure render half of the diagnostics dialog: no file access, no coroutines — the
+ * caller supplies the entries (`null` while the load is in flight) and the share
+ * text. Internal so the `:app` tests can drive it with fixed data.
+ */
+@Composable
+internal fun DiagnosticsLogView(
+    entries: List<String>?,
+    shareText: String,
+    onRefresh: () -> Unit,
+    onDismiss: () -> Unit
+) {
     val context = LocalContext.current
-    var entries by remember { mutableStateOf(DiagnosticsLog.readEntries()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -196,14 +235,14 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
                     .heightIn(max = 400.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                if (entries.isEmpty()) {
-                    Text(
+                when {
+                    entries == null -> Unit // load in flight; nothing to show yet
+                    entries.isEmpty() -> Text(
                         text = stringResource(R.string.no_log_entries),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } else {
-                    entries.takeLast(MAX_DISPLAYED_ENTRIES).asReversed().forEach { line ->
+                    else -> entries.takeLast(MAX_DISPLAYED_ENTRIES).asReversed().forEach { line ->
                         Text(
                             text = line,
                             style = MaterialTheme.typography.bodySmall,
@@ -215,9 +254,7 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                entries = DiagnosticsLog.readEntries()
-            }) {
+            TextButton(onClick = onRefresh) {
                 Text(stringResource(R.string.refresh))
             }
         },
@@ -227,7 +264,10 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
                 TextButton(onClick = {
                     try {
                         context.startActivity(
-                            Intent.createChooser(DiagnosticsLog.shareIntent(), shareLabel)
+                            Intent.createChooser(
+                                DiagnosticsLog.shareIntent(shareText),
+                                shareLabel
+                            )
                         )
                     } catch (_: Exception) {
                         // No share target available

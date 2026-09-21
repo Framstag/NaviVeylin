@@ -83,6 +83,14 @@ class AANavigationController @Inject constructor(
         // Mirror into the shared provider so AA screens get live navigation
         // state and working actions.
         stateProvider.observe(this)
+        // Process-wide stop requests (notification stop action, car-host stop):
+        // both controllers stop themselves, so neither owns a callback slot the
+        // other can overwrite (spec: navigation-ongoing-notification — "Stop
+        // action for navigation"). stopNavigation() must not request a stop —
+        // that would loop through this collector.
+        scope.launch {
+            stateProvider.stopRequests.collect { stopNavigation() }
+        }
         // GPS updates must run even with no phone UI — feeds the native
         // position agent during navigation. Permission-guarded no-op without
         // ACCESS_FINE_LOCATION.

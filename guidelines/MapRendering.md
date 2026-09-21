@@ -466,6 +466,17 @@ When "map jumps" / "marker wrong" appears, check first:
 `AutoMapRenderer` (spec `auto-smooth-follow`) mirrors the phone's overrun/blit machinery on the
 car Surface:
 
+- **CRITICAL — the renderer never owns the surface**: the car Surface's lifetime belongs to
+  the session (`SessionCarSurfaceHost`, change `fix-aaos-host-crash`, spec
+  `car-host-fault-isolation`): one `SurfaceCallback` registration per session, one owner screen
+  at a time, released exactly once on the host's `onSurfaceDestroyed` or at session end. A
+  renderer draws, stops drawing (`detachSurface`, `pause`) and clears its reference — it never
+  calls `Surface.release()`. Releasing it here (the earlier shape, on replace/stop/shutdown)
+  disconnected the buffer queue the host — or the screen that superseded this one — was still
+  using, which showed up as `lockCanvas` failures and an invalidate loop. A frame whose surface
+  was replaced or destroyed during the long native render is dropped (`isCurrentSurface`), and
+  a stale surface is never reported as a failure of the live one (that used to wedge the render
+  loop for the live surface until another delivery).
 - **Overrun buffer**: every full native render is at `OVERRUN_FACTOR` (1.2×) the surface size and
   is KEPT as the overrun buffer (not recycled) for sub-region blits. The visible region is drawn
   centered: `dx = (surfaceW - bitmapW) / 2`.
@@ -520,15 +531,22 @@ car Surface:
   mode — the car process runs on the phone but the head unit decides (its own light
   sensor / time). `NavigationSession.hostDark` (init from `CarContext.isDarkMode()`,
   updated in `onCarConfigurationChanged`) feeds both map screens; `CarDaylightApplier`
-  dedupes the push; `invalidateStyle()` (blit bypass + full render) re-renders so the
-  stale-variant overrun buffer is never blitted. Templates are host-rendered and
+  dedupes the push **by value**; `invalidateStyle()` (blit bypass + full render) re-renders
+  so the stale-variant overrun buffer is never blitted. Templates are host-rendered and
   follow the host automatically — only the app-drawn surface needs this.
 - **Startup race (both variants)**: `SetStyleFlag` is a silent no-op until a DB is
   open, so the initial flag push can be dropped while the DB is still initializing
   (warmup). The flag MUST be re-pushed once the DB is ready: phone re-pushes on the
-  first rendered frame (`stylePushedToNative` in `MapCanvasViewModel`); AA re-pushes
-  after a successful style load and at surface creation (`pushHostDark` in both map
-  screens, with `CarDaylightApplier.reset()` so the re-push is not deduped away).
+  first rendered frame (`stylePushedToNative` in `MapCanvasViewModel`); AA passes
+  `force = true` to `CarDaylightApplier.apply` **only when the stylesheet was (re)loaded**
+  (`style != pushedForStyleSheet`) — a bare `reset()` on every settings re-read (the
+  earlier shape) pushed a flag, reloaded the variant and forced a full render every few
+  seconds for nothing (change `fix-aaos-host-crash`, design D5).
+- **Periodic work bound (Android Auto)**: the same change bounds the follow-mode
+  full-render request — no request while a full render is in flight, and the interval is
+  `max(200 ms, the last measured render duration)`. On the automotive AVD a full render
+  at 1080x600 takes 2-5 s, so the fixed 200 ms interval re-requested a frame the renderer
+  could not keep up with.
 - Initial `isDarkMode()` may be false until the host sends configuration
   (`UI_MODE_UNKNOWN`); the first `onCarConfigurationChanged` corrects it (one extra
   render at startup).

@@ -26,7 +26,7 @@ class AutoSearchProviderRankingTest {
     @Before
     fun setUp() {
         client = FakeOSMScoutClient()
-        provider = AutoServiceModule.provideAutoSearchProvider(client)
+        provider = AutoServiceModule.provideAutoSearchProvider(javax.inject.Provider { client })
     }
 
     private fun exactEntry(label: String, lat: Double, lon: Double): LocationEntry =

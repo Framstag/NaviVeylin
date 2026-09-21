@@ -116,8 +116,8 @@ All three skills follow the same contract:
   its render, extrapolation and zoom-walk loops in `init`, and only `shutdown()`
   ends them — every `:auto` renderer test that forgot it leaked a ~30 Hz loop on
   `Dispatchers.Default` plus a 1296×720 overrun bitmap (3.7 MB) per test, which
-  made the module suite die with `OutOfMemoryError` in one JVM (`TODO.md` §33,
-  change `fix-auto-unit-test-heap-overflow`). The pattern to use is
+  made the module suite die with `OutOfMemoryError` in one JVM (change
+  `fix-auto-unit-test-heap-overflow`). The pattern to use is
   `auto/src/test/java/com/naviveylin/auto/RendererTestRule.kt`: a JUnit rule that
   hands out the component, shuts every tracked instance down after the test and
   FAILS the test when one still reports active background work (`AutoMapRenderer
@@ -133,7 +133,7 @@ All three skills follow the same contract:
   | Module | Suite | Declared | Measured |
   |---|---|---|---|
   | `:auto` | 49 classes / 516 tests | `1024m` | 512 MB → FAILED (141 `OutOfMemoryError` lines, 0 result XMLs, 9m08s); 1024 MB → green (one fork, 20s) |
-  | `:app` | 146 classes / 1054 tests per flavor | `1024m` | 512 MB → deterministic `FavoritesSheetReorderComposeTest` failure (`ComposeTimeoutException` after 5000 ms, `TODO.md` §43); 1024 MB → green (1m49s); 2048 MB → green (2m06s) |
+  | `:app` | 146 classes / 1054 tests per flavor | `1024m` | 512 MB → deterministic `FavoritesSheetReorderComposeTest` failure (`ComposeTimeoutException` after 5000 ms); 1024 MB → green (1m49s); 2048 MB → green (2m06s) |
 
   Both values are the measured minimum plus headroom, deliberately not 2g: a full
   `./gradlew test` holds up to two `:app` forks, one `:auto` fork and one `:core`
@@ -371,3 +371,134 @@ agree (a newer daemon JVM otherwise emits an inconsistent-target warning).
 (`app/build/generated/assets-licenses/mobileDebug/licenses/**`) so a reviewer can
 read it without unpacking an APK.
 
+
+## 10. On-device evidence for Android Auto / AAOS (host-crash triage)
+
+The car host (templates host / car UI) is a **different process** from the app, so a host
+failure is not visible in the app's own crash log. This is the recipe that produced the
+evidence in change `fix-aaos-host-crash` (tasks 1.6 and 7.3-7.5); run it before, during
+and after the scenario you want to judge.
+
+**Boot the AAOS AVD and install the automotive build.** The AVD's ABI is x86_64, so an
+arm64-only APK will not install:
+
+```bash
+/home/tim/Android/Sdk/emulator/emulator -avd Automotive_Distant_Display_with_Google_Play \
+    -no-snapshot-load -no-boot-anim &
+./gradlew :app:assembleAutomotiveDebug -Pandroid.injected.build.abi=x86_64
+adb -s emulator-5556 install -r -t app/build/intermediates/apk/automotive/debug/app-automotive-debug.apk
+adb -s emulator-5556 shell am start -n com.framstag.naviveylin/androidx.car.app.activity.CarAppActivity
+```
+
+The car UI itself is not reachable through `uiautomator`; drive the session through intents
+instead (a deep link starts navigation, `KEYCODE_HOME` backgrounds the app):
+
+```bash
+adb -s emulator-5556 shell am start -n com.framstag.naviveylin/com.naviveylin.DeepLinkActivity \
+    -a android.intent.action.VIEW -d "geo:51.5142,7.4653"
+adb -s emulator-5556 shell input keyevent KEYCODE_HOME       # background the car app
+```
+
+Start the bare URI form without `-n` only if you want the system chooser; with several
+`geo:` handlers it opens the resolver dialog instead of the app.
+
+**Judge the car surface and the render loop.** `lockCanvas` succeeds only for a live
+surface, and the renderer logs it, so counting those lines is the cheapest "is the map
+drawing" test:
+
+```bash
+adb -s emulator-5556 logcat -c
+# ... run the scenario ...
+L=$(adb -s emulator-5556 logcat -d | grep -E 'AutoMapRenderer|CarSurfaceHost')
+echo "lock OK:   $(echo "$L" | grep -c 'lock OK')"          # frames actually drawn
+echo "created:   $(echo "$L" | grep -c 'surface created')"  # surface adoptions
+echo "releases:  $(echo "$L" | grep -c 'releasing session surface')"
+echo "failures:  $(echo "$L" | grep -c 'surface invalid\|lockCanvas failed')"
+echo "drops:     $(echo "$L" | grep -c 'dropping frame')"   # stale frames dropped
+```
+
+Expected after a push/pop or a background round trip: a `surface created` for the incoming
+screen **with the same surface id** the outgoing one had, **no** `releasing session surface`
+in between, and `lock OK` continuing. Any `surface invalid`/`lockCanvas failed` (or an
+`invalidate … attempt` line from a screen's surface-refresh recovery) is a defect, not noise.
+
+**Host-side failure.** The AVD's logcat covers `system_server`, the templates host and
+`systemui`, so the host's stack trace is retrievable even though the app has none:
+
+```bash
+adb -s emulator-5556 logcat -b crash -d
+adb -s emulator-5556 shell dumpsys dropbox --print | grep -B5 -A40 -iE 'templates.host|system_server|systemui'
+adb -s emulator-5556 logcat -d | grep -iE 'lmkd|lowmemorykiller|Killing'   # host killed by pressure?
+adb -s emulator-5556 shell dumpsys meminfo | head -40
+adb -s emulator-5556 shell dumpsys cpuinfo
+```
+
+**App-side host sends.** The app records what it sent the host with the diagnostics tag
+`HOST` (notification posts, trip updates, host navigation-state calls, surface
+adopt/release) and the native client build with the thread that ran it (tag `WARMUP`). The
+logcat route works on every device and is the primary one:
+
+```bash
+adb -s emulator-5556 logcat -d | grep -E 'Diag/HOST|Diag/WARMUP'
+```
+
+The same lines are mirrored to the file-backed diagnostics log, readable without a
+debugger (verified on the phone AVD; **not** on the automotive AVD, where
+`files/diagnostics/` is never created although the logcat lines appear — see `TODO.md`):
+
+```bash
+adb -s emulator-5554 shell run-as com.framstag.naviveylin cat files/diagnostics/app.log | tail -50
+```
+
+**Timing of the file route (change `fix-diagnostics-log-host-path-io`).** A line is buffered in
+memory and written by the log's worker thread, so it reaches `app.log` within the flush bound
+(250 ms) rather than instantly; the logcat line is immediate. For the last moments before a crash,
+read logcat, and treat a file tail that ends a fraction of a second earlier as normal. A crash
+trace is the exception — the uncaught-exception handler writes it directly, so it is on disk before
+the process dies.
+
+Correlate: the last `HOST …` line before the host's death names the sender (a `NOTIF post`
+that repeats every second, a `trip update` burst, a surface release at a moment the host
+still owned the buffer). The car's own `DiagnosticsScreen` shows the same tail on screen.
+
+**Bisect by disabling one sender per run** (routing active, app backgrounded, wait): skip
+the `CarAppExtender`, no-op the trip publishing, gate the session observers. Whichever run
+keeps the host up names the sender — or rules the app out and points at the host itself.
+
+**Pitfall — never install over a live session.** Replacing the APK of a car app the host is
+bound to force-stops the app, invalidates the host's `CarHost`, and the host's queued
+template application then dies with `IllegalStateException: Accessed the car host after it
+became invalidated` (`com.google.android.apps.automotive.templates.host:renderer_service`,
+observed 2026-09-21 on `emulator-5556`). The crash is host-side and needs no app code to run,
+so an install mid-scenario contaminates every measurement in it: install first, then start
+the session, and treat a host crash whose log shows `onPackageUpdateFinished`/`replacing=true`
+for the app package as a harness artifact, not an app defect (`TODO.md` §50).
+
+**Expectation baseline for a healthy run** (stationary vehicle, navigation active, ~75 s,
+browse -> navigate -> HOME -> return): a handful of `lock OK` (one per full render), one
+`surface adopt` per delivery and one `surface release` per host-driven teardown, **0**
+`surface invalid`/`lockCanvas failed`, and - with the change `fix-aaos-host-crash` in -
+**one** `Diag/HOST NOTIF post` and **one** `Diag/HOST trip update` for a session whose
+displayed content never changed (before it: one of each per second).
+
+**Expectation baseline for a session restart while free driving is active** (with the change
+`fix-host-crash-residual-paths` in): exactly **one** `Diag/SESSION Push FreeDrivingScreen
+(restore)` per session, and one `BACK`/`Exit` returns to the map root - a second restore push
+means two free-driving screens and two native renderers (before the change, the first screen
+creation and the warmup completion each pushed one).
+
+**Two checks that need evidence before any behaviour is specified** (both recorded in `TODO.md`, §47
+and §64):
+
+- A car-only session that starts the ongoing notification: `adb logcat -d | grep
+  ForegroundServiceDidNotStartInTime` - if a *refused* `startForeground` followed by `stopSelf()`
+  still trips the platform's foreground-start deadline, the degrade path itself kills the process
+  (and that death takes the car host down, per the mechanism above).
+- The diagnostics file on the automotive build: `adb shell run-as com.framstag.naviveylin ls -la
+  files/` plus `adb logcat -d | grep 'append failed'` - `files/diagnostics/app.log` is missing on
+  the automotive AVD while the same lines reach logcat, which is why the logcat route above is the
+  primary one.
+- Template rebuild rate: with navigation and lane hints active, count the host-visible template
+  activity over a minute (`Diag/HOST` lines, plus the lane-image allocation when logging is
+  verbose). The distance values are bucketed to the host's own rounding and the lane image is
+  reused; the residual rate follows the arrival estimate's update rate (`TODO.md` §64).

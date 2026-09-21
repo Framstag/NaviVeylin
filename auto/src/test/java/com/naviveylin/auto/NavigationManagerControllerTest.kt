@@ -2,6 +2,9 @@ package com.naviveylin.auto
 
 import androidx.car.app.navigation.NavigationManager
 import androidx.car.app.navigation.NavigationManagerCallback
+import androidx.car.app.navigation.model.Trip
+import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.NavigationState
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -79,5 +82,111 @@ class NavigationManagerControllerTest {
 
         verify { nm.navigationEnded() }
         verify { nm.clearNavigationManagerCallback() }
+    }
+
+    // ── Fault isolation (spec: car-host-fault-isolation — No fault escapes into
+    // the host path; design D3): every host call and the trip construction are
+    // guarded, because the library throws and the session's main-thread collector
+    // would otherwise die with the process. ──
+
+    @Test
+    fun aThrowingTripIsNotPublishedAndPublishingRecovers() {
+        val nm = mockk<NavigationManager>()
+        every { nm.setNavigationManagerCallback(any()) } just Runs
+        every { nm.navigationStarted() } just Runs
+        every { nm.updateTrip(any()) } just Runs
+        val controller = NavigationManagerController(nm) {}
+        controller.onNavigationStarted()
+
+        // A trip that cannot be built must not reach the host...
+        controller.publishTrip(NavigationState(remainingDistance = 100.0)) {
+            throw IllegalStateException("no usable step")
+        }
+        verify(exactly = 0) { nm.updateTrip(any()) }
+
+        // ...and the next, buildable trip still does (the fault stayed local).
+        controller.publishTrip(NavigationState(remainingDistance = 200.0)) {
+            mockk<Trip>(relaxed = true)
+        }
+        verify(exactly = 1) { nm.updateTrip(any()) }
+    }
+
+    @Test
+    fun aRejectedNavigationStartLeavesTheControllerNotPublishing() {
+        val nm = mockk<NavigationManager>()
+        every { nm.setNavigationManagerCallback(any()) } just Runs
+        every { nm.navigationStarted() } throws IllegalStateException("No callback has been set")
+        val controller = NavigationManagerController(nm) {}
+
+        // Must not throw, and must not publish into a host that refused the session.
+        controller.onNavigationStarted()
+        controller.publishTrip(NavigationState(remainingDistance = 10.0)) {
+            mockk<Trip>(relaxed = true)
+        }
+
+        verify(exactly = 0) { nm.updateTrip(any()) }
+    }
+
+    @Test
+    fun aRejectedNavigationEndDoesNotEscape() {
+        val nm = mockk<NavigationManager>()
+        every { nm.navigationEnded() } throws IllegalStateException("Removing callback while navigating")
+        every { nm.clearNavigationManagerCallback() } throws
+            IllegalStateException("Removing callback while navigating")
+
+        NavigationManagerController(nm) {}.onNavigationEnded()
+
+        verify { nm.navigationEnded() }
+        verify { nm.clearNavigationManagerCallback() }
+    }
+
+    @Test
+    fun aRejectedTripUpdateEndsTripPublishing() {
+        val nm = mockk<NavigationManager>()
+        every { nm.setNavigationManagerCallback(any()) } just Runs
+        every { nm.navigationStarted() } just Runs
+        every { nm.updateTrip(any()) } throws IllegalStateException("Navigation is not started")
+        val controller = NavigationManagerController(nm) {}
+        controller.onNavigationStarted()
+
+        controller.publishTrip(NavigationState(remainingDistance = 100.0)) {
+            mockk<Trip>(relaxed = true)
+        }
+        // The rejected update means the host's session is gone: no further publishes.
+        controller.publishTrip(NavigationState(remainingDistance = 200.0)) {
+            mockk<Trip>(relaxed = true)
+        }
+
+        verify(exactly = 1) { nm.updateTrip(any()) }
+    }
+
+    @Test
+    fun hostSendsAreRecordedForDiagnosis() {
+        // Spec: car-host-fault-isolation — Host interaction is diagnosable.
+        val file = java.io.File.createTempFile("diag", ".log")
+        DiagnosticsLog.initForTest(file)
+        try {
+            val nm = mockk<NavigationManager>()
+            every { nm.setNavigationManagerCallback(any()) } just Runs
+            every { nm.navigationStarted() } just Runs
+            every { nm.updateTrip(any()) } just Runs
+            every { nm.navigationEnded() } just Runs
+            every { nm.clearNavigationManagerCallback() } just Runs
+            val controller = NavigationManagerController(nm) {}
+
+            controller.onNavigationStarted()
+            controller.publishTrip(NavigationState(remainingDistance = 100.0)) {
+                mockk<Trip>(relaxed = true)
+            }
+            controller.onNavigationEnded()
+
+            val entries = DiagnosticsLog.readEntries()
+            assertTrue(entries.any { it.contains("HOST navigationStarted") })
+            assertTrue(entries.any { it.contains("HOST trip update") })
+            assertTrue(entries.any { it.contains("HOST navigationEnded") })
+        } finally {
+            DiagnosticsLog.reset()
+            file.delete()
+        }
     }
 }

@@ -71,7 +71,10 @@ class FavoritesScreen(
         })
     }
 
-    override fun onGetTemplate(): ListTemplate {
+    override fun onGetTemplate(): ListTemplate = carListTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carListTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): ListTemplate {
         val builder = ListTemplate.Builder()
             .setHeader(
                 Header.Builder()

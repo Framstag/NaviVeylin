@@ -72,10 +72,12 @@ object MapDownloadModule {
         }
 
         DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Starting native build()")
+        logNativeClientBuildStart()
         var client: OSMScoutClient? = null
         DiagnosticsLog.time("native build") {
             client = builder.build()
         }
+        logNativeClientBuildDone(Thread.currentThread().name)
         DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "native build() returned")
         return client!!
     }
@@ -96,4 +98,23 @@ object MapDownloadModule {
     @Singleton
     fun provideDefaultMapProvider(): MapProvider =
         MapProvider(DEFAULT_PROVIDER_NAME, DEFAULT_PROVIDER_URI, DEFAULT_PROVIDER_LIST_URI)
+}
+
+/**
+ * Record the start of the native client build **with the thread running it** (spec:
+ * car-host-fault-isolation — Host interaction is diagnosable): the build syncs the
+ * stylesheets, dlopens the native library and builds the client, so which thread ran it
+ * is the first thing a host-crash report needs (the car-app host thread is the defect
+ * this change removes).
+ */
+internal fun logNativeClientBuildStart() {
+    DiagnosticsLog.log(
+        DiagnosticsLog.WARMUP_TAG,
+        "native build start thread=${Thread.currentThread().name}"
+    )
+}
+
+/** Record the end of the native client build on [threadName] (duration: [DiagnosticsLog.time]). */
+internal fun logNativeClientBuildDone(threadName: String) {
+    DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "native build done thread=$threadName")
 }

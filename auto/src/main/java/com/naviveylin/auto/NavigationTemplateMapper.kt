@@ -30,6 +30,9 @@ import java.util.TimeZone
  */
 object NavigationTemplateMapper {
 
+    /** [displayedDistanceBucket] value for "no current step" — no real distance produces it. */
+    private const val NO_DISTANCE = -1L
+
     /** Map [TurnType] to [Maneuver] type constant. */
     fun maneuverTypeFromTurnType(turnType: TurnType): Int {
         return when (turnType) {
@@ -220,20 +223,41 @@ object NavigationTemplateMapper {
     /**
      * Determine if the displayed fields changed enough to warrant a template re-render.
      * Throttles invalidations to avoid jank from 1Hz GPS updates.
+     *
+     * The distance to the current step is compared as the host displays it (see
+     * [displayedDistanceBucket]), not metre by metre: the panel renders the rounded
+     * number, so a sub-bucket change cannot change the template, and rebuilding for it only
+     * sends the host a new template (and a new lane image) per GPS update
+     * (spec: car-host-fault-isolation — Bounded host-facing traffic while not visible).
+     * The remaining route distance is compared the same way (the ETA card shows the same
+     * rounding), while the arrival estimate keeps its own comparison: a shifted estimate is
+     * displayed content.
      */
     fun hasStateChanged(oldState: NavigationState?, newState: NavigationState): Boolean {
         val old = oldState ?: return true
         return old.isNavigating != newState.isNavigating ||
-                old.nextInstruction?.distanceTo != newState.nextInstruction?.distanceTo ||
+                displayedDistanceBucket(old.nextInstruction?.distanceTo) !=
+                    displayedDistanceBucket(newState.nextInstruction?.distanceTo) ||
                 old.nextInstruction?.turnType != newState.nextInstruction?.turnType ||
                 old.nextInstruction?.description != newState.nextInstruction?.description ||
-                old.remainingDistance.toLong() != newState.remainingDistance.toLong() ||
+                displayedDistanceBucket(old.remainingDistance) !=
+                    displayedDistanceBucket(newState.remainingDistance) ||
                 old.etaMillis / 1000 != newState.etaMillis / 1000 ||
                 old.currentSpeedKmH.toInt() != newState.currentSpeedKmH.toInt() ||
                 old.isRerouting != newState.isRerouting ||
                 old.laneCount != newState.laneCount ||
                 old.laneTurns != newState.laneTurns
     }
+
+    /**
+     * The distance to the current step as the host instruction panel shows it: the same
+     * rounding [distanceForDisplay] applies (raw below 50 m, 50 m steps below 1 km, 100 m
+     * steps above), as a comparable value. `null`/NaN (no current step) maps to -1, which
+     * no real distance produces. Pure, so the rebuild bound is unit-testable.
+     */
+    fun displayedDistanceBucket(meters: Double?): Long =
+        if (meters == null || meters.isNaN()) NO_DISTANCE
+        else roundDistanceMeters(meters.coerceAtLeast(0.0)).toLong()
 
     /**
      * Host [Trip] for the cluster / heads-up display (spec: auto-navigation-hints

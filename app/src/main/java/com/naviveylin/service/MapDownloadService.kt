@@ -12,6 +12,7 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.naviveylin.MainActivity
+import com.naviveylin.core.NotificationIds
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -97,7 +98,9 @@ class MapDownloadService : Service() {
         private const val TAG = "MapDownloadService"
         private const val CHANNEL_ID = "map_download"
         private const val CHANNEL_NAME = "Map Download"
-        private const val NOTIFICATION_ID = 1001
+
+        /** Shared notification identity (spec: navigation-ongoing-notification — Distinct notification identity). */
+        private val NOTIFICATION_ID: Int = NotificationIds.MAP_DOWNLOAD
         private const val WAKE_LOCK_TIMEOUT_MS = 14400000L
         const val ACTION_UPDATE = "com.naviveylin.action.UPDATE_DOWNLOAD"
         const val ACTION_STOP = "com.naviveylin.action.STOP_DOWNLOAD"

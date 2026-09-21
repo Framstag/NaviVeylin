@@ -51,4 +51,10 @@ interface AutoEntryPoint {
 
     /** Shared free-driving indicator (phone + car), surface-independent. */
     fun autoDrivingModeProvider(): DrivingModeProvider
+
+    /**
+     * Session-scoped car surface owner (spec: car-host-fault-isolation — Single-owner
+     * car surface): the car-app host registers exactly one surface callback per session.
+     */
+    fun autoSurfaceHost(): CarSurfaceHost
 }

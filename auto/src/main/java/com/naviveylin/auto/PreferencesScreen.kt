@@ -101,7 +101,10 @@ class PreferencesScreen private constructor(
     /** Error-row Retry action: start a fresh load cycle (guard resets its budget). */
     internal fun onRetry() = loadSettings()
 
-    override fun onGetTemplate(): ListTemplate {
+    override fun onGetTemplate(): ListTemplate = carListTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carListTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): ListTemplate {
         val current = settings
         val itemList = if (guard.failed) {
             // Recovery exhausted (or the load itself failed): explicit error

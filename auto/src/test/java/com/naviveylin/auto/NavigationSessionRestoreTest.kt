@@ -34,4 +34,61 @@ class NavigationSessionRestoreTest {
         assertFalse(shouldRestoreFreeDriving(isNavigating = false, freeDrivingActive = false))
         assertFalse(shouldRestoreFreeDriving(isNavigating = true, freeDrivingActive = false))
     }
+
+    // ── at most one restore per session (spec: auto/free-driving) ──
+
+    @Test
+    fun aSessionWithoutPushRestoresFreeDriving() {
+        val gate = FreeDrivingRestoreGate()
+
+        assertFalse(gate.hasRestored)
+        assertTrue(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+    }
+
+    @Test
+    fun theSecondSessionPathDoesNotPushAnotherFreeDrivingView() {
+        // onCreateScreen and onWarmupComplete both ask; the free-driving flag survives
+        // a session destroy, so an unguarded restore pushed two views (two renderers,
+        // and a ghost view under the top one).
+        val gate = FreeDrivingRestoreGate()
+        assertTrue(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+        gate.recordPush()
+
+        assertFalse(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+        assertTrue(gate.hasRestored)
+    }
+
+    @Test
+    fun aRefusedPushIsNotConsumedAndIsRetried() {
+        // The session records the push only when it actually pushed: with the session
+        // not started the attempt is deferred and the next started sync restores it.
+        val gate = FreeDrivingRestoreGate()
+
+        assertTrue(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+        assertFalse(gate.hasRestored)
+        assertTrue(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+    }
+
+    @Test
+    fun startupRetryAllowsOneMoreRestore() {
+        // retryStartup pops back to the root, so there is no free-driving view left
+        // to restore from and a still-active mode may be pushed once more.
+        val gate = FreeDrivingRestoreGate()
+        gate.recordPush()
+        assertFalse(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+
+        gate.reset()
+
+        assertTrue(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+    }
+
+    @Test
+    fun noRestoreIsConsumedWhileNavigatingOrWithoutAnActiveMode() {
+        val gate = FreeDrivingRestoreGate()
+
+        assertFalse(gate.shouldPush(isNavigating = true, freeDrivingActive = true))
+        assertFalse(gate.shouldPush(isNavigating = false, freeDrivingActive = false))
+        assertFalse("a refused attempt consumes nothing", gate.hasRestored)
+        assertTrue(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+    }
 }

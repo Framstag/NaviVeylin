@@ -5,7 +5,9 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeStyleLoadClient
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.naviveylin.core.NotificationIds
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -84,5 +86,25 @@ class CarStyleLoadNotifierTest {
 
         val posted = shadowOf(manager).getNotification(CarStyleLoadNotifier.NOTIFICATION_ID)
         assertEquals("no sound/vibration", 0, posted.defaults)
+    }
+
+    @Test
+    fun theNoticeNeverPostsOnTheOngoingNavigationIdentity() {
+        // The ongoing navigation notification is the foreground-service notification and the
+        // carrier of the car rail-widget turn hint: a notice on that identity takes the hint
+        // off the rail (spec: navigation-ongoing-notification — Distinct notification identity).
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        assertNotEquals(NotificationIds.NAVIGATION_ONGOING, CarStyleLoadNotifier.NOTIFICATION_ID)
+
+        CarStyleLoadNotifier(context).notify("Map style \"cycle\" could not be loaded")
+
+        assertNotNull(
+            "the notice is posted under its own identity",
+            shadowOf(manager).getNotification(NotificationIds.MAP_STYLE_NOTICE)
+        )
+        assertNull(
+            "nothing is posted under the navigation identity",
+            shadowOf(manager).getNotification(NotificationIds.NAVIGATION_ONGOING)
+        )
     }
 }

@@ -36,7 +36,7 @@ class AutoFavoritesProviderImplTest {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         repository = FavoriteRepository(client)
-        provider = AutoFavoritesProviderImpl(repository)
+        provider = AutoFavoritesProviderImpl(dagger.Lazy { repository })
     }
 
     private suspend fun initRepository() {

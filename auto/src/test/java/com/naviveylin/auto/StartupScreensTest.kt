@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import android.os.Looper
 import androidx.car.app.CarContext
 import androidx.car.app.model.PaneTemplate
 import com.naviveylin.core.DiagnosticsLog
@@ -12,6 +13,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 
 /**
  * Tests for the startup-guard screens: [SafeScreen] template error fallback,
@@ -88,8 +90,10 @@ class StartupScreensTest {
             DiagnosticsLog.log("B", "second")
             DiagnosticsLog.log("C", "third")
 
-            val template = DiagnosticsScreen(carContext).onGetTemplate() as PaneTemplate
-            val titles = template.pane.rows.map { it.title.toString() }
+            val screen = DiagnosticsScreen(carContext)
+            // The log is read on a background dispatcher (spec: auto-diagnostics —
+            // Reading diagnostics does not block the UI), so wait for the load.
+            val titles = awaitRows(screen) { it.size == 3 }
 
             assertTrue(titles.size <= 20)
             assertEquals(3, titles.size)
@@ -99,5 +103,21 @@ class StartupScreensTest {
             DiagnosticsLog.reset()
             file.delete()
         }
+    }
+
+    /** Template row titles, polling until the screen's background load is published. */
+    private fun awaitRows(
+        screen: DiagnosticsScreen,
+        ready: (List<String>) -> Boolean
+    ): List<String> {
+        val deadline = System.currentTimeMillis() + 5_000
+        var titles: List<String> = emptyList()
+        while (System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            titles = (screen.onGetTemplate() as PaneTemplate).pane.rows.map { it.title.toString() }
+            if (ready(titles)) return titles
+            Thread.sleep(10)
+        }
+        return titles
     }
 }

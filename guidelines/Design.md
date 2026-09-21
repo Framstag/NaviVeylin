@@ -77,7 +77,19 @@ strong preference.
 ## 4. Threading
 
 - **MUST**: never call native/JNI code on the main thread; run it on
-  background dispatchers with timeouts and loading UI.
+  background dispatchers with timeouts and loading UI. This includes the car-app
+  host callbacks (they run on the main thread by library contract): they may only
+  retain the state they received — resolving a provider, a database query or a
+  file read there blocks the host's call and can take the host down.
+- **MUST**: a diagnostic handler never performs filesystem work on its caller.
+  `DiagnosticsLog.log`/`logThrowable` buffer the line in memory (plus a logcat
+  mirror) and one worker thread owns the file — the caller's thread may be a car
+  host callback, and the log must not be the reason it answers late. Readers
+  (`readEntries`/`exportText`) do read the file: call them from a background
+  dispatcher (`readEntriesAsync`/`exportTextAsync`), never from a template build
+  or from composition. The one deliberate exception is the uncaught-exception
+  handler, which writes its trace on the dying thread — a buffered line might
+  never be flushed there, and a crash trace must land.
 - Native callbacks arrive on native threads — marshal state updates to the
   main thread via the ViewModel scope.
 - Prefer coroutines over raw threads: conflated channels/StateFlow for
@@ -170,10 +182,50 @@ strong preference.
   actions are parked-only where the host supports it. Prefer host-rendered
   panels where positioned/controllable; draw on the surface only what the
   host cannot render, inside the stable area.
-- **MUST**: the car-app surface lifecycle is strict — release every surface
-  when replaced or destroyed; pause/resume renderers on screen stop/start;
-  unlock in `finally`; validate before drawing; serialize across renderers;
-  recover gracefully with capped invalidation.
+- **MUST**: the car-app surface lifecycle is strict and **session-owned** —
+  one surface-callback registration per session, one owner screen at a time, and
+  the surface released exactly once: on the host's destroy signal or at session
+  end, never by a screen that merely stops. The library starts the incoming
+  screen *before* it stops the outgoing one, so a release in `onStop`
+  disconnects the buffer queue the incoming screen is drawing through (observed
+  as `lockCanvas` failures the host then re-delivers around). A host destroy is
+  **scoped to the surface instance it names**: a destroy of a superseded surface
+  (the host delivered a newer one first — AAOS does re-deliver after a transition)
+  releases that instance only and must not clear or release the live one.
+  Pause/resume renderers on screen stop/start; unlock in `finally`; validate before
+  drawing; never lock or draw a released or replaced surface; recover from a dead
+  surface with a **main-thread**, capped invalidate.
+- **MUST**: nothing native runs on a host callback or in a screen constructor —
+  car providers are resolved off the host thread (lazy `Provider`/`Lazy`), a
+  host callback only retains state (including the surface **tap** path: the native
+  client is resolved inside the background block, not in the callback), and no
+  fault escapes a host callback or a host-facing path (trip build, host navigation
+  call, notification build/post, frame draw): the car-app library rethrows an app
+  exception on the main thread, which kills the process. Degrade and log instead.
+  **Every** car screen's template build goes through the `car*Template` wrappers
+  (`SafeScreen.kt`) — the map/navigation/free-driving screens were guarded while
+  eleven other screens' `onGetTemplate` could still kill the process.
+- **MUST**: while the car app is not the visible car app, host traffic is
+  bounded — the session mutates no host state (no screen push/pop, no template
+  invalidate, no host navigation-state change) and the ongoing notification is
+  re-posted only when its host-visible content changed; guidance updates and
+  trip metadata keep flowing. A template is rebuilt only when its displayed content
+  changes materially: the distance values are compared as the host displays them
+  (the shared rounding), not metre by metre, and a template asset the host receives
+  per rebuild (the lane-guidance image) is reused while its state is unchanged.
+  A session restores a still-active free-driving mode **at most once**.
+- **MUST**: a car screen's shared-state observations are scoped to its **started
+  period** — one instance of each per start, all cancelled on stop. The host stops
+  and starts a screen on every background round trip and on every push/pop of
+  another screen, so per-collector job bookkeeping leaks: the screen it belonged to
+  ran a second copy of the GPS, favorites, dark-mode and basemap observations after
+  every start, and each copy kept requesting renders, native lookups and template
+  refreshes (the count grew monotonically with the number of starts).
+  `CarScreenObservations` (`:auto`) owns the lifetime and a per-screen
+  `<Screen>Observations` class owns what is observed; a stopped screen touches
+  neither the renderer nor the host, and work that must survive a stop (e.g. the
+  free-driving stale-speed ticker) stays on the screen's own scope. See
+  `openspec/specs/auto/screen-observation/spec.md`.
 - Cross-variant parity: same labels and visual hierarchy wherever the
   platform allows; deviate only as much as required. Shared logic and data
   have one source; one variant's UI is a thin adapter.

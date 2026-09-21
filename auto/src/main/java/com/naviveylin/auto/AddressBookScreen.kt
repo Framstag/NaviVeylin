@@ -81,7 +81,10 @@ class AddressBookScreen(
         }
     }
 
-    override fun onGetTemplate(): SearchTemplate {
+    override fun onGetTemplate(): SearchTemplate = carSearchTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carSearchTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): SearchTemplate {
         val builder = SearchTemplate.Builder(SearchCallbackImpl())
             .setShowKeyboardByDefault(true)
             .setHeaderAction(Action.BACK)

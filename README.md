@@ -139,7 +139,7 @@ The generated version is available to the app via `BuildConfig.VERSION_NAME` and
 
 When Android Auto fails to start (crash hint, blank screen, or silent return to launcher), gather evidence from two sources:
 
-**1. On-device log** — `filesDir/diagnostics/app.log`, viewable in the phone app (About → Diagnostics) and on the car screen (Root → Diagnostics). Contains session lifecycle events, warmup step markers, and crash traces. Warmup markers localize native crashes: if the log ends at `Building native client` without `Native client ready`, the failure is inside native init.
+**1. On-device log** — `filesDir/diagnostics/app.log`, viewable in the phone app (About → Diagnostics) and on the car screen (Root → Diagnostics). Contains session lifecycle events, warmup step markers, and crash traces. Warmup markers localize native crashes: if the log ends at `Building native client` without `Native client ready`, the failure is inside native init. Entries are buffered in memory and written by a worker thread, so a line reaches the file within ~250 ms (the logcat line is immediate) and a crash trace is written synchronously before the process dies.
 
 **2. Phone logcat** — the app runs on the phone for phone-based Android Auto, so the phone is adb-able even though the head unit is not:
 

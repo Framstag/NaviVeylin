@@ -3,6 +3,7 @@ package com.naviveylin.di
 import android.util.Log
 import com.framstag.libosmscout.client.InstalledMaps
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.naviveylin.auto.SessionCarSurfaceHost
 import com.naviveylin.core.AutoClientProvider
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoLocationProvider
@@ -12,6 +13,7 @@ import com.naviveylin.core.AutoSearchProvider
 import com.naviveylin.core.AutoSearchHistoryProvider
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
+import com.naviveylin.core.CarSurfaceHost
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.search.SearchQueryParser
@@ -28,6 +30,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import java.io.File
+import javax.inject.Provider
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,8 +54,12 @@ object AutoServiceModule {
 
     @Provides
     @Singleton
-    fun provideAutoSearchProvider(client: OSMScoutClient): AutoSearchProvider {
+    fun provideAutoSearchProvider(client: Provider<OSMScoutClient>): AutoSearchProvider {
         return AutoSearchProvider { query, limit, reference ->
+            // Resolved per search, never while the provider is being resolved: the
+            // native client is built on the caller's thread (spec: auto-map-renderer —
+            // Renderer initialization off the car-app main thread).
+            val client = client.get()
             // Full formatted addresses resolve via the structured form search
             // first (a postal code inside the query otherwise empties the
             // native string search); structured house/street results rank
@@ -75,17 +82,34 @@ object AutoServiceModule {
 
     @Provides
     @Singleton
-    fun provideAutoFavoritesProvider(repository: FavoriteRepository): AutoFavoritesProvider {
+    fun provideAutoFavoritesProvider(repository: dagger.Lazy<FavoriteRepository>): AutoFavoritesProvider {
         return AutoFavoritesProviderImpl(repository)
     }
 
+    /**
+     * Session-scoped car surface owner (spec: car-host-fault-isolation — Single-owner
+     * car surface): one registration per car session, one owner screen at a time. The
+     * session starts/ends it; screens attach/detach.
+     */
     @Provides
     @Singleton
-    fun provideAutoClientProvider(client: OSMScoutClient): AutoClientProvider {
+    fun provideCarSurfaceHost(): CarSurfaceHost = SessionCarSurfaceHost()
+
+    @Provides
+    @Singleton
+    fun provideAutoClientProvider(client: Provider<OSMScoutClient>): AutoClientProvider {
         return object : AutoClientProvider {
-            override fun client(): OSMScoutClient = client
+            // The provider object itself must not touch the native client: a car
+            // screen constructor resolves it, and building the client there would run
+            // on the car-app host thread (spec: auto-map-renderer — Renderer
+            // initialization off the car-app main thread).
+            override fun client(): OSMScoutClient = client.get()
             override suspend fun openMapDatabases(filesDir: String) {
                 withContext(Dispatchers.Default) {
+                    // Resolved on this (background) dispatcher, not when the provider was
+                    // built (spec: auto-map-renderer — Renderer initialization off the
+                    // car-app main thread).
+                    val client = client.get()
                     val mapsDir = File(filesDir, "maps")
                     if (!mapsDir.isDirectory) {
                         Log.w(TAG, "openMapDatabases: $mapsDir is not a directory")

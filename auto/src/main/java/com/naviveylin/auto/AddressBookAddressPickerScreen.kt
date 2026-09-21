@@ -49,7 +49,10 @@ class AddressBookAddressPickerScreen(
         enableBackNavigation()
     }
 
-    override fun onGetTemplate(): ListTemplate {
+    override fun onGetTemplate(): ListTemplate = carListTemplate(carContext, ::buildTemplate)
+
+    /** Template body; guarded by [carListTemplate] (spec: car-host-fault-isolation). */
+    private fun buildTemplate(): ListTemplate {
         val itemList = ItemList.Builder()
         if (notFound) {
             itemList.addItem(

@@ -36,8 +36,35 @@ object ManeuverGlyphs {
      * Lanes-strip image for the host instruction panel: one lane arrow per
      * row, suggested lanes highlighted (spec: auto/navigation-view — the
      * current step must carry a lanes image when lane information is set).
+     *
+     * The image is reused while the lane state is unchanged (spec:
+     * car-host-fault-isolation — Bounded host-facing traffic while not visible): the template is
+     * rebuilt on navigation-state updates, and a fresh bitmap per rebuild is a fresh
+     * bitmap sent to the host over IPC every time. The cache holds the last state only —
+     * the host panel shows one step's lanes at a time — so it stays bounded by the lane
+     * count. Main-thread use (the template build).
      */
     fun lanesImage(turns: List<LaneTurn>, recommended: IntRange): CarIcon {
+        val cached = cachedLanes
+        if (cached != null && cached.turns == turns && cached.recommended == recommended) {
+            return cached.icon
+        }
+        val icon = buildLanesImage(turns, recommended)
+        cachedLanes = LaneCache(turns, recommended, icon)
+        return icon
+    }
+
+    /** Last lane state whose image was built, so an unchanged state reuses the image. */
+    @Volatile
+    private var cachedLanes: LaneCache? = null
+
+    private data class LaneCache(
+        val turns: List<LaneTurn>,
+        val recommended: IntRange,
+        val icon: CarIcon
+    )
+
+    private fun buildLanesImage(turns: List<LaneTurn>, recommended: IntRange): CarIcon {
         val laneSize = 32
         val gap = 8
         val width = turns.size * laneSize + (turns.size - 1) * gap

@@ -573,11 +573,38 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   main thread. A throwing host callback therefore kills the process *and* reports the failure to the
   host, which is what makes an app-side exception look like a host fault from the driver's seat.
 - **App-process killers still open** ✗, ranked: (1) §49 — ~15 MB of
-  transient buffers per full render with up to three live renderers (lmkd kill); (2) any uncaught
-  exception on a host path outside the callbacks guarded by `fix-aaos-host-crash`. ~~§48 (the
+  transient buffers per full render with up to three live renderers (lmkd kill). ~~§48 (the
   unsynchronised `ClientData::knownPaths` vector in `openDatabase`, native SIGSEGV)~~ is **fixed** by
   `fix-native-database-open-race`; ~~the main-thread native work of §52/§53~~ was fixed by
-  `fix-aaos-host-crash` (see those entries).
+  `fix-aaos-host-crash`; ~~any uncaught exception on a host path~~ is now covered end to end by
+  `fix-car-host-mutation-guards` (see the entry below).
+- **The remaining unguarded host paths** ✗ (found 2026-09-22 while triaging the "AA crashes after
+  seconds to minutes" report, **fixed** by `fix-car-host-mutation-guards`): the 2026-09-21 work
+  guarded host *callbacks*, the template builds and the enumerated host sends, but three mutation
+  paths were still open, and each one is a process death → host FATAL through the mechanism above.
+  (1) **Template-row click listeners** did `ScreenManager.push` directly — seven sites plus the
+  back actions — inside the library's `dispatchCallFromHost`, which answers the host with a
+  `FailureResponse` and then **rethrows on the app's main thread**
+  (`RemoteUtils.java:140-158`, car-app 1.7.0). (2) **The session's own coroutines**
+  (`observeJob`/`errorJob`/`tripJob`, `showNavigationScreen`, `showRootScreen`, `restoreDrivingMode`,
+  `showError`) called `getCarService(ScreenManager).push/popToRoot` on a
+  `CoroutineScope(SupervisorJob() + Dispatchers.Main)` with **no** `CoroutineExceptionHandler` —
+  only `CarScreenObservations` had one, so the guarantee was asymmetric in exactly the places that
+  mutate the host. (3) **The session lifecycle callbacks** (`onStart`'s host sync, `onDestroy`'s
+  cleanup) were not confined, so a throw escaped the lifecycle observer into the library's dispatch.
+  Fix: one guarded seam (`CarHostGuards.kt`: `guardedHostCall`, `armScreenPush`,
+  `armShowOnMapSwap`, `dismissErrorNotice`), the shared fault handler on the session scope, every
+  car screen's own scope (and the renderer's), and every `ScreenManager` mutation routed through it;
+  click paths *arm* the navigation and build the target screen after the callback returns. Two
+  second-order defects came out of the same review: `showError`'s delayed `popToRoot()` **popped the
+  navigation screen** off the stack while the flag claimed it was shown (guidance silently gone,
+  `showNavigationScreen` early-returning forever), and the session recorded a screen push *before*
+  the host accepted it. Both are fixed by the same change (`SessionScreenStack`). Found and left
+  for later: **a confined fault in the renderer's own loops ends that loop** — the map would freeze
+  instead of killing the process, and there is no restart path for a dead render loop yet; and
+  **the `remove(notice)` dismissal needs the notice to still be on the stack** (a no-op otherwise,
+  which is intended but means a notice skipped while stopped is only removed by the next started
+  sync).
 - **Evidence recipe** ℹ: `adb logcat -b crash` for the host process, plus
   `adb logcat -d | grep -E 'onPackageUpdateFinished|onHandleForceStop'` for the app and
   `adb logcat -d | grep 'Diag/HOST'` for what the app last sent. A package replace/force-stop in the

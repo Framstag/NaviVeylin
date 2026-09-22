@@ -14,9 +14,6 @@ import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.BundledMapStyles
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
@@ -56,7 +53,7 @@ class PreferencesScreen private constructor(
         onDarkModeChanged
     )
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("PreferencesScreen")
 
     private var settings: AutoSettings? = null
     private var loaded = false
@@ -136,23 +133,23 @@ class PreferencesScreen private constructor(
                             // the vehicle position rows open the 5×3 anchor
                             // picker for their mode.
                             if (row.key == PreferencesScreenMapper.KEY_OVERSPEED_DELTA) {
-                                screenManager.push(
+                                armScreenPush(carContext, scope, "OverspeedDeltaPickerScreen") {
                                     OverspeedDeltaPickerScreen(carContext, settingsProvider)
-                                )
+                                }
                             } else if (row.key == PreferencesScreenMapper.KEY_ROUTING_ANCHOR) {
-                                screenManager.push(
+                                armScreenPush(carContext, scope, "VehicleAnchorPickerScreen (routing)") {
                                     VehicleAnchorPickerScreen(
                                         carContext, settingsProvider,
                                         VehicleAnchorPickerScreen.Mode.ROUTING
                                     )
-                                )
+                                }
                             } else if (row.key == PreferencesScreenMapper.KEY_FREE_DRIVING_ANCHOR) {
-                                screenManager.push(
+                                armScreenPush(carContext, scope, "VehicleAnchorPickerScreen (free driving)") {
                                     VehicleAnchorPickerScreen(
                                         carContext, settingsProvider,
                                         VehicleAnchorPickerScreen.Mode.FREE_DRIVING
                                     )
-                                )
+                                }
                             } else {
                                 onToggle(row.key)
                             }

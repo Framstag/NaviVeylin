@@ -15,10 +15,8 @@ import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.addressbook.AddressBookSearchProvider
 import com.naviveylin.core.addressbook.ContactAddressBookEntry
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -34,7 +32,7 @@ class AddressBookAddressPickerScreen(
     private val contact: ContactAddressBookEntry
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("AddressBookAddressPickerScreen")
     private var resolveJob: Job? = null
     private var notFound = false
 
@@ -93,12 +91,14 @@ class AddressBookAddressPickerScreen(
             val best = results.firstOrNull()
             if (best != null) {
                 Log.d(TAG, "Resolved '${address.displayText}' -> ${best.label}")
-                carContext.getCarService(ScreenManager::class.java).push(
-                    DetailsScreen(
-                        carContext, navigationViewModel, best.lat, best.lon,
-                        nameHint = best.label
+                guardedHostCall("push DetailsScreen (address book picker)") {
+                    carContext.getCarService(ScreenManager::class.java).push(
+                        DetailsScreen(
+                            carContext, navigationViewModel, best.lat, best.lon,
+                            nameHint = best.label
+                        )
                     )
-                )
+                }
             } else {
                 notFound = true
                 invalidate()

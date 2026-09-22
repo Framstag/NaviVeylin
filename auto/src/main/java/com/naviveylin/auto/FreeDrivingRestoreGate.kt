@@ -38,6 +38,20 @@ internal class FreeDrivingRestoreGate {
     }
 
     /**
+     * Record the outcome of a push attempt: only a push the host actually accepted
+     * consumes the session's one restore (spec: car-host-fault-isolation — Host
+     * screen-stack mutations are balanced; design D4). A rejected push leaves the gate
+     * open so the next started sync restores the view instead of losing it.
+     *
+     * @param landed whether the push landed
+     */
+    fun recordPush(landed: Boolean) {
+        if (landed) {
+            restored = true
+        }
+    }
+
+    /**
      * Forget the restore, so a later attempt may push again. Used by the startup
      * retry, which pops the stack back to the root (there is no free-driving view
      * left to restore from).

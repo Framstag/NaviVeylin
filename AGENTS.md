@@ -156,6 +156,22 @@ car path has hard rules:
   build/post and the foreground start in `NavigationNotificationService`, and **every** car
   screen's template build (`car*Template` wrappers in `SafeScreen.kt`) — the car-app library
   rethrows an app exception on the main thread, which kills the process.
+- **Every host mutation goes through the guarded seam (change `fix-car-host-mutation-guards`).**
+  `CarHostGuards.kt` (`:auto`) holds `guardedHostCall(what, tag) { … }` — one `ScreenManager`
+  push/pop/popToRoot/remove, confinement plus an unthrottled `HOST` diagnostics entry per
+  rejection — and, for the click paths, `armScreenPush(carContext, scope, what) { screen }` and
+  `armShowOnMapSwap(...)`: a template row action **arms** the navigation and returns, and the
+  target screen is built and pushed afterwards (never on the host's answering path, where the
+  library rethrows). Never call `screenManager.push/pop/popToRoot/remove` bare in a click listener
+  or a screen function. Every scope that owns host-mutating work carries the shared fault handler —
+  `carSessionScope()` for the session, `carScreenScope(name)` for each screen (and the renderer),
+  `CarScreenObservations` for the screens' shared-state observations — and each screen cancels its
+  own scope in `onDestroy` (a screen popped away kills its armed push instead of pushing onto the
+  new stack). **Screen-stack bookkeeping follows the mutation that succeeded**
+  (`SessionScreenStack`, `FreeDrivingRestoreGate.recordPush(landed)`): a refused push records
+  nothing so the next emission retries, the transient error notice is removed by identity
+  (`ScreenManager.remove`, never `popToRoot()` — that took the navigation view down with it), and a
+  dismissal deferred while the session was stopped is re-applied by the next started sync.
 - **`invalidate()` is main-thread only** (`postTemplateRefresh`) and **backgrounded host traffic is
   bounded**: `SessionHostGate` defers screen push/pop, template refresh and host navigation-state
   changes while the session is stopped (re-applied once on start), and the ongoing notification is
@@ -172,7 +188,9 @@ car path has hard rules:
   a bare `scope.launch`**, and keep work that must survive a stop (the free-driving stale-speed
   ticker) on the screen's own scope.
 - **Diagnosis:** every host-facing send is recorded under the diagnostics tag `HOST` (surface
-  adopt/release, notification posts, trip updates, navigation state) and the client build under
+  adopt/release, notification posts, trip updates, navigation state), a rejection of a host
+  mutation under `HOST` too (`… rejected: …`), a confined fault under `SESSION`/`SCREEN`
+  (`… 'key' failed`), and the client build under
   `WARMUP` **with the thread** — see `guidelines/Build.md` §10 for the on-device recipe.
 
 - Real implementation: `:auto` library module (screens, `NavigationSession`); `NaviVeylinCarAppService` lives in the app's base package (`com.naviveylin`) as the car-app spec requires

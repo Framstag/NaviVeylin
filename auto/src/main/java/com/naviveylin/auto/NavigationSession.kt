@@ -20,10 +20,9 @@ import com.naviveylin.core.StringResolver
 import com.naviveylin.core.stringResolver
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -67,21 +66,37 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 class NavigationSession : Session() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    /**
+     * The session's own scope, with the car-facing fault handler (spec:
+     * car-host-fault-isolation — No fault escapes into the host path; design D3/D7): the
+     * observers, the trip publisher and the screen-stack mutations run here, and an
+     * exception from any of them would otherwise reach the main thread's uncaught handler
+     * and kill the process.
+     */
+    private val scope = carSessionScope()
     private var observeJob: Job? = null
     private var errorJob: Job? = null
     private var tripJob: Job? = null
     private var warmupJob: Job? = null
+    private var errorDismissalJob: Job? = null
     private var navigationScreen: NavigationScreen? = null
 
     /**
-     * True while the cached [navigationScreen] sits on the stack (D4).
-     * [showNavigationScreen] skips the push when it is already up — the screen
-     * re-renders from its own state collector, so a navigation restart needs
-     * no duplicate screen. [ScreenManager] exposes no public top-screen getter,
-     * hence the flag.
+     * Screen-stack bookkeeping (spec: car-host-fault-isolation — Host screen-stack
+     * mutations are balanced; design D4). [showNavigationScreen] skips the push while the
+     * navigation view is up — the screen re-renders from its own state collector, so a
+     * navigation restart needs no duplicate screen. The record follows the mutation that
+     * succeeded, never the attempt: recording a refused push would make this early-return
+     * forever. [ScreenManager] exposes no public top-screen getter, hence the flag.
      */
-    private var navScreenPushed = false
+    private val screenStack = SessionScreenStack()
+
+    /**
+     * The error notice currently on the stack, or null. Held so the dismissal removes
+     * exactly this screen (`ScreenManager.remove`) instead of popping the stack back to
+     * the root — which used to take the navigation view down with it (design D5).
+     */
+    private var errorNotice: ErrorOverlayScreen? = null
 
     @Volatile
     private var sessionDestroyed = false
@@ -173,25 +188,36 @@ class NavigationSession : Session() {
         SessionLog.sessionCreated()
         // Seed the shared dark mode preference for the car rendering; best
         // effort — AUTOMATIC stays the value until the load completes.
-        scope.launch {
+        scope.launch(CoroutineName("dark-mode-preference")) {
             runCatching { entryPoint.autoSettingsProvider().load().darkMode }
                 .onSuccess { updateDarkModePreference(it) }
                 .onFailure { Log.w(TAG, "dark mode preference load failed — default AUTOMATIC", it) }
         }
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
+                // Each lifecycle step is confined on its own (spec: car-host-fault-isolation —
+                // No fault escapes into the host path, "Session lifecycle callback throws"):
+                // the car-app library dispatches these on the app's main thread and rethrows
+                // an escaping exception there, and a failed registration must not skip the
+                // host sync that follows it.
+                //
                 // The car-app host keeps ONE surface callback per app: registering it
                 // per session (not per screen) is what stops a screen transition from
                 // re-delivering the surface, and it is why no screen releases a
                 // surface another screen draws through (spec: car-host-fault-isolation
                 // — Single-owner car surface; design D1).
-                runCatching { surfaceHost().startSession(carContext) }
-                    .onFailure { Log.w(TAG, "surface host start failed", it) }
+                guardedHostCall("register car surface callback", tag = SESSION_DIAG_TAG) {
+                    surfaceHost().startSession(carContext)
+                }
                 SessionLog.push("surface callback registered")
                 // A transition that happened while the session was stopped is applied
                 // once now (spec: car-host-fault-isolation — Bounded host-facing traffic
                 // while not visible).
-                if (hostGate.onSessionStart()) {
+                var syncOwed = false
+                guardedHostCall("host gate onSessionStart", tag = SESSION_DIAG_TAG) {
+                    syncOwed = hostGate.onSessionStart()
+                }
+                if (syncOwed) {
                     SessionLog.push("host sync after background")
                     syncHostWithCurrentState()
                 }
@@ -199,8 +225,11 @@ class NavigationSession : Session() {
 
             override fun onStop(owner: LifecycleOwner) {
                 // Host mutations (screen push/pop, template refresh, host navigation
-                // state) are deferred from here on.
-                hostGate.onSessionStop()
+                // state) are deferred from here on. Confined like every lifecycle step:
+                // this runs inside the library's dispatch, which rethrows on the main thread.
+                guardedHostCall("host gate onSessionStop", tag = SESSION_DIAG_TAG) {
+                    hostGate.onSessionStop()
+                }
             }
 
             override fun onDestroy(owner: LifecycleOwner) {
@@ -208,20 +237,27 @@ class NavigationSession : Session() {
                 if (warmupJob?.isActive == true) {
                     SessionLog.warmupCancelled()
                 }
+                // Every cleanup step is confined separately (spec: car-host-fault-isolation —
+                // "Session lifecycle callback throws"): one failing step must not skip the
+                // steps after it, and none of them may escape into the library's dispatch.
                 if (locationStarted) {
-                    runCatching { entryPoint.autoLocationProvider().stop() }
-                        .onFailure { Log.w(TAG, "location stop failed", it) }
+                    guardedHostCall("stop location source", tag = SESSION_DIAG_TAG) {
+                        entryPoint.autoLocationProvider().stop()
+                    }
                 }
                 // NavigationManager cleanup (may be mid-navigation; the
                 // controller never throws). Only if it was ever created.
-                navigationManagerController?.onDestroy()
+                guardedHostCall("navigation manager destroy", tag = SESSION_DIAG_TAG) {
+                    navigationManagerController?.onDestroy()
+                }
                 sessionDestroyed = true
-                stopObserving()
+                guardedHostCall("stop observing", tag = SESSION_DIAG_TAG) { stopObserving() }
                 // Releases a still-held surface and clears the host registration
                 // (spec: car-host-fault-isolation — "Session ends with a surface held").
-                runCatching { surfaceHost().endSession() }
-                    .onFailure { Log.w(TAG, "surface host end failed", it) }
-                scope.cancel()
+                guardedHostCall("end car session surface", tag = SESSION_DIAG_TAG) {
+                    surfaceHost().endSession()
+                }
+                guardedHostCall("cancel session scope", tag = SESSION_DIAG_TAG) { scope.cancel() }
             }
         })
         startWarmup()
@@ -322,7 +358,7 @@ class NavigationSession : Session() {
      *   host restarts the process.
      */
     private fun startWarmup() {
-        warmupJob = scope.launch {
+        warmupJob = scope.launch(CoroutineName("warmup")) {
             SessionLog.warmupStarted()
             val result = runCatching {
                 withTimeoutOrNull(WARMUP_TIMEOUT_MS) {
@@ -469,11 +505,9 @@ class NavigationSession : Session() {
             return
         }
         DiagnosticsLog.log(SessionLog.SESSION_TAG, "Showing ErrorScreen: $message")
-        runCatching {
+        guardedHostCall("push ErrorScreen (startup failure)") {
             carContext.getCarService(ScreenManager::class.java)
                 .push(ErrorScreen(carContext, message, onRetry = { retryStartup() }))
-        }.onFailure { e ->
-            SessionLog.failed("showStartupFailure", e)
         }
     }
 
@@ -481,10 +515,18 @@ class NavigationSession : Session() {
     private fun retryStartup() {
         if (sessionDestroyed) return
         SessionLog.retry()
-        carContext.getCarService(ScreenManager::class.java).popToRoot()
-        // The stack is back at the root: a still-active free-driving mode may be
-        // restored again (spec: auto/free-driving — Free-driving restore is idempotent).
-        freeDrivingRestore.reset()
+        val landed = guardedHostCall("popToRoot (startup retry)") {
+            carContext.getCarService(ScreenManager::class.java).popToRoot()
+        }
+        if (landed) {
+            screenStack.onRootPopped()
+            navigationScreen = null
+            // The stack is back at the root: a still-active free-driving mode may be
+            // restored again (spec: auto/free-driving — Free-driving restore is idempotent).
+            // Only when the pop landed — otherwise the previous free-driving view is still
+            // on the stack and a second push would stack two of them.
+            freeDrivingRestore.reset()
+        }
         startWarmup()
     }
 
@@ -522,7 +564,7 @@ class NavigationSession : Session() {
         val query = destination.query
         if (query.isNullOrBlank()) return
 
-        scope.launch {
+        scope.launch(CoroutineName("deep-link-geocode")) {
             val results = withContext(Dispatchers.Default) {
                 try {
                     // No position context for a deep link: a null reference orders
@@ -547,7 +589,7 @@ class NavigationSession : Session() {
 
     private fun startObserving() {
         if (observeJob != null) return
-        observeJob = scope.launch {
+        observeJob = scope.launch(CoroutineName("navigation-state")) {
             navigationViewModel.state
                 .map { it.isNavigating }
                 .distinctUntilChanged()
@@ -576,7 +618,7 @@ class NavigationSession : Session() {
         // collector, which is what declares the app as the active navigation
         // app before any updateTrip is sent. The first emission also seeds a
         // session that was created (or restored) mid-navigation.
-        tripJob = scope.launch {
+        tripJob = scope.launch(CoroutineName("trip")) {
             navigationViewModel.state.collect { navState ->
                 navigationManagerController().publishTrip(navState) { state ->
                     carTripFor(state, carContext.stringResolver())
@@ -584,7 +626,7 @@ class NavigationSession : Session() {
             }
         }
         // Observe error messages
-        errorJob = scope.launch {
+        errorJob = scope.launch(CoroutineName("error")) {
             navigationViewModel.state
                 .map { it.errorMessage }
                 .distinctUntilChanged()
@@ -614,7 +656,7 @@ class NavigationSession : Session() {
 
     private fun showNavigationScreen() {
         Log.d(TAG, "Switching to NavigationScreen")
-        if (navScreenPushed) {
+        if (screenStack.isNavigationShown) {
             // The navigation screen is already on the stack; it re-renders in
             // place from its own state collector (D4). Never push a duplicate.
             Log.d(TAG, "NavigationScreen already on stack — no re-push")
@@ -626,8 +668,13 @@ class NavigationSession : Session() {
         }
         SessionLog.push("NavigationScreen")
         val screen = getNavigationScreen()
-        carContext.getCarService(ScreenManager::class.java).push(screen)
-        navScreenPushed = true
+        val landed = guardedHostCall("push NavigationScreen") {
+            carContext.getCarService(ScreenManager::class.java).push(screen)
+        }
+        // Only a landed push is recorded: claiming a screen the host refused makes this
+        // method early-return forever and the next state emission never re-pushes
+        // (spec: car-host-fault-isolation — Host screen-stack mutations are balanced).
+        screenStack.onNavigationPush(landed)
     }
 
     private fun showRootScreen() {
@@ -637,9 +684,17 @@ class NavigationSession : Session() {
         }
         Log.d(TAG, "Switching to RootScreen")
         SessionLog.popToRoot()
-        navigationScreen = null
-        navScreenPushed = false
-        carContext.getCarService(ScreenManager::class.java).popToRoot()
+        val landed = guardedHostCall("popToRoot (root screen)") {
+            carContext.getCarService(ScreenManager::class.java).popToRoot()
+        }
+        if (landed) {
+            navigationScreen = null
+            screenStack.onRootPopped()
+        }
+        // A rejected pop keeps the cached screen and the record: the screen is still on
+        // the stack, so forgetting it would make the next push a duplicate. The retry path
+        // is the deferred host sync (a pop attempted while the session is stopped is
+        // re-applied on the next start).
     }
 
     /**
@@ -650,15 +705,35 @@ class NavigationSession : Session() {
      * not lost.
      */
     private fun syncHostWithCurrentState() {
-        if (navigationViewModel.state.value.isNavigating) {
-            navigationManagerController().onNavigationStarted()
-            showNavigationScreen()
-        } else {
-            navigationManagerController()?.onNavigationEnded()
-            showRootScreen()
+        // Each application step is confined on its own, so a fault in one of them still
+        // lets the other run (spec: car-host-fault-isolation — No fault escapes into the
+        // host path).
+        guardedHostCall("sync host navigation state", tag = SESSION_DIAG_TAG) {
+            if (navigationViewModel.state.value.isNavigating) {
+                navigationManagerController().onNavigationStarted()
+                showNavigationScreen()
+            } else {
+                navigationManagerController()?.onNavigationEnded()
+                showRootScreen()
+            }
         }
         // An error raised while the session was stopped is shown once now.
-        navigationViewModel.state.value.errorMessage?.let { showError(it) }
+        guardedHostCall("show deferred error notice", tag = SESSION_DIAG_TAG) {
+            navigationViewModel.state.value.errorMessage?.let { showError(it) }
+        }
+        // A notice whose dismissal was skipped while the session was stopped is removed
+        // once now that host mutations are allowed again (spec: car-host-fault-isolation —
+        // "Deferred mutation after the session ended").
+        val owedNotice = screenStack.consumeOwedDismissal() as? ErrorOverlayScreen
+        if (owedNotice != null) {
+            val removed = guardedHostCall("remove ErrorOverlayScreen (deferred)") {
+                carContext.getCarService(ScreenManager::class.java).remove(owedNotice)
+            }
+            if (removed) {
+                if (errorNotice === owedNotice) errorNotice = null
+                screenStack.onErrorNoticeDismissed(owedNotice)
+            }
+        }
     }
 
     /**
@@ -687,27 +762,90 @@ class NavigationSession : Session() {
             Log.d(TAG, "session not started — free-driving restore deferred")
             return
         }
-        freeDrivingRestore.recordPush()
+        freeDrivingRestore.recordPush(landed = false)
         SessionLog.push("FreeDrivingScreen (restore)")
-        carContext.getCarService(ScreenManager::class.java).push(FreeDrivingScreen(carContext))
+        val landed = guardedHostCall("push FreeDrivingScreen (restore)") {
+            carContext.getCarService(ScreenManager::class.java).push(FreeDrivingScreen(carContext))
+        }
+        // Only a landed push consumes the session's one restore (spec:
+        // car-host-fault-isolation — Host screen-stack mutations are balanced): consuming it
+        // on a refused push loses the free-driving view for the rest of the session.
+        freeDrivingRestore.recordPush(landed)
     }
-
     private fun showError(message: String) {
+        if (sessionDestroyed) return
         if (!hostGate.allowHostMutation()) {
             Log.d(TAG, "session not started — error screen deferred")
             return
         }
         Log.d(TAG, "Showing error: $message")
         SessionLog.errorOverlay(message)
-        // The overlay's template build is guarded like every other car screen's
-        // (spec: car-host-fault-isolation — No fault escapes into the host path).
-        carContext.getCarService(ScreenManager::class.java).push(ErrorOverlayScreen(carContext, message))
 
-        // Auto-dismiss error after 4 seconds, clear error state
-        scope.launch {
-            delay(ERROR_DISPLAY_MS)
-            navigationViewModel.clearError()
-            carContext.getCarService(ScreenManager::class.java).popToRoot()
+        val current = errorNotice
+        if (current != null && !screenStack.needsErrorNoticePush()) {
+            // A notice is already up: update it instead of stacking a second screen
+            // (spec: car-host-fault-isolation — Host screen-stack mutations are balanced,
+            // "Repeated errors").
+            current.updateMessage(message)
+            guardedHostCall("invalidate error notice") { current.invalidate() }
+            scheduleErrorNoticeDismissal(current)
+            return
+        }
+
+        val notice = ErrorOverlayScreen(carContext, message)
+        val landed = guardedHostCall("push ErrorOverlayScreen") {
+            carContext.getCarService(ScreenManager::class.java).push(notice)
+        }
+        if (landed) {
+            errorNotice = notice
+            screenStack.onErrorNoticePushed(notice)
+            scheduleErrorNoticeDismissal(notice)
+        }
+    }
+
+    /**
+     * Auto-dismiss the error notice after [ERROR_DISPLAY_MS] (spec:
+     * car-host-fault-isolation — Host screen-stack mutations are balanced; design D5).
+     *
+     * Two rules, both of which the previous `popToRoot()` dismissal broke: the pop is
+     * scoped to **this notice** (`ScreenManager.remove` — a `popToRoot` took the navigation
+     * view down with it while the session still believed it was shown), and a mutation that
+     * would run after the session stopped or ended is **discarded** (spec — Bounded
+     * host-facing traffic while not visible, "Deferred mutation after the session ended").
+     * The local error state is cleared either way, so a skipped host call cannot pin the
+     * error.
+     */
+    private fun scheduleErrorNoticeDismissal(notice: ErrorOverlayScreen) {
+        errorDismissalJob?.cancel()
+        errorDismissalJob = scope.launch(CoroutineName("error-dismissal")) {
+            dismissErrorNotice(
+                notice = notice,
+                delayMs = ERROR_DISPLAY_MS,
+                // Unconditional: a skipped host call must not pin the error (design D5).
+                clearLocalError = { navigationViewModel.clearError() },
+                // Destroyed, or a newer notice took this one's place.
+                isSessionUsable = { !sessionDestroyed && errorNotice === notice },
+                // The gate's `started`, not `allowHostMutation()`: asking the gate here would
+                // record a host sync owed for a dismissal that is deferred anyway.
+                hostMutationAllowed = { hostGate.started },
+                removeNotice = { target ->
+                    guardedHostCall("remove ErrorOverlayScreen") {
+                        carContext.getCarService(ScreenManager::class.java)
+                            .remove(target as ErrorOverlayScreen)
+                    }
+                },
+                onRemoved = {
+                    errorNotice = null
+                    screenStack.onErrorNoticeDismissed(notice)
+                },
+                onDeferred = {
+                    // No host call while the session is not started; the removal is owed to
+                    // the next started sync.
+                    screenStack.onErrorNoticeDismissalDeferred()
+                    Log.d(TAG, "session not started — error notice dismissal deferred")
+                },
+                onSkipped = { reason -> Log.d(TAG, "error notice dismissal skipped: $reason") }
+            )
         }
     }
 

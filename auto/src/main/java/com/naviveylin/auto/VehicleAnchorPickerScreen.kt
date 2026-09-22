@@ -13,9 +13,6 @@ import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.VehicleAnchorPosition
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
@@ -44,7 +41,7 @@ class VehicleAnchorPickerScreen(
     /** The anchor being edited: routing or free driving. */
     enum class Mode { ROUTING, FREE_DRIVING }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("VehicleAnchorPickerScreen")
 
     private var settings: AutoSettings? = null
 
@@ -163,7 +160,7 @@ class VehicleAnchorPickerScreen(
 
     /** Pop back to the preferences screen after the selection is persisted. */
     internal fun finishSelection() {
-        screenManager.pop()
+        guardedHostCall("pop (anchor picker)") { screenManager.pop() }
     }
 
     /**

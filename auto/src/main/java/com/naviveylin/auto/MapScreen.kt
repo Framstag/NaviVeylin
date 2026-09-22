@@ -29,10 +29,8 @@ import com.naviveylin.core.VehicleAnchorPosition
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
 import kotlin.math.abs
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,7 +67,7 @@ class MapScreen(
     private val onDarkModeChanged: (String) -> Unit = {}
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("MapScreen")
     private var rendererInitJob: Job? = null
 
     private val entryPoint = EntryPointAccessors.fromApplication(
@@ -485,31 +483,48 @@ class MapScreen(
             })
             .build()
 
-        // Content box = app menu.
+        // Content box = app menu. Every entry mutates the host stack from a click
+        // callback, so each push runs through the guard: the car-app library rethrows an
+        // app exception on the main thread (spec: car-host-fault-isolation — No fault
+        // escapes into the host path).
         val content = MapTemplateFactory.buildMenuContent(
             carContext = carContext,
             onFreeDriving = {
                 // Push the destination-free navigation-style view (spec:
                 // auto/free-driving). Popping it returns to this map view.
-                screenManager.push(FreeDrivingScreen(carContext))
+                armScreenPush(carContext, scope, "FreeDrivingScreen") {
+                    FreeDrivingScreen(carContext)
+                }
             },
             onStarredFavorites = {
-                screenManager.push(FavoritesScreen(carContext, navigationViewModel, starredOnly = true))
+                armScreenPush(carContext, scope, "FavoritesScreen (starred)") {
+                    FavoritesScreen(carContext, navigationViewModel, starredOnly = true)
+                }
             },
             onAllFavorites = {
-                screenManager.push(FavoritesScreen(carContext, navigationViewModel))
+                armScreenPush(carContext, scope, "FavoritesScreen") {
+                    FavoritesScreen(carContext, navigationViewModel)
+                }
             },
             onPoiSearch = {
-                screenManager.push(PoiSearchScreen(carContext, navigationViewModel))
+                armScreenPush(carContext, scope, "PoiSearchScreen") {
+                    PoiSearchScreen(carContext, navigationViewModel)
+                }
             },
             onSearchHistory = {
-                screenManager.push(SearchHistoryScreen(carContext, navigationViewModel))
+                armScreenPush(carContext, scope, "SearchHistoryScreen") {
+                    SearchHistoryScreen(carContext, navigationViewModel)
+                }
             },
             onDiagnostics = {
-                screenManager.push(DiagnosticsScreen(carContext))
+                armScreenPush(carContext, scope, "DiagnosticsScreen") {
+                    DiagnosticsScreen(carContext)
+                }
             },
             onAbout = {
-                screenManager.push(AboutScreen(carContext))
+                armScreenPush(carContext, scope, "AboutScreen") {
+                    AboutScreen(carContext)
+                }
             }
         )
 
@@ -521,18 +536,18 @@ class MapScreen(
                 // The map screen knows its viewport center, which is the search
                 // distance reference when no GPS fix exists (spec:
                 // search-result-ranking — distance reference).
-                screenManager.push(
+                armScreenPush(carContext, scope, "SearchScreen") {
                     SearchScreen(
                         carContext,
                         navigationViewModel,
                         viewportCenter = { rendererGate.renderer.value?.markerViewport() }
                     )
-                )
+                }
             })
             .addAction(MapStripActions.settingsAction {
-                screenManager.push(
+                armScreenPush(carContext, scope, "PreferencesScreen") {
                     PreferencesScreen(carContext, onDarkModeChanged = onDarkModeChanged)
-                )
+                }
             })
             .addAction(MapStripActions.zoomInAction { onZoomIn() })
             .addAction(MapStripActions.zoomOutAction { onZoomOut() })
@@ -722,8 +737,10 @@ class MapScreen(
         // background block — its first touch builds it — and the work runs in the screen's own
         // scope, which is cancelled on destroy (a per-tap scope is never reclaimed).
         val mag = rendererGate.rendererOrNull()?.viewportState?.value?.zoom ?: initialZoom
-        val screenManager = carContext.getCarService(ScreenManager::class.java)
-
+        // No ScreenManager resolution here: this runs on the host's click path, and a
+        // failing resolution must not escape into the host (spec: car-host-fault-isolation
+        // — Host callbacks answer promptly; No fault escapes into the host path). The
+        // guarded calls below resolve it inside their own `try`.
         scope.launch {
             val candidates = withContext(Dispatchers.Default) {
                 try {
@@ -735,13 +752,13 @@ class MapScreen(
             }
             val screen = if (shouldShowCandidatePicker(candidates.size)) {
                 CandidatePickerScreen(carContext, candidates) { desc ->
-                    screenManager.push(
+                    armScreenPush(carContext, scope, "DetailsScreen (tap candidate)") {
                         DetailsScreen(
                             carContext, navigationViewModel, lat, lon,
                             preloadedDescription = desc,
                             mag = mag
                         )
-                    )
+                    }
                 }
             } else {
                 DetailsScreen(
@@ -750,7 +767,7 @@ class MapScreen(
                     mag = mag
                 )
             }
-            screenManager.push(screen)
+            guardedHostCall("push DetailsScreen (map tap)") { screenManager.push(screen) }
         }
     }
 

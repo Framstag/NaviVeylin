@@ -201,7 +201,7 @@ class ErrorScreen(
 
         val backAction = Action.Builder()
             .setTitle(carContext.getString(R.string.back))
-            .setOnClickListener { screenManager.pop() }
+            .setOnClickListener { guardedHostCall("pop (error screen back)") { screenManager.pop() } }
             .build()
 
         val pane = Pane.Builder()

@@ -454,6 +454,30 @@ logcat route works on every device and is the primary one:
 adb -s emulator-5556 logcat -d | grep -E 'Diag/HOST|Diag/WARMUP'
 ```
 
+**Rejected host mutations and confined faults.** Every screen-stack mutation (push, pop,
+popToRoot, remove) runs through the guarded seam, and every car-facing scope carries a fault
+handler (change `fix-car-host-mutation-guards`), so a mutation the host refused and a fault
+inside a session/screen/renderer coroutine are both recorded instead of killing the process:
+
+```bash
+G=$(adb -s emulator-5556 logcat -d | grep -E 'Diag/(HOST|SESSION|SCREEN)')
+echo "rejected:  $(echo "$G" | grep -c 'rejected')"     # expected 0 in a healthy run
+echo "confined:  $(echo "$G" | grep -c 'failed: ')"     # expected 0 in a healthy run
+```
+
+A rejection names the mutation (`push FavoritesScreen rejected: …`), so the screen the driver
+tapped is identifiable; a confinement names the coroutine (`session work 'trip' failed`,
+`screen work '…' failed`, `observation 'gps' failed`) plus its first stack frame. Both are
+**defects to chase**, not noise: either the driver saw no navigation, or a screen stopped
+updating. Correlate them with the app crash buffer — a guarded rejection must never be
+followed by `Diag/CRASH`.
+
+**The error-notice path.** An error raised while navigating must leave the navigation view on
+the stack (it used to be popped with the notice). Navigate, trigger the notice (a route to an
+unreachable destination, or the existing error path), let it clear: the navigation template and
+its live guidance must still be shown, with `Diag/HOST` naming the notice push and its removal
+and no rejection.
+
 Map registration on a startup is readable in the same stream (change
 `fix-native-database-open-race`): one `openDatabases -> N/M registered` line per batch call,
 then one `openDatabase(<directory>) -> <true|false>` line per directory. A **per-directory**

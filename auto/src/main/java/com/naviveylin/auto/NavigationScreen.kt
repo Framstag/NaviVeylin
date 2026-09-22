@@ -26,10 +26,8 @@ import com.naviveylin.core.CarSurfaceOwner
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.stringResolver
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,7 +59,7 @@ class NavigationScreen(
     private val resolvedDark: StateFlow<Boolean> = MutableStateFlow(carContext.isDarkMode())
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("NavigationScreen")
     private var lastState: NavigationState? = null
 
     private val entryPoint = EntryPointAccessors.fromApplication(
@@ -254,7 +252,9 @@ class NavigationScreen(
                 navigationBackBehavior(
                     isNavigating = navigationViewModel.state.value.isNavigating,
                     onStopNavigation = { navigationViewModel.stopNavigation() },
-                    onLeaveNavigationView = { screenManager.popToRoot() }
+                    onLeaveNavigationView = {
+                        guardedHostCall("popToRoot (leave navigation view)") { screenManager.popToRoot() }
+                    }
                 )
             }
         )
@@ -507,7 +507,9 @@ class NavigationScreen(
     /** Push the route-description list; navigation keeps running underneath. */
     private fun onShowRouteDescription() {
         Log.d(TAG, "Show route description")
-        screenManager.push(RouteDescriptionScreen(carContext, navigationViewModel))
+        armScreenPush(carContext, scope, "RouteDescriptionScreen") {
+            RouteDescriptionScreen(carContext, navigationViewModel)
+        }
     }
 
     /**
@@ -528,7 +530,7 @@ class NavigationScreen(
         // idempotent: the session pops too, and whichever runs
         // first wins, the other is a no-op.
         if (!state.isNavigating) {
-            screenManager.popToRoot()
+            guardedHostCall("popToRoot (navigation ended)") { screenManager.popToRoot() }
             return
         }
         // Route polyline for the map renderer ("_route" style);

@@ -11,9 +11,7 @@ import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -27,7 +25,7 @@ class SearchHistoryScreen(
     private val navigationViewModel: NavigationViewModel
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("SearchHistoryScreen")
 
     private val entryPoint = EntryPointAccessors.fromApplication(
         carContext.applicationContext,
@@ -83,6 +81,8 @@ class SearchHistoryScreen(
     }
 
     private fun onEntrySelected(query: String) {
-        screenManager.push(SearchScreen(carContext, navigationViewModel, initialQuery = query))
+        armScreenPush(carContext, scope, "SearchScreen (history entry)") {
+            SearchScreen(carContext, navigationViewModel, initialQuery = query)
+        }
     }
 }

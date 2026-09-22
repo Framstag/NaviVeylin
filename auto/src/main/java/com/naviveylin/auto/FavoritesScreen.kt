@@ -15,9 +15,6 @@ import com.naviveylin.core.NavigationViewModel
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
@@ -37,7 +34,7 @@ class FavoritesScreen(
     private val starredOnly: Boolean = false
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("FavoritesScreen")
 
     private val entryPoint = EntryPointAccessors.fromApplication(
         carContext.applicationContext,

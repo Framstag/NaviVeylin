@@ -14,10 +14,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.framstag.libosmscout.client.RouteInstruction
 import com.naviveylin.auto.R
 import com.naviveylin.core.NavigationViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
@@ -35,7 +32,7 @@ class RouteDescriptionScreen(
     private val navigationViewModel: NavigationViewModel
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("RouteDescriptionScreen")
     private var observeJob: Job? = null
     private var lastInstructions: List<RouteInstruction>? = null
     private var lastIndex = 0

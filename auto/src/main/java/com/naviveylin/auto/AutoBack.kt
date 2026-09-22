@@ -23,7 +23,11 @@ fun Screen.enableBackNavigation() {
         this,
         object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                screenManager.pop()
+                // The host's back gesture/affordance is dispatched on the app's main thread
+                // and the library rethrows an app exception there: guard the pop like every
+                // other screen-stack mutation (spec: car-host-fault-isolation — No fault
+                // escapes into the host path).
+                guardedHostCall("pop (back gesture)") { screenManager.pop() }
             }
         }
     )
@@ -36,5 +40,5 @@ fun Screen.enableBackNavigation() {
  */
 fun Screen.backAction(): Action = Action.Builder()
     .setTitle(carContext.getString(R.string.back))
-    .setOnClickListener { screenManager.pop() }
+    .setOnClickListener { guardedHostCall("pop (back action)") { screenManager.pop() } }
     .build()

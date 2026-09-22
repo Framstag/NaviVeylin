@@ -19,17 +19,30 @@ import androidx.car.app.model.Row
  */
 class ErrorOverlayScreen(
     carContext: CarContext,
-    private val message: String
+    message: String
 ) : Screen(carContext) {
+
+    /**
+     * The notice's text. Mutable so a second error while this notice is up updates it
+     * instead of stacking a second overlay (spec: car-host-fault-isolation — Host
+     * screen-stack mutations are balanced; design D4): the session invalidates the
+     * screen after [updateMessage]. Main-thread only, like every screen-state write.
+     */
+    private var message: String = message
 
     init {
         enableBackNavigation()
     }
 
+    /** Replace the shown message; the caller requests the template refresh. */
+    fun updateMessage(newMessage: String) {
+        message = newMessage
+    }
+
     override fun onGetTemplate(): PaneTemplate = carPaneTemplate(carContext) {
         val backAction = Action.Builder()
             .setTitle(carContext.getString(R.string.back))
-            .setOnClickListener { screenManager.pop() }
+            .setOnClickListener { guardedHostCall("pop (error notice)") { screenManager.pop() } }
             .build()
         val pane = Pane.Builder()
             .addRow(

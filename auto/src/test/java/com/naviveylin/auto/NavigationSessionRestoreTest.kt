@@ -91,4 +91,29 @@ class NavigationSessionRestoreTest {
         assertFalse("a refused attempt consumes nothing", gate.hasRestored)
         assertTrue(gate.shouldPush(isNavigating = false, freeDrivingActive = true))
     }
+
+    // ── the push outcome drives the one-shot (spec: car-host-fault-isolation — Host screen-stack mutations are balanced) ──
+
+    @Test
+    fun aRejectedPushDoesNotConsumeTheOneShotRestore() {
+        // The session records the push only when the host accepted it: consuming the one-shot
+        // on a refused push loses the free-driving view for the rest of the session, because
+        // no session path asks a second time.
+        val gate = FreeDrivingRestoreGate()
+
+        gate.recordPush(landed = false)
+
+        assertFalse("a refused push consumes nothing", gate.hasRestored)
+        assertTrue("the next started sync restores it", gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+    }
+
+    @Test
+    fun aLandedPushConsumesTheOneShotRestore() {
+        val gate = FreeDrivingRestoreGate()
+
+        gate.recordPush(landed = true)
+
+        assertTrue(gate.hasRestored)
+        assertFalse("one restore per session", gate.shouldPush(isNavigating = false, freeDrivingActive = true))
+    }
 }

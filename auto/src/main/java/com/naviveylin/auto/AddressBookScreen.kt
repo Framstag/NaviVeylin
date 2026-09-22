@@ -16,10 +16,8 @@ import com.naviveylin.core.addressbook.AddressBookContactsProvider
 import com.naviveylin.core.addressbook.AddressBookSearchProvider
 import com.naviveylin.core.addressbook.ContactAddressBookEntry
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,7 +37,7 @@ class AddressBookScreen(
     private val navigationViewModel: NavigationViewModel
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("AddressBookScreen")
     private var loadJob: Job? = null
     private var filterJob: Job? = null
 
@@ -128,9 +126,11 @@ class AddressBookScreen(
         Log.d(TAG, "Selected contact '${contact.name}' with ${contact.addresses.size} addresses")
         when (val decision = AddressBookScreenMapper.decideSelection(contact)) {
             is AddressBookScreenMapper.Selection.Resolve -> resolve(decision.address)
-            is AddressBookScreenMapper.Selection.Pick -> screenManager.push(
+            is AddressBookScreenMapper.Selection.Pick -> armScreenPush(
+                carContext, scope, "AddressBookAddressPickerScreen"
+            ) {
                 AddressBookAddressPickerScreen(carContext, navigationViewModel, decision.contact)
-            )
+            }
         }
     }
 
@@ -150,12 +150,12 @@ class AddressBookScreen(
             val best = results.firstOrNull()
             if (best != null) {
                 Log.d(TAG, "Resolved '${address.displayText}' -> ${best.label}")
-                carContext.getCarService(ScreenManager::class.java).push(
+                armScreenPush(carContext, scope, "DetailsScreen (address book)") {
                     DetailsScreen(
                         carContext, navigationViewModel, best.lat, best.lon,
                         nameHint = best.label
                     )
-                )
+                }
             } else {
                 // No location found: show a message row instead of the list.
                 notFound = true

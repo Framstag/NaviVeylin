@@ -22,10 +22,8 @@ import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.SpeedStaleness
 import kotlin.math.roundToInt
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -46,7 +44,7 @@ class FreeDrivingScreen(
     carContext: CarContext
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("FreeDrivingScreen")
     private var streetJob: Job? = null
 
     private val entryPoint = EntryPointAccessors.fromApplication(
@@ -569,7 +567,7 @@ class FreeDrivingScreen(
     private fun exitFreeDriving() {
         Log.d(TAG, "Exit free driving")
         drivingModeProvider.setFreeDriving(DrivingModeProvider.SURFACE_AUTO, false)
-        screenManager.pop()
+        guardedHostCall("pop (exit free driving)") { screenManager.pop() }
     }
 
     private fun onZoomIn() {

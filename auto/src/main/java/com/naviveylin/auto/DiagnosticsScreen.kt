@@ -11,10 +11,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.auto.R
 import com.naviveylin.core.DiagnosticsLog
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
@@ -30,7 +27,7 @@ import kotlinx.coroutines.launch
  */
 class DiagnosticsScreen(carContext: CarContext) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("DiagnosticsScreen")
     private var loadJob: Job? = null
 
     /** Loaded entries, newest first; null until the first background load returns. */

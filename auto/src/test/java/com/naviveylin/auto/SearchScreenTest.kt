@@ -274,6 +274,7 @@ class SearchScreenTest {
 
         val template = screen.onGetTemplate() as SearchTemplate
         click(template.itemList!!.items[2] as Row)
+        advanceUntilIdle()
 
         verify { screenManager.push(any<SearchScreen>()) }
         // The pushed screen runs the search for the tapped query (design D2).
@@ -312,6 +313,7 @@ class SearchScreenTest {
 
         val template = screen.onGetTemplate() as SearchTemplate
         click(template.itemList!!.items[0] as Row)
+        advanceUntilIdle()
         verify { screenManager.push(any<PoiSearchScreen>()) }
     }
 
@@ -326,6 +328,7 @@ class SearchScreenTest {
 
         val template = screen.onGetTemplate() as SearchTemplate
         click(template.itemList!!.items[1] as Row)
+        advanceUntilIdle()
         verify { screenManager.push(any<AddressBookScreen>()) }
     }
 }

@@ -12,9 +12,6 @@ import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
@@ -34,7 +31,7 @@ class OverspeedDeltaPickerScreen(
     private val settingsProvider: AutoSettingsProvider = settingsProviderFor(carContext)
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("OverspeedDeltaPickerScreen")
 
     private var settings: AutoSettings? = null
 
@@ -146,7 +143,7 @@ class OverspeedDeltaPickerScreen(
 
     /** Pop back to the preferences screen after the selection is persisted. */
     internal fun finishSelection() {
-        screenManager.pop()
+        guardedHostCall("pop (overspeed picker)") { screenManager.pop() }
     }
 
     /**

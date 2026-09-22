@@ -218,12 +218,43 @@ strong preference.
   exception on the main thread, which kills the process. Degrade and log instead.
   **Every** car screen's template build goes through the `car*Template` wrappers
   (`SafeScreen.kt`) — the map/navigation/free-driving screens were guarded while
-  eleven other screens' `onGetTemplate` could still kill the process. The screen
-  observation seam (`CarScreenObservations`) carries a
-  `CoroutineExceptionHandler` for the same reason: an exception from a collector
-  body would otherwise reach the main thread's uncaught handler and kill the
-  process — an app process that dies while a car session is live is what takes
-  the templates host down with it.
+  eleven other screens' `onGetTemplate` could still kill the process.
+- **MUST**: **every host mutation goes through the guarded seam**, not only the
+  template builds and the host callbacks. `CarHostGuards.kt` holds
+  `guardedHostCall(what, tag) { … }` (one `ScreenManager` push/pop/popToRoot/remove,
+  confinement + a `HOST` diagnostics entry per rejection, unthrottled),
+  `armScreenPush(carContext, scope, what) { screen }` and
+  `armShowOnMapSwap(...)` for the click paths — a template row action **arms** the
+  navigation and returns: the target screen is built and pushed on the main thread
+  afterwards, never on the host's answering path (the library rethrows there, and
+  building a screen resolves the entry point, first-touches providers and starts a
+  renderer), and `dismissErrorNotice(...)` for the deferred notice teardown. A
+  rejection is a logged no-op, and each of the four `ScreenManager` operations has
+  exactly one seam call site per screen — never a bare `screenManager.push(...)` in a
+  click listener.
+- **MUST**: every **scope that owns host-mutating work carries the shared fault
+  handler** (`carFaultHandler` / `carSessionScope` / `carScreenScope`): the session
+  scope, each car screen's own scope (including the renderer's) and the screen
+  observation seam (`CarScreenObservations`). An exception from a coroutine body
+  otherwise reaches the main thread's uncaught handler and kills the process — an app
+  process that dies while a car session is live is what takes the templates host down
+  with it. A confined fault ends that piece of work (one child of the scope's
+  `SupervisorJob`), never a sibling.
+- **MUST**: the session's **screen-stack bookkeeping follows the mutation that
+  succeeded** (`SessionScreenStack`, `FreeDrivingRestoreGate.recordPush(landed)`): a
+  push the host refused records nothing, so the next state emission retries instead of
+  leaving the driver without a navigation view. Popping is scoped: the stack is popped
+  back to the root only for the session's own transitions, and a transient overlay
+  (the error notice) is removed by identity (`ScreenManager.remove`) — `popToRoot()`
+  took the navigation view down with the notice while the session still believed it
+  was shown. A host mutation **scheduled** while the session was started (the notice's
+  auto-dismiss) is discarded when it would run after the session stopped or ended, and
+  its removal is owed to the next started sync.
+- **MUST**: **every car screen builds its own scope through `carScreenScope(name)`**
+  and cancels it in `onDestroy` — never `CoroutineScope(SupervisorJob() +
+  Dispatchers.Main)` by hand, which is how the fault handler went missing. A click
+  path that arms a push relies on that cancellation: a screen popped away before its
+  deferred push runs dies with its scope instead of pushing onto the new stack.
 - **MUST**: while the car app is not the visible car app, host traffic is
   bounded — the session mutates no host state (no screen push/pop, no template
   invalidate, no host navigation-state change) and the ongoing notification is

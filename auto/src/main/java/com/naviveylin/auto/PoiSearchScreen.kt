@@ -3,7 +3,6 @@ package com.naviveylin.auto
 import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
-import androidx.car.app.ScreenManager
 import androidx.car.app.model.Action
 import androidx.car.app.model.Header
 import androidx.car.app.model.ItemList
@@ -15,6 +14,7 @@ import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.cancel
 
 /**
  * POI category picker for Android Auto.
@@ -30,6 +30,9 @@ class PoiSearchScreen(
     private val navigationViewModel: NavigationViewModel
 ) : Screen(carContext) {
 
+    /** The screen's own scope: a click action arms its push instead of building the target here. */
+    private val scope = carScreenScope("PoiSearchScreen")
+
     private val entryPoint = EntryPointAccessors.fromApplication(
         carContext.applicationContext,
         AutoEntryPoint::class.java
@@ -37,6 +40,11 @@ class PoiSearchScreen(
 
     init {
         enableBackNavigation()
+        lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
+            override fun onDestroy(owner: androidx.lifecycle.LifecycleOwner) {
+                scope.cancel()
+            }
+        })
     }
 
     override fun onGetTemplate(): Template = carScreenTemplate(carContext, ::buildTemplate)
@@ -53,8 +61,9 @@ class PoiSearchScreen(
                     .setTitle(label)
                     .setOnClickListener {
                         Log.d(TAG, "POI category selected: $category ($label)")
-                        carContext.getCarService(ScreenManager::class.java)
-                            .push(PoiResultsScreen(carContext, navigationViewModel, category, label))
+                        armScreenPush(carContext, scope, "PoiResultsScreen") {
+                            PoiResultsScreen(carContext, navigationViewModel, category, label)
+                        }
                     }
                     .build()
             )

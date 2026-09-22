@@ -1,7 +1,5 @@
 package com.naviveylin.auto
 
-import android.util.Log
-import com.naviveylin.core.DiagnosticsLog
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
@@ -75,7 +73,7 @@ internal class CarScreenObservations(
      */
     fun start() {
         if (scope != null) return
-        scope = CoroutineScope(SupervisorJob() + dispatcher + faultHandler())
+        scope = CoroutineScope(SupervisorJob() + dispatcher + handler)
     }
 
     /**
@@ -111,26 +109,20 @@ internal class CarScreenObservations(
     /**
      * Confines a fault to the observation that raised it (spec: auto/screen-observation
      * — An observation fault is confined to its observation): log it with the
-     * observation's key and let the period's other observations keep running. This runs
-     * on the failing coroutine's own thread, so it only logs — never works.
+     * observation's key and let the period's other observations keep running. The handler
+     * itself runs on the failing coroutine's own thread, so it only logs — never works.
+     *
+     * Built by the module's shared [carFaultHandler] (spec: car-host-fault-isolation — No
+     * fault escapes into the host path; design D3) so the session's scope and the screens'
+     * scopes confine a fault the same way this seam does.
      */
-    private fun faultHandler(): CoroutineExceptionHandler =
-        CoroutineExceptionHandler { context, throwable ->
-            val key = context[CoroutineName]?.name ?: UNKNOWN_OBSERVATION
-            Log.w(TAG, "observation '$key' failed — confined to it", throwable)
-            DiagnosticsLog.log(
-                DIAG_TAG,
-                "observation '$key' failed: $throwable${throwable.stackTrace.firstOrNull()?.let { " at $it" } ?: ""}"
-            )
-        }
+    private val handler: CoroutineExceptionHandler =
+        carFaultHandler(noun = "observation", diagTag = DIAG_TAG, logTag = TAG)
 
     private companion object {
         const val TAG = "CarScreenObservations"
 
         /** Diagnostics tag for what a car screen observed (sibling of the MAP/HOST tags). */
         const val DIAG_TAG = "SCREEN"
-
-        /** Key reported when an observation faulted without a [CoroutineName] in its context. */
-        const val UNKNOWN_OBSERVATION = "?"
     }
 }

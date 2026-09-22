@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.util.Log
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
-import androidx.car.app.ScreenManager
 import androidx.car.app.model.Action
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.Row
@@ -23,10 +22,8 @@ import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchResultRanker
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -60,7 +57,7 @@ class SearchScreen(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + mainDispatcher)
+    private val scope = carScreenScope("SearchScreen", mainDispatcher)
     private var searchJob: Job? = null
 
     private val entryPoint = EntryPointAccessors.fromApplication(
@@ -213,12 +210,12 @@ class SearchScreen(
                     onClick = {
                         val entry = result.entry
                         Log.d(TAG, "Details for: ${entry.label} (${entry.lat}, ${entry.lon})")
-                        carContext.getCarService(ScreenManager::class.java).push(
+                        armScreenPush(carContext, scope, "DetailsScreen (search result)") {
                             DetailsScreen(
                                 carContext, navigationViewModel, entry.lat, entry.lon,
                                 nameHint = entry.label
                             )
-                        )
+                        }
                     }
                 )
             )
@@ -229,12 +226,16 @@ class SearchScreen(
 
     private fun onPoiSearch() {
         Log.d(TAG, "Opening POI search from suggestions")
-        screenManager.push(PoiSearchScreen(carContext, navigationViewModel))
+        armScreenPush(carContext, scope, "PoiSearchScreen") {
+            PoiSearchScreen(carContext, navigationViewModel)
+        }
     }
 
     private fun onContactsSearch() {
         Log.d(TAG, "Opening address book from suggestions")
-        screenManager.push(AddressBookScreen(carContext, navigationViewModel))
+        armScreenPush(carContext, scope, "AddressBookScreen") {
+            AddressBookScreen(carContext, navigationViewModel)
+        }
     }
 
     /**
@@ -245,12 +246,12 @@ class SearchScreen(
      */
     private fun onHistorySelected(query: String) {
         Log.d(TAG, "History entry selected: $query")
-        screenManager.push(
+        armScreenPush(carContext, scope, "SearchScreen (history entry)") {
             SearchScreen(
                 carContext, navigationViewModel, initialQuery = query,
                 mainDispatcher = mainDispatcher, ioDispatcher = ioDispatcher
             )
-        )
+        }
     }
 
     /** Contacts row visibility follows the READ_CONTACTS permission (same

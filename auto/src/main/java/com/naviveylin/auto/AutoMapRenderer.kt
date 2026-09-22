@@ -23,10 +23,8 @@ import com.naviveylin.core.resolveAnchorFraction
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,7 +78,14 @@ class AutoMapRenderer(
             requestRender()
         }
     }
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    /**
+     * The renderer's own scope. Runs native renders, blits and the overlay draw —
+     * host-facing work whose fault must not reach the main thread's uncaught handler
+     * (spec: car-host-fault-isolation — No fault escapes into the host path; a process
+     * death during a car session takes the templates host down with it, TODO.md §51).
+     * A confined fault ends the affected loop instead of the app process.
+     */
+    private val scope = carScreenScope("AutoMapRenderer", Dispatchers.Default)
     private var renderJob: Job? = null
     @Volatile private var surface: Surface? = null
     private var surfaceWidth = 0

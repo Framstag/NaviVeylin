@@ -11,8 +11,11 @@ import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.naviveylin.auto.R
 import com.naviveylin.core.NavigationViewModel
+import kotlinx.coroutines.cancel
 
 /**
  * Root Android Auto screen displayed when not navigating.
@@ -28,8 +31,15 @@ class RootScreen(
     private val navigationViewModel: NavigationViewModel
 ) : Screen(carContext) {
 
+    private val scope = carScreenScope("RootScreen")
+
     init {
         enableBackNavigation()
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onDestroy(owner: LifecycleOwner) {
+                scope.cancel()
+            }
+        })
     }
 
     override fun onGetTemplate(): ListTemplate = carListTemplate(carContext, ::buildTemplate)
@@ -114,27 +124,27 @@ class RootScreen(
 
     private fun onMap() {
         Log.d(TAG, "Opening map screen")
-        screenManager.push(MapScreen(carContext, navigationViewModel))
+        armScreenPush(carContext, scope, "MapScreen") { MapScreen(carContext, navigationViewModel) }
     }
 
     private fun onSearch() {
         Log.d(TAG, "Opening search screen")
-        screenManager.push(SearchScreen(carContext, navigationViewModel))
+        armScreenPush(carContext, scope, "SearchScreen") { SearchScreen(carContext, navigationViewModel) }
     }
 
     private fun onPoiSearch() {
         Log.d(TAG, "Opening POI search screen")
-        screenManager.push(PoiSearchScreen(carContext, navigationViewModel))
+        armScreenPush(carContext, scope, "PoiSearchScreen") { PoiSearchScreen(carContext, navigationViewModel) }
     }
 
     private fun onFavorites() {
         Log.d(TAG, "Opening favorites screen")
-        screenManager.push(FavoritesScreen(carContext, navigationViewModel))
+        armScreenPush(carContext, scope, "FavoritesScreen") { FavoritesScreen(carContext, navigationViewModel) }
     }
 
     private fun onAddressBook() {
         Log.d(TAG, "Opening address book screen")
-        screenManager.push(AddressBookScreen(carContext, navigationViewModel))
+        armScreenPush(carContext, scope, "AddressBookScreen") { AddressBookScreen(carContext, navigationViewModel) }
     }
 
     /** Address-book entry visibility follows the READ_CONTACTS permission. */
@@ -145,17 +155,17 @@ class RootScreen(
 
     private fun onPreferences() {
         Log.d(TAG, "Opening preferences screen")
-        screenManager.push(PreferencesScreen(carContext))
+        armScreenPush(carContext, scope, "PreferencesScreen") { PreferencesScreen(carContext) }
     }
 
     private fun onDiagnostics() {
         Log.d(TAG, "Opening diagnostics screen")
-        screenManager.push(DiagnosticsScreen(carContext))
+        armScreenPush(carContext, scope, "DiagnosticsScreen") { DiagnosticsScreen(carContext) }
     }
 
     private fun onAbout() {
         Log.d(TAG, "Opening about screen")
-        screenManager.push(AboutScreen(carContext))
+        armScreenPush(carContext, scope, "AboutScreen") { AboutScreen(carContext) }
     }
 
     companion object {

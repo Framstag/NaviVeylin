@@ -16,9 +16,7 @@ import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.formatDistanceNumber
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -37,7 +35,7 @@ class PoiResultsScreen(
     private val categoryLabel: String
 ) : Screen(carContext) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = carScreenScope("PoiResultsScreen")
 
     private val entryPoint = EntryPointAccessors.fromApplication(
         carContext.applicationContext,
@@ -116,12 +114,12 @@ class PoiResultsScreen(
                             .addText(text)
                             .setOnClickListener {
                                 Log.d(TAG, "POI details: ${poi.label} (${poi.lat}, ${poi.lon})")
-                                carContext.getCarService(ScreenManager::class.java).push(
+                                armScreenPush(carContext, scope, "DetailsScreen (POI result)") {
                                     DetailsScreen(
                                         carContext, navigationViewModel, poi.lat, poi.lon,
                                         nameHint = poi.label
                                     )
-                                )
+                                }
                             }
                             .build()
                     )

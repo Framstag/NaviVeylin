@@ -37,7 +37,6 @@ import kotlin.math.sqrt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,7 +68,7 @@ class DetailsScreen(
     private var description: ObjectDescription? = null
     private var gpsPosition: AutoPosition? = null
     private var favorites: Map<String, List<FavoriteLocation>> = emptyMap()
-    private val loadScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val loadScope = carScreenScope("DetailsScreen")
 
     private val entryPoint = EntryPointAccessors.fromApplication(
         carContext.applicationContext,
@@ -284,16 +283,23 @@ class DetailsScreen(
 
         val onShow: () -> Unit = {
             Log.d(TAG, "Show on map: $lat, $lon")
-            val screenManager = carContext.getCarService(ScreenManager::class.java)
-            screenManager.popToRoot()
-            screenManager.push(
+            // The host's click callback returns before any screen is built and before the
+            // stack is mutated (spec: car-host-fault-isolation — Host callbacks answer
+            // promptly, "Template row action opens a screen"; design D6): building the
+            // target screen resolves the Hilt entry point, first-touches its providers and
+            // starts its renderer, none of which belongs on the host's answering path.
+            armShowOnMapSwap(
+                carContext = carContext,
+                scope = loadScope,
+                what = "show on map"
+            ) {
                 MapScreen(
                     carContext, navigationViewModel,
                     initialCenter = lat to lon,
                     initialZoom = mag,
                     initialDestinationName = destinationName()
                 )
-            )
+            }
         }
 
         // "Navigate to" + "Show" as clickable rows at the top of the list:

@@ -113,6 +113,24 @@ class FakeOSMScoutClient : OSMScoutClient() {
         return openDatabaseResult
     }
 
+    /**
+     * Batch path lists passed to [openDatabases], in call order. Empty while the
+     * caller registers directory by directory.
+     */
+    val openedDatabaseBatches: MutableList<List<String>> = CopyOnWriteArrayList()
+
+    /** Result returned by [openDatabases], index-aligned with the batch it got. */
+    @Volatile
+    var openDatabasesResult: (List<String>) -> BooleanArray = { paths ->
+        BooleanArray(paths.size) { true }
+    }
+
+    override fun openDatabases(paths: Array<String>): BooleanArray {
+        val batch = paths.toList()
+        openedDatabaseBatches.add(batch)
+        return openDatabasesResult(batch)
+    }
+
     /** Densities passed to [setMapDpi] in call order. */
     val mapDpis = mutableListOf<Double>()
 

@@ -128,23 +128,41 @@ object AutoServiceModule {
                         DiagnosticsLog.WARMUP_TAG,
                         "Installed map databases: ${databases.size} under $mapsDir"
                     )
-                    for (dir in databases) {
+                    // One batch call for the whole discovered set: each
+                    // openDatabase() call closes and reopens every open database
+                    // on the database thread, so a per-directory loop costs one
+                    // database-set change per directory for a single logical set
+                    // (spec: native-database-open — A whole database set is
+                    // registered in one coordinated change).
+                    // Nothing installed: no call at all — an empty batch would
+                    // still close and reopen every open database for no change.
+                    if (databases.isNotEmpty()) {
                         try {
-                            val success = client.openDatabase(dir)
-                            Log.i(TAG, "openDatabase($dir) -> $success")
+                            val registered = client.openDatabases(databases.toTypedArray())
+                            val registeredCount = registered.count { it }
+                            Log.i(TAG, "openDatabases -> $registeredCount/${databases.size} registered")
                             DiagnosticsLog.log(
                                 DiagnosticsLog.WARMUP_TAG,
-                                "openDatabase(${File(dir).name}) -> $success"
+                                "openDatabases -> $registeredCount/${databases.size} registered"
                             )
+                            databases.forEachIndexed { index, dir ->
+                                val success = registered.getOrElse(index) { false }
+                                if (!success) {
+                                    Log.w(TAG, "openDatabase($dir) -> not registered")
+                                }
+                                DiagnosticsLog.log(
+                                    DiagnosticsLog.WARMUP_TAG,
+                                    "openDatabase(${File(dir).name}) -> $success"
+                                )
+                            }
                         } catch (e: Exception) {
-                            Log.w(TAG, "openDatabase failed for $dir", e)
+                            Log.w(TAG, "openDatabases failed", e)
                             DiagnosticsLog.log(
                                 DiagnosticsLog.WARMUP_TAG,
-                                "openDatabase(${File(dir).name}) failed: ${e.message}"
+                                "openDatabases failed: ${e.message}"
                             )
                         }
-                    }
-                }
+                    }                }
             }
         }
     }

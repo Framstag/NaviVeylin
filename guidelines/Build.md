@@ -454,9 +454,19 @@ logcat route works on every device and is the primary one:
 adb -s emulator-5556 logcat -d | grep -E 'Diag/HOST|Diag/WARMUP'
 ```
 
+Map registration on a startup is readable in the same stream (change
+`fix-native-database-open-race`): one `openDatabases -> N/M registered` line per batch call,
+then one `openDatabase(<directory>) -> <true|false>` line per directory. A **per-directory**
+run of `openDatabases -> 1/1 registered` lines instead of one line with the whole set means a
+caller still registers one by one - each of those calls closes and reopens every open database
+and stalls the render path:
+
 The same lines are mirrored to the file-backed diagnostics log, readable without a
-debugger (verified on the phone AVD; **not** on the automotive AVD, where
-`files/diagnostics/` is never created although the logcat lines appear — see `TODO.md`):
+debugger (verified on the phone AVD). On the automotive AVD `run-as` resolves in **user 0**
+while the app process runs in **user 10**, so `files/diagnostics/` looks missing although it is
+written under `/data/user/10/com.framstag.naviveylin/files/` (measured 2026-09-21 on
+`emulator-5556`; on a userdebug image `adb root && ls /data/user/10/com.framstag.naviveylin/files/diagnostics/`
+shows it). Use the logcat route below as the primary one there:
 
 ```bash
 adb -s emulator-5554 shell run-as com.framstag.naviveylin cat files/diagnostics/app.log | tail -50
@@ -484,7 +494,7 @@ became invalidated` (`com.google.android.apps.automotive.templates.host:renderer
 observed 2026-09-21 on `emulator-5556`). The crash is host-side and needs no app code to run,
 so an install mid-scenario contaminates every measurement in it: install first, then start
 the session, and treat a host crash whose log shows `onPackageUpdateFinished`/`replacing=true`
-for the app package as a harness artifact, not an app defect (`TODO.md` §50).
+for the app package as a harness artifact, not an app defect.
 
 **Expectation baseline for a healthy run** (stationary vehicle, navigation active, ~75 s,
 browse -> navigate -> HOME -> return): a handful of `lock OK` (one per full render), one
@@ -499,17 +509,13 @@ displayed content never changed (before it: one of each per second).
 means two free-driving screens and two native renderers (before the change, the first screen
 creation and the warmup completion each pushed one).
 
-**Two checks that need evidence before any behaviour is specified** (both recorded in `TODO.md`, §47
-and §64):
+**Two checks that need evidence before any behaviour is specified** (the template-rate one is
+recorded in `TODO.md` §64):
 
 - A car-only session that starts the ongoing notification: `adb logcat -d | grep
   ForegroundServiceDidNotStartInTime` - if a *refused* `startForeground` followed by `stopSelf()`
   still trips the platform's foreground-start deadline, the degrade path itself kills the process
   (and that death takes the car host down, per the mechanism above).
-- The diagnostics file on the automotive build: `adb shell run-as com.framstag.naviveylin ls -la
-  files/` plus `adb logcat -d | grep 'append failed'` - `files/diagnostics/app.log` is missing on
-  the automotive AVD while the same lines reach logcat, which is why the logcat route above is the
-  primary one.
 - Template rebuild rate: with navigation and lane hints active, count the host-visible template
   activity over a minute (`Diag/HOST` lines, plus the lane-image allocation when logging is
   verbose). The distance values are bucketed to the host's own rounding and the lane image is

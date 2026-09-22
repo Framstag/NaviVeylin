@@ -1781,9 +1781,20 @@ class MapCanvasViewModel @Inject constructor(
                     mapsDir.absolutePath,
                     File(mapsDir, "basemap").absolutePath
                 )
-                for (dir in installed) {
-                    if (dir != mapPath) {
-                        client.openDatabase(dir)
+                val additional = installed.filter { it != mapPath }
+                if (additional.isNotEmpty()) {
+                    // One batch call: each openDatabase() call closes and reopens
+                    // every open database on the database thread, so a
+                    // per-directory loop costs one database-set change per
+                    // directory for a single logical set (spec:
+                    // native-database-open — A whole database set is registered in
+                    // one coordinated change).
+                    val registered = client.openDatabases(additional.toTypedArray())
+                    val notRegistered = additional.filterIndexed { index, _ ->
+                        !registered.getOrElse(index) { false }
+                    }
+                    if (notRegistered.isNotEmpty()) {
+                        Log.w(TAG, "initMap: not registered: $notRegistered")
                     }
                 }
             } catch (e: Exception) {

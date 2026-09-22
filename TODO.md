@@ -4,27 +4,59 @@
 
 ---
 
+## 67. `openDatabase` reports success for a path that does not exist — Found 2026-09-21 during `fix-native-database-open-race` (out of scope, own change)
+
+- **Spec deviation** ✗: the JNI `openDatabase` (`OSMScoutClient.cpp:688-701`) never validates the
+  path — it registers it and returns `JNI_TRUE` even when the directory does not exist. Spec
+  `map-render` says the opposite: scenario "Open invalid map database" — "**WHEN** the map screen
+  receives an invalid or missing map database path **THEN** `OSMScoutClient.openDatabase()` returns
+  false **THEN** the system displays an error message: 'Could not open map database'". The phone's
+  error branch (`MapCanvasViewModel.initMap` on `!opened`) is therefore dead code for a missing or
+  bogus map directory: the map opens, and the render silently has no data for that database.
+- **Not caught** ✗: no unit test covers `openDatabase` on a missing path; the JVM fakes return a
+  configured boolean, so `openDatabaseResult = false` is set by the test rather than produced by the
+  path check.
+- **Why it was left alone** ℹ: found while implementing the path-list fix; `fix-native-database-open-race`
+  deliberately keeps its contract "single open == a batch containing just that path" (a batch also
+  registers without touching the filesystem) so the app's behavior for a deleted map directory is
+  unchanged there. Changing it changes what the user sees (an error state instead of a silently
+  data-less render), which belongs to its own change.
+- **Fix candidate**: validate in the native layer — accept a path only when it is an existing
+  directory, in `Register`/`RegisterAll` (then `openDatabase` and `openDatabases` agree), and cover it
+  with a native test plus a `MapCanvasViewModel.initMap` test that asserts the "Could not open map
+  database" state. Needs a `map-render` delta scenario for the batch form.
+
+## 66. `hostbuild`'s JNI target is configured against a JDK that is not installed — Found 2026-09-21 during `fix-native-database-open-race` task 1.1 (harness gap)
+
+- **Observed** ℹ: `ninja -C hostbuild libosmscout-client-java/src/libosmscout_client_java.so.1.1.1`
+  fails with `fatal error: jni.h: Datei oder Verzeichnis nicht gefunden`; the compile line carries
+  `-I/usr/lib/jvm/java-26-openjdk/include`, and this machine has java-11/17/21/27 (no 26). So the
+  native JNI translation unit cannot be compiled through the host build, while the rest of
+  `hostbuild` (libraries, tests) works.
+- **Consequence** ℹ: a JNI-only change can only be checked by the Android build (slow, needs the NDK
+  toolchain) or by a hand-rolled compile. Workaround used by the change: the meson compile line with
+  `-I/usr/lib/jvm/java-21-openjdk/include ...` plus `-fsyntax-only`, which builds the whole TU in ~4 s
+  with `-Wall -Wextra -Wpedantic`.
+- **Fix candidate**: re-configure `hostbuild` against an installed JDK (or pin the Java path via
+  `local.properties`/`JAVA_HOME` in the setup script) so an incremental JNI compile is available
+  locally. Not a product defect — a developer-harness gap.
+- **Adjacent** ℹ: no CMake host build directory exists on this machine (only the meson `hostbuild`),
+  so a `ctest`-based native test run cannot be exercised locally even though `Tests/CMakeLists.txt`
+  registers the tests (see `ki_processing_failures.log`, 2026-09-21).
+
 ## 65. Both processes grow by ~50 MB over a 10-minute car drive — Found 2026-09-21 during `fix-host-crash-residual-paths` task 8.2 (post-change baseline)
 
 - **Observed** ℹ: on the AAOS AVD (`emulator-5556`, automotive debug, navigation active with a fix every 2 s for 10.5 minutes) `dumpsys meminfo` reports the app `TOTAL 227 MB -> 278 MB` (native heap `133 -> 187 MB`) and the templates host `TOTAL 299 -> 343 MB` (native heap `162 -> 215 MB`). No pressure symptoms in the same window: 0 `lmkd`/lowmemorykiller lines, 0 host crashes, 0 app fatals, 0 surface failures, 294 full renders.
 - **Why it is not attributed to the change** ℹ: the change only *reduces* per-rebuild work (the lane-guidance bitmap is reused while its state is unchanged, the template distance comparisons are bucketed); it adds no buffer, cache or thread. The host-side growth is on Google's side of the IPC.
 - **Not measured** ✗: the samples are single snapshots before/after the drive, the vehicle walked past the destination (so routes/tiles across a wide area were loaded), and the car path uses the library's default 25-tile cache per database (§63). A leak therefore cannot be separated from legitimate tile/cache growth from these numbers.
-- **Next step**: repeat with a *stationary* session and a *repeat* of the identical route, sampling `dumpsys meminfo` every minute, so growth without new tiles can be told from cache fill. If the app side still grows, the candidates in §49 (per-render transient buffers) and §62 (paused renderers keep their overrun bitmap) are the first places to look.
-- **Partially addressed 2026-09-21** ✅ by `fix-car-surface-ownership-and-host-callbacks`: §62's per-screen overrun buffer is now released on every screen stop, so the car stack no longer retains up to four extra ~3.7–8 MB buffers while its screens sit stopped. §49 (per-render transient buffers) and §63 (the tile cache) stay open, and the stationary-route measurement above is still the next step.
+- **Next step**: repeat with a *stationary* session and a *repeat* of the identical route, sampling `dumpsys meminfo` every minute, so growth without new tiles can be told from cache fill. If the app side still grows, the candidates in §49 (per-render transient buffers) and §63 (the tile cache) are the first places to look.
+- **Partially addressed 2026-09-21** ✅: the per-screen overrun buffer is now released on every screen stop (`fix-car-surface-ownership-and-host-callbacks`), so the car stack no longer retains up to four extra ~3.7–8 MB buffers while its screens sit stopped. §49 (per-render transient buffers) and §63 (the tile cache) stay open, and the stationary-route measurement above is still the next step.
 
 ## 64. The car template rebuild rate is still bounded by the arrival estimate, not by the distance buckets — Found 2026-09-21 during `fix-host-crash-residual-paths` (task 4.2/4.4)
 
 - **Observation** ℹ: the change buckets the template rebuild to the *displayed* distance (both the distance-to-turn and the remaining route distance use the host's own rounding — 50 m steps below 1 km, 100 m above) and reuses the lane image while the lane state is unchanged, but `hasStateChanged` still compares `etaMillis / 1000`, and the native engine re-emits the arrival estimate on every position update in practice. The residual template rate is therefore the estimate's update rate, i.e. close to the position rate (~1/s while driving), not the distance-bucket rate. The lane-image allocation and its IPC payload per rebuild **are** gone.
 - **Why not fixed here** ✗: bucketing the arrival estimate to the displayed minute (what the ETA card shows) would make the host's own countdown authoritative for up to a minute. Whether the host ticks that countdown itself is not known — the change's spec deliberately leaves the arrival estimate out ("a shifted estimate is displayed content") — so this needs a device measurement first: run navigation with the estimate bucketed to the minute and watch the ETA card for a frozen countdown (rail-widget card and the navigation template both).
 - **Fix candidate**: `hasStateChanged` compares `etaMillis / 60_000` instead of `/ 1000`; measure `Diag/HOST`-correlated template refreshes per minute before/after and watch the card. If the host does not tick, keep the per-second comparison and consider publishing the remaining time only on manoeuvre/step changes instead.
-
----
-
-## 47. The file-backed diagnostics log is never created on the automotive AVD — DIAGNOSED 2026-09-21 during `fix-host-crash-residual-paths` task 8.5 (wrong user tree, not a defect)
-
-- **Observed 2026-09-21** ✗ (original): on `emulator-5556` (AAOS AVD, automotive debug build) `files/diagnostics/` does not exist, while the same build's `DiagnosticsLog` calls reach logcat (`Diag/NaviVeylinApp: Process started`, `Diag/HOST …`, `Diag/MAP …`). On the phone AVD (`emulator-5554`) the same path works (`files/diagnostics/app.log`).
-- **Diagnosis** ✅: the automotive process runs in **user 10** on that AVD, so its files live under `/data/user/10/com.framstag.naviveylin/files/`, while `adb shell run-as com.framstag.naviveylin …` resolves in **user 0** and shows that user's stale tree. Evidence: the app's own warmup line on the device reads `Installed map databases: 1 under /data/user/10/com.framstag.naviveylin/files/maps`, and `run-as … ls -la files/` (user 0) lists only a `maps/` directory dated 2026-09-17 with no `diagnostics/`. The write path itself is healthy: `adb logcat -d | grep 'append failed'` is empty, so nothing failed silently.
-- **Reading the automotive log**: on a production image `adb root` is refused, so user 10's tree is not directly readable. Use the logcat route (primary, `guidelines/Build.md` §10) or the car's own `DiagnosticsScreen`, which renders the same tail on the surface. On a userdebug image, `adb root && ls /data/user/10/com.framstag.naviveylin/files/diagnostics/` works.
 
 ---
 
@@ -43,10 +75,6 @@
 
 - **Noticed 2026-09-20 during `fix-auto-unit-test-heap-overflow` task 1.6 (scope scan of `:app`/`:core`)** ℹ: `app/src/main/java/com/naviveylin/navigation/AANavigationController.kt:52` owns `CoroutineScope(SupervisorJob() + Dispatchers.Main)` and launches, in `init`, an endless `scope.launch(Dispatchers.Default) { while (true) { delay(SPEED_STALE_TICK_MS); … } }` (`:119-129`, 1 Hz). Nothing cancels that scope — the file contains no `scope.cancel()`, no `release()` and no `@PreDestroy` — so every instance keeps its stale-speed ticker alive for the process lifetime. Same defect class as the `AutoMapRenderer` leak that `fix-auto-unit-test-heap-overflow` fixed, but **not a measurable leak today**: the loop retains no large buffer, ticks once per second, and only 5 instances are constructed across the `:app` tests (`AANavigationControllerStepIndexTest` line 41 and `AANavigationControllerRoadInfoTest` line 30, neither with an `@After`), while `:app` runs 1054 tests per flavor in one JVM at its declared 1024 MB fork budget (`guidelines/Build.md` §6) without an OOM. Fix candidate: cancel the scope on the stop/destroy path (or add a `release()` the tests call in `@After`), mirroring `AutoMapRenderer.shutdown()` plus the teardown rule in `auto/src/test/java/com/naviveylin/auto/RendererTestRule.kt`.
 - **Adjacent, weaker observation from the same scan** ℹ: the other `:app` classes that own a scope are not comparable — `DarkModeController` (`app/src/main/java/com/naviveylin/data/DarkModeController.kt:26`, `Dispatchers.IO`, constructed once per test in ~13 test classes) and `NavigationStateProvider` (`app/src/main/java/com/naviveylin/navigation/NavigationStateProvider.kt:23`, `Dispatchers.Main`, constructed in ~13 test classes) launch only short-lived jobs and hold no buffer, so a finished test leaves nothing running; they merely have no release hook. `:core` has no scope-owning class at all. Hygiene only — no action needed unless one of them grows a loop.
-
-## 41. Favorite store writes race — FIXED by `fix-favorite-store-write-race` (2026-09-20)
-
-Superseded: the lost update and the unguarded service swap are fixed by the change `fix-favorite-store-write-race` — a JNI-free `osmscout::FavoriteStore` in `libosmscout-client` owns the service behind one mutex (removing the unguarded pointer swap, submodule commit `07a98cd43`), and `FavoriteRepository` serialises each write (`mutate` + refresh + persist) as one critical section. Regression tests: `Tests/src/FavoriteStoreTest.cpp` (native) and the overlapping-write tests in `app/src/test/java/com/naviveylin/data/FavoriteRepositoryTest.kt`; both revert-checked. This entry is removed when the change is archived.
 
 ## 34. Car search opened from the root/history screens has no distance reference
 
@@ -233,9 +261,10 @@ GPS back                     →  REAL
 
 - **Observed 2026-09-16 during `fix-sharp-s-transliteration-match` task 6.5** ℹ: with the map view centered on Iceland and the GPS scope resolved to Regierungsbezirk Arnsberg, the query `Am Birkenbaum 6 Dortmund` returned Iceland-database entries (`Leiðhamrar Dofri`, `Lokinhamrar`, 5,8 km) instead of the Dortmund address. Cause is the documented per-database scope rule: a region handle is database-local, so the database that does *not* own the handle is searched unconstrained (`OSMScoutClient.cpp`, string-search scope comment) and its free-text index answers on short partial tokens ("am" inside "…hamrar…"). Not created by this change — the characters in the returned names (`ð`, `ö`, `í`, `æ`, `á`) are not affected by the transliteration fix, and no pre-change baseline run was made. Investigate: when a scope exists for one database, either skip the other databases' free-text hits or rank them below scoped results (and/or apply a distance limit), so an address query cannot be answered from another map region's data.
 
-## 26. Flaky `BasemapSectionComposeTest.availableShowsDownloadButton`
+## 26. Flaky `BasemapSectionComposeTest.availableShowsDownloadButton` — and a second flaky Compose class (`FavoritesSheetReorderComposeTest`)
 
 - **Observed 2026-09-16 during `fix-sharp-s-transliteration-match` task 4.1** ⏳: the first full `./gradlew test` run failed once with `BasemapSectionComposeTest > availableShowsDownloadButton FAILED — android.view.ViewRootImpl$CalledFromWrongThreadException at ViewRootImpl.java:11357` (972 tests, 1 failed). Re-running the class alone (`--tests com.naviveylin.ui.mapmanager.BasemapSectionComposeTest`) passed, and the next full `./gradlew test` was green (972/0/0 for both variants). Unrelated to that change (native-only + gitlink bump; no basemap file in the dirty tree), but a wrong-thread violation indicates a real ordering race in the test (Compose/Robolectric) rather than pure noise. Fix candidate: identify the View access happening off the main thread (probably a `LaunchedEffect`/callback in the basemap section composing a download button) and make the assertion wait for idle instead of racing it.
+- **Second class, same shape — observed 2026-09-22 during `fix-native-database-open-race` task 4.2** ⏳: `./gradlew :koverXmlReport --rerun-tasks` (the whole `:app:testAutomotiveDebugUnitTest` suite re-executed under load) failed with `FavoritesSheetReorderComposeTest > chips follow the reordered favorites and a new star appends FAILED — androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms` at `FavoritesSheetReorderComposeTest.kt:233` (`awaitCondition`). The same suite was green twice earlier that day (mobile and automotive, 1100 tests each, 0 failures) and the class alone passes in 13 s, so it is a load-sensitive timeout, not a defect: the 5 s bound at `FavoritesSheetReorderComposeTest.kt:379` is too tight when the JVM is busy. Fix candidate: raise/replace the fixed bound (or wait for idle on the specific node) so a heavily loaded runner cannot fail it; unrelated to that change (database registration vs. favorites-sheet reordering).
 
 ## 28. Whole-level rounding in `computeAreaZoom` still over-fits area favorites and POI search
 
@@ -492,9 +521,9 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
     data-class default; state machines with wall-clock state need a "never set" sentinel and an explicit
     first-event branch. **[open]**
 
-## 48. JNI bridge: `ClientData::knownPaths` is mutated without a lock in `openDatabase` — Found 2026-09-21 during `fix-aaos-host-crash` (out of scope, own change)
+## 48. JNI bridge: `ClientData::knownPaths` is mutated without a lock in `openDatabase` — FIXED by `fix-native-database-open-race` (2026-09-21)
 
-- **Defect** ✗: `OSMScoutClient.cpp:687-693` finds/pushes into `data->knownPaths` (a
+- **Defect** ✗ (original): `OSMScoutClient.cpp:687-693` finds/pushes into `data->knownPaths` (a
   `std::vector<std::filesystem::path>`, `ClientData` at `:435`, **no mutex** — unlike
   `gpsMarkerMutex`/`routingMutex`/`adminRegionMutex` right beside it) and then passes the live
   vector to `OnDatabaseListChanged`, which copies it by value on the calling thread. Two concurrent
@@ -505,11 +534,14 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Second-order cost** ℹ: every `openDatabase` call triggers `OnDatabaseListChanged`
   (`DBThread.cpp:173`), which closes and reopens **all** databases under the write lock — so the
   warmup's per-directory loop is O(N²) DB opens and blocks every render's read lock while it runs.
-- **Not part of `fix-aaos-host-crash`**: that change is the car *host* path (the app process does
-  not crash there) and this is a native bridge fix, which per `AGENTS.md` belongs in the submodule
-  as a minimal, upstreamable patch. Fix candidate: a `knownPaths` mutex in `ClientData` plus a batch
-  entry point (`openDatabases(String[])`) so the warmup hands over the whole list once; native test
-  seam exists (`Tests/src/FavoriteStoreTest.cpp` pattern).
+- **Fixed** ✅ by change `fix-native-database-open-race` (spec `native-database-open`): the path list
+  moved into the JNI-free `osmscout::DatabasePathRegistry` (`libosmscout-client`, one mutex per
+  state — the same shape the favorite-store race got), `openDatabase` publishes a value snapshot
+  taken under that lock, and the new batch entry point `openDatabases(String[])` registers a whole
+  directory list as **one** database-set change. Both callers (car warmup, phone `initMap`) hand
+  their list over in one call. Regression tests: `Tests/src/DatabaseOpenTest.cpp` (9 cases,
+  including the concurrent-opener stress that dies SIGSEGV 3/3 with the mutex removed). This entry
+  is removed when the change is archived.
 
 ## 49. One full car render allocates ~15 MB of transient buffers — Found 2026-09-21 during `fix-aaos-host-crash` (out of scope, render-pipeline change)
 
@@ -527,34 +559,9 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   hoist the overlay paints/paths into fields. Measure with `dumpsys meminfo` before/after; a phone
   render-path change, not a car-only one.
 
-## 50. AAOS: replacing the app's APK over a live car session crashes the templates host — Found 2026-09-21 during `fix-aaos-host-crash` task 7.3 (harness artifact, not an app defect)
-
-- **Observed on the AVD, fully ordered** ✅ (the trace is the evidence): `adb install -r -t`
-  of the automotive APK while the host held a live session →
-  `Finsky: skipped onPackageRemoved(replacing=true) for untracked package=com.framstag.naviveylin` →
-  `maybeUpdateCacheDataForAddedPackage` → `CarrierSvcBindHelper: onPackageUpdateFinished` →
-  `onHandleForceStop: [com.framstag.naviveylin]` → the app process is restarted (`Start proc …`) →
-  `FATAL EXCEPTION: main, Process: com.google.android.apps.automotive.templates.host:renderer_service`
-  with `java.lang.IllegalStateException: Accessed the car host after it became invalidated`
-  (`CarHost.assertIsValid` ← `TemplateAppStatusBarManager.setStatusBarState` ←
-  `AbstractTemplatePresenter.applyWindowInsets` ← `AbstractTemplateView.createPresenter` ←
-  `setTemplate` ← `ScreenRenderer$HandlerCallback.handleMessage`). The host restarts and re-binds to
-  `NaviVeylinCarAppService` seconds later.
-- **Why it matters for triage** ℹ: the crash needs no app code to run at that moment (the app was just
-  force-stopped), so an install mid-scenario contaminates the run and mimics the reported "AA crashes
-  while NaviVeylin drives" symptom. Any host crash whose log shows a package replace/force-stop of the
-  app is a harness artifact: install first, then start the session. Recorded in `guidelines/Build.md`
-  §10 as a pitfall + baseline.
-- **Also explains part of the report** ⏳: if the observed host crashes coincided with installing new
-  builds while the car app was connected, this is the cause; the app-side senders (surface release,
-  notification/trip cadence, ungated host mutations) were fixed in the same change and no longer show
-  up as failures in the AVD runs.
-- **Next step**: if it reproduces again *without* an install in the window, capture
-  `logcat -b crash` for the host plus the app's `HOST` lines and re-open as an app-side defect.
-
 ## 51. The host-crash mechanism: an app-process death takes the templates host down — Found 2026-09-21 (triage frame for the "AA crashes while NaviVeylin drives" report)
 
-- **Mechanism** ℹ: §50 proved the ordering — the app is force-stopped → the host's queued template
+- **Mechanism** ℹ: the ordering is proven (pitfall in `guidelines/Build.md` §10) — the app is force-stopped → the host's queued template
   operation runs against an invalidated `CarHost` → `IllegalStateException: Accessed the car host
   after it became invalidated` in `com.google.android.apps.automotive.templates.host:renderer_service`
   (FATAL). The app process going away is *sufficient*; no app code has to run at that instant. So for
@@ -565,16 +572,16 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   answers the host with a `FailureResponse` when the callback throws — and then **rethrows** on the
   main thread. A throwing host callback therefore kills the process *and* reports the failure to the
   host, which is what makes an app-side exception look like a host fault from the driver's seat.
-- **App-process killers still open** ✗, ranked: (1) §48 — the unsynchronised `ClientData::knownPaths`
-  vector in `openDatabase` (native SIGSEGV; reachable whenever the phone map init / a map scan / a
-  download completion opens a database while the AA warmup loop opens them); (2) §49 — ~15 MB of
-  transient buffers per full render with up to three live renderers (lmkd kill); (3) the main-thread
-  native work recorded in §52/§53 below (ANR → kill); (4) any uncaught exception on a host path
-  outside the callbacks guarded by `fix-aaos-host-crash`.
+- **App-process killers still open** ✗, ranked: (1) §49 — ~15 MB of
+  transient buffers per full render with up to three live renderers (lmkd kill); (2) any uncaught
+  exception on a host path outside the callbacks guarded by `fix-aaos-host-crash`. ~~§48 (the
+  unsynchronised `ClientData::knownPaths` vector in `openDatabase`, native SIGSEGV)~~ is **fixed** by
+  `fix-native-database-open-race`; ~~the main-thread native work of §52/§53~~ was fixed by
+  `fix-aaos-host-crash` (see those entries).
 - **Evidence recipe** ℹ: `adb logcat -b crash` for the host process, plus
   `adb logcat -d | grep -E 'onPackageUpdateFinished|onHandleForceStop'` for the app and
   `adb logcat -d | grep 'Diag/HOST'` for what the app last sent. A package replace/force-stop in the
-  window means the §50 harness artifact; no such line means an app-side defect.
+  window means the harness artifact (`guidelines/Build.md` §10); no such line means an app-side defect.
 
 ## 52. A host callback runs the native stylesheet-flag push — Found 2026-09-21 (review of the `fix-aaos-host-crash` surface path)
 
@@ -622,16 +629,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   called with a different context. Extend `CarSurfaceHostTest`: same instance delivered twice →
   released twice; `endSession` then `startSession(newContext)` → registers again.
 
-## 55. The lane-hint image is rebuilt on every template — Found 2026-09-21 (same review)
-
-- **Observation** ℹ: `ManeuverGlyphs.lanesImage` (`ManeuverGlyphs.kt:38-55`) allocates a `Bitmap` +
-  `CarIcon` on **every** `buildTemplate()`, i.e. per `invalidate()` (≈1/s while driving with lane
-  hints on), and the bitmap rides the template IPC payload to the host. The maneuver icons are cached
-  per `TurnType`; the lane strip is not.
-- **Fix candidate**: cache by `(turns, recommended)` (bounded by the lane count), or reuse a scratch
-  bitmap while the lane list is unchanged. Removes a per-second allocation plus IPC payload from the
-  host path.
-
 ## 56. Trip publishing is the one host sender that deliberately keeps firing while the session is stopped — Found 2026-09-21 (same review)
 
 - **Observation** ℹ: `NavigationSession.kt:573-579` collects every navigation-state emission and calls
@@ -660,31 +657,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Fix candidate**: move them onto the same per-start tracking that change introduces, or stop them in
   `onStop` and restart in `onStart`.
 
-## 58. Car screen observers leaked and were re-launched on every start — FIXED by `fix-car-screen-observer-leak` (2026-09-21)
-
-- **Defect** ✗: each of `MapScreen`, `NavigationScreen` and `FreeDrivingScreen` tracked exactly one
-  job (`observeJob`) and cancelled only that in `stopObserving()`, while `startObserving()` launched
-  the rest untracked (`MapScreen.kt:722`/`:734`/`:750` favorites/dark/basemap,
-  `NavigationScreen.kt:519`/`:601`/`:614` GPS/dark/basemap, `FreeDrivingScreen.kt:431` basemap).
-  `startObserving()` runs from `onStart`, so every start added a full set of live observers that the
-  screen never released: +3 per stop/start on the browse screen (the stack root, so a plain menu visit
-  already stops and restarts it), +3 on the navigation screen, +1 on free driving. Each extra copy
-  requested full native renders (`invalidateData`/`setFavoriteLocations`), native road lookups and
-  viewport commits per fix, and template refreshes — growing monotonically with the number of
-  background round trips and push/pop cycles, against the fixed render-buffer budget of §49.
-- **Fixed** ✅ by change `fix-car-screen-observer-leak` (spec `auto/screen-observation`): a
-  session-of-one-started-period seam `CarScreenObservations` (`:auto`) owns the lifetime
-  (idempotent `start()`, `stop()` cancels every observation, at most one instance per key per
-  period), each screen has a `<Screen>Observations` class holding what is observed, and the screens
-  start/stop them from `onStart`/`onStop`/`onDestroy`. The free-driving stale-speed ticker stays on
-  the screen's own scope (it must keep running while stopped). Regression tests:
-  `CarScreenObservationsTest` (7), `MapScreenObservationsTest` (6),
-  `NavigationScreenObservationsTest` (6), `FreeDrivingScreenObservationsTest` (7).
-  On-device (AAOS AVD, automotive debug): three identical background round trips with eight injected
-  fixes each produced 9/9/9 full renders (one render per fix, no growth), 0 `lockCanvas failed` /
-  `surface invalid`, and native heap 111.8 MB → 116.0 MB (+3.7%) after three further round trips.
-  This entry is removed when the change is archived.
-
 ## 59. An exception escaping a car screen observation kills the app process — Found 2026-09-21 during `fix-car-screen-observer-leak` (out of scope, own change)
 
 - **Observation** ℹ: every screen observation runs in a child of
@@ -695,7 +667,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   free-driving fix body was guarded (a `runCatching` the change preserved verbatim in
   `FreeDrivingScreenObservations`); the browse and navigation bodies were not.
 - **Why it matters for host triage** ℹ: an app-process death while a car session is live is exactly
-  the input of the host failure in §50/§51, so an unguarded observation is an app-process killer, not
+  the input of the host failure in §51, so an unguarded observation is an app-process killer, not
   a local robustness gap.
 - **Not part of `fix-car-screen-observer-leak`**: that change is deliberately behaviour-neutral on
   faults (it moved the bodies verbatim). Fix candidate: confine faults in the seam's `observe()` —
@@ -725,64 +697,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Fix candidate**: one shared `NotificationIds` source in `:app` (navigation 1002, map style 1003,
   download 1001) consumed by both callers, plus a unit test that the ids are distinct and that the
   style notice never posts on the navigation id. Cheap, additive, no spec change.
-
-## 61. `DiagnosticsLog` writes to disk on the caller thread inside host callbacks — FIXED by `fix-diagnostics-log-host-path-io` (2026-09-21)
-
-- **Defect** ✗: `DiagnosticsLog.appendLine` (`core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt:149`)
-  takes one global lock and performs `file.length()` + `file.appendText(…)` — a stat plus an
-  open/write/close — **on the calling thread**, and `log()`/`logThrowable()` (`:79`, `:91`) call it
-  directly. Several callers are host-facing paths that run on the app's main thread:
-  `MapScreen.onGetTemplate` (`auto/…/MapScreen.kt:430`, once **per template build**),
-  the session surface callback (`SessionCarSurfaceHost.kt:103` adopt, `:187` release),
-  the host navigation/trip calls (`NavigationManagerController.kt:71`, `:82`, `:116`) and every
-  notification post (`NavigationNotificationService.kt:268-269`, called from `:81` and `:149`).
-- **Why it matters** ℹ: `fix-aaos-host-crash` design D2/D3 states the rule — a host callback that does
-  not answer promptly is a host problem, and the car-app library runs those callbacks on the app's
-  main thread. This adds filesystem I/O to exactly those paths, and the log is capped at 256 KB by
-  **rotation** (`:154`, `rotate()` at `:163` renames the file), so a full log turns an append into a
-  rename as well. Per §51, blocking the app process is a host-crash input (ANR → kill → the host's
-  queued template call runs against an invalidated `CarHost`).
-- **Secondary** ℹ: `readEntries()` / `exportText()` (`:107`, `:115`) read the whole file on the caller
-  thread (diagnostics screen, share sheet); bounded at 256 KB, so lower risk than the append path.
-- **Not caught** ✗: no test asserts that logging never does I/O on the caller's thread, and
-  `onGetTemplate` has no budget of its own.
-- **Fix candidate**: buffer lines in memory and flush from a single IO worker (or drop the file write
-  on host paths), never log per template build, keep the uncaught-exception handler path synchronous so
-  a crash still lands on disk. Own change: `fix-diagnostics-log-host-path-io`.
-- **Fixed** ✅ by change `fix-diagnostics-log-host-path-io` (spec `auto-diagnostics`, five added
-  requirements): `log`/`logThrowable` now mirror to logcat and buffer in a bounded ring only — one
-  daemon worker thread owns the file (append + the 256 KB rotation), flushing at a 250 ms deadline or
-  at a high-water mark, with a drop marker in the flush when the ring had to evict; the
-  uncaught-exception handler writes its trace directly on the dying thread; the per-`onGetTemplate`
-  `MapTemplate delivered` line is gone; `DiagnosticsScreen` (read in `onGetTemplate`) and the phone
-  About dialog (read in `remember`) both load through the new background reads. Regression tests:
-  `DiagnosticsLogWritePathTest` (8: lazy daemon worker, no caller-thread file access, deadline and
-  high-water flush, bounded ring + single drop marker, crash trace without a flush tick, uninitialised
-  no-op, background-read parity), the adapted `DiagnosticsLogTest`, `DiagnosticsScreenTest` (2, incl. the
-  assertion that `onGetTemplate` does not read the file) and `AboutDiagnosticsComposeTest` (5, driven
-  through the pure `DiagnosticsLogView`). Suite: 310 `:core` + 516 `:auto` + 1087 `:app` tests, 0
-  failures; both debug APKs build with no new warning. This entry is removed when the change is archived.
-- **Still open next to it** ✗: §47 (the file is never created on the automotive build — the change
-  deliberately keeps the uninitialised no-op, so it must not hide that defect), §60 (the notification-id
-  collision), §62 (paused renderers keep their overrun bitmap), §63 (the car path never configures the
-  native tile cache).
-
-## 62. Paused car renderers keep their overrun bitmap, and `RendererGate.detachSurface()` has no caller — Found 2026-09-21 (same review)
-
-- **Observation** ℹ: `AutoMapRenderer.pause()` (`auto/…/AutoMapRenderer.kt:557-561`) only sets
-  `paused`; the overrun bitmap is kept until `detachSurface` (`:576`) or `shutdown` (`:712`). Every
-  screen calls `rendererGate.pause()` on stop (`MapScreen.kt:322`, `NavigationScreen.kt:424`,
-  `FreeDrivingScreen.kt:377`, `DetailsScreen.kt:252`) and only `RendererGate.detachSurface()`
-  (`RendererGate.kt:321`) clears it — and that method has **no caller anywhere** in the module.
-- **Cost** ℹ: the car stack holds up to four screens with a live renderer (browse, free driving,
-  navigation, details), each retaining a 1.2²×w×h ARGB_8888 buffer (≈3.7 MB at 1296×720, ≈8 MB on a
-  1920-wide surface) plus its native render context while it is merely stopped. It adds to the
-  per-render graphics ledger of §49 and is the kind of footprint that matters on a head unit with
-  limited RAM (§51's lmkd frame).
-- **Fix candidate**: clear the overrun buffer on `pause` (the buffer is re-created by the full render
-  `resume()` requests anyway — cost: one native render per screen start, to be measured) or wire
-  `detachSurface()` into the screen stop path and confirm `resume()` re-renders before the first blit.
-  Decide with a `dumpsys meminfo` native-heap comparison across a push/pop cycle.
 
 ## 63. The car path never configures the native tile data cache, and the phone path's value leaks into it — Found 2026-09-21 (same review; spec deviation)
 

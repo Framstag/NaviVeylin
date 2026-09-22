@@ -157,7 +157,7 @@ The system SHALL render the car map surface using the host's day/night state: th
 
 ### Requirement: Renderer initialization off the car-app main thread
 
-The system SHALL initialize the car map renderer off the car-app main thread: native client access, the initial-viewport resolution (saved viewport JSON or first installed map database bounding box), and any native database bounding-box queries SHALL run on a background dispatcher, never on the main/host-callback thread. When the map screen starts while the native client is still building, the main thread SHALL NOT block on native client construction or database queries.
+The system SHALL initialize the car map renderer off the car-app main thread: native client access, the initial-viewport resolution (saved viewport JSON or first installed map database bounding box), and any native database bounding-box queries SHALL run on a background dispatcher, never on the main/host-callback thread. When the map screen starts while the native client is still building, the main thread SHALL NOT block on native client construction or database queries. Resolving a car provider (client, favorites, location, settings) SHALL NOT build the native client on the host thread: a screen constructor or a host callback SHALL only retain what it received, and a provider that needs the native client SHALL resolve it on a background dispatcher.
 
 #### Scenario: Template delivered while the native client is still building
 
@@ -169,9 +169,20 @@ The system SHALL initialize the car map renderer off the car-app main thread: na
 - **WHEN** the host delivers a map surface before the renderer initialization completes
 - **THEN** the surface dimensions and DPI are retained and applied to the renderer when it becomes ready, so the first rendered frame uses the delivered surface
 
+#### Scenario: Provider resolution does not build the client
+
+- **WHEN** a car screen resolves its client, favorites, location or settings provider before the native client exists
+- **THEN** the native client is not built on the calling (host) thread
+- **AND** the client is built on a background dispatcher
+
+#### Scenario: Surface delivery never builds the client
+
+- **WHEN** the host delivers a surface while the native client is still being built
+- **THEN** the surface callback returns without building or touching the native client
+
 ### Requirement: No map state lost during renderer initialization
 
-The system SHALL preserve map state that arrives between screen start and renderer readiness: surface delivery, host day/night state, follow-mode re-centering, north-up/angle changes, GPS position updates, and settings-driven viewport changes that occur before the renderer is ready SHALL be applied to the renderer once it becomes available, with the most recent value of each state winning.
+The system SHALL preserve map state that arrives between screen start and renderer readiness: surface delivery, host day/night state, follow-mode re-centering, north-up/angle changes, GPS position updates, and settings-driven viewport changes that occur before the renderer is ready SHALL be applied to the renderer once it becomes available, with the most recent value of each state winning. A renderer that was constructed but not yet handed to the screen SHALL be shut down when the screen is destroyed during initialization, so no background render or display loop outlives its screen.
 
 #### Scenario: Dark-mode push during initialization
 
@@ -187,3 +198,37 @@ The system SHALL preserve map state that arrives between screen start and render
 
 - **WHEN** the map screen is stopped or destroyed while renderer initialization is still in flight
 - **THEN** the pending initialization is cancelled and no renderer work continues after the screen is destroyed
+
+#### Scenario: Renderer constructed while the screen is being destroyed
+
+- **WHEN** a renderer instance is created and the screen is destroyed before that instance is handed to it
+- **THEN** the instance is shut down, and none of its background work (render loop, display-extrapolation loop, zoom-walk loop) stays alive
+
+### Requirement: A stopped renderer holds no surface or frame buffer
+
+A car map renderer whose screen is not started SHALL hold no reference to the car surface and no
+rendered frame buffer: it SHALL release both when its screen stops, and it SHALL re-acquire the
+session's surface and render a full frame before its first frame after a start. Releasing the surface
+reference SHALL NOT release the surface itself, which the session owns.
+
+#### Scenario: Screen stops
+
+- **WHEN** a car screen with a renderer stops (backgrounded, or covered by a pushed screen)
+- **THEN** its renderer holds no car surface reference and no overrun frame buffer
+- **AND** a later frame of that renderer cannot lock or draw a surface while the screen is stopped
+
+#### Scenario: Screen starts again with the session's surface held
+
+- **WHEN** a stopped car screen starts again while the session still holds its surface
+- **THEN** the renderer re-acquires that surface and renders a full frame before its first frame is drawn
+- **AND** the first frame after the start is not blitted from a buffer that predates the stop
+
+#### Scenario: Stopped screen after a surface transition
+
+- **WHEN** the host delivers a new surface while a screen with a renderer is stopped
+- **THEN** the stopped renderer does not hold the destroyed surface, and it uses the current one after its next start
+
+#### Scenario: Stopped renderer reports no failure
+
+- **WHEN** a screen with a renderer stops while its renderer had reported a surface failure
+- **THEN** the stop clears that failure state, so the next start is not treated as a failed surface and no host template refresh is requested for it

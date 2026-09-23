@@ -107,13 +107,16 @@ class MapCanvasViewModelAutoZoomPauseTest {
     }
 
     @Test
-    fun zoomInBrowseMarksDriftedNotSuspended() {
-        // In BROWSE a manual zoom drifts the viewport from GPS — it must NOT
-        // set driveSuspended (which would flip the mode to FREE_DRIVE).
+    fun zoomInBrowseDoesNotSuspendTheDrivePreset() {
+        // In BROWSE a manual zoom must NOT set driveSuspended (which would flip
+        // the mode to FREE_DRIVE). The re-center button is not driven by the
+        // zoom either: it follows the measured offset between the map center and
+        // the vehicle (spec: map-modes — Browse re-center), which a zoom about
+        // the center does not change; the rule tests live in
+        // MapCanvasViewModelBrowseReCenterTest.
         viewModel.zoomIn()
 
         assertFalse("browse zoom must not suspend the drive preset", viewModel.uiState.value.driveSuspended)
-        assertTrue("browse zoom must mark the viewport drifted", viewModel.uiState.value.browseDrifted)
         assertEquals("mode stays BROWSE", MapMode.BROWSE, viewModel.mode)
     }
 
@@ -154,9 +157,9 @@ class MapCanvasViewModelAutoZoomPauseTest {
         assertFalse(p(MapMode.FREE_DRIVE, false, false))
         // FREE_DRIVE suspended: button.
         assertTrue(p(MapMode.FREE_DRIVE, true, false))
-        // BROWSE not drifted: no button (clean start screen).
-        assertFalse(p(MapMode.BROWSE, false, false))
-        // BROWSE drifted: button.
+        // BROWSE not centered: button.
+        assertFalse("BROWSE centered hides the button", p(MapMode.BROWSE, false, false))
+        // BROWSE not centered on the vehicle: button.
         assertTrue(p(MapMode.BROWSE, false, true))
         // NAVIGATION with auto-zoom suspended: button (existing behavior).
         assertTrue(p(MapMode.NAVIGATION, true, false))

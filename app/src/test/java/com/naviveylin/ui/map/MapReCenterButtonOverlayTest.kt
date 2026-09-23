@@ -13,10 +13,10 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Verifies the re-center button visibility matrix (spec: map-modes — drive
- * suspension and reset / browse re-center): the button appears when the
- * FREE_DRIVE preset is suspended, or when the BROWSE viewport has drifted from
- * the GPS position, or when auto-zoom is suspended during NAVIGATION — given a
- * GPS fix. Uses the production predicate
+ * suspension and reset / Browse re-center; spec: map-recenter-button): the
+ * button appears when the FREE_DRIVE preset is suspended, when the BROWSE map is
+ * not centered on the vehicle (the derived condition), or when auto-zoom is
+ * suspended during NAVIGATION — given a GPS fix. Uses the production predicate
  * [MapCanvasViewModel.shouldShowReCenterButton] and the production button
  * composable, mirroring the MapCanvasScreen overlay wiring.
  */
@@ -29,14 +29,14 @@ class MapReCenterButtonOverlayTest {
     private class Harness {
         var mode = MapMode.BROWSE
         var driveSuspended = false
-        var browseDrifted = false
+        var browseReCenterVisible = false
         var gpsQuality = GpsFixQuality.GOOD
         var recenterTaps = 0
     }
 
     @Composable
     private fun Overlay(h: Harness) {
-        if (MapCanvasViewModel.shouldShowReCenterButton(h.mode, h.driveSuspended, h.browseDrifted) &&
+        if (MapCanvasViewModel.shouldShowReCenterButton(h.mode, h.driveSuspended, h.browseReCenterVisible) &&
             h.gpsQuality != GpsFixQuality.NONE
         ) {
             MapReCenterButton(onReCenter = { h.recenterTaps++ }, modifier = Modifier)
@@ -78,20 +78,30 @@ class MapReCenterButtonOverlayTest {
     }
 
     @Test
-    fun buttonVisibleWhenBrowseDrifted() {
+    fun buttonVisibleWhenBrowseNotCentered() {
         val h = Harness().apply {
             mode = MapMode.BROWSE
-            browseDrifted = true
+            browseReCenterVisible = true
         }
         setContent(h)
         composeRule.onNodeWithContentDescription("Re-center on location").assertExists()
     }
 
     @Test
+    fun buttonHiddenWhenBrowseCentered() {
+        val h = Harness().apply {
+            mode = MapMode.BROWSE
+            browseReCenterVisible = false
+        }
+        setContent(h)
+        composeRule.onNodeWithContentDescription("Re-center on location").assertDoesNotExist()
+    }
+
+    @Test
     fun buttonHiddenWithoutGpsFix() {
         val h = Harness().apply {
             mode = MapMode.BROWSE
-            browseDrifted = true
+            browseReCenterVisible = true
             gpsQuality = GpsFixQuality.NONE
         }
         setContent(h)

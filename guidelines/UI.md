@@ -382,26 +382,41 @@ Source: spec `map-modes`.
 
 ## 7a. Phone map re-center button (per-mode)
 
-Source: spec `map-modes` (drive suspension and reset; browse re-center).
+Source: spec `map-modes` (drive suspension and reset; Browse re-center), spec
+`map-recenter-button` (the control: icon, GPS-fix gate, placement).
 
 - The re-center button (crosshair/my-location icon, content description
-  "Re-center on location") appears only when the viewport has drifted from the
-  auto state **and** a GPS fix is available:
+  "Re-center on location") appears only when a GPS fix is available **and** the
+  map needs it:
   - **FREE_DRIVE**: any manual pan/zoom/rotate suspends the drive preset
     (`driveSuspended`); the button appears and tapping it resets to the
     standard drive values (follow on, auto-zoom on, heading-up, driving zoom)
     and hides the button.
-  - **BROWSE**: a manual pan/zoom away from the GPS position (`browseDrifted`)
-    shows the button; tapping it centers on the current GPS position, stays in
-    BROWSE, and hides the button. At start (no drift) the button is hidden.
+  - **BROWSE**: the button follows the **measured** offset between the map
+    center and the vehicle — never a remembered interaction. It appears when the
+    vehicle is more than the appear threshold off the center (screen pixels, so
+    the value means the same visible displacement at every zoom) and has stayed
+    beyond it for a short dwell; it hides below the smaller hide threshold,
+    immediately. So it is also visible on the start screen when the persisted
+    viewport is not where the vehicle is, and it appears when the vehicle moves
+    while browsing. Rotation about the center does not change the offset and
+    therefore does not change its visibility. Tapping it puts the current GPS
+    position at the center of the map, stays in BROWSE, and hides the button.
   - **NAVIGATION**: a manual zoom suspends auto-zoom; tapping re-centers on the
     current position (existing behavior).
+- BROWSE framing is **not** anchor-framed: the "Vehicle position" presets
+  configure the driving modes only (§1, "Vehicle position setting (follow-mode
+  anchor)"). An off-center browse re-center would immediately re-show the button
+  the user just dismissed.
 - Placement: bottom-left in BROWSE/FREE_DRIVE; while navigating it is anchored
   directly above the routing status bar (the screen-bottom area is covered by
   `NavigationStateOverlay`, so the button must never sit at the bottom edge
   during navigation).
-- There is no automatic re-engage: a manual interaction stops follow/auto-zoom
-  until the driver taps the button — the button's presence is the only signal.
+- There is no automatic re-engage: a manual interaction stops follow/auto-zoom in
+  the driving modes until the driver taps the button. In BROWSE the map never
+  follows, so the button is the standing "go to my position" offer and returns as
+  soon as the vehicle is off the center again (e.g. seconds after a re-center
+  while driving) — expected, not a defect.
 - Phone-only: the car display has its own follow behavior via the car
   MapController and is unaffected (no phone-style auto zoom).
 

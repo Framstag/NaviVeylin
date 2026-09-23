@@ -1337,7 +1337,7 @@ fun MapCanvasScreen(
                 // (see navigation overlay branch).
                 if (!navState.isNavigating &&
                     MapCanvasViewModel.shouldShowReCenterButton(
-                        viewModel.mode, state.driveSuspended, state.browseDrifted
+                        viewModel.mode, state.driveSuspended, state.browseReCenterVisible
                     ) && state.gpsFixQuality != GpsFixQuality.NONE) {
                     MapReCenterButton(
                         onReCenter = reCenterAction,
@@ -1473,7 +1473,7 @@ fun MapCanvasScreen(
                 // (see navigation overlay branch).
                 if (!navState.isNavigating &&
                     MapCanvasViewModel.shouldShowReCenterButton(
-                        viewModel.mode, state.driveSuspended, state.browseDrifted
+                        viewModel.mode, state.driveSuspended, state.browseReCenterVisible
                     ) && state.gpsFixQuality != GpsFixQuality.NONE) {
                     MapReCenterButton(
                         onReCenter = reCenterAction,
@@ -1944,7 +1944,7 @@ fun MapCanvasScreen(
                     // screen-bottom placement is covered by NavigationStateOverlay
                     // during navigation, so anchor the re-center button here.
                     if (MapCanvasViewModel.shouldShowReCenterButton(
-                            viewModel.mode, state.driveSuspended, state.browseDrifted
+                            viewModel.mode, state.driveSuspended, state.browseReCenterVisible
                         ) && state.gpsFixQuality != GpsFixQuality.NONE) {
                         MapReCenterButton(
                             onReCenter = reCenterAction,

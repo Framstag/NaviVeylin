@@ -4,6 +4,43 @@
 
 ---
 
+## 70. BROWSE still mixes the free-driving anchor preset into a street-pill placement, and an off-screen vehicle has no cue but the re-center button — Found 2026-09-22 during `fix-browse-recenter-visibility` (out of scope)
+
+- **Observed** ℹ: (a) `MapCanvasScreen.kt` derives `pillAtTop = state.activeFollowAnchor.fy == 0.9` and moves the
+  free-driving street pill to the top of the screen "so it never covers the vehicle marker" — in BROWSE too, using the
+  **free-driving** anchor preset; browse framing no longer applies anchor presets at all (spec `map-modes` — Browse
+  re-center), so the pill can sit at the top in browse for a preset that browse does not use. Cosmetic only; the pill
+  and the button do not overlap.
+- **Observed** ℹ: (b) when the vehicle is outside the viewport the marker overlay draws nothing (`projectMarker` returns
+  null past `MARGIN_PX`, `LocationMarkerOverlay.kt`), so in BROWSE the derived re-center button is the only signal that
+  a position exists. No edge arrow, no direction indicator.
+- **Why it was left alone** ℹ: found while replacing the sticky `browseDrifted` flag; (a) is a placement question this
+  change did not need to touch and a wrong fix would move the pill for the driving modes too, (b) is a new affordance
+  with its own questions (where to draw it, how it clears the action/widget columns on phone and foldable, phone/AA
+  parity).
+- **Fix candidate**: (a) derive `pillAtTop` from the mode — in BROWSE the vehicle sits at the centre, so keep the pill
+  bottom-centre (or key it off the centre preset) and leave the anchor-based rule to FREE_DRIVE/NAVIGATION; (b) a small
+  viewport-edge indicator pointing at the vehicle, driven by the same projected offset the re-center rule already
+  computes, with a `map-modes` spec delta and a phone/AA parity decision.
+
+---
+
+## 69. Location/FGS surface has not been checked against the Play location policy effective 2026-10-28 — Found 2026-09-22 during the regulatory review (`guidelines/Regulatory.md` §6/§9)
+
+- **Scope of the change** ✗: the Play "Permissions and APIs that Access Sensitive Information" policy was updated 2026-04-15 and takes effect **2026-10-28**; the app's location surface predates it. Relevant deltas: (a) precise location is expected at minimum scope, with the **location button** as the recommended minimum for precise/one-time requests; (b) background location still requires the Permissions Declaration form, a ≤ 30 s demo video, prominent in-app disclosure and a privacy policy in-app **and** on the listing; (c) foreground-service location must be the continuation of a user-initiated action and must stop once that action completes; (d) **geofencing was removed** as an approved FGS use case (use the Geofence API).
+- **Current surface** ℹ: `app/src/main/AndroidManifest.xml:6-7` declares `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION` (no `ACCESS_BACKGROUND_LOCATION`); `:102` `MapDownloadService` is `foregroundServiceType="dataSync"`; `:111` `NavigationNotificationService` is `foregroundServiceType="location"`. Continuous navigation with the screen off is exactly the FGS-as-background-location case the policy scrutinises, so the "user-initiated + terminated when the action ends" shape has to be demonstrable (the notification's `Stop` action and stop-on-arrival are the visible ends of that action).
+- **Not verified** ✗: whether the app requests precise (fine) rather than coarse location where a coarse fix would do, whether a one-time precise request should use the location button, whether `MapDownloadService`'s `dataSync` type is still the right one under the current FGS policy, and whether the Play Data safety form currently matches what §68 lists.
+- **Next step**: audit the request path (fine vs coarse, one-time vs ongoing), confirm the FGS start/stop shape against the policy text, then update the Data safety declaration + privacy policy/prominent disclosure if anything changed. `guidelines/Regulatory.md` §6 carries the requirement text and the review cadence.
+
+## 68. Precise coordinates are written to Logcat and to the diagnostics buffer — Found 2026-09-22 during the regulatory review (`guidelines/Regulatory.md` §3/§9)
+
+- **Observed** ℹ: 6-decimal lat/lon pairs are logged via `android.util.Log` in `ui/map/MapCanvasViewModel.kt:1035` (GPS fix), `:1440` (`resolveAdminRegion`), `:2382` (`onLongPress`), `:2471` (shared location), `ui/map/MapRenderer.kt:402` and `:455` (viewport centre), `navigation/AANavigationController.kt:167` (route start/destination), `auto/AutoInitialViewport.kt:37`, `auto/DetailsScreen.kt:280,285`.
+- **Why it is a compliance item, not a style nit** ℹ: precise location is personal data. `com.naviveylin.core.DiagnosticsLog` buffers lines in memory and writes them to a file, and `exportTextAsync` hands the result to the user — so the file is personal data **at rest** and the export is a disclosure of it. Under GDPR/ePrivacy that needs a purpose and a retention bound, and under the Play Data safety rules the app must declare it; India's DPDP Rules would additionally require a minimum 1-year retention of such logs before erasure (`guidelines/Regulatory.md` §3). The debug stream itself is not the problem — the accumulated file and the export are.
+- **What is not established** ✗: whether `DiagnosticsLog` already bounds retention/rotates, whether coordinates in the exported text are needed for the diagnostics use case at all (rounding to ~3 decimals or 5-6 significant digits would keep the diagnostic value and drop the precise fix), and whether the Data safety form mentions location in diagnostics.
+- **Fix candidate**: decide what precision diagnostics actually need and round/redact at the call site or in the logger; give `DiagnosticsLog` an explicit retention bound (and document it in `guidelines/Regulatory.md` §9 and the About/diagnostics UI); state the resulting behaviour in the Data safety declaration. The car path additionally has to keep passing the host-fault-isolation rules (`HOST`/`SESSION` diagnostics tags) — a redaction must not remove the information those entries rely on.
+
+---
+
 ## 67. `openDatabase` reports success for a path that does not exist — Found 2026-09-21 during `fix-native-database-open-race` (out of scope, own change)
 
 - **Spec deviation** ✗: the JNI `openDatabase` (`OSMScoutClient.cpp:688-701`) never validates the

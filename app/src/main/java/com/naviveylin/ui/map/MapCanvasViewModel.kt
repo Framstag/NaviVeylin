@@ -205,10 +205,12 @@ data class MapCanvasUiState(
      *  gesture; drives the re-center button so the driver can reset to the
      *  standard drive values (spec: map-modes — drive suspension and reset). */
     val driveSuspended: Boolean = false,
-    /** True while the BROWSE viewport has drifted from the GPS position by a
-     *  manual pan/zoom; drives the re-center button (spec: map-modes — browse
-     *  re-center). Cleared on re-center. */
-    val browseDrifted: Boolean = false,
+    /** True while the BROWSE map is not centered on the vehicle position;
+     *  drives the re-center button (spec: map-modes — Browse re-center).
+     *  Derived from the viewport, the canvas and the current fix — never from a
+     *  remembered interaction — so it also covers a persisted viewport that is
+     *  nowhere near the vehicle, and vehicle movement while browsing. */
+    val browseReCenterVisible: Boolean = false,
     val freeFormNorthUp: Boolean = true,
     val navNorthUp: Boolean = false,
     val keepScreenOn: Boolean = true,
@@ -992,6 +994,15 @@ class MapCanvasViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(currentSpeedKmH = 0.0)
                 }
             }
+        }
+
+        // Browse re-center visibility (spec: map-modes — Browse re-center): one
+        // collector re-derives it from the viewport, the canvas and the fix, so
+        // every pan, zoom and position update is covered without hooking each
+        // mutation site. refreshBrowseReCenter emits only on a visibility change,
+        // so it does not re-trigger itself forever.
+        viewModelScope.launch {
+            uiState.collect { refreshBrowseReCenter(it) }
         }
 
         // Follow mode: keep map center and marker in sync.
@@ -2874,9 +2885,10 @@ class MapCanvasViewModel @Inject constructor(
 
     /**
      * Disengage follow mode (called on manual pan/zoom/rotate). In FREE_DRIVE
-     * this suspends the drive preset (spec: map-modes — drive suspension); in
-     * BROWSE it marks the viewport as drifted from the GPS position (spec:
-     * map-modes — browse re-center).
+     * this suspends the drive preset (spec: map-modes — drive suspension). In
+     * BROWSE it does nothing to the re-center button: that visibility is derived
+     * from the viewport and the fix, not from a remembered interaction (spec:
+     * map-modes — Browse re-center).
      */
     fun disengageFollowMode() {
         val s = _uiState.value
@@ -2896,8 +2908,6 @@ class MapCanvasViewModel @Inject constructor(
                     s.viewport
                 }
             )
-        } else if (mode == MapMode.BROWSE) {
-            _uiState.value = s.copy(browseDrifted = true)
         }
     }
 
@@ -2926,7 +2936,7 @@ class MapCanvasViewModel @Inject constructor(
             autoZoomEnabled = true,
             navNorthUp = false,
             driveSuspended = false,
-            browseDrifted = false,
+            browseReCenterVisible = false,
             viewport = _uiState.value.viewport.copy(
                 magnification = DRIVE_PRESET_MAG,
                 centerLat = targetLat,
@@ -2954,7 +2964,7 @@ class MapCanvasViewModel @Inject constructor(
             followMode = false,
             freeFormNorthUp = true,
             driveSuspended = false,
-            browseDrifted = false,
+            browseReCenterVisible = false,
             viewport = _uiState.value.viewport.copy(angle = 0.0)
         )
     }
@@ -3008,22 +3018,94 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
-     * Re-center in BROWSE (spec: map-modes — browse re-center): center on the
-     * current GPS position, stay in BROWSE, clear the drifted flag.
+     * Timestamp the browse offset first exceeded the appear threshold, or 0 while
+     * it is not beyond it (spec: map-modes — Browse re-center).
+     */
+    private var browseReCenterBeyondSinceMs = 0L
+
+    /**
+     * Re-derive the BROWSE re-center visibility from the current viewport, canvas
+     * and fix (spec: map-modes — Browse re-center). The offset is measured on
+     * every UI-state change, so panning, zooming and vehicle movement all count
+     * and nothing has to be remembered. Appear edge: beyond
+     * [RECENTER_SHOW_OFFSET_PX] continuously for [RECENTER_DWELL_MS]; hide edge:
+     * below [RECENTER_HIDE_OFFSET_PX], immediately; between the two the current
+     * visibility is held, so a shown button cannot be toggled off by hovering at
+     * the appear threshold. There is no suspension point between the read and the
+     * write, so the copy cannot clobber a concurrent update.
+     */
+    private fun refreshBrowseReCenter(state: MapCanvasUiState) {
+        var offsetPx = Double.NaN
+        val visible = if (mode != MapMode.BROWSE || state.gpsFixQuality == GpsFixQuality.NONE) {
+            browseReCenterBeyondSinceMs = 0L
+            false
+        } else {
+            offsetPx = browseCenterOffsetPx(
+                state.viewport.centerLat, state.viewport.centerLon,
+                state.viewport.magnification, state.viewport.angle,
+                screenWidth, screenHeight, projectionDpi,
+                state.gpsMarkerLat, state.gpsMarkerLon
+            )
+            when {
+                offsetPx.isNaN() -> {
+                    browseReCenterBeyondSinceMs = 0L
+                    false
+                }
+                offsetPx < RECENTER_HIDE_OFFSET_PX -> {
+                    browseReCenterBeyondSinceMs = 0L
+                    false
+                }
+                state.browseReCenterVisible -> true
+                offsetPx >= RECENTER_SHOW_OFFSET_PX -> {
+                    val now = System.currentTimeMillis()
+                    if (browseReCenterBeyondSinceMs == 0L) browseReCenterBeyondSinceMs = now
+                    now - browseReCenterBeyondSinceMs >= RECENTER_DWELL_MS
+                }
+                else -> {
+                    // Inside the hysteresis band and not shown yet: no dwell
+                    // accrues, so position noise that keeps dipping below the
+                    // appear threshold never reveals the button.
+                    browseReCenterBeyondSinceMs = 0L
+                    false
+                }
+            }
+        }
+        if (state.browseReCenterVisible != visible) {
+            _uiState.value = state.copy(browseReCenterVisible = visible)
+            logBrowseReCenter(offsetPx, visible)
+        }
+    }
+
+    /**
+     * Evidence for the derived re-center rule — no screenshot shows why the
+     * button appeared. [com.naviveylin.core.DiagnosticsLog.log] only buffers, so
+     * this never touches the file on the caller's thread.
+     */
+    private fun logBrowseReCenter(offsetPx: Double, visible: Boolean) {
+        val offset = if (offsetPx.isNaN()) "-" else "%.1f".format(offsetPx)
+        Log.d(TAG, "browse re-center off=" + offset + "px vis=" + visible)
+        com.naviveylin.core.DiagnosticsLog.log(
+            "RECENTER",
+            "off=" + offset + "px vis=" + visible +
+                " mag=%.2f".format(_uiState.value.viewport.magnification)
+        )
+    }
+
+    /**
+     * Re-center in BROWSE (spec: map-modes — Browse re-center): put the current
+     * GPS position at the center of the map, stay in BROWSE, hide the button.
+     * Deliberately not anchor-framed: the vehicle anchor presets configure the
+     * driving modes, and an off-center target would immediately re-show the
+     * button the user just dismissed.
      */
     fun recenterInBrowse() {
         if (mode != MapMode.BROWSE) return
         val loc = locationService.location.value
         if (loc != null) {
-            // Re-center commits the anchor-centered frame (spec: smooth-follow —
-            // Anchor restored after manual pan or re-center): the vehicle reappears
-            // at the configured anchor, and the viewport center stays the geo
-            // position at the screen center.
             val vp = _uiState.value.viewport
-            val (targetLat, targetLon) = followRenderTarget(loc.lat, loc.lon, vp.magnification, vp.angle)
             _uiState.value = _uiState.value.copy(
-                browseDrifted = false,
-                viewport = vp.copy(centerLat = targetLat, centerLon = targetLon)
+                browseReCenterVisible = false,
+                viewport = vp.copy(centerLat = loc.lat, centerLon = loc.lon)
             )
             renderMap()
         }
@@ -3426,22 +3508,17 @@ class MapCanvasViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             viewport = _uiState.value.viewport.copy(magnification = clamped)
         )
-        // Detect user-initiated zoom: in driving modes suspend the drive preset
-        // (auto-zoom included); in BROWSE mark the viewport as drifted from GPS
-        // (spec: map-modes — drive suspension and reset / browse re-center).
-        when (mode) {
-            MapMode.FREE_DRIVE, MapMode.NAVIGATION -> {
-                if (_uiState.value.autoZoomEnabled && !autoZoomSuspended) {
-                    setAutoZoomSuspended(true)
-                    val navVm = _navigationViewModel
-                    val rawSpeed = navVm?.state?.value?.currentSpeedKmH ?: Double.NaN
-                    lastSpeedBandIndex = if (!rawSpeed.isNaN() && rawSpeed >= 0) SpeedZoomTable.bandIndex(filterSpeed(rawSpeed)) else -1
-                }
-            }
-            MapMode.BROWSE -> {
-                if (!_uiState.value.browseDrifted) {
-                    _uiState.value = _uiState.value.copy(browseDrifted = true)
-                }
+        // Detect user-initiated zoom: in the driving modes suspend the drive
+        // preset (auto-zoom included; spec: map-modes — drive suspension and
+        // reset). In BROWSE nothing has to be recorded — the re-center button
+        // follows the measured offset between the map center and the vehicle
+        // (spec: map-modes — Browse re-center).
+        if (mode == MapMode.FREE_DRIVE || mode == MapMode.NAVIGATION) {
+            if (_uiState.value.autoZoomEnabled && !autoZoomSuspended) {
+                setAutoZoomSuspended(true)
+                val navVm = _navigationViewModel
+                val rawSpeed = navVm?.state?.value?.currentSpeedKmH ?: Double.NaN
+                lastSpeedBandIndex = if (!rawSpeed.isNaN() && rawSpeed >= 0) SpeedZoomTable.bandIndex(filterSpeed(rawSpeed)) else -1
             }
         }
     }
@@ -3516,18 +3593,51 @@ class MapCanvasViewModel @Inject constructor(
 
     companion object {
         /**
-         * Re-center button visibility: the viewport is no longer auto-driven when
-         * follow mode is off, or when auto-zoom is suspended during navigation
-         * (pinch/button zoom leaves follow mode on but stops auto zoom).
+         * Re-center button visibility. In the driving modes the viewport is no
+         * longer auto-driven when the drive preset is suspended (FREE_DRIVE), or
+         * when auto-zoom is suspended or follow was disengaged (NAVIGATION). In
+         * BROWSE it is driven by the derived "the map is not centered on the
+         * vehicle" condition (spec: map-modes — Browse re-center), not by a
+         * remembered interaction.
          */
         internal fun shouldShowReCenterButton(
             mode: MapMode,
             driveSuspended: Boolean,
-            browseDrifted: Boolean
+            browseReCenterVisible: Boolean
         ): Boolean = when (mode) {
             MapMode.FREE_DRIVE -> driveSuspended
-            MapMode.BROWSE -> browseDrifted
+            MapMode.BROWSE -> browseReCenterVisible
             MapMode.NAVIGATION -> driveSuspended
+        }
+
+        /**
+         * Screen-pixel offset of [lat]/[lon] from the center of the map the given
+         * viewport shows (spec: map-modes — Browse re-center). Uses the same
+         * [ProjectionUtils] projection the marker overlay uses, but against the
+         * committed viewport: "the map is centered on the vehicle" is a statement
+         * about the framing the user asked for, not about a frame that may lag
+         * behind a throttled render. Pure — unit-tested directly. Returns NaN when
+         * the position or the canvas metrics are unknown.
+         */
+        internal fun browseCenterOffsetPx(
+            centerLat: Double,
+            centerLon: Double,
+            mag: Double,
+            angle: Double,
+            screenW: Int,
+            screenH: Int,
+            dpi: Double,
+            lat: Double,
+            lon: Double
+        ): Double {
+            if (lat.isNaN() || lon.isNaN()) return Double.NaN
+            if (screenW <= 0 || screenH <= 0 || dpi <= 0.0) return Double.NaN
+            val projected = ProjectionUtils.viewport(
+                centerLat, centerLon, mag, screenW, screenH, dpi, angle
+            )
+            val (sx, sy) = projected.geoToScreenRotated(lat, lon)
+            if (sx.isNaN() || sy.isNaN()) return Double.NaN
+            return kotlin.math.hypot(sx - screenW / 2.0, sy - screenH / 2.0)
         }
 
         private const val TAG = "MapCanvasVM"
@@ -3535,6 +3645,26 @@ class MapCanvasViewModel @Inject constructor(
 
         /** Magnification applied when a drive preset (re)engages follow mode. */
         private const val DRIVE_PRESET_MAG = 15.0
+
+        /**
+         * Browse re-center: the vehicle must be this far from the map center
+         * (screen px) before the button can appear. A screen measure, so the same
+         * value means the same visible displacement at every magnification.
+         * Internal so the rule tests calibrate against the same number instead of
+         * duplicating it.
+         */
+        internal const val RECENTER_SHOW_OFFSET_PX = 24.0
+
+        /** Browse re-center: hysteresis — the button hides below this offset. */
+        internal const val RECENTER_HIDE_OFFSET_PX = 12.0
+
+        /**
+         * Browse re-center: the offset must stay beyond [RECENTER_SHOW_OFFSET_PX]
+         * this long before the button appears. This damping is not cosmetic — at
+         * high magnification the pixel offset is GPS noise (one screen pixel is
+         * ~0.03 m at magnif 20), so no threshold pair is stable without it.
+         */
+        internal const val RECENTER_DWELL_MS = 1_000L
 
         /** Fixed high zoom for shared-location candidate lookup (street level). */
         private const val SHARE_CANDIDATE_ZOOM = 16

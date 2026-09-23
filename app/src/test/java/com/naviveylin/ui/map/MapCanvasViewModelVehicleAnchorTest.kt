@@ -367,23 +367,27 @@ class MapCanvasViewModelVehicleAnchorTest {
     }
 
     @Test
-    fun browseRecenterCommitsTheAnchorCenteredFrame() = runTest(mainDispatcherRule.dispatcher) {
-        val current = settingsStorage.load()
-        settingsStorage.save(
-            current.copy(freeDrivingAnchorId = VehicleAnchorPosition.MIDDLE_FAR_RIGHT.id)
-        )
-        recreateViewModel()
-        advanceUntilIdle()
-        emitFix(52.51, 13.40)
-        advanceUntilIdle()
-        assertEquals(MapMode.BROWSE, viewModel.mode)
+    fun browseRecenterCentersTheVehicleIgnoringTheAnchorPreset() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // A non-center free-driving anchor must NOT frame the browse re-center:
+            // an off-center target would immediately re-show the button the user
+            // just dismissed (spec: map-modes — Browse re-center).
+            val current = settingsStorage.load()
+            settingsStorage.save(
+                current.copy(freeDrivingAnchorId = VehicleAnchorPosition.MIDDLE_FAR_RIGHT.id)
+            )
+            recreateViewModel()
+            advanceUntilIdle()
+            emitFix(52.51, 13.40)
+            advanceUntilIdle()
+            assertEquals(MapMode.BROWSE, viewModel.mode)
 
-        viewModel.recenterInBrowse()
-        advanceUntilIdle()
+            viewModel.recenterInBrowse()
+            advanceUntilIdle()
 
-        assertFalse(viewModel.uiState.value.browseDrifted)
-        assertVehicleAtAnchor(VehicleAnchorPosition.MIDDLE_FAR_RIGHT, 52.51, 13.40)
-    }
+            assertFalse(viewModel.uiState.value.browseReCenterVisible)
+            assertVehicleAtAnchor(VehicleAnchorPosition.CENTER, 52.51, 13.40)
+        }
 
     @Test
     fun reEngagingFollowCommitsTheAnchorCenteredFrame() = runTest(mainDispatcherRule.dispatcher) {

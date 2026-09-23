@@ -139,7 +139,7 @@ class MapCanvasViewModelNavEndRestoreTest {
             assertFalse("follow must not leak from navigation", state.followMode)
             assertFalse("no drive suspension in browse", state.driveSuspended)
             assertTrue("browse north-up flag applied", state.freeFormNorthUp)
-            assertFalse("no phantom browse drift", state.browseDrifted)
+            assertFalse("browse must not report a stale off-center state", state.browseReCenterVisible)
             assertEquals("rotation reset to north-up", 0.0, state.viewport.angle, 1e-9)
             // Position and zoom must stay where routing ended.
             assertEquals("zoom kept from routing end", 13.0, state.viewport.magnification, 1e-9)

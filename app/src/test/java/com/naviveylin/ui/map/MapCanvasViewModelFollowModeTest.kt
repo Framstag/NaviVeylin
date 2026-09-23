@@ -154,28 +154,29 @@ class MapCanvasViewModelFollowModeTest {
     }
 
     @Test
-    fun recenterButtonVisibleWhenBrowseDriftedAndGpsGood() {
-        // BROWSE with a drifted viewport and a good GPS fix: button visible.
+    fun recenterButtonVisibleWhenBrowseNotCenteredAndGpsGood() {
+        // BROWSE with the map not centered on the vehicle and a good GPS fix:
+        // button visible (spec: map-modes — Browse re-center).
         val visible = MapCanvasViewModel.shouldShowReCenterButton(
-            MapMode.BROWSE, driveSuspended = false, browseDrifted = true
+            MapMode.BROWSE, driveSuspended = false, browseReCenterVisible = true
         ) && GpsFixQuality.GOOD != GpsFixQuality.NONE
-        assertTrue("Re-center button should be visible when browse drifted", visible)
+        assertTrue("Re-center button should be visible when browse is not centered", visible)
     }
 
     @Test
     fun recenterButtonHiddenWhenDriveActive() {
         // FREE_DRIVE active (no suspension): button hidden.
         val visible = MapCanvasViewModel.shouldShowReCenterButton(
-            MapMode.FREE_DRIVE, driveSuspended = false, browseDrifted = false
+            MapMode.FREE_DRIVE, driveSuspended = false, browseReCenterVisible = false
         )
         assertFalse("Re-center button should be hidden when drive active", visible)
     }
 
     @Test
     fun recenterButtonHiddenWhenNoGpsFix() {
-        // BROWSE drifted but no GPS fix: button hidden (GPS gate).
+        // Not centered but no GPS fix: button hidden (GPS gate).
         val visible = MapCanvasViewModel.shouldShowReCenterButton(
-            MapMode.BROWSE, driveSuspended = false, browseDrifted = true
+            MapMode.BROWSE, driveSuspended = false, browseReCenterVisible = true
         ) && GpsFixQuality.NONE != GpsFixQuality.NONE
         assertFalse("Re-center button should be hidden when no GPS fix", visible)
     }
@@ -183,7 +184,7 @@ class MapCanvasViewModelFollowModeTest {
     @Test
     fun recenterButtonHiddenWhenDriveActiveAndNoGps() {
         val visible = MapCanvasViewModel.shouldShowReCenterButton(
-            MapMode.FREE_DRIVE, driveSuspended = false, browseDrifted = false
+            MapMode.FREE_DRIVE, driveSuspended = false, browseReCenterVisible = false
         ) && GpsFixQuality.NONE != GpsFixQuality.NONE
         assertFalse("Re-center button should be hidden", visible)
     }

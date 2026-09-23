@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the explicit map mode model (Browse / Free drive / Navigation) on the phone: three derived states with per-mode configuration presets, mode-toggle control, drive-suspension and browse-drift re-center behavior, and the preset applied when navigation ends.
+Defines the explicit map mode model (Browse / Free drive / Navigation) on the phone: three derived states with per-mode configuration presets, mode-toggle control, drive-suspension and the browse re-center rule, and the preset applied when navigation ends.
 
 ## Requirements
 

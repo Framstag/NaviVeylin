@@ -367,6 +367,28 @@ Provider-aware inside `LocationService` only:
 - Commit the fractional target: never round to a whole level at commit time (the `2^z` scale
   conversion stays at the JNI boundary, sec 12). The displayed zoom then eases to the target over
   ~650 ms through the front-buffer animation (spec `smooth-zoom`), not a single-frame jump.
+- **A change larger than the window the frame in hand can serve is WALKED (`core/ZoomWalk`).**
+  The overrun frame (`DEFAULT_CANVAS_OVERRUN = 1.2`) covers `log2(1.2) = 0.263` levels, kept at
+  `ZOOM_BLIT_WINDOW = 0.25` with margin; a commit farther than that from the frame in hand does not
+  land in one frame: the committed magnification advances one step per LANDED render
+  (`MapCanvasViewModel.advanceZoomWalk` on the frame collector), each step is requested through
+  `MapRenderer.requestRenderImmediate` (a walk step is paced by the landing of the previous step's
+  frame, so the pan/zoom debounce would only add `zoomDebounceMs` per step), and the last step lands
+  exactly on the recorded target. Without this, an entry from a browse viewport at mag 13 to a speed
+  target of 17 showed the old raster scaled across a 16x area change (the phone's reported
+  "wrong-scale picture", parity with `AutoMapRenderer.advanceZoomWalk` on the car).
+- **The viewport keeps the FINAL magnification while the display walks.** `viewport.magnification`
+  is the recorded (and persisted) target; `MapCanvasUiState.zoomWalkStepMag` carries the step the
+  render pipeline and the display animation are on, and `zoomAnimationTargetMag` derives the value
+  the screen eases toward. Persistence routes through `ZoomWalk.persistMag`, so a walked step is
+  never written (spec `smooth-zoom` - Viewport records final magnification). A programmatic camera
+  fit (POI fit) passes `walk = false` and lands directly - it does not run the display animation.
+- **The display animation pivots on the resolved follow anchor while a follow mode is active**
+  (`zoomAnimationAnchor`: the anchor fraction times the canvas, for every preset), and on the screen
+  center otherwise (the scroll wheel keeps the cursor). The marker overlay receives the same pivot,
+  so the vehicle cannot drift off its anchor slot while the animation plays. The applied display
+  scale goes through `ZoomWalk.displayScale`, which clamps to the window - a guard so a change that
+  ever lands un-walked degrades to a bounded scale instead of an uncovered strip of surface color.
 - Phone and Android Auto share the convergence primitive (`SpeedZoomTable.stepToward`); Android
   Auto commits the fractional magnification through the fractional viewport-render parameter.
 
@@ -392,7 +414,10 @@ Provider-aware inside `LocationService` only:
   Without rotation, a blit at -40° map angle shifts the content horizontally by up to
   `sin(40°) × move` wrongly.
 - Blit only at the same magnification; on zoom change keep the old correct frame, don't show a
-  scaled placeholder.
+  scaled placeholder. The `smooth-zoom` display scale is the bounded exception: the displayed frame
+  may be scaled by at most the window the frame in hand covers (`ZoomWalk.ZOOM_BLIT_WINDOW = 0.25`,
+  i.e. scale within 2^-0.25..2^0.25), which is what keeps the map content's geometry within the
+  level the frame was rendered at.
 - Blits copy pure map content — the marker overlay is drawn by Compose on top afterwards, so a
   blit can never carry stale marker pixels.
 - A blit is a TILE-PREVIEW optimization only: the blit-covered branch in `submitDebounced` MUST NOT

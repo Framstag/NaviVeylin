@@ -263,6 +263,44 @@ class MapRenderer(
         submitDebounced(lat, lon, mag, angle, oldLat, oldLon, oldMag, oldAngle, forceFullRender)
     }
 
+    /**
+     * Render [mag] immediately, bypassing the pan/zoom debounce (spec: smooth-zoom -
+     * Eased zoom animation on discrete zoom input; design D3).
+     *
+     * Used for one walked magnification step: a step is already paced by the LANDING
+     * of the previous step's frame, so the debounce would only add latency
+     * (`zoomDebounceMs` per step, ~16 steps for a four-level entry).
+     *
+     * A pending debounced request is RE-TARGETED to this magnification instead of
+     * being dropped: a zoom request that fired later would render the PREVIOUS
+     * magnification after this one and step the display backward (the walk compares
+     * against the front buffer's magnification, so a backward frame stalls it). A
+     * pending forced overlay render keeps its flag, so a route/favourites/search
+     * update in flight is never lost (spec: map-render - Forced overlay renders are
+     * never dropped).
+     */
+    fun requestRenderImmediate(lat: Double, lon: Double, mag: Double, angle: Double) {
+        val oldMag = currentMag
+        currentLat = lat; currentLon = lon; currentMag = mag; currentAngle = angle
+        emitCurrentViewport()
+        Log.d(
+            TAG,
+            "requestRenderImmediate mag=" + mag + " (was " + oldMag + ") center=" + lat + "," + lon
+        )
+        val pending = pendingRender
+        if (pending != null) {
+            pendingRender = pending.copy(lat = lat, lon = lon, mag = mag, angle = angle)
+        }
+        enqueueRenderJob(
+            lat, lon, mag, angle,
+            forceFullRender = pending?.forceFullRender == true,
+            markerLat = gpsMarkerLat,
+            markerLon = gpsMarkerLon,
+            markerBearing = gpsMarkerBearing,
+            markerAccuracy = gpsMarkerAccuracy
+        )
+    }
+
     private fun emitCurrentViewport() {
         _currentViewportFlow.value = RenderViewport(currentLat, currentLon, currentMag, currentAngle)
     }

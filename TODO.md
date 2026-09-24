@@ -4,6 +4,33 @@
 
 ---
 
+## 71. Zoom-walk follow-ups from `fix-phone-zoom-animation-parity` — Found 2026-09-24 during that change (out of scope / pending device)
+
+- **On-device cost unmeasured** ⏳: the phone now walks a magnification change the frame in hand cannot serve
+  (`core/ZoomWalk`, `window = 0.25` levels, one step per landed render, `MapRenderer.requestRenderImmediate`).
+  A four-level entry is ~16 renders. The car's measurement (1.5-4 s for the same 16 steps) does not transfer: the
+  phone's tile path serves fractional steps from the per-level tile cache, so most steps are cheap and only the
+  level crossings render natively - which the on-device task (change tasks 6.3) has to confirm before anyone
+  considers design D7 Alt C (a larger `OVERRUN_FACTOR`, i.e. a bigger window and fewer steps) or D1 Alt B
+  (clamp the display scale and land the remainder in one render).
+- **Pinch commits now walk when their gap exceeds the window** ℹ: `updateMagnification` is the commit path for
+  pinch, zoom buttons, keyboard shortcuts and the scroll wheel (only the POI camera fit passes `walk = false`),
+  so any of them with a gap above 0.25 levels renders stepped frames instead of one. The spec's requirement is
+  unconditional ("a change larger than the window SHALL be applied as a sequence of displayed steps"), and the
+  walk's steps are cheap via the tile cache - but a manual large zoom-in (e.g. several wheel ticks) is a visual
+  judgement that needs a device, not a unit test.
+- **`:app` has no aggregate unit-test task** ℹ: `:app:testDebugUnitTest` does not exist (the `dist` flavor dimension
+  splits it into `testMobileDebugUnitTest` / `testAutomotiveDebugUnitTest`), so the run-tests skill's documented
+  command fails with "Ambiguous matches". Use the flavor-specific task, or add a `test` aggregate. Not touched here
+  because the skill file lives in `.pi/skills/` (gitignored).
+- **Before this change no test could obtain a rendered front buffer** ℹ: every ViewModel test was state-level because
+  `initMap` + `advanceUntilIdle` never produced an emitted frame (`renderViewport` stayed null; not investigated
+  further). The change added the `MapCanvasViewModel.publishRenderedFrameForTest` hook (the same path the frame
+  collector uses) so the walk is deterministically testable; a real-render harness for the ViewModel is still worth
+  having for render-pipeline behaviour (why no frame is emitted is unexplained).
+
+---
+
 ## 70. BROWSE still mixes the free-driving anchor preset into a street-pill placement, and an off-screen vehicle has no cue but the re-center button — Found 2026-09-22 during `fix-browse-recenter-visibility` (out of scope)
 
 - **Observed** ℹ: (a) `MapCanvasScreen.kt` derives `pillAtTop = state.activeFollowAnchor.fy == 0.9` and moves the
@@ -269,6 +296,7 @@ GPS back                     →  REAL
 |------|--------|-------|
 | Vehicle anchor visible-area + per-surface parity (change `anchor-per-surface-visible-area`, tasks 6.3–6.6, 8.1–8.3) | ⏳ | Implementation green (suite 2026-09-15: app mobile/automotive 964 each, auto 373, core 216; incl. `markerRidesTheBlittedContentWithABlitOffset` + `hostPaneClampsTheLeadingEdgeAnchorOnly`). On-device: routing/free-driving anchors stay clear of the overlays (turn card, routing-status card, street-name pill, widget column) at large font scale; browse framing unchanged (identity); car↔phone per-surface anchor values independent; upgraded install keeps its pre-split value until the car gets its own; `center/center` on both surfaces frames identically to the previous build; AA: leading-edge preset clears the host pane (LTR + RTL), vehicle marker + destination pin ride the blitted content without lead-then-snap during extrapolation glides. |
 | Continuous pinch zoom — real-device sanity check | ⏳ | Emulator pinch is synthetic input; user confirmed pinch on emulator 2026-08-29 (task 5.2 closed), real-device check remains (task 5.2 tail). Verify: pinch in/out continuity, limits, fractional mag persistence, GPS marker anchor, follow-mode pinch, no FATAL. |
+| Bounded zoom walk on the phone (change `fix-phone-zoom-animation-parity`, tasks 6.3-6.6) | ⏳ | Implementation + unit tests green (walk arithmetic `:core` 14/14, ViewModel wiring 7/7, renderer immediate path 3/3, screen rules 7/7; full `ui.map` package suite green). On-device: enter free driving from a far browse viewport - no consecutive frame change above 0.25 levels, walk ends exactly on the speed target, render count per entry recorded; bottom-center anchor keeps the vehicle pixel fixed through zoom in/out with no correction jump at landing; a large zoom-out never exposes bare surface color; pinch/buttons/keys still request their first frame immediately; the persisted viewport holds the final target. Blocked 2026-09-24: no device/emulator attached (`adb devices` empty). |
 
 ## 12. Regional maps emit unknown-type warnings loading standard.oss
 
@@ -302,6 +330,7 @@ GPS back                     →  REAL
 
 - **Observed 2026-09-16 during `fix-sharp-s-transliteration-match` task 4.1** ⏳: the first full `./gradlew test` run failed once with `BasemapSectionComposeTest > availableShowsDownloadButton FAILED — android.view.ViewRootImpl$CalledFromWrongThreadException at ViewRootImpl.java:11357` (972 tests, 1 failed). Re-running the class alone (`--tests com.naviveylin.ui.mapmanager.BasemapSectionComposeTest`) passed, and the next full `./gradlew test` was green (972/0/0 for both variants). Unrelated to that change (native-only + gitlink bump; no basemap file in the dirty tree), but a wrong-thread violation indicates a real ordering race in the test (Compose/Robolectric) rather than pure noise. Fix candidate: identify the View access happening off the main thread (probably a `LaunchedEffect`/callback in the basemap section composing a download button) and make the assertion wait for idle instead of racing it.
 - **Second class, same shape — observed 2026-09-22 during `fix-native-database-open-race` task 4.2** ⏳: `./gradlew :koverXmlReport --rerun-tasks` (the whole `:app:testAutomotiveDebugUnitTest` suite re-executed under load) failed with `FavoritesSheetReorderComposeTest > chips follow the reordered favorites and a new star appends FAILED — androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms` at `FavoritesSheetReorderComposeTest.kt:233` (`awaitCondition`). The same suite was green twice earlier that day (mobile and automotive, 1100 tests each, 0 failures) and the class alone passes in 13 s, so it is a load-sensitive timeout, not a defect: the 5 s bound at `FavoritesSheetReorderComposeTest.kt:379` is too tight when the JVM is busy. Fix candidate: raise/replace the fixed bound (or wait for idle on the specific node) so a heavily loaded runner cannot fail it; unrelated to that change (database registration vs. favorites-sheet reordering).
+- **Worse on this machine — observed 2026-09-24 during `fix-phone-zoom-animation-parity` tasks 6.2** ✗: `FavoritesSheetReorderComposeTest > chips follow the reordered favorites and a new star appends` now fails **on its own**, not only under load - three consecutive runs (whole `:app` mobile suite, the class alone twice) all failed at `FavoritesSheetReorderComposeTest.kt:233` with the same `ComposeTimeoutException: Condition still not satisfied after 5000 ms`. Proven unrelated to that change: the class was re-run with the change's files stashed (clean tree, `git stash push --include-untracked`) and failed identically, and `:app`'s `ui.map` package suite (the change's surface) is green. It is still only *flaky*, not broken: the `:app:testAutomotiveDebugUnitTest` suite immediately afterwards ran the same class green (11 tests, 0 failures). The 5 s `awaitCondition` bound waiting for the asynchronous `FavoriteRepository` persist is the suspect; raising it (or waiting for idle on the concrete node) is the fix candidate.
 
 ## 28. Whole-level rounding in `computeAreaZoom` still over-fits area favorites and POI search
 

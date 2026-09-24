@@ -119,8 +119,10 @@ import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.VehicleAnchorPosition
+import com.naviveylin.core.ResolvedAnchor
 import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.ZoomAnimation
+import com.naviveylin.core.ZoomWalk
 import kotlinx.coroutines.isActive
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
@@ -292,6 +294,11 @@ fun MapCanvasScreen(
     val zoomAnim = remember { ZoomAnimation() }
     var zoomAnimScale by remember { mutableStateOf(1f) }
     var zoomAnchor by remember { mutableStateOf(Offset.Zero) }
+    // Last magnification the display animation was retargeted to: a change (a walked
+    // step, a manual commit) retracks the running animation from its current scale
+    // instead of restarting it (spec: smooth-zoom - Stepped magnification change
+    // retracks per step).
+    var lastZoomAnimTarget by remember { mutableStateOf(Double.NaN) }
     var prevRenderedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var lastFrontMag by remember { mutableStateOf(-1.0) }
     // Crossfade at render completion (zoom-transition-scaling delta): the old
@@ -312,7 +319,10 @@ fun MapCanvasScreen(
     fun animateDiscreteZoom(anchor: Offset, durationMs: Long = 250L) {
         val s = viewModel.uiState.value
         val frontMag = s.renderViewport?.mag ?: return
-        val target = 2.0.pow((s.viewport.magnification - frontMag).toDouble()).toFloat()
+        // Bounded display scale (spec: smooth-zoom - Zoom animation never exposes
+        // uncovered map area): a walked step is inside the window by construction, so
+        // this only guards a magnification change that ever lands un-walked.
+        val target = ZoomWalk.displayScale(s.zoomAnimationTargetMag, frontMag)
         val now = System.currentTimeMillis()
         if (zoomAnim.active) {
             zoomAnim.retrack(target, anchor.x, anchor.y, now, durationMs)
@@ -322,9 +332,24 @@ fun MapCanvasScreen(
         zoomAnchor = anchor
     }
 
-    /** Screen center anchor for button/keyboard zoom and auto-zoom commits. */
+    /**
+     * The screen point a zoom animation keeps visually fixed (spec: smooth-zoom -
+     * Geographic anchor stays fixed during zoom animation): the resolved follow anchor
+     * pixel while a follow mode is active - the vehicle's own position on the map - and
+     * the screen center otherwise. The marker overlay receives the same pivot, so the
+     * vehicle cannot drift off its anchor slot while the animation plays.
+     */
+    fun zoomAnimationAnchor(): Offset =
+        zoomAnimationAnchor(
+            followMode = viewModel.uiState.value.followMode,
+            anchor = viewModel.uiState.value.resolvedAnchor,
+            canvasWidth = canvasSize.width,
+            canvasHeight = canvasSize.height
+        )
+
+    /** Screen center (or follow anchor) for button/keyboard zoom and auto-zoom commits. */
     fun animateDiscreteZoomToCenter(durationMs: Long = 250L) {
-        animateDiscreteZoom(Offset(canvasSize.width / 2f, canvasSize.height / 2f), durationMs)
+        animateDiscreteZoom(zoomAnimationAnchor(), durationMs)
     }
 
     // Auto-zoom display animation (spec: smooth-zoom — auto-zoom commits
@@ -391,7 +416,11 @@ fun MapCanvasScreen(
                 // composed visual (buffer × base × factor) stays continuous —
                 // otherwise the committed frame replaces the buffer at a different
                 // level and shows a zoom jump until render-land.
-                val committedMag = ui.viewport.magnification
+                // The magnification the display animation is heading for: a walked step
+                // while a walk is pending, the committed viewport magnification otherwise
+                // (spec: smooth-zoom - the displayed frame never shows a magnification
+                // farther than the frame in hand can serve).
+                val committedMag = ui.zoomAnimationTargetMag
                 val frontMag = ui.renderViewport?.mag ?: -1.0
                 if (frontMag > 0 && lastFrontMag > 0 && frontMag != lastFrontMag &&
                     (gestureBaseScale != 1f || gestureZoom != 1f)) {
@@ -432,6 +461,18 @@ fun MapCanvasScreen(
                         zoomAnimScale = 1f
                     }
                     Log.d(TAG, "smooth-zoom: render landed mag=$frontMag hold=$hold displayed=$zoomAnimScale crossfade=${crossfadeBitmap != null}")
+                }
+
+                // Walked magnification step (spec: smooth-zoom - Stepped magnification
+                // change retracks per step): a landed step retargets the running display
+                // animation instead of restarting it, keeping the cadence the animation
+                // was started with. Gated off while a gesture handoff owns the displayed
+                // scale (one displayed-scale model, design D3).
+                if (committedMag != lastZoomAnimTarget) {
+                    lastZoomAnimTarget = committedMag
+                    if (!gestureActive && gestureBaseScale == 1f) {
+                        animateDiscreteZoom(zoomAnimationAnchor(), zoomAnim.activeDurationMs)
+                    }
                 }
                 // Rotation render-land (design D1): when the front buffer swaps to
                 // the committed angle while the rotation hold is armed, disarm the
@@ -2065,6 +2106,30 @@ private const val FOLLOW_MIN_SPEED_KMH = 1.8
  * animation (and a fixed-step follower) produced).
  */
 private const val AUTO_ZOOM_ANIMATION_MS = 650L
+
+/**
+ * The screen point a zoom animation keeps visually fixed (spec: smooth-zoom -
+ * Geographic anchor stays fixed during zoom animation): while a follow mode is active
+ * the vehicle sits at its resolved follow anchor, so the animation pivots on that pixel
+ * (the marker overlay is given the same pivot) and the vehicle cannot drift off its
+ * slot while the animation plays. Without a follow mode the screen center is the pivot
+ * - discrete zoom input keeps anchoring the center, and the scroll wheel the cursor.
+ * Extracted pure for unit testing.
+ */
+internal fun zoomAnimationAnchor(
+    followMode: Boolean,
+    anchor: ResolvedAnchor,
+    canvasWidth: Int,
+    canvasHeight: Int
+): Offset =
+    if (followMode && canvasWidth > 0 && canvasHeight > 0) {
+        Offset(
+            (anchor.fx * canvasWidth).toFloat(),
+            (anchor.fy * canvasHeight).toFloat()
+        )
+    } else {
+        Offset(canvasWidth / 2f, canvasHeight / 2f)
+    }
 
 /**
  * Draw one front-buffer frame (main display or crossfade copy) with the

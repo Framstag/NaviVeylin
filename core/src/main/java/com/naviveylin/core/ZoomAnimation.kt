@@ -41,7 +41,15 @@ class ZoomAnimation(private val durationMs: Long = DEFAULT_DURATION_MS) {
     private var startScale = 1f
     private var targetScale = 1f
     private var startTimeMs = 0L
-    private var activeDurationMs = durationMs
+
+    /**
+     * Duration of the running (or most recent) animation in ms. Callers that retrack a
+     * stepped change pass it back so every step keeps the cadence the animation was
+     * started with (a discrete-input step stays short while an auto-zoom walk stays at
+     * its slower duration).
+     */
+    var activeDurationMs = durationMs
+        private set
 
     /**
      * Starts an animation from [from] to [to] anchored at ([anchorX]/[anchorY])

@@ -23,6 +23,7 @@ import com.naviveylin.core.stringResolver
 import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.ResolvedAnchor
+import com.naviveylin.core.ZoomWalk
 import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.resolveAnchorFraction
 import com.naviveylin.core.search.FavoriteSearchMerger
@@ -115,6 +116,14 @@ enum class MapMode {
 
 data class MapCanvasUiState(
     val viewport: ViewportState = ViewportState(),
+    /**
+     * Magnification the render pipeline and the display zoom animation are on while a
+     * bounded magnification walk is pending (spec: smooth-zoom - Eased zoom animation
+     * on discrete zoom input). [viewport] keeps the FINAL requested magnification
+     * (persisted, spec: smooth-zoom - Viewport records final magnification), while the
+     * display advances to it in steps the frame in hand can serve. NaN = no walk.
+     */
+    val zoomWalkStepMag: Double = Double.NaN,
     val renderedBitmap: ImageBitmap? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -248,7 +257,16 @@ data class MapCanvasUiState(
     val maxSpeedKmH: Double = Double.NaN,
     /** Road at the GPS position from the bearing-aware lookup (spec: current-road-info free driving); null when none. */
     val currentRoadInfo: RoadInfo? = null
-)
+) {
+    /**
+     * The magnification the display zoom animation eases toward (spec: smooth-zoom -
+     * Eased zoom animation on discrete zoom input): the walk's current step while a
+     * bounded magnification walk is pending, the committed viewport magnification
+     * otherwise. The persisted [viewport] never carries a walked step.
+     */
+    val zoomAnimationTargetMag: Double
+        get() = if (zoomWalkStepMag.isNaN()) viewport.magnification else zoomWalkStepMag
+}
 
 @HiltViewModel
 class MapCanvasViewModel @Inject constructor(
@@ -519,6 +537,13 @@ class MapCanvasViewModel @Inject constructor(
     // per position update via SpeedZoomTable.stepToward (fractional, no
     // integer rounding). The epsilon no-op makes constant speeds commit-nothing.
     private var lastAutoZoomCommitMs: Long = 0L
+
+    // Bounded magnification walk (spec: smooth-zoom - Eased zoom animation on discrete
+    // zoom input): the viewport records the FINAL requested magnification while the
+    // render pipeline and the display animation advance to it in steps the frame in
+    // hand can serve - one step per LANDED render. Owns the step arithmetic only;
+    // scheduling lives here and in the frame collector.
+    private val zoomWalk = ZoomWalk()
 
     // Bearing fallbacks: last used bearing/angle survive when the location
     // layer has no fresh bearing yet (e.g. standstill).
@@ -1204,11 +1229,11 @@ class MapCanvasViewModel @Inject constructor(
                     followRenderCenterLat(), followRenderCenterLon(), mag, angle
                 )
 
-                val (targetLat, targetLon) = followTarget(_uiState.value.viewport.magnification)
+                val (targetLat, targetLon) = followTarget(zoomWalk.renderMag(_uiState.value.viewport.magnification))
 
                 // Always keep renderer's target viewport current so the next
                 // render (coalesced or not) is centered on the anchor center.
-                mapRenderer?.prepareViewport(targetLat, targetLon, _uiState.value.viewport.magnification, angle)
+                mapRenderer?.prepareViewport(targetLat, targetLon, zoomWalk.renderMag(_uiState.value.viewport.magnification), angle)
 
                 // Coalesce follow-mode renders so GPS ticks cannot overrun the render pipeline.
                 val now = System.currentTimeMillis()
@@ -1277,6 +1302,10 @@ class MapCanvasViewModel @Inject constructor(
                             currentTargetMag = target
                             lastAutoZoomCommitMs = now
                             zoomCommitted = true
+                            // The speed target is recorded immediately, but the display
+                            // must not land the whole difference in one frame: start (or
+                            // extend) the bounded walk from the displayed frame.
+                            beginZoomWalk(stepped)
                             Log.d(TAG, "autoZoom commit speed=" + "%.1f".format(filteredSpeed) +
                                     "target=$target mag=$stepped")
                         } else if (logCount++ % 30 == 0) {
@@ -1301,9 +1330,11 @@ class MapCanvasViewModel @Inject constructor(
                     // distance check is against the actual rendered center.
                     lastRenderedLat = followRenderCenterLat()
                     lastRenderedLon = followRenderCenterLon()
-                    // Committed center = anchor center for the final magnification
-                    // (auto-zoom may have changed it in this tick).
-                    val (commitLat, commitLon) = followTarget(newMag)
+                    // Committed center = anchor center for the magnification the frame will
+                    // actually be rendered at: the walk's current step while one is pending
+                    // (a walk renders the step, not the recorded target).
+                    val renderedMag = zoomWalk.renderMag(newMag)
+                    val (commitLat, commitLon) = followTarget(renderedMag)
                     _uiState.value = _uiState.value.copy(
                         viewport = _uiState.value.viewport.copy(
                             centerLat = commitLat,
@@ -1902,6 +1933,9 @@ class MapCanvasViewModel @Inject constructor(
                             // the marker tracks the vehicle without waiting for a render.
                         )
                         Log.d(TAG, "frontBufferFlow: new bitmap " + bitmap.width + "x" + bitmap.height)
+                        // A landed frame advances a pending magnification walk (spec:
+                        // smooth-zoom - one step per landed render).
+                        advanceZoomWalk(frame.viewport.mag)
                     }
                 }
             }
@@ -1910,7 +1944,13 @@ class MapCanvasViewModel @Inject constructor(
             renderer.addViewChangeListener(object : MapRenderer.ViewChangeListener {
                 override fun onViewChanged(lat: Double, lon: Double, mag: Double, angle: Double) {
                     viewModelScope.launch {
-                        viewportStorage.save(currentMapKey ?: mapPath, ViewportState(lat, lon, mag))
+                        // A walked step is never persisted (spec: smooth-zoom - Viewport
+                        // records final magnification): while a walk is pending, persist
+                        // the magnification it is heading for.
+                        viewportStorage.save(
+                            currentMapKey ?: mapPath,
+                            ViewportState(lat, lon, zoomWalk.persistMag(mag))
+                        )
                     }
                 }
             })
@@ -2302,7 +2342,8 @@ class MapCanvasViewModel @Inject constructor(
             updateCenter(entry.lat, entry.lon)
             val fitMag = poiFitMagnification(entry)
             if (fitMag != _uiState.value.viewport.magnification) {
-                updateMagnification(fitMag)
+                // A camera fit lands directly - no walked zoom animation.
+                updateMagnification(fitMag, walk = false)
             }
             renderMap()
 
@@ -3502,12 +3543,14 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /** Update magnification (called from zoom controls or pinch; fractional values
-     *  allowed — the pinch gesture commits continuous magnification). */
-    fun updateMagnification(mag: Double) {
+     *  allowed — the pinch gesture commits continuous magnification).
+     *
+     *  [walk] false is for programmatic camera fits (POI fit), which land directly and
+     *  do not run the display zoom animation (spec: smooth-zoom - the bounded window
+     *  applies to the animated zoom input paths). */
+    fun updateMagnification(mag: Double, walk: Boolean = true) {
         val clamped = mag.coerceIn(MIN_MAG, MAX_MAG)
-        _uiState.value = _uiState.value.copy(
-            viewport = _uiState.value.viewport.copy(magnification = clamped)
-        )
+        commitMagnification(clamped, walk)
         // Detect user-initiated zoom: in the driving modes suspend the drive
         // preset (auto-zoom included; spec: map-modes — drive suspension and
         // reset). In BROWSE nothing has to be recorded — the re-center button
@@ -3536,6 +3579,61 @@ class MapCanvasViewModel @Inject constructor(
         updateMagnification(snapped - 1.0)
     }
 
+    /**
+     * Record [target] as the viewport magnification (spec: smooth-zoom - Eased zoom
+     * animation on discrete zoom input). The viewport records the FINAL magnification
+     * immediately; when [walk] is set and the change is farther than the window the
+     * displayed frame can serve, the render pipeline advances to it in bounded steps,
+     * one step per landed render ([advanceZoomWalk]).
+     */
+    private fun commitMagnification(target: Double, walk: Boolean = true) {
+        _uiState.value = _uiState.value.copy(
+            viewport = _uiState.value.viewport.copy(magnification = target)
+        )
+        if (walk) beginZoomWalk(target) else cancelZoomWalk()
+    }
+
+    /**
+     * Start (or re-target) a bounded magnification walk toward [target] from the frame
+     * in hand. Only the walk's step is published - [MapCanvasUiState.viewport] already
+     * carries the final magnification.
+     */
+    private fun beginZoomWalk(target: Double) {
+        zoomWalk.cancel()
+        val frontMag = _uiState.value.renderViewport?.mag ?: 0.0
+        val step = zoomWalk.request(target, frontMag)
+        _uiState.value = _uiState.value.copy(
+            zoomWalkStepMag = if (zoomWalk.active) step else Double.NaN
+        )
+        Log.d(TAG, "zoomWalk request target=" + target + " step=" + step + " front=" + frontMag)
+    }
+
+    /** Abandon a pending walk (a commit that lands directly, e.g. a camera fit). */
+    private fun cancelZoomWalk() {
+        if (zoomWalk.active) Log.d(TAG, "zoomWalk cancelled")
+        zoomWalk.cancel()
+        if (!_uiState.value.zoomWalkStepMag.isNaN()) {
+            _uiState.value = _uiState.value.copy(zoomWalkStepMag = Double.NaN)
+        }
+    }
+
+    /**
+     * A frame rendered at [frontMag] landed: commit the next bounded step when a walk is
+     * pending (spec: smooth-zoom - the displayed frame never shows a magnification
+     * farther than the frame in hand can serve). No-op without a pending walk.
+     */
+    private fun advanceZoomWalk(frontMag: Double) {
+        val next = zoomWalk.onFrameLanded(frontMag) ?: return
+        // The landing step is published as the walk's last step only while the walk is
+        // still pending; once it is finished the display target falls back to the
+        // recorded viewport magnification (which is the same value).
+        _uiState.value = _uiState.value.copy(
+            zoomWalkStepMag = if (zoomWalk.active) next else Double.NaN
+        )
+        Log.d(TAG, "zoomWalk step=" + next + " front=" + frontMag + " target=" + zoomWalk.target)
+        renderMap()
+    }
+
     /** Re-render the map with current viewport via MapRenderer. */
     fun renderMap(forceFullRender: Boolean = false) {
         val renderer = mapRenderer ?: run {
@@ -3543,8 +3641,20 @@ class MapCanvasViewModel @Inject constructor(
             return
         }
         val vp = _uiState.value.viewport
-        Log.d(TAG, "renderMap mag=" + vp.magnification + " center=" + vp.centerLat + "," + vp.centerLon)
-        renderer.requestRender(vp.centerLat, vp.centerLon, vp.magnification, vp.angle, forceFullRender)
+        // A pending walk owns the rendered magnification: the viewport already carries
+        // the FINAL target, so rendering it directly would land the whole difference in
+        // one frame (spec: smooth-zoom - Eased zoom animation on discrete zoom input).
+        val mag = zoomWalk.renderMag(vp.magnification)
+        Log.d(TAG, "renderMap mag=" + mag + " (viewport " + vp.magnification + ")" +
+                " center=" + vp.centerLat + "," + vp.centerLon)
+        if (zoomWalk.active && !forceFullRender) {
+            // A walked step is paced by the landing of the previous step's frame, so the
+            // pan/zoom debounce would only add latency (design D3). A forced overlay
+            // render keeps its debounced path and its force flag.
+            renderer.requestRenderImmediate(vp.centerLat, vp.centerLon, mag, vp.angle)
+        } else {
+            renderer.requestRender(vp.centerLat, vp.centerLon, mag, vp.angle, forceFullRender)
+        }
     }
 
     /** Persist current viewport to disk. */
@@ -3582,6 +3692,25 @@ class MapCanvasViewModel @Inject constructor(
     @VisibleForTesting
     internal fun setMapRendererForTest(renderer: MapRenderer?) {
         mapRenderer = renderer
+    }
+
+    /**
+     * Test hook: publish a landed frame at [mag] exactly as the frame collector does
+     * (render viewport + walk advance), so the bounded magnification walk can be
+     * exercised deterministically without the native render pipeline.
+     */
+    @VisibleForTesting
+    internal fun publishRenderedFrameForTest(mag: Double) {
+        val vp = _uiState.value.viewport
+        val previous = _uiState.value.renderViewport
+        _uiState.value = _uiState.value.copy(
+            renderViewport = if (previous != null) {
+                previous.copy(mag = mag)
+            } else {
+                MapRenderer.RenderViewport(vp.centerLat, vp.centerLon, mag, vp.angle)
+            }
+        )
+        advanceZoomWalk(mag)
     }
 
     override fun onCleared() {

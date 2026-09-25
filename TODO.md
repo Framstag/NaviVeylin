@@ -4,6 +4,44 @@
 
 ---
 
+## 77. Words joined without a separator stay unmatched (`Bahnhof Straße` vs `Bahnhofstraße`) — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, boundary of the word rule)
+
+- **Observed** ℹ: `StringMatcherTransliterateToken` matches whole words across separators (space, hyphen, slash,
+  dash), so a name that joins two words with *no* separator still hides from a query that spells them apart —
+  `Bahnhofstraße` is one word for the matcher, so `Bahnhof Straße` does not match it (the native test
+  "Words joined without a separator do not match" pins this deliberately).
+- **Fix candidate**: a word-internal split rule (compare the query's word run against the *concatenation* of a
+  candidate's words) — a broader tolerance that needs its own boundary analysis (risk of false positives, e.g.
+  `Ost Straße` matching `Oststraße` in a different street than the user meant) and therefore a spec scenario for
+  each direction.
+
+---
+
+## 76. The free-text index keys whole names, so a mid-name word is unreachable without a region token — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, index format)
+
+- **Observed** ℹ: `TextSearchIndex` is a MARISA trie whose keys are complete normalized names, looked up with
+  `predictive_search` (a prefix search), so a query matching a word in the *middle* of a name only works through
+  the structured search, which needs a region or a default admin region. `Heinz` finds "Heinz-Hilpert-Theater"
+  through the text index; `Theater` alone cannot.
+- **Fix candidate**: token-keyed text index entries (one key per word plus the object reference) — an import-side
+  change, so every installed map has to be re-imported server-side and re-downloaded before users benefit; the
+  query side would then intersect the per-word candidate sets instead of prefix-matching one name.
+
+---
+
+## 75. Android Auto search passes no default admin region, so POI search needs the city in the query — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, own change)
+
+- **Observed** ℹ: `provideAutoSearchProvider` calls `searchLocations(query, limit, OSMScoutClient.NO_ADMIN_REGION)`,
+  and the native structured search visits POIs only inside an admin region matched from the query tokens
+  (`LocationService::SearchForLocationByString`). A car query naming only a POI (`Hilpert Theater`, without
+  `Lünen`) therefore finds nothing, while the phone searches inside the GPS-derived default region
+  (spec: `location-search` — "Search scoped by current admin region").
+- **Fix candidate**: give the car search the same default-region treatment (resolve the region from the last car
+  GPS fix or the map viewport center), or add a bounded region-less POI pass; both need a cost check against the
+  300 ms search debounce, since a region-less pass walks the POI index of the whole database.
+
+---
+
 ## 71. Zoom-walk follow-ups from `fix-phone-zoom-animation-parity` — Found 2026-09-24 during that change (out of scope / pending device)
 
 - **On-device cost unmeasured** ⏳: the phone now walks a magnification change the frame in hand cannot serve

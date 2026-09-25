@@ -302,6 +302,11 @@ strong preference.
 - External data access (contacts etc.) is read-on-demand, never persisted,
   and permission-gated.
 - **MUST**: search never crashes the process, whatever the data consistency.
+- **MUST**: name matching is the map library's job: the app passes the query through
+  and never re-implements matching per surface, so the phone dialog and the car
+  template match identically (spec: `search-name-matching`). A matching defect
+  behind an unchanged JNI contract is fixed in the library (§5), never filtered or
+  patched around per surface.
 
 ## 10. Build & release
 

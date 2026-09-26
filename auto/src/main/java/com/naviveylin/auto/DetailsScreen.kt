@@ -111,10 +111,6 @@ class DetailsScreen(
         rendererInitJob = loadScope.launch {
             val client = withContext(Dispatchers.Default) {
                 val client = entryPoint.autoClientProvider().client()
-                rendererGate.pendingSurfaceDpi()?.let { dpi ->
-                    runCatching { client.setMapDpi(dpi) }
-                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                }
                 client
             }
             // Constructed and published on the main thread with no suspension in
@@ -122,9 +118,9 @@ class DetailsScreen(
             // already-constructed renderer (spec: auto-map-renderer — "Renderer
             // constructed while the screen is being destroyed").
             //
-            // The native renderer projects with the client's configured physical DPI
-            // (from the phone display metrics), not the car surface DPI — all overlay
-            // math must use the same value (same as MapScreen).
+            // The renderer starts with the car display's density and adopts the delivered
+            // surface DPI — all overlay math and every render request use that one value
+            // (same as MapScreen; spec: `render-projection-dpi`).
             rendererGate.publish(
                 AutoMapRenderer(
                     client,
@@ -134,20 +130,6 @@ class DetailsScreen(
                     mag
                 )
             )
-        }
-
-        // The native client's DPI follows the car surface, applied on a background
-        // dispatcher: the host's surface callback only retains the value (spec:
-        // car-host-fault-isolation — Host callbacks answer promptly).
-        loadScope.launch {
-            rendererGate.surfaceDpi.collect { dpi ->
-                if (dpi > 0.0 && rendererGate.rendererOrNull() != null) {
-                    withContext(Dispatchers.Default) {
-                        runCatching { entryPoint.autoClientProvider().client().setMapDpi(dpi) }
-                            .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                    }
-                }
-            }
         }
 
         // Reverse-geocode + describe the selected location off the main
@@ -379,9 +361,9 @@ class DetailsScreen(
             surfaceHeight = height
             surfaceDpi = dpi.takeIf { it > 0.0 } ?: DEFAULT_DPI
             Log.d(TAG, "Details surface available: ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi")
-            // The native client's DPI follows rendererGate.surfaceDpi, applied by the
-            // background collector (see init): a host callback must not resolve the
-            // client (spec: car-host-fault-isolation — Host callbacks answer promptly).
+            // The delivered DPI reaches the renderer through the gate — a host callback
+            // must not resolve the client (spec: car-host-fault-isolation — Host callbacks
+            // answer promptly), and every render request carries the value.
             rendererGate.setDestinationMarker(lat, lon, destinationName())
             rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
             // Center the destination in the visible map area (the part

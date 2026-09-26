@@ -183,18 +183,6 @@ public class OSMScoutClient {
     }
 
     /**
-     * Override the physical DPI used for rendering.
-     *
-     * The client is built with the phone display metrics; Android Auto must
-     * switch to the car surface DPI before rendering (the map would otherwise
-     * be scaled ~1.8x too zoomed on a ~236-dpi head unit). The phone UI sets
-     * its own density the same way. Takes effect on the next render.
-     *
-     * @param dpi physical DPI of the display being rendered to
-     */
-    public native void setMapDpi(double dpi);
-
-    /**
      * Configure the capacity of libosmscout's native tile data caches
      * (regional database and basemap).
      *
@@ -231,11 +219,14 @@ public class OSMScoutClient {
      * @param lon          center longitude
      * @param angle        map rotation angle in degrees (0 = north up)
      * @param magnification map magnification scale factor (2^z; fractional values allowed)
-     * @return ARGB pixel array (width * height), or null on error
+     * @param dpi          physical DPI of the display the frame is rendered for
+     * @return ARGB pixel array (width * height), or null on error and null when the
+     *         DPI is not a positive value
      */
     public native int[] render(int width, int height,
                                 double lat, double lon,
-                                double angle, double magnification);
+                                double angle, double magnification,
+                                double dpi);
 
     /**
      * Sentinel for "no default admin region" — pass to
@@ -582,6 +573,7 @@ public class OSMScoutClient {
      * @param lon            center longitude
      * @param angle          map rotation angle
      * @param magnification  map magnification
+     * @param dpi           physical DPI of the display the frame is rendered for
      * @param routeLats      route polyline latitudes (can be null)
      * @param routeLons      route polyline longitudes (can be null)
      * @param favoriteLats   favorite marker latitudes (can be null)
@@ -595,6 +587,7 @@ public class OSMScoutClient {
     public native int[] renderWithRouteAndPois(
         int width, int height,
         double lat, double lon, double angle, double magnification,
+        double dpi,
         double[] routeLats, double[] routeLons,
         double[] favoriteLats, double[] favoriteLons,
         double searchSelLat, double searchSelLon,
@@ -604,7 +597,7 @@ public class OSMScoutClient {
      * Render the current map view to an ARGB pixel array, with optional route overlay.
      * <p>
      * Convenience overload that calls {@link #renderWithRouteAndPois(int, int, double,
-     * double, double, int, double[], double[], double[], double[], double, double, double[], double[])}
+     * double, double, double, double, double[], double[], double[], double[], double, double, double[], double[])}
      * with no track, favorite, or selected-search markers.
      *
      * @param width         viewport width in pixels
@@ -613,6 +606,7 @@ public class OSMScoutClient {
      * @param lon           center longitude in degrees
      * @param angle         map rotation angle in radians (0 = north-up)
      * @param magnification map magnification scale factor (2^z; fractional values allowed)
+     * @param dpi           physical DPI of the display the frame is rendered for
      * @param routeLats     array of route waypoint latitudes, or null for no route
      * @param routeLons     array of route waypoint longitudes, or null for no route
      * @return int[] ARGB pixel data, or null if not initialised or invalid params
@@ -621,9 +615,10 @@ public class OSMScoutClient {
                                  double lat, double lon,
                                  double angle,
                                  double magnification,
+                                 double dpi,
                                  double[] routeLats,
                                  double[] routeLons) {
-        return renderWithRouteAndPois(width, height, lat, lon, angle, magnification,
+        return renderWithRouteAndPois(width, height, lat, lon, angle, magnification, dpi,
                                       routeLats, routeLons,
                                       null, null,
                                       Double.NaN, Double.NaN,

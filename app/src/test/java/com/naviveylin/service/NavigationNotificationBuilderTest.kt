@@ -17,6 +17,9 @@ import com.naviveylin.core.stringResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,8 +30,9 @@ import java.util.Locale
  * Tests for the ongoing notification's car-side turn-by-turn contract
  * (spec: auto-navigation-hints — "Turn-by-turn notification contract while
  * navigating", "Notification importance per surface", "End navigation from the
- * car hint", "No car surface for free driving"). Robolectric, default sandbox
- * config (no native library is touched).
+ * car hint", "No car surface for free driving"; spec:
+ * navigation-ongoing-notification — "Return to the app from the car rail
+ * widget"). Robolectric, default sandbox config (no native library is touched).
  */
 @RunWith(RobolectricTestRunner::class)
 class NavigationNotificationBuilderTest {
@@ -51,6 +55,16 @@ class NavigationNotificationBuilderTest {
         remainingDistance = 12_400.0,
         etaMillis = 1_700_000_000_000L
     )
+
+    /**
+     * Sentinel for the phone tap target. Pending intents are cached per request
+     * code plus intent, so the helper returns the same object on every call and
+     * the assertions below can compare identity.
+     */
+    private val phoneTapTarget: PendingIntent by lazy { phoneOpenIntent() }
+
+    /** Sentinel for the car tap target the notification service builds. */
+    private val carTapTarget: PendingIntent by lazy { carOpenIntent() }
 
     @Test
     fun navigationNotificationIsExtendedForTheCar() {
@@ -78,6 +92,44 @@ class NavigationNotificationBuilderTest {
         assertEquals("Home", notification.extras.getString(Notification.EXTRA_TITLE))
         assertTrue(
             notification.extras.getString(Notification.EXTRA_TEXT)?.contains("Turn left") == true
+        )
+    }
+
+    @Test
+    fun railWidgetTapUsesTheCarTapTarget() {
+        val extender = CarAppExtender(buildNavigationNotification())
+
+        assertSame(
+            "the host sends the extender's own intent on a rail-widget tap",
+            carTapTarget,
+            extender.contentIntent
+        )
+        assertNotSame(
+            "the car tap target must not be the phone tap target",
+            phoneTapTarget,
+            extender.contentIntent
+        )
+    }
+
+    @Test
+    fun phoneTapTargetStaysThePhoneActivity() {
+        val notification = buildNavigationNotification()
+
+        assertSame(
+            "the phone shade keeps returning to the phone UI",
+            phoneTapTarget,
+            notification.contentIntent
+        )
+    }
+
+    @Test
+    fun carTapTargetIsAbsentWhenTheCallerHasNone() {
+        val notification = buildNavigationNotification(carOpenIntent = null)
+
+        assertTrue(CarAppExtender.isExtended(notification))
+        assertNull(
+            "no car tap target is invented when the caller supplies none",
+            CarAppExtender(notification).contentIntent
         )
     }
 
@@ -115,7 +167,8 @@ class NavigationNotificationBuilderTest {
             content = content,
             hint = hint,
             channelId = NavigationNotificationBuilder.channelIdFor(isAutomotive = false),
-            openIntent = openIntent(),
+            openIntent = phoneTapTarget,
+            carOpenIntent = carTapTarget,
             stopIntent = stopIntent(),
             turnBitmap = ManeuverSymbols::bitmapForTurnType
         )
@@ -124,6 +177,11 @@ class NavigationNotificationBuilderTest {
         assertFalse(
             "free driving has no car surface",
             CarAppExtender.isExtended(notification)
+        )
+        assertSame(
+            "free driving keeps the phone-only tap behavior",
+            phoneTapTarget,
+            notification.contentIntent
         )
         assertTrue("no action without a driving mode", notification.actions?.isEmpty() != false)
     }
@@ -170,7 +228,10 @@ class NavigationNotificationBuilderTest {
         )
     }
 
-    private fun buildNavigationNotification(): Notification {
+    private fun buildNavigationNotification(
+        openIntent: PendingIntent = phoneTapTarget,
+        carOpenIntent: PendingIntent? = carTapTarget
+    ): Notification {
         val content =
             NavigationNotificationContentFormatter.format(navigationState, freeDrivingActive = false)
         val hint = NavigationNotificationContentFormatter.carHint(
@@ -184,16 +245,25 @@ class NavigationNotificationBuilderTest {
             content = content,
             hint = hint,
             channelId = NavigationNotificationBuilder.channelIdFor(isAutomotive = false),
-            openIntent = openIntent(),
+            openIntent = openIntent,
+            carOpenIntent = carOpenIntent,
             stopIntent = stopIntent(),
             turnBitmap = ManeuverSymbols::bitmapForTurnType
         )
     }
 
-    private fun openIntent(): PendingIntent = PendingIntent.getActivity(
+    private fun phoneOpenIntent(): PendingIntent = PendingIntent.getActivity(
         context,
         0,
         Intent(context, MainActivity::class.java),
+        PendingIntent.FLAG_IMMUTABLE
+    )
+
+    /** Mirrors the shape the service supplies: a broadcast car-app start request. */
+    private fun carOpenIntent(): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        2,
+        Intent(CAR_TAP_ACTION),
         PendingIntent.FLAG_IMMUTABLE
     )
 
@@ -203,4 +273,8 @@ class NavigationNotificationBuilderTest {
         Intent(context, NavigationNotificationService::class.java),
         PendingIntent.FLAG_IMMUTABLE
     )
+
+    private companion object {
+        const val CAR_TAP_ACTION = "com.naviveylin.test.CAR_TAP"
+    }
 }

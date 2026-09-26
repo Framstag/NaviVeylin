@@ -4,6 +4,14 @@
 
 ---
 
+## 83. The rail-widget tap fix is unit-verified but not confirmed on device — Found 2026-09-26 (reported on phone + head unit under Android Auto) and implemented by `fix-car-rail-widget-tap` (2026-09-26)
+
+- **Reported** ℹ: while navigating, switching to another car app keeps the turn hint in the rail widget, but tapping it does nothing — the app never comes back to the car foreground (music players do). Phone + head unit under Android Auto (projection).
+- **Cause** ✅: the ongoing notification had only one tap target — `PendingIntent.getActivity` at `openTargetActivity()`, which returned `CarAppActivity` only on automotive hardware and `MainActivity` otherwise, while `CarAppExtender` carried no `setContentIntent` at all. Per the car-app contract the host then falls back to the notification's content intent, so on projection the tap started a phone activity on the phone and the car screen never switched.
+- **Fixed** ✅: `NavigationNotificationBuilder.carExtender` now sets a car tap target, built by `NavigationNotificationService.carOpenIntent` as `CarPendingIntent.getCarApp(…, CarAppService component)` — projection: a broadcast the host answers with `startCarApp`; AAOS: the `CarAppActivity` launch (the hand-built AAOS branch is gone, one car path for both). Unit evidence: `NavigationNotificationBuilderTest` 13/0 (4 new cases: car target present and distinct, phone target unchanged, absent without a caller target), `NavigationNotificationServiceTapTargetTest` 2/0 (projection broadcast, AAOS activity via `FEATURE_AUTOMOTIVE`), full suite 3453/0 (`:app` mobile 1191, `:app` automotive 1191, `:auto` 691, `:core` 354, JNI module 26).
+- **Still open on device** ⏳: no car/AAOS target was attached at implementation time (`adb devices` empty), so both on-device checks of `fix-car-rail-widget-tap` (tasks 4.2/4.3) are pending. Recipe: phone projecting to a head unit, start navigation, switch to another car app, tap the rail widget → the car screen returns to the app with guidance still running, `adb logcat -s Diag/SESSION Diag/HOST` shows the session handling the incoming intent (`action=android.intent.action.VIEW`) with no `HOST` rejection, and the phone-shade tap still opens the phone UI; then the same tap on an AAOS AVD/head unit (automotive flavor) for the migrated path. Re-close this entry when the runs are recorded in the change's tasks.
+
+---
 ## 82. The native search-scope diagnostics were dropped with the branch's last diff — Found 2026-09-26 during the libosmscout merge / PR #1773 closure (`update-to-current-libosmscout-master`)
 
 - **Observed** ℹ: `naviveylin-local`'s last difference from upstream `master` was `libosmscout-client-java/src/OSMScoutClient.cpp` (+35/-7) and consisted of 13 `osmscout::log.Info()` diagnostic lines (ResolveSearchScope parent chain + expansion, the `searchLocations: scope for db has …` line, resolveAdminRegion db/bbox/service/reverse-lookup, getAdminRegionScopeName) plus a behaviour-identical restructure of the multi-database scope selection. It was dropped (submodule `a50ae3b15`, parent gitlink `4ae2c13`), so the branch now equals upstream `master` and PR #1773 was closed as superseded (empty diff).
@@ -726,7 +734,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   including the concurrent-opener stress that dies SIGSEGV 3/3 with the mutex removed). This entry
   is removed when the change is archived.
 
-## 49. One full car render allocates ~15 MB of transient buffers — Found 2026-09-21 during `fix-aaos-host-crash` (out of scope, render-pipeline change)
+## 49. One full car render allocates ~15 MB of transient buffers — app-side FIXED by `fix-render-buffer-reuse` (2026-09-26); native hand-off + measurement still open
 
 - **Observation** ℹ: a full render at the 1.2× overrun size walks four full-size buffers — C++
   `std::vector<uint32_t>` (`OSMScoutClient.cpp` render entry), the Cairo RGB24 surface, the Java
@@ -738,9 +746,32 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Mitigation landed in `fix-aaos-host-crash`** ✅: the full-render request interval is now bounded
   by the measured render duration with one render in flight (design D7), which caps the rate rather
   than the per-render cost.
-- **Fix candidate**: reuse a caller-supplied pixel buffer across renders (bitmap + `int[]`), and
-  hoist the overlay paints/paths into fields. Measure with `dumpsys meminfo` before/after; a phone
-  render-path change, not a car-only one.
+- **App-side half fixed ✅ by `fix-render-buffer-reuse`** (2026-09-26; spec `render-performance` —
+  Reusable render target for map frames, A frame handed to the display layer is never overwritten;
+  spec `auto-map-renderer` — Marker drawing allocates no per-frame objects): `core/RenderBitmapPool`
+  now owns the ARGB_8888 render targets (hand out → release, ≤2 free per size class, ≤2 size classes,
+  double release refused), `MapRenderUtil.renderInto` writes into a caller-supplied target, and both
+  renderers use it — the phone's tile-composition and full-render targets (`MapRenderer`) and the
+  car's displayed overrun frame (`AutoMapRenderer`, which therefore holds two distinct slots while a
+  render is in flight, as its blit loop requires). The car's marker draw objects
+  (`Path`/`Paint`/`BlurMaskFilter`/`LinearGradient`) are built once per presentation/density/bounds
+  instead of per drawn frame. Tests: `RenderBitmapPoolTest` (7), `MapRendererSmokeTest` +3 cases,
+  `AutoMapRendererPooledTargetTest` (4), `AutoMapRendererMarkerDrawCacheTest` (4), with three
+  revert-checks quoted in that change's tasks. This entry is removed when the change is archived.
+- **Still open ✗ — the native half (the bigger two of the four buffers)**: the C++ `argbPixels`
+  `std::vector<uint32_t>`, the Cairo RGB24 surface and its per-pixel conversion loop, plus the JNI
+  `jintArray`, are still allocated per render (`OSMScoutClient.cpp:1793-1818`). Removing them needs a
+  new JNI entry point that renders into a caller-owned buffer (submodule commit on `naviveylin-local`
+  + gitlink bump + `:osmscout-client-java` override, per `AGENTS.md`). Deliberately out of scope in
+  `fix-render-buffer-reuse` (its Non-Goals).
+- **Still open ✗ — the measurement**: no device was attached (`adb devices` empty) and the AAOS AVD is
+  unusable for headless sessions (§40.45), so the `dumpsys meminfo` before/after comparison did not
+  run. Recipe for a session with a device: note native + Java heap and the `MAP` render count, drive
+  ~10 minutes (stationary + repeated identical route, per §65), compare against the pre-change build;
+  the pool changes churn, not peak, so expect dampened heap saw-teeth rather than a lower peak.
+- **Original fix candidate (2026-09-21, now half taken)**: reuse a caller-supplied pixel buffer across
+  renders (bitmap + `int[]`), and hoist the overlay paints/paths into fields. Measure with
+  `dumpsys meminfo` before/after; a phone render-path change, not a car-only one.
 
 ## 51. The host-crash mechanism: an app-process death takes the templates host down — Found 2026-09-21 (triage frame for the "AA crashes while NaviVeylin drives" report)
 

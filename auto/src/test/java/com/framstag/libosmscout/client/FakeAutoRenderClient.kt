@@ -23,6 +23,12 @@ class FakeAutoRenderClient : OSMScoutClient() {
     /** `[lat, lon, angle, magnification]` of every native render call, in order. */
     val renderCalls = mutableListOf<List<Double>>()
 
+    /**
+     * DPI carried by every native render call, in order (spec: `render-projection-dpi` —
+     * the projection DPI travels with the request).
+     */
+    val renderDpis = mutableListOf<Double>()
+
     override fun loadStyleSheet(name: String): Boolean {
         styleSheetLoads.add(name)
         return styleSheetLoadResult
@@ -30,9 +36,11 @@ class FakeAutoRenderClient : OSMScoutClient() {
     override fun render(
         width: Int, height: Int,
         lat: Double, lon: Double,
-        angle: Double, magnification: Double
+        angle: Double, magnification: Double,
+        dpi: Double
     ): IntArray? {
         renderCalls.add(listOf(lat, lon, angle, magnification))
+        renderDpis.add(dpi)
         onRender?.invoke()
         return IntArray(width * height) { 0xFFCCCCCC.toInt() }
     }
@@ -40,12 +48,14 @@ class FakeAutoRenderClient : OSMScoutClient() {
     override fun renderWithRouteAndPois(
         width: Int, height: Int,
         lat: Double, lon: Double, angle: Double, magnification: Double,
+        dpi: Double,
         routeLats: DoubleArray?, routeLons: DoubleArray?,
         favoriteLats: DoubleArray?, favoriteLons: DoubleArray?,
         searchSelLat: Double, searchSelLon: Double,
         trackLats: DoubleArray?, trackLons: DoubleArray?
     ): IntArray? {
         renderCalls.add(listOf(lat, lon, angle, magnification))
+        renderDpis.add(dpi)
         onRender?.invoke()
         return IntArray(width * height) { 0xFFCCCCCC.toInt() }
     }

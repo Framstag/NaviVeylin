@@ -4,12 +4,15 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import androidx.car.app.notification.CarPendingIntent
 import com.naviveylin.AutomotiveDevice
 import com.naviveylin.MainActivity
+import com.naviveylin.NaviVeylinCarAppService
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.ManeuverSymbols
@@ -25,7 +28,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import androidx.car.app.activity.CarAppActivity
 
 /**
  * Foreground service (type `location`) carrying the ongoing navigation /
@@ -166,7 +168,7 @@ class NavigationNotificationService : Service() {
         val openIntent = PendingIntent.getActivity(
             this,
             0,
-            Intent(this, openTargetActivity()).apply {
+            Intent(this, phoneTargetActivity()).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -187,19 +189,16 @@ class NavigationNotificationService : Service() {
             hint = hint,
             channelId = channelId,
             openIntent = openIntent,
+            // Free driving publishes no car hint, so it gets no car tap target either
+            // (spec: navigation-ongoing-notification — No car tap target without a car hint).
+            carOpenIntent = if (hint != null) carOpenIntent(this) else null,
             stopIntent = stopIntent,
             turnBitmap = ManeuverSymbols::bitmapForTurnType
         )
     }
 
-    /** Phone → MainActivity; automotive → the car template host activity. */
-    private fun openTargetActivity(): Class<*> {
-        return if (isAutomotive) {
-            CarAppActivity::class.java
-        } else {
-            MainActivity::class.java
-        }
-    }
+    /** Phone tap target: the app's own activity (the car surface has its own target). */
+    private fun phoneTargetActivity(): Class<*> = MainActivity::class.java
 
     /**
      * Baseline for the content dedup (spec: car-host-fault-isolation — Bounded
@@ -242,6 +241,27 @@ class NavigationNotificationService : Service() {
                 stopRequests.requestStop()
             }
         }
+
+        /** Request code of the car tap target (the phone target uses 0, the stop action 1). */
+        private const val CAR_OPEN_REQUEST_CODE = 2
+
+        /**
+         * Car tap target of the ongoing notification: a car-app start request addressed at our own
+         * [NaviVeylinCarAppService] (spec: navigation-ongoing-notification — Return to the app from
+         * the car rail widget). `CarPendingIntent` picks the platform mechanism itself — projection:
+         * a broadcast the host answers with `startCarApp`, so the car screen switches to us;
+         * Android Automotive OS: the `CarAppActivity` launch — and unsets `FLAG_IMMUTABLE`, because
+         * the host adds extras to the delivered intent. A plain phone activity intent cannot be
+         * shown by a car host, so the rail widget needs this target of its own.
+         */
+        internal fun carOpenIntent(context: Context): PendingIntent = CarPendingIntent.getCarApp(
+            context,
+            CAR_OPEN_REQUEST_CODE,
+            Intent(Intent.ACTION_VIEW).setComponent(
+                ComponentName(context, NaviVeylinCarAppService::class.java)
+            ),
+            0
+        )
     }
 }
 

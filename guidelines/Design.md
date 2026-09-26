@@ -96,6 +96,13 @@ strong preference.
   queues, debounce by delay, cancellation via viewModelScope.
 - Debounce high-frequency inputs (search keystrokes, GPS-driven renders)
   before they hit expensive paths.
+- **MUST**: never hold the render-target pool's lock across a renderer lock or
+  a render/draw. `RenderBitmapPool.acquire`/`release` (change
+  `fix-render-buffer-reuse`, spec `render-performance`) take and drop the pool
+  lock for bookkeeping only; the car takes `surfaceLock` and the phone
+  `MapRenderer.bufferLock` **after** acquiring and **releases at the end of**
+  the critical section, so no lock order exists between the pool and a
+  renderer, and no suspension point sits inside the display lock.
 - One source of truth per data signal; consumers never re-derive provider or
   pipeline knowledge.
 - Play Services capabilities are optional: access via provider abstraction
@@ -335,7 +342,11 @@ strong preference.
 ## 12. General engineering principles
 
 - **Single source of truth**: shared logic is extracted once into `:core` or a
-  named helper — never duplicated per variant, screen, or module.
+  named helper — never duplicated per variant, screen, or module. The render
+  target's reuse rule has exactly one owner: `RenderBitmapPool` (`:core`) hands
+  out, takes back and recycles the ARGB_8888 targets both renderers draw into
+  (change `fix-render-buffer-reuse`, spec `render-performance`) — a renderer
+  never keeps a reuse rule of its own and never recycles a pooled target.
 - **Reuse over reinvention**: reuse proven mechanisms (invalidation paths,
   existing pipelines, projection helpers, controllers) instead of adding
   parallel implementations.

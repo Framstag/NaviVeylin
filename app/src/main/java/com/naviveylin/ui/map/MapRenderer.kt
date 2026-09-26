@@ -9,6 +9,7 @@ import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.MapRenderUtil
+import com.naviveylin.core.RenderBitmapPool
 import com.naviveylin.data.RenderMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -44,6 +45,13 @@ class MapRenderer(
     private val dpi: Double,
     private val scope: CoroutineScope
 ) {
+    init {
+        // One line per renderer instance: the projection DPI is part of every render
+        // request (spec: `render-projection-dpi`), so this names the value the phone
+        // canvas is drawing with in logcat without per-frame noise.
+        Log.d(TAG, "MapRenderer created: projection dpi=$dpi")
+    }
+
     private val panDebounceMs = 50L
     private val zoomDebounceMs = 200L
     private val rotateDebounceMs = 50L
@@ -625,17 +633,20 @@ class MapRenderer(
     }
 
     /**
-     * Render the viewport from cached geographic tiles, rendering only missing
-     * tiles via the native renderer. Returns null when the tile path cannot
-     * serve the viewport (antimeridian, tile render failure) — the caller then
-     * falls back to a full render.
+     * Compose the viewport from cached geographic tiles into [result], rendering only
+     * missing tiles via the native renderer. Returns false when the tile path cannot
+     * serve the viewport (antimeridian, tile render failure) — the caller then releases
+     * the target and falls back to a full render.
+     *
+     * [result] is a pooled render target (spec: `render-performance` — Reusable render
+     * target for map frames); this function never releases or recycles it.
      */
-    private suspend fun renderFromTiles(job: RenderJob): Bitmap? {
+    private suspend fun renderFromTiles(job: RenderJob, result: Bitmap): Boolean {
         // Render at the overrun size (job.width/height) so the emitted frame has
         // margin around the visible region — the follow-mode display loop offsets
         // within that margin to scroll smoothly between GPS fixes.
-        val W = job.width; val H = job.height
-        if (W <= 0 || H <= 0) return null
+        val W = result.width; val H = result.height
+        if (W <= 0 || H <= 0) return false
         val vp = ProjectionUtils.viewport(job.lat, job.lon, job.mag, W, H, dpi, job.angle)
         val rotated = job.angle != 0.0
         // Visible geo bounds. With rotation the top-left/bottom-right diagonal
@@ -657,13 +668,12 @@ class MapRenderer(
         val maxLat = corners.maxOf { it.first }
         val minLon = corners.minOf { it.second }
         val maxLon = corners.maxOf { it.second }
-        if (maxLon - minLon > 180.0) return null // antimeridian — fall back to full render
+        if (maxLon - minLon > 180.0) return false // antimeridian — fall back to full render
         val n = 1L shl floor(job.mag).toInt()
         val xMin = tileX(minLon, n); val xMax = tileX(maxLon, n)
         val yMin = tileY(maxLat, n); val yMax = tileY(minLat, n)
-        if (xMax - xMin > 4 || yMax - yMin > 4) return null // sanity guard
+        if (xMax - xMin > 4 || yMax - yMin > 4) return false // sanity guard
 
-        val result = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(result)
         val curEpoch = epoch.get()
         val rotationDegrees = Math.toDegrees(job.angle).toFloat()
@@ -675,12 +685,12 @@ class MapRenderer(
                 // current tile still finishes, but the old loop must not keep
                 // rendering stale tiles and stall the new renderer (JNI mutex).
                 coroutineContext.ensureActive()
-                val key = TileCache.TileKey(floor(job.mag).toInt(), x.toInt(), y.toInt())
+                val key = TileCache.TileKey(floor(job.mag).toInt(), x.toInt(), y.toInt(), dpi)
                 var tile = tileCache.getLogged(key, curEpoch)
                 if (tile == null) {
                     val t0 = System.currentTimeMillis()
                     val pixels = renderTilePixels(x.toInt(), y.toInt(), floor(job.mag).toInt(), job)
-                    if (pixels == null) return null
+                    if (pixels == null) return false
                     val renderMs = System.currentTimeMillis() - t0
                     tile = Bitmap.createBitmap(pixels, tileSizePx, tileSizePx, Bitmap.Config.ARGB_8888)
                     tileCache.put(key, tile, curEpoch)
@@ -730,7 +740,7 @@ class MapRenderer(
                 renderedAny = true
             }
         }
-        return if (renderedAny) result else null
+        return renderedAny
     }
 
     /**
@@ -751,6 +761,7 @@ class MapRenderer(
         val centerLon = (lonMin + lonMax) / 2.0
         return client.renderWithRouteAndPois(
             tileSizePx, tileSizePx, centerLat, centerLon, 0.0, 2.0.pow(level),
+            dpi,
             job.routeLats, job.routeLons,
             job.favoriteLats, job.favoriteLons,
             job.searchSelectedLat, job.searchSelectedLon,
@@ -771,23 +782,36 @@ class MapRenderer(
         // In DIRECT mode every render is a full native render — no tile cache.
         val tilePath = renderMode == RenderMode.TILES && (job.angle == 0.0 || !job.forceFullRender)
         var bitmap: Bitmap? = null
-        if (tilePath) {
-            bitmap = renderFromTiles(job)
-            if (bitmap != null) {
+        if (tilePath && job.width > 0 && job.height > 0) {
+            // The tile composition target comes from the pool (spec: render-performance —
+            // Reusable render target for map frames) and is released again when the tile
+            // path cannot serve this viewport.
+            val tileTarget = RenderBitmapPool.acquire(job.width, job.height)
+            val served = try {
+                renderFromTiles(job, tileTarget)
+            } catch (t: Throwable) {
+                RenderBitmapPool.release(tileTarget)
+                throw t
+            }
+            if (served) {
+                bitmap = tileTarget
                 Log.d(TAG, "executeRender: tile path served mag=" + job.mag)
+            } else {
+                RenderBitmapPool.release(tileTarget)
             }
         }
         if (bitmap == null) {
             for (attempt in 0 until 2) {
-                try {
-                    bitmap = MapRenderUtil.renderToBitmap(
+                val target = RenderBitmapPool.acquire(job.width, job.height)
+                val rendered = try {
+                    MapRenderUtil.renderInto(
                         client = client,
-                        width = job.width,
-                        height = job.height,
+                        target = target,
                         lat = job.lat,
                         lon = job.lon,
                         angle = job.angle,
                         magnification = 2.0.pow(job.mag),
+                        dpi = dpi,
                         routeLats = job.routeLats,
                         routeLons = job.routeLons,
                         favoriteLats = job.favoriteLats,
@@ -795,16 +819,26 @@ class MapRenderer(
                         searchSelLat = job.searchSelectedLat,
                         searchSelLon = job.searchSelectedLon
                     )
-                    break
                 } catch (e: Exception) {
+                    RenderBitmapPool.release(target)
                     if (attempt == 0) {
                         Log.w(TAG, "JNI render failed (retrying): ${e.message}")
                         delay(100)
-                    } else {
-                        Log.e(TAG, "JNI render failed: ${e.message}")
-                        return
+                        continue
                     }
+                    Log.e(TAG, "JNI render failed: ${e.message}")
+                    return
+                } catch (t: Throwable) {
+                    // Includes cancellation: never strand a pooled target.
+                    RenderBitmapPool.release(target)
+                    throw t
                 }
+                if (rendered == null) {
+                    RenderBitmapPool.release(target)
+                    break
+                }
+                bitmap = rendered
+                break
             }
         }
         if (bitmap == null) {
@@ -813,6 +847,7 @@ class MapRenderer(
         }
         if (job.jobEpoch != epoch.get()) {
             Log.d(TAG, "executeRender: stale epoch " + job.jobEpoch + " != " + epoch.get() + " — discarding mag=" + job.mag)
+            RenderBitmapPool.release(bitmap)
             return
         }
 
@@ -846,6 +881,9 @@ class MapRenderer(
                     MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy)
                 )
             }
+            // The composition target is returned to the pool whether or not this frame
+            // was committed (spec: render-performance — Reusable render target).
+            RenderBitmapPool.release(bitmap)
             Log.d(TAG, "executeRender: front buffer emitted (tiles) mag=" + job.mag + " (" + elapsed + "ms)")
         } else {
             // Rotated/full render path: swap into the double buffer, then extract
@@ -861,9 +899,8 @@ class MapRenderer(
                 }
                 // Blit rendered bitmap into backBuffer (GPU-accelerated copy, no
                 // full-buffer IntArray round-trip). drawBitmap copies pixels into
-                // backBuffer's own storage, so bitmap can be recycled afterwards.
+                // backBuffer's own storage, so the pooled target can be released afterwards.
                 Canvas(backBuffer!!).drawBitmap(bitmap!!, 0f, 0f, null)
-                bitmap.recycle()
 
                 val tmp = frontBuffer
                 frontBuffer = backBuffer
@@ -874,6 +911,10 @@ class MapRenderer(
                 frontBufferMag = job.mag; frontBufferAngle = normalizeAngle(job.angle)
                 renderedLat = job.lat; renderedLon = job.lon; renderedMag = job.mag
             }
+            // Released whether the frame was committed or the epoch went stale: the pixels
+            // live in backBuffer/the emitted copy from here on (spec: render-performance —
+            // Reusable render target for map frames).
+            RenderBitmapPool.release(bitmap)
 
             if (completionEpoch == epoch.get() && job.mag == frontBufferMag) {
                 bufferLock.withLock {

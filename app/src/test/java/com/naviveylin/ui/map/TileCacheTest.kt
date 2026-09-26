@@ -11,6 +11,12 @@ class TileCacheTest {
 
     private lateinit var cache: TileCache
 
+    /** The DPI every key of the pre-DPI cases uses. */
+    private val dpi = 96.0
+
+    /** A second display's DPI — the same geo tile is different content at another DPI. */
+    private val otherDpi = 236.0
+
     @Before
     fun setUp() {
         cache = TileCache(maxSize = 10)
@@ -18,7 +24,7 @@ class TileCacheTest {
 
     @Test
     fun `put and get tile`() {
-        val key = TileCache.TileKey(8, 0, 0)
+        val key = TileCache.TileKey(8, 0, 0, dpi)
         val bitmap = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
         cache.put(key, bitmap, 1L)
         val retrieved = cache.get(key, 1L)
@@ -28,13 +34,13 @@ class TileCacheTest {
 
     @Test
     fun `get returns null for missing key`() {
-        val key = TileCache.TileKey(8, 0, 0)
+        val key = TileCache.TileKey(8, 0, 0, dpi)
         assertNull(cache.get(key, 1L))
     }
 
     @Test
     fun `get returns null for epoch mismatch`() {
-        val key = TileCache.TileKey(8, 0, 0)
+        val key = TileCache.TileKey(8, 0, 0, dpi)
         val bitmap = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
         cache.put(key, bitmap, 1L)
         assertNull(cache.get(key, 2L))
@@ -42,7 +48,7 @@ class TileCacheTest {
 
     @Test
     fun `contains returns true for cached tile`() {
-        val key = TileCache.TileKey(8, 0, 0)
+        val key = TileCache.TileKey(8, 0, 0, dpi)
         val bitmap = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
         cache.put(key, bitmap, 1L)
         assertTrue(cache.contains(key, 1L))
@@ -50,7 +56,7 @@ class TileCacheTest {
 
     @Test
     fun `contains returns false for missing tile`() {
-        val key = TileCache.TileKey(8, 0, 0)
+        val key = TileCache.TileKey(8, 0, 0, dpi)
         assertFalse(cache.contains(key, 1L))
     }
 
@@ -61,7 +67,7 @@ class TileCacheTest {
 
         // Fill cache
         for (i in 0 until maxSize) {
-            val key = TileCache.TileKey(8, i, 0)
+            val key = TileCache.TileKey(8, i, 0, dpi)
             val bitmap = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
             smallCache.put(key, bitmap, 1L)
         }
@@ -70,31 +76,55 @@ class TileCacheTest {
         assertEquals(maxSize, smallCache.size())
 
         // Add one more — should evict the oldest (0,0)
-        val newKey = TileCache.TileKey(8, 3, 0)
+        val newKey = TileCache.TileKey(8, 3, 0, dpi)
         val newBitmap = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
         smallCache.put(newKey, newBitmap, 1L)
 
         assertEquals(maxSize, smallCache.size())
-        assertNull(smallCache.get(TileCache.TileKey(8, 0, 0), 1L))
-        assertNotNull(smallCache.get(TileCache.TileKey(8, 1, 0), 1L))
-        assertNotNull(smallCache.get(TileCache.TileKey(8, 2, 0), 1L))
-        assertNotNull(smallCache.get(TileCache.TileKey(8, 3, 0), 1L))
+        assertNull(smallCache.get(TileCache.TileKey(8, 0, 0, dpi), 1L))
+        assertNotNull(smallCache.get(TileCache.TileKey(8, 1, 0, dpi), 1L))
+        assertNotNull(smallCache.get(TileCache.TileKey(8, 2, 0, dpi), 1L))
+        assertNotNull(smallCache.get(TileCache.TileKey(8, 3, 0, dpi), 1L))
     }
 
     @Test
     fun `tiles at different zoom levels do not collide`() {
-        val keyLow = TileCache.TileKey(8, 0, 0)
-        val keyHigh = TileCache.TileKey(14, 0, 0)
+        val keyLow = TileCache.TileKey(8, 0, 0, dpi)
+        val keyHigh = TileCache.TileKey(14, 0, 0, dpi)
         val bmp = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
         cache.put(keyLow, bmp, 1L)
         assertNotNull(cache.get(keyLow, 1L))
         assertNull(cache.get(keyHigh, 1L))
     }
 
+    /**
+     * Tile content is a function of the DPI the tile was rendered at (spec: `tile-cache`
+     * — "A different render DPI does not serve stale tiles"): the same geographic tile
+     * rendered for another display must not be composed into a frame projected at this
+     * display's DPI.
+     */
+    @Test
+    fun `tiles at different render DPI do not collide`() {
+        val renderedAt = TileCache.TileKey(8, 0, 0, dpi)
+        val wantedAt = TileCache.TileKey(8, 0, 0, otherDpi)
+        val bmp = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
+        cache.put(renderedAt, bmp, 1L)
+
+        assertNotNull(cache.get(renderedAt, 1L))
+        assertNull(cache.get(wantedAt, 1L))
+
+        // Rendering the other DPI's tile adds a second entry instead of replacing the first.
+        val otherBmp = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
+        cache.put(wantedAt, otherBmp, 1L)
+        assertEquals(2, cache.size())
+        assertNotNull(cache.get(renderedAt, 1L))
+        assertNotNull(cache.get(wantedAt, 1L))
+    }
+
     @Test
     fun `retainEpoch removes stale entries`() {
-        val key1 = TileCache.TileKey(8, 0, 0)
-        val key2 = TileCache.TileKey(8, 0, 1)
+        val key1 = TileCache.TileKey(8, 0, 0, dpi)
+        val key2 = TileCache.TileKey(8, 0, 1, dpi)
         val bmp1 = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
         val bmp2 = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
         cache.put(key1, bmp1, 1L)
@@ -109,7 +139,7 @@ class TileCacheTest {
 
     @Test
     fun `clear removes all tiles`() {
-        val key = TileCache.TileKey(8, 0, 0)
+        val key = TileCache.TileKey(8, 0, 0, dpi)
         val bitmap = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
         cache.put(key, bitmap, 1L)
         cache.clear()

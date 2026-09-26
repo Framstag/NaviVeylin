@@ -72,9 +72,9 @@ Source: change `vehicle-position-presets` (specs `auto-map-layout`,
 
 ### Ongoing navigation notification (background driving)
 
-Source: specs `navigation-ongoing-notification` (change
-`background-navigation-notification`) and `auto-navigation-hints` (change
-`car-turn-by-turn-rail-widget`).
+Source: specs `navigation-ongoing-notification` (changes
+`background-navigation-notification`, `fix-car-rail-widget-tap`) and
+`auto-navigation-hints` (change `car-turn-by-turn-rail-widget`).
 
 - **Surfaces.** The notification reaches the car as a turn-by-turn hint in the
   rail widget at the bottom of the car screen (plus an optional heads-up
@@ -84,6 +84,15 @@ Source: specs `navigation-ongoing-notification` (change
   phone-only — while free driving the app is not the active navigation app, so
   the host suppresses turn hints and `NavigationManager.updateTrip` rejects
   trip updates. Those are platform constraints, not defects.
+- **Tap targets.** The notification's own tap target is the **phone** UI
+  (`MainActivity`) and never a car surface — a car host cannot show a phone
+  activity. The rail widget has its own target on the `CarAppExtender`: a
+  car-app start request (`androidx.car.app.notification.CarPendingIntent`
+  addressed at `NaviVeylinCarAppService`), which the host resolves per platform
+  (projection answers it with its `startCarApp` call, Android Automotive OS
+  launches `CarAppActivity`). Without that car-side target the host falls back
+  to the phone intent and the rail-widget tap does nothing. Free driving has
+  neither a car hint nor a car tap target.
 - **Parity.** Labels and guidance wording are shared: one formatter produces
   the phone text and the car hint, and the manoeuvre instruction uses the same
   wording as the on-screen next-turn display. The car may use **car-only text
@@ -155,9 +164,11 @@ The car map renderer MUST initialize off the car-app main thread (spec:
   in the session. The car providers are injected as `Provider`/`Lazy` for this
   reason: resolving one must not build the client.
 - **Host callbacks retain state only**: `onSurfaceAvailable` buffers the surface
-  DPI (`RendererGate.surfaceDpi`) and a background collector applies
-  `setMapDpi` — resolving the client from a callback is forbidden even when the
-  renderer already exists, because the callback runs on the host thread. The same
+  DPI (`RendererGate.surfaceDpi`) and hands it to the renderer as that renderer's
+  projection DPI — resolving the client from a callback is forbidden even when the
+  renderer already exists, because the callback runs on the host thread. The
+  client holds no DPI of its own any more (spec: `render-projection-dpi`): every
+  render request carries the DPI of the surface it draws on. The same
   applies to the stylesheet day/night flag: it is *published*
   (`RendererGate.daylightPush`, one distinct request per push so a dropped one
   stays retryable) and applied by a background collector, never set from the

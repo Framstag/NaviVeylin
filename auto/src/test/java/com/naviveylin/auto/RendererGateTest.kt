@@ -50,11 +50,12 @@ class RendererGateTest {
     /**
      * The gate publishes the delivered surface DPI (spec: auto-map-renderer — Renderer
      * initialization off the car-app main thread; spec: car-host-fault-isolation —
-     * Host callbacks answer promptly): the screens push the native client's DPI from a
-     * background collector on this flow, so a host callback only retains the value.
+     * Host callbacks answer promptly): a host callback only retains the value here, and
+     * the renderer that receives it is the only thing the DPI can reach — the bridge has
+     * no client-wide DPI setter any more (spec: `render-projection-dpi`).
      */
     @Test
-    fun surfaceDpiIsPublishedForTheBackgroundDpiCollector() {
+    fun surfaceDpiIsPublishedForTheGateConsumers() {
         val gate = RendererGate()
         assertEquals("no surface delivered yet", 0.0, gate.surfaceDpi.value, 0.0)
 
@@ -349,5 +350,74 @@ class RendererGateTest {
 
         verify { usable.lockCanvas(any()) }
         assertFalse(renderer.isSurfaceFailed())
+    }
+
+    // ── the delivered surface DPI is the DPI of the car frames (spec: render-projection-dpi) ──
+
+    @Test
+    fun aDeliveredSurfaceDpiIsTheDpiOfTheCarFrames() {
+        // Spec: auto-map-renderer — "Car renders carry the surface DPI". The gate holds no
+        // client reference (the client-wide DPI setter is gone), so the delivered value can
+        // only reach the map through the renderer that every render request reads.
+        val client = FakeAutoRenderClient()
+        val gate = RendererGate()
+        val renderer = renderers.track(AutoMapRenderer(client, initialProjectionDpi = 240.0))
+        renderer.asyncLoopsEnabled = false
+
+        gate.publish(renderer)
+        gate.onSurfaceAvailable(surfaceMock(), 1920, 720, 236.0)
+
+        assertEquals(
+            "the delivered surface DPI replaces the pre-surface fallback",
+            236.0,
+            renderer.projectionDpi,
+            0.001
+        )
+        assertTrue("retaining the DPI renders nothing by itself", client.renderDpis.isEmpty())
+
+        renderer.renderFrame()
+
+        assertEquals(
+            "the car frame's render request carries the delivered surface DPI",
+            listOf(236.0),
+            client.renderDpis.toList()
+        )
+    }
+
+    @Test
+    fun aProjectionDpiChangeReRendersAtTheNewDpi() {
+        // Spec: render-projection-dpi — "Car surface replacement": a DPI change applies to the
+        // car's own subsequent frames and produces a full native render at the new value (the
+        // overrun buffer was projected at the old one). Called on the renderer directly: a
+        // surface *re-delivery* invalidates the buffer through onSurfaceCreated anyway, which
+        // would mask this rule — the gate-level test above pins the delivered value.
+        //
+        // A blit may still occur between the change and the landing frame: the display loop
+        // keeps blitting the currently displayed frame while the new render is in flight (see
+        // `renderFrame`), which is what keeps follow scrolling smooth.
+        val client = FakeAutoRenderClient()
+        val renderer = renderers.track(AutoMapRenderer(client, initialProjectionDpi = 240.0))
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surfaceMock(), 100, 100)
+        renderer.renderFrame()
+        assertEquals(1, renderer.fullRenderCount)
+        assertEquals(240.0, client.renderDpis.last(), 0.0)
+
+        val rendersBefore = renderer.fullRenderCount
+        renderer.updateProjectionDpi(200.0)
+
+        assertEquals(200.0, renderer.projectionDpi, 0.001)
+        renderer.renderFrame()
+
+        assertTrue(
+            "the frame after the change is a full native render, not the old buffer",
+            renderer.fullRenderCount > rendersBefore
+        )
+        assertEquals(
+            "the render request carries the new DPI",
+            200.0,
+            client.renderDpis.last(),
+            0.0
+        )
     }
 }

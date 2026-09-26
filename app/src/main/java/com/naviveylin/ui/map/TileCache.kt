@@ -7,7 +7,10 @@ import java.util.LinkedHashMap
 /**
  * LRU tile cache for rendered map tiles.
  *
- * Stores rendered geographic tiles keyed by (zoomLevel, tileX, tileY).
+ * Stores rendered geographic tiles keyed by (zoomLevel, tileX, tileY, renderDpi):
+ * a tile's pixels depend on the DPI it was rendered at, so a tile rendered for one
+ * display is never served for a frame projected at another (spec: `tile-cache` —
+ * "A different render DPI does not serve stale tiles").
  * The renderer renders missing tiles natively one per tile and reuses cached
  * tiles when composing the visible viewport (`MapRenderer.renderFromTiles`).
  *
@@ -82,7 +85,13 @@ class TileCache(private val maxSize: Int = DEFAULT_MAX_SIZE) {
     @Synchronized
     fun size(): Int = cache.size
 
-    data class TileKey(val zoomLevel: Int, val tileX: Int, val tileY: Int)
+    data class TileKey(
+        val zoomLevel: Int,
+        val tileX: Int,
+        val tileY: Int,
+        /** Physical DPI the tile's pixels were rendered at. */
+        val renderDpi: Double
+    )
 
     data class CachedTile(val bitmap: Bitmap, val epoch: Long)
 

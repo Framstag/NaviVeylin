@@ -352,19 +352,15 @@ class NavigationScreen(
             // car-app main thread).
             val client = withContext(Dispatchers.Default) {
                 val client = entryPoint.autoClientProvider().client()
-                rendererGate.pendingSurfaceDpi()?.let { dpi ->
-                    runCatching { client.setMapDpi(dpi) }
-                        .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                }
                 Log.d(TAG, "Nav renderer ready")
                 client
             }
             // Constructed and published on the main thread with no suspension in
             // between, so a cancellation during the background work can never drop an
             // already-constructed renderer (spec: auto-map-renderer — "Renderer
-            // constructed while the screen is being destroyed"). The native renderer
-            // projects with the client's configured physical DPI (from the phone display
-            // metrics), not the car surface DPI.
+            // constructed while the screen is being destroyed"). The renderer starts with
+            // the car display's density and adopts the delivered surface DPI; every render
+            // request carries it (spec: `render-projection-dpi`).
             rendererGate.publish(
                 AutoMapRenderer(
                     client,
@@ -374,20 +370,6 @@ class NavigationScreen(
                     DEFAULT_AA_ZOOM
                 )
             )
-        }
-
-        // The native client's DPI follows the car surface, applied on a background
-        // dispatcher: the host's surface callback only retains the value (spec:
-        // car-host-fault-isolation — Host callbacks answer promptly).
-        scope.launch {
-            rendererGate.surfaceDpi.collect { dpi ->
-                if (dpi > 0.0 && rendererGate.rendererOrNull() != null) {
-                    withContext(Dispatchers.Default) {
-                        runCatching { entryPoint.autoClientProvider().client().setMapDpi(dpi) }
-                            .onFailure { Log.w(TAG, "setMapDpi failed", it) }
-                    }
-                }
-            }
         }
 
         // Stylesheet day/night pushes (spec: car-host-fault-isolation — Host callbacks
@@ -822,9 +804,9 @@ class NavigationScreen(
                 "NAV",
                 "Surface available ${surfaceWidth}x${surfaceHeight} @ ${surfaceDpi}dpi"
             )
-            // The native client's DPI follows rendererGate.surfaceDpi, applied by the
-            // background collector (see init): a host callback must not resolve the
-            // client (spec: car-host-fault-isolation — Host callbacks answer promptly).
+            // The delivered DPI reaches the renderer through the gate — a host callback
+            // must not resolve the client (spec: car-host-fault-isolation — Host callbacks
+            // answer promptly), and every render request carries the value.
             rendererGate.onSurfaceAvailable(surface, surfaceWidth, surfaceHeight, surfaceDpi)
             // Bottom chrome (the AAOS bottom bar) is derived from the host's
             // stable area once delivered; until then the inset is 0.

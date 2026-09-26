@@ -11,6 +11,11 @@ import java.util.concurrent.CopyOnWriteArraySet
  */
 class FakeOSMScoutClient : OSMScoutClient() {
 
+    companion object {
+        /** Colour every test render fills its pixels with; [createTestPixels] uses it. */
+        val TEST_PIXEL_COLOR: Int = android.graphics.Color.rgb(200, 220, 240)
+    }
+
     /** Recorded (key, value) style flag pushes in call order. */
     val styleFlags: MutableList<Pair<String, Boolean>> = CopyOnWriteArrayList()
 
@@ -19,6 +24,10 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     /** Number of [renderWithRouteAndPois] invocations (per-tile renders + overlay renders). */
     val renderWithRouteAndPoisCount = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /** When true both render entry points return null (native render produced nothing). */
+    @Volatile
+    var renderReturnsNull: Boolean = false
 
     /** Optional artificial delay (ms) inside [renderWithRouteAndPois] — used to
      *  interleave mode switches with an in-flight tile render in tests. */
@@ -131,12 +140,16 @@ class FakeOSMScoutClient : OSMScoutClient() {
         return openDatabasesResult(batch)
     }
 
-    /** Densities passed to [setMapDpi] in call order. */
-    val mapDpis = mutableListOf<Double>()
+    /**
+     * DPIs carried by every native render request, in call order (both entry
+     * points) — the projection DPI is part of the request, never client state
+     * (spec: `render-projection-dpi`).
+     */
+    val renderDpis = java.util.concurrent.CopyOnWriteArrayList<Double>()
 
-    override fun setMapDpi(dpi: Double) {
-        mapDpis.add(dpi)
-    }
+    /** DPI of the last render (either entry point; NaN until first render). */
+    @Volatile
+    var lastRenderDpi: Double = Double.NaN
 
     /** Cache sizes passed to [setNativeDataCacheSize] in call order. */
     val nativeDataCacheSizes = mutableListOf<Int>()
@@ -169,19 +182,24 @@ class FakeOSMScoutClient : OSMScoutClient() {
     override fun render(
         width: Int, height: Int,
         lat: Double, lon: Double,
-        angle: Double, magnification: Double
+        angle: Double, magnification: Double,
+        dpi: Double
     ): IntArray? {
         renderCount.incrementAndGet()
         lastRenderLat = lat
         lastRenderLon = lon
         lastRenderMag = magnification
         renderMags.add(magnification)
+        lastRenderDpi = dpi
+        renderDpis.add(dpi)
+        if (renderReturnsNull) return null
         return createTestPixels(width, height)
     }
 
     override fun renderWithRouteAndPois(
         width: Int, height: Int,
         lat: Double, lon: Double, angle: Double, magnification: Double,
+        dpi: Double,
         routeLats: DoubleArray?, routeLons: DoubleArray?,
         favoriteLats: DoubleArray?, favoriteLons: DoubleArray?,
         searchSelLat: Double, searchSelLon: Double,
@@ -196,16 +214,18 @@ class FakeOSMScoutClient : OSMScoutClient() {
         lastRenderLon = lon
         lastRenderMag = magnification
         renderMags.add(magnification)
+        lastRenderDpi = dpi
+        renderDpis.add(dpi)
         if (renderWithRouteAndPoisDelayMs > 0L) {
             Thread.sleep(renderWithRouteAndPoisDelayMs)
         }
+        if (renderReturnsNull) return null
         return createTestPixels(width, height)
     }
 
     private fun createTestPixels(width: Int, height: Int): IntArray {
         val pixels = IntArray(width * height)
-        val fillColor = android.graphics.Color.rgb(200, 220, 240)
-        pixels.fill(fillColor)
+        pixels.fill(TEST_PIXEL_COLOR)
         return pixels
     }
 

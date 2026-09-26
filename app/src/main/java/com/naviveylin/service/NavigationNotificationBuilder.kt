@@ -21,6 +21,13 @@ import com.naviveylin.R
  * [CarAppExtender], and the per-surface channel decides whether the platform
  * represents it in the car at all.
  *
+ * Each surface has its own tap target: the notification's content intent is the
+ * phone target ([android.app.Activity] of the app), while the car extender
+ * carries a car-app start request — the host sends the extender's intent when
+ * the driver taps the rail widget, and falls back to the phone target when the
+ * extender has none (spec: navigation-ongoing-notification — Return to the app
+ * from the car rail widget).
+ *
  * Pure assembly — the caller supplies the pending intents, the channel and the
  * maneuver artwork; no state is held here.
  */
@@ -90,14 +97,18 @@ internal object NavigationNotificationBuilder {
      *
      * When [hint] is present (NAVIGATION mode) the notification is extended
      * with a [CarAppExtender] carrying the car text roles, the maneuver arrow
-     * as large icon and the end-navigation action, which is what makes the car
-     * host render it in the rail widget while the app is in the background.
+     * as large icon, the car tap target and the end-navigation action, which is
+     * what makes the car host render it in the rail widget while the app is in
+     * the background.
      * When [hint] is null (free driving) the notification is not extended: free
      * driving has no car surface.
      *
      * @param hint car-screen hint content, null when no car hint applies
      * @param channelId channel to post on (see [channelIdFor])
-     * @param openIntent content tap target (phone activity or car host activity)
+     * @param openIntent phone tap target — the app's phone UI, never a car
+     *   surface (a car host cannot show a phone activity)
+     * @param carOpenIntent car tap target for the rail widget, null when the
+     *   caller has none (the car host then uses [openIntent])
      * @param stopIntent end-navigation action target
      * @param turnBitmap maneuver artwork for the car large icon
      */
@@ -107,6 +118,7 @@ internal object NavigationNotificationBuilder {
         hint: CarHintContent?,
         channelId: String,
         openIntent: PendingIntent,
+        carOpenIntent: PendingIntent?,
         stopIntent: PendingIntent,
         turnBitmap: (TurnType) -> Bitmap
     ): Notification {
@@ -128,7 +140,7 @@ internal object NavigationNotificationBuilder {
             builder.addAction(R.drawable.ic_nav_exit, stopLabel, stopIntent)
         }
         if (hint != null) {
-            builder.extend(carExtender(context, hint, stopIntent, turnBitmap))
+            builder.extend(carExtender(context, hint, carOpenIntent, stopIntent, turnBitmap))
         }
         return builder.build()
     }
@@ -136,13 +148,17 @@ internal object NavigationNotificationBuilder {
     /**
      * The car-side extension of the notification: car text roles (maneuver
      * instruction first, unlike the phone's destination-first roles), the
-     * maneuver arrow as a large icon and the end-navigation action. No
-     * importance override — the channel decides, and turn hints never raise a
-     * heads-up notification.
+     * maneuver arrow as a large icon, the rail-widget tap target and the
+     * end-navigation action. No importance override — the channel decides, and
+     * turn hints never raise a heads-up notification.
+     *
+     * @param carOpenIntent sent when the driver taps the rail widget (or a HUN)
+     *   in the car; null falls back to the notification's phone tap target
      */
     fun carExtender(
         context: Context,
         hint: CarHintContent,
+        carOpenIntent: PendingIntent?,
         stopIntent: PendingIntent,
         turnBitmap: (TurnType) -> Bitmap
     ): CarAppExtender {
@@ -154,6 +170,7 @@ internal object NavigationNotificationBuilder {
                 context.getString(R.string.stop_navigation),
                 stopIntent
             )
+        carOpenIntent?.let { extender.setContentIntent(it) }
         hint.turnType?.let { extender.setLargeIcon(turnBitmap(it)) }
         return extender.build()
     }

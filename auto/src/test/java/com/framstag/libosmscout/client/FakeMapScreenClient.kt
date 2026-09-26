@@ -43,8 +43,6 @@ class FakeMapScreenClient(
         styleSheetFlagThreads.add(Thread.currentThread().name)
     }
 
-    override fun setMapDpi(dpi: Double) = Unit
-
     /**
      * The screen's renderer may render once a surface is delivered; the native render
      * cannot run in a JVM test, so dummy pixel data answers instead (same shape as
@@ -56,7 +54,8 @@ class FakeMapScreenClient(
         lat: Double,
         lon: Double,
         angle: Double,
-        magnification: Double
+        magnification: Double,
+        dpi: Double
     ): IntArray = IntArray(width * height) { 0xFFCCCCCC.toInt() }
 
     override fun renderWithRouteAndPois(
@@ -66,6 +65,7 @@ class FakeMapScreenClient(
         lon: Double,
         angle: Double,
         magnification: Double,
+        dpi: Double,
         routeLats: DoubleArray?,
         routeLons: DoubleArray?,
         favoriteLats: DoubleArray?,

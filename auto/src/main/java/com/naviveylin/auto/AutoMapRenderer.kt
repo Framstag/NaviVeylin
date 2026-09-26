@@ -15,6 +15,7 @@ import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.RenderBitmapPool
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.VehicleMarkerGeometry
 import com.naviveylin.core.ResolvedAnchor
@@ -62,17 +63,21 @@ class AutoMapRenderer(
 ) {
 
     /**
-     * DPI used for gestures/marker overlay, kept in sync with the native
-     * render DPI ([OSMScoutClient.setMapDpi]) once the car surface arrives.
+     * DPI of the car surface this renderer draws on — the value its gestures, marker
+     * overlay and every render request use (spec: `render-projection-dpi`). Updated when
+     * the host delivers a surface.
      */
     @Volatile
     var projectionDpi: Double = initialProjectionDpi
         private set
 
-    /** Update the projection DPI (call alongside [OSMScoutClient.setMapDpi]). */
+    /** Update the projection DPI of the surface being drawn on (spec: `render-projection-dpi`). */
     fun updateProjectionDpi(dpi: Double) {
         if (dpi > 0 && dpi != projectionDpi) {
             projectionDpi = dpi
+            // One line per change (not per frame): the DPI travels with the render
+            // requests, so this is what the car surface is drawing with.
+            android.util.Log.d(TAG, "renderer $rendererId projection dpi -> $dpi")
             // The overrun buffer was projected at the old DPI — full render.
             blitEligible = false
             requestRender()
@@ -94,6 +99,12 @@ class AutoMapRenderer(
 
     /** Unique id per renderer instance, to tell renderers apart in logs. */
     private val rendererId = nextRendererId++
+
+    init {
+        // One line per renderer instance: the projection DPI is part of every render
+        // request (spec: `render-projection-dpi`).
+        android.util.Log.d(TAG, "renderer $rendererId created: projection dpi=$projectionDpi")
+    }
 
     // Viewport state
     @Volatile private var viewportLat = initialLat
@@ -1233,19 +1244,31 @@ class AutoMapRenderer(
         // The GPS marker is NOT passed to the native renderer (the JNI
         // setGpsMarker export was removed upstream in favor of Kotlin-side
         // overlays); it is drawn on the canvas in drawToSurface.
-        val bitmap = MapRenderUtil.renderToBitmap(
-            client = client,
-            width = renderW,
-            height = renderH,
-            lat = frameLat,
-            lon = frameLon,
-            angle = frameAngle,
-            magnification = 2.0.pow(frameMag),
-            routeLats = routeLats,
-            routeLons = routeLons,
-            favoriteLats = favoriteLats,
-            favoriteLons = favoriteLons
-        )
+        //
+        // The render target comes from the pool and stays the displayed frame until the
+        // next one replaces it (spec: `render-performance` — Reusable render target for
+        // map frames; design D5): a render that starts while a frame is displayed therefore
+        // acquires a second target, which is why the pool retains a pair per size class.
+        val target = RenderBitmapPool.acquire(renderW, renderH)
+        val bitmap = try {
+            MapRenderUtil.renderInto(
+                client = client,
+                target = target,
+                lat = frameLat,
+                lon = frameLon,
+                angle = frameAngle,
+                magnification = 2.0.pow(frameMag),
+                dpi = projectionDpi,
+                routeLats = routeLats,
+                routeLons = routeLons,
+                favoriteLats = favoriteLats,
+                favoriteLons = favoriteLons
+            )
+        } catch (t: Throwable) {
+            // Never strand a pooled target when the render throws.
+            RenderBitmapPool.release(target)
+            throw t
+        }
 
         val now = System.currentTimeMillis()
         if (now - lastRenderLogMs > RENDER_LOG_INTERVAL_MS) {
@@ -1259,7 +1282,10 @@ class AutoMapRenderer(
 
         if (bitmap != null) {
             synchronized(surfaceLock) {
-                overrunBitmap?.recycle()
+                // The replaced frame goes back to the pool instead of being recycled: the
+                // pool owns render targets (spec: render-performance — Reusable render
+                // target for map frames).
+                overrunBitmap?.let { RenderBitmapPool.release(it) }
                 overrunBitmap = bitmap
                 // The SNAPSHOT, not the (possibly newer) pending target: this is
                 // what the pixels show.
@@ -1326,6 +1352,10 @@ class AutoMapRenderer(
                 // NOT lock or draw the released surface").
                 android.util.Log.d(TAG, "renderer#$rendererId dropping frame: surface changed during the render")
             }
+        } else {
+            // A failed render leaves the previous frame displayed; the unused target goes
+            // straight back to the pool.
+            RenderBitmapPool.release(target)
         }
     }
 
@@ -1484,9 +1514,9 @@ class AutoMapRenderer(
         lastCommitWasBlit = true
     }
 
-    /** Recycle and drop the overrun buffer (surface change / shutdown). */
+    /** Return the overrun frame's render target to the pool (surface change / shutdown). */
     private fun clearOverrunBuffer() {
-        overrunBitmap?.recycle()
+        overrunBitmap?.let { RenderBitmapPool.release(it) }
         overrunBitmap = null
         overrunLat = Double.NaN
         overrunLon = Double.NaN
@@ -1568,7 +1598,11 @@ class AutoMapRenderer(
         if (x.isNaN() || y.isNaN()) return
         if (x < -200 || x > w + 200 || y < -200 || y > h + 200) return
 
-        val density = (projectionDpi / 160.0).toFloat()
+        // Cached draw objects: the arrow paths, paints, shadow filter and core gradient are
+        // reused across frames (spec: auto-map-renderer — Marker drawing allocates no
+        // per-frame objects; design D9).
+        val objects = markerDrawObjects(w, h)
+        val density = objects.density
         val minRadius = 4f * density
         val accuracyThreshold = 20f * density
 
@@ -1586,17 +1620,8 @@ class AutoMapRenderer(
         val centerY = y.toFloat()
 
         if (accuracyRadiusPx >= accuracyThreshold) {
-            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = 0x1A2196F3.toInt()
-            }
-            canvas.drawCircle(centerX, centerY, accuracyRadiusPx, fill)
-            val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                color = 0x662196F3.toInt()
-                strokeWidth = 1.5f * density
-            }
-            canvas.drawCircle(centerX, centerY, accuracyRadiusPx, border)
+            canvas.drawCircle(centerX, centerY, accuracyRadiusPx, objects.accuracyFillPaint)
+            canvas.drawCircle(centerX, centerY, accuracyRadiusPx, objects.accuracyBorderPaint)
         }
 
         // Screen bearing: raw GPS bearing + map rotation (same convention as
@@ -1608,89 +1633,25 @@ class AutoMapRenderer(
         // the same shape and palette as the phone overlay, driven by
         // VehicleMarkerGeometry (38 dp density-aware, casing + rim + gradient
         // + soft shadow; legible on both daylight and dark map variants).
-        val hPx = VehicleMarkerGeometry.SIZE_DP * density / 2f
-
-        fun buildCore(): Path {
-            val path = Path()
-            val vertices = VehicleMarkerGeometry.outlineVertices()
-            val (x0, y0) = vertices[0]
-            val (x1, y1) = vertices[1]
-            path.moveTo(x0 * hPx, y0 * hPx)
-            path.quadTo(0f, -hPx, x1 * hPx, y1 * hPx)
-            for (i in 2 until vertices.size) {
-                val (x, y) = vertices[i]
-                path.lineTo(x * hPx, y * hPx)
-            }
-            path.close()
-            return path
-        }
-
-        fun fillPaint(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            this.color = color
-        }
-
         // Soft blurred shadow, offset in screen space (drawn before the
         // arrow, rotated to the bearing) — floating-chip depth.
         val shadowOffsetPx = VehicleMarkerGeometry.SHADOW_OFFSET_DP * density
         canvas.save()
         canvas.translate(centerX + shadowOffsetPx, centerY + shadowOffsetPx)
         canvas.rotate(screenBearingDeg)
-        val shadowPaint = fillPaint(VehicleMarkerGeometry.COLOR_SHADOW.toInt()).apply {
-            maskFilter = BlurMaskFilter(
-                VehicleMarkerGeometry.SHADOW_BLUR_DP * density,
-                BlurMaskFilter.Blur.NORMAL
-            )
-        }
-        canvas.drawPath(buildCore(), shadowPaint)
+        canvas.drawPath(objects.corePath, objects.shadowPaint)
         canvas.restore()
 
         // Layered arrow (casing -> rim -> gradient core), rotated about position.
+        // The casing's palette (white in day, deep blue-black in dark) and the gradient
+        // stops live in the cached paints, keyed on the dark presentation
+        // (spec: auto-map-renderer — Marker legible on dark map / No white halo in dark).
         canvas.save()
         canvas.translate(centerX, centerY)
         canvas.rotate(screenBearingDeg)
-
-        // White casing ring: core scaled about the center. In dark
-        // presentation the casing turns deep blue-black (`COLOR_CASING_DARK`)
-        // so no stencil-white halo shows against dark land — the silhouette
-        // stays clean-cut (user feedback on unified-vehicle-marker). Dark
-        // rides the resolved dark presentation pushed by the screen.
-        val casing = buildCore()
-        val scaleMatrix = Matrix()
-        scaleMatrix.setScale(VehicleMarkerGeometry.CASING_SCALE, VehicleMarkerGeometry.CASING_SCALE)
-        casing.transform(scaleMatrix)
-        canvas.drawPath(
-            casing,
-            fillPaint(if (darkPresentation) VehicleMarkerGeometry.COLOR_CASING_DARK.toInt() else VehicleMarkerGeometry.COLOR_CASING.toInt())
-        )
-
-        // Dark accent rim: stroke around the core (tri-layer arrow).
-        val core = buildCore()
-        val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            color = VehicleMarkerGeometry.COLOR_RIM.toInt()
-            strokeWidth = VehicleMarkerGeometry.RIM_WIDTH_H * hPx
-        }
-        canvas.drawPath(core, rimPaint)
-
-        // Core: vertical gradient, light from above. Dark presentation uses the
-        // lighter dark-presentation stops so the marker reads on dark land
-        // instead of blending into it (spec: gps-location-marker, scenario
-        // "Arrow legible on dark map").
-        val (gradientTop, gradientBottom) = VehicleMarkerGeometry.gradientColors(darkPresentation)
-        val gradientPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            shader = LinearGradient(
-                0f, -hPx, 0f, VehicleMarkerGeometry.TAIL_Y * hPx,
-                intArrayOf(
-                    gradientTop.toInt(),
-                    gradientBottom.toInt()
-                ),
-                null,
-                Shader.TileMode.CLAMP
-            )
-        }
-        canvas.drawPath(core, gradientPaint)
+        canvas.drawPath(objects.casingPath, objects.casingPaint)
+        canvas.drawPath(objects.corePath, objects.rimPaint)
+        canvas.drawPath(objects.corePath, objects.corePaint)
         canvas.restore()
     }
 
@@ -1713,55 +1674,35 @@ class AutoMapRenderer(
         if (x.isNaN() || y.isNaN()) return
         if (x < -200 || x > w + 200 || y < -200 || y > h + 200) return
 
-        val density = (projectionDpi / 160.0).toFloat()
-        val pinRadius = 9f * density
+        // Cached draw objects (spec: auto-map-renderer — Marker drawing allocates no
+        // per-frame objects; design D9): the pin is built in its own local frame and placed
+        // with a canvas translation, so one path serves every position.
+        val objects = markerDrawObjects(w, h)
+        val density = objects.density
+        val pinRadius = objects.pinRadius
         val centerX = x.toFloat()
         val centerY = y.toFloat()
 
-        // Pin: dark outline + red fill, tip pointing at the location.
-        val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = 0xFFB71C1C.toInt()
-        }
-        val pin = Path().apply {
-            moveTo(centerX, centerY)
-            lineTo(centerX - pinRadius, centerY - pinRadius * 2.2f)
-            arcTo(
-                centerX - pinRadius, centerY - pinRadius * 3.4f,
-                centerX + pinRadius, centerY - pinRadius * 0.2f,
-                180f, 180f, false
-            )
-            lineTo(centerX + pinRadius, centerY - pinRadius * 2.2f)
-            close()
-        }
-        canvas.drawPath(pin, outline)
-        val inner = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = 0xFFFFFFFF.toInt()
-        }
-        canvas.drawCircle(centerX, centerY - pinRadius * 1.8f, pinRadius * 0.45f, inner)
+        // Pin: dark outline + white center dot, tip pointing at the location.
+        canvas.save()
+        canvas.translate(centerX, centerY)
+        canvas.drawPath(objects.pinPath, objects.pinOutlinePaint)
+        canvas.drawCircle(0f, -pinRadius * 1.8f, pinRadius * 0.45f, objects.pinInnerPaint)
+        canvas.restore()
 
         // Name label below the pin when known.
         val name = destMarkerName
         if (!name.isNullOrBlank()) {
-            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = 0xFF212121.toInt()
-                textSize = 13f * density
-                isFakeBoldText = true
-            }
+            val textPaint = objects.labelTextPaint
             val label = name.take(MAX_DEST_LABEL_CHARS)
             val textWidth = textPaint.measureText(label)
             val labelY = centerY + pinRadius * 1.6f + textPaint.textSize
-            val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = 0xCCFFFFFF.toInt()
-            }
             canvas.drawRoundRect(
                 centerX - textWidth / 2f - 6f * density,
                 labelY - textPaint.textSize - 4f * density,
                 centerX + textWidth / 2f + 6f * density,
                 labelY + 4f * density,
-                4f * density, 4f * density, bg
+                4f * density, 4f * density, objects.labelBackgroundPaint
             )
             canvas.drawText(label, centerX - textWidth / 2f, labelY, textPaint)
         }
@@ -1951,6 +1892,170 @@ class AutoMapRenderer(
      */
     internal fun activeBackgroundJobCount(): Int =
         listOfNotNull(renderJob, extrapolationJob, zoomWalkJob).count { it.isActive }
+
+    // ------------------------------------------------------------------
+    // Marker draw objects (spec: auto-map-renderer — Marker drawing allocates
+    // no per-frame objects; design D9)
+    // ------------------------------------------------------------------
+
+    /**
+     * Draw objects for the car markers (GPS arrow, destination pin): paths, paints, the
+     * shadow blur filter and the core gradient. Built on first use and reused on every
+     * frame, so a drawn frame allocates nothing. Rebuilt only when an input that defines
+     * the geometry or the palette changes — the surface bounds, the projection density, or
+     * the dark presentation. All shape and palette constants still come from
+     * [VehicleMarkerGeometry], so the marker's contract is unchanged.
+     */
+    internal class MarkerDrawObjects(
+        val width: Int,
+        val height: Int,
+        val density: Float,
+        val dark: Boolean
+    ) {
+        /** Half the marker size in px (density-aware, same on phone and car). */
+        val hPx: Float = VehicleMarkerGeometry.SIZE_DP * density / 2f
+
+        /** Arrow outline, local frame (origin = marker center, arrow up). */
+        val corePath: Path = Path().apply {
+            val vertices = VehicleMarkerGeometry.outlineVertices()
+            val (x0, y0) = vertices[0]
+            val (x1, y1) = vertices[1]
+            moveTo(x0 * hPx, y0 * hPx)
+            quadTo(0f, -hPx, x1 * hPx, y1 * hPx)
+            for (i in 2 until vertices.size) {
+                val (x, y) = vertices[i]
+                lineTo(x * hPx, y * hPx)
+            }
+            close()
+        }
+
+        /** Core scaled about the center — the casing ring. */
+        val casingPath: Path = Path().apply {
+            val scale = Matrix().apply {
+                setScale(VehicleMarkerGeometry.CASING_SCALE, VehicleMarkerGeometry.CASING_SCALE)
+            }
+            set(corePath)
+            transform(scale)
+        }
+
+        val accuracyFillPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = 0x1A2196F3.toInt()
+        }
+
+        val accuracyBorderPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            color = 0x662196F3.toInt()
+            strokeWidth = 1.5f * density
+        }
+
+        val shadowPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = VehicleMarkerGeometry.COLOR_SHADOW.toInt()
+            maskFilter = BlurMaskFilter(
+                VehicleMarkerGeometry.SHADOW_BLUR_DP * density,
+                BlurMaskFilter.Blur.NORMAL
+            )
+        }
+
+        val casingPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = if (dark) {
+                VehicleMarkerGeometry.COLOR_CASING_DARK.toInt()
+            } else {
+                VehicleMarkerGeometry.COLOR_CASING.toInt()
+            }
+        }
+
+        val rimPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            color = VehicleMarkerGeometry.COLOR_RIM.toInt()
+            strokeWidth = VehicleMarkerGeometry.RIM_WIDTH_H * hPx
+        }
+
+        /** Core gradient stops for the built presentation (test-observable palette). */
+        private val gradientStops: Pair<Long, Long> = VehicleMarkerGeometry.gradientColors(dark)
+        val gradientTop: Int = gradientStops.first.toInt()
+        val gradientBottom: Int = gradientStops.second.toInt()
+
+        val corePaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            shader = LinearGradient(
+                0f, -hPx, 0f, VehicleMarkerGeometry.TAIL_Y * hPx,
+                intArrayOf(gradientTop, gradientBottom),
+                null,
+                Shader.TileMode.CLAMP
+            )
+        }
+
+        /** Pin radius (px). */
+        val pinRadius: Float = 9f * density
+
+        /** Destination pin, local frame (tip at the origin, body above it). */
+        val pinPath: Path = Path().apply {
+            moveTo(0f, 0f)
+            lineTo(-pinRadius, -pinRadius * 2.2f)
+            arcTo(
+                -pinRadius, -pinRadius * 3.4f,
+                pinRadius, -pinRadius * 0.2f,
+                180f, 180f, false
+            )
+            lineTo(pinRadius, -pinRadius * 2.2f)
+            close()
+        }
+
+        val pinOutlinePaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = 0xFFB71C1C.toInt()
+        }
+
+        val pinInnerPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = 0xFFFFFFFF.toInt()
+        }
+
+        val labelTextPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF212121.toInt()
+            textSize = 13f * density
+            isFakeBoldText = true
+        }
+
+        val labelBackgroundPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = 0xCCFFFFFF.toInt()
+        }
+    }
+
+    @Volatile
+    private var markerDrawObjects: MarkerDrawObjects? = null
+
+    @Volatile
+    private var markerDrawRebuilds = 0
+
+    /**
+     * The marker draw objects for this frame, rebuilt only when the surface bounds, the
+     * density or the dark presentation changed. The hit path allocates nothing.
+     */
+    private fun markerDrawObjects(w: Int, h: Int): MarkerDrawObjects {
+        val density = (projectionDpi / 160.0).toFloat()
+        val cached = markerDrawObjects
+        if (cached != null &&
+            cached.width == w && cached.height == h &&
+            cached.density == density && cached.dark == darkPresentation
+        ) {
+            return cached
+        }
+        val rebuilt = MarkerDrawObjects(w, h, density, darkPresentation)
+        markerDrawObjects = rebuilt
+        markerDrawRebuilds++
+        return rebuilt
+    }
+
+    /** Test-only: the cached draw objects (identity changes only on a rebuild). */
+    internal fun markerDrawObjectsForTest(): MarkerDrawObjects? = markerDrawObjects
+
+    /** Test-only: how often the marker draw objects were rebuilt. */
+    internal fun markerDrawRebuildsForTest(): Int = markerDrawRebuilds
 
     companion object {
         private const val TAG = "AutoMapRenderer"

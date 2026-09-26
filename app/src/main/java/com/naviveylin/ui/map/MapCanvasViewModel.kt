@@ -1775,15 +1775,6 @@ class MapCanvasViewModel @Inject constructor(
             val stylesheetsDir = assetCopier.ensureStylesheets()
             Log.d(TAG, "initMap: density=$density, stylesheets=$stylesheetsDir")
 
-            // Render at this display's DPI. The shared client may have been
-            // switched to the car surface DPI by an Android Auto session in the
-            // same process — restore the phone density before rendering.
-            try {
-                client.setMapDpi(density)
-            } catch (e: Exception) {
-                Log.w(TAG, "initMap: setMapDpi failed", e)
-            }
-
             Log.d(TAG, "initMap: opening database...")
             val opened = try {
                 client.openDatabase(mapPath).also { success ->
@@ -3877,8 +3868,9 @@ class MapCanvasViewModel @Inject constructor(
          * Compute a magnification that fits the given bounding box within the viewport.
          *
          * The magnification is defined against the renderer's ground resolution:
-         * the renderer draws at the display DPI (`client.setMapDpi(density)`,
-         * [ProjectionUtils] scales by `REFERENCE_DPI / dpi`, confirmed by the tile
+         * the renderer draws at the display DPI, which every render request carries
+         * (`MapRenderer.dpi` → the native render's projection DPI; [ProjectionUtils]
+         * scales by `REFERENCE_DPI / dpi`, confirmed by the tile
          * geometry in `MapRenderer.tileSizePx`) and Mercator ground distances
          * shrink by `cos(lat)` relative to the equator. Ignoring either factor
          * over-zooms — by `dpi / 96` and by `1 / cos(lat)` — so the fitted bbox

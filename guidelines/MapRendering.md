@@ -15,7 +15,8 @@ travel while the map itself rotates at its own pace.
 - Two user-selectable modes in `MapRenderer` (`renderMode`: `TILES` default, `DIRECT`):
   - **TILES mode — tile path** (`renderMode == TILES && (angle == 0.0 || !forceFullRender)`):
     visible geo bounds are covered from geographic tiles in `TileCache`; missing tiles are
-    rendered natively one per tile (`renderTilePixels`, 256px @ 96dpi scaled by device dpi) and
+    rendered natively one per tile (`renderTilePixels`, 256px @ 96dpi scaled by the render DPI
+    the request carries — the drawing surface's own DPI) and
     cached; the composed frame is screen-sized (e.g. 1080×2400). Rotated live previews compose
     tiles north-up and rotate the whole canvas about the viewport center — labels stay north-up.
   - **DIRECT mode — full native path**: every render goes through `MapRenderUtil.renderToBitmap`
@@ -194,8 +195,18 @@ travel while the map itself rotates at its own pace.
   draws the front buffer directly, which gets recycled on the next render).
 - Sub-region blits: copy the region first, then `recycle()`. `Bitmap.createBitmap` + `recycle` on
   a shared region causes a "trying to use a recycled bitmap" crash.
-- Tile path: `frontBuffer` and `_frontBufferFlow` each get a copy, then recycle the original
-  bitmap.
+- Tile path: `frontBuffer` and `_frontBufferFlow` each get a copy, then the composition target is
+  **released** back to the pool (it used to be recycled).
+- **Rule: a render target is released, never recycled** (change `fix-render-buffer-reuse`, spec
+  `render-performance`). The render path draws into a target obtained from `RenderBitmapPool`
+  (`:core`): `acquire` → use → `release`. The pool is the only recycler — it recycles surplus and
+  evicted targets itself, and it refuses a release of a target it did not hand out (or a double
+  release) with a `RENDER` diagnostics line. A caller that calls `recycle()` on a pooled target
+  hands the pool a dead bitmap, and the next render fails on it.
+- **Rule: a frame still in use is never handed out again.** A target that is displayed (Compose's
+  emitted frame, the car's overrun frame) must not be the target of an in-flight render; that is
+  why the pool retains a pair of slots per size class and why the frame handed to Compose stays an
+  independent copy rather than a pooled target.
 
 ## 3. GPS Deduplication
 
@@ -563,10 +574,20 @@ car Surface:
   not gate the next start) and releases the overrun buffer — the buffer is per screen, and up to
   four car screens can sit in the stack.
 - **Overrun buffer**: every full native render is at `OVERRUN_FACTOR` (1.2×) the surface size and
-  is KEPT as the overrun buffer (not recycled) for sub-region blits — until the screen stops, which
-  releases it; the first frame after the next start is therefore a full render, never a blit of a
+  is KEPT as the overrun buffer for sub-region blits — until the screen stops, which releases it;
+  the first frame after the next start is therefore a full render, never a blit of a
   frame that predates the stop. The visible region is drawn
   centered: `dx = (surfaceW - bitmapW) / 2`.
+- **The overrun frame is a pooled target, held until replaced** (change `fix-render-buffer-reuse`,
+  spec `render-performance`): the renderer acquires its target from `RenderBitmapPool` and keeps it
+  as `overrunBitmap`, so a render that starts while a frame is displayed acquires a **second**
+  target — the displayed frame and the in-flight render never share one. Replacing the frame
+  **releases** the old target (it used to `recycle()`), `clearOverrunBuffer()` releases the held one
+  (surface change, stop, shutdown), a failed render releases the unused target, and `displayed*()`
+  stays correct because it derives from the reference that is held exactly as long as the frame is
+  displayed. The marker draw objects are cached the same way (spec `auto-map-renderer` — Marker
+  drawing allocates no per-frame objects): built on first use, rebuilt only when the surface
+  bounds, the density or the dark presentation changes.
 - **Sub-region blit**: a viewport change within the overrun region is served by
   `lockCanvas → drawBitmap(overrun, dx, dy) → unlockCanvasAndPost` — no native render. The blit
   offset comes from `FollowPrediction.displayOffsetPx` (rotated-frame clamp, same rotation rule as
@@ -598,9 +619,16 @@ car Surface:
   off — `FollowPrediction.predictedPosition` holds past its extrapolation window, so the display
   eases back to the last fix. Freezing the display at the last predicted position reads as a
   massive overshoot during gaps.
-- **Blit eligibility**: only pure viewport/marker changes may blit. Favorites, route, DPI, and
+- **Blit eligibility**: only pure viewport/marker changes may blit. Favorites, route, a change of
+  the renderer's projection DPI, and
   surface changes force a full render (`blitEligible = false`) — a blit would show stale
   native-rendered content.
+- **The projection DPI travels with the render request** (spec: `render-projection-dpi`): each
+  renderer passes its own display's DPI (`MapRenderer.dpi`, `AutoMapRenderer.projectionDpi`) to
+  `MapRenderUtil.renderInto`/`renderPixels`, and the JNI render projects with it. The client
+  keeps no DPI of its own, so an AA session and the phone canvas sharing one process cannot
+  change each other's frame scale; `TileCache` keys a tile by the DPI it was rendered at,
+  because the pixels depend on it.
 
 ---
 

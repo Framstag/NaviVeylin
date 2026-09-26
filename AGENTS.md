@@ -148,8 +148,9 @@ car path has hard rules:
   instance is released and the live one is kept.
 - **Nothing native on the host thread.** Car providers (`AutoClientProvider`, `AutoSearchProvider`,
   `AutoFavoritesProvider`) are injected as `Provider`/`Lazy`, and a host callback only retains
-  state (surface DPI goes to `RendererGate.surfaceDpi` and a background collector applies
-  `setMapDpi`). The renderer is constructed *and* published on the main thread with no suspension
+  state (surface DPI goes to `RendererGate.surfaceDpi` and reaches the renderer as its projection
+  DPI — the client holds no DPI, every render request carries it, spec `render-projection-dpi`).
+  The renderer is constructed *and* published on the main thread with no suspension
   between, so a cancelled init cannot leak a renderer.
 - **No fault escapes the host path.** Owner dispatch is guarded in `SessionCarSurfaceHost`, the
   `NavigationManager` calls and the trip build in `NavigationManagerController`, the notification

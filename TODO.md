@@ -821,10 +821,11 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Fix candidate**: move them onto the same per-start tracking that change introduces, or stop them in
   `onStop` and restart in `onStart`.
 
-## 63. The car path never configures the native tile data cache, and the phone path's value leaks into it — Found 2026-09-21 (same review; spec deviation)
+## 63. The car path never configures the native tile data cache, and the phone path's value leaks into it — FIXED by `fix-car-tile-data-cache` (2026-09-26)
 
-- **Deviation** ✗ from spec `native-tile-data-cache` ("the system SHALL set the capacity … on every
-  open database"): the only caller of `setNativeDataCacheSize` is the phone map path
+- **Fixed ✅** by change `fix-car-tile-data-cache` (spec: `native-tile-data-cache` — configured by every surface, decided once per client, car < phone): new `:core` seam `core/src/main/java/com/naviveylin/core/NativeTileDataCache.kt` owns the per-surface constants (`PHONE_TILES = 512` unchanged, `CAR_TILES = 128`, `LIBRARY_DEFAULT_TILES = 25`) and the once-per-client policy; the car warmup configures it in `AutoServiceModule.openMapDatabases` before `client.openDatabases(...)`, the phone path uses the same seam, and a later surface's different value is rejected instead of flipping the client-global capacity mid-session. Tests: `NativeTileDataCacheTest` (8, `:core`), `MapCanvasViewModelStyleTest` (11, phone path), `AutoMapDatabaseOpenTest` (9, car warmup incl. the phone-first and repeated-warmup cases; revert-checked — two cases fail with the car call disabled). This entry is removed when the change is archived.
+- **Measurement still open** ⏳ (`TODO.md` §65 sibling): `CAR_TILES = 128` is reasoned, not measured — 5.1× the library default and 4× below the phone, chosen because no car/AAOS device or head unit is attached. Follow-up on the AAOS AVD or a head unit (`guidelines/Build.md` §10): enable `osmscout::log.Debug(true)`, confirm `adb logcat -s NaviVeylin` shows `[JNI] setNativeDataCacheSize(128)` and the per-render `applied tile data cache size 128 to N db(s)`, then compare `dumpsys meminfo <pkg>` native heap against the library-default run; re-tune by changing the one constant.
+- **Original finding 2026-09-21 (same review; spec deviation)** ✗: the only caller of `setNativeDataCacheSize` is the phone map path
   (`app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt:1769`, constant 512 at `:3571`);
   the car warmup opens every regional database without configuring it
   (`app/src/main/java/com/naviveylin/di/AutoServiceModule.kt:107-144`).
@@ -834,11 +835,8 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   the library default of 25 tiles per database, while a phone UI that ran first in the same process
   leaves 512 per database for every database the car session opens — `N × 512` tiles of native heap,
   basemap included, on a device whose RAM budget is the §51 lmkd frame.
-- **Not caught** ✗: the spec's "configured on every open database" has no test or verification for the
-  car path; the phone-side test cannot see the difference.
-- **Fix candidate**: configure the cache in the one place both surfaces open databases from (a `:core`
-  seam) with a value chosen per surface, or accept the library default on the car and record the
-  deviation in the spec. Decide the value with `dumpsys meminfo` native-heap numbers on a head unit.
+- **Not caught (original)** ✓ addressed: the spec's "configured on every open database" now has tests for both surfaces (`AutoMapDatabaseOpenTest` drives the real warmup against a temp map tree; `MapCanvasViewModelStyleTest` covers the phone path).
+- **Fix candidate (original, taken)** ✓: the cache is configured in one `:core` seam used by both surfaces that open databases, with a value per surface — the seam's per-client rule resolves the shared-client case the entry's "value chosen per surface" left open (a second, different value is rejected, so the phone's 512 is not flipped mid-session by a car session).
 
 ## 78. Overrun-window offset math lives in `FollowPrediction` and the follow overlay path is not unified — Found 2026-09-24 (while fixing the phone pan tracking)
 

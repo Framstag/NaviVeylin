@@ -16,6 +16,8 @@ import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.CarSurfaceHost
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.NativeTileDataCache
+import com.naviveylin.core.TileCacheConfig
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchResultRanker
 import com.naviveylin.data.FavoriteRepository
@@ -137,6 +139,33 @@ object AutoServiceModule {
                     // Nothing installed: no call at all — an empty batch would
                     // still close and reopen every open database for no change.
                     if (databases.isNotEmpty()) {
+                        // Configure the car surface's own tile data cache capacity
+                        // before the databases open (spec: native-tile-data-cache —
+                        // Car-only process does not run on the library default).
+                        // Without this the car ran on the library default (25) in a
+                        // car-only process and inherited the phone's 512 in a shared
+                        // one. The value is client-global and decided once per
+                        // client, so a phone map screen that configured first keeps
+                        // its value and this request is reported as a no-op.
+                        when (NativeTileDataCache.apply(client, NativeTileDataCache.CAR_TILES)) {
+                            TileCacheConfig.APPLIED ->
+                                DiagnosticsLog.log(
+                                    DiagnosticsLog.WARMUP_TAG,
+                                    "Tile data cache configured: ${NativeTileDataCache.CAR_TILES} tiles"
+                                )
+                            TileCacheConfig.UNCHANGED -> Unit
+                            TileCacheConfig.REJECTED ->
+                                DiagnosticsLog.log(
+                                    DiagnosticsLog.WARMUP_TAG,
+                                    "Tile data cache kept at the phone's value (car requested " +
+                                            "${NativeTileDataCache.CAR_TILES})"
+                                )
+                            TileCacheConfig.FAILED ->
+                                DiagnosticsLog.log(
+                                    DiagnosticsLog.WARMUP_TAG,
+                                    "Tile data cache configuration failed"
+                                )
+                        }
                         try {
                             val registered = client.openDatabases(databases.toTypedArray())
                             val registeredCount = registered.count { it }

@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.NativeTileDataCache
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -113,7 +114,7 @@ class MapCanvasViewModelStyleTest {
         assertTrue("database must have opened", client.openedDatabases.contains("/data/maps/testmap"))
         assertEquals(
             "native tile data cache capacity must be configured after a successful open",
-            listOf(MapCanvasViewModel.NATIVE_TILE_DATA_CACHE_SIZE),
+            listOf(NativeTileDataCache.PHONE_TILES),
             client.nativeDataCacheSizes
         )
     }
@@ -147,7 +148,7 @@ class MapCanvasViewModelStyleTest {
 
         assertEquals(
             "configured once after a successful open",
-            listOf(MapCanvasViewModel.NATIVE_TILE_DATA_CACHE_SIZE),
+            listOf(NativeTileDataCache.PHONE_TILES),
             client.nativeDataCacheSizes
         )
 
@@ -156,7 +157,7 @@ class MapCanvasViewModelStyleTest {
 
         assertEquals(
             "basemap reload must not re-configure the cache from Kotlin",
-            listOf(MapCanvasViewModel.NATIVE_TILE_DATA_CACHE_SIZE),
+            listOf(NativeTileDataCache.PHONE_TILES),
             client.nativeDataCacheSizes
         )
     }

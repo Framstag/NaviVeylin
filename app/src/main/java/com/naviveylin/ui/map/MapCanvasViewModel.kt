@@ -18,7 +18,9 @@ import com.naviveylin.core.BundledMapStyles
 import com.naviveylin.core.BundledMapStyles.DEFAULT_STYLE_NAME
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.MapStyleLoadReporter
+import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.TileCacheConfig
 import com.naviveylin.core.formatCoordinatePair
 import com.naviveylin.core.stringResolver
 import com.naviveylin.core.SpeedZoomTable
@@ -1805,13 +1807,21 @@ class MapCanvasViewModel @Inject constructor(
             Log.d(TAG, "initMap: database opened successfully")
 
             // Configure the native tile data cache capacity (regional database
-            // and any future basemap). Stored in the client and applied by the
-            // render path before tile data loads, so it also covers databases
-            // that open asynchronously after this call. Perf-only, idempotent.
-            try {
-                client.setNativeDataCacheSize(NATIVE_TILE_DATA_CACHE_SIZE)
-            } catch (e: Exception) {
-                Log.w(TAG, "initMap: setNativeDataCacheSize failed", e)
+            // and any future basemap) through the shared seam (spec:
+            // native-tile-data-cache). Stored in the client and re-applied to
+            // every open database by the render path, so it also covers
+            // databases that open asynchronously after this call. Perf-only and
+            // idempotent; the first surface in the process decides the value, so
+            // a car session sharing this client cannot flip it mid-session.
+            when (NativeTileDataCache.apply(client, NativeTileDataCache.PHONE_TILES)) {
+                TileCacheConfig.APPLIED ->
+                    Log.d(TAG, "initMap: tile data cache configured with " +
+                            "${NativeTileDataCache.PHONE_TILES} tiles")
+                TileCacheConfig.UNCHANGED -> Unit
+                TileCacheConfig.REJECTED ->
+                    Log.w(TAG, "initMap: tile data cache already configured with a different value")
+                TileCacheConfig.FAILED ->
+                    Log.w(TAG, "initMap: setNativeDataCacheSize failed")
             }
 
             // Open all other installed maps too, so every downloaded region
@@ -3835,14 +3845,6 @@ class MapCanvasViewModel @Inject constructor(
         /** Minimum magnification for the pinch/rotation gesture commit (keeps 4–20). */
         const val GESTURE_MIN_MAG = 4.0
         const val MAX_MAG = 20.0
-
-        /**
-         * Capacity of libosmscout's native tile data caches (specs:
-         * native-tile-data-cache). Applied to every open database before the
-         * next render via setNativeDataCacheSize; the library default is 25
-         * tiles. 512 is a perf-only knob — rendering output is unchanged.
-         */
-        const val NATIVE_TILE_DATA_CACHE_SIZE = 512
 
         /** POI search radius steps in meters (mirrors JavaScout PoiSearchOverlay, extended to 100 km). */
         val POI_RADIUS_STEPS_M = doubleArrayOf(500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0, 100000.0)

@@ -269,4 +269,64 @@ class MapGestureComposeTest {
         assertTrue("pan right must be positive, got $totalDx", totalDx > 50.0)
         assertTrue("single-finger drag must not rotate", rotations.isEmpty())
     }
+
+    /**
+     * The reported deltas cover the WHOLE finger travel, including the travel up to
+     * the drag threshold: the map content then follows the finger exactly instead of
+     * lagging it by the threshold (spec: map-pan-zoom — Touch-based pan).
+     */
+    @Test
+    fun singleFingerDragReportsTheFullFingerTravel() {
+        launchMap()
+        composeRule.onRoot().performTouchInput {
+            down(0, center)
+            moveTo(0, center + Offset(20f, 0f))
+            moveTo(0, center + Offset(100f, 0f))
+            up(0)
+        }
+        composeRule.waitForIdle()
+
+        val totalDx = panDeltas.sumOf { it.first.toDouble() }
+        val totalDy = panDeltas.sumOf { it.second.toDouble() }
+        assertEquals("reported pan must cover the finger travel", 100.0, totalDx, 0.5)
+        assertEquals("a horizontal drag must not drift vertically", 0.0, totalDy, 0.5)
+    }
+
+    /**
+     * A drag delivered as a single move event still pans: the threshold crossing
+     * reports its own travel (no dead zone, no swallowed gesture).
+     */
+    @Test
+    fun singleMoveDragReportsItsTravel() {
+        launchMap()
+        composeRule.onRoot().performTouchInput {
+            down(0, center)
+            moveTo(0, center + Offset(60f, 0f))
+            up(0)
+        }
+        composeRule.waitForIdle()
+
+        val totalDx = panDeltas.sumOf { it.first.toDouble() }
+        assertEquals("a one-move drag must pan by its travel", 60.0, totalDx, 0.5)
+    }
+
+    /**
+     * A pan requests exactly one render, at gesture end: the display window serves the
+     * gesture itself (spec: render-performance — Pan hot path stays off the frame
+     * budget).
+     */
+    @Test
+    fun panRequestsOneRenderAtGestureEnd() {
+        launchMap()
+        composeRule.onRoot().performTouchInput {
+            down(0, center)
+            moveTo(0, center + Offset(20f, 0f))
+            moveTo(0, center + Offset(60f, 0f))
+            moveTo(0, center + Offset(90f, 10f))
+            up(0)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals("pan must request exactly one render", 1, renderRequests)
+    }
 }

@@ -436,6 +436,17 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   noisy or absent bearing at a standstill cannot move it. There is no
   travel-direction triangle (change `compass-always-north-phone`): the travel
   direction is shown by the vehicle marker arrow and by the map's own rotation.
+  Its colors (change `compass-day-night-palette`) come from a per-presentation
+  palette, never from a theme color role: the fill is the GPS-fix hue family
+  (red / yellow / green) in the tone of the active presentation (light
+  `#FFCDD2` / `#FFF9C4` / `#C8E6C9`, dark `#93000A` / `#5C4300` / `#1B4A24`), and
+  the needle, the "N" and the rim share one on-fill symbol color
+  (`#1F1F1F` light, `#E8EAED` dark) — 11.7-15.4:1 light and 7.7-8.5:1 dark. The
+  hue family is presentation-independent; only the tone changes. Reading a theme
+  role here was the defect: the dark scheme's `on*` roles are light, so the
+  needle landed on a light fill at 1.04:1. The presentation comes from the
+  resolved dark-mode value (`MapCanvasUiState.isDarkPresentation`), never from
+  `isSystemInDarkTheme()`, which would bypass a manual On/Off.
 - The speed badge SHALL use the standard overlay card container (theme
   surface at 0.92 alpha, 12dp rounded) — the same treatment as the turn card
   and routing status — in the NORMAL state, with dark (`onSurface`) text;
@@ -492,6 +503,17 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   speed-limit sign 56dp with 7dp red ring and 24sp digits; the speed badge
   (128×52, 20sp) is unchanged except its overspeed state — red-600 fill at
   the badge's 0xCC alpha with white text, same treatment as the phone.
+  The rose palette follows the surface's resolved presentation (change
+  `compass-day-night-palette`): day keeps the original chip `#CC1C1B1F` with
+  white ticks and the red-600 north pointer, night keeps chip, ticks and pointer
+  (17.1:1 and 4.1:1 — the best pairing on a dark chip) and adds a `0x66E8EAED`
+  body rim, because the chip alone is only 1.03:1 against dark map land. A
+  brighter night chip was rejected: a mid grey lifts chip/land to at most 2.44:1
+  while dropping the north pointer to 1.62-2.68:1, below the 3:1 non-text floor.
+  The rim is stroked inside the chip radius, so the rose silhouette, size and
+  pointer direction are identical in both presentations. Speed badge and
+  speed-limit sign keep their fixed palettes (the sign is a standard-mandated
+  traffic sign).
 - Vehicle position marker (phone + AA, spec `gps-location-marker` /
   `auto-map-renderer`, changes `unified-vehicle-marker`,
   `map-marker-route-contrast`): one unified compass arrow on both surfaces —
@@ -507,29 +529,79 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   both renderers (parity by construction, spec `cross-variant-ui-parity`);
   growing the marker changes phone and car identically. The accuracy circle
   is untouched.
-- Active route appearance (phone + AA, spec `route-appearance`, change
-  `map-marker-route-contrast`): one stylesheet rule (`_route` in the
-  libosmscout submodule `stylesheets/include/route.oss`) colors the route on
-  both surfaces, driven by the same `daylight` flag both surfaces push.
+- Active route appearance (phone + AA, spec `route-appearance`, changes
+  `map-marker-route-contrast` then `daylight-palette-route-and-roads`): one
+  stylesheet rule (`_route` in the libosmscout submodule
+  `stylesheets/include/route.oss`) colors the route on both surfaces, driven by
+  the same `daylight` flag both surfaces push.
   Every bundled style that draws a route includes that rule (`standard`,
   `winter-sports`, `cycle` — the cycle style's own semi-transparent
   single-color rule was removed), so switching map style keeps the route
   colors. `public-transport` has no route rule at all and draws no route
   (pre-existing, tracked in `TODO.md`).
-  - light presentation: opaque violet fill `#7b1fa2` with a dark violet
-    casing `#311b92` — no daylight road class is violet, and the dark casing
-    stays visible on white residential roads where the former white casing
-    disappeared
+  - light presentation: translucent violet fill `#ba68c8` at 85 % alpha over an
+    **opaque**, wider, magenta-leaning violet casing `#6a1b9a` (composited
+    centre `#ae5dc1`). No daylight road class is violet, and the casing keeps
+    its border on white residential roads.
   - dark presentation: unchanged red fill `#ff000088` with a white casing
   The casing stroke stays wider than the fill (`displayWidth` 2.2 mm vs
-  1.5 mm) and keeps its priority, so the route is bordered on both sides,
-  is opaque in daylight, and needs no extra render pass. Parity rule: both
+  1.5 mm) and keeps its priority, so the route is bordered on both sides and
+  needs no extra render pass. **The casing must stay opaque and wider than the
+  fill**: it then covers the whole fill footprint, so the composited centre is
+  "fill over casing" and does not depend on the road underneath. That is what
+  keeps a street label readable on the route — way labels are drawn *after* way
+  fills (`DrawLabels` runs after `DrawWays`) and street `WAY.TEXT` carries no
+  halo, so the label sits on the route fill as its backdrop (the previous
+  opaque `#7b1fa2` gave a black label 2.56:1, the current pair gives 5.14:1).
+  A translucent fill over a *dark* casing darkens the centre instead and
+  re-breaks the label; a light casing swallows the border on white roads.
+  Parity rule: both
   surfaces show identical route colors for the same presentation; no surface
   overrides them. Stylesheet hex literals MUST be **lowercase** —
   `osmscout::Color::FromHexString` accepts `0-9a-f` only and asserts on
   uppercase, which fails the whole stylesheet load and then crashes the
   renderer; `StylesheetHexColorCaseTest` guards this for every packaged
   stylesheet.
+
+## 8a. Daylight map palette (base map)
+
+Source: spec `daylight-map-palette` (change
+`daylight-palette-route-and-roads`). One stylesheet serves both surfaces, so
+phone and Android Auto cannot diverge here.
+
+- Daylight road fills (`standard.oss`; `winter-sports.oss` carries the same two
+  blues): motorway `#7d7af5`, trunk `#a3a1f5`, primary `#f58b8b`, secondary
+  `#fdd08a`, tertiary `#fef271`. The night branch and `cycle.oss` (a
+  deliberately desaturated cycling palette, motorway `#bbbbbb`) are out of
+  scope.
+- Why the lightness matters: way labels are drawn after way fills and carry no
+  halo, so every road fill is a black label's backdrop. The former motorway
+  `#4440ec` gave only 3.19:1; the new fills give 5.97 / 8.97 / 8.95 / 14.57.
+- A constant derived from a fill must not be derived blindly — the stylesheet
+  `lighten` / `darken` are plain lerps toward white / black, so a lighter base
+  weakens everything derived from it:
+  - **Highway shields draw WHITE text**, so they get their own darker constant
+    `darken(base, 0.45)` (`#454387` / `#5a5987` / `#874c4c`), giving white text
+    8.73 / 6.53 / 6.63. Reusing the road fill would leave shield text at
+    3.52 / 2.34 / 2.35; the trunk and primary shields were already failing at
+    3.83 / 3.90 before this change.
+  - **`thinXColor`** (the `SIZE ... <0.45mm:3px` hairline branch, which the
+    renderer enters only below 0.45 mm *and* 3 px, so it is never seen beside
+    the fill) uses `lighten(base, 0.2)`; the former 0.3 faded to 1.99 / 1.53
+    against land. A hairline is judged on **1.6:1 plus a 25-degree hue
+    separation from land**, not on the text threshold — the palette already
+    ships `thinSecondaryColor` at 1.22:1 and `thinTertiaryColor` at 1.08:1, so
+    1.6 is above its own convention. A luminance-only floor of 2.0 is
+    unsatisfiable for the new trunk and primary fills, which are themselves
+    only 2.02:1 and 2.03:1 against land.
+  - **`motorwayJunctionLabelColor`** uses `lighten(base, 0.3)`. The junction
+    label relies on `style: emphasize` (the Cairo painter strokes a white glyph
+    halo), which is part of the requirement, not an optional extra.
+- **Guard:** `app/src/test/java/com/naviveylin/data/DaylightPaletteContrastTest.kt`
+  computes all of the above from the **packaged** stylesheets, evaluating the
+  stylesheet's own `lighten` / `darken` expressions, so a colour edit that
+  re-breaks legibility fails in unit tests instead of on a device.
+  `StylesheetHexColorCaseTest` guards the lowercase-hex rule.
 
 ## 9. Dark mode (phone + Android Auto)
 
@@ -559,6 +631,28 @@ Source: spec `dark-mode` (changes `aa-dark-mode-follow-host`, `phone-ambient-lig
 - Parity: both variants render the same stylesheet variants (daylight flag
   set/unset); the environment source differs by platform (see
   `guidelines/MapRendering.md` §15).
+- **Status colors live outside the theme (change `compass-day-night-palette`).**
+  A control that carries status through a fixed hue family (the compass GPS-fix
+  fill; the overspeed warning red) dims by switching to a dark tone of its own
+  hue family — it must never keep a light-tone status fill in dark presentation,
+  and must never take the dark scheme's role for that hue (M3's dark `error` is a
+  light pink: `#F28B82`). Each such palette carries its own on-color pair so
+  symbol-on-status contrast is guaranteed in both presentations rather than
+  inherited from a user-themable role.
+- **The app-drawn overlay palette follows the *applied* variant, not the
+  requested one (change `compass-day-night-palette`).**
+  `RendererGate.setDarkPresentation` is called from the screen's daylight
+  collector once the native stylesheet flag was actually applied, so the vehicle
+  marker and the compass rose flip in the same frame as the map variant — the
+  overlay palette can never belong to the other presentation than the map
+  underneath. Surface drawers read `RendererGate.currentDarkPresentation()`.
+- **Every car screen that draws the map surface must observe the resolved
+  presentation.** `MapScreen`, `NavigationScreen` and `FreeDrivingScreen` each
+  own their renderer and their gate, so each needs its own `resolvedDark` input,
+  a `KEY_DARK` observation in its `*ScreenObservations` (never a bare
+  `scope.launch`) and a `pushDark()` re-push once the renderer is ready. Free
+  driving was missing all of it until `compass-day-night-palette`: its map kept
+  the daylight variant at night and its rose could never reach the night palette.
 
 ## 10. Internationalisation / Localisation
 
@@ -585,6 +679,16 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   selects the unit. The unit suffix comes from a resource
   (`distance_unit_km` / `distance_unit_m` / `size_unit_mb`), never from code.
   Do NOT use `Locale.ROOT` for display formatting.
+- **Coordinate strings are data, not display text**: they are the one exception
+  to locale-aware numbers (spec: `i18n-l10n` — Coordinate string is
+  locale-stable). Format them with `core/.../CoordinateFormat.kt` —
+  `formatCoordinatePair(lat, lon, pattern)` (the phone passes the
+  `coordinates_format` resource, the car uses the default pattern) and
+  `formatCoordinate(value)` for an input field's prefill — so a pair always
+  reads `51.51391, 7.47434` and never `51,51391, 7,47434`, which keeps
+  `DetailsResolver`'s coordinate-label detector working. Entry goes the other
+  way: `parseLatitude` / `parseLongitude` accept both `,` and `.`, so a
+  prefilled value can be saved unchanged and a German user may type a comma.
 - **Plurals**: count-dependent strings use `plurals.xml` (`one`/`other` for
   English and German) — e.g. `file_count`, `active_downloads`.
 - **Format args**: positional args use `%1$s`/`%2$s` so translators can

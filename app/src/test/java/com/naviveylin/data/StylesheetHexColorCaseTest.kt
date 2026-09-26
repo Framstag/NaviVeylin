@@ -2,6 +2,7 @@ package com.naviveylin.data
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -68,9 +69,14 @@ class StylesheetHexColorCaseTest {
     }
 
     /**
-     * Pins the two route colors introduced by `map-marker-route-contrast` in the
-     * shared route include, in their lowercase spelling, so the day/night branch
-     * and its casing constant stay wired to the stylesheet the app ships.
+     * Pins the route colors in the shared route include, in their lowercase
+     * spelling, so the day/night branch and its casing constant stay wired to the
+     * stylesheet the app ships. The daylight values come from change
+     * `daylight-palette-route-and-roads`: a translucent fill over an opaque,
+     * wider casing. The casing MUST stay opaque and MUST NOT carry an alpha
+     * byte, because that opacity is what keeps the composited centre colour
+     * independent of the road underneath it and therefore keeps a black street
+     * label readable on the route.
      */
     @Test
     fun sharedRouteIncludeCarriesThePresentationColors() {
@@ -78,10 +84,23 @@ class StylesheetHexColorCaseTest {
             .use { it.readBytes().decodeToString() }
 
         assertTrue("route include must branch on the daylight flag", route.contains("IF daylight"))
-        assertTrue("daylight route fill missing", route.contains("#7b1fa2"))
-        assertTrue("daylight route casing missing", route.contains("#311b92"))
+        assertTrue("daylight route fill missing", route.contains("#ba68c8d9"))
+        assertTrue("daylight route casing missing", route.contains("#6a1b9a"))
         assertTrue("route casing must be a constant, not an inline white", route.contains("@routeCasingColor"))
         assertTrue("dark presentation keeps the red fill", route.contains("#ff000088"))
+
+        // The invariant that makes a translucent daylight fill safe: the casing
+        // is opaque (six hex digits, no alpha byte), so the road colour
+        // underneath cannot reach the route centre.
+        val daylightCasing = route.substringAfter("COLOR routeCasingColor").substringBefore(";")
+        assertTrue(
+            "daylight casing must be the opaque literal #6a1b9a (no alpha byte): $daylightCasing",
+            daylightCasing.contains("#6a1b9a")
+        )
+        assertFalse(
+            "the daylight casing must not carry an alpha byte: $daylightCasing",
+            HEX_COLOR.find(daylightCasing)?.value?.length == 9
+        )
     }
 
     /**

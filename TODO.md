@@ -4,6 +4,23 @@
 
 ---
 
+## 80. The generic details title is the hardcoded literal "Location" — Found 2026-09-25 on `emulator-5554` (de-DE) during `fix-comma-decimal-coordinate-entry` (out of scope, i18n gap)
+
+- **Observed** ℹ: a `geo:` deep link to a coordinate with no address and no object name shows the details sheet title as the English "Location" on a German device, while the row labels around it are German ("Adresse:", "Gebiet:", "Anzeigen"). Source: `core/src/main/java/com/naviveylin/core/details/DetailsResolver.kt:128` — `return nameHint?.takeIf { it.isNotBlank() } ?: "Location"` is a Kotlin literal in `:core`, so it is not a resource and cannot be translated. The same string is the title on the car details screen (`auto/DetailsScreen.kt` uses the same resolver) and is pinned by specs/tests as the literal (spec `enhanced-details-sheet` — Coordinate label falls back to generic; `DetailsResolverTest.titleFallsBackToGeneric`, `LocationDetailsDialogComposeTest.coordinateLabelTitleShowsGenericLocation`).
+- **Why it is a gap** ℹ: `i18n-l10n` ("All user-facing text is translatable") allows no hardcoded user-facing literal, and the `HardcodedText` lint / `checkHardcodedStrings` gate only inspects `:app` and `:auto` UI code — a literal in `:core` is invisible to both. Same family as §30 (hardcoded notification strings).
+- **Fix candidate**: give the resolver an injected generic-title string (`resolveTitle(input, nameHint, genericTitle)`) or resource ids per module, with the phone passing `R.string.location_title`-style resources (a `values-de` entry included) and the car `:auto` equivalent; update the two tests that pin the literal and the `enhanced-details-sheet`/`auto-destination-details` wording. Touches both surfaces, so it is its own change.
+- **Adjacent device gap recorded here** ⏳: the car `DetailsScreen` coordinate row of `fix-comma-decimal-coordinate-entry` is covered by unit tests only — no car/AAOS device or head unit was attached during that change's on-device pass (the phone half ran on `emulator-5554`, API 37, de-DE). A car-side German-locale run on the AAOS AVD (`guidelines/Build.md` §10, TODO §40.45 harness limits) is still outstanding for that row.
+
+---
+## 79. The per-module unit-test task names in the run-tests skill are wrong for `:auto` and `:app` — Found 2026-09-25 during `fix-comma-decimal-coordinate-entry` (harness)
+
+- **Observed** ℹ: `./gradlew :auto:test --tests "com.naviveylin.auto.DetailsScreenTest"` fails immediately with `Problem configuring task :auto:test from command line. > Unknown command-line option '--tests'` — `:auto:test` is not filterable (it is not the AGP unit-test task). The working invocation is `./gradlew :auto:testDebugUnitTest --tests "<fqcn>"`. `:core:test` accepts `--tests` (verified with the same change). The `.pi/skills/run-tests` table documents `:app:testDebugUnitTest` (which does not exist — the `dist` flavor dimension splits it, §40 item 30 / §71) and lists no `:auto` task at all.
+- **Consequence** ℹ: a single-class run against `:auto` looks like a real build failure and costs a build cycle to diagnose; the skill is gitignored, so the fix has to happen on the machine that owns `.pi/skills/` (not in this repo).
+- **Fix candidate**: correct the run-tests table to the flavor/task matrix that actually exists (`:app:testMobileDebugUnitTest`, `:app:testAutomotiveDebugUnitTest`, `:auto:testDebugUnitTest`, `:core:test`), or add a filterable aggregate task per module.
+- **Evidence for the working names (2026-09-25)**: `:auto:testDebugUnitTest --tests com.naviveylin.auto.DetailsScreenTest --tests com.naviveylin.auto.NavigationTemplateMapperTest` → BUILD SUCCESSFUL, `DetailsScreenTest` 28 tests / 0 failures, `NavigationTemplateMapperTest` 59 / 0; `:core:test` 339 / 0; `./gradlew test` app mobile 1174 / automotive 1174 / auto 683 / core 339, all 0 failures.
+
+---
+
 ## 77. Words joined without a separator stay unmatched (`Bahnhof Straße` vs `Bahnhofstraße`) — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, boundary of the word rule)
 
 - **Observed** ℹ: `StringMatcherTransliterateToken` matches whole words across separators (space, hyphen, slash,
@@ -42,6 +59,50 @@
 
 ---
 
+## 74. The debug app ANRs on a cold emulator start with no map data, and the ANR trace is unreadable without root — Found 2026-09-24 during `compass-day-night-palette` task 7.3 (verification blocker, unverified)
+
+- **Observed** ℹ: on a fresh `Pixel_8` AVD (API 34, `-no-window -gpu swiftshader_indirect`), the freshly installed
+  `mobileDebug` APK starts, its native renderer initialises (stylesheet loaded, the usual empty-data
+  "Unknown type …" warnings), then the app shows `Application Not Responding: com.framstag.naviveylin` and the map
+  screen with its overlay column never appears — a screenshot of the running process contains none of the six
+  compass palette fills, so the on-device half of that change could not be verified.
+- **Not diagnosed** ✗: `adb root` does not take on this image (shell stays uid 2000) and `/data/anr/*` is
+  permission-denied, so the main-thread stack is unavailable; the `am_anr` event was already rotated out of the
+  events buffer. Whether this is an emulator/no-data artifact or a product defect is therefore unknown.
+- **Fix candidate**: reproduce with a basemap installed and a writable trace (`adb shell setprop` or a `userdebug`
+  image), and compare against the previous release build on the same AVD to separate a real regression from the
+  environment. Until then treat any on-device colour/lifecycle verification of that change as outstanding.
+
+---
+
+## 73. Two phone overlays still use fixed colors with no presentation branch — Found 2026-09-24 during `compass-day-night-palette` (out of scope, own change)
+
+- **Observed** ℹ: `app/src/main/java/com/naviveylin/ui/map/MiniMap.kt:91` (`gpsMarkerColor = Color(0xFF1A73E8)`) and
+  `app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:241-242` (accuracy fill 10 % / border 40 % of
+  `#4A90D9`) are literals with no presentation branch, while the vehicle marker right next to them branches through
+  `core/VehicleMarkerGeometry`. The compass was the only status-carrying overlay, so `compass-day-night-palette`
+  fixed that one and left these alone.
+- **Duplication** ℹ: the mini-map's marker blue repeats the vehicle marker's day blue — a single-source-of-truth
+  violation (`guidelines/Design.md` §12) that also means a palette change has to be made twice.
+- **Not caught** ✗: no spec scenario or test covers overlay colors on the mini map or the accuracy circle in dark
+  presentation.
+- **Fix candidate**: route both through the established palette-branch convention (the marker geometry object for the
+  marker, a small palette function for the accuracy ring) and add the dark case to whichever spec owns them.
+
+---
+
+## 72. The compass needle is stroked in raw pixels, so it thins on high-density screens — Found 2026-09-24 during `compass-day-night-palette` (out of scope, sizing/geometry)
+
+- **Observed** ℹ: `app/src/main/java/com/naviveylin/ui/map/CompassButton.kt` draws both needle halves with
+  `strokeWidth = 3f` — device pixels, not dp — while every other dimension in the same file is density-aware
+  (`needleLength = 10.dp.toPx()`, rim `1.dp.toPx()`, canvas 48.dp). On a 3.5× density screen the needle is ~0.86 dp
+  wide, i.e. visibly thinner than on a 1× screen.
+- **Not caught** ✗: no test asserts the needle's stroke width; `CompassButtonComposeTest` only pins the 56 dp layout
+  and `CompassPaletteTest` only the colors, so a density regression is invisible to the suite.
+- **Fix candidate**: use `3.dp.toPx()` (or a named dp constant) and pin it with a unit-tested geometry helper, the way
+  the phone palette now pins contrast instead of leaving it to review.
+
+---
 ## 71. Zoom-walk follow-ups from `fix-phone-zoom-animation-parity` — Found 2026-09-24 during that change (out of scope / pending device)
 
 - **On-device cost unmeasured** ⏳: the phone now walks a magnification change the frame in hand cannot serve
@@ -186,8 +247,9 @@
 
 - **Noticed 2026-09-18 during `car-turn-by-turn-rail-widget`** ℹ: the new automotive channel had to be named through a string resource (adding `values-de` entries for the name, description and the car hint text), which exposed that other notification channels and the phone formatter still carry user-facing text as Kotlin constants: `MapDownloadService.CHANNEL_NAME` (`app/src/main/java/com/naviveylin/service/MapDownloadService.kt`, a plain `private const val` passed to `NotificationChannel`), the navigation channel name that this change converted to `navigation_notification_channel_name`, and `NavigationNotificationContent.TITLE_NAVIGATION_ACTIVE` / `TITLE_FREE_DRIVING` (`app/src/main/java/com/naviveylin/service/NavigationNotificationContent.kt:63-64` — the formatter file was renamed since this note) plus the `"Offroad"` fallback in `currentRoadText` (`app/src/main/java/com/naviveylin/ui/navigation/NavigationStateOverlay.kt:245`). None of them are translatable today, yet `GermanTranslationCompletenessTest` and the app's `checkHardcodedStrings` gate only look at resource files and at Compose/`setTitle`-style literals — the gate also misses `NotificationChannel(id, CONSTANT, …)`. Fix candidate: move the remaining names/neutral labels into resources with German translations, and (optionally) teach `checkHardcodedStrings` to flag `NotificationChannel(` name arguments so the next channel cannot ship untranslated.
 
-## 31. Coordinate text is formatted with the default locale at several UI call sites
+## 31. Coordinate text is formatted with the default locale at several UI call sites — FIXED by `fix-comma-decimal-coordinate-entry` (2026-09-25)
 
+- **Fixed ✅** with §45 by the same change: every coordinate display site now goes through `core/CoordinateFormat.kt` (`FavoritesSheet` group row, `LocationDetailsSheet` via the `coordinates_format` resource pattern, `FavoritePickerDialog`, `MapCanvasViewModel` label fallback and long-press label, car `DetailsScreen` row), so a German device shows `51.50000, 7.40000` instead of the ambiguous `51,50000, 7,40000`. `guidelines/UI.md` ("Locale-aware numbers") now names the coordinate carve-out. Removed when the change is archived.
 - **Noticed 2026-09-18 during `car-turn-by-turn-rail-widget`** ℹ: the new destination fallback for the car trip metadata needed a coordinate string and the repo showed two conventions: `MapCanvasViewModel.kt:2332` formats the selected-location *label* with `String.format(Locale.US, "%.5f, %.5f", …)` for stability, while `FavoritePickerDialog.kt:135`, `FavoritesSheet.kt:619` and `MapCanvasViewModel.kt:2357` use `"%.5f, %.5f".format(lat, lon)` with the default locale — in German that renders `52,51628, 13,37770`, and the comma between the two numbers makes the pair ambiguous to read. The car mapper deliberately uses `Locale.US`. Fix candidate: one shared `formatCoordinates(lat, lon)` helper in `:core` using `Locale.US`, used by every display site (and by the map logs that print the centre).
 
 ## 32. Phone notification neutral strings duplicated by the car hint resources
@@ -395,9 +457,11 @@ GPS back                     →  REAL
 
 - **Found 2026-09-20 during `fix-favorite-store-write-race` (full-suite build)** ℹ: `./gradlew test --continue --rerun-tasks` prints 66 Kotlin warnings, none of them from that change's files. Beyond `LocationMarkerOverlay.kt:167` (already tracked as §37), three classes are untracked: (a) `app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:35` — "This annotation is currently applied to the value parameter only, but in the future it will also be applied to field" (annotation-target migration, a hard change in a future Kotlin); (b) `app/src/test/java/com/naviveylin/data/AmbientLightMonitorTest.kt:35` — Robolectric's `ShadowSensorManager.addSensor` is deprecated in Java; (c) the `ExperimentalCoroutinesApi` opt-in warnings spread over ~13 test files (`MapCanvasViewModelAutoZoomCommitTest`, `MapCanvasViewModelRoadInfoTest`, `MapCanvasViewModelSingleFollowCenterTest`, `RoutePanelViewModelSearchRankingTest`, ...). The archiving guidance requires a warning-free build, so this is build-hygiene debt rather than a defect. Fix candidate: one build-hygiene change that adds the missing `@OptIn` annotations, replaces the deprecated shadow call, and sets the annotation target explicitly.
 
-## 45. Add-favourite dialog cannot save on a comma-decimal locale
+## 45. Add-favourite dialog cannot save on a comma-decimal locale — FIXED by `fix-comma-decimal-coordinate-entry` (2026-09-25)
 
-- **Found 2026-09-20 during the on-device smoke run of `fix-favorite-store-write-race` (Pixel_8 AVD, German device locale)** ✗: `FavoritesSheet`'s add-favourite dialog prefills the coordinate fields with `"%.5f".format(initialLat)` / `format(initialLon)` (`app/src/main/java/com/naviveylin/ui/favorites/FavoritesSheet.kt:938-941`) — no explicit locale, so a German device shows `51,51391` / `7,47434` — while the confirm path parses with `latText.toDoubleOrNull()` / `lonText.toDoubleOrNull()` (`:977-978`) and gates the button on `enabled = name.isNotEmpty() && latText.toDoubleOrNull() != null && lonText.toDoubleOrNull() != null` (`:983`). `toDoubleOrNull()` accepts a dot only, so the prefilled comma form can never be parsed: **the Save button is inert and the favourite cannot be added at all** — no error, no feedback, the dialog simply stays open. Proven on-device: with the prefilled comma coordinates Save does nothing and `files/favorites.json` keeps its previous mtime; after retyping the same values with dots (`51.5` / `7.4`) the save succeeds immediately and the entry appears in the file and survives a restart. This is the §31 / §40.26 family (default-locale number formatting) with a functional consequence rather than a display nuisance, on the app's primary non-English locale (the display in the group view then shows the ambiguous `51,50000, 7,40000`). Fix candidate: one shared coordinate formatter/parser with an explicit locale (format with `Locale.US`/`Locale.ROOT`, accept both `.` and `,` when parsing), used by the dialog and the §31 display sites, plus a unit test for the comma-decimal case.
+- **Fixed ✅** by change `fix-comma-decimal-coordinate-entry` (spec: `fav-management-ui` — Coordinate entry accepts either decimal separator; `i18n-l10n` — Coordinate string is locale-stable): new `:core` seam `core/CoordinateFormat.kt` (`formatCoordinatePair`, `formatCoordinate`, `parseLatitude`, `parseLongitude`) formats coordinate strings with a fixed locale and parses both `.` and `,`. The dialog prefills through the formatter and parses through the parser, so the prefilled map center saves unchanged; `FavoritesSheet`'s row, `LocationDetailsSheet`, `FavoritePickerDialog`, `MapCanvasViewModel` (long-press label + candidate label fallback) and the car `DetailsScreen` row all go through the same helper. Tests: `CoordinateFormatTest` (11), `AddFavoriteDialogComposeTest` (6, incl. the German-locale prefill round-trip and the rejected `51,51,391` / out-of-range cases), `FavoriteItemComposeTest`, `FavoritePickerItemComposeTest`, `DetailsResolverTest.titleExcludesTheCoordinateLabelTheAppActuallyProduces`, `DetailsScreenTest` (locale-stable row + destination-text agreement). Evidence: `./gradlew test` green — app mobile 1174 / automotive 1174 / auto 683 / core 339, 0 failures; both flavor debug APKs build with no new warnings. This entry is removed when the change is archived.
+- **Original finding 2026-09-20 during the on-device smoke run of `fix-favorite-store-write-race` (Pixel_8 AVD, German device locale)** ✗: `FavoritesSheet`'s add-favourite dialog prefills the coordinate fields with `"%.5f".format(initialLat)` / `format(initialLon)` (`app/src/main/java/com/naviveylin/ui/favorites/FavoritesSheet.kt:938-941`) — no explicit locale, so a German device shows `51,51391` / `7,47434` — while the confirm path parses with `latText.toDoubleOrNull()` / `lonText.toDoubleOrNull()` (`:977-978`) and gates the button on `enabled = name.isNotEmpty() && latText.toDoubleOrNull() != null && lonText.toDoubleOrNull() != null` (`:983`). `toDoubleOrNull()` accepts a dot only, so the prefilled comma form can never be parsed: **the Save button is inert and the favourite cannot be added at all** — no error, no feedback, the dialog simply stays open. Proven on-device: with the prefilled comma coordinates Save does nothing and `files/favorites.json` keeps its previous mtime; after retyping the same values with dots (`51.5` / `7.4`) the save succeeds immediately and the entry appears in the file and survives a restart. This is the §31 / §40.26 family (default-locale number formatting) with a functional consequence rather than a display nuisance, on the app's primary non-English locale (the display in the group view then shows the ambiguous `51,50000, 7,40000`). Fix candidate: one shared coordinate formatter/parser with an explicit locale (format with `Locale.US`/`Locale.ROOT`, accept both `.` and `,` when parsing), used by the dialog and the §31 display sites, plus a unit test for the comma-decimal case.
+- **On-device re-check done 2026-09-25** ✅ on `emulator-5554` (API 37, locale `de-DE`): the dialog prefilled `51.51391` / `7.47434`, Save was enabled after typing only the name, and the favourite landed in `files/favorites.json` (`Testort`, 51.51391 / 7.47434) with the group count going 1 → 2. The group row showed `51.51391, 7.47434` afterwards. Full evidence in `openspec/changes/fix-comma-decimal-coordinate-entry/tasks.md` task 5.2. `FavoritesSheet`'s add-favourite dialog prefills the coordinate fields with `"%.5f".format(initialLat)` / `format(initialLon)` (`app/src/main/java/com/naviveylin/ui/favorites/FavoritesSheet.kt:938-941`) — no explicit locale, so a German device shows `51,51391` / `7,47434` — while the confirm path parses with `latText.toDoubleOrNull()` / `lonText.toDoubleOrNull()` (`:977-978`) and gates the button on `enabled = name.isNotEmpty() && latText.toDoubleOrNull() != null && lonText.toDoubleOrNull() != null` (`:983`). `toDoubleOrNull()` accepts a dot only, so the prefilled comma form can never be parsed: **the Save button is inert and the favourite cannot be added at all** — no error, no feedback, the dialog simply stays open. Proven on-device: with the prefilled comma coordinates Save does nothing and `files/favorites.json` keeps its previous mtime; after retyping the same values with dots (`51.5` / `7.4`) the save succeeds immediately and the entry appears in the file and survives a restart. This is the §31 / §40.26 family (default-locale number formatting) with a functional consequence rather than a display nuisance, on the app's primary non-English locale (the display in the group view then shows the ambiguous `51,50000, 7,40000`). Fix candidate: one shared coordinate formatter/parser with an explicit locale (format with `Locale.US`/`Locale.ROOT`, accept both `.` and `,` when parsing), used by the dialog and the §31 display sites, plus a unit test for the comma-decimal case.
 
 ## 38. A rejected stylesheet crashes the renderer instead of degrading
 
@@ -521,8 +585,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 29. For car-app screens, check the real API surface first (getter names, resolved lifecycle version, no
     `Lifecycle.getObservers()`); drive lifecycle through `dispatchLifecycleEvent`, ON_CREATE + ON_START
     before ON_DESTROY. **[open]**
-30. `:app:testDebugUnitTest` does not exist (two distribution flavors) — always use the flavor-qualified
-    task name. **[open]** (guidelines/Build.md)
 
 ### D. Test / verification discipline
 
@@ -714,52 +776,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   `adb logcat -d | grep 'Diag/HOST'` for what the app last sent. A package replace/force-stop in the
   window means the harness artifact (`guidelines/Build.md` §10); no such line means an app-side defect.
 
-## 52. A host callback runs the native stylesheet-flag push — Found 2026-09-21 (review of the `fix-aaos-host-crash` surface path)
-
-- **Defect** ✗: `onCarSurfaceAvailable` is a host `SurfaceCallback` and calls `pushDark()`
-  (`MapScreen.kt:511`, `NavigationScreen.kt:801`), which reaches
-  `client.setStyleSheetFlag("daylight", …)` (`MapScreen.kt:112-120`, `NavigationScreen.kt:103-105`)
-  through `CarDaylightApplier.apply`. The native side (`OSMScoutClient.cpp:788-807`) forwards to
-  `dbThread->SetStyleFlag`, so the callback schedules a stylesheet **reload** on the DB thread. That
-  contradicts the change's own rule that a host callback only retains state, and the first surface
-  arrival is exactly the moment the client/DB may still be initializing.
-- **Also a crash path** ℹ: the flag push is one of the load paths a rejected stylesheet travels
-  (`wasLastStyleLoadSuccessful`, see `fix-stylesheet-load-crash`), so it puts that work on the host's
-  answering path.
-- **Fix candidate**: publish the resolved value into the renderer gate / a `StateFlow` and let the
-  existing background collector apply it off the main thread (the `rendererGate.surfaceDpi` collector
-  pattern, `MapScreen.kt:273-282`). Verify with a test that `onCarSurfaceAvailable` performs no client
-  call (fake client recording the calling thread).
-
-## 53. The tap path resolves the native client on the main thread — Found 2026-09-21 (same review)
-
-- **Defect** ✗: `MapScreen.onCarClick` (`MapScreen.kt:619-631`) → `onLocationSelected`
-  (`:655-656`) evaluates `entryPoint.autoClientProvider().client()` **before** entering the coroutine,
-  i.e. on the host-callback main thread. `client()` builds the native client (stylesheet sync,
-  `dlopen`, native setup) on first touch, so a tap before/while warmup completes blocks the main
-  thread and delays the answer to the host's click call.
-- **Fix candidate**: move the `client()` resolution inside the existing
-  `withContext(Dispatchers.Default)` block; the value is only used there anyway.
-
-## 54. Car surface release bookkeeping is inverted for re-delivery, and the surface host is a singleton with per-session state — Found 2026-09-21 (same review)
-
-- **Defect (release bookkeeping)** ✗: `SessionCarSurfaceHost` keeps `released` as a permanent identity
-  set (`SessionCarSurfaceHost.kt:48-49`, used by `release()` at `:182`) so a duplicate destroy cannot
-  release twice. The car-app contract is per *delivery*: "every instance of `android.view.Surface`
-  received through this method must be released by calling `Surface.release()`"
-  (`androidx/car/app/SurfaceCallback.java:35-37`). If the host re-delivers the **same** instance after
-  a destroy, the guard suppresses that release forever → a leaked buffer-queue producer reference per
-  occurrence (adds to the §49 graphics ledger).
-- **Defect (singleton session state)** ✗: `provideCarSurfaceHost()` is `@Singleton`
-  (`AutoServiceModule.kt:94-96`) while `registered`/`carContext`/`active`/`owner` are per-session
-  state. `startSession` returns early on `registered` and keeps the old context, so a session whose
-  `endSession` never ran (host dropped the connection) leaves the next session without a registered
-  callback — a stuck map, not a crash.
-- **Fix candidate**: track only the currently-held surface plus a per-delivery "release owed" flag
-  instead of a permanent set, and refresh `carContext` / reset `registered` when `startSession` is
-  called with a different context. Extend `CarSurfaceHostTest`: same instance delivered twice →
-  released twice; `endSession` then `startSession(newContext)` → registers again.
-
 ## 56. Trip publishing is the one host sender that deliberately keeps firing while the session is stopped — Found 2026-09-21 (same review)
 
 - **Observation** ℹ: `NavigationSession.kt:573-579` collects every navigation-state emission and calls
@@ -788,47 +804,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Fix candidate**: move them onto the same per-start tracking that change introduces, or stop them in
   `onStop` and restart in `onStart`.
 
-## 59. An exception escaping a car screen observation kills the app process — Found 2026-09-21 during `fix-car-screen-observer-leak` (out of scope, own change)
-
-- **Observation** ℹ: every screen observation runs in a child of
-  `CoroutineScope(SupervisorJob() + Dispatchers.Main)` with no `CoroutineExceptionHandler`, so an
-  exception thrown inside a collector body is delivered to the thread's uncaught handler on the main
-  thread — the process dies, not just that observation. The bodies call native client methods
-  (`getRoadAt`), renderer gate setters and `Screen.invalidate()`, so the exposure is real. Only the
-  free-driving fix body was guarded (a `runCatching` the change preserved verbatim in
-  `FreeDrivingScreenObservations`); the browse and navigation bodies were not.
-- **Why it matters for host triage** ℹ: an app-process death while a car session is live is exactly
-  the input of the host failure in §51, so an unguarded observation is an app-process killer, not
-  a local robustness gap.
-- **Not part of `fix-car-screen-observer-leak`**: that change is deliberately behaviour-neutral on
-  faults (it moved the bodies verbatim). Fix candidate: confine faults in the seam's `observe()` —
-  which would give all three screens the guarantee `SessionCarSurfaceHost.dispatch` already provides
-  for host callbacks — and cover it with a test that a throwing observation leaves its siblings
-  running. Decide per screen whether a swallowed fault should also be visible to the user.
-
-## 60. The ongoing-navigation notification and the car map-style notice share notification id 1002 — Found 2026-09-21 (car notification path review, during host-crash triage)
-
-- **Defect** ✗: `NavigationNotificationService.NOTIFICATION_ID = 1002`
-  (`app/src/main/java/com/naviveylin/service/NavigationNotificationService.kt:219`) and
-  `CarStyleLoadNotifier.NOTIFICATION_ID = 1002`
-  (`auto/src/main/java/com/naviveylin/auto/CarStyleLoadNotifier.kt:92`) are posted from the **same
-  process with tag `null`**, so they are the same platform notification key and each post replaces the
-  other. `MapDownloadService` uses 1001 and does not collide.
-- **Consequence** ℹ: while navigating, that notification is both the foreground-service notification
-  and the car rail-widget turn hint (the `CarAppExtender`), so a map-style failure notice — different
-  channel (`map_style`), `IMPORTANCE_LOW`, **not** an FGS notification, `setAutoCancel(true)` — posted
-  on the same id takes the hint off the rail widget and leaves the foreground service represented by a
-  foreign, user-cancellable notification; the next navigation post withdraws the style message
-  instead. The style path is not rare: it fires per **screen start** (`MapScreen.kt:93-102`,
-  `NavigationScreen.kt:93` → `reportCarStyleLoadFailure` → `notify`,
-  `CarStyleLoadNotifier.kt:36-48`), so a rejected stylesheet produced a notification flip on every
-  map/navigation screen entry.
-- **Not caught** ✗: no test asserts notification-id uniqueness, and the two ids live in different
-  modules with no shared constant.
-- **Fix candidate**: one shared `NotificationIds` source in `:app` (navigation 1002, map style 1003,
-  download 1001) consumed by both callers, plus a unit test that the ids are distinct and that the
-  style notice never posts on the navigation id. Cheap, additive, no spec change.
-
 ## 63. The car path never configures the native tile data cache, and the phone path's value leaks into it — Found 2026-09-21 (same review; spec deviation)
 
 - **Deviation** ✗ from spec `native-tile-data-cache` ("the system SHALL set the capacity … on every
@@ -847,3 +822,26 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Fix candidate**: configure the cache in the one place both surfaces open databases from (a `:core`
   seam) with a value chosen per surface, or accept the library default on the car and record the
   deviation in the spec. Decide the value with `dumpsys meminfo` native-heap numbers on a head unit.
+
+## 78. Overrun-window offset math lives in `FollowPrediction` and the follow overlay path is not unified — Found 2026-09-24 (while fixing the phone pan tracking)
+
+- **Debt** ℹ: `FollowPrediction.displayOffsetPx` is now the single offset helper for follow scrolling,
+  the pan display window and the renderer's coverage predicate (`MapRenderer.overrunWindowCovers`),
+  but it still lives on `FollowPrediction` (a prediction class) and its `anchor` parameter carries the
+  follow anchor, so the name misleads. The pan/coverage use is the default (center) anchor — the
+  absolute overrun-window shift.
+- **Fix candidate**: move it (with `DisplayOffset`) into a neutral home, e.g.
+  `core/OverrunWindow.kt` as `OverrunWindow.shiftPx(...)`, and update the follow call site, the pan
+  path (`MapCanvasScreen.panWindowOffset`), the renderer predicate and the tests
+  (`FollowAnchorFramingTest`, `MapPanDisplayWindowTest`, `MapPanHandlerTest` on the AA side).
+- **Debt** ℹ: the follow overlay projection expresses the drift through the anchor center of the
+  displayed position (geo), while the pan path translates the overlay layer by the clamped offset
+  (`markerDisplayShiftPx`). Both are correct today (and mutually exclusive: a pan disengages follow),
+  but two mechanisms for one rule invite a double application. The unified end state is one derived
+  **displayed viewport** (frame viewport shifted by the clamped offset via `screenToGeoRotated`) that
+  every overlay projects against in both modes.
+- **Why deferred** ✗: the follow pipeline (and its blit offset call site) was being edited by the
+  in-flight change `fix-phone-follow-blit-anchor-mismatch`; unifying then would have mixed two
+  changes in one verified path.
+- **Not caught** ✗: `MapPanDisplayWindowTest`/`MarkerDisplayShiftTest` pin the pan-side contract; the
+  duplication itself has no test, only the rule that a follow-mode overlay shift must stay zero.

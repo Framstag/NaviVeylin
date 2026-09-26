@@ -110,15 +110,24 @@ class AutoMapRenderer(
     @Volatile private var gpsMarkerVisible = false
 
     // Resolved dark presentation (preference x host signal) — drives the
-    // scheme-aware marker casing (white in day, deep blue-black in dark) and
-    // is pushed by the screen alongside the native stylesheet daylight flag.
+    // scheme-aware palettes of the surface-drawn overlays: the vehicle marker
+    // casing (white in day, deep blue-black in dark) and the compass rose
+    // palette. Set by the screen once the native stylesheet daylight flag has
+    // actually been applied, so the overlays and the map variant never disagree.
     @Volatile
     private var darkPresentation = false
 
-    /** Update the dark presentation used by surface-drawn overlays (marker casing). */
+    /** Update the dark presentation used by surface-drawn overlays. */
     fun setDarkPresentation(dark: Boolean) {
         darkPresentation = dark
     }
+
+    /**
+     * Presentation currently applied to the map variant and the overlays — the
+     * value surface-drawn overlays (compass rose) must use, so the palette can
+     * never belong to the other presentation than the map underneath.
+     */
+    fun currentDarkPresentation(): Boolean = darkPresentation
 
     @Volatile private var favoriteLats: DoubleArray? = null
     @Volatile private var favoriteLons: DoubleArray? = null

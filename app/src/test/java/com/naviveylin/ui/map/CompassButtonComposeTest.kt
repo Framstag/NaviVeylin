@@ -37,6 +37,7 @@ class CompassButtonComposeTest {
             CompassButton(
                 mapAngleRadians = 0.0,
                 gpsFixQuality = GpsFixQuality.GOOD,
+                isDarkPresentation = false,
                 onCenterClick = { centerClicks++ },
                 onToggleOrientation = { toggleClicks++ }
             )
@@ -56,6 +57,7 @@ class CompassButtonComposeTest {
             CompassButton(
                 mapAngleRadians = 0.0,
                 gpsFixQuality = GpsFixQuality.POOR,
+                isDarkPresentation = true,
                 onCenterClick = { centerClicks++ },
                 onToggleOrientation = { toggleClicks++ }
             )
@@ -75,6 +77,7 @@ class CompassButtonComposeTest {
             CompassButton(
                 mapAngleRadians = 0.0,
                 gpsFixQuality = GpsFixQuality.GOOD,
+                isDarkPresentation = false,
                 onCenterClick = {},
                 onToggleOrientation = {}
             )
@@ -98,6 +101,7 @@ class CompassButtonComposeTest {
             CompassButton(
                 mapAngleRadians = mapAngle,
                 gpsFixQuality = GpsFixQuality.GOOD,
+                isDarkPresentation = true,
                 onCenterClick = {},
                 onToggleOrientation = {}
             )
@@ -116,6 +120,7 @@ class CompassButtonComposeTest {
             CompassButton(
                 mapAngleRadians = 0.0,
                 gpsFixQuality = GpsFixQuality.GOOD,
+                isDarkPresentation = false,
                 onCenterClick = {},
                 onToggleOrientation = {}
             )
@@ -128,9 +133,21 @@ class CompassButtonComposeTest {
     fun fillColorReflectsGpsFixQuality() {
         // Spec: compass-button — GPS fix status fill color. The palette itself is
         // internal; what the spec requires (and what must not regress with the
-        // needle change) is that the three fix qualities stay distinguishable.
-        val colors = listOf(GpsFixQuality.NONE, GpsFixQuality.POOR, GpsFixQuality.GOOD)
-            .map { compassFillColor(it) }
-        assertEquals("one distinct fill color per fix quality", 3, colors.toSet().size)
+        // needle change) is that the three fix qualities stay distinguishable —
+        // in EACH presentation, with the hue family carried across both.
+        val qualities = listOf(GpsFixQuality.NONE, GpsFixQuality.POOR, GpsFixQuality.GOOD)
+        for (dark in listOf(false, true)) {
+            val colors = qualities.map { compassFillColor(it, isDarkPresentation = dark) }
+            assertEquals(
+                "one distinct fill color per fix quality (dark=$dark)",
+                3, colors.toSet().size
+            )
+            assertTrue(
+                "every quality must use a different tone in dark presentation (dark=$dark)",
+                qualities.none { c ->
+                    compassFillColor(c, false) == compassFillColor(c, true)
+                }
+            )
+        }
     }
 }

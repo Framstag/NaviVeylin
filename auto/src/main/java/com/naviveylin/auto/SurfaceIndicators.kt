@@ -36,6 +36,18 @@ object SurfaceIndicators {
     private const val ROSE_BG = 0xCC1C1B1F.toInt()
     private const val ROSE_FG = 0xFFFFFFFF.toInt()
     private const val ROSE_NORTH = 0xFFE53935.toInt()
+    /**
+     * Night-presentation rim of the compass rose. The chip tone itself is only
+     * 1.03:1 against dark map land (~#1E1E1E at the same alpha), so the rose body
+     * disappears at night and only the ticks and the pointer would float. A
+     * brighter chip is not the fix: a mid grey lifts chip/land to at most 2.44:1
+     * while dropping the red north pointer to 1.62-2.68:1, below the 3:1
+     * non-text floor. The rim restores the body edge (~15:1 against dark land)
+     * without touching the chip or the pointer contrast (spec: auto-map-layout —
+     * Compass rose follows the resolved surface presentation).
+     */
+    private const val ROSE_RIM_NIGHT = 0x66E8EAED.toInt()
+    internal const val ROSE_RIM_WIDTH_DP = 1.5f
     private const val BADGE_BG = 0xCC1C1B1F.toInt()
     private const val BADGE_FG = 0xFFFFFFFF.toInt()
     // Overspeed warning: the badge fill turns red-600 at the same 0xCC
@@ -43,6 +55,40 @@ object SurfaceIndicators {
     // auto-map-layout — Limit exceeded warning: red background with white
     // text). Same hue as the speed-limit sign ring and the phone widget.
     private const val BADGE_WARN_BG = 0xCCE53935.toInt()
+
+    /**
+     * Colors of the compass rose for one presentation. The geometry never depends
+     * on this (spec: auto-map-layout — Rose geometry is presentation-independent).
+     * [rim] is null in day presentation, where the dark chip already separates
+     * from light map land.
+     */
+    internal data class RosePalette(
+        val chip: Int,
+        val foreground: Int,
+        val north: Int,
+        val rim: Int?
+    )
+
+    /**
+     * Rose palette for the resolved surface presentation. Day keeps the original
+     * colors exactly; night adds the body rim (see [ROSE_RIM_NIGHT]) and keeps
+     * the chip, tick and pointer colors, which are the highest-contrast pairing
+     * available on a dark chip.
+     */
+    internal fun rosePalette(darkPresentation: Boolean): RosePalette = if (darkPresentation) {
+        RosePalette(ROSE_BG, ROSE_FG, ROSE_NORTH, ROSE_RIM_NIGHT)
+    } else {
+        RosePalette(ROSE_BG, ROSE_FG, ROSE_NORTH, null)
+    }
+
+    /**
+     * Stroke centerline of the night body rim. Always inside the chip, so the rim
+     * cannot change the rose's silhouette or its size: the drawn outer edge
+     * (`rimRadius + width/2`) stays at the chip radius (spec: auto-map-layout —
+     * Rose geometry is presentation-independent).
+     */
+    internal fun roseRimRadiusPx(compassRadius: Float, density: Float): Float =
+        compassRadius - ROSE_RIM_WIDTH_DP * density / 2f
 
     /** Geometry of the indicator block at the top-right of the usable area. */
     data class IndicatorGeometry(
@@ -133,6 +179,8 @@ object SurfaceIndicators {
      * Draw the indicators. [angleRadians] rotates the rose so north points
      * correctly; [currentKmH]/[maxKmH] drive the speed badge (red background
      * with white text when over the limit), omitted when NaN.
+     * [darkPresentation] selects the rose palette (the resolved presentation of
+     * the surface this is drawn on) and never changes any geometry.
      */
     fun draw(
         canvas: Canvas,
@@ -141,6 +189,7 @@ object SurfaceIndicators {
         stableBounds: Rect,
         density: Float,
         angleRadians: Double,
+        darkPresentation: Boolean,
         currentKmH: Double = Double.NaN,
         maxKmH: Double = Double.NaN,
         overLimitDeltaKmh: Int = 5,
@@ -155,7 +204,7 @@ object SurfaceIndicators {
             showSpeed = hasSpeed,
             showSpeedLimit = drawSpeedLimitSign && maxKmH > 0.0
         )
-        drawRose(canvas, g, angleRadians, density)
+        drawRose(canvas, g, angleRadians, density, rosePalette(darkPresentation))
         val badge = g.badgeRect
         if (badge != null) {
             drawSpeedBadge(canvas, badge, density, currentKmH, maxKmH, overLimitDeltaKmh)
@@ -166,12 +215,32 @@ object SurfaceIndicators {
         }
     }
 
-    private fun drawRose(canvas: Canvas, g: IndicatorGeometry, angleRadians: Double, density: Float) {
+    private fun drawRose(
+        canvas: Canvas,
+        g: IndicatorGeometry,
+        angleRadians: Double,
+        density: Float,
+        palette: RosePalette
+    ) {
         val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = ROSE_BG
+            color = palette.chip
             style = Paint.Style.FILL
         }
         canvas.drawCircle(g.compassCenterX, g.compassCenterY, g.compassRadius, bg)
+
+        // Night body rim, drawn inside the chip so the rose's geometry (radius,
+        // center) is identical in both presentations.
+        palette.rim?.let { rimColor ->
+            val width = ROSE_RIM_WIDTH_DP * density
+            val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = rimColor
+                style = Paint.Style.STROKE
+                strokeWidth = width
+            }
+            canvas.drawCircle(
+                g.compassCenterX, g.compassCenterY, roseRimRadiusPx(g.compassRadius, density), rimPaint
+            )
+        }
 
         canvas.save()
         // North pointer rendered at the screen direction of north, per the
@@ -183,7 +252,7 @@ object SurfaceIndicators {
         )
 
         val tickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = ROSE_FG
+            color = palette.foreground
             style = Paint.Style.STROKE
             strokeWidth = 1.5f * density
             strokeCap = Paint.Cap.ROUND
@@ -203,7 +272,7 @@ object SurfaceIndicators {
 
         // North pointer (red) above the north tick
         val north = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = ROSE_NORTH
+            color = palette.north
             style = Paint.Style.FILL
         }
         val tri = Path().apply {

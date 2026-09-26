@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Rect
 import com.naviveylin.core.ProjectionUtils
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -96,6 +97,7 @@ class SurfaceIndicatorsTest {
         val canvas = Canvas(Bitmap.createBitmap(1920, 1080, Bitmap.Config.ARGB_8888))
         SurfaceIndicators.draw(
             canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density, angleRadians = 0.0,
+            darkPresentation = false,
             currentKmH = 50.0, maxKmH = 30.0, drawSpeedLimitSign = true
         )
     }
@@ -103,13 +105,18 @@ class SurfaceIndicatorsTest {
     @Test
     fun drawDoesNotFail() {
         val canvas = Canvas(Bitmap.createBitmap(1920, 1080, Bitmap.Config.ARGB_8888))
-        SurfaceIndicators.draw(canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density, angleRadians = 1.2)
+        SurfaceIndicators.draw(
+            canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density, angleRadians = 1.2,
+            darkPresentation = true
+        )
         SurfaceIndicators.draw(
             canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density, angleRadians = 0.0,
+            darkPresentation = false,
             currentKmH = 95.0, maxKmH = 80.0
         )
         SurfaceIndicators.draw(
             canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density, angleRadians = 0.0,
+            darkPresentation = true,
             currentKmH = 50.0, maxKmH = 80.0
         )
     }
@@ -122,11 +129,13 @@ class SurfaceIndicatorsTest {
         val canvas = Canvas(Bitmap.createBitmap(1920, 1080, Bitmap.Config.ARGB_8888))
         SurfaceIndicators.draw(
             canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density, angleRadians = 0.0,
+            darkPresentation = false,
             currentKmH = -1.0, maxKmH = -1.0, drawSpeedLimitSign = true
         )
         // Unknown limit must not render the limit sign either.
         SurfaceIndicators.draw(
             canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density, angleRadians = 0.0,
+            darkPresentation = true,
             currentKmH = 50.0, maxKmH = -1.0, drawSpeedLimitSign = true
         )
     }
@@ -149,8 +158,59 @@ class SurfaceIndicatorsTest {
         val canvas = Canvas(Bitmap.createBitmap(1920, 1080, Bitmap.Config.ARGB_8888))
         SurfaceIndicators.draw(
             canvas, 1920, 1080, Rect(0, 0, 1920, 1080), density,
-            angleRadians = Math.toRadians(-270.0)
+            angleRadians = Math.toRadians(-270.0),
+            darkPresentation = true
         )
+    }
+
+    @Test
+    fun dayPaletteKeepsTheOriginalRoseColors() {
+        // Day presentation must be unchanged by this change: the original chip,
+        // ticks and north pointer, and no rim (the dark chip already separates
+        // from light map land at 15.9:1).
+        val day = SurfaceIndicators.rosePalette(darkPresentation = false)
+        assertEquals(0xCC1C1B1F.toInt(), day.chip)
+        assertEquals(0xFFFFFFFF.toInt(), day.foreground)
+        assertEquals(0xFFE53935.toInt(), day.north)
+        assertNull("day presentation needs no body rim", day.rim)
+    }
+
+    @Test
+    fun nightPaletteAddsABodyRimAndKeepsTheChartColors() {
+        // Spec: auto-map-layout — Night presentation uses the night palette,
+        // Compass rose follows the resolved surface presentation. The chip tone,
+        // ticks and pointer stay (they carry the best contrast on a dark chip:
+        // 17.1:1 and 4.1:1); the rim is what restores the body edge, because the
+        // chip alone is 1.03:1 against dark map land.
+        val day = SurfaceIndicators.rosePalette(darkPresentation = false)
+        val night = SurfaceIndicators.rosePalette(darkPresentation = true)
+        assertEquals(day.chip, night.chip)
+        assertEquals(day.foreground, night.foreground)
+        assertEquals(day.north, night.north)
+        assertNotNull("night presentation needs the body rim", night.rim)
+    }
+
+    @Test
+    fun nightRimStaysInsideTheChip() {
+        // Spec: auto-map-layout — Rose geometry is presentation-independent. The
+        // rim's outer edge must land exactly on the chip radius and never outside
+        // it, so adding the night rim cannot move, grow or shrink the rose. The
+        // shadowed test canvas discards the draws (project convention), so this is
+        // the checkable invariant; the appearance is reviewed on the head unit.
+        for (radius in listOf(28f, 56f, 112f)) {
+            for (density in listOf(1.0f, 2.0f, 3.5f)) {
+                val width = SurfaceIndicators.ROSE_RIM_WIDTH_DP * density
+                val rimRadius = SurfaceIndicators.roseRimRadiusPx(radius, density)
+                assertTrue(
+                    "rim outer edge ${rimRadius + width / 2f} must not exceed the chip radius $radius",
+                    rimRadius + width / 2f <= radius + 0.001f
+                )
+                assertTrue(
+                    "rim must keep a positive radius (was $rimRadius at density $density)",
+                    rimRadius - width / 2f > 0f
+                )
+            }
+        }
     }
 
     @Test

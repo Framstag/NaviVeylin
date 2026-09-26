@@ -27,9 +27,11 @@ travel while the map itself rotates at its own pace.
   `val tilePath = renderMode == RenderMode.TILES && (job.angle == 0.0 || !job.forceFullRender)`
   - Tile path bails (→ full native render) on antimeridian views, tile render failure, or a tile
     grid wider than the 4×4 sanity guard.
-- The overrun buffer allows sub-region blits for small pans before a full render is needed.
-- Both paths MUST ALWAYS deliver a screen-sized frame to `_frontBufferFlow`. An overrun-sized
-  frame in the UI = bug (wrongly scaled, marker offset).
+- The overrun buffer is what the display shows: the frame emitted to the UI is the OVERRUN-sized
+  front buffer (`crop = false`), drawn at natural size and positioned by the **display offset**
+  described in §13. A screen-sized crop in the UI is the old (pre-overrun-window) contract —
+  do not reintroduce it: the follow scroll and the pan window both need the margin around the
+  visible area.
 - **Overlay stage (final):** the GPS marker is NOT part of the native render. After a frame is
   emitted, `MapCanvasScreen` composes `LocationMarkerOverlay` on top of the displayed bitmap.
   Tiles, back buffer, and front buffer contain only static map content — never the marker.
@@ -395,6 +397,13 @@ Provider-aware inside `LocationService` only:
 ## 12. Front-Buffer Emission
 
 - Emit the finished frame as long as epoch AND magnification match the job.
+- **The emitted bitmap is the overrun front buffer; the emitted viewport is the frame's OWN
+  viewport** (center, mag, angle the pixels were rendered with). The display positions the frame
+  with the derived display offset (§13) and every overlay projects against that viewport — never
+  against `currentViewport` (the target of a render that has not landed).
+- **Unchanged-frame reuse** compares the front-buffer sequence AND the previously emitted bitmap's
+  own dimensions — a canvas-size change (rotation, fold, resize) must always produce a new
+  emission, otherwise a stale crop is re-emitted.
 - **Fractional magnification (continuous pinch)**: the committed viewport magnification is a
   `Double` zoom level (z, fractional from continuous pinch commits). Kotlin-internal magnification
   is always a *level-style* value; the JNI render/projection boundary converts to the libosmscout
@@ -408,28 +417,61 @@ Provider-aware inside `LocationService` only:
   snapshot is emitted with the frame (`frameFlow`) — the overlay reads that frame's snapshot per
   frame, so there is no marker/center skew to worry about.
 
-## 13. Sub-Region Blits
+## 13. Overrun Display Window (pan and follow)
 
-- The blit delta MUST be rotated by the viewport angle (`dx*cos − dy*sin`, `dx*sin + dy*cos`).
-  Without rotation, a blit at -40° map angle shifts the content horizontally by up to
-  `sin(40°) × move` wrongly.
-- Blit only at the same magnification; on zoom change keep the old correct frame, don't show a
-  scaled placeholder. The `smooth-zoom` display scale is the bounded exception: the displayed frame
-  may be scaled by at most the window the frame in hand covers (`ZoomWalk.ZOOM_BLIT_WINDOW = 0.25`,
-  i.e. scale within 2^-0.25..2^0.25), which is what keeps the map content's geometry within the
-  level the frame was rendered at.
-- Blits copy pure map content — the marker overlay is drawn by Compose on top afterwards, so a
-  blit can never carry stale marker pixels.
-- A blit is a TILE-PREVIEW optimization only: the blit-covered branch in `submitDebounced` MUST NOT
-  discard a pending FORCED render (`forceFullRender=true` — route set/clear, favorites, search
-  selection, stylesheet switch, epoch bump). Discarding it would leave the new overlay undrawn
-  until a gesture triggers a full render (observed symptom: stale route on the map after a reroute
-  until the user pans). Keep the pending render (`pendingRender?.forceFullRender != true` guard)
-  so overlay changes render even when the camera never moved.
+The overrun frame is positioned by ONE display offset, derived on the UI thread from the frame that
+is on screen. This replaced the per-event sub-region bitmap copy (`trySubRegionBlit` used to create a
+shifted crop per pan event) — the copy allocated two bitmaps per touch event, and after commit
+`c7e5bc1` it was dropped for a no-shift emission that only follow mode could offset, which left
+browse pans with no visual tracking at all (fixed by `fix-phone-gesture-pan-tracking`).
+
+```
+displayedCenter   follow: anchorCenter(displayPos, resolvedAnchor)  |  pan: live panned center
+      │
+      ▼
+FollowPrediction.displayOffsetPx(displayedCenter, frameViewport, …, anchor = center)
+      │  rotated delta (dx*cos − dy*sin, dx*sin + dy*cos), clamped to the overrun margin
+      ├── drawFrontFrame draws the frame at baseCenter − displayOffset
+      └── map-anchored overlays translate by (follow ? 0 : −displayOffset)
+```
+
+- The offset MUST be rotated by the viewport angle. Without rotation, a shift at -40° map angle
+  moves the content horizontally by up to `sin(40°) × move` wrongly.
+- Exactly ONE displayed center: derive the offset from the frame in hand, never from the render
+  target. The pan path keeps the displayed center as display-only screen state (`panDisplayLat/Lon`)
+  and holds it until a frame carrying the committed center lands; the follow path uses its predicted
+  display position.
+- **Pan inside the margin renders nothing.** The pan callback must not call `renderMap()` per event:
+  the display follows the finger for free. A render is requested only when the offset CLAMPS at the
+  margin (throttled), plus once at gesture end when the window is saturated or no frame exists.
+- The covered branch of `submitDebounced` is a PURE PREDICATE (`overrunWindowCovers`) that drops a
+  pending non-forced render and returns — no emission, no bitmap work, no pixel copies. It snapshots
+  the frame under `bufferLock` (never held across a native render, only across the short swap) and
+  uses the same helper and margin (`BLIT_COVER_SLACK_PX` slack) as the display, so coverage and clamp
+  cannot disagree.
+- A zoom or an angle change is never covered by the frame in hand (wrong magnification/rotation).
+- **The marker overlay must be shifted by the same offset the content is drawn with** — in follow
+  mode the anchor-center projection already carries it (translate there = double application).
+- A covered request is a TILE-PREVIEW-class optimization only: it MUST NOT discard a pending FORCED
+  render (`forceFullRender=true` — route set/clear, favorites, search selection, stylesheet switch,
+  epoch bump). Discarding it would leave the new overlay undrawn until a gesture triggers a full
+  render (observed symptom: stale route on the map after a reroute until the user pans). Keep the
+  pending render (`pendingRender?.forceFullRender != true` guard) so overlay changes render even when
+  the camera never moved.
+- Blit/window content is pure map content — the marker overlay is drawn by Compose on top afterwards,
+  so a shifted window can never carry stale marker pixels.
 - Tile-path rotated composition MUST rotate about the viewport center (tiles placed north-up,
   `canvas.rotate(deg, W/2, H/2)`), NEVER about each tile's own corner — corner pivots shift
   content by up to `d·θ` (d = tile distance from center, θ = rotation) and break marker-overlay
   alignment.
+- **The renderer's target center (`currentLat/Lon`) only advances with render requests.** After a pan
+  that stayed inside the margin it lags the viewport until the next request — harmless: the display
+  offset is derived from the frame in hand and the viewport, so the content stays where the finger
+  left it, and the next request (any render, a forced overlay render included) re-targets the center.
+- **Pan hot path budget:** a pan event moves display-only state only — no UI-state copy, no
+  recomposition of the screen, no allocation, no logging; gesture-start side effects (follow
+  disengagement, attribution tick) run once per gesture, and render requests are throttled
+  (`PAN_RENDER_REQUEST_THROTTLE_MS`).
 
 ---
 
@@ -460,8 +502,9 @@ Provider-aware inside `LocationService` only:
 
 When "map jumps" / "marker wrong" appears, check first:
 
-1. Does `executeRender` emit a 1296×2880 frame instead of 1080×2400? → `extractCenterRegion`
-   missing or if/else path broken.
+1. Does the emitted frame have the OVERRUN dimensions (screen × 1.2) and carry its own viewport? →
+   the display draws it at the derived display offset (§13); a screen-sized crop or a frame described
+   by another viewport shifts or scales the map wrongly.
 2. Does the emitted frame share memory with `frontBuffer`? → next `setPixels` corrupts the
    displayed image (horizontal jumps without rotation).
 3. Angle unnormalized (> π)? → grows across frames, apparent rotation jumps.
@@ -474,8 +517,15 @@ When "map jumps" / "marker wrong" appears, check first:
 10. Rate limit < 90°/frame? → map rotates too slowly after corners.
 11. Marker baked into cached tiles / reused front buffer (ghost marker artifacts after it moves)?
     → marker must be a Compose overlay; tiles/buffers must contain only map content.
-12. Overlay projecting against `currentViewport` instead of `frontBufferViewport`? → marker
+12. Overlay projecting against `currentViewport` instead of the displayed frame's viewport? → marker
     misplaced during pan/zoom/rotate gestures; always use `uiState.renderViewport`.
+12a. Pan window applied to the map content but NOT to the map-anchored overlays (or applied twice in
+    follow mode)? → the marker rides off the content. The overlays translate by the SAME clamped
+    display offset the frame is drawn with (`markerDisplayShiftPx`), and not at all in follow mode
+    where the anchor-center projection already carries it.
+12b. Pan tracked by per-event renders instead of the display window? → content moves only when a
+    frame lands (50 ms debounce + render), pans inside the overrun margin never move at all, and the
+    committed viewport drifts away from the displayed content (a later render then jumps).
 13. `setGpsMarker`/`clearGpsMarker` or native `gpsMarker` state re-introduced? → forbidden: the
     marker renders exclusively via `LocationMarkerOverlay`.
 14. Tile-path rotation pivots on each tile's own corner? → marker overlay (projected about the

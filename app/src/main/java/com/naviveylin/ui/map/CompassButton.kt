@@ -8,7 +8,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -35,11 +34,31 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * GPS fix quality indicator colors — light variants, used as the button fill.
+ * GPS fix quality indicator colors — the light presentation tones, used as the
+ * button fill (Material tone-100 analogue). See the `CompassDarkFill*` constants for
+ * the dark presentation tones and [compassFillColor] for the branch.
  */
 private val GpsFillNoFix = Color(0xFFFFCDD2)   // light red
 private val GpsFillPoorFix = Color(0xFFFFF9C4) // light yellow
 private val GpsFillGoodFix = Color(0xFFC8E6C9) // light green
+
+/**
+ * Dark presentation tones of the same three hue families (Material tone-30
+ * analogue). The hue family is presentation-independent — only the tone
+ * changes — so a fix quality keeps its meaning in both schemes. Light fills on
+ * a dark map glare and force a light `on*` role onto the needle (measured
+ * 1.04:1, i.e. unreadable); these tones keep the needle/fill contrast at
+ * 7.7-8.5:1 instead.
+ */
+private val CompassDarkFillNoFix = Color(0xFF93000A)   // dark red
+private val CompassDarkFillPoorFix = Color(0xFF5C4300) // dark yellow
+private val CompassDarkFillGoodFix = Color(0xFF1B4A24) // dark green
+
+/** Symbol color on the light fills (needle, north label, rim). 11.7-15.4:1. */
+private val CompassOnFillLight = Color(0xFF1F1F1F)
+
+/** Symbol color on the dark fills (needle, north label, rim). 7.7-8.5:1. */
+private val CompassOnFillDark = Color(0xFFE8EAED)
 
 /**
  * Animated compass button showing north direction, GPS fix quality as the
@@ -51,11 +70,20 @@ private val GpsFillGoodFix = Color(0xFFC8E6C9) // light green
  * compass-button — Compass shows north direction). The widget takes no bearing
  * input by design, so a noisy/absent GPS bearing cannot move it.
  *
+ * The needle, its north label and the rim come from the same per-presentation
+ * palette as the fill (never from a theme color role), so their contrast
+ * against the fill is guaranteed by construction and is wallpaper-independent
+ * (spec: compass-button — Compass colors follow the resolved day/night
+ * presentation).
+ *
  * Larger than the other overlay buttons (56dp layout / 48dp visual vs
  * 48dp / 40dp) so it reads at a glance while driving, with the same shadow.
  *
  * @param mapAngleRadians Current map rotation in radians (0 = north up).
  * @param gpsFixQuality Current GPS fix quality for the fill color.
+ * @param isDarkPresentation Resolved dark presentation (preference resolved with
+ *   its environment signal). Drives the palette; deliberately NOT read from
+ *   `isSystemInDarkTheme()` here, which would bypass a manual On/Off.
  * @param onCenterClick Called on short press to re-center on location.
  * @param onToggleOrientation Called on long press to toggle north-up / follow-direction.
  */
@@ -64,6 +92,7 @@ private val GpsFillGoodFix = Color(0xFFC8E6C9) // light green
 fun CompassButton(
     mapAngleRadians: Double,
     gpsFixQuality: GpsFixQuality,
+    isDarkPresentation: Boolean,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit,
     modifier: Modifier = Modifier
@@ -78,11 +107,11 @@ fun CompassButton(
         label = "compassRotation"
     )
 
-    val fillColor = compassFillColor(gpsFixQuality)
+    val fillColor = compassFillColor(gpsFixQuality, isDarkPresentation)
 
-    val borderColor = MaterialTheme.colorScheme.outline
-    // Same symbol color as the other overlay buttons (FilledTonalIconButton icons)
-    val needleColor = MaterialTheme.colorScheme.onSecondaryContainer
+    // Needle, north label and rim: one on-fill symbol color per presentation.
+    val borderColor = compassOnFillColor(isDarkPresentation)
+    val needleColor = borderColor
     val textMeasurer = rememberTextMeasurer()
     val compassLabel = stringResource(R.string.compass)
     val northLabel = stringResource(R.string.compass_north)
@@ -104,7 +133,7 @@ fun CompassButton(
                 )
             )
     ) {
-        // 48dp visual fill, colored by GPS fix quality
+        // 48dp visual fill, colored by GPS fix quality and presentation
         Canvas(modifier = Modifier.size(48.dp)) {
             drawCircle(color = fillColor)
 
@@ -122,14 +151,34 @@ fun CompassButton(
 }
 
 /**
- * Button fill for a GPS fix quality: light red (no fix), light yellow (poor),
- * light green (good) — spec: compass-button, "GPS fix status fill color".
+ * Button fill for a GPS fix quality: the quality's hue family in the tone of the
+ * active presentation — red (no fix), yellow (poor), green (good) — spec:
+ * compass-button, "GPS fix status fill color". The hue never changes with the
+ * presentation, only the tone, so the quality stays recognizable.
  */
-internal fun compassFillColor(gpsFixQuality: GpsFixQuality): Color = when (gpsFixQuality) {
-    GpsFixQuality.NONE -> GpsFillNoFix
-    GpsFixQuality.POOR -> GpsFillPoorFix
-    GpsFixQuality.GOOD -> GpsFillGoodFix
-}
+internal fun compassFillColor(gpsFixQuality: GpsFixQuality, isDarkPresentation: Boolean): Color =
+    if (isDarkPresentation) {
+        when (gpsFixQuality) {
+            GpsFixQuality.NONE -> CompassDarkFillNoFix
+            GpsFixQuality.POOR -> CompassDarkFillPoorFix
+            GpsFixQuality.GOOD -> CompassDarkFillGoodFix
+        }
+    } else {
+        when (gpsFixQuality) {
+            GpsFixQuality.NONE -> GpsFillNoFix
+            GpsFixQuality.POOR -> GpsFillPoorFix
+            GpsFixQuality.GOOD -> GpsFillGoodFix
+        }
+    }
+
+/**
+ * Symbol color for the needle, the north label and the rim in the active
+ * presentation: dark on the light fills, light on the dark fills. One value per
+ * presentation keeps the contrast against every fix-quality fill above the 4.5:1
+ * text threshold (11.7-15.4:1 light, 7.7-8.5:1 dark).
+ */
+internal fun compassOnFillColor(isDarkPresentation: Boolean): Color =
+    if (isDarkPresentation) CompassOnFillDark else CompassOnFillLight
 
 /**
  * Screen rotation (degrees, clockwise from screen-up) for the compass needle:

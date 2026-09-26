@@ -47,8 +47,10 @@ class FreeDrivingScreenObservationsTest {
 
     private val location = FakeLocationProvider()
     private val basemap = BasemapReloadNotifier()
+    private val resolvedDark = MutableStateFlow(false)
 
     private val fixes = mutableListOf<AutoPosition>()
+    private val darkValues = mutableListOf<Boolean>()
     private var basemapInvalidations = 0
     private var throwOnNextFix = false
 
@@ -58,6 +60,7 @@ class FreeDrivingScreenObservationsTest {
         observations = observations,
         locationProvider = location,
         basemapNotifier = basemap,
+        resolvedDark = resolvedDark.asStateFlow(),
         onFix = {
             fixes += it
             if (throwOnNextFix) {
@@ -65,6 +68,7 @@ class FreeDrivingScreenObservationsTest {
                 throw IllegalStateException("one bad fix")
             }
         },
+        onDark = { darkValues += it },
         onBasemapRevision = { basemapInvalidations++ }
     )
 
@@ -76,14 +80,21 @@ class FreeDrivingScreenObservationsTest {
         wiring(observations).start()
         advanceUntilIdle()
 
-        assertEquals(2, observations.liveObservationCount)
+        assertEquals(3, observations.liveObservationCount)
+
+        // A StateFlow re-delivers its current value to every new collector, so the
+        // start itself reports the initial `false` once. Assert the delta (project
+        // convention, see CarScreenObservationsTest), never an absolute list.
+        val darkBefore = darkValues.size
 
         location.flow.value = fix
         basemap.bump()
+        resolvedDark.value = true
         advanceUntilIdle()
 
         assertEquals("the GPS feed is observed", listOf(fix), fixes)
         assertEquals("a basemap revision forces a re-render", 1, basemapInvalidations)
+        assertEquals("the resolved presentation is observed", listOf(true), darkValues.drop(darkBefore))
     }
 
     @Test
@@ -94,7 +105,7 @@ class FreeDrivingScreenObservationsTest {
         repeat(3) { cycle ->
             wiring.start()
             advanceUntilIdle()
-            assertEquals("two observations in cycle ${cycle + 1}", 2, observations.liveObservationCount)
+            assertEquals("three observations in cycle ${cycle + 1}", 3, observations.liveObservationCount)
 
             observations.stop()
             assertEquals("stopped after cycle ${cycle + 1}", 0, observations.liveObservationCount)
@@ -102,7 +113,7 @@ class FreeDrivingScreenObservationsTest {
 
         wiring.start()
         advanceUntilIdle()
-        assertEquals("a restarted screen still observes two sources", 2, observations.liveObservationCount)
+        assertEquals("a restarted screen still observes three sources", 3, observations.liveObservationCount)
 
         val before = fixes.size
         location.flow.value = fix
@@ -198,5 +209,64 @@ class FreeDrivingScreenObservationsTest {
         advanceUntilIdle()
 
         assertEquals("the next fix still reaches the screen", 1, fixes.size - afterFailure)
+    }
+
+    @Test
+    fun aDarkPreferenceChangeReachesTheScreen() = runTest(mainDispatcher.dispatcher) {
+        // Spec: auto-map-layout — Dark-mode preference applies on the car as on the
+        // phone; Free driving rose follows the same presentation. The preference is
+        // resolved with the host signal (resolveCarDark) before it gets here, so the
+        // seam must forward every change of that resolved value — this walks all
+        // three preference values plus the day-host/host-night combinations.
+        val observations = observations()
+        wiring(observations).start()
+        advanceUntilIdle()
+
+        val expected = listOf(
+            resolveCarDark("ON", hostDark = false) to true,
+            resolveCarDark("OFF", hostDark = true) to false,
+            resolveCarDark("AUTOMATIC", hostDark = true) to true,
+            resolveCarDark("AUTOMATIC", hostDark = false) to false
+        )
+
+        val before = darkValues.size
+        for ((resolved, _) in expected) {
+            resolvedDark.value = resolved
+            advanceUntilIdle()
+        }
+
+        assertEquals(
+            "every resolved presentation reaches the screen seam",
+            expected.map { it.first },
+            darkValues.drop(before)
+        )
+        assertEquals(
+            "ON overrides a light host, OFF overrides a dark host",
+            listOf(true, false, true, false),
+            expected.map { it.second }
+        )
+    }
+
+    @Test
+    fun aDarkChangeWhileStoppedIsAppliedOnceOnStart() = runTest(mainDispatcher.dispatcher) {
+        val observations = observations()
+        val wiring = wiring(observations)
+        wiring.start()
+        advanceUntilIdle()
+        observations.stop()
+
+        resolvedDark.value = true
+
+        val before = darkValues.size
+        wiring.start()
+        advanceUntilIdle()
+
+        // StateFlow re-delivers its current value to the new collector: exactly one
+        // delta per started period, no duplicate observation (see CarScreenObservationsTest).
+        assertEquals(
+            "the current presentation is applied exactly once on return",
+            1, darkValues.size - before
+        )
+        assertEquals(true, darkValues.last())
     }
 }

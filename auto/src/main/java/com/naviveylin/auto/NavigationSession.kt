@@ -765,7 +765,7 @@ class NavigationSession : Session() {
         freeDrivingRestore.recordPush(landed = false)
         SessionLog.push("FreeDrivingScreen (restore)")
         val landed = guardedHostCall("push FreeDrivingScreen (restore)") {
-            carContext.getCarService(ScreenManager::class.java).push(FreeDrivingScreen(carContext))
+            carContext.getCarService(ScreenManager::class.java).push(FreeDrivingScreen(carContext, resolvedDark))
         }
         // Only a landed push consumes the session's one restore (spec:
         // car-host-fault-isolation — Host screen-stack mutations are balanced): consuming it

@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -41,7 +42,13 @@ import kotlinx.coroutines.withContext
  * session's `isNavigating` state machine (design D1).
  */
 class FreeDrivingScreen(
-    carContext: CarContext
+    carContext: CarContext,
+    /**
+     * Resolved dark presentation (preference x host day/night signal) of the
+     * session. Drives the map's stylesheet variant and the app-drawn overlay
+     * palettes (compass rose); see [NavigationScreen] for the same wiring.
+     */
+    private val resolvedDark: StateFlow<Boolean>
 ) : Screen(carContext) {
 
     private val scope = carScreenScope("FreeDrivingScreen")
@@ -144,6 +151,23 @@ class FreeDrivingScreen(
      * applied values and is logged; it does not disrupt driving (spec:
      * "Free-driving anchor survives a settings re-read failure").
      */
+    /**
+     * (Re)push the resolved dark presentation to the native stylesheet and force a
+     * full render when it actually changed (spec: auto-map-layout — Compass rose
+     * follows the resolved surface presentation). Skips until the renderer exists:
+     * the native client may still be building off the main thread, and applying the
+     * stylesheet flag must never first-touch it here.
+     */
+    private fun pushDark(force: Boolean = false) {
+        if (rendererGate.rendererOrNull() == null) return
+        val dark = resolvedDark.value
+        if (!daylightApplier.needsPush(dark, force)) return
+        // Publish, do not push: setStyleSheetFlag reloads the style variant on the DB
+        // thread, and this runs from a host callback. The collector started in init
+        // applies it on a background dispatcher, and flips the overlay palette with it.
+        rendererGate.requestDaylightPush(dark, force)
+    }
+
     private fun loadSettings() {
         scope.launch {
             runCatching { settingsProvider.load() }
@@ -184,6 +208,22 @@ class FreeDrivingScreen(
     private var rendererInitJob: Job? = null
 
     /**
+     * Applies the resolved presentation to the native stylesheet `daylight` flag
+     * (deduped). Mirrors [NavigationScreen]: the car surface owns its own
+     * renderer, so without this the free-driving map kept the daylight variant at
+     * night and the rose could never reach a night treatment.
+     */
+    private val daylightApplier = CarDaylightApplier { dark ->
+        try {
+            entryPoint.autoClientProvider().client().setStyleSheetFlag("daylight", !dark)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "setStyleSheetFlag failed", e)
+            false
+        }
+    }
+
+    /**
      * Shared-state observations for this screen (spec: auto/screen-observation;
      * design D2): [CarScreenObservations] owns how long each observation lives,
      * [FreeDrivingScreenObservations] owns what is observed. Started in `onStart`,
@@ -195,7 +235,9 @@ class FreeDrivingScreen(
         observations = observations,
         locationProvider = locationProvider,
         basemapNotifier = entryPoint.basemapReloadNotifier(),
+        resolvedDark = resolvedDark,
         onFix = ::onGpsFix,
+        onDark = { pushDark() },
         onBasemapRevision = { rendererGate.invalidateData() }
     )
 
@@ -252,12 +294,37 @@ class FreeDrivingScreen(
             }
         }
 
+        // Stylesheet day/night pushes (spec: car-host-fault-isolation — Host callbacks
+        // answer promptly): the request is published by pushDark, and the native flag is set
+        // here, off the main thread — including the one the host's surface delivery asks for.
+        scope.launch {
+            rendererGate.daylightPush.collect { request ->
+                if (request == null) return@collect
+                val applied = withContext(Dispatchers.Default) {
+                    runCatching { daylightApplier.apply(request.dark, request.force) }
+                        .onFailure { Log.w(TAG, "setStyleSheetFlag failed", it) }
+                        .getOrDefault(false)
+                }
+                // A changed variant invalidates the rendered frame (the overrun buffer holds
+                // the previous variant). The overlay palette flips with it, so the app-drawn
+                // overlays and the map always show the same presentation.
+                if (applied) {
+                    rendererGate.setDarkPresentation(request.dark)
+                    rendererGate.invalidateStyle()
+                }
+            }
+        }
+
         // Renderer readiness: wire surface-failure recovery once the renderer
         // exists (must never first-touch the native client on the main
         // thread).
         scope.launch {
             rendererGate.renderer.collect { renderer ->
                 if (renderer == null) return@collect
+                // Re-push the presentation once the renderer exists: an
+                // observation that fired before readiness (or before the client
+                // was built) is otherwise lost for the whole screen lifetime.
+                pushDark()
                 // If the host delivered a surface we cannot lock (AAOS emulator
                 // quirk: it locks surfaces it re-delivers after a screen
                 // transition), drop it and ask the host for a fresh one.
@@ -323,6 +390,11 @@ class FreeDrivingScreen(
                 stableBounds = stableArea,
                 density = density,
                 angleRadians = headingRadians ?: 0.0,
+                // Rose palette of the presentation actually applied to this
+                // surface's map variant — same frame, so the rose and the map can
+                // never disagree (spec: auto-map-layout — Compass rose follows the
+                // resolved surface presentation).
+                darkPresentation = rendererGate.currentDarkPresentation(),
                 currentKmH = currentSpeedKmH,
                 maxKmH = maxSpeedKmH,
                 overLimitDeltaKmh = overspeedWarningDeltaKmh,

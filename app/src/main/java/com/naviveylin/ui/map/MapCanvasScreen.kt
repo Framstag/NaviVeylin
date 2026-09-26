@@ -272,6 +272,29 @@ fun MapCanvasScreen(
     var followOffsetX by remember { mutableStateOf(0f) }
     var followOffsetY by remember { mutableStateOf(0f) }
 
+    // Single-finger pan display window (spec: map-pan-zoom — Touch-based pan,
+    // canvas-overrun — Overrun window shift for pan). The panned center is
+    // DISPLAY-ONLY state: it is never written to the ViewModel per pan event (that
+    // would copy the whole UI state and recompose this screen at touch rate, spec
+    // render-performance). It is committed at gesture end and whenever a render is
+    // requested; the offset below is derived per frame against the frame actually
+    // on screen, so offset and bitmap can never describe different generations.
+    // Held after the gesture until a frame carrying the committed center lands
+    // (the same hold semantics the zoom display scale uses): dropping it earlier
+    // would snap the map back to the old frame's center.
+    var panDisplayLat by remember { mutableStateOf(Double.NaN) }
+    var panDisplayLon by remember { mutableStateOf(Double.NaN) }
+    // True while a single-finger pan gesture is live (first onPan → onRenderRequested
+    // or the first multi-touch event); gates the one-time gesture-start side
+    // effects and the pan window derivation.
+    var panGestureActive by remember { mutableStateOf(false) }
+    var panOffsetX by remember { mutableStateOf(0f) }
+    var panOffsetY by remember { mutableStateOf(0f) }
+    // Timestamp of the last render request issued because the pan window was
+    // saturated: a fast drag must not queue renders faster than they complete
+    // (spec: render-performance — Pan hot path stays off the frame budget).
+    var lastPanRenderRequestMs by remember { mutableStateOf(0L) }
+
     // Regions the phone's own overlays cover (px), measured so the follow anchor
     // resolves into the VISIBLE map area (spec: smooth-follow — visible-area
     // scenarios): turn card at the top, routing status at the bottom, widget column
@@ -381,6 +404,54 @@ fun MapCanvasScreen(
             gestureZoom = gestureBaseScale
             Log.d(TAG, "smooth-zoom: fold frozen display scale into gesture base=$gestureBaseScale")
         }
+    }
+
+    /**
+     * The pan display window's offset for the frame in hand, or null when there is no
+     * usable frame to shift (no displayed frame yet, or a frame without an overrun
+     * margin). Same inputs and helper as the per-frame derivation, so the gesture's
+     * clamp decision and the applied offset agree (spec: canvas-overrun — Offset and
+     * frame stay consistent).
+     */
+    fun panWindowOffset(): FollowPrediction.Companion.DisplayOffset? {
+        if (panDisplayLat.isNaN() || panDisplayLon.isNaN()) return null
+        val s = viewModel.uiState.value
+        val vp = s.renderViewport ?: return null
+        val bitmap = s.renderedBitmap ?: return null
+        if (canvasSize.width <= 0 || canvasSize.height <= 0) return null
+        // A frame without an overrun margin cannot serve a shift (nothing to clamp
+        // into): report it as unavailable, the caller then renders instead.
+        if (bitmap.width <= canvasSize.width || bitmap.height <= canvasSize.height) return null
+        val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+        return FollowPrediction.displayOffsetPx(
+            panDisplayLat, panDisplayLon, vp.lat, vp.lon, vp.mag, vp.angle,
+            bitmap.width, bitmap.height,
+            canvasSize.width, canvasSize.height, dpi
+        )
+    }
+
+    /** Commit the displayed (panned) center — the persisted viewport follows it. */
+    fun commitPanCenter() {
+        if (panDisplayLat.isNaN() || panDisplayLon.isNaN()) return
+        viewModel.updateCenter(panDisplayLat, panDisplayLon)
+    }
+
+    /**
+     * Re-center the frame on the displayed center when the pan window cannot follow
+     * the finger any further (spec: canvas-overrun — Large pan triggers full
+     * re-render). A missing/saturated window means the frame in hand cannot serve the
+     * pan, so a render is needed. [force] requests it regardless of the clamp
+     * (gesture hand-over); the throttle keeps a fast drag from queueing renders
+     * faster than they complete.
+     */
+    fun requestPanRecenter(force: Boolean = false) {
+        val window = panWindowOffset()
+        if (window != null && !force && !window.clamped) return
+        val now = System.currentTimeMillis()
+        if (now - lastPanRenderRequestMs < PAN_RENDER_REQUEST_THROTTLE_MS) return
+        lastPanRenderRequestMs = now
+        commitPanCenter()
+        viewModel.renderMap()
     }
 
     LaunchedEffect(Unit) {
@@ -633,6 +704,48 @@ fun MapCanvasScreen(
                     followDisplayState.reset()
                     viewModel.followDisplayLat = Double.NaN
                     viewModel.followDisplayLon = Double.NaN
+                }
+
+                // Pan display window (spec: canvas-overrun — Overrun window shift for
+                // pan): while a single-finger pan is live or its center is held,
+                // position the frame in hand by the delta between the DISPLAYED center
+                // and the frame's own viewport, rotated with the viewport and clamped
+                // to the overrun margin. Derived here, once per frame, from the frame
+                // actually on screen — no per-event work and no native render while
+                // the window stays inside the margin.
+                val panFrameVp = ui.renderViewport
+                val panFrameBitmap = ui.renderedBitmap
+                if (!followActive && !panDisplayLat.isNaN() && panFrameVp != null &&
+                    panFrameBitmap != null && canvasSize.width > 0 && canvasSize.height > 0 &&
+                    panFrameBitmap.width > canvasSize.width &&
+                    panFrameBitmap.height > canvasSize.height
+                ) {
+                    if (abs(ui.viewport.centerLat - panFrameVp.lat) < 1e-9 &&
+                        abs(ui.viewport.centerLon - panFrameVp.lon) < 1e-9
+                    ) {
+                        // A frame carrying the committed center is on screen: the
+                        // display is where the viewport says it is. Release the hold
+                        // (offset 0 by definition, no jump: the displayed center and
+                        // the committed center are the same position).
+                        panDisplayLat = Double.NaN
+                        panDisplayLon = Double.NaN
+                        panOffsetX = 0f
+                        panOffsetY = 0f
+                    } else {
+                        val panWindow = FollowPrediction.displayOffsetPx(
+                            panDisplayLat, panDisplayLon,
+                            panFrameVp.lat, panFrameVp.lon,
+                            panFrameVp.mag, panFrameVp.angle,
+                            panFrameBitmap.width, panFrameBitmap.height,
+                            canvasSize.width, canvasSize.height,
+                            context.resources.displayMetrics.densityDpi.toDouble()
+                        )
+                        panOffsetX = panWindow.clampedX.toFloat()
+                        panOffsetY = panWindow.clampedY.toFloat()
+                    }
+                } else if (!followActive) {
+                    panOffsetX = 0f
+                    panOffsetY = 0f
                 }
             }
         }
@@ -890,19 +1003,45 @@ fun MapCanvasScreen(
                         .mapGestureHandler(
                             object : MapGestureCallbacks {
                                 override fun onPan(dx: Float, dy: Float) {
-                                    attributionInteractionTick++
-                                    viewModel.disengageFollowMode()
+                                    // Gesture-start side effects run once per gesture
+                                    // (spec: render-performance — Pan hot path stays
+                                    // off the frame budget): follow-mode disengagement
+                                    // and the attribution interaction tick must not
+                                    // repeat on every touch event.
+                                    if (!panGestureActive) {
+                                        panGestureActive = true
+                                        attributionInteractionTick++
+                                        // Leave follow mode on the framing the user sees
+                                        // (spec: smooth-follow — anchor restored), then
+                                        // pan from the displayed frame center.
+                                        viewModel.disengageFollowMode()
+                                        val start = viewModel.uiState.value
+                                        panDisplayLat = start.viewport.centerLat
+                                        panDisplayLon = start.viewport.centerLon
+                                    }
                                     val s = viewModel.uiState.value
                                     val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+                                    // Chain the delta from the DISPLAYED center (not from
+                                    // the committed viewport): the committed center only
+                                    // follows at gesture end, so chaining off it would
+                                    // make every event recompute from a stale base and
+                                    // the content would lag the finger.
                                     val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
                                         dx.toDouble(), dy.toDouble(),
                                         s.viewport.angle,
                                         s.viewport.magnification,
                                         canvasSize.width.toDouble(), canvasSize.height.toDouble(),
-                                        s.viewport.centerLat, s.viewport.centerLon, dpi
+                                        panDisplayLat, panDisplayLon, dpi
                                     )
-                                    viewModel.updateCenter(newLat, newLon)
-                                    viewModel.renderMap()
+                                    if (newLat.isNaN() || newLon.isNaN()) return
+                                    // Same clamp the ViewModel applies on commit, so the
+                                    // displayed and the committed center can never differ.
+                                    panDisplayLat = newLat.coerceIn(-85.0, 85.0)
+                                    panDisplayLon = newLon.coerceIn(-180.0, 180.0)
+                                    // No render while the frame in hand still covers the
+                                    // pan window (spec: canvas-overrun — Small pan uses
+                                    // sub-region blit).
+                                    requestPanRecenter()
                                 }
 
                                 override fun onCentroidPan(dx: Float, dy: Float) {
@@ -942,6 +1081,18 @@ fun MapCanvasScreen(
                                 }
 
                                 override fun onGestureCentroid(centroid: Offset) {
+                                    // A single-finger pan that grew a second finger: the
+                                    // multi-touch commit math builds on the viewport
+                                    // center, so commit the displayed (panned) center
+                                    // here and let the frame catch up. The pan window is
+                                    // KEPT until the re-centered frame lands (clearing it
+                                    // would snap the content back by the offset); the
+                                    // frame loop releases it on that frame.
+                                    if (panGestureActive) {
+                                        panGestureActive = false
+                                        commitPanCenter()
+                                        requestPanRecenter(force = true)
+                                    }
                                     // A new gesture supersedes any held rotation from the
                                     // previous one (design D1 fallback).
                                     rotationHoldActive = false
@@ -1093,6 +1244,22 @@ fun MapCanvasScreen(
                                         gestureActive = false
                                         viewModel.renderMap(forceFullRender = needsFullRender)
                                     }
+                                    if (panGestureActive) {
+                                        // Single-finger pan end (spec: map-pan-zoom —
+                                        // Touch-based pan): commit the displayed center
+                                        // and persist it. A pan that stayed inside the
+                                        // overrun margin needs NO render — the frame in
+                                        // hand keeps serving the shifted window; only a
+                                        // saturated (or missing) frame is re-centered.
+                                        panGestureActive = false
+                                        val window = panWindowOffset()
+                                        commitPanCenter()
+                                        viewModel.saveViewport()
+                                        if (window == null || window.clamped) {
+                                            lastPanRenderRequestMs = System.currentTimeMillis()
+                                            viewModel.renderMap()
+                                        }
+                                    }
                                 }
                             }
                         )
@@ -1158,13 +1325,20 @@ fun MapCanvasScreen(
 
                     drawRect(color = surfaceColor)
 
+                    // Display offset of the frame currently on screen: the follow-mode
+                    // prediction drift in follow mode, the pan overrun window otherwise
+                    // (spec: canvas-overrun — Overrun window shift for pan). Exactly one
+                    // of the two is non-zero: a pan disengages follow mode, and the
+                    // follow display loop resets its offsets whenever follow is off.
+                    val displayOffsetX = if (followActive) followOffsetX else panOffsetX
+                    val displayOffsetY = if (followActive) followOffsetY else panOffsetY
+
                     state.renderedBitmap?.let { bitmap ->
-                        // Overrun-sized frames (follow mode) are drawn at natural
-                        // size with the follow offset applied within the margin;
-                        // screen-sized frames keep the scale-to-fill behavior.
+                        // Overrun frame: drawn at natural size, positioned by the
+                        // display offset within the overrun margin.
                         drawFrontFrame(
                             bitmap, canvasWidth.toFloat(), canvasHeight.toFloat(),
-                            followOffsetX, followOffsetY,
+                            displayOffsetX, displayOffsetY,
                             zoomAnimScale, zoomAnchor, 1f
                         )
                     }
@@ -1176,7 +1350,7 @@ fun MapCanvasScreen(
                         if (crossfadeAlpha > 0f) {
                             drawFrontFrame(
                                 old, canvasWidth.toFloat(), canvasHeight.toFloat(),
-                                followOffsetX, followOffsetY,
+                                displayOffsetX, displayOffsetY,
                                 crossfadeScale, crossfadeAnchor, crossfadeAlpha,
                                 crossfadeAngle, crossfadePivot
                             )
@@ -1231,6 +1405,18 @@ fun MapCanvasScreen(
                         accuracy = state.gpsMarkerAccuracy,
                         viewport = markerViewport,
                         dpi = context.resources.displayMetrics.densityDpi.toDouble(),
+                        modifier = Modifier.graphicsLayer {
+                            // The map content is drawn shifted by the pan display
+                            // offset, so the overlays must be shifted by the same
+                            // value — the marker can never drift off the content it
+                            // rides (spec: gps-location-marker — Marker projects
+                            // against displayed bitmap viewport). In follow mode the
+                            // anchor-center projection already carries the drift, so
+                            // translating there would apply it twice.
+                            val shift = markerDisplayShiftPx(followActive, panOffsetX, panOffsetY)
+                            translationX = shift.first
+                            translationY = shift.second
+                        },
                         zoomScale = zoomAnimScale,
                         zoomAnchor = zoomAnchor,
                         dark = state.isDarkPresentation
@@ -1281,6 +1467,7 @@ fun MapCanvasScreen(
                         isLandscape = true,
                         mapAngleRadians = state.viewport.angle,
                         gpsFixQuality = state.gpsFixQuality,
+                        isDarkPresentation = state.isDarkPresentation,
                         onCenterClick = reCenterAction,
                         onToggleOrientation = toggleOrientationAction,
                         speedInput = speedInput,
@@ -1417,6 +1604,7 @@ fun MapCanvasScreen(
                         isLandscape = false,
                         mapAngleRadians = state.viewport.angle,
                         gpsFixQuality = state.gpsFixQuality,
+                        isDarkPresentation = state.isDarkPresentation,
                         onCenterClick = reCenterAction,
                         onToggleOrientation = toggleOrientationAction,
                         speedInput = speedInput,
@@ -1892,6 +2080,7 @@ fun MapCanvasScreen(
                             isLandscape = isLandscape,
                             mapAngleRadians = state.viewport.angle,
                             gpsFixQuality = state.gpsFixQuality,
+                            isDarkPresentation = state.isDarkPresentation,
                             onCenterClick = {
                                 val loc = viewModel.getCurrentLocation()
                                 if (loc != null) {
@@ -2098,6 +2287,15 @@ private const val CROSSFADE_MS = 150.0f
 private const val FOLLOW_MIN_SPEED_KMH = 1.8
 
 /**
+ * Minimum interval between render requests issued because the pan display window
+ * is saturated at the overrun margin (spec: canvas-overrun — Large pan triggers
+ * full re-render). Mirrors the renderer's pan debounce: a fast drag re-centers at
+ * the render cadence instead of queueing one render per touch event
+ * (spec: render-performance — Pan hot path stays off the frame budget).
+ */
+private const val PAN_RENDER_REQUEST_THROTTLE_MS = 50L
+
+/**
  * Display-animation duration for auto-zoom commits (spec: smooth-zoom —
  * auto-zoom commits animate over ~650 ms, slower than discrete-input
  * 250 ms so the driving zoom glides instead of snapping — the distance-
@@ -2178,6 +2376,28 @@ private fun DrawScope.drawFrontFrame(
         }
     }
 }
+
+/**
+ * Screen-space translation for the map-anchored overlays in the current display
+ * mode (spec: gps-location-marker — Marker projects against displayed bitmap
+ * viewport).
+ *
+ * The map content is drawn at `center − displayOffset`, so an overlay projected
+ * against the frame's own viewport must be translated by the same negated offset to
+ * stay on the content it rides. In follow mode the projection already uses the
+ * anchor center of the displayed (predicted) position, which carries the drift —
+ * translating there as well would apply it twice.
+ *
+ * The [panOffsetX]/[panOffsetY] passed in are the CLAMPED window offsets, so a
+ * saturated pan window keeps the overlays on the content that is actually on
+ * screen instead of letting them run ahead of it.
+ */
+internal fun markerDisplayShiftPx(
+    followActive: Boolean,
+    panOffsetX: Float,
+    panOffsetY: Float
+): Pair<Float, Float> =
+    if (followActive) 0f to 0f else -panOffsetX to -panOffsetY
 
 /**
  * Copy of an [ImageBitmap] for the render-completion crossfade: the original
@@ -2509,12 +2729,14 @@ internal val LocalOverlayWidthProbe = staticCompositionLocalOf<(Int) -> Unit> { 
 private fun MapCompassBlock(
     mapAngleRadians: Double,
     gpsFixQuality: GpsFixQuality,
+    isDarkPresentation: Boolean,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit
 ) {
     CompassButton(
         mapAngleRadians = mapAngleRadians,
         gpsFixQuality = gpsFixQuality,
+        isDarkPresentation = isDarkPresentation,
         onCenterClick = onCenterClick,
         onToggleOrientation = onToggleOrientation
     )
@@ -2532,6 +2754,7 @@ internal fun MapRightWidgetColumn(
     isLandscape: Boolean,
     mapAngleRadians: Double,
     gpsFixQuality: GpsFixQuality,
+    isDarkPresentation: Boolean,
     onCenterClick: () -> Unit,
     onToggleOrientation: () -> Unit,
     speedInput: SpeedWidgetInput?,
@@ -2556,6 +2779,7 @@ internal fun MapRightWidgetColumn(
         MapCompassBlock(
             mapAngleRadians = mapAngleRadians,
             gpsFixQuality = gpsFixQuality,
+            isDarkPresentation = isDarkPresentation,
             onCenterClick = onCenterClick,
             onToggleOrientation = onToggleOrientation
         )

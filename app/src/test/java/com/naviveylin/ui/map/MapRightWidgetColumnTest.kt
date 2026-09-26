@@ -39,6 +39,7 @@ class MapRightWidgetColumnTest {
         var zoomInTaps = 0
         var zoomOutTaps = 0
         var gearTaps = 0
+        var isDarkPresentation = false
     }
 
     @Composable
@@ -47,6 +48,7 @@ class MapRightWidgetColumnTest {
             isLandscape = h.isLandscape,
             mapAngleRadians = 0.0,
             gpsFixQuality = GpsFixQuality.GOOD,
+            isDarkPresentation = h.isDarkPresentation,
             onCenterClick = {},
             onToggleOrientation = {},
             speedInput = if (h.speedKmH.isNaN()) null else SpeedWidgetInput(h.speedKmH, h.maxSpeedKmH),

@@ -227,8 +227,13 @@ class NavigationScreen(
         resolvedDark = resolvedDark,
         onNavigationState = ::onNavigationState,
         onFix = ::onGpsFix,
-        onDark = { dark ->
-            rendererGate.setDarkPresentation(dark)
+        onDark = {
+            // The overlay palette (vehicle marker, compass rose) follows the applied
+            // stylesheet variant, not this value: [setDarkPresentation] is called by the
+            // daylight collector below once the variant actually changed, so no frame can
+            // show a night-palette overlay on a daylight map (spec: auto-map-layout —
+            // Compass rose follows the resolved surface presentation).
+            //
             // Stylesheet flag applies only once the client is built; a pre-ready dark
             // is re-pushed by the readiness observer via pushDark() (which skips until
             // ready). Deduped by value: an unchanged resolved value neither reloads the
@@ -277,6 +282,11 @@ class NavigationScreen(
                     stableBounds = stableArea,
                     density = density,
                     angleRadians = headingAngle,
+                    // Rose palette of the presentation actually applied to this
+                    // surface's map variant — same frame, so the rose and the map
+                    // can never disagree (spec: auto-map-layout — Compass rose
+                    // follows the resolved surface presentation).
+                    darkPresentation = rendererGate.currentDarkPresentation(),
                     currentKmH = state.currentSpeedKmH,
                     maxKmH = state.maxSpeedKmH,
                     overLimitDeltaKmh = overspeedWarningDeltaKmh,
@@ -393,8 +403,12 @@ class NavigationScreen(
                 }
                 // A changed variant invalidates the rendered frame (the overrun buffer holds
                 // the previous variant); the gate's own thread is the main one, so this
-                // stays here.
-                if (applied) rendererGate.invalidateStyle()
+                // stays here. The overlay palette flips with it, so the app-drawn overlays
+                // and the map always show the same presentation.
+                if (applied) {
+                    rendererGate.setDarkPresentation(request.dark)
+                    rendererGate.invalidateStyle()
+                }
             }
         }
 

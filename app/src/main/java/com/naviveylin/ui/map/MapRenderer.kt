@@ -6,6 +6,7 @@ import android.graphics.RectF
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.data.RenderMode
@@ -259,7 +260,9 @@ class MapRenderer(
         val oldMag = currentMag; val oldAngle = currentAngle
         currentLat = lat; currentLon = lon; currentMag = mag; currentAngle = angle
         emitCurrentViewport()
-        Log.d(TAG, "requestRender mag=" + mag + " (was " + oldMag + ") center=" + lat + "," + lon)
+        if (DEBUG_RENDER_HOT_PATH) {
+            Log.d(TAG, "requestRender mag=" + mag + " (was " + oldMag + ") center=" + lat + "," + lon)
+        }
         submitDebounced(lat, lon, mag, angle, oldLat, oldLon, oldMag, oldAngle, forceFullRender)
     }
 
@@ -396,8 +399,7 @@ class MapRenderer(
         bufferLock.withLock {
             emitFrame(
                 RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
-                MarkerSnapshot(Double.NaN, Double.NaN, Double.NaN, 0.0),
-                crop = false
+                MarkerSnapshot(Double.NaN, Double.NaN, Double.NaN, 0.0)
             )
         }
     }
@@ -405,23 +407,24 @@ class MapRenderer(
     /**
      * Emit the current front buffer to the UI. The bitmap handed to Compose is
      * reused when the front buffer content is unchanged since the last emission
-     * (same front-buffer sequence and same screen size) — unchanged frames
-     * allocate no new bitmap. The emitted bitmap is always an independent copy
-     * (never shares backing storage with the front buffer, which the next render
-     * overwrites). The previous emitted bitmap is never recycled here: Compose
-     * may still be drawing it; GC reclaims it once unreferenced.
+     * (same front-buffer sequence) AND the previously emitted bitmap has the same
+     * dimensions as the buffer being emitted — unchanged frames allocate no new
+     * bitmap. The emitted bitmap is always an independent copy (never shares
+     * backing storage with the front buffer, which the next render overwrites).
+     * The previous emitted bitmap is never recycled here: Compose may still be
+     * drawing it; GC reclaims it once unreferenced.
      */
-    private fun emitFrame(viewport: RenderViewport, marker: MarkerSnapshot, crop: Boolean) {
+    private fun emitFrame(viewport: RenderViewport, marker: MarkerSnapshot) {
         val fb = frontBuffer ?: return
         val reuse = frontBufferSeq == lastEmittedSeq &&
             lastEmittedFrame != null &&
-            lastEmittedWidth == screenWidth &&
-            lastEmittedHeight == screenHeight
+            lastEmittedWidth == fb.width &&
+            lastEmittedHeight == fb.height
         if (!reuse) {
-            lastEmittedFrame = if (crop) extractCenterRegion(fb) else fb.copy(Bitmap.Config.ARGB_8888, true)
+            lastEmittedFrame = fb.copy(Bitmap.Config.ARGB_8888, true)
             lastEmittedSeq = frontBufferSeq
-            lastEmittedWidth = screenWidth
-            lastEmittedHeight = screenHeight
+            lastEmittedWidth = fb.width
+            lastEmittedHeight = fb.height
         }
         _frameFlow.value = FrameState(lastEmittedFrame, viewport, marker)
     }
@@ -487,23 +490,20 @@ class MapRenderer(
     ) {
         val isZoom = mag != oldMag || angle != oldAngle || forceFullRender
 
-        Log.d(TAG, "submitDebounced mag=" + mag + " (old " + oldMag + ") zoom=" + isZoom + " force=" + forceFullRender + " frontMag=" + frontBufferMag)
-
-        if (logCounter.incrementAndGet() % 20 == 0) {
-            Log.d(TAG, "submit lat=" + lat + " lon=" + lon + " mag=" + mag + " zoom=" + isZoom)
+        if (DEBUG_RENDER_HOT_PATH) {
+            Log.d(TAG, "submitDebounced mag=" + mag + " (old " + oldMag + ") zoom=" + isZoom + " force=" + forceFullRender + " frontMag=" + frontBufferMag)
         }
 
-        // Try sub-region blit for all changes (handles both pan and zoom placeholder)
-        var blitCovered = false
-        bufferLock.withLock {
-            if (frontBuffer != null) {
-                blitCovered = trySubRegionBlit(lat, lon, mag, angle)
-            }
+        // A window shift inside the overrun frame is served by the DISPLAY (the
+        // frame is drawn at its display offset, see spec canvas-overrun — a pan
+        // inside the margin moves the window without native work). The renderer
+        // only decides whether a render is still needed: covered → no job.
+        var windowCovered = false
+        if (frontBuffer != null) {
+            windowCovered = overrunWindowCovers(lat, lon, mag, angle)
         }
-        // Only skip full render if pan is fully within overrun buffer (blitCovered=true)
-        // For zoom changes, trySubRegionBlit returns false (always triggers full render)
-        if (!isZoom && blitCovered) {
-            // The blit preview only covers the TILE content. A pending forced render
+        if (!isZoom && windowCovered) {
+            // No render is needed, but a pending forced render
             // (forceFullRender=true: route set/clear, favorites, search selection,
             // stylesheet switch, epoch bump) changed overlays, not tiles — discarding
             // it would leave the new overlay undrawn until some gesture triggers a
@@ -843,8 +843,7 @@ class MapRenderer(
                 renderedLat = job.lat; renderedLon = job.lon; renderedMag = job.mag
                 emitFrame(
                     RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
-                    MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy),
-                    crop = false
+                    MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy)
                 )
             }
             Log.d(TAG, "executeRender: front buffer emitted (tiles) mag=" + job.mag + " (" + elapsed + "ms)")
@@ -880,8 +879,7 @@ class MapRenderer(
                 bufferLock.withLock {
                     emitFrame(
                         RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
-                        MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy),
-                        crop = false
+                        MarkerSnapshot(job.gpsMarkerLat, job.gpsMarkerLon, job.gpsMarkerBearing, job.gpsMarkerAccuracy)
                     )
                 }
                 Log.d(TAG, "executeRender: front buffer emitted mag=" + job.mag + " (" + elapsed + "ms)")
@@ -894,86 +892,61 @@ class MapRenderer(
         for (l in listeners) l.onViewChanged(job.lat, job.lon, job.mag, job.angle)
     }
 
-    // ---- Internal: Sub-region blit ----
+    // ---- Internal: Overrun window (pan/follow display) ----
 
-    private fun trySubRegionBlit(
+    /**
+     * Whether the requested window is still served by the overrun frame in hand:
+     * the requested center's rotated screen delta from the frame's own viewport
+     * center stays inside the overrun margin (minus [BLIT_COVER_SLACK_PX]).
+     *
+     * Pure predicate — the display applies the offset itself (spec canvas-overrun:
+     * Overrun window shift for pan); the renderer only decides whether a native
+     * render is still needed. No pixels are copied and no frame is emitted here:
+     * a covered request leaves the displayed frame exactly as it is.
+     *
+     * The margin/slack contract is shared with the display through
+     * [FollowPrediction.displayOffsetPx] (canvas inflated by the slack), so the
+     * coverage test and the applied clamp can never disagree — the display's clamp
+     * is the same computation with the real canvas size.
+     *
+     * Takes the frame snapshot under [bufferLock] (bitmap + the viewport its pixels
+     * were rendered with must match). The lock is never held across a native render —
+     * only across the short buffer swap/copy — and the UI path calls this at most
+     * once per render request, not per touch event.
+     */
+    internal fun overrunWindowCovers(
         newLat: Double, newLon: Double, newMag: Double, newAngle: Double
     ): Boolean {
-        val fb = frontBuffer ?: return false
-        val fbW = fb.width; val fbH = fb.height
         val sw = screenWidth; val sh = screenHeight
         if (sw <= 0 || sh <= 0) return false
+        return bufferLock.withLock {
+            val fb = frontBuffer ?: return@withLock false
+            // A zoom or an angle change is never served by the overrun frame: the
+            // frame in hand has the wrong magnification/rotation (spec map-render).
+            if (newMag != frontBufferMag) return@withLock false
+            if (newAngle != frontBufferAngle) return@withLock false
 
-        if (newMag != frontBufferMag) {
-            // Do not show a scaled placeholder on zoom changes. A scaled old bitmap has
-            // the wrong magnification and looks like a "wrong zoom level" frame while the
-            // new native render is in progress. Keep the previous correct frame until the
-            // render at the new magnification is ready.
-            currentLat = newLat; currentLon = newLon; currentMag = newMag; currentAngle = newAngle
-            emitCurrentViewport()
-            if (logCounter.incrementAndGet() % 20 == 0) {
-                Log.d(TAG, "zoom deferred mag=${frontBufferMag}->${newMag} center=${"%.5f".format(newLat)},${"%.5f".format(newLon)}")
+            // The window must stay inside the overrun margin MINUS the slack reserve
+            // (a request at the very edge would otherwise be "covered" and the map
+            // would stick there). A frame whose margin is not wider than the reserve
+            // cannot serve any shift at all, and has no margin to clamp into.
+            val marginX = (fb.width - sw) / 2.0
+            val marginY = (fb.height - sh) / 2.0
+            if (marginX <= BLIT_COVER_SLACK_PX || marginY <= BLIT_COVER_SLACK_PX) {
+                return@withLock false
             }
-            return false
-        }
 
-        if (newAngle != frontBufferAngle) return false
-
-        val (ocx, ocy) = ProjectionUtils.geoToScreen(frontBufferLat, frontBufferLon, sw, sh, frontBufferMag, frontBufferLat, frontBufferLon, dpi)
-        val (ncx, ncy) = ProjectionUtils.geoToScreen(newLat, newLon, sw, sh, frontBufferMag, frontBufferLat, frontBufferLon, dpi)
-        val dx = ncx - ocx; val dy = ncy - ocy
-        // In a rotated viewport the screen-space shift of a geo delta is the
-        // unrotated shift rotated by the viewport angle. Without this the blit
-        // shifts the map content by the wrong amount (up to ~sin(angle)*move
-        // horizontally), causing visible left/right jumps in follow mode.
-        val cosA = kotlin.math.cos(frontBufferAngle)
-        val sinA = kotlin.math.sin(frontBufferAngle)
-        val dxR = dx * cosA - dy * sinA
-        val dyR = dx * sinA + dy * cosA
-
-        // The follow-mode display loop offsets the visible window within the
-        // overrun margin to scroll smoothly between GPS fixes. The covered check
-        // must reserve that margin (plus prediction slack) around the window
-        // centered on the new position — otherwise a render request at the margin
-        // would be "covered" and the map would stick at the edge.
-        val slack = BLIT_COVER_SLACK_PX
-        val viewLeft = fbW / 2.0 - sw / 2.0 + dxR
-        val viewTop = fbH / 2.0 - sh / 2.0 + dyR
-        val covered = viewLeft - slack >= 0 && viewTop - slack >= 0 &&
-            viewLeft + sw + slack <= fbW && viewTop + sh + slack <= fbH
-
-        currentLat = newLat; currentLon = newLon
-        emitCurrentViewport()
-
-        if (covered) {
-            // No-shift emission: the buffer content stays put; the display loop
-            // offsets the visible window within the overrun margin. Emit the full
-            // overrun buffer with the buffer's actual center as the viewport so the
-            // display loop's offset base stays consistent with the bitmap content.
-            emitFrame(
-                RenderViewport(frontBufferLat, frontBufferLon, frontBufferMag, frontBufferAngle),
-                MarkerSnapshot(gpsMarkerLat, gpsMarkerLon, gpsMarkerBearing, gpsMarkerAccuracy),
-                crop = false
+            val offset = FollowPrediction.displayOffsetPx(
+                newLat, newLon,
+                frontBufferLat, frontBufferLon,
+                frontBufferMag, frontBufferAngle,
+                fb.width, fb.height,
+                sw + (2 * BLIT_COVER_SLACK_PX).toInt(),
+                sh + (2 * BLIT_COVER_SLACK_PX).toInt(),
+                dpi
             )
+            !offset.clamped
         }
-
-        return covered
-    }
-
-    private fun extractCenterRegion(fb: Bitmap): Bitmap {
-        val sw = screenWidth; val sh = screenHeight
-        val fbW = fb.width; val fbH = fb.height
-        val region = if (fbW == sw && fbH == sh) {
-            fb
-        } else {
-            Bitmap.createBitmap(fb, (fbW - sw) / 2, (fbH - sh) / 2, sw, sh)
-        }
-        // Copy into an independent bitmap. createBitmap shares the backing pixel
-        // storage with fb; the next render overwrites that storage via
-        // backBuffer.setPixels() while Compose may still be drawing this frame,
-        // which shows the new content at a stale crop offset (visible left/right
-        // jumps). The tile path already copies before recycle.
-        return region.copy(Bitmap.Config.ARGB_8888, true)
     }
 
     private fun normalizeAngle(rad: Double): Double {
@@ -985,6 +958,15 @@ class MapRenderer(
 
     companion object {
         private const val TAG = "MapRenderer"
+
+        /**
+         * Renderer diagnostics on the per-request hot path (a gesture can issue
+         * hundreds of requests per second). Off in normal runs — flip locally when
+         * debugging the request/debounce path, never in a release build
+         * (spec render-performance — Pan hot path stays off the frame budget).
+         */
+        internal const val DEBUG_RENDER_HOT_PATH = false
+
         const val DEFAULT_MAGNIFICATION = 5.0
         const val DEFAULT_LATITUDE = 51.5142273
         const val DEFAULT_LONGITUDE = 7.4652789

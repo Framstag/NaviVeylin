@@ -8,7 +8,7 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
 
 ## Documentation Map
 
-Pick the right doc: `guidelines/Design.md` = architecture principles; `guidelines/UI.md` = UI rules (phone + Android Auto); `guidelines/MapRendering.md` = render-pipeline details and pitfalls; `guidelines/Build.md` = build/test/release skills; this file = project facts, build commands, logging, stylesheet mechanics.
+Pick the right doc: `guidelines/Design.md` = architecture principles; `guidelines/UI.md` = UI rules (phone + Android Auto); `guidelines/MapRendering.md` = render-pipeline details and pitfalls; `guidelines/Build.md` = build/test/release skills; `guidelines/Regulatory.md` = legal/regulatory constraints on the app and its developer; this file = project facts, build commands, logging, stylesheet mechanics.
 
 ## Tech Stack
 

@@ -142,8 +142,13 @@ class MapScreen(
         resolvedDark = resolvedDark,
         onFix = ::onGpsFix,
         onFavorites = { rendererGate.setFavoriteLocations(it) },
-        onDark = { dark ->
-            rendererGate.setDarkPresentation(dark)
+        onDark = {
+            // The overlay palette (vehicle marker, compass rose) follows the applied
+            // stylesheet variant, not this value: [setDarkPresentation] is called by the
+            // daylight collector below once the variant actually changed, so no frame can
+            // show a night-palette overlay on a daylight map (spec: auto-map-layout —
+            // Compass rose follows the resolved surface presentation).
+            //
             // Stylesheet flag applies only once the client is built; a pre-ready dark
             // is re-pushed by the readiness observer via pushDark() (which skips until
             // ready). Deduped by value: an unchanged resolved value neither reloads
@@ -318,8 +323,12 @@ class MapScreen(
                 }
                 // A changed variant invalidates the rendered frame (the overrun buffer holds
                 // the previous variant); the gate's own thread is the main one, so this
-                // stays here.
-                if (applied) rendererGate.invalidateStyle()
+                // stays here. The overlay palette flips with it, so the app-drawn overlays
+                // and the map always show the same presentation.
+                if (applied) {
+                    rendererGate.setDarkPresentation(request.dark)
+                    rendererGate.invalidateStyle()
+                }
             }
         }
 
@@ -493,7 +502,7 @@ class MapScreen(
                 // Push the destination-free navigation-style view (spec:
                 // auto/free-driving). Popping it returns to this map view.
                 armScreenPush(carContext, scope, "FreeDrivingScreen") {
-                    FreeDrivingScreen(carContext)
+                    FreeDrivingScreen(carContext, resolvedDark)
                 }
             },
             onStarredFavorites = {

@@ -247,6 +247,15 @@ internal class RendererGate {
         rendererOrNull()?.setDarkPresentation(dark) ?: run { this.dark = dark }
     }
 
+    /**
+     * Presentation applied to the map variant and the app-drawn overlays of this
+     * screen's renderer. Read by the surface drawers so an overlay palette always
+     * matches the map underneath; `false` before a renderer exists (no overlay is
+     * drawn then either).
+     */
+    fun currentDarkPresentation(): Boolean =
+        rendererOrNull()?.currentDarkPresentation() ?: (dark ?: false)
+
     fun setFollowAnchor(anchor: VehicleAnchorPosition) {
         val ready = rendererOrNull()
         if (ready != null) ready.setFollowAnchor(anchor) else followAnchor = anchor

@@ -26,6 +26,14 @@ private const val TAG = "MapGestures"
 private const val ROTATION_REPORT_THRESHOLD_RAD = 0.01f
 
 /**
+ * Travel (px) a finger must cover before the gesture counts as a drag rather than
+ * a tap/long-press. The travel covered up to this threshold is reported with the
+ * first pan delta, so the map content below the finger and the finger stay
+ * together (spec map-pan-zoom — Touch-based pan).
+ */
+private const val DRAG_START_THRESHOLD_PX = 12f
+
+/**
  * Callbacks for map canvas touch gestures. All positions are in screen pixels.
  */
 interface MapGestureCallbacks {
@@ -87,9 +95,19 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
                     }
 
                     val dist = (change.position - downPos).getDistance()
-                    if (dist > 12f) {
-                        // Drag started
+                    if (dist > DRAG_START_THRESHOLD_PX) {
+                        // Drag started: report the travel covered so far (down → this
+                        // event) right away and continue from here. A drag delivered as
+                        // a single move event would otherwise be swallowed until the
+                        // next event (a pan that never reaches the map), and holding
+                        // it back would make the content lag the finger by the
+                        // threshold (spec map-pan-zoom — Touch-based pan: the reported
+                        // deltas sum to the finger travel).
                         dragActive = true
+                        currentCallbacks.onPan(
+                            change.position.x - downPos.x,
+                            change.position.y - downPos.y
+                        )
                         lastPointer = change.position
                         return@withTimeoutOrNull null
                     }
@@ -117,6 +135,11 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
 
             // Phase 2: If drag started, continue tracking for pan/zoom/rotate
             if (dragActive) {
+                // A multi-touch phase re-bases the single-finger reference (see the
+                // single-finger branch): the tracked pointer's delta must be measured
+                // from the event the multi-touch phase ended on, never from the down
+                // position — otherwise lifting one finger of a pinch teleports the map.
+                var multiTouchPhase = false
                 while (true) {
                     val event = awaitPointerEvent()
                     val change = event.changes.firstOrNull { it.id == pointerId }
@@ -134,6 +157,7 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
 
                     val pressedChanges = event.changes.filter { it.pressed }
                     if (pressedChanges.size >= 2) {
+                        multiTouchPhase = true
                         // Multi-touch: pan via centroid, rotate via finger angle,
                         // zoom via finger distance. Compose sorts changes by
                         // pointer id, so c1/c2 are stable across events.
@@ -205,6 +229,13 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
                         }
                     } else {
                         // Single-finger pan: compute delta and update center
+                        if (multiTouchPhase) {
+                            // Coming back from a two-finger phase (one finger lifted):
+                            // re-base on this event so the first single-finger delta is
+                            // a real finger move, not the whole gesture travel.
+                            multiTouchPhase = false
+                            lastPointer = change.position
+                        }
                         val dx = change.position.x - lastPointer.x
                         val dy = change.position.y - lastPointer.y
                         lastPointer = change.position

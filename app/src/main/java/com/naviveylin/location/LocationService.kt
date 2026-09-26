@@ -1,8 +1,6 @@
 package com.naviveylin.location
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -10,7 +8,6 @@ import android.os.Bundle
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.VisibleForTesting
-import androidx.core.content.ContextCompat
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -18,7 +15,9 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.naviveylin.core.AccuracyClass
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.SpeedStaleness
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -26,6 +25,37 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
+/**
+ * Roles that hold a location-update lease (spec: `location-updates-lease`).
+ *
+ * A role, not a surface: the phone map being visible and the phone navigating are
+ * independent holders, so one ending never silences the other. Names are
+ * constants so two components cannot accidentally share (or split) a holder.
+ */
+object LocationConsumers {
+
+    /** Phone map surface visible (marker, free-driving follow). */
+    const val PHONE_MAP = "phone-map"
+
+    /** Phone navigation running, even with the UI in the background. */
+    const val PHONE_NAV = "phone-nav"
+
+    /** Android Auto / AAOS car session live (car map, car free driving). */
+    const val CAR_SESSION = "car-session"
+
+    /** Car navigation running. */
+    const val CAR_NAV = "car-nav"
+}
+
+/**
+ * A held location-update lease. [release] is idempotent; releasing one lease
+ * stops device updates only when no other lease remains (spec:
+ * `location-updates-lease`). Implemented by `LocationService`.
+ */
+interface LocationLease {
+    fun release()
+}
 
 /**
  * A processed GPS fix with two bearings:
@@ -405,6 +435,14 @@ class LocationService @Inject constructor(
     private var fusedCallback: LocationCallback? = null
     private var gpsListener: LocationListener? = null
 
+    /**
+     * Held leases by consumer name (spec: `location-updates-lease`). Guarded by
+     * [leasesLock] because acquire/release arrive from the main thread (Compose
+     * lifecycle, car-session callbacks) and from background work alike.
+     */
+    private val leases = mutableMapOf<String, LeaseHandle>()
+    private val leasesLock = Any()
+
     // Timestamp + position of the last emitted fix, used to drop duplicates
     // delivered by both Fused and LocationManager with the same location.
     private var lastEmittedFixTimeMs: Long = 0L
@@ -459,10 +497,35 @@ class LocationService @Inject constructor(
         return fused
     }
 
+    /**
+     * True when any location grant is held. Deliberately not fine-only: an
+     * approximate grant is a working state for the map (spec: `location-permissions`
+     * — Approximate grant is a working state).
+     */
     val hasPermission: Boolean
-        get() = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        get() = LocationGrant.isGranted(context)
+
+    /**
+     * The precision the user granted, re-read on every access because it can change
+     * in system settings while the app lives (spec: `location-permissions` — The
+     * granted accuracy class governs provider updates). Public so the navigation
+     * gate reads the same rule as this service.
+     */
+    val grantedPrecision: AccuracyClass
+        get() = LocationGrant.accuracyClass(context)
+
+    /**
+     * The Fused update priority for a grant class: only the precise grant buys the
+     * high-accuracy request (spec: `location-permissions` — Approximate grant uses a
+     * lower-power request). Extracted as a pure seam so both classes are testable
+     * without a live provider.
+     */
+    @VisibleForTesting
+    @Suppress("DEPRECATION") // PRIORITY_*: no non-deprecated equivalent below API 34
+    internal fun fusedPriorityFor(precision: AccuracyClass): Int = when (precision) {
+        AccuracyClass.PRECISE -> LocationRequest.PRIORITY_HIGH_ACCURACY
+        else -> LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
+    }
 
     @VisibleForTesting
     fun setLocationForTest(location: Location?) {
@@ -498,9 +561,67 @@ class LocationService @Inject constructor(
         fusedCallback?.onLocationResult(LocationResult.create(listOf(location)))
     }
 
-    fun startLocationUpdates() {
+    /**
+     * Acquire a location-update lease for [consumer] (spec: `location-updates-lease`).
+     *
+     * Device updates run while at least one lease is held; the first acquire
+     * starts the provider path and the last release stops it. Acquiring twice for
+     * the same consumer is idempotent — the existing lease is returned, so a
+     * repeated acquire can neither double the device request nor leak a lease
+     * that a single release fails to clear.
+     *
+     * Consumer names are roles ([LocationConsumers]), not surfaces: the phone map
+     * being visible and the phone navigating are independent holders, so one
+     * ending does not silence the other.
+     */
+    fun acquire(consumer: String): LocationLease = synchronized(leasesLock) {
+        leases[consumer]?.let { return it }
+        val handle = LeaseHandle(consumer)
+        leases[consumer] = handle
+        val held = leases.size
+        Log.d(TAG, "lease acquire: $consumer (held=$held)")
+        DiagnosticsLog.log(TAG, "location lease acquire: $consumer (held=$held)")
+        if (held == 1) {
+            startProviderUpdates()
+        }
+        handle
+    }
+
+    /**
+     * A held lease. [release] is idempotent and stops device updates only when it
+     * was the last held lease (spec: `location-updates-lease` — One consumer's
+     * release never silences another).
+     */
+    private inner class LeaseHandle(private val consumer: String) : LocationLease {
+        private var released = false
+
+        override fun release() {
+            synchronized(leasesLock) {
+                if (released) return
+                released = true
+                if (leases[consumer] !== this) return
+                leases.remove(consumer)
+                val held = leases.size
+                Log.d(TAG, "lease release: $consumer (held=$held)")
+                DiagnosticsLog.log(TAG, "location lease release: $consumer (held=$held)")
+                if (held == 0) {
+                    stopProviderUpdates()
+                }
+            }
+        }
+    }
+
+    /** Test hook: number of held leases. */
+    @VisibleForTesting
+    internal fun heldLeaseCount(): Int = synchronized(leasesLock) { leases.size }
+
+    /** Test hook: the consumer names currently holding a lease. */
+    @VisibleForTesting
+    internal fun heldLeaseConsumers(): Set<String> = synchronized(leasesLock) { leases.keys.toSet() }
+
+    private fun startProviderUpdates() {
         if (!hasPermission) {
-            Log.d(TAG, "startLocationUpdates: no permission, skipping")
+            Log.d(TAG, "startProviderUpdates: no permission, skipping")
             return
         }
         // Strict fallback: Fused and LocationManager never run simultaneously.
@@ -528,9 +649,11 @@ class LocationService @Inject constructor(
             return
         }
 
-        @Suppress("DEPRECATION") // PRIORITY_HIGH_ACCURACY: no non-deprecated equivalent below API 34
+        // Minimum scope: only the precise grant buys the high-accuracy request. An
+        // approximate grant still moves the map and gets a balanced, cheaper one
+        // (spec: `location-permissions` — Approximate grant uses a lower-power request).
         val request = LocationRequest.Builder(
-            LocationRequest.PRIORITY_HIGH_ACCURACY,
+            fusedPriorityFor(grantedPrecision),
             UPDATE_INTERVAL_MS
         ).apply {
             setMinUpdateIntervalMillis(FASTEST_INTERVAL_MS)
@@ -567,11 +690,16 @@ class LocationService @Inject constructor(
             return
         }
 
-        Log.d(TAG, "startManagerUpdates: requesting GPS updates")
+        // The GPS provider requires the precise grant; network and passive do not, so
+        // an approximate-only device must not request it (that attempt is answered with
+        // SecurityException and would silently hide why no fix arrives)
+        // (spec: `location-permissions` — Fallback path respects the grant).
+        val precise = grantedPrecision == AccuracyClass.PRECISE
+        Log.d(TAG, "startManagerUpdates: requesting updates (class=$grantedPrecision, gps=$precise)")
 
         val listener = object : android.location.LocationListener {
             override fun onLocationChanged(location: Location) {
-                Log.d(TAG, "LocationManager onLocationChanged: ${"%.6f".format(location.latitude)},${"%.6f".format(location.longitude)} acc=${location.accuracy}")
+                Log.d(TAG, "LocationManager onLocationChanged: acc=${location.accuracy} provider=${location.provider}")
                 if (shouldEmit(location)) {
                     _location.value = toGpsFix(location)
                 }
@@ -593,8 +721,11 @@ class LocationService @Inject constructor(
         gpsListener = listener
 
         try {
-            // Request all providers independently — one failure shouldn't block others.
-            requestProvider(LocationManager.GPS_PROVIDER, listener)
+            // Request the allowed providers independently — one failure shouldn't block
+            // others.
+            if (precise) {
+                requestProvider(LocationManager.GPS_PROVIDER, listener)
+            }
             requestProvider(LocationManager.NETWORK_PROVIDER, listener)
             requestProvider(LocationManager.PASSIVE_PROVIDER, listener)
         } catch (e: SecurityException) {
@@ -621,9 +752,10 @@ class LocationService @Inject constructor(
     }
 
     /**
-     * Stop receiving GPS location updates.
+     * Stop receiving GPS location updates. Called only when the last lease is
+     * released — never directly by a consumer.
      */
-    fun stopLocationUpdates() {
+    private fun stopProviderUpdates() {
         // Always stop both providers
         val cb = fusedCallback
         if (cb != null) {

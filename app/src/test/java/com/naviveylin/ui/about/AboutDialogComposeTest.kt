@@ -37,6 +37,20 @@ class AboutDialogComposeTest {
     }
 
     @Test
+    fun dialogShowsThePrivacyStatement() {
+        // Spec: about-dialog — About dialog states what the app does with location and
+        // diagnostics. The wording is the shared `:core` string, so phone and car agree.
+        val statement = ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getString(com.naviveylin.core.R.string.about_privacy_statement)
+
+        composeRule.setContent {
+            AboutDialog(onDismiss = {})
+        }
+
+        composeRule.onNodeWithText(statement).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun dialogShowsOsmLicenceLink() {
         composeRule.setContent {
             AboutDialog(onDismiss = {})

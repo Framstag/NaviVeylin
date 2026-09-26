@@ -209,6 +209,13 @@ class NavigationSession : Session() {
                 guardedHostCall("register car surface callback", tag = SESSION_DIAG_TAG) {
                     surfaceHost().startSession(carContext)
                 }
+                // The phone surface is told that a car session is live (spec:
+                // `car-session-presence`) — informational only, confined like every
+                // other lifecycle step (the library rethrows on the main thread).
+                guardedHostCall("publish car session presence", tag = SESSION_DIAG_TAG) {
+                    carSessionPresence().setActive(true)
+                }
+                SessionLog.push("car session presence: live")
                 SessionLog.push("surface callback registered")
                 // A transition that happened while the session was stopped is applied
                 // once now (spec: car-host-fault-isolation — Bounded host-facing traffic
@@ -245,6 +252,12 @@ class NavigationSession : Session() {
                         entryPoint.autoLocationProvider().stop()
                     }
                 }
+                // Clear the presence signal: the session is gone, and a stale "live"
+                // value must not outlive it (spec: `car-session-presence`).
+                guardedHostCall("clear car session presence", tag = SESSION_DIAG_TAG) {
+                    carSessionPresence().setActive(false)
+                }
+                SessionLog.push("car session presence: ended")
                 // NavigationManager cleanup (may be mid-navigation; the
                 // controller never throws). Only if it was ever created.
                 guardedHostCall("navigation manager destroy", tag = SESSION_DIAG_TAG) {
@@ -266,6 +279,13 @@ class NavigationSession : Session() {
     private val navigationViewModel: NavigationViewModel by lazy {
         entryPoint.navigationViewModel()
     }
+
+    /**
+     * Process-wide car-session-presence publisher (spec: `car-session-presence`):
+     * resolved lazily so a session that never starts (or fails during warmup) does
+     * not construct the phone-facing seam.
+     */
+    private fun carSessionPresence() = entryPoint.carSessionPresence()
 
     /**
      * NavigationManager lifecycle (spec: auto/navigation-view — "Leave
@@ -578,7 +598,7 @@ class NavigationSession : Session() {
             }
             val first = results.firstOrNull()
             if (first != null) {
-                Log.d(TAG, "Deep link geocoded '${query}' → ${first.label} (${first.lat}, ${first.lon})")
+                Log.d(TAG, "Deep link geocoded '${query}' → ${first.label}")
                 navigationViewModel.navigateTo(first.lat, first.lon)
             } else {
                 Log.w(TAG, "Deep link geocoding found no match for '$query'")

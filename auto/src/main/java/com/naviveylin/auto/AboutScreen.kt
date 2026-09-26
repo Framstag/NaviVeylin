@@ -53,6 +53,17 @@ class AboutScreen(carContext: CarContext) : Screen(carContext) {
                     .addText(carContext.getString(R.string.osm_licence_statement))
                     .build()
             )
+            .addRow(
+                // Same statement as the phone about dialog (spec: about-dialog — About
+                // dialog states what the app does with location and diagnostics / Car
+                // about screen keeps the same statement).
+                Row.Builder()
+                    .setTitle(carContext.getString(com.naviveylin.core.R.string.about_privacy_title))
+                    .addText(
+                        carContext.getString(com.naviveylin.core.R.string.about_privacy_statement)
+                    )
+                    .build()
+            )
             .addAction(
                 Action.Builder()
                     .setTitle(carContext.getString(R.string.osm_licence_link))

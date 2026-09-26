@@ -117,7 +117,7 @@ class FavoritesScreen(
                             .setTitle(fav.name ?: "Favorite")
                             .addText(fav.attributes?.get("address") ?: "")
                             .setOnClickListener {
-                                Log.d(TAG, "Favorite selected: ${fav.name} (${fav.lat}, ${fav.lon})")
+                                Log.d(TAG, "Favorite selected: ${fav.name}")
                                 navigationViewModel.navigateTo(fav.lat, fav.lon)
                             }
                             .build()

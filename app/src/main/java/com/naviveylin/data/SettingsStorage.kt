@@ -5,6 +5,8 @@ import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -85,23 +87,52 @@ class SettingsStorage @Inject constructor(
     /** Dispatcher for file IO; swapped to a test dispatcher in unit tests. */
     internal var ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
+    /**
+     * Serializes every read-modify-write on the settings file (spec:
+     * `settings-persistence`). Guarded here rather than at the call sites because
+     * two surfaces (phone settings sheet, car preferences) write the same file in
+     * one process, and each write is a whole-document rewrite.
+     */
+    private val writeMutex = Mutex()
+
     private val file: File
         get() = File(context.filesDir, "maps/settings.json")
 
-    suspend fun save(settings: AppSettings) {
+    /**
+     * Apply [transform] to the current persisted settings as one transaction
+     * (spec: `settings-persistence` — Settings writes are serialized
+     * read-modify-write transactions): no other write can interleave between the
+     * read and the write, so a writer only ever persists the fields it owns on top
+     * of every update that completed before it.
+     *
+     * A failing write is non-fatal: the error is logged and the previous file
+     * content stays (the caller keeps its in-memory value).
+     */
+    suspend fun update(transform: (AppSettings) -> AppSettings) {
         withContext(ioDispatcher) {
-            try {
-                file.parentFile?.mkdirs()
-                file.writeText(json.encodeToString(AppSettings.serializer(), settings))
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to save settings", e)
+            writeMutex.withLock {
+                writeToDisk(transform(readFromDisk()))
             }
         }
     }
 
+    /**
+     * Persist a whole document. Routed through [update] so it cannot interleave
+     * with a partial update; prefer [update] for writers that own only some
+     * fields.
+     */
+    suspend fun save(settings: AppSettings) = update { settings }
+
     suspend fun load(): AppSettings = withContext(ioDispatcher) {
-        if (!file.exists()) return@withContext AppSettings()
-        try {
+        // Under the same lock as the writes: a read must never observe a
+        // half-truncated file (which would decode as defaults and then be
+        // persisted by the next write).
+        writeMutex.withLock { readFromDisk() }
+    }
+
+    private fun readFromDisk(): AppSettings {
+        if (!file.exists()) return AppSettings()
+        return try {
             // One-time normalization of the legacy boolean field (pre-sensitivity
             // versions): true -> HIGH, false -> OFF. The re-encoded text still
             // decodes through the regular serializer; unknown keys are ignored.
@@ -109,6 +140,15 @@ class SettingsStorage @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to load settings, using defaults", e)
             AppSettings()
+        }
+    }
+
+    private fun writeToDisk(settings: AppSettings) {
+        try {
+            file.parentFile?.mkdirs()
+            file.writeText(json.encodeToString(AppSettings.serializer(), settings))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save settings", e)
         }
     }
 

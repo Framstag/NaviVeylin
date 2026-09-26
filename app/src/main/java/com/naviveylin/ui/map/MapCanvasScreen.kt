@@ -116,9 +116,11 @@ import com.naviveylin.ui.route.routeProgressPercent
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.CarSessionPresence
 import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.VehicleAnchorPosition
+import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.ResolvedAnchor
 import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.ZoomAnimation
@@ -133,6 +135,10 @@ import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.round
 import kotlin.math.sin
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 
 private const val TAG = "MapCanvasScreen"
 
@@ -142,11 +148,15 @@ fun MapCanvasScreen(
     onNavigateToMapManager: () -> Unit = {},
     viewModel: MapCanvasViewModel = hiltViewModel(),
     routePanelViewModel: RoutePanelViewModel = hiltViewModel(),
-    navigationViewModel: NavigationViewModel = hiltViewModel()
+    navigationViewModel: NavigationViewModel = hiltViewModel(),
+    carSessionPresence: CarSessionPresence = rememberCarSessionPresence()
 ) {
     val state by viewModel.uiState.collectAsState()
     val routeState by routePanelViewModel.uiState.collectAsState()
     val navState by navigationViewModel.state.collectAsState()
+    // Advisory only (spec: `car-session-presence`): informs the driver that a car
+    // session is live; it disables nothing and gates no map or navigation action.
+    val carSessionActive by carSessionPresence.active.collectAsState()
     // Wire RoutePanelViewModel into MapCanvasViewModel for route result collection
     LaunchedEffect(routePanelViewModel) {
         viewModel.setRoutePanelViewModel(routePanelViewModel)
@@ -660,7 +670,6 @@ fun MapCanvasScreen(
                         if (fix.time == lastFixTime && followLogCount++ % 30 == 0) {
                             val dbg = followPrediction.debugState(nowMs)
                             Log.d(TAG, "follow t=" + fix.time +
-                                " fix=" + "%.6f".format(fix.lat) + "," + "%.6f".format(fix.lon) +
                                 " spd=" + (if (fix.speedKmH.isNaN()) "-" else "%.1f".format(fix.speedKmH)) +
                                 " brg=" + (if (fix.smoothedBearing.isNaN()) "-" else "%.0f".format(fix.smoothedBearing)) +
                                 " avg=" + "%.1f".format(dbg.avgSpeedMs * 3.6) +
@@ -669,8 +678,6 @@ fun MapCanvasScreen(
                                 " savg=" + "%.1f".format(dbg.smoothAvgMs * 3.6) +
                                 " dec=" + dbg.decelerating +
                                 " stp=" + dbg.stopped +
-                                " pred=" + "%.6f".format(predicted.first) + "," + "%.6f".format(predicted.second) +
-                                " disp=" + "%.6f".format(followDisplayLat) + "," + "%.6f".format(followDisplayLon) +
                                 " off=" + "%.1f".format(offset.clampedX) + "," + "%.1f".format(offset.clampedY) +
                                 " clamped=" + offset.clamped)
                         }
@@ -751,17 +758,53 @@ fun MapCanvasScreen(
         }
     }
 
-    // Permission launcher
+    // Permission launcher. Both scopes are requested in ONE request: on API 31+ a
+    // fine-only request is ignored by the platform, so the app would never receive
+    // a fix (spec: `location-permissions` — Runtime permission request). An
+    // approximate grant is a working state, not a failure.
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        if (grants.values.any { it }) {
             viewModel.startLocationUpdates()
         } else {
             // Check if permanently denied
             if (!shouldShowRequestPermissionRationale(context, Manifest.permission.ACCESS_FINE_LOCATION)) {
                 showPermissionRationale = true
             }
+        }
+    }
+
+    // Ask for coarse + fine (the only form the platform accepts on API 31+).
+    val requestLocationPermission: () -> Unit = {
+        permissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        )
+    }
+
+    // App's system settings: the only route left once the platform stops asking.
+    val openLocationSettings: () -> Unit = {
+        try {
+            context.startActivity(
+                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                }
+            )
+        } catch (_: Exception) {
+            // No activity handles the settings intent — nothing else to offer.
+        }
+    }
+
+    // Upgrade action for the navigation gate: re-request while the system can still
+    // ask, otherwise send the user to the app's settings (spec: `location-permissions`
+    // — Phone offers the upgrade action).
+    val onPreciseLocationAction: () -> Unit = {
+        when (preciseLocationAction(permanentlyDenied = showPermissionRationale)) {
+            PreciseLocationAction.REQUEST_PERMISSION -> requestLocationPermission()
+            PreciseLocationAction.OPEN_SETTINGS -> openLocationSettings()
         }
     }
 
@@ -773,15 +816,15 @@ fun MapCanvasScreen(
         viewModel.refreshAddressBookAvailability()
     }
 
-    // Request location permission on first composition if not granted
+    // Request location permission on first composition if not granted. Any grant
+    // (approximate included) is enough to start updating; the precise upgrade is
+    // requested only where it is needed (spec: `location-permissions` — Approximate
+    // grant is a working state).
     LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (LocationGrant.isGranted(context)) {
             viewModel.startLocationUpdates()
         } else {
-            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            requestLocationPermission()
         }
     }
 
@@ -821,10 +864,11 @@ fun MapCanvasScreen(
                     viewModel.stopLocationUpdates()
                 }
                 Lifecycle.Event.ON_RESUME -> {
-                    if (ContextCompat.checkSelfPermission(
-                            context, Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
+                    // Re-read the grant: it can change in system settings while the
+                    // app lives, including an approximate → precise upgrade
+                    // (spec: `location-permissions` — Upgrading from approximate to
+                    // precise while running).
+                    if (LocationGrant.isGranted(context)) {
                         viewModel.startLocationUpdates()
                     }
                     // Permission may have changed in system settings; keep the
@@ -1061,9 +1105,7 @@ fun MapCanvasScreen(
                                     )
                                     Log.d(TAG, "gesture centroidPan dx=" + dx + " dy=" + dy +
                                         " canvas=" + canvasSize.width + "x" + canvasSize.height +
-                                        " angle=" + s.viewport.angle + " mag=" + s.viewport.magnification +
-                                        " center=" + s.viewport.centerLat + "," + s.viewport.centerLon +
-                                        " -> " + newLat + "," + newLon)
+                                        " angle=" + s.viewport.angle + " mag=" + s.viewport.magnification)
                                     viewModel.updateCenter(newLat, newLon)
                                     gesturePan += Offset(dx, dy)
                                 }
@@ -1168,7 +1210,6 @@ fun MapCanvasScreen(
                                         val s = viewModel.uiState.value
                                         Log.d(TAG, "gesture end rot=" + gestureRotation + " zoom=" + gestureZoom +
                                             " pan=" + gesturePan + " centroid=" + gestureCentroid +
-                                            " center=" + s.viewport.centerLat + "," + s.viewport.centerLon +
                                             " mag=" + s.viewport.magnification + " angle=" + s.viewport.angle)
                                         val newAngle = normalizeRadians(s.viewport.angle + gestureRotation.toDouble())
                                         viewModel.updateAngle(newAngle)
@@ -1726,6 +1767,17 @@ fun MapCanvasScreen(
             )
         }
 
+        // Car-session advisory (spec: `car-session-presence`): shown while a car
+        // session is live, on the free centre-left strip that no action column,
+        // widget column, turn card or status card occupies. Informational only.
+        if (carSessionActive) {
+            CarSessionIndicator(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 8.dp)
+            )
+        }
+
         // OSM attribution notice (bottom-right corner, per OSMF Attribution
         // Guidelines). Auto-hides after 5s of no interaction; any map
         // interaction re-shows it and restarts the timer.
@@ -1952,6 +2004,18 @@ fun MapCanvasScreen(
                     TextButton(onClick = { showPermissionRationale = false }) {
                         Text(stringResource(R.string.cancel))
                     }
+                }
+            )
+        }
+        // Navigation gate (spec: `location-permissions` — Starting navigation
+        // requires precise location). The route request was refused; explain it and
+        // offer the upgrade instead of letting a ~2 km start point into the engine.
+        if (routeState.preciseLocationRequired) {
+            PreciseLocationRequiredDialog(
+                onDismiss = { routePanelViewModel.dismissPreciseLocationRequirement() },
+                onUpgrade = {
+                    routePanelViewModel.dismissPreciseLocationRequirement()
+                    onPreciseLocationAction()
                 }
             )
         }
@@ -2269,7 +2333,10 @@ internal fun fireLongPress(
         s.viewport.angle
     )
     val (lat, lon) = vp.screenToGeoRotated(pos.x.toDouble(), pos.y.toDouble())
-    viewModel.onLongPress(lat, lon)
+    // The press point travels with the call: the file-backed diagnostics entry records
+    // the pixel and the magnification instead of a coordinate (spec: auto-diagnostics —
+    // Diagnostics carry no coordinates).
+    viewModel.onLongPress(lat, lon, pos.x.toInt(), pos.y.toInt())
 }
 
 /** Minimum/maximum visual zoom factor during a multi-touch gesture (±2 mag levels). */
@@ -2849,4 +2916,30 @@ internal fun DriveModeButton(
         onClick = onToggle,
         modifier = modifier
     )
+}
+
+/**
+ * Hilt entry point for the process-scoped car-session-presence signal (spec:
+ * `car-session-presence`). The phone map UI has no view-model parameter for it
+ * (the signal is not map state), so it is resolved from the application graph.
+ */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface CarSessionPresenceEntryPoint {
+    fun carSessionPresence(): CarSessionPresence
+}
+
+/**
+ * Resolve the car-session-presence singleton from the application graph. A
+ * composable argument (not a direct call) so tests can pass their own instance.
+ */
+@Composable
+private fun rememberCarSessionPresence(): CarSessionPresence {
+    val context = LocalContext.current
+    return remember(context) {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            CarSessionPresenceEntryPoint::class.java
+        ).carSessionPresence()
+    }
 }

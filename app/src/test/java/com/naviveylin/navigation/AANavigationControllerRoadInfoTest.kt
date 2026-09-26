@@ -1,5 +1,7 @@
 package com.naviveylin.navigation
 
+import android.Manifest
+import android.app.Application
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
@@ -27,10 +29,15 @@ class AANavigationControllerRoadInfoTest {
     private fun buildController(
         client: FakeOSMScoutClient = FakeOSMScoutClient()
     ): AANavigationController {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        // The navigation gate requires the precise grant (spec: `location-permissions`
+        // — Starting navigation requires precise location).
+        shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
         return AANavigationController(
             client,
             NavigationStateProvider(),
-            LocationService(ApplicationProvider.getApplicationContext())
+            LocationService(app),
+            app
         )
     }
 

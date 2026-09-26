@@ -260,12 +260,12 @@ class DetailsScreen(
     /** Template body; guarded by [carScreenTemplate] (spec: car-host-fault-isolation). */
     private fun buildTemplate(): Template {
         val onNavigate: () -> Unit = {
-            Log.d(TAG, "Navigate to: $lat, $lon")
+                Log.d(TAG, "Navigate to: destination='${destinationName() ?: "-"}'")
             navigationViewModel.navigateTo(lat, lon, destinationName())
         }
 
         val onShow: () -> Unit = {
-            Log.d(TAG, "Show on map: $lat, $lon")
+            Log.d(TAG, "Show on map: destination='${destinationName() ?: "-"}'")
             // The host's click callback returns before any screen is built and before the
             // stack is mutated (spec: car-host-fault-isolation — Host callbacks answer
             // promptly, "Template row action opens a screen"; design D6): building the

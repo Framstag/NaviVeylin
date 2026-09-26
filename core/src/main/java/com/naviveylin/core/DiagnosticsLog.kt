@@ -62,6 +62,13 @@ object DiagnosticsLog {
     /** How long a reader waits for the worker to drain before reading the file. */
     const val READ_DRAIN_TIMEOUT_MS = 1_000L
 
+    /**
+     * Age bound for the on-device copy: entries older than this are removed by the
+     * worker (spec: auto-diagnostics — Log storage is bounded in size **and** age).
+     * The file is personal data at rest, so it must not accumulate indefinitely.
+     */
+    const val RETENTION_MS = 7L * 24L * 60L * 60L * 1000L
+
     private const val TAG = "DiagnosticsLog"
     private const val WORKER_THREAD_NAME = "DiagnosticsLog-worker"
     private const val WORKER_STOP_TIMEOUT_MS = 2_000L
@@ -115,7 +122,22 @@ object DiagnosticsLog {
     @Volatile
     internal var maxPendingChars: Int = MAX_PENDING_CHARS
 
+    /** Overridable in tests to exercise the age bound without waiting 7 days. */
+    @Volatile
+    internal var retentionMs: Long = RETENTION_MS
+
+    /** True once the retention pass has run in this process. */
+    private var prunedSinceStart = false
+
+    /** Epoch day of the last retention pass, so a long-running app prunes once a day. */
+    private var lastPruneEpochDay = Long.MIN_VALUE
+
     private val timestampFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+
+    /** Strict parser for the same format, so a malformed line is not silently aged. */
+    private val parseFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).apply {
+        isLenient = false
+    }
 
     /** Initialize with the application context. Safe to call multiple times. */
     fun init(appContext: Context) {
@@ -172,6 +194,8 @@ object DiagnosticsLog {
             droppedEntries = 0L
             droppedSinceFlush = false
             batchTarget = null
+            prunedSinceStart = false
+            lastPruneEpochDay = Long.MIN_VALUE
         }
     }
 
@@ -348,6 +372,10 @@ object DiagnosticsLog {
 
     private fun workerLoop() {
         while (true) {
+            // Retention runs before the first wait, so a process that logs nothing still
+            // drops expired entries at startup (spec: auto-diagnostics — Entries older
+            // than the retention window are removed).
+            pruneIfDue()
             var drained: List<String>? = null
             try {
                 bufferLock.withLock {
@@ -436,6 +464,107 @@ object DiagnosticsLog {
     }
 
     private fun currentFile(): File? = logFile
+
+    /**
+     * Age out the on-device copy: drop every entry older than [retentionMs] — and every
+     * line whose timestamp cannot be parsed, because a line that cannot be aged must
+     * not defeat the bound (spec: auto-diagnostics — Log storage is bounded). Runs on
+     * the worker for the active file and the rotated one; a file is rewritten only when
+     * something was dropped, and the drop is reported once so a reader can tell a
+     * pruned log from a complete one. Main-thread-free by construction: only the worker
+     * calls this, under [fileLock].
+     */
+    private fun pruneExpiredLocked(file: File) {
+        val cutoff = System.currentTimeMillis() - retentionMs
+        var dropped = 0
+        var oldestKept: Long? = null
+
+        val targets = listOf(file, File(file.parentFile, ROTATED_FILE))
+        targets.forEach { target ->
+            if (!target.exists()) return@forEach
+            val kept = ArrayList<String>()
+            var droppedHere = 0
+            try {
+                target.forEachLine { line ->
+                    val stamped = parseTimestamp(line)
+                    if (stamped != null && stamped >= cutoff) {
+                        kept.add(line)
+                        if (oldestKept == null || stamped < oldestKept!!) oldestKept = stamped
+                    } else {
+                        droppedHere++
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "retention read failed", e)
+                return@forEach
+            }
+            if (droppedHere > 0) {
+                dropped += droppedHere
+                rewriteLocked(target, kept)
+            }
+        }
+
+        if (dropped > 0) {
+            val oldest = oldestKept?.let { synchronized(formatLock) { timestampFormat.format(Date(it)) } }
+            appendLineLocked(
+                file,
+                timestamped(
+                    "$TAG retention: dropped $dropped entr" +
+                        (if (dropped == 1) "y" else "ies") +
+                        " older than ${retentionMs / 3_600_000L}h (oldest kept: ${oldest ?: "none"})"
+                )
+            )
+        }
+    }
+
+    /**
+     * Replace [target] with [kept] through a temp file + rename, so a process death in
+     * the middle of a retention pass cannot truncate the log it is pruning.
+     */
+    private fun rewriteLocked(target: File, kept: List<String>) {
+        try {
+            if (kept.isEmpty()) {
+                target.delete()
+                return
+            }
+            val tmp = File(target.parentFile, target.name + ".tmp")
+            tmp.writeText(kept.joinToString(separator = "\n", postfix = "\n"))
+            if (!tmp.renameTo(target)) {
+                target.writeText(kept.joinToString(separator = "\n", postfix = "\n"))
+                tmp.delete()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "retention rewrite failed", e)
+        }
+    }
+
+    /**
+     * Run the retention pass when it is due: once per process, then once per day, so a
+     * long-running app never keeps an expired entry just because it logged a lot.
+     */
+    private fun pruneIfDue() {
+        val file = currentFile() ?: return
+        val today = System.currentTimeMillis() / 86_400_000L
+        if (prunedSinceStart && lastPruneEpochDay == today) return
+        fileLock.withLock { pruneExpiredLocked(file) }
+        prunedSinceStart = true
+        lastPruneEpochDay = today
+    }
+
+    /** The epoch-millis of a line's `[timestamp]` prefix, or null when unparseable. */
+    private fun parseTimestamp(line: String): Long? {
+        if (!line.startsWith("[")) return null
+        val end = line.indexOf(']')
+        if (end <= 1) return null
+        val stamp = line.substring(1, end)
+        return synchronized(formatLock) {
+            try {
+                parseFormat.parse(stamp)?.time
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
 
     private fun timestamped(line: String): String =
         synchronized(formatLock) { "[${timestampFormat.format(Date())}] $line" }

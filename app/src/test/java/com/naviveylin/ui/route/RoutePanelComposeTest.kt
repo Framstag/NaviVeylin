@@ -1,5 +1,7 @@
 package com.naviveylin.ui.route
 
+import android.Manifest
+import android.app.Application
 import android.content.Context
 import android.os.Looper
 import androidx.compose.ui.semantics.SemanticsActions
@@ -24,6 +26,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.Before
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 
@@ -36,6 +39,14 @@ class RoutePanelComposeTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Before
+    fun grantPreciseLocation() {
+        // The navigation gate requires the precise grant (spec: `location-permissions` —
+        // Starting navigation requires precise location); the route cases below need it.
+        shadowOf(ApplicationProvider.getApplicationContext<Application>())
+            .grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 
     private fun context(): Context = ApplicationProvider.getApplicationContext()
 

@@ -37,4 +37,19 @@
     <!-- Map style load failure (spec: map-styles). -->
     <string name="map_style_load_failed">Kartenstil \"%1$s\" konnte nicht geladen werden</string>
     <string name="map_style_load_failed_kept">Kartenstil \"%1$s\" konnte nicht geladen werden — \"%2$s\" bleibt aktiv</string>
+
+    <!-- Navigations-Voraussetzung (spez: `location-permissions`). Gleicher Wortlaut
+         auf Telefon und Auto. -->
+    <string name="location_precise_required_navigation">Für die Navigation ist der genaue Standort erforderlich. Der ungefähre Standort genügt zum Kartenlesen, für eine Route wird aber die genaue Freigabe benötigt — sonst kann der Startpunkt einen Kilometer daneben liegen.</string>
+    <string name="location_grant_precise_action">Genaue Standortfreigabe erteilen</string>
+
+    <!-- Diagnose-Hinweis (spez: auto-diagnostics — Export and viewers disclose the
+         log contents). Gleicher Wortlaut wie im englischen Original. -->
+    <string name="diagnostics_disclosure">Dieses Protokoll bleibt auf diesem Gerät. Es enthält App- und Sitzungsereignisse sowie Namen von Kartendatenbanken und Objekten — keine Koordinaten. Einträge, die älter als 7 Tage sind, werden gelöscht.</string>
+
+    <!-- Datenschutzhinweis in der App (spez: about-dialog). Muss zur Umsetzung passen:
+         nur auf dem Gerät, keine Übertragung, keine Koordinaten im Protokoll, 7 Tage. -->
+    <string name="about_privacy_statement">Der Standort wird nur auf diesem Gerät für die Navigation verwendet und nie übertragen. Auch das Diagnoseprotokoll bleibt auf diesem Gerät, enthält keine Koordinaten und wird nach 7 Tagen gelöscht. Die Kartendaten-Nennung steht bei den Lizenzen unten.</string>
+    <!-- Zeilentitel für denselben Hinweis auf dem Auto-Über-Bildschirm. -->
+    <string name="about_privacy_title">Datenschutz</string>
 </resources>

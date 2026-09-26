@@ -33,11 +33,14 @@ enum class TileCacheConfig {
  * [LIBRARY_DEFAULT_TILES] tiles per database, which is what the car path used to run on.
  *
  * The value lives in the native client and is re-applied to **every** open database (and the basemap) on
- * each render, so it is client-global rather than per database or per surface: two surfaces writing
+ * each render, so it is client-global rather than per database or per surface. Two surfaces writing
  * different values in one process — Android Auto projection runs the phone UI and a car session through
- * the same client — would flip the capacity between renders and thrash every cache. Therefore the first
- * successful configuration for a client decides for that client's lifetime; later requests are reported
- * as [TileCacheConfig.REJECTED] or [TileCacheConfig.UNCHANGED].
+ * the same client — therefore cannot keep separate capacities: the effective capacity is the **highest**
+ * value any surface requested, and a request below it is reported as [TileCacheConfig.REJECTED] instead
+ * of lowering it. Raising is safe (the native layer re-applies the capacity per render) and the phone's
+ * larger budget is already committed whenever the phone is in the process, so the outcome no longer
+ * depends on which surface opened databases first; a car-only process keeps the car capacity because
+ * nothing raises it.
  *
  * Thread-safe: both callers configure from a background dispatcher and may race. The state is keyed by
  * client identity with weak keys, so a replaced client is not kept alive. No Android or logging
@@ -63,7 +66,10 @@ object NativeTileDataCache {
     private val configuredByClient = WeakHashMap<Any, Int>()
 
     /**
-     * Configure [client]'s tile data cache with [tiles], unless that client already carries a value.
+     * Configure [client]'s tile data cache with [tiles]. A value equal to the current one is
+     * [TileCacheConfig.UNCHANGED], a **higher** value raises the capacity ([TileCacheConfig.APPLIED]),
+     * and a lower value is [TileCacheConfig.REJECTED] — the effective capacity never decreases
+     * (spec: `native-tile-data-cache` — the capacity is the highest any surface requested).
      *
      * @return the outcome; never throws (spec: cache configuration failure is non-fatal)
      */
@@ -82,7 +88,10 @@ object NativeTileDataCache {
         synchronized(configuredByClient) {
             val current = configuredByClient[key]
             if (current != null) {
-                return if (current == tiles) TileCacheConfig.UNCHANGED else TileCacheConfig.REJECTED
+                if (current == tiles) return TileCacheConfig.UNCHANGED
+                // A smaller request must not shrink the client-wide capacity; the first surface
+                // (or the phone, later) keeps the larger one.
+                if (current > tiles) return TileCacheConfig.REJECTED
             }
 
             return try {
@@ -91,6 +100,8 @@ object NativeTileDataCache {
                 TileCacheConfig.APPLIED
             } catch (e: Exception) {
                 // A bridge fault must not break rendering (spec: cache configuration failure is non-fatal).
+                // A failed raise leaves the previous value recorded, so a later request is judged
+                // against what the client actually carries.
                 TileCacheConfig.FAILED
             } catch (e: UnsatisfiedLinkError) {
                 // No native library (host tests, a failed load): same policy as any other failure.

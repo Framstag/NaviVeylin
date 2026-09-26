@@ -9,7 +9,8 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Tests for the tile data cache seam ([NativeTileDataCache]) — the constants the spec constrains and the
- * once-per-client policy (spec: `native-tile-data-cache`).
+ * highest-requested-value policy (spec: `native-tile-data-cache` — the effective capacity is the highest
+ * any surface requested and is never lowered).
  *
  * The policy is exercised through [NativeTileDataCache.applyTo], so no native client is needed: `:core`
  * has no JNI stub and `OSMScoutClient` loads the library in its static initializer. The wiring of the two
@@ -72,7 +73,7 @@ class NativeTileDataCacheTest {
     }
 
     @Test
-    fun aSecondDifferentValueIsRejectedWithoutReachingTheClient() {
+    fun aLowerValueIsRejectedWithoutReachingTheClient() {
         val recorded = Recording()
 
         NativeTileDataCache.applyTo("client-c", NativeTileDataCache.PHONE_TILES) { recorded.configured.add(it) }
@@ -82,9 +83,82 @@ class NativeTileDataCacheTest {
 
         assertEquals(TileCacheConfig.REJECTED, result)
         assertEquals(
-            "a rejected request must not flip the capacity mid-session",
+            "a lower request must not shrink the capacity mid-session",
             listOf(NativeTileDataCache.PHONE_TILES),
             recorded.configured
+        )
+    }
+
+    @Test
+    fun aLaterHigherRequestRaisesTheCapacity() {
+        // The reported defect: a car session opening databases first used to leave
+        // the phone rendering on the car capacity for the rest of the process.
+        val recorded = Recording()
+
+        assertEquals(
+            TileCacheConfig.APPLIED,
+            NativeTileDataCache.applyTo("client-raise", NativeTileDataCache.CAR_TILES) { recorded.configured.add(it) }
+        )
+        assertEquals(
+            TileCacheConfig.APPLIED,
+            NativeTileDataCache.applyTo("client-raise", NativeTileDataCache.PHONE_TILES) { recorded.configured.add(it) }
+        )
+
+        assertEquals(
+            "the raised value must reach the client",
+            listOf(NativeTileDataCache.CAR_TILES, NativeTileDataCache.PHONE_TILES),
+            recorded.configured
+        )
+        // The raised value is now the floor: an equal request is idempotent.
+        assertEquals(
+            TileCacheConfig.UNCHANGED,
+            NativeTileDataCache.applyTo("client-raise", NativeTileDataCache.PHONE_TILES) { recorded.configured.add(it) }
+        )
+    }
+
+    @Test
+    fun aRejectedRequestDoesNotChangeTheFloor() {
+        val recorded = Recording()
+
+        NativeTileDataCache.applyTo("client-floor", NativeTileDataCache.CAR_TILES) { recorded.configured.add(it) }
+        assertEquals(
+            TileCacheConfig.REJECTED,
+            NativeTileDataCache.applyTo("client-floor", NativeTileDataCache.LIBRARY_DEFAULT_TILES) {
+                recorded.configured.add(it)
+            }
+        )
+        // A rejected value must not have replaced the recorded floor.
+        assertEquals(
+            TileCacheConfig.APPLIED,
+            NativeTileDataCache.applyTo("client-floor", NativeTileDataCache.PHONE_TILES) { recorded.configured.add(it) }
+        )
+        assertEquals(
+            listOf(NativeTileDataCache.CAR_TILES, NativeTileDataCache.PHONE_TILES),
+            recorded.configured
+        )
+    }
+
+    @Test
+    fun aFailedRaiseKeepsTheRecordedValueAndCanBeRetried() {
+        val attempts = mutableListOf<Int>()
+
+        NativeTileDataCache.applyTo("client-retry", NativeTileDataCache.CAR_TILES) { attempts.add(it) }
+        assertEquals(
+            TileCacheConfig.FAILED,
+            NativeTileDataCache.applyTo("client-retry", NativeTileDataCache.PHONE_TILES) { size ->
+                attempts.add(size)
+                throw IllegalStateException("bridge is gone")
+            }
+        )
+        // The failed raise is not remembered as applied: the client is still on the
+        // car value, so the phone request may be retried and is judged a raise again.
+        assertEquals(
+            TileCacheConfig.APPLIED,
+            NativeTileDataCache.applyTo("client-retry", NativeTileDataCache.PHONE_TILES) { attempts.add(it) }
+        )
+        assertEquals(
+            listOf(NativeTileDataCache.CAR_TILES, NativeTileDataCache.PHONE_TILES, NativeTileDataCache.PHONE_TILES),
+            attempts
         )
     }
 

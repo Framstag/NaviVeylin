@@ -41,4 +41,24 @@
          the second when the previously active style stays in effect. -->
     <string name="map_style_load_failed">Map style \"%1$s\" could not be loaded</string>
     <string name="map_style_load_failed_kept">Map style \"%1$s\" could not be loaded — still using \"%2$s\"</string>
+
+    <!-- Navigation gate (spec: `location-permissions` — Starting navigation requires
+         precise location). One wording for both surfaces: the phone offers the
+         upgrade action, the car shows the message without launching settings. -->
+    <string name="location_precise_required_navigation">Precise location is required for navigation. Approximate location is enough to browse the map, but a route needs the precise grant — otherwise the start point can be a kilometre off.</string>
+    <string name="location_grant_precise_action">Grant precise location</string>
+
+    <!-- Diagnostics disclosure (spec: auto-diagnostics — Export and viewers disclose
+         the log contents). One wording for the phone dialog, the shared text and the
+         car diagnostics screen. Must stay accurate to the implementation: no
+         coordinates in the log, entries kept at most 7 days. -->
+    <string name="diagnostics_disclosure">This log stays on this device. It records app and session events plus map database and object names — never coordinates. Entries older than 7 days are deleted.</string>
+
+    <!-- In-app privacy statement (spec: about-dialog — About dialog states what the app
+         does with location and diagnostics). Must stay accurate to the implementation:
+         on-device only, no transmission, no coordinates in the log, 7-day retention. The
+         map-data attribution stays where the dialog already shows it. -->
+    <string name="about_privacy_statement">Location is used on this device for navigation and is never transmitted. The diagnostics log also stays on this device, contains no coordinates and is deleted after 7 days. Map data attribution is listed with the licenses below.</string>
+    <!-- Row title for the same statement on the car about screen. -->
+    <string name="about_privacy_title">Privacy</string>
 </resources>

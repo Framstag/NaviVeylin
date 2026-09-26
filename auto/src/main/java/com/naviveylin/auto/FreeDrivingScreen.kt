@@ -520,8 +520,8 @@ class FreeDrivingScreen(
         val (speed, bearing) = fixDerivation.derive(pos, nowMs)
         Log.d(
             TAG,
-            "GPS fix lat=${pos.lat} lon=${pos.lon} bearing=${pos.bearing} " +
-                "effBearing=$bearing speedKmH=${pos.speedKmH} effSpeed=$speed"
+            "GPS fix bearing=${pos.bearing} " +
+                "effBearing=$bearing speedKmH=${pos.speedKmH} effSpeed=$speed acc=${pos.accuracy}"
         )
         currentSpeedKmH = speed
         rendererGate.setGpsMarker(

@@ -47,6 +47,8 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportState
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
+import com.naviveylin.location.LocationConsumers
+import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.share.SharedLocationHandler
@@ -699,8 +701,7 @@ class MapCanvasViewModel @Inject constructor(
     fun onToggleKeepScreenOn(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(keepScreenOn = enabled)
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(keepScreenOn = enabled))
+            settingsStorage.update { it.copy(keepScreenOn = enabled) }
         }
     }
 
@@ -708,8 +709,7 @@ class MapCanvasViewModel @Inject constructor(
     fun onToggleLaneHints(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(laneHintsEnabled = enabled)
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(laneHintsEnabled = enabled))
+            settingsStorage.update { it.copy(laneHintsEnabled = enabled) }
         }
     }
 
@@ -722,8 +722,7 @@ class MapCanvasViewModel @Inject constructor(
     fun onSetOverspeedWarningDelta(deltaKmh: Int) {
         _uiState.value = _uiState.value.copy(overspeedWarningDeltaKmh = deltaKmh)
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(overspeedWarningDeltaKmh = deltaKmh))
+            settingsStorage.update { it.copy(overspeedWarningDeltaKmh = deltaKmh) }
         }
     }
 
@@ -735,8 +734,7 @@ class MapCanvasViewModel @Inject constructor(
     fun onSetRenderMode(mode: RenderMode) {
         _uiState.value = _uiState.value.copy(renderMode = mode)
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(renderMode = mode))
+            settingsStorage.update { it.copy(renderMode = mode) }
         }
         mapRenderer?.renderMode = mode
         mapRenderer?.invalidateStyle()
@@ -862,8 +860,7 @@ class MapCanvasViewModel @Inject constructor(
     fun onStyleSheetSelected(name: String) {
         _uiState.value = _uiState.value.copy(styleSheet = name)
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(styleSheet = name))
+            settingsStorage.update { it.copy(styleSheet = name) }
         }
         lastPushedStyleSheet = null
         viewModelScope.launch { applyStyleSheet(name) }
@@ -873,8 +870,7 @@ class MapCanvasViewModel @Inject constructor(
     fun onToggleAutoZoom(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(autoZoomEnabled = enabled)
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(autoZoomEnabled = enabled))
+            settingsStorage.update { it.copy(autoZoomEnabled = enabled) }
         }
         if (enabled) {
             // Reset suspension state so zoom adjusts immediately
@@ -1060,8 +1056,9 @@ class MapCanvasViewModel @Inject constructor(
                 lastSpeedFixTime = fix.time
 
                 if (logCount++ % 30 == 0) {
-                    Log.d(TAG, "GPS loc=${"%.6f".format(fix.lat)},${"%.6f".format(fix.lon)} " +
+                    Log.d(TAG, "GPS fix acc=${"%.1f".format(fix.accuracy)} " +
                             "bearing=${if (!fix.markerBearing.isNaN()) "%.1f".format(fix.markerBearing) else "-"} " +
+                            "speed=${if (!fix.speedKmH.isNaN()) "%.1f".format(fix.speedKmH) else "-"} " +
                             "follow=${_uiState.value.followMode}")
                 }
 
@@ -1471,7 +1468,7 @@ class MapCanvasViewModel @Inject constructor(
         releaseSearchAdminRegion()
         searchAdminRegionHandle = try {
             val h = client.resolveAdminRegion(lat, lon)
-            Log.d(TAG, "resolveAdminRegion(lat=$lat, lon=$lon) -> handle=$h")
+            Log.d(TAG, "resolveAdminRegion -> handle=$h")
             h
         } catch (e: Exception) {
             Log.e(TAG, "resolveAdminRegion failed", e)
@@ -1571,8 +1568,7 @@ class MapCanvasViewModel @Inject constructor(
         )
         publishResolvedAnchor()
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(routingAnchorId = anchor.id))
+            settingsStorage.update { it.copy(routingAnchorId = anchor.id) }
         }
     }
 
@@ -1589,8 +1585,7 @@ class MapCanvasViewModel @Inject constructor(
         )
         publishResolvedAnchor()
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(freeDrivingAnchorId = anchor.id))
+            settingsStorage.update { it.copy(freeDrivingAnchorId = anchor.id) }
         }
     }
 
@@ -1802,15 +1797,16 @@ class MapCanvasViewModel @Inject constructor(
             // native-tile-data-cache). Stored in the client and re-applied to
             // every open database by the render path, so it also covers
             // databases that open asynchronously after this call. Perf-only and
-            // idempotent; the first surface in the process decides the value, so
-            // a car session sharing this client cannot flip it mid-session.
+            // idempotent; the highest requested value wins and is never lowered, so
+            // a car session sharing this client cannot shrink it and a car-first
+            // ordering cannot degrade the phone.
             when (NativeTileDataCache.apply(client, NativeTileDataCache.PHONE_TILES)) {
                 TileCacheConfig.APPLIED ->
                     Log.d(TAG, "initMap: tile data cache configured with " +
                             "${NativeTileDataCache.PHONE_TILES} tiles")
                 TileCacheConfig.UNCHANGED -> Unit
                 TileCacheConfig.REJECTED ->
-                    Log.w(TAG, "initMap: tile data cache already configured with a different value")
+                    Log.w(TAG, "initMap: tile data cache kept at the higher value already configured")
                 TileCacheConfig.FAILED ->
                     Log.w(TAG, "initMap: setNativeDataCacheSize failed")
             }
@@ -1877,7 +1873,7 @@ class MapCanvasViewModel @Inject constructor(
             val vp = restored.copy(magnification = restored.magnification.coerceIn(MIN_MAG, MAX_MAG))
             Log.d(
                 TAG,
-                "initMap: viewport lat=${vp.centerLat}, lon=${vp.centerLon}, mag=${vp.magnification} " +
+                "initMap: viewport mag=${vp.magnification} " +
                     (if (saved != null) "(saved)" else if (bbox != null) "(bbox)" else "(default)")
             )
 
@@ -2021,7 +2017,7 @@ class MapCanvasViewModel @Inject constructor(
 
     /** Called when user selects a favorite from the favorites sheet. */
     fun onFavoriteSelected(fav: com.framstag.libosmscout.client.FavoriteLocation) {
-        Log.d(TAG, "onFavoriteSelected: name='${fav.name}', lat=${fav.lat}, lon=${fav.lon}")
+        Log.d(TAG, "onFavoriteSelected: name='${fav.name}' source=favourites")
         viewModelScope.launch {
             // Deactivate follow mode so the picked destination stays visible and a
             // deliberate route calculation always produces the overview (spec:
@@ -2104,7 +2100,7 @@ class MapCanvasViewModel @Inject constructor(
 
     /** Called when user selects a search result. */
     fun onSearchResultSelected(entry: LocationEntry) {
-        Log.d(TAG, "onSearchResultSelected: label='${entry.label}', lat=${entry.lat}, lon=${entry.lon}")
+        Log.d(TAG, "onSearchResultSelected: label='${entry.label}' source=search")
         // Capture the query before the state copy below clears it. Only real
         // search selections (non-blank query) are recorded; convenience entries
         // like "Current Location" are selected from an empty query.
@@ -2313,7 +2309,7 @@ class MapCanvasViewModel @Inject constructor(
      * single click). The POI is marked with the search-selection marker.
      */
     fun onPoiEntryClick(entry: PoiEntry) {
-        Log.d(TAG, "onPoiEntryClick: label='${entry.label}', lat=${entry.lat}, lon=${entry.lon}")
+        Log.d(TAG, "onPoiEntryClick: label='${entry.label}' source=poi")
         viewModelScope.launch {
             // Disengage follow mode so a GPS fix does not yank the map away
             // while the user is looking at the details sheet.
@@ -2421,13 +2417,23 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /** Called when user long-presses on the map. */
-    fun onLongPress(lat: Double, lon: Double) {
-        Log.d(TAG, "onLongPress: lat=$lat, lon=$lon")
+    /**
+     * Long press on the map.
+     *
+     * @param screenX press point in canvas pixels, or null when the caller has no screen
+     *   point (tests). Diagnostics identity only: the file-backed entry records the press
+     *   point and the magnification instead of a coordinate (spec: auto-diagnostics —
+     *   Diagnostics carry no coordinates), which is what the screen→geo mapping check
+     *   compares.
+     */
+    fun onLongPress(lat: Double, lon: Double, screenX: Int? = null, screenY: Int? = null) {
+        val mapName = currentMapKey ?: "?"
+        Log.d(TAG, "onLongPress x=${screenX ?: -1} y=${screenY ?: -1} map=$mapName")
         // File-backed diagnostics: verify the resolved point against the
         // clicked object (screen→geo mapping check).
         com.naviveylin.core.DiagnosticsLog.log(
             "LONGPRESS",
-            "lat=$lat lon=$lon mag=${_uiState.value.viewport.magnification}"
+            "x=${screenX ?: -1} y=${screenY ?: -1} mag=${_uiState.value.viewport.magnification} map=$mapName"
         )
         showCandidatesFor(
             lat = lat,
@@ -2514,7 +2520,7 @@ class MapCanvasViewModel @Inject constructor(
         if (request.hasCoordinates) {
             val lat = request.lat!!
             val lon = request.lon!!
-            Log.d(TAG, "Shared location: coordinate $lat,$lon label=${request.label}")
+            Log.d(TAG, "Shared location: label=${request.label} mag=${_uiState.value.viewport.magnification}")
             updateCenter(lat, lon)
             showCandidatesFor(
                 lat = lat,
@@ -2641,8 +2647,7 @@ class MapCanvasViewModel @Inject constructor(
                     )
                     Log.d(TAG, "setNavigationViewModel: navigation ended, " +
                             "mode restored follow=${_uiState.value.followMode} suspended=${_uiState.value.driveSuspended}, " +
-                            "viewport kept at " + "%.6f".format(endCenterLat) + "," +
-                            "%.6f".format(endCenterLon) + " mag=$endMagnification")
+                            "mag=$endMagnification")
                     renderMap()
                 }
             }
@@ -3202,8 +3207,7 @@ class MapCanvasViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(freeFormNorthUp = northUp))
+            settingsStorage.update { it.copy(freeFormNorthUp = northUp) }
         }
     }
 
@@ -3228,21 +3232,35 @@ class MapCanvasViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(navNorthUp = northUp))
+            settingsStorage.update { it.copy(navNorthUp = northUp) }
         }
     }
 
     /** Get current location for overlay rendering. */
     fun getCurrentLocation(): GpsFix? = locationService.location.value
 
+    /** Lease held while the phone map surface wants GPS (spec: `location-updates-lease`). */
+    private var mapLease: LocationLease? = null
 
 
-    /** Start GPS location updates. */
-    fun startLocationUpdates() = locationService.startLocationUpdates()
 
-    /** Stop GPS location updates. */
-    fun stopLocationUpdates() = locationService.stopLocationUpdates()
+    /**
+     * Lease GPS updates for the visible phone map (spec: `location-updates-lease`).
+     * Idempotent, so the lifecycle callers (screen init, resume) can call it
+     * freely; the matching [stopLocationUpdates] releases this surface's lease
+     * without touching a lease held by navigation or by the car session.
+     */
+    fun startLocationUpdates() {
+        if (mapLease == null) {
+            mapLease = locationService.acquire(LocationConsumers.PHONE_MAP)
+        }
+    }
+
+    /** Release the visible-phone-map GPS lease. */
+    fun stopLocationUpdates() {
+        mapLease?.release()
+        mapLease = null
+    }
 
     /** Check if location permission is granted. */
     fun hasLocationPermission(): Boolean = locationService.hasPermission
@@ -3276,12 +3294,11 @@ class MapCanvasViewModel @Inject constructor(
      * Mirrors search-result selection but without search history recording.
      */
     fun onAddressBookResultSelected(entry: LocationEntry) {
-        Log.d(TAG, "onAddressBookResultSelected: label='${entry.label}', lat=${entry.lat}, lon=${entry.lon}")
+        Log.d(TAG, "onAddressBookResultSelected: label='${entry.label}' source=address-book")
         viewModelScope.launch {
             if (_uiState.value.followMode) {
                 _uiState.value = _uiState.value.copy(followMode = false)
-                val current = settingsStorage.load()
-                settingsStorage.save(current.copy(followMode = false))
+                settingsStorage.update { it.copy(followMode = false) }
             }
             _uiState.value = _uiState.value.copy(
                 searchOpen = false,
@@ -3471,8 +3488,7 @@ class MapCanvasViewModel @Inject constructor(
             viewport = _uiState.value.viewport.copy(magnification = mag)
         )
         renderMap()
-        Log.d(TAG, "fitViewportToRoute: center=" + String.format("%.5f", centerLat) + "," +
-            String.format("%.5f", centerLon) + " mag=" + mag + " coveredPx=" + coveredPx)
+        Log.d(TAG, "fitViewportToRoute mag=" + mag + " coveredPx=" + coveredPx)
     }
 
     /**
@@ -3650,8 +3666,7 @@ class MapCanvasViewModel @Inject constructor(
         // the FINAL target, so rendering it directly would land the whole difference in
         // one frame (spec: smooth-zoom - Eased zoom animation on discrete zoom input).
         val mag = zoomWalk.renderMag(vp.magnification)
-        Log.d(TAG, "renderMap mag=" + mag + " (viewport " + vp.magnification + ")" +
-                " center=" + vp.centerLat + "," + vp.centerLon)
+        Log.d(TAG, "renderMap mag=" + mag + " (viewport " + vp.magnification + ")")
         if (zoomWalk.active && !forceFullRender) {
             // A walked step is paced by the landing of the previous step's frame, so the
             // pan/zoom debounce would only add latency (design D3). A forced overlay

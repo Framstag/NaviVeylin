@@ -91,8 +91,6 @@ fun LocationMarkerOverlay(
         if (markerLogCount++ % 10 == 0) {
             Log.d("Marker", "draw sx=${center.x.toInt()}, sy=${center.y.toInt()} " +
                     "bearing=${bearing.toInt()} screenBearing=${bearingDegrees.toInt()} " +
-                    "lat=${"%.6f".format(lat)} lon=${"%.6f".format(lon)} " +
-                    "vp=${"%.5f".format(viewport.lat)},${"%.5f".format(viewport.lon)} " +
                     "mag=${viewport.mag} angle=${Math.toDegrees(viewport.angle).toInt()}")
         }
     }

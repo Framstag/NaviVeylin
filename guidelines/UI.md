@@ -36,6 +36,18 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Auto-zoom magnification changes | Animated — `smooth-zoom` scales the displayed map from the current scale toward the target while the native render is queued, and a change farther than the window the frame in hand can serve is applied as a sequence of steps, each step a native render at the magnification it displays (`ZoomWalk`), one step per landed frame; the animation pivots on the vehicle's resolved follow anchor while a follow mode is active | Animated by the same observable contract, implemented in the renderer — a magnification request larger than the blit window is WALKED across rendered frames (`AutoMapRenderer.advanceZoomWalk`, spec `auto-speed-zoom` — Auto-zoom entry transition), also pivoting on the resolved follow anchor. The observable contract (no single-frame jump, no frame showing a magnification the frame in hand cannot serve, anchored on the vehicle, ends on an exact render) is the parity requirement, the mechanism (Compose display scale over walked renders vs renderer walk) is not shared. Car gesture/zoom-button paths keep their immediate response; the phone walks every animated change, and a programmatic camera fit lands directly on both surfaces |
 | Reorder favorites inside a group | Drag handle on each favorite row in the group detail list (`sh.calvin.reorderable`); the position the drag ends in is persisted | Not offered — Car App Library templates have no drag gesture. The car `PlaceListTemplate` shows the **same stored order** read-only, so the data is at parity, the interaction is not (see below) |
 | Stylesheet could not be loaded | Non-blocking snackbar next to the map with the shared wording (`MapStyleLoadReporter` → `uiState.snackbarMessage`) | **Same wording**, also non-blocking, but a different surface: a one-shot low-importance notification (channel `map_style`, silent, auto-cancel) — the car templates have no general message slot, so `CarStyleLoadNotifier` is used instead of a template change. Guidance is never interrupted on either surface (change `fix-stylesheet-load-crash`, design D2) |
+| Car session live while the phone UI is open | Advisory indication on the map (centre-left pill, shared wording `car_session_active_indicator`, translated): "Navigation on car display". Informational only — no map, search or navigation control is disabled while a car session is live (change `shared-resource-arbitration`, spec `car-session-presence`) | Not shown — the car surface is the session, so the indication would tell the driver nothing (platform constraint, not an omission) |
+| Route requested without the precise location grant | Actionable dialog with the shared wording (`location_precise_required_navigation`, `PreciseLocationRequiredDialog`): "Grant precise location" re-requests the permission while the platform can still ask, and opens the app's system settings once it will not ask again — no route request reaches the routing engine meanwhile (change `fix-location-permission-scope`, spec `location-permissions` — Starting navigation requires precise location) | **Same wording**, non-blocking: the refusal is published on the shared navigation state, so the session shows it in the existing guarded error notice (one row, back action). The car SHALL NOT launch a settings screen — platform constraint, so the driver is told to grant it on the phone / in the system settings. Free driving and the map keep working on both surfaces with approximate location |
+
+### Why the phone is not locked during a car session
+
+The two surfaces share one navigation session: navigation has a single owner per
+process (change `one-navigation-engine`), so a competing phone command cannot
+exist and no lock is needed for correctness (spec `car-session-presence` — The
+phone is informed, not disabled). Locking the phone map would remove legitimate
+uses — a passenger browsing, or the driver picking a destination before setting
+off — for no gain; the phone therefore keeps every map and navigation control and
+only *informs* about the car session.
 
 ### Why favorite reordering is phone-only
 
@@ -715,6 +727,14 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   build on string literals in UI text positions — including conditional
   assignments like `contentDescription = if (x) "A" else "B"`. New UI text
   MUST pass both.
+- **Coordinates in logs**: no log or diagnostics call may interpolate a position
+  (spec: `auto-diagnostics` — Diagnostics carry no coordinates); a Gradle
+  `checkNoCoordinatesInLogs` gate (buildSrc `CoordinateLogScanner`, wired into
+  `preBuild`, scanning `:app`/`:auto`/`:core`) fails the build naming file and
+  line, and the scan is paren-balanced so it sees multi-line calls. Log
+  precision-free identity instead: object label/id, map database or map file name,
+  magnification, screen pixel, accuracy, bearing. The gate has no allowlist — a
+  message that only mentions a coordinate word in prose must be reworded.
 - **RTL**: `supportsRtl="true"` is set; keep layouts direction-agnostic
   (use `start`/`end` alignment, not `left`/`right`) so future RTL locales
   work without layout changes.

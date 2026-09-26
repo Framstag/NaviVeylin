@@ -69,6 +69,10 @@ strong preference.
   defaults and must decode leniently; enum names are stable on disk.
 - Where one value drives several layers (e.g. theme + native style flag),
   resolve it once in a single source and fan out — one truth, no divergence.
+- Process-global state that two surfaces share (location subscription, settings
+  file, native cache capacity, car-session presence) is owned by one seam with an
+  explicit rule, never by per-surface start/stop pairs — see §12, "Single owner per
+  process-global resource".
 - Cross-thread shared state uses atomics/volatiles; flags read at job
   execution time, never snapshotted into queued work.
 - Platform-object side effects (window refs, keep-screen-on) live in
@@ -347,6 +351,32 @@ strong preference.
   out, takes back and recycles the ARGB_8888 targets both renderers draw into
   (change `fix-render-buffer-reuse`, spec `render-performance`) — a renderer
   never keeps a reuse rule of its own and never recycles a pooled target.
+- **Single owner per process-global resource**: when the phone UI and a car
+  session share one process (always the case under Android Auto projection), the
+  process-wide resources have explicit owners instead of per-surface toggles
+  (change `shared-resource-arbitration`):
+  - **Location updates are leased**, never toggled: `LocationService.acquire(consumer)`
+    hands out a `LocationLease` (consumers: `phone-map`, `phone-nav`, `car-session`,
+    `car-nav`), updates run while at least one lease is held, and the last release
+    stops them. A lease is released when its owner ends — the opposite of
+    `DrivingModeProvider`'s retain-on-death semantic, because "who wants GPS?" must
+    not outlive its owner while "is driving active?" must not be cleared by a dying
+    surface. Consumer names are roles, not surfaces, so backgrounding one phone
+    surface cannot cut the fixes another still needs (spec `location-updates-lease`).
+  - **Settings writes are transactions**: `SettingsStorage.update { }` performs
+    read-modify-write under one lock on top of the existing settings file; a writer
+    persists only the fields it owns, and `save(document)` is routed through
+    `update` so a whole-document write cannot interleave either. `load()` takes the
+    same lock — a read must never observe a half-written file (spec
+    `settings-persistence`).
+  - **The native tile-data cache keeps the highest requested capacity** and is never
+    lowered (`NativeTileDataCache`), so the effective value does not depend on which
+    surface opened databases first; a car-only process still runs on the car value
+    (spec `native-tile-data-cache`).
+  - **The car-session-presence signal** (`CarSessionPresence`) is process-scoped and
+    in-memory only: the phone shows an advisory indication and disables nothing. The
+    phone UI is deliberately not locked while a car session is live (spec
+    `car-session-presence`).
 - **Reuse over reinvention**: reuse proven mechanisms (invalidation paths,
   existing pipelines, projection helpers, controllers) instead of adding
   parallel implementations.

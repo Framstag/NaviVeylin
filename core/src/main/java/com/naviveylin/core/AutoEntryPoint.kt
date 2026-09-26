@@ -57,4 +57,11 @@ interface AutoEntryPoint {
      * car surface): the car-app host registers exactly one surface callback per session.
      */
     fun autoSurfaceHost(): CarSurfaceHost
+
+    /**
+     * Publisher of the car-session-presence signal (spec: `car-session-presence`):
+     * the session marks itself live on start and ended on destroy. The phone app
+     * resolves the same singleton for its advisory indication.
+     */
+    fun carSessionPresence(): CarSessionPresence
 }

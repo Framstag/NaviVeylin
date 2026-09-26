@@ -80,6 +80,17 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium
                 )
 
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // What the app does with location and diagnostics, in one short statement
+                // (spec: about-dialog — About dialog states what the app does with location
+                // and diagnostics). Same wording as the car about screen.
+                Text(
+                    text = stringResource(com.naviveylin.core.R.string.about_privacy_statement),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
@@ -188,12 +199,14 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
     var entries by remember { mutableStateOf<List<String>?>(null) }
     var shareText by remember { mutableStateOf("") }
     var reloadKey by remember { mutableStateOf(0) }
+    val disclosure = stringResource(com.naviveylin.core.R.string.diagnostics_disclosure)
 
     LaunchedEffect(reloadKey) {
         // Share text first: once [entries] is published the share text is there too,
         // so clicking Share can never race the load (and nothing is read twice on
-        // one thread).
-        shareText = DiagnosticsLog.exportTextAsync()
+        // one thread). The disclosure leads the shared text (spec: auto-diagnostics —
+        // Export and viewers disclose the log contents).
+        shareText = diagnosticsShareText(disclosure, DiagnosticsLog.exportTextAsync())
         entries = DiagnosticsLog.readEntriesAsync()
     }
 
@@ -204,6 +217,14 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
         onDismiss = onDismiss
     )
 }
+
+/**
+ * The text handed to the share sheet: the disclosure first, then the log (spec:
+ * auto-diagnostics — Export and viewers disclose the log contents). Pure, so the
+ * prefix contract is testable without the dialog.
+ */
+internal fun diagnosticsShareText(disclosure: String, logText: String): String =
+    if (logText.isBlank()) disclosure else "$disclosure\n\n$logText"
 
 /**
  * Pure render half of the diagnostics dialog: no file access, no coroutines — the
@@ -235,6 +256,13 @@ internal fun DiagnosticsLogView(
                     .heightIn(max = 400.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                // What this log holds and how long it is kept, before the entries
+                // (spec: auto-diagnostics — Export and viewers disclose the log contents).
+                Text(
+                    text = stringResource(com.naviveylin.core.R.string.diagnostics_disclosure),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 when {
                     entries == null -> Unit // load in flight; nothing to show yet
                     entries.isEmpty() -> Text(

@@ -278,8 +278,9 @@ android {
             // its own package), while 1024 MB is green for both flavors (automotive measured
             // 2026-09-20: 146 classes, 1054 tests, 0 failures, 1m49s) and 2048 MB likewise.
             // Declared explicitly so a fresh checkout and CI get the same budget.
-            // `forkEvery` (e.g. 40) bounds per-fork accumulation if a machine cannot afford
-            // one 1024 MB fork — see guidelines/Build.md §6.
+            // One fork is enough: the 2026-09-26 `:app` canary failure came from a test
+            // racing the repository's `Dispatchers.Default` persist, not from the fork
+            // budget (fixed in `FavoritesSheetReorderComposeTest`; TODO §26).
             all {
                 it.maxHeapSize = "1024m"
             }
@@ -366,6 +367,40 @@ val checkHardcodedStrings by tasks.registering {
     }
 }
 tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
+
+// Diagnostics privacy gate (spec: auto-diagnostics — Diagnostics carry no
+// coordinates): no log or DiagnosticsLog call may interpolate a position. The
+// scanner is paren-balanced, so it also sees the multi-line concatenated calls;
+// its logic and fixtures live in buildSrc
+// (`com.naviveylin.build.diagnostics`). A message that only mentions a coordinate
+// word in prose must be reworded — the gate has no allowlist on purpose.
+val checkNoCoordinatesInLogs by tasks.registering {
+    val sourceDirs = listOf(
+        file("src/main/java"),
+        rootProject.file("auto/src/main/java"),
+        rootProject.file("core/src/main/java")
+    )
+    inputs.files(sourceDirs)
+    doLast {
+        val findings = sourceDirs.flatMap { dir ->
+            dir.walkTopDown()
+                .filter { it.extension == "kt" }
+                .flatMap { file ->
+                    com.naviveylin.build.diagnostics.CoordinateLogScanner.scan(
+                        file.relativeTo(rootProject.projectDir).path,
+                        file.readText()
+                    ).asSequence()
+                }
+                .toList()
+        }
+        if (findings.isNotEmpty()) {
+            throw GradleException(
+                com.naviveylin.build.diagnostics.CoordinateLogScanner.report(findings)
+            )
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkNoCoordinatesInLogs) }
 
 // Stylesheets are sourced from the libosmscout submodule at build time. Copy the
 // submodule stylesheet directory into a generated assets root so the APK packages

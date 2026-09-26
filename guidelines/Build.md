@@ -133,15 +133,29 @@ All three skills follow the same contract:
   | Module | Suite | Declared | Measured |
   |---|---|---|---|
   | `:auto` | 49 classes / 516 tests | `1024m` | 512 MB → FAILED (141 `OutOfMemoryError` lines, 0 result XMLs, 9m08s); 1024 MB → green (one fork, 20s) |
-  | `:app` | 146 classes / 1054 tests per flavor | `1024m` | 512 MB → deterministic `FavoritesSheetReorderComposeTest` failure (`ComposeTimeoutException` after 5000 ms); 1024 MB → green (1m49s); 2048 MB → green (2m06s) |
+  | `:app` | >165 classes per flavor | `1024m` | 512 MB → deterministic `FavoritesSheetReorderComposeTest` failure (`ComposeTimeoutException` after 5000 ms); 1024 MB → green (1m49s, 146 classes / 1054 tests, 2026-09-20); 2048 MB → green (2m06s 2026-09-20); 1024 MB again from 2026-09-26 with the canary bound at 30 s → green twice in a row (3m57s / 3m20s, 1245 tests per flavor, 0 failures) **after the canary's real cause was fixed** |
 
-  Both values are the measured minimum plus headroom, deliberately not 2g: a full
-  `./gradlew test` holds up to two `:app` forks, one `:auto` fork and one `:core`
-  fork at once. If a machine cannot afford the ceiling, `forkEvery` (e.g. 24 for
-  `:auto`, 40 for `:app`) bounds per-fork accumulation at the cost of a JVM start
-  per batch — prefer that over raising the ceiling. Verify a budget by CONTENT,
-  not by the build result: the fork args (`-Xmx…`, `--info`) and the per-class
-  result XMLs (§4, §17).
+  **The 2026-09-26 `:app` canary was not a budget problem — it was a race in the test.**
+  `FavoritesSheetReorderComposeTest` awaited a state change the repository produces on
+  `Dispatchers.Default` (`FavoriteRepository.defaultDispatcher`): in a one-fork suite that pool
+  competes with every other class's work, so the awaited change was late by an amount the bound
+  measured as luck — the class always passed alone, failed more often as the suite grew, and was
+  insensitive to heap (1024 MB and 2048 MB both failed) and to batching (`forkEvery` 10/20/40 was
+  measured during the diagnosis: green once at 10, red at 10 and 20 on the next runs). The test now
+  pins the repository dispatcher (`Dispatchers.Unconfined`) for its own fixtures, and the suite is
+  green repeatedly on ONE 1024 MB fork. A bound raise is therefore still not the answer — fix the
+  awaited dependency instead.
+
+  Both values are the measured minimum plus headroom. A full `./gradlew test`
+  holds up to two `:app` forks, one `:auto` fork and one `:core` fork at once; at
+  the current `:app` budget that peak needs roughly 4.5-5 GB of RAM. If a machine
+  cannot afford the ceiling, `forkEvery` (e.g. 24 for `:auto`, 40 for `:app`)
+  bounds per-fork accumulation at the cost of a JVM start per batch — prefer that
+  over raising the ceiling. Note that `forkEvery` is **not** part of the test
+  task's build-cache key: after changing it, run with `--no-build-cache`, or the
+  previous configuration's results are restored and the setting looks proven when
+  it never ran. Verify a budget by CONTENT, not by the build result:
+  the fork args (`-Xmx…`, `--info`) and the per-class result XMLs (§4, §17).
 - **One invocation per suite.** `:auto` and `:app` each complete in a single
   Gradle invocation at the declared budget; splitting a suite into class batches is
   a diagnostic fallback (e.g. to isolate one class), never the procedure, and a

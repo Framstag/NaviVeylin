@@ -120,6 +120,7 @@ licenses/             → Curated license data: native license map, license poli
 #### Kotlin (app) logging
 - Use `android.util.Log` (`Log.d/i/w/e`) with per-class `TAG` constants; app diagnostics helpers live in `com.naviveylin.core.DiagnosticsLog` (buffered in memory and written by its own worker thread — logging never touches the file on the caller's thread, and readers use `readEntriesAsync`/`exportTextAsync` instead of reading it in a host callback or during composition)
 - Kotlin logs and forwarded native logs are separate streams; native lines always come from the bridge under the `NaviVeylin` tag
+- **Never log coordinates** (spec `auto-diagnostics` — Diagnostics carry no coordinates): a log or diagnostics line carries identity instead — object label/id, map database or map file name, magnification, screen pixel, accuracy, bearing. The build gate `checkNoCoordinatesInLogs` (buildSrc `CoordinateLogScanner`, in `preBuild`) fails on a new one; the on-device file is pruned to `DiagnosticsLog.RETENTION_MS` (7 days) by the logging worker, and the exported text and both viewers lead with the `diagnostics_disclosure` statement. See `guidelines/Regulatory.md` §9 and `guidelines/UI.md` (gates).
 
 ### Stylesheets
 

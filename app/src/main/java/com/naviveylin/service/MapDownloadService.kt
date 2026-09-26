@@ -12,6 +12,7 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.naviveylin.MainActivity
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NotificationIds
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -48,6 +49,36 @@ class MapDownloadService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /**
+     * Platform timeout hook (the form below API 35 has no service type).
+     */
+    override fun onTimeout(startId: Int) {
+        handleForegroundServiceTimeout()
+    }
+
+    /**
+     * Platform timeout hook (API 35+ includes the foreground service type).
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        handleForegroundServiceTimeout()
+    }
+
+    /**
+     * The platform ended this foreground service because its type's runtime limit was
+     * reached (Android 15+ caps `dataSync` at six hours per 24). Nothing here may report
+     * a download as finished: the managers own that state, the partial file stays on
+     * disk and the download remains resumable — this only ends the service and the
+     * wake lock it holds (spec: map-download-infrastructure — Foreground service for
+     * download, Platform timeout ends the service cleanly).
+     */
+    @androidx.annotation.VisibleForTesting
+    internal fun handleForegroundServiceTimeout() {
+        Log.w(TAG, "foreground service timeout — stopping, downloads stay resumable")
+        DiagnosticsLog.log(TIMEOUT_TAG, "download foreground service timed out; downloads remain resumable")
+        releaseWakeLock()
+        stopSelf()
+    }
 
     override fun onDestroy() {
         releaseWakeLock()
@@ -99,8 +130,17 @@ class MapDownloadService : Service() {
         private const val CHANNEL_ID = "map_download"
         private const val CHANNEL_NAME = "Map Download"
 
+        /** Diagnostics tag for a platform-ended download service (spec: auto-diagnostics). */
+        internal const val TIMEOUT_TAG = "DOWNLOAD"
+
         /** Shared notification identity (spec: navigation-ongoing-notification — Distinct notification identity). */
         private val NOTIFICATION_ID: Int = NotificationIds.MAP_DOWNLOAD
+
+        /**
+         * Wake-lock ceiling. Released whenever the service ends — including when the
+         * platform ends it ([handleForegroundServiceTimeout]) — so it can never outlive
+         * the service it belongs to.
+         */
         private const val WAKE_LOCK_TIMEOUT_MS = 14400000L
         const val ACTION_UPDATE = "com.naviveylin.action.UPDATE_DOWNLOAD"
         const val ACTION_STOP = "com.naviveylin.action.STOP_DOWNLOAD"

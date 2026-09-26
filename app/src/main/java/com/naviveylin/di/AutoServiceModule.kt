@@ -26,6 +26,8 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.toAppSettings
 import com.naviveylin.data.toAutoSettings
+import com.naviveylin.location.LocationConsumers
+import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
 import dagger.Module
 import dagger.Provides
@@ -143,10 +145,10 @@ object AutoServiceModule {
                         // before the databases open (spec: native-tile-data-cache —
                         // Car-only process does not run on the library default).
                         // Without this the car ran on the library default (25) in a
-                        // car-only process and inherited the phone's 512 in a shared
-                        // one. The value is client-global and decided once per
-                        // client, so a phone map screen that configured first keeps
-                        // its value and this request is reported as a no-op.
+                        // car-only process. The value is client-global and the highest
+                        // requested value wins (spec: native-tile-data-cache): a car
+                        // request below a capacity the phone already configured is a
+                        // no-op, and a phone request after this one raises the capacity.
                         when (NativeTileDataCache.apply(client, NativeTileDataCache.CAR_TILES)) {
                             TileCacheConfig.APPLIED ->
                                 DiagnosticsLog.log(
@@ -157,8 +159,8 @@ object AutoServiceModule {
                             TileCacheConfig.REJECTED ->
                                 DiagnosticsLog.log(
                                     DiagnosticsLog.WARMUP_TAG,
-                                    "Tile data cache kept at the phone's value (car requested " +
-                                            "${NativeTileDataCache.CAR_TILES})"
+                                    "Tile data cache kept at the higher value already configured " +
+                                            "(car requested ${NativeTileDataCache.CAR_TILES})"
                                 )
                             TileCacheConfig.FAILED ->
                                 DiagnosticsLog.log(
@@ -205,8 +207,13 @@ object AutoServiceModule {
 
             override fun position(): StateFlow<AutoPosition?> = _position.asStateFlow()
 
+            /** Lease held for the live car session (spec: `location-updates-lease`). */
+            private var sessionLease: LocationLease? = null
+
             override fun start() {
-                locationService.startLocationUpdates()
+                if (sessionLease == null) {
+                    sessionLease = locationService.acquire(LocationConsumers.CAR_SESSION)
+                }
                 if (collectJob == null) {
                     collectJob = CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
                         locationService.location.collect { fix ->
@@ -227,7 +234,8 @@ object AutoServiceModule {
             override fun stop() {
                 collectJob?.cancel()
                 collectJob = null
-                locationService.stopLocationUpdates()
+                sessionLease?.release()
+                sessionLease = null
             }
         }
     }
@@ -241,22 +249,22 @@ object AutoServiceModule {
 
             override suspend fun save(settings: AutoSettings) {
                 // Preserve phone-only fields (e.g. keepScreenOn) by applying the
-                // car-edited subset onto the current persisted settings. The car's
-                // own anchor values are NOT part of that subset — they are written
-                // only by saveCarAnchor (below), so a generic settings write cannot
-                // freeze an anchor the car merely inherited from the phone.
-                val current = settingsStorage.load()
-                settingsStorage.save(settings.toAppSettings(current))
+                // car-edited subset onto the current persisted settings, inside the
+                // storage's write transaction so a concurrent phone write cannot
+                // be lost (spec: `settings-persistence`). The car's own anchor
+                // values are NOT part of that subset — they are written only by
+                // saveCarAnchor (below), so a generic settings write cannot freeze
+                // an anchor the car merely inherited from the phone.
+                settingsStorage.update { current -> settings.toAppSettings(current) }
             }
 
             override suspend fun saveCarAnchor(routingAnchorId: String?, freeDrivingAnchorId: String?) {
-                val current = settingsStorage.load()
-                settingsStorage.save(
+                settingsStorage.update { current ->
                     current.copy(
                         autoRoutingAnchorId = routingAnchorId ?: current.autoRoutingAnchorId,
                         autoFreeDrivingAnchorId = freeDrivingAnchorId ?: current.autoFreeDrivingAnchorId
                     )
-                )
+                }
             }
         }
     }

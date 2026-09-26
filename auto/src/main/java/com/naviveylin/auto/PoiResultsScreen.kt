@@ -113,7 +113,7 @@ class PoiResultsScreen(
                             .setTitle(title)
                             .addText(text)
                             .setOnClickListener {
-                                Log.d(TAG, "POI details: ${poi.label} (${poi.lat}, ${poi.lon})")
+                                Log.d(TAG, "POI details: ${poi.label}")
                                 armScreenPush(carContext, scope, "DetailsScreen (POI result)") {
                                     DetailsScreen(
                                         carContext, navigationViewModel, poi.lat, poi.lon,

@@ -14,7 +14,10 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
+import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.NavigationState
+import com.naviveylin.location.LocationConsumers
+import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
 import com.naviveylin.location.SpeedSpikeFilter
 import com.naviveylin.core.SpeedStaleness
@@ -53,6 +56,15 @@ class NavigationViewModel @Inject constructor(
     val positionFlow: StateFlow<NavigationPosition?> = _positionFlow.asStateFlow()
 
     private var nativeController: NavigationController? = null
+
+    /**
+     * Location lease held while a navigation attempt or session is active
+     * (spec: `location-updates-lease` — acquired when a navigation starts,
+     * released when it stops or fails). The map surface's own lease is separate
+     * (`MapCanvasViewModel`), so backgrounding the phone UI does not cut the
+     * fixes navigation needs.
+     */
+    private var navLease: LocationLease? = null
     private var routePanelViewModel: RoutePanelViewModel? = null
     private var onFollowModeChanged: ((Boolean) -> Unit)? = null
 
@@ -70,10 +82,10 @@ class NavigationViewModel @Inject constructor(
         viewModelScope.launch {
             stateProvider.stopRequests.collect { stopNavigation() }
         }
-        // Ensure GPS updates run even when the phone UI is not open, so
-        // navigation can start from the car (deep link / car-only flow).
+        // GPS updates are leased for the duration of a navigation (spec:
+        // `location-updates-lease`): no subscription is held while the app is idle
+        // in browse mode, and the surface's own lease is independent of this one.
         // Permission-guarded no-op without ACCESS_FINE_LOCATION.
-        locationService.startLocationUpdates()
 
         // Stale-speed ticker (spec: gps-speed-priority — stationary reads zero).
         // At standstill the provider goes silent (min-distance throttling), so
@@ -150,6 +162,19 @@ class NavigationViewModel @Inject constructor(
         }
     }
 
+    /** Acquire the navigation-scoped location lease (idempotent). */
+    private fun acquireNavLease() {
+        if (navLease == null) {
+            navLease = locationService.acquire(LocationConsumers.PHONE_NAV)
+        }
+    }
+
+    /** Release the navigation-scoped location lease (idempotent). */
+    private fun releaseNavLease() {
+        navLease?.release()
+        navLease = null
+    }
+
     /** Start navigation on a calculated route. */
     fun startNavigation(routeEntry: RouteEntry, vehicle: Vehicle, forceFollowMode: Boolean = true) {
         val handle = routeEntry.routeHandle
@@ -157,6 +182,8 @@ class NavigationViewModel @Inject constructor(
             Log.e(TAG, "startNavigation: routeHandle is 0, cannot start")
             return
         }
+
+        acquireNavLease()
 
         // Restarting navigation redraws the route on the map (it may have been
         // hidden by a previous stop — spec: stop-navigation-hides-route).
@@ -217,6 +244,7 @@ class NavigationViewModel @Inject constructor(
     override fun stopNavigation() {
         nativeController?.stop()
         nativeController = null
+        releaseNavLease()
         _state.value = NavigationState()
         onFollowModeChanged?.invoke(false)
         // Stop-path parity (spec: navigation-ongoing-notification — "Stop action
@@ -246,6 +274,24 @@ class NavigationViewModel @Inject constructor(
     }
 
     override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
+        // Navigation gate (spec: `location-permissions` — Starting navigation requires
+        // precise location): on an approximate grant the start point can be a
+        // kilometre off, so no route request reaches the engine. The map, free
+        // driving, search and favourites are unaffected. The message is the shared
+        // wording the car surface shows too.
+        if (!LocationGrant.hasPrecise(context)) {
+            Log.w(TAG, "navigateTo: refused — precise location not granted")
+            _state.value = _state.value.copy(
+                errorMessage = context.getString(
+                    com.naviveylin.core.R.string.location_precise_required_navigation
+                )
+            )
+            return
+        }
+        // Lease GPS for the attempt: the start position has to come from a fix,
+        // and a deep link can arrive with no map surface visible
+        // (spec: `location-updates-lease`). Released again if the attempt fails.
+        acquireNavLease()
         // Record destination identity for the car screen (name/address when
         // known, else coordinates-only display).
         _state.value = _state.value.copy(
@@ -264,6 +310,7 @@ class NavigationViewModel @Inject constructor(
             val loc = locationService.location.value
             if (loc == null) {
                 Log.e(TAG, "navigateTo: no GPS position available")
+                releaseNavLease()
                 _state.value = _state.value.copy(errorMessage = "GPS signal required. Please wait for GPS fix.")
                 return
             }
@@ -313,6 +360,7 @@ class NavigationViewModel @Inject constructor(
                     is RouteState.Error -> {
                         val msg = (uiState.routeState as RouteState.Error).message
                         Log.e(TAG, "navigateTo: route calculation failed: $msg")
+                        releaseNavLease()
                         _state.value = _state.value.copy(
                             errorMessage = msg ?: "Route calculation failed. Try again."
                         )
@@ -356,6 +404,7 @@ class NavigationViewModel @Inject constructor(
                         override fun onError(message: String) {
                             viewModelScope.launch(Dispatchers.Main) {
                                 Log.e(TAG, "startDirectRoute: route calculation failed: $message")
+                                releaseNavLease()
                                 _state.value = _state.value.copy(
                                     errorMessage = (message ?: "").ifBlank {
                                         "Route calculation failed. Try again."
@@ -370,6 +419,7 @@ class NavigationViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "startDirectRoute failed", e)
+                releaseNavLease()
                 _state.value = _state.value.copy(
                     errorMessage = e.message ?: "Route calculation failed. Try again."
                 )

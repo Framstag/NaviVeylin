@@ -34,7 +34,7 @@ internal suspend fun resolveInitialAutoViewport(
     defaultCenter: Pair<Double, Double>
 ): AutoInitialViewport = withContext(Dispatchers.Default) {
     initialCenter?.let { (lat, lon) ->
-        Log.d(TAG, "Show map: initialCenter=$lat,$lon zoom=$initialZoom")
+        Log.d(TAG, "Show map: initial center from the caller, zoom=$initialZoom")
         return@withContext AutoInitialViewport(lat, lon, initialZoom)
     }
     latestSavedAutoViewport(mapsRootDir, defaultZoom)?.let { return@withContext it }
@@ -59,7 +59,7 @@ internal fun latestSavedAutoViewport(mapsRootDir: File, defaultZoom: Int): AutoI
         if (lat.isNaN() || lon.isNaN()) return null
         val mag = json.optInt("magnification", defaultZoom)
             .coerceIn(AutoMapRenderer.MIN_ZOOM, AutoMapRenderer.MAX_ZOOM)
-        Log.d(TAG, "initial viewport from saved ${file.name}: $lat,$lon mag=$mag")
+        Log.d(TAG, "initial viewport from saved ${file.name}: mag=$mag")
         AutoInitialViewport(lat, lon, mag)
     } catch (e: Exception) {
         Log.w(TAG, "latestSavedAutoViewport failed", e)
@@ -89,7 +89,7 @@ internal fun firstInstalledAutoMapBbox(
                 if (bbox != null && bbox.size >= 4) {
                     val lat = (bbox[0] + bbox[2]) / 2.0
                     val lon = (bbox[1] + bbox[3]) / 2.0
-                    Log.d(TAG, "initial viewport from map ${File(dir).name} bbox $lat,$lon")
+                    Log.d(TAG, "initial viewport from map ${File(dir).name} bbox")
                     return Pair(lat, lon)
                 }
             } catch (e: Exception) {

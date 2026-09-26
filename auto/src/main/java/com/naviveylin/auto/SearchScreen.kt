@@ -209,7 +209,7 @@ class SearchScreen(
                     reference = lastReference,
                     onClick = {
                         val entry = result.entry
-                        Log.d(TAG, "Details for: ${entry.label} (${entry.lat}, ${entry.lon})")
+                        Log.d(TAG, "Details for: ${entry.label}")
                         armScreenPush(carContext, scope, "DetailsScreen (search result)") {
                             DetailsScreen(
                                 carContext, navigationViewModel, entry.lat, entry.lon,

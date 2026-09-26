@@ -1,5 +1,6 @@
 package com.naviveylin.navigation
 
+import android.content.Context
 import android.util.Log
 import com.framstag.libosmscout.client.CurrentRoadInfo
 import com.framstag.libosmscout.client.LaneTurn
@@ -13,12 +14,16 @@ import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.AutoNavigationController
+import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.NavigationState
+import com.naviveylin.location.LocationConsumers
+import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
 import com.naviveylin.location.SpeedSpikeFilter
 import com.naviveylin.core.SpeedStaleness
 import javax.inject.Inject
 import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -46,7 +51,8 @@ import kotlinx.coroutines.launch
 class AANavigationController @Inject constructor(
     private val client: OSMScoutClient,
     private val stateProvider: NavigationStateProvider,
-    private val locationService: LocationService
+    private val locationService: LocationService,
+    @param:ApplicationContext private val context: Context
 ) : AutoNavigationController {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -67,6 +73,13 @@ class AANavigationController @Inject constructor(
 
     /** In-flight route calculation (coalesces reroute storms to one at a time). */
     private var routeJob: Job? = null
+
+    /**
+     * Location lease held while a navigation attempt or session is active
+     * (spec: `location-updates-lease`). Separate from the car session's own
+     * lease, which covers the car map and free driving.
+     */
+    private var navLease: LocationLease? = null
 
     /** Last reroute trigger time (throttle — the engine fires one per GPS fix while off-route). */
     private var lastRerouteTime = 0L
@@ -91,10 +104,10 @@ class AANavigationController @Inject constructor(
         scope.launch {
             stateProvider.stopRequests.collect { stopNavigation() }
         }
-        // GPS updates must run even with no phone UI — feeds the native
-        // position agent during navigation. Permission-guarded no-op without
-        // ACCESS_FINE_LOCATION.
-        locationService.startLocationUpdates()
+        // GPS updates are leased for the duration of a navigation (spec:
+        // `location-updates-lease`): the car session's own lease (via
+        // `AutoLocationProvider`) is independent, so neither end silences the
+        // other. Permission-guarded no-op without ACCESS_FINE_LOCATION.
         scope.launch {
             locationService.location.collect { fix ->
                 if (fix != null) {
@@ -136,7 +149,36 @@ class AANavigationController @Inject constructor(
         }
     }
 
+    /** Acquire the navigation-scoped location lease (idempotent). */
+    private fun acquireNavLease() {
+        if (navLease == null) {
+            navLease = locationService.acquire(LocationConsumers.CAR_NAV)
+        }
+    }
+
+    /** Release the navigation-scoped location lease (idempotent). */
+    private fun releaseNavLease() {
+        navLease?.release()
+        navLease = null
+    }
+
     override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
+        // Navigation gate (spec: `location-permissions` — Starting navigation requires
+        // precise location): a car-only session has no phone UI to explain a silent
+        // no-op, so the refusal is published on the shared state where the existing
+        // error notice shows it. No host mutation of its own, no settings launch.
+        if (!LocationGrant.hasPrecise(context)) {
+            Log.w(TAG, "navigateTo: refused — precise location not granted")
+            _state.value = _state.value.copy(
+                errorMessage = context.getString(
+                    com.naviveylin.core.R.string.location_precise_required_navigation
+                )
+            )
+            return
+        }
+        // Lease GPS for the attempt: a car-only start has no map surface holding
+        // a lease, so the start position needs one (spec: `location-updates-lease`).
+        acquireNavLease()
         // Record destination identity for the car screen.
         _state.value = _state.value.copy(
             destLat = destLat,
@@ -164,7 +206,7 @@ class AANavigationController @Inject constructor(
         }
 
         _state.value = _state.value.copy(errorMessage = null)
-        Log.d(TAG, "navigateTo: from ($startLat, $startLon) to ($destLat, $destLon)")
+        Log.d(TAG, "navigateTo: destination='${destinationName ?: "-"}'")
         startDirectRoute(startLat, startLon, destLat, destLon)
     }
 
@@ -201,6 +243,7 @@ class AANavigationController @Inject constructor(
                         override fun onError(message: String) {
                             scope.launch(Dispatchers.Main) {
                                 Log.e(TAG, "route calculation failed: $message")
+                                releaseNavLease()
                                 _state.value = _state.value.copy(
                                     errorMessage = (message ?: "").ifBlank {
                                         "Route calculation failed. Try again."
@@ -215,6 +258,7 @@ class AANavigationController @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "startDirectRoute failed", e)
+                releaseNavLease()
                 _state.value = _state.value.copy(
                     errorMessage = e.message ?: "Route calculation failed. Try again."
                 )
@@ -232,6 +276,8 @@ class AANavigationController @Inject constructor(
             )
             return
         }
+
+        acquireNavLease()
 
         // Stop any existing controller before creating a new one.
         nativeController?.stop()
@@ -276,6 +322,7 @@ class AANavigationController @Inject constructor(
     override fun stopNavigation() {
         nativeController?.stop()
         nativeController = null
+        releaseNavLease()
         _state.value = NavigationState()
         lastGpsAccuracy = -1.0
         Log.d(TAG, "stopNavigation: stopped")
@@ -432,7 +479,7 @@ class AANavigationController @Inject constructor(
                         Log.d(TAG, "onRerouteRequest: ignored, tunnel/no-signal=$recentTunnelOrNoSignal poorAccuracy=$poorAccuracy")
                         return@launch
                     }
-                    Log.d(TAG, "onRerouteRequest: rerouting from ($lat, $lon) to ($destLat, $destLon)")
+                    Log.d(TAG, "onRerouteRequest: rerouting for destination='${_state.value.destinationName ?: "-"}'")
                     // Throttle: the engine fires a reroute on every off-route
                     // GPS fix — without a minimum interval each fix spawns a
                     // new route calculation (reroute storm).

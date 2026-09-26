@@ -1013,25 +1013,21 @@ class AutoMapRenderer(
                 val dbg = followPrediction.debugState(nowMs)
                 android.util.Log.d(
                     TAG,
-                    "follow fix=" + "%.6f".format(lastFixLat) + "," + "%.6f".format(lastFixLon) +
+                    "follow" +
                         " spd=" + (if (lastFixSpeedMs.isNaN()) "-" else "%.1f".format(lastFixSpeedMs * 3.6)) +
                         " eff=" + "%.1f".format(dbg.effectiveSpeedMs * 3.6) +
                         " dec=" + dbg.decelerating +
                         " stp=" + dbg.stopped +
-                        " pred=" + "%.6f".format(predicted.first) + "," + "%.6f".format(predicted.second) +
-                        " disp=" + "%.6f".format(displayLat) + "," + "%.6f".format(displayLon) +
                         " off=" + "%.1f".format(offset.clampedX) + "," + "%.1f".format(offset.clampedY) +
                         " clamped=" + offset.clamped +
                         // Displayed frame vs pending render target (change
                         // `overlay-projects-against-displayed-frame`): the overlays
-                        // project against the `frame` values below. A `frame` that
-                        // differs from `pending` is the window in which a viewport
-                        // write has not been committed yet — before this change the
-                        // marker/pin sat that far off the map content in that window.
-                        " frame=" + "%.6f".format(overrunLat) + "," + "%.6f".format(overrunLon) +
-                        " mag=" + "%.2f".format(overrunMag) + " ang=" + "%.3f".format(overrunAngle) +
-                        " pending=" + "%.6f".format(viewportLat) + "," + "%.6f".format(viewportLon) +
-                        " mag=" + "%.2f".format(viewportZoomFraction) + " ang=" + "%.3f".format(viewportAngle) +
+                        // project against the frame's magnification and angle below.
+                        // No coordinates: the frame-vs-pending comparison runs on
+                        // `dMag`/`dAng` and the clamped pixel offset (spec:
+                        // auto-diagnostics — Diagnostics carry no coordinates).
+                        " frameMag=" + "%.2f".format(overrunMag) + " frameAng=" + "%.3f".format(overrunAngle) +
+                        " pendingMag=" + "%.2f".format(viewportZoomFraction) + " pendingAng=" + "%.3f".format(viewportAngle) +
                         // Committed-vs-displayed deltas + last-commit path (task 4.1):
                         // `dAng` is the pending rotation minus the displayed frame's
                         // rotation (normalized), `dMag` the pending minus the displayed

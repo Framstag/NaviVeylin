@@ -31,6 +31,36 @@ class GermanRenderingTest {
     }
 
     @Test
+    fun diagnosticsScreenRendersTheGermanDisclosure() {
+        val screen = DiagnosticsScreen(testCarContext())
+        val template = screen.onGetTemplate() as PaneTemplate
+        val disclosure = testCarContext().getString(
+            com.naviveylin.core.R.string.diagnostics_disclosure
+        )
+
+        assertEquals(
+            "the car disclosure is German too (spec: auto-diagnostics — Disclosure is localized)",
+            disclosure,
+            template.pane.rows.first().title.toString()
+        )
+    }
+
+    @Test
+    fun aboutScreenShowsThePrivacyStatementInGerman() {
+        val screen = AboutScreen(testCarContext())
+        val template = screen.onGetTemplate() as PaneTemplate
+        val carContext = testCarContext()
+        val privacyRow = template.pane.rows.first {
+            it.title.toString() == carContext.getString(com.naviveylin.core.R.string.about_privacy_title)
+        }
+
+        assertEquals(
+            carContext.getString(com.naviveylin.core.R.string.about_privacy_statement),
+            privacyRow.texts.first().toString()
+        )
+    }
+
+    @Test
     fun searchSuggestionsRenderGerman() {
         // New empty-query suggestion strings (change unify-auto-search) must
         // render in German, not fall back to English.

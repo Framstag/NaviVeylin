@@ -1,6 +1,11 @@
 package com.naviveylin.data
 
 import androidx.test.core.app.ApplicationProvider
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -146,5 +151,92 @@ class SettingsStorageTest {
         assertEquals(true, loaded.followMode)
         assertEquals(false, loaded.laneHintsEnabled)
         assertEquals(5, loaded.overspeedWarningDeltaKmh)
+    }
+
+    // --- Serialized read-modify-write (spec: settings-persistence) ---
+
+    @Test
+    fun updateAppliesToTheCurrentFileNotAStaleSnapshot() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+
+        storage.update { it.copy(keepScreenOn = false) }
+        storage.update { it.copy(darkMode = DarkModePreference.ON) }
+
+        val loaded = storage.load()
+        assertEquals(false, loaded.keepScreenOn)
+        assertEquals(DarkModePreference.ON, loaded.darkMode)
+    }
+
+    @Test
+    fun concurrentWritersLoseNoUpdate() {
+        // Two surfaces (phone settings, car preferences) write the same file in one
+        // process. The transform waits on a two-party barrier so the read of BOTH
+        // writers provably happens before EITHER write — the lost-update window is
+        // held open instead of being left to scheduling luck. With the write
+        // transaction the second writer cannot enter its transform until the first
+        // has written, so the barrier times out for each of them and both fields
+        // keep their written values.
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        val barrier = CyclicBarrier(2)
+
+        runBlocking {
+            val jobs = listOf(
+                async(Dispatchers.IO) {
+                    storage.update { settings ->
+                        runCatching { barrier.await(500, TimeUnit.MILLISECONDS) }
+                        settings.copy(darkMode = DarkModePreference.ON)
+                    }
+                },
+                async(Dispatchers.IO) {
+                    storage.update { settings ->
+                        runCatching { barrier.await(500, TimeUnit.MILLISECONDS) }
+                        settings.copy(keepScreenOn = false)
+                    }
+                }
+            )
+            jobs.forEach { it.await() }
+        }
+
+        val loaded = runBlocking { storage.load() }
+        assertEquals(DarkModePreference.ON, loaded.darkMode)
+        assertEquals(false, loaded.keepScreenOn)
+    }
+
+    @Test
+    fun updateTouchesOnlyTheFieldsTheWriterOwns() = runTest {
+        // A car-style subset write must leave phone-only fields and both per-surface
+        // anchors as they were, including a car anchor the car never chose (null =
+        // inherit from the phone).
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        storage.save(
+            AppSettings(
+                keepScreenOn = false,
+                routingAnchorId = "bottom-center",
+                autoRoutingAnchorId = null
+            )
+        )
+
+        storage.update { it.copy(styleSheet = "night") }
+
+        val loaded = storage.load()
+        assertEquals("night", loaded.styleSheet)
+        assertEquals(false, loaded.keepScreenOn)
+        assertEquals("bottom-center", loaded.routingAnchorId)
+        assertEquals(null, loaded.autoRoutingAnchorId)
+    }
+
+    @Test
+    fun unknownKeysDoNotBreakAnUpdate() = runTest {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val file = java.io.File(context.filesDir, "maps/settings.json")
+        file.parentFile?.mkdirs()
+        file.writeText("""{"keepScreenOn":false,"someFutureSetting":7}""")
+        val storage = SettingsStorage(context)
+
+        storage.update { it.copy(darkMode = DarkModePreference.OFF) }
+
+        val loaded = storage.load()
+        assertEquals(DarkModePreference.OFF, loaded.darkMode)
+        assertEquals(false, loaded.keepScreenOn)
     }
 }

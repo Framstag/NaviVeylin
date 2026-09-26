@@ -7,8 +7,14 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
+import com.google.android.gms.location.LocationRequest
+import com.naviveylin.core.AccuracyClass
+import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.LocationGrant
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,12 +44,21 @@ class LocationServiceTest {
     private fun locationManager(): LocationManager =
         context().getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
+    /**
+     * Acquire a lease the way a production consumer does (spec:
+     * `location-updates-lease`). The returned lease stays held for the test's
+     * lifetime unless the case releases it explicitly.
+     */
+    private fun LocationService.startForTest(
+        consumer: String = LocationConsumers.PHONE_MAP
+    ): LocationLease = acquire(consumer)
+
     @Test
     fun fusedAvailable_requestsFusedOnly_neverLocationManager() {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = true)
 
-        service.startLocationUpdates()
+        service.startForTest()
 
         assertTrue("Fused path must be active", service.isFusedActive())
         val shadowLm = shadowOf(locationManager())
@@ -66,7 +81,7 @@ class LocationServiceTest {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = false)
 
-        service.startLocationUpdates()
+        service.startForTest()
 
         assertFalse("Fused path must not be active", service.isFusedActive())
         val shadowLm = shadowOf(locationManager())
@@ -88,7 +103,7 @@ class LocationServiceTest {
     fun fusedFixReachesConsumers_duplicateDropped() {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = true)
-        service.startLocationUpdates()
+        service.startForTest()
         assertTrue("Fused path must be active", service.isFusedActive())
 
         val fix = Location(LocationManager.GPS_PROVIDER).apply {
@@ -115,7 +130,7 @@ class LocationServiceTest {
     fun duplicateFixDropped_distinctFixPasses() {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = false)
-        service.startLocationUpdates()
+        service.startForTest()
         val shadowLm = shadowOf(locationManager())
 
         val fix = Location(LocationManager.GPS_PROVIDER).apply {
@@ -162,7 +177,7 @@ class LocationServiceTest {
     fun fusedPath_snapStationaryResidualSpeedToZero() {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = true)
-        service.startLocationUpdates()
+        service.startForTest()
         assertTrue("Fused path must be active", service.isFusedActive())
 
         // Moving fix: 30 km/h passes through sanitized.
@@ -187,7 +202,7 @@ class LocationServiceTest {
     fun fusedPath_unknownSpeedStaysNaN() {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = true)
-        service.startLocationUpdates()
+        service.startForTest()
         assertTrue("Fused path must be active", service.isFusedActive())
 
         deliver(service, 48.8566, 2.3522, speed = 30.0f, time = 1_000L)
@@ -218,7 +233,7 @@ class LocationServiceTest {
     fun fusedPath_passesBearingThroughAsMarkerBearing() {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = true)
-        service.startLocationUpdates()
+        service.startForTest()
         assertTrue("Fused path must be active", service.isFusedActive())
 
         val fix = Location(LocationManager.GPS_PROVIDER).apply {
@@ -331,7 +346,7 @@ class LocationServiceTest {
     fun managerPath_derivesBearingFromRawProviderPositions() {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = false)
-        service.startLocationUpdates()
+        service.startForTest()
         val shadowLm = shadowOf(locationManager())
 
         // Raw provider track heading north (lat increases, lon constant). The nav
@@ -358,5 +373,229 @@ class LocationServiceTest {
         }
         assertTrue("smoothed bearing must be derived from the raw track", !smoothed.isNaN())
         assertEquals("north raw track → bearing ~0", 0.0, smoothed, 5.0)
+    }
+
+    // --- Grant class (spec: location-permissions — The granted accuracy class governs provider updates) ---
+
+    private fun grantCoarseOnly() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(app).grantPermissions(Manifest.permission.ACCESS_COARSE_LOCATION)
+        shadowOf(app).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    private fun denyAllLocationGrants() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(app).denyPermissions(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    }
+
+    @Test
+    @Suppress("DEPRECATION") // PRIORITY_*: the request constants have no non-deprecated form below API 34
+    fun fusedPriorityFor_onlyThePreciseGrantBuysHighAccuracy() {
+        val service = LocationService(context(), playServicesAvailable = true)
+
+        assertEquals(
+            "precise grant → high accuracy",
+            LocationRequest.PRIORITY_HIGH_ACCURACY,
+            service.fusedPriorityFor(AccuracyClass.PRECISE)
+        )
+        assertEquals(
+            "approximate grant → balanced (minimum scope)",
+            LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
+            service.fusedPriorityFor(AccuracyClass.APPROXIMATE)
+        )
+        assertEquals(
+            "no grant → balanced (updates are not started either way)",
+            LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
+            service.fusedPriorityFor(AccuracyClass.NONE)
+        )
+    }
+
+    @Test
+    fun approximateGrantIsAWorkingState_notAFailureState() {
+        grantCoarseOnly()
+        val service = LocationService(context(), playServicesAvailable = true)
+
+        assertEquals(AccuracyClass.APPROXIMATE, service.grantedPrecision)
+        assertTrue("any grant must pass the provider guard", service.hasPermission)
+        assertFalse("only the precise grant passes the navigation gate", LocationGrant.hasPrecise(context()))
+    }
+
+    @Test
+    fun approximateGrant_fallbackRequestsNoGps_andStillDeliversFixes() {
+        grantCoarseOnly()
+        val service = LocationService(context(), playServicesAvailable = false)
+
+        service.startForTest()
+
+        val shadowLm = shadowOf(locationManager())
+        assertFalse("the fallback path must not be the Fused one", service.isFusedActive())
+        assertTrue(
+            "GPS requires the precise grant and must not be requested",
+            shadowLm.getLegacyLocationRequests(LocationManager.GPS_PROVIDER).isEmpty()
+        )
+        assertTrue(
+            "NETWORK is allowed by the approximate grant",
+            shadowLm.getLegacyLocationRequests(LocationManager.NETWORK_PROVIDER).isNotEmpty()
+        )
+        assertTrue(
+            "PASSIVE is allowed by the approximate grant",
+            shadowLm.getLegacyLocationRequests(LocationManager.PASSIVE_PROVIDER).isNotEmpty()
+        )
+
+        // The map must still follow the vehicle on an approximate-only device.
+        shadowLm.simulateLocation(
+            Location(LocationManager.NETWORK_PROVIDER).apply {
+                latitude = 51.5
+                longitude = 7.4
+                time = 1_000L
+                accuracy = 1_500f
+            }
+        )
+        shadowOf(Looper.getMainLooper()).idle()
+        assertNotNull("approximate fixes must still reach consumers", service.location.value)
+    }
+
+    @Test
+    fun grantUpgrade_isHonouredOnTheNextUpdateCycle_withoutRestart() {
+        grantCoarseOnly()
+        val service = LocationService(context(), playServicesAvailable = false)
+        val coarseLease = service.startForTest()
+        val shadowLm = shadowOf(locationManager())
+        assertTrue(
+            "an approximate-only start must not request GPS",
+            shadowLm.getLegacyLocationRequests(LocationManager.GPS_PROVIDER).isEmpty()
+        )
+
+        // The user upgrades the grant in system settings and returns to the app.
+        coarseLease.release()
+        shadowOf(ApplicationProvider.getApplicationContext<Application>())
+            .grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        service.startForTest()
+
+        assertEquals(AccuracyClass.PRECISE, service.grantedPrecision)
+        assertTrue(
+            "the next update cycle must use the precise request",
+            shadowLm.getLegacyLocationRequests(LocationManager.GPS_PROVIDER).isNotEmpty()
+        )
+    }
+
+    @Test
+    fun noGrant_startsNoProviderUpdates() {
+        denyAllLocationGrants()
+        val service = LocationService(context(), playServicesAvailable = false)
+
+        service.startForTest()
+
+        assertEquals(AccuracyClass.NONE, service.grantedPrecision)
+        assertFalse("no grant must start no provider path", service.isFusedActive())
+        val shadowLm = shadowOf(locationManager())
+        assertTrue(shadowLm.getLegacyLocationRequests(LocationManager.GPS_PROVIDER).isEmpty())
+        assertTrue(shadowLm.getLegacyLocationRequests(LocationManager.NETWORK_PROVIDER).isEmpty())
+        assertTrue(shadowLm.getLegacyLocationRequests(LocationManager.PASSIVE_PROVIDER).isEmpty())
+    }
+
+    // --- Leases (spec: location-updates-lease) ---
+
+    @Test
+    fun firstLeaseStartsUpdates_andRepeatedAcquireIsIdempotent() {
+        grantLocationPermission()
+        val service = LocationService(context(), playServicesAvailable = true)
+
+        val first = service.startForTest(LocationConsumers.PHONE_MAP)
+        val second = service.startForTest(LocationConsumers.PHONE_MAP)
+
+        assertTrue("the provider path must be active", service.isFusedActive())
+        assertEquals("one lease for one consumer", 1, service.heldLeaseCount())
+        assertEquals("repeated acquire must return the held lease", first, second)
+    }
+
+    @Test
+    fun oneConsumerReleaseKeepsUpdatesForAnother() {
+        grantLocationPermission()
+        val service = LocationService(context(), playServicesAvailable = true)
+        val mapLease = service.startForTest(LocationConsumers.PHONE_MAP)
+        service.startForTest(LocationConsumers.PHONE_NAV)
+        assertEquals(2, service.heldLeaseCount())
+
+        mapLease.release()
+
+        assertTrue(
+            "navigation must keep its fixes after the map surface releases",
+            service.isFusedActive()
+        )
+        assertEquals(setOf(LocationConsumers.PHONE_NAV), service.heldLeaseConsumers())
+    }
+
+    @Test
+    fun lastReleaseStopsUpdates_andDoubleReleaseIsHarmless() {
+        grantLocationPermission()
+        val service = LocationService(context(), playServicesAvailable = true)
+        val lease = service.startForTest(LocationConsumers.CAR_SESSION)
+        assertTrue(service.isFusedActive())
+
+        lease.release()
+
+        assertFalse("the last release must stop the provider path", service.isFusedActive())
+        assertEquals(0, service.heldLeaseCount())
+        assertTrue(
+            "no LocationManager request may remain either",
+            shadowOf(locationManager())
+                .getLegacyLocationRequests(LocationManager.GPS_PROVIDER).isEmpty()
+        )
+
+        // Idempotent: a second release must not throw or change state.
+        lease.release()
+        assertEquals(0, service.heldLeaseCount())
+    }
+
+    @Test
+    fun aReleasedConsumerCanLeaseAgain() {
+        grantLocationPermission()
+        val service = LocationService(context(), playServicesAvailable = true)
+        val lease = service.startForTest(LocationConsumers.CAR_SESSION)
+        lease.release()
+        assertFalse(service.isFusedActive())
+
+        service.startForTest(LocationConsumers.CAR_SESSION)
+
+        assertTrue("a new lease must restart the provider path", service.isFusedActive())
+        assertEquals(1, service.heldLeaseCount())
+    }
+
+    @Test
+    fun leaseWithoutPermissionHoldsNoProviderRequest() {
+        // No permission granted: no provider request, but the lease is tracked so
+        // its release cannot stop another consumer's updates.
+        val service = LocationService(context(), playServicesAvailable = true)
+
+        val lease = service.startForTest(LocationConsumers.PHONE_NAV)
+
+        assertFalse(service.isFusedActive())
+        assertEquals(1, service.heldLeaseCount())
+
+        lease.release()
+        assertEquals(0, service.heldLeaseCount())
+    }
+
+    @Test
+    fun leaseAcquireAndReleaseAreRecordedInTheDiagnosticsStream() {
+        grantLocationPermission()
+        val service = LocationService(context(), playServicesAvailable = true)
+        val lease = service.startForTest(LocationConsumers.CAR_NAV)
+        lease.release()
+
+        val entries = runBlocking { DiagnosticsLog.readEntries() }
+
+        assertTrue(
+            "the acquire must name the consumer",
+            entries.any { it.contains("location lease acquire: ${LocationConsumers.CAR_NAV}") }
+        )
+        assertTrue(
+            "the release must name the consumer",
+            entries.any { it.contains("location lease release: ${LocationConsumers.CAR_NAV}") }
+        )
     }
 }

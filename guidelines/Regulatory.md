@@ -121,7 +121,9 @@ and diagnostics.
 | **China PIPL + automotive data rules + MIIT app filing (2023-07)** | live | separate consent for sensitive PI (location); anonymisation by default in the cabin; no export of "important data"; serving internet information services in mainland China requires an **app filing (APP备案)** by a Chinese entity. Combined with §4 this is effectively a no-go market |
 | **US state privacy laws (CCPA/CPRA et al.)** | live | precise-geolocation consent, opt-out, no sale of location |
 
-Diagnostics count as personal data when they contain coordinates — see §9.
+Diagnostics count as personal data when they contain coordinates — see §9. They no longer do:
+no coordinates are logged, the on-device copy is kept at most 7 days, and the export carries the
+disclosure (implemented 2026-09-26, change `fix-diagnostics-coordinate-redaction`).
 
 ---
 
@@ -167,7 +169,27 @@ Google Play Developer Program Policies bind the developer directly.
   on the listing; foreground-service location must be a continuation of a user-initiated
   action and must stop once it completes; **geofencing was removed** as an approved FGS
   use case (use the Geofence API).
-- **Foreground service types** must stay justified (`dataSync`, `location` — see §9).
+  - **Audited 2026-09-26** (change `fix-location-permission-scope`). The request asks for
+    coarse **and** fine in one request — a fine-only request is ignored by the platform on
+    API 31+, which was a real defect (`MapCanvasScreen` asked for fine alone, and
+    `LocationService` was fine-only, so an approximate grant left the map dead). The granted
+    accuracy class now governs the provider request: high accuracy only with the precise
+    grant, a balanced request with the approximate one, and the non-Fused fallback requests
+    no GPS provider without the precise grant. Starting a route requires the precise grant
+    and is refused with an actionable explanation (phone: re-request, or app settings when
+    the platform will not ask again; car: a non-blocking notice, never a settings launch).
+  - **No change needed**: `ACCESS_BACKGROUND_LOCATION` is not declared and not needed, so no
+    Permissions Declaration form, no demo video and no background-location disclosure apply;
+    geofencing is not used; the location-button mandate binds apps targeting **API 37+**
+    whose features are session-based only — this app targets 36 and its access is a
+    continuous, user-initiated navigation session.
+- **Foreground service types** must stay justified (`dataSync`, `location` — see §9):
+  `NavigationNotificationService` (`location`) starts as the continuation of the user's
+  navigation/free-driving action and stops with it (arrival, stop action, driving state
+  cleared); `MapDownloadService` (`dataSync`) starts from the download the user requested,
+  stops when no download is active, and handles the platform's foreground-service timeout
+  (Android 15+ caps `dataSync` at 6 h per 24 h) by ending cleanly, releasing its wake lock
+  and leaving the download resumable instead of reporting completion.
 - **Car app quality / driver distraction** (`DD-*` tiers, `distractionOptimized`) is
   mandatory for the AAOS listing; see `Build.md` §10 and `UI.md` for the car rules.
 - Target API level must be bumped annually.
@@ -214,20 +236,37 @@ practical outcome.
   user-initiated-action/termination shape and minimum scope for precise location.
 - `distractionOptimized` metadata present (line 147) — car app quality gate applies.
 
-**Precise coordinates reach logs** (personal data at rest, must be covered by the
-Data safety declaration and by retention/erasure):
+**Diagnostic logs carry no coordinates** (implemented 2026-09-26, change
+`fix-diagnostics-coordinate-redaction`; spec `auto-diagnostics`):
 
-- `ui/map/MapCanvasViewModel.kt:1035` (GPS fix), `:1440` (`resolveAdminRegion`),
-  `:2382` (`onLongPress`), `:2471` (shared location).
-- `ui/map/MapRenderer.kt:402`, `:455` (viewport centre).
-- `navigation/AANavigationController.kt:167` (route start/destination).
-- `auto/AutoInitialViewport.kt:37`, `auto/DetailsScreen.kt:280,285`.
-- `com.naviveylin.core.DiagnosticsLog` buffers these and exports them as text
-  (`exportTextAsync`) — treat the file as personal data: retention bound, no
-  indefinite accumulation, and no coordinates in the exported diagnostics unless the
-  user asks for it.
+- Log and diagnostics lines carry precision-free identity instead of a position — object label/id,
+  map database or map file name, magnification, screen pixel, accuracy, bearing. No latitude/longitude
+  pair reaches logcat or the file, enforced by the build gate `checkNoCoordinatesInLogs`
+  (buildSrc `CoordinateLogScanner`).
+- `filesDir/diagnostics/app.log` (+ `app.log.1`) is pruned by age: `DiagnosticsLog.RETENTION_MS`
+  (7 days) is applied by the logging worker on the first flush of a process and once a day after that;
+  the byte cap remains as the size backstop. A line whose timestamp cannot be parsed is removed too.
+- The exported/shared text and both diagnostics viewers lead with the disclosure
+  (`diagnostics_disclosure`, de + en), naming what the file holds and the retention window.
+- **Impact on an earlier recipe**: the `overlay-projects-against-displayed-frame` frame-vs-pending
+  comparison (TODO §29) used the geo centre of the displayed frame and of the pending render target;
+  that pair is no longer logged. Use `frameMag`/`frameAng`, `pendingMag`/`pendingAng`, `dMag`/`dAng`,
+  the clamped pixel offset (`off=`, `clamped=`) and the render/blit counters — the placement rule
+  itself is unchanged.
 
-Tracked as TODO §68 and §69.
+**Location and foreground-service surface** — audited 2026-09-26 (change
+`fix-location-permission-scope`); the behaviour and the no-change findings are in §6.
+
+**Owner-side items (no code change can satisfy them)**:
+
+- Privacy policy URL in the Play listing (required for a location-using app), plus the in-app
+  statement the About dialog now carries (`about_privacy_statement`).
+- Data safety form: location used on-device for navigation, not shared, no background location;
+  diagnostics stored on-device with no coordinates, 7-day retention, export only when the user asks.
+- Track declarations stay as they are: same applicationId, two flavor AABs (mobile track, dedicated
+  AAOS track).
+
+Tracked as TODO §68 (diagnostics) and §69 (location policy).
 
 ---
 
@@ -239,7 +278,7 @@ Re-check this document when any of these move, and at least twice a year:
 |---|---|
 | Product liability | `Directive (EU) 2024/2853` (national transposition, 2026-12-09) |
 | Cyber resilience | `Regulation (EU) 2024/2847` (reporting 2026-09-11, main 2027-12-11) |
-| Play location/FGS | "Permissions and APIs that Access Sensitive Information" + the 2026-04-15 announcement (effective 2026-10-28) |
+| Play location/FGS | "Permissions and APIs that Access Sensitive Information" + the 2026-04-15 announcement (effective 2026-10-28) — audited 2026-09-26, re-check the no-change findings (§6) at the next review |
 | Car app quality | Google "Car app quality" / driver distraction guidelines |
 | India | DPDP Rules 2025 phases (2026-11-13, 2027-05-13) |
 | China | MNR/automotive data notices, app filing |

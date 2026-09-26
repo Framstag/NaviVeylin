@@ -93,12 +93,14 @@ class StartupScreensTest {
             val screen = DiagnosticsScreen(carContext)
             // The log is read on a background dispatcher (spec: auto-diagnostics —
             // Reading diagnostics does not block the UI), so wait for the load.
-            val titles = awaitRows(screen) { it.size == 3 }
+            val titles = awaitRows(screen) { it.size == 4 }
 
-            assertTrue(titles.size <= 20)
-            assertEquals(3, titles.size)
-            assertTrue("newest first: ${titles[0]}", titles[0].contains("third"))
-            assertTrue(titles[2].contains("first"))
+            // Row 0 is the disclosure (spec: auto-diagnostics — Export and viewers
+            // disclose the log contents); the entries follow newest first.
+            assertTrue(titles.size <= 21)
+            assertEquals(4, titles.size)
+            assertTrue("newest first: ${titles[1]}", titles[1].contains("third"))
+            assertTrue(titles[3].contains("first"))
         } finally {
             DiagnosticsLog.reset()
             file.delete()

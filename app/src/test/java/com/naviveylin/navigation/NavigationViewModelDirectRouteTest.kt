@@ -1,5 +1,7 @@
 package com.naviveylin.navigation
 
+import android.Manifest
+import android.app.Application
 import android.content.Context
 import android.os.Looper
 import com.framstag.libosmscout.client.FakeOSMScoutClient
@@ -35,8 +37,7 @@ class NavigationViewModelDirectRouteTest {
     }
 
     /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
-    private fun awaitState(condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 5000
+    private fun awaitState(condition: () -> Boolean) {        val deadline = System.currentTimeMillis() + 5000
         while (System.currentTimeMillis() < deadline) {
             shadowOf(Looper.getMainLooper()).idle()
             if (condition()) return
@@ -60,6 +61,61 @@ class NavigationViewModelDirectRouteTest {
             markerBearing = Double.NaN,
             time = System.currentTimeMillis()
         )
+    }
+
+    /**
+     * The navigation gate requires the precise grant (spec: `location-permissions`
+     * — Starting navigation requires precise location).
+     */
+    private fun grantPreciseLocation() {
+        shadowOf(ApplicationProvider.getApplicationContext<Application>())
+            .grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    private fun grantApproximateLocationOnly() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(app).grantPermissions(Manifest.permission.ACCESS_COARSE_LOCATION)
+        shadowOf(app).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    @Test
+    fun navigateTo_withApproximateGrant_isRefusedBeforeTheEngineAndTheLease() {
+        val client = FakeOSMScoutClient()
+        val locationService = LocationService(ApplicationProvider.getApplicationContext())
+        injectGpsFix(locationService, 52.5200, 13.4050)
+        grantApproximateLocationOnly()
+        val vm = buildViewModel(client, locationService)
+
+        vm.navigateTo(52.5300, 13.4100)
+
+        assertEquals("no route request may reach the engine", 0, client.routeCalculationCount)
+        assertTrue("no navigation may start", !vm.state.value.isNavigating)
+        assertEquals(
+            "the refusal uses the shared wording (phone + car)",
+            ApplicationProvider.getApplicationContext<Context>()
+                .getString(com.naviveylin.core.R.string.location_precise_required_navigation),
+            vm.state.value.errorMessage
+        )
+        assertTrue(
+            "the gate must short-circuit before leasing GPS",
+            locationService.heldLeaseConsumers().isEmpty()
+        )
+    }
+
+    @Test
+    fun navigateTo_withoutAnyGrant_isRefusedBeforeTheEngine() {
+        val client = FakeOSMScoutClient()
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(app).denyPermissions(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        val vm = buildViewModel(client)
+
+        vm.navigateTo(52.5300, 13.4100)
+
+        assertEquals(0, client.routeCalculationCount)
+        assertNotNull(vm.state.value.errorMessage)
     }
 
     @Test
@@ -105,6 +161,7 @@ class NavigationViewModelDirectRouteTest {
 
     @Test
     fun navigateTo_withoutRoutePanelViewModelAndNoGps_reportsGpsError() {
+        grantPreciseLocation()
         val vm = buildViewModel()
         // No GPS fix anywhere: state.position is null and LocationService has no location.
 
@@ -126,6 +183,7 @@ class NavigationViewModelDirectRouteTest {
             }
         }
         val context: Context = ApplicationProvider.getApplicationContext()
+        grantPreciseLocation()
         val locationService = LocationService(context)
         injectGpsFix(locationService, 52.5200, 13.4050)
 

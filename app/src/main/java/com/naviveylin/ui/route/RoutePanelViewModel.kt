@@ -14,6 +14,7 @@ import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
+import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchResultRanker
@@ -59,6 +60,13 @@ data class RoutePanelUiState(
     val routeEntry: RouteEntry? = null,
     val routeSteps: List<RouteStepDisplay> = emptyList(),
     val error: String? = null,
+    /**
+     * True when the last route request was refused because the precise location
+     * grant is missing (spec: `location-permissions` — Starting navigation requires
+     * precise location). Drives the phone's upgrade dialog; cleared when the route
+     * is calculated or the user dismisses the dialog.
+     */
+    val preciseLocationRequired: Boolean = false,
     val activeField: ActiveField = ActiveField.NONE,
     val searchQuery: String = "",
     val searchResults: List<LocationEntry> = emptyList(),
@@ -332,7 +340,30 @@ class RoutePanelViewModel @Inject constructor(
         val s = _uiState.value
         val start = s.startLocation ?: return
         val dest = s.destLocation ?: return
-        _uiState.value = s.copy(routeState = RouteState.Calculating, error = null)
+
+        // Navigation gate (spec: `location-permissions` — Starting navigation
+        // requires precise location): with only the approximate grant no route
+        // request reaches the routing engine, because the start point could be a
+        // kilometre off. The map, free driving, search and favourites are unaffected.
+        if (!LocationGrant.hasPrecise(context)) {
+            val message = context.getString(
+                com.naviveylin.core.R.string.location_precise_required_navigation
+            )
+            Log.w(TAG, "calculateRoute: refused, precise location not granted")
+            _uiState.value = s.copy(
+                routeState = RouteState.Error(message),
+                error = message,
+                preciseLocationRequired = true
+            )
+            _routeErrorEvent.tryEmit(message)
+            return
+        }
+
+        _uiState.value = s.copy(
+            routeState = RouteState.Calculating,
+            error = null,
+            preciseLocationRequired = false
+        )
 
         viewModelScope.launch {
             withContext(defaultDispatcher) {
@@ -355,7 +386,8 @@ class RoutePanelViewModel @Inject constructor(
                                     routeState = RouteState.Done,
                                     routeEntry = route,
                                     routeSteps = steps,
-                                    error = null
+                                    error = null,
+                                    preciseLocationRequired = false
                                 )
                                 _routeVisible.value = true
                                 _routeResultFlow.value = RouteResult(
@@ -388,6 +420,13 @@ class RoutePanelViewModel @Inject constructor(
                     }
                 )
             }
+        }
+    }
+
+    /** Dismiss the phone's precise-location upgrade dialog. */
+    fun dismissPreciseLocationRequirement() {
+        if (_uiState.value.preciseLocationRequired) {
+            _uiState.value = _uiState.value.copy(preciseLocationRequired = false)
         }
     }
 

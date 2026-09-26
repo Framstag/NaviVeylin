@@ -269,7 +269,7 @@ class MapRenderer(
         currentLat = lat; currentLon = lon; currentMag = mag; currentAngle = angle
         emitCurrentViewport()
         if (DEBUG_RENDER_HOT_PATH) {
-            Log.d(TAG, "requestRender mag=" + mag + " (was " + oldMag + ") center=" + lat + "," + lon)
+            Log.d(TAG, "requestRender mag=" + mag + " (was " + oldMag + ")")
         }
         submitDebounced(lat, lon, mag, angle, oldLat, oldLon, oldMag, oldAngle, forceFullRender)
     }
@@ -296,7 +296,7 @@ class MapRenderer(
         emitCurrentViewport()
         Log.d(
             TAG,
-            "requestRenderImmediate mag=" + mag + " (was " + oldMag + ") center=" + lat + "," + lon
+            "requestRenderImmediate mag=" + mag + " (was " + oldMag + ")"
         )
         val pending = pendingRender
         if (pending != null) {
@@ -448,7 +448,7 @@ class MapRenderer(
         currentMag = mag
         currentAngle = normalizeAngle(angle)
         emitCurrentViewport()
-        Log.d(TAG, "prepareViewport lat=${"%.6f".format(lat)} lon=${"%.6f".format(lon)} mag=$mag angle=${Math.toDegrees(currentAngle)}")
+        Log.d(TAG, "prepareViewport mag=$mag angle=${Math.toDegrees(currentAngle)}")
     }
 
     /**
@@ -857,7 +857,6 @@ class MapRenderer(
             Log.w(TAG, "Slow render: ${elapsed}ms (queue ${queueWait}ms) at mag=${job.mag} (${job.width}x${job.height})")
         } else if (logCounter.incrementAndGet() % 20 == 0) {
             Log.d(TAG, "render complete ${elapsed}ms (queue ${queueWait}ms) mag=${job.mag} " +
-                    "center=${"%.5f".format(job.lat)},${"%.5f".format(job.lon)} " +
                     "angle=${Math.toDegrees(job.angle)}")
         }
 

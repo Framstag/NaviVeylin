@@ -10,6 +10,7 @@ import io.mockk.every
 import io.mockk.mockk
 import java.io.File
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -73,6 +74,19 @@ class DiagnosticsScreenTest {
         val screen = DiagnosticsScreen(carContext)
 
         assertTrue("the background load publishes entries", awaitEntries(screen, "first-entry"))
+    }
+
+    @Test
+    fun theTemplateOpensWithTheDisclosure() {
+        val screen = DiagnosticsScreen(carContext)
+        assertTrue(awaitEntries(screen, "first-entry"))
+
+        val disclosure = carContext.getString(com.naviveylin.core.R.string.diagnostics_disclosure)
+        assertEquals(
+            "what the log holds and how long it is kept must be readable before the entries",
+            disclosure,
+            rows(screen).first()
+        )
     }
 
     @Test

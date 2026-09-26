@@ -265,7 +265,7 @@ class MapScreen(
                     defaultZoom = DEFAULT_AA_ZOOM,
                     defaultCenter = DEFAULT_LAT to DEFAULT_LON
                 )
-                Log.d(TAG, "AA renderer ready at ${viewport.lat},${viewport.lon} mag=${viewport.zoom}")
+                Log.d(TAG, "AA renderer ready mag=${viewport.zoom}")
                 client to viewport
             }
             // Constructed and published on the main thread with no suspension in
@@ -640,7 +640,7 @@ class MapScreen(
                 )
                 Log.d(
                     TAG,
-                    "onScroll dx=$distanceX dy=$distanceY center=${vp.lat},${vp.lon} mag=${vp.zoom} -> $newLat,$newLon"
+                    "onScroll dx=$distanceX dy=$distanceY mag=${vp.zoom} angle=${vp.angle}"
                 )
                 // Mirror to the file-backed diagnostics log (throttled) so pan
                 // behavior is visible even when logcat capture misses the app.
@@ -649,7 +649,7 @@ class MapScreen(
                     lastGestureLogMs = now
                     DiagnosticsLog.log(
                         "MAP",
-                        "onScroll dx=$distanceX dy=$distanceY center=${vp.lat},${vp.lon} mag=${vp.zoom} -> $newLat,$newLon"
+                        "onScroll dx=$distanceX dy=$distanceY mag=${vp.zoom}"
                     )
                 }
                 rendererGate.setViewport(newLat, newLon, vp.zoom, vp.angle)
@@ -677,7 +677,7 @@ class MapScreen(
                     vp.lat, vp.lon,
                     renderer.projectionDpi
                 )
-                Log.d(TAG, "onScale focus=($fx,$fy) factor=$scaleFactor -> mag=$newZoom center=$newLat,$newLon")
+                Log.d(TAG, "onScale focus=($fx,$fy) factor=$scaleFactor -> mag=$newZoom")
                 rendererGate.setViewport(newLat, newLon, newZoom, vp.angle, newFraction)
             }
 
@@ -691,7 +691,7 @@ class MapScreen(
                     vp.zoom.toDouble(), vp.lat, vp.lon,
                     renderer.projectionDpi
                 )
-                Log.d(TAG, "onClick ($x,$y) -> $lat,$lon mag=${vp.zoom}")
+                Log.d(TAG, "onClick ($x,$y) mag=${vp.zoom}")
                 onLocationSelected(lat, lon)
             }
     }

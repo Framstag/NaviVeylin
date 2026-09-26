@@ -1,5 +1,7 @@
 package com.naviveylin.ui.route
 
+import android.Manifest
+import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
@@ -20,6 +22,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
+import org.robolectric.Shadows.shadowOf
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -46,6 +49,11 @@ class RoutePanelViewModelRouteVisibilityTest {
 
     @Before
     fun setUp() {
+        // The navigation gate requires the precise grant (spec: `location-permissions`
+        // — Starting navigation requires precise location): without it calculateRoute()
+        // is refused and this class's route-visibility contract cannot be exercised.
+        shadowOf(ApplicationProvider.getApplicationContext<Application>())
+            .grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
         context = ApplicationProvider.getApplicationContext()
         File(context.filesDir, "maps/search_history.json").delete()
         client = FakeOSMScoutClient()

@@ -1,5 +1,7 @@
 package com.naviveylin.navigation
 
+import android.Manifest
+import android.app.Application
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
@@ -33,7 +35,11 @@ class AANavigationControllerStepIndexTest {
     private fun buildController(
         client: FakeOSMScoutClient = FakeOSMScoutClient()
     ): AANavigationController {
-        val locationService = LocationService(ApplicationProvider.getApplicationContext())
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        // The navigation gate requires the precise grant (spec: `location-permissions`
+        // — Starting navigation requires precise location).
+        shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        val locationService = LocationService(app)
         // navigateTo resolves its start position from the location provider.
         locationService.setGpsFixForTest(
             GpsFix(52.5200, 13.4050, 10.0, 50.0, Double.NaN, Double.NaN, System.currentTimeMillis())
@@ -41,7 +47,8 @@ class AANavigationControllerStepIndexTest {
         return AANavigationController(
             client,
             NavigationStateProvider(),
-            locationService
+            locationService,
+            app
         )
     }
 

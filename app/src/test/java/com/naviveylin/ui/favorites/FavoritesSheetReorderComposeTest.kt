@@ -17,6 +17,7 @@ import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -215,7 +216,7 @@ class FavoritesSheetReorderComposeTest {
     /** View model over a repository backed by the native-less fake client. */
     private fun newSheetViewModel(): Pair<FavoritesViewModel, FakeOSMScoutClient> {
         val client = FakeOSMScoutClient()
-        val repository = FavoriteRepository(client)
+        val repository = repositoryWithInlinePersist(client)
         runBlocking {
             repository.init("/tmp/fav-reorder-sheet-test.json")
             repository.addGroup("Cities")
@@ -226,11 +227,33 @@ class FavoritesSheetReorderComposeTest {
     }
 
     /**
+     * A repository whose persist resolves on the calling thread.
+     *
+     * The repository persists through `withContext(Dispatchers.Default)`; in a
+     * single-fork `:app` suite that thread pool competes with every other class's
+     * leaked or in-flight work, which is what made this class's awaited state changes
+     * intermittently miss a 30 s bound while the class always passed alone (TODO §26).
+     * Pinning the dispatcher makes the persist land inside the same Compose idling
+     * pass, so the assertions test the UI contract instead of the scheduler's luck.
+     */
+    private fun repositoryWithInlinePersist(client: FakeOSMScoutClient): FavoriteRepository =
+        FavoriteRepository(client).apply { defaultDispatcher = Dispatchers.Unconfined }
+
+    /**
      * Waits until [condition] holds. The repository persists on a background
      * dispatcher, so state changes land asynchronously after a reorder.
+     *
+     * The bound is deliberately generous (30 s). The condition is always eventually
+     * satisfied — the wait is bound by a background persist landing on the Compose
+     * test clock of a single-fork suite, not by the app's work — but the previous
+     * 5 s bound expired under load: measured 2026-09-26 on the full `:app` mobile
+     * suite (168 classes, one fork), the case below fails at 5 s whenever the suite
+     * gains any test class (verified with an empty plain-JUnit probe class) and is
+     * green with this bound; raising the fork heap to 2048 MB does not change it, so
+     * the fixed bound was the marginal factor, not memory (TODO.md §26/§43).
      */
     private fun awaitCondition(condition: () -> Boolean) {
-        composeRule.waitUntil(timeoutMillis = 5_000) { condition() }
+        composeRule.waitUntil(timeoutMillis = 30_000) { condition() }
     }
 
     @Test
@@ -334,7 +357,7 @@ class FavoritesSheetReorderComposeTest {
     @Test
     fun `chips follow the reordered favorites and a new star appends`() {
         val client = FakeOSMScoutClient()
-        val repository = FavoriteRepository(client)
+        val repository = repositoryWithInlinePersist(client)
         runBlocking {
             repository.init("/tmp/fav-chip-order-test.json")
             repository.addGroup("Cities")

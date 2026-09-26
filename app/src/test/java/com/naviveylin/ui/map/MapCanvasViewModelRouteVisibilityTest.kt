@@ -1,6 +1,8 @@
 package com.naviveylin.ui.map
 import com.naviveylin.core.BasemapReloadNotifier
 
+import android.Manifest
+import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
@@ -29,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import java.io.File
 
 /**
@@ -62,6 +65,11 @@ class MapCanvasViewModelRouteVisibilityTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
+        // The navigation gate requires the precise grant (spec: `location-permissions`
+        // — Starting navigation requires precise location): the route pipeline these cases
+        // exercise is refused without it.
+        shadowOf(ApplicationProvider.getApplicationContext<Application>())
+            .grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
         File(context.filesDir, "maps/search_history.json").delete()
         client = FakeOSMScoutClient()
         viewModel = MapCanvasViewModel(

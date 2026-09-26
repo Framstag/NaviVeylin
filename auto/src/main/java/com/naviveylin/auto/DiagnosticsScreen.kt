@@ -53,6 +53,15 @@ class DiagnosticsScreen(carContext: CarContext) : Screen(carContext) {
         val loaded = entries
         val builder = Pane.Builder()
 
+        // Disclosure first (spec: auto-diagnostics — Export and viewers disclose the log
+        // contents): the driver must be able to read what this log holds before scrolling
+        // entries. Same wording as the phone dialog, from the shared `:core` string.
+        builder.addRow(
+            Row.Builder()
+                .setTitle(carContext.getString(com.naviveylin.core.R.string.diagnostics_disclosure))
+                .build()
+        )
+
         when {
             loaded == null -> builder.addRow(
                 Row.Builder()

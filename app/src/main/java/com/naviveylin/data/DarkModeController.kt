@@ -69,8 +69,7 @@ class DarkModeController @Inject constructor(
         if (_sensorSensitivity.value == sensitivity) return
         _sensorSensitivity.value = sensitivity
         scope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(ambientLightSensitivity = sensitivity))
+            settingsStorage.update { it.copy(ambientLightSensitivity = sensitivity) }
         }
     }
 
@@ -89,8 +88,7 @@ class DarkModeController @Inject constructor(
         if (_preference.value == preference) return
         _preference.value = preference
         scope.launch {
-            val current = settingsStorage.load()
-            settingsStorage.save(current.copy(darkMode = preference))
+            settingsStorage.update { it.copy(darkMode = preference) }
         }
     }
 }

@@ -68,7 +68,7 @@ class MapPanHandler(
             lastGestureLogMs = now
             DiagnosticsLog.log(
                 "PAN",
-                "onScroll dx=$distanceX dy=$distanceY center=${vp.lat},${vp.lon} mag=${vp.zoom} -> $newLat,$newLon"
+                "onScroll dx=$distanceX dy=$distanceY mag=${vp.zoom} angle=${vp.angle}"
             )
         }
         mapRenderer.setViewport(newLat, newLon, vp.zoom, vp.angle)

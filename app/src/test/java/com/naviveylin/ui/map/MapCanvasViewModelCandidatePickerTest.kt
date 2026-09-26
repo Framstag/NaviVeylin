@@ -29,6 +29,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.Locale
 
 /**
  * Candidate-picker flow (spec: long-press-candidate-picker): long-press with
@@ -179,6 +180,27 @@ class MapCanvasViewModelCandidatePickerTest {
         assertEquals(51.5, s.selectedLocation?.lat ?: Double.NaN, 1e-9)
         assertEquals(7.4, s.selectedLocation?.lon ?: Double.NaN, 1e-9)
     }
+
+    @Test
+    fun `long press coordinate label is locale stable on a comma decimal device`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val previous = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.GERMANY)
+                val vm = createViewModel()
+                client.nextCandidateDescriptions = emptyList()
+
+                vm.onLongPress(51.5, 7.4)
+                advanceUntilIdle()
+
+                // Locale-stable pair (spec: i18n-l10n — Coordinate string is
+                // locale-stable): never "51,50000, 7,40000". The label is what
+                // DetailsResolver's coordinate detector has to recognise.
+                assertEquals("51.50000, 7.40000", vm.uiState.value.selectedLocation?.label)
+            } finally {
+                Locale.setDefault(previous)
+            }
+        }
 
     @Test
     fun `dismissing picker clears candidates and opens no details`() = runTest(mainDispatcherRule.dispatcher) {

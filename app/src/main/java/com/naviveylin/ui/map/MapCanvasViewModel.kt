@@ -19,6 +19,7 @@ import com.naviveylin.core.BundledMapStyles.DEFAULT_STYLE_NAME
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.MapStyleLoadReporter
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.formatCoordinatePair
 import com.naviveylin.core.stringResolver
 import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.core.VehicleAnchorPosition
@@ -2431,7 +2432,10 @@ class MapCanvasViewModel @Inject constructor(
             lat = lat,
             lon = lon,
             zoom = _uiState.value.viewport.magnification.roundToInt(),
-            label = context.getString(R.string.coordinates_format, lat, lon)
+            // Locale-stable pair (spec: i18n-l10n — Coordinate string is
+            // locale-stable): the pair layout comes from the resource, the
+            // locale does not follow the device.
+            label = formatCoordinatePair(lat, lon, context.getString(R.string.coordinates_format))
         )
     }
 
@@ -2540,7 +2544,7 @@ class MapCanvasViewModel @Inject constructor(
         val objLat = if (!desc.objectLat.isNaN()) desc.objectLat else pressLat
         val objLon = if (!desc.objectLon.isNaN()) desc.objectLon else pressLon
         val objEntry = LocationEntry().apply {
-            this.label = s.selectedLocation?.label ?: "%.5f, %.5f".format(objLat, objLon)
+            this.label = s.selectedLocation?.label ?: formatCoordinatePair(objLat, objLon)
             this.lat = objLat
             this.lon = objLon
             this.matchQuality = "object"

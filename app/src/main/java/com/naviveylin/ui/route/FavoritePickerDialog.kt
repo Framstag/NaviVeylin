@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.R
+import com.naviveylin.core.formatCoordinatePair
 import com.naviveylin.data.FavoriteRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,7 +110,7 @@ fun FavoritePickerDialog(
 }
 
 @Composable
-private fun FavoriteItem(
+internal fun FavoriteItem(
     fav: FavoriteLocation,
     onClick: () -> Unit
 ) {
@@ -132,7 +133,7 @@ private fun FavoriteItem(
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = "%.5f, %.5f".format(fav.lat, fav.lon),
+                text = formatCoordinatePair(fav.lat, fav.lon),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -18,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.Locale
 
 /**
  * Compose tests for the full-screen details dialog (spec: enhanced-details-sheet):
@@ -277,6 +278,24 @@ class LocationDetailsDialogComposeTest {
         composeRule.onNodeWithText("Show").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Show").performClick()
         assertTrue("Show on map must fire", shown)
+    }
+
+    @Test
+    fun coordinatesStayLocaleStableOnACommaDecimalDevice() {
+        // German device: the pair must not read "51,50000, 7,40000" (spec:
+        // enhanced-details-sheet — Coordinates stay unambiguous in a
+        // comma-decimal locale; i18n-l10n — Coordinate string is locale-stable).
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+
+            launch(entry())
+
+            composeRule.onNodeWithText("51.50000, 7.40000").assertIsDisplayed()
+            composeRule.onNodeWithText("51,50000, 7,40000").assertDoesNotExist()
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 
     @Test

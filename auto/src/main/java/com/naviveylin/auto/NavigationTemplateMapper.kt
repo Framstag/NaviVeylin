@@ -347,7 +347,7 @@ object NavigationTemplateMapper {
      * stable (like the location labels): a coordinate string is data, not
      * display text.
      */
-    private fun coordinatesText(state: NavigationState): String? {
+    internal fun coordinatesText(state: NavigationState): String? {
         if (state.destLat.isNaN() || state.destLon.isNaN()) return null
         return String.format(java.util.Locale.US, "%.5f, %.5f", state.destLat, state.destLon)
     }

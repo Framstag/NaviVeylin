@@ -12,8 +12,13 @@ import com.framstag.libosmscout.client.DescriptionEntry
  */
 object DetailsResolver {
 
-    /** Long-press labels are formatted coordinates ("%.5f, %.5f") — never an address. */
-    private val COORDINATE_LABEL_REGEX = Regex("""-?\d+\.\d+,\s*-?\d+\.\d+""")
+    /**
+     * Long-press labels are formatted coordinates (`
+     * CoordinateFormat.formatCoordinatePair`) — never an address. `internal` so
+     * `CoordinateFormatTest` can pin the formatter's output to this detector
+     * (design D6: the two must not drift).
+     */
+    internal val COORDINATE_LABEL_REGEX = Regex("""-?\d+\.\d+,\s*-?\d+\.\d+""")
 
     private fun entries(input: DetailsInput) = input.description?.entries.orEmpty()
 

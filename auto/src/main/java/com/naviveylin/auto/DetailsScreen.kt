@@ -26,6 +26,7 @@ import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.details.DetailsInput
 import com.naviveylin.core.details.DetailsResolver
+import com.naviveylin.core.formatCoordinatePair
 import dagger.hilt.android.EntryPointAccessors
 import kotlin.math.asin
 import kotlin.math.cos
@@ -536,11 +537,15 @@ internal fun buildAttributeList(
 ): List<Row> {
     val rows = mutableListOf<Row>()
 
-    // Coordinates — always present.
+    // Coordinates — always present, locale-stable (spec:
+    // auto-destination-details — Coordinate row uses the locale-stable format;
+    // i18n-l10n — Coordinate string is locale-stable): the pair matches the
+    // navigation template's destination text instead of following the device
+    // locale (a German device used to read "51,51391, 7,47434").
     rows.add(
         Row.Builder()
             .setTitle(carContext.getString(R.string.coordinates))
-            .addText("${String.format("%.5f", lat)}, ${String.format("%.5f", lon)}")
+            .addText(formatCoordinatePair(lat, lon))
             .build()
     )
 

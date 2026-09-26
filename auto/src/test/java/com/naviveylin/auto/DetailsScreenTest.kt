@@ -3,12 +3,15 @@ package com.naviveylin.auto
 import androidx.car.app.model.Row
 import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.ObjectDescription
+import com.naviveylin.core.NavigationState
+import com.naviveylin.core.formatCoordinatePair
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.Locale
 
 /**
  * Tests for the shared details screen (spec: auto-destination-details):
@@ -29,6 +32,52 @@ class DetailsScreenTest {
             labelKey = label
             this.value = value
         }
+
+    @Test
+    fun coordinatesRowIsLocaleStableOnAGermanDevice() {
+        // Spec: auto-destination-details — Car coordinates row is locale-stable.
+        // A German device used to show "51,51391, 7,47434" here.
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+
+            val rows = buildAttributeList(
+                testCarContext(),
+                lat = 51.51391, lon = 7.47434, address = null, description = null
+            )
+
+            assertEquals("51.51391, 7.47434", rows[0].texts[0].toString())
+        } finally {
+            Locale.setDefault(previous)
+        }
+    }
+
+    @Test
+    fun coordinatesRowMatchesTheNavigationDestinationText() {
+        // Spec: auto-destination-details — Destination text and coordinates row
+        // agree. Both go through the shared coordinate helper, so the details row
+        // and the navigation template can never show different strings.
+        val previous = Locale.getDefault()
+        try {
+            for (locale in listOf(Locale.GERMANY, Locale.US)) {
+                Locale.setDefault(locale)
+
+                val lat = 51.51391
+                val lon = 7.47434
+                val rows = buildAttributeList(
+                    testCarContext(), lat = lat, lon = lon, address = null, description = null
+                )
+                val destinationText = NavigationTemplateMapper.coordinatesText(
+                    NavigationState(isNavigating = true, destLat = lat, destLon = lon)
+                )
+
+                assertEquals(formatCoordinatePair(lat, lon), rows[0].texts[0].toString())
+                assertEquals(rows[0].texts[0].toString(), destinationText)
+            }
+        } finally {
+            Locale.setDefault(previous)
+        }
+    }
 
     @Test
     fun coordinatesRowAlwaysPresentWithLabel() {

@@ -3,11 +3,13 @@ package com.naviveylin.core.details
 import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.ObjectDescription
+import com.naviveylin.core.formatCoordinatePair
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.Locale
 
 /**
  * Pure resolver tests (spec: auto-destination-details — address/area/title
@@ -251,6 +253,26 @@ class DetailsResolverTest {
     @Test
     fun titleUsesNonCoordinateLabel() {
         assertEquals("Mario's", DetailsResolver.resolveTitle(input(label = "Mario's")))
+    }
+
+    @Test
+    fun titleExcludesTheCoordinateLabelTheAppActuallyProduces() {
+        // Design D6 drift guard: whatever `formatCoordinatePair` emits must stay
+        // recognisable as "a coordinate label, not a title" — including on a
+        // German device, where the label used to be formatted with the device
+        // locale and stopped matching the detector (spec: enhanced-details-sheet
+        // — Coordinate label falls back to generic).
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+            val label = formatCoordinatePair(51.5, 7.4)
+            assertEquals("51.50000, 7.40000", label)
+
+            assertEquals("Location", DetailsResolver.resolveTitle(input(label = label)))
+            assertNull(DetailsResolver.resolveAddress(input(label = label)))
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 
     // ------------------------------------------------------------------

@@ -48,6 +48,7 @@ import com.framstag.libosmscout.client.ObjectDescription
 import com.naviveylin.R
 import com.naviveylin.core.details.DetailsInput
 import com.naviveylin.core.details.DetailsResolver
+import com.naviveylin.core.formatCoordinatePair
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -172,9 +173,16 @@ fun LocationDetailsDialog(
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Coordinates
+                // Coordinates — locale-stable (spec: i18n-l10n — Coordinate
+                // string is locale-stable): the pair layout stays the
+                // `coordinates_format` resource, the locale does not follow the
+                // device, so the pair cannot read "51,51391, 7,47434".
                 Text(
-                    text = stringResource(R.string.coordinates_format, entry.lat, entry.lon),
+                    text = formatCoordinatePair(
+                        lat = entry.lat,
+                        lon = entry.lon,
+                        pattern = stringResource(R.string.coordinates_format)
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

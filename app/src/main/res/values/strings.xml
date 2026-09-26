@@ -68,6 +68,11 @@
     <string name="search_result_exact_match">Exact match</string>
     <string name="search_result_exact_match_and_favorite">Exact match and favorite</string>
     <string name="search_menu_title">Search</string>
+    <!-- Coordinate pair layout, not text: never translatable, and never formatted
+         through a locale-aware `stringResource(id, args)` / `getString(id, args)` call
+         (those apply the device locale). Pass this pattern to
+         `com.naviveylin.core.formatCoordinatePair(lat, lon, pattern)` instead
+         (spec: i18n-l10n — Coordinate string is locale-stable). -->
     <string name="coordinates_format" translatable="false">%.5f, %.5f</string>
     <string name="address_label">Address:</string>
     <string name="area_label">Area:</string>

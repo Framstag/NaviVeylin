@@ -73,6 +73,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.naviveylin.R
+import com.naviveylin.core.formatCoordinate
+import com.naviveylin.core.formatCoordinatePair
+import com.naviveylin.core.parseLatitude
+import com.naviveylin.core.parseLongitude
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -687,7 +691,7 @@ private fun GroupCard(
 }
 
 @Composable
-private fun FavoriteItem(
+internal fun FavoriteItem(
     favorite: FavoriteLocation,
     isStarred: Boolean = false,
     isDragging: Boolean = false,
@@ -720,7 +724,7 @@ private fun FavoriteItem(
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = "%.5f, %.5f".format(favorite.lat, favorite.lon),
+                text = formatCoordinatePair(favorite.lat, favorite.lon),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -926,7 +930,7 @@ private fun ColorPickerDialog(
 }
 
 @Composable
-private fun AddFavoriteDialog(
+internal fun AddFavoriteDialog(
     groupName: String,
     initialLat: Double = 0.0,
     initialLon: Double = 0.0,
@@ -934,12 +938,18 @@ private fun AddFavoriteDialog(
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
+    // Prefill from the field helper, so the text is parseable again by Save
+    // (spec: fav-management-ui — Prefilled coordinates can be saved unchanged;
+    // i18n-l10n — Coordinate string is locale-stable).
     var latText by remember {
-        mutableStateOf(if (initialLat != 0.0) "%.5f".format(initialLat) else "")
+        mutableStateOf(if (initialLat != 0.0) formatCoordinate(initialLat) else "")
     }
     var lonText by remember {
-        mutableStateOf(if (initialLon != 0.0) "%.5f".format(initialLon) else "")
+        mutableStateOf(if (initialLon != 0.0) formatCoordinate(initialLon) else "")
     }
+    // Parse once: the button's enabled state and the confirm action must agree.
+    val parsedLat = parseLatitude(latText)
+    val parsedLon = parseLongitude(lonText)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -974,13 +984,11 @@ private fun AddFavoriteDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val lat = latText.toDoubleOrNull()
-                    val lon = lonText.toDoubleOrNull()
-                    if (name.isNotEmpty() && lat != null && lon != null) {
-                        onConfirm(name, lat, lon)
+                    if (name.isNotEmpty() && parsedLat != null && parsedLon != null) {
+                        onConfirm(name, parsedLat, parsedLon)
                     }
                 },
-                enabled = name.isNotEmpty() && latText.toDoubleOrNull() != null && lonText.toDoubleOrNull() != null
+                enabled = name.isNotEmpty() && parsedLat != null && parsedLon != null
             ) {
                 Text(stringResource(R.string.save))
             }

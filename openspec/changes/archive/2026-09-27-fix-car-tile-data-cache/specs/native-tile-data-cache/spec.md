@@ -1,10 +1,6 @@
-# native-tile-data-cache Specification
+# Spec Delta — native-tile-data-cache
 
-## Purpose
-
-Configure the capacity of libosmscout's per-database tile data caches (regional map and basemap) through the JNI bridge so render, pan, and zoom operations reuse previously loaded tile data across frames and zoom levels.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Native tile data cache capacity configured
 
@@ -51,12 +47,3 @@ The system SHALL set the capacity of libosmscout's per-database tile data cache 
 
 - **WHEN** a surface configures the capacity more than once with the same value
 - **THEN** the effective capacity SHALL be unchanged and no error SHALL be surfaced
-
-### Requirement: Cache sizing must not change rendering output
-
-Configuring the tile data cache capacity SHALL affect only data reuse and performance; the set and appearance of rendered objects SHALL be identical regardless of cache capacity.
-
-#### Scenario: Same viewport renders identically under different capacities
-
-- **WHEN** the same viewport is rendered with a small and with the tuned cache capacity
-- **THEN** the resulting map content is identical (cache capacity is a performance knob only)

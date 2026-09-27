@@ -84,7 +84,46 @@ class NavigationEngine @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) : com.naviveylin.core.NavigationViewModel {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    /**
+     * Process-lifetime scope (spec: `navigation-engine` — Engine lifecycle and
+     * threading). The fault handler is part of the scope, so every child — the stale
+     * speed ticker below, route acquisition, the location feed, road lookups — is
+     * covered, present and future: an uncaught fault is confined to its own piece of
+     * work instead of reaching the main thread's uncaught-exception handler, which
+     * kills the process (and with it a live car session's templates host).
+     */
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main + engineFaultHandler { message -> publishEngineFault(message) }
+    )
+
+    /**
+     * The engine's scope, exposed to the fault-isolation test suite, which fails a
+     * coroutine on it and asserts the fault is confined. Not an API for surfaces.
+     */
+    internal val engineScope: CoroutineScope get() = scope
+
+    /**
+     * Confine a fault raised by one of the engine's own coroutines (spec:
+     * `navigation-engine` — Engine coroutine fault is confined; design D3): an active
+     * attempt ends through the existing stop path — an engine that faults must not keep
+     * presenting guidance from a possibly inconsistent state — and the fault is raised
+     * as an engine-wide error, so every surface presenting navigation shows it. The
+     * state write is dispatched to the main dispatcher that owns navigation-state
+     * publication (guidelines/Design.md §4), because the handler can run on
+     * `Dispatchers.Default` or `IO`. Never called with a state write of its own.
+     */
+    private fun publishEngineFault(message: String) {
+        scope.launch(Dispatchers.Main) {
+            Log.e(TAG, "confined engine fault: $message")
+            if (_state.value.isNavigating) {
+                stopNavigation()
+            }
+            _state.value = _state.value.copy(
+                errorMessage = message,
+                errorOrigin = SurfaceOrigin.ENGINE
+            )
+        }
+    }
 
     private val _state = MutableStateFlow(NavigationState())
     override val state: StateFlow<NavigationState> = _state.asStateFlow()
@@ -248,7 +287,11 @@ class NavigationEngine @Inject constructor(
                     handle, vehicle, createListener()
                 )
                 Log.d(TAG, "start: started vehicle=$vehicle")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // Throwable, not Exception: a native failure can be an Error
+                // (UnsatisfiedLinkError, ExceptionInInitializerError, a class-init
+                // failure), which an `Exception` catch would let escape (spec:
+                // `navigation-engine` — Native failure is confined, not fatal).
                 Log.e(TAG, "start failed", e)
                 stopNavigation()
                 reportError("Route calculation failed. Try again.", SurfaceOrigin.ENGINE)
@@ -362,7 +405,9 @@ class NavigationEngine @Inject constructor(
                         }
                     }
                 )
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // Confines a native throwable that is not an Exception as well (spec:
+                // `navigation-engine` — Native failure is confined, not fatal).
                 withContext(Dispatchers.Main) {
                     Log.e(TAG, "acquire failed", e)
                     releaseNavLease()
@@ -699,7 +744,10 @@ class NavigationEngine @Inject constructor(
                 _state.value = _state.value.copy(
                     currentRoadInfo = road?.let { CurrentRoadInfo(it.ref, it.typeName, it.name) } ?: null
                 )
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // A road-name lookup is cosmetic: confine it (including a native
+                // Error) and keep navigating (spec: `navigation-engine` — Native
+                // failure is confined, not fatal).
                 Log.e(TAG, "Road info lookup failed", e)
             }
         }

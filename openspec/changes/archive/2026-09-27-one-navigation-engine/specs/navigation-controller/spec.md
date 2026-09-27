@@ -1,10 +1,6 @@
-# navigation-controller Specification
+# Spec Delta
 
-## Purpose
-
-Manages the turn-by-turn navigation lifecycle — starting, stopping, GPS follow mode, and reroute handling. Wraps the JNI `NavigationController` and `NavigationListener` for use from Kotlin/Compose.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Start navigation from route summary dialog
 The "Start Navigation" button in the route summary dialog SHALL start navigation through the process-scoped navigation engine with the calculated route and the selected vehicle, and the surface SHALL enable its own follow presentation for the started navigation.

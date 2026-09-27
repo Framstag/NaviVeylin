@@ -102,8 +102,8 @@ class SessionLogTest {
             "Native client ready",
             "Initializing favorites",
             "Favorites ready",
-            "Activating navigation controller",
-            "Navigation controller ready",
+            "Activating navigation engine",
+            "Navigation engine ready",
             "Opening installed map databases",
             "Opening map databases done"
         )

@@ -17,6 +17,7 @@ import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.StringResolver
+import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.stringResolver
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
@@ -416,18 +417,19 @@ class NavigationSession : Session() {
                         lastWarmupStep = "Favorites ready"
                         SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
 
-                        // Activate the AA navigation controller: its init wires
-                        // itself into the shared state provider, so "Navigate
-                        // here" and turn-by-turn work without the phone UI.
+                        // Resolve the process-scoped navigation engine: a car-only
+                        // process must instantiate it, so "Navigate here" and
+                        // turn-by-turn work without the phone UI (spec:
+                        // `auto-cross-device-sync` — Car-only navigation start).
                         lastStepAt = System.currentTimeMillis()
-                        lastWarmupStep = "Activating navigation controller"
+                        lastWarmupStep = "Activating navigation engine"
                         SessionLog.warmupStep(lastWarmupStep, 0)
                         try {
-                            entryPoint.autoNavigationController()
+                            entryPoint.navigationViewModel()
                         } catch (e: Exception) {
-                            Log.w(TAG, "autoNavigationController init failed", e)
+                            Log.w(TAG, "navigation engine init failed", e)
                         }
-                        lastWarmupStep = "Navigation controller ready"
+                        lastWarmupStep = "Navigation engine ready"
                         SessionLog.warmupStep(lastWarmupStep, System.currentTimeMillis() - lastStepAt)
 
                         // Mirror the phone app's initMap(): open every installed
@@ -602,7 +604,10 @@ class NavigationSession : Session() {
                 navigationViewModel.navigateTo(first.lat, first.lon)
             } else {
                 Log.w(TAG, "Deep link geocoding found no match for '$query'")
-                navigationViewModel.reportError("No matching location found for \"$query\"")
+                navigationViewModel.reportError(
+                    "No matching location found for \"$query\"",
+                    SurfaceOrigin.CAR
+                )
             }
         }
     }
@@ -645,10 +650,15 @@ class NavigationSession : Session() {
                 }
             }
         }
-        // Observe error messages
+        // Observe error messages. Only errors that concern the car are shown: the
+        // engine's own errors (ENGINE) and errors raised for the car — never one the
+        // phone surface caused (spec: `navigation-engine` — Errors carry the surface
+        // that caused them).
         errorJob = scope.launch(CoroutineName("error")) {
             navigationViewModel.state
-                .map { it.errorMessage }
+                .map { navState ->
+                    navState.errorMessage.takeIf { navState.errorAppliesTo(SurfaceOrigin.CAR) }
+                }
                 .distinctUntilChanged()
                 .collect { errorMsg ->
                     if (errorMsg != null) {
@@ -737,9 +747,13 @@ class NavigationSession : Session() {
                 showRootScreen()
             }
         }
-        // An error raised while the session was stopped is shown once now.
+        // An error raised while the session was stopped is shown once now — car
+        // errors and engine-wide ones only.
         guardedHostCall("show deferred error notice", tag = SESSION_DIAG_TAG) {
-            navigationViewModel.state.value.errorMessage?.let { showError(it) }
+            val navState = navigationViewModel.state.value
+            navState.errorMessage
+                ?.takeIf { navState.errorAppliesTo(SurfaceOrigin.CAR) }
+                ?.let { showError(it) }
         }
         // A notice whose dismissal was skipped while the session was stopped is removed
         // once now that host mutations are allowed again (spec: car-host-fault-isolation —

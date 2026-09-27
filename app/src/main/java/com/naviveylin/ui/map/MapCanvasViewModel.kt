@@ -1086,13 +1086,10 @@ class MapCanvasViewModel @Inject constructor(
                         kotlin.math.abs(fix.lat - lastGpsLat) < 1e-6 &&
                         kotlin.math.abs(fix.lon - lastGpsLon) < 1e-6
                 if (sameFix) {
-                    // Still feed navigation engine, but skip render work.
-                    _navigationViewModel?.processLocation(
-                        fix.lat, fix.lon,
-                        if (!fix.speedKmH.isNaN()) fix.speedKmH / 3.6 else -1.0,
-                        fix.accuracy.coerceAtLeast(0.0),
-                        fix.time
-                    )
+                    // Duplicate fix — skip render work. Navigation is fed by the
+                    // engine's own location lease (spec: `navigation-engine` — one
+                    // engine per process feeds the native controller), not by this
+                    // map pipeline.
                     return@collect
                 }
                 lastGpsLat = fix.lat
@@ -1105,14 +1102,6 @@ class MapCanvasViewModel @Inject constructor(
                 // Resolve the current road for the free-driving street label
                 // (bearing-aware, throttled; spec: current-road-info).
                 resolveCurrentRoad(fix.lat, fix.lon, fix.markerBearing)
-
-                // Feed navigation engine early so it sees every distinct fix.
-                _navigationViewModel?.processLocation(
-                    fix.lat, fix.lon,
-                    if (!fix.speedKmH.isNaN()) fix.speedKmH / 3.6 else -1.0,
-                    fix.accuracy.coerceAtLeast(0.0),
-                    fix.time
-                )
 
                 if (!_uiState.value.followMode ||
                     (mode == MapMode.FREE_DRIVE && _uiState.value.driveSuspended)

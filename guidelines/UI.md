@@ -494,6 +494,14 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   preset inside it moves to the nearest free position while every other preset (including the default
   center/center) keeps its exact fraction, so the head-unit default framing is unchanged.
   Picker labels/hierarchy stay identical, so the logical position is comparable across surfaces.
+- Phone/AA reroute parity (spec `reroute-trigger`, change `one-navigation-engine`): one
+  process-scoped navigation engine applies **one** reroute policy to the session both surfaces render —
+  50 m fast path, 10 s confirmation window, 25 s cooldown, 100 m accuracy guard, 30 s tunnel guard.
+  No surface carries its own thresholds, interval gate or confirmation rule (the car's former
+  25 m / 15 s / 10 s-interval path is gone), so the timing is the same whichever surface displays the
+  session, and a reroute re-acquires to the retained destination without a surface acting. The
+  *presentation* of the reroute stays per surface: the phone redraws through its own route panel and
+  map, the car through its host templates.
 - Phone-only: the overspeed delta is configurable in the location-options
   sheet (slider 0-30, 1 km/h precision) and on Android Auto via the
   preferences value picker — same global property, identical on both

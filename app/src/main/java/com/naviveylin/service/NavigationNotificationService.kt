@@ -16,10 +16,9 @@ import com.naviveylin.NaviVeylinCarAppService
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.ManeuverSymbols
-import com.naviveylin.core.NavigationStopRequests
+import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.NotificationIds
 import com.naviveylin.core.stringResolver
-import com.naviveylin.navigation.NavigationStateProvider
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -46,7 +45,7 @@ import kotlinx.coroutines.launch
 class NavigationNotificationService : Service() {
 
     @Inject
-    lateinit var stateProvider: NavigationStateProvider
+    lateinit var navigationViewModel: NavigationViewModel
 
     @Inject
     lateinit var drivingModeProvider: DrivingModeProvider
@@ -63,7 +62,7 @@ class NavigationNotificationService : Service() {
         // FGS contract: must post the foreground notification within 5s of
         // the startForegroundService call — render the current state now and
         // keep re-rendering from the observer.
-        val state = stateProvider.state.value
+        val state = navigationViewModel.state.value
         val freeDriving = drivingModeProvider.freeDrivingActive.value
         val content = NavigationNotificationContentFormatter.format(state, freeDriving)
         val hint = carHintFor(state)
@@ -89,7 +88,7 @@ class NavigationNotificationService : Service() {
         // Logged so a device run can tell "action delivered" from "wrong stop
         // target" (the failure mode recorded in TODO.md §46).
         Log.d(TAG, "onStartCommand action=${intent?.action ?: "-"} startId=$startId")
-        handleAction(intent?.action, stateProvider)
+        handleAction(intent?.action, navigationViewModel)
         // The observer in onCreate stops the service when the driving state
         // clears; a re-delivered start with no driving state also self-stops.
         if (!drivingStateActive()) {
@@ -108,7 +107,7 @@ class NavigationNotificationService : Service() {
     }
 
     private fun drivingStateActive(): Boolean =
-        stateProvider.state.value.isNavigating || drivingModeProvider.freeDrivingActive.value
+        navigationViewModel.state.value.isNavigating || drivingModeProvider.freeDrivingActive.value
 
     /** Collect the shared driving state and render the notification live. */
     private fun observeDrivingState() {
@@ -116,7 +115,7 @@ class NavigationNotificationService : Service() {
         this.scope = scope
         scope.launch {
             combine(
-                stateProvider.state,
+                navigationViewModel.state,
                 drivingModeProvider.freeDrivingActive
             ) { navState, freeDriving -> Pair(navState, freeDriving) }
                 .collect { (navState, freeDriving) ->
@@ -231,14 +230,15 @@ class NavigationNotificationService : Service() {
         /**
          * Route a start-command action. Pure and testable without the service
          * lifecycle: [ACTION_STOP_NAVIGATION] (the shade's stop action, phone and
-         * car extender alike) broadcasts a stop request — whichever controller is
-         * navigating stops itself, and an idle one does nothing. Any other action
-         * (including [ACTION_START] and [ACTION_STOP], which are handled by the
-         * driving-state observer) is ignored.
+         * car extender alike) stops the one engine — a single stop path now that
+         * one engine owns the session (spec: `navigation-controller` — Stop from a
+         * notification or car action). Any other action (including [ACTION_START]
+         * and [ACTION_STOP], which are handled by the driving-state observer) is
+         * ignored.
          */
-        internal fun handleAction(action: String?, stopRequests: NavigationStopRequests) {
+        internal fun handleAction(action: String?, navigationViewModel: NavigationViewModel) {
             if (action == ACTION_STOP_NAVIGATION) {
-                stopRequests.requestStop()
+                navigationViewModel.stopNavigation()
             }
         }
 

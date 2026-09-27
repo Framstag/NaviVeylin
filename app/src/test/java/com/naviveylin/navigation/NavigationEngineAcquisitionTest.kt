@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Looper
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,19 +22,19 @@ import org.robolectric.annotation.Config
 import androidx.test.core.app.ApplicationProvider
 
 /**
- * Tests for the car-only route calculation fallback in [NavigationViewModel]
+ * Tests for the car-only route calculation fallback in [NavigationEngine]
  * (used when the phone [com.naviveylin.ui.route.RoutePanelViewModel] is not
  * wired — e.g. navigation started from Android Auto via a deep link).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class NavigationViewModelDirectRouteTest {
+class NavigationEngineAcquisitionTest {
 
     private fun buildViewModel(
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
         locationService: LocationService = LocationService(ApplicationProvider.getApplicationContext())
-    ): NavigationViewModel {
-        return NavigationViewModel(client, NavigationStateProvider(), locationService, ApplicationProvider.getApplicationContext())
+    ): NavigationEngine {
+        return NavigationEngine({ client }, locationService, ApplicationProvider.getApplicationContext())
     }
 
     /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
@@ -119,7 +120,7 @@ class NavigationViewModelDirectRouteTest {
     }
 
     @Test
-    fun startDirectRoute_withRoute_startsNavigation() {
+    fun acquire_withRoute_startsNavigation() {
         val client = FakeOSMScoutClient().apply {
             routeToDeliver = RouteEntry().apply {
                 routeHandle = 1L
@@ -134,7 +135,7 @@ class NavigationViewModelDirectRouteTest {
         }
         val vm = buildViewModel(client)
 
-        vm.startDirectRoute(52.5200, 13.4050, 52.5300, 13.4100)
+        vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
 
         awaitState { vm.state.value.isNavigating }
         assertEquals(1, client.routeCalculationCount)
@@ -144,14 +145,14 @@ class NavigationViewModelDirectRouteTest {
     }
 
     @Test
-    fun startDirectRoute_routeError_setsErrorMessage() {
+    fun acquire_routeError_setsErrorMessage() {
         val client = FakeOSMScoutClient().apply {
             routeToDeliver = null
             deliverRouteError = "Route calculation failed. Try again."
         }
         val vm = buildViewModel(client)
 
-        vm.startDirectRoute(52.5200, 13.4050, 52.5300, 13.4100)
+        vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
 
         awaitState { vm.state.value.errorMessage != null }
         assertEquals(1, client.routeCalculationCount)
@@ -187,7 +188,7 @@ class NavigationViewModelDirectRouteTest {
         val locationService = LocationService(context)
         injectGpsFix(locationService, 52.5200, 13.4050)
 
-        val vm = NavigationViewModel(client, NavigationStateProvider(), locationService, ApplicationProvider.getApplicationContext())
+        val vm = NavigationEngine({ client }, locationService, ApplicationProvider.getApplicationContext())
 
         vm.navigateTo(52.5300, 13.4100)
 

@@ -22,14 +22,13 @@ import org.robolectric.Shadows.shadowOf
  * off route it falls back to the bearing-aware `getRoadAt` lookup.
  */
 @RunWith(RobolectricTestRunner::class)
-class NavigationViewModelRoadInfoTest {
+class NavigationEngineRoadInfoTest {
 
     private fun buildViewModel(
         client: FakeOSMScoutClient = FakeOSMScoutClient()
-    ): NavigationViewModel {
-        return NavigationViewModel(
-            client,
-            NavigationStateProvider(),
+    ): NavigationEngine {
+        return NavigationEngine(
+            { client },
             LocationService(ApplicationProvider.getApplicationContext()),
             ApplicationProvider.getApplicationContext()
         )

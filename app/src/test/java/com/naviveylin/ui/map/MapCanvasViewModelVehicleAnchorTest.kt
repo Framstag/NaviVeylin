@@ -2,6 +2,7 @@ package com.naviveylin.ui.map
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.ProjectionUtils
@@ -16,7 +17,7 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
-import com.naviveylin.navigation.NavigationStateProvider
+import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
@@ -128,7 +129,7 @@ class MapCanvasViewModelVehicleAnchorTest {
     @Test
     fun routingAnchorAppliedWhileNavigating() = runTest(mainDispatcherRule.dispatcher) {
         val navVm = buildNavigationViewModel()
-        viewModel.setNavigationViewModel(navVm)
+        viewModel.setNavigationViewModel(NavigationViewModel(navVm))
         advanceUntilIdle()
 
         startNavigating(navVm)
@@ -307,7 +308,7 @@ class MapCanvasViewModelVehicleAnchorTest {
             )
             recreateViewModel()
             val navVm = buildNavigationViewModel()
-            viewModel.setNavigationViewModel(navVm)
+            viewModel.setNavigationViewModel(NavigationViewModel(navVm))
             advanceUntilIdle()
 
             // Free driving (no guidance): the free-driving anchor frames the map.
@@ -548,7 +549,7 @@ class MapCanvasViewModelVehicleAnchorTest {
             )
 
             val navVm = buildNavigationViewModel()
-            viewModel.setNavigationViewModel(navVm)
+            viewModel.setNavigationViewModel(NavigationViewModel(navVm))
             advanceUntilIdle()
             startNavigating(navVm)
             advanceUntilIdle()
@@ -579,7 +580,7 @@ class MapCanvasViewModelVehicleAnchorTest {
         fun awaitFollowThrottle() = Thread.sleep(250)
     }
 
-    private fun buildNavigationViewModel(): NavigationViewModel {
+    private fun buildNavigationViewModel(): NavigationEngine {
         val routeClient = FakeOSMScoutClient().apply {
             routeToDeliver = com.framstag.libosmscout.client.RouteEntry().apply {
                 routeHandle = 1L
@@ -592,15 +593,15 @@ class MapCanvasViewModelVehicleAnchorTest {
                 )
             }
         }
-        return NavigationViewModel(
-            routeClient, NavigationStateProvider(),
+        return NavigationEngine(
+            { routeClient },
             LocationService(context), context
         )
     }
 
-    /** Start a route via startDirectRoute and wait until navigation is active. */
-    private suspend fun TestScope.startNavigating(navVm: NavigationViewModel) {
-        navVm.startDirectRoute(52.5200, 13.4050, 52.5300, 13.4100)
+    /** Start a route via the engine's acquisition and wait until navigation is active. */
+    private suspend fun TestScope.startNavigating(navVm: NavigationEngine) {
+        navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
         val deadline = System.currentTimeMillis() + 5000
         while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
             advanceUntilIdle()

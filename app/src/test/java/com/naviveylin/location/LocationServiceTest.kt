@@ -517,7 +517,7 @@ class LocationServiceTest {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = true)
         val mapLease = service.startForTest(LocationConsumers.PHONE_MAP)
-        service.startForTest(LocationConsumers.PHONE_NAV)
+        service.startForTest(LocationConsumers.NAV_ENGINE)
         assertEquals(2, service.heldLeaseCount())
 
         mapLease.release()
@@ -526,7 +526,7 @@ class LocationServiceTest {
             "navigation must keep its fixes after the map surface releases",
             service.isFusedActive()
         )
-        assertEquals(setOf(LocationConsumers.PHONE_NAV), service.heldLeaseConsumers())
+        assertEquals(setOf(LocationConsumers.NAV_ENGINE), service.heldLeaseConsumers())
     }
 
     @Test
@@ -571,7 +571,7 @@ class LocationServiceTest {
         // its release cannot stop another consumer's updates.
         val service = LocationService(context(), playServicesAvailable = true)
 
-        val lease = service.startForTest(LocationConsumers.PHONE_NAV)
+        val lease = service.startForTest(LocationConsumers.NAV_ENGINE)
 
         assertFalse(service.isFusedActive())
         assertEquals(1, service.heldLeaseCount())
@@ -584,18 +584,18 @@ class LocationServiceTest {
     fun leaseAcquireAndReleaseAreRecordedInTheDiagnosticsStream() {
         grantLocationPermission()
         val service = LocationService(context(), playServicesAvailable = true)
-        val lease = service.startForTest(LocationConsumers.CAR_NAV)
+        val lease = service.startForTest(LocationConsumers.NAV_ENGINE)
         lease.release()
 
         val entries = runBlocking { DiagnosticsLog.readEntries() }
 
         assertTrue(
             "the acquire must name the consumer",
-            entries.any { it.contains("location lease acquire: ${LocationConsumers.CAR_NAV}") }
+            entries.any { it.contains("location lease acquire: ${LocationConsumers.NAV_ENGINE}") }
         )
         assertTrue(
             "the release must name the consumer",
-            entries.any { it.contains("location lease release: ${LocationConsumers.CAR_NAV}") }
+            entries.any { it.contains("location lease release: ${LocationConsumers.NAV_ENGINE}") }
         )
     }
 }

@@ -2,6 +2,7 @@ package com.naviveylin.ui.map
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
 import com.naviveylin.core.BasemapReloadNotifier
@@ -12,7 +13,7 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import com.naviveylin.navigation.NavigationStateProvider
+import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
@@ -82,7 +83,7 @@ class MapCanvasViewModelNavEndRestoreTest {
         viewModel.cancelScopeForTest()
     }
 
-    private fun buildNavigationViewModel(): NavigationViewModel {
+    private fun buildNavigationViewModel(): NavigationEngine {
         val routeClient = FakeOSMScoutClient().apply {
             routeToDeliver = RouteEntry().apply {
                 routeHandle = 1L
@@ -95,15 +96,15 @@ class MapCanvasViewModelNavEndRestoreTest {
                 )
             }
         }
-        return NavigationViewModel(
-            routeClient, NavigationStateProvider(),
+        return NavigationEngine(
+            { routeClient },
             LocationService(context), context
         )
     }
 
-    /** Start a route via startDirectRoute and wait until navigation is active. */
-    private suspend fun TestScope.startNavigating(navVm: NavigationViewModel) {
-        navVm.startDirectRoute(52.5200, 13.4050, 52.5300, 13.4100)
+    /** Start a route via the engine's acquisition and wait until navigation is active. */
+    private suspend fun TestScope.startNavigating(navVm: NavigationEngine) {
+        navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
         val deadline = System.currentTimeMillis() + 5000
         while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
             advanceUntilIdle()
@@ -117,7 +118,7 @@ class MapCanvasViewModelNavEndRestoreTest {
     fun browseBeforeNavAppliesBrowseRepresentationKeepingViewport() =
         runTest(mainDispatcherRule.dispatcher) {
             val navVm = buildNavigationViewModel()
-            viewModel.setNavigationViewModel(navVm)
+            viewModel.setNavigationViewModel(NavigationViewModel(navVm))
             advanceUntilIdle()
             assertFalse("start in BROWSE", viewModel.uiState.value.followMode)
 
@@ -162,7 +163,7 @@ class MapCanvasViewModelNavEndRestoreTest {
     fun suspendedDriveBeforeNavRestoresSuspendedFreeDrive() =
         runTest(mainDispatcherRule.dispatcher) {
             val navVm = buildNavigationViewModel()
-            viewModel.setNavigationViewModel(navVm)
+            viewModel.setNavigationViewModel(NavigationViewModel(navVm))
             advanceUntilIdle()
 
             // Drive, then suspend the drive preset (pan) — follow off, suspension on.
@@ -192,7 +193,7 @@ class MapCanvasViewModelNavEndRestoreTest {
     fun freeDriveBeforeNavRestoresFollowAndPreNavSuspension() =
         runTest(mainDispatcherRule.dispatcher) {
             val navVm = buildNavigationViewModel()
-            viewModel.setNavigationViewModel(navVm)
+            viewModel.setNavigationViewModel(NavigationViewModel(navVm))
             advanceUntilIdle()
 
             viewModel.enterFreeDrive()
@@ -217,7 +218,7 @@ class MapCanvasViewModelNavEndRestoreTest {
     fun stopNavigationWhileStoppedIsIdempotent() =
         runTest(mainDispatcherRule.dispatcher) {
             val navVm = buildNavigationViewModel()
-            viewModel.setNavigationViewModel(navVm)
+            viewModel.setNavigationViewModel(NavigationViewModel(navVm))
             advanceUntilIdle()
 
             startNavigating(navVm)

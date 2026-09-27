@@ -7,7 +7,6 @@ import com.naviveylin.auto.SessionCarSurfaceHost
 import com.naviveylin.core.AutoClientProvider
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoLocationProvider
-import com.naviveylin.core.AutoNavigationController
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoSearchProvider
 import com.naviveylin.core.AutoSearchHistoryProvider
@@ -281,12 +280,6 @@ object AutoServiceModule {
             }
         }
     }
-
-    @Provides
-    @Singleton
-    fun provideAutoNavigationController(
-        impl: com.naviveylin.navigation.AANavigationController
-    ): AutoNavigationController = impl
 
     @Provides
     @Singleton

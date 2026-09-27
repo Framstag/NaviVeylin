@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.service.NavigationNotificationService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -21,9 +22,9 @@ import kotlinx.coroutines.launch
  * transitions (spec: navigation-ongoing-notification — active-driving
  * notification + process survival).
  *
- * Surface-independent: observes the singleton navigation state mirror and
- * the shared free-driving flag, so a driving session started only from the
- * car (deep link, no phone UI) triggers the service too. Created eagerly in
+ * Surface-independent: observes the process-scoped navigation engine and the
+ * shared free-driving flag, so a driving session started only from the car (deep
+ * link, no phone UI) triggers the service too. Created eagerly in
  * [com.naviveylin.NaviVeylinApp.onCreate] so the process never misses a
  * transition.
  *
@@ -33,7 +34,7 @@ import kotlinx.coroutines.launch
 @Singleton
 class NavigationNotificationController @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val stateProvider: NavigationStateProvider,
+    private val navigationViewModel: NavigationViewModel,
     private val drivingModeProvider: DrivingModeProvider
 ) {
 
@@ -43,7 +44,7 @@ class NavigationNotificationController @Inject constructor(
     init {
         scope.launch {
             combine(
-                stateProvider.state,
+                navigationViewModel.state,
                 drivingModeProvider.freeDrivingActive
             ) { navState, freeDriving -> Pair(navState, freeDriving) }
                 .collect { (navState, freeDriving) ->

@@ -34,13 +34,8 @@ interface AutoEntryPoint {
     fun autoLocationProvider(): AutoLocationProvider
 
     /**
-     * Real navigation controller for the AA-only process (route calc +
-     * turn-by-turn). Observes itself into the shared state provider; resolve
-     * it during warmup to activate navigation.
+     * Shared OSMScoutClient instance for map rendering.
      */
-    fun autoNavigationController(): AutoNavigationController
-
-    /** Shared OSMScoutClient instance for map rendering. */
     fun autoClientProvider(): AutoClientProvider
 
     /** Signal for map data changes (basemap download/update/delete while running). */

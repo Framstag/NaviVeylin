@@ -238,6 +238,22 @@ class FakeOSMScoutClient : OSMScoutClient() {
     @Volatile
     var navigationListener: NavigationListener? = null
 
+    /** Number of [startNavigationWithVehicle] invocations (native controllers started). */
+    @Volatile
+    var navigationStartCount = 0
+
+    /** Profile of the last [calculateRouteWithProfile] call. */
+    @Volatile
+    var lastRouteProfile: RoutingProfile? = null
+
+    /** (lat, lon) of the last [calculateRouteWithProfile] call. */
+    @Volatile
+    var lastRouteStart: Pair<Double, Double>? = null
+
+    /** (lat, lon) destination of the last [calculateRouteWithProfile] call. */
+    @Volatile
+    var lastRouteDest: Pair<Double, Double>? = null
+
     /** Error text delivered when [routeToDeliver] is null. */
     var deliverRouteError: String? = null
 
@@ -252,6 +268,9 @@ class FakeOSMScoutClient : OSMScoutClient() {
         callback: RouteCallback
     ) {
         routeCalculationCount++
+        lastRouteProfile = profile
+        lastRouteStart = startLat to startLon
+        lastRouteDest = destLat to destLon
         val route = routeToDeliver
         if (route != null) {
             callback.onSuccess(route)
@@ -265,6 +284,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
         vehicle: Vehicle,
         listener: NavigationListener
     ): NavigationController? {
+        navigationStartCount++
         navigationListener = listener
         return null
     }

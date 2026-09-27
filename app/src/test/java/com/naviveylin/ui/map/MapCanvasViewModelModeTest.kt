@@ -3,6 +3,7 @@ import com.naviveylin.core.BasemapReloadNotifier
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
 import com.naviveylin.data.AssetCopier
@@ -12,7 +13,7 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import com.naviveylin.navigation.NavigationStateProvider
+import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
@@ -140,7 +141,7 @@ class MapCanvasViewModelModeTest {
 
     // --- Pre-navigation mode snapshot ---
 
-    private fun buildNavigationViewModel(): NavigationViewModel {
+    private fun buildNavigationViewModel(): NavigationEngine {
         val routeClient = FakeOSMScoutClient().apply {
             routeToDeliver = RouteEntry().apply {
                 routeHandle = 1L
@@ -153,8 +154,8 @@ class MapCanvasViewModelModeTest {
                 )
             }
         }
-        return NavigationViewModel(
-            routeClient, NavigationStateProvider(),
+        return NavigationEngine(
+            { routeClient },
             LocationService(context), context
         )
     }
@@ -162,13 +163,13 @@ class MapCanvasViewModelModeTest {
     @Test
     fun navigationEndRestoresBrowseMode() = runTest(mainDispatcherRule.dispatcher) {
         val navVm = buildNavigationViewModel()
-        viewModel.setNavigationViewModel(navVm)
+        viewModel.setNavigationViewModel(NavigationViewModel(navVm))
         advanceUntilIdle()
 
         // Start in BROWSE (follow off).
         assertFalse(viewModel.uiState.value.followMode)
 
-        navVm.startDirectRoute(52.5200, 13.4050, 52.5300, 13.4100)
+        navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
         // Route calculation runs on a real Dispatchers.Default thread — poll
         // with real time, advancing the virtual scheduler each round.
         val deadline = System.currentTimeMillis() + 5000
@@ -189,14 +190,14 @@ class MapCanvasViewModelModeTest {
     @Test
     fun navigationEndRestoresFreeDriveMode() = runTest(mainDispatcherRule.dispatcher) {
         val navVm = buildNavigationViewModel()
-        viewModel.setNavigationViewModel(navVm)
+        viewModel.setNavigationViewModel(NavigationViewModel(navVm))
         advanceUntilIdle()
 
         // Start in FREE_DRIVE.
         viewModel.enterFreeDrive()
         assertTrue(viewModel.uiState.value.followMode)
 
-        navVm.startDirectRoute(52.5200, 13.4050, 52.5300, 13.4100)
+        navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
         val deadline = System.currentTimeMillis() + 5000
         while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
             advanceUntilIdle()

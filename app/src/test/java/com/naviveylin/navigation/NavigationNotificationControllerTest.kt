@@ -27,7 +27,8 @@ import org.robolectric.RobolectricTestRunner
  * Verifies the notification controller's driving-state decision and the
  * service start/stop wiring (task 2.5; specs R1 active-driving notification,
  * R2 process survival). Navigation transitions are driven through a fake
- * [NavigationViewModel] observed by the real [NavigationStateProvider]
+ * [NavigationViewModel] observed by the notification controller (the engine's
+ * interface, bound to `NavigationEngine` in the app).
  * mirror; the controller's service calls are recorded via a
  * [RecordingContext].
  */
@@ -52,7 +53,7 @@ class NavigationNotificationControllerTest {
     @Test
     fun shouldRunForDrivingModes() {
         val controller = NavigationNotificationController(
-            baseContext, NavigationStateProvider(), DrivingModeProviderImpl()
+            baseContext, FakeNavigationViewModel(), DrivingModeProviderImpl()
         )
         assertFalse(controller.shouldRun(NavigationState(), false))
         assertTrue(controller.shouldRun(NavigationState(isNavigating = true), false))
@@ -65,11 +66,9 @@ class NavigationNotificationControllerTest {
     @Test
     fun navStartStartsServiceAndClearStops() = runTest(mainDispatcherRule.dispatcher) {
         val recording = RecordingContext(baseContext)
-        val stateProvider = NavigationStateProvider()
         val driving = DrivingModeProviderImpl()
         val fakeVm = FakeNavigationViewModel()
-        stateProvider.observe(fakeVm)
-        controller = NavigationNotificationController(recording, stateProvider, driving)
+        controller = NavigationNotificationController(recording, fakeVm, driving)
 
         advanceUntilIdle()
         assertNoServiceCall("idle browse mode", recording)
@@ -86,9 +85,8 @@ class NavigationNotificationControllerTest {
     @Test
     fun freeDrivingStartsServiceAndExplicitExitStops() = runTest(mainDispatcherRule.dispatcher) {
         val recording = RecordingContext(baseContext)
-        val stateProvider = NavigationStateProvider()
         val driving = DrivingModeProviderImpl()
-        controller = NavigationNotificationController(recording, stateProvider, driving)
+        controller = NavigationNotificationController(recording, FakeNavigationViewModel(), driving)
 
         advanceUntilIdle()
         driving.setFreeDriving(DrivingModeProvider.SURFACE_AUTO, true)
@@ -103,11 +101,9 @@ class NavigationNotificationControllerTest {
     @Test
     fun orCombinedKeepsServiceWhileAnySurfaceDrives() = runTest(mainDispatcherRule.dispatcher) {
         val recording = RecordingContext(baseContext)
-        val stateProvider = NavigationStateProvider()
         val driving = DrivingModeProviderImpl()
         val fakeVm = FakeNavigationViewModel()
-        stateProvider.observe(fakeVm)
-        controller = NavigationNotificationController(recording, stateProvider, driving)
+        controller = NavigationNotificationController(recording, fakeVm, driving)
 
         fakeVm.state.value = NavigationState(isNavigating = true)
         advanceUntilIdle()
@@ -154,13 +150,15 @@ class NavigationNotificationControllerTest {
         assertTrue("no redundant restart", calls.count { it.action == NavigationNotificationService.ACTION_START } <= 1)
     }
 
-    /** Minimal VM so [NavigationStateProvider.observe] mirrors test state. */
+    /** Stub navigation source (the engine seam) for the controller. */
     private class FakeNavigationViewModel : NavigationViewModel {
         override val state = MutableStateFlow(NavigationState())
+        override val positionFlow =
+            MutableStateFlow<com.framstag.libosmscout.client.NavigationPosition?>(null)
         override fun stopNavigation() = Unit
         override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) = Unit
         override fun clearError() = Unit
-        override fun reportError(message: String) = Unit
+        override fun reportError(message: String, origin: com.naviveylin.core.SurfaceOrigin) = Unit
     }
 
     /** Records service start/stop calls, delegates everything else. */

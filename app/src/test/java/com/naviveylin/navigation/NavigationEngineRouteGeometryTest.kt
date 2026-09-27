@@ -4,6 +4,7 @@ import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.location.LocationService
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertNull
@@ -15,22 +16,22 @@ import org.robolectric.Shadows.shadowOf
 /**
  * Verifies the phone/car parity contract (spec: reroute-route-visibility —
  * "Phone and Android Auto parity for route geometry state"):
- * [NavigationViewModel.startNavigation] populates
+ * [NavigationEngine.start] populates
  * `NavigationState.routeLats`/`routeLons` on start (mirroring
- * `AANavigationController.startNavigation`) and clears them on stop.
+ * the engine start) and clears them on stop.
  *
  * Default Robolectric sandbox (no @Config, no @GraphicsMode) per the AGENTS.md
  * "JNI stub for unit tests" classloader rule — this class instantiates
  * [FakeOSMScoutClient].
  */
 @RunWith(RobolectricTestRunner::class)
-class NavigationViewModelRouteGeometryTest {
+class NavigationEngineRouteGeometryTest {
 
     private fun buildViewModel(
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
         locationService: LocationService = LocationService(ApplicationProvider.getApplicationContext())
-    ): NavigationViewModel {
-        return NavigationViewModel(client, NavigationStateProvider(), locationService, ApplicationProvider.getApplicationContext())
+    ): NavigationEngine {
+        return NavigationEngine({ client }, locationService, ApplicationProvider.getApplicationContext())
     }
 
     /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
@@ -56,7 +57,7 @@ class NavigationViewModelRouteGeometryTest {
         val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
         val vm = buildViewModel(client)
 
-        vm.startDirectRoute(52.5200, 13.4050, 52.5300, 13.4100)
+        vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
 
         awaitState { vm.state.value.routeLats != null }
         assertArrayEquals(
@@ -74,7 +75,7 @@ class NavigationViewModelRouteGeometryTest {
         val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
         val vm = buildViewModel(client)
 
-        vm.startDirectRoute(52.5200, 13.4050, 52.5300, 13.4100)
+        vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
         awaitState { vm.state.value.isNavigating }
 
         vm.stopNavigation()

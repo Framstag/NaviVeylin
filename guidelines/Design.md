@@ -73,6 +73,21 @@ strong preference.
   file, native cache capacity, car-session presence) is owned by one seam with an
   explicit rule, never by per-surface start/stop pairs — see §12, "Single owner per
   process-global resource".
+- **MUST**: navigation state is process-owned. Exactly one process-scoped
+  `NavigationEngine` (`:app`, `@Singleton`, bound to `core.NavigationViewModel`,
+  resolved by the car through `AutoEntryPoint`) owns the native
+  `NavigationController`, the navigation session, route acquisition and the
+  reroute policy (spec `navigation-engine`, change `one-navigation-engine`).
+  Every surface — phone map, Android Auto, Android Automotive OS — is a pure
+  observer of that one state.
+- **MUST**: per-surface view state never moves into the engine. Follow mode, free
+  driving, viewport, zoom, map rotation, vehicle anchor preset, overlay layout and
+  render state stay with the surface that displays them; starting or stopping
+  navigation on one surface must not move another surface's view (spec
+  `navigation-engine` — Per-surface view state never moves into the engine).
+  The phone keeps a thin surface adapter (`NavigationViewModel`) that owns those
+  reactions — follow mode for a session the phone itself started, the route
+  panel view, the mode snapshot/restore.
 - Cross-thread shared state uses atomics/volatiles; flags read at job
   execution time, never snapshotted into queued work.
 - Platform-object side effects (window refs, keep-screen-on) live in
@@ -96,6 +111,19 @@ strong preference.
   never be flushed there, and a crash trace must land.
 - Native callbacks arrive on native threads — marshal state updates to the
   main thread via the ViewModel scope.
+- **MUST**: the navigation engine follows the process-lifetime rule (`:app`
+  `NavigationEngine`, change `one-navigation-engine`): one
+  `SupervisorJob + Dispatchers.Main` scope created once and never cancelled (the
+  process is its owner, so it has no `onCleared`), native calls (route
+  calculation, controller start/stop, road lookup) on `Dispatchers.Default`/`IO`,
+  and navigation-state publication on the main dispatcher so surface collectors
+  stay main-confined. `stopNavigation()` is its release point: it stops the native
+  controller, resets the reroute gate and stale-speed state, clears the position
+  flow and releases the location lease.
+- **MUST**: the engine holds no location subscription outside navigation. It
+  acquires the refcounted lease (`LocationService.acquire(LocationConsumers.NAV_ENGINE)`)
+  on navigation start, releases it on stop/arrival, and never calls
+  `startLocationUpdates()` itself; no surface feeds the engine its own fixes.
 - Prefer coroutines over raw threads: conflated channels/StateFlow for
   queues, debounce by delay, cancellation via viewModelScope.
 - Debounce high-frequency inputs (search keystrokes, GPS-driven renders)

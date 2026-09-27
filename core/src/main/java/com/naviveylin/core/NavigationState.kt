@@ -4,6 +4,23 @@ import com.framstag.libosmscout.client.CurrentRoadInfo
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.NavigationPosition
 import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.Vehicle
+
+/**
+ * Surface an error is attributed to, so a surface can present only the errors
+ * that concern it (spec: `navigation-engine` — Errors carry the surface that
+ * caused them).
+ *
+ * [ENGINE] is an error of the navigation engine itself (route calculation
+ * failed, no GPS fix) and is visible on every surface; [PHONE] and [CAR] are
+ * errors raised on behalf of one surface (e.g. a car deep link whose query
+ * resolved to nothing) and are presented only there.
+ */
+enum class SurfaceOrigin {
+    ENGINE,
+    PHONE,
+    CAR
+}
 
 /**
  * Shared navigation state consumed by both the phone UI and Android Auto.
@@ -34,6 +51,15 @@ data class NavigationState(
     val laneTurns: List<LaneTurn> = emptyList(),
     // Error message to display on car screen (e.g., GPS missing, route failure)
     val errorMessage: String? = null,
+    // Surface the error belongs to (spec: `navigation-engine` — Errors carry the
+    // surface that caused them). Null when no error is set; ENGINE means the
+    // engine's own failure and is presented everywhere. Default: null.
+    val errorOrigin: SurfaceOrigin? = null,
+    // Vehicle profile the active navigation was acquired with, retained by the
+    // engine so a reroute re-acquires with the same profile without a surface
+    // (spec: `navigation-engine` — Route acquisition independent of a surface
+    // UI). Null while not navigating. Default: null.
+    val vehicle: Vehicle? = null,
     // Destination identity, retained from navigation start for display on the
     // car screen (name/address when known, otherwise coordinates only).
     val destLat: Double = Double.NaN,
@@ -43,4 +69,15 @@ data class NavigationState(
     // the stylesheet "_route" style). Null when not navigating.
     val routeLats: DoubleArray? = null,
     val routeLons: DoubleArray? = null
-)
+) {
+    /**
+     * Whether the current [errorMessage] concerns [surface]: the surface's own
+     * error or an engine-wide one. A surface never presents an error another
+     * surface caused (spec: `navigation-engine` — Errors carry the surface that
+     * caused them). An error without an origin is treated as engine-wide, so a
+     * producer that does not set one is never silently hidden.
+     */
+    fun errorAppliesTo(surface: SurfaceOrigin): Boolean =
+        errorMessage != null && (errorOrigin == null || errorOrigin == SurfaceOrigin.ENGINE ||
+                errorOrigin == surface)
+}

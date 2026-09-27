@@ -446,6 +446,43 @@ class RoutePanelViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isNavigating = navigating)
     }
 
+    /**
+     * Adopt a route the navigation engine acquired for itself — a reroute with no
+     * surface participation, or a car-only start. The panel's route view then
+     * reflects the session's route and the map draws the new geometry instead of
+     * the previous one (spec: `navigation-controller` — Reroute handling).
+     *
+     * [RouteResult] start/destination are the polyline's first and last point, the
+     * geometry the overview fit uses; the destination identity stays in the panel's
+     * own state.
+     */
+    fun adoptRoute(route: RouteEntry, vehicle: Vehicle) {
+        val steps = route.descriptions
+            ?.filter { !it.startsWith("---") }
+            ?.map { desc -> parseStepDisplay(desc) }
+            ?: emptyList()
+        _uiState.value = _uiState.value.copy(
+            routeState = RouteState.Done,
+            routeEntry = route,
+            routeSteps = steps,
+            vehicle = vehicle,
+            error = null,
+            preciseLocationRequired = false,
+            showSummaryDialog = false
+        )
+        _routeVisible.value = true
+        val lats = route.latitudes
+        val lons = route.longitudes
+        if (lats.size >= 2 && lats.size == lons.size) {
+            _routeResultFlow.value = RouteResult(
+                routeLats = lats,
+                routeLons = lons,
+                startLat = lats.first(), startLon = lons.first(),
+                destLat = lats.last(), destLon = lons.last()
+            )
+        }
+    }
+
     fun clearRoute() {
         _uiState.value = RoutePanelUiState(gpsAvailable = _uiState.value.gpsAvailable)
         _routeResultFlow.value = null

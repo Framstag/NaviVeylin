@@ -2,6 +2,7 @@ package com.naviveylin.ui.map
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.NavigationState
@@ -14,8 +15,8 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
+import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
-import com.naviveylin.navigation.NavigationStateProvider
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +62,7 @@ class MapCanvasViewModelAutoZoomCommitTest {
     private lateinit var context: Context
     private lateinit var client: FakeOSMScoutClient
     private lateinit var locationService: LocationService
+    private lateinit var navEngine: NavigationEngine
     private lateinit var navViewModel: NavigationViewModel
     private lateinit var viewModel: MapCanvasViewModel
 
@@ -72,9 +74,8 @@ class MapCanvasViewModelAutoZoomCommitTest {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         locationService = LocationService(context)
-        navViewModel = NavigationViewModel(
-            client, NavigationStateProvider(), locationService, context
-        )
+        navEngine = NavigationEngine({ client }, locationService, context)
+        navViewModel = NavigationViewModel(navEngine)
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
             settingsStorage = SettingsStorage(context),
@@ -98,22 +99,25 @@ class MapCanvasViewModelAutoZoomCommitTest {
     }
 
     /** Drive the navigation state's speed directly (deterministic — the real
-     *  speed path goes through the native engine, unavailable in unit tests). */
+     *  speed path goes through the native engine, unavailable in unit tests).
+     *  The state is owned by the process-scoped engine, so the seam lives there. */
     private fun setNavSpeed(speedKmH: Double) {
-        val field = NavigationViewModel::class.java.getDeclaredField("_state")
-        field.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val flow = field.get(navViewModel) as MutableStateFlow<NavigationState>
+        val flow = engineStateFlow()
         flow.value = flow.value.copy(currentSpeedKmH = speedKmH)
     }
 
     /** Switch the derived map mode (navigation active vs not). */
     private fun setNavMode(isNavigating: Boolean) {
-        val field = NavigationViewModel::class.java.getDeclaredField("_state")
+        val flow = engineStateFlow()
+        flow.value = flow.value.copy(isNavigating = isNavigating)
+    }
+
+    /** The engine's private state flow (test seam, as before the engine split). */
+    private fun engineStateFlow(): MutableStateFlow<NavigationState> {
+        val field = NavigationEngine::class.java.getDeclaredField("_state")
         field.isAccessible = true
         @Suppress("UNCHECKED_CAST")
-        val flow = field.get(navViewModel) as MutableStateFlow<NavigationState>
-        flow.value = flow.value.copy(isNavigating = isNavigating)
+        return field.get(navEngine) as MutableStateFlow<NavigationState>
     }
 
     /** Inject a fix into the shared location service (test only). */

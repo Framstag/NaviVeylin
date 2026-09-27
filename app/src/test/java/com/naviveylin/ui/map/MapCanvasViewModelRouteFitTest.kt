@@ -18,7 +18,7 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import com.naviveylin.navigation.NavigationStateProvider
+import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
@@ -106,8 +106,7 @@ class MapCanvasViewModelRouteFitTest {
         )
         routePanelViewModel.defaultDispatcher = mainDispatcherRule.dispatcher
         navigationViewModel = NavigationViewModel(
-            client, NavigationStateProvider(),
-            LocationService(context), context
+            NavigationEngine({ client }, LocationService(context), context)
         )
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
     }
@@ -264,7 +263,7 @@ class MapCanvasViewModelRouteFitTest {
 
         // Navigation starts (startNavigation sets isNavigating synchronously;
         // the fake returns a null controller without throwing).
-        navigationViewModel.startNavigation(routeEntry(), Vehicle.CAR)
+        navigationViewModel.start(routeEntry(), Vehicle.CAR)
         advanceUntilIdle()
         assertTrue(
             "harness must wire a real navigating NavigationViewModel",
@@ -286,7 +285,7 @@ class MapCanvasViewModelRouteFitTest {
         wireRendererAndPanel()
         viewModel.updateCenter(50.0, 3.0)
         viewModel.updateMagnification(13.0)
-        navigationViewModel.startNavigation(routeEntry(), Vehicle.CAR)
+        navigationViewModel.start(routeEntry(), Vehicle.CAR)
         advanceUntilIdle()
         assertTrue(navigationViewModel.state.value.isNavigating)
         val before = viewModel.uiState.value.viewport
@@ -328,7 +327,7 @@ class MapCanvasViewModelRouteFitTest {
 
         // Navigation starts inside the settle window: the guards are re-checked
         // before the fit applies, so the driver's viewport wins (R2).
-        navigationViewModel.startNavigation(routeEntry(), Vehicle.CAR)
+        navigationViewModel.start(routeEntry(), Vehicle.CAR)
         advanceUntilIdle()
         advanceTimeBy(1_000)
         advanceUntilIdle()

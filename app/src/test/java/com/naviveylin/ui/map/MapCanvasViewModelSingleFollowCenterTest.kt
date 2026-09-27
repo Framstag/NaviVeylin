@@ -2,6 +2,7 @@ package com.naviveylin.ui.map
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.NavigationState
@@ -13,8 +14,8 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
+import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
-import com.naviveylin.navigation.NavigationStateProvider
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,7 +68,7 @@ class MapCanvasViewModelSingleFollowCenterTest {
         client = FakeOSMScoutClient()
         locationService = LocationService(context)
         navViewModel = NavigationViewModel(
-            client, NavigationStateProvider(), locationService, context
+            NavigationEngine({ client }, locationService, context)
         )
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),

@@ -1931,7 +1931,7 @@ fun MapCanvasScreen(
                 onStartNavigation = {
                     val entry = routeState.routeEntry
                     if (entry != null) {
-                        navigationViewModel.startNavigation(entry, routeState.vehicle)
+                        navigationViewModel.start(entry, routeState.vehicle)
                         routePanelViewModel.setNavigating(true)
                         // Close the routing window when navigation starts.
                         viewModel.dismissRoutePanel()
@@ -2048,7 +2048,7 @@ fun MapCanvasScreen(
                 steps = routeState.routeSteps,
                 activeStepIndex = if (navState.isNavigating) navState.currentStepIndex else null,
                 onStartNavigation = {
-                    navigationViewModel.startNavigation(routeState.routeEntry!!, routeState.vehicle)
+                    navigationViewModel.start(routeState.routeEntry!!, routeState.vehicle)
                     routePanelViewModel.dismissSummaryDialog()
                     routePanelViewModel.setNavigating(true)
                 },

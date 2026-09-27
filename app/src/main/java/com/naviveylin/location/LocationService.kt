@@ -38,14 +38,16 @@ object LocationConsumers {
     /** Phone map surface visible (marker, free-driving follow). */
     const val PHONE_MAP = "phone-map"
 
-    /** Phone navigation running, even with the UI in the background. */
-    const val PHONE_NAV = "phone-nav"
+    /**
+     * Navigation running. Held by the process-scoped navigation engine
+     * (spec: `navigation-engine` — one engine per process), not by a surface: the
+     * phone UI and the car screen both render the same navigation session, so one
+     * role covers whichever surface displays it.
+     */
+    const val NAV_ENGINE = "nav-engine"
 
     /** Android Auto / AAOS car session live (car map, car free driving). */
     const val CAR_SESSION = "car-session"
-
-    /** Car navigation running. */
-    const val CAR_NAV = "car-nav"
 }
 
 /**

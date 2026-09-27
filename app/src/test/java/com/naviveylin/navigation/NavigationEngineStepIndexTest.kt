@@ -25,17 +25,17 @@ import org.robolectric.Shadows.shadowOf
  *
  * Default Robolectric sandbox (no @Config, no @GraphicsMode) per the AGENTS.md
  * "JNI stub for unit tests" classloader rule — this class instantiates
- * [FakeOSMScoutClient] and [NavigationViewModel].
+ * [FakeOSMScoutClient] and [NavigationEngine].
  */
 @RunWith(RobolectricTestRunner::class)
-class NavigationViewModelStaleStepsTest {
+class NavigationEngineStepIndexTest {
 
     private fun buildViewModel(
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
         locationService: LocationService = LocationService(ApplicationProvider.getApplicationContext())
-    ): NavigationViewModel {
-        return NavigationViewModel(
-            client, NavigationStateProvider(), locationService,
+    ): NavigationEngine {
+        return NavigationEngine(
+            { client }, locationService,
             ApplicationProvider.getApplicationContext()
         )
     }
@@ -66,7 +66,7 @@ class NavigationViewModelStaleStepsTest {
         val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
         val vm = buildViewModel(client)
 
-        vm.startDirectRoute(52.5200, 13.4050, 52.5230, 13.4080)
+        vm.acquire(52.5200, 13.4050, 52.5230, 13.4080, Vehicle.CAR)
         awaitState { vm.state.value.isNavigating }
 
         // Simulate steps from the first route reaching the UI.
@@ -77,7 +77,7 @@ class NavigationViewModelStaleStepsTest {
         }
 
         // A reroute restart starts a fresh engine — stale steps must not survive.
-        vm.startNavigation(routeEntry(), Vehicle.CAR)
+        vm.start(routeEntry(), Vehicle.CAR)
 
         assertTrue(vm.state.value.instructions.isEmpty())
         assertNull(vm.state.value.nextInstruction)
@@ -89,7 +89,7 @@ class NavigationViewModelStaleStepsTest {
         val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
         val vm = buildViewModel(client)
 
-        vm.startDirectRoute(52.5200, 13.4050, 52.5230, 13.4080)
+        vm.acquire(52.5200, 13.4050, 52.5230, 13.4080, Vehicle.CAR)
         awaitState { vm.state.value.isNavigating }
 
         val listener = client.navigationListener!!

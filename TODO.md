@@ -21,11 +21,28 @@
 
 ---
 
-## 95. The retention release has no on-device run: the installed build is Play-signed, so a local build needs an uninstall — and the map data goes with it — Found 2026-09-27 during `bound-tile-data-retention`
+## 95. The retention release had no on-device run: the installed build is Play-signed, so a local build needs an uninstall — and the map data goes with it — Found 2026-09-27, **RESOLVED 2026-09-27 20:27** by a Play release (see the update at the end)
 
 - **Observed** ℹ: the phone's installed build (`2026-09-27-3`, versionCode 89, `installerPackageName=com.android.vending`) came from the Play Store, so `adb install -r` with a locally built APK fails on the signing key, and a fresh install means `adb uninstall` first — which deletes the app's files **including the installed map databases** the on-device checks render from (region + basemap; §90/§91 already report that this install's map data is the weak part). Play App Signing cannot be reproduced locally.
 - **Consequence** ⏳: `bound-tile-data-retention` tasks 5.1-5.5 (the walk ceiling, the platform-level release, the poll firing, the car-session scoping) cannot run on this phone without a map re-download; the AAOS AVD has the car side but no phone map path, and the walk protocol needs the phone surface.
 - **Fix candidate**: decide with the owner — either a second sideloaded variant with its own `applicationId` for measurements (no data loss, maps re-downloaded once), or a dedicated sideloaded test device, or accept an uninstall+re-download for the measurement pass. The measurement itself is scripted already (`guidelines/Build.md` §10: keyevent/walk protocol + the high-water-mark rule).
+- **Update 2026-09-27 20:27 — RESOLVED for the phone, with a residual** ✅: the owner published the memory work through Play (`2026-09-27-4`, versionCode **90**, `installerPackageName=com.android.vending`, `lastUpdateTime=2026-09-27 20:27:17`), so the phone now runs the new code — verified by pulling the installed `split_config.arm64_v8a.apk` and finding `OSMScoutClient_renderInto` in `libosmscout_client_java.so`, not by trusting the version string. Device verification therefore works again for **Play-released** builds; the residual is that a *local* build still cannot be installed over it, so an in-build A/B (e.g. one path reverted) still needs the uninstall/re-download or a second variant. Plan the next measurement pass around a release rather than around a sideload.
+- **Two device facts from that pass worth keeping** ℹ: (1) `am send-trim-memory <pid> UI_HIDDEN` is *not* a valid level name — the shell's names are `HIDDEN`/`BACKGROUND`/`RUNNING_*`/`MODERATE`/`COMPLETE`, and the platform refuses `BACKGROUND` on a **foreground** process ("Unable to set a background trim level on a foreground process"); the reliable trigger is `HIDDEN` (works on the foreground app) or just pressing HOME, where the platform delivers `UI_HIDDEN` itself. (2) The app's `ActivityManager.MemoryInfo.lowMemory` poll produced **no** record across a 43-render walk and a long session on this chronically-pressured device — see §97.
+
+---
+
+## 97. The low-memory poll DOES fire on the phone — but only when the device is genuinely at the kill threshold (`availMem` within a MB or two of `threshold`), so it is a late-but-real trigger — Found 2026-09-27 during the first device pass of the memory changes, **corrected the same evening: the poll fired**
+
+- **Observed** ✅ (final): the poll released retention **on device**, during a heavy phone-map walk with a car session live:
+
+  ```
+  20:43:43 retention released: trigger=poll-low (avail=215MB threshold=216MB) 512 -> 256 tiles/db
+  ```
+
+  So `ActivityManager.MemoryInfo.lowMemory` did become true (avail 215 MB against a 216 MB threshold — at the edge), `availMem <= threshold/2` was false, and the *moderate* band halved the cache from the fully-refilled 512. The device-state poll is deliberately **not** car-scoped (it is about the device, not about who renders), and that is what it did: the release happened while the car session was live, which is the designed behaviour.
+- **Why the first reading was wrong** ℹ: an earlier pass saw **zero** `Diag/MEMORY` records across a 43-render walk, a navigation start and ~25 minutes of use, and this entry was written as "the poll never fires". The missing ingredient was *pressure at the right moment*: the poll's condition needs `availMem` at/below `threshold` **while the 30 s tick lands**. The pass that caught it had pushed the process to 519 MB native heap / 790 MB PSS (phone mapping *and* the car rendering, cache refilled) — i.e. the app was itself a major cause of the pressure. A 43-render walk from a cold cache did not reach it. The lesson is the same one §96 taught: an absence of evidence in one run is not a finding about the code — read the *condition*, not just the record count.
+- **What this means for the design** ✅: the poll is a real, if late, trigger on this hardware, so it stays. The platform levels (`UI_HIDDEN`/`BACKGROUND`, verified the same evening: `512 -> 256` then `256 -> 25`) fire far earlier in the same scenario (backgrounding the app), which is why they remain the practical trigger. **No band widening needed** — the earlier §97 recommendation (release at `threshold * 1.5`) is withdrawn: on this device the framework's own flag was reachable, and widening the band would release retention while the device is comfortable, which is what the raise-only policy exists to avoid.
+- **Verification status**: `bound-tile-data-retention` 5.2 (both platform legs), 5.2a (the poll), 5.3 (the walk ceiling) and 5.4 (the car-session scoping, proven by contrast: the same HOME action released nothing with the car live and released seconds after the session ended) are all **device-verified**; the numbers are in that change's design.
 
 ---
 

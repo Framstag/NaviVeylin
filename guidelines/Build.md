@@ -498,7 +498,12 @@ mark inside a process**: measured 2026-09-27, `GL mtrack` went 80.6 MB → 130.6
 gestures and was still 130.6 MB 25 s later, and the native heap went 115 MB → 337 MB across one scripted
 map walk (retaining 324 MB after returning to the start viewport). So each "before" and each "after"
 needs its **own freshly started process**, and two numbers are only comparable at the same gesture/walk
-script and the same render count. A walk script that needs no car and no driving:
+script and the same render count. **Quote the UI state with every number** — whether the phone canvas was
+visible (map or car-session surface), whether a car session was live, and whether the sample was taken idle or
+mid-gesture — because the same device state measured a `Graphics` 31.8 MB for the car-session surface and
+100.2 MB for the map canvas in one process minutes apart, and a "before" number whose UI state is undocumented
+cannot be compared with an "after" one (that is what left `reduce-render-peak-memory` task 5.3 without a valid
+comparison against its own recorded baseline). A walk script that needs no car and no driving:
 `adb shell input keyevent 69` (zoom out) ×10, then `adb shell input swipe` pan pairs — the app must be in
 the foreground (`topResumedActivity`, not `mCurrentFocus`).
 

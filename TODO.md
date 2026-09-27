@@ -46,6 +46,62 @@
 
 ---
 
+## 98. The car render path writes full-precision coordinates into the file-backed diagnostics stream, and the build gate does not flag them — Found 2026-09-27 while counting car renders on the AAOS AVD
+
+- **Observed** ❌: every car map render emits, through `DiagnosticsLog` (tag `MAP`):
+
+  ```
+  09-27 21:00:54 D Diag/MAP: render center=51.60987926464756,7.621644390462239 mag=17.0 -> bitmap 1296x720
+  ```
+
+  The emitting code is `auto/src/main/java/com/naviveylin/auto/AutoMapRenderer.kt` around line 1273
+  (`"MAP", "render center=$frameLat,$frameLon mag=$frameMag -> " + …`) — so a position at full precision reaches the
+  **file-backed** diagnostics stream, which is retained for 7 days, exported by the share/export paths and shown in
+  both diagnostics viewers. That is exactly what spec `auto-diagnostics` ("Diagnostics carry no coordinates") and
+  `AGENTS.md` forbid: a diagnostics line is supposed to carry identity (map database/file name, magnification,
+  screen pixel) instead of a position. Two further `MAP`-tag sites exist (`auto/MapScreen.kt:562`, ``:651``) and
+  need the same audit; the one above is proven.
+- **Why it matters** ❌: this is a *shipping* privacy property, not a style rule, and it sits in the stream the
+  project deliberately made exportable. §87 (`fix-diagnostics-coordinate-redaction`) fixed the phone-side paths and
+  added the gate; the car render path was evidently never covered.
+- **Why the gate misses it** ⚠: `checkNoCoordinatesInLogs` (`buildSrc` `CoordinateLogScanner`, wired into
+  `preBuild`) passes on this line. The scanner looks for coordinate-shaped *literals/expressions* in log calls;
+  here the values arrive through string interpolation of `Double` locals (`$frameLat,$frameLon`), which the
+  scanner does not resolve. **A gate that only inspects literals cannot see interpolation** — the fix belongs in
+  `CoordinateLogScanner` (flag an interpolated identifier that is assigned from a coordinate-typed value/frame
+  latitude/longitude field) plus the redaction itself.
+- **Fix candidate**: replace the coordinates with identity — the frame's zoom/magnification, the surface/pixel
+  size and the map database name are already in the line, and the centre's *presence* is not needed for
+  diagnosis ("render → bitmap 1296x720, mag=17.0, db=<name>" is as useful). Then extend the scanner so the same
+  interpolation pattern cannot come back, and re-run the two `MAP` sites through it. Worth its own small change
+  (spec `auto-diagnostics`); it is independent of the memory work.
+
+---
+
+## 99. The AAOS AVD's basemap is a format version behind the submodule, so car-side device work on it cannot draw the basemap until it is re-downloaded — Found 2026-09-27 during the emulator A/B
+
+- **Observed** ℹ: on `emulator-5554` (Automotive_Distant_Display, x86_64, SDK 33) the app opened its installed
+  region (`openDatabase(nordrhein-westfalen-27-20260820-0826) -> true`) but the **basemap** failed:
+
+  ```
+  E NaviVeylin: File '…/files/maps/basemap/basemap/types.dat' does not have the expected format version!
+                Actual 26, expected: 27
+  W NaviVeylin: Cannot open db '…/files/maps/basemap/basemap'!
+  ```
+
+  So map rendering works (the region carries the tiles), but anything needing the basemap (sea/land background,
+  borders, country names — and the phone-side "basemap present" paths) silently degrades on that AVD. The
+  expected version moves with the libosmscout submodule, so this AVD's data predates a bump.
+- **Consequence** ⏳: car-side device checks that involve the basemap (or compare against a phone that has one) are
+  not comparable on this AVD until its basemap is re-downloaded through the app's map manager. Region-only checks
+  (render counts, surface health, memory) are unaffected — the A/B in `reduce-render-peak-memory` used the region
+  and was valid.
+- **Fix candidate**: after any submodule bump that changes the data format, re-download the basemap (and ideally
+  the region) on the AVDs that carry installed maps; note it in the `update-to-current-libosmscout-master` skill so the
+  next person does not read the failure as an app defect.
+
+---
+
 ## 94. `./gradlew test` also builds the native CMake target for both flavors and all three ABIs — after a submodule bump one invocation is a >45-minute run, and the aged daemon then OOMs the automotive dex merge — Found 2026-09-27 during `fix-diagnostics-coordinate-redaction` task 9.5 (harness)
 
 - **Observed** ℹ: with the freshly merged libosmscout submodule (`cbbc66d`), a single `./gradlew test` ran `:app:configureCMakeDebug[arm64-v8a|armeabi-v7a|x86_64]` and `:app:buildCMakeDebug[…]` for the mobile flavor and again for the automotive flavor. The invocation exceeded a 45-minute tool window: the `:app` mobile suite (179 classes / 1278 tests, 0 failures) had completed and `:app` automotive had just started, while `:auto` and `:core` had already executed. Splitting the gate (`./gradlew :app:testAutomotiveDebugUnitTest :auto:testDebugUnitTest :core:testDebugUnitTest`) then finished in **1 m 58 s** (11 executed tasks) with the native build warm.

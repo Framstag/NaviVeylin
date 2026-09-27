@@ -192,8 +192,11 @@ car path has hard rules:
 - **Diagnosis:** every host-facing send is recorded under the diagnostics tag `HOST` (surface
   adopt/release, notification posts, trip updates, navigation state), a rejection of a host
   mutation under `HOST` too (`… rejected: …`), a confined fault under `SESSION`/`SCREEN`
-  (`… 'key' failed`), and the client build under
-  `WARMUP` **with the thread** — see `guidelines/Build.md` §10 for the on-device recipe.
+  (`… 'key' failed`), the client build under
+  `WARMUP` **with the thread**, and a tile-data retention release under `MEMORY`
+  (`retention released: trigger=… avail=…MB threshold=…MB 512 -> 256 tiles/db`, from
+  `MemoryPressureResponder`) — see `guidelines/Build.md` §10 for the on-device recipe and for the
+  high-water-mark rule that governs any footprint measurement.
 
 - Real implementation: `:auto` library module (screens, `NavigationSession`); `NaviVeylinCarAppService` lives in the app's base package (`com.naviveylin`) as the car-app spec requires
 - Manifest conventions (`app/src/main/AndroidManifest.xml`):

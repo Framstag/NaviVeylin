@@ -120,6 +120,23 @@ strong preference.
   stay main-confined. `stopNavigation()` is its release point: it stops the native
   controller, resets the reroute gate and stale-speed state, clears the position
   flow and releases the location lease.
+- **MUST**: the engine's scope carries **its own fault handler**
+  (`engineFaultHandler`, change `fix-navigation-engine-fault-isolation`): a fault in
+  any engine coroutine — the stale-speed ticker, route acquisition, the location
+  feed, a road lookup — is recorded (`ENGINE_FAULT`, with the faulting coroutine and
+  the first stack frame, no coordinates) and raised as an engine-wide error on the
+  main dispatcher, and the engine ends the affected attempt through `stopNavigation()`
+  while staying usable afterwards. A `SupervisorJob` does not swallow a failure: an
+  uncaught throwable reaches the main thread's uncaught handler and kills the
+  process, and the engine is what every surface — including a live car session the
+  template host is bound to — depends on.
+- **MUST**: the engine's native boundary is confined for **any throwable, not only
+  exceptions** (`catch (e: Throwable)` at the route-calculation, start and road-lookup
+  calls): a linker or class-initialization failure (`UnsatisfiedLinkError`,
+  `ExceptionInInitializerError`, `NoClassDefFoundError`) is an `Error`, so an
+  `Exception` catch lets it escape the engine and kill the process. Confine it, report
+  it, keep the app alive — a road-name lookup stays cosmetic and never stops
+  navigation.
 - **MUST**: the engine holds no location subscription outside navigation. It
   acquires the refcounted lease (`LocationService.acquire(LocationConsumers.NAV_ENGINE)`)
   on navigation start, releases it on stop/arrival, and never calls
@@ -163,6 +180,20 @@ strong preference.
   never patched into the submodule.
 - Serialize writes in native shared services; a render mutex serializes
   concurrent renders.
+- **Caller-owned pixel storage for a render** (change `reduce-render-peak-memory`): the render path
+  supplies the frame's pixel storage (a pooled direct `ByteBuffer`) and the native entry point
+  writes into it for the duration of one call, retaining no reference. Two surfaces render
+  concurrently, so the *caller* owns the "never hand the same storage to two renders" rule — which
+  the app already satisfies (a displayed frame is an independent copy, and the pool never hands out
+  a target or buffer twice). The bridge keeps both entry points: the buffer-taking one and the
+  unchanged allocating one, running one shared render body so the two cannot disagree. The format is
+  a contract, not an implementation detail: `0xAARRGGBB` ints, stride `width*4`, native byte order.
+- **No fault escapes a boundary** (same rule as `car-host-fault-isolation` and
+  `MemoryPressureResponder`): a JNI entry point reports an unusable request (`false`/`null`/empty)
+  instead of faulting, and an app-side coroutine on a process-wide dispatcher confines its own
+  throwable (`runCatching` or a `CoroutineExceptionHandler`) — an escaping throwable reaches the
+  thread's uncaught-exception handler and kills the app (and poisons an unrelated test's coroutine
+  harness, TODO §96).
 - Logging: native via `osmscout::log` + app-owned bridge; Kotlin via
   `android.util.Log` with per-class TAG. Stylesheets: submodule is the single
   source of truth, synced at build time. Mechanics: `AGENTS.md`.
@@ -278,7 +309,11 @@ strong preference.
   otherwise reaches the main thread's uncaught handler and kills the process — an app
   process that dies while a car session is live is what takes the templates host down
   with it. A confined fault ends that piece of work (one child of the scope's
-  `SupervisorJob`), never a sibling.
+  `SupervisorJob`), never a sibling. The **process-scoped navigation engine** the
+  session shares its process with is part of this rule (change
+  `fix-navigation-engine-fault-isolation`): its scope carries `engineFaultHandler`, so
+  an engine fault is confined in the engine — recorded and raised as an engine error —
+  and never takes the session, its host traffic or the process down.
 - **MUST**: the session's **screen-stack bookkeeping follows the mutation that
   succeeded** (`SessionScreenStack`, `FreeDrivingRestoreGate.recordPush(landed)`): a
   push the host refused records nothing, so the next state emission retries instead of
@@ -291,7 +326,10 @@ strong preference.
   its removal is owed to the next started sync.
 - **MUST**: **every car screen builds its own scope through `carScreenScope(name)`**
   and cancels it in `onDestroy` — never `CoroutineScope(SupervisorJob() +
-  Dispatchers.Main)` by hand, which is how the fault handler went missing. A click
+  Dispatchers.Main)` by hand, which is how the fault handler went missing. The one
+  deliberate exception is the process-scoped engine's own scope (`:app`
+  `NavigationEngine`), which is created once for the process lifetime and carries
+  `engineFaultHandler` for exactly that reason. A click
   path that arms a push relies on that cancellation: a screen popped away before its
   deferred push runs dies with its scope instead of pushing onto the new stack.
 - **MUST**: while the car app is not the visible car app, host traffic is
@@ -398,9 +436,14 @@ strong preference.
     same lock — a read must never observe a half-written file (spec
     `settings-persistence`).
   - **The native tile-data cache keeps the highest requested capacity** and is never
-    lowered (`NativeTileDataCache`), so the effective value does not depend on which
-    surface opened databases first; a car-only process still runs on the car value
-    (spec `native-tile-data-cache`).
+    lowered by a *configuration* request (`NativeTileDataCache`), so the effective value does not depend
+    on which surface opened databases first; a car-only process still runs on the car value
+    (spec `native-tile-data-cache`). One deliberate exception: `MemoryPressureResponder` *releases*
+    retention (`NativeTileDataCache.trim`) when the device is low on memory — a 30 s poll of
+    `ActivityManager.MemoryInfo` — or when the platform reports the UI hidden / the process backgrounded
+    **while no car session is live**; nothing native runs on the callback thread, and the release only
+    lowers a cache capacity (never rendered content). The `onTrimMemory` levels it does *not* use and why:
+    see `guidelines/MapRendering.md` §17.
   - **The car-session-presence signal** (`CarSessionPresence`) is process-scoped and
     in-memory only: the phone shows an advisory indication and disables nothing. The
     phone UI is deliberately not locked while a car session is live (spec

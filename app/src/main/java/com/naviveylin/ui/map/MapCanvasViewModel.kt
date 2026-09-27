@@ -16,6 +16,8 @@ import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.BundledMapStyles
 import com.naviveylin.core.BundledMapStyles.DEFAULT_STYLE_NAME
+import com.naviveylin.core.CarSessionPresence
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.MapStyleLoadReporter
 import com.naviveylin.core.NativeTileDataCache
@@ -51,6 +53,7 @@ import com.naviveylin.location.LocationConsumers
 import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
 import com.naviveylin.core.SpeedStaleness
+import com.naviveylin.navigation.CarSessionPresenceImpl
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.ui.route.RoutePanelViewModel
@@ -225,6 +228,19 @@ data class MapCanvasUiState(
      *  remembered interaction — so it also covers a persisted viewport that is
      *  nowhere near the vehicle, and vehicle movement while browsing. */
     val browseReCenterVisible: Boolean = false,
+    /**
+     * True while the phone yields the map to a live car session (spec: `map-canvas-screen`
+     * — The phone map canvas is suspended while a car session is active): the canvas is not
+     * composed, no render is requested and the phone-owned render storage is released. The
+     * shared native tile-data cache is NOT released — the car renders from it.
+     */
+    val phoneMapSuspended: Boolean = false,
+    /**
+     * True while the user asked for the phone map for the rest of the current car session
+     * (the per-session override). Cleared when the session ends, so a later session suspends
+     * again. Always false without a live session.
+     */
+    val phoneMapOverridden: Boolean = false,
     val freeFormNorthUp: Boolean = true,
     val navNorthUp: Boolean = false,
     val keepScreenOn: Boolean = true,
@@ -286,6 +302,12 @@ class MapCanvasViewModel @Inject constructor(
     private val sharedLocationHandler: SharedLocationHandler,
     private val basemapReloadNotifier: BasemapReloadNotifier,
     private val drivingModeProvider: DrivingModeProvider? = null,
+    /**
+     * Car-session presence, the source of the phone's suspension (spec: `map-canvas-screen`).
+     * The default (an inert instance) exists for direct construction in tests; production
+     * injects the process-scoped binding.
+     */
+    private val carSessionPresence: CarSessionPresence = CarSessionPresenceImpl(),
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -915,6 +937,14 @@ class MapCanvasViewModel @Inject constructor(
                     mapRenderer?.invalidateData()
                 }
             }
+        }
+
+        // Car-session suspension (spec: map-canvas-screen — The phone map canvas is
+        // suspended while a car session is active). ONE collector owns both the render gate
+        // and the storage release, so "no phone renders" and "storage released" can never
+        // disagree. Runs on the main dispatcher (viewModelScope): the edge writes UI state.
+        viewModelScope.launch {
+            carSessionPresence.active.collect { active -> onCarSessionPresenceChanged(active) }
         }
 
         // Shared locations (share sheet / deep links): process when the map
@@ -1900,31 +1930,7 @@ class MapCanvasViewModel @Inject constructor(
             // marker snapshot as ONE atomic emission, so the overlay never sees state
             // from different frames (which would make the marker jump off the road).
             viewModelScope.launch {
-                renderer.frameFlow.collect { frame ->
-                    val bitmap = frame.bitmap
-                    if (bitmap != null) {
-                        // First frame: the DB may have opened after the initMap flag
-                        // push (SetStyleFlag is a no-op until a DB is open) — re-apply once.
-                        if (!stylePushedToNative) {
-                            stylePushedToNative = true
-                            lastPushedDark = null
-                            pushDarkPresentation(darkModeController.isDarkPresentation.value)
-                        }
-                        _uiState.value = _uiState.value.copy(
-                            renderedBitmap = bitmap.asImageBitmap(),
-                            isLoading = false,
-                            error = null,
-                            renderViewport = frame.viewport
-                            // gpsMarker* is intentionally NOT set here: the location
-                            // collector updates it on every fix (updateMarkerState) so
-                            // the marker tracks the vehicle without waiting for a render.
-                        )
-                        Log.d(TAG, "frontBufferFlow: new bitmap " + bitmap.width + "x" + bitmap.height)
-                        // A landed frame advances a pending magnification walk (spec:
-                        // smooth-zoom - one step per landed render).
-                        advanceZoomWalk(frame.viewport.mag)
-                    }
-                }
+                renderer.frameFlow.collect { frame -> applyRenderedFrame(frame) }
             }
 
             // Wire view change listener for viewport persistence (per map)
@@ -1970,7 +1976,11 @@ class MapCanvasViewModel @Inject constructor(
             applyStyleSheet(_uiState.value.styleSheet, allowDefaultFallback = true)
 
             Log.d(TAG, "initMap: triggering first render")
-            renderer.requestRender(vp.centerLat, vp.centerLon, vp.magnification)
+            if (phoneMapRenderRefused) {
+                Log.d(TAG, "initMap: first render refused — phone map suspended by a car session")
+            } else {
+                renderer.requestRender(vp.centerLat, vp.centerLon, vp.magnification)
+            }
             mapReady.value = true
         }
     }
@@ -3650,8 +3660,130 @@ class MapCanvasViewModel @Inject constructor(
         renderMap()
     }
 
+    /**
+     * Applies one rendered frame to the UI state. A frame that arrives while the phone map is
+     * suspended is discarded rather than published (spec: map-canvas-screen — A car session
+     * suspends the phone map): a render that was in flight at the suspension edge must not put
+     * a frame back into a surface that has given its storage up.
+     */
+    @VisibleForTesting
+    internal fun applyRenderedFrame(frame: MapRenderer.FrameState) {
+        val bitmap = frame.bitmap ?: return
+        if (phoneMapRenderRefused) {
+            Log.d(TAG, "frameFlow: frame discarded, phone map suspended")
+            return
+        }
+        // First frame: the DB may have opened after the initMap flag push (SetStyleFlag is a
+        // no-op until a DB is open) — re-apply once.
+        if (!stylePushedToNative) {
+            stylePushedToNative = true
+            lastPushedDark = null
+            pushDarkPresentation(darkModeController.isDarkPresentation.value)
+        }
+        _uiState.value = _uiState.value.copy(
+            renderedBitmap = bitmap.asImageBitmap(),
+            isLoading = false,
+            error = null,
+            renderViewport = frame.viewport
+            // gpsMarker* is intentionally NOT set here: the location collector updates it on
+            // every fix (updateMarkerState) so the marker tracks the vehicle without waiting
+            // for a render.
+        )
+        Log.d(TAG, "frontBufferFlow: new bitmap " + bitmap.width + "x" + bitmap.height)
+        // A landed frame advances a pending magnification walk (spec: smooth-zoom - one step
+        // per landed render).
+        advanceZoomWalk(frame.viewport.mag)
+    }
+
+    // ---- Car-session suspension (spec: map-canvas-screen) ----
+
+    /** The presence edge this ViewModel last applied, so a repeated value is not an edge. */
+    private var carSessionActive: Boolean = false
+
+    /**
+     * True while the phone map must not render (spec: map-canvas-screen — A car session
+     * suspends the phone map). The request is refused, not deferred and not queued: a refused
+     * request leaves no state behind that a later emission could turn into a frame.
+     */
+    private val phoneMapRenderRefused: Boolean
+        get() = _uiState.value.phoneMapSuspended
+
+    /**
+     * Applies a car-session presence edge: a rising edge suspends the phone map, a falling
+     * edge resumes it. An unchanged value is not an edge, so the release and the resume run
+     * once per session rather than once per emission.
+     */
+    private fun onCarSessionPresenceChanged(active: Boolean) {
+        if (active == carSessionActive) return
+        carSessionActive = active
+        if (active) suspendPhoneMap() else resumePhoneMap("car session ended")
+    }
+
+    private fun suspendPhoneMap() {
+        if (_uiState.value.phoneMapSuspended) return
+        // The released frame must not stay referenced by the UI: the renderer drops its own
+        // copy and the state drops the emitted one in the same transition, so nothing composes
+        // a bitmap the renderer no longer owns.
+        _uiState.value = _uiState.value.copy(
+            phoneMapSuspended = true,
+            phoneMapOverridden = false,
+            renderedBitmap = null
+        )
+        val released = mapRenderer?.releaseRenderStorage()
+        DiagnosticsLog.log(
+            DiagnosticsLog.SESSION_TAG,
+            "phone map suspended: car session active (presence=true, released tiles=" +
+                "${released?.tilesCleared ?: 0} frameBuffers=${released?.frameBuffersReleased ?: 0} " +
+                "idleTargets=${released?.idleTargetsReleased ?: 0}; shared native tile-data cache untouched)"
+        )
+    }
+
+    /**
+     * Ends the suspension and renders a fresh frame (design D5): the released frame buffers
+     * leave nothing to reuse, and the frame is rendered at the CURRENT viewport and navigation
+     * state — never at the state the suspension froze.
+     */
+    private fun resumePhoneMap(reason: String) {
+        val state = _uiState.value
+        val wasOverridden = state.phoneMapOverridden
+        if (!state.phoneMapSuspended && !wasOverridden) return
+        _uiState.value = state.copy(
+            phoneMapSuspended = false,
+            phoneMapOverridden = false,
+            renderedBitmap = null
+        )
+        DiagnosticsLog.log(
+            DiagnosticsLog.SESSION_TAG,
+            "phone map resumed: $reason (presence=$carSessionActive, override=$wasOverridden)"
+        )
+        if (screenWidth > 0 && screenHeight > 0) renderMap()
+    }
+
+    /**
+     * The user asked for the phone map for the rest of the car session (spec:
+     * map-canvas-screen — The user brings the map back). No-op without a suspension: the
+     * override exists only to lift one, and it is cleared at session end.
+     */
+    fun showMapDuringCarSession() {
+        if (!_uiState.value.phoneMapSuspended) return
+        _uiState.value = _uiState.value.copy(
+            phoneMapSuspended = false,
+            phoneMapOverridden = true,
+            renderedBitmap = null
+        )
+        DiagnosticsLog.log(
+            DiagnosticsLog.SESSION_TAG,
+            "phone map override: map requested during a car session (presence=true)"
+        )
+        if (screenWidth > 0 && screenHeight > 0) renderMap()
+    }
+
     /** Re-render the map with current viewport via MapRenderer. */
     fun renderMap(forceFullRender: Boolean = false) {
+        if (phoneMapRenderRefused) {
+            Log.d(TAG, "renderMap: refused — the phone map is suspended by a car session")
+            return
+        }
         val renderer = mapRenderer ?: run {
             Log.w(TAG, "renderMap: mapRenderer is null — no render")
             return

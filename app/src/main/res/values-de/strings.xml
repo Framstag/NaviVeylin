@@ -83,6 +83,8 @@
     <string name="mode_free_drive">Freie Fahrt</string>
     <string name="mode_navigation">Navigation</string>
     <string name="car_session_active_indicator">Navigation auf dem Auto-Display</string>
+    <string name="car_session_surface_paused">Die Karte ist auf diesem Display pausiert, während das Auto die Route zeigt.</string>
+    <string name="car_session_surface_show_map">Karte hier anzeigen</string>
     <string name="start_free_drive">Freie Fahrt starten</string>
     <string name="exit_free_drive">Freie Fahrt beenden</string>
     <string name="free_rotation">Freie Drehung</string>

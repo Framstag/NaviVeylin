@@ -154,10 +154,12 @@ fun NavigationStateOverlay(
 internal fun NavigationStatsRow(
     remainingDistance: Double,
     etaMillis: Long,
-    onStopNavigation: () -> Unit
+    /** Stop action; null renders no stop button (the car-session surface has none). */
+    onStopNavigation: (() -> Unit)?,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // ETA
@@ -219,16 +221,19 @@ internal fun NavigationStatsRow(
             )
         }
 
-        // Stop button (compact icon-only, in the status row)
-        IconButton(
-            onClick = onStopNavigation,
-            modifier = Modifier.size(40.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = stringResource(R.string.stop_navigation),
-                tint = MaterialTheme.colorScheme.error
-            )
+        // Stop button (compact icon-only, in the status row) — only when the surface
+        // offers one.
+        if (onStopNavigation != null) {
+            IconButton(
+                onClick = onStopNavigation,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.stop_navigation),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }

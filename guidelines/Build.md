@@ -67,9 +67,42 @@ All three skills follow the same contract:
 - **Warnings**: the build must have no warnings — report them, don't ignore.
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
+- **Per-flavor test tasks**: `:app` has one task per flavor —
+  `:app:testMobileDebugUnitTest` and `:app:testAutomotiveDebugUnitTest` (there is
+  no `:app:testDebugUnitTest`). Run **both**: they are separate suites (each
+  ~1300 tests) and a change can pass one and fail the other.
+- **Report tallies, not vibes**: quote `tests/failures/errors` per module from
+  the XML (`app/build/test-results/testMobileDebugUnitTest/*.xml` etc.), e.g.
+  ":core 379/0/0 · :auto 699/0/0 · :app mobile 1314/0/0 · :app automotive 1314/0/0".
+  A bare `BUILD SUCCESSFUL` says nothing about what ran.
+- **A cached run is not a run**: `BUILD SUCCESSFUL in 3s` with `UP-TO-DATE` / `FROM-CACHE`
+  executed no tests. When the run itself is the evidence, force it with `--rerun`
+  (single task) or `--rerun-tasks`.
+- **Attribute before blaming or claiming** — a failure that moves between runs or
+  flavors, and that passes alone, may not be yours. Ritual:
+  1. rerun the failing class **alone** (`--tests <FQCN>`);
+  2. rerun it **together with the classes the change added**;
+  3. if it still fails, find who ran **before** it: the JUnit XML `timestamp` of
+     each `testsuite` gives the execution order (one fork here, so the order is a
+     single sequence — sort the timestamps and look at the neighbours);
+  4. bisect with `--tests` filters over that order. Note the shell does **not**
+     word-split variables: pass the filters as literal arguments, or wrap the
+     call in a script;
+  5. quote **both** numbers (the failing set and the alone run) in the change and
+     file the residual in `TODO.md`; leave the "zero failures" task item
+     **unchecked** rather than talking the run green.
+- **`UncaughtExceptionsBeforeTest`** is not a flaky assertion: a coroutine threw
+  on a *process-wide* dispatcher (`Dispatchers.Default`/`IO`, or the main thread)
+  after the test that owned it ended, and the next `runTest` in that JVM reports
+  it. Hunt the owner, don't retry the victim: look for scopes/tickers that outlive
+  a test (a process-scoped poller, a `CoroutineScope` in a `@Singleton`) and for
+  any coroutine body on a real dispatcher **without** a fault confinement
+  (`runCatching` or a `CoroutineExceptionHandler`). This is a production defect
+  too: the same escaping throwable reaches the thread's uncaught-exception handler
+  and kills the app on a device.
 - **Test reports**: HTML at
-  `app/build/reports/tests/testDebugUnitTest/index.html`, XML at
-  `app/build/test-results/testDebugUnitTest/*.xml`.
+  `app/build/reports/tests/testMobileDebugUnitTest/index.html`, XML at
+  `app/build/test-results/testMobileDebugUnitTest/*.xml`.
 
 ## 5. Release versioning
 
@@ -458,6 +491,16 @@ adb -s emulator-5556 logcat -d | grep -iE 'lmkd|lowmemorykiller|Killing'   # hos
 adb -s emulator-5556 shell dumpsys meminfo | head -40
 adb -s emulator-5556 shell dumpsys cpuinfo
 ```
+
+**Measuring the app's own footprint — the rule.** Every footprint counter this repo reads
+(`Graphics`, `EGL mtrack`, `GL mtrack`, native heap, `Bitmap (malloced)`, `TOTAL PSS`) is a **high-water
+mark inside a process**: measured 2026-09-27, `GL mtrack` went 80.6 MB → 130.6 MB across three zoom
+gestures and was still 130.6 MB 25 s later, and the native heap went 115 MB → 337 MB across one scripted
+map walk (retaining 324 MB after returning to the start viewport). So each "before" and each "after"
+needs its **own freshly started process**, and two numbers are only comparable at the same gesture/walk
+script and the same render count. A walk script that needs no car and no driving:
+`adb shell input keyevent 69` (zoom out) ×10, then `adb shell input swipe` pan pairs — the app must be in
+the foreground (`topResumedActivity`, not `mCurrentFocus`).
 
 **App-side host sends.** The app records what it sent the host with the diagnostics tag
 `HOST` (notification posts, trip updates, host navigation-state calls, surface

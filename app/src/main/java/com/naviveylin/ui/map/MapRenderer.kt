@@ -130,9 +130,6 @@ class MapRenderer(
     // ---- Last emitted frame (reused when the front buffer did not change) ----
     private var frontBufferSeq = 0L
     private var lastEmittedSeq = -1L
-    private var lastEmittedFrame: Bitmap? = null
-    private var lastEmittedWidth = 0
-    private var lastEmittedHeight = 0
 
     /** Magnification of the most recently completed native render (front buffer). */
     val lastRenderedMagnification: Double get() = frontBufferMag
@@ -436,19 +433,21 @@ class MapRenderer(
      * backing storage with the front buffer, which the next render overwrites).
      * The previous emitted bitmap is never recycled here: Compose may still be
      * drawing it; GC reclaims it once unreferenced.
+     *
+     * The "is this frame unchanged?" answer comes from that sequence alone: the bitmap the
+     * frame flow already holds IS the previously emitted frame, so no separate held copy exists
+     * for the comparison (spec: `render-performance` — The displayed frame is not duplicated for
+     * reuse detection).
      */
     private fun emitFrame(viewport: RenderViewport, marker: MarkerSnapshot) {
         val fb = frontBuffer ?: return
+        val emitted = _frameFlow.value.bitmap
         val reuse = frontBufferSeq == lastEmittedSeq &&
-            lastEmittedFrame != null &&
-            lastEmittedWidth == fb.width &&
-            lastEmittedHeight == fb.height
-        if (!reuse) {
-            lastEmittedFrame = fb.copy(Bitmap.Config.ARGB_8888, true)
-            lastEmittedSeq = frontBufferSeq
-            lastEmittedWidth = fb.width
-            lastEmittedHeight = fb.height
-        }
+            emitted != null &&
+            emitted.width == fb.width &&
+            emitted.height == fb.height
+        val frame = if (reuse) emitted!! else fb.copy(Bitmap.Config.ARGB_8888, true)
+        lastEmittedSeq = frontBufferSeq
         // One atomic snapshot of the frame the DISPLAY now holds (dimensions and the
         // viewport published with it). The coverage predicate reads this, never the
         // renderer's private front buffer: the display's offset and the renderer's
@@ -456,11 +455,11 @@ class MapRenderer(
         // disagree into a frozen pan (spec: canvas-overrun — Coverage and display never
         // disagree into a freeze).
         emittedFrame = EmittedFrame(
-            width = lastEmittedFrame!!.width,
-            height = lastEmittedFrame!!.height,
+            width = frame.width,
+            height = frame.height,
             viewport = viewport
         )
-        _frameFlow.value = FrameState(lastEmittedFrame, viewport, marker)
+        _frameFlow.value = FrameState(frame, viewport, marker)
     }
 
     /**
@@ -517,6 +516,91 @@ class MapRenderer(
         emittedFrame = null
         tileCache.clear()
     }
+
+    /**
+     * Storage a suspension gave up ([releaseRenderStorage]), for the diagnostics record and
+     * for tests.
+     */
+    data class ReleasedRenderStorage(
+        val tilesCleared: Int,
+        val frameBuffersReleased: Int,
+        val idleTargetsReleased: Int
+    )
+
+    /**
+     * Releases the frame and tile storage this renderer holds for the phone surface, without
+     * shutting it down: the next render request renders from scratch (spec:
+     * `map-canvas-screen` — Phone-owned storage is released, the shared cache is not). The
+     * shared native tile-data cache is deliberately untouched — the car surface renders from
+     * it while the phone is suspended.
+     *
+     * The order below is the race argument, and every step is needed:
+     *
+     *  1. the render epoch is bumped first, so a render already in flight discards its result
+     *     instead of swapping a buffer in behind the release — every commit path checks the
+     *     epoch under [bufferLock];
+     *  2. a queued-but-unstarted render is dropped (`pendingRender`), so the debounce loop
+     *     cannot start a fresh render into the storage just released. The two lifetime loops
+     *     (`debounceJob`, `renderJob`) are NOT cancelled: they consume the renderer's channels
+     *     for as long as the renderer lives, and cancelling them would leave a renderer that
+     *     can never render again — the resume render included;
+     *  3. the two frame buffers are recycled under [bufferLock]. They are renderer-private —
+     *     no other component ever holds them — so recycling is safe, exactly as in
+     *     [shutdown];
+     *  4. the tile cache is cleared. Its bitmaps are only *dropped*, never recycled: a tile
+     *     may still be referenced by a render in flight, the rule [TileCache.clear] follows;
+     *  5. the last emitted frame is dropped the same way and never recycled — Compose may
+     *     still be drawing it ([emitFrame]'s documented rule), so the GC reclaims it. Dropping
+     *     it and resetting [lastEmittedSeq] also guarantees the next frame is a fresh copy
+     *     rather than a reused stale one;
+     *  6. the pool's idle targets are released: nobody draws with a target the pool holds
+     *     free, so this cannot alias a live target.
+     *
+     * No native render call happens here — only reference drops and two short locks — so this
+     * is safe from a lifecycle or presence callback. The renderer stays usable: [isShutdown]
+     * is untouched and the channels stay open.
+     */
+    fun releaseRenderStorage(): ReleasedRenderStorage {
+        epoch.incrementAndGet()
+        pendingRender = null
+
+        var buffers = 0
+        bufferLock.withLock {
+            backBuffer?.let { it.recycle(); buffers++ }
+            backBuffer = null
+            frontBuffer?.let { it.recycle(); buffers++ }
+            frontBuffer = null
+            // A released frame must never match a later emission: bump the sequence and
+            // forget what was emitted.
+            frontBufferSeq++
+            frontBufferEpoch = -1L
+            lastEmittedSeq = -1L
+            // No frame means no window to serve, so the next request renders (same rule as
+            // [shutdown]).
+            emittedFrame = null
+        }
+
+        val tiles = tileCache.size()
+        tileCache.clear()
+        // The frame flow must not keep the released frame alive: a StateFlow retains its last
+        // value, and that value would be the only remaining reference to the emitted bitmap
+        // once the UI state dropped it. Publishing a bitmap-less frame frees it and tells every
+        // collector "no frame" (the ViewModel's collector ignores a null bitmap).
+        _frameFlow.value = FrameState(
+            bitmap = null,
+            viewport = RenderViewport(renderedLat, renderedLon, renderedMag, renderedAngle),
+            marker = MarkerSnapshot(Double.NaN, Double.NaN, Double.NaN, 0.0)
+        )
+        return ReleasedRenderStorage(
+            tilesCleared = tiles,
+            frameBuffersReleased = buffers,
+            idleTargetsReleased = RenderBitmapPool.releaseIdle()
+        )
+    }
+
+    /** Tile cache size (test-only observable; production never reads it). */
+    @VisibleForTesting
+    internal fun tileCacheSize(): Int = tileCache.size()
 
     // ---- Internal: Debounce ----
 

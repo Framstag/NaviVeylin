@@ -754,6 +754,39 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   (use `start`/`end` alignment, not `left`/`right`) so future RTL locales
   work without layout changes.
 
+## 10a. Phone surface while a car session is active
+
+While a car session is live, the phone does not show the map: it shows the
+**car-session surface** (`CarSessionSurface`). This is the one place where the
+phone surface yields to the car — everywhere else a car session is advisory
+only (§the `car-session-presence` spec: the phone is *informed, not
+disabled*). The map is the exception because the car is already drawing it and
+the phone's second copy costs exactly the memory a drive on a loaded device is
+short of (`guidelines/MapRendering.md` §18 has the numbers).
+
+- **What the surface states.** The car-session pill's own label
+  (`car_session_active_indicator`) as its headline — the pill is the compact
+  form of the same claim, shown only once the user overrides the suspension, so
+  one screen never claims the same thing twice.
+- **What it shows.** The guidance summary from the SHARED navigation state, in
+  the labels the car surface uses for the same state: the maneuver through
+  `TurnInstructionLocalizer.shortDescription` (the very call the car's
+  `NavigationTemplateMapper` cue uses) and the phone's own stats row for
+  arrival time / remaining time / remaining distance, which is fed by the shared
+  engine state and formats through the same `com.naviveylin.core` helpers the
+  car's `distanceForDisplay` delegates to. A free drive has no maneuver to
+  summarize; the statement and the map action are then the whole surface.
+- **Its one action** is *Show map here*: the per-session override. It lifts the
+  suspension for the rest of that session only — the session's end clears it, so
+  a later session suspends again by default. The override is deliberately not
+  persisted: a stored "never suspend" would give the saving up forever.
+- **What survives.** Nothing about the map state is reset by a suspension:
+  mode, viewport and magnification are untouched, so the resumed map renders at
+  the state the shared engine holds *now*, not at the state the suspension froze.
+- **Diagnosis.** Every transition (suspend / override / lift) is one record on
+  the diagnostics stream under the `SESSION` tag, carrying the presence edge
+  that caused it and the storage the release gave up.
+
 ---
 
 ## Keeping this document honest

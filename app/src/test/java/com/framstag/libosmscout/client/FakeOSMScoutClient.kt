@@ -154,7 +154,17 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Cache sizes passed to [setNativeDataCacheSize] in call order. */
     val nativeDataCacheSizes = mutableListOf<Int>()
 
+    /**
+     * When true [setNativeDataCacheSize] throws instead of recording (the bridge is gone, e.g. the
+     * native library failed to load) — for the non-fatal paths of the cache policy.
+     */
+    @Volatile
+    var nativeDataCacheSizeFails: Boolean = false
+
     override fun setNativeDataCacheSize(cacheSize: Int) {
+        if (nativeDataCacheSizeFails) {
+            throw IllegalStateException("bridge is gone")
+        }
         nativeDataCacheSizes.add(cacheSize)
     }
 
@@ -229,6 +239,52 @@ class FakeOSMScoutClient : OSMScoutClient() {
         return pixels
     }
 
+    /** Number of [renderInto] invocations (the caller-owned-buffer render path). */
+    val renderIntoCount = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /** When true [renderInto] reports no frame without writing (native render produced nothing). */
+    @Volatile
+    var renderIntoReturnsFalse: Boolean = false
+
+    /**
+     * The buffer-taking render path: the same request and the same pixels as the allocating one,
+     * written into the caller's storage. The fake answers through the same recorders the two
+     * allocating entry points use — and, like the old seam, through the PLAIN recorder when the
+     * request carries no overlay arrays — so the request assertions of the renderer suites keep
+     * their meaning for this path.
+     */
+    override fun renderInto(
+        width: Int, height: Int,
+        lat: Double, lon: Double, angle: Double, magnification: Double,
+        dpi: Double,
+        routeLats: DoubleArray?, routeLons: DoubleArray?,
+        favoriteLats: DoubleArray?, favoriteLons: DoubleArray?,
+        searchSelLat: Double, searchSelLon: Double,
+        trackLats: DoubleArray?, trackLons: DoubleArray?,
+        pixels: java.nio.ByteBuffer
+    ): Boolean {
+        renderIntoCount.incrementAndGet()
+        val hasOverlays = (favoriteLats != null && favoriteLats.isNotEmpty()) ||
+            !searchSelLat.isNaN() ||
+            (routeLats != null && routeLats.isNotEmpty()) ||
+            (trackLats != null && trackLons != null)
+        val rendered = if (hasOverlays) {
+            renderWithRouteAndPois(
+                width, height, lat, lon, angle, magnification, dpi,
+                routeLats, routeLons, favoriteLats, favoriteLons, searchSelLat, searchSelLon,
+                trackLats, trackLons
+            )
+        } else {
+            render(width, height, lat, lon, angle, magnification, dpi)
+        } ?: return false
+        if (renderIntoReturnsFalse) return false
+        if (pixels.capacity() < rendered.size * 4) return false
+        val target = pixels.asIntBuffer()
+        target.clear()
+        target.put(rendered)
+        return true
+    }
+
     // --- Route calculation / navigation stubs (used by car-only route fallback tests) ---
 
     /** Route delivered by [calculateRouteWithProfile]; null → [deliverRouteError]. */
@@ -257,6 +313,14 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Error text delivered when [routeToDeliver] is null. */
     var deliverRouteError: String? = null
 
+    /**
+     * Throwable thrown synchronously by [calculateRouteWithProfile] instead of
+     * delivering a route. Models a failure at the engine's native boundary: pass an
+     * `Error` (e.g. `UnsatisfiedLinkError`) to prove the boundary confines more than
+     * exceptions (spec: `navigation-engine` — Native failure is confined, not fatal).
+     */
+    var routeCalculationError: Throwable? = null
+
     /** Number of [calculateRouteWithProfile] invocations. */
     @Volatile
     var routeCalculationCount = 0
@@ -268,6 +332,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
         callback: RouteCallback
     ) {
         routeCalculationCount++
+        routeCalculationError?.let { throw it }
         lastRouteProfile = profile
         lastRouteStart = startLat to startLon
         lastRouteDest = destLat to destLon
@@ -279,12 +344,15 @@ class FakeOSMScoutClient : OSMScoutClient() {
         }
     }
 
+    var navigationStartError: Throwable? = null
+
     override fun startNavigationWithVehicle(
         routeHandle: Long,
         vehicle: Vehicle,
         listener: NavigationListener
     ): NavigationController? {
         navigationStartCount++
+        navigationStartError?.let { throw it }
         navigationListener = listener
         return null
     }
@@ -334,7 +402,8 @@ class FakeOSMScoutClient : OSMScoutClient() {
     var roadAt: RoadInfo? = null
 
     /** When set, [getRoadAt] throws this instead of returning. */
-    var roadAtError: Exception? = null
+    /** Throwable thrown by [getRoadAt]; an `Error` models a native failure. */
+    var roadAtError: Throwable? = null
 
     /** (lat, lon, bearing) passed to [getRoadAt] in call order. */
     val roadAtLookupCalls = mutableListOf<Triple<Double, Double, Double>>()

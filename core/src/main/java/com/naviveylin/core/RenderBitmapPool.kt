@@ -122,6 +122,32 @@ object RenderBitmapPool {
         }
     }
 
+    /**
+     * Releases every idle (free) target the pool retains and returns how many. Targets
+     * that are currently handed out are untouched: the free list and the handed-out set are
+     * disjoint under one lock, so a release here can never alias storage a surface is
+     * drawing with.
+     *
+     * Used when a surface gives up its render storage (spec: `map-canvas-screen` —
+     * Phone-owned storage is released, the shared cache is not): the phone suspends, and the
+     * targets its frames were composed in stop being worth retaining. The pool is shared
+     * with the car surface, whose only cost is one fresh allocation on its next render —
+     * it never holds a free target.
+     */
+    fun releaseIdle(): Int {
+        synchronized(lock) {
+            var released = 0
+            free.values.forEach { queue ->
+                queue.forEach { target ->
+                    target.recycle()
+                    released++
+                }
+            }
+            free.clear()
+            return released
+        }
+    }
+
     /** Free targets retained for one size class (test-only observable, design D10). */
     fun freeCount(width: Int, height: Int): Int {
         synchronized(lock) {

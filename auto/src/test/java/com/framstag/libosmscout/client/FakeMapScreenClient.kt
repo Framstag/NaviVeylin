@@ -76,6 +76,31 @@ class FakeMapScreenClient(
         trackLons: DoubleArray?
     ): IntArray = IntArray(width * height) { 0xFFCCCCCC.toInt() }
 
+    /** The buffer-taking render path: the same dummy pixels, written into the caller's storage. */
+    override fun renderInto(
+        width: Int,
+        height: Int,
+        lat: Double,
+        lon: Double,
+        angle: Double,
+        magnification: Double,
+        dpi: Double,
+        routeLats: DoubleArray?,
+        routeLons: DoubleArray?,
+        favoriteLats: DoubleArray?,
+        favoriteLons: DoubleArray?,
+        searchSelLat: Double,
+        searchSelLon: Double,
+        trackLats: DoubleArray?,
+        trackLons: DoubleArray?,
+        pixels: java.nio.ByteBuffer
+    ): Boolean {
+        val target = pixels.asIntBuffer()
+        target.clear()
+        target.put(IntArray(width * height) { 0xFFCCCCCC.toInt() })
+        return true
+    }
+
     override fun getStyleSheetDirectory(): String = ""
 
     override fun getActiveStyleSheet(): String = "standard.oss"

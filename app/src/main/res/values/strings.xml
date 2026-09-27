@@ -92,6 +92,8 @@
     <string name="mode_free_drive">Free drive</string>
     <string name="mode_navigation">Navigation</string>
     <string name="car_session_active_indicator">Navigation on car display</string>
+    <string name="car_session_surface_paused">The map is paused on this display while the car shows the route.</string>
+    <string name="car_session_surface_show_map">Show map here</string>
     <string name="start_free_drive">Start free drive</string>
     <string name="exit_free_drive">Exit free drive</string>
     <string name="free_rotation">Free rotation</string>

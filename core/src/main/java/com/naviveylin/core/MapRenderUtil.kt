@@ -10,10 +10,15 @@ import com.framstag.libosmscout.client.OSMScoutClient
  * without circular dependencies.
  *
  * Two entry points share the same pixel path:
- * - [renderToBitmap] allocates the bitmap it returns; the caller owns it.
+ * - [renderToBitmap] allocates the bitmap it returns; the caller owns it, and the render uses the
+ *   allocating native entry point.
  * - [renderInto] writes into a bitmap the caller already holds — the pooled form used by
  *   both renderers ([RenderBitmapPool]), so a render allocates no target
- *   (spec: `render-performance` — Reusable render target for map frames).
+ *   (spec: `render-performance` — Reusable render target for map frames). It is also the
+ *   caller-owned-pixel-storage form: the frame goes through a pooled direct buffer
+ *   ([RenderBufferPool]) into the native render, so no frame-sized pixel array or vector is
+ *   allocated per render (spec: `render-performance` — A render writes into caller-owned pixel
+ *   storage).
  */
 object MapRenderUtil {
 
@@ -85,10 +90,16 @@ object MapRenderUtil {
      * Render the map into [target] — the pooled form: the caller obtained the bitmap from
      * [RenderBitmapPool], and the target's own size is the render size.
      *
-     * The target's pixels are overwritten on success. On failure (the native render returns
-     * null) the target is left untouched and null is returned, so a caller can keep the
-     * target for the next attempt. The caller owns the target and releases it back to the
-     * pool when the frame is dropped; this function never recycles it.
+     * The frame is rendered into a pooled direct buffer the caller's render path owns for the
+     * duration of this call ([RenderBufferPool]) and copied from there into [target], so no
+     * frame-sized pixel array or vector is allocated for the render (spec: `render-performance`
+     * — A render writes into caller-owned pixel storage). The native side writes the storage and
+     * keeps no reference to it; the pool never hands the same buffer to two renders at once.
+     *
+     * The target's pixels are overwritten on success. On failure (the native render reports no
+     * frame, or the buffer cannot take one) the target is left untouched and null is returned, so
+     * a caller can keep the target for the next attempt. The caller owns the target and releases
+     * it back to the pool when the frame is dropped; this function never recycles it.
      *
      * @param dpi          physical DPI of the display the frame is rendered for — the
      *                     native projection uses it (spec: `render-projection-dpi`)
@@ -113,27 +124,29 @@ object MapRenderUtil {
     ): Bitmap? {
         val width = target.width
         val height = target.height
-        val pixels = renderPixels(
-            client = client,
-            width = width,
-            height = height,
-            lat = lat,
-            lon = lon,
-            angle = angle,
-            magnification = magnification,
-            dpi = dpi,
-            routeLats = routeLats,
-            routeLons = routeLons,
-            favoriteLats = favoriteLats,
-            favoriteLons = favoriteLons,
-            searchSelLat = searchSelLat,
-            searchSelLon = searchSelLon,
-            trackLats = trackLats,
-            trackLons = trackLons
-        ) ?: return null
-
-        target.setPixels(pixels, 0, width, 0, 0, width, height)
-        return target
+        val buffer = RenderBufferPool.acquire(width, height)
+        try {
+            val rendered = client.renderInto(
+                width, height, lat, lon, angle, magnification, dpi,
+                routeLats, routeLons,
+                favoriteLats, favoriteLons,
+                searchSelLat, searchSelLon,
+                trackLats, trackLons,
+                buffer
+            )
+            if (!rendered) {
+                // No frame: the target keeps its previous content, so a caller can retry
+                // (spec: osmscout-jni — Failure is reported, not fatal).
+                return null
+            }
+            // The native write left the position at 0; rewind anyway so the copy can never
+            // depend on a native implementation's buffer bookkeeping.
+            buffer.rewind()
+            target.copyPixelsFromBuffer(buffer)
+            return target
+        } finally {
+            RenderBufferPool.release(buffer)
+        }
     }
 
     /** The shared pixel path: the native render, overlay-aware, or null on error. */

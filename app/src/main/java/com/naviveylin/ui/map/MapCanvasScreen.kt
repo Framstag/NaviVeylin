@@ -182,6 +182,22 @@ fun MapCanvasScreen(
         }
     }
 
+    // A live car session owns the map (spec: map-canvas-screen — The phone map canvas is
+    // suspended while a car session is active): the phone composes the car-session surface
+    // instead of the canvas. The branch sits AFTER the wiring effects above — the ViewModels
+    // stay connected while the phone is suspended — and BEFORE every overlay, gesture state
+    // and remembered frame below, so nothing of the map canvas (including the remembered
+    // crossfade/hold frames) survives the suspension and the map is composed from scratch on
+    // resume. The advisory pill below therefore only appears once the user has overridden the
+    // suspension: it is the surface's compact form, never a second claim beside it.
+    if (state.phoneMapSuspended) {
+        CarSessionSurface(
+            navigationState = navState,
+            onShowMap = { viewModel.showMapDuringCarSession() }
+        )
+        return
+    }
+
     var menuExpanded by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showFavoritePicker by remember { mutableStateOf(false) }
@@ -343,6 +359,22 @@ fun MapCanvasScreen(
     var crossfadeAlpha by remember { mutableStateOf(0f) }
 
     /**
+     * Ends a crossfade transition and gives up the frame copy it holds. The crossfade owns ONE
+     * frame-sized copy at a time — created when a transition starts, replaced (never stacked)
+     * when another transition supersedes it, and released here the moment the transition ends, so
+     * a finished gesture leaves no frame reference or uploaded graphics allocation behind for the
+     * session (spec: `render-performance` — Animation frame references are released when the
+     * transition completes). [prevRenderedBitmap] is NOT a copy: it is the frame the UI state
+     * already holds, used as the crossfade's source.
+     */
+    fun endCrossfade() {
+        crossfadeBitmap = null
+        crossfadeAlpha = 0f
+        crossfadeAngle = 0f
+        crossfadePivot = Offset.Zero
+    }
+
+    /**
      * Starts/retracks the zoom animation toward the committed magnification
      * (design D2/D3/D6). [anchor] is the screen point that must stay visually
      * fixed: screen center for buttons/keyboard/auto-zoom, cursor for the
@@ -498,10 +530,7 @@ fun MapCanvasScreen(
                 if (crossfadeBitmap != null) {
                     val t = (nowMs - crossfadeStartMs).toFloat() / CROSSFADE_MS
                     if (t >= 1f) {
-                        crossfadeBitmap = null
-                        crossfadeAlpha = 0f
-                        crossfadeAngle = 0f
-                        crossfadePivot = Offset.Zero
+                        endCrossfade()
                     } else {
                         crossfadeAlpha = 1f - t
                     }
@@ -582,6 +611,8 @@ fun MapCanvasScreen(
                 if (rotationHoldActive && frontAngle != null &&
                     frontAngle == ui.viewport.angle && lastFrontAngle != frontAngle) {
                     prevRenderedBitmap?.let { oldBitmap ->
+                        // A superseding transition REPLACES the copy an in-flight one holds — it
+                        // never stacks a second frame copy on top of it.
                         if (crossfadeBitmap == null) {
                             crossfadeBitmap = copyImageBitmap(oldBitmap)
                             crossfadeScale = 1f

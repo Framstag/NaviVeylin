@@ -595,6 +595,61 @@ public class OSMScoutClient {
         double[] trackLats, double[] trackLons);
 
     /**
+     * Render the map into pixel storage the caller supplies, allocating no frame-sized
+     * pixel buffer of its own.
+     * <p>
+     * <b>Ownership:</b> the storage belongs to the caller. The bridge writes it only while
+     * this call runs and retains no reference to it, so the caller may release, reuse or
+     * display it afterwards (spec: {@code render-performance} — Storage is not touched after
+     * the call returns). A caller must NOT hand the same storage to two renders at once, and
+     * must not hand a buffer a display path is still reading: the bridge does not guard the
+     * caller's storage against the caller's own misuse.
+     * <p>
+     * <b>Format:</b> {@code pixels} must be a DIRECT buffer with at least
+     * {@code width * height * 4} bytes remaining, and the frame is written as one
+     * {@code int} per pixel, {@code 0xAARRGGBB} — the layout
+     * {@link android.graphics.Bitmap#copyPixelsFromBuffer(java.nio.Buffer)} and
+     * {@code Bitmap.setPixels} expect. The stride is exactly {@code width * 4} bytes: the
+     * frame is written contiguously from offset 0, with no padding. Set the buffer's byte
+     * order to {@link java.nio.ByteOrder#nativeOrder()} (a freshly allocated direct buffer is
+     * big-endian, which would byte-swap the frame).
+     * <p>
+     * The pixels are the same ones {@link #renderWithRouteAndPois(int, int, double, double,
+     * double, double, double, double[], double[], double[], double[], double, double,
+     * double[], double[])} returns for the same request: both run the same native render body.
+     *
+     * @param width         output frame width in pixels
+     * @param height        output frame height in pixels
+     * @param lat           center latitude
+     * @param lon           center longitude
+     * @param angle         map rotation angle in degrees (0 = north up)
+     * @param magnification map magnification as a scale factor (2^z; fractional z allowed)
+     * @param dpi           physical DPI of the display the frame is rendered for
+     * @param routeLats     route polyline latitudes (can be null)
+     * @param routeLons     route polyline longitudes (can be null)
+     * @param favoriteLats  favorite marker latitudes (can be null)
+     * @param favoriteLons  favorite marker longitudes (can be null)
+     * @param searchSelLat  search selection latitude (NaN if none)
+     * @param searchSelLon  search selection longitude (NaN if none)
+     * @param trackLats     track polyline latitudes (can be null)
+     * @param trackLons     track polyline longitudes (can be null)
+     * @param pixels        the caller's direct pixel buffer, at least width*height*4 bytes
+     * @return true when the frame was written into {@code pixels}; false when the request is
+     *         unusable (no open database, a rejected viewport or magnification, a missing,
+     *         non-direct or too small buffer, a render failure). A false result never means a
+     *         frame: the caller's buffer is left as it was, and the process does not fault.
+     */
+    public native boolean renderInto(
+        int width, int height,
+        double lat, double lon, double angle, double magnification,
+        double dpi,
+        double[] routeLats, double[] routeLons,
+        double[] favoriteLats, double[] favoriteLons,
+        double searchSelLat, double searchSelLon,
+        double[] trackLats, double[] trackLons,
+        java.nio.ByteBuffer pixels);
+
+    /**
      * Render the current map view to an ARGB pixel array, with optional route overlay.
      * <p>
      * Convenience overload that calls {@link #renderWithRouteAndPois(int, int, double,

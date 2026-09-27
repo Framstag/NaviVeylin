@@ -3,6 +3,7 @@ package com.naviveylin.ui.map
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.core.RenderBitmapPool
+import com.naviveylin.core.RenderBufferPool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -27,7 +28,9 @@ class MapRenderUtilTest {
     @Before
     fun setUp() {
         RenderBitmapPool.resetForTest()
+        RenderBufferPool.resetForTest()
         client.renderReturnsNull = false
+        client.renderIntoReturnsFalse = false
     }
 
     @Test
@@ -263,13 +266,17 @@ class MapRenderUtilTest {
     // ---- Projection DPI travels with the request (spec: render-projection-dpi) ----
 
     @Test
-    fun renderIntoPassesTheRenderDpiToThePlainEntryPoint() {
-        val before = client.renderCount.get()
+    fun renderIntoPassesTheRenderDpiToTheBufferEntryPoint() {
+        val before = client.renderIntoCount.get()
         val target = RenderBitmapPool.acquire(100, 100)
 
         MapRenderUtil.renderInto(client, target, 48.8566, 2.3522, 0.0, 5.0, dpi)
 
-        assertEquals("no overlays → the plain render entry point", before + 1, client.renderCount.get())
+        assertEquals(
+            "a pooled render goes through the caller-owned-buffer entry point",
+            before + 1,
+            client.renderIntoCount.get()
+        )
         assertEquals(
             "the request carries the caller's DPI",
             listOf(dpi),
@@ -309,7 +316,7 @@ class MapRenderUtilTest {
         val phoneTarget = RenderBitmapPool.acquire(100, 100)
         val carTarget = RenderBitmapPool.acquire(100, 100)
 
-        val rendersBefore = client.renderCount.get()
+        val rendersBefore = client.renderIntoCount.get()
         MapRenderUtil.renderInto(client, phoneTarget, 48.8566, 2.3522, 0.0, 5.0, dpi)
         MapRenderUtil.renderInto(client, carTarget, 48.8566, 2.3522, 0.0, 5.0, carDpi)
         MapRenderUtil.renderInto(client, phoneTarget, 48.8566, 2.3522, 0.0, 5.0, dpi)
@@ -319,8 +326,80 @@ class MapRenderUtilTest {
             listOf(dpi, carDpi, dpi),
             client.renderDpis.toList()
         )
-        assertEquals("no render beyond one per frame", rendersBefore + 3, client.renderCount.get())
+        assertEquals("no render beyond one per frame", rendersBefore + 3, client.renderIntoCount.get())
         RenderBitmapPool.release(phoneTarget)
         RenderBitmapPool.release(carTarget)
+    }
+
+    @Test
+    fun renderIntoThroughCallerOwnedStorageAllocatesNoFrameBufferAfterTheFirst() {
+        val target = RenderBitmapPool.acquire(100, 100)
+
+        MapRenderUtil.renderInto(client, target, 48.8566, 2.3522, 0.0, 5.0, dpi)
+        assertEquals(
+            "the first render of a size allocates exactly one pooled buffer",
+            1,
+            RenderBufferPool.allocatedCount
+        )
+        val allocationsAfterFirst = RenderBufferPool.allocatedCount
+        repeat(5) {
+            MapRenderUtil.renderInto(client, target, 48.8566 + it / 1000.0, 2.3522, 0.0, 5.0, dpi)
+        }
+
+        assertEquals(
+            "the pixel storage is reused across renders",
+            allocationsAfterFirst,
+            RenderBufferPool.allocatedCount
+        )
+        assertEquals("one buffer is handed out per render and returned", 0, RenderBufferPool.inUseCount)
+        RenderBitmapPool.release(target)
+    }
+
+    @Test
+    fun aFailedBufferRenderLeavesTheTargetUnchangedAndReportsNoFrame() {
+        val target = RenderBitmapPool.acquire(100, 100)
+        // A frame the target already holds: it must survive a failed render.
+        target.eraseColor(0xFF123456.toInt())
+        client.renderIntoReturnsFalse = true
+
+        val result = MapRenderUtil.renderInto(client, target, 48.8566, 2.3522, 0.0, 5.0, dpi)
+
+        assertNull("a failed render is not reported as a frame", result)
+        assertEquals(
+            "the caller's target keeps its content",
+            0xFF123456.toInt(),
+            target.getPixel(50, 50)
+        )
+        assertEquals("the buffer is returned even when the render failed", 0, RenderBufferPool.inUseCount)
+        RenderBitmapPool.release(target)
+    }
+
+    @Test
+    fun theBufferPathPaintsTheSamePixelsAsTheAllocatingPath() {
+        val target = RenderBitmapPool.acquire(64, 48)
+
+        val allocated = MapRenderUtil.renderToBitmap(
+            client = client,
+            width = 64,
+            height = 48,
+            lat = 48.8566,
+            lon = 2.3522,
+            angle = 0.0,
+            magnification = 5.0,
+            dpi = dpi
+        )
+        val pooled = MapRenderUtil.renderInto(client, target, 48.8566, 2.3522, 0.0, 5.0, dpi)
+
+        assertNotNull(allocated)
+        assertSame(target, pooled)
+        val expected = IntArray(64 * 48)
+        allocated!!.getPixels(expected, 0, 64, 0, 0, 64, 48)
+        val actual = IntArray(64 * 48)
+        pooled!!.getPixels(actual, 0, 64, 0, 0, 64, 48)
+        assertTrue(
+            "the caller-owned-buffer path renders the same frame as the allocating path",
+            expected.contentEquals(actual)
+        )
+        RenderBitmapPool.release(target)
     }
 }

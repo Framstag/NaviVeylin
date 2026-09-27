@@ -142,4 +142,36 @@ class RenderBitmapPoolTest {
             RenderBitmapPool.freeCount(64, 48) <= 2
         )
     }
+
+    @Test
+    fun releaseIdleDropsFreeTargetsAndKeepsHandedOutOnes() {
+        val free = RenderBitmapPool.acquire(64, 48)
+        RenderBitmapPool.release(free)
+        val held = RenderBitmapPool.acquire(128, 96)
+        assertEquals(1, RenderBitmapPool.freeCount(64, 48))
+
+        val released = RenderBitmapPool.releaseIdle()
+
+        assertEquals("the idle target was released", 1, released)
+        assertEquals(0, RenderBitmapPool.freeCount(64, 48))
+        assertEquals("a handed-out target is untouched", 1, RenderBitmapPool.inUseCount)
+        assertFalse("a handed-out target is never recycled", held.isRecycled)
+        // The pool forgetting its idle targets never aliases storage a caller owns: the
+        // holder can still release its target normally afterwards.
+        RenderBitmapPool.release(held)
+        assertEquals(1, RenderBitmapPool.freeCount(128, 96))
+    }
+
+    @Test
+    fun releaseIdleReleasesNothingWhileEveryTargetIsHandedOut() {
+        val held = RenderBitmapPool.acquire(64, 48)
+        assertEquals(
+            "nothing is idle while the only target is handed out",
+            0,
+            RenderBitmapPool.releaseIdle()
+        )
+        RenderBitmapPool.release(held)
+        assertEquals(1, RenderBitmapPool.releaseIdle())
+        assertEquals("a second release finds nothing idle", 0, RenderBitmapPool.releaseIdle())
+    }
 }

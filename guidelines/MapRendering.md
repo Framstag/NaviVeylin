@@ -22,6 +22,20 @@ travel while the map itself rotates at its own pace.
   - **DIRECT mode — full native path**: every render goes through `MapRenderUtil.renderToBitmap`
     onto an overrun canvas (1296×2880 = 1.2× screen), then `extractCenterRegion` → 1080×2400.
     Labels render natively in the viewport direction. No tile cache is read or written.
+  - **The full render's pixel storage is caller-owned** (change `reduce-render-peak-memory`, spec
+    `render-performance` — A render writes into caller-owned pixel storage): a full render goes
+    through `MapRenderUtil.renderInto`, which takes a DIRECT `ByteBuffer` from `RenderBufferPool`
+    (`:core`), has the native side write the frame straight into it (JNI
+    `OSMScoutClient.renderInto`, the buffer-taking entry point), and copies it into the target with
+    `Bitmap.copyPixelsFromBuffer`. No `jintArray`, no C++ pixel vector, no per-pixel conversion, and
+    no per-render frame-sized allocation: the storage is pooled per size class (≤2 free, ≤2 classes)
+    and the native side keeps no reference to it beyond the call. `renderToBitmap` keeps the
+    allocating entry point for callers that need an owned result.
+    - Format contract: 4 bytes per pixel, stride `width * 4`, no padding, one `0xAARRGGBB` int per
+      pixel, buffer order `ByteOrder.nativeOrder()` — what `Bitmap.setPixels` and
+      `copyPixelsFromBuffer` both expect.
+    - The **tile path keeps the allocating entry point** (`renderTilePixels` renders one 256 px tile
+      at a time): a tile is not frame-sized, and `TileCache` retention is governed by its own policy.
   - Forced full renders (rotation gesture end, `forceFullRender = true`) use the full native path
     in BOTH modes when the angle is non-zero, so labels are drawn in the correct direction.
 - Path selection in `executeRender`:
@@ -207,6 +221,15 @@ travel while the map itself rotates at its own pace.
   emitted frame, the car's overrun frame) must not be the target of an in-flight render; that is
   why the pool retains a pair of slots per size class and why the frame handed to Compose stays an
   independent copy rather than a pooled target.
+- **Rule: the frame's pixel storage is caller-owned too** (`RenderBufferPool`, change
+  `reduce-render-peak-memory`). The render path acquires a direct buffer, the native entry point
+  writes the frame into it for the duration of that one call, the target is filled with
+  `copyPixelsFromBuffer`, and the buffer is released back. The pool never hands the same storage to
+  two renders, a release it did not hand out (or a double release) is refused with a `RENDER`
+  diagnostics line, and the native side retains no reference — so a caller may release, reuse or
+  display the storage afterwards. `RenderBufferPoolTest` pins the bound, the refusal and the format.
+  The "is this frame unchanged?" decision needs no second bitmap either: the frame flow's own value
+  is the previous frame, and `frontBufferSeq`/`lastEmittedSeq` say whether it changed.
 
 ## 3. GPS Deduplication
 
@@ -744,6 +767,100 @@ car Surface:
   style, not a user-facing map style.
 - Style switches and the `daylight` flag reload BOTH styles through
   `LoadStyleInternal`; the basemap style is unaffected by main-style switches.
+
+---
+
+## 17. Native tile-data cache — capacity, retention and its release
+
+`NativeTileDataCache` (core) is the single owner of libosmscout's per-database `MapService` cache
+capacity. It is not the app's own bitmap tile cache (`ui/map/TileCache.kt`): this one holds the loaded
+tile *data* per database, which is why walking a wide area is what makes a process big.
+
+- Constants: `PHONE_TILES` 512 (phone map path, `MapCanvasViewModel.initMap`), `CAR_TILES` 128 (car
+  warmup, `AutoServiceModule`), library default 25. Applied per database (regional maps + basemap) and
+  re-applied on every render, so it is a property of the *client*, not of a database.
+- **Configuration is raise-only**: the highest value any surface has requested wins, a lower request is
+  reported `REJECTED`. That is what keeps a car session from shrinking the phone's working set (and vice
+  versa) mid-session.
+- **The one lowering path is an explicit release**: `NativeTileDataCache.trim(client, tiles)` reports
+  `TRIMMED`/`UNCHANGED`/`FAILED` and is called only by `MemoryPressureResponder`. The native side evicts
+  least-recently-used tile data on a smaller value (`DataTileCache::SetSize` → `CleanupCache`), so no
+  bridge change is needed and rendered content never changes — only data reuse.
+- **Triggers** (change `bound-tile-data-retention`, design D1):
+  - a 30 s poll of `ActivityManager.MemoryInfo` while a client has a configured capacity —
+    `lowMemory` halves the capacity, `availMem <= threshold / 2` floors it at 25. This is the *only*
+    pressure signal the platform still offers: **`TRIM_MEMORY_RUNNING_MODERATE/LOW/CRITICAL`, `MODERATE`
+    and `COMPLETE` are not delivered to apps since API 34** (AOSP `ComponentCallbacks2`), and
+    `ComponentCallbacks.onLowMemory()` is deprecated since API 35. Do not build a release on them.
+  - `TRIM_MEMORY_UI_HIDDEN` (halves) and `TRIM_MEMORY_BACKGROUND` (floors) — the two levels that *are*
+    still delivered — **only while no car session is live**: with one, the car surface keeps rendering
+    from those caches and a release would buy a refetch for nothing.
+- **Measured retention ceiling** (2026-09-27, Pixel 8, scripted walk = 10 zoom-out steps + 14 pan swipes
+  via `adb shell input`): native heap 115 MB → 337 MB, `TOTAL PSS` 377 MB → 600 MB, saturating under
+  continued panning, retaining 324 MB after returning to the start viewport; the app's bitmap cache stayed
+  flat. Quote the walk with any retention number, and see `guidelines/Build.md` §10 for the measurement
+  rule (every footprint counter here is a high-water mark).
+- **No fault escapes a release** (`MemoryPressureResponder`): the release runs on a process-wide
+  dispatcher from a process-scoped responder, so its body is `runCatching`-wrapped and a confined fault is
+  recorded under the `MEMORY` tag (throwable class only, never its message). Without that, a throwable
+  raised inside a *memory-pressure* callback reaches the thread's uncaught-exception handler and kills the
+  app — the one moment it can least afford it. The same missing confinement leaked an uncaught exception
+  into the test JVM and was misattributed to another package for a whole session (TODO §96,
+  `ki_processing_failures.log` 2026-09-27): any long-lived scope that a test can construct needs one.
+
+---
+
+## 18. The phone canvas while a car session is active — disposal, not hiding
+
+A live car session **disposes** the phone map canvas: `MapCanvasScreen` composes
+the car-session surface *instead of* the canvas (`guidelines/UI.md` §10a) — the
+canvas and all of its overlays, gesture state and remembered frames are simply
+not composed. Merely hiding the canvas would keep its window/EGL/GL buffers
+allocated, which is where the measured saving is: Graphics 132 MB → 28 MB with
+the phone UI gone while the car kept drawing (design of
+`phone-surface-while-car-session`, Pixel 8, fresh process per state).
+
+`MapRenderer.releaseRenderStorage()` gives up the rest. Its order *is* the race
+argument, and each step earns its place:
+
+1. the render **epoch is bumped first**, so a render already in flight discards
+   its result instead of swapping a buffer in behind the release (every commit
+   path checks the epoch under `bufferLock`);
+2. a queued-but-unstarted render is dropped (`pendingRender`). The two
+   **lifetime loops are NOT cancelled**: `debounceJob`/`renderJob` consume the
+   renderer's channels for as long as the renderer lives, and cancelling them
+   leaves a renderer that can never render again — including the resume render.
+   (A first implementation cancelled them and the test caught it immediately:
+   every post-release render silently produced no frame.)
+3. the two frame buffers are recycled under `bufferLock` — they are
+   renderer-private, nothing outside the class ever sees them, exactly as in
+   `shutdown()`;
+4. the tile cache is cleared. Its bitmaps are only **dropped, never recycled**: a
+   tile may still be referenced by a render in flight (the rule `TileCache.clear`
+   already followed);
+5. the last emitted frame is dropped the same way and **never recycled** —
+   Compose may still be drawing it — and the frame flow is reset to a
+   bitmap-less state, because a `StateFlow` retains its last value and that value
+   would otherwise be the only remaining reference keeping the frame alive;
+6. the pool's idle targets are released (`RenderBitmapPool.releaseIdle`). Nobody
+   draws with a target the pool holds free, so this cannot alias a live target;
+   the car's only cost is one fresh allocation on its next render.
+
+**What is deliberately not released: the shared native tile-data cache.** It is
+client-wide and the car surface renders from it while the phone is suspended —
+trimming it would force a refetch storm on the car. Releasing it under *pressure*
+is `bound-tile-data-retention`'s job, not this one.
+
+No native render call happens in the release — only reference drops and two
+short locks — so it is safe from a presence/lifecycle callback. The renderer
+stays usable; the resume is a **fresh render at the retained viewport**, with no
+crossfade from the last frame: keeping that frame for a transition would hold an
+overrun-sized bitmap plus its GPU texture for the whole session, i.e. it would
+give back part of the saving for a cosmetic effect.
+
+All the counters involved are **high-water marks inside a process** (native heap,
+`Graphics`, `TOTAL PSS`, malloced bitmaps), so any verification of this path needs
+a fresh process per state — recipe in `guidelines/Build.md` §10.
 
 ---
 

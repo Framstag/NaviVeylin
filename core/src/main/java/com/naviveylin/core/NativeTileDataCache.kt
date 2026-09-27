@@ -25,6 +25,21 @@ enum class TileCacheConfig {
 }
 
 /**
+ * Outcome of [NativeTileDataCache.trim] — a deliberate retention release, distinct from a
+ * configuration request ([TileCacheConfig]).
+ */
+enum class TileCacheTrim {
+    /** The capacity was lowered and the native cache evicted least-recently-used tile data. */
+    TRIMMED,
+
+    /** Nothing to release: no capacity configured yet, or already at or below the target. */
+    UNCHANGED,
+
+    /** The native call failed; the capacity stands as it was. */
+    FAILED
+}
+
+/**
  * Single owner of the native tile data cache capacity (spec: `native-tile-data-cache`).
  *
  * The value is a tuned constant per surface, never a user-facing setting, and every surface that opens
@@ -64,6 +79,24 @@ object NativeTileDataCache {
 
     /** Configured capacity per client (identity, weak so a rebuilt client does not pin the old one). */
     private val configuredByClient = WeakHashMap<Any, Int>()
+
+    /**
+     * True when some surface has configured a capacity in this process, i.e. when a native client
+     * exists (a capacity is only ever recorded by a caller that already holds the client instance).
+     * The retention release reads it to avoid *building* a client from a lifecycle callback.
+     */
+    fun isConfigured(): Boolean =
+        synchronized(configuredByClient) { configuredByClient.isNotEmpty() }
+
+    /**
+     * The capacity currently recorded for [client], or null when it was never configured (the client
+     * then runs on the library default). The retention release computes its target from this.
+     */
+    fun currentCapacity(client: OSMScoutClient): Int? = capacityOf(client)
+
+    /** [currentCapacity] keyed by client identity; testable without a native client. */
+    internal fun capacityOf(key: Any): Int? =
+        synchronized(configuredByClient) { configuredByClient[key] }
 
     /**
      * Configure [client]'s tile data cache with [tiles]. A value equal to the current one is
@@ -108,5 +141,58 @@ object NativeTileDataCache {
                 TileCacheConfig.FAILED
             }
         }
+    }
+
+    /**
+     * Release retention: lower [client]'s capacity to [tiles] and let the native cache evict
+     * least-recently-used tile data (spec: `native-tile-data-cache` — Retention is released under
+     * platform memory pressure). This is the **only** operation allowed to lower the capacity;
+     * [apply] stays raise-only for surface configuration, so a surface can never shrink another
+     * surface's working set mid-session.
+     *
+     * The recorded capacity follows the release, so a later configuration request is judged against
+     * the client's actual value (the phone's own capacity raises again after a release).
+     *
+     * @return the outcome; never throws (a failed release keeps the previous capacity)
+     */
+    fun trim(client: OSMScoutClient, tiles: Int): TileCacheTrim =
+        trimTo(client, tiles) { client.setNativeDataCacheSize(it) }
+
+    /**
+     * The policy behind [trim], decoupled from the JNI call so it is testable without a native client:
+     * [key] identifies the client, [setSize] performs the native call.
+     */
+    internal fun trimTo(key: Any, tiles: Int, setSize: (Int) -> Unit): TileCacheTrim {
+        require(tiles > 0) {
+            "tile data cache size must be positive (the native layer reads <= 0 as the library default)"
+        }
+
+        synchronized(configuredByClient) {
+            // Nothing configured yet: the client runs on the library default, so there is no
+            // retention to release and no reason to touch it.
+            val current = configuredByClient[key] ?: return TileCacheTrim.UNCHANGED
+            if (current <= tiles) return TileCacheTrim.UNCHANGED
+
+            return try {
+                setSize(tiles)
+                configuredByClient[key] = tiles
+                TileCacheTrim.TRIMMED
+            } catch (e: Exception) {
+                // A failed release keeps the recorded capacity, so the client's actual value and the
+                // bookkeeping stay in step and a later release can be retried.
+                TileCacheTrim.FAILED
+            } catch (e: UnsatisfiedLinkError) {
+                TileCacheTrim.FAILED
+            }
+        }
+    }
+
+    /**
+     * Forgets every recorded decision (test-only, mirroring [RenderBitmapPool.resetForTest]). The
+     * registry is process-wide by design, so a test that asserts on "no client configured" needs a
+     * clean slate.
+     */
+    fun resetForTest() {
+        synchronized(configuredByClient) { configuredByClient.clear() }
     }
 }

@@ -4,6 +4,52 @@
 
 ---
 
+## 89. The installed map set cannot answer the compound-name search check — the loaded database's type config lacks POI types the stylesheet declares — Found 2026-09-27 on `emulator-5554` during `fix-compound-name-matching` (data/import side, out of that change's scope)
+
+- **Observed** ℹ: `Hilpert Theater Lünen` returns the town `Lünen` (12 km) and nothing else, and `Hilpert` alone returns **0 candidates** (`searchLocations: query='Hilpert', adminRegionHandle=1, candidates=0`), although the change's proposal names the POI (`Heinz-Hilpert-Theater Lünen`, OSM way 38028287) as the case it fixes. The renderer explains why: every render logs `W NaviVeylin: Unknown type 'amenity_theatre'` (and `amenity_cinema`, `amenity_fire_station`, `amenity_parking`, …), i.e. the **loaded database's type config does not carry those types**, so their objects were never imported and no matcher can find them. `Theater Dortmund` likewise returns only streets/garages (`Theatergarage`, `Theaterkarree`), never a theatre.
+- **Consequence** ⏳: the phone half of `fix-compound-name-matching` task 5.4 is blocked by data, not by code (recorded in that task), and any future on-device search check that targets POIs must first confirm the type is in the installed data. `Erbstollenstraße 10 58454 Witten` (perfect match + house levels) and `Erbstollenstrasse` (transliteration → perfect match) do verify on the same install — road/street types are present.
+- **Fix candidate**: rebuild or re-download the map set with a type config that matches the shipped stylesheet (the stylesheet is the single source of truth for which types are `ADDRESS POI`), then re-run task 5.4. Worth a small app-side diagnostic instead of a per-render `W` line: compare the stylesheet's declared types against the database's type config once at open and report the missing set (a missing type is a data question, but the user/developer sees only a wall of warnings today).
+- **Adjacent observation** ℹ: on a device with several installed maps, `NavGraph.kt` opens `installed.first()` — the first directory the filesystem lists — as the primary database (here `iceland`, which is what `viewport-iceland.json` and the diagnostics `map=iceland` lines name, while the Dortmund data actually comes from the additional databases). There is no persisted "last used / default map" for the phone's first open; the map manager is the only way to choose deliberately. Same family as the per-surface anchor split (`autoRoutingAnchorId`) and probably its own change.
+
+---
+
+## 88. The coordinate redaction does not purge what the pre-change build already wrote — diagnostics file keeps coordinates for the retention window — Found 2026-09-27 on `emulator-5554` during `fix-diagnostics-coordinate-redaction` (task 8.1 recipe)
+
+- **Observed** ℹ: the recipe's own grep (`[0-9]{1,3}\.[0-9]{4,}` over `files/diagnostics/app.log`) hits exactly one entry:
+  `[2026-09-25 21:34:34.085] LONGPRESS lat=51.513298135108705 lon=7.474341597216892 mag=16.0` — written by the build **before** the change and still inside the 7-day retention (the same session logged `DiagnosticsLog retention: dropped 1617 entries older than 168h`). Everything written by the current build is clean: 135 entries from 2026-09-27 with 0 hits, and a fresh long-press writes `LONGPRESS x=540 y=1500 mag=18.0 map=iceland` (screen pixel / magnification / map name).
+- **Consequence** ⏳: on a device that ran the old build, "no coordinates in the diagnostic stream" is only true for new entries; an exported log within the retention window still carries old positions, and a reviewer following task 8.1 literally sees a hit and cannot tell stale from regressed.
+- **Fix candidate**: on the first start after an update (or on any retention prune), drop entries that match the coordinate shape — the file is line-oriented and the prune already rewrites it — or make the export state the cutoff ("entries before <date> predate coordinate-free logging"). Prefer the purge: it is the only variant that makes the recipe's grep meaningful.
+
+---
+
+## 87. The shared-location path logs coordinates at runtime — the gate cannot see interpolated values — Found 2026-09-27 on `emulator-5554`
+
+- **Observed** ℹ: a `geo:` deep link produces four coordinate-bearing lines in the logcat stream from the current build:
+  `D DeepLinkActivity: Deep link received: action=android.intent.action.VIEW data=geo:51.5142,7.4653`
+  `D MainActivity: Shared location parsed: SharedLocationRequest(lat=51.5142, lon=7.4653, label=51.51420, 7.46530, query=null)`
+  `D MapCanvasVM: Shared location: label=51.51420, 7.46530 mag=14.0`
+  (the third also fires for any share-sheet location whose label is a coordinate pair). `AGENTS.md` states the rule for *log or diagnostics* lines (spec `auto-diagnostics` — Diagnostics carry no coordinates); the file-backed `LONGPRESS` entry already follows it.
+- **Why the gate passes** ℹ: `CoordinateLogScanner` flags a call whose *text* contains a coordinate identifier or a `%.5f` format. These calls interpolate `$request` / `${request.label}` / the intent data, so nothing in the source names a coordinate — an intentional-looking blind spot that any future "log the parsed object" repeats.
+- **Fix candidate**: log identity instead of the value at all three sites (deep-link action + target kind, "shared location: coordinate pair (label from link)" / the query string, no `lat`/`lon`), and extend the scanner with the cheap structural rule the class needs — flag a `Log.*` call that interpolates a whole `SharedLocationRequest`/`Location`/`GpsFix`-like object or the raw intent data. Both are Kotlin-only; `MainActivity.kt:136` and `MapCanvasViewModel.kt:2512` are two-line edits.
+
+---
+
+## 86. A lost fix never degrades the fix quality — the compass stays green after the GPS is gone — Found 2026-09-27 on `emulator-5554` during the `compass-day-night-palette` / `fix-location-permission-scope` on-device passes
+
+- **Observed** ℹ: with the device location switched off (`adb shell cmd location set-location-enabled false`) the app received no further fixes, yet 30 s later (the freshness bound is `GPS_FIX_FRESHNESS_MS = 5_000`) the compass still showed the **GOOD** fill `#1B4A24` and no `GPS fix quality: NONE` line appeared. The fix quality is computed inside `locationService.location.map { … }` (`MapCanvasViewModel.kt` ~line 951), so the `loc == null || System.currentTimeMillis() - loc.time > GPS_FIX_FRESHNESS_MS → NONE` branch is only evaluated when a **new** fix arrives; a StateFlow that stops emitting keeps the last GOOD value forever. Revoking the permission is not a workaround: it kills the process.
+- **Consequence** ⏳: in a tunnel, a garage or with location toggled off, the compass keeps claiming a good fix, the browse re-center keeps measuring against a frozen marker, and `GpsFixQuality.NONE` (and with it the red compass family) is effectively unreachable on a lost fix. Anything keyed to fix quality (compass tone, routing gates, search scoping) inherits the stale value.
+- **Fix candidate**: evaluate freshness on a timer as well as on emission (a slow tick — e.g. `tickerFlow(1 s)` combined with the location flow, or a `distinctUntilChanged`-safe periodic re-check) so the quality drops to NONE once the fix ages out and returns to GOOD on the next fix; add a unit test that advances the clock past the bound **without** emitting a new fix (the existing tests all emit).
+
+---
+
+## 85. POI symbol icons never load — no icon directory is shipped or configured — Found 2026-09-27 on `emulator-5554`
+
+- **Observed** ℹ: every render emits `E NaviVeylin: ERROR while loading image 'bus_stop'` (and `parking`, `restaurant`, `fast_food`, `pharmacy`, …) through the native log bridge — 12 such lines in a single short buffer, one per symbol the stylesheet declares. The map therefore draws no POI icons at all: `stylesheets/include/amenity.oss` declares `NODE.ICON { symbol: amenity_hospital; name: hospital; }`-style entries for dozens of types, and the renderer has nowhere to load them from.
+- **Cause** ✅: `MapDownloadModule.provideOSMScoutClient` builds the client with `withStyleSheetDirectory(…)` but **never calls `withIconDirectory(…)`**, and no icon set exists anywhere in the repo (`git ls-files stylesheets` in the submodule has no `icons/` entry, `app/src/main/assets` has none). On the native side `OSMScoutClient.cpp:1461` only calls `params.SetIconPaths({iconDir})` when the directory is non-empty, so with none configured the symbol loader has no path and fails per symbol.
+- **Fix candidate**: ship the icon set the stylesheets expect (the libosmscout style sheet project's icons, e.g. under `assets/stylesheets/icons/`), copy it with the stylesheets in `AssetCopier`/`syncSubmoduleStylesheets`, and pass its on-device path via `withIconDirectory(…)`. Then re-check that the per-render `ERROR while loading image` lines are gone — they are also the noise that makes "logcat free of errors" unverifiable for other on-device checks (e.g. `compass-day-night-palette` 7.3).
+
+---
+
 ## 84. Two surfaces in one process shared their process-global resources without an owner rule — FIXED by `shared-resource-arbitration` (2026-09-26); device verification pending
 
 - **Fixed** ✅ by change `shared-resource-arbitration` (specs: `location-updates-lease`, `settings-persistence`, `native-tile-data-cache`, `car-session-presence`):

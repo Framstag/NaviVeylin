@@ -1,32 +1,6 @@
-# Canvas Overrun Specification
+# Delta: canvas-overrun
 
-## Purpose
-
-Eliminate unnecessary native re-renders during small pan gestures by rendering a larger-than-screen buffer and shifting the displayed window within the overrun frame when the viewport shifts within the overrun area.
-
-## Requirements
-
-### Requirement: Configurable canvas overrun
-
-The system SHALL render the map at a configurable multiplier of the screen size.
-
-- The default overrun multiplier SHALL be 1.2×
-- The render width SHALL be `screenWidth × overrunMultiplier`
-- The render height SHALL be `screenHeight × overrunMultiplier`
-- The overrun multiplier SHALL be configurable at runtime
-- The overrun buffer SHALL be centered on the viewport center
-
-#### Scenario: Initial render uses overrun
-
-- **WHEN** the map first renders on a 1080×1920 screen
-- **THEN** the render target is 1296×2304 pixels (1.2×)
-- **THEN** the visible 1080×1920 region is extracted from the center of the overrun buffer
-
-#### Scenario: Overrun multiplier changed
-
-- **WHEN** the overrun multiplier is changed from 1.2 to 1.5
-- **THEN** subsequent renders use 1.5× screen dimensions
-- **THEN** the next render uses the new multiplier
+## MODIFIED Requirements
 
 ### Requirement: Sub-region blit for pan
 

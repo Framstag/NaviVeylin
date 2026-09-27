@@ -197,21 +197,30 @@ The system SHALL render the GPS location marker on an overlay layer separate fro
 
 ### Requirement: Marker projects against displayed bitmap viewport
 
-The system SHALL project every overlay drawn on the map surface (the GPS marker and the destination pin) to screen pixels using the viewport of the bitmap currently displayed, not the target viewport of a render that has not completed.
+The system SHALL project every overlay drawn on the map surface (the GPS marker and the destination pin) to screen pixels using the viewport of the bitmap currently displayed, not the target viewport of a render that has not completed, and SHALL apply to those overlays the same display offset the map content is drawn with.
 
 - The overlay projection SHALL use the displayed bitmap's center, magnification, rotation, and DPI
-- The overlay SHALL be shifted by the same blit offset the displayed frame was drawn with
-- The frame's blit offset SHALL be published together with the frame it describes, so a frame completing concurrently in another thread can never make an overlay use a different frame's offset
+- The overlay SHALL be shifted by the same display offset the displayed frame was drawn with: an overlay SHALL NOT be drawn at its unshifted frame position while the content around it is shifted
+- The frame's display offset SHALL be derived from the frame that is displayed (the frame's own viewport against the displayed center), so a frame completing concurrently can never make an overlay use another frame's offset
+- The applied offset SHALL be the CLAMPED offset: when the displayed window saturates at the overrun margin, the marker SHALL stay on the content that is actually on screen instead of running ahead of it
 - The marker SHALL be reprojected on every displayed frame
 - A viewport write whose frame has not been committed yet (a follow re-anchor on a GPS fix, a heading rotation, a zoom change) SHALL NOT move any overlay before that frame is on the surface
-- In follow mode the marker SHALL be projected against the anchor center of the displayed (predicted) position: the frame is rendered anchor-centered on its own position and then blitted by the prediction drift, so only this projection places the marker on the map content at the anchor. Projecting against the anchor-centered frame's own center would leave the marker ahead of the content by the blit offset
+- In follow mode the marker SHALL be projected against the anchor center of the displayed (predicted) position: the frame is rendered anchor-centered on its own position and then shifted by the prediction drift, so only this projection places the marker on the map content at the anchor. Projecting against the anchor-centered frame's own center would leave the marker ahead of the content by the drift
 - The marker and the map content SHALL share one projection and one offset: the marker SHALL NOT be clamped, shifted or held back independently of the map content, so marker and road cannot drift apart while the displayed frame lags behind the prediction
 - Both follow-mode implementations SHALL satisfy this: the phone projects against the committed render viewport, and the Android Auto renderer SHALL publish the displayed frame's own center, magnification and rotation and project its overlays against that published frame
 
 #### Scenario: Marker stays anchored during pan
 
-- **WHEN** the user pans and the target viewport leads the rendered frame
+- **WHEN** the user pans and the displayed center leads the frame that is on screen
 - **THEN** the marker SHALL remain at the same screen-relative position over the same map features as the displayed bitmap
+- **AND** the marker SHALL move with the content of the shifted overrun frame, not stay at its unshifted frame position
+
+#### Scenario: Marker does not run ahead on a saturated pan window
+
+- **WHEN** the user keeps panning after the display offset reached the overrun margin, before the re-render lands
+- **THEN** the marker SHALL stay on the map content displayed at the margin
+- **AND** the marker SHALL NOT be displaced from that content in the drag direction
+- **AND** the marker and the content SHALL resume tracking together once the re-render is displayed
 
 #### Scenario: Marker anchored during rotation placeholder
 
@@ -228,7 +237,7 @@ The system SHALL project every overlay drawn on the map surface (the GPS marker 
 
 #### Scenario: Frame stays consistent when the target moves during a render
 
-- **WHEN** the render target changes while a native render is in flight (a fix re-anchor, a clamp re-anchor, an auto-zoom commit)
+- **WHEN** the render target changes while a native render is in flight (a fix re-anchor, a pan clamp re-anchor, an auto-zoom commit)
 - **THEN** the frame that becomes the displayed frame SHALL be described by the center, magnification and rotation the pixels were rendered with
 - **AND** every overlay SHALL project against those parameters for the whole inter-commit window
 

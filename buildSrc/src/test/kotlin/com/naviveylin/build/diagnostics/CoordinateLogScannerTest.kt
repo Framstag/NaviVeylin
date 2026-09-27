@@ -125,4 +125,94 @@ class CoordinateLogScannerTest {
 
         assertTrue(scan(source).isEmpty())
     }
+
+    // ── interpolated values (TODO.md §87: the value arrives whole) ──
+
+    @Test
+    fun flagsAnInterpolatedRequestObject() {
+        val source = """Log.d(TAG, "Shared location parsed: ${'$'}request")"""
+
+        val findings = scan(source)
+
+        assertEquals(1, findings.size)
+        assertEquals("position-carrying object 'request'", findings.single().reason)
+    }
+
+    @Test
+    fun flagsInterpolatedIntentData() {
+        val source = """Log.d(TAG, "Deep link received: action=${'$'}{original?.action} data=${'$'}{original?.data}")"""
+
+        val findings = scan(source)
+
+        assertEquals(1, findings.size)
+        assertEquals("intent data 'original?.data'", findings.single().reason)
+    }
+
+    @Test
+    fun flagsAnInterpolatedCarDestination() {
+        val source = """Log.d(TAG, "Deep link parsed: ${'$'}destination")"""
+
+        val findings = scan(source)
+
+        assertEquals(1, findings.size)
+        assertEquals("position-carrying object 'destination'", findings.single().reason)
+    }
+
+    @Test
+    fun flagsACarrierTypedLocalEvenUnderAnotherName() {
+        val source = """
+            val parsed: DeepLinkDestination = DeepLinkParser.parse(intent) ?: return
+            Log.d(TAG, "destination ${'$'}parsed")
+        """.trimIndent()
+
+        val findings = scan(source)
+
+        assertEquals(1, findings.size)
+        assertTrue(findings.single().reason.contains("position-carrying object 'parsed'"))
+    }
+
+    @Test
+    fun leavesAllowedIdentityInterpolationsAlone() {
+        // The identity fields D4 prescribes, and property reads that are not a URI.
+        val source = """
+            Log.d(TAG, "onLocationChanged: acc=${'$'}{location.accuracy} provider=${'$'}{location.provider}")
+            Log.d(TAG, "shouldEmit: duplicate fix dropped (t=${'$'}{location.time})")
+            Log.d(TAG, "onStartCommand action=${'$'}{intent?.action ?: "-"}")
+            Log.d(TAG, "onFavoriteSelected: name='${'$'}{fav.name}'")
+            Log.d(TAG, "download ${'$'}url")
+        """.trimIndent()
+
+        assertTrue("no whole position carrier is interpolated: ${scan(source)}", scan(source).isEmpty())
+    }
+
+    @Test
+    fun flagsAWholeUriEvenWithAFallbackOrToString() {
+        val sources = listOf(
+            """Log.d(TAG, "session data=${'$'}{intent?.data ?: "-"}")""",
+            """Log.d(TAG, "session data=${'$'}{intent?.data.toString()}")"""
+        )
+
+        sources.forEach { source ->
+            assertEquals("must flag the whole URI: $source", 1, scan(source).size)
+            assertTrue(scan(source).single().reason.startsWith("intent data"))
+        }
+    }
+
+    @Test
+    fun leavesASchemeReadOffTheUriAlone() {
+        // The fix shape itself: reading a scalar off the URI is identity, not a position.
+        val source = """DiagnosticsLog.log(SESSION_TAG, "onCreateScreen action=${'$'}{intent?.action} scheme=${'$'}{intent?.data?.scheme}")"""
+
+        assertTrue("scheme is identity: ${scan(source)}", scan(source).isEmpty())
+    }
+
+    @Test
+    fun leavesScalarInterpolationsAlone() {
+        val source = """
+            Log.d(TAG, "renderer#${'$'}rendererId ${'$'}message held=${'$'}held")
+            Log.d(TAG, "surface ${'$'}surfaceWidth x ${'$'}surfaceHeight dpi=${'$'}surfaceDpi")
+        """.trimIndent()
+
+        assertTrue(scan(source).isEmpty())
+    }
 }

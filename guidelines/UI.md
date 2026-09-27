@@ -739,10 +739,17 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   (spec: `auto-diagnostics` — Diagnostics carry no coordinates); a Gradle
   `checkNoCoordinatesInLogs` gate (buildSrc `CoordinateLogScanner`, wired into
   `preBuild`, scanning `:app`/`:auto`/`:core`) fails the build naming file and
-  line, and the scan is paren-balanced so it sees multi-line calls. Log
-  precision-free identity instead: object label/id, map database or map file name,
-  magnification, screen pixel, accuracy, bearing. The gate has no allowlist — a
-  message that only mentions a coordinate word in prose must be reworded.
+  line, and the scan is paren-balanced so it sees multi-line calls. It flags four
+  shapes: a coordinate identifier, a coordinate-shaped format, a *whole*
+  position-carrying value (`$request`, `$destination`, a local declared with a carrier
+  type) and a whole-URI hand-over (`${original?.data}`, `${intent?.data ?: "-"}`) — a
+  property read off the URI (`${intent?.data?.scheme}`) is identity and stays legal.
+  Log precision-free identity instead: object label/id, map database or map file name,
+  magnification, screen pixel, accuracy, bearing — and for input the app merely
+  *received* (a share subject, a query, a deep-link URI) log its origin and shape
+  (scheme, action, whether a subject/query was present), never its text. The gate has
+  no allowlist — a message that only mentions a coordinate word in prose must be
+  reworded.
 - **RTL**: `supportsRtl="true"` is set; keep layouts direction-agnostic
   (use `start`/`end` alignment, not `left`/`right`) so future RTL locales
   work without layout changes.

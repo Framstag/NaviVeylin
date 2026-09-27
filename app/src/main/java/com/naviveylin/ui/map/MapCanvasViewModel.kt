@@ -2509,7 +2509,12 @@ class MapCanvasViewModel @Inject constructor(
         if (request.hasCoordinates) {
             val lat = request.lat!!
             val lon = request.lon!!
-            Log.d(TAG, "Shared location: label=${request.label} mag=${_uiState.value.viewport.magnification}")
+            Log.d(
+                TAG,
+                "Shared location: shape=coordinates " +
+                    "labelHint=${if (request.label != null) "subject" else "none"} " +
+                    "mag=${_uiState.value.viewport.magnification} map=${currentMapKey ?: "?"}"
+            )
             updateCenter(lat, lon)
             showCandidatesFor(
                 lat = lat,
@@ -2521,7 +2526,8 @@ class MapCanvasViewModel @Inject constructor(
         } else {
             val query = request.query
             if (!query.isNullOrBlank()) {
-                Log.d(TAG, "Shared location: query '$query'")
+                // Shape, not text: a shared text can itself be a coordinate pair.
+                Log.d(TAG, "Shared location: shape=query chars=${query.length}")
                 onSearchQueryChanged(query)
                 openSearch()
             }

@@ -63,7 +63,12 @@ class SessionLogTest {
         val entries = DiagnosticsLog.readEntries()
         assertTrue(entries.any { it.contains("Session created") })
         assertTrue(entries.any { it.contains("Warmup started") })
-        assertTrue(entries.any { it.contains("onCreateScreen action=android.intent.action.VIEW data=geo:1.0,2.0") })
+        assertTrue(entries.any { it.contains("onCreateScreen action=android.intent.action.VIEW scheme=geo") })
+        assertTrue(
+            "the session-start URI must never reach the diagnostics file (spec: auto-diagnostics — " +
+                "Diagnostics carry no coordinates): $entries",
+            entries.none { it.contains("geo:1.0,2.0") }
+        )
         assertTrue(entries.any { it.contains("onCreateScreen") && it.contains("warmupCompleted=false") })
         assertTrue(entries.any { it.contains("onCreateScreen") && it.contains("sinceSessionCreate=50ms") })
         assertTrue(entries.any { it.contains("onNewIntent action=android.intent.action.VIEW") })
@@ -124,6 +129,6 @@ class SessionLogTest {
     @Test
     fun nullIntentIsLoggedSafely() {
         SessionLog.onCreateScreen(null)
-        assertTrue(DiagnosticsLog.readEntries().any { it.contains("onCreateScreen action=null data=null") })
+        assertTrue(DiagnosticsLog.readEntries().any { it.contains("onCreateScreen action=null scheme=null") })
     }
 }

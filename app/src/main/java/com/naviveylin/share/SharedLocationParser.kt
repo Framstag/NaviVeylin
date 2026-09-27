@@ -4,7 +4,6 @@ import android.content.Intent
 import com.naviveylin.core.DeepLinkParser
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -12,7 +11,7 @@ import kotlinx.coroutines.withContext
  * A location shared into NaviVeylin from another app, parsed from the intent.
  *
  * Exactly one of the two forms is populated:
- * - coordinates ([lat]/[lon], with a display [label]) — a raw geo point
+ * - coordinates ([lat]/[lon], with an optional name hint in [label]) — a raw geo point
  * - [query] — free-text address/place name without coordinates
  */
 data class SharedLocationRequest(
@@ -46,9 +45,12 @@ class SharedLocationParser(
         val dest = DeepLinkParser.parse(intent, shortLinkResolver) ?: return@withContext null
 
         if (dest.hasCoordinates) {
-            val label = intent.getStringExtra(Intent.EXTRA_SUBJECT)
-                ?.takeIf { it.isNotBlank() }
-                ?: String.format(Locale.US, "%.5f, %.5f", dest.lat!!, dest.lon!!)
+            // The label is the share-subject hint only — never a synthesized
+            // coordinate pair: it is identity for the log line, and a pair would be
+            // a position in the diagnostics (spec: auto-diagnostics — Diagnostics
+            // carry no coordinates). The display fallback is composed where the
+            // label is displayed (MapCanvasViewModel).
+            val label = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.takeIf { it.isNotBlank() }
             SharedLocationRequest(lat = dest.lat, lon = dest.lon, label = label)
         } else {
             dest.query?.takeIf { it.isNotBlank() }?.let { SharedLocationRequest(query = it) }

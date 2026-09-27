@@ -15,12 +15,16 @@ class SharedLocationParserTest {
     private fun parser(resolver: (String) -> String? = { null }) = SharedLocationParser(resolver)
 
     @Test
-    fun geoCoordinate_parses() = runTest {
+    fun geoCoordinate_parsesWithoutASynthesizedLabel() = runTest {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:48.8566,2.3522"))
         val req = parser().parse(intent)
         assertEquals(48.8566, req!!.lat!!, 1e-6)
         assertEquals(2.3522, req.lon!!, 1e-6)
-        assertEquals("48.85660, 2.35220", req.label)
+        assertNull(
+            "no synthesized coordinate-pair label: it would be a position in every log line " +
+                "the request reaches (spec: auto-diagnostics — Diagnostics carry no coordinates)",
+            req.label
+        )
     }
 
     @Test

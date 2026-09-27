@@ -4,6 +4,15 @@
 
 ---
 
+## 94. `./gradlew test` also builds the native CMake target for both flavors and all three ABIs — after a submodule bump one invocation is a >45-minute run, and the aged daemon then OOMs the automotive dex merge — Found 2026-09-27 during `fix-diagnostics-coordinate-redaction` task 9.5 (harness)
+
+- **Observed** ℹ: with the freshly merged libosmscout submodule (`cbbc66d`), a single `./gradlew test` ran `:app:configureCMakeDebug[arm64-v8a|armeabi-v7a|x86_64]` and `:app:buildCMakeDebug[…]` for the mobile flavor and again for the automotive flavor. The invocation exceeded a 45-minute tool window: the `:app` mobile suite (179 classes / 1278 tests, 0 failures) had completed and `:app` automotive had just started, while `:auto` and `:core` had already executed. Splitting the gate (`./gradlew :app:testAutomotiveDebugUnitTest :auto:testDebugUnitTest :core:testDebugUnitTest`) then finished in **1 m 58 s** (11 executed tasks) with the native build warm.
+- **Second-order** ⚠: the daemon that had run the suite and both native builds afterwards failed `:app:mergeExtDexAutomotiveDebug` with `ERROR: D8: java.lang.OutOfMemoryError: Java heap space` (`DexArchiveMergerException`); `./gradlew --stop` followed by `:app:assembleAutomotiveDebug -Dorg.gradle.jvmargs=-Xmx4g` merged, dexed and packaged the same variant in **13 s**.
+- **Consequence** ⏳: "one `./gradlew test` invocation" is not a dependable gate on this machine after a submodule bump — a session that starts it in one tool window loses the verdict (TODO §17: a log ending mid-run is not evidence) and can then hit the dex OOM while assembling. The product build itself is fine; the cost is the per-flavor native rebuild plus an aged daemon.
+- **Fix candidate**: document the budget in `guidelines/Build.md` §6/§10 (after a submodule bump the suite carries the native build; prefer the per-module test tasks for the gate and quote per-module counts from `test-results/*.xml`), and stop/recreate the daemon before a flavor assemble when a long suite ran first. No product change.
+
+---
+
 ## 89. The installed map set cannot answer the compound-name search check — the loaded database's type config lacks POI types the stylesheet declares — Found 2026-09-27 on `emulator-5554` during `fix-compound-name-matching` (data/import side, out of that change's scope)
 
 - **Observed** ℹ: `Hilpert Theater Lünen` returns the town `Lünen` (12 km) and nothing else, and `Hilpert` alone returns **0 candidates** (`searchLocations: query='Hilpert', adminRegionHandle=1, candidates=0`), although the change's proposal names the POI (`Heinz-Hilpert-Theater Lünen`, OSM way 38028287) as the case it fixes. The renderer explains why: every render logs `W NaviVeylin: Unknown type 'amenity_theatre'` (and `amenity_cinema`, `amenity_fire_station`, `amenity_parking`, …), i.e. the **loaded database's type config does not carry those types**, so their objects were never imported and no matcher can find them. `Theater Dortmund` likewise returns only streets/garages (`Theatergarage`, `Theaterkarree`), never a theatre.

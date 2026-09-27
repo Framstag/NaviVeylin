@@ -7,6 +7,10 @@ import com.naviveylin.core.DiagnosticsLog
  * Centralizes [NavigationSession] event logging so the exact log lines are
  * unit-testable without a host-provided [androidx.car.app.CarContext].
  * [NavigationSession] delegates every session-event log call here.
+ *
+ * Identity only (spec: auto-diagnostics — Diagnostics carry no coordinates): the
+ * session-start intent contributes its action and URI scheme, never the URI, which
+ * is a `geo:` coordinate pair for a shared location.
  */
 object SessionLog {
 
@@ -28,7 +32,7 @@ object SessionLog {
     fun onCreateScreen(intent: Intent?, warmupCompleted: Boolean? = null, sinceSessionMs: Long? = null) =
         DiagnosticsLog.log(
             SESSION_TAG,
-            "onCreateScreen action=${intent?.action} data=${intent?.data}" +
+            "onCreateScreen action=${intent?.action} scheme=${intent?.data?.scheme}" +
                 (warmupCompleted?.let { " warmupCompleted=$it" } ?: "") +
                 (sinceSessionMs?.let { " sinceSessionCreate=${it}ms" } ?: "") +
                 " thread=${Thread.currentThread().name}"
@@ -37,7 +41,7 @@ object SessionLog {
     fun onNewIntent(intent: Intent?, sinceSessionMs: Long? = null) =
         DiagnosticsLog.log(
             SESSION_TAG,
-            "onNewIntent action=${intent?.action} data=${intent?.data}" +
+            "onNewIntent action=${intent?.action} scheme=${intent?.data?.scheme}" +
                 (sinceSessionMs?.let { " sinceSessionCreate=${it}ms" } ?: "") +
                 " thread=${Thread.currentThread().name}"
         )

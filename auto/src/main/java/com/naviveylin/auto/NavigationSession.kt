@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.car.app.navigation.model.Trip
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.DeepLinkDestination
 import com.naviveylin.core.DeepLinkParser
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationState
@@ -576,7 +577,7 @@ class NavigationSession : Session() {
      */
     private fun handleDeepLink(intent: Intent) {
         val destination = DeepLinkParser.parse(intent) ?: return
-        Log.d(TAG, "Deep link parsed: $destination")
+        Log.d(TAG, deepLinkLogMessage(destination))
 
         if (destination.hasCoordinates) {
             navigationViewModel.navigateTo(destination.lat!!, destination.lon!!)
@@ -899,6 +900,15 @@ class NavigationSession : Session() {
         private const val WARMUP_TIMEOUT_MS = 45_000L
     }
 }
+
+/**
+ * Identity-only message for a parsed car deep link (spec: auto-diagnostics —
+ * Diagnostics carry no coordinates): the destination's shape, never the object —
+ * [DeepLinkDestination]'s `toString()` prints the coordinates. Pure seam for unit
+ * testing ([NavigationSession] cannot be constructed in Robolectric).
+ */
+internal fun deepLinkLogMessage(destination: DeepLinkDestination): String =
+    "Deep link parsed: shape=${if (destination.hasCoordinates) "coordinates" else "query"}"
 
 /**
  * Pure mapping from a host [Configuration] to the night-mode flag. Extracted

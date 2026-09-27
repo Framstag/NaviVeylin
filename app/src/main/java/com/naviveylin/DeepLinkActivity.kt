@@ -10,7 +10,7 @@ class DeepLinkActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val original = intent
-        Log.d(TAG, "Deep link received: action=${original?.action} data=${original?.data}")
+        Log.d(TAG, deepLinkReceivedMessage(original))
 
         val forward = Intent(this, MainActivity::class.java)
         forward.action = original?.action
@@ -31,3 +31,13 @@ class DeepLinkActivity : Activity() {
         private const val TAG = "DeepLinkActivity"
     }
 }
+
+/**
+ * Identity-only message for a received deep link (spec: auto-diagnostics —
+ * Diagnostics carry no coordinates): the action, the URI scheme and whether the
+ * sender attached text name the target, while the URI itself is a `geo:`
+ * coordinate pair for a shared location. Pure seam for unit testing.
+ */
+internal fun deepLinkReceivedMessage(intent: Intent?): String =
+    "Deep link received: action=${intent?.action} scheme=${intent?.data?.scheme} " +
+        "textExtra=${intent?.getStringExtra(Intent.EXTRA_TEXT) != null}"

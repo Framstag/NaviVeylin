@@ -16,7 +16,10 @@ data class CoordinateLogFinding(
  * Build gate for the diagnostics privacy rule (change
  * `fix-diagnostics-coordinate-redaction`, spec: auto-diagnostics — Diagnostics carry
  * no coordinates): no log or diagnostics call may interpolate a latitude/longitude
- * value, and no call may format one with coordinate precision.
+ * value, and no call may format one with coordinate precision. Neither may a call
+ * interpolate a whole position-carrying value — a request/destination object or an
+ * `Intent`'s data — where no coordinate identifier appears in the source at all
+ * (`TODO.md` §87).
  *
  * The scan is paren-balanced rather than line-based, because the lines this rule
  * exists for are exactly the multi-line concatenated ones (the fix-received line in
@@ -41,9 +44,42 @@ object CoordinateLogScanner {
     /** Coordinate-shaped precision (5-7 decimals is a position, not a diagnostic value). */
     private val COORDINATE_FORMAT = Regex("""%\.[5-7]f""")
 
+    /**
+     * Names this repo uses for input that may carry a position (share/deep link/
+     * fix). A *bare* `$name` interpolation of one hands the whole value — and its
+     * `toString()` — to the message.
+     */
+    private val CARRIER_NAMES = setOf(
+        "request", "req", "intent", "original", "fix", "location", "loc",
+        "dest", "destination", "pair"
+    )
+
+    /** Types that hold a position; a local declared with one is a carrier too. */
+    private val CARRIER_TYPES = setOf(
+        "SharedLocationRequest", "DeepLinkDestination", "Intent", "Uri", "Location", "GpsFix"
+    )
+
+    /** `val name: Type` declarations, so an explicitly typed carrier is seen too. */
+    private val DECLARATION = Regex(
+        """\b(?:val|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_.]*)"""
+    )
+
+    /** A `$name` or `${expression}` interpolation inside a log call. */
+    private val INTERPOLATION = Regex("""\$(?:\{([^}]*)\}|([A-Za-z_][A-Za-z0-9_]*))""")
+
+    /** A URI read off an intent-shaped value (`${original?.data}`). */
+    private val INTENT_DATA = Regex("""\.(?:data|dataString)\b""")
+
+    /** What may follow the URI read and still be a scalar property read off it. */
+    private val SAFE_URI_READ = Regex("""^\s*\??\.\s*[A-Za-z_][A-Za-z0-9_]*""")
+
+    /** A bare identifier — no property access, no call, no `?:` — i.e. a whole value. */
+    private val BARE_NAME = Regex("[A-Za-z_][A-Za-z0-9_]*")
+
     /** Find every offending call in [source]. */
     fun scan(path: String, source: String): List<CoordinateLogFinding> {
         val findings = mutableListOf<CoordinateLogFinding>()
+        val carriers = carrierNames(source)
         for (opener in OPENERS.findAll(source)) {
             val open = opener.range.last
             val close = matchingParen(source, open) ?: continue
@@ -52,7 +88,7 @@ object CoordinateLogScanner {
             val reason = when {
                 identifier != null -> "coordinate identifier '${identifier.value}'"
                 COORDINATE_FORMAT.containsMatchIn(call) -> "coordinate-shaped format ${COORDINATE_FORMAT.find(call)!!.value}"
-                else -> null
+                else -> interpolatedCarrier(call, carriers)
             } ?: continue
             findings += CoordinateLogFinding(
                 path = path,
@@ -62,6 +98,49 @@ object CoordinateLogScanner {
             )
         }
         return findings
+    }
+
+    /**
+     * The names that carry a position in [source]: the repo's carrier names plus
+     * every local declared with a position-carrying type.
+     */
+    private fun carrierNames(source: String): Set<String> {
+        val declared = DECLARATION.findAll(source)
+            .filter { it.groupValues[2].substringAfterLast('.') in CARRIER_TYPES }
+            .map { it.groupValues[1] }
+            .toSet()
+        return CARRIER_NAMES + declared
+    }
+
+    /**
+     * The regression class this rule exists for (change `fix-diagnostics-coordinate-redaction`,
+     * `TODO.md` §87): a value that arrives *whole* — an interpolated request/destination
+     * object or an `Intent`'s data — so no coordinate identifier appears in the source.
+     */
+    private fun interpolatedCarrier(call: String, carriers: Set<String>): String? {
+        for (match in INTERPOLATION.findAll(call)) {
+            val expression = match.groupValues[1].ifEmpty { match.groupValues[2] }.trim()
+            if (expression.isEmpty()) continue
+            if (BARE_NAME.matches(expression) && expression in carriers) {
+                return "position-carrying object '$expression'"
+            }
+            wholeUri(expression)?.let { return "intent data '$it'" }
+        }
+        return null
+    }
+
+    /**
+     * The expression when it hands the whole URI over (`${original?.data}`,
+     * `${intent?.data ?: "-"}`, `${intent?.data.toString()}`), or null when the
+     * interpolation merely *reads* a scalar off it (`${intent?.data?.scheme}`,
+     * which is identity, not a position).
+     */
+    private fun wholeUri(expression: String): String? {
+        val access = INTENT_DATA.find(expression) ?: return null
+        val suffix = expression.substring(access.range.last + 1)
+        val read = SAFE_URI_READ.find(suffix)?.value?.trimEnd()
+        if (read != null && !read.endsWith("toString")) return null
+        return expression.replace(Regex("\\s+"), "")
     }
 
     /** Human-readable report for a Gradle failure. */

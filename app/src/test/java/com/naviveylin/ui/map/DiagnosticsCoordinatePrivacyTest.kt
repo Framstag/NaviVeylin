@@ -13,9 +13,11 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.test.MainDispatcherRule
 import java.io.File
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -47,7 +49,9 @@ import org.robolectric.shadows.ShadowLog
 class DiagnosticsCoordinatePrivacyTest {
 
     private lateinit var context: Context
+    private lateinit var client: FakeOSMScoutClient
     private lateinit var viewModel: MapCanvasViewModel
+    private lateinit var sharedLocationHandler: SharedLocationHandler
     private lateinit var logFile: File
 
     /** A coordinate-shaped token: 1-3 integer digits followed by 4+ decimals. */
@@ -59,7 +63,8 @@ class DiagnosticsCoordinatePrivacyTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        val client = FakeOSMScoutClient()
+        client = FakeOSMScoutClient()
+        sharedLocationHandler = SharedLocationHandler()
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
             settingsStorage = SettingsStorage(context),
@@ -69,7 +74,7 @@ class DiagnosticsCoordinatePrivacyTest {
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
             darkModeController = DarkModeController(SettingsStorage(context)),
-            sharedLocationHandler = SharedLocationHandler(),
+            sharedLocationHandler = sharedLocationHandler,
             basemapReloadNotifier = BasemapReloadNotifier(),
             context = context
         )
@@ -133,4 +138,33 @@ class DiagnosticsCoordinatePrivacyTest {
             coordinateShaped.containsMatchIn(longPressEntry)
         )
     }
+
+    @Test
+    fun sharedLocationLogsTheShapeInsteadOfTheCoordinatesOrTheLabelText() =
+        runTest(mainDispatcherRule.dispatcher) {
+            viewModel.setScreenSize(100, 100)
+            viewModel.initMap("/data/maps/testmap")
+            client.nextCandidateDescriptions = emptyList()
+
+            // A label that is itself a coordinate pair — the shape the parser used to
+            // synthesize for a share without a subject — must never reach a log line.
+            sharedLocationHandler.submit(
+                SharedLocationRequest(lat = 51.5142, lon = 7.4653, label = "51.51420, 7.46530")
+            )
+            // The log line is written before the request reaches the details sheet, so
+            // waiting for the sheet is waiting for the line (initMap's style push runs
+            // on the native DB thread, so advanceUntilIdle alone cannot see map-ready).
+            viewModel.uiState.first { it.showDetailsSheet }
+
+            val logcat = capturedLogcat()
+            val line = logcat.firstOrNull { it.contains("Shared location:") }
+            assertTrue("the shared-location line is logged: $logcat", line != null)
+            assertTrue("it names the request shape: $line", line!!.contains("shape=coordinates"))
+            assertTrue("and the label's origin: $line", line.contains("labelHint=subject"))
+            assertFalse("the label text must not be logged: $line", line.contains("51.51420"))
+            assertFalse(
+                "no logcat line may carry a coordinate-shaped token: $logcat",
+                logcat.any { coordinateShaped.containsMatchIn(it) }
+            )
+        }
 }

@@ -26,6 +26,7 @@ import com.naviveylin.data.MapStorageManager
 import com.naviveylin.navigation.NavGraph
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.share.SharedLocationParser
+import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.ui.theme.NaviVeylinTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -133,7 +134,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val request = sharedLocationParser.parse(intent)
             if (request != null) {
-                Log.d(TAG, "Shared location parsed: $request")
+                Log.d(TAG, sharedLocationParsedMessage(request))
                 sharedLocationHandler.submit(request)
             }
         }
@@ -152,3 +153,14 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 }
+
+/**
+ * Identity-only message for a parsed share/deep link (spec: auto-diagnostics —
+ * Diagnostics carry no coordinates): the request's shape and whether it carries a
+ * name hint, never the request object — [SharedLocationRequest]'s `toString()`
+ * prints `lat`/`lon` and a label that is a coordinate pair when a share carries no
+ * subject. Pure seam for unit testing.
+ */
+internal fun sharedLocationParsedMessage(request: SharedLocationRequest): String =
+    "Shared location parsed: shape=${if (request.hasCoordinates) "coordinates" else "query"} " +
+        "labelHint=${if (request.label != null) "subject" else "none"}"

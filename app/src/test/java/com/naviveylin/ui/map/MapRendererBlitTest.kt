@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -35,6 +36,13 @@ class MapRendererBlitTest {
         val renderer = MapRenderer(client, dpi = 160.0, scope = backgroundScope)
         renderer.screenWidth = 400
         renderer.screenHeight = 800
+        return renderer
+    }
+
+    /** A renderer whose canvas overrun is off: its frames carry no margin. */
+    private fun TestScope.createMarginlessRenderer(): MapRenderer {
+        val renderer = createRenderer()
+        renderer.canvasOverrun = 1.0
         return renderer
     }
 
@@ -197,6 +205,115 @@ class MapRendererBlitTest {
             assertTrue(
                 "the displayed frame must carry the overrun margin",
                 bitmap.width > renderer.screenWidth && bitmap.height > renderer.screenHeight
+            )
+        } finally {
+            renderer.shutdown()
+        }
+    }
+
+    /**
+     * An unservable window is never reported covered (spec: canvas-overrun — Coverage and
+     * display never disagree into a freeze, follow-up fix 2026-09-26). Three unservable
+     * shapes: no frame emitted yet, a frame without an overrun margin to shift inside, and
+     * a frame whose magnification/rotation is not the requested one.
+     *
+     * The predicate reads the frame the DISPLAY holds (the emitted one); a frame the
+     * display cannot shift must not be dropped as covered, or the pan freezes for the
+     * whole gesture.
+     */
+    @Test
+    fun unservableWindowIsNeverCovered() = runTest {
+        // (a) no frame emitted yet: nothing is displayed, so nothing can be shifted.
+        val fresh = createRenderer()
+        try {
+            assertEquals(
+                "no emitted frame means not covered",
+                false,
+                fresh.overrunWindowCovers(51.5, 7.4, 5.0, 0.0)
+            )
+        } finally {
+            fresh.shutdown()
+        }
+
+        // (b) a frame without an overrun margin (canvasOverrun = 1.0): the displayed
+        // frame is screen-sized, so there is no margin to shift into.
+        val marginless = createMarginlessRenderer()
+        try {
+            renderInitialFrame(marginless)
+            assertEquals(
+                "the emitted frame must be screen-sized",
+                marginless.screenWidth,
+                marginless.frameFlow.value.bitmap!!.width
+            )
+            assertEquals(
+                "a frame without a margin means not covered",
+                false,
+                marginless.overrunWindowCovers(51.5001, 7.4001, 5.0, 0.0)
+            )
+        } finally {
+            marginless.shutdown()
+        }
+
+        // (c) a magnification or rotation the frame in hand does not have.
+        val renderer = createRenderer()
+        try {
+            renderInitialFrame(renderer)
+            assertEquals(
+                "another magnification means not covered",
+                false,
+                renderer.overrunWindowCovers(51.5, 7.4, 5.5, 0.0)
+            )
+            assertEquals(
+                "another rotation means not covered",
+                false,
+                renderer.overrunWindowCovers(51.5, 7.4, 5.0, 0.5)
+            )
+            assertEquals(
+                "a servable window is covered",
+                true,
+                renderer.overrunWindowCovers(51.5001, 7.4001, 5.0, 0.0)
+            )
+        } finally {
+            renderer.shutdown()
+        }
+    }
+
+    /**
+     * An unservable window must not swallow the request: the render has to run so the pan
+     * gets a frame it can serve (spec: map-pan-zoom — A pan SHALL never be invisible).
+     *
+     * The oracle is the emitted frame, not the native tile count: a re-render near the
+     * previous viewport is composed from the tile cache and needs no native call at all,
+     * while the covered case emits no frame (see [coveredPanEmitsNoFrame]).
+     */
+    @Test
+    fun unservableWindowStillRenders() = runTest {
+        val renderer = createMarginlessRenderer()
+        try {
+            renderInitialFrame(renderer)
+            val frameBefore = renderer.frameFlow.value
+            assertEquals(
+                "the frame in hand has no margin to shift into",
+                renderer.screenWidth,
+                frameBefore.bitmap!!.width
+            )
+
+            // Small pan, but the frame in hand cannot serve it.
+            renderer.requestRender(51.5001, 7.4001, 5.0)
+            advanceTimeBy(500)
+            advanceUntilIdle()
+
+            val frameAfter = renderer.frameFlow.value
+            assertNotSame(
+                "an unservable window must render instead of freezing the pan",
+                frameBefore,
+                frameAfter
+            )
+            assertEquals(
+                "the new frame is centered where the pan asked for",
+                51.5001,
+                frameAfter.viewport.lat,
+                1e-6
             )
         } finally {
             renderer.shutdown()

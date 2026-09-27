@@ -100,6 +100,21 @@ class MapRenderer(
     @Volatile private var gpsMarkerBearing = Double.NaN
     @Volatile private var gpsMarkerAccuracy = 0.0
 
+    /**
+     * The frame the display holds: the emitted bitmap's dimensions and the viewport
+     * published with it, as one immutable snapshot. Written once per emission (one
+     * volatile write, so the predicate never mixes dimensions of one frame with the
+     * viewport of another) and read by [overrunWindowCovers].
+     */
+    @Volatile private var emittedFrame: EmittedFrame? = null
+
+    /** Dimensions + viewport of the frame currently displayed by the UI. */
+    internal data class EmittedFrame(
+        val width: Int,
+        val height: Int,
+        val viewport: RenderViewport
+    )
+
     // ---- Double buffers ----
     private val bufferLock = ReentrantLock()
     private var backBuffer: Bitmap? = null
@@ -434,6 +449,17 @@ class MapRenderer(
             lastEmittedWidth = fb.width
             lastEmittedHeight = fb.height
         }
+        // One atomic snapshot of the frame the DISPLAY now holds (dimensions and the
+        // viewport published with it). The coverage predicate reads this, never the
+        // renderer's private front buffer: the display's offset and the renderer's
+        // decision whether a render is needed must describe one frame, or the two can
+        // disagree into a frozen pan (spec: canvas-overrun — Coverage and display never
+        // disagree into a freeze).
+        emittedFrame = EmittedFrame(
+            width = lastEmittedFrame!!.width,
+            height = lastEmittedFrame!!.height,
+            viewport = viewport
+        )
         _frameFlow.value = FrameState(lastEmittedFrame, viewport, marker)
     }
 
@@ -486,6 +512,9 @@ class MapRenderer(
             backBuffer?.recycle(); frontBuffer?.recycle()
             backBuffer = null; frontBuffer = null
         }
+        // The displayed-frame snapshot goes with the buffers: no frame means no window
+        // to serve, so the predicate reports "not covered" and the next request renders.
+        emittedFrame = null
         tileCache.clear()
     }
 
@@ -959,34 +988,37 @@ class MapRenderer(
     ): Boolean {
         val sw = screenWidth; val sh = screenHeight
         if (sw <= 0 || sh <= 0) return false
-        return bufferLock.withLock {
-            val fb = frontBuffer ?: return@withLock false
-            // A zoom or an angle change is never served by the overrun frame: the
-            // frame in hand has the wrong magnification/rotation (spec map-render).
-            if (newMag != frontBufferMag) return@withLock false
-            if (newAngle != frontBufferAngle) return@withLock false
+        // The frame the DISPLAY holds — the one actually emitted — not this renderer's
+        // own front buffer: sharing the math while reading different frames is what left
+        // the pan frozen on device (the renderer said "covered" for a frame the display
+        // could not shift). A frame the display cannot serve is NOT covered, so the
+        // request survives and the pan gets a re-centered frame
+        // (spec: canvas-overrun — Coverage and display never disagree into a freeze).
+        val frame = emittedFrame ?: return false
+        if (frame.width <= 0 || frame.height <= 0) return false
+        // A zoom or an angle change is never served by the overrun frame: the frame in
+        // hand has the wrong magnification/rotation (spec: map-render).
+        if (newMag != frame.viewport.mag) return false
+        if (newAngle != frame.viewport.angle) return false
 
-            // The window must stay inside the overrun margin MINUS the slack reserve
-            // (a request at the very edge would otherwise be "covered" and the map
-            // would stick there). A frame whose margin is not wider than the reserve
-            // cannot serve any shift at all, and has no margin to clamp into.
-            val marginX = (fb.width - sw) / 2.0
-            val marginY = (fb.height - sh) / 2.0
-            if (marginX <= BLIT_COVER_SLACK_PX || marginY <= BLIT_COVER_SLACK_PX) {
-                return@withLock false
-            }
+        // The window must stay inside the overrun margin MINUS the slack reserve (a
+        // request at the very edge would otherwise be "covered" and the map would stick
+        // there). A frame whose margin is not wider than the reserve cannot serve any
+        // shift at all, and has no margin to clamp into.
+        val marginX = (frame.width - sw) / 2.0
+        val marginY = (frame.height - sh) / 2.0
+        if (marginX <= BLIT_COVER_SLACK_PX || marginY <= BLIT_COVER_SLACK_PX) return false
 
-            val offset = FollowPrediction.displayOffsetPx(
-                newLat, newLon,
-                frontBufferLat, frontBufferLon,
-                frontBufferMag, frontBufferAngle,
-                fb.width, fb.height,
-                sw + (2 * BLIT_COVER_SLACK_PX).toInt(),
-                sh + (2 * BLIT_COVER_SLACK_PX).toInt(),
-                dpi
-            )
-            !offset.clamped
-        }
+        val offset = FollowPrediction.displayOffsetPx(
+            newLat, newLon,
+            frame.viewport.lat, frame.viewport.lon,
+            frame.viewport.mag, frame.viewport.angle,
+            frame.width, frame.height,
+            sw + (2 * BLIT_COVER_SLACK_PX).toInt(),
+            sh + (2 * BLIT_COVER_SLACK_PX).toInt(),
+            dpi
+        )
+        return !offset.clamped
     }
 
     private fun normalizeAngle(rad: Double): Double {

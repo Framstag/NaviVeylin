@@ -417,6 +417,22 @@ fun MapCanvasScreen(
     }
 
     /**
+     * The frame in hand as the pan rules see it: the frame the UI actually displays
+     * (emitted bitmap dimensions + emitted viewport), never the renderer's private
+     * front buffer — the applied offset and the renderer's coverage predicate must
+     * describe one frame (spec: canvas-overrun — Coverage and display never disagree
+     * into a freeze).
+     */
+    fun panFrame(): PanWindowRules.Frame? {
+        val s = viewModel.uiState.value
+        val vp = s.renderViewport ?: return null
+        val bitmap = s.renderedBitmap ?: return null
+        return PanWindowRules.Frame(
+            vp.lat, vp.lon, vp.mag, vp.angle, bitmap.width, bitmap.height
+        )
+    }
+
+    /**
      * The pan display window's offset for the frame in hand, or null when there is no
      * usable frame to shift (no displayed frame yet, or a frame without an overrun
      * margin). Same inputs and helper as the per-frame derivation, so the gesture's
@@ -424,19 +440,11 @@ fun MapCanvasScreen(
      * frame stay consistent).
      */
     fun panWindowOffset(): FollowPrediction.Companion.DisplayOffset? {
-        if (panDisplayLat.isNaN() || panDisplayLon.isNaN()) return null
-        val s = viewModel.uiState.value
-        val vp = s.renderViewport ?: return null
-        val bitmap = s.renderedBitmap ?: return null
-        if (canvasSize.width <= 0 || canvasSize.height <= 0) return null
-        // A frame without an overrun margin cannot serve a shift (nothing to clamp
-        // into): report it as unavailable, the caller then renders instead.
-        if (bitmap.width <= canvasSize.width || bitmap.height <= canvasSize.height) return null
-        val dpi = context.resources.displayMetrics.densityDpi.toDouble()
-        return FollowPrediction.displayOffsetPx(
-            panDisplayLat, panDisplayLon, vp.lat, vp.lon, vp.mag, vp.angle,
-            bitmap.width, bitmap.height,
-            canvasSize.width, canvasSize.height, dpi
+        val frame = panFrame() ?: return null
+        return PanWindowRules.offsetFor(
+            panDisplayLat, panDisplayLon, frame,
+            canvasSize.width, canvasSize.height,
+            context.resources.displayMetrics.densityDpi.toDouble()
         )
     }
 
@@ -460,6 +468,14 @@ fun MapCanvasScreen(
         val now = System.currentTimeMillis()
         if (now - lastPanRenderRequestMs < PAN_RENDER_REQUEST_THROTTLE_MS) return
         lastPanRenderRequestMs = now
+        // Bounded diagnostics (spec: render-performance — at most one gated line per
+        // gesture plus one per unservable-window rejection): a rejected window is the
+        // state that used to be invisible in logcat, and the throttle collapses the
+        // remaining touch events into it instead of logging per event.
+        if (PAN_DIAGNOSTICS_ENABLED && window == null) {
+            Log.d(TAG, "pan: no usable frame window, render requested mag=" +
+                viewModel.uiState.value.viewport.magnification)
+        }
         commitPanCenter()
         viewModel.renderMap()
     }
@@ -722,33 +738,42 @@ fun MapCanvasScreen(
                 // the window stays inside the margin.
                 val panFrameVp = ui.renderViewport
                 val panFrameBitmap = ui.renderedBitmap
-                if (!followActive && !panDisplayLat.isNaN() && panFrameVp != null &&
-                    panFrameBitmap != null && canvasSize.width > 0 && canvasSize.height > 0 &&
-                    panFrameBitmap.width > canvasSize.width &&
-                    panFrameBitmap.height > canvasSize.height
-                ) {
-                    if (abs(ui.viewport.centerLat - panFrameVp.lat) < 1e-9 &&
-                        abs(ui.viewport.centerLon - panFrameVp.lon) < 1e-9
+                if (!followActive && !panDisplayLat.isNaN()) {
+                    val frame = if (panFrameVp != null && panFrameBitmap != null) {
+                        PanWindowRules.Frame(
+                            panFrameVp.lat, panFrameVp.lon, panFrameVp.mag, panFrameVp.angle,
+                            panFrameBitmap.width, panFrameBitmap.height
+                        )
+                    } else {
+                        null
+                    }
+                    if (PanWindowRules.holdReleased(
+                            panDisplayLat, panDisplayLon,
+                            frame,
+                            gestureActive = panGestureActive
+                        )
                     ) {
-                        // A frame carrying the committed center is on screen: the
-                        // display is where the viewport says it is. Release the hold
-                        // (offset 0 by definition, no jump: the displayed center and
-                        // the committed center are the same position).
+                        // A frame carrying the panned center is on screen: the display is
+                        // where the pan put it. Release the hold (offset 0 by definition,
+                        // no jump: the displayed center and the frame's center are the
+                        // same position).
                         panDisplayLat = Double.NaN
                         panDisplayLon = Double.NaN
                         panOffsetX = 0f
                         panOffsetY = 0f
                     } else {
-                        val panWindow = FollowPrediction.displayOffsetPx(
-                            panDisplayLat, panDisplayLon,
-                            panFrameVp.lat, panFrameVp.lon,
-                            panFrameVp.mag, panFrameVp.angle,
-                            panFrameBitmap.width, panFrameBitmap.height,
+                        val panWindow = PanWindowRules.offsetFor(
+                            panDisplayLat, panDisplayLon, frame,
                             canvasSize.width, canvasSize.height,
                             context.resources.displayMetrics.densityDpi.toDouble()
                         )
-                        panOffsetX = panWindow.clampedX.toFloat()
-                        panOffsetY = panWindow.clampedY.toFloat()
+                        panOffsetX = panWindow?.clampedX?.toFloat() ?: 0f
+                        panOffsetY = panWindow?.clampedY?.toFloat() ?: 0f
+                        // A window the frame cannot serve must not leave the pan looking
+                        // dead: the finger keeps moving the displayed center and the
+                        // screen asks for a re-centered frame at the throttled cadence
+                        // (spec: map-pan-zoom — A pan SHALL never be invisible).
+                        if (panWindow == null) requestPanRecenter()
                     }
                 } else if (!followActive) {
                     panOffsetX = 0f
@@ -1296,6 +1321,26 @@ fun MapCanvasScreen(
                                         val window = panWindowOffset()
                                         commitPanCenter()
                                         viewModel.saveViewport()
+                                        if (PAN_DIAGNOSTICS_ENABLED) {
+                                            // One line per gesture: whether the window was
+                                            // served, the applied offset and the
+                                            // magnification — the two stuck states of a
+                                            // dead pan (renderer dropped the request /
+                                            // display applied a zero offset while the
+                                            // displayed center moved) are distinguishable
+                                            // from logcat alone, with no coordinates and no
+                                            // per-event output (spec: map-pan-zoom —
+                                            // diagnosable without per-event output).
+                                            val state = window?.let {
+                                                if (it.clamped) "clamped" else "served"
+                                            } ?: "unavailable"
+                                            Log.d(
+                                                TAG,
+                                                "pan end: window=" + state +
+                                                    " offsetPx=" + panOffsetX + "," + panOffsetY +
+                                                    " mag=" + viewModel.uiState.value.viewport.magnification
+                                            )
+                                        }
                                         if (window == null || window.clamped) {
                                             lastPanRenderRequestMs = System.currentTimeMillis()
                                             viewModel.renderMap()
@@ -2361,6 +2406,17 @@ private const val FOLLOW_MIN_SPEED_KMH = 1.8
  * (spec: render-performance — Pan hot path stays off the frame budget).
  */
 private const val PAN_RENDER_REQUEST_THROTTLE_MS = 50L
+
+/**
+ * Gesture-level pan diagnostics (spec: `map-pan-zoom` — the pan path is diagnosable
+ * without per-event output; spec: `render-performance` — the bounded-diagnostics
+ * carve-out). At most one line per gesture (window served / clamped / unavailable plus
+ * the committed versus displayed center at lift) and one line per unservable-window
+ * rejection, so the two stuck states of a dead pan are distinguishable from `adb
+ * logcat` alone. The bound — not a flag — is what keeps the pan hot path clean: no
+ * line is emitted per touch event. Set to false to silence the pan path entirely.
+ */
+private const val PAN_DIAGNOSTICS_ENABLED = true
 
 /**
  * Display-animation duration for auto-zoom commits (spec: smooth-zoom —

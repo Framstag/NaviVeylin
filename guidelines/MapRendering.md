@@ -450,17 +450,32 @@ FollowPrediction.displayOffsetPx(displayedCenter, frameViewport, …, anchor = c
   moves the content horizontally by up to `sin(40°) × move` wrongly.
 - Exactly ONE displayed center: derive the offset from the frame in hand, never from the render
   target. The pan path keeps the displayed center as display-only screen state (`panDisplayLat/Lon`)
-  and holds it until a frame carrying the committed center lands; the follow path uses its predicted
-  display position.
+  and holds it until a frame carrying THAT center lands (`PanWindowRules.holdReleased`, released only
+  after the gesture ended); the follow path uses its predicted display position.
 - **Pan inside the margin renders nothing.** The pan callback must not call `renderMap()` per event:
   the display follows the finger for free. A render is requested only when the offset CLAMPS at the
   margin (throttled), plus once at gesture end when the window is saturated or no frame exists.
 - The covered branch of `submitDebounced` is a PURE PREDICATE (`overrunWindowCovers`) that drops a
-  pending non-forced render and returns — no emission, no bitmap work, no pixel copies. It snapshots
-  the frame under `bufferLock` (never held across a native render, only across the short swap) and
-  uses the same helper and margin (`BLIT_COVER_SLACK_PX` slack) as the display, so coverage and clamp
-  cannot disagree.
+  pending non-forced render and returns — no emission, no bitmap work, no pixel copies. It never
+  takes `bufferLock` and never enters the native render path.
+- **Coverage and display must describe ONE frame: the emitted one.** `overrunWindowCovers` reads the
+  frame snapshot the display holds — `MapRenderer.EmittedFrame` (emitted bitmap dimensions + the
+  viewport published with it, one immutable object, one volatile write per emission) — never the
+  renderer's private front-buffer fields, and it reports an UNSERVABLE window (no emitted frame yet, a
+  frame without an overrun margin, another magnification or rotation) as **not covered**. Sharing only
+  the math (`FollowPrediction.displayOffsetPx` + `BLIT_COVER_SLACK_PX`) was not enough: the two sides
+  could still read different frames — the class of bug that froze the pan on device (`fix-phone-
+  gesture-pan-tracking` follow-up). The pan hold is the other half of the contract: it may only be
+  released for a frame that already carries the DISPLAYED center and never while the gesture is live,
+  or the display applies a zero offset for a moved center (the observed dead pan).
 - A zoom or an angle change is never covered by the frame in hand (wrong magnification/rotation).
+- **Diagnosing a stuck pan** (bounded output: at most one line per gesture, `MapCanvasScreen` tag
+  `pan end: window=served|clamped|unavailable offsetPx=… mag=…`, plus one `pan: no usable frame
+  window` per rejection): `window=unavailable` means the frame in hand cannot serve the window and a
+  render was requested — check the render path next; `window=served` with `offsetPx=0,0` while the
+  finger moved means the display released the hold (or drew the offset nowhere) — neither state is
+  reachable while the gesture is live, so the line plus the renderer's gated request/drop lines name
+  the stuck side. No per-event pan logging exists by design.
 - **The marker overlay must be shifted by the same offset the content is drawn with** — in follow
   mode the anchor-center projection already carries it (translate there = double application).
 - A covered request is a TILE-PREVIEW-class optimization only: it MUST NOT discard a pending FORCED
@@ -537,6 +552,14 @@ When "map jumps" / "marker wrong" appears, check first:
 12b. Pan tracked by per-event renders instead of the display window? → content moves only when a
     frame lands (50 ms debounce + render), pans inside the overrun margin never move at all, and the
     committed viewport drifts away from the displayed content (a later render then jumps).
+12c. Pan frozen for the whole gesture, moving nothing at all? → the display window was released while
+    the finger was still down: the hold may only end for a frame that carries the DISPLAYED center
+    (`PanWindowRules.holdReleased`, never committed-vs-frame) and never while a gesture is live. The
+    companion failure is a coverage predicate reading the renderer's own frame instead of the emitted
+    one — it drops the request as covered for a window the display cannot shift, so nothing renders
+    and nothing moves (`MapRenderer.EmittedFrame`, spec `canvas-overrun` — Coverage and display never
+    disagree into a freeze). Confirm with the `pan end:` line (one per gesture) plus the renderer's
+    gated drop lines, not with per-event logging.
 13. `setGpsMarker`/`clearGpsMarker` or native `gpsMarker` state re-introduced? → forbidden: the
     marker renders exclusively via `LocationMarkerOverlay`.
 14. Tile-path rotation pivots on each tile's own corner? → marker overlay (projected about the

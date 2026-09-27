@@ -219,9 +219,10 @@ public class OSMScoutClient {
      * @param lon          center longitude
      * @param angle        map rotation angle in degrees (0 = north up)
      * @param magnification map magnification scale factor (2^z; fractional values allowed)
-     * @param dpi          physical DPI of the display the frame is rendered for
-     * @return ARGB pixel array (width * height), or null on error and null when the
-     *         DPI is not a positive value
+     * @param dpi          physical DPI of the display the frame is rendered for;
+     *                     {@code Double.NaN} or a non-positive value renders with the DPI
+     *                     configured on the client
+     * @return ARGB pixel array (width * height), or null on error
      */
     public native int[] render(int width, int height,
                                 double lat, double lon,

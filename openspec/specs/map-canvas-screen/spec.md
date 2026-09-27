@@ -61,6 +61,7 @@ In landscape orientation, the system SHALL use the landscape layout arrangement 
 - **AND** the zoom controls SHALL appear at the bottom, below all other controls
 
 #### Scenario: Portrait shows action column at top-left
+
 - **WHEN** the device is in portrait orientation
 - **THEN** the left action column SHALL show the menu button at the top
 - **AND** the search button SHALL appear directly below the menu button
@@ -70,6 +71,26 @@ In landscape orientation, the system SHALL use the landscape layout arrangement 
 
 - **WHEN** the device is in landscape orientation
 - **THEN** the left/right overlay columns SHALL follow the landscape-layout capability arrangement
+
+#### Scenario: Drive button toggles mode
+
+- **WHEN** the map mode is BROWSE
+- **AND** the user taps the drive mode toggle button
+- **THEN** the map mode SHALL become FREE_DRIVE
+- **WHEN** the map mode is FREE_DRIVE
+- **AND** the user taps the drive mode toggle button
+- **THEN** the map mode SHALL become BROWSE
+
+#### Scenario: Drive button hidden during navigation
+
+- **WHEN** the map mode is NAVIGATION
+- **THEN** the drive mode toggle button SHALL NOT be visible
+
+#### Scenario: Re-center button hidden at start
+
+- **WHEN** the app starts in BROWSE mode
+- **AND** the viewport has not drifted from the GPS position
+- **THEN** the re-center button SHALL NOT be visible at the bottom-left
 
 ### Requirement: System back dismisses topmost overlay
 The map canvas screen SHALL respond to the system back gesture/button by dismissing the topmost open overlay (sheet, panel, or dialog) instead of exiting the application.
@@ -90,3 +111,13 @@ The map canvas screen SHALL respond to the system back gesture/button by dismiss
 - **WHEN** no overlay is open on the map canvas
 - **AND** user performs the system back gesture or presses the back button
 - **THEN** the app SHALL follow default system back behavior
+
+### Requirement: Navigation right column includes location options
+
+During NAVIGATION, the right-side widget column SHALL include the location options button in addition to the compass, speed widget, and zoom controls, so the options bottom sheet is reachable mid-route.
+
+#### Scenario: Location options button in navigation column
+
+- **WHEN** the map state is NAVIGATION
+- **THEN** the right-side widget column SHALL show the location options button
+- **AND** tapping it SHALL open the options bottom sheet

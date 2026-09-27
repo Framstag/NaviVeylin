@@ -184,6 +184,19 @@ The system SHALL provide a settings action on the Android Auto map display that 
 - **THEN** the change persists through the shared settings storage
 - **AND** the new anchor applies to the vehicle positioning on Android Auto and on the phone
 
+#### Scenario: Anchor selection persisted for Android Auto
+
+- **WHEN** the driver picks an anchor position in the picker
+- **THEN** the change persists through the shared settings storage as Android Auto's value
+- **AND** the phone's anchor values are left unchanged
+
+#### Scenario: Car falls back to the phone value until configured on the car
+
+- **GIVEN** settings written before the per-surface split (no Android Auto anchor stored)
+- **WHEN** the driver opens the anchor rows
+- **THEN** the rows SHALL show the value the phone stored for that mode
+- **AND** once an anchor is chosen on the car, the car SHALL keep its own value
+
 ### Requirement: Anchor settings reflect the persisted value on re-visibility
 
 The system SHALL display the currently persisted vehicle-anchor values (routing and free driving) in the Android Auto settings dialog whenever the dialog becomes visible again: a value changed in the anchor picker SHALL appear on the settings row when the picker pops back, and the rows SHALL NOT show a snapshot from an earlier visit.

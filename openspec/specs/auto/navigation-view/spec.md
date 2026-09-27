@@ -133,6 +133,7 @@ The system SHALL display the name and ref of the current street on the navigatio
 
 - **WHEN** navigation is active and current-road data is available
 - **THEN** the host travel-estimate card shows the street name via `setTripText`
+- **THEN** the current street name is drawn on the map surface, anchored at the bottom
 
 #### Scenario: Ref shown with the street name
 
@@ -154,16 +155,19 @@ The system SHALL display the name and ref of the current street on the navigatio
 
 - **WHEN** navigation is active but no street name is available
 - **THEN** no trip text is set on the travel estimate
+- **THEN** no street-name label is drawn
 
 #### Scenario: Street name not covered by host ETA card
 
 - **WHEN** navigation is active, a travel estimate is shown by the host, and the current street name is displayed
 - **THEN** the street name is an element of the travel-estimate card itself, so no host-rendered UI can cover it
+- **THEN** the street-name label is drawn entirely above the host's ETA card region, within the area the host guarantees visible
 
 #### Scenario: Street name stays clear when host geometry is unknown
 
 - **WHEN** navigation is active and the host has not delivered a stable area
 - **THEN** the street name is still shown in the travel-estimate card, positioned by the host, with no dependence on the surface-rect geometry
+- **THEN** the street-name label is still drawn within the host's visible area, not at the raw surface bottom
 
 #### Scenario: Street name in host ETA card when map area is not safe
 
@@ -174,6 +178,7 @@ The system SHALL display the name and ref of the current street on the navigatio
 
 - **WHEN** navigation is active, a travel estimate is shown by the host, and the host delivers a stable or visible area that clears the surface bottom
 - **THEN** the street name is still rendered in the travel-estimate card via `setTripText` and never on the map surface (a bottom-clear area does not move the street name off the card)
+- **THEN** the street-name label is drawn on the map surface, anchored at the bottom and always above the ETA card region
 
 #### Scenario: No street-name label on the map surface
 
@@ -184,6 +189,11 @@ The system SHALL display the name and ref of the current street on the navigatio
 
 - **WHEN** navigation is active and the vehicle is off the planned route (no road info in the navigation state)
 - **THEN** the street name comes from the throttled bearing-aware road lookup at the GPS position and updates the ETA-card trip text
+
+#### Scenario: Street name moves to the top for the bottom-center anchor
+
+- **WHEN** navigation is active and the routing anchor preset is bottom-center
+- **THEN** the street-name label is drawn horizontally centered at the top of the view, clear of the vehicle marker
 
 ### Requirement: Speed-driven auto-zoom during navigation
 
@@ -208,6 +218,11 @@ The system SHALL adjust the navigation map zoom with the vehicle speed while the
 
 - **WHEN** the auto-zoom setting is disabled
 - **THEN** the navigation map zoom is not adjusted by speed
+
+#### Scenario: Pan suspends auto-zoom
+
+- **WHEN** the user pans the map during navigation
+- **THEN** auto-zoom stops adjusting the zoom until the speed crosses a speed-band boundary
 
 ### Requirement: Leave navigation at any time
 
@@ -323,6 +338,28 @@ The system SHALL keep the vehicle marker on the navigation surface during follow
 - **AND** the user then stops panning
 - **THEN** follow mode re-engages and the vehicle marker returns to the routing anchor without a snap
 
+#### Scenario: Host panel clearance clamps only the covered presets
+
+- **GIVEN** the host draws its route-status/turn UI over the leading 40% of the surface width
+- **WHEN** the driver selects a preset whose fraction falls inside that band (e.g. 10% width)
+- **THEN** the resolved anchor SHALL be just inside the visible strip, clear of the host UI
+- **AND** a preset outside the band (including the default center/center) SHALL keep its exact fraction
+- **AND** with an RTL layout the mirrored (trailing) band SHALL clamp the corresponding opposite-side presets
+
+#### Scenario: Bottom chrome clamps the vehicle above it
+
+- **GIVEN** the host overlays the bottom of the map surface with control chrome (e.g. the AAOS bottom bar) beyond the surface it grants
+- **WHEN** the routing anchor preset is in the bottom row and the anchor fraction would land under that chrome
+- **THEN** the resolved anchor SHALL move up so the vehicle stays inside the host-guaranteed visible area
+- **AND** presets not under the chrome SHALL keep their exact fraction
+
+#### Scenario: Surface uses its own routing anchor
+
+- **GIVEN** the phone's routing anchor differs from Android Auto's routing anchor
+- **WHEN** navigation runs on Android Auto
+- **THEN** the Android Auto routing anchor SHALL frame the map
+- **AND** the phone's value SHALL NOT be applied
+
 ### Requirement: Routing anchor applies when the setting changes during navigation
 
 The navigation follow-mode map SHALL re-frame at the routing anchor when the setting changes during active navigation: the change SHALL apply without restarting the navigation screen and without waiting for the next maneuver change.
@@ -338,3 +375,22 @@ The navigation follow-mode map SHALL re-frame at the routing anchor when the set
 - **GIVEN** navigation is active and no maneuver change is pending
 - **WHEN** the driver returns from the settings dialog with a new routing anchor
 - **THEN** the map re-frames at the new anchor without requiring the next instruction change to trigger it
+
+### Requirement: Manual map panning during navigation
+
+The system SHALL provide a pan affordance on the navigation view while navigating, letting the driver move the map and pinch-zoom during routing, with follow mode, speed-driven auto-zoom and heading-up rotation suspended while panned and re-engaged on pan exit (see `auto/map-pan`).
+
+#### Scenario: Pan button on navigation map strip
+
+- **WHEN** the user is navigating
+- **THEN** the navigation map action strip shows a pan button beside the route-description action
+
+#### Scenario: Map panned during navigation
+
+- **WHEN** the driver pans while navigating
+- **THEN** the map viewport moves with the gesture and stays at the panned position
+
+#### Scenario: Follow resumes after pan
+
+- **WHEN** the driver exits pan mode during navigation
+- **THEN** the map resumes following the vehicle

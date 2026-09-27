@@ -9,6 +9,8 @@ Smooth follow-mode map scrolling on the phone renderer by extrapolating the disp
 
 The system SHALL extrapolate the displayed viewport center between GPS fixes in follow mode. The predicted position SHALL be computed from the last fix position, GPS speed, smoothed heading, and elapsed time since the fix: `predicted = lastFix + speed * heading * (now - fixTime)`. The map SHALL be scrolled to the predicted position by blitting the front buffer each display frame. The displayed frame's viewport SHALL be centered on the anchor center of the position it was rendered for (see "Anchor-centered follow framing"), so the blitted offset carries the prediction drift only.
 
+The prediction base SHALL be the SAME position source the follow framing renders on: the engine-filtered position while route guidance is active, the raw GPS fix otherwise. The rendered frame's center and the predicted/displayed position SHALL therefore describe the same vehicle location.
+
 #### Scenario: Vehicle moves at constant speed between fixes
 
 - **WHEN** a fix arrives at position P with speed 14 m/s and heading 90°, and 500 ms later no new fix has arrived
@@ -26,21 +28,39 @@ The system SHALL extrapolate the displayed viewport center between GPS fixes in 
 - **WHEN** both vehicle anchors are at their `center/center` defaults and the phone map is in follow mode
 - **THEN** the displayed frame, the blitted offset and the marker position SHALL be identical to follow mode without anchor presets
 
+#### Scenario: Prediction base matches the rendered position during guidance
+
+- **WHEN** route guidance is active and the navigation engine reports a snapped position several meters from the raw GPS fix (junction snap, GPS jitter)
+- **THEN** the prediction SHALL extrapolate from the engine position, not from the raw GPS fix
+- **THEN** the rendered frame, the blit offset, and the marker SHALL stay mutually consistent (no lateral correction jump at the snap)
+
 ### Requirement: Correction easing
 
 The system SHALL ease the displayed viewport from the predicted position toward the true fix on arrival over approximately 200-300 ms instead of snapping. The easing SHALL absorb extrapolation drift caused by curves and acceleration.
+
+The system SHALL absorb extrapolation drift at fix arrival. The displayed position SHALL advance monotonically along the direction of travel across fixes; it SHALL NOT move backward at fix arrival. When the true fix lies at or behind the displayed position, the display SHALL hold at its current position until extrapolation from the new fix advances beyond it. When the true fix lies ahead of the displayed position, the display SHALL ease forward toward it over approximately 200-300 ms.
+
+The monotonic advance keeps the residual display lead bounded (speed × ease time constant) and prevents the per-fix "moved forward, jumped backward" sawtooth.
 
 #### Scenario: Prediction drifts before fix arrival
 
 - **WHEN** the vehicle turns a corner and the predicted position is 8 m from the true fix when the fix arrives
 - **THEN** the displayed viewport SHALL move smoothly from the predicted position to the true fix over ~200-300 ms
 - **AND** the map SHALL NOT jump to the true fix in a single frame
+- **THEN** the displayed viewport SHALL hold its current position (no backward slide)
+- **AND** the display SHALL resume forward once extrapolation from the new fix advances beyond it
 
 #### Scenario: Fix arrives close to prediction
 
 - **WHEN** the true fix is within 2 m of the predicted position
 - **THEN** the correction SHALL be imperceptible (sub-pixel easing)
 - **AND** no full render SHALL be triggered solely by the correction
+
+#### Scenario: Fix arrives ahead of display
+
+- **WHEN** the true fix is ahead of the displayed position (e.g., after acceleration)
+- **THEN** the displayed viewport SHALL ease forward to the true fix over approximately 200-300 ms
+- **AND** no full render SHALL be triggered solely by the correction while the offset stays within the overrun margin
 
 ### Requirement: Display-only prediction
 
@@ -61,12 +81,19 @@ The system SHALL run the extrapolation display loop only in follow mode while th
 - **WHEN** the vehicle speed drops below the movement threshold
 - **THEN** the extrapolation loop SHALL stop
 - **AND** the displayed viewport SHALL remain at the last position
+- **AND** the blit offset SHALL be frozen (not zeroed)
 
 #### Scenario: User pans the map
 
 - **WHEN** the user pans or zooms (follow mode disengaged)
 - **THEN** the extrapolation loop SHALL stop
 - **AND** the map SHALL follow the user's gestures normally
+
+#### Scenario: Vehicle resumes after a stop
+
+- **WHEN** the vehicle accelerates again after a brief stop (e.g., a traffic light) and the speed crosses back above the threshold
+- **THEN** the display SHALL resume extrapolating from the frozen position
+- **AND** the map and marker SHALL NOT snap (no jump at stop/resume)
 
 ### Requirement: Prediction state update
 
@@ -77,6 +104,13 @@ The system SHALL update the prediction state (position, speed, heading, fix time
 - **WHEN** a new fix arrives while the predicted position is still inside the overrun region
 - **THEN** the prediction state SHALL be updated to the new fix
 - **AND** no full render SHALL be initiated
+- **AND** the displayed viewport SHALL NOT be re-centered on the fix
+
+#### Scenario: Fix arrives during a zoom animation
+
+- **WHEN** a new fix arrives while an auto-zoom animation is playing
+- **THEN** the zoom animation SHALL continue from the displayed position (not from a re-centered raw fix)
+- **AND** the frame SHALL NOT jump between zoom-only and center re-commits
 
 ### Requirement: Anchor-centered follow framing
 
@@ -125,6 +159,8 @@ The phone map SHALL keep the vehicle marker in follow mode at the configured anc
 - **WHEN** the phone map is in follow mode
 - **THEN** the vehicle marker projects to the center of the map canvas
 - **AND** the map framing is identical to follow mode without anchor presets
+- **AND** the phone's navigation overlays are measured (next-turn card, routing-status card, right widget column)
+- **THEN** the vehicle marker projects to the EXACT center of the canvas — the default preset collides with no overlay region, so it resolves to (50%, 50%) rather than to the center of the reduced visible area
 
 #### Scenario: Routing anchor active during guidance
 
@@ -147,3 +183,94 @@ The phone map SHALL keep the vehicle marker in follow mode at the configured anc
 
 - **WHEN** the user pans the map (follow disengaged) and re-engages follow, or activates the recenter control
 - **THEN** the map returns to the anchor-centered framing without a snap
+
+#### Scenario: Bottom anchor stays visible above the routing status card
+
+- **GIVEN** the phone is navigating and the routing-status card covers the bottom of the canvas
+- **AND** the routing anchor is bottom-center (50%, 90% of the canvas)
+- **WHEN** the map is in follow mode
+- **THEN** the resolved vertical fraction SHALL be above the routing-status card, clear of the marker footprint and padding
+- **AND** the resolved horizontal fraction SHALL remain exactly 50% (the card covers no horizontal position of the marker, so no horizontal move is applied)
+- **AND** the vehicle marker SHALL be fully visible, not covered by the card
+
+#### Scenario: Top anchor stays visible below the turn card
+
+- **GIVEN** the phone is navigating and the next-turn card covers the top of the canvas
+- **AND** the routing anchor is top-center (50%, 10% of the canvas)
+- **WHEN** the map is in follow mode
+- **THEN** the resolved vertical fraction SHALL be below the turn card, clear of the marker footprint and padding
+- **AND** the resolved horizontal fraction SHALL remain exactly 50%
+- **AND** the vehicle marker SHALL be fully visible, not covered by the card
+
+#### Scenario: Right anchor stays clear of the widget column only when covered
+
+- **GIVEN** the widget column covers the right edge of the canvas
+- **AND** the anchor is at 90% width (its marker would fall inside the column)
+- **WHEN** the map is in follow mode
+- **THEN** the resolved horizontal fraction SHALL be left of the widget column, clear of the marker footprint and padding
+- **AND** the vehicle marker SHALL NOT be covered by the column
+
+#### Scenario: Non-covered preset keeps its exact fraction
+
+- **GIVEN** the widget column covers the right edge of the canvas
+- **AND** the anchor is at 70% width (its marker stays clear of the column)
+- **WHEN** the map is in follow mode
+- **THEN** the resolved horizontal fraction SHALL equal exactly 70% — an uncovered preset is not moved by the mere presence of an overlay
+- **AND** the vehicle marker SHALL keep the preset's screen position
+
+#### Scenario: Corner preset moves on both axes
+
+- **GIVEN** the phone is navigating (routing-status card covers the bottom, widget column covers the right edge)
+- **AND** the routing anchor is bottom-right (70%, 90% of the canvas)
+- **WHEN** the map is in follow mode
+- **THEN** the resolved fraction SHALL move up above the routing-status card AND left of the widget column
+- **AND** the vehicle marker SHALL be fully visible, clear of both the card and the column
+
+#### Scenario: Collision uses the marker footprint and padding
+
+- **GIVEN** a preset whose center still clears an overlay region but whose marker footprint plus padding would overlap it
+- **WHEN** the map is in follow mode
+- **THEN** the preset SHALL be treated as covered and SHALL move until the footprint and padding are clear of the region
+- **AND** the resolved position SHALL leave at least the footprint and padding between the marker and the overlay edge
+
+#### Scenario: No overlay measured means the preset fraction
+
+- **WHEN** no overlay region is measured (browse mode, or a surface without app overlays)
+- **THEN** every resolved anchor SHALL equal the preset fraction
+- **AND** the framing SHALL be identical to a surface without overlay clearance
+
+#### Scenario: Phone anchor value is independent of Android Auto
+
+- **GIVEN** the phone's routing anchor and the car's routing anchor are both configured
+- **WHEN** the driver changes the anchor on one surface
+- **THEN** only that surface's stored value changes
+- **AND** the other surface keeps its own anchor
+
+#### Scenario: Car falls back to the phone anchor until it has its own value
+
+- **GIVEN** settings written before the per-surface split (no car-specific anchor stored)
+- **WHEN** Android Auto reads its anchor
+- **THEN** it SHALL use the value the phone stored for that mode
+- **AND** once an anchor is chosen on the car, the car SHALL keep that value independently
+
+### Requirement: Single resolved anchor across render, blit and marker
+
+In phone follow mode the follow pipeline SHALL use one anchor value in every stage that positions the vehicle: the frame render target, the follow blit offset, and the marker projection SHALL all use the **resolved** anchor screen fraction (the preset after collision resolution against the surface's own overlays), never the raw preset when the two differ.
+
+- The blit offset (`followOffset`) SHALL be computed against the same resolved fraction the frame was rendered with, so the displayed position's map content lands on the marker at the anchor
+- The blit offset SHALL therefore stay a pure prediction drift (inside the overrun margin) while the anchor is applied exactly once, in the render target
+- The vehicle marker SHALL stay glued to the map content it represents; the marker and the road SHALL NOT drift apart by the anchor delta while the frame lags behind the prediction (see gps-location-marker — marker shares one projection with the content)
+- The re-centering path and follow re-engage SHALL commit the anchor-centered viewport with the same resolved anchor
+
+#### Scenario: Navigation overlays resolve the anchor away from the raw preset
+
+- **WHEN** the user navigates with a routing status card at the bottom, the preset bottom-center resolves from raw `fy = 0.9` to a resolved `fy` inside the visible area above the card, and the vehicle moves in follow mode
+- **THEN** the displayed position's map content SHALL project to the resolved anchor fraction
+- **AND** the vehicle marker SHALL project to the same resolved fraction, on the map content that is the vehicle's road position
+- **AND** the blit offset SHALL NOT exceed the overrun margin while the display and the rendered frame are aligned (no re-render churn)
+
+#### Scenario: Marker stays on the road at a non-resolved preset
+
+- **WHEN** the raw preset differs from the resolved anchor (collision-remapped above an overlay) and the displayed frame lags the prediction by a drift up to the overrun margin
+- **THEN** the marker SHALL land on the map content of the displayed position
+- **AND** the marker SHALL NOT sit ahead of the road in the driving direction by the anchor delta

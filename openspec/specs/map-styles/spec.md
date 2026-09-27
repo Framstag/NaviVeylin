@@ -80,9 +80,7 @@ before or as part of the first map display.
 - **THEN** the first map display renders with the `winter-sports` stylesheet
 
 ### Requirement: Failed style switch keeps previous style
-If the renderer cannot load the requested stylesheet, the previously active
-style SHALL remain in effect and the failure SHALL be surfaced (e.g. via log
-or UI message).
+If a stylesheet cannot be loaded — the interactive style switch, the persisted style applied at app start, a style-flag change (e.g. `daylight`) or the on-device stylesheet refresh — the style that was active before the attempt SHALL remain the style in effect for the user, and the app SHALL report the failure: a non-blocking message and a `DiagnosticsLog` entry, naming the style that is active after the attempt. The report SHALL be the same wording on the phone and on the car surfaces.
 
 #### Scenario: Unparsable stylesheet keeps current style
 - **WHEN** the renderer fails to parse the newly requested stylesheet
@@ -91,3 +89,30 @@ or UI message).
 #### Scenario: Failure is visible
 - **WHEN** a style switch fails to load
 - **THEN** the app reports the failure through its error reporting channel
+
+#### Scenario: Persisted style fails at startup
+- **WHEN** the app starts with a persisted style whose stylesheet fails to parse
+- **THEN** the map renders with the default `standard` style and the failure is reported
+
+#### Scenario: Style flag change fails
+- **WHEN** a style flag change (daylight/night) makes the active stylesheet fail to load
+- **THEN** the previously active style stays in effect and the failure is reported
+
+#### Scenario: Failure is reported once per attempt
+- **WHEN** a stylesheet load fails on any of the paths above
+- **THEN** exactly one failure report reaches the app's error reporting channel and the diagnostics log
+
+### Requirement: Style load failure is visible on both surfaces
+The failure SHALL be reported with the same wording on the phone and on the car surfaces, and the report SHALL be non-blocking: a message, never a dialog that interrupts navigation guidance. Platform-specific placement of the message is allowed.
+
+#### Scenario: Phone reports the failure
+- **WHEN** a stylesheet fails to load while the phone map is visible
+- **THEN** the app shows a non-blocking message and writes a diagnostics log entry
+
+#### Scenario: Car reports the failure
+- **WHEN** a stylesheet fails to load during a car session
+- **THEN** the car session surfaces the same wording and navigation guidance continues uninterrupted
+
+#### Scenario: Failure without a visible map
+- **WHEN** a stylesheet fails to load while no map surface is visible (app in the background)
+- **THEN** the failure is recorded in the diagnostics log and the message is shown at the next opportunity the map is visible

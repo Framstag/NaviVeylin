@@ -16,11 +16,23 @@
   `LocationService.isLocationSourceEnabled` only, and `:app/navigation` has no `GpsFixQuality` consumer. It passes **alone**:
   three consecutive runs of the whole `com.naviveylin.navigation` package (23-26 s each) and a focused five-class run with the
   new test classes were green. The shape matches the load-sensitive `:app` suite flakes §96/§96a document.
-- **Fix candidate**: bisect the suite execution order (per-class `timestamp` from `test-results/*.xml`, then `--tests` filters —
-  the technique that settled §96) to find whether a sibling class is the leaker, and check whether the case itself is
-  latency-sensitive: if the mirroring work is dispatched off the test scheduler, the case must await the mirrored state
-  instead of relying on `advanceUntilIdle()`. Per §40 item 38 a flake of unknown origin is recorded with its rerun evidence
-  rather than retried silently.
+- **Update 2026-09-28 — the gate of change `fix-diagnostics-stale-coordinate-purge` (task 4.2)** ℹ: the shape is unchanged and the victims still move. One full `:app` mobile run (1336 tests) failed **two** classes — this entry's `NavigationEngineTest.listenerCallbacksDriveTheSharedState` (the assertion above) **and** `MapCanvasViewModelDarkModeTest.ambientSensitivityPersistsInUiState` with `java.lang.IllegalStateException: Dispatchers.Main is used concurrently with setting it` thrown in `MainDispatcherRule.starting` (`app/src/test/java/com/naviveylin/test/MainDispatcherRule.kt:29`); the *next* run of the same suite failed `MapCanvasViewModelCandidatePickerTest` twice instead; the automotive flavor (1336 tests) failed `MapCanvasViewModelViewportRestoreTest` with the same `Dispatchers.Main` race followed by a bare `NullPointerException` — the exact victim class and NPE tail §96a already records for it. All four classes are green when run alone in both flavors (`--tests` filter), so none is attributable to the change under test, which touches `:core` only. The `Dispatchers.Main`-race shape is a **new symptom** for this family: a coroutine from an earlier test is still dispatching on the main dispatcher while a later test's rule replaces it — the same leak mechanism §96 root-caused (`UncaughtExceptionsBeforeTest`), one more thing for the bisection in the fix candidate below to look for. Evidence runs: `/tmp/suite-app-mobile.log`, `/tmp/suite-app-mobile-2.log`, `/tmp/suite-app-auto.log`, `/tmp/app-victims-alone.log`.
+- **Update 2026-09-28 — the `Dispatchers.Main` race in this family is fixed** ✅ (`fix-fix-quality-tick-main-race`, commit
+  `dbd4a02`, CI run `36463219672` green): the leaker was not a sibling test but `MapCanvasViewModel`'s fix-quality tick — it ran
+  its loop *on* the main dispatcher and hopped to `Dispatchers.Default` only for the delay, so every still-live ViewModel (tests
+  build one per case and cancel only the current instance) read `Dispatchers.Main` once per second from a real worker, and
+  `TestMainDispatcher` threw the recorded read at whichever rule replaced the main dispatcher next — which is why the victims
+  moved. The loop's home is now `Dispatchers.Default` and it reports a tick only when its derivation differs from the published
+  quality. Evidence: reproducer 677/2 → 677/0, `./gradlew test` 3807/0/0, three further full `:app` mobile runs green, guard
+  `aTickDoesNotDispatchOnTheMainDispatcher` (0 dispatches from another thread, 10 with the pre-fix loop). Signature and rule:
+  `guidelines/Build.md` §4, `guidelines/Design.md` §4; full trail: the commit and the change's local OpenSpec dir.
+- **Still open here** ⏳: the original observation above — `listenerCallbacksDriveTheSharedState` failing on `"lane guidance
+  mirrored"` under load — is a different symptom (mirrored state, no dispatcher involvement) and is not explained by that fix.
+- **Fix candidate for the still-open assertion**: bisect the suite execution order (per-class `timestamp` from
+  `test-results/*.xml`, then `--tests` filters — the technique that settled §96) and check whether the mirroring work is
+  dispatched off the test scheduler: the case must then await the mirrored state instead of relying on `advanceUntilIdle()`. Per
+  §40 item 38 a flake of unknown origin is recorded with its rerun evidence rather than retried silently; for a
+  `Dispatchers.Main is used concurrently` failure, start at `guidelines/Build.md` §4 instead.
 
 ---
 
@@ -202,6 +214,11 @@
   `[2026-09-25 21:34:34.085] LONGPRESS lat=51.513298135108705 lon=7.474341597216892 mag=16.0` — written by the build **before** the change and still inside the 7-day retention (the same session logged `DiagnosticsLog retention: dropped 1617 entries older than 168h`). Everything written by the current build is clean: 135 entries from 2026-09-27 with 0 hits, and a fresh long-press writes `LONGPRESS x=540 y=1500 mag=18.0 map=iceland` (screen pixel / magnification / map name).
 - **Consequence** ⏳: on a device that ran the old build, "no coordinates in the diagnostic stream" is only true for new entries; an exported log within the retention window still carries old positions, and a reviewer following task 8.1 literally sees a hit and cannot tell stale from regressed.
 - **Fix candidate**: on the first start after an update (or on any retention prune), drop entries that match the coordinate shape — the file is line-oriented and the prune already rewrites it — or make the export state the cutoff ("entries before <date> predate coordinate-free logging"). Prefer the purge: it is the only variant that makes the recipe's grep meaningful.
+- **Fix in flight** ⏳ (2026-09-28): `fix-diagnostics-stale-coordinate-purge` takes the purge variant — the
+  retention pass drops a line that carries a coordinate **whatever its age** (`LogLineCoordinates` in `:core`,
+  token + comma-pair shapes) and counts those drops in its report (`… , N coordinate-carrying`), with
+  `guidelines/Regulatory.md` §9 stating that the rule covers the file's history. This entry is removed when that
+  change is archived.
 
 ---
 

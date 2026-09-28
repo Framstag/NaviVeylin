@@ -100,6 +100,23 @@ All three skills follow the same contract:
   (`runCatching` or a `CoroutineExceptionHandler`). This is a production defect
   too: the same escaping throwable reaches the thread's uncaught-exception handler
   and kills the app on a device.
+- **`Dispatchers.Main is used concurrently with setting it`** is the same leak one
+  layer down: a coroutine from an earlier test — or a state holder that outlives
+  its test — is still dispatching onto the main dispatcher while the *next* test's
+  rule replaces it. `TestMainDispatcher` records the offending **read** and throws
+  it on the next modification, so the failure lands in `MainDispatcherRule`
+  (`starting`/`finished`) of an unrelated case and the victim moves between runs
+  (observed 2026-09-28: CI runs `36449101190`/`36453748630`, 14 and 6 failures over
+  eight different classes). Read the exception's stack, it names the leaker: the
+  primary trace when it is created in `NonConcurrentlyModifiable.getValue`
+  (`TestMainDispatcher.kt:73`), or the `Caused by: java.lang.Throwable: reader
+  location` when the *writer* was the caller. Those frames were
+  `DispatchedCoroutine.afterResume` ← `CoroutineScheduler$Worker.run`, i.e. a
+  `withContext(…background…)` completing and resuming into the main dispatcher.
+  Hunt repeating `withContext`-back-to-main **before** bisecting classes: grep the
+  `while (true)`/`while (isActive)` loops for a `withContext`, then move the loop's
+  home off the main dispatcher (`guidelines/Design.md` §4) instead of enumerating
+  the classes that leak a holder.
 - **Test reports**: HTML at
   `app/build/reports/tests/testMobileDebugUnitTest/index.html`, XML at
   `app/build/test-results/testMobileDebugUnitTest/*.xml`.

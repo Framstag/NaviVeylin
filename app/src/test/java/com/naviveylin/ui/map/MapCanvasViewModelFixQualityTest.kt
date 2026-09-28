@@ -14,6 +14,11 @@ import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -21,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -40,8 +46,13 @@ import org.robolectric.RobolectricTestRunner
  * restore a fix **without delivering a new fix in between**, which is exactly what the old code
  * could not see.
  *
- * Deterministic: the tick dispatcher, the tick period, the age limit and the clock are pointed at
- * the test's scheduler/state, so no case waits real seconds or races a thread pool.
+ * Timing: the fix-quality pipeline (derivation and debounce) runs on the ViewModel's own scope, which
+ * the [MainDispatcherRule] points at this test's scheduler — so a fix-driven or debounce-driven
+ * transition is advanced to virtually ([advanceTimeBy], [awaitQuality]'s pumping). The *tick* that
+ * notices an aged-out fix or a disabled source runs on the production dispatcher with the real clock
+ * (spec: `gps-fix-quality` — Fix-quality re-evaluation stays off the main thread; the rule the
+ * stale-speed ticker documents, `TODO.md` §40.C.16), so a tick-driven transition is waited for with a
+ * real-clock poll — the pattern of `awaitSpeedCondition` in the stale-speed cases.
  */
 @RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -77,8 +88,7 @@ class MapCanvasViewModelFixQualityTest {
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
-        viewModel.fixQualityTickDispatcher = mainDispatcherRule.dispatcher
-        viewModel.fixQualityTickMs = 50L
+        viewModel.fixQualityTickMs = SETUP_TICK_MS
         viewModel.fixAgeLimitMs = 200L
         viewModel.nowMs = { fakeNow }
         // Robolectric starts with location services off; the platform read itself is covered by
@@ -110,8 +120,9 @@ class MapCanvasViewModelFixQualityTest {
 
     /**
      * Runs a case and cancels the ViewModel's scope before `runTest` returns: the fix-quality tick is
-     * an endless delay loop on this scheduler, so a live scope would keep the scheduler non-idle and
-     * hang the test (the rule the stale-speed ticker documents, `TODO.md` §40.C.16).
+     * an endless delay loop, and a test releases what it starts (`guidelines/Build.md` §6 — teardown
+     * rule). The loop itself runs on the production dispatcher, so it does not keep the test scheduler
+     * non-idle (the rule the stale-speed ticker documents, `TODO.md` §40.C.16).
      */
     private fun fixQualityTest(body: suspend TestScope.() -> Unit): Unit =
         runTest(mainDispatcherRule.dispatcher) {
@@ -121,6 +132,43 @@ class MapCanvasViewModelFixQualityTest {
                 viewModel.cancelScopeForTest()
             }
         }
+
+    /**
+     * Waits until the *published* quality is [expected], driving the ViewModel's scheduler (and with
+     * it the debounce) while the real-clock tick detects the change. Used by the cases whose
+     * transition only the tick can see: the pipeline is main-confined and virtual, the tick is not.
+     */
+    private fun awaitQuality(expected: GpsFixQuality) {
+        val deadline = System.currentTimeMillis() + QUALITY_DEADLINE_MS
+        while (System.currentTimeMillis() < deadline) {
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+            if (quality() == expected) return
+            Thread.sleep(POLL_MS)
+        }
+        assertEquals("quality must reach this within ${QUALITY_DEADLINE_MS}ms", expected, quality())
+    }
+
+    /** Watches the main dispatcher's scheduler for [TICK_WATCH_MS] of real ticks, without asserting. */
+    private fun watchTicks() {
+        val deadline = System.currentTimeMillis() + TICK_WATCH_MS
+        while (System.currentTimeMillis() < deadline) {
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(POLL_MS)
+        }
+    }
+
+    /**
+     * Lets the work the construction started finish: the ViewModel's collaborators read settings,
+     * viewport, favorites and assets through their own background dispatchers, and their `withContext`
+     * completions resume on the main dispatcher from a real thread too.
+     */
+    private fun settleConstruction() {
+        val deadline = System.currentTimeMillis() + SETTLE_MS
+        while (System.currentTimeMillis() < deadline) {
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(POLL_MS)
+        }
+    }
 
     @Test
     fun aGoodFixReportsGood() = fixQualityTest {
@@ -153,9 +201,7 @@ class MapCanvasViewModelFixQualityTest {
 
         // The fix ages out. No new fix is delivered — the old code could not see this at all.
         fakeNow += 1_000L
-        advanceTimeBy(2_500)
-
-        assertEquals(GpsFixQuality.NONE, quality())
+        awaitQuality(GpsFixQuality.NONE)
     }
 
     @Test
@@ -166,9 +212,7 @@ class MapCanvasViewModelFixQualityTest {
 
         // The platform reports that location services are switched off; the fix itself stays young.
         locationService.setLocationSourceReadForTest { false }
-        advanceTimeBy(2_500)
-
-        assertEquals(GpsFixQuality.NONE, quality())
+        awaitQuality(GpsFixQuality.NONE)
     }
 
     @Test
@@ -178,13 +222,10 @@ class MapCanvasViewModelFixQualityTest {
         assertEquals(GpsFixQuality.GOOD, quality())
 
         fakeNow += 1_000L
-        advanceTimeBy(2_500)
-        assertEquals(GpsFixQuality.NONE, quality())
+        awaitQuality(GpsFixQuality.NONE)
 
         installFix(accuracy = 10.0)
-        advanceTimeBy(2_500)
-
-        assertEquals(GpsFixQuality.GOOD, quality())
+        awaitQuality(GpsFixQuality.GOOD)
     }
 
     @Test
@@ -201,8 +242,8 @@ class MapCanvasViewModelFixQualityTest {
         advanceTimeBy(2_500)
         assertEquals(listOf(GpsFixQuality.NONE, GpsFixQuality.GOOD), published)
 
-        // Several ticks with nothing changing must not republish the quality.
-        advanceTimeBy(2_000)
+        // Several real ticks with nothing changing must not republish the quality.
+        watchTicks()
         assertEquals(listOf(GpsFixQuality.NONE, GpsFixQuality.GOOD), published)
 
         job.cancel()
@@ -222,7 +263,7 @@ class MapCanvasViewModelFixQualityTest {
         assertEquals(GpsFixQuality.GOOD, quality())
 
         locationService.setLocationSourceReadForTest { false }
-        advanceTimeBy(2_500)
+        awaitQuality(GpsFixQuality.NONE)
 
         val state = viewModel.uiState.value
         assertEquals(GpsFixQuality.NONE, state.gpsFixQuality)
@@ -247,5 +288,99 @@ class MapCanvasViewModelFixQualityTest {
             compassFillColor(GpsFixQuality.NONE, isDarkPresentation = false)
         )
         assertFalse(state.gpsFixQuality != GpsFixQuality.NONE)
+    }
+
+    /**
+     * The tick must not read the main dispatcher while the quality is unchanged (spec: `gps-fix-quality`
+     * — Fix-quality re-evaluation stays off the main thread). It used to hop back onto the main
+     * dispatcher once per tick (`withContext(fixQualityTickDispatcher) { delay(...) }` returns into the
+     * dispatcher that owns the loop), so a ViewModel that outlives its test — every case that replaces
+     * its instance, every class that builds one without cancelling it — kept reading the main dispatcher
+     * every second from a real thread pool, and a *later* test then failed in `MainDispatcherRule` with
+     * `Dispatchers.Main is used concurrently with setting it` (TODO.md §101).
+     *
+     * Real-time case on purpose: the tick runs on the production dispatcher with the real clock while
+     * the main dispatcher is instrumented, and the case pumps the main dispatcher the way a following
+     * test would — so every tick is evaluated. Counted are only dispatches from **another** thread:
+     * what this case's own pumping queues comes from the test thread, and the construction-time I/O of
+     * the ViewModel's collaborators settles before the counted window. Asserted is the **second** window
+     * of two: a single late arrival of that construction work is tolerated, a per-tick pattern is not.
+     */
+    @Test
+    fun aTickDoesNotDispatchOnTheMainDispatcher() {
+        val countingMain = CountingMainDispatcher(mainDispatcherRule.dispatcher)
+        Dispatchers.setMain(countingMain)
+        viewModel.fixQualityTickMs = TICK_MS
+        settleConstruction()
+
+        countingMain.reset()
+        watchTicks()
+        val firstWindow = countingMain.count
+
+        countingMain.reset()
+        watchTicks()
+        val secondWindow = countingMain.count
+
+        assertEquals(
+            "the fix-quality tick dispatched on the main dispatcher from another thread " +
+                "${secondWindow} times in the second ${TICK_WATCH_MS}ms window while nothing changed " +
+                "(first window: $firstWindow) — it must stay off the main dispatcher; " +
+                "first dispatch:\n${countingMain.firstDispatchStack()}",
+            0,
+            secondWindow
+        )
+    }
+
+    /**
+     * The main dispatcher under test. Counts the dispatches **another thread** sends to it, with the
+     * stack of the first one for the failure message; dispatches made by the thread that owns this
+     * wrapper (the case's own scheduler pumping) are passed through without counting.
+     */
+    private class CountingMainDispatcher(
+        private val delegate: CoroutineDispatcher
+    ) : CoroutineDispatcher() {
+
+        private val ownerThread = Thread.currentThread()
+        private val dispatches = AtomicInteger(0)
+        private val firstDispatch = AtomicReference<Throwable?>(null)
+
+        val count: Int get() = dispatches.get()
+
+        fun reset() {
+            dispatches.set(0)
+            firstDispatch.set(null)
+        }
+
+        /** Where the first counted dispatch came from, for the failure message. */
+        fun firstDispatchStack(): String =
+            firstDispatch.get()?.stackTrace?.joinToString("\n") { "\tat $it" } ?: "(none)"
+
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            if (Thread.currentThread() !== ownerThread) {
+                firstDispatch.compareAndSet(null, Throwable("main dispatch from another thread"))
+                dispatches.incrementAndGet()
+            }
+            delegate.dispatch(context, block)
+        }
+    }
+
+    private companion object {
+        /** Tick period of the setUp instance: several ticks fit into a real-clock watch. */
+        const val SETUP_TICK_MS = 50L
+
+        /** Tick period of the main-dispatcher case. */
+        const val TICK_MS = 20L
+
+        /** How long a case watches real ticks. */
+        const val TICK_WATCH_MS = 300L
+
+        /** Time the main-dispatcher case gives the construction-time work to settle. */
+        const val SETTLE_MS = 600L
+
+        /** Poll interval of the real-clock waits. */
+        const val POLL_MS = 10L
+
+        /** Deadline of [awaitQuality]: generous, the wait is one to three real ticks. */
+        const val QUALITY_DEADLINE_MS = 5_000L
     }
 }

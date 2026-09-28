@@ -145,6 +145,19 @@ strong preference.
   queues, debounce by delay, cancellation via viewModelScope.
 - Debounce high-frequency inputs (search keystrokes, GPS-driven renders)
   before they hit expensive paths.
+- **MUST**: a recurring re-evaluation must not return to the main dispatcher
+  between periods. Launch its loop *on* the background dispatcher it ticks on and
+  let it report a **change** only — the stale-speed ticker
+  (`MapCanvasViewModel`, `NavigationEngine`) and the fix-quality ticker do this:
+  `Dispatchers.Default`, the real clock, period/clock/limit as test hooks
+  (`TODO.md` §40.C.16), and the derivation itself re-run on the background
+  dispatcher so that an unchanged value costs no main-dispatcher traffic at all.
+  A loop whose home is the ViewModel scope reads `Dispatchers.Main` once per
+  period from a real thread pool; in production that is a dispatcher read, and for
+  a state holder that outlives its test it fails a later test with
+  `Dispatchers.Main is used concurrently with setting it` (`guidelines/Build.md`
+  §4). Keep the publication path — including its debounce — the single writer, so
+  a tick-detected change is published exactly like an input-detected one.
 - **MUST**: never hold the render-target pool's lock across a renderer lock or
   a render/draw. `RenderBitmapPool.acquire`/`release` (change
   `fix-render-buffer-reuse`, spec `render-performance`) take and drop the pool

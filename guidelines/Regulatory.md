@@ -243,6 +243,11 @@ practical outcome.
   map database or map file name, magnification, screen pixel, accuracy, bearing. No latitude/longitude
   pair reaches logcat or the file, enforced by the build gate `checkNoCoordinatesInLogs`
   (buildSrc `CoordinateLogScanner`).
+- The gate resolves **position-carrying locals**, not just coordinate names: a position copied into a
+  local whose name the identifier list does not know (`val frameLat = viewportLat`, `val a = fix.lat`,
+  or an alias of one) is a finding too. The rule is name/initializer based within one file — a position
+  laundered through two hops in different files, or through a function return, is not resolved, so the
+  enumerated identifier list stays authoritative for the names this repo uses.
 - `filesDir/diagnostics/app.log` (+ `app.log.1`) is pruned by age: `DiagnosticsLog.RETENTION_MS`
   (7 days) is applied by the logging worker on the first flush of a process and once a day after that;
   the byte cap remains as the size backstop. A line whose timestamp cannot be parsed is removed too.
@@ -253,6 +258,11 @@ practical outcome.
   that pair is no longer logged. Use `frameMag`/`frameAng`, `pendingMag`/`pendingAng`, `dMag`/`dAng`,
   the clamped pixel offset (`off=`, `clamped=`) and the render/blit counters — the placement rule
   itself is unchanged.
+- **The car render entry (`Diag/MAP`)** carries the committed frame's magnification, the projection DPI
+  and the rendered bitmap's size (`render mag=… dpi=… -> bitmap WxH`) and **no centre** (change
+  `fix-car-render-coordinate-redaction`, TODO §98): the entry is the throttled "a frame was committed"
+  marker, and the frame-vs-pending evidence above is where a follow/surface diagnosis reads position-free
+  state. A car session's exported log therefore contains no render position either.
 
 **Location and foreground-service surface** — audited 2026-09-26 (change
 `fix-location-permission-scope`); the behaviour and the no-change findings are in §6.

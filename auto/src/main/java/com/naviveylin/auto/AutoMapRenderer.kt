@@ -21,6 +21,7 @@ import com.naviveylin.core.VehicleMarkerGeometry
 import com.naviveylin.core.ResolvedAnchor
 import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.resolveAnchorFraction
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -1269,10 +1270,19 @@ class AutoMapRenderer(
         val now = System.currentTimeMillis()
         if (now - lastRenderLogMs > RENDER_LOG_INTERVAL_MS) {
             lastRenderLogMs = now
+            // Identity only, never the centre (spec: auto-diagnostics — A car map-render
+            // diagnostic identifies the frame without a position; TODO.md §98). The
+            // position-free frame-vs-pending evidence lives in the `follow` entry above
+            // (frameMag/pendingMag/dMag/dAng, the clamped pixel offset, the counters), so
+            // the frame centre is not needed for an on-device follow or surface diagnosis.
             com.naviveylin.core.DiagnosticsLog.log(
                 "MAP",
-                "render center=$frameLat,$frameLon mag=$frameMag -> " +
-                    if (bitmap != null) "bitmap ${bitmap.width}x${bitmap.height}" else "NULL"
+                renderLogMessage(
+                    frameMag = frameMag,
+                    bitmapWidth = bitmap?.width,
+                    bitmapHeight = bitmap?.height,
+                    surfaceDpi = projectionDpi
+                )
             )
         }
 
@@ -2121,4 +2131,30 @@ class AutoMapRenderer(
          *  step at the overrun margin (was 500 ms + 100 ms debounce). */
         const val RENDER_REQUEST_INTERVAL_MS = 200L
     }
+}
+
+/**
+ * The `MAP` render entry's message (spec: auto-diagnostics — A car map-render
+ * diagnostic identifies the frame without a position; change
+ * `fix-car-render-coordinate-redaction`): the committed frame's magnification, the
+ * rendered bitmap's size and the projection DPI, and no position — the centre was
+ * removed because the file-backed diagnostics stream is exportable and retained
+ * (`TODO.md` §98). A pure seam, so the field contract is unit-tested without a
+ * surface; formats with `Locale.ROOT` so a German device's decimal comma cannot make
+ * the line ambiguous (`TODO.md` §19).
+ */
+internal fun renderLogMessage(
+    frameMag: Double,
+    bitmapWidth: Int?,
+    bitmapHeight: Int?,
+    surfaceDpi: Double
+): String {
+    val frame = if (bitmapWidth != null && bitmapHeight != null) {
+        "bitmap ${bitmapWidth}x${bitmapHeight}"
+    } else {
+        "NULL"
+    }
+    return "render mag=" + String.format(Locale.ROOT, "%.2f", frameMag) +
+        " dpi=" + String.format(Locale.ROOT, "%.0f", surfaceDpi) +
+        " -> " + frame
 }

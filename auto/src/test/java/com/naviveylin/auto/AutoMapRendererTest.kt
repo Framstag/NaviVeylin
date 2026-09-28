@@ -1706,4 +1706,41 @@ class AutoMapRendererTest {
         assertNull(renderer.advanceZoomWalk())
         assertEquals("no render is requested after shutdown", renders, renderer.fullRenderCount)
     }
+
+    // ── the MAP render entry (spec: auto-diagnostics — A car map-render diagnostic
+    //    identifies the frame without a position; change
+    //    `fix-car-render-coordinate-redaction`, TODO.md §98) ──
+
+    /** A coordinate shape, the thing the exported diagnostics file must not contain. */
+    private val coordinateShape = Regex("""[0-9]{1,3}\.[0-9]{4,}""")
+
+    @Test
+    fun renderLogMessageCarriesMagnificationAndFrameSizeWithoutAPosition() {
+        val message = renderLogMessage(
+            frameMag = 17.0,
+            bitmapWidth = 1296,
+            bitmapHeight = 720,
+            surfaceDpi = 420.0
+        )
+
+        assertTrue("magnification is identity: $message", message.contains("mag=17.00"))
+        assertTrue("frame size is identity: $message", message.contains("bitmap 1296x720"))
+        assertTrue("the projection DPI is identity: $message", message.contains("dpi=420"))
+        assertFalse("the frame centre is gone: $message", message.contains("center"))
+        assertFalse("no coordinate shape: $message", coordinateShape.containsMatchIn(message))
+    }
+
+    @Test
+    fun renderLogMessageStaysPositionFreeWhenTheRenderFailed() {
+        val message = renderLogMessage(
+            frameMag = 13.25,
+            bitmapWidth = null,
+            bitmapHeight = null,
+            surfaceDpi = 420.0
+        )
+
+        assertTrue("a NULL render is still marked: $message", message.contains("NULL"))
+        assertFalse("no coordinate shape: $message", coordinateShape.containsMatchIn(message))
+        assertFalse("no decimal-comma form of the magnification", message.contains("mag=13,25"))
+    }
 }

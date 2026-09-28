@@ -4,6 +4,28 @@
 
 ---
 
+## 100. A backgrounded Gradle build does not survive the agent shell tool call — the `build-app` / `run-tests` skills' detached flow is unusable in this harness — Found 2026-09-28 during `fix-car-render-coordinate-redaction` (harness)
+
+- **Observed** ℹ: `nohup ./gradlew :app:assembleMobileDebug :app:assembleAutomotiveDebug > /tmp/x.log 2>&1 &`
+  (the exact flow `build-app` §2 prescribes) returns immediately, and the build is then **killed**: the tool call
+  ends, the harness kills the process group, `pgrep -f 'GradleWrapper[M]ain'` is empty, and the log stops
+  mid-build — at `:app:compileMobileDebugKotlin` with no `BUILD SUCCESSFUL`/`BUILD FAILED`, i.e. the
+  "killed, not failed" signature that skill itself warns about. `setsid` (the obvious detach) is refused:
+  `'setsid' is not in the shell allowlist` (permanent).
+- **Consequence** ⏳: a full build or a suite started this way silently loses its verdict; a session that then
+  reads the truncated log or the tool's exit code reports a failure that never happened (or worse, a
+  `up-to-date`-looking green from a *cached* task — §17). The `-Pandroid.injected.build.abi=` warning and
+  §40.3/§40.4 assume the detached form works.
+- **Fix candidate**: change the two skills (`build-app`, `run-tests`; both `.pi/skills/`, machine-local) to the
+  pattern that does work here — one **foreground** call with the output redirected and only the verdict grepped
+  back (`./gradlew … > /tmp/x.log 2>&1; echo "exit=$?"; grep -E 'BUILD SUCCESSFUL|BUILD FAILED' /tmp/x.log`),
+  keeping the rule that the verdict comes from the log. Evidence from this change: `:app` mobile 1318 tests in
+  3 m 6 s and automotive 1318 in 2 m 36 s both completed inside one foreground call, so the output cap is not
+  the binding constraint once the output is redirected.
+- **Logged** ✅: the failed approach and the working one are in `ki_processing_failures.log` (2026-09-28 entry).
+
+---
+
 ## 96. The `:app` test suites flaked under host load — CLOSED: the leaker was `MemoryPressureResponderTest`, and with it a real production defect — Found 2026-09-27 during `bound-tile-data-retention`, fixed 2026-09-27
 
 - **Root cause (found by bisection, not by guessing)** ✅: the app module's own `MemoryPressureResponder` (added by `bound-tile-data-retention`) launched its release work as `scope.launch(dispatcher)` on a **process-wide** dispatcher from a scope with **no fault confinement**. In `MemoryPressureResponderTest` that release ran against torn-down test state, threw, and reached the thread's uncaught-exception handler — which in a test JVM is recorded by the coroutine harness, so the *next* `runTest` in that fork failed with `UncaughtExceptionsBeforeTest`, and the test after the poisoning ran with a partly-aborted scheduler (that is where the "`first render at default mag: []`" and the `expected:<72.0> but was:<NaN>` symptoms came from: one leak, several unrelated-looking failures). The production half is the more serious one: the same escaping throwable reaches the uncaught-exception handler on a device and **kills the app** — inside a memory-pressure callback, i.e. exactly when the system is already stressed.

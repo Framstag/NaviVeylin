@@ -21,6 +21,15 @@ data class CoordinateLogFinding(
  * `Intent`'s data — where no coordinate identifier appears in the source at all
  * (`TODO.md` §87).
  *
+ * Nor may a call interpolate a *local* that holds a position under a name the
+ * identifier list does not know (`TODO.md` §98, the car render entry): a local whose
+ * name ends in a latitude/longitude token (`frameLat`, `viewportLon`) or whose
+ * initializer reads a position-bearing member (`viewport.lat`) is a position carrier
+ * too, aliases included (`val a = frameLat`). Note the residual: a position laundered
+ * through two declaration hops in *different* files, or through a function return,
+ * is still not resolved — the enumerated identifier list stays authoritative for the
+ * names this repo uses.
+ *
  * The scan is paren-balanced rather than line-based, because the lines this rule
  * exists for are exactly the multi-line concatenated ones (the fix-received line in
  * `MapCanvasViewModel` spans three lines) — a line regex would let them through.
@@ -38,7 +47,27 @@ object CoordinateLogScanner {
     /** Identifiers that hold a position (any of them in a call flags it). */
     private val COORDINATE_IDENTIFIERS = Regex(
         """\b(?:lat|lats|lon|lons|latitude|longitude|destLat|destLon|startLat|startLon|""" +
-            """centerLat|centerLon|newLat|newLon|gpsLat|gpsLon|initialCenter|markerLat|markerLon)\b"""
+            """centerLat|centerLon|newLat|newLon|gpsLat|gpsLon|initialCenter|markerLat|markerLon|""" +
+            """frameLat|frameLon|viewportLat|viewportLon|overrunLat|overrunLon|displayLat|displayLon)\b"""
+    )
+
+    /**
+     * A name whose tail is a latitude/longitude token in camel case (`frameLat`,
+     * `viewportLon`). A lowercase tail (`salon`, `melon`) is not a coordinate.
+     */
+    private val COORDINATE_LOCAL_NAME = Regex("""^[a-z_][A-Za-z0-9_]*?(?:Lat|Lon|Latitude|Longitude)$""")
+
+    /** A name that *is* the token (`lat`, `longitude`). */
+    private val EXACT_COORDINATE_NAME = Regex(
+        """^(?:lat|lon|latitude|longitude)$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /** A read of a position-bearing member (`viewport.lat`, `fix.longitude`). */
+    private val POSITION_MEMBER = Regex("""\.\s*(?:lat|lon|latitude|longitude)\b""")
+    /** `val|var name [ : Type ] = <expression>` — the initializer may hand a position over. */
+    private val INITIALIZED_DECLARATION = Regex(
+        """\b(?:val|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[A-Za-z_][A-Za-z0-9_.<>?, ]*)?=\s*([^\n]*)"""
     )
 
     /** Coordinate-shaped precision (5-7 decimals is a position, not a diagnostic value). */
@@ -80,6 +109,7 @@ object CoordinateLogScanner {
     fun scan(path: String, source: String): List<CoordinateLogFinding> {
         val findings = mutableListOf<CoordinateLogFinding>()
         val carriers = carrierNames(source)
+        val locals = coordinateLocals(source)
         for (opener in OPENERS.findAll(source)) {
             val open = opener.range.last
             val close = matchingParen(source, open) ?: continue
@@ -88,7 +118,7 @@ object CoordinateLogScanner {
             val reason = when {
                 identifier != null -> "coordinate identifier '${identifier.value}'"
                 COORDINATE_FORMAT.containsMatchIn(call) -> "coordinate-shaped format ${COORDINATE_FORMAT.find(call)!!.value}"
-                else -> interpolatedCarrier(call, carriers)
+                else -> interpolatedCarrier(call, carriers, locals)
             } ?: continue
             findings += CoordinateLogFinding(
                 path = path,
@@ -112,21 +142,84 @@ object CoordinateLogScanner {
         return CARRIER_NAMES + declared
     }
 
+    /** True when [name] names a latitude/longitude value (`frameLat`, `lat`). */
+    private fun isCoordinateLocalName(name: String): Boolean =
+        COORDINATE_LOCAL_NAME.matches(name) || EXACT_COORDINATE_NAME.matches(name)
+
+    /**
+     * The locals that carry a position in [source]: declared under a
+     * coordinate-shaped name, or initialized from a position-bearing member,
+     * closed over same-file aliases (`val alias = frameLat`) so a copy of a copy
+     * is still seen.
+     */
+    private fun coordinateLocals(source: String): Set<String> {
+        val declarations = INITIALIZED_DECLARATION.findAll(source)
+            .map { it.groupValues[1] to it.groupValues[2].trim() }
+            .toList()
+        val locals = linkedSetOf<String>()
+        var changed = true
+        while (changed) {
+            changed = false
+            for ((name, initializer) in declarations) {
+                if (name in locals) continue
+                val carries = isCoordinateLocalName(name) ||
+                    isPositionRead(initializer) ||
+                    (BARE_NAME.matches(initializer) && initializer in locals)
+                if (carries) {
+                    locals += name
+                    changed = true
+                }
+            }
+        }
+        return locals
+    }
+
+    /**
+     * True when [initializer] *is* a position read (`viewport.lat`,
+     * `fix.longitude ?: 0.0`). A call that merely *receives* a position as an
+     * argument is not one — `repository.addFavorite(name, loc.lat, loc.lon)`
+     * returns a boolean, not a position; treating it as a position flagged an
+     * unrelated `$success` in `MapCanvasViewModel` when the rule was first run.
+     */
+    private fun isPositionRead(initializer: String): Boolean =
+        POSITION_MEMBER.containsMatchIn(initializer) &&
+            !initializer.contains('(') &&
+            !initializer.contains(',')
+
     /**
      * The regression class this rule exists for (change `fix-diagnostics-coordinate-redaction`,
      * `TODO.md` §87): a value that arrives *whole* — an interpolated request/destination
-     * object or an `Intent`'s data — so no coordinate identifier appears in the source.
+     * object, an `Intent`'s data, or a local that holds a position under a name the
+     * identifier list does not know (`TODO.md` §98) — so no coordinate identifier
+     * appears in the source.
      */
-    private fun interpolatedCarrier(call: String, carriers: Set<String>): String? {
+    private fun interpolatedCarrier(
+        call: String,
+        carriers: Set<String>,
+        locals: Set<String>
+    ): String? {
         for (match in INTERPOLATION.findAll(call)) {
             val expression = match.groupValues[1].ifEmpty { match.groupValues[2] }.trim()
             if (expression.isEmpty()) continue
-            if (BARE_NAME.matches(expression) && expression in carriers) {
-                return "position-carrying object '$expression'"
+            val name = bareName(expression)
+            if (name != null) {
+                if (name in carriers) return "position-carrying object '$name'"
+                if (isCoordinateLocalName(name) || name in locals) {
+                    return "position-carrying local '$name'"
+                }
             }
             wholeUri(expression)?.let { return "intent data '$it'" }
         }
         return null
+    }
+
+    /**
+     * The name when [expression] hands a value over as a bare name — or as a
+     * no-argument call of one, which reads the same property — else null.
+     */
+    private fun bareName(expression: String): String? {
+        val trimmed = expression.removeSuffix("()").trim()
+        return if (BARE_NAME.matches(trimmed)) trimmed else null
     }
 
     /**

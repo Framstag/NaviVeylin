@@ -369,7 +369,11 @@ val checkHardcodedStrings by tasks.registering {
 tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 
 // Diagnostics privacy gate (spec: auto-diagnostics — Diagnostics carry no
-// coordinates): no log or DiagnosticsLog call may interpolate a position. The
+// coordinates): no log or DiagnosticsLog call may interpolate a position — not a
+// coordinate identifier, not a coordinate-shaped format, not a whole
+// position-carrying object or Intent data, and not a *local* that holds a position
+// under a name the identifier list does not know (`val frameLat = viewportLat`,
+// `val a = fix.lat`, or an alias of one — TODO.md §98). The
 // scanner is paren-balanced, so it also sees the multi-line concatenated calls;
 // its logic and fixtures live in buildSrc
 // (`com.naviveylin.build.diagnostics`). A message that only mentions a coordinate

@@ -7,7 +7,8 @@ import org.junit.Test
 /**
  * Tests for the diagnostics coordinate gate (change
  * `fix-diagnostics-coordinate-redaction`, spec: auto-diagnostics — Diagnostics carry
- * no coordinates). The fixtures are the real source shapes the gate has to catch,
+ * no coordinates; extended by `fix-car-render-coordinate-redaction`, `TODO.md` §98).
+ * The fixtures are the real source shapes the gate has to catch,
  * including the multi-line ones a line-based regex would miss, plus the legitimate
  * shapes it must leave alone.
  */
@@ -211,6 +212,130 @@ class CoordinateLogScannerTest {
         val source = """
             Log.d(TAG, "renderer#${'$'}rendererId ${'$'}message held=${'$'}held")
             Log.d(TAG, "surface ${'$'}surfaceWidth x ${'$'}surfaceHeight dpi=${'$'}surfaceDpi")
+        """.trimIndent()
+
+        assertTrue(scan(source).isEmpty())
+    }
+
+    // ── resolved locals (TODO.md §98: the position arrives under a name the
+    //    identifier list does not know) ──
+
+    @Test
+    fun flagsTheCarRenderEntryVerbatim() {
+        // The shape found on device 2026-09-27: the frame centre is copied into
+        // locals named frameLat/frameLon one line above the call.
+        val source = """
+            val frameLat = viewportLat
+            val frameLon = viewportLon
+            val frameMag = viewportZoomFraction
+            com.naviveylin.core.DiagnosticsLog.log(
+                "MAP",
+                "render center=${'$'}frameLat,${'$'}frameLon mag=${'$'}frameMag -> " +
+                    if (bitmap != null) "bitmap ${'$'}{bitmap.width}x${'$'}{bitmap.height}" else "NULL"
+            )
+        """.trimIndent()
+
+        val findings = scan(source)
+
+        assertEquals("exactly the render entry is a finding", 1, findings.size)
+        assertEquals("the call's opening line is reported", 4, findings.single().line)
+        assertTrue(
+            "the reason names the coordinate local: ${findings.single().reason}",
+            findings.single().reason.contains("frameLat")
+        )
+    }
+
+    @Test
+    fun flagsALocalInitializedFromAPositionMember() {
+        val source = """
+            val anchor = viewport.lat
+            Log.d(TAG, "anchor prepared ${'$'}anchor")
+        """.trimIndent()
+
+        val findings = scan(source)
+
+        assertEquals(1, findings.size)
+        assertEquals("position-carrying local 'anchor'", findings.single().reason)
+    }
+
+    @Test
+    fun flagsAOneHopAliasOfACoordinateLocal() {
+        // Declaration order must not matter: the closure runs to a fixed point.
+        val sources = listOf(
+            """
+            val frameLon = viewportLon
+            val alias = frameLon
+            Log.d(TAG, "shared ${'$'}alias")
+            """.trimIndent(),
+            """
+            val alias = frameLon
+            val frameLon = viewportLon
+            Log.d(TAG, "shared ${'$'}alias")
+            """.trimIndent()
+        )
+
+        sources.forEach { source ->
+            val findings = scan(source)
+            assertEquals("must flag the alias: ${findings.map { it.reason }}", 1, findings.size)
+            assertEquals("position-carrying local 'alias'", findings.single().reason)
+        }
+    }
+
+    @Test
+    fun flagsANoArgumentCoordinateGetter() {
+        val source = """Log.d(TAG, "displayed ${'$'}{displayedLat()}")"""
+
+        val findings = scan(source)
+
+        assertEquals(1, findings.size)
+        assertEquals("position-carrying local 'displayedLat'", findings.single().reason)
+    }
+
+    @Test
+    fun leavesIdentityValuesDeclaredAsLocalsAlone() {
+        // The new rule must not turn identity into a finding just because it is
+        // held in a local: none of these names or initializers is a position.
+        val source = """
+            val mag = viewport.zoom
+            val accuracy = fix.accuracy
+            val bearing = fix.bearing
+            val off = 12.5
+            val width = bitmap.width
+            val count = renders
+            val label = entry.name
+            Log.d(TAG, "render mag=${'$'}mag acc=${'$'}accuracy brg=${'$'}bearing" +
+                " off=${'$'}off w=${'$'}width n=${'$'}count l=${'$'}label")
+            Log.d(TAG, "action=${'$'}{intent?.action} scheme=${'$'}{intent?.data?.scheme}")
+        """.trimIndent()
+
+        assertTrue("identity locals are not positions: ${scan(source)}", scan(source).isEmpty())
+    }
+
+    @Test
+    fun leavesAVariableThatMerelyReceivesAPositionAlone() {
+        // The first run of the rule flagged `$success` at
+        // MapCanvasViewModel.kt:1795 because a *different* scope declares
+        // `val success = repository.addFavorite(name, loc.lat, loc.lon)`: the
+        // initializer receives positions, it is not one.
+        val source = """
+            val success = favoriteRepository.addFavorite(groupName, favName, loc.lat, loc.lon)
+            client.openDatabase(mapPath).also { opened ->
+                Log.d(TAG, "initMap: openDatabase returned ${'$'}opened")
+            }
+        """.trimIndent()
+
+        assertTrue("receiving a position is not holding one: ${scan(source)}", scan(source).isEmpty())
+    }
+
+    @Test
+    fun leavesLowercaseCoordinateLookalikesAlone() {
+        // `salon`/`melon` end in "lon", but not in the camel-case token the
+        // coordinate naming convention uses — a false positive here would block
+        // every build that logs them.
+        val source = """
+            val salon = entries.first()
+            val melon = entries.last()
+            Log.d(TAG, "salon=${'$'}salon melon=${'$'}melon")
         """.trimIndent()
 
         assertTrue(scan(source).isEmpty())

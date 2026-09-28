@@ -52,6 +52,7 @@ import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationConsumers
 import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
+import com.naviveylin.core.FixFreshness
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.navigation.CarSessionPresenceImpl
 import com.naviveylin.share.SharedLocationHandler
@@ -360,6 +361,37 @@ class MapCanvasViewModel @Inject constructor(
      */
     @VisibleForTesting
     internal var defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
+
+    /**
+     * Fix age limit behind the GPS fix quality (spec: `gps-fix-quality` — Fix availability and
+     * quality tiers). Test hook: shorten it to observe the aged-out transition without waiting the
+     * production 60 s.
+     */
+    @VisibleForTesting
+    internal var fixAgeLimitMs: Long = FixFreshness.FIX_AGE_LIMIT_MS
+
+    /**
+     * Period of the fix-quality re-evaluation tick. Test hook: shorten it so the aged-out case fits
+     * a polled window instead of a production-length one.
+     */
+    @VisibleForTesting
+    internal var fixQualityTickMs: Long = FIX_QUALITY_TICK_MS
+
+    /**
+     * Dispatcher carrying the fix-quality tick. Production is [Dispatchers.Default] so the endless
+     * delay loop never runs on the main dispatcher. Test hook: point it at the test's dispatcher so
+     * the tick, the debounce and the test body share one scheduler instead of racing a real thread
+     * pool (`MainDispatcherRule`).
+     */
+    @VisibleForTesting
+    internal var fixQualityTickDispatcher: CoroutineDispatcher = Dispatchers.Default
+
+    /**
+     * Clock behind the fix-age comparison (spec: `gps-fix-quality`). Test hook: a case can age a fix
+     * out by moving this, instead of waiting real seconds for the production age limit.
+     */
+    @VisibleForTesting
+    internal var nowMs: () -> Long = System::currentTimeMillis
 
     /**
      * The OSMScoutClient, exposed for embeddable map widgets (e.g. [MiniMap])
@@ -977,13 +1009,38 @@ class MapCanvasViewModel @Inject constructor(
                 }
         }
 
-        // GPS fix quality: debounced to prevent flicker
+        // Fix-quality re-evaluation tick (spec: gps-fix-quality — Quality is re-evaluated without a
+        // new fix). A counter in a StateFlow, not a cold flow: the combined value must appear as soon
+        // as the location flow has one, without waiting for a tick that may live on another thread.
+        // The delay runs on [fixQualityTickDispatcher] via `withContext` so the endless loop never
+        // lands on the main dispatcher (or, in a test, on the virtual clock of the test scheduler
+        // unless the test asks for it — TODO.md §40.C.16).
+        viewModelScope.launch {
+            while (true) {
+                withContext(fixQualityTickDispatcher) { delay(fixQualityTickMs) }
+                fixQualityTicks.value = fixQualityTicks.value + 1L
+            }
+        }
+
+        // GPS fix quality: re-derived on a slow tick as well as on every fix. The location source
+        // goes silent when there is nothing new to report — location services switched off, or the
+        // minimum-distance throttling at standstill — so a value computed only on emission would
+        // stay latched at its last tier forever (spec: gps-fix-quality — Quality is re-evaluated
+        // without a new fix). Debounced to prevent flicker; a tick that derives the same quality
+        // publishes nothing.
         @OptIn(FlowPreview::class)
         viewModelScope.launch {
-            locationService.location
+            combine(locationService.location, fixQualityTicks) { loc, _ -> loc }
                 .map { loc ->
+                    val now = nowMs()
                     when {
-                        loc == null || System.currentTimeMillis() - loc.time > GPS_FIX_FRESHNESS_MS -> GpsFixQuality.NONE
+                        loc == null -> GpsFixQuality.NONE
+                        FixFreshness.isAgedOut(loc.time, now, fixAgeLimitMs) -> GpsFixQuality.NONE
+                        // Binder call, so off the main thread — this collector runs on the ViewModel's
+                        // main dispatcher, and `defaultDispatcher` is the hook the tests point at
+                        // their own scheduler.
+                        !withContext(defaultDispatcher) { locationService.isLocationSourceEnabled() } ->
+                            GpsFixQuality.NONE
                         loc.accuracy > GPS_FIX_MAX_ACCURACY_M -> GpsFixQuality.POOR
                         else -> GpsFixQuality.GOOD
                     }
@@ -3074,6 +3131,13 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
+     * Counter driving the fix-quality re-evaluation (spec: `gps-fix-quality` — Quality is
+     * re-evaluated without a new fix). A `StateFlow` so the combined flow has a value immediately and
+     * the first quality never waits for a tick.
+     */
+    private val fixQualityTicks = MutableStateFlow(0L)
+
+    /**
      * Timestamp the browse offset first exceeded the appear threshold, or 0 while
      * it is not beyond it (spec: map-modes — Browse re-center).
      */
@@ -3944,11 +4008,13 @@ class MapCanvasViewModel @Inject constructor(
 
         /** Fixed high zoom for shared-location candidate lookup (street level). */
         private const val SHARE_CANDIDATE_ZOOM = 16
-        private const val GPS_FIX_FRESHNESS_MS = 5_000L
         private const val GPS_FIX_MAX_ACCURACY_M = 50f
 
         /** Frequency of the follow-mode stale-speed check (spec: gps-speed-priority). */
         private const val SPEED_STALE_TICK_MS = 1_000L
+
+        /** Frequency of the fix-quality re-evaluation without a new fix (spec: gps-fix-quality). */
+        private const val FIX_QUALITY_TICK_MS = 1_000L
 
         /** Plausibility cap for the speed filter (Autobahn ~200+). */
         private const val MAX_PLAUSIBLE_SPEED_KMH = 250.0

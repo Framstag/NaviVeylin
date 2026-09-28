@@ -598,4 +598,56 @@ class LocationServiceTest {
             entries.any { it.contains("location lease release: ${LocationConsumers.NAV_ENGINE}") }
         )
     }
+
+    /**
+     * The fix-quality tick polls this accessor (spec: `gps-fix-quality` — Fix availability and
+     * quality tiers / scenario "Location services switched off"): a device whose location services
+     * are switched off has no fix, whatever the age of the last one.
+     */
+    @Test
+    fun locationSourceReadFollowsThePlatformValue() {
+        val service = LocationService(context(), playServicesAvailable = true)
+        val shadowLm = shadowOf(locationManager())
+
+        shadowLm.setLocationEnabled(true)
+        shadowLm.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+        assertTrue(
+            "an enabled source must report available",
+            service.isLocationSourceEnabled()
+        )
+
+        shadowLm.setLocationEnabled(false)
+        assertFalse(
+            "switched-off location services must report unavailable",
+            service.isLocationSourceEnabled()
+        )
+
+        shadowLm.setLocationEnabled(true)
+        assertTrue(
+            "re-enabling must report available again without a restart",
+            service.isLocationSourceEnabled()
+        )
+    }
+
+    @Test
+    fun aThrowingPlatformReadReportsAvailable() {
+        val service = LocationService(context(), playServicesAvailable = true)
+        service.setLocationSourceReadForTest { throw SecurityException("location read refused") }
+
+        assertTrue(
+            "a failed platform check must never fabricate a lost fix",
+            service.isLocationSourceEnabled()
+        )
+    }
+
+    @Test
+    fun aTestOverrideDrivesBothValues() {
+        val service = LocationService(context(), playServicesAvailable = true)
+
+        service.setLocationSourceReadForTest { false }
+        assertFalse(service.isLocationSourceEnabled())
+
+        service.setLocationSourceReadForTest { true }
+        assertTrue(service.isLocationSourceEnabled())
+    }
 }

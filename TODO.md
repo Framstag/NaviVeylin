@@ -4,6 +4,26 @@
 
 ---
 
+## 101. `NavigationEngineTest.listenerCallbacksDriveTheSharedState` flakes inside full-suite runs under load — Found 2026-09-28 during `fix-stale-fix-quality` (verification gate)
+
+- **Observed** ℹ: across four full `:app` suite runs (1336 tests per flavor, `--continue`) the case failed **twice** — once in the
+  mobile flavor, once in the automotive one — always on the same assertion,
+  `assertTrue("lane guidance mirrored", state.laneSuggested && state.laneCount == 3)`
+  (`NavigationEngineTest.kt:114`), with `1336 tests completed, 1 failed` and no other failure in the run. The same four runs
+  were green twice, so the rate is roughly one in two under the suite's load.
+- **Not attributed to that change** ℹ: the case drives the engine's native-listener mirrors (`onLaneUpdate`, `onRouteInstructions`, …)
+  followed by `advanceUntilIdle()`. The change it was found in touches `MapCanvasViewModel`'s fix-quality collector and
+  `LocationService.isLocationSourceEnabled` only, and `:app/navigation` has no `GpsFixQuality` consumer. It passes **alone**:
+  three consecutive runs of the whole `com.naviveylin.navigation` package (23-26 s each) and a focused five-class run with the
+  new test classes were green. The shape matches the load-sensitive `:app` suite flakes §96/§96a document.
+- **Fix candidate**: bisect the suite execution order (per-class `timestamp` from `test-results/*.xml`, then `--tests` filters —
+  the technique that settled §96) to find whether a sibling class is the leaker, and check whether the case itself is
+  latency-sensitive: if the mirroring work is dispatched off the test scheduler, the case must await the mirrored state
+  instead of relying on `advanceUntilIdle()`. Per §40 item 38 a flake of unknown origin is recorded with its rerun evidence
+  rather than retried silently.
+
+---
+
 ## 100. A backgrounded Gradle build does not survive the agent shell tool call — the `build-app` / `run-tests` skills' detached flow is unusable in this harness — Found 2026-09-28 during `fix-car-render-coordinate-redaction` (harness)
 
 - **Observed** ℹ: `nohup ./gradlew :app:assembleMobileDebug :app:assembleAutomotiveDebug > /tmp/x.log 2>&1 &`

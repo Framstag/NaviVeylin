@@ -83,6 +83,10 @@ class MapCanvasViewModelBrowseReCenterTest {
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
         viewModel.setScreenSize(SCREEN_W, SCREEN_H)
         viewModel.updateMagnification(MAG)
+        // A device that delivers fixes has its location services on; without this the platform read
+        // (Robolectric starts with them off) would report no fix for every case here
+        // (spec: gps-fix-quality — Fix availability and quality tiers).
+        locationService.setLocationSourceReadForTest { true }
     }
 
     private val dpi: Double

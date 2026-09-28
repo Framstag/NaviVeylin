@@ -25,6 +25,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 
 /**
  * Roles that hold a location-update lease (spec: `location-updates-lease`).
@@ -562,6 +563,34 @@ class LocationService @Inject constructor(
     internal fun simulateFusedLocation(location: Location) {
         fusedCallback?.onLocationResult(LocationResult.create(listOf(location)))
     }
+
+    /**
+     * Test seam: replaces the platform read behind [isLocationSourceEnabled], so a case can drive
+     * both values and a throwing platform read without depending on shadow behaviour. Null
+     * (default) reads the real [LocationManager].
+     */
+    private var locationSourceReadOverride: (() -> Boolean)? = null
+
+    @VisibleForTesting
+    internal fun setLocationSourceReadForTest(read: (() -> Boolean)?) {
+        locationSourceReadOverride = read
+    }
+
+    /**
+     * Whether the platform currently reports a location source enabled (spec: `gps-fix-quality` —
+     * Fix availability and quality tiers): a device whose location services are switched off has no
+     * fix, whatever the age of the last one. Polled by the fix-quality tick instead of pushed, so
+     * no listener lifecycle is needed.
+     *
+     * The read is a system-server binder call: the **caller** must run it off the main thread
+     * (`MapCanvasViewModel` wraps it in its `defaultDispatcher`). A read that throws reports
+     * **available** — a failed check must not fabricate a lost fix, and the age limit still covers a
+     * genuinely dead source.
+     */
+    @VisibleForTesting
+    internal fun isLocationSourceEnabled(): Boolean =
+        runCatching { locationSourceReadOverride?.invoke() ?: locationManager.isLocationEnabled }
+            .getOrDefault(true)
 
     /**
      * Acquire a location-update lease for [consumer] (spec: `location-updates-lease`).

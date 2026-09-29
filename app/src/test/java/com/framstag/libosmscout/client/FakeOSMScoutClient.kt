@@ -557,6 +557,36 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Set to false to simulate a failing native move. */
     var moveFavoriteResult: Boolean = true
 
+    /** One group-order move request as it reached the native store. */
+    data class MoveGroupCall(
+        val groupName: String,
+        val newIndex: Int,
+        /** Name of the thread that made the call — used to prove it is not the main thread. */
+        val threadName: String = ""
+    )
+
+    /** Recorded group-order move requests, in call order. */
+    val moveGroupCalls: MutableList<MoveGroupCall> = CopyOnWriteArrayList()
+
+    /** Set to false to simulate a failing native group move. */
+    var moveGroupResult: Boolean = true
+
+    /** One cross-group move request as it reached the native store. */
+    data class MoveToGroupCall(
+        val sourceGroup: String,
+        val favName: String,
+        val targetGroup: String,
+        val newIndex: Int,
+        /** Name of the thread that made the call — used to prove it is not the main thread. */
+        val threadName: String = ""
+    )
+
+    /** Recorded cross-group move requests, in call order. */
+    val moveFavoriteToGroupCalls: MutableList<MoveToGroupCall> = CopyOnWriteArrayList()
+
+    /** Set to false to simulate a failing native cross-group move. */
+    var moveFavoriteToGroupResult: Boolean = true
+
     /**
      * Favorite order handed to the last [saveFavoriteLocations] call, as
      * (group name, favorite names in save order). The native save path rebuilds
@@ -657,6 +687,49 @@ class FakeOSMScoutClient : OSMScoutClient() {
         if (currentIndex < 0) return false
         val fav = group.favorites.removeAt(currentIndex)
         group.favorites.add(newIndex.coerceIn(0, group.favorites.size), fav)
+        return true
+    }
+
+    /**
+     * Mirrors `osmscout::FavoriteLocationService::MoveFavoriteToGroup`: the source
+     * and destination groups and the favorite must exist, the destination name
+     * collision is checked before anything is removed, a same-group destination is
+     * a successful no-op, and the target index is clamped to the destination list.
+     */
+    override fun moveFavoriteToGroup(
+        groupName: String, favName: String, targetGroupName: String, newIndex: Int
+    ): Boolean {
+        moveFavoriteToGroupCalls.add(
+            MoveToGroupCall(
+                groupName, favName, targetGroupName, newIndex, Thread.currentThread().name
+            )
+        )
+        if (!moveFavoriteToGroupResult) return false
+
+        val source = favGroups.firstOrNull { it.name == groupName } ?: return false
+        val target = favGroups.firstOrNull { it.name == targetGroupName } ?: return false
+        val fav = source.favorites.firstOrNull { it.name == favName } ?: return false
+
+        if (source === target) return true
+        if (target.favorites.any { it.name == favName }) return false
+
+        source.favorites.remove(fav)
+        target.favorites.add(newIndex.coerceIn(0, target.favorites.size), fav)
+        return true
+    }
+
+    /**
+     * Mirrors `osmscout::FavoriteLocationService::MoveGroup`: the group must exist
+     * and the target index is clamped to the order after the group was removed, so
+     * an index beyond the end lands last and a negative index lands first.
+     */
+    override fun moveGroup(groupName: String, newIndex: Int): Boolean {
+        moveGroupCalls.add(MoveGroupCall(groupName, newIndex, Thread.currentThread().name))
+        if (!moveGroupResult) return false
+        val currentIndex = favGroups.indexOfFirst { it.name == groupName }
+        if (currentIndex < 0) return false
+        val group = favGroups.removeAt(currentIndex)
+        favGroups.add(newIndex.coerceIn(0, favGroups.size), group)
         return true
     }
 

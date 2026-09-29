@@ -65,7 +65,9 @@ object DiagnosticsLog {
     /**
      * Age bound for the on-device copy: entries older than this are removed by the
      * worker (spec: auto-diagnostics — Log storage is bounded in size **and** age).
-     * The file is personal data at rest, so it must not accumulate indefinitely.
+     * The file is personal data at rest, so it must not accumulate indefinitely. Age
+     * is not the only reason a line goes: the same pass drops a line that carries a
+     * device position, whatever its age (`LogLineCoordinates`, `TODO.md` §88).
      */
     const val RETENTION_MS = 7L * 24L * 60L * 60L * 1000L
 
@@ -466,17 +468,20 @@ object DiagnosticsLog {
     private fun currentFile(): File? = logFile
 
     /**
-     * Age out the on-device copy: drop every entry older than [retentionMs] — and every
-     * line whose timestamp cannot be parsed, because a line that cannot be aged must
-     * not defeat the bound (spec: auto-diagnostics — Log storage is bounded). Runs on
-     * the worker for the active file and the rotated one; a file is rewritten only when
-     * something was dropped, and the drop is reported once so a reader can tell a
-     * pruned log from a complete one. Main-thread-free by construction: only the worker
-     * calls this, under [fileLock].
+     * Bound the on-device copy: drop every entry older than [retentionMs], every line whose
+     * timestamp cannot be parsed (a line that cannot be aged must not defeat the bound), and every
+     * line that carries a device position — whatever its age, because the window is not the only
+     * reason a line may go and an entry an earlier build wrote is younger than the window (spec:
+     * auto-diagnostics — Log storage is bounded; Coordinate-carrying entries do not survive the
+     * retention pass; `TODO.md` §88). Runs on the worker for the active file and the rotated one; a
+     * file is rewritten only when something was dropped, and the drop is reported once — aged count
+     * and coordinate count — so a reader can tell a pruned log from a complete one. Main-thread-free
+     * by construction: only the worker calls this, under [fileLock].
      */
     private fun pruneExpiredLocked(file: File) {
         val cutoff = System.currentTimeMillis() - retentionMs
-        var dropped = 0
+        var aged = 0
+        var coordinates = 0
         var oldestKept: Long? = null
 
         val targets = listOf(file, File(file.parentFile, ROTATED_FILE))
@@ -487,11 +492,19 @@ object DiagnosticsLog {
             try {
                 target.forEachLine { line ->
                     val stamped = parseTimestamp(line)
-                    if (stamped != null && stamped >= cutoff) {
-                        kept.add(line)
-                        if (oldestKept == null || stamped < oldestKept!!) oldestKept = stamped
-                    } else {
-                        droppedHere++
+                    when {
+                        LogLineCoordinates.carriesPosition(line) -> {
+                            droppedHere++
+                            coordinates++
+                        }
+                        stamped != null && stamped >= cutoff -> {
+                            kept.add(line)
+                            if (oldestKept == null || stamped < oldestKept!!) oldestKept = stamped
+                        }
+                        else -> {
+                            droppedHere++
+                            aged++
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -499,22 +512,30 @@ object DiagnosticsLog {
                 return@forEach
             }
             if (droppedHere > 0) {
-                dropped += droppedHere
                 rewriteLocked(target, kept)
             }
         }
 
-        if (dropped > 0) {
+        if (aged + coordinates > 0) {
             val oldest = oldestKept?.let { synchronized(formatLock) { timestampFormat.format(Date(it)) } }
-            appendLineLocked(
-                file,
-                timestamped(
-                    "$TAG retention: dropped $dropped entr" +
-                        (if (dropped == 1) "y" else "ies") +
-                        " older than ${retentionMs / 3_600_000L}h (oldest kept: ${oldest ?: "none"})"
-                )
-            )
+            appendLineLocked(file, timestamped(retentionReport(aged, coordinates, oldest)))
         }
+    }
+
+    /**
+     * The single report line of a retention pass. Counts only — a report that quoted a dropped line
+     * would re-introduce the position the pass just removed. Greppable for `retention: dropped` and
+     * for `coordinate-carrying`.
+     */
+    private fun retentionReport(aged: Int, coordinates: Int, oldestKept: String?): String {
+        val agedPart = if (aged > 0) {
+            "$aged entr" + (if (aged == 1) "y" else "ies") + " older than ${retentionMs / 3_600_000L}h"
+        } else {
+            ""
+        }
+        val coordinatePart = if (coordinates > 0) "$coordinates coordinate-carrying" else ""
+        val dropped = listOf(agedPart, coordinatePart).filter { it.isNotEmpty() }.joinToString(", ")
+        return "$TAG retention: dropped $dropped (oldest kept: ${oldestKept ?: "none"})"
     }
 
     /**

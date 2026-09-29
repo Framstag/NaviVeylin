@@ -223,7 +223,10 @@ class FavoritesSheetReorderComposeTest {
             repository.addFavorite("Cities", "Berlin", 52.5, 13.4)
             repository.addFavorite("Cities", "Paris", 48.9, 2.4)
         }
-        return FavoritesViewModel(repository) to client
+        return FavoritesViewModel(
+            repository,
+            ApplicationProvider.getApplicationContext<android.content.Context>()
+        ) to client
     }
 
     /**
@@ -367,7 +370,10 @@ class FavoritesSheetReorderComposeTest {
             repository.setFavoriteStarred("Cities", "Berlin", true)
             repository.setFavoriteStarred("Cities", "Rome", true)
         }
-        val viewModel = FavoritesViewModel(repository)
+        val viewModel = FavoritesViewModel(
+            repository,
+            ApplicationProvider.getApplicationContext<android.content.Context>()
+        )
         composeRule.setContent {
             FavoritesSheet(
                 mapCenterLat = 0.0,

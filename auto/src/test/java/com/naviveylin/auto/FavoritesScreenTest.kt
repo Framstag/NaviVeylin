@@ -75,6 +75,10 @@ class FavoritesScreenTest {
             section.itemList.items.map { (it as Row).title.toString() }
         }
 
+    /** The section headers (group names), in template order. */
+    private fun sectionHeaders(template: ListTemplate): List<String> =
+        template.sectionedLists.map { it.header.toString() }
+
     private fun fav(name: String) = FavoriteLocation(name, 51.5136, 7.4653)
 
     @Test
@@ -171,11 +175,76 @@ class FavoritesScreenTest {
             verify { navigationViewModel.navigateTo(51.5136, 7.4653) }
         }
 
+    @Test
+    fun groupHeadersFollowTheStoredGroupOrder() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen()
+        favoritesProvider.flow.value = mapOf(
+            "Cities" to listOf(fav("Rome")),
+            "Work" to listOf(fav("Office")),
+            "Home" to listOf(fav("Flat"))
+        )
+        favoritesProvider.order.value = listOf("Home", "Cities", "Work")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Home", "Cities", "Work"), sectionHeaders(screen.onGetTemplate()))
+    }
+
+    /**
+     * The conflation case the order channel exists for: the map value is unchanged,
+     * so a reorder reaches the car screen only through `groupOrder`.
+     */
+    @Test
+    fun aGroupReorderUpdatesTheHeadersInPlace() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen()
+        val groups = mapOf(
+            "Cities" to listOf(fav("Rome")),
+            "Work" to listOf(fav("Office"))
+        )
+        favoritesProvider.flow.value = groups
+        favoritesProvider.order.value = listOf("Cities", "Work")
+        advanceUntilIdle()
+        assertEquals(listOf("Cities", "Work"), sectionHeaders(screen.onGetTemplate()))
+
+        // Same map instance, same contents — only the order moved.
+        favoritesProvider.flow.value = groups
+        favoritesProvider.order.value = listOf("Work", "Cities")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Work", "Cities"), sectionHeaders(screen.onGetTemplate()))
+    }
+
+    @Test
+    fun aGroupTheOrderDoesNotNameStillAppears() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen()
+        favoritesProvider.flow.value = mapOf(
+            "Cities" to listOf(fav("Rome")),
+            "Fresh" to listOf(fav("Brand new"))
+        )
+        favoritesProvider.order.value = listOf("Cities")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Cities", "Fresh"), sectionHeaders(screen.onGetTemplate()))
+    }
+
+    @Test
+    fun aNameTheStoreNoLongerHoldsIsSkipped() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen()
+        favoritesProvider.flow.value = mapOf("Cities" to listOf(fav("Rome")))
+        favoritesProvider.order.value = listOf("Gone", "Cities")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Cities"), sectionHeaders(screen.onGetTemplate()))
+    }
+
     /** In-memory [AutoFavoritesProvider] backed by a [MutableStateFlow]. */
     private class FakeFavoritesProvider : AutoFavoritesProvider {
         val flow = MutableStateFlow<Map<String, List<FavoriteLocation>>>(emptyMap())
 
+        /** The group order channel the screen renders headers from. */
+        val order = MutableStateFlow<List<String>>(emptyList())
+
         override fun favoriteLocations() = flow
+        override fun groupOrder() = order
         override suspend fun init(filePath: String) = true
         override suspend fun addFavorite(name: String, lat: Double, lon: Double) = true
         override suspend fun removeFavorite(lat: Double, lon: Double) = true

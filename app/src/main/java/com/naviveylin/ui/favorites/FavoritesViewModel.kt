@@ -2,9 +2,12 @@ package com.naviveylin.ui.favorites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import com.framstag.libosmscout.client.FavoriteLocation
+import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +16,12 @@ import javax.inject.Inject
 
 data class FavoritesUiState(
     val groups: Map<String, List<FavoriteLocation>> = emptyMap(),
+    /**
+     * The stored group order (spec `group-ordering`). Read from the repository's own
+     * order flow, not from [groups]' iteration order: a reorder leaves the map
+     * contents equal, so the map flow may not re-emit at all.
+     */
+    val groupOrder: List<String> = emptyList(),
     val selectedGroup: String? = null,
     val searchQuery: String = "",
     val snackbarMessage: String? = null,
@@ -22,19 +31,26 @@ data class FavoritesUiState(
 
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
-    private val favoriteRepository: FavoriteRepository
+    private val favoriteRepository: FavoriteRepository,
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FavoritesUiState())
     val uiState: StateFlow<FavoritesUiState> = _uiState.asStateFlow()
 
     /**
-     * True while a favorite move is being persisted. Read and written from the
-     * main thread (`viewModelScope`); volatile so the coroutine continuation of
-     * the completing move observes the current value.
+     * True while an order-changing write (a reorder commit, a cross-group move or a
+     * group reorder) is being persisted. Read and written from the main thread
+     * (`viewModelScope`); volatile so the coroutine continuation of the completing
+     * move observes the current value.
+     *
+     * All three kinds go through this one flag: two of them racing each other would
+     * otherwise show an order the user did not ask for (the repository's write lock
+     * keeps each write whole, so this is about the visible sequence, not about data
+     * integrity).
      */
     @Volatile
-    private var reorderInFlight = false
+    private var orderWriteInFlight = false
 
     init {
         viewModelScope.launch {
@@ -48,6 +64,13 @@ class FavoritesViewModel @Inject constructor(
                     starredFavorites = starred,
                     groupColors = colors
                 )
+            }
+        }
+        // Second collector, because the two channels are independent: a group
+        // reorder changes only the order, and the map flow above may not emit for it.
+        viewModelScope.launch {
+            favoriteRepository.groupOrder.collect { order ->
+                _uiState.value = _uiState.value.copy(groupOrder = order)
             }
         }
     }
@@ -117,13 +140,13 @@ class FavoritesViewModel @Inject constructor(
     /**
      * Move a favorite to a new position within its group.
      *
-     * A reorder commit arriving while another one is still being persisted is
-     * dropped: the two writes would otherwise interleave and the later state
+     * A reorder commit arriving while another order write is still being persisted
+     * is dropped: the two writes would otherwise interleave and the later state
      * refresh could restore an order the user did not ask for.
      */
     fun moveFavorite(groupName: String, favName: String, newIndex: Int) {
-        if (reorderInFlight) return
-        reorderInFlight = true
+        if (orderWriteInFlight) return
+        orderWriteInFlight = true
         viewModelScope.launch {
             try {
                 val success = favoriteRepository.moveFavorite(groupName, favName, newIndex)
@@ -133,7 +156,78 @@ class FavoritesViewModel @Inject constructor(
                     )
                 }
             } finally {
-                reorderInFlight = false
+                orderWriteInFlight = false
+            }
+        }
+    }
+
+    /**
+     * Move a group to a new position in the group order.
+     *
+     * Shares the in-flight guard with [moveFavorite] and [moveFavoriteToGroup]:
+     * all three change the visible order, and a group drag landing between another
+     * order write's JNI call and its state refresh would show an order the user did
+     * not ask for. The failure message names the group, because a refusal here means
+     * the store no longer holds it (deleted while it was being dragged).
+     */
+    fun moveGroup(groupName: String, newIndex: Int) {
+        if (orderWriteInFlight) return
+        orderWriteInFlight = true
+        viewModelScope.launch {
+            try {
+                val success = favoriteRepository.moveGroup(groupName, newIndex)
+                if (!success) {
+                    _uiState.value = _uiState.value.copy(
+                        snackbarMessage = context.getString(R.string.group_move_failed, groupName)
+                    )
+                }
+            } finally {
+                orderWriteInFlight = false
+            }
+        }
+    }
+
+    /**
+     * Move a favorite out of its group and into another one, creating the
+     * destination group when it does not exist yet.
+     *
+     * Shares the in-flight guard with [moveFavorite] and [moveGroup]: all three are
+     * order writes. A
+     * refusal because the destination already holds that name is reported with a
+     * message naming the group and the favorite, since that is the one failure the
+     * user can act on (rename or delete the name that is in the way).
+     */
+    fun moveFavoriteToGroup(
+        sourceGroup: String,
+        favName: String,
+        targetGroup: String,
+        newIndex: Int
+    ) {
+        if (orderWriteInFlight) return
+        orderWriteInFlight = true
+        // Read the conflict before the move: only the message depends on it, and a
+        // move that is refused changes no state to read it from afterwards.
+        val destinationHasThatName = favoriteRepository.favorites.value[targetGroup]
+            ?.any { it.name == favName } == true
+        viewModelScope.launch {
+            try {
+                val success = favoriteRepository.moveFavoriteToGroup(
+                    sourceGroup, favName, targetGroup, newIndex
+                )
+                val message = when {
+                    success -> context.getString(
+                        R.string.favorite_moved_to_group, favName, targetGroup
+                    )
+
+                    destinationHasThatName -> context.getString(
+                        R.string.favorite_move_name_conflict, targetGroup, favName
+                    )
+
+                    else -> context.getString(R.string.favorite_move_failed, favName)
+                }
+                _uiState.value = _uiState.value.copy(snackbarMessage = message)
+            } finally {
+                orderWriteInFlight = false
             }
         }
     }

@@ -27,6 +27,13 @@ class AutoFavoritesProviderImpl(
     override fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>> =
         repository.get().favorites
 
+    /**
+     * Hands the car screen the same order channel the phone grid renders, so the
+     * group headers follow a phone reorder even when the group map is unchanged
+     * (spec `auto-favorites` — the order channel is why the headers can follow it).
+     */
+    override fun groupOrder(): StateFlow<List<String>> = repository.get().groupOrder
+
     override suspend fun init(filePath: String): Boolean = repository.get().init(filePath)
 
     override suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean =

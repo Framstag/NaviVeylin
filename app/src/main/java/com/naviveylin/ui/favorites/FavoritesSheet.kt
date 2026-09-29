@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,14 +15,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -48,6 +53,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -77,7 +83,9 @@ import com.naviveylin.core.formatCoordinate
 import com.naviveylin.core.formatCoordinatePair
 import com.naviveylin.core.parseLatitude
 import com.naviveylin.core.parseLongitude
+import com.naviveylin.core.orderedGroupNames
 import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyGridState
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,6 +123,8 @@ fun FavoritesSheet(
     var showRenameFavDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showAddMapLocDialog by remember { mutableStateOf(false) }
     var showColorPickerGroup by remember { mutableStateOf<String?>(null) }
+    // (source group, favorite name) of the favorite being moved to another group.
+    var moveFavDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
     var targetScrollFavName by remember { mutableStateOf<String?>(null) }
     val groupDetailListState = remember { androidx.compose.foundation.lazy.LazyListState() }
 
@@ -225,7 +235,11 @@ fun FavoritesSheet(
                 onDelete = { showDeleteFavDialog = groupName to it.name },
                 onRename = { showRenameFavDialog = groupName to it.name },
                 onToggleStar = { viewModel.toggleStar(groupName, it.name) },
-                onReorder = { favName, newIndex -> viewModel.moveFavorite(groupName, favName, newIndex) }
+                onReorder = { favName, newIndex -> viewModel.moveFavorite(groupName, favName, newIndex) },
+                // Moving needs somewhere to move into: with a single group the row
+                // does not offer the action at all.
+                canMoveToOtherGroups = state.groups.size > 1,
+                onMoveToGroup = { moveFavDialog = groupName to it.name }
             )
         } else {
             // Group grid view with search
@@ -271,10 +285,15 @@ fun FavoritesSheet(
                 }
 
                 if (state.searchQuery.isNotEmpty()) {
-                    // Search results view
-                    val searchResults = state.groups.mapValues { (_, favs) ->
-                        favs.filter { it.name.contains(state.searchQuery, ignoreCase = true) }
-                    }.filter { it.value.isNotEmpty() }
+                    // Search results view. Groups are listed in the stored order, like
+                    // the grid (spec group-ordering).
+                    val searchResults = orderedGroupNames(state.groupOrder, state.groups.keys)
+                        .mapNotNull { groupName ->
+                            val matches = state.groups[groupName]
+                                .orEmpty()
+                                .filter { it.name.contains(state.searchQuery, ignoreCase = true) }
+                            if (matches.isEmpty()) null else groupName to matches
+                        }
 
                     if (searchResults.isEmpty()) {
                         Box(
@@ -314,32 +333,43 @@ fun FavoritesSheet(
                         }
                     }
                 } else {
-                    // Group grid
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 140.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    // Group grid (spec group-ordering — the stored order; spec
+                    // group-grid-display — drag-and-drop reordering)
+                    GroupGrid(
+                        groupOrder = state.groupOrder,
+                        groups = state.groups,
+                        groupColors = state.groupColors,
+                        onOpenGroup = { groupName -> viewModel.selectGroup(groupName) },
+                        onRename = { showRenameGroupDialog = it },
+                        onDelete = { showDeleteGroupDialog = it },
+                        onSetColor = { showColorPickerGroup = it },
+                        onReorder = { groupName, newIndex ->
+                            viewModel.moveGroup(groupName, newIndex)
+                        },
                         modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(state.groups.keys.toList(), key = { "group_$it" }) { groupName ->
-                            GroupCard(
-                                groupName = groupName,
-                                favCount = state.groups[groupName]?.size ?: 0,
-                                colorHex = state.groupColors[groupName],
-                                onClick = { viewModel.selectGroup(groupName) },
-                                onRename = { showRenameGroupDialog = groupName },
-                                onDelete = { showDeleteGroupDialog = groupName },
-                                onSetColor = { showColorPickerGroup = groupName }
-                            )
-                        }
-                    }
+                    )
                 }
             }
         }
     }
 
     // ---- Dialogs ----
+
+    moveFavDialog?.let { (sourceGroup, favName) ->
+        MoveFavoriteToGroupDialog(
+            favoriteName = favName,
+            candidateGroups = orderedGroupNames(state.groupOrder, state.groups.keys)
+                .filter { it != sourceGroup },
+            onConfirm = { targetGroup ->
+                // The append index is read before the move: for a group that does not
+                // exist yet it is 0, which appends into the empty destination.
+                val newIndex = state.groups[targetGroup]?.size ?: 0
+                viewModel.moveFavoriteToGroup(sourceGroup, favName, targetGroup, newIndex)
+                moveFavDialog = null
+            },
+            onDismiss = { moveFavDialog = null }
+        )
+    }
 
     if (showAddGroupDialog) {
         TextFieldDialog(
@@ -455,7 +485,8 @@ fun FavoritesSheet(
             initialLat = mapCenterLat,
             initialLon = mapCenterLon,
             onConfirm = { name, lat, lon ->
-                val group = state.groups.keys.firstOrNull() ?: favoritesLabel
+                val group = orderedGroupNames(state.groupOrder, state.groups.keys).firstOrNull()
+                    ?: favoritesLabel
                 viewModel.addFavorite(group, name, lat, lon)
                 showAddMapLocDialog = false
             },
@@ -475,7 +506,9 @@ internal fun GroupDetailList(
     onDelete: (FavoriteLocation) -> Unit,
     onRename: (FavoriteLocation) -> Unit,
     onToggleStar: (FavoriteLocation) -> Unit,
-    onReorder: (favName: String, newIndex: Int) -> Unit
+    onReorder: (favName: String, newIndex: Int) -> Unit,
+    canMoveToOtherGroups: Boolean = false,
+    onMoveToGroup: (FavoriteLocation) -> Unit = {}
 ) {
     // Working copy owned by this composable: the drag reorders this list, the
     // store is only told about the position the favorite ends up in.
@@ -550,6 +583,11 @@ internal fun GroupDetailList(
                         onDelete = { onDelete(fav) },
                         onRename = { onRename(fav) },
                         onToggleStar = { onToggleStar(fav) },
+                        onMoveToGroup = if (canMoveToOtherGroups) {
+                            { onMoveToGroup(fav) }
+                        } else {
+                            null
+                        },
                         dragHandle = {
                             Icon(
                                 imageVector = Icons.Default.DragHandle,
@@ -584,10 +622,12 @@ private fun GroupCard(
     groupName: String,
     favCount: Int,
     colorHex: String? = null,
+    isDragging: Boolean = false,
     onClick: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
-    onSetColor: () -> Unit = {}
+    onSetColor: () -> Unit = {},
+    dragHandle: (@Composable () -> Unit)? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -602,7 +642,9 @@ private fun GroupCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .background(
+                if (isDragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -622,71 +664,184 @@ private fun GroupCard(
                 )
             }
             // Content
-            Box(modifier = Modifier.padding(12.dp)) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = groupName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$favCount favorite${if (favCount != 1) "s" else ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            // Menu button in top-right corner
-            Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.group_options))
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // The drag handle sits outside the tap target: a clickable ancestor
+                // cancels the handle's long press, so the handle must not live inside
+                // it (spec group-grid-display — drag reorders, tap opens).
+                dragHandle?.invoke()
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = onClick)
                 ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.set_color)) },
-                        onClick = {
-                            showMenu = false
-                            onSetColor()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Favorite,
-                                contentDescription = null
-                            )
-                        }
+                    Text(
+                        text = groupName,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.rename)) },
-                        onClick = {
-                            showMenu = false
-                            onRename()
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.Create, contentDescription = null)
-                        }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "$favCount favorite${if (favCount != 1) "s" else ""}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
-                        onClick = {
-                            showMenu = false
-                            onDelete()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    )
+                }
+
+                // Menu button on the trailing edge
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.group_options))
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.set_color)) },
+                            onClick = {
+                                showMenu = false
+                                onSetColor()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Favorite,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.rename)) },
+                            onClick = {
+                                showMenu = false
+                                onRename()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Create, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * The group grid (spec `group-ordering` — the stored order; spec `group-grid-display`
+ * — drag-and-drop reordering).
+ *
+ * The sequence comes from [groupOrder], its own channel, not from [groups]' iteration
+ * order: a reorder leaves the map contents equal, so the map flow may not re-emit.
+ * The drag keeps a working copy of the order and commits only the position the card
+ * was released at, the same shape as [GroupDetailList], so a sheet dismissed mid-drag
+ * writes nothing and a drag that ends where it started writes nothing.
+ */
+@Composable
+internal fun GroupGrid(
+    groupOrder: List<String>,
+    groups: Map<String, List<FavoriteLocation>>,
+    groupColors: Map<String, String>,
+    onOpenGroup: (String) -> Unit,
+    onRename: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onSetColor: (String) -> Unit,
+    onReorder: (groupName: String, newIndex: Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val ordered = orderedGroupNames(groupOrder, groups.keys)
+    val gridState = rememberLazyGridState()
+
+    // Working copy owned by this composable: the drag reorders this list, the store
+    // is only told about the position the card ends up in.
+    var workingOrder by remember { mutableStateOf(ordered) }
+
+    // A drag end records the intended position here. The effect below commits it
+    // while the sheet is still composed, so a sheet dismissed mid-drag cancels the
+    // commit instead of writing a half-dragged order.
+    var pendingReorder by remember { mutableStateOf<Pair<String, Int>?>(null) }
+
+    val reorderableState = rememberReorderableLazyGridState(gridState) { from, to ->
+        // The grid has no leading item, so a cell index is a group-order index.
+        workingOrder = GroupOrder.move(workingOrder, fromIndex = from.index, toIndex = to.index)
+    }
+
+    // Re-sync from the stored order whenever nothing is being dragged.
+    LaunchedEffect(ordered, reorderableState.isAnyItemDragging) {
+        if (!reorderableState.isAnyItemDragging) {
+            workingOrder = ordered
+        }
+    }
+
+    LaunchedEffect(pendingReorder) {
+        pendingReorder?.let { (groupName, newIndex) ->
+            pendingReorder = null
+            onReorder(groupName, newIndex)
+        }
+    }
+
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 140.dp),
+        state = gridState,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+    ) {
+        items(workingOrder, key = { "group_$it" }) { groupName ->
+            ReorderableItem(state = reorderableState, key = "group_$groupName") { isDragging ->
+                GroupCard(
+                    groupName = groupName,
+                    favCount = groups[groupName]?.size ?: 0,
+                    colorHex = groupColors[groupName],
+                    isDragging = isDragging,
+                    onClick = { onOpenGroup(groupName) },
+                    onRename = { onRename(groupName) },
+                    onDelete = { onDelete(groupName) },
+                    onSetColor = { onSetColor(groupName) },
+                    dragHandle = {
+                        Icon(
+                            imageVector = Icons.Default.DragHandle,
+                            contentDescription = stringResource(R.string.reorder_group),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .longPressDraggableHandle(
+                                    onDragStopped = {
+                                        // WYSIWYG: persist the position the card ended
+                                        // up in, unless nothing changed.
+                                        GroupOrder.commitIndex(
+                                            working = workingOrder,
+                                            stored = ordered,
+                                            groupName = groupName
+                                        )?.let { newIndex ->
+                                            pendingReorder = groupName to newIndex
+                                        }
+                                    }
+                                )
+                        )
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -699,6 +854,7 @@ internal fun FavoriteItem(
     onDelete: () -> Unit,
     onRename: () -> Unit,
     onToggleStar: () -> Unit = {},
+    onMoveToGroup: (() -> Unit)? = null,
     dragHandle: (@Composable () -> Unit)? = null
 ) {
     Row(
@@ -746,6 +902,121 @@ internal fun FavoriteItem(
                 tint = MaterialTheme.colorScheme.error
             )
         }
+        // The row already carries star, rename, delete and the drag handle, so the
+        // move lives behind a compact overflow menu (as on the group card) instead
+        // of taking a fifth slot on the row.
+        if (onMoveToGroup != null) {
+            var menuOpen by remember { mutableStateOf(false) }
+            Box {
+                IconButton(
+                    onClick = { menuOpen = true },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.favorite_options)
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.move_favorite_to_group)) },
+                        onClick = {
+                            menuOpen = false
+                            onMoveToGroup()
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoveFavoriteToGroupDialog(
+    favoriteName: String,
+    candidateGroups: List<String>,
+    onConfirm: (targetGroup: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // Sentinel for the "create a new group" choice: it is not a group name, and
+    // group names are unique, so it cannot collide with one.
+    val newGroupChoice = "\u0000new-group"
+
+    var selected by remember { mutableStateOf(candidateGroups.firstOrNull() ?: newGroupChoice) }
+    var newGroupName by remember { mutableStateOf("") }
+
+    val target = if (selected == newGroupChoice) newGroupName.trim() else selected
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.move_favorite_to_group_title, favoriteName)) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 280.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                candidateGroups.forEach { groupName ->
+                    MoveTargetRow(
+                        label = groupName,
+                        selected = selected == groupName,
+                        onSelect = { selected = groupName }
+                    )
+                }
+                MoveTargetRow(
+                    label = stringResource(R.string.new_group_title),
+                    selected = selected == newGroupChoice,
+                    onSelect = { selected = newGroupChoice }
+                )
+                if (selected == newGroupChoice) {
+                    OutlinedTextField(
+                        value = newGroupName,
+                        onValueChange = { newGroupName = it },
+                        label = { Text(stringResource(R.string.new_group_name)) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(target) },
+                enabled = target.isNotEmpty()
+            ) {
+                Text(stringResource(R.string.ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+/** One selectable destination row of [MoveFavoriteToGroupDialog]. */
+@Composable
+private fun MoveTargetRow(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 8.dp)
+        )
     }
 }
 

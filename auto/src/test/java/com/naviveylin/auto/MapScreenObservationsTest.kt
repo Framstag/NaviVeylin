@@ -46,7 +46,9 @@ class MapScreenObservationsTest {
     /** Favorites provider backed by a state flow. */
     private class FakeFavoritesProvider : AutoFavoritesProvider {
         val flow = MutableStateFlow<Map<String, List<FavoriteLocation>>>(emptyMap())
+        val order = MutableStateFlow<List<String>>(emptyList())
         override fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>> = flow.asStateFlow()
+        override fun groupOrder(): StateFlow<List<String>> = order.asStateFlow()
         override suspend fun init(filePath: String): Boolean = false
         override suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean = false
         override suspend fun removeFavorite(lat: Double, lon: Double): Boolean = false

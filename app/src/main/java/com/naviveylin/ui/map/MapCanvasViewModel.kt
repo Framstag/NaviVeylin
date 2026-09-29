@@ -931,6 +931,18 @@ class MapCanvasViewModel @Inject constructor(
     /** Set once the map database is open and the renderer is ready. */
     private val mapReady = MutableStateFlow(false)
 
+    /**
+     * Counter driving the fix-quality re-evaluation (spec: `gps-fix-quality` — Quality is
+     * re-evaluated without a new fix). A `StateFlow` so the combined flow has a value immediately and
+     * the first quality never waits for a tick.
+     *
+     * Declared **before** [init] on purpose: `viewModelScope` is `Dispatchers.Main.immediate`, so the
+     * ticker the init block launches runs its body (and `combine`'s collectors) during construction,
+     * and a field declared after the init block is still null there — a startup `NullPointerException`
+     * that only an immediate main dispatcher exposes.
+     */
+    private val fixQualityTicks = MutableStateFlow(0L)
+
     init {
         viewModelScope.launch { searchHistoryRepository.load() }
         refreshAddressBookAvailability()
@@ -3121,13 +3133,6 @@ class MapCanvasViewModel @Inject constructor(
         lastValidSpeedKmH = 20.0
         renderMap()
     }
-
-    /**
-     * Counter driving the fix-quality re-evaluation (spec: `gps-fix-quality` — Quality is
-     * re-evaluated without a new fix). A `StateFlow` so the combined flow has a value immediately and
-     * the first quality never waits for a tick.
-     */
-    private val fixQualityTicks = MutableStateFlow(0L)
 
     /**
      * Derive the quality of [loc] (spec: `gps-fix-quality` — Fix availability and quality tiers):

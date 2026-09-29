@@ -251,8 +251,22 @@ practical outcome.
 - `filesDir/diagnostics/app.log` (+ `app.log.1`) is pruned by age: `DiagnosticsLog.RETENTION_MS`
   (7 days) is applied by the logging worker on the first flush of a process and once a day after that;
   the byte cap remains as the size backstop. A line whose timestamp cannot be parsed is removed too.
+- **The rule covers the file's history, not only new writes** (change `fix-diagnostics-stale-coordinate-purge`,
+  TODO §88): the same retention pass removes a line that carries a coordinate **whatever its age**, so the
+  entries an earlier build wrote are gone within one pass of installing instead of surviving the rest of
+  the window. The rule recognises two shapes (`:core` `LogLineCoordinates`) — a delimited coordinate field
+  name together with a number at coordinate precision, and an unnamed comma-separated pair, which is the
+  pre-redaction car render shape — and the pass reports those drops as a count in its single retention
+  line (`… , N coordinate-carrying`), never repeating the removed position. Residual: a position written
+  without a coordinate field name and with fewer than four fraction digits is not recognised — the age
+  bound still removes it, and new writes are the build gate's concern. The verification recipe's bare
+  grep (`[0-9]{1,3}\.[0-9]{4,}`) is deliberately *stricter* than the rule: a hit that names a
+  magnification or another identity value (a raw `Double` can print at that precision) is an identity
+  line, not a regression.
 - The exported/shared text and both diagnostics viewers lead with the disclosure
   (`diagnostics_disclosure`, de + en), naming what the file holds and the retention window.
+  The wording needs no change for the purge: it already claims the file carries no coordinates, which
+  the rule above now makes true for the file's history as well.
 - **Impact on an earlier recipe**: the `overlay-projects-against-displayed-frame` frame-vs-pending
   comparison (TODO §29) used the geo centre of the displayed frame and of the pending render target;
   that pair is no longer logged. Use `frameMag`/`frameAng`, `pendingMag`/`pendingAng`, `dMag`/`dAng`,
@@ -276,7 +290,8 @@ practical outcome.
 - Track declarations stay as they are: same applicationId, two flavor AABs (mobile track, dedicated
   AAOS track).
 
-Tracked as TODO §68 (diagnostics) and §69 (location policy).
+Tracked as TODO §68 (diagnostics), §88 (coordinate purge of the file's history — implemented by
+`fix-diagnostics-stale-coordinate-purge`, awaiting archive) and §69 (location policy).
 
 ---
 

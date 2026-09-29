@@ -181,6 +181,7 @@
     <string name="add_current_location">Add current map location</string>
     <string name="add_favorite">Add favorite</string>
     <string name="reorder_favorite">Reorder favorite</string>
+    <string name="reorder_group">Reorder group</string>
     <string name="no_favorites_in_group">No favorites in this group</string>
     <string name="search_favorites">Search favorites</string>
     <string name="no_favorites_match">No favorites match your search</string>
@@ -199,6 +200,13 @@
     <string name="group_color">Group Color</string>
     <string name="remove_color">Remove color</string>
     <string name="add_favorite_to_group">Add Favorite to "%1$s"</string>
+    <string name="move_favorite_to_group">Move to group</string>
+    <string name="move_favorite_to_group_title">Move "%1$s" to</string>
+    <string name="favorite_options">Favorite options</string>
+    <string name="favorite_moved_to_group">Moved "%1$s" to "%2$s"</string>
+    <string name="favorite_move_name_conflict">Group "%1$s" already has a favorite named "%2$s"</string>
+    <string name="favorite_move_failed">Failed to move "%1$s"</string>
+    <string name="group_move_failed">Failed to move group "%1$s"</string>
     <string name="name">Name</string>
     <string name="latitude">Latitude</string>
     <string name="longitude">Longitude</string>

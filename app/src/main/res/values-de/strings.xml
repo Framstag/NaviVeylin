@@ -171,6 +171,7 @@
     <string name="add_current_location">Aktuellen Kartenstandort hinzufügen</string>
     <string name="add_favorite">Favorit hinzufügen</string>
     <string name="reorder_favorite">Favorit verschieben</string>
+    <string name="reorder_group">Gruppe verschieben</string>
     <string name="no_favorites_in_group">Keine Favoriten in dieser Gruppe</string>
     <string name="search_favorites">Favoriten suchen</string>
     <string name="no_favorites_match">Keine Favoriten passen zu Ihrer Suche</string>
@@ -189,6 +190,13 @@
     <string name="group_color">Gruppenfarbe</string>
     <string name="remove_color">Farbe entfernen</string>
     <string name="add_favorite_to_group">Favorit zu „%1$s" hinzufügen</string>
+    <string name="move_favorite_to_group">In Gruppe verschieben</string>
+    <string name="move_favorite_to_group_title">„%1$s" verschieben nach</string>
+    <string name="favorite_options">Favoriten-Optionen</string>
+    <string name="favorite_moved_to_group">„%1$s" nach „%2$s" verschoben</string>
+    <string name="favorite_move_name_conflict">Gruppe „%1$s" enthält bereits einen Favoriten namens „%2$s"</string>
+    <string name="favorite_move_failed">„%1$s" konnte nicht verschoben werden</string>
+    <string name="group_move_failed">Gruppe „%1$s" konnte nicht verschoben werden</string>
     <string name="name">Name</string>
     <string name="latitude">Breitengrad</string>
     <string name="longitude">Längengrad</string>

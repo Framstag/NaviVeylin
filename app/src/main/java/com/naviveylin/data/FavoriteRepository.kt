@@ -28,6 +28,21 @@ open class FavoriteRepository @Inject constructor(
     private val _favorites = MutableStateFlow<Map<String, List<FavoriteLocation>>>(emptyMap())
     open val favorites: StateFlow<Map<String, List<FavoriteLocation>>> = _favorites.asStateFlow()
 
+    private val _groupOrder = MutableStateFlow<List<String>>(emptyList())
+
+    /**
+     * The group order, as its own channel.
+     *
+     * [favorites] carries the groups' contents as a map, and `Map` equality is
+     * content-based, so a reorder that changes nothing but the sequence produces a
+     * map equal to the previous one — a `StateFlow` would drop that emission and
+     * every consumer iterating the map would keep the old order. A `List` compares
+     * ordered, so this flow emits on every order change and is the order the phone
+     * grid and the car place list render. It is written together with [favorites] in
+     * [refreshState], so the two never describe different stores.
+     */
+    open val groupOrder: StateFlow<List<String>> = _groupOrder.asStateFlow()
+
     private var favoritesFile: String? = null
     private var loaded = false
 
@@ -77,6 +92,7 @@ open class FavoriteRepository @Inject constructor(
             map[group.name] = group.favorites.toList()
         }
         _favorites.value = map
+        _groupOrder.value = map.keys.toList()
     }
 
     /** Persist current state to JSON file. */
@@ -223,6 +239,82 @@ open class FavoriteRepository @Inject constructor(
             }
             success
         }
+
+    /**
+     * Move a group to a new position in the group order.
+     *
+     * The target index is 0-based over the group order after the group has been
+     * removed from its current position; out-of-range indices are clamped by the
+     * native store, and a negative index means the first position. The order is
+     * what [favorites] emits, so the whole reorder is one JNI call plus one file
+     * write.
+     *
+     * Returns false if not loaded, or if the group is unknown.
+     */
+    open suspend fun moveGroup(groupName: String, newIndex: Int): Boolean =
+        writeMutex.withLock {
+            moveGroupLocked(groupName, newIndex)
+        }
+
+    private suspend fun moveGroupLocked(groupName: String, newIndex: Int): Boolean =
+        withContext(defaultDispatcher) {
+            if (!loaded) return@withContext false
+            val success = client!!.moveGroup(groupName, newIndex)
+            if (success) {
+                refreshState()
+                persist()
+            }
+            success
+        }
+
+    /**
+     * Move a favorite out of [sourceGroup] and into [targetGroup].
+     *
+     * The target index is 0-based over the destination group's list as it stands
+     * before the move (unlike [moveFavorite], whose index refers to its own group's
+     * list after the favorite was removed); out-of-range indices are clamped by the
+     * native store, and a negative index means the first position. The favorite
+     * keeps its coordinates, its attributes and its star.
+     *
+     * A group that does not exist yet is created first, so a caller can move into a
+     * brand-new group in one operation (the same two-step persist as adding a
+     * favorite to a missing group: group creation, then the move). A destination
+     * that already holds a favorite of that name is refused by the native store with
+     * both groups untouched, and nothing is persisted.
+     *
+     * Returns false if not loaded, if either group or the favorite is unknown, or if
+     * the destination already holds that name.
+     */
+    open suspend fun moveFavoriteToGroup(
+        sourceGroup: String,
+        favName: String,
+        targetGroup: String,
+        newIndex: Int
+    ): Boolean = writeMutex.withLock {
+        moveFavoriteToGroupLocked(sourceGroup, favName, targetGroup, newIndex)
+    }
+
+    private suspend fun moveFavoriteToGroupLocked(
+        sourceGroup: String,
+        favName: String,
+        targetGroup: String,
+        newIndex: Int
+    ): Boolean = withContext(defaultDispatcher) {
+        if (!loaded) return@withContext false
+        // Auto-create the destination group, like addFavoriteLocked does: a caller
+        // may move a favorite into a group that does not exist yet. The locking
+        // helper is used because the write lock is already held here.
+        if (targetGroup !in _favorites.value.keys) {
+            val created = addGroupLocked(targetGroup)
+            if (!created) return@withContext false
+        }
+        val success = client!!.moveFavoriteToGroup(sourceGroup, favName, targetGroup, newIndex)
+        if (success) {
+            refreshState()
+            persist()
+        }
+        success
+    }
 
     // ---- Group Attributes ----
 

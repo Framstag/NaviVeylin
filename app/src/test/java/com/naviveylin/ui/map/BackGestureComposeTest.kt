@@ -2,6 +2,7 @@ package com.naviveylin.ui.map
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.framstag.libosmscout.client.FakeOSMScoutClient
@@ -45,7 +46,10 @@ class BackGestureComposeTest {
     }
 
     private fun launchFavoritesSheet(onDismiss: () -> Unit): FavoritesViewModel {
-        val viewModel = FavoritesViewModel(FavoriteRepository(FakeOSMScoutClient()))
+        val viewModel = FavoritesViewModel(
+            FavoriteRepository(FakeOSMScoutClient()),
+            ApplicationProvider.getApplicationContext()
+        )
         composeRule.setContent {
             FavoritesSheet(
                 mapCenterLat = 51.5136,

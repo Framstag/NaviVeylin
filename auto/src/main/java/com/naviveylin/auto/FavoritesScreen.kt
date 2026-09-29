@@ -12,10 +12,12 @@ import androidx.car.app.model.SectionedItemList
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.orderedGroupNames
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
@@ -43,6 +45,14 @@ class FavoritesScreen(
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
 
     private var favoritesData: Map<String, List<com.framstag.libosmscout.client.FavoriteLocation>> = emptyMap()
+
+    /**
+     * Stored group order (`AutoFavoritesProvider.groupOrder`): the section sequence.
+     * Read from its own flow, not from the map's iteration order — a group reorder
+     * leaves the map contents equal, so the map flow may not re-emit (spec
+     * `auto-favorites` — AA place list follows the stored group order).
+     */
+    private var groupOrder: List<String> = emptyList()
     private var loaded = false
 
     init {
@@ -51,13 +61,20 @@ class FavoritesScreen(
         // DetailsScreen and the phone app): the screen updates in place when
         // the store finishes loading, so favorites appear without leaving and
         // re-entering the screen (spec: auto-favorites — favorites appear
-        // without re-entering the screen).
+        // without re-entering the screen). The group order rides the same
+        // collector via `combine`, so the screen holds one observation rather
+        // than a second bare launch.
         scope.launch {
-            favoritesProvider.favoriteLocations().collect { favorites ->
-                favoritesData = favorites
-                loaded = true
-                invalidate()
-            }
+            combine(
+                favoritesProvider.favoriteLocations(),
+                favoritesProvider.groupOrder()
+            ) { favorites, order -> favorites to order }
+                .collect { (favorites, order) ->
+                    favoritesData = favorites
+                    groupOrder = order
+                    loaded = true
+                    invalidate()
+                }
         }
         // Cancel the collect when the screen is destroyed so collectors do not
         // accumulate across open/close cycles (pattern from MapScreen).
@@ -99,7 +116,8 @@ class FavoritesScreen(
             )
         } else {
             var added = false
-            for ((groupName, favorites) in favoritesData) {
+            for (groupName in orderedGroupNames(groupOrder, favoritesData.keys)) {
+                val favorites = favoritesData[groupName].orEmpty()
                 val groupFavorites = if (starredOnly) {
                     favorites.filter { it.attributes?.get("starred") == "true" }
                 } else {

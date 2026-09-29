@@ -62,4 +62,24 @@ class AutoProviderLazinessTest {
 
         assertEquals(1, builds.get())
     }
+
+    /**
+     * The group order (spec `group-ordering`) is read through the same lazy
+     * repository as [AutoFavoritesProvider.favoriteLocations], so the car screen can
+     * collect it in its constructor without building the native client there.
+     */
+    @Test
+    fun theGroupOrderAccessorIsLazyLikeTheFavoritesAccessor() {
+        val repository = dagger.Lazy {
+            builds.incrementAndGet()
+            FavoriteRepository()
+        }
+        val provider = AutoServiceModule.provideAutoFavoritesProvider(repository)
+
+        assertEquals("resolving the provider must not build the repository/client", 0, builds.get())
+
+        provider.groupOrder()
+
+        assertEquals(1, builds.get())
+    }
 }

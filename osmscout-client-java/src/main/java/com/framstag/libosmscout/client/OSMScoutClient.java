@@ -800,6 +800,45 @@ public class OSMScoutClient {
     public native boolean moveFavorite(String groupName, String favName, int newIndex);
 
     /**
+     * Move a group to another position in the group order.
+     *
+     * The target index is 0-based and refers to the group order after the group
+     * has been removed from its current position; an index outside the order's
+     * bounds is clamped to the first/last position, and a negative index means
+     * the first position. The order is what {@link #getFavoriteGroups()} returns.
+     *
+     * @param groupName group name
+     * @param newIndex  0-based target position in the group order
+     * @return true if moved (or already at that position), false if the group is not found
+     */
+    public native boolean moveGroup(String groupName, int newIndex);
+
+    /**
+     * Move a favorite from one group into another group.
+     *
+     * The target index is 0-based and refers to the <em>destination</em> group's
+     * favorite list as it stands before the move; an index outside that list's
+     * bounds is clamped to the first/last position, and a negative index means the
+     * first position. (This differs from {@link #moveFavorite}, whose index refers
+     * to its own group's list after the favorite has been removed.) The favorite
+     * keeps its coordinates, its attributes and its star.
+     *
+     * The move is refused when the destination group already holds a favorite of
+     * that name: the collision is detected before anything is removed, so both
+     * groups are left unchanged. Naming the favorite's own group as the destination
+     * succeeds without changing anything.
+     *
+     * @param groupName       group the favorite currently belongs to
+     * @param favName         favorite name to move
+     * @param targetGroupName group to move the favorite into
+     * @param newIndex        0-based target position in the destination group
+     * @return true if moved, false if either group or the favorite is not found, or
+     *         if the destination group already holds a favorite of that name
+     */
+    public native boolean moveFavoriteToGroup(String groupName, String favName,
+                                              String targetGroupName, int newIndex);
+
+    /**
      * Set or clear the starred flag on a favorite.
      *
      * @param groupName group name

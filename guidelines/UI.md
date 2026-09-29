@@ -35,6 +35,8 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Open-source license list | Reachable from About → "Open source licenses": components with identifiers, full license texts, links for licenses whose terms stay with their owner | Not surfaced — the car About screen keeps app identity and the map-data attribution only |
 | Auto-zoom magnification changes | Animated — `smooth-zoom` scales the displayed map from the current scale toward the target while the native render is queued, and a change farther than the window the frame in hand can serve is applied as a sequence of steps, each step a native render at the magnification it displays (`ZoomWalk`), one step per landed frame; the animation pivots on the vehicle's resolved follow anchor while a follow mode is active | Animated by the same observable contract, implemented in the renderer — a magnification request larger than the blit window is WALKED across rendered frames (`AutoMapRenderer.advanceZoomWalk`, spec `auto-speed-zoom` — Auto-zoom entry transition), also pivoting on the resolved follow anchor. The observable contract (no single-frame jump, no frame showing a magnification the frame in hand cannot serve, anchored on the vehicle, ends on an exact render) is the parity requirement, the mechanism (Compose display scale over walked renders vs renderer walk) is not shared. Car gesture/zoom-button paths keep their immediate response; the phone walks every animated change, and a programmatic camera fit lands directly on both surfaces |
 | Reorder favorites inside a group | Drag handle on each favorite row in the group detail list (`sh.calvin.reorderable`); the position the drag ends in is persisted | Not offered — Car App Library templates have no drag gesture. The car `PlaceListTemplate` shows the **same stored order** read-only, so the data is at parity, the interaction is not (see below) |
+| Reorder favorite groups | Long-press drag handle on each group card in the grid (`sh.calvin.reorderable`, `rememberReorderableLazyGridState`); the position the drag ends in is persisted — change `reorder-favorite-groups` | Not offered — same platform constraint as the favorite order, and a per-header move action would duplicate a management task the phone owns. The car list renders the **same stored group order** read-only, so the data is at parity, the interaction is not (see below) |
+| Move a favorite into another group | Row action on the favorite (overflow menu → "Move to group", shared wording `move_favorite_to_group`) opening a destination dialog that lists the other groups plus "New Group" (shared wording `new_group_title`) — change `move-favorite-between-groups` | Not offered — the destination-selection step has no template equivalent and the screen is driver-facing. The car `PlaceListTemplate` renders the resulting grouping under the destination group's header, so the data is at parity, the interaction is not (see below) |
 | Stylesheet could not be loaded | Non-blocking snackbar next to the map with the shared wording (`MapStyleLoadReporter` → `uiState.snackbarMessage`) | **Same wording**, also non-blocking, but a different surface: a one-shot low-importance notification (channel `map_style`, silent, auto-cancel) — the car templates have no general message slot, so `CarStyleLoadNotifier` is used instead of a template change. Guidance is never interrupted on either surface (change `fix-stylesheet-load-crash`, design D2) |
 | Car session live while the phone UI is open | Advisory indication on the map (centre-left pill, shared wording `car_session_active_indicator`, translated): "Navigation on car display". Informational only — no map, search or navigation control is disabled while a car session is live (change `shared-resource-arbitration`, spec `car-session-presence`) | Not shown — the car surface is the session, so the indication would tell the driver nothing (platform constraint, not an omission) |
 | Route requested without the precise location grant | Actionable dialog with the shared wording (`location_precise_required_navigation`, `PreciseLocationRequiredDialog`): "Grant precise location" re-requests the permission while the platform can still ask, and opens the app's system settings once it will not ask again — no route request reaches the routing engine meanwhile (change `fix-location-permission-scope`, spec `location-permissions` — Starting navigation requires precise location) | **Same wording**, non-blocking: the refusal is published on the shared navigation state, so the session shows it in the existing guarded error notice (one row, back action). The car SHALL NOT launch a settings screen — platform constraint, so the driver is told to grant it on the phone / in the system settings. Free driving and the map keep working on both surfaces with approximate location |
@@ -49,14 +51,57 @@ uses — a passenger browsing, or the driver picking a destination before settin
 off — for no gain; the phone therefore keeps every map and navigation control and
 only *informs* about the car session.
 
-### Why favorite reordering is phone-only
+### Why favorite and group reordering are phone-only
 
-The order itself is shared (spec `fav-ordering`): a reorder made on the phone is
+The order itself is shared (spec `fav-ordering`, spec `group-ordering`): a reorder made on the phone is
 what the car list renders. What cannot be shared is the gesture — Car App Library
 templates expose rows, actions and clicks, but no drag; the alternative would be
-a per-row "move up/down" action strip on a driver-facing list, which duplicates a
-management task the phone already offers (same split as rename and group color).
-The deliberate deviation is the interaction only, not the data.
+a per-row (or per-header) "move up/down" action strip on a driver-facing list, which
+duplicates a management task the phone already offers (same split as rename and group
+color). The deliberate deviation is the interaction only, not the data.
+
+The group order needs one more thing than the favorite order to be shared at all: the
+car reads its sequence from the provider's **order channel**
+(`AutoFavoritesProvider.groupOrder`), not from the group map's iteration order. A
+reorder changes no map contents, and a `StateFlow` drops an emission equal to its
+current value while `Map` equality ignores order — so a surface iterating the map
+would keep the stale sequence, most visibly with groups that hold no favorites. Both
+surfaces pair the channel with the map's contents through the shared
+`orderedGroupNames` helper, so a group can never vanish from a list because the two
+channels were observed a moment apart.
+
+Moving a favorite into another group follows the same split (change
+`move-favorite-between-groups`, spec `fav-management-ui` — Favorites management
+stays on the phone): a move made on the phone is what the car list renders, but
+the car cannot express the destination-selection step — a picker would have to be
+stacked on the browse list while driving — so the action stays on the phone and
+the car screen stays a browse-and-select surface. Favorites management as a whole
+(rename, color, reorder, move — and the order of the groups themselves) is a phone
+surface by this rule; only browsing and selecting are shared.
+
+### Favorites row actions (phone)
+
+The favorite row in the group detail list keeps star, rename and delete as buttons
+on the trailing edge and the drag handle as the leading affordance, as spec
+`fav-management-ui` requires, and carries **"Move to group"** behind a compact
+overflow menu (the pattern the group card uses for Set Color / Rename / Delete).
+A fifth plain button does not fit a phone row: with the handle and the three
+actions, the name and coordinate columns would lose the space that makes the row
+readable. The action is absent when the store holds a single group, because there
+is nothing to move into. The destination dialog preselects the first other group
+and offers "New Group" with a name field, so the common case is two taps and a
+new destination needs no detour through the group grid.
+
+### Group grid card actions (phone)
+
+The group card keeps its tap target (**name and favorite count** open the group), its
+tint when a color is assigned, and its overflow menu (Set Color / Rename / Delete) on
+the trailing edge; the **drag handle is the leading affordance** for the group order
+(spec `group-grid-display`). The handle sits outside the tap target because a clickable
+ancestor cancels its long press — the same rule the favorite row follows — so a tap
+opens the group and only a long press starts a drag. A drag commits only the position
+the card is released at: a drag that ends where it started, and a sheet dismissed
+mid-drag, write nothing.
 
 ### Why the license list is phone-only
 

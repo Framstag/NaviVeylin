@@ -149,17 +149,131 @@ class DiagnosticsLogRetentionTest {
     fun theCallerPathPerformsNoRetentionWork() {
         // Configure only: no entry has been logged, so no worker exists yet — an
         // expired entry must still be on disk, because pruning is the worker's job.
-        write(logFile, listOf(line(daysAgo(30), "OLD entry")))
+        // The same holds for a position: the coordinate rule runs in the pass, not on
+        // the caller's path (spec: auto-diagnostics — Purging never blocks the caller).
+        write(
+            logFile,
+            listOf(
+                line(daysAgo(30), "OLD entry"),
+                line(daysAgo(1), "LONGPRESS lat=51.513298135108705 lon=7.474341597216892 mag=16.0")
+            )
+        )
         DiagnosticsLog.initForTest(logFile)
 
         assertTrue(
             "the caller path must not prune",
             diskText(logFile).contains("OLD entry")
         )
+        assertTrue(
+            "the caller path must not purge a position either",
+            diskText(logFile).contains("lat=51.513298135108705")
+        )
 
         logAndDrain()
 
         assertFalse("the worker prunes", diskText(logFile).contains("OLD entry"))
+        assertFalse("the worker purges the position", diskText(logFile).contains("lat=51.513298135108705"))
+    }
+
+    @Test
+    fun aYoungCoordinateEntryIsRemovedFromTheActiveFileAndTheRotatedOne() {
+        // The §88 case: written by a pre-redaction build, younger than the 7-day window,
+        // so the age bound would keep it for the rest of the window.
+        val identity = line(daysAgo(1), "LONGPRESS x=540 y=1500 mag=18.0 map=iceland")
+        write(
+            logFile,
+            listOf(
+                line(daysAgo(1), "LONGPRESS lat=51.513298135108705 lon=7.474341597216892 mag=16.0"),
+                identity
+            )
+        )
+        write(rotatedFile, listOf(line(daysAgo(1), "FIX lat=51.513298135108705 lon=7.474341597216892")))
+        DiagnosticsLog.initForTest(logFile)
+
+        logAndDrain()
+
+        assertFalse(
+            "a position is dropped whatever its age: ${diskText(logFile)}",
+            diskText(logFile).contains("lat=51.513298135108705")
+        )
+        assertFalse(
+            "the rotated file is purged too",
+            diskText(rotatedFile).contains("lat=51.513298135108705")
+        )
+        assertTrue("precision-free identity stays", diskText(logFile).contains(identity))
+    }
+
+    @Test
+    fun theCoordinateDropIsReportedOnceWithCountsAndWithoutThePosition() {
+        write(
+            logFile,
+            listOf(
+                line(daysAgo(1), "LONGPRESS lat=51.513298135108705 lon=7.474341597216892 mag=16.0"),
+                line(daysAgo(1), "MAP render center=51.60987926464756,7.621644390462239 mag=17.0"),
+                line(daysAgo(30), "OLD aged entry")
+            )
+        )
+        DiagnosticsLog.initForTest(logFile)
+
+        val entries = logAndDrain()
+        val reports = entries.filter { it.contains("retention: dropped") }
+
+        assertEquals("one report line per pass: $entries", 1, reports.size)
+        val report = reports.single()
+        assertEquals("both positions are counted: $report", 2, coordinateCountIn(report))
+        assertTrue("the aged count stays in the same line: $report", report.contains("1 entry older than 168h"))
+        assertFalse("a report must not carry a position: $report", LogLineCoordinates.carriesPosition(report))
+        assertFalse("the digits are gone too: $report", report.contains("51.513298135108705"))
+    }
+
+    @Test
+    fun anExpiredCoordinateEntryIsCountedAsCoordinateOnly() {
+        // A position that is also expired is dropped for one reason, not two: the report
+        // must not inflate the aged count with it.
+        write(logFile, listOf(line(daysAgo(30), "FIX lat=51.513298135108705 lon=7.474341597216892")))
+        DiagnosticsLog.initForTest(logFile)
+
+        val entries = logAndDrain()
+        val report = entries.single { it.contains("retention: dropped") }
+
+        assertEquals("counted as coordinate-carrying: $report", 1, coordinateCountIn(report))
+        assertFalse("not double-counted as aged: $report", report.contains("older than 168h"))
+    }
+
+    @Test
+    fun aLogWithoutPositionsKeepsTheAgedReportWording() {
+        write(logFile, listOf(line(daysAgo(30), "OLD entry")))
+        DiagnosticsLog.initForTest(logFile)
+
+        val entries = logAndDrain()
+        val report = entries.single { it.contains("retention: dropped") }
+
+        assertTrue("the existing wording stays: $report", report.contains("1 entry older than 168h"))
+        assertFalse("no coordinate part when none was dropped: $report", report.contains("coordinate-carrying"))
+    }
+
+    private fun coordinateCountIn(report: String): Int =
+        Regex("""(\d+) coordinate-carrying""").find(report)?.groupValues?.get(1)?.toInt() ?: 0
+
+    @Test
+    fun theReaderSeesNoPositionAfterThePass() {
+        // The viewer/export path reads the file; a stale position must not reach it. The
+        // disclosure that leads the shared text is composed in the app layer
+        // (`diagnosticsShareText`, covered by the :app disclosure test) and is unchanged
+        // by this change, so the assertion here is on the log text itself.
+        val stale = line(daysAgo(1), "LONGPRESS lat=51.513298135108705 lon=7.474341597216892 mag=16.0")
+        val identity = line(daysAgo(1), "LONGPRESS x=540 y=1500 mag=18.0 map=iceland")
+        write(logFile, listOf(stale, identity))
+        DiagnosticsLog.initForTest(logFile)
+
+        DiagnosticsLog.log("TEST", "fresh entry")
+        val entries = DiagnosticsLog.readEntries()
+        val exported = DiagnosticsLog.exportText()
+
+        assertFalse("a reader must not see the stale position: $entries", entries.any { it.contains(stale) })
+        assertTrue("the identity line is readable", entries.any { it.contains(identity) })
+        assertFalse("the export carries no position", exported.contains("51.513298135108705"))
+        assertTrue("the export carries the identity line", exported.contains(identity))
     }
 
     @Test

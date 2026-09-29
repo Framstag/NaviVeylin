@@ -13,6 +13,15 @@ interface AutoFavoritesProvider {
     fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>>
 
     /**
+     * Reactive group order (spec `group-ordering`): the sequence in which the groups
+     * appear, emitted as its own flow because a map cannot express "same contents,
+     * different order" — a reorder produces a map equal to the previous one, so a
+     * consumer iterating [favoriteLocations] would keep the stale order. Consumers
+     * that list groups read their sequence from here; the map supplies the contents.
+     */
+    fun groupOrder(): StateFlow<List<String>>
+
+    /**
      * Initialize the favorites repository with the JSON persistence path
      * (typically `filesDir/favorites.json`). Must be called before
      * [favoriteLocations] returns any data; mirrors the phone app's

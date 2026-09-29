@@ -4,6 +4,33 @@
 
 ---
 
+## 102. Four scenarios added by `reorder-favorite-groups` have no automated test — Found 2026-09-29 (during that change's task 5.5 traceability pass)
+
+- **Coverage gaps** ⏳: the change's specs are behaviour-complete, but these scenarios rest on a library
+  contract, on a surface the unit tests cannot compose, or on a failure the test doubles cannot inject:
+  1. `group-ordering` — *A group used as a single-group default is the first stored group*: the sheet picks
+     the first group of `orderedGroupNames(state.groupOrder, state.groups.keys)` for "Add current location",
+     but that line is inline in `FavoritesSheet`'s dialog wiring, so no test asserts which group it picks
+     (the helper itself is covered in `:core`). A sheet-level Compose test with a ViewModel fake would
+     close it.
+  2. `group-grid-display` — *Dragged card follows the finger* and *Nothing is persisted during the drag*:
+     the lifted card and the shift-to-make-room are `sh.calvin.reorderable`'s contract; the tests only
+     observe that nothing is committed until the release (`FavoritesSheetGroupReorderComposeTest`). The
+     same two scenarios are equally untested for the favorite reorder (spec `fav-management-ui`), so this
+     is a gap of the pattern, not of this change.
+  3. `group-grid-display` — *Sheet dismissed during a drag*: the deferred-commit design covers it (the
+     commit is a `LaunchedEffect`, cancelled with the composition), and the code states it, but no test
+     dismisses the sheet mid-drag; the favourite equivalent has the same gap.
+  4. `group-ordering` — *Persistence failure keeps the app usable*: no test injects a failing
+     `saveFavoriteLocations` (the fakes always return `true`), so a persist that fails while the native
+     move succeeded is unverified — inherited verbatim from `fav-ordering`'s identical requirement.
+- **Fix candidate**: (1) a `FavoritesSheet` Compose test over a fake `FavoritesViewModel`; (2)/(3) accept the
+  library contract and record the visual checks in the on-device pass, or drive a dismissal in the Compose
+  test; (4) give both fakes a `saveFailure` switch, then assert the snackbar/message path in
+  `FavoriteRepositoryTest` and `FavoritesViewModelTest`.
+
+---
+
 ## 101. `NavigationEngineTest.listenerCallbacksDriveTheSharedState` flakes inside full-suite runs under load — Found 2026-09-28 during `fix-stale-fix-quality` (verification gate)
 
 - **Observed** ℹ: across four full `:app` suite runs (1336 tests per flavor, `--continue`) the case failed **twice** — once in the
@@ -28,6 +55,16 @@
   `guidelines/Build.md` §4, `guidelines/Design.md` §4; full trail: the commit and the change's local OpenSpec dir.
 - **Still open here** ⏳: the original observation above — `listenerCallbacksDriveTheSharedState` failing on `"lane guidance
   mirrored"` under load — is a different symptom (mirrored state, no dispatcher involvement) and is not explained by that fix.
+- **Update 2026-09-29** ℹ: reproduced twice more while verifying `reorder-favorite-groups` — `./gradlew test`
+  failed in the **automotive** flavor (1396 tests, the same `lane guidance mirrored` assertion) on two
+  consecutive runs, while the mobile flavor passed; the class passes alone (12/12, 19 s). The rate was
+  measured: 3 runs of `com.naviveylin.navigation.*` alone were green, and the same navigation set with
+  `FavoritesSheetGroupReorderComposeTest` appended failed once in 3. That experiment was not trustworthy on
+  its own (the flake's own rate makes a single-run comparison meaningless); the useful part came from
+  bounding that new test's drags — a card dragged 200 px past the grid's edge starts the reorder library's
+  drag auto-scroll — after which navigation + that class was green 4 times in a row and the full suite went
+  green. Kept as evidence, not as an attribution: see `ki_processing_failures.log` (2026-09-29) for the
+  measurement lesson.
 - **Fix candidate for the still-open assertion**: bisect the suite execution order (per-class `timestamp` from
   `test-results/*.xml`, then `--tests` filters — the technique that settled §96) and check whether the mirroring work is
   dispatched off the test scheduler: the case must then await the mirrored state instead of relying on `advanceUntilIdle()`. Per
@@ -1089,3 +1126,78 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   changes in one verified path.
 - **Not caught** ✗: `MapPanDisplayWindowTest`/`MarkerDisplayShiftTest` pin the pan-side contract; the
   duplication itself has no test, only the rule that a follow-mode overlay shift must stay zero.
+
+## 79. The Android bridge override trails the submodule's Java favorites API — Found 2026-09-28 (while adding the cross-group favorite move)
+
+- **Debt** ℹ: `osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java`
+  shadows the submodule's Java source (that file is excluded in `osmscout-client-java/build.gradle.kts`)
+  and is one API family behind it. `moveStarredFavorite`, `getStarredFavorites`,
+  `getFavoriteFileFormatVersion` and `isFavoriteFileFormatSupported` are declared in
+  `app/src/main/cpp/libosmscout/libosmscout-client-java/java/com/framstag/libosmscout/client/OSMScoutClient.java`
+  (submodule, added by `530ac8768`) and implemented in the linked JNI (`OSMScoutClient.cpp`), but are
+  absent from the override, so the app cannot reach them. `moveFavoriteToGroup` was declared while landing
+  `move-favorite-between-groups` and `moveGroup` while landing `reorder-favorite-groups`; the other four stay
+  unreachable.
+- **Fix candidate**: declare the missing natives in the override, and add a buildSrc/CI gate that compares
+  the override's `native` declarations with the submodule's Java source and fails on a mismatch — the drift
+  is silent otherwise (no compiler error, no failing test: only a `NoSuchMethodError` at the call site).
+- **Why deferred** ✗: the in-flight change `move-favorite-between-groups` needed exactly one of them;
+  widening it would have mixed an API-sync refactor into a feature change.
+
+## 80. `MapCanvasViewModel` crashes at startup: the fix-quality ticker reads `fixQualityTicks` before its initializer runs — Found 2026-09-28 (on device, while verifying `move-favorite-between-groups`)
+
+- **Bug** ✗: on a debug build of the current tree the app dies seconds after launch, in the
+  `MapCanvasViewModel` constructor. `Diag/CRASH`/`AndroidRuntime`:
+  `NullPointerException: Attempt to invoke interface method 'Flow.collect' on a null object reference`
+  at `CombineKt$combineInternal$2$1.invokeSuspend(Combine.kt:28)`, with the app frame
+  `com.naviveylin.ui.map.MapCanvasViewModel.<init>(MapCanvasViewModel.kt:1037)`.
+  Reproduced on three consecutive launches (emulator `sdk_gphone64_x86_64`, API 37).
+- **Cause**: `init {` starts at `MapCanvasViewModel.kt:934`; the fix-quality ticker inside it does
+  `combine(locationService.location, fixQualityTicks)` (line 1038), but
+  `private val fixQualityTicks = MutableStateFlow(0L)` is declared at line **3130**, i.e. after the
+  init block. Kotlin runs property initializers and `init` blocks in declaration order, so the ticker
+  sees the still-null backing field. `viewModelScope` is `Dispatchers.Main.immediate`, so the
+  `launch` body (and `combine`'s eager child collectors) execute *during* construction and dereference
+  the null flow. On-device this is deterministic, not a rare race. Introduced by the fix-quality
+  work (`fix-stale-fix-quality` / `fix-fix-quality-tick-main-race`).
+- **Why the suite misses it** ✗: every `MapCanvasViewModel` test sets
+  `Dispatchers.setMain(StandardTestDispatcher())`, which queues the launch body until after the
+  constructor returns — the property is initialized by then, so no test observes the ordering bug.
+  A missing test is a dispatcher whose main is *immediate* (or `Unconfined`) at construction time.
+- **Fix candidate**: declare `fixQualityTicks` before the `init {` block (one-line move, the field is
+  only used inside `init` and by the ticker); keep the ticker where it is. Alternative: start the
+  ticker from `initMap()` instead of the constructor, so construction no longer launches anything that
+  reads a later-declared field. Add a regression test that constructs the ViewModel under an immediate
+  main dispatcher and asserts construction completes.
+- **FIXED** ✓ (2026-09-28, same session): the declaration moved above `init`, with the ordering rule
+  documented on the field. Verified on the emulator (`sdk_gphone64_x86_64`, API 37): the app launched
+  and stayed up (`FOCUSED_ACTIVITY` = `MainActivity`, zero `FATAL EXCEPTION` in logcat) where the
+  unpatched build died on 3/3 launches. `MapCanvasViewModel.kt` is not part of
+  `move-favorite-between-groups`; the fix is a loan to `fix-stale-fix-quality` and belongs in that
+  change's commit.
+- **Not caught by a test** ✗: no JVM/Robolectric case reproduces it, and a regression test was written
+  and then removed because it passed against the unfixed code. The device stack shows why the two
+  differ: `CombineKt$combineInternal$2$1.invokeSuspend(Combine.kt:28)` is reached through
+  `EventLoop.processUnconfinedEvent` → `startCoroutineCancellable` → `launch` → the constructor, i.e.
+  the combine child runs *inline inside the constructor* on the platform main dispatcher. Under
+  Robolectric the same child is deferred even with `Dispatchers.resetMain()` (platform dispatcher) or
+  `UnconfinedTestDispatcher`, so the null field is never read while construction is running. The
+  device run is therefore the only verification this defect has — do not delete it as "covered".
+- **Why deferred** ✗: it belongs to the in-flight fix-quality change, not to
+  `move-favorite-between-groups`, whose only interaction with it is that on-device verification cannot
+  run until the app starts.
+
+## 81. The favorites group card counts favorites with an inline English string — Found 2026-09-28 (on device, while verifying `move-favorite-between-groups`)
+
+- **Bug** ✗: `FavoritesSheet.kt:667` builds the group card subtitle as
+  `"$favCount favorite${if (favCount != 1) "s" else ""}"`, so a German device shows
+  "2 favorites" / "3 favorites" (observed in the emulator's UI dump next to correctly translated
+  labels). `guidelines/UI.md` §10 requires all user-facing text in string resources, and a count needs
+  a plural resource (`pluralStringResource(R.plurals…)` on phone, `getQuantityString` on the car), so
+  English-shaped pluralization cannot be translated at all.
+- **Fix candidate**: add a `plurals` entry for the group card count (`values/` + `values-de/`;
+  `GermanTranslationCompletenessTest` enforces the parity) and render it through
+  `pluralStringResource`. Check the sibling count strings in the same sheet and the car mapper
+  (`FavoritesScreenMapper`) for the same pattern while there.
+- **Why deferred** ✗: pre-existing, unrelated to the cross-group move, and an i18n sweep should cover
+  every hardcoded string it finds (there may be more in the same file) rather than one count.

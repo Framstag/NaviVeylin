@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -149,6 +150,402 @@ class FavoriteRepositoryTest {
         assertTrue(!repo.moveFavorite("Cities", "Berlin", 0))
 
         assertEquals(0, client.moveFavoriteCalls.size)
+    }
+
+    // --- Cross-group move (spec fav-service — cross-group move method; spec fav-ordering) ---
+
+    /** Two groups with two favorites each, in a fixed stored order. */
+    private suspend fun repoWithTwoGroups(): Pair<FavoriteRepository, FakeOSMScoutClient> {
+        val (repo, client) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addGroup("Work"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 52.5, 13.4))
+        assertTrue(repo.addFavorite("Cities", "Rome", 41.9, 12.5))
+        assertTrue(repo.addFavorite("Work", "Office", 51.5, 7.4))
+        return repo to client
+    }
+
+    @Test
+    fun moveFavoriteToGroupMovesTheFavoriteBetweenGroups() = runTest {
+        val (repo, _) = repoWithTwoGroups()
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Work", 0))
+
+        val groups = repo.favorites.value
+        assertEquals(listOf("Berlin"), groups["Cities"]?.map { it.name })
+        assertEquals(listOf("Rome", "Office"), groups["Work"]?.map { it.name })
+    }
+
+    @Test
+    fun moveFavoriteToGroupPersistsExactlyOnce() = runTest {
+        val (repo, client) = repoWithTwoGroups()
+        val savesBefore = client.saveFavoriteLocationsCalls.get()
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Work", 1))
+
+        assertEquals(savesBefore + 1, client.saveFavoriteLocationsCalls.get())
+        assertEquals(
+            listOf("Cities" to listOf("Berlin"), "Work" to listOf("Office", "Rome")),
+            client.lastSavedFavoriteOrder
+        )
+    }
+
+    @Test
+    fun moveFavoriteToGroupKeepsCoordinatesStarAndAttributes() = runTest {
+        val (repo, client) = repoWithTwoGroups()
+        assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
+        val savesBefore = client.saveFavoriteLocationsCalls.get()
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Work", 0))
+
+        val moved = repo.favorites.value["Work"]?.firstOrNull { it.name == "Rome" }
+        assertEquals(41.9, moved?.lat ?: 0.0, 1e-9)
+        assertEquals(12.5, moved?.lon ?: 0.0, 1e-9)
+        assertTrue(repo.isFavoriteStarred("Work", "Rome"))
+        assertEquals("true", moved?.attributes?.get("starred"))
+        assertEquals(savesBefore + 1, client.saveFavoriteLocationsCalls.get())
+    }
+
+    @Test
+    fun refusedNameCollisionLeavesBothGroupsUntouched() = runTest {
+        val (repo, client) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addGroup("Work"))
+        assertTrue(repo.addFavorite("Cities", "Office", 52.5, 13.4))
+        assertTrue(repo.addFavorite("Cities", "Rome", 41.9, 12.5))
+        assertTrue(repo.addFavorite("Work", "Office", 51.5, 7.4))
+        val savesBefore = client.saveFavoriteLocationsCalls.get()
+
+        // The native store refuses the collision before removing anything.
+        assertTrue(!repo.moveFavoriteToGroup("Cities", "Office", "Work", 0))
+
+        assertEquals(listOf("Office", "Rome"), repo.favorites.value["Cities"]?.map { it.name })
+        assertEquals(listOf("Office"), repo.favorites.value["Work"]?.map { it.name })
+        assertEquals(savesBefore, client.saveFavoriteLocationsCalls.get())
+    }
+
+    @Test
+    fun moveFavoriteToGroupForUnknownGroupsOrFavoriteFails() = runTest {
+        val (repo, client) = repoWithTwoGroups()
+        val savesBefore = client.saveFavoriteLocationsCalls.get()
+
+        assertTrue(!repo.moveFavoriteToGroup("Missing", "Rome", "Work", 0))
+        assertTrue(!repo.moveFavoriteToGroup("Cities", "Missing", "Work", 0))
+
+        // A failing move does not touch the file.
+        assertEquals(savesBefore, client.saveFavoriteLocationsCalls.get())
+        assertEquals(listOf("Berlin", "Rome"), repo.favorites.value["Cities"]?.map { it.name })
+        assertEquals(listOf("Office"), repo.favorites.value["Work"]?.map { it.name })
+    }
+
+    @Test
+    fun moveFavoriteToGroupBeforeInitReturnsFalse() = runTest {
+        val client = FakeOSMScoutClient()
+        val repo = FavoriteRepository(client)
+
+        assertTrue(!repo.moveFavoriteToGroup("Cities", "Berlin", "Work", 0))
+
+        assertEquals(0, client.moveFavoriteToGroupCalls.size)
+    }
+
+    @Test
+    fun moveFavoriteToGroupRunsOffTheMainThread() = runTest {
+        val (repo, client) = repoWithTwoGroups()
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Work", 0))
+
+        val call = client.moveFavoriteToGroupCalls.single()
+        assertEquals("Cities", call.sourceGroup)
+        assertEquals("Rome", call.favName)
+        assertEquals("Work", call.targetGroup)
+        assertEquals(0, call.newIndex)
+        assertTrue(
+            "the JNI move must not run on the main thread (was '${call.threadName}')",
+            call.threadName != android.os.Looper.getMainLooper().thread.name
+        )
+    }
+
+    @Test
+    fun moveFavoriteToGroupCreatesTheMissingDestinationGroup() = runTest {
+        val (repo, client) = repoWithTwoGroups()
+        val savesBefore = client.saveFavoriteLocationsCalls.get()
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Fresh", 0))
+
+        assertEquals(listOf("Berlin"), repo.favorites.value["Cities"]?.map { it.name })
+        assertEquals(listOf("Rome"), repo.favorites.value["Fresh"]?.map { it.name })
+        // Group creation persists on its own, then the move persists again — the
+        // same two-step sequence as adding a favorite to a missing group. Sorted by
+        // group name so the assertion does not depend on the fake's insertion order
+        // (the native store reports groups sorted by name).
+        assertEquals(savesBefore + 2, client.saveFavoriteLocationsCalls.get())
+        assertEquals(
+            listOf("Cities" to listOf("Berlin"), "Fresh" to listOf("Rome"), "Work" to listOf("Office")),
+            client.lastSavedFavoriteOrder.sortedBy { it.first }
+        )
+    }
+
+    @Test
+    fun moveFavoriteToGroupToItsOwnGroupSucceedsWithoutChangingAnything() = runTest {
+        val (repo, _) = repoWithTwoGroups()
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Cities", 0))
+
+        assertEquals(listOf("Berlin", "Rome"), repo.favorites.value["Cities"]?.map { it.name })
+        assertEquals(listOf("Office"), repo.favorites.value["Work"]?.map { it.name })
+    }
+
+    @Test
+    fun moveFavoriteToGroupClampsTargetIndexBeyondTheEnd() = runTest {
+        val (repo, _) = repoWithTwoGroups()
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Berlin", "Work", 100))
+
+        assertEquals(listOf("Rome"), repo.favorites.value["Cities"]?.map { it.name })
+        assertEquals(listOf("Office", "Berlin"), repo.favorites.value["Work"]?.map { it.name })
+    }
+
+    /**
+     * A cross-group move racing a reorder inside a group: both effects survive,
+     * which is the serialisation property the repository owns (the ViewModel's own
+     * guard is about the visible sequence, not about this).
+     */
+    @Test
+    fun crossGroupMoveOverlappingAReorderKeepsBothEffects() = runTest {
+        val client = FakeOSMScoutClient()
+        val repo = FavoriteRepository(client)
+        repo.init("/tmp/favorites-cross-group-overlap-test.json")
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addGroup("Work"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Cities", "Rome", 2.0, 2.0))
+        assertTrue(repo.addFavorite("Cities", "Oslo", 3.0, 3.0))
+        assertTrue(repo.addFavorite("Work", "Office", 4.0, 4.0))
+
+        val move = async { repo.moveFavoriteToGroup("Cities", "Oslo", "Work", 0) }
+        val reorder = async { repo.moveFavorite("Cities", "Berlin", 1) }
+
+        assertTrue(move.await())
+        assertTrue(reorder.await())
+
+        assertEquals(listOf("Rome", "Berlin"), repo.favorites.value["Cities"]?.map { it.name })
+        assertEquals(listOf("Oslo", "Office"), repo.favorites.value["Work"]?.map { it.name })
+        assertEquals(
+            listOf(
+                "Cities" to listOf("Rome", "Berlin"),
+                "Work" to listOf("Oslo", "Office")
+            ),
+            client.lastSavedFavoriteOrder
+        )
+    }
+
+    // --- Group order (spec fav-service — repository move method for groups; spec group-ordering) ---
+
+    /** Three groups in a fixed stored order, one favorite each. */
+    private suspend fun repoWithThreeGroups(): Pair<FavoriteRepository, FakeOSMScoutClient> {
+        val (repo, client) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addGroup("Work"))
+        assertTrue(repo.addGroup("Home"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Work", "Office", 2.0, 2.0))
+        assertTrue(repo.addFavorite("Home", "Flat", 3.0, 3.0))
+        return repo to client
+    }
+
+    @Test
+    fun moveGroupReordersExposedStateAndKeepsEveryGroupsFavorites() = runTest {
+        val (repo, client) = repoWithThreeGroups()
+
+        assertTrue(repo.moveGroup("Home", 0))
+
+        assertEquals(listOf("Home", "Cities", "Work"), repo.favorites.value.keys.toList())
+        // Only the group order changes: every group keeps its own favorites.
+        assertEquals(listOf("Flat"), repo.favorites.value["Home"]?.map { it.name })
+        assertEquals(listOf("Berlin"), repo.favorites.value["Cities"]?.map { it.name })
+        assertEquals(listOf("Office"), repo.favorites.value["Work"]?.map { it.name })
+        val call = client.moveGroupCalls.single()
+        assertEquals("Home", call.groupName)
+        assertEquals(0, call.newIndex)
+    }
+
+    @Test
+    fun moveGroupPersistsExactlyOnce() = runTest {
+        val (repo, client) = repoWithThreeGroups()
+        val savesBeforeMove = client.saveFavoriteLocationsCalls.get()
+
+        assertTrue(repo.moveGroup("Home", 0))
+
+        assertEquals(savesBeforeMove + 1, client.saveFavoriteLocationsCalls.get())
+        assertEquals(
+            listOf("Home", "Cities", "Work"),
+            client.lastSavedFavoriteOrder.map { it.first }
+        )
+    }
+
+    @Test
+    fun moveGroupClampsTheTargetIndexAndAcceptsANegativeOne() = runTest {
+        val (repo, _) = repoWithThreeGroups()
+
+        // Beyond the end: the group lands last (spec group-ordering).
+        assertTrue(repo.moveGroup("Cities", 100))
+        assertEquals(listOf("Work", "Home", "Cities"), repo.favorites.value.keys.toList())
+
+        // Negative: the first position.
+        assertTrue(repo.moveGroup("Home", -1))
+        assertEquals(listOf("Home", "Work", "Cities"), repo.favorites.value.keys.toList())
+    }
+
+    @Test
+    fun failedMoveGroupLeavesStateAndStoreUntouched() = runTest {
+        val (repo, client) = repoWithThreeGroups()
+        val savesBeforeMove = client.saveFavoriteLocationsCalls.get()
+        client.moveGroupResult = false
+
+        assertTrue(!repo.moveGroup("Home", 0))
+
+        assertEquals(listOf("Cities", "Work", "Home"), repo.favorites.value.keys.toList())
+        assertEquals(savesBeforeMove, client.saveFavoriteLocationsCalls.get())
+    }
+
+    @Test
+    fun moveGroupForAnUnknownGroupFails() = runTest {
+        val (repo, client) = repoWithThreeGroups()
+        val savesBeforeMove = client.saveFavoriteLocationsCalls.get()
+
+        assertTrue(!repo.moveGroup("Missing", 0))
+
+        assertEquals(listOf("Cities", "Work", "Home"), repo.favorites.value.keys.toList())
+        assertEquals(savesBeforeMove, client.saveFavoriteLocationsCalls.get())
+    }
+
+    @Test
+    fun moveGroupBeforeInitReturnsFalse() = runTest {
+        val client = FakeOSMScoutClient()
+        val repo = FavoriteRepository(client)
+
+        assertTrue(!repo.moveGroup("Cities", 0))
+
+        assertEquals(0, client.moveGroupCalls.size)
+    }
+
+    @Test
+    fun moveGroupRunsOffTheMainThread() = runTest {
+        val (repo, client) = repoWithThreeGroups()
+
+        assertTrue(repo.moveGroup("Home", 0))
+
+        val call = client.moveGroupCalls.single()
+        assertTrue(
+            "the JNI move must not run on the main thread (was '${call.threadName}')",
+            call.threadName != android.os.Looper.getMainLooper().thread.name
+        )
+    }
+
+    /**
+     * The exposed key order is the native group order (spec group-ordering — the
+     * order every group-listing surface renders). The repository keeps the order by
+     * building its map in `getFavoriteGroups()` order, so this pins that the map is
+     * still order-preserving after a move.
+     */
+    @Test
+    fun emittedGroupOrderMatchesTheNativeGroupOrder() = runTest {
+        val (repo, client) = repoWithThreeGroups()
+
+        repo.moveGroup("Home", 0)
+        repo.moveGroup("Work", 0)
+
+        assertEquals(
+            client.getFavoriteGroups().map { it.name }.toList(),
+            repo.favorites.value.keys.toList()
+        )
+    }
+
+    /**
+     * A group move racing a favorite write: the write lock keeps both effects, and
+     * the persisted file carries the moved group order and the new favorite.
+     */
+    @Test
+    fun groupMoveOverlappingAWriteKeepsBothEffects() = runTest {
+        val (repo, client) = repoWithThreeGroups()
+
+        val move = async { repo.moveGroup("Home", 0) }
+        val add = async { repo.addFavorite("Cities", "Rome", 4.0, 4.0) }
+
+        assertTrue(move.await())
+        assertTrue(add.await())
+
+        assertEquals(listOf("Home", "Cities", "Work"), repo.favorites.value.keys.toList())
+        assertEquals(
+            listOf("Berlin", "Rome"),
+            repo.favorites.value["Cities"]?.map { it.name }
+        )
+        assertEquals(
+            listOf("Home", "Cities", "Work"),
+            client.lastSavedFavoriteOrder.map { it.first }
+        )
+        assertEquals(
+            listOf("Berlin", "Rome"),
+            client.lastSavedFavoriteOrder.first { it.first == "Cities" }.second
+        )
+    }
+
+    @Test
+    fun renamingAGroupKeepsItsPositionInTheOrder() = runTest {
+        val (repo, _) = repoWithThreeGroups()
+
+        assertTrue(repo.renameGroup("Work", "Büro"))
+
+        // The native store renames in place (`FavoriteLocationService::RenameGroup`);
+        // a rename must not move the group to the end of the order.
+        assertEquals(listOf("Cities", "Büro", "Home"), repo.favorites.value.keys.toList())
+        assertEquals(listOf("Cities", "Büro", "Home"), repo.groupOrder.value)
+    }
+
+    @Test
+    fun deletingAGroupKeepsTheRelativeOrderOfTheRest() = runTest {
+        val (repo, _) = repoWithThreeGroups()
+
+        assertTrue(repo.deleteGroup("Work"))
+
+        assertEquals(listOf("Cities", "Home"), repo.favorites.value.keys.toList())
+        assertEquals(listOf("Cities", "Home"), repo.groupOrder.value)
+    }
+
+    @Test
+    fun aFavoriteChangeDoesNotMoveItsGroup() = runTest {
+        val (repo, _) = repoWithThreeGroups()
+        val orderBefore = repo.groupOrder.value
+
+        assertTrue(repo.addFavorite("Work", "Desk", 9.0, 9.0))
+        assertTrue(repo.setFavoriteStarred("Work", "Desk", true))
+        assertTrue(repo.renameFavorite("Work", "Desk", "Desk2"))
+        assertTrue(repo.setGroupColor("Work", "FF5733"))
+
+        assertEquals(orderBefore, repo.groupOrder.value)
+    }
+
+    /**
+     * An order-only change has to reach collectors.
+     *
+     * A StateFlow drops an emission equal to its current value, and `Map` equality
+     * ignores iteration order, so a group reorder is observable only as long as the
+     * map's contents are not value-equal. The bridge hands the repository fresh
+     * `FavoriteLocation` objects on every read (that class has no `equals`), which is
+     * what makes this hold today: if that ever stops being true — a value-equal
+     * `FavoriteLocation`, or a cached group array — the UI would silently keep
+     * rendering the old group order and this assertion fails first.
+     */
+    @Test
+    fun anOrderOnlyGroupChangeEmitsAStateThatDiffersFromThePreviousOne() = runTest {
+        val (repo, _) = repoWithThreeGroups()
+        val before = repo.favorites.value
+
+        assertTrue(repo.moveGroup("Home", 0))
+
+        val after = repo.favorites.value
+        assertNotEquals("an order-only change must not be an equal map", before, after)
+        assertEquals(listOf("Home", "Cities", "Work"), after.keys.toList())
     }
 
     // --- Starred order source (spec fav-starred-chip-bar) ---
@@ -297,6 +694,25 @@ class FavoriteRepositoryTest {
         assertEquals(
             listOf("Fresh" to listOf("Place")),
             client.lastSavedFavoriteOrder
+        )
+    }
+
+    @Test
+    fun starredFavoritesFollowAGroupChange() = runTest {
+        val (repo, _) = repoWithTwoGroups()
+        assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
+        assertEquals(
+            listOf("Cities" to "Rome"),
+            repo.getAllStarredFavorites().map { it.first to it.second.name }
+        )
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Work", 0))
+
+        // The star belongs to the favorite; the group it is reported under follows
+        // the move (spec fav-ordering — a starred favorite follows its new group).
+        assertEquals(
+            listOf("Work" to "Rome"),
+            repo.getAllStarredFavorites().map { it.first to it.second.name }
         )
     }
 

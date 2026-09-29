@@ -1,6 +1,9 @@
 package com.naviveylin.ui.favorites
 
 import com.framstag.libosmscout.client.FavoriteLocation
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +21,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Standalone fake that mirrors FavoriteRepository's interface for ViewModel testing.
@@ -26,6 +31,14 @@ import org.junit.Test
 class FakeFavRepo {
     private val _favorites = MutableStateFlow<Map<String, List<FavoriteLocation>>>(emptyMap())
     val favorites: StateFlow<Map<String, List<FavoriteLocation>>> = _favorites.asStateFlow()
+
+    /**
+     * The group order channel, mirroring `FavoriteRepository.groupOrder`: a `List`
+     * compares ordered, so a reorder emits here even when the group map does not
+     * change (which it does not when the groups are empty).
+     */
+    private val _groupOrder = MutableStateFlow<List<String>>(emptyList())
+    val groupOrder: StateFlow<List<String>> = _groupOrder.asStateFlow()
 
     private val groups = mutableMapOf<String, MutableList<FavoriteLocation>>()
     private val groupColors = mutableMapOf<String, String>()
@@ -42,6 +55,24 @@ class FakeFavRepo {
 
     /** When false, [moveFavorite] reports failure without changing the order. */
     var moveFavoriteSucceeds = true
+
+    /** Number of [moveFavoriteToGroup] invocations. */
+    var moveFavoriteToGroupCalls = 0
+
+    /** When set, [moveFavoriteToGroup] waits for it — used to exercise the in-flight guard. */
+    var moveFavoriteToGroupGate: CompletableDeferred<Unit>? = null
+
+    /** When false, [moveFavoriteToGroup] reports failure without changing anything. */
+    var moveFavoriteToGroupSucceeds = true
+
+    /** Recorded [moveGroup] requests as (group name, target index), in call order. */
+    val moveGroupCalls = mutableListOf<Pair<String, Int>>()
+
+    /** When set, [moveGroup] waits for it — used to exercise the in-flight guard. */
+    var moveGroupGate: CompletableDeferred<Unit>? = null
+
+    /** When false, [moveGroup] reports failure without changing the order. */
+    var moveGroupSucceeds = true
 
     suspend fun addGroup(name: String): Boolean {
         if (groups.containsKey(name)) return false
@@ -80,6 +111,46 @@ class FakeFavRepo {
         return true
     }
 
+    /**
+     * Mirrors the repository contract: a missing destination group is created as
+     * part of the move, an unknown source group or favorite fails, and a destination
+     * already holding that name is refused without touching either group.
+     */
+    suspend fun moveFavoriteToGroup(
+        sourceGroup: String, favName: String, targetGroup: String, newIndex: Int
+    ): Boolean {
+        moveFavoriteToGroupCalls++
+        moveFavoriteToGroupGate?.await()
+        if (!moveFavoriteToGroupSucceeds) return false
+        if (!groups.containsKey(targetGroup)) groups[targetGroup] = mutableListOf()
+        val source = groups[sourceGroup] ?: return false
+        val target = groups[targetGroup] ?: return false
+        val fav = source.find { it.name == favName } ?: return false
+        if (target.any { it.name == favName }) return false
+        source.remove(fav)
+        target.add(newIndex.coerceIn(0, target.size), fav)
+        val wasStarred = starredFavs.remove(sourceGroup to favName)
+        if (wasStarred) starredFavs.add(targetGroup to favName)
+        refreshState()
+        return true
+    }
+
+    /** Mirrors the repository contract: an unknown group fails, the index is clamped. */
+    suspend fun moveGroup(groupName: String, newIndex: Int): Boolean {
+        moveGroupCalls.add(groupName to newIndex)
+        moveGroupGate?.await()
+        if (!moveGroupSucceeds) return false
+        if (!groups.containsKey(groupName)) return false
+        val order = groups.keys.toMutableList()
+        order.remove(groupName)
+        order.add(newIndex.coerceIn(0, order.size), groupName)
+        val reordered = order.associateWith { groups.getValue(it) }
+        groups.clear()
+        groups.putAll(reordered)
+        refreshState()
+        return true
+    }
+
     suspend fun deleteFavorite(groupName: String, favName: String): Boolean {
         val group = groups[groupName] ?: return false
         val removed = group.removeAll { it.name == favName }
@@ -102,8 +173,14 @@ class FakeFavRepo {
 
     suspend fun renameGroup(oldName: String, newName: String): Boolean {
         if (!groups.containsKey(oldName) || groups.containsKey(newName)) return false
-        val favs = groups.remove(oldName)!!
-        groups[newName] = favs
+        // The group keeps its position — only the name changes (native
+        // `FavoriteLocationService::RenameGroup`); a remove+reinsert would move it to
+        // the end and silently break the stored order (spec `group-ordering`).
+        val renamed = groups.entries.associateTo(LinkedHashMap()) { (name, list) ->
+            if (name == oldName) newName to list else name to list
+        }
+        groups.clear()
+        groups.putAll(renamed)
         groupColors[newName] = groupColors.remove(oldName) ?: ""
         starredFavs.removeIf { it.first == oldName }
         refreshState()
@@ -151,18 +228,40 @@ class FakeFavRepo {
     }
 
     private fun refreshState() {
-        _favorites.value = groups.mapValues { it.value.toList() }
+        // Fresh FavoriteLocation objects per refresh, like the JNI bridge (which
+        // reconstructs them from the native store). A StateFlow drops an emission
+        // whose value equals the current one, and Map equality ignores order — so
+        // without the copies a group reorder (same keys, same favorites, new
+        // sequence) would never reach the ViewModel's collector.
+        _favorites.value = groups.mapValues { (_, favs) ->
+            favs.map { fav ->
+                FavoriteLocation(fav.name, fav.lat, fav.lon).also { copy ->
+                    copy.attributes.putAll(fav.attributes)
+                }
+            }
+        }
+        _groupOrder.value = groups.keys.toList()
     }
 }
 
+/**
+ * Runs under Robolectric for the resource-backed messages the ViewModel builds
+ * (`context.getString`). The class deliberately never instantiates
+ * [com.framstag.libosmscout.client.FakeOSMScoutClient], so it does not need the
+ * native stub and must not set `@Config`/`@GraphicsMode`.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class FavoritesViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
+    private lateinit var context: Context
+
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        context = ApplicationProvider.getApplicationContext()
     }
 
     @After
@@ -225,6 +324,7 @@ class FavoritesViewModelTest {
         val vm = FavoritesViewModel(
             object : FavoriteRepository(client = null as com.framstag.libosmscout.client.OSMScoutClient?) {
                 override val favorites: StateFlow<Map<String, List<FavoriteLocation>>> = repo.favorites
+                override val groupOrder: StateFlow<List<String>> = repo.groupOrder
                 override suspend fun addGroup(name: String): Boolean = repo.addGroup(name)
                 override suspend fun deleteGroup(name: String): Boolean = repo.deleteGroup(name)
                 override suspend fun renameGroup(oldName: String, newName: String): Boolean = repo.renameGroup(oldName, newName)
@@ -236,7 +336,8 @@ class FavoritesViewModelTest {
                 override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
                 override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
                 override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
-            }
+            },
+            context
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -253,6 +354,7 @@ class FavoritesViewModelTest {
         val vm = FavoritesViewModel(
             object : FavoriteRepository(client = null as com.framstag.libosmscout.client.OSMScoutClient?) {
                 override val favorites: StateFlow<Map<String, List<FavoriteLocation>>> = repo.favorites
+                override val groupOrder: StateFlow<List<String>> = repo.groupOrder
                 override suspend fun addGroup(name: String): Boolean = repo.addGroup(name)
                 override suspend fun deleteGroup(name: String): Boolean = repo.deleteGroup(name)
                 override suspend fun renameGroup(oldName: String, newName: String): Boolean = repo.renameGroup(oldName, newName)
@@ -264,7 +366,8 @@ class FavoritesViewModelTest {
                 override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
                 override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
                 override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
-            }
+            },
+            context
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -282,6 +385,7 @@ class FavoritesViewModelTest {
         val vm = FavoritesViewModel(
             object : FavoriteRepository(client = null as com.framstag.libosmscout.client.OSMScoutClient?) {
                 override val favorites: StateFlow<Map<String, List<FavoriteLocation>>> = repo.favorites
+                override val groupOrder: StateFlow<List<String>> = repo.groupOrder
                 override suspend fun addGroup(name: String): Boolean = repo.addGroup(name)
                 override suspend fun deleteGroup(name: String): Boolean = repo.deleteGroup(name)
                 override suspend fun renameGroup(oldName: String, newName: String): Boolean = repo.renameGroup(oldName, newName)
@@ -293,7 +397,8 @@ class FavoritesViewModelTest {
                 override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
                 override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
                 override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
-            }
+            },
+            context
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -310,6 +415,7 @@ class FavoritesViewModelTest {
         val vm = FavoritesViewModel(
             object : FavoriteRepository(client = null as com.framstag.libosmscout.client.OSMScoutClient?) {
                 override val favorites: StateFlow<Map<String, List<FavoriteLocation>>> = repo.favorites
+                override val groupOrder: StateFlow<List<String>> = repo.groupOrder
                 override suspend fun addGroup(name: String): Boolean = repo.addGroup(name)
                 override suspend fun deleteGroup(name: String): Boolean = repo.deleteGroup(name)
                 override suspend fun renameGroup(oldName: String, newName: String): Boolean = repo.renameGroup(oldName, newName)
@@ -321,7 +427,8 @@ class FavoritesViewModelTest {
                 override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
                 override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
                 override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
-            }
+            },
+            context
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -341,6 +448,7 @@ class FavoritesViewModelTest {
     private fun viewModel(repo: FakeFavRepo) = FavoritesViewModel(
         object : FavoriteRepository(client = null as com.framstag.libosmscout.client.OSMScoutClient?) {
             override val favorites: StateFlow<Map<String, List<FavoriteLocation>>> = repo.favorites
+            override val groupOrder: StateFlow<List<String>> = repo.groupOrder
             override suspend fun addGroup(name: String): Boolean = repo.addGroup(name)
             override suspend fun deleteGroup(name: String): Boolean = repo.deleteGroup(name)
             override suspend fun renameGroup(oldName: String, newName: String): Boolean = repo.renameGroup(oldName, newName)
@@ -349,12 +457,18 @@ class FavoritesViewModelTest {
             override suspend fun renameFavorite(groupName: String, oldName: String, newName: String): Boolean = repo.renameFavorite(groupName, oldName, newName)
             override suspend fun moveFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
                 repo.moveFavorite(groupName, favName, newIndex)
+            override suspend fun moveFavoriteToGroup(
+                sourceGroup: String, favName: String, targetGroup: String, newIndex: Int
+            ): Boolean = repo.moveFavoriteToGroup(sourceGroup, favName, targetGroup, newIndex)
+            override suspend fun moveGroup(groupName: String, newIndex: Int): Boolean =
+                repo.moveGroup(groupName, newIndex)
             override suspend fun setGroupColor(groupName: String, colorHex: String?): Boolean = repo.setGroupColor(groupName, colorHex)
             override fun getGroupColor(groupName: String): String? = repo.getGroupColor(groupName)
             override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
             override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
             override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
-        }
+        },
+        context
     )
 
     @Test
@@ -433,4 +547,277 @@ class FavoritesViewModelTest {
         assertEquals(2, repo.moveFavoriteCalls)
         assertEquals(listOf("Berlin", "Rome"), vm.uiState.value.groups["Cities"]?.map { it.name })
     }
+
+    // --- Cross-group move (spec fav-service — cross-group move; spec fav-management-ui) ---
+
+    @Test
+    fun `moveFavoriteToGroup moves the favorite and reports success`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Work")
+        repo.addFavorite("Cities", "Berlin", 1.0, 2.0)
+        repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+        repo.addFavorite("Work", "Office", 5.0, 6.0)
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveFavoriteToGroup("Cities", "Rome", "Work", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Berlin"), vm.uiState.value.groups["Cities"]?.map { it.name })
+        assertEquals(listOf("Rome", "Office"), vm.uiState.value.groups["Work"]?.map { it.name })
+        assertEquals(
+            context.getString(R.string.favorite_moved_to_group, "Rome", "Work"),
+            vm.uiState.value.snackbarMessage
+        )
+    }
+
+    @Test
+    fun `moveFavoriteToGroup into a new group creates it`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveFavoriteToGroup("Cities", "Rome", "Fresh", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.groups["Fresh"]?.map { it.name } == listOf("Rome"))
+        assertEquals(
+            context.getString(R.string.favorite_moved_to_group, "Rome", "Fresh"),
+            vm.uiState.value.snackbarMessage
+        )
+    }
+
+    @Test
+    fun `refused cross-group move reports the name conflict and keeps both groups`() =
+        runTest(testDispatcher) {
+            val repo = FakeFavRepo()
+            repo.addGroup("Cities")
+            repo.addGroup("Work")
+            repo.addFavorite("Cities", "Office", 1.0, 2.0)
+            repo.addFavorite("Work", "Office", 5.0, 6.0)
+            val vm = viewModel(repo)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            vm.moveFavoriteToGroup("Cities", "Office", "Work", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(listOf("Office"), vm.uiState.value.groups["Cities"]?.map { it.name })
+            assertEquals(listOf("Office"), vm.uiState.value.groups["Work"]?.map { it.name })
+            assertEquals(
+                context.getString(R.string.favorite_move_name_conflict, "Work", "Office"),
+                vm.uiState.value.snackbarMessage
+            )
+        }
+
+    @Test
+    fun `failed cross-group move reports the move failure`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Work")
+        repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+        repo.moveFavoriteToGroupSucceeds = false
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveFavoriteToGroup("Cities", "Rome", "Work", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Rome"), vm.uiState.value.groups["Cities"]?.map { it.name })
+        assertEquals(
+            context.getString(R.string.favorite_move_failed, "Rome"),
+            vm.uiState.value.snackbarMessage
+        )
+    }
+
+    @Test
+    fun `cross-group move while a reorder is in flight is dropped`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Work")
+        repo.addFavorite("Cities", "Berlin", 1.0, 2.0)
+        repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+        val gate = CompletableDeferred<Unit>()
+        repo.moveFavoriteGate = gate
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveFavorite("Cities", "Rome", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.moveFavoriteToGroup("Cities", "Berlin", "Work", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, repo.moveFavoriteToGroupCalls)
+
+        gate.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Rome", "Berlin"), vm.uiState.value.groups["Cities"]?.map { it.name })
+        assertEquals(0, repo.moveFavoriteToGroupCalls)
+    }
+
+    @Test
+    fun `reorder while a cross-group move is in flight is dropped`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Work")
+        repo.addFavorite("Cities", "Berlin", 1.0, 2.0)
+        repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+        val gate = CompletableDeferred<Unit>()
+        repo.moveFavoriteToGroupGate = gate
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveFavoriteToGroup("Cities", "Berlin", "Work", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.moveFavorite("Cities", "Rome", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, repo.moveFavoriteCalls)
+
+        gate.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Rome"), vm.uiState.value.groups["Cities"]?.map { it.name })
+        assertEquals(listOf("Berlin"), vm.uiState.value.groups["Work"]?.map { it.name })
+        assertEquals(0, repo.moveFavoriteCalls)
+    }
+
+    @Test
+    fun `a later cross-group move is accepted after the in-flight one finished`() =
+        runTest(testDispatcher) {
+            val repo = FakeFavRepo()
+            repo.addGroup("Cities")
+            repo.addGroup("Work")
+            repo.addGroup("Other")
+            repo.addFavorite("Cities", "Berlin", 1.0, 2.0)
+            repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+            val vm = viewModel(repo)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            vm.moveFavoriteToGroup("Cities", "Berlin", "Work", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+            vm.moveFavoriteToGroup("Cities", "Rome", "Other", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(2, repo.moveFavoriteToGroupCalls)
+            assertEquals(listOf("Berlin"), vm.uiState.value.groups["Work"]?.map { it.name })
+            assertEquals(listOf("Rome"), vm.uiState.value.groups["Other"]?.map { it.name })
+        }
+
+    // --- Group reorder (spec group-ordering — position; spec fav-service — move method for groups) ---
+
+    @Test
+    fun `moveGroup reorders the groups and shows no error`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Work")
+        repo.addGroup("Home")
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveGroup("Home", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Home", "Cities", "Work"), vm.uiState.value.groupOrder)
+        assertEquals(
+            setOf("Home", "Cities", "Work"),
+            vm.uiState.value.groups.keys
+        )
+        assertEquals(listOf("Home" to 0), repo.moveGroupCalls)
+        assertEquals(null, vm.uiState.value.snackbarMessage)
+    }
+
+    @Test
+    fun `failed moveGroup keeps the order and reports it`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Home")
+        repo.moveGroupSucceeds = false
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveGroup("Home", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Cities", "Home"), vm.uiState.value.groupOrder)
+        assertEquals(
+            context.getString(R.string.group_move_failed, "Home"),
+            vm.uiState.value.snackbarMessage
+        )
+    }
+
+    @Test
+    fun `group reorder while a reorder is in flight is dropped`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Home")
+        repo.addFavorite("Cities", "Berlin", 1.0, 2.0)
+        repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+        val gate = CompletableDeferred<Unit>()
+        repo.moveFavoriteGate = gate
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveFavorite("Cities", "Rome", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.moveGroup("Home", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, repo.moveGroupCalls.size)
+
+        gate.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Cities", "Home"), vm.uiState.value.groupOrder)
+        assertEquals(0, repo.moveGroupCalls.size)
+    }
+
+    @Test
+    fun `reorder while a group reorder is in flight is dropped`() = runTest(testDispatcher) {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Home")
+        repo.addFavorite("Cities", "Berlin", 1.0, 2.0)
+        repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+        val gate = CompletableDeferred<Unit>()
+        repo.moveGroupGate = gate
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveGroup("Home", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.moveFavorite("Cities", "Rome", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, repo.moveFavoriteCalls)
+
+        gate.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Home", "Cities"), vm.uiState.value.groupOrder)
+        assertEquals(listOf("Berlin", "Rome"), vm.uiState.value.groups["Cities"]?.map { it.name })
+        assertEquals(0, repo.moveFavoriteCalls)
+    }
+
+    @Test
+    fun `a later group reorder is accepted after the in-flight one finished`() =
+        runTest(testDispatcher) {
+            val repo = FakeFavRepo()
+            repo.addGroup("Cities")
+            repo.addGroup("Work")
+            repo.addGroup("Home")
+            val vm = viewModel(repo)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            vm.moveGroup("Home", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+            vm.moveGroup("Work", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(listOf("Work", "Home", "Cities"), vm.uiState.value.groupOrder)
+            assertEquals(listOf("Home" to 0, "Work" to 0), repo.moveGroupCalls)
+        }
 }

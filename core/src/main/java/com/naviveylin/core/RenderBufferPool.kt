@@ -26,9 +26,15 @@ import java.util.IdentityHashMap
  * - Releasing a buffer the pool did not hand out (or releasing twice) is refused and reported
  *   through [DiagnosticsLog] under the `RENDER` tag, so the same storage can never be handed to
  *   two renders by accident.
- * - Every buffer is `ARGB`-shaped: 4 bytes per pixel, `width * 4` bytes per row, no padding, and
- *   ordered [ByteOrder.nativeOrder] so a `0xAARRGGBB` pixel written natively is the pixel
- *   `Bitmap.copyPixelsFromBuffer` reads.
+ * - Every buffer is 4 bytes per pixel, `width * 4` bytes per row, no padding, and holds the frame in
+ *   the layout `Bitmap.copyPixelsFromBuffer` reads: the bytes `R,G,B,A` per pixel, i.e. an
+ *   `ARGB_8888` bitmap's own byte order (`0xAABBGGRR` read as a little-endian word). That is **not**
+ *   the `0xAARRGGBB` word `Bitmap.setPixels(int[])` takes, which the *allocating* render entry point
+ *   returns — the same frame reaches the two destinations in two different layouts, and writing one
+ *   into the other is a red/blue channel swap (the 2026-09-29 defect: design D1b of
+ *   `reduce-render-peak-memory`, spec `osmscout-jni` — The buffer's layout is the consumer's, not the
+ *   allocating path's). The buffers are allocated with [ByteOrder.nativeOrder] for the JVM-side reads
+ *   in tests; that order decides nothing for `copyPixelsFromBuffer`, which copies bytes.
  *
  * ## Bound (mirrors design D2 of the render-target pool)
  *

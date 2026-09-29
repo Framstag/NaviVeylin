@@ -606,17 +606,24 @@ public class OSMScoutClient {
      * caller's storage against the caller's own misuse.
      * <p>
      * <b>Format:</b> {@code pixels} must be a DIRECT buffer with at least
-     * {@code width * height * 4} bytes remaining, and the frame is written as one
-     * {@code int} per pixel, {@code 0xAARRGGBB} — the layout
-     * {@link android.graphics.Bitmap#copyPixelsFromBuffer(java.nio.Buffer)} and
-     * {@code Bitmap.setPixels} expect. The stride is exactly {@code width * 4} bytes: the
-     * frame is written contiguously from offset 0, with no padding. Set the buffer's byte
-     * order to {@link java.nio.ByteOrder#nativeOrder()} (a freshly allocated direct buffer is
-     * big-endian, which would byte-swap the frame).
+     * {@code width * height * 4} bytes remaining. The frame is written in the layout
+     * {@link android.graphics.Bitmap#copyPixelsFromBuffer(java.nio.Buffer)} reads: four
+     * bytes per pixel, {@code R,G,B,A} — an {@code ARGB_8888} bitmap's own byte order (the
+     * NDK's {@code ANDROID_BITMAP_FORMAT_RGBA_8888}), which on a little-endian target is the
+     * word {@code 0xAABBGGRR}. This is NOT the allocating entry point's {@code int[]} layout
+     * ({@code 0xAARRGGBB}, what {@code Bitmap.setPixels} takes): the same frame reaches the
+     * two destinations in two different layouts, and writing one into the other is a
+     * red/blue channel swap, not a rounding difference.
+     * <p>
+     * The stride is exactly {@code width * 4} bytes: the frame is written contiguously from
+     * offset 0, with no padding. The buffer's own {@link java.nio.ByteOrder} does not decide
+     * anything — {@code copyPixelsFromBuffer} copies bytes — so it neither helps nor hurts;
+     * the bridge writes the byte order above.
      * <p>
      * The pixels are the same ones {@link #renderWithRouteAndPois(int, int, double, double,
      * double, double, double, double[], double[], double[], double[], double, double,
-     * double[], double[])} returns for the same request: both run the same native render body.
+     * double[], double[])} returns for the same request: both run the same native render body,
+     * each writing its own destination's layout.
      *
      * @param width         output frame width in pixels
      * @param height        output frame height in pixels

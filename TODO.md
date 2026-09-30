@@ -4,6 +4,15 @@
 
 ---
 
+## 107. `initMap` runs its whole native and file block on the main dispatcher, which `guidelines/Design.md` §4 forbids — Found 2026-09-30 while landing `fix-open-database-path-validation`
+
+- **Observed** ℹ: `MapCanvasViewModel.initMap` (`app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt:1846`) launches on `viewModelScope` — `Dispatchers.Main.immediate`, which the ViewModel itself documents at `:939` — and then does all of its work in that body: `AssetCopier.ensureStylesheets()` (file I/O), `client.openDatabase(mapPath)` (JNI), `NativeTileDataCache.apply(client, …)` (JNI), `favoriteRepository.init(favPath)` (JNI + file) and the additional-maps `client.openDatabases(…)` batch (JNI). Design.md §4's first rule is a MUST — "never call native/JNI code on the main thread; run it on background dispatchers with timeouts and loading UI" — and only the ViewModel's `defaultDispatcher` seam is used elsewhere (`:848`).
+- **Why it was not fixed here** ✗: the path-validation change adds exactly one `stat` (the existence check inside `DatabasePathRegistry::RegisterOpenable`) to that existing call; moving the block to `withContext(defaultDispatcher)` restructures `initMap`'s ordering against `_uiState`, the renderer handoff and the cancel/re-entry guard (`:1834-1846`), which is its own change rather than part of a path-validation fix.
+- **Consequence** ⏳: a slow or contended filesystem on a cold start delays the main thread — the same shape the host-crash work identified for main-thread native calls, here on the phone's own start path. No symptom is recorded yet (the work is bounded by the asset compare and the open call itself); the risk is a main-thread stall, not a crash.
+- **Fix candidate**: wrap the block (or at least its JNI and file calls) in `withContext(defaultDispatcher)` inside `initMap`, keep every `_uiState` write on the main dispatcher, and assert the dispatch with a test that fails when a native call is observed on the main thread (a fake that records the calling dispatcher, or a thread assertion around the call).
+
+---
+
 ## 102. Four scenarios added by `reorder-favorite-groups` have no automated test — Found 2026-09-29 (during that change's task 5.5 traceability pass)
 
 - **Coverage gaps** ⏳: the change's specs are behaviour-complete, but these scenarios rest on a library
@@ -65,6 +74,26 @@
   drag auto-scroll — after which navigation + that class was green 4 times in a row and the full suite went
   green. Kept as evidence, not as an attribution: see `ki_processing_failures.log` (2026-09-29) for the
   measurement lesson.
+- **Update 2026-09-29 (during `order-starred-favorites`)** ℹ: a further victim in the same family, again in the
+  **automotive** flavor of a full `./gradlew test` (1437 tests, one failure):
+  `NavigationEngineRerouteTest.instructionListUpdatesAfterAReroute` with `AssertionError: State condition not met within 5s`
+  — a different class and a 5 s await instead of the `lane guidance mirrored` assertion, i.e. the load-sensitive shape,
+  not a specific mirror. The mobile flavor of the same run was green, and the class passes **alone** in the automotive
+  flavor 3/3 (4 m 44 s / 3 m 33 s / 2 m 42 s with `--rerun-tasks`). The change under verification touches the favorites
+  repository, its two DI providers, the phone chip bar and the car favorites screen; `:app/navigation` consumes none of
+  them. Note the run also hit a harness artifact: `java.nio.file.NoSuchFileException:
+  app/build/test-results/testMobileDebugUnitTest/binary/in-progress-results-generic.bin` after an earlier run started
+  detached and was killed (§100) — removing the stale `test-results/<flavor>` directory before a rerun is what makes the
+  next verdict readable.
+- **Update 2026-09-30 (during `fix-open-database-path-validation`)** ℹ: the family reproduced twice more in the **automotive** flavor of a full `:app:testAutomotiveDebugUnitTest` (1453 tests each run). Run 1 failed
+  `NavigationEngineTest.listenerCallbacksDriveTheSharedState` on the assertion *below* the documented one —
+  `AssertionError: instructions mirrored expected:<1> but was:<0>` (`NavigationEngineTest.kt:115`, while the
+  original victim was the `lane guidance mirrored` line just above it) — and run 2 failed
+  `NavigationEngineRerouteTest.instructionListUpdatesAfterAReroute`, the victim the 2026-09-29 update already
+  recorded. The third full run of the same suite was green, and `NavigationEngineTest` alone is 12/12 green (47 s).
+  The change under verification adds one path-existence check in the native client, its two JNI entry points and one
+  `initMap` test case; `:app/navigation` consumes none of it. The mobile flavor of the same change was green
+  (1453/0).
 - **Fix candidate for the still-open assertion**: bisect the suite execution order (per-class `timestamp` from
   `test-results/*.xml`, then `--tests` filters — the technique that settled §96) and check whether the mirroring work is
   dispatched off the test scheduler: the case must then await the mirrored state instead of relying on `advanceUntilIdle()`. Per
@@ -603,6 +632,7 @@ Findings detected while fixing the AA follow overlay projection; all out of that
 
 - **Gradle unit-test tasks report green without executing (found 2026-09-13 while running the archive gate for `fix-address-lookup-accuracy`)** ℹ: `./gradlew test` printed `BUILD SUCCESSFUL in 5s` with `152 actionable tasks: 4 executed, 145 up-to-date` — **zero tests ran**; the verdict came from the up-to-date check against a previous run's output, not from an execution. Two follow-ups that do NOT fix it: `--rerun` is ignored by AGP's unit-test tasks (only plain tasks such as `:osmscout-client-java:test` honour it), and `--rerun` on the aggregate `test` lifecycle task propagates to no dependent task at all. `--rerun-tasks` works but also forces every compile in the graph. What does work: delete the task outputs, e.g. `rm -rf app/build/test-results/testMobileDebugUnitTest app/build/test-results/testAutomotiveDebugUnitTest core/build/test-results/testDebugUnitTest auto/build/test-results/testDebugUnitTest`, then run the four test tasks — the run then reports real execution time (`BUILD SUCCESSFUL in 1m 59s`, 4 executed). Consequence to guard against: any OpenSpec apply/archive evidence of the form "`./gradlew test` → BUILD SUCCESSFUL" may prove nothing about the current tree; a 5-second "success" is the tell. Fix option: a Gradle `check`-wired task or a wrapper in `.pi/skills/run-tests` that clears `test-results` before invoking the suite, and a rule that the evidence line must quote the executed-task count and elapsed time. Also note the up-to-date check is content-hash based, so a file mtime later than the newest `test-results` XML does not by itself prove the run predates the edit — verify content, not timestamps.
 - **OpenSpec silently ignores bare numbered task markers (found 2026-09-13)** ℹ: `fix-address-lookup-accuracy/tasks.md` used `1. [x] …`-style items (no `-` bullet); the task parser only recognises `- [x]`, so `openspec list` reported `completedTasks: 0, totalTasks: 0, status: "no-tasks"` for a change that was in fact 14/15 complete — while `openspec status` simultaneously reported `isPlanningComplete: true` / `isComplete: true`, so nothing errored. A change can therefore look stalled (or, read the other way, look finished) with no diagnostic. Fixed for that change by renumbering to `- [x] N.M` under numbered `## N.` headings; the other 13 open changes already used that form. Fix option: validate task-marker style in CI (every `tasks.md` must contain at least one `- [x]`/`- [ ]` item) so the mismatch fails loudly instead of silently zeroing the counts.
+- **A stale unit-test asset APK makes asset-reading Robolectric tests lie (found 2026-09-29 while proving a new packaged-asset gate is not vacuous, change `fix-poi-symbol-icons`)** ⚠: `packageMobileDebugUnitTestForUnitTest` stayed **UP-TO-DATE** after `mergeMobileDebugAssets` produced a tree with one file removed, so `PackagedPoiIconsTest`/`AssetCopierTest` kept reading the *previous* `apk-for-local-test.ap_` — a test asserting a packaged icon passed with the icon absent from every on-disk asset tree. Two consequences: (1) a mutation that removes a file only from a `Sync` task's **output** proves nothing at all — the sync restores it, and the asset APK may not even be rebuilt; mutate the real source under `app/src/main/cpp/libosmscout/`; (2) after any asset change, clear `app/build/intermediates/apk_for_local_test/<variant>` (or run `--rerun-tasks`) before trusting an asset assertion, and when such a test disagrees with the disk, suspect the APK before the code. Fix option: wire the unit-test asset package task to the merged-assets content explicitly, or make the run-tests skill's asset-affecting recipe clear that directory. Measured the same session: `--rerun` is ignored on the aggregate `test`, and deleting `test-results/<flavor>` does **not** force execution when the build cache can restore the outputs (`:core`/`:auto` came back `FROM-CACHE` twice) — `--rerun-tasks` is the only reliable forcing move here.
 
 ---
 
@@ -1131,18 +1161,83 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 
 - **Debt** ℹ: `osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java`
   shadows the submodule's Java source (that file is excluded in `osmscout-client-java/build.gradle.kts`)
-  and is one API family behind it. `moveStarredFavorite`, `getStarredFavorites`,
-  `getFavoriteFileFormatVersion` and `isFavoriteFileFormatSupported` are declared in
+  and is one API family behind it. `getFavoriteFileFormatVersion` and
+  `isFavoriteFileFormatSupported` are declared in
   `app/src/main/cpp/libosmscout/libosmscout-client-java/java/com/framstag/libosmscout/client/OSMScoutClient.java`
   (submodule, added by `530ac8768`) and implemented in the linked JNI (`OSMScoutClient.cpp`), but are
   absent from the override, so the app cannot reach them. `moveFavoriteToGroup` was declared while landing
-  `move-favorite-between-groups` and `moveGroup` while landing `reorder-favorite-groups`; the other four stay
-  unreachable.
+  `move-favorite-between-groups`, `moveGroup` while landing `reorder-favorite-groups` and
+  `moveStarredFavorite`/`getStarredFavorites` while landing `order-starred-favorites`; the two file-format
+  ones stay unreachable (nothing reads the format version).
 - **Fix candidate**: declare the missing natives in the override, and add a buildSrc/CI gate that compares
   the override's `native` declarations with the submodule's Java source and fails on a mismatch — the drift
   is silent otherwise (no compiler error, no failing test: only a `NoSuchMethodError` at the call site).
 - **Why deferred** ✗: the in-flight change `move-favorite-between-groups` needed exactly one of them;
   widening it would have mixed an API-sync refactor into a feature change.
+
+## 103. `FavoritesScreen` (car) is the one screen still outside the `CarScreenObservations` pattern — Found 2026-09-29 during `order-starred-favorites`
+- **Debt** ℹ: `auto/src/main/java/com/naviveylin/auto/FavoritesScreen.kt` collects its favorites, group-order
+  and starred-order flows in one `combine` inside `init`, on `carScreenScope("FavoritesScreen")`, and
+  cancels it through its own `onDestroy` lifecycle observer. Map, Navigation and FreeDriving screens use
+  `CarScreenObservations` plus a `<Screen>Observations` class with started-period lifetime (change
+  `fix-car-screen-observer-leak`, spec `auto/screen-observation`). The screen has no accumulation bug
+  today — it launches one collector per screen instance and destroys the scope with the screen — so this is
+  consistency, not correctness.
+- **Fix candidate**: give `FavoritesScreen` a `FavoritesScreenObservations` owned by
+  `CarScreenObservations` (favorites map, group order and starred order as its observations),
+  `start()`/`stop()` from `onStart`/`onStop`, and a test for the started-period lifetime like the other
+  screens' observations tests.
+- **Why deferred** ✗: `order-starred-favorites` needed one more input on that existing collector; migrating
+  the screen's whole observation lifetime was scope its specs do not require.
+
+## 104. The favorites group cards show an untranslated plural in the German locale — Found 2026-09-29 on `emulator-5554` (de-DE) during `order-starred-favorites`
+
+- **Bug** ✗: the group cards in the favorites sheet read `0 favorites`, `2 favorites`, `3 favorites` in a German
+  UI (everything around them — `Favoriten`, `Favoriten suchen`, `Aktuellen Kartenstandort hinzufügen`,
+  `Gruppe verschieben` — is translated). The count is built in `FavoritesSheet.kt`'s `GroupCard` as
+  `"$favCount favorite${if (favCount != 1) "s" else ""}"` (`FavoritesSheet.kt:693`), i.e. an inline English string, and it also
+  never takes a plural resource.
+- **Fix candidate**: replace it with a `<plurals name="favorite_count">` resource (quantity strings for
+  `one`/`other`) and the `values-de` translation — `guidelines/UI.md` §12 already requires never
+  concatenating translated fragments, and `strings.xml` has no plural resource for this count.
+- **Out of scope there** ✗: `order-starred-favorites` touches the chip bar of the same sheet, and fixing
+  this would have mixed an i18n sweep into the change (one more string, its German form and a test).
+
+## 105. The car favorites screens show hardcoded English titles in a German UI — Found 2026-09-29 on `emulator-5554` (AAOS, de-DE) during `order-starred-favorites`
+
+- **Bug** ✗: the Android Auto favorites screen and its starred mode are titled with string literals in
+  `auto/src/main/java/com/naviveylin/auto/FavoritesScreen.kt`
+  (`setTitle(if (starredOnly) "Starred favorites" else "Favorites")`), so a German head unit shows
+  `Favorites` / `Starred favorites` as the screen titles while every other surface on those screens is
+  translated (`Markierte Favoriten` in the app menu, `Keine markierten Favoriten`, the hints).
+- **Fix candidate**: two `<string>` resources (`auto/src/main/res/values/strings.xml` + `values-de`) and the
+  `stringResource`-equivalent lookup on the screen, with a test asserting the German titles.
+- **Out of scope there** ✗: the change touches that screen's starred mode; the titles are pre-existing and
+  are not part of any spec requirement about the starred order.
+
+## 106. The AAOS AVD's car session lives in user 10 while adb reaches user 0 only, so its favorites storage cannot be seeded — Found 2026-09-29 on `emulator-5554` (automotive distant-display AVD) during `order-starred-favorites`
+
+- **Observed** ℹ: `pm list users` shows `0:Fahrer` and `10:Driver`, `am get-current-user` is `10`, and the car
+  session's own warmup log writes to `/data/user/10/com.framstag.naviveylin/files/...`. `run-as`,
+  however, resolves to **user 0** (`ls -la files/` reports `u0_a235`), so a fixture written with
+  `run-as … cat > files/favorites.json` lands in the `Fahrer` profile and the car screen shows an empty store.
+  `run-as --user 10` is rejected (`run-as: unknown package: --user`) on the API 33 toybox, `adb root` fails
+  (`adbd cannot run as root in production builds`), and shell-initiated `am start --display 1` is a
+  `SecurityException`. **What that blocks:** seeding starred favorites for a car-side pass — the car UI can add
+  and remove a favorite but has **no star action**, and the phone UI cannot stand in because the distant-display
+  mirror owns display 0 and re-asserts `CarAppActivity` within seconds of `MainActivity` starting.
+- **Workarounds that did work** ℹ: the car's *own* UI can create an unstarred favorite (map → POI search →
+  result → `Zu Favoriten hinzufügen`), which is enough for the mode-split checks (`Alle Favoriten` keeps its
+  group section, `Markierte Favoriten` shows the nothing-starred hint). `tesseract` on `adb exec-out screencap`
+  reads the car surface (it exposes no accessibility nodes, so `uiautomator dump` sees an empty window).
+- **Fix candidate**: use a **userdebug/eng** AAOS image (`adb root` then write the car session's own
+  `files/favorites.json`), or an AAOS AVD whose car session runs in the current user, for any later car-side
+  favorites verification. A debug-only test hook that seeds the store would remove the dependency on root.
+- **Also observed** ℹ: `am force-stop` of the app while its car session is live crashes the **host's** renderer
+  process — `FATAL EXCEPTION: main`, `Process: com.google.android.apps.automotive.templates.host:renderer_service`,
+  `IllegalStateException: Accessed the car host after it became invalidated`. Not an app defect (the host's own
+  process, its own invariant), but it means a force-stop is not a neutral way to restart the app on this AVD:
+  the car screen returns to the launcher and needs a fresh launch.
 
 ## 80. `MapCanvasViewModel` crashes at startup: the fix-quality ticker reads `fixQualityTicks` before its initializer runs — Found 2026-09-28 (on device, while verifying `move-favorite-between-groups`)
 

@@ -89,6 +89,11 @@ licenses/             → Curated license data: native license map, license poli
       which come from `osmscout-client-java/src/main/java` (plus local-only `InstalledMaps`)
     - Overrides = Android ports: HttpURLConnection map downloads (no `java.net.http` desugaring), debug-suffix library loading (`osmscout_client_java` → `osmscout_client_javad` fallback), `reloadBasemap` decl, public constructors
     - Produces `libosmscoutclientjava.jar`
+- The two database-open entries differ **on purpose**: `openDatabase(path)` accepts only an existing
+  directory (a rejected path reports `false`, registers nothing and publishes no database-set change),
+  while `openDatabases(paths[])` registers what it is handed — a directory that disappears between the
+  app's scan and the call must not fail the batch — and only reports it (by directory name). Do not
+  "unify" them (spec `native-database-open`).
 - Main repo pins the submodule SHA in the gitlink — bump it (commit) after any submodule commit
 - Keep the submodule clean: uncommitted submodule changes are not built by CI or fresh clones
 - CMake builds all native code
@@ -129,6 +134,7 @@ licenses/             → Curated license data: native license map, license poli
 - A submodule bump automatically changes the stylesheet content of the next APK; no manual sync step
 - `checkSubmoduleStylesheets` (preBuild) fails the build with an actionable message if the submodule is not initialized (fresh clone: `git submodule update --init --recursive`)
 - `AssetCopier` refreshes the on-device copy from the APK on every app start (per-file size+SHA-256 compare, deletes stale files), so existing installs get new styles after an update without clearing data
+- The raster POI **icon set** follows the same rule: `syncSubmoduleIcons` packages `libosmscout/data/icons/14x14/standard/` as `assets/icons/14x14/standard`, `checkSubmoduleIcons` fails when the submodule or its raster leaf is missing, and `AssetCopier.ensureIcons()` mirrors it on device next to the stylesheets. The stylesheets request icons **by name**, and the renderer resolves them as `<configured dir> + name + ".png"` — so only the PNG leaf ships (the Cairo painter cannot read the SVG set), the configured path comes from `IconAssets.clientDirectory(...)` (it must keep its trailing separator), and `PackagedPoiIconsTest` fails the build when a stylesheet asks for an icon with no inline `symbol:` that the packaged set does not carry. Details: `guidelines/MapRendering.md` §16a
 
 ### Android Auto / Android Automotive OS
 

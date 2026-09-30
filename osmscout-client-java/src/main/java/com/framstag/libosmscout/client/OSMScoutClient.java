@@ -846,6 +846,31 @@ public class OSMScoutClient {
                                               String targetGroupName, int newIndex);
 
     /**
+     * Move a starred favorite to another position in the starred order.
+     *
+     * The starred order spans all groups. The target index is 0-based and refers
+     * to that order after the favorite has been removed from its current
+     * position; an index outside the order bounds is clamped to the first/last
+     * position, and a negative index means the first position.
+     *
+     * @param groupName group name
+     * @param favName   favorite name
+     * @param newIndex  0-based target position in the starred order
+     * @return true if moved (or already at that position), false if the group or the favorite is not
+     *         found, or if the favorite is not starred
+     */
+    public native boolean moveStarredFavorite(String groupName, String favName, int newIndex);
+
+    /**
+     * Return the starred favorites in their order, spanning all groups.
+     *
+     * Each entry names the group that holds it. Only starred favorites appear.
+     *
+     * @return array of starred entries in their order, or an empty array if none are starred
+     */
+    public native StarredFavoriteLocation[] getStarredFavorites();
+
+    /**
      * Set or clear the starred flag on a favorite.
      *
      * @param groupName group name

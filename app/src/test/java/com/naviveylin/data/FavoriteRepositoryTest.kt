@@ -548,22 +548,221 @@ class FavoriteRepositoryTest {
         assertEquals(listOf("Home", "Cities", "Work"), after.keys.toList())
     }
 
-    // --- Starred order source (spec fav-starred-chip-bar) ---
+    // --- Starred order (spec starred-ordering; spec fav-service — the repository's starred channel) ---
 
     @Test
-    fun starringAFavoriteIsReflectedInTheStarredList() = runTest {
+    fun starringAFavoriteIsReflectedInTheStarredOrder() = runTest {
         val (repo, _) = newRepository()
         assertTrue(repo.addGroup("Cities"))
         assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
         assertTrue(repo.addFavorite("Cities", "Paris", 2.0, 2.0))
 
         assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
-        assertEquals(listOf("Berlin"), repo.getAllStarredFavorites().map { it.second.name })
+        assertEquals(listOf("Berlin"), repo.starredOrder.value.map { it.favorite.name })
 
         assertTrue(repo.setFavoriteStarred("Cities", "Paris", true))
         assertEquals(
             listOf("Berlin", "Paris"),
-            repo.getAllStarredFavorites().map { it.second.name }
+            repo.starredOrder.value.map { it.favorite.name }
+        )
+    }
+
+    @Test
+    fun unstarringRemovesTheEntryAndKeepsTheOthersInOrder() = runTest {
+        val (repo, _) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Cities", "Paris", 2.0, 2.0))
+        assertTrue(repo.addFavorite("Cities", "Rome", 3.0, 3.0))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Paris", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
+
+        assertTrue(repo.setFavoriteStarred("Cities", "Paris", false))
+
+        assertEquals(
+            listOf("Berlin", "Rome"),
+            repo.starredOrder.value.map { it.favorite.name }
+        )
+    }
+
+    @Test
+    fun starringAgainAppendsAtTheEnd() = runTest {
+        val (repo, _) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Cities", "Paris", 2.0, 2.0))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Paris", true))
+
+        // Unstar the first, star it again: it is a new entry at the end, not its old
+        // place (mirrors FavoriteLocationService::SetStarred).
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", false))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+
+        assertEquals(
+            listOf("Paris", "Berlin"),
+            repo.starredOrder.value.map { it.favorite.name }
+        )
+    }
+
+    @Test
+    fun starredOrderRunsAcrossGroupsInStarOrder() = runTest {
+        val (repo, _) = newRepository()
+        assertTrue(repo.addGroup("AGroup"))
+        assertTrue(repo.addGroup("BGroup"))
+        assertTrue(repo.addFavorite("BGroup", "Second", 1.0, 1.0))
+        assertTrue(repo.addFavorite("BGroup", "First", 2.0, 2.0))
+        assertTrue(repo.addFavorite("AGroup", "Only", 3.0, 3.0))
+        assertTrue(repo.setFavoriteStarred("BGroup", "First", true))
+        assertTrue(repo.setFavoriteStarred("BGroup", "Second", true))
+        assertTrue(repo.setFavoriteStarred("AGroup", "Only", true))
+
+        // One order spanning groups, in the sequence the stars were set — not grouped
+        // by group and not the in-group order.
+        assertEquals(
+            listOf("BGroup" to "First", "BGroup" to "Second", "AGroup" to "Only"),
+            repo.starredOrder.value.map { it.groupName to it.favorite.name }
+        )
+    }
+
+    @Test
+    fun inGroupReorderAndGroupReorderLeaveTheStarredOrderAlone() = runTest {
+        val (repo, _) = newRepository()
+        assertTrue(repo.addGroup("AGroup"))
+        assertTrue(repo.addGroup("BGroup"))
+        assertTrue(repo.addFavorite("BGroup", "First", 1.0, 1.0))
+        assertTrue(repo.addFavorite("BGroup", "Second", 2.0, 2.0))
+        assertTrue(repo.setFavoriteStarred("BGroup", "First", true))
+        assertTrue(repo.setFavoriteStarred("BGroup", "Second", true))
+        val before = repo.starredOrder.value.map { it.favorite.name }
+
+        assertTrue(repo.moveFavorite("BGroup", "Second", 0))
+        assertTrue(repo.moveGroup("BGroup", 0))
+
+        assertEquals(before, repo.starredOrder.value.map { it.favorite.name })
+    }
+
+    @Test
+    fun moveStarredFavoriteReordersTheExposedOrder() = runTest {
+        val (repo, client) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Cities", "Rome", 2.0, 2.0))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
+        val savesBefore = client.saveFavoriteLocationsCalls.get()
+
+        assertTrue(repo.moveStarredFavorite("Cities", "Rome", 0))
+
+        assertEquals(listOf("Rome", "Berlin"), repo.starredOrder.value.map { it.favorite.name })
+        assertEquals(savesBefore + 1, client.saveFavoriteLocationsCalls.get())
+        assertEquals(1, client.moveStarredFavoriteCalls.size)
+    }
+
+    @Test
+    fun moveStarredFavoriteIsClampedAndNegativeMeansFirst() = runTest {
+        val (repo, client) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Cities", "Rome", 2.0, 2.0))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
+
+        assertTrue(repo.moveStarredFavorite("Cities", "Berlin", 99))
+        assertEquals(listOf("Rome", "Berlin"), repo.starredOrder.value.map { it.favorite.name })
+
+        assertTrue(repo.moveStarredFavorite("Cities", "Berlin", -5))
+        assertEquals(listOf("Berlin", "Rome"), repo.starredOrder.value.map { it.favorite.name })
+        assertEquals(2, client.moveStarredFavoriteCalls.size)
+    }
+
+    @Test
+    fun failedStarredMoveLeavesStateUntouchedAndPersistsNothing() = runTest {
+        val (repo, client) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Cities", "Rome", 2.0, 2.0))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+        val savesBefore = client.saveFavoriteLocationsCalls.get()
+        val orderBefore = repo.starredOrder.value.map { it.favorite.name }
+
+        assertTrue(!repo.moveStarredFavorite("Missing", "Berlin", 0))
+        assertTrue(!repo.moveStarredFavorite("Cities", "Missing", 0))
+        // A favorite that exists but is not starred is refused too.
+        assertTrue(!repo.moveStarredFavorite("Cities", "Rome", 0))
+
+        assertEquals(orderBefore, repo.starredOrder.value.map { it.favorite.name })
+        assertEquals(savesBefore, client.saveFavoriteLocationsCalls.get())
+    }
+
+    @Test
+    fun starredMoveBeforeInitIsRefusedWithoutANativeCall() = runTest {
+        val client = FakeOSMScoutClient()
+        val repo = FavoriteRepository(client)
+
+        assertTrue(!repo.moveStarredFavorite("Cities", "Berlin", 0))
+        assertTrue(client.moveStarredFavoriteCalls.isEmpty())
+        assertTrue(repo.starredOrder.value.isEmpty())
+    }
+
+    @Test
+    fun starredMoveRunsOffTheMainThread() = runTest {
+        val (repo, client) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Cities", "Rome", 2.0, 2.0))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
+
+        assertTrue(repo.moveStarredFavorite("Cities", "Rome", 0))
+
+        val call = client.moveStarredFavoriteCalls.single()
+        assertEquals("Cities", call.groupName)
+        assertEquals("Rome", call.favName)
+        assertEquals(0, call.newIndex)
+        assertTrue(
+            "the JNI starred move must not run on the main thread (was '${call.threadName}')",
+            call.threadName != android.os.Looper.getMainLooper().thread.name
+        )
+    }
+
+    @Test
+    fun moveToAnotherGroupKeepsTheStarAndItsPlace() = runTest {
+        val (repo, _) = repoWithTwoGroups()
+        assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+        assertEquals(
+            listOf("Cities" to "Rome", "Cities" to "Berlin"),
+            repo.starredOrder.value.map { it.groupName to it.favorite.name }
+        )
+
+        assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Work", 0))
+
+        // The star belongs to the favorite; the group it is reported under follows the
+        // move, and its place in the starred order does not change.
+        assertEquals(
+            listOf("Work" to "Rome", "Cities" to "Berlin"),
+            repo.starredOrder.value.map { it.groupName to it.favorite.name }
+        )
+    }
+
+    @Test
+    fun deletingAStarredFavoriteRemovesItFromTheOrder() = runTest {
+        val (repo, _) = newRepository()
+        assertTrue(repo.addGroup("Cities"))
+        assertTrue(repo.addFavorite("Cities", "Berlin", 1.0, 1.0))
+        assertTrue(repo.addFavorite("Cities", "Paris", 2.0, 2.0))
+        assertTrue(repo.addFavorite("Cities", "Rome", 3.0, 3.0))
+        assertTrue(repo.setFavoriteStarred("Cities", "Berlin", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Paris", true))
+        assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
+
+        assertTrue(repo.deleteFavorite("Cities", "Paris"))
+
+        assertEquals(
+            listOf("Berlin", "Rome"),
+            repo.starredOrder.value.map { it.favorite.name }
         )
     }
 
@@ -703,45 +902,16 @@ class FavoriteRepositoryTest {
         assertTrue(repo.setFavoriteStarred("Cities", "Rome", true))
         assertEquals(
             listOf("Cities" to "Rome"),
-            repo.getAllStarredFavorites().map { it.first to it.second.name }
+            repo.starredOrder.value.map { it.groupName to it.favorite.name }
         )
 
         assertTrue(repo.moveFavoriteToGroup("Cities", "Rome", "Work", 0))
 
         // The star belongs to the favorite; the group it is reported under follows
-        // the move (spec fav-ordering — a starred favorite follows its new group).
+        // the move (spec starred-ordering — order spans all groups).
         assertEquals(
             listOf("Work" to "Rome"),
-            repo.getAllStarredFavorites().map { it.first to it.second.name }
-        )
-    }
-
-    @Test
-    fun starredFavoritesFollowGroupAndStoredOrder() = runTest {
-        val (repo, _) = newRepository()
-        // Added in the order the native store reports (groups are sorted by name
-        // there; group ordering itself is a separate change).
-        assertTrue(repo.addGroup("AGroup"))
-        assertTrue(repo.addGroup("BGroup"))
-        assertTrue(repo.addFavorite("BGroup", "Second", 1.0, 1.0))
-        assertTrue(repo.addFavorite("BGroup", "First", 2.0, 2.0))
-        assertTrue(repo.addFavorite("AGroup", "Only", 3.0, 3.0))
-        assertTrue(repo.setFavoriteStarred("BGroup", "First", true))
-        assertTrue(repo.setFavoriteStarred("BGroup", "Second", true))
-        assertTrue(repo.setFavoriteStarred("AGroup", "Only", true))
-
-        // Groups come first (map order), favorites in stored order inside a group.
-        assertEquals(
-            listOf("AGroup" to "Only", "BGroup" to "Second", "BGroup" to "First"),
-            repo.getAllStarredFavorites().map { it.first to it.second.name }
-        )
-
-        // A reorder inside the group reorders its starred favorites too.
-        assertTrue(repo.moveFavorite("BGroup", "First", 0))
-
-        assertEquals(
-            listOf("AGroup" to "Only", "BGroup" to "First", "BGroup" to "Second"),
-            repo.getAllStarredFavorites().map { it.first to it.second.name }
+            repo.starredOrder.value.map { it.groupName to it.favorite.name }
         )
     }
 }

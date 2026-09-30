@@ -1,6 +1,7 @@
 package com.naviveylin.ui.favorites
 
 import com.framstag.libosmscout.client.FavoriteLocation
+import com.framstag.libosmscout.client.StarredFavoriteLocation
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.naviveylin.R
@@ -43,6 +44,21 @@ class FakeFavRepo {
     private val groups = mutableMapOf<String, MutableList<FavoriteLocation>>()
     private val groupColors = mutableMapOf<String, String>()
     private val starredFavs = mutableSetOf<Pair<String, String>>()
+
+    /**
+     * The starred order as (group, favorite name) pairs, in order. Mirrors the store's
+     * one order across all groups: starring appends at the end, unstarring removes the
+     * entry, a cross-group move keeps the entry's place (the favorite object travels).
+     */
+    private val starredOrderList = mutableListOf<Pair<String, String>>()
+
+    /**
+     * The starred-order channel, mirroring `FavoriteRepository.starredOrder`. A `List`
+     * compares ordered, so a starred reorder emits here even when the group map does
+     * not change.
+     */
+    private val _starredOrder = MutableStateFlow<List<StarredFavoriteLocation>>(emptyList())
+    val starredOrder: StateFlow<List<StarredFavoriteLocation>> = _starredOrder.asStateFlow()
 
     val groupColorsSnapshot: Map<String, String> get() = groupColors.toMap()
     val starredSnapshot: Set<Pair<String, String>> get() = starredFavs.toSet()
@@ -130,7 +146,15 @@ class FakeFavRepo {
         source.remove(fav)
         target.add(newIndex.coerceIn(0, target.size), fav)
         val wasStarred = starredFavs.remove(sourceGroup to favName)
-        if (wasStarred) starredFavs.add(targetGroup to favName)
+        if (wasStarred) {
+            starredFavs.add(targetGroup to favName)
+            // The order spans groups, so a cross-group move keeps the entry where it
+            // is and only changes the group it is reported under.
+            val index = starredOrderList.indexOfFirst {
+                it.first == sourceGroup && it.second == favName
+            }
+            if (index >= 0) starredOrderList[index] = targetGroup to favName
+        }
         refreshState()
         return true
     }
@@ -156,6 +180,7 @@ class FakeFavRepo {
         val removed = group.removeAll { it.name == favName }
         if (removed) {
             starredFavs.remove(groupName to favName)
+            starredOrderList.removeIf { it.first == groupName && it.second == favName }
             refreshState()
         }
         return removed
@@ -167,6 +192,9 @@ class FakeFavRepo {
         if (group.any { it.name == newName }) return false
         fav.name = newName
         starredFavs.removeIf { it.first == groupName && it.second == oldName }
+        starredOrderList.replaceAll { entry ->
+            if (entry.first == groupName && entry.second == oldName) groupName to newName else entry
+        }
         refreshState()
         return true
     }
@@ -183,6 +211,9 @@ class FakeFavRepo {
         groups.putAll(renamed)
         groupColors[newName] = groupColors.remove(oldName) ?: ""
         starredFavs.removeIf { it.first == oldName }
+        starredOrderList.replaceAll { entry ->
+            if (entry.first == oldName) newName to entry.second else entry
+        }
         refreshState()
         return true
     }
@@ -205,8 +236,12 @@ class FakeFavRepo {
         if (group.none { it.name == favName }) return false
         if (starred) {
             starredFavs.add(groupName to favName)
+            if (starredOrderList.none { it.first == groupName && it.second == favName }) {
+                starredOrderList.add(groupName to favName)
+            }
         } else {
             starredFavs.remove(groupName to favName)
+            starredOrderList.removeIf { it.first == groupName && it.second == favName }
         }
         refreshState()
         return true
@@ -215,16 +250,32 @@ class FakeFavRepo {
     fun isFavoriteStarred(groupName: String, favName: String): Boolean =
         starredFavs.contains(groupName to favName)
 
-    fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> {
-        val result = mutableListOf<Pair<String, FavoriteLocation>>()
-        for ((groupName, favs) in _favorites.value) {
-            for (fav in favs) {
-                if (starredFavs.contains(groupName to fav.name)) {
-                    result.add(groupName to fav)
-                }
-            }
+    /** Number of [moveStarredFavorite] invocations. */
+    var moveStarredFavoriteCalls = 0
+
+    /** When set, [moveStarredFavorite] waits for it — used to exercise the in-flight guard. */
+    var moveStarredFavoriteGate: CompletableDeferred<Unit>? = null
+
+    /** When false, [moveStarredFavorite] reports failure without changing the order. */
+    var moveStarredFavoriteSucceeds = true
+
+    /**
+     * Mirrors the repository contract for a starred reorder: the target index is
+     * clamped over the order after the entry was removed, and an unknown entry or a
+     * favorite that is not starred fails with the order untouched.
+     */
+    suspend fun moveStarredFavorite(groupName: String, favName: String, newIndex: Int): Boolean {
+        moveStarredFavoriteCalls++
+        moveStarredFavoriteGate?.await()
+        if (!moveStarredFavoriteSucceeds) return false
+        val currentIndex = starredOrderList.indexOfFirst {
+            it.first == groupName && it.second == favName
         }
-        return result
+        if (currentIndex < 0) return false
+        val moved = starredOrderList.removeAt(currentIndex)
+        starredOrderList.add(newIndex.coerceIn(0, starredOrderList.size), moved)
+        refreshState()
+        return true
     }
 
     private fun refreshState() {
@@ -241,6 +292,13 @@ class FakeFavRepo {
             }
         }
         _groupOrder.value = groups.keys.toList()
+        // The starred order is published from its own list: the entry sequence is not a
+        // property of the group map, and a star change must not reorder anything else.
+        _starredOrder.value = starredOrderList.mapNotNull { (groupName, favName) ->
+            val fav = _favorites.value[groupName]?.firstOrNull { it.name == favName }
+                ?: return@mapNotNull null
+            StarredFavoriteLocation(groupName, fav)
+        }
     }
 }
 
@@ -288,7 +346,7 @@ class FavoritesViewModelTest {
         repo.setFavoriteStarred("TestGroup", "Fav1", true)
 
         assertTrue(repo.starredSnapshot.contains("TestGroup" to "Fav1"))
-        assertEquals(1, repo.getAllStarredFavorites().size)
+        assertEquals(1, repo.starredOrder.value.size)
     }
 
     @Test
@@ -315,7 +373,7 @@ class FavoritesViewModelTest {
         repo.setFavoriteStarred("Group1", "Fav1", true)
         repo.setFavoriteStarred("Group1", "Fav2", true)
 
-        assertEquals(2, repo.getAllStarredFavorites().size)
+        assertEquals(2, repo.starredOrder.value.size)
     }
 
     @Test
@@ -335,7 +393,9 @@ class FavoritesViewModelTest {
                 override fun getGroupColor(groupName: String): String? = repo.getGroupColor(groupName)
                 override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
                 override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
-                override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
+                override val starredOrder: StateFlow<List<StarredFavoriteLocation>> = repo.starredOrder
+                override suspend fun moveStarredFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
+                    repo.moveStarredFavorite(groupName, favName, newIndex)
             },
             context
         )
@@ -365,7 +425,9 @@ class FavoritesViewModelTest {
                 override fun getGroupColor(groupName: String): String? = repo.getGroupColor(groupName)
                 override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
                 override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
-                override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
+                override val starredOrder: StateFlow<List<StarredFavoriteLocation>> = repo.starredOrder
+                override suspend fun moveStarredFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
+                    repo.moveStarredFavorite(groupName, favName, newIndex)
             },
             context
         )
@@ -396,7 +458,9 @@ class FavoritesViewModelTest {
                 override fun getGroupColor(groupName: String): String? = repo.getGroupColor(groupName)
                 override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
                 override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
-                override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
+                override val starredOrder: StateFlow<List<StarredFavoriteLocation>> = repo.starredOrder
+                override suspend fun moveStarredFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
+                    repo.moveStarredFavorite(groupName, favName, newIndex)
             },
             context
         )
@@ -426,7 +490,9 @@ class FavoritesViewModelTest {
                 override fun getGroupColor(groupName: String): String? = repo.getGroupColor(groupName)
                 override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
                 override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
-                override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
+                override val starredOrder: StateFlow<List<StarredFavoriteLocation>> = repo.starredOrder
+                override suspend fun moveStarredFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
+                    repo.moveStarredFavorite(groupName, favName, newIndex)
             },
             context
         )
@@ -466,7 +532,9 @@ class FavoritesViewModelTest {
             override fun getGroupColor(groupName: String): String? = repo.getGroupColor(groupName)
             override suspend fun setFavoriteStarred(groupName: String, favName: String, starred: Boolean): Boolean = repo.setFavoriteStarred(groupName, favName, starred)
             override fun isFavoriteStarred(groupName: String, favName: String): Boolean = repo.isFavoriteStarred(groupName, favName)
-            override fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> = repo.getAllStarredFavorites()
+            override val starredOrder: StateFlow<List<StarredFavoriteLocation>> = repo.starredOrder
+            override suspend fun moveStarredFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
+                repo.moveStarredFavorite(groupName, favName, newIndex)
         },
         context
     )
@@ -820,4 +888,164 @@ class FavoritesViewModelTest {
             assertEquals(listOf("Work", "Home", "Cities"), vm.uiState.value.groupOrder)
             assertEquals(listOf("Home" to 0, "Work" to 0), repo.moveGroupCalls)
         }
+
+    // --- Starred reorder (spec starred-ordering — position; spec fav-starred-chip-bar) ---
+
+    private suspend fun repoWithStars(): FakeFavRepo {
+        val repo = FakeFavRepo()
+        repo.addGroup("Cities")
+        repo.addGroup("Work")
+        repo.addFavorite("Cities", "Berlin", 1.0, 2.0)
+        repo.addFavorite("Cities", "Rome", 3.0, 4.0)
+        repo.addFavorite("Work", "Office", 5.0, 6.0)
+        return repo
+    }
+
+    @Test
+    fun `moveStarred reorders the chips and shows no error`() = runTest(testDispatcher) {
+        val repo = repoWithStars()
+        repo.setFavoriteStarred("Cities", "Berlin", true)
+        repo.setFavoriteStarred("Cities", "Rome", true)
+        repo.setFavoriteStarred("Work", "Office", true)
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // One order across groups: the last chip moves ahead of both others.
+        vm.moveStarred("Work", "Office", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf("Work" to "Office", "Cities" to "Berlin", "Cities" to "Rome"),
+            vm.uiState.value.starredFavorites.map { it.first to it.second.name }
+        )
+        assertEquals(1, repo.moveStarredFavoriteCalls)
+        assertEquals(null, vm.uiState.value.snackbarMessage)
+    }
+
+    @Test
+    fun `failed moveStarred keeps the order and reports it`() = runTest(testDispatcher) {
+        val repo = repoWithStars()
+        repo.setFavoriteStarred("Cities", "Berlin", true)
+        repo.setFavoriteStarred("Cities", "Rome", true)
+        repo.moveStarredFavoriteSucceeds = false
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.moveStarred("Cities", "Rome", 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf("Berlin", "Rome"),
+            vm.uiState.value.starredFavorites.map { it.second.name }
+        )
+        assertEquals(
+            context.getString(R.string.star_move_failed, "Rome"),
+            vm.uiState.value.snackbarMessage
+        )
+    }
+
+    @Test
+    fun `starred reorder while another order write is in flight is dropped`() =
+        runTest(testDispatcher) {
+            val repo = repoWithStars()
+            repo.setFavoriteStarred("Cities", "Berlin", true)
+            repo.setFavoriteStarred("Cities", "Rome", true)
+            val gate = CompletableDeferred<Unit>()
+            repo.moveFavoriteGate = gate
+            val vm = viewModel(repo)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            vm.moveFavorite("Cities", "Rome", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+            vm.moveStarred("Cities", "Rome", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(0, repo.moveStarredFavoriteCalls)
+
+            gate.complete(Unit)
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertEquals(0, repo.moveStarredFavoriteCalls)
+        }
+
+    @Test
+    fun `another order write while a starred reorder is in flight is dropped`() =
+        runTest(testDispatcher) {
+            val repo = repoWithStars()
+            repo.setFavoriteStarred("Cities", "Berlin", true)
+            repo.setFavoriteStarred("Cities", "Rome", true)
+            val gate = CompletableDeferred<Unit>()
+            repo.moveStarredFavoriteGate = gate
+            val vm = viewModel(repo)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            vm.moveStarred("Cities", "Rome", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+            vm.moveFavorite("Cities", "Berlin", 1)
+            vm.moveGroup("Work", 0)
+            vm.moveFavoriteToGroup("Work", "Office", "Cities", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // One shared guard for all four order writes.
+            assertEquals(0, repo.moveFavoriteCalls)
+            assertEquals(0, repo.moveGroupCalls.size)
+            assertEquals(0, repo.moveFavoriteToGroupCalls)
+
+            gate.complete(Unit)
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertEquals(
+                listOf("Rome", "Berlin"),
+                vm.uiState.value.starredFavorites.map { it.second.name }
+            )
+        }
+
+    @Test
+    fun `a later starred reorder is accepted after the in-flight one finished`() =
+        runTest(testDispatcher) {
+            val repo = repoWithStars()
+            repo.setFavoriteStarred("Cities", "Berlin", true)
+            repo.setFavoriteStarred("Cities", "Rome", true)
+            val vm = viewModel(repo)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            vm.moveStarred("Cities", "Rome", 0)
+            testDispatcher.scheduler.advanceUntilIdle()
+            vm.moveStarred("Cities", "Rome", 1)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(2, repo.moveStarredFavoriteCalls)
+            assertEquals(
+                listOf("Berlin", "Rome"),
+                vm.uiState.value.starredFavorites.map { it.second.name }
+            )
+        }
+
+    @Test
+    fun `the starred channel reaches the UI state across groups`() = runTest(testDispatcher) {
+        val repo = repoWithStars()
+        repo.setFavoriteStarred("Work", "Office", true)
+        repo.setFavoriteStarred("Cities", "Berlin", true)
+        val vm = viewModel(repo)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf("Work" to "Office", "Cities" to "Berlin"),
+            vm.uiState.value.starredFavorites.map { it.first to it.second.name }
+        )
+
+        // Starring appends at the end of the order.
+        repo.setFavoriteStarred("Cities", "Rome", true)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(
+            listOf("Office", "Berlin", "Rome"),
+            vm.uiState.value.starredFavorites.map { it.second.name }
+        )
+
+        // Unstarring removes the entry and keeps the rest in order.
+        repo.setFavoriteStarred("Cities", "Berlin", false)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(
+            listOf("Office", "Rome"),
+            vm.uiState.value.starredFavorites.map { it.second.name }
+        )
+    }
 }

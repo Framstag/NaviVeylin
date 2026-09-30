@@ -415,6 +415,17 @@ tasks.register<Sync>("syncSubmoduleStylesheets") {
     into(layout.buildDirectory.dir("generated/assets/stylesheets"))
 }
 
+// The raster POI icon set is sourced from the same pinned submodule state as the
+// stylesheets (spec map-render — Raster icon set sourced from the submodule at build
+// time). Only the raster leaf is packaged: the renderer loads "<name>.png"
+// (`MapPainterCairo`, which documents that SVG reading is not implemented), so the
+// neighbouring `data/icons/svg/` set would be files no code path reads. The asset
+// path is the one `IconAssets.RASTER_LEAF` builds the client's icon directory from.
+tasks.register<Sync>("syncSubmoduleIcons") {
+    from("src/main/cpp/libosmscout/libosmscout/data/icons/14x14/standard")
+    into(layout.buildDirectory.dir("generated/assets/icons/14x14/standard"))
+}
+
 // Fail fast with an actionable message when the submodule is not checked out
 // (fresh clone), instead of packaging an APK without stylesheets.
 tasks.register("checkSubmoduleStylesheets") {
@@ -427,16 +438,35 @@ tasks.register("checkSubmoduleStylesheets") {
     }
 }
 
-tasks.named("preBuild") {
-    dependsOn("checkSubmoduleStylesheets", "syncSubmoduleStylesheets")
+// Same fail-fast for the raster icon leaf: a missing submodule, or an upstream
+// re-layout of `data/icons/`, must fail before compilation — the packaged
+// stylesheets keep asking for icons by name, and a silent absence would ship an APK
+// that draws no POI icons at all (TODO.md §85).
+tasks.register("checkSubmoduleIcons") {
+    val iconsDir = file("src/main/cpp/libosmscout/libosmscout/data/icons/14x14/standard")
+    doFirst {
+        check(iconsDir.isDirectory) {
+            "libosmscout submodule raster icon directory not found at $iconsDir. " +
+                "Initialize the submodule first: git submodule update --init --recursive " +
+                "(and check upstream for a changed icon layout - the renderer loads " +
+                "<name>.png from this leaf directory)"
+        }
+    }
 }
 
-// Ensure every asset merge (debug/release/test) copies the submodule stylesheets
-// first — the sync output is a static build-dir path, so no automatic dependency
-// is carried from the source set.
+tasks.named("preBuild") {
+    dependsOn(
+        "checkSubmoduleStylesheets", "syncSubmoduleStylesheets",
+        "checkSubmoduleIcons", "syncSubmoduleIcons"
+    )
+}
+
+// Ensure every asset merge (debug/release/test) copies the submodule stylesheets and
+// icons first — the sync outputs are static build-dir paths, so no automatic
+// dependency is carried from the source set.
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
     .configureEach {
-        dependsOn("syncSubmoduleStylesheets")
+        dependsOn("syncSubmoduleStylesheets", "syncSubmoduleIcons")
     }
 
 // ── SBOM (CycloneDX) ───────────────────────────────────────────────────────

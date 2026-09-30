@@ -1,6 +1,7 @@
 package com.naviveylin.auto
 
 import com.framstag.libosmscout.client.FavoriteLocation
+import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoLocationProvider
 import com.naviveylin.core.AutoPosition
@@ -47,8 +48,10 @@ class MapScreenObservationsTest {
     private class FakeFavoritesProvider : AutoFavoritesProvider {
         val flow = MutableStateFlow<Map<String, List<FavoriteLocation>>>(emptyMap())
         val order = MutableStateFlow<List<String>>(emptyList())
+        val starred = MutableStateFlow<List<StarredFavoriteLocation>>(emptyList())
         override fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>> = flow.asStateFlow()
         override fun groupOrder(): StateFlow<List<String>> = order.asStateFlow()
+        override fun starredOrder(): StateFlow<List<StarredFavoriteLocation>> = starred.asStateFlow()
         override suspend fun init(filePath: String): Boolean = false
         override suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean = false
         override suspend fun removeFavorite(lat: Double, lon: Double): Boolean = false

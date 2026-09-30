@@ -3,6 +3,8 @@ package com.framstag.libosmscout.client
 import com.naviveylin.core.BundledMapStyles
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * Test double for [OSMScoutClient] that records style flag pushes instead of
@@ -14,6 +16,15 @@ class FakeOSMScoutClient : OSMScoutClient() {
     companion object {
         /** Colour every test render fills its pixels with; [createTestPixels] uses it. */
         val TEST_PIXEL_COLOR: Int = android.graphics.Color.rgb(200, 220, 240)
+
+        /** Star flag key, mirroring `FavoriteLocationService::JSON_KEY_STARRED`. */
+        const val STARRED_KEY = "starred"
+
+        /** Star position key, mirroring `FavoriteLocationService::JSON_KEY_STARRED_POSITION`. */
+        const val STARRED_POSITION_KEY = "starredPosition"
+
+        /** Position spacing, mirroring `FavoriteLocationService::STARRED_POSITION_STEP`. */
+        const val STARRED_POSITION_STEP = 100L
     }
 
     /** Recorded (key, value) style flag pushes in call order. */
@@ -113,12 +124,38 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Paths passed to [openDatabase] in call order. */
     val openedDatabases: MutableList<String> = CopyOnWriteArrayList()
 
+    /**
+     * Thread each map-initialization entry point was called on, in call order (entry-point name to
+     * thread): `openDatabase`, `openDatabases`, `setNativeDataCacheSize`, `getDatabaseBoundingBox`
+     * and `loadFavoriteLocations`.
+     *
+     * The main-thread guard (spec: `map-render` — Map initialization keeps native and file work off
+     * the main thread) reads this: `MapCanvasViewModel.initMap` must reach none of these entry points
+     * from the main thread.
+     */
+    val initializationCallThreads: MutableList<Pair<String, Thread>> = CopyOnWriteArrayList()
+
+    /**
+     * When set, [openDatabase] blocks on it — bounded, so a test that never releases it fails
+     * instead of hanging. Lets a case hold the off-main initialization section open and observe what
+     * the main thread does meanwhile, and lets a re-entry cancel the section while its open is in
+     * flight (a blocking native call cannot be interrupted).
+     */
+    @Volatile
+    var openDatabaseGate: CountDownLatch? = null
+
+    /** Bounded wait of [openDatabaseGate]: the pre-change code blocks the calling thread, so a case
+     * must be able to finish its assertion rather than hang. */
+    private val openDatabaseGateTimeoutMs = 2_000L
+
     /** Result returned by [openDatabase]. */
     @Volatile
     var openDatabaseResult: Boolean = true
 
     override fun openDatabase(path: String): Boolean {
         openedDatabases.add(path)
+        initializationCallThreads.add("openDatabase" to Thread.currentThread())
+        openDatabaseGate?.await(openDatabaseGateTimeoutMs, TimeUnit.MILLISECONDS)
         return openDatabaseResult
     }
 
@@ -137,6 +174,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
     override fun openDatabases(paths: Array<String>): BooleanArray {
         val batch = paths.toList()
         openedDatabaseBatches.add(batch)
+        initializationCallThreads.add("openDatabases" to Thread.currentThread())
         return openDatabasesResult(batch)
     }
 
@@ -162,6 +200,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
     var nativeDataCacheSizeFails: Boolean = false
 
     override fun setNativeDataCacheSize(cacheSize: Int) {
+        initializationCallThreads.add("setNativeDataCacheSize" to Thread.currentThread())
         if (nativeDataCacheSizeFails) {
             throw IllegalStateException("bridge is gone")
         }
@@ -171,7 +210,10 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Bounding box returned by [getDatabaseBoundingBox] (null = none). */
     var databaseBoundingBox: DoubleArray? = null
 
-    override fun getDatabaseBoundingBox(path: String): DoubleArray? = databaseBoundingBox
+    override fun getDatabaseBoundingBox(path: String): DoubleArray? {
+        initializationCallThreads.add("getDatabaseBoundingBox" to Thread.currentThread())
+        return databaseBoundingBox
+    }
 
     // --- Basemap stubs ---
 
@@ -587,6 +629,21 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Set to false to simulate a failing native cross-group move. */
     var moveFavoriteToGroupResult: Boolean = true
 
+    /** One starred-order move request as it reached the native store. */
+    data class MoveStarredCall(
+        val groupName: String,
+        val favName: String,
+        val newIndex: Int,
+        /** Name of the thread that made the call — used to prove it is not the main thread. */
+        val threadName: String = ""
+    )
+
+    /** Recorded starred-order move requests, in call order. */
+    val moveStarredFavoriteCalls: MutableList<MoveStarredCall> = CopyOnWriteArrayList()
+
+    /** Set to false to simulate a failing native starred move. */
+    var moveStarredFavoriteResult: Boolean = true
+
     /**
      * Favorite order handed to the last [saveFavoriteLocations] call, as
      * (group name, favorite names in save order). The native save path rebuilds
@@ -595,6 +652,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
     var lastSavedFavoriteOrder: List<Pair<String, List<String>>> = emptyList()
 
     override fun loadFavoriteLocations(filePath: String): Boolean {
+        initializationCallThreads.add("loadFavoriteLocations" to Thread.currentThread())
         favGroups.clear()
         return true
     }
@@ -628,10 +686,7 @@ class FakeOSMScoutClient : OSMScoutClient() {
             FavoriteLocationGroup(group.name).also { groupCopy ->
                 groupCopy.attributes.putAll(group.attributes)
                 group.favorites.forEach { fav ->
-                    FavoriteLocation(fav.name, fav.lat, fav.lon).also { favCopy ->
-                        favCopy.attributes.putAll(fav.attributes)
-                        groupCopy.favorites.add(favCopy)
-                    }
+                    groupCopy.favorites.add(copyFavorite(fav))
                 }
             }
         }.toTypedArray()
@@ -733,18 +788,118 @@ class FakeOSMScoutClient : OSMScoutClient() {
         return true
     }
 
+    /**
+     * Mirrors `osmscout::FavoriteLocationService::SetStarred`: unstarring drops the
+     * flag and the entry's position, an already starred favorite keeps its place, and
+     * a newly starred one is appended at the end of the starred order.
+     */
     override fun setStarred(groupName: String, favName: String, starred: Boolean): Boolean {
         val group = favGroups.firstOrNull { it.name == groupName } ?: return false
         val fav = group.favorites.firstOrNull { it.name == favName } ?: return false
-        fav.attributes["starred"] = starred.toString()
+
+        if (!starred) {
+            fav.attributes.remove(STARRED_KEY)
+            fav.attributes.remove(STARRED_POSITION_KEY)
+            return true
+        }
+
+        if (fav.attributes[STARRED_KEY] == "true") return true
+
+        val maxPosition = collectStarred().mapNotNull { it.position }.maxOrNull() ?: 0L
+        fav.attributes[STARRED_KEY] = "true"
+        fav.attributes[STARRED_POSITION_KEY] = (maxPosition + STARRED_POSITION_STEP).toString()
         return true
     }
 
     override fun isStarred(groupName: String, favName: String): Boolean {
         val group = favGroups.firstOrNull { it.name == groupName } ?: return false
         val fav = group.favorites.firstOrNull { it.name == favName } ?: return false
-        return fav.attributes["starred"] == "true"
+        return fav.attributes[STARRED_KEY] == "true"
     }
+
+    /**
+     * Mirrors `osmscout::FavoriteLocationService::GetStarred`: the starred favorites
+     * of all groups in the starred order, each entry naming its group. The order is
+     * the one `StarOrderLess` defines — stored positions ascending, then the entries
+     * without a position by group index and favorite name — so a set of starred
+     * favorites always yields a total order here too.
+     */
+    override fun getStarredFavorites(): Array<StarredFavoriteLocation> =
+        collectStarred()
+            .map { entry ->
+                StarredFavoriteLocation(
+                    entry.groupName,
+                    copyFavorite(favGroups[entry.groupIndex].favorites[entry.favIndex])
+                )
+            }
+            .toTypedArray()
+
+    /**
+     * Mirrors `osmscout::FavoriteLocationService::MoveStarred`: the target index is
+     * clamped over the order after the entry was removed, an unknown group/favorite or
+     * a favorite that is not starred is refused with the order untouched, and the
+     * resulting sequence is written back with the service's own spaced positions.
+     */
+    override fun moveStarredFavorite(groupName: String, favName: String, newIndex: Int): Boolean {
+        moveStarredFavoriteCalls.add(
+            MoveStarredCall(groupName, favName, newIndex, Thread.currentThread().name)
+        )
+        if (!moveStarredFavoriteResult) return false
+
+        val order = collectStarred()
+        val currentIndex = order.indexOfFirst {
+            it.groupName == groupName && it.favName == favName
+        }
+        if (currentIndex < 0) return false
+
+        val moved = order.removeAt(currentIndex)
+        order.add(newIndex.coerceIn(0, order.size), moved)
+
+        order.forEachIndexed { index, entry ->
+            favGroups[entry.groupIndex].favorites[entry.favIndex]
+                .attributes[STARRED_POSITION_KEY] = ((index + 1) * STARRED_POSITION_STEP).toString()
+        }
+        return true
+    }
+
+    /** One starred favorite of the store, in the shape the order is computed from. */
+    private data class StarOrderEntry(
+        val groupIndex: Int,
+        val favIndex: Int,
+        val groupName: String,
+        val favName: String,
+        val position: Long?
+    )
+
+    /** The starred favorites in the starred order (`StarOrderLess`). */
+    private fun collectStarred(): MutableList<StarOrderEntry> {
+        val entries = mutableListOf<StarOrderEntry>()
+        favGroups.forEachIndexed { groupIndex, group ->
+            group.favorites.forEachIndexed { favIndex, fav ->
+                if (fav.attributes[STARRED_KEY] != "true") return@forEachIndexed
+                entries.add(
+                    StarOrderEntry(
+                        groupIndex = groupIndex,
+                        favIndex = favIndex,
+                        groupName = group.name,
+                        favName = fav.name,
+                        position = fav.attributes[STARRED_POSITION_KEY]?.toLongOrNull()
+                    )
+                )
+            }
+        }
+        entries.sortWith(
+            compareByDescending<StarOrderEntry> { it.position != null }
+                .thenBy { it.position ?: 0L }
+                .thenBy { it.groupIndex }
+                .thenBy { it.favName }
+        )
+        return entries
+    }
+
+    /** A fresh copy of a favorite, like the JNI bridge reconstructs one. */
+    private fun copyFavorite(fav: FavoriteLocation): FavoriteLocation =
+        FavoriteLocation(fav.name, fav.lat, fav.lon).also { it.attributes.putAll(fav.attributes) }
 
     override fun setGroupColor(groupName: String, color: String): Boolean {
         val group = favGroups.firstOrNull { it.name == groupName } ?: return false

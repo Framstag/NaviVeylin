@@ -1,6 +1,7 @@
 package com.naviveylin.core
 
 import com.framstag.libosmscout.client.FavoriteLocation
+import com.framstag.libosmscout.client.StarredFavoriteLocation
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -20,6 +21,15 @@ interface AutoFavoritesProvider {
      * that list groups read their sequence from here; the map supplies the contents.
      */
     fun groupOrder(): StateFlow<List<String>>
+
+    /**
+     * Reactive starred order (spec `starred-ordering`): the starred favorites in their
+     * stored order, each entry naming the group that holds it. Its own flow rather than
+     * a derivation from [favoriteLocations], because the order spans all groups — the
+     * group map cannot express a sequence that crosses groups, and the rules behind the
+     * stored order (positions, the fallback for a file without them) live in the store.
+     */
+    fun starredOrder(): StateFlow<List<StarredFavoriteLocation>>
 
     /**
      * Initialize the favorites repository with the JSON persistence path

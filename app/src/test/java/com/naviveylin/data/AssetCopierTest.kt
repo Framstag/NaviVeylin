@@ -33,9 +33,13 @@ class AssetCopierTest {
         copier = AssetCopier(context)
         // Isolated stylesheets dir per test
         context.filesDir.resolve("stylesheets").deleteRecursively()
+        context.filesDir.resolve("icons").deleteRecursively()
     }
 
     private fun stylesheetsDir(): File = File(context.filesDir, "stylesheets")
+
+    private fun iconsLeafDir(): File =
+        File(IconAssets.deviceRoot(context.filesDir), IconAssets.RASTER_LEAF)
 
     private fun assetBytes(assetPath: String): ByteArray =
         context.assets.open(assetPath).use { it.readBytes() }
@@ -127,5 +131,102 @@ class AssetCopierTest {
             .orEmpty()
 
         assertEquals(expected.sorted(), actual)
+    }
+
+    // ── Raster POI icons (spec map-render — Raster icon directory is refreshed on device
+    //    and configured at the client seam; TODO.md §85) ─────────────────────────────────
+
+    @Test
+    fun iconsFirstLaunchCopiesTheRasterSet() {
+        val dir = copier.ensureIcons()
+
+        // The returned path is what the native client is configured with: absolute, with the
+        // trailing separator its `path + name + ".png"` construction needs.
+        assertEquals(IconAssets.clientDirectory(context.filesDir), dir)
+        assertTrue("client directory must be absolute: $dir", File(dir).isAbsolute)
+        assertTrue("client directory must end with a separator: $dir", dir.endsWith(File.separator))
+
+        val leaf = iconsLeafDir()
+        assertTrue("the raster leaf must exist on device: $leaf", leaf.isDirectory)
+        for (name in RASTER_ICON_SAMPLES) {
+            val file = leaf.resolve("$name.png")
+            assertTrue("$name.png must be mirrored from the packaged assets", file.exists())
+            assertTrue(
+                "$name.png content must match the packaged asset",
+                file.readBytes().contentEquals(assetBytes(IconAssets.assetPathOf(name)))
+            )
+        }
+        assertTrue(
+            "the whole packaged raster set must be mirrored, not a sample",
+            leaf.listFiles()?.count { it.name.endsWith(".png") } ?: 0 >= 20
+        )
+    }
+
+    @Test
+    fun iconsUpdateWithChangedContentRefreshesOnlyChangedFiles() {
+        copier.ensureIcons()
+
+        val busStop = iconsLeafDir().resolve("bus_stop.png")
+        val parking = iconsLeafDir().resolve("parking.png")
+        val parkingBefore = parking.readBytes()
+        busStop.writeText("tampered stale content")
+
+        copier.ensureIcons()
+
+        assertTrue(
+            "tampered icon must be refreshed to the packaged content",
+            busStop.readBytes().contentEquals(assetBytes(IconAssets.assetPathOf("bus_stop")))
+        )
+        assertTrue("untouched icon must be left alone", parking.readBytes().contentEquals(parkingBefore))
+    }
+
+    @Test
+    fun iconsNoChangeStartIsNoOp() {
+        copier.ensureIcons()
+        val file = iconsLeafDir().resolve("bus_stop.png")
+        val beforeModified = file.lastModified()
+        val beforeBytes = file.readBytes()
+
+        val dir = copier.ensureIcons()
+
+        assertEquals(beforeModified, file.lastModified())
+        assertTrue(file.readBytes().contentEquals(beforeBytes))
+        assertEquals(IconAssets.clientDirectory(context.filesDir), dir)
+    }
+
+    @Test
+    fun removedIconFileDeletedFromInternalStorage() {
+        copier.ensureIcons()
+
+        // Simulate an icon left behind by an older APK that no longer bundles it.
+        val stale = iconsLeafDir().resolve("stale_icon.png")
+        stale.writeText("old file")
+        assertTrue(stale.exists())
+
+        copier.ensureIcons()
+
+        assertFalse(stale.exists())
+    }
+
+    @Test
+    fun theTwoAssetTreesDoNotDeleteEachOther() {
+        copier.ensureStylesheets()
+        copier.ensureIcons()
+
+        // Mirror semantics run per tree with its own asset root: the icons pass must not treat the
+        // stylesheets as stale (or the other way round).
+        assertTrue(File(context.filesDir, "stylesheets/map.ost").exists())
+        assertTrue(iconsLeafDir().resolve("bus_stop.png").exists())
+
+        copier.ensureStylesheets()
+        copier.ensureIcons()
+
+        assertTrue(File(context.filesDir, "stylesheets/map.ost").exists())
+        assertTrue(iconsLeafDir().resolve("bus_stop.png").exists())
+    }
+
+    private companion object {
+        /** A small, stable sample of the packaged raster set (the guard test covers coverage). */
+        val RASTER_ICON_SAMPLES = listOf("bus_stop", "parking", "bench")
     }
 }

@@ -9,6 +9,7 @@ import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.SectionedItemList
+import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
@@ -24,6 +25,10 @@ import kotlinx.coroutines.launch
  * Android Auto screen for browsing favorite locations using [ListTemplate]
  * with sectioned lists (one list per favorite group). Backed by
  * [AutoFavoritesProvider] via [AutoEntryPoint].
+ *
+ * The starred mode (spec `auto-favorites` — starred favorites render as one ordered
+ * list; spec `starred-ordering`) lists the stored starred order instead: one order that
+ * spans all groups, so it is one list without group headers, read-only.
  *
  * Uses [ListTemplate] (not [PlaceListNavigationTemplate]): the place-list
  * template requires every non-browsable row to carry a distance span and every
@@ -53,6 +58,14 @@ class FavoritesScreen(
      * `auto-favorites` — AA place list follows the stored group order).
      */
     private var groupOrder: List<String> = emptyList()
+
+    /**
+     * The stored starred order (`AutoFavoritesProvider.starredOrder`): one sequence
+     * spanning all groups, what the starred mode renders. Read from its own flow for
+     * the same reason as the group order — the order is not a property the group map
+     * can express.
+     */
+    private var starredOrder: List<StarredFavoriteLocation> = emptyList()
     private var loaded = false
 
     init {
@@ -61,17 +74,19 @@ class FavoritesScreen(
         // DetailsScreen and the phone app): the screen updates in place when
         // the store finishes loading, so favorites appear without leaving and
         // re-entering the screen (spec: auto-favorites — favorites appear
-        // without re-entering the screen). The group order rides the same
-        // collector via `combine`, so the screen holds one observation rather
-        // than a second bare launch.
+        // without re-entering the screen). The group order and the starred
+        // order ride the same collector via `combine`, so the screen holds one
+        // observation rather than further bare launches.
         scope.launch {
             combine(
                 favoritesProvider.favoriteLocations(),
-                favoritesProvider.groupOrder()
-            ) { favorites, order -> favorites to order }
-                .collect { (favorites, order) ->
+                favoritesProvider.groupOrder(),
+                favoritesProvider.starredOrder()
+            ) { favorites, order, starred -> Triple(favorites, order, starred) }
+                .collect { (favorites, order, starred) ->
                     favoritesData = favorites
                     groupOrder = order
+                    starredOrder = starred
                     loaded = true
                     invalidate()
                 }
@@ -103,7 +118,7 @@ class FavoritesScreen(
                     .addItem(Row.Builder().setTitle(carContext.getString(R.string.loading)).build())
                     .build()
             )
-        } else if (favoritesData.isEmpty()) {
+        } else if (favoritesData.isEmpty() && starredOrder.isEmpty()) {
             builder.setSingleList(
                 ItemList.Builder()
                     .addItem(
@@ -114,20 +129,46 @@ class FavoritesScreen(
                     )
                     .build()
             )
+        } else if (starredOnly) {
+            // One order spanning all groups: a single list without group headers, in
+            // the stored starred sequence (spec `auto-favorites`).
+            if (starredOrder.isEmpty()) {
+                builder.setSingleList(
+                    ItemList.Builder()
+                        .addItem(
+                            Row.Builder()
+                                .setTitle(carContext.getString(R.string.no_starred_favorites))
+                                .addText(carContext.getString(R.string.starred_hint))
+                                .build()
+                        )
+                        .build()
+                )
+            } else {
+                val itemList = ItemList.Builder()
+                for (entry in starredOrder) {
+                    val fav = entry.favorite
+                    itemList.addItem(
+                        Row.Builder()
+                            .setTitle(fav.name ?: "Favorite")
+                            .addText(fav.attributes?.get("address") ?: "")
+                            .setOnClickListener {
+                                Log.d(TAG, "Starred favorite selected: ${fav.name}")
+                                navigationViewModel.navigateTo(fav.lat, fav.lon)
+                            }
+                            .build()
+                    )
+                }
+                builder.setSingleList(itemList.build())
+            }
         } else {
             var added = false
             for (groupName in orderedGroupNames(groupOrder, favoritesData.keys)) {
                 val favorites = favoritesData[groupName].orEmpty()
-                val groupFavorites = if (starredOnly) {
-                    favorites.filter { it.attributes?.get("starred") == "true" }
-                } else {
-                    favorites
-                }
-                if (groupFavorites.isEmpty()) continue
+                if (favorites.isEmpty()) continue
                 added = true
 
                 val itemList = ItemList.Builder()
-                for (fav in groupFavorites) {
+                for (fav in favorites) {
                     // Row tap selects the favorite (rows with a click listener
                     // must not also carry row actions — ROW_CONSTRAINTS_SIMPLE).
                     itemList.addItem(
@@ -150,8 +191,8 @@ class FavoritesScreen(
                     ItemList.Builder()
                         .addItem(
                             Row.Builder()
-                                .setTitle(carContext.getString(R.string.no_starred_favorites))
-                                .addText(carContext.getString(R.string.starred_hint))
+                                .setTitle(carContext.getString(R.string.no_favorites_saved))
+                                .addText(carContext.getString(R.string.favorites_save_hint))
                                 .build()
                         )
                         .build()

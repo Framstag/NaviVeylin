@@ -6,6 +6,7 @@ import com.naviveylin.data.FavoriteRepository
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Provider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -81,5 +82,31 @@ class AutoProviderLazinessTest {
         provider.groupOrder()
 
         assertEquals(1, builds.get())
+    }
+
+    /**
+     * The starred order (spec `starred-ordering`) is read through the same lazy
+     * repository, so the car screen can collect it in its constructor without building
+     * the native client there, and it hands out the repository's own starred channel.
+     */
+    @Test
+    fun theStarredOrderAccessorIsLazyLikeTheFavoritesAccessor() {
+        var built: FavoriteRepository? = null
+        val repository = dagger.Lazy {
+            builds.incrementAndGet()
+            FavoriteRepository().also { built = it }
+        }
+        val provider = AutoServiceModule.provideAutoFavoritesProvider(repository)
+
+        assertEquals("resolving the provider must not build the repository/client", 0, builds.get())
+
+        val starred = provider.starredOrder()
+
+        assertEquals(1, builds.get())
+        assertSame(
+            "the car reads the repository's own starred channel",
+            built?.starredOrder,
+            starred
+        )
     }
 }

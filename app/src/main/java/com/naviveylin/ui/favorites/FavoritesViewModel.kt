@@ -25,6 +25,12 @@ data class FavoritesUiState(
     val selectedGroup: String? = null,
     val searchQuery: String = "",
     val snackbarMessage: String? = null,
+    /**
+     * The starred favorites in their stored order, each paired with the group that
+     * holds it (spec `starred-ordering`). Read from the repository's own starred-order
+     * flow, not derived from [groups]: the order spans groups, so the map cannot
+     * express it.
+     */
     val starredFavorites: List<Pair<String, FavoriteLocation>> = emptyList(),
     val groupColors: Map<String, String> = emptyMap()
 )
@@ -39,12 +45,12 @@ class FavoritesViewModel @Inject constructor(
     val uiState: StateFlow<FavoritesUiState> = _uiState.asStateFlow()
 
     /**
-     * True while an order-changing write (a reorder commit, a cross-group move or a
-     * group reorder) is being persisted. Read and written from the main thread
-     * (`viewModelScope`); volatile so the coroutine continuation of the completing
-     * move observes the current value.
+     * True while an order-changing write (a reorder commit, a cross-group move, a
+     * group reorder or a starred reorder) is being persisted. Read and written from
+     * the main thread (`viewModelScope`); volatile so the coroutine continuation of
+     * the completing move observes the current value.
      *
-     * All three kinds go through this one flag: two of them racing each other would
+     * All four kinds go through this one flag: two of them racing each other would
      * otherwise show an order the user did not ask for (the repository's write lock
      * keeps each write whole, so this is about the visible sequence, not about data
      * integrity).
@@ -55,13 +61,11 @@ class FavoritesViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             favoriteRepository.favorites.collect { groups ->
-                val starred = favoriteRepository.getAllStarredFavorites()
                 val colors = groups.keys.associateWith { groupName ->
                     favoriteRepository.getGroupColor(groupName)
                 }.filterValues { it != null }.mapValues { it.value!! }
                 _uiState.value = _uiState.value.copy(
                     groups = groups,
-                    starredFavorites = starred,
                     groupColors = colors
                 )
             }
@@ -71,6 +75,16 @@ class FavoritesViewModel @Inject constructor(
         viewModelScope.launch {
             favoriteRepository.groupOrder.collect { order ->
                 _uiState.value = _uiState.value.copy(groupOrder = order)
+            }
+        }
+        // Third collector, for the same reason: the starred order spans groups, so it
+        // is not a property of the group map, and a reorder of it leaves the map
+        // contents unchanged.
+        viewModelScope.launch {
+            favoriteRepository.starredOrder.collect { order ->
+                _uiState.value = _uiState.value.copy(
+                    starredFavorites = order.map { it.groupName to it.favorite }
+                )
             }
         }
     }
@@ -226,6 +240,32 @@ class FavoritesViewModel @Inject constructor(
                     else -> context.getString(R.string.favorite_move_failed, favName)
                 }
                 _uiState.value = _uiState.value.copy(snackbarMessage = message)
+            } finally {
+                orderWriteInFlight = false
+            }
+        }
+    }
+
+    /**
+     * Move a starred favorite to a new position in the starred order.
+     *
+     * Shares the in-flight guard with [moveFavorite], [moveGroup] and
+     * [moveFavoriteToGroup]: all four are order writes, and two of them racing would
+     * show an order the user did not ask for. The failure message names the favorite,
+     * because the one refusal a user can cause here is a star that is no longer there
+     * (the store lost the favorite or it was unstarred while it was being dragged).
+     */
+    fun moveStarred(groupName: String, favName: String, newIndex: Int) {
+        if (orderWriteInFlight) return
+        orderWriteInFlight = true
+        viewModelScope.launch {
+            try {
+                val success = favoriteRepository.moveStarredFavorite(groupName, favName, newIndex)
+                if (!success) {
+                    _uiState.value = _uiState.value.copy(
+                        snackbarMessage = context.getString(R.string.star_move_failed, favName)
+                    )
+                }
             } finally {
                 orderWriteInFlight = false
             }

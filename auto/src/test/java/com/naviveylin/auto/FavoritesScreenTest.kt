@@ -8,6 +8,7 @@ import androidx.car.app.model.Row
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FavoriteLocation
+import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.NavigationViewModel
@@ -236,6 +237,87 @@ class FavoritesScreenTest {
         assertEquals(listOf("Cities"), sectionHeaders(screen.onGetTemplate()))
     }
 
+    // --- Starred mode (spec auto-favorites — one ordered list; spec starred-ordering) ---
+
+    private fun starred(vararg entries: Pair<String, String>) =
+        entries.map { StarredFavoriteLocation(it.first, fav(it.second)) }
+
+    @Test
+    fun starredModeRendersTheStoredStarredOrderAsOneList() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val screen = newScreen(starredOnly = true)
+            favoritesProvider.flow.value = mapOf(
+                "Cities" to listOf(fav("Berlin"), fav("Rome")),
+                "Work" to listOf(fav("Office"))
+            )
+            // One order spanning groups: the Work favorite sits between the two
+            // Cities favorites, which group sections could not express.
+            favoritesProvider.starred.value = starred(
+                "Cities" to "Berlin", "Work" to "Office", "Cities" to "Rome"
+            )
+            advanceUntilIdle()
+
+            val template = screen.onGetTemplate()
+            assertEquals(listOf("Berlin", "Office", "Rome"), singleTitles(template))
+            assertTrue(
+                "the starred mode is one list, not group sections",
+                template.sectionedLists.isEmpty()
+            )
+        }
+
+    @Test
+    fun aStarredReorderUpdatesTheListInPlace() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen(starredOnly = true)
+        favoritesProvider.starred.value = starred("Cities" to "Berlin", "Cities" to "Rome")
+        advanceUntilIdle()
+        assertEquals(listOf("Berlin", "Rome"), singleTitles(screen.onGetTemplate()))
+
+        // Reordered on the phone while the car screen is open.
+        favoritesProvider.starred.value = starred("Cities" to "Rome", "Cities" to "Berlin")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Rome", "Berlin"), singleTitles(screen.onGetTemplate()))
+    }
+
+    @Test
+    fun theAllFavoritesModeStillUsesGroupSections() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen()
+        favoritesProvider.flow.value = mapOf(
+            "Cities" to listOf(fav("Rome")),
+            "Work" to listOf(fav("Office"))
+        )
+        favoritesProvider.starred.value = starred("Cities" to "Rome")
+        advanceUntilIdle()
+
+        val template = screen.onGetTemplate()
+        assertEquals(listOf("Cities", "Work"), sectionHeaders(template))
+        assertTrue(template.singleList == null)
+    }
+
+    @Test
+    fun starredModeOffersNoReorderAffordanceAndSelectionStillNavigates() =
+        runTest(mainDispatcherRule.dispatcher) {
+            every { navigationViewModel.navigateTo(any(), any()) } just Runs
+            val screen = newScreen(starredOnly = true)
+            favoritesProvider.starred.value = starred("Cities" to "Rome")
+            advanceUntilIdle()
+
+            val rows = screen.onGetTemplate().singleList!!.items.map { it as Row }
+            assertTrue("car rows must not carry reorder actions", rows.all { it.actions.isEmpty() })
+
+            rows.first().onClickDelegate?.sendClick(mockk(relaxed = true))
+            verify { navigationViewModel.navigateTo(51.5136, 7.4653) }
+        }
+
+    @Test
+    fun starredModeWithNothingStarredShowsTheHint() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen(starredOnly = true)
+        favoritesProvider.flow.value = mapOf("Cities" to listOf(fav("Rome")))
+        advanceUntilIdle()
+
+        assertEquals(listOf("No starred favorites"), singleTitles(screen.onGetTemplate()))
+    }
+
     /** In-memory [AutoFavoritesProvider] backed by a [MutableStateFlow]. */
     private class FakeFavoritesProvider : AutoFavoritesProvider {
         val flow = MutableStateFlow<Map<String, List<FavoriteLocation>>>(emptyMap())
@@ -243,8 +325,12 @@ class FavoritesScreenTest {
         /** The group order channel the screen renders headers from. */
         val order = MutableStateFlow<List<String>>(emptyList())
 
+        /** The starred-order channel the starred mode renders from. */
+        val starred = MutableStateFlow<List<StarredFavoriteLocation>>(emptyList())
+
         override fun favoriteLocations() = flow
         override fun groupOrder() = order
+        override fun starredOrder() = starred
         override suspend fun init(filePath: String) = true
         override suspend fun addFavorite(name: String, lat: Double, lon: Double) = true
         override suspend fun removeFavorite(lat: Double, lon: Double) = true

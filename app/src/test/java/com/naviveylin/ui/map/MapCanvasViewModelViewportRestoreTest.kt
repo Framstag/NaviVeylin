@@ -304,13 +304,21 @@ class MapCanvasViewModelViewportRestoreTest {
 
             // Screen size known BEFORE initMap (no size-change renderMap fires
             // afterwards — the re-entry condition). Gate the VM's default
-            // dispatcher so applyStyleSheet suspends: the init-time dark push
-            // submits a render while the style load is held. Without the fix
-            // that render uses the renderer's DEFAULT viewport (mag 5 → native
-            // 2^5=32) — the low-zoom frame seen after re-entry — with it, the
-            // restored magnification (12 → 2^12=4096).
+            // dispatcher from the moment the initialization is over, so the
+            // init-time dark push has already submitted its render while the
+            // persisted style load is held. Without the fix that render uses the
+            // renderer's DEFAULT viewport (mag 5 → native 2^5=32) — the low-zoom
+            // frame seen after re-entry — with it, the restored magnification
+            // (12 → 2^12=4096).
+            //
+            // "Initialization over" is the loading state being cleared: the
+            // initialization's own off-main section (spec: map-render — Map
+            // initialization keeps native and file work off the main thread) runs
+            // while it is still set, and the renderer is created only after that
+            // section — so the first held block is the style load that follows the
+            // dark push.
             viewModel.setScreenSize(100, 100)
-            val gated = FirstDispatchGatedDispatcher()
+            val gated = PostInitializationGatedDispatcher { !viewModel.uiState.value.isLoading }
             viewModel.defaultDispatcher = gated
             viewModel.initMap("/data/maps/testmap")
 
@@ -323,6 +331,10 @@ class MapCanvasViewModelViewportRestoreTest {
                 scheduler.advanceUntilIdle()
                 Thread.sleep(10)
             }
+            assertTrue(
+                "the initialization must have run (and reached the renderer) before the held style load",
+                client.openedDatabases.isNotEmpty() && gated.heldCount > 0
+            )
 
             // Let the debounce fire while the style load is still held.
             Thread.sleep(300)
@@ -365,6 +377,45 @@ class MapCanvasViewModelViewportRestoreTest {
 
         fun release() {
             released.set(true)
+            while (true) {
+                val block = queue.poll() ?: break
+                block.run()
+            }
+        }
+    }
+
+    /**
+     * Holds every block dispatched once [initializationDone] reports true; blocks dispatched before
+     * that run inline.
+     *
+     * The first hop to the ViewModel's `defaultDispatcher` during `initMap` is the initialization's own
+     * off-main section (spec: `map-render` — Map initialization keeps native and file work off the main
+     * thread); the init-time *style load* is a later hop, after the renderer exists. A case that wants
+     * to hold that load while the renderer submits a render therefore gates on the moment the
+     * initialization is over, not on a dispatch ordinal (which moves whenever the section gains or
+     * loses a suspension point).
+     */
+    private class PostInitializationGatedDispatcher(
+        private val initializationDone: () -> Boolean
+    ) : CoroutineDispatcher() {
+        private val queue = ConcurrentLinkedQueue<Runnable>()
+
+        @Volatile
+        private var released = false
+
+        /** Number of blocks currently held. */
+        val heldCount: Int get() = queue.size
+
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            if (!released && initializationDone()) {
+                queue.offer(block)
+            } else {
+                block.run()
+            }
+        }
+
+        fun release() {
+            released = true
             while (true) {
                 val block = queue.poll() ?: break
                 block.run()

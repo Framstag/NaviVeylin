@@ -2,6 +2,7 @@ package com.naviveylin.data
 
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.framstag.libosmscout.client.StarredFavoriteLocation
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,21 @@ open class FavoriteRepository @Inject constructor(
      * [refreshState], so the two never describe different stores.
      */
     open val groupOrder: StateFlow<List<String>> = _groupOrder.asStateFlow()
+
+    private val _starredOrder = MutableStateFlow<List<StarredFavoriteLocation>>(emptyList())
+
+    /**
+     * The starred favorites in their stored order, each entry naming the group that
+     * holds it (spec `starred-ordering`).
+     *
+     * The store owns this order: it spans all groups, so the group map cannot express
+     * it, and its rules (the fallback for a file without stored positions, the tie
+     * breaks, the clamping) live in the native service. Deriving the sequence here by
+     * iterating the map would both lose the order and duplicate those rules. It is
+     * written in [refreshState] together with [favorites] and [groupOrder], so the
+     * three always describe one store.
+     */
+    open val starredOrder: StateFlow<List<StarredFavoriteLocation>> = _starredOrder.asStateFlow()
 
     private var favoritesFile: String? = null
     private var loaded = false
@@ -93,6 +109,7 @@ open class FavoriteRepository @Inject constructor(
         }
         _favorites.value = map
         _groupOrder.value = map.keys.toList()
+        _starredOrder.value = client!!.getStarredFavorites()?.toList() ?: emptyList()
     }
 
     /** Persist current state to JSON file. */
@@ -316,6 +333,36 @@ open class FavoriteRepository @Inject constructor(
         success
     }
 
+    /**
+     * Move a starred favorite to a new position in the starred order.
+     *
+     * The target index is 0-based over the starred order after the favorite has been
+     * removed from its current position; out-of-range indices are clamped by the native
+     * store, and a negative index means the first position. The order spans all groups,
+     * so this is the one move that can carry an entry past a favorite of another group.
+     *
+     * Returns false if not loaded, or if the group or the favorite is unknown, or if
+     * the favorite is not starred.
+     */
+    open suspend fun moveStarredFavorite(groupName: String, favName: String, newIndex: Int): Boolean =
+        writeMutex.withLock {
+            moveStarredFavoriteLocked(groupName, favName, newIndex)
+        }
+
+    private suspend fun moveStarredFavoriteLocked(
+        groupName: String,
+        favName: String,
+        newIndex: Int
+    ): Boolean = withContext(defaultDispatcher) {
+        if (!loaded) return@withContext false
+        val success = client!!.moveStarredFavorite(groupName, favName, newIndex)
+        if (success) {
+            refreshState()
+            persist()
+        }
+        success
+    }
+
     // ---- Group Attributes ----
 
     /** Set a color for a group. Pass null to remove the color. */
@@ -366,19 +413,6 @@ open class FavoriteRepository @Inject constructor(
     /** Check if a favorite is starred. */
     open fun isFavoriteStarred(groupName: String, favName: String): Boolean {
         return client!!.isStarred(groupName, favName)
-    }
-
-    /** Get all starred favorites across all groups. */
-    open fun getAllStarredFavorites(): List<Pair<String, FavoriteLocation>> {
-        val result = mutableListOf<Pair<String, FavoriteLocation>>()
-        for ((groupName, favs) in _favorites.value) {
-            for (fav in favs) {
-                if (fav.attributes["starred"] == "true") {
-                    result.add(groupName to fav)
-                }
-            }
-        }
-        return result
     }
 
     /** Get all group names. */

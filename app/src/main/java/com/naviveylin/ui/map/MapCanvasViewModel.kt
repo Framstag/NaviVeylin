@@ -63,6 +63,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
 import java.util.Locale
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -71,6 +72,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -1822,10 +1824,147 @@ class MapCanvasViewModel @Inject constructor(
         return merged
     }
 
+    /**
+     * The off-main half of [initMap]: the asset/stylesheet refresh, the database opens, the
+     * tile-data-cache configuration, the favorites-store initialization and the viewport lookup.
+     *
+     * Runs on [defaultDispatcher] (spec: `map-render` — Map initialization keeps native and file
+     * work off the main thread; `guidelines/Design.md` §4) and publishes no state, so a cancelled
+     * initialization (map re-entry) can only discard its result — never leave a half-applied one,
+     * because there is nothing to half-apply.
+     *
+     * A superseding init cancels this coroutine while a blocking native call may already be in
+     * flight (a JNI call cannot be interrupted). The [coroutineContext.ensureActive] checks therefore
+     * sit between the client-mutating steps: the cancelled initialization finishes the call it was in
+     * and stops before the next one, and the key it restores the viewport for is the one it was
+     * started with ([mapKey], captured synchronously by [initMap]).
+     *
+     * @return the resolved viewport, or `null` when the selected database path was rejected (the
+     *   caller publishes the error state on the main thread).
+     */
+    private suspend fun initializeOffMain(mapPath: String, mapKey: String): MapInitResult? {
+        val stylesheetsDir = assetCopier.ensureStylesheets()
+        Log.d(TAG, "initMap: stylesheets=$stylesheetsDir")
+
+        Log.d(TAG, "initMap: opening database...")
+        val opened = try {
+            client.openDatabase(mapPath).also { success ->
+                Log.d(TAG, "initMap: openDatabase returned $success")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to open database", e)
+            false
+        }
+        if (!opened) return null
+
+        Log.d(TAG, "initMap: database opened successfully")
+        coroutineContext.ensureActive()
+
+        // Configure the native tile data cache capacity (regional database
+        // and any future basemap) through the shared seam (spec:
+        // native-tile-data-cache). Stored in the client and re-applied to
+        // every open database by the render path, so it also covers
+        // databases that open asynchronously after this call. Perf-only and
+        // idempotent; the highest requested value wins and is never lowered, so
+        // a car session sharing this client cannot shrink it and a car-first
+        // ordering cannot degrade the phone.
+        when (NativeTileDataCache.apply(client, NativeTileDataCache.PHONE_TILES)) {
+            TileCacheConfig.APPLIED ->
+                Log.d(TAG, "initMap: tile data cache configured with " +
+                        "${NativeTileDataCache.PHONE_TILES} tiles")
+            TileCacheConfig.UNCHANGED -> Unit
+            TileCacheConfig.REJECTED ->
+                Log.w(TAG, "initMap: tile data cache kept at the higher value already configured")
+            TileCacheConfig.FAILED ->
+                Log.w(TAG, "initMap: setNativeDataCacheSize failed")
+        }
+        coroutineContext.ensureActive()
+
+        // Open all other installed maps too, so every downloaded region
+        // renders via viewport coverage — no switching needed (multi-map).
+        try {
+            val mapsDir = File(context.filesDir, "maps")
+            // Shared with Android Auto (AutoServiceModule): every database
+            // directory under maps/ (any depth), except the basemap overlay.
+            val installed = InstalledMaps.findDatabaseDirectories(
+                mapsDir.absolutePath,
+                File(mapsDir, "basemap").absolutePath
+            )
+            val additional = installed.filter { it != mapPath }
+            if (additional.isNotEmpty()) {
+                // One batch call: each openDatabase() call closes and reopens
+                // every open database on the database thread, so a
+                // per-directory loop costs one database-set change per
+                // directory for a single logical set (spec:
+                // native-database-open — A whole database set is registered in
+                // one coordinated change).
+                val registered = client.openDatabases(additional.toTypedArray())
+                val notRegistered = additional.filterIndexed { index, _ ->
+                    !registered.getOrElse(index) { false }
+                }
+                if (notRegistered.isNotEmpty()) {
+                    Log.w(TAG, "initMap: not registered: $notRegistered")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "initMap: failed to open additional maps", e)
+        }
+        coroutineContext.ensureActive()
+
+        // Initialise favorites repository
+        val favPath = context.filesDir.resolve(FAVORITES_FILE).absolutePath
+        favoriteRepository.init(favPath)
+        coroutineContext.ensureActive()
+
+        // Load persisted viewport for this map; fall back to the map's bounding box center, then to
+        // the global default. Resolved HERE, before the caller creates a renderer, so an early
+        // setScreenSize/renderMap cannot submit a render with the uninitialized default viewport
+        // (which would clobber the restore).
+        val saved = viewportStorage.load(mapKey)
+        val bbox = try {
+            client.getDatabaseBoundingBox(mapPath)
+        } catch (e: Exception) {
+            Log.w(TAG, "initMap: bounding box lookup failed", e)
+            null
+        }
+        val default = ViewportState()
+        val restored = saved ?: if (bbox != null && bbox.size >= 4) {
+            ViewportState(
+                centerLat = (bbox[0] + bbox[2]) / 2.0,
+                centerLon = (bbox[1] + bbox[3]) / 2.0,
+                magnification = default.magnification
+            )
+        } else {
+            default
+        }
+        // A persisted world-zoom viewport (mag < 4) renders the whole globe in
+        // native and can hang the render worker — clamp the restore to the same
+        // floor the gesture/zoom controls enforce (specs: min magnification 4).
+        val vp = restored.copy(magnification = restored.magnification.coerceIn(MIN_MAG, MAX_MAG))
+        return MapInitResult(
+            viewport = vp,
+            fromSavedViewport = saved != null,
+            fromBoundingBox = bbox != null
+        )
+    }
+
+    /**
+     * Result of [initializeOffMain]: the restored viewport plus which fallback produced it, for the
+     * one log line that names it.
+     */
+    private class MapInitResult(
+        val viewport: ViewportState,
+        val fromSavedViewport: Boolean,
+        val fromBoundingBox: Boolean
+    )
+
     /** Initialise with a map database path. Call once from the screen. */
     fun initMap(mapPath: String) {
         Log.d(TAG, "initMap: initialising with path=$mapPath")
         currentMapKey = mapPath.substringAfterLast('/')
+        // Captured synchronously: the off-main section (initializeOffMain) restores the viewport for
+        // THIS initialization's map even if a re-entry overwrites currentMapKey before it runs.
+        val mapKey = currentMapKey ?: mapPath
         // Re-arm the save guard: until the persisted viewport restore is
         // applied below, a lifecycle save must not write the default viewport.
         viewportRestored = false
@@ -1846,21 +1985,19 @@ class MapCanvasViewModel @Inject constructor(
         initJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
+            // The loading state is published first, on the main thread, so it covers the whole
+            // off-main section below (spec: map-render — the loading state is observable before
+            // the work starts). `density` is a plain resource read and stays here with the
+            // renderer that consumes it.
             val density = context.resources.displayMetrics.densityDpi.toDouble()
-            val stylesheetsDir = assetCopier.ensureStylesheets()
-            Log.d(TAG, "initMap: density=$density, stylesheets=$stylesheetsDir")
 
-            Log.d(TAG, "initMap: opening database...")
-            val opened = try {
-                client.openDatabase(mapPath).also { success ->
-                    Log.d(TAG, "initMap: openDatabase returned $success")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to open database", e)
-                false
-            }
+            // Every native and filesystem call of initialization runs off the main thread
+            // (`Design.md` §4 first rule; spec: map-render — Map initialization keeps native and
+            // file work off the main thread). The section publishes no state, so a cancelled init
+            // (map re-entry) can only discard its result, never leave a half-applied one behind.
+            val init = withContext(defaultDispatcher) { initializeOffMain(mapPath, mapKey) }
 
-            if (!opened) {
+            if (init == null) {
                 Log.e(TAG, "initMap: failed to open database at $mapPath")
                 mapReady.value = true
                 _uiState.value = _uiState.value.copy(
@@ -1870,91 +2007,15 @@ class MapCanvasViewModel @Inject constructor(
                 return@launch
             }
 
-            Log.d(TAG, "initMap: database opened successfully")
-
-            // Configure the native tile data cache capacity (regional database
-            // and any future basemap) through the shared seam (spec:
-            // native-tile-data-cache). Stored in the client and re-applied to
-            // every open database by the render path, so it also covers
-            // databases that open asynchronously after this call. Perf-only and
-            // idempotent; the highest requested value wins and is never lowered, so
-            // a car session sharing this client cannot shrink it and a car-first
-            // ordering cannot degrade the phone.
-            when (NativeTileDataCache.apply(client, NativeTileDataCache.PHONE_TILES)) {
-                TileCacheConfig.APPLIED ->
-                    Log.d(TAG, "initMap: tile data cache configured with " +
-                            "${NativeTileDataCache.PHONE_TILES} tiles")
-                TileCacheConfig.UNCHANGED -> Unit
-                TileCacheConfig.REJECTED ->
-                    Log.w(TAG, "initMap: tile data cache kept at the higher value already configured")
-                TileCacheConfig.FAILED ->
-                    Log.w(TAG, "initMap: setNativeDataCacheSize failed")
-            }
-
-            // Open all other installed maps too, so every downloaded region
-            // renders via viewport coverage — no switching needed (multi-map).
-            try {
-                val mapsDir = File(context.filesDir, "maps")
-                // Shared with Android Auto (AutoServiceModule): every database
-                // directory under maps/ (any depth), except the basemap overlay.
-                val installed = InstalledMaps.findDatabaseDirectories(
-                    mapsDir.absolutePath,
-                    File(mapsDir, "basemap").absolutePath
-                )
-                val additional = installed.filter { it != mapPath }
-                if (additional.isNotEmpty()) {
-                    // One batch call: each openDatabase() call closes and reopens
-                    // every open database on the database thread, so a
-                    // per-directory loop costs one database-set change per
-                    // directory for a single logical set (spec:
-                    // native-database-open — A whole database set is registered in
-                    // one coordinated change).
-                    val registered = client.openDatabases(additional.toTypedArray())
-                    val notRegistered = additional.filterIndexed { index, _ ->
-                        !registered.getOrElse(index) { false }
-                    }
-                    if (notRegistered.isNotEmpty()) {
-                        Log.w(TAG, "initMap: not registered: $notRegistered")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "initMap: failed to open additional maps", e)
-            }
-
-            // Initialise favorites repository
-            val favPath = context.filesDir.resolve(FAVORITES_FILE).absolutePath
-            favoriteRepository.init(favPath)
-
-            // Load persisted viewport for this map; fall back to the map's
-            // bounding box center, then to the global default. Done BEFORE the
-            // renderer exists: during this suspension mapRenderer is still null,
-            // so an early setScreenSize/renderMap cannot submit a render with the
-            // uninitialized default viewport (which would clobber the restore).
-            val saved = viewportStorage.load(currentMapKey ?: mapPath)
-            val bbox = try {
-                client.getDatabaseBoundingBox(mapPath)
-            } catch (e: Exception) {
-                Log.w(TAG, "initMap: bounding box lookup failed", e)
-                null
-            }
-            val default = ViewportState()
-            val restored = saved ?: if (bbox != null && bbox.size >= 4) {
-                ViewportState(
-                    centerLat = (bbox[0] + bbox[2]) / 2.0,
-                    centerLon = (bbox[1] + bbox[3]) / 2.0,
-                    magnification = default.magnification
-                )
-            } else {
-                default
-            }
-            // A persisted world-zoom viewport (mag < 4) renders the whole globe in
-            // native and can hang the render worker — clamp the restore to the same
-            // floor the gesture/zoom controls enforce (specs: min magnification 4).
-            val vp = restored.copy(magnification = restored.magnification.coerceIn(MIN_MAG, MAX_MAG))
+            // The restored viewport is already resolved. Ordering below is load-bearing: the
+            // renderer must not exist while the restore is applied (initializeOffMain resolves it
+            // first), and the restored viewport is published before the render frame collector is
+            // wired, so an early render cannot overwrite the restored center on disk.
+            val vp = init.viewport
             Log.d(
                 TAG,
                 "initMap: viewport mag=${vp.magnification} " +
-                    (if (saved != null) "(saved)" else if (bbox != null) "(bbox)" else "(default)")
+                    (if (init.fromSavedViewport) "(saved)" else if (init.fromBoundingBox) "(bbox)" else "(default)")
             )
 
             // Create MapRenderer on a dedicated background scope so heavy JNI renders

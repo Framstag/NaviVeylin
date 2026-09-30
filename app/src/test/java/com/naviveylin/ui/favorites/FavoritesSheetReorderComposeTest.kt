@@ -350,7 +350,7 @@ class FavoritesSheetReorderComposeTest {
         composeRule.onNodeWithText("Berlin").assertIsDisplayed()
     }
 
-    // --- Starred chip bar order (spec fav-starred-chip-bar) ---
+    // --- Starred chip bar order (spec fav-starred-chip-bar; spec starred-ordering) ---
 
     /** Horizontal position of a starred chip on the favorites sheet main view. */
     private fun chipLeft(name: String): Float =
@@ -358,7 +358,7 @@ class FavoritesSheetReorderComposeTest {
             .fetchSemanticsNode().boundsInRoot.left
 
     @Test
-    fun `chips follow the reordered favorites and a new star appends`() {
+    fun `chips follow the starred order and a new star appends`() {
         val client = FakeOSMScoutClient()
         val repository = repositoryWithInlinePersist(client)
         runBlocking {
@@ -384,11 +384,11 @@ class FavoritesSheetReorderComposeTest {
         }
         composeRule.waitForIdle()
 
-        // Stored order first: Berlin before Rome.
+        // Stored starred order: Berlin before Rome.
         assertTrue(chipLeft("Berlin") < chipLeft("Rome"))
 
-        // Reorder Rome to the top inside the group, then return to the grid —
-        // the chip bar is part of the same sheet session and follows the order.
+        // A reorder inside the group is a different order and leaves the bar alone
+        // (spec starred-ordering — other operations leave the starred order alone).
         composeRule.runOnIdle { viewModel.selectGroup("Cities") }
         composeRule.waitForIdle()
         dragBy(composeRule.onAllNodesWithContentDescription(reorderLabel)[1], rowDistance("Rome", "Berlin"))
@@ -398,22 +398,17 @@ class FavoritesSheetReorderComposeTest {
         composeRule.runOnIdle { viewModel.selectGroup(null) }
         composeRule.waitForIdle()
 
-        assertTrue(chipLeft("Rome") < chipLeft("Berlin"))
+        assertTrue("the in-group order is not the starred order", chipLeft("Berlin") < chipLeft("Rome"))
 
-        // Starring a further favorite appends its chip after the group's chips.
-        // The bar itself only composes what fits in the test window, so the
-        // appended position is asserted on the ordered list the bar renders.
+        // Starring a further favorite appends its chip at the end of the order.
         composeRule.runOnIdle { viewModel.toggleStar("Cities", "Paris") }
         composeRule.waitForIdle()
         awaitCondition {
             viewModel.uiState.value.starredFavorites.map { it.second.name } ==
-                listOf("Rome", "Berlin", "Paris")
+                listOf("Berlin", "Rome", "Paris")
         }
 
-        assertEquals(
-            listOf("Rome", "Berlin", "Paris"),
-            viewModel.uiState.value.starredFavorites.map { it.second.name }
-        )
-        assertTrue(chipLeft("Rome") < chipLeft("Berlin"))
+        assertTrue(chipLeft("Berlin") < chipLeft("Rome"))
+        assertTrue(chipLeft("Rome") < chipLeft("Paris"))
     }
 }

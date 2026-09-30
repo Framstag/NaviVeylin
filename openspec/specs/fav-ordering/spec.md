@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Lets a user control where a favorite sits inside its group, so the favorites that matter most are at the top of the group's list and of the starred chip bar. The order is explicit, per group, persisted in the favorites JSON file and restored unchanged after a restart.
+Lets a user control where a favorite sits inside its group, so the favorites that matter most are at the top of the group's list. The order is explicit, per group, persisted in the favorites JSON file and restored unchanged after a restart.
 
 ## Requirements
 

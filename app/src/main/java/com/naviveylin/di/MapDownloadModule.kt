@@ -44,6 +44,15 @@ object MapDownloadModule {
         }
         DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Stylesheets synced to $stylesheetsDir")
 
+        // Raster POI icons: the stylesheets request them by name, and the renderer resolves the
+        // name against this directory (`path + name + ".png"`). Without it every icon-carrying
+        // style fails to load, and the name-only ones draw nothing (TODO.md §85, spec `map-render`).
+        var iconsDir = ""
+        DiagnosticsLog.time("icon sync") {
+            iconsDir = assetCopier.ensureIcons()
+        }
+        DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Icons synced to $iconsDir")
+
         val metrics: DisplayMetrics = context.resources.displayMetrics
         val physicalDpi = metrics.densityDpi.toDouble()
         Log.d("MapDownloadModule", "densityDpi=$physicalDpi, xdpi=${metrics.xdpi}, ydpi=${metrics.ydpi}")
@@ -53,23 +62,23 @@ object MapDownloadModule {
         DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Loading native library (OSMScoutClientBuilder class init)")
         val builder = OSMScoutClientBuilder()
         DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Native library loaded, builder created")
-        builder
-            .withMapLookupDirectories(mapsDir)
-            .withPhysicalDpi(physicalDpi)
-            .withFontSizeMm(2.5)
-            .withStyleSheetDirectory(stylesheetsDir)
-            .withBasemapStyleSheet("basemap-render")
-            .withCustomPoiType("_favorite")
-            .withCustomPoiType("_search_selected")
-            .withCustomPoiType("_route_start")
-            .withCustomPoiType("_route_end")
-            .withCustomPoiType("_track")
 
         val basemapDir = storageManager.mapsRootDir.resolve("basemap")
-        if (Files.isDirectory(basemapDir)) {
+        val basemapLookupDir = if (Files.isDirectory(basemapDir)) {
             Log.d("MapDownloadModule", "basemap found at $basemapDir")
-            builder.withBasemapLookupDirectory(basemapDir.toString())
+            basemapDir.toString()
+        } else {
+            null
         }
+
+        configureClient(
+            builder = builder,
+            mapsDir = mapsDir,
+            stylesheetsDir = stylesheetsDir,
+            iconsDir = iconsDir,
+            physicalDpi = physicalDpi,
+            basemapLookupDir = basemapLookupDir
+        )
 
         DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Starting native build()")
         logNativeClientBuildStart()
@@ -98,6 +107,57 @@ object MapDownloadModule {
     @Singleton
     fun provideDefaultMapProvider(): MapProvider =
         MapProvider(DEFAULT_PROVIDER_NAME, DEFAULT_PROVIDER_URI, DEFAULT_PROVIDER_LIST_URI)
+}
+
+/** Map font size in millimetres (libosmscout's stylesheet unit). */
+private const val FONT_SIZE_MM = 2.5
+
+/** Name of the basemap's own stylesheet (the file name without the `.oss` postfix). */
+private const val BASEMAP_STYLE_SHEET = "basemap-render"
+
+/** Synthetic POI types the renderer draws through the stylesheets' route/marker includes. */
+private val CUSTOM_POI_TYPES = listOf(
+    "_favorite",
+    "_search_selected",
+    "_route_start",
+    "_route_end",
+    "_track"
+)
+
+/**
+ * Applies the whole client configuration to [builder] and returns it.
+ *
+ * Extracted from [MapDownloadModule.provideOSMScoutClient] so the two directory seams — the
+ * stylesheet directory and the icon directory the renderer resolves its named POI icons against
+ * (`TODO.md` §85, spec `map-render`) — are testable without the native `build()` step, which a JVM
+ * test cannot execute. [mapsDir], [stylesheetsDir] and [iconsDir] are the on-device
+ * (internal-storage) directories; [basemapLookupDir] is `null` when no basemap is installed.
+ */
+internal fun configureClient(
+    builder: OSMScoutClientBuilder,
+    mapsDir: String,
+    stylesheetsDir: String,
+    iconsDir: String,
+    physicalDpi: Double,
+    basemapLookupDir: String?
+): OSMScoutClientBuilder {
+    builder
+        .withMapLookupDirectories(mapsDir)
+        .withPhysicalDpi(physicalDpi)
+        .withFontSizeMm(FONT_SIZE_MM)
+        .withStyleSheetDirectory(stylesheetsDir)
+        .withIconDirectory(iconsDir)
+        .withBasemapStyleSheet(BASEMAP_STYLE_SHEET)
+
+    for (poiType in CUSTOM_POI_TYPES) {
+        builder.withCustomPoiType(poiType)
+    }
+
+    if (basemapLookupDir != null) {
+        builder.withBasemapLookupDirectory(basemapLookupDir)
+    }
+
+    return builder
 }
 
 /**

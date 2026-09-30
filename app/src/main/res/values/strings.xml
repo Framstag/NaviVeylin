@@ -182,6 +182,7 @@
     <string name="add_favorite">Add favorite</string>
     <string name="reorder_favorite">Reorder favorite</string>
     <string name="reorder_group">Reorder group</string>
+    <string name="reorder_starred">Reorder starred favorite</string>
     <string name="no_favorites_in_group">No favorites in this group</string>
     <string name="search_favorites">Search favorites</string>
     <string name="no_favorites_match">No favorites match your search</string>
@@ -207,6 +208,7 @@
     <string name="favorite_move_name_conflict">Group "%1$s" already has a favorite named "%2$s"</string>
     <string name="favorite_move_failed">Failed to move "%1$s"</string>
     <string name="group_move_failed">Failed to move group "%1$s"</string>
+    <string name="star_move_failed">Failed to reorder starred favorite "%1$s"</string>
     <string name="name">Name</string>
     <string name="latitude">Latitude</string>
     <string name="longitude">Longitude</string>

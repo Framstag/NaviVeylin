@@ -770,6 +770,31 @@ car Surface:
 
 ---
 
+## 16a. POI icons — submodule source, configured directory, symbol fallback
+
+- The stylesheets request POI icons **by name** (`NODE.ICON { name: bus_stop; }`); `symbol:` is a
+  vector symbol defined inline in the stylesheet, and the renderer prefers the image
+  (`MapPainter::LayoutPointLabels`): image → else symbol → else nothing. A style carrying a name and
+  no symbol therefore draws **nothing** unless its PNG loads (that was `TODO.md` §85).
+- Sourcing: only the raster leaf (`libosmscout/data/icons/14x14/standard/`) is packaged — at build
+  time by `syncSubmoduleIcons` into `assets/icons/14x14/standard`, mirroring the stylesheet rule — and
+  mirrored to internal storage by `AssetCopier.ensureIcons()`. The client gets it once from
+  `MapDownloadModule.configureClient(...)`. The neighbouring SVG set is deliberately **not** shipped:
+  `MapPainterCairo` loads `<name>.png` only ("TODO: add support for reading svg images"), so a
+  symbol-backed entry whose PNG upstream ships as SVG draws its symbol and logs one failed-load line.
+- **The configured directory must end with a path separator.** The loader concatenates
+  (`*path + name + ".png"`), so a path without one fails *silently*, with the same message as a
+  directory that was never configured. `IconAssets.clientDirectory(...)` is the only place that
+  builds this path — do not hand-build it.
+- Gates: `PackagedPoiIconsTest` fails when a stylesheet requests an icon (a `name:` without a
+  `symbol:`) that the packaged set does not carry; `checkSubmoduleIcons` fails the build when the
+  submodule or its raster leaf is missing.
+- On-device evidence is the absence of the failure line:
+  `adb logcat -s NaviVeylin | grep "ERROR while loading image"` leaves only `charging_station` and
+  `mini_roundabout` (symbol-backed, upstream SVG only).
+
+---
+
 ## 17. Native tile-data cache — capacity, retention and its release
 
 `NativeTileDataCache` (core) is the single owner of libosmscout's per-database `MapService` cache

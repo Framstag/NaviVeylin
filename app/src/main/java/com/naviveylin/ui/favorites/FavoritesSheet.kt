@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -255,6 +256,9 @@ fun FavoritesSheet(
                         onChipClick = { groupName, fav ->
                             onDismiss()
                             onChipRouteTo(fav)
+                        },
+                        onReorder = { groupName, favName, newIndex ->
+                            viewModel.moveStarred(groupName, favName, newIndex)
                         }
                     )
                 }
@@ -1058,47 +1062,136 @@ private fun TextFieldDialog(
     )
 }
 
+/**
+ * The starred chip bar (spec `fav-starred-chip-bar` — one flat sequence in the
+ * stored starred order, tap to route; spec `starred-ordering` — the order itself).
+ *
+ * The sequence is the stored starred order, which spans all groups, so the bar has no
+ * group blocks and a chip's group is its secondary line. The drag keeps a working copy
+ * of the order and commits only the position the chip was released at — the same shape
+ * as [GroupDetailList] and [GroupGrid] — so a sheet dismissed mid-drag writes nothing
+ * and a drag that ends where it started writes nothing.
+ */
 @Composable
-private fun StarredChipBar(
+internal fun StarredChipBar(
     starredFavorites: List<Pair<String, FavoriteLocation>>,
-    onChipClick: (groupName: String, fav: FavoriteLocation) -> Unit
+    onChipClick: (groupName: String, fav: FavoriteLocation) -> Unit,
+    onReorder: (groupName: String, favName: String, newIndex: Int) -> Unit
 ) {
+    val listState = rememberLazyListState()
+
+    // Working copy owned by this composable: the drag reorders this list, the store is
+    // only told about the position the chip ends up in (same shape as the group detail
+    // list and the group grid).
+    var workingOrder by remember { mutableStateOf(starredFavorites) }
+
+    // A drag end records the intended position here. The effect below commits it while
+    // the sheet is still composed, so a sheet dismissed mid-drag (back gesture) cancels
+    // the commit instead of writing a half-dragged order.
+    var pendingReorder by remember { mutableStateOf<Triple<String, String, Int>?>(null) }
+
+    // A long press is the drag gesture, so the tap the chip's own click detector still
+    // delivers when the chip is released where it was picked up must not route. The
+    // flag is set only for a release that committed nothing (a drag that moved has no
+    // lingering tap) and is cleared by the next press, so it can never swallow a
+    // genuine tap of a later gesture.
+    var suppressNextTap by remember { mutableStateOf(false) }
+
+    val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
+        // The bar has no leading item, so a lazy-row index is a starred-order index.
+        workingOrder = StarredOrder.move(workingOrder, fromIndex = from.index, toIndex = to.index)
+    }
+
+    // Re-sync from the stored order whenever nothing is being dragged.
+    LaunchedEffect(starredFavorites, reorderableState.isAnyItemDragging) {
+        if (!reorderableState.isAnyItemDragging) {
+            workingOrder = starredFavorites
+        }
+    }
+
+    LaunchedEffect(pendingReorder) {
+        pendingReorder?.let { (groupName, favName, newIndex) ->
+            pendingReorder = null
+            onReorder(groupName, favName, newIndex)
+        }
+    }
+
     LazyRow(
+        state = listState,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(starredFavorites, key = { "${it.first}_${it.second.name}" }) { (groupName, fav) ->
-            FilterChip(
-                selected = false,
-                onClick = { onChipClick(groupName, fav) },
-                label = {
-                    Column {
-                        Text(
-                            text = fav.name,
-                            style = MaterialTheme.typography.labelLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+        items(workingOrder, key = { StarredOrder.keyOf(it) }) { entry ->
+            val groupName = entry.first
+            val fav = entry.second
+            ReorderableItem(state = reorderableState, key = StarredOrder.keyOf(entry)) { isDragging ->
+                FilterChip(
+                    selected = false,
+                    onClick = {
+                        if (suppressNextTap) {
+                            suppressNextTap = false
+                        } else {
+                            onChipClick(groupName, fav)
+                        }
+                    },
+                    label = {
+                        Column {
+                            Text(
+                                text = fav.name,
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            // The group stays visible: the bar is one sequence across
+                            // groups, so the secondary line is what tells them apart.
+                            Text(
+                                text = groupName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = stringResource(R.string.reorder_starred),
+                            modifier = Modifier.size(16.dp),
+                            tint = if (isDragging) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            }
                         )
-                        Text(
-                            text = groupName,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                    },
+                    // Only a long press lifts a chip, so a short tap keeps opening the
+                    // route panel and a horizontal swipe keeps scrolling the bar.
+                    modifier = Modifier.longPressDraggableHandle(
+                        // The long press is the drag gesture; the chip's own click detector
+                        // still delivers a tap on release, so it is suppressed for the
+                        // gesture. A drag that commits a move clears the suppression again
+                        // after the gesture's tap has been delivered (or never was), so it
+                        // cannot swallow a later genuine tap.
+                        onDragStarted = { suppressNextTap = true },
+                        onDragStopped = {
+                            // WYSIWYG: persist the position the chip ended up in, unless
+                            // nothing changed.
+                            StarredOrder.commitIndex(
+                                working = workingOrder,
+                                stored = starredFavorites,
+                                groupName = groupName,
+                                favName = fav.name
+                            )?.let { newIndex ->
+                                suppressNextTap = false
+                                pendingReorder = Triple(groupName, fav.name, newIndex)
+                            }
+                        }
                     )
-                }
-            )
+                )
+            }
         }
     }
 }

@@ -37,6 +37,7 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Reorder favorites inside a group | Drag handle on each favorite row in the group detail list (`sh.calvin.reorderable`); the position the drag ends in is persisted | Not offered — Car App Library templates have no drag gesture. The car `PlaceListTemplate` shows the **same stored order** read-only, so the data is at parity, the interaction is not (see below) |
 | Reorder favorite groups | Long-press drag handle on each group card in the grid (`sh.calvin.reorderable`, `rememberReorderableLazyGridState`); the position the drag ends in is persisted — change `reorder-favorite-groups` | Not offered — same platform constraint as the favorite order, and a per-header move action would duplicate a management task the phone owns. The car list renders the **same stored group order** read-only, so the data is at parity, the interaction is not (see below) |
 | Move a favorite into another group | Row action on the favorite (overflow menu → "Move to group", shared wording `move_favorite_to_group`) opening a destination dialog that lists the other groups plus "New Group" (shared wording `new_group_title`) — change `move-favorite-between-groups` | Not offered — the destination-selection step has no template equivalent and the screen is driver-facing. The car `PlaceListTemplate` renders the resulting grouping under the destination group's header, so the data is at parity, the interaction is not (see below) |
+| Reorder starred favorites | Long-press drag on a starred chip in the favorites sheet's chip bar (`sh.calvin.reorderable`, `rememberReorderableLazyListState`), which renders the one starred order spanning all groups — the position the chip is released at is persisted — change `order-starred-favorites` | Not offered — same platform constraint as the other two orders. The car's starred-favorites screen renders the **same stored starred order** read-only, as one list without group headers (a cross-group sequence cannot be rendered as group blocks), so the data is at parity, the interaction is not (see below) |
 | Stylesheet could not be loaded | Non-blocking snackbar next to the map with the shared wording (`MapStyleLoadReporter` → `uiState.snackbarMessage`) | **Same wording**, also non-blocking, but a different surface: a one-shot low-importance notification (channel `map_style`, silent, auto-cancel) — the car templates have no general message slot, so `CarStyleLoadNotifier` is used instead of a template change. Guidance is never interrupted on either surface (change `fix-stylesheet-load-crash`, design D2) |
 | Car session live while the phone UI is open | Advisory indication on the map (centre-left pill, shared wording `car_session_active_indicator`, translated): "Navigation on car display". Informational only — no map, search or navigation control is disabled while a car session is live (change `shared-resource-arbitration`, spec `car-session-presence`) | Not shown — the car surface is the session, so the indication would tell the driver nothing (platform constraint, not an omission) |
 | Route requested without the precise location grant | Actionable dialog with the shared wording (`location_precise_required_navigation`, `PreciseLocationRequiredDialog`): "Grant precise location" re-requests the permission while the platform can still ask, and opens the app's system settings once it will not ask again — no route request reaches the routing engine meanwhile (change `fix-location-permission-scope`, spec `location-permissions` — Starting navigation requires precise location) | **Same wording**, non-blocking: the refusal is published on the shared navigation state, so the session shows it in the existing guarded error notice (one row, back action). The car SHALL NOT launch a settings screen — platform constraint, so the driver is told to grant it on the phone / in the system settings. Free driving and the map keep working on both surfaces with approximate location |
@@ -51,24 +52,26 @@ uses — a passenger browsing, or the driver picking a destination before settin
 off — for no gain; the phone therefore keeps every map and navigation control and
 only *informs* about the car session.
 
-### Why favorite and group reordering are phone-only
+### Why favorite, group and starred reordering are phone-only
 
-The order itself is shared (spec `fav-ordering`, spec `group-ordering`): a reorder made on the phone is
+The order itself is shared (spec `fav-ordering`, spec `group-ordering`, spec `starred-ordering`): a reorder made on the phone is
 what the car list renders. What cannot be shared is the gesture — Car App Library
 templates expose rows, actions and clicks, but no drag; the alternative would be
-a per-row (or per-header) "move up/down" action strip on a driver-facing list, which
+a per-row (or per-header, or per-chip) "move up/down" action strip on a driver-facing list, which
 duplicates a management task the phone already offers (same split as rename and group
 color). The deliberate deviation is the interaction only, not the data.
 
-The group order needs one more thing than the favorite order to be shared at all: the
-car reads its sequence from the provider's **order channel**
-(`AutoFavoritesProvider.groupOrder`), not from the group map's iteration order. A
+The group order and the starred order need one more thing than the favorite order to be shared at all: the
+car reads their sequence from the provider's **order channels**
+(`AutoFavoritesProvider.groupOrder`, `AutoFavoritesProvider.starredOrder`), not from the group map's iteration order. A
 reorder changes no map contents, and a `StateFlow` drops an emission equal to its
 current value while `Map` equality ignores order — so a surface iterating the map
 would keep the stale sequence, most visibly with groups that hold no favorites. Both
 surfaces pair the channel with the map's contents through the shared
 `orderedGroupNames` helper, so a group can never vanish from a list because the two
-channels were observed a moment apart.
+channels were observed a moment apart. The starred order needs no such pairing: it
+carries its own group name per entry, and the car's starred screen renders it as one
+flat list — the group headers stay a feature of the all-favorites mode.
 
 Moving a favorite into another group follows the same split (change
 `move-favorite-between-groups`, spec `fav-management-ui` — Favorites management
@@ -102,6 +105,20 @@ ancestor cancels its long press — the same rule the favorite row follows — s
 opens the group and only a long press starts a drag. A drag commits only the position
 the card is released at: a drag that ends where it started, and a sheet dismissed
 mid-drag, write nothing.
+
+### Starred chip bar affordance (phone)
+
+The chip bar is one flat sequence in the stored starred order (spec
+`fav-starred-chip-bar`), so a chip's group is its secondary line, not a block
+boundary. A **long press lifts a chip** for a drag; a short tap keeps opening the route
+panel and a horizontal swipe keeps scrolling the bar. A long press is the drag
+gesture, so the tap the chip's own click detector still delivers when the chip is
+released without moving is suppressed for that gesture — holding a chip and letting go
+must not start navigation. The suppression is cleared after a drag that committed a
+move (and by the next press), so it can never swallow a later genuine tap. A drag
+commits only the position the chip is released at: a drag that ends where it started,
+and a sheet dismissed mid-drag, write nothing — the same rule the favorite row and the
+group card follow.
 
 ### Why the license list is phone-only
 

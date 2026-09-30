@@ -9,14 +9,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Copies bundled assets (stylesheets, icons) to internal storage and keeps the
- * on-device copy in sync with the APK on every app start.
+ * Copies bundled assets (stylesheets, raster POI icons) to internal storage and keeps
+ * the on-device copy in sync with the APK on every app start.
  *
- * Stylesheets are packaged from the libosmscout submodule at build time, so the
- * bundled set changes whenever the submodule bumps. A plain "copy once" strategy
- * would leave existing installs on stale styles forever (app updates preserve
- * [Context.filesDir]). Instead each start mirrors the bundle: changed or missing
- * files are copied, files no longer bundled are deleted.
+ * Both trees are packaged from the libosmscout submodule at build time, so the bundled
+ * set changes whenever the submodule bumps. A plain "copy once" strategy would leave
+ * existing installs on stale assets forever (app updates preserve [Context.filesDir]).
+ * Instead each start mirrors the bundle: changed or missing files are copied, files no
+ * longer bundled are deleted.
  *
  * Note on [android.content.res.AssetManager.list]: real Android returns only
  * direct children of a directory; some implementations (Robolectric) flatten
@@ -34,17 +34,37 @@ class AssetCopier @Inject constructor(
      * Ensure stylesheets are available on disk, refreshed from the bundled assets.
      * Returns the stylesheets directory path.
      */
-    fun ensureStylesheets(): String {
-        val destDir = File(context.filesDir, "stylesheets")
-        Log.d(TAG, "refreshing stylesheets from assets to $destDir")
+    fun ensureStylesheets(): String =
+        ensureAssetTree(stylesheetsAssetRoot, File(context.filesDir, stylesheetsAssetRoot)).absolutePath
+
+    /**
+     * Ensure the raster POI icon set is available on disk, refreshed from the bundled assets.
+     *
+     * Returns the directory the native renderer must be configured with
+     * ([IconAssets.clientDirectory] — absolute, with the trailing separator the loader's
+     * `path + name + ".png"` construction needs). Same mirror semantics as the stylesheets, so an
+     * app update delivers icon changes without clearing data (spec `map-render`).
+     */
+    fun ensureIcons(): String {
+        ensureAssetTree(IconAssets.ASSET_ROOT, IconAssets.deviceRoot(context.filesDir))
+        return IconAssets.clientDirectory(context.filesDir)
+    }
+
+    /**
+     * Mirrors the packaged asset tree [assetRoot] onto [destDir]: copy what is missing or changed,
+     * delete what is no longer bundled. Failure is reported and not fatal — a stale but present tree
+     * keeps the map usable (spec `map-render` — refresh contracts).
+     */
+    private fun ensureAssetTree(assetRoot: String, destDir: File): File {
+        Log.d(TAG, "refreshing $assetRoot from assets to $destDir")
         try {
             val bundled = mutableListOf<String>()
-            listAssetFiles(stylesheetsAssetRoot, bundled)
+            listAssetFiles(assetRoot, bundled)
             val bundledSet = bundled.toSet()
 
             // 1. Copy missing or changed files (creating parent dirs).
             for (assetPath in bundled) {
-                val relPath = assetPath.removePrefix("$stylesheetsAssetRoot/")
+                val relPath = assetPath.removePrefix("$assetRoot/")
                 val destFile = File(destDir, relPath)
                 destFile.parentFile?.mkdirs()
                 if (!destFile.exists() || contentDiffers(assetPath, destFile)) {
@@ -58,11 +78,11 @@ class AssetCopier @Inject constructor(
             }
 
             // 2. Mirror semantics: drop local files no longer bundled.
-            deleteStale(destDir, destDir, bundledSet)
+            deleteStale(destDir, destDir, assetRoot, bundledSet)
         } catch (e: Exception) {
-            Log.e(TAG, "failed to refresh stylesheets", e)
+            Log.e(TAG, "failed to refresh $assetRoot", e)
         }
-        return destDir.absolutePath
+        return destDir
     }
 
     /** Collects every file asset under [assetPath], handling flattened listings. */
@@ -85,14 +105,14 @@ class AssetCopier @Inject constructor(
     }
 
     /** Deletes files under [dir] whose relative path is not part of [bundled]. */
-    private fun deleteStale(dir: File, root: File, bundled: Set<String>) {
+    private fun deleteStale(dir: File, root: File, assetRoot: String, bundled: Set<String>) {
         dir.listFiles()?.forEach { child ->
             if (child.isDirectory) {
-                deleteStale(child, root, bundled)
+                deleteStale(child, root, assetRoot, bundled)
                 if (child.list()?.isEmpty() == true) child.delete()
             } else {
                 val relPath = root.toURI().relativize(child.toURI()).path
-                if ("$stylesheetsAssetRoot/$relPath" !in bundled) {
+                if ("$assetRoot/$relPath" !in bundled) {
                     child.delete()
                     Log.d(TAG, "removed stale $relPath")
                 }

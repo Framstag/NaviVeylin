@@ -1,6 +1,7 @@
 package com.naviveylin.di
 
 import com.framstag.libosmscout.client.FavoriteLocation
+import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.data.FavoriteRepository
 import dagger.Lazy
@@ -33,6 +34,14 @@ class AutoFavoritesProviderImpl(
      * (spec `auto-favorites` — the order channel is why the headers can follow it).
      */
     override fun groupOrder(): StateFlow<List<String>> = repository.get().groupOrder
+
+    /**
+     * Hands the car screen the same starred order the phone chip bar renders, so the
+     * starred list follows a phone reorder (spec `auto-favorites` — starred favorites
+     * render as one ordered list; spec `starred-ordering`).
+     */
+    override fun starredOrder(): StateFlow<List<StarredFavoriteLocation>> =
+        repository.get().starredOrder
 
     override suspend fun init(filePath: String): Boolean = repository.get().init(filePath)
 

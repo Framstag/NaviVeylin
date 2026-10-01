@@ -57,12 +57,19 @@ object AutoServiceModule {
 
     @Provides
     @Singleton
-    fun provideAutoSearchProvider(client: Provider<OSMScoutClient>): AutoSearchProvider {
+    fun provideAutoSearchProvider(
+        client: Provider<OSMScoutClient>,
+        regionScope: CarSearchRegionScope
+    ): AutoSearchProvider {
         return AutoSearchProvider { query, limit, reference ->
             // Resolved per search, never while the provider is being resolved: the
             // native client is built on the caller's thread (spec: auto-map-renderer —
-            // Renderer initialization off the car-app main thread).
+            // Renderer initialization off the car-app main thread). The region scope
+            // resolves the same client lazily, on the same thread, and scopes the
+            // search with the region containing the car (spec: auto-search — Search
+            // scoped by the car position's admin region).
             val client = client.get()
+            val adminRegionHandle = regionScope.handleForSearch()
             // Full formatted addresses resolve via the structured form search
             // first (a postal code inside the query otherwise empties the
             // native string search); structured house/street results rank
@@ -75,7 +82,7 @@ object AutoServiceModule {
             val raw = client.searchLocations(
                 query,
                 SearchResultRanker.CANDIDATE_LIMIT,
-                OSMScoutClient.NO_ADMIN_REGION
+                adminRegionHandle
             )?.toList() ?: emptyList()
             val combined = StructuredAddressSearch.merge(StructuredAddressSearch.resolve(query, client), raw)
             SearchResultRanker.rank(combined, SearchQueryParser.criteriaOf(query), reference)

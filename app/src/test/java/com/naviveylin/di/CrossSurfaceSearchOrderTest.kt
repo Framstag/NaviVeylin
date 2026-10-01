@@ -121,7 +121,10 @@ class CrossSurfaceSearchOrderTest {
         viewModel.uiState.first { it.gpsLocation != null }
 
         val phoneOrder = viewModel.mergeSearchResults("Waltrop").map { it.entry.label }
-        val carOrder = AutoServiceModule.provideAutoSearchProvider(javax.inject.Provider { client })
+        val carOrder = AutoServiceModule.provideAutoSearchProvider(
+            javax.inject.Provider { client },
+            CarSearchRegionScope.NONE
+        )
             .searchLocations("Waltrop", 20, fix)
             .map { it.label }
 

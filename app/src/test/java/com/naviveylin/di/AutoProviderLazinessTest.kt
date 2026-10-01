@@ -42,7 +42,7 @@ class AutoProviderLazinessTest {
 
     @Test
     fun resolvingTheSearchProviderBuildsNothing() {
-        AutoServiceModule.provideAutoSearchProvider(countingClient())
+        AutoServiceModule.provideAutoSearchProvider(countingClient(), CarSearchRegionScope.NONE)
 
         assertEquals(0, builds.get())
     }

@@ -612,6 +612,38 @@ displayed content never changed (before it: one of each per second).
 means two free-driving screens and two native renderers (before the change, the first screen
 creation and the warmup completion each pushed one).
 
+**Car search scoped by the driver's region** (change `fix-car-search-default-admin-region`,
+spec `auto-search`). The car search is scoped with the admin region containing the car's
+position, exactly as the phone search panel is, so a query naming a POI without its city
+resolves. The car adapter logs its own scope decision under the `CarSearchRegion` tag
+(`android.util.Log`, not the `Diag/` stream), with the handle and the region name and
+**never** a position:
+
+```bash
+adb -s emulator-5556 logcat -c
+adb -s emulator-5556 shell am start -n com.framstag.naviveylin/androidx.car.app.activity.CarAppActivity
+# car UI -> search, then type a POI name WITHOUT its city (e.g. "Hilpert Theater")
+adb -s emulator-5556 logcat -d | grep -E 'CarSearchRegion'
+```
+
+Expected with a usable fix: one `resolveAdminRegion -> handle=<N>` (`N != 0`) followed by
+`search scope RESOLVED: handle=<N> region=<name>`, then `search scope REUSED: handle=<N>
+region=<name>` for further queries while the car stays within the movement threshold (one
+line per query; a second `resolveAdminRegion` line there would mean the threshold is not
+holding). With no usable fix (location off, or before the
+first fix) the same query logs `search scope FIX_UNUSABLE: handle=0 region=null` and the
+search runs unconstrained, exactly as before the change; a coarse fix logs the same. After a
+drive beyond ~500 m the next query logs `RESOLVED` with a new handle and the previous one
+appears in no released-handle error line.
+
+**Data blocker for this check** (TODO.md §89/§91): the installed map sets on the AVDs do not
+carry every POI type the stylesheets declare (`Unknown type '…'` warnings per render), so an
+empty result list for a POI-only query does **not** by itself mean the scoping failed — read
+the `CarSearchRegion` line for that, and use a street/address query when a result is needed.
+Phone parity is checked with the same query and a fix on the phone
+(`resolveAdminRegion -> handle=…` in `adb logcat -s MapCanvasVM`): both surfaces must
+show the same matches for the same position.
+
 **Two checks that need evidence before any behaviour is specified** (the template-rate one is
 recorded in `TODO.md` §64):
 

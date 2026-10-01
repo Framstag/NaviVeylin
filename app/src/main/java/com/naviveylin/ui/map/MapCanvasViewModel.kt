@@ -33,9 +33,13 @@ import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.resolveAnchorFraction
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.RegionFixReference
+import com.naviveylin.core.search.RegionScopeDecision
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.SearchRegionScope
 import com.naviveylin.core.search.SearchResultRanker
+import com.naviveylin.core.search.resolveRegionScope
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.DarkModeController
@@ -1517,67 +1521,78 @@ class MapCanvasViewModel @Inject constructor(
         searchAdminRegionHandleForFix(locationService.location.value)
 
     /**
-     * Pure scoping decision: resolves/reuses/releases the admin region handle
-     * for the given GPS fix. Exposed internal for unit testing.
+     * Pure scoping decision, delegated to the shared rule ([resolveRegionScope])
+     * so the phone search panel and the car search scope identically (spec:
+     * `location-search` — Search scoped by current admin region; spec:
+     * `auto-search` — Car and phone region scoping parity). Exposed internal for
+     * unit testing.
      */
     internal fun searchAdminRegionHandleForFix(fix: GpsFix?): Long {
-        // No age cap: the admin region containing a position only changes when
-        // the position moves significantly (ADMIN_REGION_MOVEMENT_THRESHOLD_M),
-        // so the last known position is valid for scoping the search however
-        // old the fix is (e.g. at home all day). A fresh fix showing real
-        // movement re-resolves via the movement threshold below.
-        if (fix == null || fix.accuracy > GPS_FIX_MAX_ACCURACY_M) {
+        val outcome = resolveRegionScope(
+            fix = fix?.let {
+                RegionFixReference(lat = it.lat, lon = it.lon, accuracyMeters = it.accuracy)
+            },
+            previous = SearchRegionScope(
+                handle = searchAdminRegionHandle,
+                lat = searchAdminRegionLat,
+                lon = searchAdminRegionLon,
+                name = searchAdminRegionName
+            ),
+            releaseRegion = { handle ->
+                try {
+                    client.releaseAdminRegion(handle)
+                } catch (e: Exception) {
+                    Log.e(TAG, "releaseAdminRegion failed", e)
+                }
+            },
+            resolveRegion = { lat, lon ->
+                try {
+                    val h = client.resolveAdminRegion(lat, lon)
+                    Log.d(TAG, "resolveAdminRegion -> handle=$h")
+                    h
+                } catch (e: Exception) {
+                    Log.e(TAG, "resolveAdminRegion failed", e)
+                    0L
+                }
+            },
+            scopeNameOf = { handle ->
+                // Show the search scope region (the parent when sibling
+                // expansion applies), not just the resolved region. Falls back
+                // to the resolved region name when the scope lookup fails
+                // (e.g. stale native library).
+                try {
+                    val scopeName = client.getAdminRegionScopeName(handle)
+                    Log.d(TAG, "getAdminRegionScopeName(handle=$handle) -> '$scopeName'")
+                    scopeName
+                } catch (e: Exception) {
+                    Log.e(TAG, "getAdminRegionScopeName failed", e)
+                    null
+                }
+            },
+            regionNameOf = { handle ->
+                try {
+                    client.getAdminRegionName(handle)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getAdminRegionName failed", e)
+                    null
+                }
+            }
+        )
+
+        if (outcome.decision == RegionScopeDecision.FIX_UNUSABLE) {
             Log.d(
                 TAG,
                 "searchAdminRegionHandleForFix: fix unusable (null=${fix == null}, " +
                     "accuracy=${fix?.accuracy})"
             )
-            releaseSearchAdminRegion()
-            return 0L
         }
-
-        val lat = fix.lat
-        val lon = fix.lon
-
-        // Reuse the cached region while the position has not moved significantly
-        if (searchAdminRegionHandle != 0L &&
-            !searchAdminRegionLat.isNaN() &&
-            distanceMeters(searchAdminRegionLat, searchAdminRegionLon, lat, lon) <= ADMIN_REGION_MOVEMENT_THRESHOLD_M
-        ) {
-            return searchAdminRegionHandle
+        if (outcome.decision != RegionScopeDecision.REUSED) {
+            searchAdminRegionHandle = outcome.scope.handle
+            searchAdminRegionLat = outcome.scope.lat
+            searchAdminRegionLon = outcome.scope.lon
+            searchAdminRegionName = outcome.scope.name
+            pushSearchAdminRegionState()
         }
-
-        releaseSearchAdminRegion()
-        searchAdminRegionHandle = try {
-            val h = client.resolveAdminRegion(lat, lon)
-            Log.d(TAG, "resolveAdminRegion -> handle=$h")
-            h
-        } catch (e: Exception) {
-            Log.e(TAG, "resolveAdminRegion failed", e)
-            0L
-        }
-        if (searchAdminRegionHandle != 0L) {
-            searchAdminRegionLat = lat
-            searchAdminRegionLon = lon
-            searchAdminRegionName = try {
-                // Show the search scope region (the parent when sibling
-                // expansion applies), not just the resolved region. Fall
-                // back to the resolved region name if the scope lookup
-                // fails (e.g. stale native library).
-                val scopeName = client.getAdminRegionScopeName(searchAdminRegionHandle)
-                Log.d(TAG, "getAdminRegionScopeName(handle=${searchAdminRegionHandle}) -> '$scopeName'")
-                scopeName ?: client.getAdminRegionName(searchAdminRegionHandle)
-            } catch (e: Exception) {
-                Log.e(TAG, "getAdminRegionScopeName failed", e)
-                try {
-                    client.getAdminRegionName(searchAdminRegionHandle)
-                } catch (e2: Exception) {
-                    Log.e(TAG, "getAdminRegionName failed", e2)
-                    null
-                }
-            }
-        }
-        pushSearchAdminRegionState()
         return searchAdminRegionHandle
     }
 
@@ -4105,8 +4120,8 @@ class MapCanvasViewModel @Inject constructor(
         // Ignore bearing changes smaller than this for follow-mode angle updates.
         private const val MIN_BEARING_DELTA_DEG = 3.0
 
-        // Movement threshold for re-resolving the search admin region (meters)
-        private const val ADMIN_REGION_MOVEMENT_THRESHOLD_M = 500.0
+        // Movement threshold for re-resolving the search admin region now lives
+        // in the shared rule (`SearchRegionScope`), which the car search uses too.
 
         // Max-speed resolution throttle for the follow-mode speed widget:
         // re-resolve only after significant movement or a cooldown.

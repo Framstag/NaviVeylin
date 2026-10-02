@@ -673,3 +673,29 @@ recorded in `TODO.md` §64):
   activity over a minute (`Diag/HOST` lines, plus the lane-image allocation when logging is
   verbose). The distance values are bucketed to the host's own rounding and the lane image is
   reused; the residual rate follows the arrival estimate's update rate (`TODO.md` §64).
+
+### Start-map selection on the phone (`fix-start-map-selection`)
+
+The phone opens the map resolved by `StartMapResolver`: the last opened database, else the
+lexicographically smallest installed one, else the entry point that leads to the map manager
+(spec: `start-map-selection`). It never opens the basemap overlay. Two installed regional maps are
+enough to exercise it (the map manager's *Download Maps* screen shows what is installed):
+
+```bash
+L='com.naviveylin.ui.map.MapCanvasViewModel'
+# 1. open map B in the map manager, then restart the app cold
+a=$(adb logcat -d -s "$L" | grep -c 'initMap: initialising with path=')  # per-open lines
+adb shell am force-stop com.framstag.naviveylin && adb shell am start -n com.framstag.naviveylin/.MainActivity
+adb logcat -d -s "$L" | grep 'initMap: initialising with path=' | tail -1   # expect map B
+adb logcat -d -s StartMapResolver | grep 'start map resolved'               # chosen + recorded
+# 2. delete map B in the map manager, restart again
+#    expect: the same remaining database on every restart, and no
+adb logcat -d | grep -c 'Could not open map database'                        # must stay 0
+# 3. the basemap overlay is never the primary map
+adb logcat -d -s NaviVeylin | grep -c "Cannot open db '.*/maps/basemap"      # must stay 0
+```
+
+`StartMapResolver` logs the chosen path and the recorded one (identity only, no coordinates), so a
+start that picked the wrong database is visible without a debug build. The car side needs no change
+(its session registers every installed database except the basemap): a car session started after a
+phone start must still report the same database count in the `WARMUP` line.

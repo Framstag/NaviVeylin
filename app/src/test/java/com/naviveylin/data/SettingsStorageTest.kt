@@ -8,6 +8,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -75,6 +76,39 @@ class SettingsStorageTest {
         assertEquals(true, loaded.followMode)
         assertEquals(false, loaded.keepScreenOn)
         assertEquals(RenderMode.TILES, loaded.renderMode)
+    }
+
+    @Test
+    fun roundTripPersistsLastOpenedMap() = runTest {
+        // The start map is recorded as a settings field (spec: start-map-selection — the last
+        // opened map is reopened at the next start).
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        val path = "/data/user/0/com.framstag.naviveylin/files/maps/iceland"
+        storage.update { it.copy(lastMapPath = path) }
+        assertEquals(path, storage.load().lastMapPath)
+    }
+
+    @Test
+    fun oldSettingsJsonWithoutLastMapPathLoadsAsNull() = runTest {
+        // Simulate a settings file written by an app version predating the start-map change: the
+        // missing key must decode to null (no recorded map — the deterministic pick), and an
+        // unrelated write applied to that file must keep every other field (spec:
+        // settings-persistence — unknown/absent keys do not fail a write).
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val file = java.io.File(context.filesDir, "maps/settings.json")
+        file.parentFile?.mkdirs()
+        file.writeText("""{"followMode":true,"keepScreenOn":false,"styleSheet":"cycle"}""")
+        val storage = SettingsStorage(context)
+        assertNull(storage.load().lastMapPath)
+
+        storage.update { it.copy(darkMode = DarkModePreference.ON) }
+
+        val loaded = storage.load()
+        assertNull(loaded.lastMapPath)
+        assertEquals(true, loaded.followMode)
+        assertEquals(false, loaded.keepScreenOn)
+        assertEquals("cycle", loaded.styleSheet)
+        assertEquals(DarkModePreference.ON, loaded.darkMode)
     }
 
     @Test

@@ -22,6 +22,7 @@ import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.MapStyleLoadReporter
 import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.StartMapSelection
 import com.naviveylin.core.TileCacheConfig
 import com.naviveylin.core.formatCoordinatePair
 import com.naviveylin.core.stringResolver
@@ -1905,6 +1906,17 @@ class MapCanvasViewModel @Inject constructor(
                 mapsDir.absolutePath,
                 File(mapsDir, "basemap").absolutePath
             )
+            // Record the database this screen opened, so the next start reopens it (spec:
+            // start-map-selection — the last opened map is reopened at the next start; a map opened
+            // without the map manager is recorded). The value is normalized to the database directory
+            // the open path refers to, so a container path (an archive with its own top-level
+            // directory) still matches the discovery's candidates. Runs in this off-main section and
+            // through the serialized settings transaction, so a concurrent car write is not lost
+            // (spec: settings-persistence).
+            settingsStorage.update {
+                it.copy(lastMapPath = StartMapSelection.databaseDirectoryFor(installed, mapPath))
+            }
+            coroutineContext.ensureActive()
             val additional = installed.filter { it != mapPath }
             if (additional.isNotEmpty()) {
                 // One batch call: each openDatabase() call closes and reopens

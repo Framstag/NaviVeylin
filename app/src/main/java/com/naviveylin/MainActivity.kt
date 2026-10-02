@@ -22,7 +22,7 @@ import com.naviveylin.data.AmbientLightMonitor
 import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
-import com.naviveylin.data.MapStorageManager
+import com.naviveylin.data.StartMapResolver
 import com.naviveylin.navigation.NavGraph
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.share.SharedLocationParser
@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     @Inject
-    lateinit var storageManager: MapStorageManager
+    lateinit var startMapResolver: StartMapResolver
 
     @Inject
     lateinit var darkModeController: DarkModeController
@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
             val darkPresentation by darkModeController.isDarkPresentation.collectAsState()
             NaviVeylinTheme(darkTheme = darkPresentation) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    NavGraph(storageManager = storageManager)
+                    NavGraph(startMapResolver = startMapResolver)
                 }
             }
         }

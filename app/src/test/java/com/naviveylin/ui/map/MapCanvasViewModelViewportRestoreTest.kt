@@ -15,6 +15,7 @@ import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlin.coroutines.CoroutineContext
 import org.junit.After
@@ -92,6 +93,10 @@ class MapCanvasViewModelViewportRestoreTest {
             // initMap runs until it suspends at the viewport load.
             viewModel.initMap("/data/maps/testmap")
             mainDispatcherRule.dispatcher.scheduler.runCurrent()
+            // Assert the window: the size report below must land while the restore is in progress.
+            awaitHeldBlock("initMap's viewport load must be held before the size report") {
+                gated.heldCount > 0
+            }
 
             // The composable reports its size while the restore is still in
             // progress. No renderer exists yet — no render may be submitted
@@ -108,14 +113,13 @@ class MapCanvasViewModelViewportRestoreTest {
             mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
             // Wait for the first render — the renderer's debounce runs on a
-            // real dispatcher, outside the test scheduler's control.
-            val deadline = System.currentTimeMillis() + 5000
-            while (client.renderCount.get() + client.renderWithRouteAndPoisCount.get() < 1 &&
-                System.currentTimeMillis() < deadline
-            ) {
-                Thread.sleep(10)
+            // real dispatcher, outside the test scheduler's control, and needs real time (measured
+            // ~5 s on a loaded host, which is why the deadline is 15 s and not the 5 s this case
+            // used to assume — the shorter one made the case fail with "expected 1 but was 0"
+            // whenever the host was busy).
+            awaitHeldBlock("the restored viewport must reach the first render", timeoutMs = 15_000) {
+                client.renderCount.get() + client.renderWithRouteAndPoisCount.get() >= 1
             }
-            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
             // Exactly one render, with the RESTORED center — no early
             // default-viewport render was submitted. The tile path renders at
@@ -190,6 +194,15 @@ class MapCanvasViewModelViewportRestoreTest {
             gated.release()
             mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
+            // The restore must actually have been applied before the save is exercised: the guard
+            // is armed by the applied restore, and the file is deleted below, so a save that still
+            // no-ops would make the load return null (the shape this case failed with). The hops
+            // before the gated load run on real dispatchers, so wait for the observable state
+            // instead of assuming the scheduler drained them.
+            awaitHeldBlock("the persisted viewport must be restored before the save is exercised") {
+                viewModel.uiState.value.viewport.centerLat == 48.2
+            }
+
             // Restore applied — the save guard is armed. Delete the file so
             // the only writer left is saveViewport itself (the first render's
             // view-change listener is still debounced on a real dispatcher).
@@ -197,6 +210,9 @@ class MapCanvasViewModelViewportRestoreTest {
 
             viewModel.saveViewport()
             mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+            awaitHeldBlock("saveViewport must persist the restored viewport") {
+                file.exists()
+            }
 
             val loaded = viewportStorage.load("testmap")
             assertEquals(48.2, loaded!!.centerLat, 1e-9)
@@ -224,16 +240,17 @@ class MapCanvasViewModelViewportRestoreTest {
 
             viewModel.initMap("/data/maps/mapA")
             mainDispatcherRule.dispatcher.scheduler.runCurrent()
+            // Assert the window instead of assuming it: mapA's init must be the one suspended at the
+            // held load before the re-entry runs.
+            awaitHeldBlock("mapA's init must be suspended at the held viewport load") {
+                gated.heldCount > 0
+            }
             viewModel.initMap("/data/maps/mapB")
 
             // mapB's load ran inline; poll until its restored viewport lands.
             val scheduler = mainDispatcherRule.dispatcher.scheduler
-            val deadline = System.currentTimeMillis() + 5000
-            while (viewModel.uiState.value.viewport.centerLat != 52.5 &&
-                System.currentTimeMillis() < deadline
-            ) {
-                scheduler.advanceUntilIdle()
-                Thread.sleep(10)
+            awaitHeldBlock("mapB's restored viewport must land before the held load is released") {
+                viewModel.uiState.value.viewport.centerLat == 52.5
             }
 
             // Run mapA's held load: the cancelled mapA init aborts here
@@ -276,6 +293,9 @@ class MapCanvasViewModelViewportRestoreTest {
             // run yet — the guard window a lifecycle save must not write into.
             viewModel.initMap("/data/maps/mapA")
             mainDispatcherRule.dispatcher.scheduler.runCurrent()
+            awaitHeldBlock("mapA's init must be suspended at the held viewport load") {
+                gated.heldCount > 0
+            }
             viewModel.initMap("/data/maps/mapB")
 
             // Lifecycle save in the window: with the fix it no-ops (guard
@@ -367,6 +387,9 @@ class MapCanvasViewModelViewportRestoreTest {
         private val queue = ConcurrentLinkedQueue<Runnable>()
         private val released = AtomicBoolean(false)
 
+        /** Number of blocks currently held (all dispatches are held until [release]). */
+        val heldCount: Int get() = queue.size
+
         override fun dispatch(context: CoroutineContext, block: Runnable) {
             if (released.get()) {
                 block.run()
@@ -428,16 +451,26 @@ class MapCanvasViewModelViewportRestoreTest {
      * run inline. Lets a test keep initMap(mapA) suspended at the viewport
      * load while a re-entry initMap(mapB) completes its own load — the exact
      * window the supersession fix closes.
+     *
+     * After [release] every dispatch runs inline, including one that arrives
+     * later: a test that releases the gate before its first dispatch happened —
+     * a real possibility, because the hops before the viewport load run on real
+     * dispatchers the test scheduler cannot drain — would otherwise have that
+     * dispatch queued with nothing left to drain it, suspending the calling
+     * coroutine forever. A test that needs the ordering guarantee waits for
+     * [heldCount] itself (see `awaitHeldBlock`), so the intent is asserted
+     * instead of assumed.
      */
     private class FirstDispatchGatedDispatcher : CoroutineDispatcher() {
         private val first = AtomicBoolean(true)
+        private val released = AtomicBoolean(false)
         private val queue = ConcurrentLinkedQueue<Runnable>()
 
         /** Number of blocks currently held (first dispatch only). */
         val heldCount: Int get() = queue.size
 
         override fun dispatch(context: CoroutineContext, block: Runnable) {
-            if (first.compareAndSet(true, false)) {
+            if (!released.get() && first.compareAndSet(true, false)) {
                 queue.offer(block)
             } else {
                 block.run()
@@ -445,10 +478,28 @@ class MapCanvasViewModelViewportRestoreTest {
         }
 
         fun release() {
+            released.set(true)
             while (true) {
                 val block = queue.poll() ?: break
                 block.run()
             }
         }
+    }
+
+    /**
+     * Pump the scheduler and wait (bounded, real clock) until [condition] holds. The hops before a
+     * gated suspension point run on real dispatchers the test scheduler cannot drain, so "the
+     * coroutine is already suspended at the held load" has to be waited for and asserted — assuming
+     * it is what let this class hang the whole flavor run (`TODO.md` §117).
+     */
+    private fun TestScope.awaitHeldBlock(reason: String, timeoutMs: Long = 5_000, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+            if (condition()) return
+            Thread.sleep(10)
+        }
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        assertTrue("$reason (waited ${timeoutMs}ms)", condition())
     }
 }

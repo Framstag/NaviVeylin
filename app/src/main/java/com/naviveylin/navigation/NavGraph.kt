@@ -14,11 +14,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.naviveylin.data.MapStorageManager
+import com.naviveylin.data.StartMapResolver
 import com.naviveylin.ui.MainScreen
 import com.naviveylin.ui.map.MapCanvasScreen
 import com.naviveylin.ui.mapmanager.MapManagerScreen
-import java.io.File
 import java.util.Base64
 
 object Routes {
@@ -31,23 +30,18 @@ object Routes {
 }
 
 @Composable
-fun NavGraph(storageManager: MapStorageManager) {
+fun NavGraph(startMapResolver: StartMapResolver) {
     val navController = rememberNavController()
 
-    // Check for installed maps to decide start destination
+    // The start destination is the map resolved by the shared rule — the last opened one, else the
+    // deterministic fallback, else the entry point when nothing is installed (spec: start-map-selection).
+    // Resolution is off-main, so the composition shows nothing until the answer arrives.
     var startDest by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        val mapsDir = File(storageManager.mapsRootDir.toUri())
-        val installed = if (mapsDir.isDirectory) {
-            mapsDir.listFiles()?.filter { it.isDirectory }?.map { it.absolutePath } ?: emptyList()
-        } else emptyList()
-
-        startDest = if (installed.isNotEmpty()) {
-            Routes.mapCanvas(installed.first())
-        } else {
-            Routes.MAIN
-        }
+        startDest = startMapResolver.resolve()
+            ?.let { Routes.mapCanvas(it) }
+            ?: Routes.MAIN
     }
 
     val destination = startDest
@@ -65,19 +59,21 @@ fun NavGraph(storageManager: MapStorageManager) {
                 if (isCurrent) visitCount++
             }
 
-            val installed = remember(visitCount) {
-                val mapsDir = File(storageManager.mapsRootDir.toUri())
-                if (mapsDir.isDirectory) {
-                    mapsDir.listFiles()
-                        ?.filter { it.isDirectory }
-                        ?.map { it.absolutePath }
-                        ?: emptyList()
-                } else {
-                    emptyList()
-                }
+            // The map shown here comes from the same resolver as the start destination, so a map
+            // downloaded in the Map Manager appears immediately after navigating back
+            // (fix-download) and the discovery rule has one source (spec:
+            // map-download-infrastructure — callers agree on the installed set).
+            var startMap by remember(visitCount) { mutableStateOf<String?>(null) }
+            var resolved by remember(visitCount) { mutableStateOf(false) }
+            LaunchedEffect(visitCount) {
+                startMap = startMapResolver.resolve()
+                resolved = true
             }
 
-            if (installed.isEmpty()) {
+            val mapPath = startMap
+            if (!resolved) {
+                // Still resolving: show neither screen, as the start destination does.
+            } else if (mapPath == null) {
                 MainScreen(
                     onNavigateToMapManager = {
                         navController.navigate(Routes.MAP_MANAGER)
@@ -86,7 +82,7 @@ fun NavGraph(storageManager: MapStorageManager) {
             } else {
                 key(visitCount) {
                     MapCanvasScreen(
-                        mapPath = installed.first(),
+                        mapPath = mapPath,
                         onNavigateToMapManager = {
                             navController.navigate(Routes.MAP_MANAGER)
                         }

@@ -76,7 +76,15 @@ data class AppSettings(
      */
     val autoRoutingAnchorId: String? = null,
     /** Android Auto's own free-driving anchor; `null` = inherit [freeDrivingAnchorId]. */
-    val autoFreeDrivingAnchorId: String? = null
+    val autoFreeDrivingAnchorId: String? = null,
+    /**
+     * The map database the phone opened last (spec: `start-map-selection` — the last opened map is
+     * reopened at the next start). Phone-only: the car renders every installed database and never
+     * reads this value. `null` until a map has been opened on this install, and also for a settings
+     * file written before this field existed — the start map then falls back to the deterministic
+     * pick. Additive with a default, so an older settings file and an older build both keep working.
+     */
+    val lastMapPath: String? = null
 )
 
 /** Persists [AppSettings] to a JSON file in app internal storage. */

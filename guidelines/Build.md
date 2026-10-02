@@ -637,9 +637,27 @@ drive beyond ~500 m the next query logs `RESOLVED` with a new handle and the pre
 appears in no released-handle error line.
 
 **Data blocker for this check** (TODO.md §89/§91): the installed map sets on the AVDs do not
-carry every POI type the stylesheets declare (`Unknown type '…'` warnings per render), so an
-empty result list for a POI-only query does **not** by itself mean the scoping failed — read
-the `CarSearchRegion` line for that, and use a street/address query when a result is needed.
+carry every POI type the stylesheets declare, so an empty result list for a POI-only query does
+**not** by itself mean the scoping failed — read the `CarSearchRegion` line for that, and use a
+street/address query when a result is needed. Those missing types appear as **one line per parsed
+style file** (change `condense-style-load-warnings`), not as one line per rule occurrence:
+
+```bash
+adb logcat -s NaviVeylin | grep "Unknown types in"
+# W NaviVeylin: Unknown types in '…/stylesheets/standard.oss': 42 (amenity_theatre, …, 34 more)
+```
+
+One line per style file that references a type the installed database's type configuration lacks
+— the top-level stylesheet and each `MODULE` include; a file whose names all resolve logs nothing,
+and a healthy install logs no such line at all. Count them with
+`adb logcat -d | grep -c "Unknown types in"`; thousands of lines here mean the map data predates
+the stylesheet, not a defect. **The same file appears once per load**, and a startup loads the
+stylesheet set more than once (measured 2026-10-02 on the phone AVD with stale data: 8 files × 13
+loads = 104 lines per startup, `Created new style` 12×), so read the count per file and not the raw
+total; the repeated loads themselves are `TODO.md` §116. The full per-name list is obtainable
+programmatically and, with `osmscout::log.Debug(true)`, as one additional debug line; the
+per-reference findings are kept (one per occurrence, with its position), so the condensation loses
+no evidence.
 Phone parity is checked with the same query and a fix on the phone
 (`resolveAdminRegion -> handle=…` in `adb logcat -s MapCanvasVM`): both surfaces must
 show the same matches for the same position.

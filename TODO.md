@@ -4,6 +4,23 @@
 
 ---
 
+## 116. The phone loads the whole stylesheet set ~13 times during one startup — Found 2026-10-02 while verifying `condense-style-load-warnings` on `emulator-5554` (phone AVD, stale map data)
+
+- **Observed** ℹ: with the condensed report in place, one startup of the debug build emitted **104** `Unknown types in '…'` lines — 8 files (`standard.oss` plus `basemap`, `place`, `religious`, `shop`, `tourism`, `natural`, `amenity`) × **13 loads**, all inside **one** process (`Start proc` count 1, same pid, 13:08:28-13:08:41). The native Info line of every adopted load agrees: `Created new style with …/standard.oss` appears **12** times in the same window (the basemap's own stylesheet is loaded per basemap database open on top).
+- **Consequence** ⏳: every load parses `standard.oss` and its ~40 `MODULE` includes, so a startup pays that parse cost a dozen times — and, before `condense-style-load-warnings`, paid 9159 log lines for it. The condensation did not create the repetition; it made it visible by attributing each line to a file (`TODO.md` §89/§90/§91 are the data side of the same lines).
+- **Fix candidate**: find what re-applies the stylesheet per startup (the settings emission into `MapCanvasViewModel.applyStyleSheet`, the basemap database open, `reloadBasemap` after the asset refresh, the additional-map `openDatabases` batch) and keep one load per (style file, flag set) per startup — e.g. skip a reload whose stylesheet path and flags equal the active ones, which needs `DBInstance`/`DBThread` to expose the active stylesheet plus its flags. Verify with `adb logcat -s NaviVeylin | grep -c 'Created new style'` (expect 1-2 per surface) and the report count (8, not 104).
+
+---
+
+## 115. The meson suite's per-test timeout kills the threaded-database stress test on this machine — Found 2026-10-02 while running the submodule suite for `condense-style-load-warnings` (harness)
+
+- **Observed** ℹ: a full `meson test -C hostbuild --timeout-multiplier 2` run reports `139 OK, 1 TIMEOUT` — `libosmscout:Check threaded database` (`Tests/ThreadedDatabaseTest --threads 100 --iterations 1000 <testregion> <stylesheets/standard.oss>`) is killed at 60 s (`killed by signal 15 SIGTERM`). Run alone with `--timeout-multiplier 60` it passes in **120 s** (2 m 0 s wall, 13 m 4 s sys). The suite's default budget per test is 30 s, doubled by the multiplier this repo's recipe uses.
+- **Why it is not the change under test** ℹ: that change touches the OSS stylesheet parser only, and its effect is a smaller log (one line per parsed style file instead of one per occurrence), i.e. strictly less work per iteration. The test is a 100-thread × 1000-iteration DB stress run whose cost is machine load.
+- **Consequence** ⏳: a full-suite verdict cannot be quoted as "all green" on this machine without knowing the one timeout, and a regression that merely makes the test slower would hide behind it. The `build-app`/`run-tests` recipe does not mention a per-test timeout at all.
+- **Fix candidate**: raise the budget for that test in `Tests/meson.build` (`timeout:` on the `test()` call), or record the per-test multiplier that makes the whole suite green in `guidelines/Build.md` §6 next to the other suite-budget notes (`TODO.md` §94 is the Gradle half of the same problem).
+
+---
+
 ## 114. Requirements that span phone and car keep being proven on one surface — two capabilities were closed on the other surface in the same week — Proof gap of `2026-09-14-smooth-decimal-auto-zoom` and `2026-09-11-tile-cache-perf`, found 2026-10-01 auditing `fix-phone-zoom-animation-parity` and `fix-car-tile-data-cache` (specs `smooth-zoom`, `native-tile-data-cache`)
 
 - **Observed** ℹ: `smooth-zoom`'s "Eased zoom animation on discrete zoom input" was proven from the Android-Auto side (`2026-09-14-smooth-decimal-auto-zoom`, one `verify:` clause) while the phone scaled the *old* magnification across the animation gap; `fix-phone-zoom-animation-parity` had to MODIFY four `smooth-zoom` requirements to say so and added `ZoomWalkTest` plus `ZoomControlsAnimationTest`. The native tile data cache was configured only in `MapCanvasViewModel.initMap` (`2026-09-11-tile-cache-perf` task 1.3 asserted exactly that call) and never by the car warmup (§63); `fix-car-tile-data-cache` needed a shared `NativeTileDataCache.apply` seam before the car case existed at all (its task 1.2/3.2).

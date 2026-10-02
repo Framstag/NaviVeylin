@@ -120,6 +120,7 @@ licenses/             → Curated license data: native license map, license poli
   - Installed once in `NaviVeylinApp.onCreate` before any DB open/render/routing
 - Native lines appear in Logcat under tag **`NaviVeylin`**, levels mapped `DEBUG/INFO/WARN/ERROR` → `D/I/W/E`
 - Inspect with: `adb logcat -s NaviVeylin`
+- A stylesheet load reports the type names the installed database cannot resolve as **one line per parsed style file** (`Unknown types in '<file>': N (<sample>, N more)`) — never one line per rule occurrence; the complete per-name list needs `osmscout::log.Debug(true)` (native debug is off by default). One such line per style file **per load** is the expected output on an install whose map data predates the stylesheet (`TODO.md` §89/§90/§91) — a startup loads the set more than once (measured 8 files × 13 loads = 104 lines, `TODO.md` §116), so compare per file; a per-occurrence warning wall means the condensation regressed (`guidelines/Build.md` §10)
 - The bridge links `osmscout_client_java` and is the **only** place in the native build allowed to use Android logging APIs — libosmscout must stay platform-independent
 
 #### Kotlin (app) logging

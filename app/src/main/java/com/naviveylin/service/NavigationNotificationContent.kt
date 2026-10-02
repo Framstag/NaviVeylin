@@ -10,6 +10,7 @@ import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.ui.navigation.currentRoadText
 import com.naviveylin.ui.navigation.formatRemainingTime
+import com.naviveylin.R as AppR
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -69,9 +70,6 @@ data class NotificationPost(
  */
 object NavigationNotificationContentFormatter {
 
-    private const val TITLE_NAVIGATION_ACTIVE = "Navigation active"
-    private const val TITLE_FREE_DRIVING = "Free driving"
-
     /** Arrival time placeholder when no ETA is known. */
     private const val ETA_UNKNOWN = "--:--"
 
@@ -96,19 +94,23 @@ object NavigationNotificationContentFormatter {
      * @param state live navigation state
      * @param freeDrivingActive true when a FREE_DRIVE mode is active
      *   (surface-independent shared flag); content only when not navigating
+     * @param resolver localizes the notification's own text (spec: i18n-l10n —
+     *   All user-facing text is translatable, Phone and Auto label parity: the
+     *   neutral title is the same `:core` resource the car hint uses)
      * @param etaClock wall-clock formatter for the arrival time; injectable
      *   for tests, defaults to device-locale "HH:mm"
      */
     fun format(
         state: NavigationState,
         freeDrivingActive: Boolean,
+        resolver: StringResolver,
         etaClock: (Long) -> String = ::formatEtaClock,
         locale: Locale = Locale.getDefault()
     ): NavigationNotificationContent {
         return if (state.isNavigating) {
-            navigationContent(state, etaClock, locale)
+            navigationContent(state, resolver, etaClock, locale)
         } else {
-            freeDriveContent(state, freeDrivingActive, locale)
+            freeDriveContent(state, freeDrivingActive, resolver, locale)
         }
     }
 
@@ -163,6 +165,7 @@ object NavigationNotificationContentFormatter {
 
     private fun navigationContent(
         state: NavigationState,
+        resolver: StringResolver,
         etaClock: (Long) -> String,
         locale: Locale
     ): NavigationNotificationContent {
@@ -173,7 +176,7 @@ object NavigationNotificationContentFormatter {
             ?: ""
 
         val title = state.destinationName?.takeIf { it.isNotBlank() }
-            ?: TITLE_NAVIGATION_ACTIVE
+            ?: resolver.get(R.string.nav_hint_neutral)
 
         val distanceToTurn = formatDistanceCompact(instruction?.distanceTo ?: 0.0, locale)
         val remainingDistance = formatDistanceCompact(state.remainingDistance, locale)
@@ -192,27 +195,29 @@ object NavigationNotificationContentFormatter {
     private fun freeDriveContent(
         state: NavigationState,
         freeDrivingActive: Boolean,
+        resolver: StringResolver,
         locale: Locale
     ): NavigationNotificationContent {
+        val freeDrivingTitle = resolver.get(AppR.string.navigation_notification_title_free_driving)
         if (!freeDrivingActive) {
             // No driving mode active — no content (the caller should not
             // render a notification at all; defensive here).
             return NavigationNotificationContent(
-                title = TITLE_FREE_DRIVING,
+                title = freeDrivingTitle,
                 contentText = "",
                 bigTextLines = emptyList(),
                 showStopAction = false
             )
         }
-        val road = currentRoadText(state.currentRoadInfo)
+        val road = currentRoadText(state.currentRoadInfo, resolver.get(AppR.string.road_offroad))
         val speed = if (!state.currentSpeedKmH.isNaN()) {
-            "${state.currentSpeedKmH.roundToInt()} km/h"
+            resolver.get(AppR.string.speed_unit_kmh, state.currentSpeedKmH.roundToInt())
         } else {
             ""
         }
         return NavigationNotificationContent(
-            title = TITLE_FREE_DRIVING,
-            contentText = listOfNotNull(road, speed).joinToString(" · ").ifBlank { "Free driving" },
+            title = freeDrivingTitle,
+            contentText = listOfNotNull(road, speed).joinToString(" · ").ifBlank { freeDrivingTitle },
             bigTextLines = listOfNotNull(road, speed).filter { it.isNotBlank() },
             showStopAction = false
         )

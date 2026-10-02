@@ -119,8 +119,9 @@ fun LocationDetailsDialog(
         description = objectDescription,
         resolvedAddress = resolvedAddress
     )
-    val data = remember(entry, objectDescription, resolvedAddress) {
-        DetailsResolver.resolve(input)
+    val genericTitle = stringResource(R.string.location_title_generic)
+    val data = remember(entry, objectDescription, resolvedAddress, genericTitle) {
+        DetailsResolver.resolve(input, genericTitle)
     }
     val title = data.title
     val fullAddress = data.address

@@ -136,6 +136,12 @@
     <string name="stop_navigation">Navigation beenden</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Zeigt während der Fahrt die aktuelle Navigationsführung an</string>
+    <string name="navigation_notification_title_free_driving">Freie Fahrt</string>
+    <string name="road_offroad">Abseits der Straße</string>
+    <string name="map_download_channel_name">Karten-Download</string>
+    <string name="map_download_channel_description">Zeigt den Fortschritt des Karten-Downloads an</string>
+    <string name="map_download_title">Karten-Download</string>
+    <string name="map_downloading">Karte wird heruntergeladen…</string>
     <string name="navigation_notification_channel_car_name">Navigation (Auto)</string>
     <string name="navigation_notification_channel_car_description">Zeigt während der Navigation Fahrtinformationen im Auto an</string>
     <string name="start_navigation">Navigation starten</string>
@@ -223,7 +229,12 @@
     <string name="unstar">Markierung entfernen</string>
     <string name="installed_with_size">Installiert (%1$s)</string>
     <string name="distance_unit_km">%1$s km</string>
+    <string name="speed_unit_kmh">%1$s km/h</string>
     <string name="distance_unit_m">%1$s m</string>
     <string name="size_unit_mb">%1$s MB</string>
     <string name="poi_result_format">%1$s · %2$s</string>
+    <!-- Generic title for a details sheet whose object has no name, no address and only a
+         coordinate label. Owned by the surface, not by the shared :core resolver
+         (spec: i18n-l10n — shared module owns no wording). -->
+    <string name="location_title_generic">Standort</string>
 </resources>

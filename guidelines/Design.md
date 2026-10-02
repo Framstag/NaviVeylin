@@ -322,7 +322,22 @@ strong preference.
   otherwise reaches the main thread's uncaught handler and kills the process — an app
   process that dies while a car session is live is what takes the templates host down
   with it. A confined fault ends that piece of work (one child of the scope's
-  `SupervisorJob`), never a sibling. The **process-scoped navigation engine** the
+  `SupervisorJob`), never a sibling. **Unless that piece of work is one iteration of a
+  continuing loop**: a fault then ends the *iteration*, not the loop (change
+  `fix-car-render-loop-restart`, spec `car-host-fault-isolation`). The car map's three loops
+  (render consumer, extrapolation/blit, zoom walk) each run their body through
+  `RenderLoopSupervisor.runIteration(...)`, which skips the iteration, records it (loop name +
+  throwable class, never a message or a coordinate) and 
+  counts it; the loop keeps drawing. Before that, one throwing frame ended the render
+  consumer for good — every later `requestRender()` was dropped and the car map stayed frozen
+  with healthy host chrome until the driver re-entered the screen (`TODO.md` §51). A loop must
+  never be silently abandoned: repeated consecutive faults (`CONSECUTIVE_RENDER_FAULT_THRESHOLD`
+  within `RENDER_FAULT_WINDOW_MS`) re-create the renderer through the gate (bounded by
+  `MAX_RENDERER_RECOVERIES_PER_PERIOD` per started screen period, re-armed in `onStart`), and
+  when the budget is spent the map says so instead of drawing nothing — see
+  `guidelines/MapRendering.md` §14. A loop iteration **must not swallow
+  `CancellationException`**: a cancelled scope has to end the loop, or nothing can stop it.
+  The **process-scoped navigation engine** the
   session shares its process with is part of this rule (change
   `fix-navigation-engine-fault-isolation`): its scope carries `engineFaultHandler`, so
   an engine fault is confined in the engine — recorded and raised as an engine error —
@@ -364,7 +379,17 @@ strong preference.
   `CarScreenObservations` (`:auto`) owns the lifetime and a per-screen
   `<Screen>Observations` class owns what is observed; a stopped screen touches
   neither the renderer nor the host, and work that must survive a stop (e.g. the
-  free-driving stale-speed ticker) stays on the screen's own scope. See
+  free-driving stale-speed ticker) stays on the screen's own scope. **All five screens** run their
+  observations through that seam — the browse map (GPS position, favorites, resolved dark
+  presentation, basemap revisions), the destination details (GPS position, favorites, basemap
+  revisions), the favorites list (favorites + stored group order + stored starred order as one
+  combined observation), navigation and free driving — while a screen's own one-shot work (renderer
+  construction and publish, an address lookup, a settings load) stays on its `carScreenScope`, because
+  it must run once per screen instance, not once per started period. Every observed source is a
+  `StateFlow`, so re-establishing an observation on start applies the current value exactly once —
+  that is how a change made while the screen was stopped reaches it, and it is why `auto-favorites`'
+  "update when the stored order changes while the screen is open" means the **started period**: an
+  observation kept alive across a stop is the defect this rule exists to prevent. See
   `openspec/specs/auto/screen-observation/spec.md`.
 - Cross-variant parity: same labels and visual hierarchy wherever the
   platform allows; deviate only as much as required. Shared logic and data

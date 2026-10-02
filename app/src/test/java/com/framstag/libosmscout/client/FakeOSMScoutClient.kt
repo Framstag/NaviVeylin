@@ -465,7 +465,14 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Limits passed to [searchLocations] in call order. */
     val searchLimits = mutableListOf<Int>()
 
-    /** Results returned by the next [searchLocations] call (default: empty). */
+    /**
+     * Results returned by the next [searchLocations] call (default: empty).
+     *
+     * Entries are handed through unchanged, including the scope verdict the
+     * native search sets (`LocationEntry.inSearchScope`, spec: osmscout-jni), so
+     * a test expresses "a database that could not honour the scope" by building
+     * an entry with the field false.
+     */
     var nextSearchResults: Array<LocationEntry>? = emptyArray()
 
     /**

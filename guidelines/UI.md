@@ -766,6 +766,15 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   into the app at build time). Both modules carry `values/` + `values-de/`;
   every translatable key in `values/` MUST exist in `values-de/` (enforced by
   `GermanTranslationCompletenessTest` in each module).
+- **A shared module owns no wording**: `:core` composes display text for both
+  surfaces (details title, notification titles, turn instructions) and MUST take
+  the words from its caller — a `String`, a `StringResolver` lookup or a resource
+  the surface passes in — never from a literal of its own. The generic details
+  title is the worked example: `DetailsResolver.resolveTitle(input, genericTitle)`
+  takes the surface's `R.string.location_title_generic` (change
+  `fix-remaining-untranslated-strings`). Any wording both surfaces show SHALL have
+  exactly one resource home (e.g. `:core`'s `nav_hint_neutral`, used by the car
+  hint and the phone notification).
 - **Locale-aware numbers**: use the shared helpers in
   `core/.../DistanceFormat.kt` — `formatDistanceNumber(meters, locale)` returns
   the numeric part only (German comma decimals), `distanceUsesKilometers`
@@ -783,7 +792,11 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   way: `parseLatitude` / `parseLongitude` accept both `,` and `.`, so a
   prefilled value can be saved unchanged and a German user may type a comma.
 - **Plurals**: count-dependent strings use `plurals.xml` (`one`/`other` for
-  English and German) — e.g. `file_count`, `active_downloads`.
+  English and German) — e.g. `file_count`, `active_downloads`, `favorite_count`,
+  `map_downloading_maps`. Pass the count as the format argument
+  (`pluralStringResource(R.plurals.x, count, count)`, `getQuantityString(id, count,
+  count)`), never concatenate an English suffix: a German plural rule cannot be
+  expressed by one.
 - **Format args**: positional args use `%1$s`/`%2$s` so translators can
   reorder; never concatenate translated fragments.
 - **POI categories**: category names come from resources
@@ -792,11 +805,28 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   SHALL show the same category labels (parity, §1).
 - **Diagnostics**: user-facing diagnostics UI text is translated; logcat-only
   debug strings are exempt.
-- **Lint gate**: `HardcodedText` runs at error severity in both modules, and
-  a Gradle `checkHardcodedStrings` grep gate (wired into `preBuild`) fails the
-  build on string literals in UI text positions — including conditional
-  assignments like `contentDescription = if (x) "A" else "B"`. New UI text
-  MUST pass both.
+- **Lint + scan gate**: `HardcodedText` runs at error severity in `:app`, `:auto`
+  *and* `:core` (`lint.xml` + `abortOnError` in each), and a Gradle
+  `checkHardcodedStrings` gate — wired into every module's `preBuild`, rule and
+  message in `buildSrc` (`com.naviveylin.build.i18n.HardcodedStringScanner`,
+  unit-tested) — fails the build on a literal in a UI text position. The scan
+  covers, in every module:
+  - a text position (`Text(`, `text =`, `title =`, `label =`,
+    `contentDescription =`, `placeholder =`, `hint =`, `description =`,
+    `.setTitle(`, `.setText(`, `.addText(`, `.setContentTitle/Text(`),
+    including a conditional assignment (`text = if (x) "A" else "B"`);
+  - **interpolated display text** — a literal whose text *outside* its `${...}`
+    carries a word (`"$favCount favorite"` fails; a pure value template such as
+    `"$zoomLevel"` or `"${a}-${b}"` stays exempt). Hand-rolled pluralization
+    cannot be translated, so it is a defect, not a template;
+  - a `NotificationChannel(id, name, description)` name/description argument
+    (user-visible in Settings; re-applying them on start updates an existing
+    channel).
+
+  Deliberate exemptions (kept small on purpose): `%`-format templates,
+  symbol-only separators (`"|"`, `" · "`) and a single camelCase identifier
+  (an animation/label key such as `compassRotation`). A message that only
+  mentions a UI word in prose MUST be reworded — the gate has no allowlist.
 - **Coordinates in logs**: no log or diagnostics call may interpolate a position
   (spec: `auto-diagnostics` — Diagnostics carry no coordinates); a Gradle
   `checkNoCoordinatesInLogs` gate (buildSrc `CoordinateLogScanner`, wired into

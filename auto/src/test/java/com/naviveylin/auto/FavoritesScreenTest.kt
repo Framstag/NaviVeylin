@@ -2,6 +2,7 @@ package com.naviveylin.auto
 
 import android.content.Context
 import android.os.Looper
+import androidx.car.app.AppManager
 import androidx.car.app.ScreenManager
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
@@ -59,14 +60,27 @@ class FavoritesScreenTest {
     @Before
     fun setUp() {
         every { carContext.getCarService(ScreenManager::class.java) } returns mockk(relaxed = true)
+        // `Screen.invalidate()` asks the host through AppManager: the screen's list observation is
+        // only invalidated while it is started, so this service is reached now (an unstubbed service
+        // makes the observation fault instead of updating the list).
+        every { carContext.getCarService(AppManager::class.java) } returns mockk(relaxed = true)
         every { carContext.applicationContext } returns ApplicationProvider.getApplicationContext<Context>()
         mockkStatic(EntryPoints::class)
         every { EntryPoints.get(any(), AutoEntryPoint::class.java) } returns entryPoint
         every { entryPoint.autoFavoritesProvider() } returns favoritesProvider
     }
 
-    private fun newScreen(starredOnly: Boolean = false) =
-        FavoritesScreen(carContext, navigationViewModel, starredOnly)
+    /**
+     * A screen in its started period. The favorites/order observation lives on that period
+     * (spec: auto/screen-observation; design D6), so a case that wants the list to observe the store
+     * has to start the screen the way the host does.
+     */
+    private fun newScreen(starredOnly: Boolean = false): FavoritesScreen {
+        val screen = FavoritesScreen(carContext, navigationViewModel, starredOnly)
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+        return screen
+    }
 
     private fun singleTitles(template: ListTemplate): List<String> =
         template.singleList!!.items.map { (it as Row).title.toString() }
@@ -81,6 +95,46 @@ class FavoritesScreenTest {
         template.sectionedLists.map { it.header.toString() }
 
     private fun fav(name: String) = FavoriteLocation(name, 51.5136, 7.4653)
+
+    @Test
+    fun screenTitleIsTheFavoritesResource() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: i18n-l10n — All user-facing text is translatable: the title is a
+        // resource, never an English literal in the screen.
+        val screen = newScreen()
+        val template = screen.onGetTemplate()
+
+        assertEquals(
+            carContext.getString(R.string.favorites),
+            template.header!!.title.toString()
+        )
+    }
+
+    @Test
+    fun starredScreenTitleIsTheStarredFavoritesResource() = runTest(mainDispatcherRule.dispatcher) {
+        val screen = newScreen(starredOnly = true)
+        val template = screen.onGetTemplate()
+
+        assertEquals(
+            carContext.getString(R.string.starred_favorites),
+            template.header!!.title.toString()
+        )
+        assertEquals("Starred favorites", template.header!!.title.toString())
+    }
+
+    @Test
+    fun unnamedFavoriteRowUsesTheResource() = runTest(mainDispatcherRule.dispatcher) {
+        // A favorite the store holds without a name shows the resource row title,
+        // not an English literal built in the screen (spec: i18n-l10n — All
+        // user-facing text is translatable).
+        favoritesProvider.flow.value =
+            mapOf("Favorites" to listOf(FavoriteLocation(null, 51.5136, 7.4653)))
+        val screen = newScreen()
+        advanceUntilIdle()
+        val template = screen.onGetTemplate()
+
+        val titles = sectionTitles(template)
+        assertTrue("row titles were $titles", titles.contains(carContext.getString(R.string.unnamed_favorite)))
+    }
 
     @Test
     fun showsLoadingBeforeFirstEmission() = runTest(mainDispatcherRule.dispatcher) {
@@ -117,12 +171,10 @@ class FavoritesScreenTest {
         advanceUntilIdle()
         assertEquals(listOf("Home"), sectionTitles(screen.onGetTemplate()))
 
-        // Destroy the screen via the real lifecycle path: the collect must
-        // stop. The registry starts at INITIALIZED, so drive it up first, then
-        // down to DESTROYED (dispatchLifecycleEvent runs synchronously on the
+        // Destroy the screen via the real lifecycle path: the observation must
+        // stop. `newScreen()` already drove the registry to STARTED, so only the
+        // down edge is left (dispatchLifecycleEvent runs synchronously on the
         // Robolectric main thread via ThreadUtils.runOnMain).
-        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
         screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         org.robolectric.Shadows.shadowOf(Looper.getMainLooper()).idle()
 
@@ -131,6 +183,39 @@ class FavoritesScreenTest {
 
         // Still the pre-destroy data: the cancelled collect did not re-render.
         assertEquals(listOf("Home"), sectionTitles(screen.onGetTemplate()))
+    }
+
+    @Test
+    fun aStoppedScreenAppliesNothingAndTheStateArrivesOnStart() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: auto/screen-observation — A stopped screen performs no renderer or host work, and
+        // Observations are re-established with the current state on start; auto-favorites — a group
+        // reorder received while the list is stopped is applied on the next start.
+        val screen = newScreen()
+        favoritesProvider.flow.value = mapOf("Favorites" to listOf(fav("Home")))
+        advanceUntilIdle()
+        assertEquals(listOf("Home"), sectionTitles(screen.onGetTemplate()))
+
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_STOP)
+        advanceUntilIdle()
+
+        // The phone adds a favorite while the car list is stopped.
+        favoritesProvider.flow.value = mapOf("Favorites" to listOf(fav("Home"), fav("Work")))
+        advanceUntilIdle()
+
+        assertEquals(
+            "a stopped screen applies nothing (and invalidates nothing)",
+            listOf("Home"),
+            sectionTitles(screen.onGetTemplate())
+        )
+
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+        advanceUntilIdle()
+
+        assertEquals(
+            "the current state is applied on start",
+            listOf("Home", "Work"),
+            sectionTitles(screen.onGetTemplate())
+        )
     }
 
     @Test

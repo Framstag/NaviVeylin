@@ -4,6 +4,55 @@
 
 ---
 
+## 114. Requirements that span phone and car keep being proven on one surface — two capabilities were closed on the other surface in the same week — Proof gap of `2026-09-14-smooth-decimal-auto-zoom` and `2026-09-11-tile-cache-perf`, found 2026-10-01 auditing `fix-phone-zoom-animation-parity` and `fix-car-tile-data-cache` (specs `smooth-zoom`, `native-tile-data-cache`)
+
+- **Observed** ℹ: `smooth-zoom`'s "Eased zoom animation on discrete zoom input" was proven from the Android-Auto side (`2026-09-14-smooth-decimal-auto-zoom`, one `verify:` clause) while the phone scaled the *old* magnification across the animation gap; `fix-phone-zoom-animation-parity` had to MODIFY four `smooth-zoom` requirements to say so and added `ZoomWalkTest` plus `ZoomControlsAnimationTest`. The native tile data cache was configured only in `MapCanvasViewModel.initMap` (`2026-09-11-tile-cache-perf` task 1.3 asserted exactly that call) and never by the car warmup (§63); `fix-car-tile-data-cache` needed a shared `NativeTileDataCache.apply` seam before the car case existed at all (its task 1.2/3.2).
+- **Consequence** ⏳: `openspec/config.yaml` (`specs` rules) asks for a *parity statement* when a feature affects both surfaces, but nothing asks for each surface's **evidence** — a requirement worded once and proven once reads as proven for both, and the unproven surface is found on a device, weeks later.
+- **Fix candidate**: one case per named surface for every requirement that names both (phone case + car case, or an explicit host-substitute note when a surface is device-gated — §66). Drafted rule text for `config.yaml` `rules.tasks` and `guidelines/Build.md` §6 is in the audit's proposal; cross-ref §102 (scenario without a case), §109 (helper proven, wiring not).
+
+---
+
+## 113. Origin changes ship without a falsification step — every later fix change then adds one — Proof gap of the 2026-08-13 … 2026-09-19 origin changes, found 2026-10-01 auditing the 15 newest `fix-*` changes (process)
+
+- **Observed** ℹ: of the origin changes behind those 15 bugfix changes, the ones from `2026-08-13-auto-startup-crash-diagnostics` to `2026-09-19-fav-order-in-group` carry **0** `verify:` clauses in `tasks.md` (`2026-09-11-tile-cache-perf` 11 lines / 0 clauses, `2026-09-08-turn-instructions-not-l10n` 0, `2026-09-04-enlarge-phone-nav-overlays` 0, `2026-09-04-fix-route-refresh-and-auto-zoom-reengage` 0, `2026-08-13-auto-startup-crash-diagnostics` 0; only `2026-09-17-basemap-own-stylesheet` has 13). Every fix that followed added the falsification the origin lacked: `fix-favorite-store-write-race` tasks 1.5 and 3.3 remove one mutex and require the interleaving case to fail, `fix-native-database-open-race` task 1.4 removes six `scoped_lock` lines and requires SIGSEGV (3/3 runs). Where an origin did see the risk it deferred instead of proving it — `2026-09-19-fav-order-in-group` task 3.4: "Append the pre-existing, unrelated risk found while implementing this change — interleaved repository writes …".
+- **Consequence** ⏳: an assertion that guards an invariant is never shown to be *capable of failing*, so a case with the wrong arguments, the wrong seam or a tautology passes as proof (the `FollowAnchorFramingTest` anchor case, §111, is exactly that shape). Two capabilities were patched for the same class inside one week (`fav-service` + `osmscout-jni`, `native-tile-data-cache` + `smooth-zoom`).
+- **Fix candidate**: rules text — one revert-check task per new invariant in `tasks.md` (remove the guard, one mutation, name the case that must fail; restore it), plus the `guidelines/Build.md` §6 bullet drafted by this audit. Cross-ref §40 (guardrails), §111.
+
+---
+
+## 112. A spec scenario can stay unproven for months — `map-render` "Open invalid map database" had no case from 2026-07-29 until 2026-10-01 — Proof gap of `2026-07-29-draw-map`, found 2026-10-01 auditing `fix-open-database-path-validation` (spec `map-render`)
+
+- **Observed** ℹ: the scenario (merged spec `openspec/specs/map-render/spec.md:81-85`, "THEN `OSMScoutClient.openDatabase()` returns false") was added by `draw-map`, whose tasks carry no case for it (tests cover `ViewportStorage` only, and the manual smoke test 7.3 stayed unchecked). Two months later `fix-open-database-path-validation` had to implement the enforcement at all — its proposal records that the phone error branch (`MapCanvasViewModel.kt:1855-1870`) was dead code for exactly the case it was written for — and did it with native predicate cases (task 1.3) plus the error-state case (task 3.1). The defect itself is §67.
+- **Consequence** ⏳: a WHEN/THEN the spec demands can go unenforced for months behind a green suite. The archive guidance already asks for scenario→**task** traceability, and a task can cite a scenario without any case exercising it — nothing asks for scenario→**case**.
+- **Fix candidate**: a scenario→case mapping task in the `config.yaml` `rules.tasks` list (or the archive guidance): enumerate every delta scenario and name the test case or the device step that exercises it. Same class as §102 (four scenarios of `reorder-favorite-groups`) — fix the pattern once, not per capability.
+
+---
+
+## 111. The follow blit anchor is proven only as pure geometry — no test drives the production call site, and the pipeline was patched twice on 2026-09-27 — Proof gap of `anchor-per-surface-visible-area` (and of `fix-follow-vehicle-jumps`), found 2026-10-01 auditing `fix-phone-follow-blit-anchor-mismatch` (spec `smooth-follow`)
+
+- **Observed** ℹ: `FollowAnchorFramingTest` (`app/src/test/java/com/naviveylin/ui/map/FollowAnchorFramingTest.kt`) proves the framing contract with the anchor fractions it is *handed* — `:203` "resolved anchor keeps the marker on the content with overlays" was green while the follow display block in `MapCanvasScreen.kt` passed `ui.activeFollowAnchor` (raw preset ≈ 0.9) to `FollowPrediction.displayOffsetPx`, so the map content sat at the raw anchor while the marker drew at the resolved one (≈ 0.76) — a `(0.9 − 0.76)·H` offset plus per-500 ms re-render churn. Production now passes `state.resolvedAnchor` (`MapCanvasScreen.kt:1506`), the same day `fix-follow-vehicle-jumps` had already reworked this pipeline without catching it. The mismatch fix's own regression case (`:269`) asserts the *defect geometry* by handing the raw preset in, so nothing observes which anchor the **call site** passes — its task 1.1 closed that by inspection only ("grep `activeFollowAnchor.fx|fy`").
+- **Consequence** ⏳: the call site can regress to the raw preset again and the suite stays green; the symptom (marker riding ahead of the route content in the driving direction, permanent render churn) is only visible on device. Two fixes to the same anchor in one day is the evidence that geometry tests do not protect the wiring.
+- **Fix candidate**: assert the anchor at the call site — drive the follow display block, or extract a `followOffsetArgs(state, ui)`-style seam the screen must call, with overlays measured and assert the fractions equal `state.resolvedAnchor.fx/fy`; add a guard that fails when `activeFollowAnchor` is read from the follow offset path. Cross-ref §109 (same class: helper proven, wiring not).
+
+---
+
+## 110. The scope filter can leave a scoped search with fewer free-text candidates than the requested limit — Found 2026-10-01 while implementing `fix-cross-database-search-scope` (design Open Question)
+
+- **Observed** ℹ: the free-text walk stops once it has collected `limit` hits (`freeTextEntries.size() >= static_cast<size_t>(limit)`, `OSMScoutClient.cpp:3958-3960` — the per-source budget that keeps the text index from crowding structured results out, spec `search-free-text`), and the scope filter runs **after** the walk (`fix-cross-database-search-scope`). When the scope drops 30 of 60 collected hits, the caller receives fewer than the requested candidate count even though more in-scope hits may exist behind the walk's stopping point.
+- **Consequence** ⏳: a scoped search can display fewer results than it should — a recall loss only on installs where a database holds objects outside the scope's extent, so it does not affect the phone's common single-map case. The displayed list stays correct (ranked, no wrong entries), it is just shorter than the candidate budget allows.
+- **Fix candidate**: count only *kept* hits against the budget (test the scope inside the collection loop, before `freeTextLimitReached()`), or raise the collection budget by a bounded factor when a scope is active and trim after filtering. Both need a native measurement of the walk's cost on a real index (the reason the budget exists), so this waits for a device run.
+- **Not verifiable today** ✗: the difference is only observable with two loaded maps of different regions plus a GPS scope, i.e. the same device setup the change's task 5.3 needs.
+
+---
+
+## 109. The cross-database scope filter is host-tested only as a pure helper — the wiring inside the JNI search has no database-backed test — Found 2026-10-01 while implementing `fix-cross-database-search-scope`
+
+- **Observed** ℹ: the geographic decision itself is covered by host tests (`Tests/src/SearchScopeTest.cpp`, 9 cases / 50 assertions: inside/outside, corner normalization, unset box fail-open, node fallback, the superset property, non-finite positions), but the code that *uses* it — deriving the extent from a region's object and dropping free-text hits in `DoSearchLocations` — runs only inside the JNI translation unit, which the host build cannot compile (TODO §66: `jni.h` is configured against a JDK that is not installed).
+- **Consequence** ⏳: a regression that stops calling the filter, or that derives the extent from the wrong region, is not caught by any test — only by the on-device check of that change (task 5.3, device-gated) and by code review.
+- **Fix candidate**: a database-backed native test in the submodule's `Tests/` that imports two small maps (the runtime-import pattern of `LocationServiceTest.cpp`, full non-eco imports per §40.34) and asserts that a hit outside the scope's box from the second database is absent and an in-scope one is present; alternatively a narrower seam that exposes the extent derivation for a host test.
+
+---
+
 ## 107. `initMap` runs its whole native and file block on the main dispatcher, which `guidelines/Design.md` §4 forbids — Found 2026-09-30 while landing `fix-open-database-path-validation`
 
 - **Observed** ℹ: `MapCanvasViewModel.initMap` (`app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt:1846`) launches on `viewModelScope` — `Dispatchers.Main.immediate`, which the ViewModel itself documents at `:939` — and then does all of its work in that body: `AssetCopier.ensureStylesheets()` (file I/O), `client.openDatabase(mapPath)` (JNI), `NativeTileDataCache.apply(client, …)` (JNI), `favoriteRepository.init(favPath)` (JNI + file) and the additional-maps `client.openDatabases(…)` batch (JNI). Design.md §4's first rule is a MUST — "never call native/JNI code on the main thread; run it on background dispatchers with timeouts and loading UI" — and only the ViewModel's `defaultDispatcher` seam is used elsewhere (`:848`).
@@ -94,6 +143,8 @@
   The change under verification adds one path-existence check in the native client, its two JNI entry points and one
   `initMap` test case; `:app/navigation` consumes none of it. The mobile flavor of the same change was green
   (1453/0).
+- **Update 2026-10-01 (during `fix-cross-database-search-scope`)** ℹ: the family reproduced once more, again in the **automotive** flavor of a full `:app:testAutomotiveDebugUnitTest --rerun-tasks` (1462 tests), with a **new victim class** and both symptoms at once. Run 1 failed `MapCanvasViewModelModeTest.navigationEndRestoresBrowseMode` and `MapCanvasViewModelModeTest.enterFreeDriveAppliesDrivePreset`, both `java.lang.IllegalStateException: Dispatchers.Main is used concurrently with setting it` — one thrown in `MainDispatcherRule.finished` (`MainDispatcherRule.kt:33`, `resetMain` while another coroutine reads the dispatcher) and one in `TestMainDispatcher.dispatch` from a resumed continuation. Run 2 of the same content was green (1462/0/0), and the class alone was 8/8 green in the same flavor (18 s); the **mobile** flavor of the identical content was green (1462/0/0). The change under verification touches the native search scope (`OSMScoutClient.cpp`), `SearchResultRanker` and its tests, and `MapCanvasViewModelModeTest` exercises mode/preset derivation with no search involved — so this is the load-sensitive shape, not an attribution. Evidence runs: `/tmp/app-auto-full.log` (failing), `/tmp/app-auto-full-2.log` (green), `/tmp/app-auto-alone.log` (green).
+- **Update 2026-10-01 (during `fix-car-search-default-admin-region`)** ℹ: reproduced once more in the **automotive** flavor of a full `:app:testAutomotiveDebugUnitTest` (1462 tests): 1 failure, this entry's `NavigationEngineTest.listenerCallbacksDriveTheSharedState` on the `lane guidance mirrored` assertion (`NavigationEngineTest.kt:114`). Evidence: the class alone is 12/12 green (10.1 s, `started=2026-10-01T19:14:44Z`), the rerun of the same suite is green (1462/0/0, `started=2026-10-01T19:17:22Z`, 2 m 25 s, 13 executed tasks), and the **mobile** flavor of the failing run was green (1462/0/0). The change under verification touches the `:core` search-region rule, the `MapCanvasViewModel` region delegation and the car search's DI wiring; `:app/navigation` consumes none of it.
 - **Fix candidate for the still-open assertion**: bisect the suite execution order (per-class `timestamp` from
   `test-results/*.xml`, then `--tests` filters — the technique that settled §96) and check whether the mirroring work is
   dispatched off the test scheduler: the case must then await the mirrored state instead of relying on `advanceUntilIdle()`. Per
@@ -274,40 +325,6 @@
 
 ---
 
-## 88. The coordinate redaction does not purge what the pre-change build already wrote — diagnostics file keeps coordinates for the retention window — Found 2026-09-27 on `emulator-5554` during `fix-diagnostics-coordinate-redaction` (task 8.1 recipe)
-
-- **Observed** ℹ: the recipe's own grep (`[0-9]{1,3}\.[0-9]{4,}` over `files/diagnostics/app.log`) hits exactly one entry:
-  `[2026-09-25 21:34:34.085] LONGPRESS lat=51.513298135108705 lon=7.474341597216892 mag=16.0` — written by the build **before** the change and still inside the 7-day retention (the same session logged `DiagnosticsLog retention: dropped 1617 entries older than 168h`). Everything written by the current build is clean: 135 entries from 2026-09-27 with 0 hits, and a fresh long-press writes `LONGPRESS x=540 y=1500 mag=18.0 map=iceland` (screen pixel / magnification / map name).
-- **Consequence** ⏳: on a device that ran the old build, "no coordinates in the diagnostic stream" is only true for new entries; an exported log within the retention window still carries old positions, and a reviewer following task 8.1 literally sees a hit and cannot tell stale from regressed.
-- **Fix candidate**: on the first start after an update (or on any retention prune), drop entries that match the coordinate shape — the file is line-oriented and the prune already rewrites it — or make the export state the cutoff ("entries before <date> predate coordinate-free logging"). Prefer the purge: it is the only variant that makes the recipe's grep meaningful.
-- **Fix in flight** ⏳ (2026-09-28): `fix-diagnostics-stale-coordinate-purge` takes the purge variant — the
-  retention pass drops a line that carries a coordinate **whatever its age** (`LogLineCoordinates` in `:core`,
-  token + comma-pair shapes) and counts those drops in its report (`… , N coordinate-carrying`), with
-  `guidelines/Regulatory.md` §9 stating that the rule covers the file's history. This entry is removed when that
-  change is archived.
-
----
-
-## 87. The shared-location path logs coordinates at runtime — the gate cannot see interpolated values — Found 2026-09-27 on `emulator-5554`
-
-- **Observed** ℹ: a `geo:` deep link produces four coordinate-bearing lines in the logcat stream from the current build:
-  `D DeepLinkActivity: Deep link received: action=android.intent.action.VIEW data=geo:51.5142,7.4653`
-  `D MainActivity: Shared location parsed: SharedLocationRequest(lat=51.5142, lon=7.4653, label=51.51420, 7.46530, query=null)`
-  `D MapCanvasVM: Shared location: label=51.51420, 7.46530 mag=14.0`
-  (the third also fires for any share-sheet location whose label is a coordinate pair). `AGENTS.md` states the rule for *log or diagnostics* lines (spec `auto-diagnostics` — Diagnostics carry no coordinates); the file-backed `LONGPRESS` entry already follows it.
-- **Why the gate passes** ℹ: `CoordinateLogScanner` flags a call whose *text* contains a coordinate identifier or a `%.5f` format. These calls interpolate `$request` / `${request.label}` / the intent data, so nothing in the source names a coordinate — an intentional-looking blind spot that any future "log the parsed object" repeats.
-- **Fix candidate**: log identity instead of the value at all three sites (deep-link action + target kind, "shared location: coordinate pair (label from link)" / the query string, no `lat`/`lon`), and extend the scanner with the cheap structural rule the class needs — flag a `Log.*` call that interpolates a whole `SharedLocationRequest`/`Location`/`GpsFix`-like object or the raw intent data. Both are Kotlin-only; `MainActivity.kt:136` and `MapCanvasViewModel.kt:2512` are two-line edits.
-
----
-
-## 86. A lost fix never degrades the fix quality — the compass stays green after the GPS is gone — Found 2026-09-27 on `emulator-5554` during the `compass-day-night-palette` / `fix-location-permission-scope` on-device passes
-
-- **Observed** ℹ: with the device location switched off (`adb shell cmd location set-location-enabled false`) the app received no further fixes, yet 30 s later (the freshness bound is `GPS_FIX_FRESHNESS_MS = 5_000`) the compass still showed the **GOOD** fill `#1B4A24` and no `GPS fix quality: NONE` line appeared. The fix quality is computed inside `locationService.location.map { … }` (`MapCanvasViewModel.kt` ~line 951), so the `loc == null || System.currentTimeMillis() - loc.time > GPS_FIX_FRESHNESS_MS → NONE` branch is only evaluated when a **new** fix arrives; a StateFlow that stops emitting keeps the last GOOD value forever. Revoking the permission is not a workaround: it kills the process.
-- **Consequence** ⏳: in a tunnel, a garage or with location toggled off, the compass keeps claiming a good fix, the browse re-center keeps measuring against a frozen marker, and `GpsFixQuality.NONE` (and with it the red compass family) is effectively unreachable on a lost fix. Anything keyed to fix quality (compass tone, routing gates, search scoping) inherits the stale value.
-- **Fix candidate**: evaluate freshness on a timer as well as on emission (a slow tick — e.g. `tickerFlow(1 s)` combined with the location flow, or a `distinctUntilChanged`-safe periodic re-check) so the quality drops to NONE once the fix ages out and returns to GOOD on the next fix; add a unit test that advances the clock past the bound **without** emitting a new fix (the existing tests all emit).
-
----
-
 ## 85. POI symbol icons never load — no icon directory is shipped or configured — Found 2026-09-27 on `emulator-5554`
 
 - **Observed** ℹ: every render emits `E NaviVeylin: ERROR while loading image 'bus_stop'` (and `parking`, `restaurant`, `fast_food`, `pharmacy`, …) through the native log bridge — 12 such lines in a single short buffer, one per symbol the stylesheet declares. The map therefore draws no POI icons at all: `stylesheets/include/amenity.oss` declares `NODE.ICON { symbol: amenity_hospital; name: hospital; }`-style entries for dozens of types, and the renderer has nowhere to load them from.
@@ -355,14 +372,6 @@
 - **Adjacent state from the same merge** ℹ: upstream **deleted** `origin/fix-compound-name-matching` in the submodule after merging it, and the submodule's `openspec/changes/fix-compound-name-matching/` artifacts are now upstream's copies (our local stubs were replaced). The parent repo's own copy of that change (16/20, device checks 5.2/5.4-5.6 pending) remains the tracker; when it archives, it must not resurrect the submodule stubs.
 
 ---
-## 80. The generic details title is the hardcoded literal "Location" — Found 2026-09-25 on `emulator-5554` (de-DE) during `fix-comma-decimal-coordinate-entry` (out of scope, i18n gap)
-
-- **Observed** ℹ: a `geo:` deep link to a coordinate with no address and no object name shows the details sheet title as the English "Location" on a German device, while the row labels around it are German ("Adresse:", "Gebiet:", "Anzeigen"). Source: `core/src/main/java/com/naviveylin/core/details/DetailsResolver.kt:128` — `return nameHint?.takeIf { it.isNotBlank() } ?: "Location"` is a Kotlin literal in `:core`, so it is not a resource and cannot be translated. The same string is the title on the car details screen (`auto/DetailsScreen.kt` uses the same resolver) and is pinned by specs/tests as the literal (spec `enhanced-details-sheet` — Coordinate label falls back to generic; `DetailsResolverTest.titleFallsBackToGeneric`, `LocationDetailsDialogComposeTest.coordinateLabelTitleShowsGenericLocation`).
-- **Why it is a gap** ℹ: `i18n-l10n` ("All user-facing text is translatable") allows no hardcoded user-facing literal, and the `HardcodedText` lint / `checkHardcodedStrings` gate only inspects `:app` and `:auto` UI code — a literal in `:core` is invisible to both. Same family as §30 (hardcoded notification strings).
-- **Fix candidate**: give the resolver an injected generic-title string (`resolveTitle(input, nameHint, genericTitle)`) or resource ids per module, with the phone passing `R.string.location_title`-style resources (a `values-de` entry included) and the car `:auto` equivalent; update the two tests that pin the literal and the `enhanced-details-sheet`/`auto-destination-details` wording. Touches both surfaces, so it is its own change.
-- **Adjacent device gap recorded here** ⏳: the car `DetailsScreen` coordinate row of `fix-comma-decimal-coordinate-entry` is covered by unit tests only — no car/AAOS device or head unit was attached during that change's on-device pass (the phone half ran on `emulator-5554`, API 37, de-DE). A car-side German-locale run on the AAOS AVD (`guidelines/Build.md` §10, TODO §40.45 harness limits) is still outstanding for that row.
-
----
 ## 79. The per-module unit-test task names in the run-tests skill are wrong for `:auto` and `:app` — Found 2026-09-25 during `fix-comma-decimal-coordinate-entry` (harness)
 
 - **Observed** ℹ: `./gradlew :auto:test --tests "com.naviveylin.auto.DetailsScreenTest"` fails immediately with `Problem configuring task :auto:test from command line. > Unknown command-line option '--tests'` — `:auto:test` is not filterable (it is not the AGP unit-test task). The working invocation is `./gradlew :auto:testDebugUnitTest --tests "<fqcn>"`. `:core:test` accepts `--tests` (verified with the same change). The `.pi/skills/run-tests` table documents `:app:testDebugUnitTest` (which does not exist — the `dist` flavor dimension splits it, §40 item 30 / §71) and lists no `:auto` task at all.
@@ -408,6 +417,21 @@
 - **Fix candidate**: give the car search the same default-region treatment (resolve the region from the last car
   GPS fix or the map viewport center), or add a bounded region-less POI pass; both need a cost check against the
   300 ms search debounce, since a region-less pass walks the POI index of the whole database.
+- **Fix in flight** ⏳ (2026-10-01): `fix-car-search-default-admin-region` resolves the region for the car search
+  through one shared rule (`core/src/main/java/com/naviveylin/core/search/SearchRegionScope.kt`) that the phone's
+  `MapCanvasViewModel.searchAdminRegionHandleForFix` now delegates to as well, and passes that handle from
+  `AutoServiceModule.provideAutoSearchProvider` instead of `NO_ADMIN_REGION` (car adapter
+  `app/src/main/java/com/naviveylin/di/CarSearchRegionSource.kt`). Design decision: the region comes from the
+  position fix only, never the map viewport center, so the car scopes exactly like the phone — which leaves
+  §34 (car search from the root/history screens has no distance reference) open as the sibling change that would
+  introduce the shared car reference the viewport-center fallback needs. This entry is removed when that change
+  is archived.
+- **Verification** ⏳: unit level green and recorded in the change's `design.md` — shared rule 14/0 with a
+  revert-check, the phone's 20 region cases green **unmodified**, car wiring 6/0 with a revert-check, both flavors
+  1462/0/0, `:auto` 713/0/0, both debug APKs with all three ABIs. The on-device halves (a car query naming a POI
+  without its region, the phone regression) are device-gated: no device was attached on 2026-10-01 (`adb devices`
+  empty), and the POI-only positive case additionally waits on the §89/§91 data gap in the installed map sets.
+  Recipe with that caveat: `guidelines/Build.md` §10 ("Car search scoped by the driver's region").
 
 ---
 
@@ -503,22 +527,6 @@
 
 ---
 
-## 69. Location/FGS surface has not been checked against the Play location policy effective 2026-10-28 — Found 2026-09-22 during the regulatory review (`guidelines/Regulatory.md` §6/§9)
-
-- **Scope of the change** ✗: the Play "Permissions and APIs that Access Sensitive Information" policy was updated 2026-04-15 and takes effect **2026-10-28**; the app's location surface predates it. Relevant deltas: (a) precise location is expected at minimum scope, with the **location button** as the recommended minimum for precise/one-time requests; (b) background location still requires the Permissions Declaration form, a ≤ 30 s demo video, prominent in-app disclosure and a privacy policy in-app **and** on the listing; (c) foreground-service location must be the continuation of a user-initiated action and must stop once that action completes; (d) **geofencing was removed** as an approved FGS use case (use the Geofence API).
-- **Current surface** ℹ: `app/src/main/AndroidManifest.xml:6-7` declares `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION` (no `ACCESS_BACKGROUND_LOCATION`); `:102` `MapDownloadService` is `foregroundServiceType="dataSync"`; `:111` `NavigationNotificationService` is `foregroundServiceType="location"`. Continuous navigation with the screen off is exactly the FGS-as-background-location case the policy scrutinises, so the "user-initiated + terminated when the action ends" shape has to be demonstrable (the notification's `Stop` action and stop-on-arrival are the visible ends of that action).
-- **Not verified** ✗: whether the app requests precise (fine) rather than coarse location where a coarse fix would do, whether a one-time precise request should use the location button, whether `MapDownloadService`'s `dataSync` type is still the right one under the current FGS policy, and whether the Play Data safety form currently matches what §68 lists.
-- **Next step**: audit the request path (fine vs coarse, one-time vs ongoing), confirm the FGS start/stop shape against the policy text, then update the Data safety declaration + privacy policy/prominent disclosure if anything changed. `guidelines/Regulatory.md` §6 carries the requirement text and the review cadence.
-
-## 68. Precise coordinates are written to Logcat and to the diagnostics buffer — Found 2026-09-22 during the regulatory review (`guidelines/Regulatory.md` §3/§9)
-
-- **Observed** ℹ: 6-decimal lat/lon pairs are logged via `android.util.Log` in `ui/map/MapCanvasViewModel.kt:1035` (GPS fix), `:1440` (`resolveAdminRegion`), `:2382` (`onLongPress`), `:2471` (shared location), `ui/map/MapRenderer.kt:402` and `:455` (viewport centre), `navigation/AANavigationController.kt:167` (route start/destination), `auto/AutoInitialViewport.kt:37`, `auto/DetailsScreen.kt:280,285`.
-- **Why it is a compliance item, not a style nit** ℹ: precise location is personal data. `com.naviveylin.core.DiagnosticsLog` buffers lines in memory and writes them to a file, and `exportTextAsync` hands the result to the user — so the file is personal data **at rest** and the export is a disclosure of it. Under GDPR/ePrivacy that needs a purpose and a retention bound, and under the Play Data safety rules the app must declare it; India's DPDP Rules would additionally require a minimum 1-year retention of such logs before erasure (`guidelines/Regulatory.md` §3). The debug stream itself is not the problem — the accumulated file and the export are.
-- **What is not established** ✗: whether `DiagnosticsLog` already bounds retention/rotates, whether coordinates in the exported text are needed for the diagnostics use case at all (rounding to ~3 decimals or 5-6 significant digits would keep the diagnostic value and drop the precise fix), and whether the Data safety form mentions location in diagnostics.
-- **Fix candidate**: decide what precision diagnostics actually need and round/redact at the call site or in the logger; give `DiagnosticsLog` an explicit retention bound (and document it in `guidelines/Regulatory.md` §9 and the About/diagnostics UI); state the resulting behaviour in the Data safety declaration. The car path additionally has to keep passing the host-fault-isolation rules (`HOST`/`SESSION` diagnostics tags) — a redaction must not remove the information those entries rely on.
-
----
-
 ## 67. `openDatabase` reports success for a path that does not exist — Found 2026-09-21 during `fix-native-database-open-race` (out of scope, own change)
 
 - **Spec deviation** ✗: the JNI `openDatabase` (`OSMScoutClient.cpp:688-701`) never validates the
@@ -592,14 +600,6 @@
 ## 34. Car search opened from the root/history screens has no distance reference
 
 - **Noticed 2026-09-19 while implementing `search-result-ranking`** ℹ: the spec's distance reference for the car is "last known GPS fix, else the current car map viewport center, else none (order by tier and quality only)". Only `MapScreen` can supply that center (it owns the renderer gate, so it passes `{ rendererGate.renderer.value?.markerViewport() }`); `RootScreen` and `SearchHistoryScreen` push `SearchScreen` without any map, so their results are ordered by tier and quality and show **no distance at all** — spec-legal, but a driver comparing results from the root list has no proximity signal. Fix candidate: publish the last rendered viewport center through a small shared provider (e.g. alongside `AutoLocationProvider`, updated by `NavigationSession`/`AutoMapRenderer` whenever the displayed center changes) and pass it from all three `SearchScreen` call sites. Not a defect of this change — the "neither exists" case is specified and covered by tests.
-
-## 30. Notification-channel names and neutral navigation strings are hardcoded Kotlin constants
-
-- **Noticed 2026-09-18 during `car-turn-by-turn-rail-widget`** ℹ: the new automotive channel had to be named through a string resource (adding `values-de` entries for the name, description and the car hint text), which exposed that other notification channels and the phone formatter still carry user-facing text as Kotlin constants: `MapDownloadService.CHANNEL_NAME` (`app/src/main/java/com/naviveylin/service/MapDownloadService.kt`, a plain `private const val` passed to `NotificationChannel`), the navigation channel name that this change converted to `navigation_notification_channel_name`, and `NavigationNotificationContent.TITLE_NAVIGATION_ACTIVE` / `TITLE_FREE_DRIVING` (`app/src/main/java/com/naviveylin/service/NavigationNotificationContent.kt:63-64` — the formatter file was renamed since this note) plus the `"Offroad"` fallback in `currentRoadText` (`app/src/main/java/com/naviveylin/ui/navigation/NavigationStateOverlay.kt:245`). None of them are translatable today, yet `GermanTranslationCompletenessTest` and the app's `checkHardcodedStrings` gate only look at resource files and at Compose/`setTitle`-style literals — the gate also misses `NotificationChannel(id, CONSTANT, …)`. Fix candidate: move the remaining names/neutral labels into resources with German translations, and (optionally) teach `checkHardcodedStrings` to flag `NotificationChannel(` name arguments so the next channel cannot ship untranslated.
-
-## 32. Phone notification neutral strings duplicated by the car hint resources
-
-- **Introduced knowingly by `car-turn-by-turn-rail-widget` (2026-09-18)** ℹ: the car hint resolves its neutral fallback through the new `core` string `nav_hint_neutral` ("Navigation active"), while the phone formatter keeps the identical wording as the Kotlin constant `TITLE_NAVIGATION_ACTIVE`. The duplication is deliberate for now — the phone path had to stay byte-identical (its tests pass unedited) and the car path needed a resource for the i18n gate — but the two must not drift. Fix candidate: route the phone neutral title through `nav_hint_neutral` too (one formatter, one wording, German included) once the phone notification tests are allowed to change.
 
 ## 29. AA follow jumping — open points handed over (2026-09-17, stable-version handover)
 
@@ -771,6 +771,7 @@ GPS back                     →  REAL
 ## 27. Unconstrained search of a second loaded database returns out-of-area noise
 
 - **Observed 2026-09-16 during `fix-sharp-s-transliteration-match` task 6.5** ℹ: with the map view centered on Iceland and the GPS scope resolved to Regierungsbezirk Arnsberg, the query `Am Birkenbaum 6 Dortmund` returned Iceland-database entries (`Leiðhamrar Dofri`, `Lokinhamrar`, 5,8 km) instead of the Dortmund address. Cause is the documented per-database scope rule: a region handle is database-local, so the database that does *not* own the handle is searched unconstrained (`OSMScoutClient.cpp`, string-search scope comment) and its free-text index answers on short partial tokens ("am" inside "…hamrar…"). Not created by this change — the characters in the returned names (`ð`, `ö`, `í`, `æ`, `á`) are not affected by the transliteration fix, and no pre-change baseline run was made. Investigate: when a scope exists for one database, either skip the other databases' free-text hits or rank them below scoped results (and/or apply a distance limit), so an address query cannot be answered from another map region's data.
+- **Fix in flight** ⏳ (2026-10-01): `fix-cross-database-search-scope` takes the recorded mechanism — the text index is scope-blind in **every** database (`OSMScoutClient.cpp:4057` passes no region), so a free-text hit outside the resolved scope's extent is now dropped before the per-source cap, and every structured result carries whether it lies inside the scope (new `LocationEntry.inSearchScope`, spec `osmscout-jni`) so the app's ranker places out-of-scope close matches below in-scope ones (`SearchResultRanker`, spec `search-result-ranking`). Databases keep being searched, so a fully qualified query for another installed map still resolves (spec `location-search`). This entry is removed when that change is archived; the residual test gap is §109 and the candidate-budget question is §110.
 
 ## 28. Whole-level rounding in `computeAreaZoom` still over-fits area favorites and POI search
 
@@ -1101,6 +1102,20 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   **the `remove(notice)` dismissal needs the notice to still be on the stack** (a no-op otherwise,
   which is intended but means a notice skipped while stopped is only removed by the next started
   sync).
+- **Fix in flight ⏳ (2026-10-02) for the loop-liveness residual:** change
+  `fix-car-render-loop-restart` confines every iteration of the renderer's three loops
+  (`RenderLoopSupervisor.runIteration`, so a fault skips one frame/tick and the loop keeps running),
+  records it under `Diag/MAP`, re-creates the renderer after `3` consecutive faults within `60 s`
+  (at most `2` re-creations per started screen period, the gate's state slots replayed and the
+  session's surface re-attached by the screen) and shows `map_unavailable` when the budget is spent.
+  Evidence: `:auto` 754/0 (new `RenderLoopSupervisorTest` 11, `AutoMapRendererLoopConfinementTest` 5,
+  `MapUnavailableOverlayTest` 4, `RendererGateTest` 22, `MapTemplateFactoryTest` 9,
+  `DetailsScreenTest` 31), `:app` mobile 1468/0 and automotive 1468/0, `:core` 429/0, both debug APKs
+  with all three ABIs, plus three revert-checks recorded in the change's tasks; the on-device pass
+  ran on the AAOS AVD on 2026-10-02 (frames + background round trip + degraded-state transition, no
+  fault entries, no `HOST` rejections; a screen push/pop could not be driven there).
+  **The `remove(notice)` dismissal residual above stays open and is not part of that change.** This
+  entry is removed when `fix-car-render-loop-restart` is archived.
 - **Evidence recipe** ℹ: `adb logcat -b crash` for the host process, plus
   `adb logcat -d | grep -E 'onPackageUpdateFinished|onHandleForceStop'` for the app and
   `adb logcat -d | grep 'Diag/HOST'` for what the app last sent. A package replace/force-stop in the
@@ -1190,22 +1205,10 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Why deferred** ✗: `order-starred-favorites` needed one more input on that existing collector; migrating
   the screen's whole observation lifetime was scope its specs do not require.
 
-## 104. The favorites group cards show an untranslated plural in the German locale — Found 2026-09-29 on `emulator-5554` (de-DE) during `order-starred-favorites`
-
-- **Bug** ✗: the group cards in the favorites sheet read `0 favorites`, `2 favorites`, `3 favorites` in a German
-  UI (everything around them — `Favoriten`, `Favoriten suchen`, `Aktuellen Kartenstandort hinzufügen`,
-  `Gruppe verschieben` — is translated). The count is built in `FavoritesSheet.kt`'s `GroupCard` as
-  `"$favCount favorite${if (favCount != 1) "s" else ""}"` (`FavoritesSheet.kt:693`), i.e. an inline English string, and it also
-  never takes a plural resource.
-- **Fix candidate**: replace it with a `<plurals name="favorite_count">` resource (quantity strings for
-  `one`/`other`) and the `values-de` translation — `guidelines/UI.md` §12 already requires never
-  concatenating translated fragments, and `strings.xml` has no plural resource for this count.
-- **Out of scope there** ✗: `order-starred-favorites` touches the chip bar of the same sheet, and fixing
-  this would have mixed an i18n sweep into the change (one more string, its German form and a test).
-
 ## 105. The car favorites screens show hardcoded English titles in a German UI — Found 2026-09-29 on `emulator-5554` (AAOS, de-DE) during `order-starred-favorites`
 
-- **Bug** ✗: the Android Auto favorites screen and its starred mode are titled with string literals in
+- **Bug** ✅ **FIXED 2026-09-30 by `fix-remaining-untranslated-strings`**: the titles read the two resources the module already shipped (`R.string.favorites` / `R.string.starred_favorites`), and the unnamed-row fallback `fav.name ?: "Favorite"` became the new `R.string.unnamed_favorite` (+ `values-de`). Three `FavoritesScreenTest` cases assert the resource values (19/0). **Only the German car-surface check is left**: no AAOS AVD or head unit was attached during that change, so the German titles are `values-de`-parity-verified, not seen on a car display.
+- **Original defect** ✗: the Android Auto favorites screen and its starred mode are titled with string literals in
   `auto/src/main/java/com/naviveylin/auto/FavoritesScreen.kt`
   (`setTitle(if (starredOnly) "Starred favorites" else "Favorites")`), so a German head unit shows
   `Favorites` / `Starred favorites` as the screen titles while every other surface on those screens is
@@ -1282,17 +1285,15 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   `move-favorite-between-groups`, whose only interaction with it is that on-device verification cannot
   run until the app starts.
 
-## 81. The favorites group card counts favorites with an inline English string — Found 2026-09-28 (on device, while verifying `move-favorite-between-groups`)
+---
 
-- **Bug** ✗: `FavoritesSheet.kt:667` builds the group card subtitle as
-  `"$favCount favorite${if (favCount != 1) "s" else ""}"`, so a German device shows
-  "2 favorites" / "3 favorites" (observed in the emulator's UI dump next to correctly translated
-  labels). `guidelines/UI.md` §10 requires all user-facing text in string resources, and a count needs
-  a plural resource (`pluralStringResource(R.plurals…)` on phone, `getQuantityString` on the car), so
-  English-shaped pluralization cannot be translated at all.
-- **Fix candidate**: add a `plurals` entry for the group card count (`values/` + `values-de/`;
-  `GermanTranslationCompletenessTest` enforces the parity) and render it through
-  `pluralStringResource`. Check the sibling count strings in the same sheet and the car mapper
-  (`FavoritesScreenMapper`) for the same pattern while there.
-- **Why deferred** ✗: pre-existing, unrelated to the cross-group move, and an i18n sweep should cover
-  every hardcoded string it finds (there may be more in the same file) rather than one count.
+## 108. Three surfaces of the i18n sweep could not be seen on a device — found 2026-09-30 while landing `fix-remaining-untranslated-strings` (task 5.2)
+
+- **Device-verified** ✅ that pass: the favorites group-card count reads `0 Favoriten` / `2 Favoriten` / `3 Favoriten` on `emulator-5554` (API 37, de-DE) with the change's `mobileDebug` APK installed (`lastUpdateTime 2026-09-30 21:40:30`) — the German plural resource, where the pre-change build showed `2 favorites`. The same dump shows the German resource set loading in that build (`Was ist hier?`, `Ort suchen…`, `Favoriten`, `Aktuellen Kartenstandort hinzufügen`).
+- **Not verified on device** ⏳ (unit + revert-check only):
+  1. **The generic details title** (`Standort`) — the `geo:` deep link and the map long-press both land in the **`CandidatePickerSheet`** (`Was ist hier?`) on this build, whose candidates are objects; no coordinate-labelled row appeared at the tapped point, so `LocationDetailsDialog` (the sheet whose title the change made localized) was never reached. A coordinate typed into the search field produced no result row, and `ENTER` left the search view rather than committing the coordinate.
+  2. **The notification titles** — starting free driving needs the on-map `Freie Fahrt starten` control (bounds `[955,1673][1018,1736]` in the map dump); the tap did not reach it before the session left the map, and no `com.framstag.naviveylin` notification appeared in `dumpsys notification`.
+  3. **The map-download channel name** — `dumpsys notification --noredact` still shows `NotificationChannel{mId='map_download', mName=Map Download}` because `MapDownloadService` has not started since the install: per design D4 the name is re-applied on the next `createNotificationChannel`, i.e. the next download start. The German name is `values-de`-parity-verified, not observed.
+  4. **The car favorites titles** (§105) — no AAOS AVD or head unit attached; also the outstanding car-side German run for `fix-comma-decimal-coordinate-entry`'s coordinate row (carried over from the removed §80 entry).
+- **Fix candidate** (a verification pass, not a code change): with a car surface attached, run §10 of `guidelines/Build.md` against the release build for (1)-(3) — a coordinate `geo:` link or long-press with a coordinate candidate, free driving from the phone, and a map download to re-create the channel — plus the car favorites screens in German. The recipes that worked here are worth reusing: `uiautomator dump <path under /data/local/tmp>` (a `/sdcard` path is refused by this harness), `exec-out screencap -p` + `tesseract … -l deu tsv` for coordinates, and the map screen's German `content-desc` nodes (`Favoriten`, `Ort suchen`, `Freie Fahrt starten`) for tap targets — the Compose canvas exposes almost no text nodes.
+

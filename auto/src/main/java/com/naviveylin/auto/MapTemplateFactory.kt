@@ -24,7 +24,14 @@ import androidx.car.app.navigation.model.PanModeListener
  */
 object MapTemplateFactory {
 
-    /** Menu content in the host content slot, with app header. */
+    /**
+     * Menu content in the host content slot, with app header.
+     *
+     * [mapUnavailable] adds a disabled first row stating that the map could not be drawn (spec:
+     * car-host-fault-isolation — A repeatedly faulting car renderer recovers, then degrades
+     * visibly; design D5): the map surface cannot carry the message reliably once its frame path
+     * fails, so the host-drawn content list does.
+     */
     fun buildMenuContent(
         carContext: CarContext,
         onFreeDriving: () -> Unit,
@@ -33,7 +40,8 @@ object MapTemplateFactory {
         onPoiSearch: () -> Unit,
         onSearchHistory: () -> Unit,
         onDiagnostics: () -> Unit,
-        onAbout: () -> Unit
+        onAbout: () -> Unit,
+        mapUnavailable: Boolean = false
     ): ListTemplate = ListTemplate.Builder()
         .setHeader(
             Header.Builder()
@@ -43,6 +51,17 @@ object MapTemplateFactory {
         )
         .setSingleList(
             ItemList.Builder()
+                .apply {
+                    if (mapUnavailable) {
+                        // Not clickable: a state statement, not an action.
+                        addItem(
+                            Row.Builder()
+                                .setTitle(carContext.getString(R.string.map_unavailable))
+                                .setEnabled(false)
+                                .build()
+                        )
+                    }
+                }
                 .addItem(
                     Row.Builder()
                         .setTitle(carContext.getString(R.string.free_driving))

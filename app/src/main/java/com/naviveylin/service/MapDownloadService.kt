@@ -12,6 +12,7 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.naviveylin.MainActivity
+import com.naviveylin.R
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NotificationIds
 import dagger.hilt.android.AndroidEntryPoint
@@ -99,8 +100,16 @@ class MapDownloadService : Service() {
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW).apply {
-            description = "Shows map download progress"
+        // Channel name and description are resources (spec: i18n-l10n —
+        // Notification channel name is translatable). Re-applying them on every
+        // start updates an existing channel's name, so an install that predates
+        // the translation shows the German name without a reinstall.
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            getString(R.string.map_download_channel_name),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = getString(R.string.map_download_channel_description)
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(channel)
@@ -114,9 +123,13 @@ class MapDownloadService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val contentText =
-            if (downloadCount > 0) "Downloading $downloadCount map(s)..." else "Downloading map..."
+            if (downloadCount > 0) {
+                resources.getQuantityString(R.plurals.map_downloading_maps, downloadCount, downloadCount)
+            } else {
+                getString(R.string.map_downloading)
+            }
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Map Download")
+            .setContentTitle(getString(R.string.map_download_title))
             .setContentText(contentText)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setContentIntent(pendingIntent)
@@ -128,7 +141,6 @@ class MapDownloadService : Service() {
     companion object {
         private const val TAG = "MapDownloadService"
         private const val CHANNEL_ID = "map_download"
-        private const val CHANNEL_NAME = "Map Download"
 
         /** Diagnostics tag for a platform-ended download service (spec: auto-diagnostics). */
         internal const val TIMEOUT_TAG = "DOWNLOAD"

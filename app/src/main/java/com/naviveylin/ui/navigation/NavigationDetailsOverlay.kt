@@ -98,7 +98,7 @@ fun NavigationDetailsOverlay(
 
             // Status content: current road name + stats
             Text(
-                text = currentRoadText(currentRoadInfo),
+                text = currentRoadText(currentRoadInfo, stringResource(R.string.road_offroad)),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,

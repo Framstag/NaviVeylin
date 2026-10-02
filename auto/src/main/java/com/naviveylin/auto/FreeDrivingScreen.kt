@@ -204,7 +204,12 @@ class FreeDrivingScreen(
      * constructor never blocks the main thread and never first-touches the
      * Hilt native-client singleton on the host thread.
      */
-    private val rendererGate = RendererGate()
+    /**
+     * Renderer-bound state and the map's availability state (spec: car-host-fault-isolation — A
+     * repeatedly faulting car renderer recovers, then degrades visibly). Internal so tests can
+     * drive the availability state and assert what the screen carries.
+     */
+    internal val rendererGate = RendererGate()
     private var rendererInitJob: Job? = null
 
     /**
@@ -244,6 +249,15 @@ class FreeDrivingScreen(
     /** Surface-refresh (invalidate) attempts left for this screen start. */
     private var surfaceRefreshAttempts = 0
 
+    /**
+     * True once the map could not be drawn any more (spec: car-host-fault-isolation — A
+     * repeatedly faulting car renderer recovers, then degrades visibly; design D5).
+     *
+     * This screen's template is a `NavigationTemplate` with no content slot, so the notice is
+     * drawn on the map surface in the overlay below.
+     */
+    private var mapDegraded = false
+
     init {
         // BACK and the system back action both leave free driving (spec:
         // "Exit free driving" — back returns to the map view).
@@ -265,13 +279,27 @@ class FreeDrivingScreen(
             // between, so a cancellation during the background work can never drop an
             // already-constructed renderer (spec: auto-map-renderer — "Renderer
             // constructed while the screen is being destroyed").
+            rendererGate.rendererFactory = { supervisor ->
+                AutoMapRenderer(
+                    client,
+                    carContext.resources.displayMetrics.densityDpi.toDouble(),
+                    DEFAULT_LAT,
+                    DEFAULT_LON,
+                    DEFAULT_AA_ZOOM,
+                    loops = supervisor
+                )
+            }
+            rendererGate.reattachSurface = {
+                guardedHostCall("attach surface (renderer re-created)") { surfaceHost.attach(surfaceOwner) }
+            }
             rendererGate.publish(
                 AutoMapRenderer(
                     client,
                     carContext.resources.displayMetrics.densityDpi.toDouble(),
                     DEFAULT_LAT,
                     DEFAULT_LON,
-                    DEFAULT_AA_ZOOM
+                    DEFAULT_AA_ZOOM,
+                    loops = rendererGate.renderSupervisor
                 )
             )
         }
@@ -326,6 +354,28 @@ class FreeDrivingScreen(
                             invalidate()
                         }
                     }
+                }
+                // Loop-fault recovery (spec: car-host-fault-isolation — A repeatedly faulting
+                // car renderer recovers, then degrades visibly; design D3/D4): the renderer
+                // reports from its own dispatcher, the gate is a main-thread object.
+                renderer.onRendererRecoveryRequested = {
+                    postTemplateRefresh { rendererGate.onRendererRecoveryRequested() }
+                }
+                renderer.onRendererDegraded = {
+                    postTemplateRefresh { rendererGate.markDegraded() }
+                }
+            }
+        }
+
+        // Map availability (design D5): the gate owns the state, this screen draws it on the
+        // surface (no content slot on a NavigationTemplate). Main thread only.
+        scope.launch {
+            rendererGate.rendererState.collect { state ->
+                val degraded = state == RendererState.DEGRADED
+                if (degraded != mapDegraded) {
+                    mapDegraded = degraded
+                    Log.w(TAG, "map state -> $state")
+                    postTemplateRefresh { invalidate() }
                 }
             }
         }
@@ -399,6 +449,11 @@ class FreeDrivingScreen(
                 density = density,
                 usableBounds = stableArea
             )
+            // The map is gone (design D5): a NavigationTemplate has no content slot for this text,
+            // so the app draws it on the surface, which keeps the last frame.
+            if (mapDegraded) {
+                MapUnavailableOverlay.draw(canvas, w, h, density, carContext.getString(R.string.map_unavailable))
+            }
         })
 
         // Surface vote for the shared free-driving flag (design: retain-on-death).
@@ -410,6 +465,9 @@ class FreeDrivingScreen(
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
+                // A fresh started period re-arms the fault counters and the re-creation budget
+                // (design D7).
+                rendererGate.startPeriod()
                 surfaceHost.attach(surfaceOwner)
                 rendererGate.resume()
                 // Re-read the shared settings on re-visibility (spec:

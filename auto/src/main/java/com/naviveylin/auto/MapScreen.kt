@@ -124,7 +124,12 @@ class MapScreen(
      * the constructor never blocks the main thread and never first-touches the
      * Hilt native-client singleton on the host thread.
      */
-    private val rendererGate = RendererGate()
+    /**
+     * Renderer-bound state and the map's availability state (spec: car-host-fault-isolation — A
+     * repeatedly faulting car renderer recovers, then degrades visibly). Internal so tests can
+     * drive the availability state and assert what the template carries.
+     */
+    internal val rendererGate = RendererGate()
 
     /**
      * Shared-state observations for this screen (spec: auto/screen-observation;
@@ -190,6 +195,14 @@ class MapScreen(
     /** Surface-refresh (invalidate) attempts left for this screen start. */
     private var surfaceRefreshAttempts = 0
 
+    /**
+     * True once the map could not be drawn any more (spec: car-host-fault-isolation — A
+     * repeatedly faulting car renderer recovers, then degrades visibly; design D5). Kept in
+     * screen state and mirrored into the template's content list, so the driver sees it instead
+     * of a frozen surface with healthy host chrome.
+     */
+    private var mapDegraded = false
+
     init {
         // Browse-mode overlay: the street-name pill only (design D5/D8, spec:
         // auto/browse). Draw-only, no interactive elements — the
@@ -239,9 +252,34 @@ class MapScreen(
                         }
                     }
                 }
+                // Loop-fault recovery (spec: car-host-fault-isolation — A repeatedly faulting
+                // car renderer recovers, then degrades visibly; design D3/D4): the renderer
+                // reports from its own dispatcher and the gate is a main-thread object, so both
+                // reports are posted there — the same shape as the surface-failure callback
+                // above.
+                renderer.onRendererRecoveryRequested = {
+                    postTemplateRefresh { rendererGate.onRendererRecoveryRequested() }
+                }
+                renderer.onRendererDegraded = {
+                    postTemplateRefresh { rendererGate.markDegraded() }
+                }
                 // The startup push was skipped while the client was still
                 // building — apply the resolved presentation now.
                 pushDark()
+            }
+        }
+
+        // Map availability (spec: car-host-fault-isolation — A repeatedly faulting car renderer
+        // recovers, then degrades visibly; design D5): the gate owns the state, the screen
+        // mirrors it into the template. Refresh on the main thread only.
+        scope.launch {
+            rendererGate.rendererState.collect { state ->
+                val degraded = state == RendererState.DEGRADED
+                if (degraded != mapDegraded) {
+                    mapDegraded = degraded
+                    Log.w(TAG, "map state -> $state")
+                    postTemplateRefresh { invalidate() }
+                }
             }
         }
 
@@ -277,6 +315,27 @@ class MapScreen(
             // The renderer starts with the car display's density and adopts the delivered
             // surface DPI — all overlay math (gestures, GPS marker) and every render request
             // use that one value (spec: `render-projection-dpi`).
+            // Loop-fault recovery (spec: car-host-fault-isolation — A repeatedly faulting car
+            // renderer recovers, then degrades visibly; design D3/D4): the screen owns what the
+            // gate cannot know — the construction arguments and the surface re-attach. The
+            // supervisor comes from the gate, so the re-creation budget spans the instance swap.
+            rendererGate.rendererFactory = { supervisor ->
+                AutoMapRenderer(
+                    prepared.first,
+                    carContext.resources.displayMetrics.densityDpi.toDouble(),
+                    prepared.second.lat,
+                    prepared.second.lon,
+                    prepared.second.zoom,
+                    initialFollowMode = initialCenter == null,
+                    loops = supervisor
+                )
+            }
+            // Re-attach through the session: `attach` re-delivers the surface it already holds,
+            // so no component releases or adopts a surface here (spec: car-host-fault-isolation —
+            // Single-owner car surface; design D4).
+            rendererGate.reattachSurface = {
+                guardedHostCall("attach surface (renderer re-created)") { surfaceHost.attach(surfaceOwner) }
+            }
             rendererGate.publish(
                 AutoMapRenderer(
                     prepared.first,
@@ -287,7 +346,8 @@ class MapScreen(
                     // "Show location" maps must stay on the requested
                     // destination — follow mode would snap the viewport to
                     // every GPS fix.
-                    initialFollowMode = initialCenter == null
+                    initialFollowMode = initialCenter == null,
+                    loops = rendererGate.renderSupervisor
                 )
             )
         }
@@ -317,6 +377,9 @@ class MapScreen(
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
+                // A fresh started period re-arms the fault counters and the re-creation budget,
+                // and clears a degraded state the previous period left behind (design D7).
+                rendererGate.startPeriod()
                 surfaceHost.attach(surfaceOwner)
                 rendererGate.resume()
                 screenObservations.start()
@@ -516,7 +579,8 @@ class MapScreen(
                 armScreenPush(carContext, scope, "AboutScreen") {
                     AboutScreen(carContext)
                 }
-            }
+            },
+            mapUnavailable = mapDegraded
         )
 
         // Right edge: Search (parked-only), Settings (driving-safe), zoom

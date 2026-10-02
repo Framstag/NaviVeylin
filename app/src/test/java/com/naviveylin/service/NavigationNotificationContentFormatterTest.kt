@@ -2,6 +2,7 @@ package com.naviveylin.service
 
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
+import com.naviveylin.R
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.StringResolver
 import org.junit.Assert.assertEquals
@@ -13,6 +14,10 @@ import java.util.Locale
 /**
  * Pure content tests for the ongoing navigation/free-driving notification
  * (task 2.4; specs R3 navigation guidance content, R5 free-driving content).
+ *
+ * The notification's own text is resolved from resources (spec: i18n-l10n —
+ * All user-facing text is translatable), so the tests supply the English forms
+ * the way the shipped resources do.
  */
 class NavigationNotificationContentFormatterTest {
 
@@ -24,6 +29,17 @@ class NavigationNotificationContentFormatterTest {
         "Turn left"
     )
 
+    /** English forms of the formatter's own text, as `values/` ships them. */
+    private val resolver = StringResolver { resId, args ->
+        when (resId) {
+            com.naviveylin.core.R.string.nav_hint_neutral -> "Navigation active"
+            R.string.navigation_notification_title_free_driving -> "Free driving"
+            R.string.road_offroad -> "Offroad"
+            R.string.speed_unit_kmh -> "%1${'$'}s km/h".format(args.firstOrNull() ?: 0)
+            else -> "?"
+        }
+    }
+
     @Test
     fun navigationShowsDestinationAndInstruction() {
         val state = NavigationState(
@@ -34,7 +50,8 @@ class NavigationNotificationContentFormatterTest {
             etaMillis = fakeNow + 30 * 60_000
         )
         val content = NavigationNotificationContentFormatter.format(
-            state, freeDrivingActive = false, etaClock = { "14:32" }, locale = Locale.US
+            state,
+            resolver = resolver, freeDrivingActive = false, etaClock = { "14:32" }, locale = Locale.US
         )
         assertEquals("Home", content.title)
         assertEquals("Turn left into Hauptstrasse", content.contentText)
@@ -48,7 +65,8 @@ class NavigationNotificationContentFormatterTest {
     fun navigationWithoutDestinationUsesNeutralTitle() {
         val state = NavigationState(isNavigating = true, nextInstruction = instruction)
         val content = NavigationNotificationContentFormatter.format(
-            state, freeDrivingActive = false, etaClock = { "--:--" }
+            state,
+            resolver = resolver, freeDrivingActive = false, etaClock = { "--:--" }
         )
         assertEquals("Navigation active", content.title)
     }
@@ -61,7 +79,8 @@ class NavigationNotificationContentFormatterTest {
             etaMillis = fakeNow + 5 * 60_000
         )
         val content = NavigationNotificationContentFormatter.format(
-            state, freeDrivingActive = false, etaClock = { "13:00" }
+            state,
+            resolver = resolver, freeDrivingActive = false, etaClock = { "13:00" }
         )
         // contentText falls back to the stats line
         assertTrue(content.contentText.contains("13:00"))
@@ -80,7 +99,8 @@ class NavigationNotificationContentFormatterTest {
             currentSpeedKmH = 112.0
         )
         val content = NavigationNotificationContentFormatter.format(
-            state, freeDrivingActive = true, etaClock = { "13:00" }
+            state,
+            resolver = resolver, freeDrivingActive = true, etaClock = { "13:00" }
         )
         assertEquals("Free driving", content.title)
         assertTrue(content.contentText.contains("A5 Autobahn"))
@@ -96,7 +116,8 @@ class NavigationNotificationContentFormatterTest {
             currentSpeedKmH = Double.NaN
         )
         val content = NavigationNotificationContentFormatter.format(
-            state, freeDrivingActive = true, etaClock = { "13:00" }
+            state,
+            resolver = resolver, freeDrivingActive = true, etaClock = { "13:00" }
         )
         assertTrue(content.contentText.contains("Offroad"))
     }
@@ -105,7 +126,8 @@ class NavigationNotificationContentFormatterTest {
     fun noDrivingModeProducesEmptyContent() {
         val state = NavigationState(isNavigating = false)
         val content = NavigationNotificationContentFormatter.format(
-            state, freeDrivingActive = false, etaClock = { "13:00" }
+            state,
+            resolver = resolver, freeDrivingActive = false, etaClock = { "13:00" }
         )
         assertTrue(content.contentText.isEmpty())
         assertFalse(content.showStopAction)
@@ -122,7 +144,8 @@ class NavigationNotificationContentFormatterTest {
         etaClock: (Long) -> String = { "13:00" }
     ): NotificationPost = NotificationPost(
         content = NavigationNotificationContentFormatter.format(
-            state, freeDriving, etaClock = etaClock, locale = Locale.US
+            state,
+            resolver = resolver, freeDrivingActive = freeDriving, etaClock = etaClock, locale = Locale.US
         ),
         hint = null
     )
@@ -204,7 +227,8 @@ class NavigationNotificationContentFormatterTest {
             etaMillis = fakeNow + 30 * 60_000
         )
         val content = NavigationNotificationContentFormatter.format(
-            state, freeDrivingActive = false, etaClock = { "13:00" }, locale = Locale.US
+            state,
+            resolver = resolver, freeDrivingActive = false, etaClock = { "13:00" }, locale = Locale.US
         )
         fun hintPost(clock: String) = NotificationPost(
             content = content,

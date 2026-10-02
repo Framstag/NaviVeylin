@@ -31,6 +31,7 @@ class SearchResultRankerTest {
         lat: Double = 51.5,
         lon: Double = 7.4,
         objectFileOffset: Long = 0L,
+        inSearchScope: Boolean = true,
         type: String = "object"
     ): LocationEntry = LocationEntry().apply {
         this.label = label
@@ -49,6 +50,7 @@ class SearchResultRankerTest {
         this.addressMatchQuality = addressQuality
         this.poiMatchQuality = poiQuality
         this.hasHouseNumber = hasHouseNumber
+        this.inSearchScope = inSearchScope
     }
 
     /** The town as libosmscout reports it: the admin region entry itself. */
@@ -331,6 +333,77 @@ class SearchResultRankerTest {
 
         val ranked = SearchResultRanker.rank(
             listOf(far, near),
+            waltrop,
+            SearchReference(51.5, 7.4)
+        )
+
+        assertEquals(listOf("A", "B"), ranked.map { it.label })
+    }
+
+    @Test
+    fun `a close match outside the scope ranks below one inside it`() {
+        // The better-quality candidate is the one a scope-less database answered
+        // with; the in-scope match must win anyway (spec: search-result-ranking).
+        val outsideScope = waltroperStrasse(lat = 51.5001).apply {
+            label = "Waltroper Straße (fremde Karte)"
+            locationMatchQuality = "match"
+            inSearchScope = false
+        }
+        val insideScope = entry(
+            label = "Waltrop Weg",
+            matchedName = "Waltrop Weg",
+            locationQuality = "candidate",
+            lat = 53.0
+        )
+
+        val ranked = SearchResultRanker.rank(
+            listOf(outsideScope, insideScope),
+            waltrop,
+            SearchReference(51.5, 7.4)
+        )
+
+        assertEquals(
+            listOf("Waltrop Weg", "Waltroper Straße (fremde Karte)"),
+            ranked.map { it.label }
+        )
+    }
+
+    @Test
+    fun `a perfect match outside the scope still precedes in-scope close matches`() {
+        // A fully qualified answer from another installed map is still the exact
+        // answer; the scope key never touches the perfect tier.
+        val outsideScopePerfect = townWaltrop(lat = 52.0).apply {
+            label = "Waltrop (fremde Karte)"
+            inSearchScope = false
+        }
+        val insideScopeClose = waltroperStrasse(lat = 51.5001)
+
+        val ranked = SearchResultRanker.rank(
+            listOf(insideScopeClose, outsideScopePerfect),
+            waltrop,
+            SearchReference(51.5, 7.4)
+        )
+
+        assertEquals(
+            listOf("Waltrop (fremde Karte)", "Waltroper Straße"),
+            ranked.map { it.label }
+        )
+    }
+
+    @Test
+    fun `an entry the bridge reports as inside the scope is not demoted`() {
+        // The default reads as in scope, so a bridge that does not set the field
+        // keeps the pre-change order (spec: osmscout-jni).
+        val unscoped = waltroperStrasse(lat = 51.55).apply { label = "A"; locationMatchQuality = "candidate" }
+        val explicitInScope = entry(
+            label = "B",
+            matchedName = "B",
+            locationQuality = "candidate",
+            lat = 51.55
+        ).apply { inSearchScope = true }
+
+        val ranked = SearchResultRanker.rank(
+            listOf(explicitInScope, unscoped),
             waltrop,
             SearchReference(51.5, 7.4)
         )

@@ -7,15 +7,29 @@ Makes every user-facing string in NaviVeylin translatable through the Android re
 ## Requirements
 
 ### Requirement: All user-facing text is translatable
-Every user-facing string in the `:app` and `:auto` modules SHALL be defined in Android string resources (`res/values/strings.xml`), never hardcoded in Kotlin. This includes button labels, titles, hints, placeholders, content descriptions, dialog text, menu entries, template titles, and error messages. Logcat-only debug output is exempt.
+Every user-facing string in every first-party module that renders user-facing text — including the `:app`, `:auto` and `:core` modules — SHALL be defined in Android string resources (`res/values/strings.xml`), never hardcoded in Kotlin. This includes button labels, titles, hints, placeholders, content descriptions, dialog text, menu entries, template titles, screen titles, notification-channel names, error messages, and count text. A shared module that composes user-facing text SHALL NOT own the wording: it SHALL take the display text (or a string resource reference) from its caller, so each surface supplies its own localized resource. Logcat-only debug output is exempt.
+
+The build SHALL enforce this over every such module's Kotlin UI sources, not only over `:app`: `HardcodedText` lint for the XML and `TextView` paths, and a source scan that covers Compose, template builders and plain factory functions. A string whose text is assembled from values SHALL NOT be exempt from the scan when it also carries display words; only a string that consists solely of substituted values (e.g. a bare `"$zoomLevel"` or a separator-joined pair) is exempt.
 
 #### Scenario: Phone UI shows no hardcoded text
-- **WHEN** the app is built with the `HardcodedText` lint check enabled
-- **THEN** the build SHALL fail if any user-facing string literal appears in Kotlin UI code
+- **WHEN** the `:app` module is built
+- **THEN** the build SHALL fail if any user-facing string literal appears in its Kotlin UI code
 
 #### Scenario: Auto UI shows no hardcoded text
-- **WHEN** the `:auto` module is built with the `HardcodedText` lint check enabled
-- **THEN** the build SHALL fail if any user-facing string literal appears in Car App Library screen or template code
+- **WHEN** the `:auto` module is built
+- **THEN** the build SHALL fail if any user-facing string literal appears in its Car App Library screen or template code
+
+#### Scenario: Shared module owns no wording
+- **WHEN** the `:core` module is built
+- **THEN** the build SHALL fail if a user-facing string literal (e.g. a generic title) appears in its Kotlin code without being supplied by the caller
+
+#### Scenario: Interpolated display text is not exempt
+- **WHEN** a user-facing string is assembled from a literal carrying display words plus a substituted value (e.g. `"$count favorite"`)
+- **THEN** the build SHALL fail, and the value SHALL be rendered through a plural resource instead
+
+#### Scenario: Notification channel name is translatable
+- **WHEN** the device locale is German and the notification settings list the app's channels
+- **THEN** every channel name and description SHALL render in German
 
 ### Requirement: English is the default locale
 The default `res/values/strings.xml` SHALL contain the complete English string set. When the device locale has no matching resource qualifier, the app SHALL display English.
@@ -29,7 +43,7 @@ The default `res/values/strings.xml` SHALL contain the complete English string s
 - **THEN** all UI text SHALL render in English
 
 ### Requirement: German is fully supported
-A `res/values-de/` resource set SHALL exist in both `:app` and `:auto` with a complete German translation of every user-facing string. German SHALL be used when the device locale is German.
+A `res/values-de/` resource set SHALL exist in the `:app`, `:auto` and `:core` modules with a complete German translation of every user-facing string and plural. German SHALL be used when the device locale is German.
 
 #### Scenario: German device locale
 - **WHEN** the device locale is German (de or de-AT, de-CH, de-DE)
@@ -37,7 +51,11 @@ A `res/values-de/` resource set SHALL exist in both `:app` and `:auto` with a co
 
 #### Scenario: German translation completeness
 - **WHEN** the German resource set is validated against the English default
-- **THEN** every string key present in `values/strings.xml` SHALL also exist in `values-de/strings.xml` (no missing translations, no untranslated placeholders)
+- **THEN** every string and plural key present in `values/` SHALL also exist in `values-de/` (no missing translations, no untranslated placeholders)
+
+#### Scenario: German car favorites titles
+- **WHEN** the device locale is German and the car favorites screen is open
+- **THEN** the screen title and the starred-favorites screen title SHALL render in German, matching the phone's labels for the same concepts
 
 ### Requirement: Locale-aware number formatting
 User-facing numeric values (distances, speeds, sizes) SHALL be formatted with the device locale, producing locale-correct decimal separators (e.g. "1,5 km" in German, "1.5 km" in English). No user-facing numeric formatting SHALL use `Locale.ROOT` or a fixed locale.
@@ -69,7 +87,7 @@ Unit suffixes ("km", "m", "MB", "m away") SHALL be defined as string resources s
 - **THEN** the unit suffix SHALL come from a string resource, not a Kotlin literal
 
 ### Requirement: Count-dependent strings use plurals
-Strings whose form depends on a count (e.g. "1 result" vs "N results") SHALL use Android plural resources with correct forms for English and German.
+Strings whose form depends on a count (e.g. "1 result" vs "N results") SHALL use Android plural resources with correct forms for English and German. The count SHALL be passed to the resource as a format argument, so the number is formatted by the resource rather than concatenated in Kotlin.
 
 #### Scenario: Singular count
 - **WHEN** exactly one search result is displayed
@@ -78,6 +96,14 @@ Strings whose form depends on a count (e.g. "1 result" vs "N results") SHALL use
 #### Scenario: Plural count
 - **WHEN** more than one search result is displayed
 - **THEN** the text SHALL use the plural form (English "N results", German "N Treffer")
+
+#### Scenario: Favorites group card shows a localized count
+- **WHEN** the device locale is German and the favorites sheet shows a group card for a group holding 3 favorites
+- **THEN** the card SHALL show the German plural form for that count (e.g. "3 Favoriten") and SHALL NOT show an English-shaped plural
+
+#### Scenario: Counted text needs no plural in English only
+- **WHEN** a count-dependent string is added
+- **THEN** its English `one`/`other` forms SHALL exist in `values/` and its German forms in `values-de/`
 
 ### Requirement: Parameterized strings use format arguments
 Strings with dynamic values SHALL use positional format arguments (`%1$s`, `%1$d`) so translators can reorder words for the target language.
@@ -125,11 +151,15 @@ Turn-by-turn instruction text produced by the native JNI bridge (hardcoded Engli
 - **THEN** turn instructions SHALL render in English (unchanged behavior)
 
 ### Requirement: Phone and Auto label parity
-The phone app and the Android Auto variant SHALL use the same string resources for shared concepts (menu entries, actions, titles), so labels match across variants in every supported locale.
+The phone app and the Android Auto variant SHALL use the same string resources for shared concepts (menu entries, actions, titles), so labels match across variants in every supported locale. A wording used by both surfaces SHALL have exactly one resource home; a surface SHALL NOT keep a Kotlin copy of wording another surface already ships as a resource.
 
 #### Scenario: Shared label parity
 - **WHEN** the device locale is German and the same action exists in both the phone app and the Auto variant (e.g. "Favorites")
 - **THEN** both variants SHALL display the identical German label
+
+#### Scenario: Shared wording has one home
+- **WHEN** the phone and the car display the same concept text (e.g. a neutral navigation title)
+- **THEN** both SHALL resolve it from the same resource, with no duplicated Kotlin literal on either surface
 
 ### Requirement: Diagnostics UI text is translated
 User-facing diagnostics and session-log UI (dialog titles, buttons, empty states) SHALL be translated like any other UI text. Logcat-only debug messages SHALL remain untranslated.

@@ -675,6 +675,33 @@ car Surface:
   keeps no DPI of its own, so an AA session and the phone canvas sharing one process cannot
   change each other's frame scale; `TileCache` keys a tile by the DPI it was rendered at,
   because the pixels depend on it.
+- **Loop liveness — a fault costs one frame, never the pipeline** (change
+  `fix-car-render-loop-restart`, spec `car-host-fault-isolation` — "A fault in one frame keeps the
+  frames coming"; design D1/D2/D7): all three loops (the `renderSignal` consumer in
+  `startRenderLoop`, `startExtrapolationLoop`, `startZoomWalkLoop`) run their iteration body through
+  `RenderLoopSupervisor.runIteration(RenderLoop.X) { … }` — the extracted `frameIteration()`,
+  `displayTickIteration()`, `zoomWalkIteration()` are the testable form. The guard **must stay
+  inside the `renderSignal.collect` body**: a throw that escapes the collector ends it and every
+  later `requestRender()` is dropped while the surface stays on its last frame (the `TODO.md` §51
+  freeze). `CancellationException` is rethrown by the guard — a cancelled scope must end the loop.
+  `frameIteration()` additionally returns early for `isShutdown`/`paused`/`surfaceFailed`, so a
+  stopped screen neither draws nor counts a fault (it cannot drive the ladder).
+- **Diagnosing a frozen or degraded car map** (same change): one `adb logcat -s Diag/MAP` line per
+  fault streak, per re-creation and at the degrade transition, all identity-only:
+  - `renderer frame fault #1: IllegalStateException (recoveries=0)` — `<loop>` is `frame`,
+    `extrapolation` or `zoom-walk`; further skips in the same streak are throttled to one entry
+    per 5 s;
+  - `renderer frame: re-creating after 3 consecutive faults (attempt 1/2)` — the gate shuts the
+    old renderer down, publishes a new one (the state slots replay: viewport, follow anchor,
+    presentation, pane geometry, marker/favorites/route/destination, overlay drawer) and the screen
+    re-attaches the session's surface;
+  - `renderer frame: degraded after 2 re-creation(s), last fault IllegalStateException` — the
+    budget for this started screen period is spent; the screens log `map state -> DEGRADED`
+    (`MapScreen`/`NavigationScreen`/`FreeDrivingScreen`/`DetailsScreen`) and show `map_unavailable`
+    (a disabled content row on the map/details screens, a surface-drawn notice on the two
+    `NavigationTemplate` screens, which have no content slot). `onStart` re-arms the budget.
+  A fault here is **not** the dead-surface path: `surfaceFailed` (a surface that cannot be locked)
+  still stops the loop deliberately and asks the host for a fresh surface (`MAX_SURFACE_REFRESH_ATTEMPTS`).
 
 ---
 

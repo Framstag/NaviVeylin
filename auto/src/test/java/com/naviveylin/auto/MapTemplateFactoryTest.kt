@@ -23,6 +23,9 @@ class MapTemplateFactoryTest {
 
     private fun menuContent(): ListTemplate = MapTemplateFactory.buildMenuContent(testCarContext(), noop, noop, noop, noop, noop, noop, noop)
 
+    private fun degradedMenuContent(): ListTemplate =
+        MapTemplateFactory.buildMenuContent(testCarContext(), noop, noop, noop, noop, noop, noop, noop, mapUnavailable = true)
+
     private fun controller(): MapController = MapController.Builder().build()
 
     @Test
@@ -53,6 +56,31 @@ class MapTemplateFactoryTest {
             titles
         )
         assertTrue(rows.all { (it as androidx.car.app.model.Row).onClickDelegate != null })
+    }
+
+    @Test
+    fun theDegradedNoticeIsADisabledFirstRow() {
+        // Spec: car-host-fault-isolation — A repeatedly faulting car renderer recovers, then
+        // degrades visibly: when the map cannot be drawn (and the surface therefore cannot be
+        // trusted to carry the message), the host-drawn content list states it. Not clickable —
+        // it is a state statement, not an action.
+        val rows = degradedMenuContent().singleList!!.items.map { it as androidx.car.app.model.Row }
+
+        assertEquals(
+            "the notice leads the list",
+            testCarContext().getString(R.string.map_unavailable),
+            rows.first().title.toString()
+        )
+        assertEquals("not clickable", null, rows.first().onClickDelegate)
+        assertEquals("the normal rows stay", 8, rows.size)
+    }
+
+    @Test
+    fun aHealthyMapCarriesNoNotice() {
+        val titles = menuContent().singleList!!.items
+            .map { (it as androidx.car.app.model.Row).title.toString() }
+
+        assertTrue(titles.none { it == testCarContext().getString(R.string.map_unavailable) })
     }
 
     @Test

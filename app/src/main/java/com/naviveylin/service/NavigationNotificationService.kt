@@ -64,7 +64,7 @@ class NavigationNotificationService : Service() {
         // keep re-rendering from the observer.
         val state = navigationViewModel.state.value
         val freeDriving = drivingModeProvider.freeDrivingActive.value
-        val content = NavigationNotificationContentFormatter.format(state, freeDriving)
+        val content = NavigationNotificationContentFormatter.format(state, freeDriving, stringResolver())
         val hint = carHintFor(state)
         // The foreground post is unconditional (the FGS contract), but it also seeds
         // the dedup baseline for the observer's later posts.
@@ -131,7 +131,7 @@ class NavigationNotificationService : Service() {
     }
 
     private fun render(navState: com.naviveylin.core.NavigationState, freeDriving: Boolean) {
-        val content = NavigationNotificationContentFormatter.format(navState, freeDriving)
+        val content = NavigationNotificationContentFormatter.format(navState, freeDriving, stringResolver())
         val hint = carHintFor(navState)
         val post = NotificationPost(content, hint)
         // Re-post only when the host-visible content changed (spec:

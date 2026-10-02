@@ -191,12 +191,12 @@ class DetailsResolverTest {
                 entry("General", "Type", "restaurant")
             )
         )
-        assertEquals("Mario's", DetailsResolver.resolveTitle(input))
+        assertEquals("Mario's", title(input))
     }
 
     @Test
     fun titleFallsBackToEntryName() {
-        assertEquals("Mario's", DetailsResolver.resolveTitle(input(name = "Mario's")))
+        assertEquals("Mario's", title(input(name = "Mario's")))
     }
 
     @Test
@@ -208,25 +208,29 @@ class DetailsResolverTest {
             ),
             resolved = arrayOf("", "", "Dortmund", "44139")
         )
-        assertEquals("Kleppingstr. 22, 44139 Dortmund", DetailsResolver.resolveTitle(input))
+        assertEquals("Kleppingstr. 22, 44139 Dortmund", title(input))
     }
 
     @Test
     fun titleFallsBackToLabel() {
-        assertEquals("Mario's", DetailsResolver.resolveTitle(input(label = "Mario's")))
+        assertEquals("Mario's", title(input(label = "Mario's")))
     }
 
     @Test
     fun titleFallsBackToNameHint() {
         assertEquals(
             "Mario's",
-            DetailsResolver.resolveTitle(input(), nameHint = "Mario's")
+            title(input(), nameHint = "Mario's")
         )
     }
 
     @Test
     fun titleFallsBackToGeneric() {
-        assertEquals("Location", DetailsResolver.resolveTitle(input()))
+        // The resolver owns no display word (spec: i18n-l10n — shared module
+        // owns no wording): the caller's generic title is what comes back, not
+        // a built-in English literal.
+        assertEquals(genericTitle, title(input()))
+        assertEquals("Standort", DetailsResolver.resolveTitle(input(), "Standort"))
     }
 
     @Test
@@ -245,14 +249,14 @@ class DetailsResolverTest {
 
     @Test
     fun titleExcludesCoordinateLabel() {
-        // Long-press labels are coordinates — not titles (AA approach).
-        assertEquals("Location", DetailsResolver.resolveTitle(input(label = "51.50000, 7.40000")))
-        assertEquals("Location", DetailsResolver.resolveTitle(input(label = "51.50000, 7.40000"), nameHint = null))
+        // Long-press labels are coordinates — not titles.
+        assertEquals(genericTitle, title(input(label = "51.50000, 7.40000")))
+        assertEquals(genericTitle, title(input(label = "51.50000, 7.40000"), nameHint = null))
     }
 
     @Test
     fun titleUsesNonCoordinateLabel() {
-        assertEquals("Mario's", DetailsResolver.resolveTitle(input(label = "Mario's")))
+        assertEquals("Mario's", title(input(label = "Mario's")))
     }
 
     @Test
@@ -268,7 +272,7 @@ class DetailsResolverTest {
             val label = formatCoordinatePair(51.5, 7.4)
             assertEquals("51.50000, 7.40000", label)
 
-            assertEquals("Location", DetailsResolver.resolveTitle(input(label = label)))
+            assertEquals(genericTitle, title(input(label = label)))
             assertNull(DetailsResolver.resolveAddress(input(label = label)))
         } finally {
             Locale.setDefault(previous)
@@ -291,7 +295,7 @@ class DetailsResolverTest {
                 entry("General", "OpeningHours", "Mo-Fr 09:00-18:00")
             )
         )
-        val data = DetailsResolver.resolve(input)
+        val data = DetailsResolver.resolve(input, genericTitle)
         assertEquals("Hauptstraße 12, Dortmund", data.title)
         assertEquals("Hauptstraße 12, Dortmund", data.address)
         assertEquals("Eving/Dortmund/Dortmund", data.area)
@@ -384,7 +388,7 @@ class DetailsResolverTest {
         )
         // Phone compose test expects "Hauptstraße 12, Dortmund" (title + row).
         assertEquals("Hauptstraße 12, Dortmund", DetailsResolver.resolveAddress(input))
-        assertEquals("Hauptstraße 12, Dortmund", DetailsResolver.resolveTitle(input))
+        assertEquals("Hauptstraße 12, Dortmund", title(input))
         assertEquals("Eving/Dortmund/Dortmund", DetailsResolver.resolveArea(input))
     }
 
@@ -400,7 +404,7 @@ class DetailsResolverTest {
             description = desc
         )
         assertEquals("12, Dortmund", DetailsResolver.resolveAddress(input))
-        assertEquals("12, Dortmund", DetailsResolver.resolveTitle(input))
+        assertEquals("12, Dortmund", title(input))
     }
 
     @Test
@@ -460,7 +464,7 @@ class DetailsResolverTest {
             postal = entry.postalArea,
             description = desc
         )
-        assertEquals("Mario's", DetailsResolver.resolveTitle(input))
+        assertEquals("Mario's", title(input))
     }
 
     @Test
@@ -477,8 +481,14 @@ class DetailsResolverTest {
             postal = entry.postalArea,
             description = desc
         )
-        assertEquals("Hauptstraße 12", DetailsResolver.resolveTitle(input))
+        assertEquals("Hauptstraße 12", title(input))
     }
+
+    private val genericTitle = "Standort (test)"
+
+    /** Title with the test's generic title, the way a surface calls the resolver. */
+    private fun title(input: DetailsInput, nameHint: String? = null): String =
+        DetailsResolver.resolveTitle(input, genericTitle, nameHint)
 
     private fun objectDescription(vararg entries: DescriptionEntry): ObjectDescription =
         ObjectDescription(entries.toList(), 51.5, 7.4)

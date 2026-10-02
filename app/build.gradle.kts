@@ -324,44 +324,26 @@ kover {
     }
 }
 
-// i18n gate (fallback for lint HardcodedText, which does not flag Compose
-// literals): fail the build on string literals in UI text positions.
-// See guidelines/UI.md — Internationalisation / Localisation.
+// i18n gate (spec: i18n-l10n — All user-facing text is translatable). The rule,
+// its exemptions and its message live in `buildSrc`
+// (`com.naviveylin.build.i18n.HardcodedStringScanner`, unit-tested), because the
+// three blind spots it closes — a literal in `:core`, a literal that interpolates
+// (`"$favCount favorite"`), and a `NotificationChannel` name — are each a defect
+// this gate existed for. It scans the same three source roots as the diagnostics
+// gate so one `:app` build covers every module that renders user-facing text.
 val checkHardcodedStrings by tasks.registering {
-    val sourceDir = file("src/main/java")
-    inputs.dir(sourceDir)
+    val sourceDirs = listOf(
+        file("src/main/java"),
+        rootProject.file("auto/src/main/java"),
+        rootProject.file("core/src/main/java")
+    )
+    inputs.files(sourceDirs)
     doLast {
-        val patterns = listOf(
-            Regex(
-                """(?:Text\(|text\s*=|label\s*=|title\s*=|contentDescription\s*=|placeholder\s*=|hint\s*=|\.setTitle\(|\.addText\(|\.setText\()\s*"([^"]+)"""
-            ),
-            // Conditional assignments: contentDescription = if (x) "A" else "B"
-            Regex("""(?:contentDescription|text|label|title)\s*=\s*if\s*\([^)]*\)\s*"([^"]+)"""),
-            Regex("""(?:contentDescription|text|label|title)\s*=\s*[^"]*\belse\s*"([^"]+)""")
-        )
-        val violations = mutableListOf<String>()
-        sourceDir.walkTopDown().filter { it.extension == "kt" }.forEach { file ->
-            file.readLines().forEachIndexed { idx, line ->
-                patterns.forEach { pattern ->
-                    pattern.findAll(line).forEach { m ->
-                        val literal = m.groupValues[1]
-                    // Skip dynamic template strings (e.g. "${zoomLevel}") — not hardcoded text
-                    if (literal.contains("\${")) return@forEach
-                    // Skip format templates (e.g. "%.5f, %.5f") — numeric formats, not display text
-                    if (literal.contains('%')) return@forEach
-                    // Skip camelCase identifiers (e.g. animation labels like "compassRotation")
-                    if (Regex("^[a-z][a-zA-Z0-9]*$").matches(literal)) return@forEach
-                    // Skip pure-symbol separators (e.g. "|", "-", "+")
-                    if (Regex("^[^a-zA-Z0-9]+$").matches(literal)) return@forEach
-                    violations += "${file.relativeTo(projectDir)}:${idx + 1}: $literal"
-                    }
-                }
-            }
-        }
-        if (violations.isNotEmpty()) {
+        val findings = com.naviveylin.build.i18n.HardcodedStringGate
+            .scanTrees(sourceDirs, rootProject.projectDir)
+        if (findings.isNotEmpty()) {
             throw GradleException(
-                "Hardcoded user-facing strings found (i18n gate) — move them to res/values/strings.xml:\n" +
-                    violations.joinToString("\n")
+                com.naviveylin.build.i18n.HardcodedStringScanner.report(findings)
             )
         }
     }

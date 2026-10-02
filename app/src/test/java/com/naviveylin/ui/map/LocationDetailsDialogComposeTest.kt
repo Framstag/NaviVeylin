@@ -13,11 +13,13 @@ import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.ObjectDescription
+import com.naviveylin.R
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import java.util.Locale
 
 /**
@@ -301,11 +303,34 @@ class LocationDetailsDialogComposeTest {
     @Test
     fun coordinateLabelTitleShowsGenericLocation() {
         // Long-press label is a coordinate pair — not a title (spec:
-        // enhanced-details-sheet — coordinate label falls back to generic).
+        // enhanced-details-sheet — coordinate label falls back to generic
+        // title). The word comes from the surface's resource, not from :core.
         launch(entry(label = "51.50000, 7.40000", admin = null))
 
-        composeRule.onNodeWithText("Location").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            composeRule.activity.getString(R.string.location_title_generic)
+        ).assertIsDisplayed()
         // The coordinates row still shows the pair — but only once (no title).
         composeRule.onAllNodesWithText("51.50000, 7.40000").assertCountEquals(1)
+    }
+
+    @Test
+    fun coordinateLabelTitleRendersInTheDeviceLanguage() {
+        // Spec: enhanced-details-sheet — Generic title renders in the device
+        // language. A German device must not read the English word "Location".
+        RuntimeEnvironment.setQualifiers("de")
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+            val german = RuntimeEnvironment.getApplication().getString(R.string.location_title_generic)
+            assertTrue("values-de must translate the generic title", german != "Location")
+
+            launch(entry(label = "51.50000, 7.40000", admin = null))
+
+            composeRule.onNodeWithText(german).assertIsDisplayed()
+            composeRule.onNodeWithText("Location").assertDoesNotExist()
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 }

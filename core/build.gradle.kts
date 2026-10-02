@@ -21,6 +21,14 @@ android {
     buildFeatures {
         compose = false
     }
+
+    lint {
+        // i18n gate: HardcodedText elevated to error via lint.xml, like :app and
+        // :auto (spec: i18n-l10n — Shared module owns no wording).
+        lintConfig = file("lint.xml")
+        checkReleaseBuilds = true
+        abortOnError = true
+    }
 }
 
 // ── Test coverage (Kover) ───────────────────────────────────────────────
@@ -45,6 +53,26 @@ kover {
         }
     }
 }
+
+// i18n gate (spec: i18n-l10n — All user-facing text is translatable, Shared module
+// owns no wording): `:core` composes user-facing text for both surfaces, so a
+// literal here (the shared details resolver's generic title was one) is a defect
+// the app-side gate could not see. The rule lives in `buildSrc`
+// (`com.naviveylin.build.i18n.HardcodedStringScanner`, unit-tested).
+val checkHardcodedStrings by tasks.registering {
+    val sourceDirs = listOf(file("src/main/java"))
+    inputs.files(sourceDirs)
+    doLast {
+        val findings = com.naviveylin.build.i18n.HardcodedStringGate
+            .scanTrees(sourceDirs, rootProject.projectDir)
+        if (findings.isNotEmpty()) {
+            throw GradleException(
+                com.naviveylin.build.i18n.HardcodedStringScanner.report(findings)
+            )
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 
 dependencies {
     implementation(project(":osmscout-client-java"))

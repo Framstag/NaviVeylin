@@ -129,7 +129,7 @@ The details dialog SHALL display the object's area as a structured list entry wi
 - **THEN** no area list entry SHALL be shown
 
 ### Requirement: Title shows name or address
-The details dialog SHALL show the object's name as the title when the object has a name. When the object has no name but has an address, the address SHALL be shown as the title instead. Otherwise the search label SHALL be shown, unless the label is a coordinate pair, in which case a generic "Location" title SHALL be shown.
+The details dialog SHALL show the object's name as the title when the object has a name. When the object has no name but has an address, the address SHALL be shown as the title instead. Otherwise the search label SHALL be shown, unless the label is a coordinate pair, in which case a generic location title SHALL be shown, taken from a localized string resource supplied by the surface that renders the dialog (so it renders in the device language and matches the title the Android Auto details screen shows for the same destination).
 
 #### Scenario: Title shows object name
 - **WHEN** the details dialog is open
@@ -152,7 +152,17 @@ The details dialog SHALL show the object's name as the title when the object has
 - **WHEN** the details dialog is open
 - **AND** the object has neither a name nor an address
 - **AND** the search label is a coordinate pair (e.g. "51.50000, 7.40000")
-- **THEN** the title SHALL display a generic "Location" title
+- **THEN** the title SHALL display the surface's generic location title
+
+#### Scenario: Generic title renders in the device language
+- **WHEN** the device locale is German
+- **AND** the details dialog is open on a coordinate label with no name and no address
+- **THEN** the title SHALL render the German generic location title and SHALL NOT render the English word "Location"
+
+#### Scenario: Generic title matches on both surfaces
+- **WHEN** the device locale is German
+- **AND** the same coordinate destination is opened on the phone details dialog and on the Android Auto details screen
+- **THEN** both titles SHALL show the same German generic location title
 
 ### Requirement: Address entry when house number present
 The details dialog SHALL display the object's address as a list entry when the object has a house number. The address SHALL combine the street and the house number from the object description's address entries ("Location" = street, "Address" = house number) with the postal code and city; when the description lacks a street, the street SHALL be taken from a reverse lookup of the location index at the object's position (which also supplies the admin region and postal area). The standalone street row SHALL NOT be duplicated when the combined address is shown.

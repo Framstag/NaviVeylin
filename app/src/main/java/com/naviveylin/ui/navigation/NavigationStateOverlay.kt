@@ -81,7 +81,7 @@ fun NavigationStateOverlay(
             ) {
                 // Current road name row (above stats)
                 Text(
-                    text = currentRoadText(currentRoadInfo),
+                    text = currentRoadText(currentRoadInfo, stringResource(R.string.road_offroad)),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
@@ -238,8 +238,10 @@ internal fun NavigationStatsRow(
     }
 }
 
-/** Current road name text ("ref name" or "Offroad"), shared with the expanded details view. */
-internal fun currentRoadText(currentRoadInfo: CurrentRoadInfo?): String {
+/** Current road name text ("ref name", or the caller's off-road label), shared with the
+ *  expanded details view. The off-road wording is a resource owned by the surface that
+ *  renders it (spec: i18n-l10n — All user-facing text is translatable). */
+internal fun currentRoadText(currentRoadInfo: CurrentRoadInfo?, offroadLabel: String): String {
     return when {
         currentRoadInfo != null && currentRoadInfo.hasInfo() -> {
             listOfNotNull(
@@ -247,7 +249,7 @@ internal fun currentRoadText(currentRoadInfo: CurrentRoadInfo?): String {
                 currentRoadInfo.name.takeIf { it.isNotEmpty() }
             ).joinToString(" ")
         }
-        else -> "Offroad"
+        else -> offroadLabel
     }
 }
 

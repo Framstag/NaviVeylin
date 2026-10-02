@@ -53,14 +53,23 @@ internal data class DestinationMarkerState(
  *   configured physical DPI, NOT the car surface DPI). Used to draw the GPS
  *   marker overlay in the same projection as the map bitmap.
  */
-class AutoMapRenderer(
+class AutoMapRenderer internal constructor(
     private val client: OSMScoutClient,
     initialProjectionDpi: Double,
     initialLat: Double = DEFAULT_LATITUDE,
     initialLon: Double = DEFAULT_LONGITUDE,
     initialZoom: Int = DEFAULT_ZOOM,
     /** Start in follow mode (re-center on GPS fixes); false for "show location" maps. */
-    initialFollowMode: Boolean = true
+    initialFollowMode: Boolean = true,
+    /**
+     * Per-iteration fault confinement and the re-creation ladder for this renderer's loops
+     * (spec: car-host-fault-isolation — No fault escapes into the host path; A repeatedly
+     * faulting car renderer recovers, then degrades visibly; design D1/D2).
+     *
+     * Owned by the renderer gate, so one supervisor spans the renderer instances of a
+     * started screen period and the re-creation budget survives an instance swap.
+     */
+    private val loops: RenderLoopSupervisor = RenderLoopSupervisor()
 ) {
 
     /**
@@ -307,10 +316,27 @@ class AutoMapRenderer(
     private val SURFACE_FAILURE_CALLBACK_INTERVAL_MS = 5_000L
 
     init {
+        // The supervisor runs on this renderer's dispatcher (the loops' thread); its
+        // re-creation and degraded reports are handed to the owner, which posts them to the
+        // main thread — the renderer gate is a main-thread object (design D3).
+        loops.onRecoveryRequested { attempt -> onRendererRecoveryRequested?.invoke(attempt) }
+        loops.onDegraded { loop, _ -> onRendererDegraded?.invoke(loop) }
         startRenderLoop()
         startExtrapolationLoop()
         startZoomWalkLoop()
     }
+
+    /**
+     * Reports that the loop fault storm reached the re-creation threshold (design D2). Invoked
+     * from the render thread with the attempt number; the owner posts to the main thread.
+     */
+    internal var onRendererRecoveryRequested: ((attempt: Int) -> Unit)? = null
+
+    /**
+     * Reports that the re-creation budget is exhausted and the map cannot be drawn (design
+     * D7). Invoked from the render thread; the owner posts to the main thread.
+     */
+    internal var onRendererDegraded: ((loop: RenderLoop) -> Unit)? = null
 
     // Exposed viewport state for UI
     private val _viewportState = MutableStateFlow(
@@ -797,10 +823,71 @@ class AutoMapRenderer(
                 if (ts == lastRender) return@collect
                 delay(RENDER_DEBOUNCE_MS)
                 lastRender = renderSignal.value
-                if (!pendingRender) return@collect
-                pendingRender = false
-                renderFrame()
+                // One frame per iteration, confined: without the guard a throwing frame ended
+                // this collector, so every later `requestRender()` was dropped and the surface
+                // stayed on its last frame until the screen was re-entered (TODO.md §51;
+                // spec: car-host-fault-isolation — A fault in one frame keeps the frames coming).
+                frameIteration()
             }
+        }
+    }
+
+    /**
+     * Test seam (never set outside tests — `guidelines/Build.md` §6 forbids pacing a unit test
+     * off a timer, so the confinement cases drive a real fault through this instead). The named
+     * loop's next iteration throws before doing its work.
+     */
+    internal var testIterationFault: RenderLoop? = null
+
+    private fun maybeFailForTest(loop: RenderLoop) {
+        if (testIterationFault == loop) error("injected ${loop.label} fault")
+    }
+
+    /**
+     * One iteration of the render loop: consumes a pending render request and draws the frame,
+     * confining a fault to this iteration (spec: car-host-fault-isolation — A fault in one frame
+     * keeps the frames coming; design D1). Extracted so the confinement is testable without the
+     * loop's debounce.
+     */
+    internal fun frameIteration() {
+        // A stopped (or shut-down, or dead-surface) renderer performs no iteration — and therefore
+        // can neither draw nor count a fault, so a screen that is not started cannot drive the
+        // re-creation ladder (spec: car-host-fault-isolation — Fresh screen start re-arms the
+        // recovery budget). The loop's own gate already returns early; this is the same rule at the
+        // iteration, which is what the tests can drive deterministically.
+        if (isShutdown || paused || surfaceFailed) return
+        if (!pendingRender) return
+        pendingRender = false
+        loops.runIteration(RenderLoop.FRAME) {
+            maybeFailForTest(RenderLoop.FRAME)
+            renderFrame()
+        }
+    }
+
+    /** Consecutive confined faults of the current streak — exposed for tests. */
+    internal fun loopFaultStreak(): Int = loops.currentStreak()
+
+    /**
+     * One iteration of the displayed-frame loop, confined (spec: car-host-fault-isolation — A
+     * fault in a display tick keeps the follow pipeline running; design D1).
+     */
+    internal fun displayTickIteration(nowMs: Long, dtSec: Double) {
+        loops.runIteration(RenderLoop.EXTRAPOLATION) {
+            maybeFailForTest(RenderLoop.EXTRAPOLATION)
+            extrapolationTick(nowMs, dtSec)
+        }
+    }
+
+    /**
+     * One iteration of the zoom-transition loop — the eased magnification and the walk are one
+     * step, so a fault skips the pair (spec: car-host-fault-isolation — A fault in a display tick
+     * keeps the follow pipeline running; design D1).
+     */
+    internal fun zoomWalkIteration(nowMs: Long, dtSec: Double) {
+        loops.runIteration(RenderLoop.ZOOM_WALK) {
+            maybeFailForTest(RenderLoop.ZOOM_WALK)
+            if (!extrapolationGateActive(nowMs)) advanceDisplayedMagnification(dtSec)
+            advanceZoomWalk()
         }
     }
 
@@ -837,7 +924,9 @@ class AutoMapRenderer(
                 }
                 val dtSec = if (lastFrameMs > 0) (nowMs - lastFrameMs) / 1000.0 else 0.016
                 lastFrameMs = nowMs
-                extrapolationTick(nowMs, dtSec)
+                // One displayed-frame step per iteration, confined (spec: car-host-fault-isolation
+                // — A fault in a display tick keeps the follow pipeline running).
+                displayTickIteration(nowMs, dtSec)
                 delay(EXTRAPOLATION_FRAME_MS)
             }
         }
@@ -868,8 +957,9 @@ class AutoMapRenderer(
                         ZOOM_WALK_FRAME_MS / 1000.0
                     }
                     lastFrameMs = nowMs
-                    if (!extrapolationGateActive(nowMs)) advanceDisplayedMagnification(dtSec)
-                    advanceZoomWalk()
+                    // One transition step per iteration, confined (spec: car-host-fault-isolation
+                    // — A fault in a display tick keeps the follow pipeline running).
+                    zoomWalkIteration(nowMs, dtSec)
                 } else {
                     lastFrameMs = 0L
                 }

@@ -19,7 +19,8 @@ enum class SearchMatchTier { PERFECT, CLOSE }
  * The rule, in one sentence: a result is a *perfect match* when every attribute
  * the query names matched exactly and the result carries no criterion-class
  * attribute the query did not name; perfect matches come first, ordered by
- * distance, then close matches by match quality and distance.
+ * distance, then close matches by match quality and distance, with results
+ * outside the active search scope behind those inside it.
  */
 object SearchResultRanker {
 
@@ -95,8 +96,16 @@ object SearchResultRanker {
 
     /**
      * Order [entries] for display: perfect matches first (nearest first), then
-     * close matches by match quality and distance, with a deterministic label
-     * tie-break so the same query always produces the same list. Truncation to
+     * close matches by scope, match quality and distance, with a deterministic
+     * label tie-break so the same query always produces the same list.
+     *
+     * The scope key applies to close matches only (spec: search-result-ranking —
+     * result ordering by tier then distance): an entry the bridge reports as
+     * outside the active search scope (`inSearchScope == false`, a loaded
+     * database that could not honour the region) ranks below every close match
+     * inside it, even one of worse match quality. The perfect-match tier is
+     * untouched, so a fully qualified query for another installed map still wins
+     * with its exact answer (spec: location-search). Truncation to
      * [DISPLAY_LIMIT] is the caller's job, after this ordering.
      */
     fun rank(
@@ -107,7 +116,8 @@ object SearchResultRanker {
         val (perfect, close) = entries.partition { isPerfectMatch(it, criteria) }
         return perfect.sortedWith(byDistanceThenLabel(reference)) +
             close.sortedWith(
-                compareByDescending<LocationEntry> { qualityPoints(it) }
+                compareByDescending<LocationEntry> { it.inSearchScope }
+                    .then(compareByDescending<LocationEntry> { qualityPoints(it) })
                     .then(byDistanceThenLabel(reference))
             )
     }

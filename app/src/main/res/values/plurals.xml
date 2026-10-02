@@ -8,4 +8,14 @@
         <item quantity="one">%d active download</item>
         <item quantity="other">%d active downloads</item>
     </plurals>
+    <!-- Favorites group card subtitle (spec: i18n-l10n — Favorites group card shows a
+         localized count). The count is passed as the format argument. -->
+    <plurals name="favorite_count">
+        <item quantity="one">%d favorite</item>
+        <item quantity="other">%d favorites</item>
+    </plurals>
+    <plurals name="map_downloading_maps">
+        <item quantity="one">Downloading %d map…</item>
+        <item quantity="other">Downloading %d maps…</item>
+    </plurals>
 </resources>

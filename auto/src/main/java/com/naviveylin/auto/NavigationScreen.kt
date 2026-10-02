@@ -143,6 +143,15 @@ class NavigationScreen(
 
     /** Surface-refresh (invalidate) attempts left for this screen start. */
     private var surfaceRefreshAttempts = 0
+
+    /**
+     * True once the map could not be drawn any more (spec: car-host-fault-isolation — A
+     * repeatedly faulting car renderer recovers, then degrades visibly; design D5).
+     *
+     * This screen's template is a `NavigationTemplate` and has no content slot, so the notice is
+     * drawn on the map surface in the overlay below — the host chrome cannot state it.
+     */
+    private var mapDegraded = false
     private var surfaceHeight = 0
     private var surfaceDpi = DEFAULT_DPI
     // Host-reported stable area (surface pixels; empty = unknown): the hint
@@ -208,7 +217,12 @@ class NavigationScreen(
      * constructor never blocks the main thread and never first-touches the
      * Hilt native-client singleton on the host thread.
      */
-    private val rendererGate = RendererGate()
+    /**
+     * Renderer-bound state and the map's availability state (spec: car-host-fault-isolation — A
+     * repeatedly faulting car renderer recovers, then degrades visibly). Internal so tests can
+     * drive the availability state and assert what the screen carries.
+     */
+    internal val rendererGate = RendererGate()
     private var rendererInitJob: Job? = null
 
     /**
@@ -309,6 +323,11 @@ class NavigationScreen(
                 density = density,
                 usableBounds = stableArea
             )
+            // The map is gone (design D5): the host template has no slot for this text, so the
+            // app draws it — the surface keeps its last frame, which is where the driver reads it.
+            if (mapDegraded) {
+                MapUnavailableOverlay.draw(canvas, w, h, density, carContext.getString(R.string.map_unavailable))
+            }
         })
 
         // Renderer readiness: wire surface-failure recovery and re-push the
@@ -337,9 +356,31 @@ class NavigationScreen(
                         }
                     }
                 }
+                // Loop-fault recovery (spec: car-host-fault-isolation — A repeatedly faulting
+                // car renderer recovers, then degrades visibly; design D3/D4): the renderer
+                // reports from its own dispatcher, the gate is a main-thread object.
+                renderer.onRendererRecoveryRequested = {
+                    postTemplateRefresh { rendererGate.onRendererRecoveryRequested() }
+                }
+                renderer.onRendererDegraded = {
+                    postTemplateRefresh { rendererGate.markDegraded() }
+                }
                 // The startup push was skipped while the client was still
                 // building — apply the resolved presentation now.
                 pushDark()
+            }
+        }
+
+        // Map availability (design D5): the gate owns the state, this screen draws it on the
+        // surface (no content slot on a NavigationTemplate). Main thread only.
+        scope.launch {
+            rendererGate.rendererState.collect { state ->
+                val degraded = state == RendererState.DEGRADED
+                if (degraded != mapDegraded) {
+                    mapDegraded = degraded
+                    Log.w(TAG, "map state -> $state")
+                    postTemplateRefresh { invalidate() }
+                }
             }
         }
 
@@ -361,13 +402,31 @@ class NavigationScreen(
             // constructed while the screen is being destroyed"). The renderer starts with
             // the car display's density and adopts the delivered surface DPI; every render
             // request carries it (spec: `render-projection-dpi`).
+            // Loop-fault recovery (spec: car-host-fault-isolation — A repeatedly faulting car
+            // renderer recovers, then degrades visibly; design D3/D4): the screen owns the
+            // construction arguments and the surface re-attach, the gate the instance swap; the
+            // supervisor comes from the gate so the budget spans the swap.
+            rendererGate.rendererFactory = { supervisor ->
+                AutoMapRenderer(
+                    client,
+                    carContext.resources.displayMetrics.densityDpi.toDouble(),
+                    DEFAULT_LAT,
+                    DEFAULT_LON,
+                    DEFAULT_AA_ZOOM,
+                    loops = supervisor
+                )
+            }
+            rendererGate.reattachSurface = {
+                guardedHostCall("attach surface (renderer re-created)") { surfaceHost.attach(surfaceOwner) }
+            }
             rendererGate.publish(
                 AutoMapRenderer(
                     client,
                     carContext.resources.displayMetrics.densityDpi.toDouble(),
                     DEFAULT_LAT,
                     DEFAULT_LON,
-                    DEFAULT_AA_ZOOM
+                    DEFAULT_AA_ZOOM,
+                    loops = rendererGate.renderSupervisor
                 )
             )
         }
@@ -426,6 +485,9 @@ class NavigationScreen(
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
+                // A fresh started period re-arms the fault counters and the re-creation budget
+                // (design D7).
+                rendererGate.startPeriod()
                 surfaceHost.attach(surfaceOwner)
                 rendererGate.resume()
                 reloadLiveSettings()

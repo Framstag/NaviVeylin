@@ -38,6 +38,11 @@
     <string name="coordinates">Coordinates</string>
     <string name="address">Address</string>
     <string name="area">Area</string>
+    <!-- Details title when the destination has no name, no address and only a coordinate
+         label (spec: enhanced-details-sheet — Generic title renders in the device language). -->
+    <string name="location_title_generic">Location</string>
+    <!-- Row title for a favorite the store holds without a name. -->
+    <string name="unnamed_favorite">Favorite</string>
     <string name="offline_nav_tagline">Offline OpenStreetMap navigation</string>
     <string name="version">Version</string>
     <string name="map_data">Map data</string>
@@ -87,4 +92,9 @@
     <string name="map_style_notification_channel_name">Map style</string>
     <string name="map_style_notification_channel_description">Reports a map style that could not be loaded</string>
     <string name="map_style_notification_title">Map style problem</string>
+
+    <!-- The car map could not be drawn after repeated renderer faults (spec:
+         car-host-fault-isolation — A repeatedly faulting car renderer recovers, then
+         degrades visibly). Shown as a content row and drawn on the map surface. -->
+    <string name="map_unavailable">Map unavailable</string>
 </resources>

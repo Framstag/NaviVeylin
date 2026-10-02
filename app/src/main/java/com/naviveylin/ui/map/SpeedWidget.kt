@@ -15,9 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.naviveylin.R
 import kotlin.math.roundToInt
 
 /**
@@ -78,7 +80,7 @@ fun SpeedWidget(
             // does not resize when the speed value changes (e.g. 48 → 120 km/h)
             // or the source switches (follow mode ↔ navigation).
             Text(
-                text = MAX_SPEED_TEXT,
+                text = stringResource(R.string.speed_unit_kmh, MAX_SPEED_VALUE),
                 color = Color.Transparent,
                 style = speedBadgeTextStyle(),
                 fontWeight = FontWeight.Bold,
@@ -86,7 +88,7 @@ fun SpeedWidget(
             )
             if (hasSpeed) {
                 Text(
-                    text = "${currentSpeedKmH.roundToInt()} km/h",
+                    text = stringResource(R.string.speed_unit_kmh, currentSpeedKmH.roundToInt()),
                     color = badgeColor,
                     style = speedBadgeTextStyle(),
                     fontWeight = FontWeight.Bold
@@ -203,7 +205,8 @@ private val OVERSPEED_RED = Color(0xFFE53935)
  * Widest rendered speed value (3 digits max): reserves the badge width so the
  * badge does not resize when the value changes.
  */
-private const val MAX_SPEED_TEXT = "999 km/h"
+/** Badge-sizing value: widest speed the badge must fit (see the widget's KDoc). */
+private const val MAX_SPEED_VALUE = 999
 
 /**
  * Widget visibility + source selection (spec: map-speed-widget): shown when

@@ -116,21 +116,24 @@ object DetailsResolver {
 
     /**
      * Title: object name, else the full address (incl. postal + city), else
-     * the search label, else [nameHint], else the generic "Location".
+     * the search label, else [nameHint], else [genericTitle] — the calling
+     * surface's localized generic location title. The resolver owns no display
+     * word (spec: `i18n-l10n` — shared module owns no wording), so the phone
+     * and the car each pass their own resource.
      */
-    fun resolveTitle(input: DetailsInput, nameHint: String? = null): String {
+    fun resolveTitle(input: DetailsInput, genericTitle: String, nameHint: String? = null): String {
         val name = resolveName(input)
         if (name != null) return name
         val address = resolveAddress(input)
         if (address != null) return address
         // Coordinate labels ("51.50000, 7.40000") are not titles — fall
-        // through to the generic "Location" (AA approach, spec:
-        // enhanced-details-sheet — coordinate label falls back to generic).
+        // through to the generic title (spec: enhanced-details-sheet —
+        // coordinate label falls back to generic title).
         val label = input.label?.takeIf {
             it.isNotBlank() && !it.matches(COORDINATE_LABEL_REGEX)
         }
         if (label != null) return label
-        return nameHint?.takeIf { it.isNotBlank() } ?: "Location"
+        return nameHint?.takeIf { it.isNotBlank() } ?: genericTitle
     }
 
     /**
@@ -167,9 +170,9 @@ object DetailsResolver {
      * destination name, and the shared display entries. Both UIs consume this
      * single output, so future changes affect both variants at once.
      */
-    fun resolve(input: DetailsInput, nameHint: String? = null): DetailsData =
+    fun resolve(input: DetailsInput, genericTitle: String, nameHint: String? = null): DetailsData =
         DetailsData(
-            title = resolveTitle(input, nameHint),
+            title = resolveTitle(input, genericTitle, nameHint),
             address = resolveAddress(input),
             area = resolveArea(input),
             destinationName = resolveDestinationName(input, nameHint),

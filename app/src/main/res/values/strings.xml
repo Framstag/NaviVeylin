@@ -145,6 +145,19 @@
     <string name="stop_navigation">Stop Navigation</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Shows live navigation guidance while driving</string>
+    <!-- Free-driving notification title (spec: i18n-l10n — All user-facing text is
+         translatable; Phone and Auto label parity: the neutral title is :core's
+         nav_hint_neutral, shared with the car hint). -->
+    <string name="navigation_notification_title_free_driving">Free driving</string>
+    <!-- Road row when the vehicle is not on a mapped road. -->
+    <string name="road_offroad">Offroad</string>
+    <!-- Map-download notification + channel (spec: i18n-l10n — Notification channel
+         name is translatable). The channel name/description are re-applied on every
+         start, so an existing install picks up the localized form without a reinstall. -->
+    <string name="map_download_channel_name">Map Download</string>
+    <string name="map_download_channel_description">Shows map download progress</string>
+    <string name="map_download_title">Map Download</string>
+    <string name="map_downloading">Downloading map…</string>
     <string name="navigation_notification_channel_car_name">Navigation (car)</string>
     <string name="navigation_notification_channel_car_description">Shows turn hints on the car screen while navigating</string>
     <string name="start_navigation">Start Navigation</string>
@@ -236,7 +249,12 @@
     <string name="unstar">Unstar</string>
     <string name="installed_with_size">Installed (%1$s)</string>
     <string name="distance_unit_km">%1$s km</string>
+    <string name="speed_unit_kmh">%1$s km/h</string>
     <string name="distance_unit_m">%1$s m</string>
     <string name="size_unit_mb">%1$s MB</string>
     <string name="poi_result_format">%1$s · %2$s</string>
+    <!-- Generic title for a details sheet whose object has no name, no address and only a
+         coordinate label. Owned by the surface, not by the shared :core resolver
+         (spec: i18n-l10n — shared module owns no wording). -->
+    <string name="location_title_generic">Location</string>
 </resources>

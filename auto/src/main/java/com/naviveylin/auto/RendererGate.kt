@@ -9,6 +9,24 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
+ * What the car map is doing (spec: car-host-fault-isolation — A repeatedly faulting car renderer
+ * recovers, then degrades visibly; design D5).
+ *
+ * Owned by [RendererGate] rather than by a renderer instance: the degraded state is produced by
+ * replacing a renderer, so it has to outlive the instance that reported it.
+ */
+internal enum class RendererState {
+    /** Frames are drawn; a confined fault costs only its own frame (or tick). */
+    LIVE,
+
+    /** A re-creation is in progress: the map shows its last frame until the new one draws. */
+    RECOVERING,
+
+    /** The re-creation budget is exhausted; the screen has to tell the driver the map is unavailable. */
+    DEGRADED
+}
+
+/**
  * Buffers renderer-bound state until the [AutoMapRenderer] is ready
  * (spec: auto-map-renderer — "Renderer initialization off the car-app main
  * thread"; design D1/D5).
@@ -123,8 +141,19 @@ internal class RendererGate {
     private data class DestinationMarkerPending(val lat: Double, val lon: Double, val name: String?)
 
     /**
-     * Deliver the renderer. Pending slots replay in order (design D5); if the
-     * gate was [destroy]ed first, the renderer is shut down immediately.
+     * Deliver the renderer. Pending slots replay in order (design D5); if the gate was
+     * [destroy]ed first, the renderer is shut down immediately.
+     *
+     * The slots are of two kinds (design D3 of the loop-recovery change), because a
+     * re-created renderer has to be given the state the previous one displayed:
+     *
+     * - **state slots** keep their value and are replayed on *every* publish — presentation,
+     *   follow anchor, pane geometry, viewport, marker/favorites/route/destination and the
+     *   overlay drawer. A recovery that lost them would snap the map back to the initial
+     *   center, zoom and follow mode;
+     * - **one-shot intents** (re-center, re-engage follow, resume, invalidate, render request)
+     *   are edge-triggered and cleared after being applied — replaying one would repeat an
+     *   action the screen asked for once.
      */
     fun publish(renderer: AutoMapRenderer) {
         if (cancelled) {
@@ -140,7 +169,6 @@ internal class RendererGate {
         }
         dark?.let {
             renderer.setDarkPresentation(it)
-            dark = null
         }
         if (reCenter) {
             renderer.reCenter()
@@ -148,23 +176,18 @@ internal class RendererGate {
         }
         followAnchor?.let {
             renderer.setFollowAnchor(it)
-            followAnchor = null
         }
         hostPaneRtl?.let {
             renderer.setHostPaneRtl(it)
-            hostPaneRtl = null
         }
         hostBottomInsetPx?.let {
             renderer.setHostBottomInset(it)
-            hostBottomInsetPx = null
         }
         hostTopInsetPx?.let {
             renderer.setHostTopInset(it)
-            hostTopInsetPx = null
         }
         viewport?.let {
             renderer.setViewport(it.lat, it.lon, it.zoom, it.angle, it.zoomFraction, it.walkZoom)
-            viewport = null
         }
         if (reengageFollow) {
             renderer.reengageFollow()
@@ -172,24 +195,18 @@ internal class RendererGate {
         }
         destinationMarker?.let {
             renderer.setDestinationMarker(it.lat, it.lon, it.name)
-            destinationMarker = null
         }
         gpsMarker?.let {
             renderer.setGpsMarker(it.lat, it.lon, it.bearing, it.accuracy, it.speedKmH, it.timeMs)
-            gpsMarker = null
         }
         favorites?.let {
             renderer.setFavoriteLocations(it)
-            favorites = null
         }
         if (routeLats != null || routeLons != null) {
             renderer.setRoute(routeLats, routeLons)
-            routeLats = null
-            routeLons = null
         }
         overlayDrawer?.let {
             renderer.overlayDrawer = it
-            overlayDrawer = null
         }
         if (resume) {
             renderer.resume()
@@ -212,9 +229,72 @@ internal class RendererGate {
     /** Drop all pending state; a late [publish] is shut down instead. */
     fun destroy() {
         cancelled = true
+        renderSupervisor.suspend()
         _renderer.value?.shutdown()
         _renderer.value = null
         clearPending()
+    }
+
+    // --- Loop-fault recovery (spec: car-host-fault-isolation — A repeatedly faulting car
+    // renderer recovers, then degrades visibly; design D3/D4/D5/D7) ---
+
+    /**
+     * The fault supervisor of the current started screen period (design D2/D7). Owned here so
+     * it spans the renderer instances of the period: the re-creation budget must survive the
+     * instance swap, otherwise "threshold reached again after the cap" could never happen.
+     */
+    internal val renderSupervisor = RenderLoopSupervisor()
+
+    private val _rendererState = MutableStateFlow(RendererState.LIVE)
+
+    /** Whether the map is drawing, being recovered, or could not be drawn at all (design D5). */
+    val rendererState: StateFlow<RendererState> = _rendererState.asStateFlow()
+
+    /**
+     * Builds the replacement renderer for a recovery. Set by the owning screen, which holds the
+     * native client and the construction arguments; without it a fault storm degrades directly
+     * (no instance to swap in).
+     */
+    internal var rendererFactory: ((RenderLoopSupervisor) -> AutoMapRenderer)? = null
+
+    /**
+     * Re-attaches the session's surface to the re-created renderer. Set by the owning screen —
+     * `SessionCarSurfaceHost.attach` re-delivers the held surface, so the renderer never holds,
+     * releases or adopts a surface itself (spec: car-host-fault-isolation — Single-owner car
+     * surface; design D4).
+     */
+    internal var reattachSurface: (() -> Unit)? = null
+
+    /**
+     * A re-creation was requested by the supervisor. Main thread only — the screen posts here
+     * from the render thread's report (`onRendererRecoveryRequested`, the same shape as the
+     * surface-failure callback).
+     */
+    internal fun onRendererRecoveryRequested() {
+        if (cancelled) return
+        val factory = rendererFactory ?: return markDegraded()
+        _rendererState.value = RendererState.RECOVERING
+        // The old instance's loops are what faulted: end them before the replacement draws.
+        _renderer.value?.shutdown()
+        _renderer.value = null
+        publish(factory(renderSupervisor))
+        _rendererState.value = RendererState.LIVE
+        reattachSurface?.invoke()
+    }
+
+    /** The re-creation budget is exhausted: the map cannot be drawn (design D7). Main thread only. */
+    internal fun markDegraded() {
+        renderSupervisor.suspend()
+        _rendererState.value = RendererState.DEGRADED
+    }
+
+    /**
+     * A fresh started screen period: the fault streak and the re-creation budget are re-armed and
+     * a degraded map gets another chance (design D7). Main thread only, from the screen's start.
+     */
+    internal fun startPeriod() {
+        renderSupervisor.startPeriod()
+        _rendererState.value = RendererState.LIVE
     }
 
     /** The published renderer for synchronous reads (gestures), or null when not ready. */

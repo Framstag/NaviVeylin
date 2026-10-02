@@ -3,6 +3,7 @@ package com.naviveylin.auto
 import android.graphics.Canvas
 import android.view.Surface
 import com.framstag.libosmscout.client.FakeAutoRenderClient
+import com.naviveylin.core.VehicleAnchorPosition
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
@@ -418,6 +419,174 @@ class RendererGateTest {
             200.0,
             client.renderDpis.last(),
             0.0
+        )
+    }
+
+    // --- Loop-fault recovery (spec: car-host-fault-isolation — A repeatedly faulting car
+    // renderer recovers, then degrades visibly; design D3/D4/D5/D7) ---
+
+    /**
+     * A renderer wired the way a screen wires it: its fault reports land on the gate.
+     *
+     * Plain instances (not `spyk`) on purpose: a spy does not re-run `init`, so the
+     * supervisor's callback would stay bound to the original instance and the wiring under
+     * test would never be exercised.
+     */
+    private fun supervisedRenderer(gate: RendererGate): AutoMapRenderer =
+        renderers.track(
+            AutoMapRenderer(
+                FakeAutoRenderClient(),
+                initialProjectionDpi = 240.0,
+                loops = gate.renderSupervisor
+            )
+        ).also {
+            it.onRendererRecoveryRequested = { gate.onRendererRecoveryRequested() }
+            it.onRendererDegraded = { gate.markDegraded() }
+        }
+
+    /** The re-creation factory a screen installs: same wiring, same supervisor. */
+    private fun factoryFor(
+        gate: RendererGate,
+        created: MutableList<AutoMapRenderer>
+    ): (RenderLoopSupervisor) -> AutoMapRenderer = { supervisor ->
+        renderers.track(
+            AutoMapRenderer(
+                FakeAutoRenderClient(),
+                initialProjectionDpi = 240.0,
+                loops = supervisor
+            )
+        ).also { it.onRendererRecoveryRequested = { gate.onRendererRecoveryRequested() } }
+            .also { it.onRendererDegraded = { gate.markDegraded() } }
+            .also { created += it }
+    }
+
+    /** Three consecutive confined faults: one threshold of the supervisor's ladder. */
+    private fun RendererGate.driveOneThreshold() {
+        repeat(CONSECUTIVE_RENDER_FAULT_THRESHOLD) {
+            renderSupervisor.noteFault(RenderLoop.FRAME, IllegalStateException("injected"))
+        }
+    }
+
+    @Test
+    fun aSecondPublishReplaysTheStateSlotsAndNotTheOneShotIntents() {
+        // A re-created renderer must show what the previous one displayed (spec: auto-map-renderer
+        // — A re-created renderer restores the displayed map state; design D3).
+        val gate = RendererGate()
+        val first = rendererSpy()
+        val second = rendererSpy()
+        var reattaches = 0
+        gate.reattachSurface = { reattaches++ }
+
+        gate.setDarkPresentation(true)
+        gate.setFollowAnchor(VehicleAnchorPosition.DEFAULT)
+        gate.setHostPaneRtl(true)
+        gate.setHostBottomInset(12)
+        gate.setHostTopInset(34)
+        gate.setViewport(51.5, 7.46, 12, 0.5, 12.25)
+        gate.setGpsMarker(48.8566, 2.3522, 45.0, 10.0, 36.0, 1234L)
+        gate.setFavoriteLocations(emptyList())
+        gate.setDestinationMarker(48.1, 11.5, "Ziel")
+        // One-shot intents: asked for once, must not be repeated by the replay.
+        gate.resume()
+        gate.requestRender()
+        gate.invalidateStyle()
+        gate.invalidateData()
+
+        gate.publish(first)
+        gate.publish(second)
+
+        verify(exactly = 1) { second.setDarkPresentation(true) }
+        verify(exactly = 1) { second.setFollowAnchor(VehicleAnchorPosition.DEFAULT) }
+        verify(exactly = 1) { second.setHostPaneRtl(true) }
+        verify(exactly = 1) { second.setHostBottomInset(12) }
+        verify(exactly = 1) { second.setHostTopInset(34) }
+        verify(exactly = 1) { second.setViewport(51.5, 7.46, 12, 0.5, 12.25, false) }
+        verify(exactly = 1) { second.setGpsMarker(48.8566, 2.3522, 45.0, 10.0, 36.0, 1234L) }
+        verify(exactly = 1) { second.setFavoriteLocations(any()) }
+        verify(exactly = 1) { second.setDestinationMarker(48.1, 11.5, "Ziel") }
+
+        verify(exactly = 0) { second.resume() }
+        verify(exactly = 0) { second.invalidateStyle() }
+        verify(exactly = 0) { second.invalidateData() }
+        assertEquals("a re-attach belongs to a recovery, not to a plain publish", 0, reattaches)
+    }
+
+    @Test
+    fun aRecoveryReplacesTheRendererAndReattachesOnce() {
+        val gate = RendererGate()
+        val replacements = mutableListOf<AutoMapRenderer>()
+        var reattaches = 0
+        gate.reattachSurface = { reattaches++ }
+        gate.rendererFactory = factoryFor(gate, replacements)
+        val first = supervisedRenderer(gate)
+
+        gate.setViewport(51.5, 7.46, 12, 0.0, 12.5)
+        gate.publish(first)
+        assertEquals(RendererState.LIVE, gate.rendererState.value)
+        assertEquals(0, reattaches)
+
+        gate.onRendererRecoveryRequested()
+
+        val replacement = gate.rendererOrNull()
+        assertNotNull(replacement)
+        assertTrue("a new instance must be published", replacement !== first)
+        // The faulting instance's loops are gone (its own shutdown ran, not just a new publish).
+        assertEquals(0, first.activeBackgroundJobCount())
+        assertEquals(RendererState.LIVE, gate.rendererState.value)
+        assertEquals("the surface is re-attached exactly once", 1, reattaches)
+        assertEquals(
+            "the replayed viewport survives the swap",
+            12.5,
+            replacement!!.viewportState.value.zoomFraction,
+            1e-9
+        )
+        assertEquals(1, replacements.size)
+    }
+
+    @Test
+    fun theFaultLadderRecoversTwiceThenDegradesAndStaysThere() {
+        val gate = RendererGate()
+        val replacements = mutableListOf<AutoMapRenderer>()
+        gate.rendererFactory = factoryFor(gate, replacements)
+        gate.publish(supervisedRenderer(gate))
+
+        gate.driveOneThreshold()
+        assertEquals("first recovery", 1, replacements.size)
+        assertEquals(RendererState.LIVE, gate.rendererState.value)
+
+        gate.driveOneThreshold()
+        assertEquals("second recovery", 2, replacements.size)
+        assertEquals(RendererState.LIVE, gate.rendererState.value)
+
+        gate.driveOneThreshold()
+        assertEquals("the cap stops the re-creation", 2, replacements.size)
+        assertEquals(RendererState.DEGRADED, gate.rendererState.value)
+        assertTrue(gate.renderSupervisor.isSuspended)
+
+        gate.driveOneThreshold()
+        assertEquals("degraded stays degraded", 2, replacements.size)
+        assertNotNull("the last instance keeps drawing nothing new", gate.rendererOrNull())
+    }
+
+    @Test
+    fun aFreshPeriodReArmsTheRecoveryBudgetAndClearsTheDegradedState() {
+        val gate = RendererGate()
+        val replacements = mutableListOf<AutoMapRenderer>()
+        gate.rendererFactory = factoryFor(gate, replacements)
+        gate.publish(supervisedRenderer(gate))
+
+        repeat(MAX_RENDERER_RECOVERIES_PER_PERIOD + 1) { gate.driveOneThreshold() }
+        assertEquals(RendererState.DEGRADED, gate.rendererState.value)
+
+        gate.startPeriod()
+
+        assertEquals(RendererState.LIVE, gate.rendererState.value)
+        assertFalse(gate.renderSupervisor.isSuspended)
+        gate.driveOneThreshold()
+        assertEquals(
+            "the new period recovers again (2 from the exhausted period + 1)",
+            MAX_RENDERER_RECOVERIES_PER_PERIOD + 1,
+            replacements.size
         )
     }
 }

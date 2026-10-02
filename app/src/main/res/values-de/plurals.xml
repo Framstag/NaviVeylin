@@ -8,4 +8,12 @@
         <item quantity="one">%d aktiver Download</item>
         <item quantity="other">%d aktive Downloads</item>
     </plurals>
+    <plurals name="favorite_count">
+        <item quantity="one">%d Favorit</item>
+        <item quantity="other">%d Favoriten</item>
+    </plurals>
+    <plurals name="map_downloading_maps">
+        <item quantity="one">Lade %d Karte herunter…</item>
+        <item quantity="other">Lade %d Karten herunter…</item>
+    </plurals>
 </resources>

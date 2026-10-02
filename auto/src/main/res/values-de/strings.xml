@@ -38,6 +38,11 @@
     <string name="coordinates">Koordinaten</string>
     <string name="address">Adresse</string>
     <string name="area">Gebiet</string>
+    <!-- Details title when the destination has no name, no address and only a coordinate
+         label (spec: enhanced-details-sheet — Generic title renders in the device language). -->
+    <string name="location_title_generic">Standort</string>
+    <!-- Row title for a favorite the store holds without a name. -->
+    <string name="unnamed_favorite">Favorit</string>
     <string name="offline_nav_tagline">Offline-OpenStreetMap-Navigation</string>
     <string name="version">Version</string>
     <string name="map_data">Kartendaten</string>
@@ -86,4 +91,8 @@
     <string name="map_style_notification_channel_name">Kartenstil</string>
     <string name="map_style_notification_channel_description">Meldet einen Kartenstil, der nicht geladen werden konnte</string>
     <string name="map_style_notification_title">Problem mit dem Kartenstil</string>
+
+    <!-- Karte konnte nach wiederholten Renderer-Fehlern nicht mehr gezeichnet werden
+         (spec: car-host-fault-isolation). -->
+    <string name="map_unavailable">Karte nicht verfügbar</string>
 </resources>

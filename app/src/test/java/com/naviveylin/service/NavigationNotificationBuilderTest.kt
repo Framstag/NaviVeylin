@@ -159,7 +159,7 @@ class NavigationNotificationBuilderTest {
     @Test
     fun freeDrivingNotificationIsNotExtended() {
         val state = NavigationState(isNavigating = false, currentSpeedKmH = 54.0)
-        val content = NavigationNotificationContentFormatter.format(state, freeDrivingActive = true)
+        val content = NavigationNotificationContentFormatter.format(state, freeDrivingActive = true, resolver)
         val hint = NavigationNotificationContentFormatter.carHint(state, resolver)
 
         val notification = NavigationNotificationBuilder.build(
@@ -233,7 +233,7 @@ class NavigationNotificationBuilderTest {
         carOpenIntent: PendingIntent? = carTapTarget
     ): Notification {
         val content =
-            NavigationNotificationContentFormatter.format(navigationState, freeDrivingActive = false)
+            NavigationNotificationContentFormatter.format(navigationState, freeDrivingActive = false, resolver)
         val hint = NavigationNotificationContentFormatter.carHint(
             navigationState,
             resolver,

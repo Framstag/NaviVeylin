@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  i18n gate: hardcoded user-facing text fails the build.
+  `:core` composes display text for both surfaces (spec: i18n-l10n — All
+  user-facing text is translatable, Shared module owns no wording), so it carries
+  the same `HardcodedText` elevation as :app and :auto. The Compose/template/
+  interpolated shapes are covered by the source scan
+  (`checkHardcodedStrings`, buildSrc `HardcodedStringScanner`,
+  see guidelines/UI.md — Internationalisation / Localisation).
+-->
+<lint>
+    <issue id="HardcodedText" severity="error"/>
+</lint>

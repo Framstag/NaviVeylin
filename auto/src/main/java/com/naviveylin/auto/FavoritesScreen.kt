@@ -18,8 +18,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
 
 /**
  * Android Auto screen for browsing favorite locations using [ListTemplate]
@@ -49,6 +47,24 @@ class FavoritesScreen(
     )
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
 
+    /**
+     * Shared-state observations for this screen (spec: auto/screen-observation; design D6):
+     * [CarScreenObservations] owns how long the observation lives,
+     * [FavoritesScreenObservations] owns what is observed. Started in `onStart`, stopped in
+     * `onStop`, so a stopped screen issues no template invalidation and a reorder received while
+     * stopped is applied once on the next start (`auto-favorites` — the clarity clause added by this
+     * change).
+     *
+     * Declared before the `init` block on purpose: everything the observation touches is initialized
+     * here, never by an `init` body that runs during construction (TODO.md §80).
+     */
+    private val observations = CarScreenObservations()
+    private val screenObservations = FavoritesScreenObservations(
+        observations = observations,
+        favoritesProvider = favoritesProvider,
+        onFavorites = ::onFavorites
+    )
+
     private var favoritesData: Map<String, List<com.framstag.libosmscout.client.FavoriteLocation>> = emptyMap()
 
     /**
@@ -70,34 +86,46 @@ class FavoritesScreen(
 
     init {
         enableBackNavigation()
-        // Collect the favorites flow reactively (parity with MapScreen,
-        // DetailsScreen and the phone app): the screen updates in place when
-        // the store finishes loading, so favorites appear without leaving and
-        // re-entering the screen (spec: auto-favorites — favorites appear
-        // without re-entering the screen). The group order and the starred
-        // order ride the same collector via `combine`, so the screen holds one
-        // observation rather than further bare launches.
-        scope.launch {
-            combine(
-                favoritesProvider.favoriteLocations(),
-                favoritesProvider.groupOrder(),
-                favoritesProvider.starredOrder()
-            ) { favorites, order, starred -> Triple(favorites, order, starred) }
-                .collect { (favorites, order, starred) ->
-                    favoritesData = favorites
-                    groupOrder = order
-                    starredOrder = starred
-                    loaded = true
-                    invalidate()
-                }
-        }
-        // Cancel the collect when the screen is destroyed so collectors do not
-        // accumulate across open/close cycles (pattern from MapScreen).
+        // The favorites, group order and starred order are NOT collected here: they are this
+        // screen's shared-state observation and live on the started period (`screenObservations`,
+        // started in onStart / stopped in onStop), so a stopped screen never invalidates the host
+        // and can never accumulate a second collector per start (spec: auto/screen-observation;
+        // design D6).
         lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                screenObservations.start()
+            }
+            override fun onStop(owner: LifecycleOwner) {
+                // Every observation ends with the started period (spec: auto/screen-observation —
+                // One instance of each observation per started period).
+                observations.stop()
+            }
             override fun onDestroy(owner: LifecycleOwner) {
+                // A destroy without a stop must not leave an observation running.
+                observations.stop()
+                // Cancel the screen's own scope (row actions, pushes) so its work does not outlive
+                // the screen either.
                 scope.cancel()
             }
         })
+    }
+
+    /**
+     * One emitted list state of the started period (spec: auto/screen-observation; design D6):
+     * favorites, the stored group order and the stored starred order, applied together and rendered
+     * in place (spec: auto-favorites — favorites appear without re-entering the screen, and a
+     * reorder updates the list/headers in place).
+     */
+    private fun onFavorites(
+        favorites: Map<String, List<com.framstag.libosmscout.client.FavoriteLocation>>,
+        order: List<String>,
+        starred: List<StarredFavoriteLocation>
+    ) {
+        favoritesData = favorites
+        groupOrder = order
+        starredOrder = starred
+        loaded = true
+        invalidate()
     }
 
     override fun onGetTemplate(): ListTemplate = carListTemplate(carContext, ::buildTemplate)
@@ -107,7 +135,13 @@ class FavoritesScreen(
         val builder = ListTemplate.Builder()
             .setHeader(
                 Header.Builder()
-                    .setTitle(if (starredOnly) "Starred favorites" else "Favorites")
+                    .setTitle(
+                        if (starredOnly) {
+                            carContext.getString(R.string.starred_favorites)
+                        } else {
+                            carContext.getString(R.string.favorites)
+                        }
+                    )
                     .setStartHeaderAction(Action.BACK)
                     .build()
             )
@@ -149,7 +183,7 @@ class FavoritesScreen(
                     val fav = entry.favorite
                     itemList.addItem(
                         Row.Builder()
-                            .setTitle(fav.name ?: "Favorite")
+                            .setTitle(fav.name ?: carContext.getString(R.string.unnamed_favorite))
                             .addText(fav.attributes?.get("address") ?: "")
                             .setOnClickListener {
                                 Log.d(TAG, "Starred favorite selected: ${fav.name}")
@@ -173,7 +207,7 @@ class FavoritesScreen(
                     // must not also carry row actions — ROW_CONSTRAINTS_SIMPLE).
                     itemList.addItem(
                         Row.Builder()
-                            .setTitle(fav.name ?: "Favorite")
+                            .setTitle(fav.name ?: carContext.getString(R.string.unnamed_favorite))
                             .addText(fav.attributes?.get("address") ?: "")
                             .setOnClickListener {
                                 Log.d(TAG, "Favorite selected: ${fav.name}")

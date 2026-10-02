@@ -75,7 +75,12 @@ class MapCanvasViewModelSearchRankingTest {
     }
 
     /** The exact answer to the query: its name matched completely. */
-    private fun exactEntry(label: String, lat: Double, lon: Double): LocationEntry =
+    private fun exactEntry(
+        label: String,
+        lat: Double,
+        lon: Double,
+        inSearchScope: Boolean = true
+    ): LocationEntry =
         LocationEntry().apply {
             this.label = label
             matchedName = label
@@ -83,17 +88,25 @@ class MapCanvasViewModelSearchRankingTest {
             locationMatchQuality = "match"
             this.lat = lat
             this.lon = lon
+            this.inSearchScope = inSearchScope
         }
 
     /** A near miss: the name matched only as a prefix of the entry's name. */
-    private fun prefixEntry(label: String, lat: Double, lon: Double): LocationEntry =
+    private fun prefixEntry(
+        label: String,
+        lat: Double,
+        lon: Double,
+        inSearchScope: Boolean = true,
+        quality: String = "candidate"
+    ): LocationEntry =
         LocationEntry().apply {
             this.label = label
             matchedName = label
             matchedComponent = "location"
-            locationMatchQuality = "candidate"
+            locationMatchQuality = quality
             this.lat = lat
             this.lon = lon
+            this.inSearchScope = inSearchScope
         }
 
     @Test
@@ -109,6 +122,48 @@ class MapCanvasViewModelSearchRankingTest {
         assertTrue("the exact match is marked as perfect", results.first().isPerfectMatch)
         assertTrue(results.size <= SearchResultRanker.DISPLAY_LIMIT)
     }
+
+    @Test
+    fun outOfScopeCloseMatchRanksBelowAnInScopeOne() = runTest(mainDispatcherRule.dispatcher) {
+        // The bridge reports a hit of a database that could not honour the
+        // resolved region as outside the scope (spec: osmscout-jni); it is the
+        // nearer and better-quality candidate here, so the verdict is the only
+        // thing that decides the order (spec: location-search,
+        // search-result-ranking).
+        client.nextSearchResults = arrayOf(
+            prefixEntry("Waltroper Straße (fremde Karte)", 51.5001, 7.4,
+                inSearchScope = false, quality = "match"),
+            prefixEntry("Waltrop Weg", 53.0, 7.4)
+        )
+
+        val results = viewModel.mergeSearchResults("Waltrop")
+
+        assertEquals(
+            listOf("Waltrop Weg", "Waltroper Straße (fremde Karte)"),
+            results.map { it.entry.label }
+        )
+    }
+
+    @Test
+    fun anEntryWhoseBridgeDoesNotSetTheVerdictIsTreatedAsInScope() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // The field's default is "inside the scope", which is the pre-change
+            // behaviour: an older library with a newer app must not demote results
+            // (spec: osmscout-jni).
+            val entry = LocationEntry().apply {
+                label = "Waltrop Weg"
+                matchedName = "Waltrop Weg"
+                matchedComponent = "location"
+                locationMatchQuality = "candidate"
+                lat = 51.5
+                lon = 7.4
+            }
+            client.nextSearchResults = arrayOf(entry)
+
+            val results = viewModel.mergeSearchResults("Waltrop")
+
+            assertTrue("an unset verdict reads as inside the scope", results.first().entry.inSearchScope)
+        }
 
     @Test
     fun displayedListIsCappedAtTheDisplayLimit() = runTest(mainDispatcherRule.dispatcher) {

@@ -79,6 +79,27 @@ class DetailsScreen(
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
 
     /**
+     * Shared-state observations for this screen (spec: auto/screen-observation; design
+     * D2): [CarScreenObservations] owns how long each observation lives,
+     * [DetailsScreenObservations] owns what is observed. Started in `onStart`, stopped in
+     * `onStop`, so a background round trip or a push/pop cycle can never leave an
+     * observation applying favorites, fix or basemap work while the screen is not visible.
+     *
+     * Declared before the `init` block on purpose: everything the observations touch is
+     * initialized here, never by an `init` body that runs during construction (TODO.md §80).
+     */
+    private val observations = CarScreenObservations()
+    private val screenObservations = DetailsScreenObservations(
+        observations = observations,
+        locationProvider = locationProvider,
+        favoritesProvider = favoritesProvider,
+        basemapNotifier = entryPoint.basemapReloadNotifier(),
+        onFix = ::onGpsFix,
+        onFavorites = ::onFavorites,
+        onBasemapRevision = ::onBasemapRevision
+    )
+
+    /**
      * Session-scoped car surface owner (spec: car-host-fault-isolation — Single-owner
      * car surface): the session's host forwards the car surface and gesture events to
      * this screen while it is attached, and the host — not the screen — releases the
@@ -93,7 +114,12 @@ class DetailsScreen(
      * [rendererInitJob] on a background dispatcher, so neither this constructor nor a
      * host callback builds the native client on the car-app main thread.
      */
-    private val rendererGate = RendererGate()
+    /**
+     * Renderer-bound state and the map's availability state (spec: car-host-fault-isolation — A
+     * repeatedly faulting car renderer recovers, then degrades visibly). Internal so tests can
+     * drive the availability state and assert what the screen carries.
+     */
+    internal val rendererGate = RendererGate()
     private var rendererInitJob: Job? = null
 
     private var surfaceWidth = 0
@@ -102,6 +128,13 @@ class DetailsScreen(
 
     /** Surface-refresh (invalidate) attempts left for this screen start. */
     private var surfaceRefreshAttempts = 0
+
+    /**
+     * True once the map could not be drawn any more (spec: car-host-fault-isolation — A
+     * repeatedly faulting car renderer recovers, then degrades visibly; design D5). Carried as a
+     * disabled first row, so the host draws it even when the surface cannot.
+     */
+    private var mapDegraded = false
 
     init {
         enableBackNavigation()
@@ -121,13 +154,27 @@ class DetailsScreen(
             // The renderer starts with the car display's density and adopts the delivered
             // surface DPI — all overlay math and every render request use that one value
             // (same as MapScreen; spec: `render-projection-dpi`).
+            rendererGate.rendererFactory = { supervisor ->
+                AutoMapRenderer(
+                    client,
+                    carContext.resources.displayMetrics.densityDpi.toDouble(),
+                    lat,
+                    lon,
+                    mag,
+                    loops = supervisor
+                )
+            }
+            rendererGate.reattachSurface = {
+                guardedHostCall("attach surface (renderer re-created)") { surfaceHost.attach(surfaceOwner) }
+            }
             rendererGate.publish(
                 AutoMapRenderer(
                     client,
                     carContext.resources.displayMetrics.densityDpi.toDouble(),
                     lat,
                     lon,
-                    mag
+                    mag,
+                    loops = rendererGate.renderSupervisor
                 )
             )
         }
@@ -165,40 +212,12 @@ class DetailsScreen(
             invalidate()
         }
 
-        // Observe favorites for markers on the preview (parity with the
-        // browse map) and for the save/remove favorite action row (spec:
-        // auto-destination-details — favorite management on details screen).
-        loadScope.launch {
-            favoritesProvider.favoriteLocations().collect { favorites ->
-                this@DetailsScreen.favorites = favorites
-                rendererGate.setFavoriteLocations(favorites.values.flatten())
-                invalidate()
-            }
-        }
-
-        // Basemap data changes (download/update/delete while the app runs):
-        // re-render the preview without an app restart (spec: basemap-loading).
-        loadScope.launch {
-            entryPoint.basemapReloadNotifier().revision.collect { revision ->
-                if (revision > 0L) {
-                    rendererGate.invalidateData()
-                }
-            }
-        }
-
-        // Observe the current position: draw the GPS marker on the preview
-        // and, when both the destination and a fix are known, zoom so both
-        // are visible (parity with the phone mini map, spec:
-        // auto-destination-details — map preview).
-        loadScope.launch {
-            locationProvider.position().collect { pos ->
-                gpsPosition = pos
-                if (pos != null) {
-                    rendererGate.setGpsMarker(pos.lat, pos.lon, pos.bearing, pos.accuracy)
-                    applyViewport()
-                }
-            }
-        }
+        // Favorites, the GPS position feed and basemap data revisions are NOT collected here:
+        // they are this screen's shared-state observations and live on the started period
+        // (`screenObservations`, started in onStart / stopped in onStop), so a stopped screen
+        // never sends a marker, a viewport or a template invalidation (spec:
+        // auto/screen-observation — A stopped screen performs no renderer or host work; design
+        // D2/D3). Only the screen's own constructor-time work stays on this scope.
 
         // If the host delivered a surface we cannot lock, drop it and ask the host for
         // a fresh one. Throttled inside the renderer and capped per screen start (same
@@ -221,16 +240,45 @@ class DetailsScreen(
                         }
                     }
                 }
+                // Loop-fault recovery (spec: car-host-fault-isolation — A repeatedly faulting
+                // car renderer recovers, then degrades visibly; design D3/D4): the renderer
+                // reports from its own dispatcher, the gate is a main-thread object.
+                renderer.onRendererRecoveryRequested = {
+                    postTemplateRefresh { rendererGate.onRendererRecoveryRequested() }
+                }
+                renderer.onRendererDegraded = {
+                    postTemplateRefresh { rendererGate.markDegraded() }
+                }
+            }
+        }
+
+        // Map availability (design D5): the gate owns the state, the screen mirrors it into the
+        // content list. Main thread only.
+        loadScope.launch {
+            rendererGate.rendererState.collect { state ->
+                val degraded = state == RendererState.DEGRADED
+                if (degraded != mapDegraded) {
+                    mapDegraded = degraded
+                    Log.w(TAG, "map state -> $state")
+                    postTemplateRefresh { invalidate() }
+                }
             }
         }
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 surfaceRefreshAttempts = 0
+                // A fresh started period re-arms the fault counters and the re-creation budget
+                // (design D7).
+                rendererGate.startPeriod()
                 surfaceHost.attach(surfaceOwner)
                 rendererGate.resume()
+                screenObservations.start()
             }
             override fun onStop(owner: LifecycleOwner) {
+                // Every observation ends with the started period (spec: auto/screen-observation
+                // — One instance of each observation per started period).
+                observations.stop()
                 rendererGate.pause()
                 // Stop drawing on the session's surface (spec: auto-map-renderer — A
                 // stopped renderer holds no surface or frame buffer): detach the surface
@@ -250,6 +298,8 @@ class DetailsScreen(
                 // initializing when the screen stops").
                 rendererInitJob?.cancel()
                 rendererGate.destroy()
+                // A destroy without a stop must not leave an observation running.
+                observations.stop()
                 loadScope.cancel()
             }
         })
@@ -290,6 +340,16 @@ class DetailsScreen(
         // titled action throws "exceeded max number of 0 actions with custom
         // titles", so the actions ride on rows (same as the map menu).
         val listBuilder = ItemList.Builder()
+        if (mapDegraded) {
+            // Not clickable: a state statement, not an action (spec: car-host-fault-isolation —
+            // A repeatedly faulting car renderer recovers, then degrades visibly).
+            listBuilder.addItem(
+                Row.Builder()
+                    .setTitle(carContext.getString(R.string.map_unavailable))
+                    .setEnabled(false)
+                    .build()
+            )
+        }
         listBuilder.addItem(buildNavigateRow(carContext, onNavigate))
         listBuilder.addItem(buildShowRow(carContext, onShow))
         // Favorite management (spec: auto-destination-details — favorite
@@ -304,7 +364,16 @@ class DetailsScreen(
             listBuilder.addItem(
                 buildSaveFavoriteRow(carContext) {
                     loadScope.launch {
-                        favoritesProvider.addFavorite(resolveTitle(address, description, nameHint), lat, lon)
+                        favoritesProvider.addFavorite(
+                            resolveTitle(
+                                address,
+                                description,
+                                carContext.getString(R.string.location_title_generic),
+                                nameHint
+                            ),
+                            lat,
+                            lon
+                        )
                     }
                 }
             )
@@ -324,7 +393,14 @@ class DetailsScreen(
         val contentTemplate = ListTemplate.Builder()
             .setHeader(
                 Header.Builder()
-                    .setTitle(resolveTitle(address, description, nameHint))
+                    .setTitle(
+                        resolveTitle(
+                            address,
+                            description,
+                            carContext.getString(R.string.location_title_generic),
+                            nameHint
+                        )
+                    )
                     .setStartHeaderAction(Action.BACK)
                     .build()
             )
@@ -384,6 +460,38 @@ class DetailsScreen(
         override fun onCarScroll(distanceX: Float, distanceY: Float) = Unit
         override fun onCarScale(focusX: Float, focusY: Float, scaleFactor: Float) = Unit
         override fun onCarClick(x: Float, y: Float) = Unit
+    }
+
+    /**
+     * One emitted GPS fix of the started period (spec: auto/screen-observation; design D2):
+     * draw the GPS marker on the preview and, when both the destination and a fix are known,
+     * zoom so both are visible (parity with the phone mini map, spec: auto-destination-details
+     * — map preview). A stopped screen never reaches this method.
+     */
+    private fun onGpsFix(pos: AutoPosition) {
+        gpsPosition = pos
+        rendererGate.setGpsMarker(pos.lat, pos.lon, pos.bearing, pos.accuracy)
+        applyViewport()
+    }
+
+    /**
+     * One emitted favorites state of the started period (spec: auto/screen-observation; design
+     * D2): keep it for the add/remove favorite action row and put the markers on the preview
+     * (parity with the browse map, spec: auto-destination-details — favorite management on
+     * details screen).
+     */
+    private fun onFavorites(favorites: Map<String, List<FavoriteLocation>>) {
+        this.favorites = favorites
+        rendererGate.setFavoriteLocations(favorites.values.flatten())
+        invalidate()
+    }
+
+    /**
+     * One emitted basemap revision of the started period (spec: auto/screen-observation; design
+     * D2): re-render the preview without an app restart (spec: basemap-loading).
+     */
+    private fun onBasemapRevision() {
+        rendererGate.invalidateData()
     }
 
     /**
@@ -544,7 +652,7 @@ internal fun buildAttributeList(
         description = description,
         resolvedAddress = address
     )
-    val data = DetailsResolver.resolve(input, nameHint)
+    val data = DetailsResolver.resolve(input, carContext.getString(R.string.location_title_generic), nameHint)
     val addressLine = data.address
     if (addressLine != null) {
         rows.add(Row.Builder().setTitle(carContext.getString(R.string.address)).addText(addressLine).build())
@@ -572,12 +680,14 @@ internal fun buildAttributeList(
  * Resolves the details screen title (spec: auto-destination-details — title
  * scenarios): the object description's `General/Name` entry, else the resolved
  * full address (street + house number + postal code + city), else the caller's
- * name/label hint, else the generic "Location". Pure and testable; delegates
- * to the shared [DetailsResolver] (phone is lead view).
+ * name/label hint, else [genericTitle] — the car's localized generic location
+ * title (spec: `i18n-l10n` — the shared resolver owns no display word). Pure
+ * and testable; delegates to the shared [DetailsResolver] (phone is lead view).
  */
 internal fun resolveTitle(
     address: Array<String>?,
     description: ObjectDescription?,
+    genericTitle: String,
     nameHint: String? = null
 ): String {
     val input = DetailsInput(
@@ -588,7 +698,7 @@ internal fun resolveTitle(
         description = description,
         resolvedAddress = address
     )
-    return DetailsResolver.resolveTitle(input, nameHint = nameHint)
+    return DetailsResolver.resolveTitle(input, genericTitle, nameHint = nameHint)
 }
 
 /**

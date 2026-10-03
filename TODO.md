@@ -6,8 +6,8 @@
 **Clusters** (category, then class — jump targets, not an order):
 - **build-and-harness** — bug: §101 §117
 - **build-and-harness** — improvement: §14 §17 §20 §22 §37 §44 §66 §94 §95 §115
-- **car** — bug: §46 §51 §56 §57 §83 §92 §93
-- **car** — improvement: §29 §34 §64 §103
+- **car** — bug: §51 §56 §57 §83 §92 §93
+- **car** — improvement: §29 §34 §46 §64 §103 §120
 - **data-and-maps** — bug: §89 §90 §91
 - **data-and-maps** — improvement: §99
 - **favorites** — bug: §118
@@ -29,6 +29,31 @@
 - **ui** — improvement: §39
 - **ui** — feature: §4 §5
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111
+
+---
+
+## 120. The car re-applies the `daylight` flag after every style switch, so a switch costs a second stylesheet reload — Found 2026-10-03 while implementing `dedupe-stylesheet-loads` (out of that change's scope)
+**id:** 120 · **category:** car · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `MapScreen.kt:468` and `NavigationScreen.kt:477` force the flag after a style load
+  (`pushDark(force = styleChanged)`), and `setStyleSheetFlag` reloads the style variant
+  (`OSMScoutClient.java:92-102`), which reloads **both** the main and the basemap stylesheet
+  (`guidelines/MapRendering.md` §16). A user-initiated style switch therefore costs one `loadStyleSheet`
+  plus one flag reload of the whole set. The appliers themselves already dedupe by value
+  (`CarStyleApplier` by style name, `CarDaylightApplier` by `daylight`), so an unchanged pair and an
+  unchanged settings re-read cost nothing — this is the only redundant application left on the car.
+- **Why it was left** ✗: removing the force assumes a style load carries the database's stored flag.
+  `MapRendering.md` §15 documents the flags as the load's argument (`LoadStyleInternal(stylesheet, flags)`)
+  but only for the flag path, so the assumption needs a native check — a submodule test asserting
+  `loadStyleSheet("cycle")` leaves the `daylight` flag as set, or an AVD run switching style while dark.
+  Unverifiable in the 2026-10-03 session (`adb devices` empty, no `emulator` binary).
+- **Fix candidate**: if the check shows the flag survives a style load, drop `force = styleChanged`
+  (`CarDaylightApplier` then keys on the pair) and tighten the `map-styles` scenario "Style switch loads
+  once for the style change" to the phone's rule (one load, no flag application) in the same change; if it
+  does not, keep the force and record it as required behaviour in `guidelines/MapRendering.md` §15.
+- **Related** ℹ: `dedupe-stylesheet-loads` fixed the phone side of the same class and left the measured
+  per-startup attribution to a device run (its tasks 1.1/1.2). If that attribution names repeated `initMap`
+  re-entry (two loads per entry) rather than a re-observation, the next change belongs in that path.
 
 ---
 
@@ -317,7 +342,7 @@
 ---
 
 ## 117. The `:app` unit-test suites stop producing a verdict: a pre-existing hang in `MapCanvasViewModelViewportRestoreTest` — Found 2026-10-02 while verifying `fix-start-map-selection` (verification gate, not caused by that change)
-**id:** 117 · **category:** build-and-harness · **class:** bug · **status:** fixed-by fix-viewport-restore-test-hang (in-flight)
+**id:** 117 · **category:** build-and-harness · **class:** bug · **status:** fixed-by fix-viewport-restore-test-hang
 
 - **Observed** ℹ: with the change's code in the tree, `./gradlew :app:testAutomotiveDebugUnitTest` ran **more than 20 minutes** without writing one result XML, and a later `./gradlew --no-build-cache :app:testMobileDebugUnitTest` did the same (core finished, 38 classes, the app task never produced a file). The same suites are green as soon as that one class is left out: automotive **196 of 197 classes / 1471 tests / 0 failures in 156 s** (88 `com.naviveylin.ui.map.*` patterns plus the remaining packages enumerated), and the mobile flavor passed **1483/0** in this session before the machine turned.
 - **Where it hangs** ℹ: `jstack` on the test worker puts the test thread in `runTest` → `runBlocking` → `MapCanvasViewModelViewportRestoreTest.saveViewport during re-entry window keeps persisted viewport (MapCanvasViewModelViewportRestoreTest.kt:263)`, with Robolectric's `SDK 36 Main Thread` holding ~30 s CPU and `Sandbox.runOnMainThread` on the worker's stack: the test coroutine never completes while the main looper keeps being driven. The class reproduces it alone (automotive, 240 s timeout, no XML; a partial XML records that one case at **79.8 s**). Other classes of the same package run at mobile speed (`MapCanvasViewModelSpeedWidgetTest` 1.05 s, `MiniMapComposeTest` 0.37 s), so it is this class, not the module or the flavor.
@@ -344,7 +369,7 @@
 ---
 
 ## 83. The rail-widget tap fix is unit-verified but not confirmed on device — Found 2026-09-26 (reported on phone + head unit under Android Auto) and implemented by `fix-car-rail-widget-tap` (2026-09-26)
-**id:** 83 · **category:** car · **class:** bug · **status:** in-flight fix-car-rail-widget-tap (device pending)
+**id:** 83 · **category:** car · **class:** bug · **status:** in-flight fix-car-rail-widget-tap
 
 - **Reported** ℹ: while navigating, switching to another car app keeps the turn hint in the rail widget, but tapping it does nothing — the app never comes back to the car foreground (music players do). Phone + head unit under Android Auto (projection).
 - **Cause** ✅: the ongoing notification had only one tap target — `PendingIntent.getActivity` at `openTargetActivity()`, which returned `CarAppActivity` only on automotive hardware and `MainActivity` otherwise, while `CarAppExtender` carried no `setContentIntent` at all. Per the car-app contract the host then falls back to the notification's content intent, so on projection the tap started a phone activity on the phone and the car screen never switched.
@@ -565,12 +590,18 @@
 ---
 
 ## 46. Phone notification `Stop` action does not end navigation — FIXED by `background-navigation-notification` and closed by `one-navigation-engine` (2026-09-27)
-**id:** 46 · **category:** car · **class:** bug · **status:** open (device)
+**id:** 46 · **category:** car · **class:** improvement · **status:** open (device)
 
 - **Closed 2026-09-27 by `one-navigation-engine`** ✅: the whole class of defect is gone, not just its symptom. `NavigationStateProvider` and `NavigationStopRequests` are deleted; the process-scoped `NavigationEngine` (`app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt`) is the single navigation source every surface observes, so the shade's stop action reaches the one session directly (`NavigationNotificationService.handleAction` → `engine.stopNavigation()`). There is no callback slot to overwrite, no per-source state mirror and no second engine to mis-route to. The phone surface keeps clearing the route panel and the drawn route on every stop path through its adapter (`NavigationViewModel.setRoutePanelViewModel`). Regression tests: `NavigationEngineStopPathTest` (stop clears the panel, notification stop ends navigation/clears the view/leaves nothing for the notification to keep alive, follow released), `NavigationNotificationServiceActionTest` (only the stop-navigation action stops the engine), `NavigationEngineTwoSurfaceTest` (stop from either surface ends it for both). Evidence: `./gradlew test` green — mobile 1255 / automotive 1255 / `:auto` 697 / `:core` 369 / `:osmscout-client-java` 26, 0 failures.
 - **Superseded history (kept for the record)** — the fix `background-navigation-notification` task 6.1 shipped on 2026-09-20: (`core/src/main/java/com/naviveylin/core/NavigationStopRequests.kt`), implemented by `NavigationStateProvider`: `stopNavigation()` broadcasts instead of routing to one callback slot, and the phone `NavigationViewModel` + `AANavigationController` each collect it and stop their own navigation (idempotent). The provider's mirror became a per-source registry where the navigating source wins — an idle car registrant can no longer blank live navigation, and `ViewModel.onCleared` unregisters the dead phone surface. `NavigationViewModel.stopNavigation()` also clears the route panel (`setNavigating(false)` + `clearRouteFromMap()`) so the shade stop matches the in-app button, and the service logs `onStartCommand action=…`. New tests: `NavigationStateProviderTest` (5), `NavigationViewModelStopPathTest` (2), `NavigationNotificationServiceActionTest` (2). Evidence: mobile 1068 / automotive 1068 / core 302 / auto 516 tests, 0 failures; both debug APKs assemble; no new compiler warnings.
 - **Still open on device** ⏳: tap `Stop` in the phone shade while navigating **with a car session live in the same process** (the original failure scenario) — confirm navigation ends, the notification withdraws and the route panel is left non-navigating. That re-run also re-opens `background-navigation-notification` task 4.1 and unblocks `car-turn-by-turn-rail-widget` task 7.4.
 - **Residual, not fixed (same last-wins shape)** ⏳: `NavigationStateProvider.navigateTo` / `reportError` still route to the *last* registrant. Both controllers can route with the same JNI client, so a mis-routed call is not lost (unlike the stop command), which is why it was out of scope here. Fix candidate: reuse the new registry — route `navigateTo` to the navigating source, else the first registered one — or give `navigateTo` its own broadcast seam if double-routing ever becomes a risk.
+- **Stale premise (2026-10-03, `cleanup-todo` pass)** ℹ: the files this entry's history and this residual cite
+  no longer exist — `navigation/NavigationStateProvider.kt`, `navigation/AANavigationController.kt` and
+  `core/NavigationStopRequests.kt` were deleted by the archived change `one-navigation-engine`, which also
+  removed the last-wins routing the residual describes. The bullet above is kept for the record, not as work;
+  what stays open here is the on-device re-run (shade `Stop` with a live car session), and the class was
+  lowered from `bug` to `improvement` for that reason.
 - **Original finding 2026-09-20 on device during `background-navigation-notification` task 4.1 (phone, ongoing notification visible)** ✗: tapping `Stop` in the notification shade does not end navigation — guidance keeps running and the notification stays. The same path is gated for the car hint by `car-turn-by-turn-rail-widget` task 7.4 ("…the phone stop action still works"), so that task is blocked on this. Two causes are visible without a device:
   - (a) **`NavigationStateProvider` keeps ONE callback slot per command** (`app/src/main/java/com/naviveylin/navigation/NavigationStateProvider.kt:32-46` — `stopCallback`, `navigateToCallback`, `reportErrorCallback`), overwritten by every `observe(source)` call. Two sources register in one process: the phone `NavigationViewModel.init` (`app/src/main/java/com/naviveylin/navigation/NavigationViewModel.kt:64`) and the singleton `AANavigationController.init` (`app/src/main/java/com/naviveylin/navigation/AANavigationController.kt:85`). The latter is resolved on **every car-session warmup** (`auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:328`, log step "Activating navigation controller"), so as soon as a head-unit/AAOS session starts after the phone app it owns `stopCallback` and the phone notification's action stops only the car controller's own (idle) engine. The same clobbering affects the mirrored `state`: the car controller's initial empty `NavigationState` is written into the provider when it subscribes, which can trip the service's active gate (`app/src/main/java/com/naviveylin/service/NavigationNotificationService.kt:105-113`) and `stopSelf()` the phone notification mid-navigation.
   - (b) **Not at parity with the in-app stop**: `app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt:1991-1993` performs `navigationViewModel.stopNavigation()` **plus** `routePanelViewModel.setNavigating(false)` and `clearRouteFromMap()`; the notification path (`NavigationNotificationService.kt:69-79`) performs only `stateProvider.stopNavigation()` — the route panel keeps its navigating flag and the route stays drawn on the map.
@@ -792,7 +823,7 @@ GPS back                     →  REAL
 - **Fix in flight** ⏳ (2026-10-01): `fix-cross-database-search-scope` takes the recorded mechanism — the text index is scope-blind in **every** database (`OSMScoutClient.cpp:4057` passes no region), so a free-text hit outside the resolved scope's extent is now dropped before the per-source cap, and every structured result carries whether it lies inside the scope (new `LocationEntry.inSearchScope`, spec `osmscout-jni`) so the app's ranker places out-of-scope close matches below in-scope ones (`SearchResultRanker`, spec `search-result-ranking`). Databases keep being searched, so a fully qualified query for another installed map still resolves (spec `location-search`). This entry is removed when that change is archived; the residual test gap is §109 and the candidate-budget question is §110.
 
 ## 28. Whole-level rounding in `computeAreaZoom` over-fits area favorites and POI search — **FIXED** by `fix-area-fit-zoom-rounding` (2026-10-03)
-**id:** 28 · **category:** map-rendering · **class:** bug · **status:** fixed-by fix-area-fit-zoom-rounding (in-flight)
+**id:** 28 · **category:** map-rendering · **class:** bug · **status:** fixed-by fix-area-fit-zoom-rounding
 
 - **Found 2026-09-18 during `route-overview-fit` (DPI/`cos(lat)` ground-resolution fix)** ℹ: the shared bbox→magnification helper rounds to whole levels (`Math.round`), so the fitted content can end up larger than the 80%-margin target. The route overview is protected by an explicit projection check (`routeFitsVisibleArea`, design Decision 8), but the other callers had no such verification, so their fitted bbox could overflow the mini map / map viewport (previously masked by the over-zoom the ground-resolution fix removed).
 - **Corrected direction 2026-10-03 (during `fix-area-fit-zoom-rounding`)** ℹ: the entry (and the route fit's own comment) said the helper "rounds the exact fit *down* … so the fitted content ends up to ~13% larger" — the two halves do not go together. Rounding the magnitude **down** makes the content *smaller* than the target (more margin, harmless); it is rounding **up** to the next whole level (up to +0.5 level = 2^0.5 ≈ 1.41x) that exceeds the viewport, since 0.8 × 1.41 ≈ 1.13. The clip was real either way.
@@ -849,8 +880,11 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 
 ### A. Harness / shell / Gradle invocations
 
-1. Never plan on `python3`, `perl` or `tesseract` — all blocked by the lean-ctx shell allowlist (permanent).
-   Use `jq`, `sed -i -E`, `openspec … --json` + grep; there is no OCR route without a config change.
+1. Do not plan on the allowlist blocking a tool: `python3` (3.14.7), `perl` and `tesseract` (5.5.3) all
+   **run** in this shell as of 2026-10-03 (this item said they were blocked; `§106`'s device pass already
+   used `tesseract`). `jq`, `grep`, `sed` and `awk` stay the house style for text work and OpenSpec
+   interaction (`openspec/config.yaml` — tooling), so reach for `python3` only when shell text tools
+   genuinely cannot express it, and never for `openspec` commands or their output.
    **[open]** (guidelines/Build.md — shell constraints)
 2. Never `pkill -f "gradlew …"`: `-f` matches the calling tool's own command line, kills the shell, and the
    rest of the chained command (e.g. a `git commit`) silently never runs. Kill by PID
@@ -1214,7 +1248,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   duplication itself has no test, only the rule that a follow-mode overlay shift must stay zero.
 
 ## 119. The Android bridge override trails the submodule's Java favorites API — Found 2026-09-28 (while adding the cross-group favorite move)
-**id:** 119 · **category:** native-jni · **class:** improvement · **status:** open — formerly §79 (duplicate number; quoted as §79 by fix-open-database-path-validation/design.md, the reorder-favorite-groups traceability and condense-style-load-warnings)
+**id:** 119 · **category:** native-jni · **class:** improvement · **status:** open
 
 - **Debt** ℹ: `osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java`
   shadows the submodule's Java source (that file is excluded in `osmscout-client-java/build.gradle.kts`)
@@ -1231,6 +1265,10 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   is silent otherwise (no compiler error, no failing test: only a `NoSuchMethodError` at the call site).
 - **Why deferred** ✗: the in-flight change `move-favorite-between-groups` needed exactly one of them;
   widening it would have mixed an API-sync refactor into a feature change.
+- **Id note** ℹ: this entry was `§79` until 2026-10-03, when the duplicate number was resolved to `§119`
+  (the other `§79` was closed and removed). It is still quoted as `§79` by
+  `fix-open-database-path-validation/design.md`, the `reorder-favorite-groups` traceability and
+  `condense-style-load-warnings`; those historical citations are left as they are.
 
 ## 103. `FavoritesScreen` (car) is the one screen still outside the `CarScreenObservations` pattern — Found 2026-09-29 during `order-starred-favorites`
 **id:** 103 · **category:** car · **class:** improvement · **status:** in-flight fix-details-screen-observation-scope

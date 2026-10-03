@@ -124,7 +124,9 @@ travel while the map itself rotates at its own pace.
   marker/pin against the target detaches them from the map content by that delta (one fix step: ~17 px
   at 50 km/h, mag 16, and margin-sized when the clamp branch also moves the target) and snaps them back
   on the commit. The phone has the same separation (`renderViewport` is committed atomically with
-  `renderedBitmap`); do not "simplify" either side into a single frame field.
+  `renderedBitmap`); do not "simplify" either side into a single frame field. Each write requests its own
+  frame (change `fix-car-follow-reengage-render`): `setViewport` unconditionally, `reengageFollow` only
+  when no frame is already scheduled, so the pending description always has a frame behind it.
 - **The follow blit offset is measured on the displayed vehicle position**, not on the frame center:
   `renderFrame` passes the displayed position (`markerPosition()`) to
   `FollowPrediction.displayOffsetPx`, with `overrunLat/Lon` as the frame. A frame *center* is not a
@@ -672,12 +674,18 @@ car Surface:
   MUST NOT reset the display to the render target when `followMode` is engaged — a render
   triggered by a transient follow-off (heading-up `setViewport`) would otherwise yank the eased
   display back every fix (visible "pumping"). Only set `display = viewport` when `!followMode`.
-- **reengageFollow must anchor the viewport**: screens that do transient
+- **reengageFollow must anchor the viewport and request the frame**: screens that do transient
   `setViewport(...) → reengageFollow()` per fix (heading-up rotation) must make
   `reengageFollow` set `viewport = fix` + emit — otherwise the next `setViewport` reads a stale
   `viewportState` (initial center), the pending render targets it, and the display pumps between
   the stale center and the fix. `reCenter` keeps the snap (user re-center button);
-  `reengageFollow` re-engages without snapping the display.
+  `reengageFollow` re-engages without snapping the display. It also MUST request the frame it
+  re-anchored when none is pending (`blitEligible = true; if (!pendingRender) requestRender()`) —
+  a pan release (`MapPanHandler`) and a screen start/resume re-engage with no commit behind them, so
+  relying on a preceding `setViewport` left the stale frame on the surface (change
+  `fix-car-follow-reengage-render`, spec `auto-smooth-follow` — A follow re-engage requests the frame
+  it re-anchored). The guard matters: the render loop draws one frame per `renderSignal` value, so an
+  unconditional request doubles the fix path's renders.
 - **Stale fix must ease back, never freeze**: a GPS gap does NOT gate the extrapolation loop
   off — `FollowPrediction.predictedPosition` holds past its extrapolation window, so the display
   eases back to the last fix. Freezing the display at the last predicted position reads as a

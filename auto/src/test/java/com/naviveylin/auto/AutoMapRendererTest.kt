@@ -11,6 +11,7 @@ import com.naviveylin.core.anchorCenter
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import java.util.Locale
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -715,6 +716,143 @@ class AutoMapRendererTest {
         )
         assertEquals(expected.first, renderer.markerViewport().first, 1e-9)
         assertEquals(expected.second, renderer.markerViewport().second, 1e-9)
+    }
+
+    // --- A re-engage owns the frame it re-anchored -------------------------------
+    // (spec: auto-smooth-follow — A follow re-engage requests the frame it re-anchored;
+    // change fix-car-follow-reengage-render)
+
+    @Test
+    fun reengageFollowSchedulesTheFrameItReanchored() {
+        // A pan release (MapPanHandler.onPanModeChanged(false)) and a screen start/resume
+        // re-engage follow with NO pending commit behind them. Before this change the
+        // re-engage only re-anchored the target, so the surface kept the pan's frame until
+        // the next fix, commit or tick requested one.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.setFollowAnchor(VehicleAnchorPosition.BOTTOM_CENTER)
+        renderer.setGpsMarker(fixLat, fixLon, 0.0, 10.0, speedKmH = 50.0)
+        renderer.reCenter()
+        renderer.frameIteration()
+
+        // Pan away from the vehicle: follow disengages and the pan commits its own frame.
+        renderer.setViewport(fixLat + 0.05, fixLon + 0.05, 12, 0.0)
+        renderer.frameIteration()
+        val requestsBefore = renderer.renderRequestCount
+        val framesBefore = renderer.fullRenderCount + renderer.blitCount
+
+        renderer.reengageFollow()
+
+        assertEquals(
+            "the re-engage must schedule a frame of its own",
+            requestsBefore + 1, renderer.renderRequestCount
+        )
+        assertEquals(
+            "nothing is drawn until the scheduled frame is consumed",
+            framesBefore, renderer.fullRenderCount + renderer.blitCount
+        )
+
+        val target = renderer.viewportState.value
+        assertTrue(
+            "the re-engage must re-anchor on the vehicle, not keep the pan's center",
+            abs(target.lat - (fixLat + 0.05)) > 1e-5
+        )
+
+        renderer.frameIteration()
+
+        assertEquals(
+            "one re-engage draws one frame",
+            framesBefore + 1, renderer.fullRenderCount + renderer.blitCount
+        )
+        val rendered = client.renderCalls.last()
+        assertEquals("the frame is rendered at the re-anchored target", target.lat, rendered[0], 1e-9)
+        assertEquals(target.lon, rendered[1], 1e-9)
+        assertEquals(
+            "the committed frame carries the re-anchored center",
+            target.lat, renderer.markerViewport().first, 1e-9
+        )
+
+        renderer.frameIteration()
+        assertEquals(
+            "no frame beyond the one the re-engage scheduled",
+            framesBefore + 1, renderer.fullRenderCount + renderer.blitCount
+        )
+    }
+
+    @Test
+    fun reengageFollowKeepsTheReanchoredCommitBlitEligible() {
+        // A re-engage changes neither magnification nor rotation, and it anchors on the
+        // displayed position, so its commit is the center-only change a blit can serve —
+        // even when the last commit before it was a rotation (blit-ineligible). A full
+        // native render here would be a per-pan-release cost the overrun blit exists for.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        // Center anchor: a rotation commit moves no center, so the re-anchor stays inside
+        // the overrun margin even after the frame's angle changed.
+        renderer.setFollowAnchor(VehicleAnchorPosition.CENTER)
+        renderer.setGpsMarker(fixLat, fixLon, 0.0, 10.0, speedKmH = 50.0)
+        renderer.reCenter()
+        renderer.frameIteration()
+
+        renderer.setViewport(renderer.viewportState.value.lat, renderer.viewportState.value.lon, 12, 0.5)
+        renderer.frameIteration()
+        val fullsBefore = renderer.fullRenderCount
+        val blitsBefore = renderer.blitCount
+
+        renderer.reengageFollow()
+        renderer.frameIteration()
+
+        assertEquals(
+            "a re-anchored commit must not force a full native render",
+            fullsBefore, renderer.fullRenderCount
+        )
+        assertTrue(
+            "the re-anchored commit is served by an overrun blit",
+            renderer.blitCount > blitsBefore
+        )
+    }
+
+    // --- Locale-independent diagnostic numbers -----------------------------------
+    // (spec: auto-diagnostics — Diagnostic numbers are locale-independent;
+    // change fix-car-follow-reengage-render)
+
+    @Test
+    fun followDiagnosticLineKeepsNumbersLocaleIndependent() {
+        // The line is the on-device recipe's frame-vs-pending evidence
+        // (guidelines/Build.md §10), so it has to be parseable on any device locale: with
+        // the default-locale formatter a German build printed `off=3,4,-1,5` and
+        // `frameMag=15,00`, where the decimal comma reads as a field separator.
+        val now = System.currentTimeMillis()
+        renderer.setGpsMarker(fixLat, fixLon, 0.0, 10.0, speedKmH = 50.0, timeMs = now)
+        val offset = FollowPrediction.Companion.DisplayOffset(
+            rawX = 3.42, rawY = -1.44, clampedX = 3.42, clampedY = -1.44
+        )
+
+        val previousLocale = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.US)
+            val dotLocale = renderer.followDiagnosticLine(now, offset)
+            Locale.setDefault(Locale.GERMANY)
+            val commaLocale = renderer.followDiagnosticLine(now, offset)
+
+            assertEquals("a decimal-comma locale must not change the line", dotLocale, commaLocale)
+            assertTrue("the decimal offset must print with a dot: $dotLocale", dotLocale.contains("off=3.4,-1.4"))
+            assertFalse(
+                "no decimal comma may appear in the numbers: $dotLocale",
+                dotLocale.contains("3,4") || dotLocale.contains("-1,4") || dotLocale.contains("15,00")
+            )
+            for (field in listOf(
+                " spd=", " eff=", " dec=", " stp=", " off=", " clamped=",
+                " frameMag=", " frameAng=", " pendingMag=", " pendingAng=",
+                " dAng=", " dMag=", " last=", " renders=", " blits="
+            )) {
+                assertTrue("the recipe field $field is missing in: $dotLocale", dotLocale.contains(field))
+            }
+        } finally {
+            Locale.setDefault(previousLocale)
+        }
     }
 
     // --- Host pane insets + marker/content alignment -------------------------

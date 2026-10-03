@@ -605,9 +605,29 @@ Status: all four defects fixed and device-verified (2026-09-18, AAOS), including
 Findings detected while fixing the AA follow overlay projection; all out of that change's scope
 (it deliberately keeps the follow re-anchor cadence and the overlay frame bookkeeping only).
 
-- **⏳ `reengageFollow` relies on a preceding `setViewport` to have requested the render** ✗: it writes `viewportLat/Lon` + `emitViewportState()` but never calls `requestRender()`; it works only because every current call site calls it immediately after `setViewport` (which does request). A caller that re-engages follow on its own would silently keep the stale frame on the surface. Fix option: request the render in `reengageFollow` when the target actually moved.
+**Landed 2026-10-03 — change `fix-car-follow-reengage-render`** ✅: items (a) and (c) above are fixed
+for the car surface (specs `auto-smooth-follow` — A follow re-engage requests the frame it
+re-anchored; `auto-diagnostics` — Diagnostic numbers are locale-independent). Evidence: a test-visible
+`renderRequestCount` plus `AutoMapRendererTest` 75/0 (3 new cases: schedule/draw the re-anchored frame,
+blit-eligibility after a rotation commit, locale-independence), `AutoMapRendererRenderCadenceTest` 5/0
+(one frame per commit path), two revert-checks (guard removed → the bare-re-engage case fails; default
+locale restored → the German-locale case fails). **This entry stays open** for the residue:
+
+- **The phone mirrors of the locale item** ⏳: `app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt:720-728`
+  (the follow log this car entry mirrors) and `MapCanvasViewModel.kt:1157-1159` (the GPS-fix log) still
+  format through the default locale. Same rule, two sites — a phone-surface change.
+- **§19(b) stays a measurement** ⏳: the extrapolation loop's ~11 Hz (not the nominal 30 Hz) was never
+  re-measured after the render-cadence work; see the item above.
+- **On-device verification of the fix is device-gated** ⏳: the pan-release re-anchor and the
+  German-locale `follow` line could not be observed on 2026-10-03 (`adb devices` empty,
+  `emulator -list-avds` empty). Recipe when a unit is attached: free driving with a fix stream, pan,
+  release → the map re-anchors within the next tick instead of holding the panned viewport, with
+  `adb logcat -s NaviVeylin | grep follow` showing the re-anchored frame and its numbers with dots
+  (`off=3.4,-1.5 frameMag=15.00`).
+
+- **✅ FIXED for the car surface (2026-10-03, `fix-car-follow-reengage-render`)** — `reengageFollow` relies on a preceding `setViewport` to have requested the render ✗: it writes `viewportLat/Lon` + `emitViewportState()` but never called `requestRender()`; it worked only because the fix path calls it immediately after `setViewport` (which does request). A caller that re-engages follow on its own — `MapPanHandler.onPanModeChanged(false)` (pan release), `NavigationScreen`, `FreeDrivingScreen` start/resume, the `RendererGate` replay — silently kept the stale frame on the surface. Now: `blitEligible = true; if (!pendingRender) requestRender()`.
 - **ℹ Extrapolation loop measured ~11 Hz, not the nominal 30 Hz** (`EXTRAPOLATION_FRAME_MS = 33`): in the 104 s AA window, 38 diagnostic lines at one line per 30 ticks is ~1140 ticks / 104 s ≈ 11 Hz. Each tick locks the shared surface and draws the full 1296×720 overrun bitmap plus the overlays, so the period is dominated by the draw — measure before tuning the constant (a smaller period would not raise the rate).
-- **ℹ Diagnostics use the default locale:** `"%.6f".format(...)` in the AA follow log and the `Diag/MAP` render lines prints decimal commas on a German device (`51,513637`), so those lines are not machine-parseable. Use `Locale.ROOT` for diagnostic formatting.
+- **✅ FIXED for the car `follow` entry (2026-10-03, `fix-car-follow-reengage-render`)** — diagnostics used the default locale: `"%.6f".format(...)`/`"%.1f".format(...)` printed decimal commas on a German device (`51,513637`, `off=3,4,-1,5`), so those lines were not machine-parseable. The car `follow` entry now formats every number through `Locale.ROOT` (`followDiagnosticLine`, `AutoMapRenderer.kt`). The phone mirrors are still open (see the note below).
 
 ---
 

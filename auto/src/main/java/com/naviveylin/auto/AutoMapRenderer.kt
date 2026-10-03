@@ -230,9 +230,13 @@ class AutoMapRenderer internal constructor(
     @Volatile private var blitEligible = false
 
     // Test-visible counters (spec: auto-smooth-follow verification): a small
-    // viewport move must not increment [fullRenderCount].
+    // viewport move must not increment [fullRenderCount], and a path that schedules a
+    // frame it already has must be observable as a second [renderRequestCount] — the
+    // render loop draws one frame per signal, so a duplicate request is a duplicate
+    // frame in production even when a pending flag makes it invisible in sync tests.
     @Volatile internal var fullRenderCount = 0
     @Volatile internal var blitCount = 0
+    @Volatile internal var renderRequestCount = 0
 
     // Whether the last committed viewport change was served by a sub-region
     // blit or a full native render (diagnostic, task 4.1).
@@ -583,6 +587,43 @@ class AutoMapRenderer internal constructor(
     }
 
     /**
+     * The follow diagnostic entry: fix speed, the prediction's effective speed, the display
+     * offset, the displayed frame's and the pending target's magnification and angle, their
+     * deltas, the last commit path and the render/blit counters — the line the on-device
+     * recipe (`guidelines/Build.md` §10) greps for the frame-vs-pending evidence.
+     *
+     * Every number is formatted with [Locale.ROOT] (spec: auto-diagnostics — Diagnostic
+     * numbers are locale-independent): on a decimal-comma device locale the default-locale
+     * formatter printed `off=3,4,-1,5` and `frameMag=15,00`, a decimal comma that is
+     * indistinguishable from the field separator the recipe splits on. No coordinates
+     * (spec: auto-diagnostics — Diagnostics carry no coordinates): the identity is
+     * magnification, angle deltas, clamped pixels and counters.
+     */
+    internal fun followDiagnosticLine(nowMs: Long, offset: FollowPrediction.Companion.DisplayOffset): String {
+        val dbg = followPrediction.debugState(nowMs)
+        fun f(format: String, value: Double): String = String.format(Locale.ROOT, format, value)
+        return "follow" +
+            " spd=" + (if (lastFixSpeedMs.isNaN()) "-" else f("%.1f", lastFixSpeedMs * 3.6)) +
+            " eff=" + f("%.1f", dbg.effectiveSpeedMs * 3.6) +
+            " dec=" + dbg.decelerating +
+            " stp=" + dbg.stopped +
+            " off=" + f("%.1f", offset.clampedX) + "," + f("%.1f", offset.clampedY) +
+            " clamped=" + offset.clamped +
+            " frameMag=" + f("%.2f", overrunMag) +
+            " frameAng=" + f("%.3f", overrunAngle) +
+            " pendingMag=" + f("%.2f", viewportZoomFraction) +
+            " pendingAng=" + f("%.3f", viewportAngle) +
+            // Committed-vs-displayed deltas + last-commit path: `dAng` is the pending
+            // rotation minus the displayed frame's rotation (normalized), `dMag` the pending
+            // minus the displayed magnification, `last` whether the previous commit was
+            // blitted or rendered — the on-device ranking of P2/P3 from one line.
+            " dAng=" + f("%.3f", angleDeltaRadians(viewportAngle, overrunAngle)) +
+            " dMag=" + f("%.3f", viewportZoomFraction - overrunMag) +
+            " last=" + (if (lastCommitWasBlit) "blit" else "render") +
+            " renders=" + fullRenderCount + " blits=" + blitCount
+    }
+
+    /**
      * Current continuous (fractional) zoom, used for pinch accumulation.
      */
     fun fractionalZoom(): Double = viewportZoomFraction
@@ -673,10 +714,16 @@ class AutoMapRenderer internal constructor(
      * re-center action.
      *
      * The viewport is anchored on the anchor center of the DISPLAYED position
-     * (and emitted), so the pending render (from the preceding [setViewport])
-     * renders at the point the shown frame already had at the anchor: the commit
-     * changes the centre by the display's own advance only, which the overrun blit
-     * serves, and neither the map content nor the marker moves at the commit.
+     * (and emitted), so the commit renders at the point the shown frame already had
+     * at the anchor: the commit changes the centre by the display's own advance only,
+     * which the overrun blit serves, and neither the map content nor the marker moves
+     * at the commit. The re-engage requests that frame itself when none is pending —
+     * a pan release (MapPanHandler) or a screen start/resume re-engages without a
+     * preceding commit, so relying on one would leave the stale frame on the surface
+     * (spec: auto-smooth-follow — A follow re-engage requests the frame it re-anchored).
+     * When a commit did already request a frame for the same target, that frame renders
+     * the re-anchored target (the target is read at render time) and no second frame is
+     * scheduled.
      * Anchoring on the raw fix instead (the previous rule) put the frame
      * `display - fix` px away from where the scene sat and the next blit pulled it
      * back — a ~1 Hz excursion of the extrapolation lead (change
@@ -704,6 +751,15 @@ class AutoMapRenderer internal constructor(
             viewportLat = aLat
             viewportLon = aLon
             emitViewportState()
+            // Center-only commit (neither magnification nor rotation changed), so it is
+            // blit-eligible like setViewport's pure-center case; the overrun coverage
+            // check stays the authority on whether a full render is needed.
+            blitEligible = true
+            // Guarded: a frame that is already scheduled renders the target the fields
+            // hold at render time, so requesting again would add a second frame to the
+            // fix path (setViewport requested one microsecond ago). One re-engage, at
+            // most one frame.
+            if (!pendingRender) requestRender()
         }
     }
 
@@ -785,6 +841,7 @@ class AutoMapRenderer internal constructor(
     fun requestRender() {
         if (isShutdown) return
         pendingRender = true
+        renderRequestCount++
         renderSignal.value = System.nanoTime()
     }
 
@@ -1099,36 +1156,10 @@ class AutoMapRenderer internal constructor(
             )
             // Diagnostic (mirrors the phone's MapCanvasScreen follow log): fix
             // vs predicted vs displayed vs offset, so an AA logcat shows
-            // exactly where the overshoot comes from.
+            // exactly where the overshoot comes from. The line's format (locale-independent
+            // numbers, field order) is a tested contract — see followDiagnosticLine.
             if (followLogCount++ % 30 == 0) {
-                val dbg = followPrediction.debugState(nowMs)
-                android.util.Log.d(
-                    TAG,
-                    "follow" +
-                        " spd=" + (if (lastFixSpeedMs.isNaN()) "-" else "%.1f".format(lastFixSpeedMs * 3.6)) +
-                        " eff=" + "%.1f".format(dbg.effectiveSpeedMs * 3.6) +
-                        " dec=" + dbg.decelerating +
-                        " stp=" + dbg.stopped +
-                        " off=" + "%.1f".format(offset.clampedX) + "," + "%.1f".format(offset.clampedY) +
-                        " clamped=" + offset.clamped +
-                        // Displayed frame vs pending render target (change
-                        // `overlay-projects-against-displayed-frame`): the overlays
-                        // project against the frame's magnification and angle below.
-                        // No coordinates: the frame-vs-pending comparison runs on
-                        // `dMag`/`dAng` and the clamped pixel offset (spec:
-                        // auto-diagnostics — Diagnostics carry no coordinates).
-                        " frameMag=" + "%.2f".format(overrunMag) + " frameAng=" + "%.3f".format(overrunAngle) +
-                        " pendingMag=" + "%.2f".format(viewportZoomFraction) + " pendingAng=" + "%.3f".format(viewportAngle) +
-                        // Committed-vs-displayed deltas + last-commit path (task 4.1):
-                        // `dAng` is the pending rotation minus the displayed frame's
-                        // rotation (normalized), `dMag` the pending minus the displayed
-                        // magnification, `last` whether the previous commit was blitted
-                        // or rendered — the on-device ranking of P2/P3 from one line.
-                        " dAng=" + "%.3f".format(angleDeltaRadians(viewportAngle, overrunAngle)) +
-                        " dMag=" + "%.3f".format(viewportZoomFraction - overrunMag) +
-                        " last=" + (if (lastCommitWasBlit) "blit" else "render") +
-                        " renders=" + fullRenderCount + " blits=" + blitCount
-                )
+                android.util.Log.d(TAG, followDiagnosticLine(nowMs, offset))
             }
             if (offset.clamped) {
                 // Display hit the overrun margin → full render at the display

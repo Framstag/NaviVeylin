@@ -271,7 +271,10 @@ practical outcome.
   comparison (TODO §29) used the geo centre of the displayed frame and of the pending render target;
   that pair is no longer logged. Use `frameMag`/`frameAng`, `pendingMag`/`pendingAng`, `dMag`/`dAng`,
   the clamped pixel offset (`off=`, `clamped=`) and the render/blit counters — the placement rule
-  itself is unchanged.
+  itself is unchanged. The `follow` entry's numbers are formatted with a fixed locale (change
+  `fix-car-follow-reengage-render`, spec `auto-diagnostics` — Diagnostic numbers are
+  locale-independent), so the grep/parse of this recipe works identically on a German install
+  (it printed `off=3,4,-1,5` before, where the decimal comma read as a field separator).
 - **The car render entry (`Diag/MAP`)** carries the committed frame's magnification, the projection DPI
   and the rendered bitmap's size (`render mag=… dpi=… -> bitmap WxH`) and **no centre** (change
   `fix-car-render-coordinate-redaction`): the entry is the throttled "a frame was committed"

@@ -38,7 +38,8 @@ All four skills follow the same contract:
   **foreground** with `> /tmp/<name>.log 2>&1` and grep the verdict, the `e: ` /
   `w: ` lines and the tallies back. Do **not** background it (`nohup … &`): the
   harness kills the process group when the tool call ends, and the run then dies
-  mid-build with no verdict (`TODO.md` §100 — `setsid` is not available).
+  mid-build with no verdict (`setsid` is not available either, so there is no way to detach that survives
+  the tool call).
 - **Evaluate the result by return code AND build output**:
   - Exit code `0` **and** output contains `BUILD SUCCESSFUL` → success
   - Exit code non-zero **or** output contains `BUILD FAILED` → failure

@@ -1,11 +1,11 @@
 # NaviVeylin TODO 
 
 **Legend:** ✗ = missing | ⏳ = in progress / blocked | ✅ = done
-**Entry metadata:** every numbered section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line under its heading. `class` describes the **remaining** work: a landed fix whose only residue is verification is an `improvement`, one whose residue is still a defect stays a `bug`. Ids are identity — never renumbered (`§79`'s duplicate is `§119`).
+**Entry metadata:** every numbered section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line under its heading. `class` describes the **remaining** work: a landed fix whose only residue is verification is an `improvement`, one whose residue is still a defect stays a `bug`. Ids are identity — never renumbered (a collision is reported and the duplicate gets a fresh id: the `§79` duplicate became `§119` on 2026-10-03).
 
 **Clusters** (category, then class — jump targets, not an order):
 - **build-and-harness** — bug: §101 §117
-- **build-and-harness** — improvement: §14 §17 §20 §22 §37 §44 §66 §79 §94 §95 §100 §115
+- **build-and-harness** — improvement: §14 §17 §20 §22 §37 §44 §66 §94 §95 §115
 - **car** — bug: §46 §51 §56 §57 §83 §92 §93
 - **car** — improvement: §29 §34 §64 §103
 - **data-and-maps** — bug: §89 §90 §91
@@ -80,7 +80,8 @@
     predicate or refusal path, and names the skill — so a change written from here carries the task.
   - **`guidelines/Build.md`** §4 gained the two rules this needed (a restored tree is a cached tree — check the
     XML `timestamp`; sweep the suites for the constants/values a change moves *before* the gate), §1 lists the
-    fourth skill, and §2's output contract was corrected to the foreground + redirect pattern (§100).
+    fourth skill, and §2's output contract was corrected to the foreground + redirect pattern — all three
+    build skills (`build-app`, `run-tests`, `release-build`) prescribe it now, and the old `nohup` flow is gone.
     `AGENTS.md`, `openspec-apply-change` and `run-tests` point at `revert-check` by name.
   - **Evidence for the discipline**: `fix-area-fit-zoom-rounding` ran four revert-checks this way (loop removed →
     3 cases, favourite call site unverified → 1, floor back to 14 → 1, embedded fit unverified → 2), and one of
@@ -198,7 +199,7 @@
   repository, its two DI providers, the phone chip bar and the car favorites screen; `:app/navigation` consumes none of
   them. Note the run also hit a harness artifact: `java.nio.file.NoSuchFileException:
   app/build/test-results/testMobileDebugUnitTest/binary/in-progress-results-generic.bin` after an earlier run started
-  detached and was killed (§100) — removing the stale `test-results/<flavor>` directory before a rerun is what makes the
+  detached and was killed (the `nohup` flow the skills no longer prescribe) — removing the stale `test-results/<flavor>` directory before a rerun is what makes the
   next verdict readable.
 - **Update 2026-09-30 (during `fix-open-database-path-validation`)** ℹ: the family reproduced twice more in the **automotive** flavor of a full `:app:testAutomotiveDebugUnitTest` (1453 tests each run). Run 1 failed
   `NavigationEngineTest.listenerCallbacksDriveTheSharedState` on the assertion *below* the documented one —
@@ -219,35 +220,6 @@
 
 ---
 
-## 100. A backgrounded Gradle build does not survive the agent shell tool call — the `build-app` / `run-tests` skills' detached flow is unusable in this harness — Found 2026-09-28 during `fix-car-render-coordinate-redaction` (harness)
-**id:** 100 · **category:** build-and-harness · **class:** improvement · **status:** open
-
-- **Observed** ℹ: `nohup ./gradlew :app:assembleMobileDebug :app:assembleAutomotiveDebug > /tmp/x.log 2>&1 &`
-  (the exact flow `build-app` §2 prescribes) returns immediately, and the build is then **killed**: the tool call
-  ends, the harness kills the process group, `pgrep -f 'GradleWrapper[M]ain'` is empty, and the log stops
-  mid-build — at `:app:compileMobileDebugKotlin` with no `BUILD SUCCESSFUL`/`BUILD FAILED`, i.e. the
-  "killed, not failed" signature that skill itself warns about. `setsid` (the obvious detach) is refused:
-  `'setsid' is not in the shell allowlist` (permanent).
-- **Consequence** ⏳: a full build or a suite started this way silently loses its verdict; a session that then
-  reads the truncated log or the tool's exit code reports a failure that never happened (or worse, a
-  `up-to-date`-looking green from a *cached* task — §17). The `-Pandroid.injected.build.abi=` warning and
-  §40.3/§40.4 assume the detached form works.
-- **Fix candidate**: change the two skills (`build-app`, `run-tests`; both `.pi/skills/`, machine-local) to the
-  pattern that does work here — one **foreground** call with the output redirected and only the verdict grepped
-  back (`./gradlew … > /tmp/x.log 2>&1; echo "exit=$?"; grep -E 'BUILD SUCCESSFUL|BUILD FAILED' /tmp/x.log`),
-  keeping the rule that the verdict comes from the log. Evidence from this change: `:app` mobile 1318 tests in
-  3 m 6 s and automotive 1318 in 2 m 36 s both completed inside one foreground call, so the output cap is not
-  the binding constraint once the output is redirected.
-- **Half fixed 2026-10-03** ✅/⏳: `run-tests` now prescribes the foreground + `> /tmp/<name>.log 2>&1` pattern
-  (its step 2 names this entry and the process-group kill), and `guidelines/Build.md` §2's "output is never
-  redirected" contract was corrected to "redirect, keep the console readable" — so the documented convention no
-  longer contradicts the harness. Evidence the pattern holds: a four-module `--rerun-tasks` gate (4191 tests,
-  182 executed tasks) and a 10 m 12 s run both completed inside one foreground call with only the verdict and
-  the `w:` lines grepped back. **Still open**: `build-app` §2 prescribes the same unusable `nohup` flow — same
-  three-line fix, not applied with that change because it is a different skill's procedure.
-- **Logged** ✅: the failed approach and the working one are in `ki_processing_failures.log` (2026-09-28 entry).
-
----
 
 ## 95. The retention release had no on-device run: the installed build is Play-signed, so a local build needs an uninstall — and the map data goes with it — Found 2026-09-27, **RESOLVED 2026-09-27 20:27** by a Play release (see the update at the end)
 **id:** 95 · **category:** build-and-harness · **class:** improvement · **status:** on-hold (decision)
@@ -397,16 +369,6 @@
 - **Preserved** ✅ at submodule commit `eb0ac0ff2` ("tests: measure the StringMatcher cost claim only where it is measurable"), reachable in the submodule's history; restore locally with `git -C app/src/main/cpp/libosmscout checkout eb0ac0ff2 -- Tests/src/StringMatcherTest.cpp`. The harness needs care in CI (the local version already had `SKIP` paths for sanitizer runtimes and shared-library/DLL builds, which is the likely reason it was not part of the PR).
 - **Fix candidate**: re-add it as a focused upstream PR on top of upstream's file (the counter harness + one case), so the cost claim is pinned where the matcher now lives; do not re-fork the whole test file.
 - **Adjacent state from the same merge** ℹ: upstream **deleted** `origin/fix-compound-name-matching` in the submodule after merging it, and the submodule's `openspec/changes/fix-compound-name-matching/` artifacts are now upstream's copies (our local stubs were replaced). The parent repo's own copy of that change (16/20, device checks 5.2/5.4-5.6 pending) remains the tracker; when it archives, it must not resurrect the submodule stubs.
-
----
-## 79. The per-module unit-test task names in the run-tests skill are wrong for `:auto` and `:app` — Found 2026-09-25 during `fix-comma-decimal-coordinate-entry` (harness)
-**id:** 79 · **category:** build-and-harness · **class:** improvement · **status:** open
-
-- **Observed** ℹ: `./gradlew :auto:test --tests "com.naviveylin.auto.DetailsScreenTest"` fails immediately with `Problem configuring task :auto:test from command line. > Unknown command-line option '--tests'` — `:auto:test` is not filterable (it is not the AGP unit-test task). The working invocation is `./gradlew :auto:testDebugUnitTest --tests "<fqcn>"`. `:core:test` accepts `--tests` (verified with the same change). The `.pi/skills/run-tests` table documented `:app:testDebugUnitTest` (which does not exist — the `dist` flavor dimension splits it, §40 item 30 / §71) and listed no `:auto` task at all; the `:app` names were corrected in the skill by 2026-10-03 (see the narrowed fix candidate below).
-- **Consequence** ℹ: a single-class run against `:auto` looks like a real build failure and costs a build cycle to diagnose; the skill is gitignored, so the fix has to happen on the machine that owns `.pi/skills/` (not in this repo).
-- **Fix candidate** (narrowed 2026-10-03 by the `cleanup-todo` pass): the `:app` half is fixed — the skill now documents `:app:testMobileDebugUnitTest` / `:app:testAutomotiveDebugUnitTest` and states that there is no `:app:testDebugUnitTest`. What is still missing is the `:auto` and `:core` rows of its Commands table (`:auto:testDebugUnitTest`, `:core:testDebugUnitTest` — the latter appears only in the skill's coverage section today), or a filterable aggregate task per module.
-- **Evidence for the working names (2026-09-25)**: `:auto:testDebugUnitTest --tests com.naviveylin.auto.DetailsScreenTest --tests com.naviveylin.auto.NavigationTemplateMapperTest` → BUILD SUCCESSFUL, `DetailsScreenTest` 28 tests / 0 failures, `NavigationTemplateMapperTest` 59 / 0; `:core:test` 339 / 0; `./gradlew test` app mobile 1174 / automotive 1174 / auto 683 / core 339, all 0 failures.
-- **Correction 2026-09-26** (found while applying `fix-diagnostics-coordinate-redaction`): `:core:test` does **not** accept `--tests` either — `./gradlew :core:test --tests "com.naviveylin.core.LocationGrantTest"` fails with `Problem configuring task :core:test from command line. > Unknown command-line option '--tests'`; the filterable task is `:core:testDebugUnitTest`. So the corrected matrix is `:app:testMobileDebugUnitTest`, `:app:testAutomotiveDebugUnitTest`, `:auto:testDebugUnitTest`, `:core:testDebugUnitTest` (and `:osmscout-client-java:test`).
 
 ---
 
@@ -873,9 +835,12 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 2. Never `pkill -f "gradlew …"`: `-f` matches the calling tool's own command line, kills the shell, and the
    rest of the chained command (e.g. a `git commit`) silently never runs. Kill by PID
    (`ps -o pid,args` → `kill -9 <pid>`). **[open]** (guidelines/Build.md)
-3. Long builds/tests (`./gradlew test`, `release`, full CMake) exceed the shell output cap — run detached
-   (`nohup ./gradlew … > /tmp/x.log 2>&1 &`) and poll with short `tail`/`grep`. Live in `run-tests`;
-   **[open]** for `build-app` and `release-build`.
+3. Long builds/tests (`./gradlew test`, `release`, full CMake) exceed the shell output **cap** — run them in
+   the **foreground** with the output redirected (`./gradlew … > /tmp/x.log 2>&1; echo "exit=$?"; grep -E
+   'BUILD SUCCESSFUL|BUILD FAILED' /tmp/x.log`) and a generous `timeout`. Never `nohup … &`: the harness
+   kills the process group when the tool call ends, so the run dies mid-build with no verdict. All three
+   skills (`build-app`, `run-tests`, `release-build`) and `guidelines/Build.md` §2 prescribe this —
+   **resolved 2026-10-03**.
 4. Never start a second Gradle build against the same output directories while an aborted one is still
    running (the daemon keeps rewriting SBOM/assets; the next build then reports bogus parse errors).
    **[open]** (guidelines/Build.md)

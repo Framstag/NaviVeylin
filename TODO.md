@@ -1,10 +1,39 @@
 # NaviVeylin TODO 
 
 **Legend:** ✗ = missing | ⏳ = in progress / blocked | ✅ = done
+**Entry metadata:** every numbered section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line under its heading. `class` describes the **remaining** work: a landed fix whose only residue is verification is an `improvement`, one whose residue is still a defect stays a `bug`. Ids are identity — never renumbered (`§79`'s duplicate is `§119`).
+
+**Clusters** (category, then class — jump targets, not an order):
+- **build-and-harness** — bug: §101 §117
+- **build-and-harness** — improvement: §14 §17 §20 §22 §37 §44 §66 §79 §94 §95 §100 §115
+- **car** — bug: §46 §51 §56 §57 §83 §92 §93
+- **car** — improvement: §29 §34 §64 §103
+- **data-and-maps** — bug: §89 §90 §91
+- **data-and-maps** — improvement: §99
+- **favorites** — bug: §118
+- **favorites** — improvement: §102
+- **location** — feature: §8
+- **map-rendering** — bug: §19 §28 §65
+- **map-rendering** — improvement: §49 §71 §78
+- **map-rendering** — feature: §6
+- **native-jni** — improvement: §81 §82 §119
+- **native-jni** — feature: §23
+- **persistence** — bug: §9
+- **route-and-navigation** — feature: §1 §2 §3
+- **search** — bug: §27 §75 §110
+- **search** — improvement: §24 §76 §77 §109
+- **specs-and-process** — improvement: §21 §40 §112 §113 §114
+- **stylesheets** — bug: §36
+- **stylesheets** — improvement: §116
+- **ui** — bug: §70 §72 §73 §74
+- **ui** — improvement: §39
+- **ui** — feature: §4 §5
+- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111
 
 ---
 
 ## 116. The phone loads the whole stylesheet set ~13 times during one startup — Found 2026-10-02 while verifying `condense-style-load-warnings` on `emulator-5554` (phone AVD, stale map data)
+**id:** 116 · **category:** stylesheets · **class:** improvement · **status:** open
 
 - **Observed** ℹ: with the condensed report in place, one startup of the debug build emitted **104** `Unknown types in '…'` lines — 8 files (`standard.oss` plus `basemap`, `place`, `religious`, `shop`, `tourism`, `natural`, `amenity`) × **13 loads**, all inside **one** process (`Start proc` count 1, same pid, 13:08:28-13:08:41). The native Info line of every adopted load agrees: `Created new style with …/standard.oss` appears **12** times in the same window (the basemap's own stylesheet is loaded per basemap database open on top).
 - **Consequence** ⏳: every load parses `standard.oss` and its ~40 `MODULE` includes, so a startup pays that parse cost a dozen times — and, before `condense-style-load-warnings`, paid 9159 log lines for it. The condensation did not create the repetition; it made it visible by attributing each line to a file (`TODO.md` §89/§90/§91 are the data side of the same lines).
@@ -13,6 +42,7 @@
 ---
 
 ## 115. The meson suite's per-test timeout kills the threaded-database stress test on this machine — Found 2026-10-02 while running the submodule suite for `condense-style-load-warnings` (harness)
+**id:** 115 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Observed** ℹ: a full `meson test -C hostbuild --timeout-multiplier 2` run reports `139 OK, 1 TIMEOUT` — `libosmscout:Check threaded database` (`Tests/ThreadedDatabaseTest --threads 100 --iterations 1000 <testregion> <stylesheets/standard.oss>`) is killed at 60 s (`killed by signal 15 SIGTERM`). Run alone with `--timeout-multiplier 60` it passes in **120 s** (2 m 0 s wall, 13 m 4 s sys). The suite's default budget per test is 30 s, doubled by the multiplier this repo's recipe uses.
 - **Why it is not the change under test** ℹ: that change touches the OSS stylesheet parser only, and its effect is a smaller log (one line per parsed style file instead of one per occurrence), i.e. strictly less work per iteration. The test is a 100-thread × 1000-iteration DB stress run whose cost is machine load.
@@ -22,6 +52,7 @@
 ---
 
 ## 114. Requirements that span phone and car keep being proven on one surface — two capabilities were closed on the other surface in the same week — Proof gap of `2026-09-14-smooth-decimal-auto-zoom` and `2026-09-11-tile-cache-perf`, found 2026-10-01 auditing `fix-phone-zoom-animation-parity` and `fix-car-tile-data-cache` (specs `smooth-zoom`, `native-tile-data-cache`)
+**id:** 114 · **category:** specs-and-process · **class:** improvement · **status:** open
 
 - **Observed** ℹ: `smooth-zoom`'s "Eased zoom animation on discrete zoom input" was proven from the Android-Auto side (`2026-09-14-smooth-decimal-auto-zoom`, one `verify:` clause) while the phone scaled the *old* magnification across the animation gap; `fix-phone-zoom-animation-parity` had to MODIFY four `smooth-zoom` requirements to say so and added `ZoomWalkTest` plus `ZoomControlsAnimationTest`. The native tile data cache was configured only in `MapCanvasViewModel.initMap` (`2026-09-11-tile-cache-perf` task 1.3 asserted exactly that call) and never by the car warmup (§63); `fix-car-tile-data-cache` needed a shared `NativeTileDataCache.apply` seam before the car case existed at all (its task 1.2/3.2).
 - **Consequence** ⏳: `openspec/config.yaml` (`specs` rules) asks for a *parity statement* when a feature affects both surfaces, but nothing asks for each surface's **evidence** — a requirement worded once and proven once reads as proven for both, and the unproven surface is found on a device, weeks later.
@@ -30,6 +61,7 @@
 ---
 
 ## 113. Origin changes ship without a falsification step — every later fix change then adds one — Proof gap of the 2026-08-13 … 2026-09-19 origin changes, found 2026-10-01 auditing the 15 newest `fix-*` changes (process)
+**id:** 113 · **category:** specs-and-process · **class:** improvement · **status:** open
 
 - **Observed** ℹ: of the origin changes behind those 15 bugfix changes, the ones from `2026-08-13-auto-startup-crash-diagnostics` to `2026-09-19-fav-order-in-group` carry **0** `verify:` clauses in `tasks.md` (`2026-09-11-tile-cache-perf` 11 lines / 0 clauses, `2026-09-08-turn-instructions-not-l10n` 0, `2026-09-04-enlarge-phone-nav-overlays` 0, `2026-09-04-fix-route-refresh-and-auto-zoom-reengage` 0, `2026-08-13-auto-startup-crash-diagnostics` 0; only `2026-09-17-basemap-own-stylesheet` has 13). Every fix that followed added the falsification the origin lacked: `fix-favorite-store-write-race` tasks 1.5 and 3.3 remove one mutex and require the interleaving case to fail, `fix-native-database-open-race` task 1.4 removes six `scoped_lock` lines and requires SIGSEGV (3/3 runs). Where an origin did see the risk it deferred instead of proving it — `2026-09-19-fav-order-in-group` task 3.4: "Append the pre-existing, unrelated risk found while implementing this change — interleaved repository writes …".
 - **Consequence** ⏳: an assertion that guards an invariant is never shown to be *capable of failing*, so a case with the wrong arguments, the wrong seam or a tautology passes as proof (the `FollowAnchorFramingTest` anchor case, §111, is exactly that shape). Two capabilities were patched for the same class inside one week (`fav-service` + `osmscout-jni`, `native-tile-data-cache` + `smooth-zoom`).
@@ -57,6 +89,7 @@
 ---
 
 ## 112. A spec scenario can stay unproven for months — `map-render` "Open invalid map database" had no case from 2026-07-29 until 2026-10-01 — Proof gap of `2026-07-29-draw-map`, found 2026-10-01 auditing `fix-open-database-path-validation` (spec `map-render`)
+**id:** 112 · **category:** specs-and-process · **class:** improvement · **status:** open
 
 - **Observed** ℹ: the scenario (merged spec `openspec/specs/map-render/spec.md:81-85`, "THEN `OSMScoutClient.openDatabase()` returns false") was added by `draw-map`, whose tasks carry no case for it (tests cover `ViewportStorage` only, and the manual smoke test 7.3 stayed unchecked). Two months later `fix-open-database-path-validation` had to implement the enforcement at all — its proposal records that the phone error branch (`MapCanvasViewModel.kt:1855-1870`) was dead code for exactly the case it was written for — and did it with native predicate cases (task 1.3) plus the error-state case (task 3.1). The defect itself (a `openDatabase` that registered and reported success for a path that need not exist) is fixed by that change.
 - **Consequence** ⏳: a WHEN/THEN the spec demands can go unenforced for months behind a green suite. The archive guidance already asks for scenario→**task** traceability, and a task can cite a scenario without any case exercising it — nothing asks for scenario→**case**.
@@ -65,6 +98,7 @@
 ---
 
 ## 111. The follow blit anchor is proven only as pure geometry — no test drives the production call site, and the pipeline was patched twice on 2026-09-27 — Proof gap of `anchor-per-surface-visible-area` (and of `fix-follow-vehicle-jumps`), found 2026-10-01 auditing `fix-phone-follow-blit-anchor-mismatch` (spec `smooth-follow`)
+**id:** 111 · **category:** verification · **class:** improvement · **status:** open
 
 - **Observed** ℹ: `FollowAnchorFramingTest` (`app/src/test/java/com/naviveylin/ui/map/FollowAnchorFramingTest.kt`) proves the framing contract with the anchor fractions it is *handed* — `:203` "resolved anchor keeps the marker on the content with overlays" was green while the follow display block in `MapCanvasScreen.kt` passed `ui.activeFollowAnchor` (raw preset ≈ 0.9) to `FollowPrediction.displayOffsetPx`, so the map content sat at the raw anchor while the marker drew at the resolved one (≈ 0.76) — a `(0.9 − 0.76)·H` offset plus per-500 ms re-render churn. Production now passes `state.resolvedAnchor` (`MapCanvasScreen.kt:1506`), the same day `fix-follow-vehicle-jumps` had already reworked this pipeline without catching it. The mismatch fix's own regression case (`:269`) asserts the *defect geometry* by handing the raw preset in, so nothing observes which anchor the **call site** passes — its task 1.1 closed that by inspection only ("grep `activeFollowAnchor.fx|fy`").
 - **Consequence** ⏳: the call site can regress to the raw preset again and the suite stays green; the symptom (marker riding ahead of the route content in the driving direction, permanent render churn) is only visible on device. Two fixes to the same anchor in one day is the evidence that geometry tests do not protect the wiring.
@@ -73,6 +107,7 @@
 ---
 
 ## 110. The scope filter can leave a scoped search with fewer free-text candidates than the requested limit — Found 2026-10-01 while implementing `fix-cross-database-search-scope` (design Open Question)
+**id:** 110 · **category:** search · **class:** bug · **status:** open (device)
 
 - **Observed** ℹ: the free-text walk stops once it has collected `limit` hits (`freeTextEntries.size() >= static_cast<size_t>(limit)`, `OSMScoutClient.cpp:3958-3960` — the per-source budget that keeps the text index from crowding structured results out, spec `search-free-text`), and the scope filter runs **after** the walk (`fix-cross-database-search-scope`). When the scope drops 30 of 60 collected hits, the caller receives fewer than the requested candidate count even though more in-scope hits may exist behind the walk's stopping point.
 - **Consequence** ⏳: a scoped search can display fewer results than it should — a recall loss only on installs where a database holds objects outside the scope's extent, so it does not affect the phone's common single-map case. The displayed list stays correct (ranked, no wrong entries), it is just shorter than the candidate budget allows.
@@ -82,6 +117,7 @@
 ---
 
 ## 109. The cross-database scope filter is host-tested only as a pure helper — the wiring inside the JNI search has no database-backed test — Found 2026-10-01 while implementing `fix-cross-database-search-scope`
+**id:** 109 · **category:** search · **class:** improvement · **status:** open
 
 - **Observed** ℹ: the geographic decision itself is covered by host tests (`Tests/src/SearchScopeTest.cpp`, 9 cases / 50 assertions: inside/outside, corner normalization, unset box fail-open, node fallback, the superset property, non-finite positions), but the code that *uses* it — deriving the extent from a region's object and dropping free-text hits in `DoSearchLocations` — runs only inside the JNI translation unit, which the host build cannot compile (TODO §66: `jni.h` is configured against a JDK that is not installed).
 - **Consequence** ⏳: a regression that stops calling the filter, or that derives the extent from the wrong region, is not caught by any test — only by the on-device check of that change (task 5.3, device-gated) and by code review.
@@ -90,6 +126,7 @@
 ---
 
 ## 102. Four scenarios added by `reorder-favorite-groups` have no automated test — Found 2026-09-29 (during that change's task 5.5 traceability pass)
+**id:** 102 · **category:** favorites · **class:** improvement · **status:** open
 
 - **Coverage gaps** ⏳: the change's specs are behaviour-complete, but these scenarios rest on a library
   contract, on a surface the unit tests cannot compose, or on a failure the test doubles cannot inject:
@@ -117,6 +154,7 @@
 ---
 
 ## 101. `NavigationEngineTest.listenerCallbacksDriveTheSharedState` flakes inside full-suite runs under load — Found 2026-09-28 during `fix-stale-fix-quality` (verification gate)
+**id:** 101 · **category:** build-and-harness · **class:** bug · **status:** open
 
 - **Observed** ℹ: across four full `:app` suite runs (1336 tests per flavor, `--continue`) the case failed **twice** — once in the
   mobile flavor, once in the automotive one — always on the same assertion,
@@ -182,6 +220,7 @@
 ---
 
 ## 100. A backgrounded Gradle build does not survive the agent shell tool call — the `build-app` / `run-tests` skills' detached flow is unusable in this harness — Found 2026-09-28 during `fix-car-render-coordinate-redaction` (harness)
+**id:** 100 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Observed** ℹ: `nohup ./gradlew :app:assembleMobileDebug :app:assembleAutomotiveDebug > /tmp/x.log 2>&1 &`
   (the exact flow `build-app` §2 prescribes) returns immediately, and the build is then **killed**: the tool call
@@ -211,6 +250,7 @@
 ---
 
 ## 95. The retention release had no on-device run: the installed build is Play-signed, so a local build needs an uninstall — and the map data goes with it — Found 2026-09-27, **RESOLVED 2026-09-27 20:27** by a Play release (see the update at the end)
+**id:** 95 · **category:** build-and-harness · **class:** improvement · **status:** on-hold (decision)
 
 - **Observed** ℹ: the phone's installed build (`2026-09-27-3`, versionCode 89, `installerPackageName=com.android.vending`) came from the Play Store, so `adb install -r` with a locally built APK fails on the signing key, and a fresh install means `adb uninstall` first — which deletes the app's files **including the installed map databases** the on-device checks render from (region + basemap; §90/§91 already report that this install's map data is the weak part). Play App Signing cannot be reproduced locally.
 - **Consequence** ⏳: `bound-tile-data-retention` tasks 5.1-5.5 (the walk ceiling, the platform-level release, the poll firing, the car-session scoping) cannot run on this phone without a map re-download; the AAOS AVD has the car side but no phone map path, and the walk protocol needs the phone surface.
@@ -221,6 +261,7 @@
 ---
 
 ## 99. The AAOS AVD's basemap is a format version behind the submodule, so car-side device work on it cannot draw the basemap until it is re-downloaded — Found 2026-09-27 during the emulator A/B
+**id:** 99 · **category:** data-and-maps · **class:** improvement · **status:** open (device)
 
 - **Observed** ℹ: on `emulator-5554` (Automotive_Distant_Display, x86_64, SDK 33) the app opened its installed
   region (`openDatabase(nordrhein-westfalen-27-20260820-0826) -> true`) but the **basemap** failed:
@@ -245,6 +286,7 @@
 ---
 
 ## 94. `./gradlew test` also builds the native CMake target for both flavors and all three ABIs — after a submodule bump one invocation is a >45-minute run, and the aged daemon then OOMs the automotive dex merge — Found 2026-09-27 during `fix-diagnostics-coordinate-redaction` task 9.5 (harness)
+**id:** 94 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Observed** ℹ: with the freshly merged libosmscout submodule (`cbbc66d`), a single `./gradlew test` ran `:app:configureCMakeDebug[arm64-v8a|armeabi-v7a|x86_64]` and `:app:buildCMakeDebug[…]` for the mobile flavor and again for the automotive flavor. The invocation exceeded a 45-minute tool window: the `:app` mobile suite (179 classes / 1278 tests, 0 failures) had completed and `:app` automotive had just started, while `:auto` and `:core` had already executed. Splitting the gate (`./gradlew :app:testAutomotiveDebugUnitTest :auto:testDebugUnitTest :core:testDebugUnitTest`) then finished in **1 m 58 s** (11 executed tasks) with the native build warm.
 - **Second-order** ⚠: the daemon that had run the suite and both native builds afterwards failed `:app:mergeExtDexAutomotiveDebug` with `ERROR: D8: java.lang.OutOfMemoryError: Java heap space` (`DexArchiveMergerException`); `./gradlew --stop` followed by `:app:assembleAutomotiveDebug -Dorg.gradle.jvmargs=-Xmx4g` merged, dexed and packaged the same variant in **13 s**.
@@ -254,6 +296,7 @@
 ---
 
 ## 93. The AA start crash of release `2026-09-27-2` has no root cause yet — only its confinement is fixed — Found 2026-09-27 (release 88, versionCode 88, built 08:47)
+**id:** 93 · **category:** car · **class:** bug · **status:** open (device)
 
 - **Observed** ℹ: Android Auto crashes directly after start on release `2026-09-27-2`. The release's **only** car/AA-path source change is `d1e94f2` (`one-navigation-engine`, 08:26 — `AutoServiceModule`, `NavigationViewModelModule`, `NavigationNotificationService`, `auto/NavigationSession`), whose own commit message records that its on-device AA checks (tasks 7.5/7.6) were "recorded as done without a device run"; the other change in the window (`09a0e3c`, 08:45) touches the phone renderer only, and everything after 08:47 is docs/archive plus the libosmscout submodule bump (which the release does **not** contain).
 - **What is ruled out** ✅ so far: the release artifact itself is sound — `app-mobile-release.aab` carries all three ABIs for all eight native libraries (including `libosmscout_client_java.so` under its release name), the stylesheets and the license assets, `mapping.txt` shows the minified build keeps `OSMScoutClient`/`OSMScoutClientBuilder`/`NaviVeylinCarAppService` unrenamed with the native-method keep rule present, and the manifest carries the FGS types/permissions, the car-app service, `automotive_app_desc` and `minCarApiLevel`. My own AAOS runs today start the car session fine on a debug build of a *newer* tree.
@@ -264,6 +307,7 @@
 ---
 
 ## 92. The car free-driving surface can stay blank for ~30 s after the screen opens — Found 2026-09-27 on `emulator-5554` (AAOS) during the `compass-day-night-palette` on-device pass (low confidence: 1 of 4 runs)
+**id:** 92 · **category:** car · **class:** bug · **status:** open (device)
 
 - **Observed** ℹ: when the free-driving screen was pushed (`Freie Fahrt`) right after a session that had toggled the host day/night signal twice, the map surface showed **no frame at all for ≈31 s**: `FreeDrivingScreen: Free driving renderer ready` at 11:36:38 and `AutoMapRenderer: renderer#1 surface created` immediately after, but the first `Diag/MAP: render center=…` only at **11:37:07**; the screenshot at 11:36:52 was uniform `#040505` (black surface, host chrome still drawn), and the log's last event before the frame was a second layout pass (`FreeDrivingScreen: visible area Rect(9, 66 - 1071, 519) -> pillTopInset=66` at 11:36:51). Four later runs on the same build rendered the first free-driving frame within **≤4 s** (content already visible in the first sample), so the delay did not reproduce and is not attributed to `compass-day-night-palette`.
 - **Consequence** ⏳: if a driver taps `Freie Fahrt` at a moment the host is re-composing (e.g. after a day/night switch), the map can stay black for tens of seconds with only the template chrome visible — no error, no spinner, nothing to tell the driver whether the app is working. The same blank window was also seen on one day/night switch sample (`fd-day2` after the host re-delivered the surface), then not again on the sampled switch run.
@@ -272,6 +316,7 @@
 ---
 
 ## 91. POI name search finds nothing for objects the category index returns — this install's name index does not carry its POIs — Found 2026-09-27 on `emulator-5554` (AAOS) during the `fix-compound-name-matching` car pass (data side, sibling of §89)
+**id:** 91 · **category:** data-and-maps · **class:** bug · **status:** open (device)
 
 - **Observed** ℹ: on the car, `POIs suchen → Restaurants` lists **`Mensa`** (`amenity_restaurant - 600` m), but the free-text search for that exact name answers `D SearchScreen: Search results: 0 for 'Mensa'`. The same asymmetry explains §89's `Hilpert` result: the object can exist in the *category* (location index) while the *name* query (text index) finds nothing. One startup also emits **3078** `W NaviVeylin: Unknown type '…'` warnings, i.e. the stylesheet declares far more types than the installed database's typeconfig carries.
 - **Consequence** ⏳: any on-device check that searches a POI by name (the `fix-compound-name-matching` 5.4/5.5 positive cases, `Theater Dortmund`, `Hilpert Theater Lünen`) is blocked by the install, not by the matcher; a name search that returns 0 for an object the category list shows is also a user-visible inconsistency (the app offers a POI it then cannot find by name).
@@ -280,6 +325,7 @@
 ---
 
 ## 90. The installed basemap package is rejected — `types.dat` format 26 vs the library's 27 — the basemap overlay never opens — Found 2026-09-27 on `emulator-5554` (AAOS) (data side, out of every change's scope)
+**id:** 90 · **category:** data-and-maps · **class:** bug · **status:** open (device)
 
 - **Observed** ℹ: every start logs the download layer finding the basemap (`D MapDownloadModule: basemap found at /data/user/10/com.framstag.naviveylin/files/maps/basemap`, then `found valid map 'basemap' …` for **both** `…/maps/basemap` and `…/maps/basemap/basemap` — the package carries a nested directory), followed by `E NaviVeylin: File '…/maps/basemap/types.dat' does not have the expected format version! Actual 26, expected: 27`, `E NaviVeylin: Cannot load 'types.dat'!` and `W NaviVeylin: Cannot open db '…/maps/basemap/basemap'!`. The region database opens normally (`openDatabases -> 1/1 registered`, `openDatabase(nordrhein-westfalen-27-20260820-0826) -> true`), so `Installed map databases: 1` and every render runs **without the basemap overlay**.
 - **Consequence** ⏳: after the recent libosmscout data-format bump (expected 27) the installed basemap (26) can never be used; the map therefore lacks the basemap's coverage/context outside the regional tiles, and the failure is silent to the user (only Logcat). It also means any basemap-dependent check (basemap rendering, download/replace flows on this install) is invalid until the data is refreshed.
@@ -288,6 +334,7 @@
 ---
 
 ## 89. The installed map set cannot answer the compound-name search check — the loaded database's type config lacks POI types the stylesheet declares — Found 2026-09-27 on `emulator-5554` during `fix-compound-name-matching` (data/import side, out of that change's scope)
+**id:** 89 · **category:** data-and-maps · **class:** bug · **status:** open (device)
 
 - **Observed** ℹ: `Hilpert Theater Lünen` returns the town `Lünen` (12 km) and nothing else, and `Hilpert` alone returns **0 candidates** (`searchLocations: query='Hilpert', adminRegionHandle=1, candidates=0`), although the change's proposal names the POI (`Heinz-Hilpert-Theater Lünen`, OSM way 38028287) as the case it fixes. The renderer explains why: every render logs `W NaviVeylin: Unknown type 'amenity_theatre'` (and `amenity_cinema`, `amenity_fire_station`, `amenity_parking`, …), i.e. the **loaded database's type config does not carry those types**, so their objects were never imported and no matcher can find them. `Theater Dortmund` likewise returns only streets/garages (`Theatergarage`, `Theaterkarree`), never a theatre.
 - **Consequence** ⏳: the phone half of `fix-compound-name-matching` task 5.4 is blocked by data, not by code (recorded in that task), and any future on-device search check that targets POIs must first confirm the type is in the installed data. `Erbstollenstraße 10 58454 Witten` (perfect match + house levels) and `Erbstollenstrasse` (transliteration → perfect match) do verify on the same install — road/street types are present.
@@ -298,6 +345,7 @@
 ---
 
 ## 117. The `:app` unit-test suites stop producing a verdict: a pre-existing hang in `MapCanvasViewModelViewportRestoreTest` — Found 2026-10-02 while verifying `fix-start-map-selection` (verification gate, not caused by that change)
+**id:** 117 · **category:** build-and-harness · **class:** bug · **status:** fixed-by fix-viewport-restore-test-hang (in-flight)
 
 - **Observed** ℹ: with the change's code in the tree, `./gradlew :app:testAutomotiveDebugUnitTest` ran **more than 20 minutes** without writing one result XML, and a later `./gradlew --no-build-cache :app:testMobileDebugUnitTest` did the same (core finished, 38 classes, the app task never produced a file). The same suites are green as soon as that one class is left out: automotive **196 of 197 classes / 1471 tests / 0 failures in 156 s** (88 `com.naviveylin.ui.map.*` patterns plus the remaining packages enumerated), and the mobile flavor passed **1483/0** in this session before the machine turned.
 - **Where it hangs** ℹ: `jstack` on the test worker puts the test thread in `runTest` → `runBlocking` → `MapCanvasViewModelViewportRestoreTest.saveViewport during re-entry window keeps persisted viewport (MapCanvasViewModelViewportRestoreTest.kt:263)`, with Robolectric's `SDK 36 Main Thread` holding ~30 s CPU and `Sandbox.runOnMainThread` on the worker's stack: the test coroutine never completes while the main looper keeps being driven. The class reproduces it alone (automotive, 240 s timeout, no XML; a partial XML records that one case at **79.8 s**). Other classes of the same package run at mobile speed (`MapCanvasViewModelSpeedWidgetTest` 1.05 s, `MiniMapComposeTest` 0.37 s), so it is this class, not the module or the flavor.
@@ -309,6 +357,7 @@
 ---
 
 ## 84. Two surfaces in one process shared their process-global resources without an owner rule — FIXED by `shared-resource-arbitration` (2026-09-26); device verification pending
+**id:** 84 · **category:** verification · **class:** improvement · **status:** open (device)
 
 - **Fixed** ✅ by change `shared-resource-arbitration` (specs: `location-updates-lease`, `settings-persistence`, `native-tile-data-cache`, `car-session-presence`):
   - `LocationService` now hands out named leases (`acquire(consumer)` → `LocationLease`, consumers `phone-map`/`phone-nav`/`car-session`/`car-nav`); updates run while at least one is held and stop with the last release, so one surface's stop can no longer kill another's fixes. The bare `start/stopLocationUpdates` pair is gone. The engine call sites hold their lease only while a navigation attempt/session is active (the old `init` starts are gone), which is the semantics `one-navigation-engine` targets. Tests: `LocationServiceTest` 19/0 (6 lease cases incl. idempotent acquire, one-release-keeps-the-other, last-release-stops, diagnostics naming).
@@ -323,6 +372,7 @@
 ---
 
 ## 83. The rail-widget tap fix is unit-verified but not confirmed on device — Found 2026-09-26 (reported on phone + head unit under Android Auto) and implemented by `fix-car-rail-widget-tap` (2026-09-26)
+**id:** 83 · **category:** car · **class:** bug · **status:** in-flight fix-car-rail-widget-tap (device pending)
 
 - **Reported** ℹ: while navigating, switching to another car app keeps the turn hint in the rail widget, but tapping it does nothing — the app never comes back to the car foreground (music players do). Phone + head unit under Android Auto (projection).
 - **Cause** ✅: the ongoing notification had only one tap target — `PendingIntent.getActivity` at `openTargetActivity()`, which returned `CarAppActivity` only on automotive hardware and `MainActivity` otherwise, while `CarAppExtender` carried no `setContentIntent` at all. Per the car-app contract the host then falls back to the notification's content intent, so on projection the tap started a phone activity on the phone and the car screen never switched.
@@ -331,6 +381,7 @@
 
 ---
 ## 82. The native search-scope diagnostics were dropped with the branch's last diff — Found 2026-09-26 during the libosmscout merge / PR #1773 closure (`update-to-current-libosmscout-master`)
+**id:** 82 · **category:** native-jni · **class:** improvement · **status:** open
 
 - **Observed** ℹ: `naviveylin-local`'s last difference from upstream `master` was `libosmscout-client-java/src/OSMScoutClient.cpp` (+35/-7) and consisted of 13 `osmscout::log.Info()` diagnostic lines (ResolveSearchScope parent chain + expansion, the `searchLocations: scope for db has …` line, resolveAdminRegion db/bbox/service/reverse-lookup, getAdminRegionScopeName) plus a behaviour-identical restructure of the multi-database scope selection. It was dropped (submodule `a50ae3b15`, parent gitlink `4ae2c13`), so the branch now equals upstream `master` and PR #1773 was closed as superseded (empty diff).
 - **Consequence for an existing task** ⏳: `fix-compound-name-matching` task 5.4 asks the on-device run to grep `adb logcat -s NaviVeylin` for the native `searchLocations: scope for db has …` line. That line no longer exists in the pinned submodule; the surviving evidence for the same decision is the Kotlin side (`MapCanvasViewModel` logs `resolveAdminRegion(...) -> handle=…` and `getAdminRegionScopeName(handle=…) -> '…'`, both through `android.util.Log`, not the `NaviVeylin` tag). Update that task's recipe before the device run, or accept the Kotlin-side logs as the evidence.
@@ -339,6 +390,7 @@
 
 ---
 ## 81. The word-matching allocation-cost case did not travel upstream with the matcher work — Found 2026-09-26 during the libosmscout merge of PR #1849 (`update-to-current-libosmscout-master`)
+**id:** 81 · **category:** native-jni · **class:** improvement · **status:** open
 
 - **Observed** ℹ: PR #1849 merged our `fix-compound-name-matching` matcher work into upstream `master` (`aaa437a16`, commits `7a036fa51` "feat: match query words across separators in names" + `197a5c05c` "fix: make the new matcher tests portable and non-duplicated"). Upstream's `Tests/src/StringMatcherTest.cpp` carries the same case set as our `naviveylin-local` copy, but **not** the allocation-cost case and its counter harness: our copy is a 331-line fork of upstream's 189-line file, and the only content unique to ours is `TEST_CASE("A substring hit does not split the candidate into words")` plus the `STRINGMATCHER_HAVE_ALLOCATION_COUNTER` block that replaces global `operator new`/`delete` to count allocations (so a substring hit must not pay for splitting the candidate into words).
 - **Why it is listed** ℹ: the merge resolved that file to upstream to stop it conflicting on every update (`git diff origin/master` for the file is now empty, and the branch's residual dropped from 14 files / +1042 -18 to 1 file / +35 -7). The cost claim is therefore no longer pinned anywhere: `git grep CountAllocations origin/master -- Tests/` returns nothing.
@@ -348,16 +400,18 @@
 
 ---
 ## 79. The per-module unit-test task names in the run-tests skill are wrong for `:auto` and `:app` — Found 2026-09-25 during `fix-comma-decimal-coordinate-entry` (harness)
+**id:** 79 · **category:** build-and-harness · **class:** improvement · **status:** open
 
-- **Observed** ℹ: `./gradlew :auto:test --tests "com.naviveylin.auto.DetailsScreenTest"` fails immediately with `Problem configuring task :auto:test from command line. > Unknown command-line option '--tests'` — `:auto:test` is not filterable (it is not the AGP unit-test task). The working invocation is `./gradlew :auto:testDebugUnitTest --tests "<fqcn>"`. `:core:test` accepts `--tests` (verified with the same change). The `.pi/skills/run-tests` table documents `:app:testDebugUnitTest` (which does not exist — the `dist` flavor dimension splits it, §40 item 30 / §71) and lists no `:auto` task at all.
+- **Observed** ℹ: `./gradlew :auto:test --tests "com.naviveylin.auto.DetailsScreenTest"` fails immediately with `Problem configuring task :auto:test from command line. > Unknown command-line option '--tests'` — `:auto:test` is not filterable (it is not the AGP unit-test task). The working invocation is `./gradlew :auto:testDebugUnitTest --tests "<fqcn>"`. `:core:test` accepts `--tests` (verified with the same change). The `.pi/skills/run-tests` table documented `:app:testDebugUnitTest` (which does not exist — the `dist` flavor dimension splits it, §40 item 30 / §71) and listed no `:auto` task at all; the `:app` names were corrected in the skill by 2026-10-03 (see the narrowed fix candidate below).
 - **Consequence** ℹ: a single-class run against `:auto` looks like a real build failure and costs a build cycle to diagnose; the skill is gitignored, so the fix has to happen on the machine that owns `.pi/skills/` (not in this repo).
-- **Fix candidate**: correct the run-tests table to the flavor/task matrix that actually exists (`:app:testMobileDebugUnitTest`, `:app:testAutomotiveDebugUnitTest`, `:auto:testDebugUnitTest`, `:core:test`), or add a filterable aggregate task per module.
+- **Fix candidate** (narrowed 2026-10-03 by the `cleanup-todo` pass): the `:app` half is fixed — the skill now documents `:app:testMobileDebugUnitTest` / `:app:testAutomotiveDebugUnitTest` and states that there is no `:app:testDebugUnitTest`. What is still missing is the `:auto` and `:core` rows of its Commands table (`:auto:testDebugUnitTest`, `:core:testDebugUnitTest` — the latter appears only in the skill's coverage section today), or a filterable aggregate task per module.
 - **Evidence for the working names (2026-09-25)**: `:auto:testDebugUnitTest --tests com.naviveylin.auto.DetailsScreenTest --tests com.naviveylin.auto.NavigationTemplateMapperTest` → BUILD SUCCESSFUL, `DetailsScreenTest` 28 tests / 0 failures, `NavigationTemplateMapperTest` 59 / 0; `:core:test` 339 / 0; `./gradlew test` app mobile 1174 / automotive 1174 / auto 683 / core 339, all 0 failures.
 - **Correction 2026-09-26** (found while applying `fix-diagnostics-coordinate-redaction`): `:core:test` does **not** accept `--tests` either — `./gradlew :core:test --tests "com.naviveylin.core.LocationGrantTest"` fails with `Problem configuring task :core:test from command line. > Unknown command-line option '--tests'`; the filterable task is `:core:testDebugUnitTest`. So the corrected matrix is `:app:testMobileDebugUnitTest`, `:app:testAutomotiveDebugUnitTest`, `:auto:testDebugUnitTest`, `:core:testDebugUnitTest` (and `:osmscout-client-java:test`).
 
 ---
 
 ## 77. Words joined without a separator stay unmatched (`Bahnhof Straße` vs `Bahnhofstraße`) — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, boundary of the word rule)
+**id:** 77 · **category:** search · **class:** improvement · **status:** open
 
 - **Observed** ℹ: `StringMatcherTransliterateToken` matches whole words across separators (space, hyphen, slash,
   dash), so a name that joins two words with *no* separator still hides from a query that spells them apart —
@@ -371,6 +425,7 @@
 ---
 
 ## 76. The free-text index keys whole names, so a mid-name word is unreachable without a region token — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, index format)
+**id:** 76 · **category:** search · **class:** improvement · **status:** open
 
 - **Observed** ℹ: `TextSearchIndex` is a MARISA trie whose keys are complete normalized names, looked up with
   `predictive_search` (a prefix search), so a query matching a word in the *middle* of a name only works through
@@ -383,6 +438,7 @@
 ---
 
 ## 75. Android Auto search passes no default admin region, so POI search needs the city in the query — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, own change)
+**id:** 75 · **category:** search · **class:** bug · **status:** in-flight fix-car-search-default-admin-region
 
 - **Observed** ℹ: `provideAutoSearchProvider` calls `searchLocations(query, limit, OSMScoutClient.NO_ADMIN_REGION)`,
   and the native structured search visits POIs only inside an admin region matched from the query tokens
@@ -411,6 +467,7 @@
 ---
 
 ## 74. The debug app ANRs on a cold emulator start with no map data, and the ANR trace is unreadable without root — Found 2026-09-24 during `compass-day-night-palette` task 7.3 (verification blocker, unverified)
+**id:** 74 · **category:** ui · **class:** bug · **status:** open (device)
 
 - **Observed** ℹ: on a fresh `Pixel_8` AVD (API 34, `-no-window -gpu swiftshader_indirect`), the freshly installed
   `mobileDebug` APK starts, its native renderer initialises (stylesheet loaded, the usual empty-data
@@ -427,6 +484,7 @@
 ---
 
 ## 73. Two phone overlays still use fixed colors with no presentation branch — Found 2026-09-24 during `compass-day-night-palette` (out of scope, own change)
+**id:** 73 · **category:** ui · **class:** bug · **status:** open
 
 - **Observed** ℹ: `app/src/main/java/com/naviveylin/ui/map/MiniMap.kt:91` (`gpsMarkerColor = Color(0xFF1A73E8)`) and
   `app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:241-242` (accuracy fill 10 % / border 40 % of
@@ -443,6 +501,7 @@
 ---
 
 ## 72. The compass needle is stroked in raw pixels, so it thins on high-density screens — Found 2026-09-24 during `compass-day-night-palette` (out of scope, sizing/geometry)
+**id:** 72 · **category:** ui · **class:** bug · **status:** open
 
 - **Observed** ℹ: `app/src/main/java/com/naviveylin/ui/map/CompassButton.kt` draws both needle halves with
   `strokeWidth = 3f` — device pixels, not dp — while every other dimension in the same file is density-aware
@@ -455,6 +514,7 @@
 
 ---
 ## 71. Zoom-walk follow-ups from `fix-phone-zoom-animation-parity` — Found 2026-09-24 during that change (out of scope / pending device)
+**id:** 71 · **category:** map-rendering · **class:** improvement · **status:** open (device)
 
 - **On-device cost unmeasured** ⏳: the phone now walks a magnification change the frame in hand cannot serve
   (`core/ZoomWalk`, `window = 0.25` levels, one step per landed render, `MapRenderer.requestRenderImmediate`).
@@ -482,6 +542,7 @@
 ---
 
 ## 70. BROWSE still mixes the free-driving anchor preset into a street-pill placement, and an off-screen vehicle has no cue but the re-center button — Found 2026-09-22 during `fix-browse-recenter-visibility` (out of scope)
+**id:** 70 · **category:** ui · **class:** bug · **status:** open
 
 - **Observed** ℹ: (a) `MapCanvasScreen.kt` derives `pillAtTop = state.activeFollowAnchor.fy == 0.9` and moves the
   free-driving street pill to the top of the screen "so it never covers the vehicle marker" — in BROWSE too, using the
@@ -503,6 +564,7 @@
 ---
 
 ## 66. `hostbuild`'s JNI target is configured against a JDK that is not installed — Found 2026-09-21 during `fix-native-database-open-race` task 1.1 (harness gap)
+**id:** 66 · **category:** build-and-harness · **class:** improvement · **status:** unverified
 
 - **Observed** ℹ: `ninja -C hostbuild libosmscout-client-java/src/libosmscout_client_java.so.1.1.1`
   fails with `fatal error: jni.h: Datei oder Verzeichnis nicht gefunden`; the compile line carries
@@ -521,6 +583,7 @@
   registers the tests (see `ki_processing_failures.log`, 2026-09-21).
 
 ## 65. Both processes grow by ~50 MB over a 10-minute car drive — Found 2026-09-21 during `fix-host-crash-residual-paths` task 8.2 (post-change baseline)
+**id:** 65 · **category:** map-rendering · **class:** bug · **status:** open (device)
 
 - **Observed** ℹ: on the AAOS AVD (`emulator-5556`, automotive debug, navigation active with a fix every 2 s for 10.5 minutes) `dumpsys meminfo` reports the app `TOTAL 227 MB -> 278 MB` (native heap `133 -> 187 MB`) and the templates host `TOTAL 299 -> 343 MB` (native heap `162 -> 215 MB`). No pressure symptoms in the same window: 0 `lmkd`/lowmemorykiller lines, 0 host crashes, 0 app fatals, 0 surface failures, 294 full renders.
 - **Why it is not attributed to the change** ℹ: the change only *reduces* per-rebuild work (the lane-guidance bitmap is reused while its state is unchanged, the template distance comparisons are bucketed); it adds no buffer, cache or thread. The host-side growth is on Google's side of the IPC.
@@ -531,6 +594,7 @@
 - **Partially addressed 2026-09-21** ✅: the per-screen overrun buffer is now released on every screen stop (`fix-car-surface-ownership-and-host-callbacks`), so the car stack no longer retains up to four extra ~3.7–8 MB buffers while its screens sit stopped. §49 (per-render transient buffers) stays open, and the stationary-route measurement above is still the next step.
 
 ## 64. The car template rebuild rate is still bounded by the arrival estimate, not by the distance buckets — Found 2026-09-21 during `fix-host-crash-residual-paths` (task 4.2/4.4)
+**id:** 64 · **category:** car · **class:** improvement · **status:** open (device)
 
 - **Observation** ℹ: the change buckets the template rebuild to the *displayed* distance (both the distance-to-turn and the remaining route distance use the host's own rounding — 50 m steps below 1 km, 100 m above) and reuses the lane image while the lane state is unchanged, but `hasStateChanged` still compares `etaMillis / 1000`, and the native engine re-emits the arrival estimate on every position update in practice. The residual template rate is therefore the estimate's update rate, i.e. close to the position rate (~1/s while driving), not the distance-bucket rate. The lane-image allocation and its IPC payload per rebuild **are** gone.
 - **Why not fixed here** ✗: bucketing the arrival estimate to the displayed minute (what the ETA card shows) would make the host's own countdown authoritative for up to a minute. Whether the host ticks that countdown itself is not known — the change's spec deliberately leaves the arrival estimate out ("a shifted estimate is displayed content") — so this needs a device measurement first: run navigation with the estimate bucketed to the minute and watch the ETA card for a frozen countdown (rail-widget card and the navigation template both).
@@ -539,6 +603,7 @@
 ---
 
 ## 46. Phone notification `Stop` action does not end navigation — FIXED by `background-navigation-notification` and closed by `one-navigation-engine` (2026-09-27)
+**id:** 46 · **category:** car · **class:** bug · **status:** open (device)
 
 - **Closed 2026-09-27 by `one-navigation-engine`** ✅: the whole class of defect is gone, not just its symptom. `NavigationStateProvider` and `NavigationStopRequests` are deleted; the process-scoped `NavigationEngine` (`app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt`) is the single navigation source every surface observes, so the shade's stop action reaches the one session directly (`NavigationNotificationService.handleAction` → `engine.stopNavigation()`). There is no callback slot to overwrite, no per-source state mirror and no second engine to mis-route to. The phone surface keeps clearing the route panel and the drawn route on every stop path through its adapter (`NavigationViewModel.setRoutePanelViewModel`). Regression tests: `NavigationEngineStopPathTest` (stop clears the panel, notification stop ends navigation/clears the view/leaves nothing for the notification to keep alive, follow released), `NavigationNotificationServiceActionTest` (only the stop-navigation action stops the engine), `NavigationEngineTwoSurfaceTest` (stop from either surface ends it for both). Evidence: `./gradlew test` green — mobile 1255 / automotive 1255 / `:auto` 697 / `:core` 369 / `:osmscout-client-java` 26, 0 failures.
 - **Superseded history (kept for the record)** — the fix `background-navigation-notification` task 6.1 shipped on 2026-09-20: (`core/src/main/java/com/naviveylin/core/NavigationStopRequests.kt`), implemented by `NavigationStateProvider`: `stopNavigation()` broadcasts instead of routing to one callback slot, and the phone `NavigationViewModel` + `AANavigationController` each collect it and stop their own navigation (idempotent). The provider's mirror became a per-source registry where the navigating source wins — an idle car registrant can no longer blank live navigation, and `ViewModel.onCleared` unregisters the dead phone surface. `NavigationViewModel.stopNavigation()` also clears the route panel (`setNavigating(false)` + `clearRouteFromMap()`) so the shade stop matches the in-app button, and the service logs `onStartCommand action=…`. New tests: `NavigationStateProviderTest` (5), `NavigationViewModelStopPathTest` (2), `NavigationNotificationServiceActionTest` (2). Evidence: mobile 1068 / automotive 1068 / core 302 / auto 516 tests, 0 failures; both debug APKs assemble; no new compiler warnings.
@@ -551,10 +616,12 @@
   - Fix candidates (both taken 2026-09-20, see the first bullet): route the stop to the source that is actually navigating (the provider now keeps a per-source registry where the navigating source wins the mirror and the stop broadcasts), put the shared stop in one place so the route-panel cleanup cannot be skipped, log the incoming action in `onStartCommand`, and cover the provider routing + service action with tests.
 
 ## 34. Car search opened from the root/history screens has no distance reference
+**id:** 34 · **category:** car · **class:** improvement · **status:** open
 
 - **Noticed 2026-09-19 while implementing `search-result-ranking`** ℹ: the spec's distance reference for the car is "last known GPS fix, else the current car map viewport center, else none (order by tier and quality only)". Only `MapScreen` can supply that center (it owns the renderer gate, so it passes `{ rendererGate.renderer.value?.markerViewport() }`); `RootScreen` and `SearchHistoryScreen` push `SearchScreen` without any map, so their results are ordered by tier and quality and show **no distance at all** — spec-legal, but a driver comparing results from the root list has no proximity signal. Fix candidate: publish the last rendered viewport center through a small shared provider (e.g. alongside `AutoLocationProvider`, updated by `NavigationSession`/`AutoMapRenderer` whenever the displayed center changes) and pass it from all three `SearchScreen` call sites. Not a defect of this change — the "neither exists" case is specified and covered by tests.
 
 ## 29. AA follow jumping — open points handed over (2026-09-17, stable-version handover)
+**id:** 29 · **category:** car · **class:** improvement · **status:** open (device)
 
 Status: all four defects fixed and device-verified (2026-09-18, AAOS), including P2 and P3. `overlay-projects-against-displayed-frame` and `aa-follow-framing-and-zoom-parity` (27/27) are both archived. What remains below: one open decision (the auto-zoom first commit), the deferred P4 option, and the device-verification method.
 
@@ -571,6 +638,7 @@ Status: all four defects fixed and device-verified (2026-09-18, AAOS), including
 ---
 
 ## 19. Findings from `overlay-projects-against-displayed-frame` (2026-09-17)
+**id:** 19 · **category:** map-rendering · **class:** bug · **status:** open
 
 Findings detected while fixing the AA follow overlay projection; all out of that change's scope
 (it deliberately keeps the follow re-anchor cadence and the overlay frame bookkeeping only).
@@ -582,6 +650,7 @@ Findings detected while fixing the AA follow overlay projection; all out of that
 ---
 
 ## 17. Verification-gate blind spots: Gradle test up-to-date masking + OpenSpec task-marker parsing
+**id:** 17 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Gradle unit-test tasks report green without executing (found 2026-09-13 while running the archive gate for `fix-address-lookup-accuracy`)** ℹ: `./gradlew test` printed `BUILD SUCCESSFUL in 5s` with `152 actionable tasks: 4 executed, 145 up-to-date` — **zero tests ran**; the verdict came from the up-to-date check against a previous run's output, not from an execution. Two follow-ups that do NOT fix it: `--rerun` is ignored by AGP's unit-test tasks (only plain tasks such as `:osmscout-client-java:test` honour it), and `--rerun` on the aggregate `test` lifecycle task propagates to no dependent task at all. `--rerun-tasks` works but also forces every compile in the graph. What does work: delete the task outputs, e.g. `rm -rf app/build/test-results/testMobileDebugUnitTest app/build/test-results/testAutomotiveDebugUnitTest core/build/test-results/testDebugUnitTest auto/build/test-results/testDebugUnitTest`, then run the four test tasks — the run then reports real execution time (`BUILD SUCCESSFUL in 1m 59s`, 4 executed). Consequence to guard against: any OpenSpec apply/archive evidence of the form "`./gradlew test` → BUILD SUCCESSFUL" may prove nothing about the current tree; a 5-second "success" is the tell. Fix option: a Gradle `check`-wired task or a wrapper in `.pi/skills/run-tests` that clears `test-results` before invoking the suite, and a rule that the evidence line must quote the executed-task count and elapsed time. Also note the up-to-date check is content-hash based, so a file mtime later than the newest `test-results` XML does not by itself prove the run predates the edit — verify content, not timestamps.
 - **OpenSpec silently ignores bare numbered task markers (found 2026-09-13)** ℹ: `fix-address-lookup-accuracy/tasks.md` used `1. [x] …`-style items (no `-` bullet); the task parser only recognises `- [x]`, so `openspec list` reported `completedTasks: 0, totalTasks: 0, status: "no-tasks"` for a change that was in fact 14/15 complete — while `openspec status` simultaneously reported `isPlanningComplete: true` / `isComplete: true`, so nothing errored. A change can therefore look stalled (or, read the other way, look finished) with no diagnostic. Fixed for that change by renumbering to `- [x] N.M` under numbered `## N.` headings; the other 13 open changes already used that form. Fix option: validate task-marker style in CI (every `tasks.md` must contain at least one `- [x]`/`- [ ]` item) so the mismatch fails loudly instead of silently zeroing the counts.
@@ -590,6 +659,7 @@ Findings detected while fixing the AA follow overlay projection; all out of that
 ---
 
 ## 16. On-device verification pending: fix-zero-distance-to-turn (native step distance)
+**id:** 16 · **category:** verification · **class:** improvement · **status:** open (device)
 
 - **⏳ Pending device run (change `fix-zero-distance-to-turn`, tasks 5.4/6.3)** ✗: the native instruction-distance fix (submodule `3c761d618` on `naviveylin-local`, gitlink bumped at main `195f278`) is implemented and unit-tested (Kotlin state handling + step-index lookup + mapper arrival step — 14 new tests green, full `./gradlew test` green, both flavors all ABIs build). The **native engine path is not verifiable on the host JVM** (the JNI stub .so is symbol-free, so `PositionAgent`/`RouteInstructionAgent`/`GenerateNextRouteInstruction` run only on-device). On next device/emulator session: boot the Automotive AVD, drive a GPX-replay or mock-GPS route with one deviation → reroute, and check via `adb logcat -s NaviVeylin` (plus a temporary `osmscout::log.Debug()` of `distanceTo`/`nodeDist`/`abscissa`): (a) distance counts down and never shows 0 m while the turn is ahead, (b) no routeNode reset-to-begin on a transient forward-search miss, (c) instruction keeps updating while a reroute is suppressed, (d) final step shows "Arrive — <remaining>" after the last turn. Also re-run AA/phone instruction-panel screens at the destination tail — this is where the 0 m freeze appeared.
 
@@ -598,18 +668,21 @@ Findings detected while fixing the AA follow overlay projection; all out of that
 ---
 
 ## 1. Route Calculation & Visualization
+**id:** 1 · **category:** route-and-navigation · **class:** feature · **status:** open
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Avoid tolls/ferries checkboxes | ✗ | `RoutingProfile` supports avoid flags — no UI yet |
 
 ## 2. Turn-by-Turn Navigation
+**id:** 2 · **category:** route-and-navigation · **class:** feature · **status:** open
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Voice guidance / audio instructions | ✗ | JavaScout `onVoiceInstruction(int[])` callback exists in JNI |
 
 ## 3. GPX Track Import & Playback
+**id:** 3 · **category:** route-and-navigation · **class:** feature · **status:** open
 
 > libosmscout submodule (master) already has GPX import/render support (archived change `javascout-gpx-track-import-render`) and JavaScout has `TrackPlayer` — but nothing is wired into the NaviVeylin app yet.
 
@@ -621,12 +694,14 @@ Findings detected while fixing the AA follow overlay projection; all out of that
 | Track playback toolbar (play/pause/stop/speed) | ✗ | JavaScout `trackToolbar` HBox |
 
 ## 4. Object Description & Long-Press
+**id:** 4 · **category:** ui · **class:** feature · **status:** open
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Long-press timeout configuration | ✗ | Hardcoded 500ms — JavaScout configurable |
 
 ## 5. UI / Shell
+**id:** 5 · **category:** ui · **class:** feature · **status:** open
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -634,12 +709,14 @@ Findings detected while fixing the AA follow overlay projection; all out of that
 | Double-tap to zoom | ✗ | Candidate feature (not in JavaScout either). No double-tap gesture exists (`map-pan-zoom` covers pan/pinch only). If added later, wire it into the smooth-zoom animation path and the continuous fractional magnification (see `continuous-pinch-zoom`). |
 
 ## 6. Rendering
+**id:** 6 · **category:** map-rendering · **class:** feature · **status:** open
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Track rendering on map | ✗ | |
 
 ## 8. GPS / Position
+**id:** 8 · **category:** location · **class:** feature · **status:** open
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -678,18 +755,22 @@ GPS back                     →  REAL
 4. Where: new Kotlin `@Singleton` service feeding a derived position flow with state (REAL/ESTIMATED/LOST); consumers = marker, center, nav engine, AA.
 
 ## 9. Viewport Save — Residual Bug
+**id:** 9 · **category:** persistence · **class:** bug · **status:** open
 
 - **Residual: pre-init viewport key mismatch (`mapPath` vs `"default"`) ℹ**: `MapCanvasViewModel.initMap` loads with `viewportStorage.load(currentMapKey ?: mapPath)` (`MapCanvasViewModel.kt:1408`), while the navigation-end save (`:2167`) and `saveViewport()` (`:2811`) persist with `currentMapKey ?: "default"`. Harmless today because `initMap` sets `currentMapKey` (`:1314`) before the load, so the fallbacks never meet — but any future save/load before `initMap` (or after a failed init) would write and read different files. Fix candidate: share one key helper (`currentMapKey ?: mapPath`) across all three call sites. Found 2026-09-13 while triaging `MapCanvasViewModelNavEndRestoreTest` (change `smooth-decimal-auto-zoom`, task 6.2) — test-only fix there, production untouched.
 
 ## 14. Kover deprecation on the Gradle 10 path
+**id:** 14 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Kover 0.9.8 emits a Gradle 9.6 deprecation** ⏳: Kover's own internals (`kotlinx.kover.gradle.plugin.appliers.PrepareKoverKt`) add a `Project`-object dependency notation — deprecated in Gradle 9.6, hard failure in Gradle 10. Not fixable from our scripts (we use string notation everywhere). Revisit on Gradle 10 upgrade / newer Kover. See `guidelines/Build.md` §7.
 
 ## 22. Gradle 10 deprecation sweep (build-level, pre-upgrade audit)
+**id:** 22 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Every build prints “Deprecated Gradle features were used in this build, making it incompatible with Gradle 10” (observed 2026-09-15 on the §17-verified `./gradlew test`)** ⏳: Gradle 9.6.1 tolerates the deprecations, Gradle 10 hard-fails; §14 already tracks Kover's Project-object notation (not fixable from our scripts). Sweep the remaining deprecations once before any Gradle 10 upgrade: `./gradlew test :app:assembleMobileDebug --warning-mode all`, triage the emitted list, and separate plugin-owned warnings (AGP/Kover — expect one each, document and ignore) from our own scripts' (`buildSrc/*.gradle.kts`, root/app/auto/core `*.gradle.kts` — fixable locally). Two adjacent, still-untried items: configuration cache (`--configuration-cache`, Gradle suggests it each build) — verify it against the license-assets Variant-API tasks and the `release` version-state bump (config-time execution) before enabling in CI; and `org.gradle.configuration-cache=true` interplay with the `release` task gating (bump runs at configuration time, which config-cache may re-run per invocation).
 
 ## 10. Pending On-Device Verification
+**id:** 10 · **category:** verification · **class:** improvement · **status:** open (device)
 
 | Item | Status | Notes |
 |------|--------|-------|
@@ -698,41 +779,50 @@ GPS back                     →  REAL
 | Bounded zoom walk on the phone (change `fix-phone-zoom-animation-parity`, tasks 6.3-6.6) | ⏳ | Implementation + unit tests green (walk arithmetic `:core` 14/14, ViewModel wiring 7/7, renderer immediate path 3/3, screen rules 7/7; full `ui.map` package suite green). On-device: enter free driving from a far browse viewport - no consecutive frame change above 0.25 levels, walk ends exactly on the speed target, render count per entry recorded; bottom-center anchor keeps the vehicle pixel fixed through zoom in/out with no correction jump at landing; a large zoom-out never exposes bare surface color; pinch/buttons/keys still request their first frame immediately; the persisted viewport holds the final target. Blocked 2026-09-24: no device/emulator attached (`adb devices` empty). |
 
 ## 15. Kover coverage attribution for Robolectric-tested classes
+**id:** 15 · **category:** verification · **class:** improvement · **status:** open
 
 - **Pre-existing tooling gap found during fix-contact-address-resolution (2026-09-13)** ℹ: in the merged and `:app` Kover XML reports, classes exercised only by Robolectric tests show near-zero instruction coverage while their tests pass and assert behaviour — `ContactsRepository` 5 covered/0 missed, `FavoriteRepository` 16/0, `AddressBookSheetKt` 41 missed/0 covered (its four Compose tests pass). Plain-JUnit-covered classes report plausible numbers. Suspected cause: Robolectric loads app classes in its own sandbox classloader, so JaCoCo/Kover exec data is recorded against a different class identity. Investigate: Kover/Robolectric instrumentation options (offline instrumentation, `kover { }` filters, or `robolectric.properties` sandbox config) before trusting any coverage gate. Until then, use the revert-check (new test fails on pre-change code) as coverage evidence instead.
 
 ## 21. README build commands are stale
+**id:** 21 · **category:** specs-and-process · **class:** improvement · **status:** open
 
 - **Pre-existing, noticed 2026-09-13 during `license-compliance-baseline` task 8.4** ℹ: `README.md` › Build Commands still lists `./gradlew :app:assembleRelease` and `:osmscout-jni:assembleRelease`, and the project-structure tree lists `osmscout-jni/` as a JNI bridge AAR — neither exists: the module is `:osmscout-client-java`, and the app builds per flavor (`:app:assembleMobileDebug`, `:app:assembleAutomotiveDebug`, `./gradlew release` for both AABs). The license additions from this change were added to the same document, so the two stale commands now sit next to correct ones. Fix: replace the stale commands with the flavor-aware ones and correct the structure tree.
 
 ## 20. OpenSpec config rules: add `openspec doctor` to CI
+**id:** 20 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Residual hardening after the `config.yaml` rules bug (2026-09-13)** ℹ: three rule sets in `openspec/config.yaml` (proposal/specs/design) were silently dropped — colon+space entries parsed as YAML mappings, the array failed the array-of-strings check; quoting the entries fixed it. No CI guard exists (checked `build.yml`); add `openspec doctor`, or a tasks.md marker-style validation (§17), so a silently dropped rules file fails loudly.
 
 ## 23. libosmscout-kotlin port stubs — verify the binding is unused before anyone wires it in
+**id:** 23 · **category:** native-jni · **class:** feature · **status:** open (decision)
 
 - **Submodule `app/src/main/cpp/libosmscout/libosmscout-kotlin/` carries 7 unfinished port markers (found 2026-09-15)** ℹ: `objecttypes/TypeConfig.kt` skips feature-description handling in `loadFromData` (“TODO Fetch feature”, “TODO: Add description to feature”), `registerType` has “TODO: Calculate wayTypeIdBytes & Co.” plus two “TODO: Fix” lines, and `index/AreaWayIndex.kt:120` has “TODO: Reserve capacity for offsets”. Grep across every `*.gradle*`/`CMakeLists.txt` shows **no module references `libosmscout-kotlin`** — the binding is inert today (the app uses the C++ JNI bridge + `:osmscout-client-java`; a plain-JUnit or Kotlin binding is not on any build path). The submodule is our own fork (`naviveylin-local`), so this is decision material, not urgent: either finish the port to match C++/Java behavior (TypeConfig without feature descriptions would render/query differently), or document the binding as deliberately unbuilt and add a code comment so a future dependency addition fails loudly instead of silently using a stub.
 
 ## 24. Sharp-s uppercase form (ẞ U+1E9E) is not folded
+**id:** 24 · **category:** search · **class:** improvement · **status:** open
 
 - **Known limitation left in place by `fix-sharp-s-transliteration-match` (2026-09-16)** ℹ: the character map row for U+1E9E (capital sharp S) transliterates to itself, so the case-normalized transliterated comparison that change introduced still cannot match a query spelling a name with `ẞ` against an index name spelled `SS`/`ss` (nor the reverse). No name in the NRW or Iceland map databases uses U+1E9E (verified by extracting `location.idx` and counting spellings: `straße` 65 848×, `strasse` 22×, zero `ẞ`), so nothing is unfindable today. Fix candidate: an upstream character-map row that transliterates `ẞ` to `SS` (or `ss`, now equivalent because the comparison is case-normalized) when the table is regenerated. Land upstream when the table is next touched.
 
 ## 27. Unconstrained search of a second loaded database returns out-of-area noise
+**id:** 27 · **category:** search · **class:** bug · **status:** in-flight fix-cross-database-search-scope
 
 - **Observed 2026-09-16 during `fix-sharp-s-transliteration-match` task 6.5** ℹ: with the map view centered on Iceland and the GPS scope resolved to Regierungsbezirk Arnsberg, the query `Am Birkenbaum 6 Dortmund` returned Iceland-database entries (`Leiðhamrar Dofri`, `Lokinhamrar`, 5,8 km) instead of the Dortmund address. Cause is the documented per-database scope rule: a region handle is database-local, so the database that does *not* own the handle is searched unconstrained (`OSMScoutClient.cpp`, string-search scope comment) and its free-text index answers on short partial tokens ("am" inside "…hamrar…"). Not created by this change — the characters in the returned names (`ð`, `ö`, `í`, `æ`, `á`) are not affected by the transliteration fix, and no pre-change baseline run was made. Investigate: when a scope exists for one database, either skip the other databases' free-text hits or rank them below scoped results (and/or apply a distance limit), so an address query cannot be answered from another map region's data.
 - **Fix in flight** ⏳ (2026-10-01): `fix-cross-database-search-scope` takes the recorded mechanism — the text index is scope-blind in **every** database (`OSMScoutClient.cpp:4057` passes no region), so a free-text hit outside the resolved scope's extent is now dropped before the per-source cap, and every structured result carries whether it lies inside the scope (new `LocationEntry.inSearchScope`, spec `osmscout-jni`) so the app's ranker places out-of-scope close matches below in-scope ones (`SearchResultRanker`, spec `search-result-ranking`). Databases keep being searched, so a fully qualified query for another installed map still resolves (spec `location-search`). This entry is removed when that change is archived; the residual test gap is §109 and the candidate-budget question is §110.
 
 ## 28. Whole-level rounding in `computeAreaZoom` over-fits area favorites and POI search — **FIXED** by `fix-area-fit-zoom-rounding` (2026-10-03)
+**id:** 28 · **category:** map-rendering · **class:** bug · **status:** fixed-by fix-area-fit-zoom-rounding (in-flight)
 
 - **Found 2026-09-18 during `route-overview-fit` (DPI/`cos(lat)` ground-resolution fix)** ℹ: the shared bbox→magnification helper rounds to whole levels (`Math.round`), so the fitted content can end up larger than the 80%-margin target. The route overview is protected by an explicit projection check (`routeFitsVisibleArea`, design Decision 8), but the other callers had no such verification, so their fitted bbox could overflow the mini map / map viewport (previously masked by the over-zoom the ground-resolution fix removed).
 - **Corrected direction 2026-10-03 (during `fix-area-fit-zoom-rounding`)** ℹ: the entry (and the route fit's own comment) said the helper "rounds the exact fit *down* … so the fitted content ends up to ~13% larger" — the two halves do not go together. Rounding the magnitude **down** makes the content *smaller* than the target (more margin, harmless); it is rounding **up** to the next whole level (up to +0.5 level = 2^0.5 ≈ 1.41x) that exceeds the viewport, since 0.8 × 1.41 ≈ 1.13. The clip was real either way.
 - **Fixed** ✅ by change `fix-area-fit-zoom-rounding` (2026-10-03): the route fit's private corner-projection check was extracted into one shared seam (`app/src/main/java/com/naviveylin/ui/map/FitVerification.kt`: `fitsVisibleArea` + `verifiedAreaFit`) and every fit caller now uses it — the route overview, the area-favorite fit, the POI fit on the main map and the embedded result map's fit (both its result-extent path and its radius fallback). Two extra causes the entry did not name were fixed with it: the favourite/POI fits park the camera on a point that is **not** the bbox midpoint (so they clipped even at an exact fit), and the POI fit inherited the area-favorites floor (`MIN_AREA_ZOOM = 14`), which made "both the current location and the POI visible" impossible beyond a few hundred metres — it now uses the render-stability minimum, mirroring `route-map-overview`'s long-trip rule. Evidence: `FitVerificationTest` 8/8, `AreaFitViewModelTest` 5/5, `EmbeddedResultMapFitTest` 4/4, `MapCanvasViewModelRouteFitTest` 14/14 unmodified, `PoiSearchViewModelTest` 14/14 (its old `14.0` floor assertion became a visibility assertion — 14.0 → 12.0), full gate `:app` 1500/1500 both flavours · `:core` 437/0 · `:auto` 754/0, four revert-checks recorded. Specs: `fav-auto-zoom` + `poi-search` deltas. This entry is removed when that change is archived.
 
 ## 35. On-device re-check of the area-favorites and POI-search fit zooms
+**id:** 35 · **category:** verification · **class:** improvement · **status:** open (device)
 
 - **Created 2026-09-18 by `route-overview-fit`** ℹ: that change corrected `computeAreaZoom`'s ground resolution (display DPI + Mercator `cos(lat)`), which *intentionally* changes the zoom the phone picks when selecting an area favorite and when the POI search fits its results — both now zoom out to the geometrically correct level (previously over-zoomed by `dpi / 96 * (1 / cos(lat))`, ≈2 levels on a 420-dpi phone). Unit tests stay green, but no on-device/visual check of those two flows is part of that change. Follow-up: pick an area favorite and run a POI radius search on a real phone/emulator and confirm the framing is sane (not too far out, markers inside the visible area).
 
 ## 36. `public-transport` stylesheet draws no route  — ⏸ ON HOLD (owner decision 2026-09-20)
+**id:** 36 · **category:** stylesheets · **class:** bug · **status:** on-hold (owner decision)
 
 - **ON HOLD 2026-09-20 — deliberately not the next change.** Re-investigated 2026-09-20 and the blast radius is far larger than this entry first recorded: **5 of the 8 user-selectable styles cannot draw the active route at all**, not one. See the scope block below; the fix is understood and small, but it waits on option A/B/C being chosen.
 - **Corrected scope (verified 2026-09-20).** `BundledMapStyles.USER_SELECTABLE` (`core/src/main/java/com/naviveylin/core/BundledMapStyles.kt:38`) is the 8 styles `boundaries, coastlines, cycle, motorways, public-transport, railways, standard, winter-sports`. `stylesheets/include/route.oss` is the ONLY definition site of `[TYPE _route]` (:56-57), `[TYPE _track]` (:62), `[TYPE _route_start]`/`_route_end` (:68-69), `[TYPE _favorite]`/`_search_selected` (:76-77) and of `SYMBOL route_start`/`route_end`/`favorite_marker`/`search_marker` (:26-46). It is included by `standard.oss`, `cycle.oss` and `winter-sports.oss` only — so the other five (`public-transport`, `railways`, `motorways`, `boundaries`, `coastlines`) draw no route line, no start/end pins, no GPX track, no favourite markers and no selected-search marker. `public-transport.oss` is the tell: it declares `GROUP _route` in `ORDER WAYS` (:4) but never wires the rule. No app-side escape hatch: one stylesheet is loaded (`MapCanvasViewModel.applyStyleSheet` → `loadStyleSheet`) and route/POI drawing goes through `MapRenderer.kt:714 renderWithRouteAndPois` with no per-render style override.
@@ -742,25 +832,30 @@ GPS back                     →  REAL
 - **Original note (2026-09-19, `map-marker-route-contrast`), now superseded by the scope block above:** `stylesheets/public-transport.oss` declares `GROUP _route` in its `ORDER WAYS` block but has no `[TYPE _route]` rule, so an active route is not drawn at all while that style is selected (it is user-selectable via `BundledMapStyles.USER_SELECTABLE`). The route rule lives in `stylesheets/include/route.oss`; that change made `cycle.oss` include it like `standard.oss`/`winter-sports.oss`, and left `public-transport` untouched because the missing rule is a pre-existing gap, not one of the reported appearance defects. Fix candidate: add `MODULE "include/route"` to its MODULE block (same pattern) and verify on-device that a route then appears in that style.
 
 ## 37. Pre-existing Kotlin deprecation warning in the marker overlay
+**id:** 37 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Observed 2026-09-19 during `map-marker-route-contrast` task 4.1** ℹ: every `:app` build prints `w: .../ui/map/LocationMarkerOverlay.kt:167:14 'fun quadraticBezierTo(x1, y1, x2, y2)' is deprecated. Use quadraticTo() for consistency with cubicTo()`. Pre-existing — that change only replaced the gradient color selection in the same function. Fix: rename the call (behavior-identical) in a build-hygiene change, or wait until the Compose version makes it an error.
 
 ## 44. Pre-existing Kotlin build warnings beyond the marker overlay
+**id:** 44 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Found 2026-09-20 during `fix-favorite-store-write-race` (full-suite build)** ℹ: `./gradlew test --continue --rerun-tasks` prints 66 Kotlin warnings, none of them from that change's files. Beyond `LocationMarkerOverlay.kt:167` (already tracked as §37), three classes are untracked: (a) `app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:35` — "This annotation is currently applied to the value parameter only, but in the future it will also be applied to field" (annotation-target migration, a hard change in a future Kotlin); (b) `app/src/test/java/com/naviveylin/data/AmbientLightMonitorTest.kt:35` — Robolectric's `ShadowSensorManager.addSensor` is deprecated in Java; (c) the `ExperimentalCoroutinesApi` opt-in warnings spread over ~13 test files (`MapCanvasViewModelAutoZoomCommitTest`, `MapCanvasViewModelRoadInfoTest`, `MapCanvasViewModelSingleFollowCenterTest`, `RoutePanelViewModelSearchRankingTest`, ...). The archiving guidance requires a warning-free build, so this is build-hygiene debt rather than a defect. Fix candidate: one build-hygiene change that adds the missing `@OptIn` annotations, replaces the deprecated shadow call, and sets the annotation target explicitly.
 - **Recount 2026-10-03 (four-module forced run during `fix-area-fit-zoom-rounding`)** ℹ: **106** warnings, all of the same debt, and none from a file that change touched. Additions since the 2026-09-20 count: `app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:118` — `Java type mismatch: inferred type is 'String?', but 'String' was expected` (arrived with `fix-start-map-selection`, still in flight); `service/NavigationNotificationServiceTapTargetTest.kt:40,69` — the deprecated `isBroadcastIntent`/`isActivityIntent` shadows; and in `:auto`: `RendererTestRule.kt:64` ("Type 'AutoMapRenderer' is final, so the value of the type parameter is predetermined"), `RenderLoopSupervisorTest.kt:40` ("Condition is always 'true'"), `TestCarContext.kt:23` (unchecked cast), `CarStyleLoadNotifierTest.kt:88` (deprecated `field defaults: Int`), plus further `ExperimentalCoroutinesApi` opt-ins (`DetailsScreenTest`, `FavoritesScreenTest`, `MapScreenTest`, `SearchScreenTest`, `TemplateFaultIsolationTest`). Recount rather than trust this list: `./gradlew :app:testMobileDebugUnitTest :app:testAutomotiveDebugUnitTest :core:testDebugUnitTest :auto:testDebugUnitTest --rerun-tasks 2>&1 | grep -c '^w: '`.
 
 ## 118. `fav-auto-zoom`'s clamp scenario says 4–18 while the code clamps area-favorite fits to 14–20
+**id:** 118 · **category:** favorites · **class:** bug · **status:** open
 
 - **Found 2026-10-03 during `fix-area-fit-zoom-rounding`** ℹ: the spec's scenario "Magnitude clamped to valid range" says "WHEN computed magnification is outside valid range (4–18) THEN magnification is clamped to the nearest valid value", but `computeAreaZoom` clamps `coerceIn(minZoom, MAX_MAG)` with `maxZoom = MAX_MAG = 20.0` and, for the area-favorite caller, `minZoom = MIN_AREA_ZOOM = 14.0` (`MapCanvasViewModel.kt`, the constant's own comment: "Minimum zoom level for area-type favorites (prevents too-zoomed-out view)"). So the enforced range is **14–20**, not 4–18 — the spec's numbers are stale on both ends (`MIN_MAG`/`GESTURE_MIN_MAG` are 4.0, and `MAX_MAG` is 20.0). Not fixed in that change because its spec delta had to keep the existing requirement block whole, and the change's `design.md` records it as an Open Question. Fix candidate: one spec-only change that states the range the code actually enforces (and, if 4–18 was ever the intent, the corresponding code change) — or split the clamp scenario per caller, since the floor is caller-specific (area favorites 14, route overview and the POI fit 4).
 
 ## 39. Real-life and Android Auto verification for the marker/route colors
+**id:** 39 · **category:** ui · **class:** improvement · **status:** open (device)
 
 - **Created 2026-09-19 by `map-marker-route-contrast`** ⏳: the visual checks (daylight route over a primary road and a white residential road, GPX track and search marker alongside, dark-presentation route unchanged, lighter dark marker without a white ring, 38 dp marker size, map-style switch to `cycle`/`winter-sports`) were performed on the phone emulator and reported working, but the user noted the concrete colors still need real-life validation, and the Android Auto half (host day/night, route/marker parity) was accepted by assumption instead of being measured on a head unit or the `Automotive_Distant_Display_with_Google_Play` AVD. Follow-up: check the violet route and the lighter dark marker on a real display outdoors and in a dark car interior, and run the AA day/night comparison once on the automotive AVD or a head unit. If the violet reads too close to the magenta search marker or the blue GPX track in practice, the hue can be adjusted in `stylesheets/include/route.oss` alone (the spec pins the contrast contract, not the hex).
 
 ---
 
 ## 40. Guardrails extracted from `ki_processing_failures.log` (2026-09-19)
+**id:** 40 · **category:** specs-and-process · **class:** improvement · **status:** open
 
 Every entry of that log was processed on 2026-09-19 and removed; each action below is what prevents
 re-making the mistake. The parenthetical names the artifact that should carry it. Items marked **[open]**
@@ -962,6 +1057,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
     first-event branch. **[open]**
 
 ## 49. One full car render allocates ~15 MB of transient buffers — app-side FIXED by `fix-render-buffer-reuse` (2026-09-26), native half FIXED by `reduce-render-peak-memory` (2026-09-27); the `Graphics` footprint and the growth measurement stay open
+**id:** 49 · **category:** map-rendering · **class:** improvement · **status:** open (device)
 
 - **Observation** ℹ: a full render at the 1.2× overrun size walks four full-size buffers — C++
   `std::vector<uint32_t>` (`OSMScoutClient.cpp` render entry), the Cairo RGB24 surface, the Java
@@ -1013,6 +1109,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   `dumpsys meminfo` before/after; a phone render-path change, not a car-only one.
 
 ## 51. The host-crash mechanism: an app-process death takes the templates host down — Found 2026-09-21 (triage frame for the "AA crashes while NaviVeylin drives" report)
+**id:** 51 · **category:** car · **class:** bug · **status:** open
 
 - **Mechanism** ℹ: the ordering is proven (pitfall in `guidelines/Build.md` §10) — the app is force-stopped → the host's queued template
   operation runs against an invalidated `CarHost` → `IllegalStateException: Accessed the car host
@@ -1078,6 +1175,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   window means the harness artifact (`guidelines/Build.md` §10); no such line means an app-side defect.
 
 ## 56. Trip publishing is the one host sender that deliberately keeps firing while the session is stopped — Found 2026-09-21 (same review)
+**id:** 56 · **category:** car · **class:** bug · **status:** open
 
 - **Observation** ℹ: `NavigationSession.kt:573-579` collects every navigation-state emission and calls
   `NavigationManagerController.publishTrip` (`NavigationManagerController.kt:88`), which has no
@@ -1094,6 +1192,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   AVD run counting `HOST` trip lines against host stability (`guidelines/Build.md` §10 baseline).
 
 ## 57. `DetailsScreen` observers are init-scoped and keep rendering while stopped — Found 2026-09-21 (same review)
+**id:** 57 · **category:** car · **class:** bug · **status:** in-flight fix-details-screen-observation-scope
 
 - **Observation** ℹ: `DetailsScreen` starts its favorites, basemap and position collectors in `init`
   into `loadScope` (`DetailsScreen.kt:189-219`), cancelled only in `onDestroy` (`:266`). While the
@@ -1106,6 +1205,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   `onStop` and restart in `onStart`.
 
 ## 78. Overrun-window offset math lives in `FollowPrediction` and the follow overlay path is not unified — Found 2026-09-24 (while fixing the phone pan tracking)
+**id:** 78 · **category:** map-rendering · **class:** improvement · **status:** open
 
 - **Debt** ℹ: `FollowPrediction.displayOffsetPx` is now the single offset helper for follow scrolling,
   the pan display window and the renderer's coverage predicate (`MapRenderer.overrunWindowCovers`),
@@ -1128,7 +1228,8 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Not caught** ✗: `MapPanDisplayWindowTest`/`MarkerDisplayShiftTest` pin the pan-side contract; the
   duplication itself has no test, only the rule that a follow-mode overlay shift must stay zero.
 
-## 79. The Android bridge override trails the submodule's Java favorites API — Found 2026-09-28 (while adding the cross-group favorite move)
+## 119. The Android bridge override trails the submodule's Java favorites API — Found 2026-09-28 (while adding the cross-group favorite move)
+**id:** 119 · **category:** native-jni · **class:** improvement · **status:** open — formerly §79 (duplicate number; quoted as §79 by fix-open-database-path-validation/design.md, the reorder-favorite-groups traceability and condense-style-load-warnings)
 
 - **Debt** ℹ: `osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java`
   shadows the submodule's Java source (that file is excluded in `osmscout-client-java/build.gradle.kts`)
@@ -1147,6 +1248,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   widening it would have mixed an API-sync refactor into a feature change.
 
 ## 103. `FavoritesScreen` (car) is the one screen still outside the `CarScreenObservations` pattern — Found 2026-09-29 during `order-starred-favorites`
+**id:** 103 · **category:** car · **class:** improvement · **status:** in-flight fix-details-screen-observation-scope
 - **Debt** ℹ: `auto/src/main/java/com/naviveylin/auto/FavoritesScreen.kt` collects its favorites, group-order
   and starred-order flows in one `combine` inside `init`, on `carScreenScope("FavoritesScreen")`, and
   cancels it through its own `onDestroy` lifecycle observer. Map, Navigation and FreeDriving screens use
@@ -1162,6 +1264,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   the screen's whole observation lifetime was scope its specs do not require.
 
 ## 106. The AAOS AVD's car session lives in user 10 while adb reaches user 0 only, so its favorites storage cannot be seeded — Found 2026-09-29 on `emulator-5554` (automotive distant-display AVD) during `order-starred-favorites`
+**id:** 106 · **category:** verification · **class:** improvement · **status:** open (device)
 
 - **Observed** ℹ: `pm list users` shows `0:Fahrer` and `10:Driver`, `am get-current-user` is `10`, and the car
   session's own warmup log writes to `/data/user/10/com.framstag.naviveylin/files/...`. `run-as`,
@@ -1186,6 +1289,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   the car screen returns to the launcher and needs a fresh launch.
 
 ## 108. Three surfaces of the i18n sweep could not be seen on a device — found 2026-09-30 while landing `fix-remaining-untranslated-strings` (task 5.2)
+**id:** 108 · **category:** verification · **class:** improvement · **status:** open (device)
 
 - **Device-verified** ✅ that pass: the favorites group-card count reads `0 Favoriten` / `2 Favoriten` / `3 Favoriten` on `emulator-5554` (API 37, de-DE) with the change's `mobileDebug` APK installed (`lastUpdateTime 2026-09-30 21:40:30`) — the German plural resource, where the pre-change build showed `2 favorites`. The same dump shows the German resource set loading in that build (`Was ist hier?`, `Ort suchen…`, `Favoriten`, `Aktuellen Kartenstandort hinzufügen`).
 - **Not verified on device** ⏳ (unit + revert-check only):

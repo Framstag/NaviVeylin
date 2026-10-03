@@ -213,6 +213,19 @@ car path has hard rules:
   - Distribution: mobile AAB → normal tracks; automotive AAB → dedicated "Android Automotive OS" track in Play Console (required for templated apps). Same package name = single store listing
   - Spec: `openspec/specs/auto/spec.md`, `openspec/specs/android-automotive-os/spec.md`
 
+## Backlog maintenance
+
+`TODO.md` is the live backlog: numbered `## <id>.` sections plus the feature-table groups. Every entry
+carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line
+under its heading; ids are identity and are never renumbered (commit messages, change tasks and sessions
+quote `§N`). Three skills own the file:
+
+| Skill | Job |
+|---|---|
+| `triage-todo` | read-only — rank what is open and name the next change |
+| `cleanup-todo` | remove entries already implemented on master / in an archived change / in a merged PR, repair the metadata, optionally cluster |
+| `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
+
 ## OpenSpec Workflow
 
 This project uses OpenSpec with the `spec-driven` schema:

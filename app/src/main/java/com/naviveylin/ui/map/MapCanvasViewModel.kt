@@ -2214,9 +2214,16 @@ class MapCanvasViewModel @Inject constructor(
             val desc = descDeferred.await()
             val bbox = bboxDeferred.await()
 
-            // Determine target zoom: area bounding box → compute, else fixed node zoom
+            // Determine target zoom: area bounding box → compute, else fixed node zoom.
+            // The camera is the favorite coordinate (see updateCenter above), which is
+            // generally not the object bbox midpoint, so the fit is verified against
+            // that camera and keeps the documented area-favorites floor
+            // (spec: fav-auto-zoom — Bounding box zoom calculation; FitVerification.kt).
             val targetMag = if (bbox != null && bbox.size == 4) {
-                computeAreaZoom(bbox, screenWidth, screenHeight, dpi = projectionDpi)
+                verifiedAreaFit(
+                    bbox, fav.lat, fav.lon, screenWidth, screenHeight, projectionDpi,
+                    minZoom = MIN_AREA_ZOOM, angleRad = _uiState.value.viewport.angle
+                )
             } else {
                 NODE_ZOOM
             }
@@ -2526,6 +2533,13 @@ class MapCanvasViewModel @Inject constructor(
     /**
      * Magnification that fits the current location and the POI with ~30%
      * margin, or the current magnification when no GPS fix exists.
+     *
+     * The camera stays on the POI ([onPoiEntryClick] centers there), which is one
+     * end of the fitted bbox rather than its midpoint, so the fit is verified
+     * around that camera. Its floor is the render-stability minimum
+     * ([MIN_MAG]), not the area-favorites floor: a POI whose distance does not fit
+     * at 14 must still be shown together with the current location
+     * (spec: poi-search — Distant POI zooms out below the area-favorites floor).
      */
     private fun poiFitMagnification(entry: PoiEntry): Double {
         val currentMag = _uiState.value.viewport.magnification
@@ -2543,7 +2557,10 @@ class MapCanvasViewModel @Inject constructor(
             kotlin.math.min(lon1, entry.lon) - marginLon,
             kotlin.math.max(lon1, entry.lon) + marginLon
         )
-        return computeAreaZoom(bbox, screenWidth, screenHeight, dpi = projectionDpi)
+        return verifiedAreaFit(
+            bbox, entry.lat, entry.lon, screenWidth, screenHeight, projectionDpi,
+            minZoom = MIN_MAG, angleRad = _uiState.value.viewport.angle
+        )
     }
 
     /**
@@ -3625,7 +3642,6 @@ class MapCanvasViewModel @Inject constructor(
         // Visible map area: the open route panel covers the bottom of the canvas.
         val coveredPx = routePanelCoveredHeightPx.coerceIn(0, screenHeight)
         if (coveredPx >= screenHeight) return
-        val visibleHeightPx = screenHeight - coveredPx
 
         // Degenerate span (point/vertical/horizontal) degrades to NODE_ZOOM
         // inside computeAreaZoom — center still moves to the endpoints' midpoint.
@@ -3633,18 +3649,16 @@ class MapCanvasViewModel @Inject constructor(
         val midLat = (minLat + maxLat) / 2.0
         val midLon = (minLon + maxLon) / 2.0
         val angle = _uiState.value.viewport.angle
-        // Whole-level rounding (shared with the favorites zoom) can round the
-        // exact fit down by up to half a level, and a rotated view needs a larger
-        // screen hull than the north-up bbox suggests. The overview must never
-        // clip the route, so the projected bbox is verified and the fit stepped
-        // one level out while it does not stay inside the visible area.
-        var mag = computeAreaZoom(
-            bbox, screenWidth, visibleHeightPx,
-            minZoom = MIN_MAG, dpi = projectionDpi
+        // The overview must never clip the route. The shared fit seam
+        // (`FitVerification.kt`) verifies the projected bbox around the camera it
+        // will actually use and steps one whole level out while the bbox does not
+        // stay inside the visible band — necessary because whole-level rounding
+        // can move an exact fit up, and a rotated view needs a larger screen hull
+        // than the north-up bbox suggests.
+        val mag = verifiedAreaFit(
+            bbox, midLat, midLon, screenWidth, screenHeight, projectionDpi,
+            minZoom = MIN_MAG, angleRad = angle, coveredPx = coveredPx
         )
-        while (mag > MIN_MAG && !routeFitsVisibleArea(bbox, midLat, midLon, mag, coveredPx, angle)) {
-            mag -= 1.0
-        }
         // The camera center is drawn at the canvas center, so to put the bbox
         // midpoint on the visible-area center (coveredPx / 2 px above it) the
         // camera must sit that far below the midpoint on screen — the content
@@ -3662,40 +3676,6 @@ class MapCanvasViewModel @Inject constructor(
         )
         renderMap()
         Log.d(TAG, "fitViewportToRoute mag=" + mag + " coveredPx=" + coveredPx)
-    }
-
-    /**
-     * Whether the bbox, projected at [mag] around the bbox midpoint, stays inside
-     * the visible map area (canvas minus [coveredPx]) once the camera is moved so
-     * the midpoint lands on that area's center. The rotated screen hull of a
-     * Mercator bbox has its extremes at the bbox corners, so the corner check is
-     * exact for any viewport angle.
-     */
-    private fun routeFitsVisibleArea(
-        bbox: DoubleArray,
-        midLat: Double,
-        midLon: Double,
-        mag: Double,
-        coveredPx: Int,
-        angleRad: Double
-    ): Boolean {
-        val vp = ProjectionUtils.viewport(
-            midLat, midLon, mag, screenWidth, screenHeight, projectionDpi, angleRad
-        )
-        // The projection puts the bbox midpoint at the canvas center; the fit then
-        // moves the content up by coveredPx / 2, so the visible band sits at
-        // [coveredPx / 2, coveredPx / 2 + visibleHeight] in this frame.
-        val visibleHeightPx = screenHeight - coveredPx
-        val bandTop = coveredPx / 2.0
-        val bandBottom = bandTop + visibleHeightPx
-        for (lat in doubleArrayOf(bbox[0], bbox[1])) {
-            for (lon in doubleArrayOf(bbox[2], bbox[3])) {
-                val (x, y) = vp.geoToScreenRotated(lat, lon)
-                if (x < 0.0 || x > screenWidth.toDouble()) return false
-                if (y < bandTop || y > bandBottom) return false
-            }
-        }
-        return true
     }
 
     /** Update map rotation angle (called from two-finger rotation gesture). */

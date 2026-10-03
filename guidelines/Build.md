@@ -11,14 +11,15 @@ this document in the same change.
 
 ## 1. Skills
 
-Three skills wrap the existing Gradle calls. They are named and discoverable by
-LLM agents (loaded on demand from `.pi/skills/`); use them whenever build, test,
-or release work is requested or required by the OpenSpec apply/archive guidance.
+Four skills wrap the existing Gradle calls and the verification discipline around them. They are named
+and discoverable by LLM agents (loaded on demand from `.pi/skills/`); use them whenever build, test,
+verification, or release work is requested or required by the OpenSpec apply/archive guidance.
 
 | Skill | Purpose | When to use |
 |---|---|---|
 | `build-app` | Compile the app — debug APKs, flavors, ABIs | User asks to build/compile; verify code compiles; after Kotlin/native changes |
 | `run-tests` | Execute unit + instrumented tests | User asks to run tests; verify tests pass; before marking a task complete |
+| `revert-check` | Falsify a new guard: one mutation → the named case must fail → restore → forced green, with the evidence recorded | A task says "revert-check"/"one mutation"/"the case that must fail"; a change adds a test for an invariant; before claiming a test covers new behaviour |
 | `release-build` | Produce Play-ready release AABs (mobile + automotive) | User asks for a release build or version bump; Play upload / sideload artifacts |
 
 Each skill lives in `.pi/skills/<name>/SKILL.md` (gitignored — copy to
@@ -26,14 +27,18 @@ Each skill lives in `.pi/skills/<name>/SKILL.md` (gitignored — copy to
 
 ## 2. Common behavior
 
-All three skills follow the same contract:
+All four skills follow the same contract:
 
 - **Wrap the existing Gradle calls** (`./gradlew ...`) — no new build system,
   no wrapper scripts, no duplicated command logic.
 - **Print status messages** before and after each run (e.g. "Building debug APK
   (all ABIs, both flavors)…", "Build succeeded — …").
-- **Stream build output to the console** — output is never suppressed,
-  redirected to a file, or filtered away; the console is the primary channel.
+- **Redirect the output to a log, keep the console readable** — a full build or
+  suite exceeds the shell tool's ~120s **output** cap, so run it in the
+  **foreground** with `> /tmp/<name>.log 2>&1` and grep the verdict, the `e: ` /
+  `w: ` lines and the tallies back. Do **not** background it (`nohup … &`): the
+  harness kills the process group when the tool call ends, and the run then dies
+  mid-build with no verdict (`TODO.md` §100 — `setsid` is not available).
 - **Evaluate the result by return code AND build output**:
   - Exit code `0` **and** output contains `BUILD SUCCESSFUL` → success
   - Exit code non-zero **or** output contains `BUILD FAILED` → failure
@@ -78,6 +83,17 @@ All three skills follow the same contract:
 - **A cached run is not a run**: `BUILD SUCCESSFUL in 3s` with `UP-TO-DATE` / `FROM-CACHE`
   executed no tests. When the run itself is the evidence, force it with `--rerun`
   (single task) or `--rerun-tasks`.
+- **Restoring a mutation re-creates a cached tree**: after a revert-check the source hash equals the state
+  whose successful result is already cached, so the restored run answers `UP-TO-DATE` in seconds and the
+  XML keeps the **previous** run's `timestamp` — a 4-second "green" is not the second half of a
+  revert-check. Force it and check the `timestamp` against the wall clock (`TODO.md` §17; the
+  `revert-check` skill).
+- **Sweep the suite for what the change moves, before the gate**: a behaviour change can move an
+  expectation pinned verbatim in an unrelated class, and focused runs cannot see it (2026-10-03: the POI
+  fit's floor changed and only the full gate found `PoiSearchViewModelTest` asserting the old `14.0`).
+  `grep -rn '<the constant or value you changed>' app/src/test core/src/test auto/src/test`, plan that
+  expectation change, and quote old → new in the task. Prefer re-expressing the assertion against the spec
+  (what must be visible/equal/ordered) over pinning a new number.
 - **Attribute before blaming or claiming** — a failure that moves between runs or
   flavors, and that passes alone, may not be yours. Ritual:
   1. rerun the failing class **alone** (`--tests <FQCN>`);

@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.ProjectionUtils
 
 import android.content.Context
 import android.location.Location
@@ -84,6 +85,23 @@ class PoiSearchViewModelTest {
             lat = 51.5136
             lon = 7.4653
         }
+
+    /**
+     * Whether a position projects inside the canvas at the state's viewport.
+     *
+     * Used instead of asserting a magnification number: the spec asks for both the
+     * current location and the POI to be visible, and that is what must hold when the
+     * fit's floor changes (spec: poi-search — Details via single click).
+     */
+    private fun isVisible(state: MapCanvasUiState, lat: Double, lon: Double): Boolean {
+        val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+        val vp = ProjectionUtils.viewport(
+            state.viewport.centerLat, state.viewport.centerLon, state.viewport.magnification,
+            CANVAS_WIDTH, CANVAS_HEIGHT, dpi, state.viewport.angle
+        )
+        val (x, y) = vp.geoToScreenRotated(lat, lon)
+        return x >= 0.0 && x <= CANVAS_WIDTH.toDouble() && y >= 0.0 && y <= CANVAS_HEIGHT.toDouble()
+    }
 
     /** Open the unified dialog and switch to POIs mode (spec: search-dialog). */
     private fun openPoiSearch() {
@@ -217,7 +235,7 @@ class PoiSearchViewModelTest {
 
     @Test
     fun fitZoomShowsCurrentLocationAndPoi() = runTest(mainDispatcherRule.dispatcher) {
-        viewModel.setScreenSize(1080, 2100)
+        viewModel.setScreenSize(CANVAS_WIDTH, CANVAS_HEIGHT)
         viewModel.updateMagnification(18.0)
         openPoiSearch()
         viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
@@ -239,7 +257,19 @@ class PoiSearchViewModelTest {
             "zoom zoomed out to fit both locations (before=$magBefore, after=${state.viewport.magnification})",
             state.viewport.magnification < magBefore
         )
-        assertEquals("fit floor reached", 14.0, state.viewport.magnification, 1e-9)
+        // Both positions must be visible at the applied magnification — not the old
+        // area-favorites floor of 14: the fix is far enough that a floor-14 fit cannot
+        // show it (spec: poi-search — Distant POI zooms out below the area-favorites
+        // floor, which is what this assertion used to pin to 14.0 before that
+        // behaviour changed).
+        assertTrue(
+            "the POI must be visible (mag=${state.viewport.magnification})",
+            isVisible(viewModel.uiState.value, 51.5136, 7.4653)
+        )
+        assertTrue(
+            "the current location must be visible (mag=${state.viewport.magnification})",
+            isVisible(viewModel.uiState.value, 51.5, 7.4)
+        )
     }
 
     @Test
@@ -359,5 +389,11 @@ class PoiSearchViewModelTest {
         assertTrue("route panel open", state.showRoutePanel)
         assertFalse(state.showDetailsSheet)
         assertFalse("route action keeps POI sheet closed", isPoiSearchOpen(state))
+    }
+
+    private companion object {
+        /** Canvas these cases lay out (`setScreenSize`). */
+        const val CANVAS_WIDTH = 1080
+        const val CANVAS_HEIGHT = 2100
     }
 }

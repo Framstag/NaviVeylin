@@ -587,10 +587,13 @@ class FakeOSMScoutClient : OSMScoutClient() {
     override fun getAdminRegionScopeName(handle: Long): String? =
         adminRegionScopeName ?: adminRegionName
 
+    /** Bounding box returned by [getObjectBoundingBox] for any coordinate; null = no object found. */
+    var objectBoundingBox: DoubleArray? = null
+
     override fun getObjectBoundingBox(
         lat: Double, lon: Double, magnification: Int
     ): DoubleArray? {
-        return null
+        return objectBoundingBox
     }
 
     // --- In-memory favorites CRUD (mirrors C++ FavoriteLocationService) ---

@@ -139,6 +139,23 @@ travel while the map itself rotates at its own pace.
   `renderViewport` is the frame's geometry (center/mag/angle) for the marker and the display loop.
   Leaving the vehicle position in `viewport.center` would make it a lie of up to 0.4 screen and jump
   on the first pan after re-engage.
+- **A camera fit is verified, never just rounded (delta `fix-area-fit-zoom-rounding`):** every fit that
+  parks the camera to fit an extent must route through `verifiedAreaFit`
+  (`app/src/main/java/com/naviveylin/ui/map/FitVerification.kt`), which starts from
+  `MapCanvasViewModel.Companion.computeAreaZoom` and steps one whole level out while the projected bbox
+  leaves the visible band. `computeAreaZoom` alone is not a fit: it rounds the magnification
+  (`Math.round`, so an exact fit can move UP to the next level — 2^0.5 ≈ 1.41x more content than its
+  80 % target, past the viewport), and it assumes the bbox midpoint is the camera center, while the
+  area-favorite fit parks the camera on the favorite coordinate and the POI fit on the POI — an
+  off-centre camera clips at an exact fit. A rotated viewport needs a larger screen hull than north-up.
+  The verification takes the **camera center** and the band (`coveredPx`, 0 when no sheet covers the
+  canvas) as parameters, projects the bbox's four corners through `ProjectionUtils.viewport` — the
+  renderer's own projection, so rotation is exact — and passes the *visible* height (`height −
+  coveredPx`) to the fit itself, as the route overview does. Stepping stops at the caller's floor: the
+  route overview, the POI fit and the embedded result map pass the render-stability minimum (`MIN_MAG`),
+  the area-favorite fit keeps the documented area-favorites floor — a fit that returns its floor has NOT
+  been verified to fit, so callers must not read the floor as success. Adding a fit caller means calling
+  this seam, not `computeAreaZoom` directly.
 - **Single follow center (delta fix-follow-vehicle-jumps):** the displayed (eased predicted)
   position IS the follow center. The display loop (`MapCanvasScreen`) writes
   `MapCanvasViewModel.followDisplayLat/Lon` every frame; BOTH follow render paths (the per-fix
@@ -802,7 +819,7 @@ car Surface:
 - The stylesheets request POI icons **by name** (`NODE.ICON { name: bus_stop; }`); `symbol:` is a
   vector symbol defined inline in the stylesheet, and the renderer prefers the image
   (`MapPainter::LayoutPointLabels`): image → else symbol → else nothing. A style carrying a name and
-  no symbol therefore draws **nothing** unless its PNG loads (that was `TODO.md` §85).
+  no symbol therefore draws **nothing** unless its PNG loads (that was the defect `fix-poi-symbol-icons` closed).
 - Sourcing: only the raster leaf (`libosmscout/data/icons/14x14/standard/`) is packaged — at build
   time by `syncSubmoduleIcons` into `assets/icons/14x14/standard`, mirroring the stylesheet rule — and
   mirrored to internal storage by `AssetCopier.ensureIcons()`. The client gets it once from
@@ -857,7 +874,7 @@ tile *data* per database, which is why walking a wide area is what makes a proce
   recorded under the `MEMORY` tag (throwable class only, never its message). Without that, a throwable
   raised inside a *memory-pressure* callback reaches the thread's uncaught-exception handler and kills the
   app — the one moment it can least afford it. The same missing confinement leaked an uncaught exception
-  into the test JVM and was misattributed to another package for a whole session (TODO §96,
+  into the test JVM and was misattributed to another package for a whole session (closed 2026-09-27 by `bound-tile-data-retention`,
   `ki_processing_failures.log` 2026-09-27): any long-lived scope that a test can construct needs one.
 
 ---

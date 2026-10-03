@@ -940,8 +940,17 @@ private fun PoiResultItem(
  * radius-derived bounding box when there are no results or everything is at
  * the same point. [dpi] is the display DPI the mini map renders at — the fit
  * zooms against the renderer's ground resolution, not the 96-dpi reference.
+ *
+ * The result is verified through [verifiedAreaFit] around the search center, so
+ * whole-level rounding cannot push a result marker out of the mini map
+ * (spec: poi-search — Embedded result map fit never clips a result). The
+ * embedded map is centered on [centerLat]/[centerLon] and north-locked
+ * (`MiniMap` renders at angle 0), so the verification uses angle 0; the floor is
+ * the render-stability minimum, not the area-favorites floor (this map fits a
+ * result set, not an object). `internal` rather than file-private so that pure
+ * result is unit-testable.
  */
-private fun poiFitMagnification(
+internal fun poiFitMagnification(
     results: List<PoiEntry>,
     centerLat: Double,
     centerLon: Double,
@@ -985,7 +994,10 @@ private fun poiFitMagnification(
     if (dLat <= 1e-9 && dLon <= 1e-9) {
         // Everything sits at one point (or only the center is known):
         // fall back to fitting the search radius.
-        return MapCanvasViewModel.computeAreaZoom(radiusBbox(), mapW, mapH, dpi = dpi)
+        return verifiedAreaFit(
+            radiusBbox(), centerLat, centerLon, mapW, mapH, dpi,
+            minZoom = MapCanvasViewModel.MIN_MAG
+        )
     }
     val marginLat = dLat * 0.3
     val marginLon = dLon * 0.3
@@ -993,7 +1005,10 @@ private fun poiFitMagnification(
         minLat - marginLat, maxLat + marginLat,
         minLon - marginLon, maxLon + marginLon
     )
-    return MapCanvasViewModel.computeAreaZoom(bbox, mapW, mapH, dpi = dpi)
+    return verifiedAreaFit(
+        bbox, centerLat, centerLon, mapW, mapH, dpi,
+        minZoom = MapCanvasViewModel.MIN_MAG
+    )
 }
 
 /** Map a radius in meters to the nearest slider index in [steps]. */

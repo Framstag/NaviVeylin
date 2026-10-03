@@ -206,7 +206,7 @@ strong preference.
   instead of faulting, and an app-side coroutine on a process-wide dispatcher confines its own
   throwable (`runCatching` or a `CoroutineExceptionHandler`) — an escaping throwable reaches the
   thread's uncaught-exception handler and kills the app (and poisons an unrelated test's coroutine
-  harness, TODO §96).
+  harness, closed 2026-09-27 by `bound-tile-data-retention`).
 - Logging: native via `osmscout::log` + app-owned bridge; Kotlin via
   `android.util.Log` with per-class TAG. Stylesheets: submodule is the single
   source of truth, synced at build time. Mechanics: `AGENTS.md`.

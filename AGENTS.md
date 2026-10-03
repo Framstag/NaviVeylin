@@ -226,9 +226,11 @@ Config: `openspec/config.yaml`
 
 ## Build & Test
 
-Build, test, and release workflows are wrapped by three skills — `build-app`,
-`run-tests`, `release-build` — documented in `guidelines/Build.md`. They wrap the
-Gradle calls below, stream build output to the console, and evaluate results by
+Build, test, and release workflows are wrapped by four skills — `build-app`,
+`run-tests`, `revert-check`, `release-build` — documented in `guidelines/Build.md`.
+`revert-check` is the falsification step a change owes for every new invariant
+(mutate it once, the named case must fail, restore, forced green — `TODO.md` §113).
+They wrap the Gradle calls below, stream build output to the console, and evaluate results by
 return code and build output. Use them for any build/test/release work.
 
 ```bash

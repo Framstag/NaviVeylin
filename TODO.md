@@ -34,12 +34,31 @@
 - **Observed** ℹ: of the origin changes behind those 15 bugfix changes, the ones from `2026-08-13-auto-startup-crash-diagnostics` to `2026-09-19-fav-order-in-group` carry **0** `verify:` clauses in `tasks.md` (`2026-09-11-tile-cache-perf` 11 lines / 0 clauses, `2026-09-08-turn-instructions-not-l10n` 0, `2026-09-04-enlarge-phone-nav-overlays` 0, `2026-09-04-fix-route-refresh-and-auto-zoom-reengage` 0, `2026-08-13-auto-startup-crash-diagnostics` 0; only `2026-09-17-basemap-own-stylesheet` has 13). Every fix that followed added the falsification the origin lacked: `fix-favorite-store-write-race` tasks 1.5 and 3.3 remove one mutex and require the interleaving case to fail, `fix-native-database-open-race` task 1.4 removes six `scoped_lock` lines and requires SIGSEGV (3/3 runs). Where an origin did see the risk it deferred instead of proving it — `2026-09-19-fav-order-in-group` task 3.4: "Append the pre-existing, unrelated risk found while implementing this change — interleaved repository writes …".
 - **Consequence** ⏳: an assertion that guards an invariant is never shown to be *capable of failing*, so a case with the wrong arguments, the wrong seam or a tautology passes as proof (the `FollowAnchorFramingTest` anchor case, §111, is exactly that shape). Two capabilities were patched for the same class inside one week (`fav-service` + `osmscout-jni`, `native-tile-data-cache` + `smooth-zoom`).
 - **Fix candidate**: rules text — one revert-check task per new invariant in `tasks.md` (remove the guard, one mutation, name the case that must fail; restore it), plus the `guidelines/Build.md` §6 bullet drafted by this audit. Cross-ref §40 (guardrails), §111.
+- **Infrastructure landed 2026-10-03** ✅ (rules text + skill; the per-change history stays open until a change
+  written under the new rules archives):
+  - **`revert-check` skill** (`.pi/skills/revert-check/SKILL.md`, machine-local like the other skills) — the full
+    discipline: name the triple (invariant / single mutation / case that must fail) *before* touching code, one
+    mutation only (§40.12), run **every** case the guard protects, require the failure to be the expected
+    assertion (not a premise or a compile error), restore and grep the mutation marker away, then force the
+    green run (`--rerun-tasks`) — because restoring returns the tree to a cached state that would answer
+    `UP-TO-DATE` while the XML keeps the previous `timestamp` — and quote both runs in the task. It also covers
+    the honest outcome when a guard is structural and cannot be falsified through the public API (the
+    `fix-phone-gesture-pan-tracking` task 7.6 precedent).
+  - **`openspec/config.yaml` `rules.tasks`** now asks for one revert-check task per new invariant, bound,
+    predicate or refusal path, and names the skill — so a change written from here carries the task.
+  - **`guidelines/Build.md`** §4 gained the two rules this needed (a restored tree is a cached tree — check the
+    XML `timestamp`; sweep the suites for the constants/values a change moves *before* the gate), §1 lists the
+    fourth skill, and §2's output contract was corrected to the foreground + redirect pattern (§100).
+    `AGENTS.md`, `openspec-apply-change` and `run-tests` point at `revert-check` by name.
+  - **Evidence for the discipline**: `fix-area-fit-zoom-rounding` ran four revert-checks this way (loop removed →
+    3 cases, favourite call site unverified → 1, floor back to 14 → 1, embedded fit unverified → 2), and one of
+    them showed a case was *not* falsifying its guard — which is what the skill exists to catch.
 
 ---
 
 ## 112. A spec scenario can stay unproven for months — `map-render` "Open invalid map database" had no case from 2026-07-29 until 2026-10-01 — Proof gap of `2026-07-29-draw-map`, found 2026-10-01 auditing `fix-open-database-path-validation` (spec `map-render`)
 
-- **Observed** ℹ: the scenario (merged spec `openspec/specs/map-render/spec.md:81-85`, "THEN `OSMScoutClient.openDatabase()` returns false") was added by `draw-map`, whose tasks carry no case for it (tests cover `ViewportStorage` only, and the manual smoke test 7.3 stayed unchecked). Two months later `fix-open-database-path-validation` had to implement the enforcement at all — its proposal records that the phone error branch (`MapCanvasViewModel.kt:1855-1870`) was dead code for exactly the case it was written for — and did it with native predicate cases (task 1.3) plus the error-state case (task 3.1). The defect itself is §67.
+- **Observed** ℹ: the scenario (merged spec `openspec/specs/map-render/spec.md:81-85`, "THEN `OSMScoutClient.openDatabase()` returns false") was added by `draw-map`, whose tasks carry no case for it (tests cover `ViewportStorage` only, and the manual smoke test 7.3 stayed unchecked). Two months later `fix-open-database-path-validation` had to implement the enforcement at all — its proposal records that the phone error branch (`MapCanvasViewModel.kt:1855-1870`) was dead code for exactly the case it was written for — and did it with native predicate cases (task 1.3) plus the error-state case (task 3.1). The defect itself (a `openDatabase` that registered and reported success for a path that need not exist) is fixed by that change.
 - **Consequence** ⏳: a WHEN/THEN the spec demands can go unenforced for months behind a green suite. The archive guidance already asks for scenario→**task** traceability, and a task can cite a scenario without any case exercising it — nothing asks for scenario→**case**.
 - **Fix candidate**: a scenario→case mapping task in the `config.yaml` `rules.tasks` list (or the archive guidance): enumerate every delta scenario and name the test case or the device step that exercises it. Same class as §102 (four scenarios of `reorder-favorite-groups`) — fix the pattern once, not per capability.
 
@@ -67,15 +86,6 @@
 - **Observed** ℹ: the geographic decision itself is covered by host tests (`Tests/src/SearchScopeTest.cpp`, 9 cases / 50 assertions: inside/outside, corner normalization, unset box fail-open, node fallback, the superset property, non-finite positions), but the code that *uses* it — deriving the extent from a region's object and dropping free-text hits in `DoSearchLocations` — runs only inside the JNI translation unit, which the host build cannot compile (TODO §66: `jni.h` is configured against a JDK that is not installed).
 - **Consequence** ⏳: a regression that stops calling the filter, or that derives the extent from the wrong region, is not caught by any test — only by the on-device check of that change (task 5.3, device-gated) and by code review.
 - **Fix candidate**: a database-backed native test in the submodule's `Tests/` that imports two small maps (the runtime-import pattern of `LocationServiceTest.cpp`, full non-eco imports per §40.34) and asserts that a hit outside the scope's box from the second database is absent and an in-scope one is present; alternatively a narrower seam that exposes the extent derivation for a host test.
-
----
-
-## 107. `initMap` runs its whole native and file block on the main dispatcher, which `guidelines/Design.md` §4 forbids — Found 2026-09-30 while landing `fix-open-database-path-validation`
-
-- **Observed** ℹ: `MapCanvasViewModel.initMap` (`app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt:1846`) launches on `viewModelScope` — `Dispatchers.Main.immediate`, which the ViewModel itself documents at `:939` — and then does all of its work in that body: `AssetCopier.ensureStylesheets()` (file I/O), `client.openDatabase(mapPath)` (JNI), `NativeTileDataCache.apply(client, …)` (JNI), `favoriteRepository.init(favPath)` (JNI + file) and the additional-maps `client.openDatabases(…)` batch (JNI). Design.md §4's first rule is a MUST — "never call native/JNI code on the main thread; run it on background dispatchers with timeouts and loading UI" — and only the ViewModel's `defaultDispatcher` seam is used elsewhere (`:848`).
-- **Why it was not fixed here** ✗: the path-validation change adds exactly one `stat` (the existence check inside `DatabasePathRegistry::RegisterOpenable`) to that existing call; moving the block to `withContext(defaultDispatcher)` restructures `initMap`'s ordering against `_uiState`, the renderer handoff and the cancel/re-entry guard (`:1834-1846`), which is its own change rather than part of a path-validation fix.
-- **Consequence** ⏳: a slow or contended filesystem on a cold start delays the main thread — the same shape the host-crash work identified for main-thread native calls, here on the phone's own start path. No symptom is recorded yet (the work is bounded by the asset compare and the open call itself); the risk is a main-thread stall, not a crash.
-- **Fix candidate**: wrap the block (or at least its JNI and file calls) in `withContext(defaultDispatcher)` inside `initMap`, keep every `_uiState` write on the main dispatcher, and assert the dispatch with a test that fails when a native call is observed on the main thread (a fake that records the calling dispatcher, or a thread assertion around the call).
 
 ---
 
@@ -117,8 +127,9 @@
   followed by `advanceUntilIdle()`. The change it was found in touches `MapCanvasViewModel`'s fix-quality collector and
   `LocationService.isLocationSourceEnabled` only, and `:app/navigation` has no `GpsFixQuality` consumer. It passes **alone**:
   three consecutive runs of the whole `com.naviveylin.navigation` package (23-26 s each) and a focused five-class run with the
-  new test classes were green. The shape matches the load-sensitive `:app` suite flakes §96/§96a document.
-- **Update 2026-09-28 — the gate of change `fix-diagnostics-stale-coordinate-purge` (task 4.2)** ℹ: the shape is unchanged and the victims still move. One full `:app` mobile run (1336 tests) failed **two** classes — this entry's `NavigationEngineTest.listenerCallbacksDriveTheSharedState` (the assertion above) **and** `MapCanvasViewModelDarkModeTest.ambientSensitivityPersistsInUiState` with `java.lang.IllegalStateException: Dispatchers.Main is used concurrently with setting it` thrown in `MainDispatcherRule.starting` (`app/src/test/java/com/naviveylin/test/MainDispatcherRule.kt:29`); the *next* run of the same suite failed `MapCanvasViewModelCandidatePickerTest` twice instead; the automotive flavor (1336 tests) failed `MapCanvasViewModelViewportRestoreTest` with the same `Dispatchers.Main` race followed by a bare `NullPointerException` — the exact victim class and NPE tail §96a already records for it. All four classes are green when run alone in both flavors (`--tests` filter), so none is attributable to the change under test, which touches `:core` only. The `Dispatchers.Main`-race shape is a **new symptom** for this family: a coroutine from an earlier test is still dispatching on the main dispatcher while a later test's rule replaces it — the same leak mechanism §96 root-caused (`UncaughtExceptionsBeforeTest`), one more thing for the bisection in the fix candidate below to look for. Evidence runs: `/tmp/suite-app-mobile.log`, `/tmp/suite-app-mobile-2.log`, `/tmp/suite-app-auto.log`, `/tmp/app-victims-alone.log`.
+  new test classes were green. The shape matches the load-sensitive `:app` suite flake family (its root cause — the
+  `MemoryPressureResponder` leak — was closed 2026-09-27 by `bound-tile-data-retention`).
+- **Update 2026-09-28 — the gate of change `fix-diagnostics-stale-coordinate-purge` (task 4.2)** ℹ: the shape is unchanged and the victims still move. One full `:app` mobile run (1336 tests) failed **two** classes — this entry's `NavigationEngineTest.listenerCallbacksDriveTheSharedState` (the assertion above) **and** `MapCanvasViewModelDarkModeTest.ambientSensitivityPersistsInUiState` with `java.lang.IllegalStateException: Dispatchers.Main is used concurrently with setting it` thrown in `MainDispatcherRule.starting` (`app/src/test/java/com/naviveylin/test/MainDispatcherRule.kt:29`); the *next* run of the same suite failed `MapCanvasViewModelCandidatePickerTest` twice instead; the automotive flavor (1336 tests) failed `MapCanvasViewModelViewportRestoreTest` with the same `Dispatchers.Main` race followed by a bare `NullPointerException` — the exact victim class and NPE tail that flake family already recorded for it. All four classes are green when run alone in both flavors (`--tests` filter), so none is attributable to the change under test, which touches `:core` only. The `Dispatchers.Main`-race shape is a **new symptom** for this family: a coroutine from an earlier test is still dispatching on the main dispatcher while a later test's rule replaces it — the same `UncaughtExceptionsBeforeTest` leak mechanism the family root-caused, one more thing for the bisection in the fix candidate below to look for. Evidence runs: `/tmp/suite-app-mobile.log`, `/tmp/suite-app-mobile-2.log`, `/tmp/suite-app-auto.log`, `/tmp/app-victims-alone.log`.
 - **Update 2026-09-28 — the `Dispatchers.Main` race in this family is fixed** ✅ (`fix-fix-quality-tick-main-race`, commit
   `dbd4a02`, CI run `36463219672` green): the leaker was not a sibling test but `MapCanvasViewModel`'s fix-quality tick — it ran
   its loop *on* the main dispatcher and hopped to `Dispatchers.Default` only for the delay, so every still-live ViewModel (tests
@@ -163,7 +174,7 @@
 - **Update 2026-10-01 (during `fix-cross-database-search-scope`)** ℹ: the family reproduced once more, again in the **automotive** flavor of a full `:app:testAutomotiveDebugUnitTest --rerun-tasks` (1462 tests), with a **new victim class** and both symptoms at once. Run 1 failed `MapCanvasViewModelModeTest.navigationEndRestoresBrowseMode` and `MapCanvasViewModelModeTest.enterFreeDriveAppliesDrivePreset`, both `java.lang.IllegalStateException: Dispatchers.Main is used concurrently with setting it` — one thrown in `MainDispatcherRule.finished` (`MainDispatcherRule.kt:33`, `resetMain` while another coroutine reads the dispatcher) and one in `TestMainDispatcher.dispatch` from a resumed continuation. Run 2 of the same content was green (1462/0/0), and the class alone was 8/8 green in the same flavor (18 s); the **mobile** flavor of the identical content was green (1462/0/0). The change under verification touches the native search scope (`OSMScoutClient.cpp`), `SearchResultRanker` and its tests, and `MapCanvasViewModelModeTest` exercises mode/preset derivation with no search involved — so this is the load-sensitive shape, not an attribution. Evidence runs: `/tmp/app-auto-full.log` (failing), `/tmp/app-auto-full-2.log` (green), `/tmp/app-auto-alone.log` (green).
 - **Update 2026-10-01 (during `fix-car-search-default-admin-region`)** ℹ: reproduced once more in the **automotive** flavor of a full `:app:testAutomotiveDebugUnitTest` (1462 tests): 1 failure, this entry's `NavigationEngineTest.listenerCallbacksDriveTheSharedState` on the `lane guidance mirrored` assertion (`NavigationEngineTest.kt:114`). Evidence: the class alone is 12/12 green (10.1 s, `started=2026-10-01T19:14:44Z`), the rerun of the same suite is green (1462/0/0, `started=2026-10-01T19:17:22Z`, 2 m 25 s, 13 executed tasks), and the **mobile** flavor of the failing run was green (1462/0/0). The change under verification touches the `:core` search-region rule, the `MapCanvasViewModel` region delegation and the car search's DI wiring; `:app/navigation` consumes none of it.
 - **Fix candidate for the still-open assertion**: bisect the suite execution order (per-class `timestamp` from
-  `test-results/*.xml`, then `--tests` filters — the technique that settled §96) and check whether the mirroring work is
+  `test-results/*.xml`, then `--tests` filters — the technique that settled the `MemoryPressureResponder` leak) and check whether the mirroring work is
   dispatched off the test scheduler: the case must then await the mirrored state instead of relying on `advanceUntilIdle()`. Per
   §40 item 38 a flake of unknown origin is recorded with its rerun evidence rather than retried silently; for a
   `Dispatchers.Main is used concurrently` failure, start at `guidelines/Build.md` §4 instead.
@@ -188,24 +199,14 @@
   keeping the rule that the verdict comes from the log. Evidence from this change: `:app` mobile 1318 tests in
   3 m 6 s and automotive 1318 in 2 m 36 s both completed inside one foreground call, so the output cap is not
   the binding constraint once the output is redirected.
+- **Half fixed 2026-10-03** ✅/⏳: `run-tests` now prescribes the foreground + `> /tmp/<name>.log 2>&1` pattern
+  (its step 2 names this entry and the process-group kill), and `guidelines/Build.md` §2's "output is never
+  redirected" contract was corrected to "redirect, keep the console readable" — so the documented convention no
+  longer contradicts the harness. Evidence the pattern holds: a four-module `--rerun-tasks` gate (4191 tests,
+  182 executed tasks) and a 10 m 12 s run both completed inside one foreground call with only the verdict and
+  the `w:` lines grepped back. **Still open**: `build-app` §2 prescribes the same unusable `nohup` flow — same
+  three-line fix, not applied with that change because it is a different skill's procedure.
 - **Logged** ✅: the failed approach and the working one are in `ki_processing_failures.log` (2026-09-28 entry).
-
----
-
-## 96. The `:app` test suites flaked under host load — CLOSED: the leaker was `MemoryPressureResponderTest`, and with it a real production defect — Found 2026-09-27 during `bound-tile-data-retention`, fixed 2026-09-27
-
-- **Root cause (found by bisection, not by guessing)** ✅: the app module's own `MemoryPressureResponder` (added by `bound-tile-data-retention`) launched its release work as `scope.launch(dispatcher)` on a **process-wide** dispatcher from a scope with **no fault confinement**. In `MemoryPressureResponderTest` that release ran against torn-down test state, threw, and reached the thread's uncaught-exception handler — which in a test JVM is recorded by the coroutine harness, so the *next* `runTest` in that fork failed with `UncaughtExceptionsBeforeTest`, and the test after the poisoning ran with a partly-aborted scheduler (that is where the "`first render at default mag: []`" and the `expected:<72.0> but was:<NaN>` symptoms came from: one leak, several unrelated-looking failures). The production half is the more serious one: the same escaping throwable reaches the uncaught-exception handler on a device and **kills the app** — inside a memory-pressure callback, i.e. exactly when the system is already stressed.
-- **Fix** ✅: the release body is `runCatching`-wrapped and a confined fault is recorded under the `MEMORY` tag (class name only, no message — `auto-diagnostics` carries no coordinates). `guidelines/Build.md` §4 now names the `UncaughtExceptionsBeforeTest` signature and the hunt for process-scoped scopes without confinement; a regression test (`aFaultInTheReleaseIsConfinedAndRecorded`) fails if the confinement is removed.
-- **Verified** ✅: the reproduction set that failed deterministically (root/data/di/i18n classes + `memory.*` + the victim) is green, and so are all four suites in one run — `:core` 379/0/0 · `:auto` 699/0/0 · `:app` mobile 1314/0/0 · `:app` automotive 1314/0/0.
-- **Misattribution, and the lesson** ℹ: the failures were first recorded here as the navigation package's own problem (and blamed on the uncommitted `fix-navigation-engine-fault-isolation` work). Wrong: that package passes alone, and the leaker was in **this repo's own** `memory` test, one package earlier in the execution order. The technique that settled it, and that anyone should reuse: read the per-class `timestamp` out of the JUnit XML to get the real execution order (single fork → one sequence), then bisect that order with `--tests` filters. Two earlier "attributions" in this session were guesses that felt solid; the order file took 20 minutes and was conclusive. **Never attribute a cross-suite leak from the victim's package name.**
-
----
-
-## 96a. (superseded) The original observation, kept for the trail
-
-- **Observed** ℹ: five runs of `:app:testMobileDebugUnitTest` (1296 tests): two green, three failed with 1-2 failures that **moved between runs** — `NavigationEngineErrorOriginTest.originlessErrorIsTreatedAsEngineWide` and `NavigationEngineRerouteTest.instructionListUpdatesAfterAReroute` (both `kotlinx.coroutines.test.UncaughtExceptionsBeforeTest: There were uncaught exceptions before the test started`), and `MapCanvasViewModelViewportRestoreTest` (`java.lang.AssertionError: first render at default mag: []`, once a bare `NullPointerException`). Every failing class passes **alone**, and the viewport class also passes together with the new `MemoryPressureResponderTest`; `:app` automotive (1278), `:auto` (699) and `:core` (377) were green in every run, including the failing ones.
-- **Read** ℹ: `UncaughtExceptionsBeforeTest` means a coroutine leaked an exception into the JVM *before* the failing test started, so the leak comes from a sibling test in the same package/order — and the next test that asserts deterministically (a render list) trips over the poisoned JVM. The host ran at load average 8-10 during the failing runs (gradle daemon + AAOS AVD + DHU + attached phone): the documented load-sensitive flake class (TODO §26/§38, `ki_processing_failures.log` 2026-09-20).
-- **Update 2026-09-27, later run set (during `phone-surface-while-car-session`)** ℹ: the flake hit **both** flavors in one verification pass — `:app` mobile 1314 tests / 2 failures and `:app` automotive 1314 / 1, all three in the navigation package, while `:core` (379/0/0) and `:auto` (699/0/0) were clean. Run alone, the two classes pass. The owning work looked uncommitted: modified `app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt`, untracked `EngineFaultHandler.kt`, `EngineFaultHandlerTest.kt`, `NavigationEngineFaultIsolationTest.kt` — that attribution was **wrong** (see the root cause above).
 
 ---
 
@@ -215,54 +216,7 @@
 - **Consequence** ⏳: `bound-tile-data-retention` tasks 5.1-5.5 (the walk ceiling, the platform-level release, the poll firing, the car-session scoping) cannot run on this phone without a map re-download; the AAOS AVD has the car side but no phone map path, and the walk protocol needs the phone surface.
 - **Fix candidate**: decide with the owner — either a second sideloaded variant with its own `applicationId` for measurements (no data loss, maps re-downloaded once), or a dedicated sideloaded test device, or accept an uninstall+re-download for the measurement pass. The measurement itself is scripted already (`guidelines/Build.md` §10: keyevent/walk protocol + the high-water-mark rule).
 - **Update 2026-09-27 20:27 — RESOLVED for the phone, with a residual** ✅: the owner published the memory work through Play (`2026-09-27-4`, versionCode **90**, `installerPackageName=com.android.vending`, `lastUpdateTime=2026-09-27 20:27:17`), so the phone now runs the new code — verified by pulling the installed `split_config.arm64_v8a.apk` and finding `OSMScoutClient_renderInto` in `libosmscout_client_java.so`, not by trusting the version string. Device verification therefore works again for **Play-released** builds; the residual is that a *local* build still cannot be installed over it, so an in-build A/B (e.g. one path reverted) still needs the uninstall/re-download or a second variant. Plan the next measurement pass around a release rather than around a sideload.
-- **Two device facts from that pass worth keeping** ℹ: (1) `am send-trim-memory <pid> UI_HIDDEN` is *not* a valid level name — the shell's names are `HIDDEN`/`BACKGROUND`/`RUNNING_*`/`MODERATE`/`COMPLETE`, and the platform refuses `BACKGROUND` on a **foreground** process ("Unable to set a background trim level on a foreground process"); the reliable trigger is `HIDDEN` (works on the foreground app) or just pressing HOME, where the platform delivers `UI_HIDDEN` itself. (2) The app's `ActivityManager.MemoryInfo.lowMemory` poll produced **no** record across a 43-render walk and a long session on this chronically-pressured device — see §97.
-
----
-
-## 97. The low-memory poll DOES fire on the phone — but only when the device is genuinely at the kill threshold (`availMem` within a MB or two of `threshold`), so it is a late-but-real trigger — Found 2026-09-27 during the first device pass of the memory changes, **corrected the same evening: the poll fired**
-
-- **Observed** ✅ (final): the poll released retention **on device**, during a heavy phone-map walk with a car session live:
-
-  ```
-  20:43:43 retention released: trigger=poll-low (avail=215MB threshold=216MB) 512 -> 256 tiles/db
-  ```
-
-  So `ActivityManager.MemoryInfo.lowMemory` did become true (avail 215 MB against a 216 MB threshold — at the edge), `availMem <= threshold/2` was false, and the *moderate* band halved the cache from the fully-refilled 512. The device-state poll is deliberately **not** car-scoped (it is about the device, not about who renders), and that is what it did: the release happened while the car session was live, which is the designed behaviour.
-- **Why the first reading was wrong** ℹ: an earlier pass saw **zero** `Diag/MEMORY` records across a 43-render walk, a navigation start and ~25 minutes of use, and this entry was written as "the poll never fires". The missing ingredient was *pressure at the right moment*: the poll's condition needs `availMem` at/below `threshold` **while the 30 s tick lands**. The pass that caught it had pushed the process to 519 MB native heap / 790 MB PSS (phone mapping *and* the car rendering, cache refilled) — i.e. the app was itself a major cause of the pressure. A 43-render walk from a cold cache did not reach it. The lesson is the same one §96 taught: an absence of evidence in one run is not a finding about the code — read the *condition*, not just the record count.
-- **What this means for the design** ✅: the poll is a real, if late, trigger on this hardware, so it stays. The platform levels (`UI_HIDDEN`/`BACKGROUND`, verified the same evening: `512 -> 256` then `256 -> 25`) fire far earlier in the same scenario (backgrounding the app), which is why they remain the practical trigger. **No band widening needed** — the earlier §97 recommendation (release at `threshold * 1.5`) is withdrawn: on this device the framework's own flag was reachable, and widening the band would release retention while the device is comfortable, which is what the raise-only policy exists to avoid.
-- **Verification status**: `bound-tile-data-retention` 5.2 (both platform legs), 5.2a (the poll), 5.3 (the walk ceiling) and 5.4 (the car-session scoping, proven by contrast: the same HOME action released nothing with the car live and released seconds after the session ended) are all **device-verified**; the numbers are in that change's design.
-
----
-
-## 98. The car render path writes full-precision coordinates into the file-backed diagnostics stream, and the build gate does not flag them — Found 2026-09-27 while counting car renders on the AAOS AVD
-
-- **Observed** ❌: every car map render emits, through `DiagnosticsLog` (tag `MAP`):
-
-  ```
-  09-27 21:00:54 D Diag/MAP: render center=51.60987926464756,7.621644390462239 mag=17.0 -> bitmap 1296x720
-  ```
-
-  The emitting code is `auto/src/main/java/com/naviveylin/auto/AutoMapRenderer.kt` around line 1273
-  (`"MAP", "render center=$frameLat,$frameLon mag=$frameMag -> " + …`) — so a position at full precision reaches the
-  **file-backed** diagnostics stream, which is retained for 7 days, exported by the share/export paths and shown in
-  both diagnostics viewers. That is exactly what spec `auto-diagnostics` ("Diagnostics carry no coordinates") and
-  `AGENTS.md` forbid: a diagnostics line is supposed to carry identity (map database/file name, magnification,
-  screen pixel) instead of a position. Two further `MAP`-tag sites exist (`auto/MapScreen.kt:562`, ``:651``) and
-  need the same audit; the one above is proven.
-- **Why it matters** ❌: this is a *shipping* privacy property, not a style rule, and it sits in the stream the
-  project deliberately made exportable. §87 (`fix-diagnostics-coordinate-redaction`) fixed the phone-side paths and
-  added the gate; the car render path was evidently never covered.
-- **Why the gate misses it** ⚠: `checkNoCoordinatesInLogs` (`buildSrc` `CoordinateLogScanner`, wired into
-  `preBuild`) passes on this line. The scanner looks for coordinate-shaped *literals/expressions* in log calls;
-  here the values arrive through string interpolation of `Double` locals (`$frameLat,$frameLon`), which the
-  scanner does not resolve. **A gate that only inspects literals cannot see interpolation** — the fix belongs in
-  `CoordinateLogScanner` (flag an interpolated identifier that is assigned from a coordinate-typed value/frame
-  latitude/longitude field) plus the redaction itself.
-- **Fix candidate**: replace the coordinates with identity — the frame's zoom/magnification, the surface/pixel
-  size and the map database name are already in the line, and the centre's *presence* is not needed for
-  diagnosis ("render → bitmap 1296x720, mag=17.0, db=<name>" is as useful). Then extend the scanner so the same
-  interpolation pattern cannot come back, and re-run the two `MAP` sites through it. Worth its own small change
-  (spec `auto-diagnostics`); it is independent of the memory work.
+- **Two device facts from that pass worth keeping** ℹ: (1) `am send-trim-memory <pid> UI_HIDDEN` is *not* a valid level name — the shell's names are `HIDDEN`/`BACKGROUND`/`RUNNING_*`/`MODERATE`/`COMPLETE`, and the platform refuses `BACKGROUND` on a **foreground** process ("Unable to set a background trim level on a foreground process"); the reliable trigger is `HIDDEN` (works on the foreground app) or just pressing HOME, where the platform delivers `UI_HIDDEN` itself. (2) The app's `ActivityManager.MemoryInfo.lowMemory` poll produced **no** record across a 43-render walk and a long session on this chronically-pressured device, but a later pass the same evening caught it firing (`retention released: trigger=poll-low (avail=215MB threshold=216MB)`), so the poll is a late-but-real trigger on this hardware and the band was deliberately not widened. (1) is the trim-level recipe to reuse.
 
 ---
 
@@ -347,18 +301,10 @@
 
 - **Observed** ℹ: with the change's code in the tree, `./gradlew :app:testAutomotiveDebugUnitTest` ran **more than 20 minutes** without writing one result XML, and a later `./gradlew --no-build-cache :app:testMobileDebugUnitTest` did the same (core finished, 38 classes, the app task never produced a file). The same suites are green as soon as that one class is left out: automotive **196 of 197 classes / 1471 tests / 0 failures in 156 s** (88 `com.naviveylin.ui.map.*` patterns plus the remaining packages enumerated), and the mobile flavor passed **1483/0** in this session before the machine turned.
 - **Where it hangs** ℹ: `jstack` on the test worker puts the test thread in `runTest` → `runBlocking` → `MapCanvasViewModelViewportRestoreTest.saveViewport during re-entry window keeps persisted viewport (MapCanvasViewModelViewportRestoreTest.kt:263)`, with Robolectric's `SDK 36 Main Thread` holding ~30 s CPU and `Sandbox.runOnMainThread` on the worker's stack: the test coroutine never completes while the main looper keeps being driven. The class reproduces it alone (automotive, 240 s timeout, no XML; a partial XML records that one case at **79.8 s**). Other classes of the same package run at mobile speed (`MapCanvasViewModelSpeedWidgetTest` 1.05 s, `MiniMapComposeTest` 0.37 s), so it is this class, not the module or the flavor.
-- **Not this change** ✅: the same bounded run hangs **with the start-map recording write disabled** (`MapCanvasViewModel.initMap`, the only init-path edit of `fix-start-map-selection`), so the hang is independent of it. The class is already a recorded victim of the §101 family (§96a's `MapCanvasViewModelViewportRestoreTest` NPE tail; §101's 2026-09-30 automotive `Dispatchers.Main` race) — this is that family's symptom turned into a stall.
+- **Not this change** ✅: the same bounded run hangs **with the start-map recording write disabled** (`MapCanvasViewModel.initMap`, the only init-path edit of `fix-start-map-selection`), so the hang is independent of it. The class is already a recorded victim of the flake family documented below (`MapCanvasViewModelViewportRestoreTest`'s NPE tail; the 2026-09-30 automotive `Dispatchers.Main` race) — this is that family's symptom turned into a stall.
 - **Consequence** ⏳: every change whose gate is “the `:app` suites are green” loses its verdict on this machine. Working around it: enumerate the classes (all `*Test.kt` under `app/src/test/java`, `--tests <fqn>` each) minus this one, and quote the class count so the omission is visible; `--no-build-cache` is needed to keep a mobile run from being answered by a cached verdict (`TODO.md` §17).
 - **Fix candidate**: the class drives `runTest` against a dispatcher that holds its first dispatch (`FirstDispatchGatedDispatcher`, `MapCanvasViewModelViewportRestoreTest.kt:432-453`) and pumps the scheduler around a real-time `Thread.sleep(100)` (`:240-247`); the held block runs only on `release()`, so any ordering change in the initialization can leave a coroutine parked while the looper spins. Replace the gate with `StandardTestDispatcher` ordering (or a `CompletableDeferred` the test completes deterministically) instead of the hold-and-sleep loop, then re-check the whole §101 family against it.
 - **Fixed** ✅ by `fix-viewport-restore-test-hang` (2026-10-02): `FirstDispatchGatedDispatcher` records that it has been released and runs every later dispatch inline, so no coroutine can be queued behind a gate that has no drainer left — that was the stall (nothing to release, `runTest`'s timeout unable to fire while the main thread spins). The four cases that assumed a scheduling point now wait for the observable state through a bounded `awaitHeldBlock` that fails with a reason, and the two milder real-time assumptions in the same class are gone (the first-render wait had a 5 s deadline the render reaches at ~5 s under load; the save case dereferenced a file the save had written only once the restore had applied). Verdicts are back: the class **6/6 in both flavors (~27 s)** and the whole gate green in one run — `:core` 437/0 · `:app` mobile 1483/0 · `:app` automotive 1483/0 · `:auto` 754/0 (4157 tests, `BUILD SUCCESSFUL in 5m 31s`, `--no-build-cache`). Falsifying power kept by two revert-checks: remove `initJob?.cancel()` → 1 failure; remove the save guard → 3 failures (51 s / 36 s, both bounded). **Still open**: the §101 load-sensitive family and the two re-entry cases' dispatch-ordinal gates (a state-keyed gate, per `PostInitializationGatedDispatcher`'s KDoc, is the follow-up). This entry is removed when `fix-viewport-restore-test-hang` is archived.
-
----
-
-## 85. POI symbol icons never load — no icon directory is shipped or configured — Found 2026-09-27 on `emulator-5554`
-
-- **Observed** ℹ: every render emits `E NaviVeylin: ERROR while loading image 'bus_stop'` (and `parking`, `restaurant`, `fast_food`, `pharmacy`, …) through the native log bridge — 12 such lines in a single short buffer, one per symbol the stylesheet declares. The map therefore draws no POI icons at all: `stylesheets/include/amenity.oss` declares `NODE.ICON { symbol: amenity_hospital; name: hospital; }`-style entries for dozens of types, and the renderer has nowhere to load them from.
-- **Cause** ✅: `MapDownloadModule.provideOSMScoutClient` builds the client with `withStyleSheetDirectory(…)` but **never calls `withIconDirectory(…)`**, and no icon set exists anywhere in the repo (`git ls-files stylesheets` in the submodule has no `icons/` entry, `app/src/main/assets` has none). On the native side `OSMScoutClient.cpp:1461` only calls `params.SetIconPaths({iconDir})` when the directory is non-empty, so with none configured the symbol loader has no path and fails per symbol.
-- **Fix candidate**: ship the icon set the stylesheets expect (the libosmscout style sheet project's icons, e.g. under `assets/stylesheets/icons/`), copy it with the stylesheets in `AssetCopier`/`syncSubmoduleStylesheets`, and pass its on-device path via `withIconDirectory(…)`. Then re-check that the per-render `ERROR while loading image` lines are gone — they are also the noise that makes "logcat free of errors" unverifiable for other on-device checks (e.g. `compass-day-night-palette` 7.3).
 
 ---
 
@@ -556,28 +502,6 @@
 
 ---
 
-## 67. `openDatabase` reports success for a path that does not exist — Found 2026-09-21 during `fix-native-database-open-race` (out of scope, own change)
-
-- **Spec deviation** ✗: the JNI `openDatabase` (`OSMScoutClient.cpp:688-701`) never validates the
-  path — it registers it and returns `JNI_TRUE` even when the directory does not exist. Spec
-  `map-render` says the opposite: scenario "Open invalid map database" — "**WHEN** the map screen
-  receives an invalid or missing map database path **THEN** `OSMScoutClient.openDatabase()` returns
-  false **THEN** the system displays an error message: 'Could not open map database'". The phone's
-  error branch (`MapCanvasViewModel.initMap` on `!opened`) is therefore dead code for a missing or
-  bogus map directory: the map opens, and the render silently has no data for that database.
-- **Not caught** ✗: no unit test covers `openDatabase` on a missing path; the JVM fakes return a
-  configured boolean, so `openDatabaseResult = false` is set by the test rather than produced by the
-  path check.
-- **Why it was left alone** ℹ: found while implementing the path-list fix; `fix-native-database-open-race`
-  deliberately keeps its contract "single open == a batch containing just that path" (a batch also
-  registers without touching the filesystem) so the app's behavior for a deleted map directory is
-  unchanged there. Changing it changes what the user sees (an error state instead of a silently
-  data-less render), which belongs to its own change.
-- **Fix candidate**: validate in the native layer — accept a path only when it is an existing
-  directory, in `Register`/`RegisterAll` (then `openDatabase` and `openDatabases` agree), and cover it
-  with a native test plus a `MapCanvasViewModel.initMap` test that asserts the "Could not open map
-  database" state. Needs a `map-render` delta scenario for the batch form.
-
 ## 66. `hostbuild`'s JNI target is configured against a JDK that is not installed — Found 2026-09-21 during `fix-native-database-open-race` task 1.1 (harness gap)
 
 - **Observed** ℹ: `ninja -C hostbuild libosmscout-client-java/src/libosmscout_client_java.so.1.1.1`
@@ -773,10 +697,6 @@ GPS back                     →  REAL
 | Continuous pinch zoom — real-device sanity check | ⏳ | Emulator pinch is synthetic input; user confirmed pinch on emulator 2026-08-29 (task 5.2 closed), real-device check remains (task 5.2 tail). Verify: pinch in/out continuity, limits, fractional mag persistence, GPS marker anchor, follow-mode pinch, no FATAL. |
 | Bounded zoom walk on the phone (change `fix-phone-zoom-animation-parity`, tasks 6.3-6.6) | ⏳ | Implementation + unit tests green (walk arithmetic `:core` 14/14, ViewModel wiring 7/7, renderer immediate path 3/3, screen rules 7/7; full `ui.map` package suite green). On-device: enter free driving from a far browse viewport - no consecutive frame change above 0.25 levels, walk ends exactly on the speed target, render count per entry recorded; bottom-center anchor keeps the vehicle pixel fixed through zoom in/out with no correction jump at landing; a large zoom-out never exposes bare surface color; pinch/buttons/keys still request their first frame immediately; the persisted viewport holds the final target. Blocked 2026-09-24: no device/emulator attached (`adb devices` empty). |
 
-## 12. Regional maps emit unknown-type warnings loading standard.oss
-
-- **Pre-existing, not caused by basemap-own-stylesheet** ℹ: on-device logcat shows ~9159 "Unknown type" warnings per startup from loading `standard.oss` (incl. `include/basemap.oss`, `include/place.oss`, `include/tourism.oss`, `include/natural.oss`) into the REGIONAL map databases (Iceland/NRW/Dortmund on the test emulator). The regional maps lack types standard.oss references: `basemap_boundary_country`, `boundary_municipality`, `boundary_suburb`, `place_ocean`, `place_sea`, `tourism_apartment`, `natural_rock`, etc. Likely the installed maps were imported with an older map.ost (newer types missing) — re-importing with the current submodule should clear most of them. The basemap itself now loads `basemap-render.oss` with zero warnings (change `basemap-own-stylesheet`). Investigate: check map import date/version vs current map.ost; consider whether standard.oss should guard `include/basemap.oss` behind a flag (it already has `IF boundary` for some rules).
-
 ## 15. Kover coverage attribution for Robolectric-tested classes
 
 - **Pre-existing tooling gap found during fix-contact-address-resolution (2026-09-13)** ℹ: in the merged and `:app` Kover XML reports, classes exercised only by Robolectric tests show near-zero instruction coverage while their tests pass and assert behaviour — `ContactsRepository` 5 covered/0 missed, `FavoriteRepository` 16/0, `AddressBookSheetKt` 41 missed/0 covered (its four Compose tests pass). Plain-JUnit-covered classes report plausible numbers. Suspected cause: Robolectric loads app classes in its own sandbox classloader, so JaCoCo/Kover exec data is recorded against a different class identity. Investigate: Kover/Robolectric instrumentation options (offline instrumentation, `kover { }` filters, or `robolectric.properties` sandbox config) before trusting any coverage gate. Until then, use the revert-check (new test fails on pre-change code) as coverage evidence instead.
@@ -802,9 +722,11 @@ GPS back                     →  REAL
 - **Observed 2026-09-16 during `fix-sharp-s-transliteration-match` task 6.5** ℹ: with the map view centered on Iceland and the GPS scope resolved to Regierungsbezirk Arnsberg, the query `Am Birkenbaum 6 Dortmund` returned Iceland-database entries (`Leiðhamrar Dofri`, `Lokinhamrar`, 5,8 km) instead of the Dortmund address. Cause is the documented per-database scope rule: a region handle is database-local, so the database that does *not* own the handle is searched unconstrained (`OSMScoutClient.cpp`, string-search scope comment) and its free-text index answers on short partial tokens ("am" inside "…hamrar…"). Not created by this change — the characters in the returned names (`ð`, `ö`, `í`, `æ`, `á`) are not affected by the transliteration fix, and no pre-change baseline run was made. Investigate: when a scope exists for one database, either skip the other databases' free-text hits or rank them below scoped results (and/or apply a distance limit), so an address query cannot be answered from another map region's data.
 - **Fix in flight** ⏳ (2026-10-01): `fix-cross-database-search-scope` takes the recorded mechanism — the text index is scope-blind in **every** database (`OSMScoutClient.cpp:4057` passes no region), so a free-text hit outside the resolved scope's extent is now dropped before the per-source cap, and every structured result carries whether it lies inside the scope (new `LocationEntry.inSearchScope`, spec `osmscout-jni`) so the app's ranker places out-of-scope close matches below in-scope ones (`SearchResultRanker`, spec `search-result-ranking`). Databases keep being searched, so a fully qualified query for another installed map still resolves (spec `location-search`). This entry is removed when that change is archived; the residual test gap is §109 and the candidate-budget question is §110.
 
-## 28. Whole-level rounding in `computeAreaZoom` still over-fits area favorites and POI search
+## 28. Whole-level rounding in `computeAreaZoom` over-fits area favorites and POI search — **FIXED** by `fix-area-fit-zoom-rounding` (2026-10-03)
 
-- **Found 2026-09-18 during `route-overview-fit` (DPI/`cos(lat)` ground-resolution fix)** ℹ: the shared bbox→magnification helper rounds to whole levels (`Math.round`), which can round the exact fit down by up to half a level, so the fitted content ends up to ~13% larger than the 80%-margin target. The route overview is now protected by an explicit projection check (`routeFitsVisibleArea`, design Decision 8), but the other two callers — the area-favorites zoom (`onFavoriteSelected`, the details/area zoom helper) and the POI/radius search fit (`SearchDialog.poiFitMagnification`) — have no such verification, so their fitted bbox can slightly overflow the mini map / map viewport (previously masked by the over-zoom the ground-resolution fix removed). Fix candidate: round *up* for fit callers (never clip, at the cost of ≤1 level more zoom-out) or reuse the projection check; note that the favorites zoom is additionally clamped to 14–20, which hides the effect for small objects.
+- **Found 2026-09-18 during `route-overview-fit` (DPI/`cos(lat)` ground-resolution fix)** ℹ: the shared bbox→magnification helper rounds to whole levels (`Math.round`), so the fitted content can end up larger than the 80%-margin target. The route overview is protected by an explicit projection check (`routeFitsVisibleArea`, design Decision 8), but the other callers had no such verification, so their fitted bbox could overflow the mini map / map viewport (previously masked by the over-zoom the ground-resolution fix removed).
+- **Corrected direction 2026-10-03 (during `fix-area-fit-zoom-rounding`)** ℹ: the entry (and the route fit's own comment) said the helper "rounds the exact fit *down* … so the fitted content ends up to ~13% larger" — the two halves do not go together. Rounding the magnitude **down** makes the content *smaller* than the target (more margin, harmless); it is rounding **up** to the next whole level (up to +0.5 level = 2^0.5 ≈ 1.41x) that exceeds the viewport, since 0.8 × 1.41 ≈ 1.13. The clip was real either way.
+- **Fixed** ✅ by change `fix-area-fit-zoom-rounding` (2026-10-03): the route fit's private corner-projection check was extracted into one shared seam (`app/src/main/java/com/naviveylin/ui/map/FitVerification.kt`: `fitsVisibleArea` + `verifiedAreaFit`) and every fit caller now uses it — the route overview, the area-favorite fit, the POI fit on the main map and the embedded result map's fit (both its result-extent path and its radius fallback). Two extra causes the entry did not name were fixed with it: the favourite/POI fits park the camera on a point that is **not** the bbox midpoint (so they clipped even at an exact fit), and the POI fit inherited the area-favorites floor (`MIN_AREA_ZOOM = 14`), which made "both the current location and the POI visible" impossible beyond a few hundred metres — it now uses the render-stability minimum, mirroring `route-map-overview`'s long-trip rule. Evidence: `FitVerificationTest` 8/8, `AreaFitViewModelTest` 5/5, `EmbeddedResultMapFitTest` 4/4, `MapCanvasViewModelRouteFitTest` 14/14 unmodified, `PoiSearchViewModelTest` 14/14 (its old `14.0` floor assertion became a visibility assertion — 14.0 → 12.0), full gate `:app` 1500/1500 both flavours · `:core` 437/0 · `:auto` 754/0, four revert-checks recorded. Specs: `fav-auto-zoom` + `poi-search` deltas. This entry is removed when that change is archived.
 
 ## 35. On-device re-check of the area-favorites and POI-search fit zooms
 
@@ -826,6 +748,11 @@ GPS back                     →  REAL
 ## 44. Pre-existing Kotlin build warnings beyond the marker overlay
 
 - **Found 2026-09-20 during `fix-favorite-store-write-race` (full-suite build)** ℹ: `./gradlew test --continue --rerun-tasks` prints 66 Kotlin warnings, none of them from that change's files. Beyond `LocationMarkerOverlay.kt:167` (already tracked as §37), three classes are untracked: (a) `app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:35` — "This annotation is currently applied to the value parameter only, but in the future it will also be applied to field" (annotation-target migration, a hard change in a future Kotlin); (b) `app/src/test/java/com/naviveylin/data/AmbientLightMonitorTest.kt:35` — Robolectric's `ShadowSensorManager.addSensor` is deprecated in Java; (c) the `ExperimentalCoroutinesApi` opt-in warnings spread over ~13 test files (`MapCanvasViewModelAutoZoomCommitTest`, `MapCanvasViewModelRoadInfoTest`, `MapCanvasViewModelSingleFollowCenterTest`, `RoutePanelViewModelSearchRankingTest`, ...). The archiving guidance requires a warning-free build, so this is build-hygiene debt rather than a defect. Fix candidate: one build-hygiene change that adds the missing `@OptIn` annotations, replaces the deprecated shadow call, and sets the annotation target explicitly.
+- **Recount 2026-10-03 (four-module forced run during `fix-area-fit-zoom-rounding`)** ℹ: **106** warnings, all of the same debt, and none from a file that change touched. Additions since the 2026-09-20 count: `app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:118` — `Java type mismatch: inferred type is 'String?', but 'String' was expected` (arrived with `fix-start-map-selection`, still in flight); `service/NavigationNotificationServiceTapTargetTest.kt:40,69` — the deprecated `isBroadcastIntent`/`isActivityIntent` shadows; and in `:auto`: `RendererTestRule.kt:64` ("Type 'AutoMapRenderer' is final, so the value of the type parameter is predetermined"), `RenderLoopSupervisorTest.kt:40` ("Condition is always 'true'"), `TestCarContext.kt:23` (unchecked cast), `CarStyleLoadNotifierTest.kt:88` (deprecated `field defaults: Int`), plus further `ExperimentalCoroutinesApi` opt-ins (`DetailsScreenTest`, `FavoritesScreenTest`, `MapScreenTest`, `SearchScreenTest`, `TemplateFaultIsolationTest`). Recount rather than trust this list: `./gradlew :app:testMobileDebugUnitTest :app:testAutomotiveDebugUnitTest :core:testDebugUnitTest :auto:testDebugUnitTest --rerun-tasks 2>&1 | grep -c '^w: '`.
+
+## 118. `fav-auto-zoom`'s clamp scenario says 4–18 while the code clamps area-favorite fits to 14–20
+
+- **Found 2026-10-03 during `fix-area-fit-zoom-rounding`** ℹ: the spec's scenario "Magnitude clamped to valid range" says "WHEN computed magnification is outside valid range (4–18) THEN magnification is clamped to the nearest valid value", but `computeAreaZoom` clamps `coerceIn(minZoom, MAX_MAG)` with `maxZoom = MAX_MAG = 20.0` and, for the area-favorite caller, `minZoom = MIN_AREA_ZOOM = 14.0` (`MapCanvasViewModel.kt`, the constant's own comment: "Minimum zoom level for area-type favorites (prevents too-zoomed-out view)"). So the enforced range is **14–20**, not 4–18 — the spec's numbers are stale on both ends (`MIN_MAG`/`GESTURE_MIN_MAG` are 4.0, and `MAX_MAG` is 20.0). Not fixed in that change because its spec delta had to keep the existing requirement block whole, and the change's `design.md` records it as an Open Question. Fix candidate: one spec-only change that states the range the code actually enforces (and, if 4–18 was ever the intent, the corresponding code change) — or split the clamp scenario per caller, since the floor is caller-specific (area favorites 14, route overview and the POI fit 4).
 
 ## 39. Real-life and Android Auto verification for the marker/route colors
 
@@ -1234,19 +1161,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
 - **Why deferred** ✗: `order-starred-favorites` needed one more input on that existing collector; migrating
   the screen's whole observation lifetime was scope its specs do not require.
 
-## 105. The car favorites screens show hardcoded English titles in a German UI — Found 2026-09-29 on `emulator-5554` (AAOS, de-DE) during `order-starred-favorites`
-
-- **Bug** ✅ **FIXED 2026-09-30 by `fix-remaining-untranslated-strings`**: the titles read the two resources the module already shipped (`R.string.favorites` / `R.string.starred_favorites`), and the unnamed-row fallback `fav.name ?: "Favorite"` became the new `R.string.unnamed_favorite` (+ `values-de`). Three `FavoritesScreenTest` cases assert the resource values (19/0). **Only the German car-surface check is left**: no AAOS AVD or head unit was attached during that change, so the German titles are `values-de`-parity-verified, not seen on a car display.
-- **Original defect** ✗: the Android Auto favorites screen and its starred mode are titled with string literals in
-  `auto/src/main/java/com/naviveylin/auto/FavoritesScreen.kt`
-  (`setTitle(if (starredOnly) "Starred favorites" else "Favorites")`), so a German head unit shows
-  `Favorites` / `Starred favorites` as the screen titles while every other surface on those screens is
-  translated (`Markierte Favoriten` in the app menu, `Keine markierten Favoriten`, the hints).
-- **Fix candidate**: two `<string>` resources (`auto/src/main/res/values/strings.xml` + `values-de`) and the
-  `stringResource`-equivalent lookup on the screen, with a test asserting the German titles.
-- **Out of scope there** ✗: the change touches that screen's starred mode; the titles are pre-existing and
-  are not part of any spec requirement about the starred order.
-
 ## 106. The AAOS AVD's car session lives in user 10 while adb reaches user 0 only, so its favorites storage cannot be seeded — Found 2026-09-29 on `emulator-5554` (automotive distant-display AVD) during `order-starred-favorites`
 
 - **Observed** ℹ: `pm list users` shows `0:Fahrer` and `10:Driver`, `am get-current-user` is `10`, and the car
@@ -1271,51 +1185,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   process, its own invariant), but it means a force-stop is not a neutral way to restart the app on this AVD:
   the car screen returns to the launcher and needs a fresh launch.
 
-## 80. `MapCanvasViewModel` crashes at startup: the fix-quality ticker reads `fixQualityTicks` before its initializer runs — Found 2026-09-28 (on device, while verifying `move-favorite-between-groups`)
-
-- **Bug** ✗: on a debug build of the current tree the app dies seconds after launch, in the
-  `MapCanvasViewModel` constructor. `Diag/CRASH`/`AndroidRuntime`:
-  `NullPointerException: Attempt to invoke interface method 'Flow.collect' on a null object reference`
-  at `CombineKt$combineInternal$2$1.invokeSuspend(Combine.kt:28)`, with the app frame
-  `com.naviveylin.ui.map.MapCanvasViewModel.<init>(MapCanvasViewModel.kt:1037)`.
-  Reproduced on three consecutive launches (emulator `sdk_gphone64_x86_64`, API 37).
-- **Cause**: `init {` starts at `MapCanvasViewModel.kt:934`; the fix-quality ticker inside it does
-  `combine(locationService.location, fixQualityTicks)` (line 1038), but
-  `private val fixQualityTicks = MutableStateFlow(0L)` is declared at line **3130**, i.e. after the
-  init block. Kotlin runs property initializers and `init` blocks in declaration order, so the ticker
-  sees the still-null backing field. `viewModelScope` is `Dispatchers.Main.immediate`, so the
-  `launch` body (and `combine`'s eager child collectors) execute *during* construction and dereference
-  the null flow. On-device this is deterministic, not a rare race. Introduced by the fix-quality
-  work (`fix-stale-fix-quality` / `fix-fix-quality-tick-main-race`).
-- **Why the suite misses it** ✗: every `MapCanvasViewModel` test sets
-  `Dispatchers.setMain(StandardTestDispatcher())`, which queues the launch body until after the
-  constructor returns — the property is initialized by then, so no test observes the ordering bug.
-  A missing test is a dispatcher whose main is *immediate* (or `Unconfined`) at construction time.
-- **Fix candidate**: declare `fixQualityTicks` before the `init {` block (one-line move, the field is
-  only used inside `init` and by the ticker); keep the ticker where it is. Alternative: start the
-  ticker from `initMap()` instead of the constructor, so construction no longer launches anything that
-  reads a later-declared field. Add a regression test that constructs the ViewModel under an immediate
-  main dispatcher and asserts construction completes.
-- **FIXED** ✓ (2026-09-28, same session): the declaration moved above `init`, with the ordering rule
-  documented on the field. Verified on the emulator (`sdk_gphone64_x86_64`, API 37): the app launched
-  and stayed up (`FOCUSED_ACTIVITY` = `MainActivity`, zero `FATAL EXCEPTION` in logcat) where the
-  unpatched build died on 3/3 launches. `MapCanvasViewModel.kt` is not part of
-  `move-favorite-between-groups`; the fix is a loan to `fix-stale-fix-quality` and belongs in that
-  change's commit.
-- **Not caught by a test** ✗: no JVM/Robolectric case reproduces it, and a regression test was written
-  and then removed because it passed against the unfixed code. The device stack shows why the two
-  differ: `CombineKt$combineInternal$2$1.invokeSuspend(Combine.kt:28)` is reached through
-  `EventLoop.processUnconfinedEvent` → `startCoroutineCancellable` → `launch` → the constructor, i.e.
-  the combine child runs *inline inside the constructor* on the platform main dispatcher. Under
-  Robolectric the same child is deferred even with `Dispatchers.resetMain()` (platform dispatcher) or
-  `UnconfinedTestDispatcher`, so the null field is never read while construction is running. The
-  device run is therefore the only verification this defect has — do not delete it as "covered".
-- **Why deferred** ✗: it belongs to the in-flight fix-quality change, not to
-  `move-favorite-between-groups`, whose only interaction with it is that on-device verification cannot
-  run until the app starts.
-
----
-
 ## 108. Three surfaces of the i18n sweep could not be seen on a device — found 2026-09-30 while landing `fix-remaining-untranslated-strings` (task 5.2)
 
 - **Device-verified** ✅ that pass: the favorites group-card count reads `0 Favoriten` / `2 Favoriten` / `3 Favoriten` on `emulator-5554` (API 37, de-DE) with the change's `mobileDebug` APK installed (`lastUpdateTime 2026-09-30 21:40:30`) — the German plural resource, where the pre-change build showed `2 favorites`. The same dump shows the German resource set loading in that build (`Was ist hier?`, `Ort suchen…`, `Favoriten`, `Aktuellen Kartenstandort hinzufügen`).
@@ -1323,6 +1192,6 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   1. **The generic details title** (`Standort`) — the `geo:` deep link and the map long-press both land in the **`CandidatePickerSheet`** (`Was ist hier?`) on this build, whose candidates are objects; no coordinate-labelled row appeared at the tapped point, so `LocationDetailsDialog` (the sheet whose title the change made localized) was never reached. A coordinate typed into the search field produced no result row, and `ENTER` left the search view rather than committing the coordinate.
   2. **The notification titles** — starting free driving needs the on-map `Freie Fahrt starten` control (bounds `[955,1673][1018,1736]` in the map dump); the tap did not reach it before the session left the map, and no `com.framstag.naviveylin` notification appeared in `dumpsys notification`.
   3. **The map-download channel name** — `dumpsys notification --noredact` still shows `NotificationChannel{mId='map_download', mName=Map Download}` because `MapDownloadService` has not started since the install: per design D4 the name is re-applied on the next `createNotificationChannel`, i.e. the next download start. The German name is `values-de`-parity-verified, not observed.
-  4. **The car favorites titles** (§105) — no AAOS AVD or head unit attached; also the outstanding car-side German run for `fix-comma-decimal-coordinate-entry`'s coordinate row (carried over from the removed §80 entry).
+  4. **The car favorites titles** — fixed 2026-09-30 by `fix-remaining-untranslated-strings` (`R.string.favorites` / `R.string.starred_favorites`, German titles asserted at unit level), but never seen in German: no AAOS AVD or head unit attached; also the outstanding car-side German run for `fix-comma-decimal-coordinate-entry`'s coordinate row.
 - **Fix candidate** (a verification pass, not a code change): with a car surface attached, run §10 of `guidelines/Build.md` against the release build for (1)-(3) — a coordinate `geo:` link or long-press with a coordinate candidate, free driving from the phone, and a map download to re-create the channel — plus the car favorites screens in German. The recipes that worked here are worth reusing: `uiautomator dump <path under /data/local/tmp>` (a `/sdcard` path is refused by this harness), `exec-out screencap -p` + `tesseract … -l deu tsv` for coordinates, and the map screen's German `content-desc` nodes (`Favoriten`, `Ort suchen`, `Freie Fahrt starten`) for tap targets — the Compose canvas exposes almost no text nodes.
 

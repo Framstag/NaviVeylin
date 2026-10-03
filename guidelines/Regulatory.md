@@ -274,7 +274,7 @@ practical outcome.
   itself is unchanged.
 - **The car render entry (`Diag/MAP`)** carries the committed frame's magnification, the projection DPI
   and the rendered bitmap's size (`render mag=… dpi=… -> bitmap WxH`) and **no centre** (change
-  `fix-car-render-coordinate-redaction`, TODO §98): the entry is the throttled "a frame was committed"
+  `fix-car-render-coordinate-redaction`): the entry is the throttled "a frame was committed"
   marker, and the frame-vs-pending evidence above is where a follow/surface diagnosis reads position-free
   state. A car session's exported log therefore contains no render position either.
 

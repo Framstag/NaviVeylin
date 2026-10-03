@@ -62,6 +62,8 @@ rules:
     - When a change supersedes a guideline, include a task to update the guidelines/ document
     - Include on-device verification tasks for UI, rendering, and Auto changes (emulator/head unit, surface lifecycle)
     - Include Gradle sync or build verification steps for Android-specific tasks
+    - Every new invariant, bound, predicate or refusal path needs one revert-check task — name the single mutation and the case that must fail, restore, then re-run green forced (`--rerun-tasks`); the `revert-check` skill holds the discipline and the evidence format
+    - State each task's verification in the task itself (a test, command, observable behavior or delivered artifact), not in a separate late testing group
 
 operations:
   apply:

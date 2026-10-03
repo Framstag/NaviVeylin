@@ -816,25 +816,92 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
-     * Push the resolved presentation to the native style sheet and force a full
-     * re-render so no tiles/front buffer from the other variant survive.
+     * The stylesheet and `daylight` flag pair the native side holds, or `null` while nothing has
+     * been applied yet. Both native calls reload the whole stylesheet set (`loadStyleSheet` and
+     * `setStyleSheetFlag`), so this pair is the dedupe key (spec: map-styles - One stylesheet
+     * load per active style and flag set; `guidelines/MapRendering.md` section 15/16). `styleName`
+     * is `null` after a flag-only push: the flag does not say which stylesheet is installed.
      */
-    private var lastPushedDark: Boolean? = null
-    private var stylePushedToNative = false
-    private var lastPushedStyleSheet: String? = null
+    private var appliedMapStyle: AppliedMapStyle? = null
 
-    private fun pushDarkPresentation(dark: Boolean) {
-        if (lastPushedDark == dark) return
-        lastPushedDark = dark
+    /** True once the flag was pushed with a map database open (see [MapStyleApplyReason]). */
+    private var stylePushedToNative = false
+
+    private data class AppliedMapStyle(val styleName: String?, val daylight: Boolean)
+
+    /**
+     * What justifies one application of the style/flag pair through [ensureMapStyle]. Only the
+     * re-push reasons force native work for a pair that already matches the recorded one.
+     */
+    private enum class MapStyleApplyReason(
+        /** Re-push the flag even when its value equals the recorded one. */
+        val forceFlag: Boolean,
+        /** Load the stylesheet even when the recorded one already is the requested one. */
+        val forceLoad: Boolean = false,
+    ) {
+        /** A re-observation of the current state (init settings load, panel rebuild). */
+        RE_OBSERVED(false),
+
+        /** The user picked a style in the picker; applied even before a map opens. */
+        STYLE_SWITCH(false),
+
+        /**
+         * A map database has just been opened: `SetStyleFlag` was a no-op before it existed, and
+         * the freshly opened database carries no style config of its own, so both halves are
+         * re-applied.
+         */
+        STARTUP_DB_READY(true, true),
+
+        /** The first rendered frame after [STARTUP_DB_READY]: re-push the flag once. */
+        FIRST_RENDERED_FRAME(true),
+    }
+
+    /** Resolved presentation the stylesheet `daylight` flag has to carry. */
+    private fun resolvedDaylight(): Boolean = darkModeController.isDarkPresentation.value
+
+    /**
+     * The one entry point that applies the style/flag pair to the native client (spec: map-styles -
+     * One stylesheet load per active style and flag set): a request whose pair equals the recorded
+     * one performs no native call, unless [reason] says the native side may have dropped earlier
+     * work. Pass `null` for [styleName] on a request that concerns only the flag.
+     *
+     * A rejected load keeps the previous style and clears the recorded stylesheet, so the next
+     * request retries it. [allowDefaultFallback] is used on the startup path only: a persisted style
+     * whose stylesheet cannot be loaded falls back to `standard`, so the first map display is never
+     * empty (spec: map-styles - "Persisted style fails at startup").
+     */
+    private suspend fun ensureMapStyle(
+        styleName: String?,
+        daylight: Boolean,
+        reason: MapStyleApplyReason,
+        allowDefaultFallback: Boolean = false,
+    ): Boolean {
+        if (reason.forceFlag || appliedMapStyle?.daylight != daylight) {
+            pushDaylight(daylight)
+        }
+        if (styleName != null && (reason.forceLoad || appliedMapStyle?.styleName != styleName)) {
+            return loadMapStyle(styleName, daylight, allowDefaultFallback)
+        }
+        return true
+    }
+
+    /**
+     * Pushes the `daylight` flag; the native side reloads the active stylesheet with it
+     * (`guidelines/MapRendering.md` section 15). The recorded flag is updated only after the call
+     * returned, so a later request re-pushes a value the native side never took.
+     */
+    private fun pushDaylight(daylight: Boolean) {
         try {
-            client.setStyleSheetFlag("daylight", !dark)
+            client.setStyleSheetFlag(STYLE_FLAG_DAYLIGHT, !daylight)
             // The flag change reloads the active stylesheet; when that load is
             // rejected the previously active style stays in effect and the
             // failure is reported (spec: map-styles — "Style flag change fails").
-            reportStyleLoadFailure(client.getActiveStyleSheet())
+            reportStyleLoadFailure(activeStyleSheet() ?: DEFAULT_STYLE_NAME)
         } catch (e: Exception) {
             Log.e(TAG, "setStyleSheetFlag failed", e)
+            return
         }
+        appliedMapStyle = AppliedMapStyle(appliedMapStyle?.styleName, daylight)
         mapRenderer?.invalidateStyle()
     }
 
@@ -842,16 +909,19 @@ class MapCanvasViewModel @Inject constructor(
      * Load the map style [name] on the native database thread (blocking — runs
      * off the main thread) and re-render on success. On failure the native side
      * keeps the previous style and the failure is reported once through
-     * [MapStyleLoadReporter]; the dedupe marker is reset so the next push
-     * retries.
+     * [MapStyleLoadReporter]; the recorded stylesheet is cleared so the next request
+     * retries it.
      *
      * [allowDefaultFallback] is used on the startup path only: a persisted style
      * whose stylesheet cannot be loaded falls back to the default `standard`
      * style, so the first map display is never empty (spec: map-styles —
      * "Persisted style fails at startup").
      */
-    private suspend fun applyStyleSheet(name: String, allowDefaultFallback: Boolean = false): Boolean {
-        if (lastPushedStyleSheet == name) return true
+    private suspend fun loadMapStyle(
+        name: String,
+        daylight: Boolean,
+        allowDefaultFallback: Boolean,
+    ): Boolean {
         val ok = withContext(defaultDispatcher) {
             try {
                 client.loadStyleSheet(name)
@@ -861,18 +931,18 @@ class MapCanvasViewModel @Inject constructor(
             }
         }
         if (ok) {
-            lastPushedStyleSheet = name
+            appliedMapStyle = AppliedMapStyle(name, daylight)
             mapRenderer?.invalidateStyle()
             return true
         }
 
-        lastPushedStyleSheet = null
+        appliedMapStyle = AppliedMapStyle(null, daylight)
         Log.e(TAG, "loadStyleSheet returned false for '$name' — previous style kept")
         reportStyleLoadFailure(name)
 
         if (allowDefaultFallback && name != DEFAULT_STYLE_NAME) {
             Log.w(TAG, "Persisted style '$name' unavailable — falling back to '$DEFAULT_STYLE_NAME'")
-            return applyStyleSheet(DEFAULT_STYLE_NAME)
+            return loadMapStyle(DEFAULT_STYLE_NAME, daylight, allowDefaultFallback)
         }
 
         return false
@@ -885,6 +955,14 @@ class MapCanvasViewModel @Inject constructor(
      * surface is visible stays in the UI state and is shown when the map is next
      * composed.
      */
+    /** The native side's active stylesheet, or `null` when the client cannot answer. */
+    private fun activeStyleSheet(): String? = try {
+        client.getActiveStyleSheet()
+    } catch (e: Exception) {
+        Log.e(TAG, "getActiveStyleSheet failed", e)
+        null
+    }
+
     private fun reportStyleLoadFailure(requestedStyle: String) {
         val succeeded = try {
             client.wasLastStyleLoadSuccessful()
@@ -892,12 +970,7 @@ class MapCanvasViewModel @Inject constructor(
             Log.e(TAG, "wasLastStyleLoadSuccessful failed", e)
             true
         }
-        val activeStyle = try {
-            client.getActiveStyleSheet()
-        } catch (e: Exception) {
-            Log.e(TAG, "getActiveStyleSheet failed", e)
-            null
-        }
+        val activeStyle = activeStyleSheet()
         val message = MapStyleLoadReporter.reportFailure(
             resolver = context.stringResolver(),
             requestedStyle = requestedStyle,
@@ -915,8 +988,9 @@ class MapCanvasViewModel @Inject constructor(
         viewModelScope.launch {
             settingsStorage.update { it.copy(styleSheet = name) }
         }
-        lastPushedStyleSheet = null
-        viewModelScope.launch { applyStyleSheet(name) }
+        viewModelScope.launch {
+            ensureMapStyle(name, resolvedDaylight(), MapStyleApplyReason.STYLE_SWITCH)
+        }
     }
 
     /** Toggle auto-zoom on/off. */
@@ -1076,12 +1150,16 @@ class MapCanvasViewModel @Inject constructor(
                 }
         }
 
-        // Resolved dark presentation drives theme state + native style sheet
+        // Resolved dark presentation drives theme state + the native style sheet flag. The flag
+        // reloads the style variant natively; loading a stylesheet is not part of this path, so the
+        // style name is deliberately left out of the request (spec: dark-mode - Unchanged
+        // presentation reloads nothing; spec: map-styles - One stylesheet load per active style and
+        // flag set).
         viewModelScope.launch {
             darkModeController.isDarkPresentation
                 .collect { dark ->
                     _uiState.value = _uiState.value.copy(isDarkPresentation = dark)
-                    pushDarkPresentation(dark)
+                    ensureMapStyle(null, dark, MapStyleApplyReason.RE_OBSERVED)
                 }
         }
 
@@ -1483,8 +1561,11 @@ class MapCanvasViewModel @Inject constructor(
             // If initMap already ran before this load finished (fast user flow),
             // re-apply the persisted style — initMap may have used the default.
             if (mapRenderer != null) {
-                lastPushedStyleSheet = null
-                applyStyleSheet(settings.styleSheet)
+                ensureMapStyle(
+                    settings.styleSheet,
+                    resolvedDaylight(),
+                    MapStyleApplyReason.RE_OBSERVED
+                )
             }
         }
 
@@ -2107,22 +2188,24 @@ class MapCanvasViewModel @Inject constructor(
                 renderer.setFavoriteLocations(allFavs.toTypedArray())
             }
 
-            // Apply resolved dark presentation to the style sheet so the first
-            // render already uses the correct variant
-            lastPushedDark = null
-            pushDarkPresentation(darkModeController.isDarkPresentation.value)
+            // Apply the resolved dark presentation and the persisted map style, in the order the
+            // native side needs: the flag push happens after the database is open (`SetStyleFlag` is
+            // a no-op before that), and the stylesheet load carries the flag set, so the first render
+            // already uses the right variant and style (spec: map-styles - Persisted style applied on
+            // start; `guidelines/MapRendering.md` section 15).
+            ensureMapStyle(
+                _uiState.value.styleSheet,
+                resolvedDaylight(),
+                MapStyleApplyReason.STARTUP_DB_READY,
+                allowDefaultFallback = true
+            )
             // The push above happens after the database is open, so SetStyleFlag
             // is effective — mark it as done so the first front-buffer frame does
             // not re-push and invalidate the freshly rendered tiles.
             stylePushedToNative = true
 
-            // Apply the persisted map style before the first render.
-            // loadStyleSheet blocks on the native DB thread, so it runs off the
-            // main thread via applyStyleSheet; the first frame then already uses
-            // the selected style. The value comes from the settings load that
-            // ran at ViewModel init.
-            lastPushedStyleSheet = null
-            applyStyleSheet(_uiState.value.styleSheet, allowDefaultFallback = true)
+            // The style value comes from the settings load that ran at ViewModel init; its load is
+            // part of the single `ensureMapStyle` call above.
 
             Log.d(TAG, "initMap: triggering first render")
             if (phoneMapRenderRefused) {
@@ -3815,7 +3898,7 @@ class MapCanvasViewModel @Inject constructor(
      * a frame back into a surface that has given its storage up.
      */
     @VisibleForTesting
-    internal fun applyRenderedFrame(frame: MapRenderer.FrameState) {
+    internal suspend fun applyRenderedFrame(frame: MapRenderer.FrameState) {
         val bitmap = frame.bitmap ?: return
         if (phoneMapRenderRefused) {
             Log.d(TAG, "frameFlow: frame discarded, phone map suspended")
@@ -3825,8 +3908,7 @@ class MapCanvasViewModel @Inject constructor(
         // no-op until a DB is open) — re-apply once.
         if (!stylePushedToNative) {
             stylePushedToNative = true
-            lastPushedDark = null
-            pushDarkPresentation(darkModeController.isDarkPresentation.value)
+            ensureMapStyle(null, resolvedDaylight(), MapStyleApplyReason.FIRST_RENDERED_FRAME)
         }
         _uiState.value = _uiState.value.copy(
             renderedBitmap = bitmap.asImageBitmap(),
@@ -4128,6 +4210,9 @@ class MapCanvasViewModel @Inject constructor(
         /** Minimum magnification for the pinch/rotation gesture commit (keeps 4–20). */
         const val GESTURE_MIN_MAG = 4.0
         const val MAX_MAG = 20.0
+
+        /** Stylesheet flag selecting the daylight variant (`guidelines/MapRendering.md` section 15). */
+        const val STYLE_FLAG_DAYLIGHT = "daylight"
 
         /** POI search radius steps in meters (mirrors JavaScout PoiSearchOverlay, extended to 100 km). */
         val POI_RADIUS_STEPS_M = doubleArrayOf(500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0, 100000.0)

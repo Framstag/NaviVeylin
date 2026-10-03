@@ -763,6 +763,20 @@ car Surface:
 - Initial `isDarkMode()` may be false until the host sends configuration
   (`UI_MODE_UNKNOWN`); the first `onCarConfigurationChanged` corrects it (one extra
   render at startup).
+- **Load budget and dedupe key (change `dedupe-stylesheet-loads`)**: the app-side state that decides
+  whether to touch the native side is the pair **(style name, `daylight`)**. Phone:
+  `MapCanvasViewModel.ensureMapStyle` is the single entry, with the reason
+  `RE_OBSERVED` / `STYLE_SWITCH` / `STARTUP_DB_READY` / `FIRST_RENDERED_FRAME`; car:
+  `CarStyleApplier` (style name) plus `CarDaylightApplier` (`daylight`). Both native calls
+  (`loadStyleSheet`, `setStyleSheetFlag`) reload the whole stylesheet set, so one startup loads it
+  **once**, plus one load per legitimate trigger: a style switch, a real presentation change, a **map
+  database open** (a freshly opened database carries no style config, so `STARTUP_DB_READY` forces
+  it), the bundled-asset refresh after an update (it runs before the start's load), and the basemap's
+  own stylesheet per basemap open. A platform-driven surface (Android Auto) may apply the flag once
+  more after a **style load it performed**, because the fresh variant may not carry the platform's
+  flag — `TODO.md` §120 is the native check that would let that re-application go. The dedupe is
+  app-side only: no native accessor exposes the installed pair, and the app is its only writer
+  (`getActiveStyleSheet()` / `wasLastStyleLoadSuccessful()` report the outcome).
 
 ---
 
@@ -818,7 +832,9 @@ car Surface:
   from `getAvailableStyleSheets()` (spec: map-styles). It is the basemap's internal
   style, not a user-facing map style.
 - Style switches and the `daylight` flag reload BOTH styles through
-  `LoadStyleInternal`; the basemap style is unaffected by main-style switches.
+  `LoadStyleInternal`; the basemap style is unaffected by main-style switches. The pair key of §15
+  covers it too: a flag application reloads the basemap stylesheet as well, which is why a redundant
+  flag push costs two parse sets, not one.
 
 ---
 

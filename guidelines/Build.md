@@ -716,3 +716,31 @@ adb logcat -d -s NaviVeylin | grep -c "Cannot open db '.*/maps/basemap"      # m
 start that picked the wrong database is visible without a debug build. The car side needs no change
 (its session registers every installed database except the basemap): a car session started after a
 phone start must still report the same database count in the `WARMUP` line.
+
+### Stylesheet load count per start (`dedupe-stylesheet-loads`)
+
+The app applies the stylesheet/flag pair once per (style name, flag set) — see
+`guidelines/MapRendering.md` §15 for the key and the legitimate triggers. Both the phone and the car
+report every load through the shared native logger, so a start can be counted without a debug build
+(the `NaviVeylin` tag carries `osmscout::log` output):
+
+```bash
+adb shell am force-stop com.framstag.naviveylin
+adb logcat -c
+adb shell am start -n com.framstag.naviveylin/.MainActivity
+sleep 20
+# one native load of the whole set; the basemap's own stylesheet adds one more on its open
+adb logcat -d -s NaviVeylin | grep -c 'Created new style with'
+# the condensed unresolved-type report: one line per parsed style file per load
+adb logcat -d -s NaviVeylin | grep -c "Unknown types in '"
+# which style/flag applications happened, in order
+adb logcat -d -s NaviVeylin | grep -E 'Created new style with|ensureMapStyle'
+```
+
+Expected on the phone: **1-2** `Created new style with` lines per start (the main style plus the
+basemap's stylesheet) and **8** report lines (8 files × 1 load) against the 12 loads / 104 lines the
+2026-10-02 baseline measured (`TODO.md` §116). Both numbers move with a legitimate trigger: a style
+switch, a real day/night change, a map database open (each `initMap`, i.e. every map re-entry, is one),
+an app update that refreshed the bundled stylesheets, and a basemap download
+(`reloadBasemap`). Count per start and compare per source rather than trusting one number —
+and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, not a cache hit.

@@ -284,4 +284,132 @@ class MapCanvasViewModelStyleTest {
             viewModel.uiState.value.snackbarMessage
         )
     }
+
+    @Test
+    fun unchangedStyleReapplyPerformsNoLoad() = runTest(mainDispatcherRule.dispatcher) {
+        // A second application of the style/presentation pair that is already installed must
+        // perform no native call at all: no stylesheet load and no flag push, because both
+        // native calls reload the whole style set (spec: map-styles — One stylesheet load per
+        // active style and flag set; spec: dark-mode — Unchanged presentation reloads nothing;
+        // TODO 116: the phone loaded the set ~13 times per start).
+        viewModel.setScreenSize(100, 100)
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        val loadsAfterStart = client.styleSheetLoads.size
+        val flagsAfterStart = client.styleFlags.size
+
+        // Re-selecting the active style re-applies the same pair.
+        viewModel.onStyleSheetSelected(viewModel.uiState.value.styleSheet)
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "an unchanged style must not be loaded again",
+            loadsAfterStart,
+            client.styleSheetLoads.size
+        )
+        assertEquals(
+            "an unchanged presentation must not push the daylight flag again",
+            flagsAfterStart,
+            client.styleFlags.size
+        )
+    }
+
+    @Test
+    fun reSelectingTheActiveStylePerformsNoLoad() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.onStyleSheetSelected("cycle")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStyleSheetSelected("cycle")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "re-selecting the active style loads it once in total",
+            1,
+            client.styleSheetLoads.count { it == "cycle" }
+        )
+    }
+
+    @Test
+    fun styleSwitchLoadsExactlyOnceWithoutAFlagPush() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.setScreenSize(100, 100)
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        val flagsBeforeSwitch = client.styleFlags.size
+        viewModel.onStyleSheetSelected("motorways")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "one load for the switch",
+            1,
+            client.styleSheetLoads.count { it == "motorways" }
+        )
+        assertEquals(
+            "a switch to an installed pair must not force a second reload through the flag",
+            flagsBeforeSwitch,
+            client.styleFlags.size
+        )
+    }
+
+    @Test
+    fun oneStartupLoadsTheStyleSetOnce() = runTest(mainDispatcherRule.dispatcher) {
+        // The bundled-asset refresh runs at app start (AssetCopier) before this apply, so a
+        // refreshed copy is picked up by this single load; a later settings re-read adds
+        // nothing (spec: map-styles — Refreshed bundled stylesheet loads again / Repeated
+        // applies do not multiply loads per start).
+        settingsStorage.save(AppSettings(styleSheet = "cycle"))
+        viewModel = createViewModel()
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setScreenSize(100, 100)
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        settingsStorage.update { it.copy(autoZoomEnabled = !it.autoZoomEnabled) }
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "the started style is loaded exactly once",
+            1,
+            client.styleSheetLoads.count { it == "cycle" }
+        )
+        assertEquals(
+            "one startup loads the stylesheet set once",
+            1,
+            client.styleSheetLoads.size
+        )
+    }
+
+    @Test
+    fun startupRePushesTheFlagAfterTheDatabaseOpens() = runTest(mainDispatcherRule.dispatcher) {
+        // `SetStyleFlag` is a silent no-op until a database is open, so a push made before one
+        // exists must be repeated once the database is ready (spec: dark-mode — Map darkens from
+        // the start; `guidelines/MapRendering.md` section 15, startup race). The presentation is
+        // awaited through the published uiState, so the pre-database push is already recorded.
+        viewModel.setEnvironmentDark(true)
+        assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)
+        val flagsBeforeInitMap = client.styleFlags.size
+        assertTrue("a push happened before the database exists", flagsBeforeInitMap >= 1)
+        assertEquals(
+            "the pre-database push carries the dark variant",
+            "daylight" to false,
+            client.styleFlags.last()
+        )
+
+        viewModel.setScreenSize(100, 100)
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "the flag is re-pushed after the database opens",
+            flagsBeforeInitMap + 1,
+            client.styleFlags.size
+        )
+        assertEquals(
+            "the re-push carries the resolved (dark) variant",
+            "daylight" to false,
+            client.styleFlags.last()
+        )
+    }
 }

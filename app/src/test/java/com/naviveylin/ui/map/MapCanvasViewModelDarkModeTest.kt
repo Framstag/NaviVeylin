@@ -150,4 +150,31 @@ class MapCanvasViewModelDarkModeTest {
         viewModel.onSetAmbientLightSensitivity(AmbientLightSensitivity.OFF)
         assertEquals(AmbientLightSensitivity.OFF, viewModel.uiState.value.ambientLightSensitivity)
     }
+
+    @Test
+    fun changedPresentationPushesTheFlagExactlyOnce() = runTest(mainDispatcherRule.dispatcher) {
+        // This class' SettingsStorage runs its I/O on a real dispatcher, so the collector is
+        // awaited through the published uiState rather than by advancing the scheduler: the
+        // flag push is the next (non-suspending) statement of the same continuation that sets
+        // the state.
+        viewModel.setEnvironmentDark(true)
+        assertTrue(viewModel.uiState.first { it.isDarkPresentation }.isDarkPresentation)
+        val flagsAfterDark = client.styleFlags.size
+        val loadsAfterDark = client.styleSheetLoads.size
+
+        viewModel.setEnvironmentDark(false)
+        assertFalse(viewModel.uiState.first { !it.isDarkPresentation }.isDarkPresentation)
+
+        assertEquals(
+            "one flag push for the changed presentation",
+            flagsAfterDark + 1,
+            client.styleFlags.size
+        )
+        assertEquals("the push carries the light variant", "daylight" to true, client.styleFlags.last())
+        assertEquals(
+            "a presentation change loads no stylesheet",
+            loadsAfterDark,
+            client.styleSheetLoads.size
+        )
+    }
 }

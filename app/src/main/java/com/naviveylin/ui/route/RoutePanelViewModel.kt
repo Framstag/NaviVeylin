@@ -44,6 +44,31 @@ sealed interface RouteState {
 
 enum class ActiveField { START, DEST, NONE }
 
+/**
+ * State of the route-planning session (spec: `route-planning-session`).
+ *
+ * - [INACTIVE]: no session on the map — no overlay, no route drawn by a session.
+ * - [EDITING]: a session is open without a calculated route; fields are editable,
+ *   calculate is offered. Covers "calculating" and "calculation failed" as the
+ *   panel's existing `routeState` already models those.
+ * - [REVIEWING]: a session is open on a calculated route; the step list is
+ *   analysable and Start Navigation is offered.
+ * - [STOPPED]: navigation was stopped inside the session and the grace period is
+ *   running (Restart / End now).
+ *
+ * Whether a step is currently analysed is the panel's own `analysedStepIndex`, not a
+ * session state: it is an overlay on top of reviewing, and a second enum for it would
+ * be able to contradict the selection.
+ */
+enum class RouteSessionState { INACTIVE, EDITING, REVIEWING, STOPPED }
+
+/**
+ * Size of the session's overlay on the phone (spec: `route-planning-session` — Session
+ * overlay anchors). [HIDDEN] is the session's "map free for analysis" state: only a
+ * route-ready affordance remains.
+ */
+enum class RouteOverlayAnchor { EXPANDED, COMPACT, HIDDEN }
+
 /** Parsed step info for display. */
 data class RouteStepDisplay(
     val instruction: String,       // clean description, no brackets
@@ -79,9 +104,31 @@ data class RoutePanelUiState(
      */
     val searchReference: SearchReference? = null,
     val gpsAvailable: Boolean = false,
-    val showSummaryDialog: Boolean = false,
     val activeStepIndex: Int? = null,
-    val isNavigating: Boolean = false
+    val isNavigating: Boolean = false,
+    /**
+     * Manoeuvre positions of the current route's steps, index-aligned with
+     * [routeSteps] (spec: `route-analysis`). Empty when the route carries no
+     * positions, in which case no step can be located on the map.
+     */
+    val stepAnchors: List<StepAnchor> = emptyList(),
+    /**
+     * The overlay's current anchor (spec: `route-planning-session` — Session overlay
+     * anchors). Reported by the overlay as it is dragged/hidden, and read by the map for
+     * the fit's free area. Defaults to [RouteOverlayAnchor.HIDDEN] so a session whose
+     * overlay is not composed claims no part of the canvas.
+     */
+    val overlayAnchor: RouteOverlayAnchor = RouteOverlayAnchor.HIDDEN,
+    /**
+     * The step the user is analysing, or null when no step is selected (spec:
+     * `route-analysis`).
+     */
+    val analysedStepIndex: Int? = null,
+    /**
+     * Polyline vertex range of the analysed step, both ends inclusive; null when
+     * no step is analysed or the step has no locatable position.
+     */
+    val analysedSegment: IntRange? = null
 )
 
 data class RouteResult(
@@ -138,20 +185,37 @@ class RoutePanelViewModel @Inject constructor(
     val clearRouteSignal: StateFlow<Int> = _clearRouteSignal.asStateFlow()
 
     /**
-     * Covered height of the route panel in pixels — the vertical slice of the
-     * map canvas the sheet hides. Reported by `RoutePanel` from the Material3
-     * sheet offset (0 when closed) and consumed by `MapCanvasViewModel` so the
-     * route overview fits the visible map area instead of the full canvas
-     * (spec: route-map-overview, Decision 8).
+     * Manoeuvre position of the analysed step, or null when nothing is analysed
+     * (spec: `route-analysis` — the map camera moves onto the analysed manoeuvre).
+     * The map observes this instead of the whole panel state, so an unrelated state
+     * change (a keystroke in a field, a vehicle switch) never moves the camera.
      */
-    private val _sheetCoveredHeightPx = MutableStateFlow(0)
-    val sheetCoveredHeightPx: StateFlow<Int> = _sheetCoveredHeightPx.asStateFlow()
+    private val _analysedAnchor = MutableStateFlow<StepAnchor?>(null)
+    val analysedAnchor: StateFlow<StepAnchor?> = _analysedAnchor.asStateFlow()
 
-    /** Report the current covered height of the route panel (pixels, >= 0). */
-    fun setSheetCoveredHeightPx(coveredPx: Int) {
-        val clamped = coveredPx.coerceAtLeast(0)
-        if (clamped != _sheetCoveredHeightPx.value) {
-            _sheetCoveredHeightPx.value = clamped
+    /**
+     * The polyline vertex range the analysed step owns, so the map can fit exactly that segment
+     * (spec: `route-analysis` — the camera has to show the analysed segment, not a fixed zoom
+     * level around one point).
+     */
+    private val _analysedSegmentRange = MutableStateFlow<IntRange?>(null)
+    val analysedSegmentRange: StateFlow<IntRange?> = _analysedSegmentRange.asStateFlow()
+
+    /**
+     * The session's state on the map (spec: `route-planning-session`). Owned here, and
+     * the map follows it: opening, reviewing, the stopped-state grace and the two exits
+     * all change it, so the session's lifetime has one owner.
+     */
+    private val _sessionState = MutableStateFlow(RouteSessionState.INACTIVE)
+    val sessionState: StateFlow<RouteSessionState> = _sessionState.asStateFlow()
+
+    /** The single grace deadline of the stopped state; null while none is running. */
+    private var graceJob: Job? = null
+
+    /** Report the overlay's anchor (idempotent). */
+    fun setOverlayAnchor(anchor: RouteOverlayAnchor) {
+        if (_uiState.value.overlayAnchor != anchor) {
+            _uiState.value = _uiState.value.copy(overlayAnchor = anchor)
         }
     }
 
@@ -316,8 +380,7 @@ class RoutePanelViewModel @Inject constructor(
                 routeState = RouteState.Idle,
                 routeEntry = null,
                 routeSteps = emptyList(),
-                error = null,
-                showSummaryDialog = false
+                error = null
             )
             _routeResultFlow.value = null
             _clearRouteSignal.value = _clearRouteSignal.value + 1
@@ -386,9 +449,35 @@ class RoutePanelViewModel @Inject constructor(
                                     routeState = RouteState.Done,
                                     routeEntry = route,
                                     routeSteps = steps,
+                                    stepAnchors = instructionAnchors(route),
+                                    // A finished calculation starts at the route's current step
+                                    // (owner finding, 2026-10-03): the min overlay then shows
+                                    // a real entry and its position from the start, while the
+                                    // camera keeps the overview fit — only an explicit step
+                                    // selection moves it.
+                                    analysedStepIndex = currentStepOf(steps),
+                                    analysedSegment = segmentOf(
+                                        _uiState.value.copy(
+                                            routeEntry = route,
+                                            routeSteps = steps,
+                                            stepAnchors = instructionAnchors(route)
+                                        ),
+                                        currentStepOf(steps) ?: 0
+                                    ),
                                     error = null,
                                     preciseLocationRequired = false
                                 )
+                                _analysedAnchor.value = null
+                                _analysedSegmentRange.value = _uiState.value.analysedSegment
+                                if (_sessionState.value != RouteSessionState.INACTIVE) {
+                                    _sessionState.value = RouteSessionState.REVIEWING
+                                    // A finished calculation is a result, and the result is the
+                                    // route's step list: the card lands in its max state
+                                    // (owner directive, 2026-10-03 — the list belongs at the
+                                    // bottom), so a fresh calculation never leaves the user in
+                                    // the min overlay without it.
+                                    setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
+                                }
                                 _routeVisible.value = true
                                 _routeResultFlow.value = RouteResult(
                                     routeLats = route.latitudes,
@@ -435,15 +524,191 @@ class RoutePanelViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(routeState = RouteState.Idle, error = null)
     }
 
-    fun showSummaryDialog() { _uiState.value = _uiState.value.copy(showSummaryDialog = true) }
-
-    fun dismissSummaryDialog() { _uiState.value = _uiState.value.copy(showSummaryDialog = false) }
-
     fun setActiveStepIndex(index: Int) { _uiState.value = _uiState.value.copy(activeStepIndex = index) }
 
-    /** Mark navigation as active/inactive (suppresses summary dialog on reroute). */
+    /**
+     * Mark a step as analysed and resolve the polyline segment it owns (spec:
+     * `route-analysis`). A step with no locatable position is still analysed — the
+     * list marks it — but carries no segment. An out-of-range index changes nothing.
+     */
+    fun analyseStep(index: Int) {
+        val state = _uiState.value
+        if (index !in state.routeSteps.indices) return
+        val segment = segmentOf(state, index)
+        _uiState.value = state.copy(
+            analysedStepIndex = index,
+            analysedSegment = segment
+        )
+        // Publish the segment **before** the anchor: the anchor is what a consumer reacts to (the
+        // map focuses the analysed step's leg when it changes), so the order is the contract —
+        // publishing the anchor first let the map read the *previous* step's range and move the
+        // camera onto the wrong leg (device measurement, 2026-10-03: the fit logged `range=9..28`
+        // while the highlight drew `range=28..32`).
+        _analysedSegmentRange.value = segment
+        _analysedAnchor.value = state.stepAnchors.getOrNull(index)
+    }
+
+    /** Drop the analysed step (spec: `route-analysis`). */
+    fun clearAnalysedStep() {
+        _uiState.value = _uiState.value.copy(analysedStepIndex = null, analysedSegment = null)
+        _analysedSegmentRange.value = null
+        _analysedAnchor.value = null
+    }
+
+    /**
+     * Toggle the analysed step: tapping the analysed step again drops the selection,
+     * tapping another step analyses it (spec: `route-analysis`). Kept here rather than
+     * in the overlay so the rule has one home and is unit-testable.
+     */
+    fun toggleAnalysedStep(index: Int) {
+        if (_uiState.value.analysedStepIndex == index) clearAnalysedStep() else analyseStep(index)
+    }
+
+    /**
+     * The step navigator's forward control (spec: `route-analysis` — Step navigator):
+     * nothing analysed starts at the first step, otherwise the next one; at the last step
+     * it is a no-op. Kept here rather than in the overlay so the bound has one home.
+     */
+    fun analyseNextStep() {
+        val state = _uiState.value
+        val count = state.routeSteps.size
+        if (count == 0) return
+        val current = state.analysedStepIndex
+        val next = if (current == null) 0 else current + 1
+        if (next > count - 1) return
+        analyseStep(next)
+    }
+
+    /**
+     * The step navigator's back control (spec: `route-analysis` — Step navigator): the
+     * previous step; with nothing analysed, or on the first step, it is a no-op.
+     */
+    fun analysePreviousStep() {
+        val current = _uiState.value.analysedStepIndex ?: return
+        if (current <= 0) return
+        analyseStep(current - 1)
+    }
+
+    /**
+     * The step a fresh route starts on: the first one the native layer gave a distance or a
+     * time for. The route's start line ("Start: …  []") carries neither, and presenting it
+     * left the min overlay's instruction detail empty (owner finding, 2026-10-03).
+     */
+    private fun currentStepOf(steps: List<RouteStepDisplay>): Int? =
+        steps.indexOfFirst { it.distanceText.isNotEmpty() || it.timeText.isNotEmpty() }
+            .takeIf { it >= 0 }
+            ?: steps.indices.firstOrNull()
+
+    /**
+     * The polyline vertex range the step at [index] owns, or null when there is no
+     * route or no locatable position for that step.
+     */
+    private fun segmentOf(state: RoutePanelUiState, index: Int): IntRange? {
+        val route = state.routeEntry ?: return null
+        val range = stepSegments(
+            polylineLats = route.latitudes ?: return null,
+            polylineLons = route.longitudes ?: return null,
+            stepCount = state.routeSteps.size,
+            anchors = state.stepAnchors
+        ).getOrNull(index) ?: return null
+        return if (range.isEmpty()) null else range
+    }
+
+    /**
+     * Open a session on the map (spec: `route-planning-session`). A session that is
+     * already active keeps its state; opened during navigation it reviews the active
+     * route read-only.
+     */
+    fun openSession() {
+        if (_sessionState.value != RouteSessionState.INACTIVE) return
+        // A new session lands compact (spec: `route-planning-session` — anchors): the map
+        // stays usable, and the overlay can be expanded or minimized from there.
+        setOverlayAnchor(RouteOverlayAnchor.COMPACT)
+        _sessionState.value = when {
+            _uiState.value.isNavigating -> RouteSessionState.REVIEWING
+            _uiState.value.routeState == RouteState.Done -> RouteSessionState.REVIEWING
+            else -> RouteSessionState.EDITING
+        }
+    }
+
+    /**
+     * End the session as a cancel (spec: `route-planning-session` — the only exits are
+     * Start Navigation and Cancel/End): the route leaves the map and the session state
+     * resets. Ending a review of an active navigation does not touch the route.
+     */
+    fun endSession() {
+        if (_sessionState.value == RouteSessionState.INACTIVE) return
+        cancelGracePeriod()
+        if (!_uiState.value.isNavigating) clearRoute()
+        _sessionState.value = RouteSessionState.INACTIVE
+        // No session means no overlay claim on the canvas.
+        setOverlayAnchor(RouteOverlayAnchor.HIDDEN)
+    }
+
+    /**
+     * Navigation started on the session's route: the session ends, but the route stays
+     * drawn because navigation owns it (spec: `route-planning-session` — Start
+     * Navigation ends the session and hands the map to navigation).
+     */
+    fun onNavigationStarted() {
+        cancelGracePeriod()
+        _uiState.value = _uiState.value.copy(isNavigating = true)
+        _analysedAnchor.value = null
+        // Navigation started: the analysis is over with the session (spec: `route-analysis`).
+        _analysedSegmentRange.value = null
+        _sessionState.value = RouteSessionState.INACTIVE
+    }
+
+    /**
+     * Navigation was stopped: the session enters its stopped state, where the route
+     * stays on the map for the grace period (spec: `route-planning-session` — Grace
+     * period after navigation is stopped).
+     */
+    fun onNavigationStopped() {
+        _uiState.value = _uiState.value.copy(isNavigating = false)
+        if (_sessionState.value != RouteSessionState.INACTIVE) startGracePeriod()
+    }
+
+    /**
+     * Navigation was restarted from the stopped state (spec: `route-planning-session`
+     * — Restart resumes navigation): the grace deadline is dropped and the session
+     * hands the route back to navigation without recalculating.
+     */
+    fun onNavigationRestarted() {
+        cancelGracePeriod()
+        onNavigationStarted()
+    }
+
+    /**
+     * The grace period: one deadline in the session's scope. Expiry ends the session
+     * (spec: `route-planning-session` — Grace expiry clears the route), and it is
+     * idempotent — a session that already left the stopped state is left alone, so a
+     * late tick cannot clear a route the user has started driving on.
+     */
+    private fun startGracePeriod() {
+        _sessionState.value = RouteSessionState.STOPPED
+        cancelGracePeriod()
+        graceJob = viewModelScope.launch {
+            delay(GRACE_PERIOD_MS)
+            if (_sessionState.value == RouteSessionState.STOPPED) {
+                Log.d(TAG, "session grace period expired - ending the session")
+                endSession()
+            }
+        }
+    }
+
+    private fun cancelGracePeriod() {
+        graceJob?.cancel()
+        graceJob = null
+    }
+
+    /**
+     * Mark navigation as active/inactive (suppresses summary dialog on reroute). The
+     * session follows it: starting navigation ends the session and leaves the route to
+     * navigation, stopping it moves an open session into its stopped state.
+     */
     fun setNavigating(navigating: Boolean) {
-        _uiState.value = _uiState.value.copy(isNavigating = navigating)
+        if (navigating) onNavigationStarted() else onNavigationStopped()
     }
 
     /**
@@ -465,11 +730,26 @@ class RoutePanelViewModel @Inject constructor(
             routeState = RouteState.Done,
             routeEntry = route,
             routeSteps = steps,
+            stepAnchors = instructionAnchors(route),
+            // A new route starts at its current step (owner finding, 2026-10-03: the min
+            // overlay showed no usable entry before the first paging). The camera stays with
+            // the overview fit — the step is the *current* one, not a camera request: only an
+            // explicit step selection (`analyseStep`) moves the camera.
+            analysedStepIndex = currentStepOf(steps),
+            analysedSegment = segmentOf(
+                _uiState.value.copy(
+                    routeEntry = route,
+                    routeSteps = steps,
+                    stepAnchors = instructionAnchors(route)
+                ),
+                currentStepOf(steps) ?: 0
+            ),
             vehicle = vehicle,
             error = null,
-            preciseLocationRequired = false,
-            showSummaryDialog = false
+            preciseLocationRequired = false
         )
+        _analysedAnchor.value = null
+            _analysedSegmentRange.value = _uiState.value.analysedSegment
         _routeVisible.value = true
         val lats = route.latitudes
         val lons = route.longitudes
@@ -484,7 +764,20 @@ class RoutePanelViewModel @Inject constructor(
     }
 
     fun clearRoute() {
-        _uiState.value = RoutePanelUiState(gpsAvailable = _uiState.value.gpsAvailable)
+        // The overlay's anchor survives a clear: the session stays open with the overlay
+        // where the user put it.
+        val anchor = _uiState.value.overlayAnchor
+        _uiState.value = RoutePanelUiState(
+            gpsAvailable = _uiState.value.gpsAvailable,
+            overlayAnchor = anchor
+        )
+        _analysedAnchor.value = null
+        _analysedSegmentRange.value = _uiState.value.analysedSegment
+        // Clearing the route keeps the session open for a new plan (spec: route-panel-ui
+        // — Clear route resets the panel state).
+        if (_sessionState.value == RouteSessionState.REVIEWING) {
+            _sessionState.value = RouteSessionState.EDITING
+        }
         _routeResultFlow.value = null
         _routeVisible.value = true
         _clearRouteSignal.value = _clearRouteSignal.value + 1
@@ -508,12 +801,24 @@ class RoutePanelViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "RoutePanelVM"
+
+        /**
+         * How long a stopped session keeps its route on the map before it ends itself
+         * (spec: `route-planning-session` — Grace period after navigation is stopped).
+         * Long enough for "restart that", short enough that no route lingers.
+         */
+        const val GRACE_PERIOD_MS = 45_000L
     }
 }
 
 /**
  * Parse a native description line into a [RouteStepDisplay].
- * Native format: "Turn left into Main Street  [1.2 km, 5 min]"
+ *
+ * Native format: `Turn left into Main Street  [1.2 km, 5 min]`. Below a minute the native side
+ * writes seconds (`45 s`) — before that, every step of a city route read `0 min` (owner finding,
+ * 2026-10-03) — and a segment under a second writes no time at all. The route's start line
+ * carries an empty bracket (`Start: …  []`): it has neither distance nor time, so the current
+ * step is the first line that has one (see `currentStepOf`).
  */
 internal fun parseStepDisplay(desc: String): RouteStepDisplay {
     val bracketIdx = desc.lastIndexOf("  [")

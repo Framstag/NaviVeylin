@@ -1,6 +1,8 @@
 package com.naviveylin.ui.route
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.RouteEntry
@@ -32,38 +36,52 @@ import com.naviveylin.ui.navigation.NavigationArrow
 /**
  * Reusable route summary: total distance, estimated duration, and the
  * turn-by-turn step list. Embedded in the route panel after calculation and
- * reused by [RouteSummaryDialog] (spec: routing-summary).
+ * reused by the session overlay's summary (spec: routing-summary). The phone card passes
+ * [showStats] = false because its header already carries the two numbers (keeping the card's
+ * height for the list); the docked panel and the other surfaces use the default headline.
+ *
+ * The step list carries two independent markings (spec: `route-analysis` — the
+ * analysed step is distinguishable from the navigation step): [activeStepIndex] is
+ * the step navigation is currently on (filled row, bold text), [analysedStepIndex]
+ * is the step the user selected to inspect (outlined row plus the `selected` state,
+ * so the two never rely on colour alone). When [onStepSelected] is supplied the rows
+ * become tappable and report their index.
  */
 @Composable
 fun RouteSummary(
     routeEntry: RouteEntry,
     steps: List<RouteStepDisplay>,
     activeStepIndex: Int? = null,
-    scrollable: Boolean = true
+    scrollable: Boolean = true,
+    showStats: Boolean = true,
+    analysedStepIndex: Int? = null,
+    onStepSelected: ((Int) -> Unit)? = null
 ) {
     // Stats
     val durationText = formatDurationText(routeEntry.duration)
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        Text(
-            stringResource(
-                if (distanceUsesKilometers(routeEntry.distance)) R.string.distance_unit_km else R.string.distance_unit_m,
-                formatDistanceNumber(routeEntry.distance)
-            ),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            durationText,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+    if (showStats) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            Text(
+                stringResource(
+                    if (distanceUsesKilometers(routeEntry.distance)) R.string.distance_unit_km else R.string.distance_unit_m,
+                    formatDistanceNumber(routeEntry.distance)
+                ),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                durationText,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-    Spacer(Modifier.height(12.dp))
-    HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
-    Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
+        HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(Modifier.height(8.dp))
+    }
 
     // Steps header
     Text(
@@ -88,12 +106,29 @@ fun RouteSummary(
     Column(modifier = stepListModifier) {
         steps.forEachIndexed { index, step ->
             val isActive = activeStepIndex == index
-            val bg = if (isActive) {
-                Modifier.background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+            val isAnalysed = analysedStepIndex == index
+            val shape = RoundedCornerShape(8.dp)
+            val background = if (isActive) {
+                Modifier.background(MaterialTheme.colorScheme.primaryContainer, shape)
             } else Modifier
+            // The analysed step's cue is the outline (a shape, not a colour) plus the
+            // `selected` state, so it stays distinguishable from the navigation fill.
+            val outline = if (isAnalysed) {
+                Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape)
+            } else Modifier
+            val click = if (onStepSelected != null) {
+                Modifier.clickable { onStepSelected(index) }
+            } else Modifier
+            val selectionState = Modifier.semantics { selected = isAnalysed }
 
             Column(
-                modifier = bg.fillMaxWidth().padding(vertical = 10.dp, horizontal = 4.dp)
+                modifier = background
+                    .then(outline)
+                    .then(click)
+                    .then(selectionState)
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp, horizontal = 4.dp)
+                    .testTag("routeStep$index")
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                     NavigationArrow(

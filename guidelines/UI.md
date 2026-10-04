@@ -505,6 +505,52 @@ Source: spec `map-modes` (drive suspension and reset; Browse re-center), spec
 - Phone-only: the car display has its own follow behavior via the car
   MapController and is unaffected (no phone-style auto zoom).
 
+### Route planning holds the camera (change `route-planning-session`)
+
+Source: spec `route-planning-session`.
+
+- While a route-planning session is open, the **session** owns the viewport: opening it
+  suspends the FREE_DRIVE preset (the same suspension a manual interaction causes), a
+  position fix moves nothing, and a follow re-engage (`onToggleFollowMode(true)`) is
+  refused until the session ends. The mode stays BROWSE or FREE_DRIVE as derived — there
+  is no fourth mode. Ending the session leaves the preset suspended, so the re-center
+  button is what restores the standard drive values.
+- The session's own camera moves (the route-overview fit for the height the card reports,
+  re-run when that height changes while a route is reviewed, and the analysed step's
+  manoeuvre) are the only ones that happen while it is open; the route-overview suppression
+  while navigating/following still applies.
+- Phone layout: **two fixed card heights**, max and min. **Max** (at most 45 % of the screen height) is
+  the full card: location fields, the route's **step list** (scrolling inside the card), the vehicle
+  selector while no route is calculated, and the pinned actions; the map keeps at least 55 % for the route.
+  **Min** (at most 18 %, one control row, and it **hugs its content** — a fixed strip that left
+  empty space above the navigation bar was the owner's finding) is only the analysed step — its instruction, "i / n" and the two
+  step controls, with the step name as the way back to max. Without a route the card stays in max. The card
+  is the phone's only session surface: no summary dialog.
+- Selecting a step in the list analyses it **and collapses the card to min**, so the map with that manoeuvre
+  and its highlighted segment is what the user looks at next; tapping the step name in min brings the list
+  back with the analysed step unchanged. While a field is being edited the card takes the max height, because
+  the search results need the room.
+- The step navigator (previous / next, "i / n", and the analysed instruction with its distance and duration)
+  is the min overlay's content. It moves the analysed step exactly as tapping a list row does (camera to the
+  manoeuvre, segment highlighted) and its controls are disabled at the ends; with nothing analysed the
+  indicator names no step. Wide layouts keep the side panel with the selectable list instead.
+- The card's actions are **pinned** in their own band at the bottom edge of max, and the two
+  actions of a state share one row: with a fixed card height, stacked full-width buttons pushed
+  the statistics and then the primary action out of view on the device (2026-10-03). Reviewing a
+  route, that row is **`Start/Ziel ändern` + `Navigation starten`** — a recalculation of the
+  same route did nothing useful (owner finding, 2026-10-03) — and while a field is being edited
+  the first slot becomes `Berechnen` again, so a changed destination stays recalculable. The
+  clear action keeps a row of its own only in the docked panel — on the phone the session's
+  cancel exit clears the route. The card sits at the screen's bottom edge
+  (`BoxWithConstraints(fillMaxSize)` + `align(BottomCenter)`; without the `fillMaxSize` the box
+  is content-sized and the card lands at the top of the screen). Nested vertical scrolling is
+  forbidden inside the card: a list rendered with its own scroll is measured with an infinite
+  height — both the card and the docked panel scroll as a whole.
+- The phone's **right-side control column** (compass, speed, location options, zoom) is inset by
+  the height the card reports, so it sits fully above the overlay in every state — the min strip
+  used to cover the zoom-out button (owner finding, 2026-10-03). The rule is one value:
+  `MapCanvasUiState.overlayCoveredPx`, the same number the overview fit uses.
+
 ## 8. Phone navigation overlay sizing (driver-seat readability)
 
 Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.

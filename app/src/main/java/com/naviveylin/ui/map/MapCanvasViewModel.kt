@@ -62,7 +62,9 @@ import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.navigation.CarSessionPresenceImpl
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.share.SharedLocationRequest
+import com.naviveylin.ui.route.RouteOverlayAnchor
 import com.naviveylin.ui.route.RoutePanelViewModel
+import com.naviveylin.ui.route.RouteSessionState
 import com.naviveylin.ui.route.RouteResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -285,7 +287,13 @@ data class MapCanvasUiState(
     /** Max speed of the road at the GPS position (km/h); NaN when unknown. Drives the on-map speed widget in follow mode. */
     val maxSpeedKmH: Double = Double.NaN,
     /** Road at the GPS position from the bearing-aware lookup (spec: current-road-info free driving); null when none. */
-    val currentRoadInfo: RoadInfo? = null
+    val currentRoadInfo: RoadInfo? = null,
+    /**
+     * Height the session's overlay covers, as the overlay reported it (spec:
+     * `route-map-overview` — the fit uses the reported height; `phone-align-controls-in-all-modes`
+     * — the right-side controls sit above it). 0 when no overlay is composed.
+     */
+    val overlayCoveredPx: Int = 0
 ) {
     /**
      * The magnification the display zoom animation eases toward (spec: smooth-zoom -
@@ -635,11 +643,6 @@ class MapCanvasViewModel @Inject constructor(
     // its final measured height; a newer result, a cleared route, or a user
     // gesture inside the window cancels it.
     private var routeFitJob: Job? = null
-
-    // Covered height (px) of the open route panel, reported by RoutePanel from
-    // the Material3 sheet offset. The fit shrinks the fitting height by it and
-    // moves the center so the overview lands in the visible map area.
-    private var routePanelCoveredHeightPx: Int = 0
 
     /** Get the current navigation position for marker rendering. */
     fun getNavigationPosition(): com.framstag.libosmscout.client.NavigationPosition? = _navPosition
@@ -2925,9 +2928,13 @@ class MapCanvasViewModel @Inject constructor(
                             result.startLat, result.startLon,
                             result.destLat, result.destLon
                         )
-                        // Store route geometry for curve detection
+                        // Store route geometry for curve detection, and the fit's
+                        // endpoints so a card-state change can re-fit the same route.
                         routeLats = result.routeLats
                         routeLons = result.routeLons
+                        routeFitEndpoints = doubleArrayOf(
+                            result.startLat, result.startLon, result.destLat, result.destLon
+                        )
                         renderMap()
                         // Route-overview fit (spec: route-map-overview): fit once
                         // per result and never while navigating or following — the
@@ -2937,7 +2944,7 @@ class MapCanvasViewModel @Inject constructor(
                             // Mark at arrival: re-emissions of the same result must
                             // never reschedule a fit (stale-result guard).
                             lastFittedResult = result
-                            scheduleRouteOverviewFit(
+                            applyRouteOverviewFit(
                                 result.routeLats, result.routeLons,
                                 result.startLat, result.startLon,
                                 result.destLat, result.destLon
@@ -2945,6 +2952,36 @@ class MapCanvasViewModel @Inject constructor(
                         }
                     }
                 }
+        }
+
+        // Session camera lease (spec: `route-planning-session` — Session holds the
+        // camera while active): opening a session suspends the drive preset, and the
+        // lease also refuses a follow re-engage while it runs.
+        viewModelScope.launch {
+            vm.sessionState.collect { sessionState ->
+                if (sessionState != RouteSessionState.INACTIVE && _uiState.value.followMode) {
+                    _uiState.value = _uiState.value.copy(followMode = false)
+                }
+            }
+        }
+
+        // Analysed-step camera move (spec: `route-analysis` — "Selecting a step SHALL
+        // move the map camera to that manoeuvre"). Only a newly analysed step moves
+        // the camera; clearing the selection leaves the viewport where the user left
+        // it.
+        viewModelScope.launch {
+            vm.analysedAnchor.collect { anchor ->
+                if (anchor != null) {
+                    focusCameraOnSegment(
+                        anchor.lat, anchor.lon,
+                        // One source for the pair: the panel publishes the segment before the anchor
+                        // (its contract), and reading it from the state that carries the analysed
+                        // step index keeps the two consistent even if a consumer is resumed
+                        // between the two emissions.
+                        vm.uiState.value.analysedSegment ?: vm.analysedSegmentRange.value
+                    )
+                }
+            }
         }
 
         // Collect clear route signals. drop(1): the StateFlow's initial no-signal
@@ -2959,21 +2996,17 @@ class MapCanvasViewModel @Inject constructor(
                 // Allow an identical re-calculation to refit the overview, and
                 // drop a pending fit for the cleared route.
                 lastFittedResult = null
+                routeFitEndpoints = null
+                lastFittedCoveredPx = -1
                 routeFitJob?.cancel()
                 routeFitJob = null
                 renderMap()
             }
         }
 
-        // Route panel covered height (spec: route-map-overview, Decision 8): the
-        // sheet reports how much of the canvas it hides, so the overview fits the
-        // visible map area instead of the full canvas. Later height changes do
-        // not refit — the overview is shown once per result.
-        viewModelScope.launch {
-            vm.sheetCoveredHeightPx.collect { coveredPx ->
-                routePanelCoveredHeightPx = coveredPx
-            }
-        }
+        // The route overview fit is applied by the session, once per result, with no
+        // cross-surface measurement and no settle delay (spec: route-map-overview — the
+        // session owns the camera).
     }
 
     /**
@@ -2985,14 +3018,13 @@ class MapCanvasViewModel @Inject constructor(
         _navigationViewModel?.state?.value?.isNavigating != true && !_uiState.value.followMode
 
     /**
-     * Schedule the one-shot route overview fit one settle delay after the result
-     * arrived (spec: route-map-overview, Decision 8). The panel grows from
-     * Calculating to Done content, so fitting synchronously would consume a stale
-     * covered height. Before applying, the guards and the viewport snapshot taken
-     * at arrival are re-checked: navigation starting or a user gesture inside the
-     * window wins over the pending overview.
+     * Apply the one-shot route overview fit for a freshly arrived result (spec:
+     * `route-map-overview` — the session owns the fit). No settle delay: there is no
+     * cross-surface measurement left to wait for, so the fit runs in the session's own
+     * turn. The driving guard is still re-checked — navigation start or a follow
+     * re-engage that happened in between wins over the overview (spec R2).
      */
-    private fun scheduleRouteOverviewFit(
+    private fun applyRouteOverviewFit(
         routeLats: DoubleArray?,
         routeLons: DoubleArray?,
         startLat: Double,
@@ -3001,18 +3033,13 @@ class MapCanvasViewModel @Inject constructor(
         destLon: Double
     ) {
         routeFitJob?.cancel()
-        val viewportAtArrival = _uiState.value.viewport
         routeFitJob = viewModelScope.launch {
-            delay(ROUTE_FIT_SETTLE_DELAY_MS)
             if (!canFitRouteOverview()) {
                 Log.d(TAG, "route overview fit skipped: navigating or following")
                 return@launch
             }
-            if (_uiState.value.viewport != viewportAtArrival) {
-                Log.d(TAG, "route overview fit cancelled: viewport changed during settle window")
-                return@launch
-            }
             fitViewportToRoute(routeLats, routeLons, startLat, startLon, destLat, destLon)
+            lastFittedCoveredPx = overlayCoveredPx
         }
     }
 
@@ -3039,11 +3066,19 @@ class MapCanvasViewModel @Inject constructor(
             }
         }
         _uiState.value = _uiState.value.copy(showRoutePanel = true)
+        // The session state machine is the owner of the session's lifetime (spec:
+        // route-planning-session); opening the overlay opens (or resumes) it.
+        vm.openSession()
     }
 
-    /** Dismiss the route panel. */
+    /**
+     * Dismiss the route overlay: this is the session's cancel exit (spec:
+     * `route-planning-session`), so the session ends and — unless navigation owns the
+     * route — the route leaves the map.
+     */
     fun dismissRoutePanel() {
         _uiState.value = _uiState.value.copy(showRoutePanel = false)
+        _routePanelViewModel?.endSession()
     }
 
     /** Set route start location (from favorite picking). */
@@ -3144,6 +3179,10 @@ class MapCanvasViewModel @Inject constructor(
     /** Toggle follow mode on/off (runtime state — not persisted; the app
      *  always starts in BROWSE, spec: map-modes). */
     fun onToggleFollowMode(enabled: Boolean) {
+        // The session owns the camera while it is open (spec: route-planning-session —
+        // Session holds the camera while active): a follow re-engage is refused there,
+        // and the re-center affordance re-engages after the session has ended.
+        if (enabled && sessionHoldsCamera()) return
         _uiState.value = _uiState.value.copy(followMode = enabled)
         if (enabled) {
             // Reset auto-zoom state for fresh navigation start
@@ -3449,7 +3488,7 @@ class MapCanvasViewModel @Inject constructor(
      * follow center on its own.
      */
     fun renderFollowFrameAt(lat: Double, lon: Double) {
-        if (!_uiState.value.followMode) return
+        if (!_uiState.value.followMode || sessionHoldsCamera()) return
         if (lat.isNaN() || lon.isNaN()) return
         val vp = _uiState.value.viewport
         val (targetLat, targetLon) = followRenderTarget(lat, lon, vp.magnification, vp.angle)
@@ -3666,8 +3705,247 @@ class MapCanvasViewModel @Inject constructor(
         _searchQueryFlow.value = ""
     }
 
+    /**
+     * Move the camera onto an analysed manoeuvre (spec: `route-analysis`). A
+     * magnification already at or beyond [MANOEUVRE_FOCUS_MAG] is kept — analysing a
+     * step must never zoom the map out from under the user; otherwise the map zooms
+     * in to a level at which the junction reads. The magnification goes through
+     * [updateMagnification], so a large change is walked rather than jumped.
+     */
+    /**
+     * Move the camera onto an analysed step so that the **whole analysed segment** ends up inside
+     * the free map band above the overlay (owner requirement, 2026-10-03: "adjust the zoom level so
+     * that the bounding box of the current segment is really completely inside the visible part").
+     *
+     * The magnification is the one that fits that segment's bounding box with the marker margin,
+     * capped at [MANOEUVRE_FOCUS_MAG] so a short step still reads, and never closer than the user's
+     * own zoom when that is already inside the segment's fit: a step too long for the current zoom
+     * is zoomed *out* to fit — the earlier fixed focus level left parts of it behind the card.
+     */
+    private fun focusCameraOnSegment(lat: Double, lon: Double, range: IntRange?) {
+        if (lat.isNaN() || lon.isNaN()) return
+        val bbox = segmentBBox(range) ?: doubleArrayOf(lat, lat, lon, lon)
+        val midLat = (bbox[0] + bbox[1]) / 2.0
+        val midLon = (bbox[2] + bbox[3]) / 2.0
+        val coveredPx = overlayCoveredPx.coerceIn(0, maxOf(screenHeight, 0))
+        val marginPx = (MARKER_MARGIN_DP * projectionDpi / 160.0).roundToInt()
+        val fitMag = verifiedAreaFit(
+            bbox, midLat, midLon, screenWidth, screenHeight, projectionDpi,
+            minZoom = MIN_MAG, angleRad = _uiState.value.viewport.angle,
+            coveredPx = coveredPx, marginPx = marginPx
+        )
+        val targetMag = minOf(
+            maxOf(_uiState.value.viewport.magnification, MANOEUVRE_FOCUS_MAG),
+            fitMag
+        )
+        if (_uiState.value.viewport.magnification != targetMag) {
+            updateMagnification(targetMag)
+        }
+        // Put the segment's midpoint on the free band's centre, exactly as the overview fit does:
+        // centring it on the canvas put the lower part behind the card.
+        placeManoeuvreOnBand(midLat, midLon, coveredPx)
+        // The point and the box the placement is standing on, so a card that *grows* under the
+        // user (a longer instruction wraps to two lines) can be honoured without a re-fit.
+        manoeuvreFocusTarget = doubleArrayOf(midLat, midLon)
+        manoeuvreFocusBBox = bbox
+        // From here on the overlay's height changes must not trigger the overview re-fit: the min
+        // card grows and shrinks with the instruction text, and a re-fit would zoom away from the
+        // step the user is looking at (owner finding, 2026-10-03). The flag is cleared by any
+        // centre move — the overview fit's own `updateCenter` included, so a re-fit still wins.
+        manoeuvreFocusStanding = true
+        renderMap()
+        logSegmentFit(range, bbox, coveredPx, marginPx)
+    }
+
+    /**
+     * Where the analysed segment actually ended up, in pixels — the numbers behind "the segment is
+     * still not completely visible". Coordinate-free on purpose (spec: `auto-diagnostics`): step
+     * indices, the pixel box, the free band and the verdict, never a position.
+     */
+    private fun logSegmentFit(range: IntRange?, bbox: DoubleArray, coveredPx: Int, marginPx: Int) {
+        if (screenWidth <= 0 || screenHeight <= 0) return
+        val vp = _uiState.value.viewport
+        val projected = ProjectionUtils.viewport(
+            vp.centerLat, vp.centerLon, vp.magnification, screenWidth, screenHeight,
+            projectionDpi, vp.angle
+        )
+        var x0 = Double.MAX_VALUE
+        var x1 = -Double.MAX_VALUE
+        var y0 = Double.MAX_VALUE
+        var y1 = -Double.MAX_VALUE
+        for (lat in doubleArrayOf(bbox[0], bbox[1])) {
+            for (lon in doubleArrayOf(bbox[2], bbox[3])) {
+                val (x, y) = projected.geoToScreenRotated(lat, lon)
+                if (x < x0) x0 = x
+                if (x > x1) x1 = x
+                if (y < y0) y0 = y
+                if (y > y1) y1 = y
+            }
+        }
+        val bandBottom = screenHeight - coveredPx
+        val inside = x0 >= marginPx && x1 <= screenWidth - marginPx &&
+            y0 >= marginPx && y1 <= bandBottom - marginPx
+        Log.d(
+            TAG,
+            "segment focus: range=$range mag=${vp.magnification} covered=$coveredPx " +
+                "band=[0,$bandBottom] margin=$marginPx " +
+                "bboxPx=[${x0.toInt()},${x1.toInt()},${y0.toInt()},${y1.toInt()}] inside=$inside"
+        )
+    }
+
+    /**
+     * The card grew under a focused step: keep the user's zoom **unless the segment no longer
+     * fits**, in which case widen until it does (never narrow — a layout change must not zoom the
+     * user in), and re-place the step on the new band centre. Without this the analysed segment
+     * slid behind the taller card (owner finding, 2026-10-03: "segment still cut off").
+     */
+    private fun refitManoeuvreFocus(bbox: DoubleArray, midLat: Double, midLon: Double, coveredPx: Int) {
+        val marginPx = (MARKER_MARGIN_DP * projectionDpi / 160.0).roundToInt()
+        val fitMag = verifiedAreaFit(
+            bbox, midLat, midLon, screenWidth, screenHeight, projectionDpi,
+            minZoom = MIN_MAG, angleRad = _uiState.value.viewport.angle,
+            coveredPx = coveredPx, marginPx = marginPx
+        )
+        val current = _uiState.value.viewport.magnification
+        if (fitMag < current) updateMagnification(fitMag)
+        placeManoeuvreOnBand(midLat, midLon, coveredPx)
+        manoeuvreFocusStanding = true
+        renderMap()
+    }
+
+    /**
+     * Put the geo point ([midLat], [midLon]) on the centre of the free band the overlay leaves
+     * above it, at the *current* magnification: the point is projected with the viewport the map
+     * is drawing in and the point that sits half the covered height below the canvas centre
+     * becomes the new centre. No zoom is touched, so this is also what a card that grew under a
+     * focused step uses (the segment must stay visible, but the user's zoom must stay too).
+     */
+    private fun placeManoeuvreOnBand(midLat: Double, midLon: Double, coveredPx: Int) {
+        if (coveredPx > 0 && screenWidth > 0 && screenHeight > 0) {
+            val vp = ProjectionUtils.viewport(
+                midLat, midLon, _uiState.value.viewport.magnification,
+                screenWidth, screenHeight, projectionDpi, _uiState.value.viewport.angle
+            )
+            val (centerLat, centerLon) = vp.screenToGeoRotated(
+                screenWidth / 2.0, screenHeight / 2.0 + coveredPx / 2.0
+            )
+            updateCenter(centerLat, centerLon)
+        } else {
+            updateCenter(midLat, midLon)
+        }
+    }
+
+    /** Bounding box of the polyline vertices in [range], or null when there is nothing to fit. */
+    private fun segmentBBox(range: IntRange?): DoubleArray? {
+        // No range (no segment for the analysed step, e.g. the start line) means "no leg": the
+        // caller falls back to the step's own point, never to the whole route (a null range that
+        // fitted the entire polyline would zoom the user out to the route overview).
+        if (range == null) return null
+        val lats = routeLats ?: return null
+        val lons = routeLons ?: return null
+        if (lats.size != lons.size || lats.isEmpty()) return null
+        val first = range.first.coerceIn(0, lats.size - 1)
+        val last = range.last.coerceIn(first, lats.size - 1)
+        var minLat = Double.POSITIVE_INFINITY
+        var maxLat = Double.NEGATIVE_INFINITY
+        var minLon = Double.POSITIVE_INFINITY
+        var maxLon = Double.NEGATIVE_INFINITY
+        for (i in first..last) {
+            val la = lats[i]
+            val lo = lons[i]
+            if (la.isNaN() || lo.isNaN()) continue
+            if (la < minLat) minLat = la
+            if (la > maxLat) maxLat = la
+            if (lo < minLon) minLon = lo
+            if (lo > maxLon) maxLon = lo
+        }
+        if (minLat.isInfinite() || minLon.isInfinite()) return null
+        return doubleArrayOf(minLat, maxLat, minLon, maxLon)
+    }
+
+    /**
+     * True while the camera sits on an explicitly selected manoeuvre, so the overlay's height
+     * changes do not pull it back to the route overview. Cleared by any centre move (a user
+     * pan, a fit) — see [focusCameraOnManoeuvre] for why it is set last there.
+     */
+    private var manoeuvreFocusStanding = false
+
+    /**
+     * Covered height of the session overlay in pixels, as reported by the overlay itself
+     * (spec: `route-map-overview` — the fit uses the height the overlay reports for the
+     * state it is in). The phone card has fixed heights, so the report is stable. It is
+     * deliberately NOT a nominal fraction of the screen: the first implementation assumed
+     * 0.22 while the content-driven card covered 0.48, so the fit shifted 614 px too little
+     * and the destination end of the route stayed behind the card (device measurement,
+     * 2026-10-03: `fitViewportToRoute mag=10.0 coveredPx=528` with the card's top edge at
+     * y=1258).
+     */
+    private var overlayCoveredPx: Int = 0
+
+    /** Covered height the overview was last fitted for (guards a re-fit on a user move). */
+    private var lastFittedCoveredPx: Int = -1
+
+    /** The endpoints of the route currently drawn, for a re-fit when the card changes. */
+    private var routeFitEndpoints: DoubleArray? = null
+
+    /** The focused segment's bounding box and midpoint, for a card that grows under it. */
+    private var manoeuvreFocusBBox: DoubleArray? = null
+    private var manoeuvreFocusTarget: DoubleArray? = null
+
+    /**
+     * The session overlay reports the height it occupies: the fit shifts for exactly that
+     * many free-map pixels, and a change while a route is reviewed re-fits — so switching
+     * the card's state can never leave the route behind the card (spec:
+     * `route-map-overview`). Ignored while navigating or following, and ignored when the
+     * height did not change, so a user-moved viewport stays where the user put it.
+     */
+    fun setOverlayCoveredPx(px: Int) {
+        val clamped = px.coerceIn(0, maxOf(screenHeight, 0))
+        if (clamped == overlayCoveredPx) return
+        val grew = clamped > overlayCoveredPx
+        overlayCoveredPx = clamped
+        _uiState.value = _uiState.value.copy(overlayCoveredPx = clamped)
+        // Re-fit only when the card *grows*: a growing card can cover the route, while a
+        // shrinking one only frees map area — and a shrink accompanies an explicit step
+        // selection, whose manoeuvre focus must not be overridden by the overview fit (owner
+        // finding, 2026-10-03: the first page after selecting a row showed the overview
+        // instead of the manoeuvre, later pages were fine because the height had settled).
+        if (!grew) return
+        // A standing manoeuvre focus outranks the overview re-fit (it would zoom away from the
+        // step the user is looking at), but a card that grew *under* that step covers its lower
+        // part — the segment would be clipped again (owner finding, 2026-10-03: "segment still
+        // cut off"). So the focused step is re-placed on the new band centre at the same
+        // magnification: no zoom moves, nothing slides behind the card.
+        if (manoeuvreFocusStanding) {
+            val bbox = manoeuvreFocusBBox
+            val target = manoeuvreFocusTarget
+            if (bbox != null && target != null) {
+                refitManoeuvreFocus(bbox, target[0], target[1], clamped)
+            }
+            return
+        }
+        if (clamped == lastFittedCoveredPx) return
+        if (!canFitRouteOverview()) return
+        val lats = routeLats ?: return
+        val lons = routeLons ?: return
+        val endpoints = routeFitEndpoints ?: return
+        applyRouteOverviewFit(lats, lons, endpoints[0], endpoints[1], endpoints[2], endpoints[3])
+    }
+
+    /**
+     * True while a route-planning session holds the camera (spec:
+     * `route-planning-session` — Session holds the camera while active). No
+     * follow-driven camera move may run while a session is open, and the follow toggle
+     * is refused: the session owns the viewport until it ends.
+     */
+    internal fun sessionHoldsCamera(): Boolean =
+        _routePanelViewModel?.sessionState?.value?.let { it != RouteSessionState.INACTIVE } == true
+
     /** Update center latitude (called from gesture handler). */
     fun updateCenter(lat: Double, lon: Double) {
+        // Any centre move ends the "camera is on a manoeuvre" state: a user pan and the overview
+        // fit both land here (the manoeuvre focus sets the flag *after* its own call).
+        manoeuvreFocusStanding = false
         // Guard against corrupted gesture math (NaN/infinity or out-of-range
         // coordinates would make every subsequent render fail). Clamp to the
         // Mercator-valid latitude range — ±90 (the poles) breaks rendering.
@@ -3722,9 +4000,18 @@ class MapCanvasViewModel @Inject constructor(
         // Nothing usable (empty polyline and invalid endpoints).
         if (minLat.isInfinite() || minLon.isInfinite()) return
 
-        // Visible map area: the open route panel covers the bottom of the canvas.
-        val coveredPx = routePanelCoveredHeightPx.coerceIn(0, screenHeight)
+        // Free map area: the session's overlay reports the height it occupies for the
+        // state it is in, so the fit moves the camera for exactly those free-map pixels
+        // and no cross-surface measurement race exists (spec: `route-map-overview` — the
+        // fit uses the reported height, not a nominal fraction).
+        val coveredPx = overlayCoveredPx.coerceIn(0, screenHeight)
         if (coveredPx >= screenHeight) return
+
+        // The start and target markers are drawn as pins around their coordinate, so the fit
+        // keeps a marker-sized margin inside the free band: the verification used to accept a
+        // bbox *exactly* at the band's edge, which clipped half a pin (owner finding,
+        // 2026-10-03: "I would also expect start and end marker to be visible").
+        val markerMarginPx = (MARKER_MARGIN_DP * projectionDpi / 160.0).roundToInt()
 
         // Degenerate span (point/vertical/horizontal) degrades to NODE_ZOOM
         // inside computeAreaZoom — center still moves to the endpoints' midpoint.
@@ -3740,7 +4027,8 @@ class MapCanvasViewModel @Inject constructor(
         // than the north-up bbox suggests.
         val mag = verifiedAreaFit(
             bbox, midLat, midLon, screenWidth, screenHeight, projectionDpi,
-            minZoom = MIN_MAG, angleRad = angle, coveredPx = coveredPx
+            minZoom = MIN_MAG, angleRad = angle, coveredPx = coveredPx,
+            marginPx = markerMarginPx
         )
         // The camera center is drawn at the canvas center, so to put the bbox
         // midpoint on the visible-area center (coveredPx / 2 px above it) the
@@ -4207,10 +4495,21 @@ class MapCanvasViewModel @Inject constructor(
          *  Floor of 4 matches the gesture range and the specs (map-pan-zoom, map-rotation-gesture):
          *  lower zooms render huge world tiles natively (z=2 ~5s, z=1 hangs), stalling the render worker. */
         const val MIN_MAG = 4.0
+
+        /**
+         * Pixels the route overview keeps clear of the free band's edges, so the start and
+         * target marker pins are fully visible (owner finding, 2026-10-03).
+         */
+        const val MARKER_MARGIN_DP = 48.0
         /** Minimum magnification for the pinch/rotation gesture commit (keeps 4–20). */
         const val GESTURE_MIN_MAG = 4.0
         const val MAX_MAG = 20.0
-
+        /**
+         * Magnification an analysed route step is focused at (spec: `route-analysis` —
+         * "the magnification SHALL be close enough to see the junction the manoeuvre
+         * happens at"). A closer user zoom is kept, never reduced.
+         */
+        const val MANOEUVRE_FOCUS_MAG = 17.0
         /** Stylesheet flag selecting the daylight variant (`guidelines/MapRendering.md` section 15). */
         const val STYLE_FLAG_DAYLIGHT = "daylight"
 
@@ -4223,15 +4522,11 @@ class MapCanvasViewModel @Inject constructor(
 
         /** Clamp a magnification to the pinch/rotation gesture range (4–20). */
         fun clampGestureMagnification(mag: Double): Double = mag.coerceIn(GESTURE_MIN_MAG, MAX_MAG)
+
         private const val CANVAS_OVERRUN = 1.2
 
         /** Fixed zoom level for node-type favorites (points, POIs). */
         private const val NODE_ZOOM = 17.0
-
-        /** Settle delay before the route-overview fit applies (spec: route-map-overview,
-         *  Decision 8) — long enough for the route panel to report its final height. */
-        private const val ROUTE_FIT_SETTLE_DELAY_MS = 150L
-
         /** Meters per degree of latitude (spherical approximation, matches the fit math). */
         private const val METERS_PER_DEG_LAT = 111320.0
 

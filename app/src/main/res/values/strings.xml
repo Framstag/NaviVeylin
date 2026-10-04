@@ -132,6 +132,7 @@
     <string name="search_location">Search location</string>
     <string name="recenter_on_location">Re-center on location</string>
     <string name="route">Route</string>
+    <string name="route_with_destination">Route · %1$s</string>
     <string name="start_location">Start location</string>
     <string name="destination">Destination</string>
     <string name="swap_start_dest">Swap start and destination</string>
@@ -141,6 +142,8 @@
     <string name="vehicle_pedestrian">Pedestrian</string>
     <string name="calculate">Calculate</string>
     <string name="clear_route">Clear Route</string>
+    <!-- The session's explicit End action (spec: route-planning-session — the exits). -->
+    <string name="route_end_session">End analysis</string>
     <string name="calculating_route">Calculating route...</string>
     <string name="stop_navigation">Stop Navigation</string>
     <string name="navigation_notification_channel_name">Navigation</string>
@@ -160,12 +163,19 @@
     <string name="map_downloading">Downloading map…</string>
     <string name="navigation_notification_channel_car_name">Navigation (car)</string>
     <string name="navigation_notification_channel_car_description">Shows turn hints on the car screen while navigating</string>
+    <string name="route_step_previous">Previous manoeuvre</string>
+    <string name="route_step_next">Next manoeuvre</string>
+    <string name="route_step_none">No step selected</string>
+    <string name="route_step_progress">%1$d / %2$d</string>
     <string name="start_navigation">Start Navigation</string>
-    <string name="show_route">Show Route</string>
+    <string name="route_edit_endpoints">Change start &amp; target</string>
     <string name="route_calculation_failed">Route calculation failed</string>
     <string name="clear">Clear</string>
     <string name="route_summary">Route Summary</string>
     <string name="steps">Steps</string>
+    <string name="route_overlay_expand">Expand route panel</string>
+    <string name="route_overlay_collapse">Collapse route panel</string>
+    <string name="route_overlay_minimize">Minimize route panel</string>
     <string name="close">Close</string>
     <string name="no_favorites_yet">No favorites yet</string>
     <string name="eta">ETA</string>

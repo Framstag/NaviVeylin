@@ -107,6 +107,13 @@ travel while the map itself rotates at its own pace.
   position projects to the anchor. Projecting against the *frame's own* center leaves the marker
   ahead of the map content by exactly the blit offset (drifts, then snaps on the next commit).
   In browse (follow off) no offset is applied and the marker projects against `renderViewport`.
+- **Analysed-route-segment overlay (delta `route-planning-session`):** the analysed step's polyline
+  range is drawn by a Compose overlay (`ui/map/RouteSegmentHighlightOverlay.kt`) on the layer **above
+  the rendered frame and below the markers/pins** — the route itself stays in the native frame, so the
+  highlight must not be baked into it (a cached tile would carry a stale highlight). It projects with
+  `ProjectionUtils.viewport(...).geoToScreenRotated` against the **displayed frame's** viewport and takes
+  the same pan display offset and zoom-anchor scale as `LocationMarkerOverlay`, so it rides the content
+  on the tile path and the full-render path alike.
 - **Android Auto overlays are drawn INTO the surface** (`AutoMapRenderer.drawGpsMarker`,
   `drawDestinationMarker`), so they cannot pick a different viewport per overlay: the renderer
   remembers the offset the displayed frame was blitted by (`blitOffsetX/Y` — set in `blitToSurface`,

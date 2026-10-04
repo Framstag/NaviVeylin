@@ -123,6 +123,7 @@
     <string name="search_location">Ort suchen</string>
     <string name="recenter_on_location">Auf Standort zentrieren</string>
     <string name="route">Route</string>
+    <string name="route_with_destination">Route · %1$s</string>
     <string name="start_location">Startort</string>
     <string name="destination">Ziel</string>
     <string name="swap_start_dest">Start und Ziel tauschen</string>
@@ -132,6 +133,7 @@
     <string name="vehicle_pedestrian">Fußgänger</string>
     <string name="calculate">Berechnen</string>
     <string name="clear_route">Route löschen</string>
+    <string name="route_end_session">Analyse beenden</string>
     <string name="calculating_route">Route wird berechnet...</string>
     <string name="stop_navigation">Navigation beenden</string>
     <string name="navigation_notification_channel_name">Navigation</string>
@@ -144,12 +146,19 @@
     <string name="map_downloading">Karte wird heruntergeladen…</string>
     <string name="navigation_notification_channel_car_name">Navigation (Auto)</string>
     <string name="navigation_notification_channel_car_description">Zeigt während der Navigation Fahrtinformationen im Auto an</string>
+    <string name="route_step_previous">Vorheriger Schritt</string>
+    <string name="route_step_next">Nächster Schritt</string>
+    <string name="route_step_none">Kein Schritt ausgewählt</string>
+    <string name="route_step_progress">%1$d / %2$d</string>
     <string name="start_navigation">Navigation starten</string>
-    <string name="show_route">Route anzeigen</string>
+    <string name="route_edit_endpoints">Start/Ziel ändern</string>
     <string name="route_calculation_failed">Routenberechnung fehlgeschlagen</string>
     <string name="clear">Löschen</string>
     <string name="route_summary">Routenzusammenfassung</string>
     <string name="steps">Schritte</string>
+    <string name="route_overlay_expand">Routenfenster aufklappen</string>
+    <string name="route_overlay_collapse">Routenfenster zuklappen</string>
+    <string name="route_overlay_minimize">Routenfenster minimieren</string>
     <string name="close">Schließen</string>
     <string name="no_favorites_yet">Noch keine Favoriten</string>
     <string name="eta">Ankunft</string>

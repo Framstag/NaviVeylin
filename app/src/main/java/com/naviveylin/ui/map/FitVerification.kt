@@ -30,6 +30,9 @@ import com.naviveylin.core.ProjectionUtils
  * @param mag magnification to test (fractional values allowed)
  * @param angleRad viewport rotation in radians; 0 for a north-locked map
  * @param coveredPx height in pixels a sheet covers at the bottom of the canvas (0 = none)
+ * @param marginPx pixels the bbox must stay clear of the band's edges; markers are drawn as
+ *   pins *around* their coordinate, so an exact bbox fit clips half a pin (the route overview
+ *   passes a marker margin, the other fits keep 0)
  */
 internal fun fitsVisibleArea(
     bbox: DoubleArray,
@@ -40,7 +43,8 @@ internal fun fitsVisibleArea(
     height: Int,
     dpi: Double,
     angleRad: Double = 0.0,
-    coveredPx: Int = 0
+    coveredPx: Int = 0,
+    marginPx: Int = 0
 ): Boolean {
     if (bbox.size < 4) return false
     if (width <= 0 || height <= 0) return false
@@ -54,8 +58,8 @@ internal fun fitsVisibleArea(
         val lat = bbox[latIndex]
         for (lonIndex in 2..3) {
             val (x, y) = vp.geoToScreenRotated(lat, bbox[lonIndex])
-            if (x < 0.0 || x > width.toDouble()) return false
-            if (y < bandTop || y > bandBottom) return false
+            if (x < marginPx.toDouble() || x > width.toDouble() - marginPx) return false
+            if (y < bandTop + marginPx || y > bandBottom - marginPx) return false
         }
     }
     return true
@@ -98,19 +102,24 @@ internal fun verifiedAreaFit(
     dpi: Double,
     minZoom: Double,
     angleRad: Double = 0.0,
-    coveredPx: Int = 0
+    coveredPx: Int = 0,
+    marginPx: Int = 0
 ): Double {
     val visibleHeight = height - coveredPx
-    // Unknown canvas or a fully covered one: nothing to verify against, so keep
-    // computeAreaZoom's own degenerate answer (its NODE_ZOOM / clamp paths) and
-    // leave the decision to the caller, which guards these cases itself.
-    if (width <= 0 || height <= 0 || visibleHeight <= 0) {
+    val innerWidth = width - 2 * marginPx
+    val innerHeight = visibleHeight - 2 * marginPx
+    // Unknown canvas, a fully covered one, or no room inside the margin: nothing to verify
+    // against, so keep computeAreaZoom's own degenerate answer (its NODE_ZOOM / clamp paths)
+    // and leave the decision to the caller, which guards these cases itself.
+    if (width <= 0 || height <= 0 || visibleHeight <= 0 || innerWidth <= 0 || innerHeight <= 0) {
         return MapCanvasViewModel.computeAreaZoom(bbox, width, height, minZoom, dpi)
     }
 
-    var mag = MapCanvasViewModel.computeAreaZoom(bbox, width, visibleHeight, minZoom, dpi)
+    var mag = MapCanvasViewModel.computeAreaZoom(bbox, innerWidth, innerHeight, minZoom, dpi)
     while (mag > minZoom &&
-        !fitsVisibleArea(bbox, cameraLat, cameraLon, mag, width, height, dpi, angleRad, coveredPx)
+        !fitsVisibleArea(
+            bbox, cameraLat, cameraLon, mag, width, height, dpi, angleRad, coveredPx, marginPx
+        )
     ) {
         mag -= 1.0
     }

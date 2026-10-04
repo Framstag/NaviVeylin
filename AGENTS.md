@@ -226,6 +226,36 @@ quote `§N`). Three skills own the file:
 | `cleanup-todo` | remove entries already implemented on master / in an archived change / in a merged PR, repair the metadata, optionally cluster |
 | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
 
+## Agent iteration loop (measure first)
+
+Three rules come from a change whose single visual symptom ("the segment is still not
+completely visible") needed nine review rounds — the rounds themselves, not the bug, were the
+cost (`ki_processing_failures.log`):
+
+1. **Measure before changing code.** A symptom that lives in pixels cannot be settled by reading
+   projection/fit/layout code. Add a coordinate-free diagnostics line (numbers — indices, pixels,
+   band, verdict — never a position, spec `auto-diagnostics`), run it on the device, read the
+   numbers; for anything a screenshot shows, *measure* the screenshot with
+   `tools/measure-highlight.py` (`pixel-check` skill, detector self-tested with ImageMagick, no
+   device needed). If the model says `inside=true` and the pixels say `CLIPPED`, the disagreement
+   between model and rendering is the bug.
+2. **Iterate with focused suites, gate once.**
+   `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.route.*"` (~3 min) per edit;
+   the full both-flavor gate with `--rerun-tasks` once before the commit (~16 min). Running the
+   full gate per finding is what made a round cost an hour.
+3. **Batch independent questions.** `ask_user` takes 2–4 independent questions in one call; serial
+   one-question rounds each cost a full owner round trip. Ask for the *observation* (where, when)
+   before proposing a cause.
+
+Skills for this: `device-check` (one reusable device loop: dump/tap discipline, logcat tags,
+geometry as evidence), `pixel-check` (screenshot measurement), `provision-phone-emulator`
+(AVD with maps), plus `build-app`/`run-tests`/`revert-check` for the gate.
+
+`.pi/` is gitignored — the skills are local tooling. A rule that must survive a fresh clone or
+another agent therefore belongs in **this file**, in `openspec/config.yaml` or in
+`guidelines/*.md`; the *tools* a skill uses belong in the repo (`tools/measure-highlight.py`,
+with a self-test that runs without a device).
+
 ## OpenSpec Workflow
 
 This project uses OpenSpec with the `spec-driven` schema:

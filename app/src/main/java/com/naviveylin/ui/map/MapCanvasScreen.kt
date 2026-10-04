@@ -93,6 +93,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -110,7 +111,6 @@ import com.naviveylin.ui.route.ActiveField
 import com.naviveylin.ui.route.FavoritePickerDialog
 import com.naviveylin.ui.route.RoutePanel
 import com.naviveylin.ui.route.RoutePanelViewModel
-import com.naviveylin.ui.route.RouteSummaryDialog
 import com.naviveylin.ui.route.elapsedTimePercent
 import com.naviveylin.ui.route.routeProgressPercent
 import com.framstag.libosmscout.client.LocationEntry
@@ -1447,8 +1447,22 @@ fun MapCanvasScreen(
                     // (spec: canvas-overrun — Overrun window shift for pan). Exactly one
                     // of the two is non-zero: a pan disengages follow mode, and the
                     // follow display loop resets its offsets whenever follow is off.
-                    val displayOffsetX = if (followActive) followOffsetX else panOffsetX
-                    val displayOffsetY = if (followActive) followOffsetY else panOffsetY
+                    //
+                    // A route-planning session that holds the camera (spec:
+                    // `route-planning-session` — Session holds the camera while active) draws
+                    // with **no** offset: the session's fits (route overview, analysed segment)
+                    // place the content in the free area by the viewport alone, so a follow
+                    // drift offset of up to the overrun margin (240 px here) would shift the
+                    // drawn frame and the overlays away from what the fit computed — the
+                    // analysed leg looked centred in the model and sat off-centre/clipped at
+                    // the bottom or a side on the device (owner finding, 2026-10-03).
+                    val sessionOwnsViewport = viewModel.sessionHoldsCamera()
+                    val displayOffsetX = followDisplayOffset(
+                        followActive, sessionOwnsViewport, followOffsetX, panOffsetX
+                    )
+                    val displayOffsetY = followDisplayOffset(
+                        followActive, sessionOwnsViewport, followOffsetY, panOffsetY
+                    )
 
                     state.renderedBitmap?.let { bitmap ->
                         // Overrun frame: drawn at natural size, positioned by the
@@ -1473,6 +1487,30 @@ fun MapCanvasScreen(
                             )
                         }
                     }
+                }
+
+                // Analysed route step (spec: route-analysis): the polyline range the
+                // selected step owns, drawn on a layer ABOVE the rendered frame and
+                // BELOW the markers/pins, so the route's own paint stays visible around
+                // the highlight and no pin is hidden. Same viewport source as the
+                // markers (the displayed bitmap), and the same pan/zoom display
+                // transform, so the highlight rides the map content it belongs to.
+                if (state.renderedBitmap != null) {
+                    RouteSegmentHighlightOverlay(
+                        polylineLats = routeState.routeEntry?.latitudes,
+                        polylineLons = routeState.routeEntry?.longitudes,
+                        segment = routeState.analysedSegment,
+                        viewport = state.renderViewport,
+                        dpi = context.resources.displayMetrics.densityDpi.toDouble(),
+                        dark = state.isDarkPresentation,
+                        modifier = Modifier.graphicsLayer {
+                            val shift = markerDisplayShiftPx(followActive, panOffsetX, panOffsetY)
+                            translationX = shift.first
+                            translationY = shift.second
+                        },
+                        zoomScale = zoomAnimScale,
+                        zoomAnchor = zoomAnchor
+                    )
                 }
 
                 // GPS marker is rendered as a Compose overlay on top of the rendered map,
@@ -1582,6 +1620,9 @@ fun MapCanvasScreen(
                 if (!navState.isNavigating) {
                     MapRightWidgetColumn(
                         isLandscape = true,
+                        bottomInset = with(LocalDensity.current) {
+                            state.overlayCoveredPx.toDp()
+                        },
                         mapAngleRadians = state.viewport.angle,
                         gpsFixQuality = state.gpsFixQuality,
                         isDarkPresentation = state.isDarkPresentation,
@@ -1719,6 +1760,9 @@ fun MapCanvasScreen(
                 if (!navState.isNavigating) {
                     MapRightWidgetColumn(
                         isLandscape = false,
+                        bottomInset = with(LocalDensity.current) {
+                            state.overlayCoveredPx.toDp()
+                        },
                         mapAngleRadians = state.viewport.angle,
                         gpsFixQuality = state.gpsFixQuality,
                         isDarkPresentation = state.isDarkPresentation,
@@ -1995,15 +2039,50 @@ fun MapCanvasScreen(
             )
         }
 
-        // Route panel — hidden when summary dialog is shown
-        if (state.showRoutePanel && !routeState.showSummaryDialog) {
-            RoutePanel(
+        // The session card lives in the map's own window since the 2026-10-03 revision
+        // (design D10), so the screen owns its dismissal: system back on a composed card is
+        // the session's cancel exit (`dismissRoutePanel` → `endSession`; spec:
+        // `route-planning-session` — the session's exits, `map-canvas-screen` — back dismisses
+        // the topmost overlay). The deleted Material3 sheet brought its own back handler;
+        // without this one, back would fall through to the activity. At the hidden anchor the
+        // card is not composed (only the pill, which is not a dismissible overlay), so back
+        // keeps the behaviour it had there and is not captured.
+        BackHandler(
+            enabled = state.showRoutePanel &&
+                routeState.overlayAnchor != com.naviveylin.ui.route.RouteOverlayAnchor.HIDDEN
+        ) { viewModel.dismissRoutePanel() }
+
+        // Route panel — the session's single surface (design D10)
+        if (state.showRoutePanel) {
+            if (routeState.overlayAnchor == com.naviveylin.ui.route.RouteOverlayAnchor.HIDDEN) {
+                // Hidden anchor: only the route-ready affordance remains and the whole map
+                // is free for analysis (spec: route-planning-session — anchors). The card
+                // covers nothing, so the overview fit is told exactly that.
+                LaunchedEffect(Unit) { viewModel.setOverlayCoveredPx(0) }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomStart
+                ) {
+                    com.naviveylin.ui.route.RouteReadyPill(
+                        routeEntry = routeState.routeEntry,
+                        onExpand = {
+                            routePanelViewModel.setOverlayAnchor(
+                                com.naviveylin.ui.route.RouteOverlayAnchor.EXPANDED
+                            )
+                        },
+                        modifier = Modifier.padding(start = 16.dp, bottom = 32.dp)
+                    )
+                }
+            } else {
+                RoutePanel(
                 viewModel = routePanelViewModel,
                 onOpenFavoritePicker = { field ->
                     favoritePickerField = field
                     showFavoritePicker = true
                 },
-                onDismiss = { viewModel.dismissRoutePanel() },
+                // The card reports the height it covers — the fit uses that number and
+                // re-runs when it changes (spec: `route-map-overview`).
+                onOverlayHeightChanged = { viewModel.setOverlayCoveredPx(it) },
                 onStartNavigation = {
                     val entry = routeState.routeEntry
                     if (entry != null) {
@@ -2018,11 +2097,9 @@ fun MapCanvasScreen(
                     routePanelViewModel.clearRouteFromMap() },
                 isNavigating = navState.isNavigating,
                 centerLat = state.viewport.centerLat,
-                centerLon = state.viewport.centerLon,
-                // Covered-height source for the route overview fit (spec:
-                // route-map-overview, Decision 8).
-                canvasHeightPx = canvasSize.height
+                centerLon = state.viewport.centerLon
             )
+            }
         }
 
         // Favorite picker dialog (for route field selection)
@@ -2116,28 +2193,6 @@ fun MapCanvasScreen(
                 }
             )
         }
-        // Route summary overlay — slides up from bottom, covers full screen
-
-        if (routeState.showSummaryDialog && routeState.routeEntry != null) {
-            RouteSummaryDialog(
-                routeEntry = routeState.routeEntry!!,
-                steps = routeState.routeSteps,
-                activeStepIndex = if (navState.isNavigating) navState.currentStepIndex else null,
-                onStartNavigation = {
-                    navigationViewModel.start(routeState.routeEntry!!, routeState.vehicle)
-                    routePanelViewModel.dismissSummaryDialog()
-                    routePanelViewModel.setNavigating(true)
-                },
-                onStopNavigation = { navigationViewModel.stopNavigation()
-                    routePanelViewModel.setNavigating(false)
-                    routePanelViewModel.clearRouteFromMap() },
-                isNavigating = navState.isNavigating,
-                onDismiss = {
-                    routePanelViewModel.dismissSummaryDialog()
-                    viewModel.openRoutePanelWithStart(null)
-                }
-            )
-        }
     
         // Free-driving street label (spec: current-road-info): bottom-center
         // pill by default, top-center when the active follow anchor preset is
@@ -2218,6 +2273,9 @@ fun MapCanvasScreen(
                         Spacer(modifier = Modifier.weight(1f))
                         MapRightWidgetColumn(
                             isLandscape = isLandscape,
+                            bottomInset = with(LocalDensity.current) {
+                                state.overlayCoveredPx.toDp()
+                            },
                             mapAngleRadians = state.viewport.angle,
                             gpsFixQuality = state.gpsFixQuality,
                             isDarkPresentation = state.isDarkPresentation,
@@ -2530,6 +2588,21 @@ private fun DrawScope.drawFrontFrame(
         }
     }
 }
+
+/**
+ * The offset the frame on screen is drawn with: the follow drift while follow mode is active,
+ * the pan overrun window otherwise — and **neither** while a route-planning session holds the
+ * camera, because the session's fits place their content by the viewport alone. Leaving the follow
+ * drift in place shifted the drawn frame (and the overlays, which share this offset) by up to the
+ * overrun margin away from what the fit computed: the analysed leg was centred in the model and
+ * off-centre or short of the bottom/a side on the device (owner finding, 2026-10-03).
+ */
+internal fun followDisplayOffset(
+    followActive: Boolean,
+    sessionOwnsViewport: Boolean,
+    followOffset: Float,
+    panOffset: Float
+): Float = if (followActive && !sessionOwnsViewport) followOffset else panOffset
 
 /**
  * Screen-space translation for the map-anchored overlays in the current display
@@ -2921,13 +2994,22 @@ internal fun MapRightWidgetColumn(
     driveToggle: (@Composable () -> Unit)? = null,
     reserveSpeedSlot: Boolean = false,
     overspeedWarningDeltaKmh: Int = 5,
+    /**
+     * Height of the session overlay currently composed, so the column sits **above** it
+     * (spec: `phone-align-controls-in-all-modes` — the right-side controls keep their stack
+     * and position in every variant, and a bottom overlay never covers them; owner finding,
+     * 2026-10-03: the min strip covered the zoom-out button).
+     */
+    bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
     modifier: Modifier = Modifier
 ) {
     // Read the probe outside the size-change lambda: a CompositionLocal can only be
     // read from composable scope.
     val measuredWidthProbe = LocalOverlayWidthProbe.current
     Column(
-        modifier = modifier.onSizeChanged { measuredWidthProbe(it.width) },
+        modifier = modifier
+            .onSizeChanged { measuredWidthProbe(it.width) }
+            .padding(bottom = bottomInset),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         MapCompassBlock(

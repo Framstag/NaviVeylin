@@ -2,21 +2,34 @@ package com.naviveylin.ui.route
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapVert
@@ -30,27 +43,41 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.Vehicle
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import com.naviveylin.R
 import com.naviveylin.core.ResultMarkings
 import com.naviveylin.core.search.ResultMarking
@@ -58,72 +85,189 @@ import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchResultRanker
 import com.naviveylin.util.formatDistanceKm
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
+
+/**
+ * Whether the session's overlay docks to the side instead of using the phone card
+ * (spec: `route-planning-session` — Overlay docks when width allows). Extracted pure so
+ * the placement rule is unit-testable; the host test window cannot be made wide without
+ * changing the Robolectric sandbox, which the JNI stub's classloader rule forbids.
+ */
+internal fun useDockedPanel(widthPx: Float, heightPx: Float): Boolean = widthPx > heightPx
+
+/**
+ * Share of the screen height the phone card takes when expanded, so the map keeps the
+ * other 55 % for the route (spec: `route-planning-session` — anchors; design D8/D10).
+ */
+internal const val EXPANDED_CARD_FRACTION = 0.45f
+
+/** Share the min card takes: only the analysed step, so the map keeps most of the screen. */
+internal const val COMPACT_CARD_FRACTION = 0.18f
+
+/** Cap for the min card, so a tall screen does not hand it more than one line's height. */
+private const val COMPACT_CARD_MAX_DP = 160f
+
+/** Room the pinned action band needs at the card's bottom edge (action row + bottom padding). */
+private const val ACTIONS_BAND_DP = 120f
+
+/** Test tag of the phone card, so a test can assert where it sits on the screen. */
+const val ROUTE_PANEL_CARD_TAG = "routePanelCard"
+
+/**
+ * The phone card's height for [anchor] on a screen [screenHeightDp] dp tall. Deterministic
+ * on purpose (design D8): the first implementation let the content decide, and the same
+ * panel then covered 36 % (edit) or 48 % (route) under a fit that assumed 22 % — 614 px of
+ * the route sat behind the card on the device (2026-10-03).
+ */
+internal fun phoneCardHeightDp(anchor: RouteOverlayAnchor, screenHeightDp: Float): Float =
+    when (anchor) {
+        RouteOverlayAnchor.EXPANDED -> screenHeightDp * EXPANDED_CARD_FRACTION
+        RouteOverlayAnchor.COMPACT ->
+            minOf(COMPACT_CARD_MAX_DP, screenHeightDp * COMPACT_CARD_FRACTION)
+        RouteOverlayAnchor.HIDDEN -> 0f
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoutePanel(
     viewModel: RoutePanelViewModel,
     onOpenFavoritePicker: (ActiveField) -> Unit,
-    onDismiss: () -> Unit,
     onStartNavigation: () -> Unit = {},
     onStopNavigation: () -> Unit = {},
+    onOverlayHeightChanged: (Int) -> Unit = {},
     isNavigating: Boolean = false,
     centerLat: Double,
-    centerLon: Double,
-    /** Height of the map canvas in pixels; 0 while unknown (no reporting then). */
-    canvasHeightPx: Int = 0
+    centerLon: Double
 ) {
     val state by viewModel.uiState.collectAsState()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    // One read of "navigation is active" for the whole panel: the screen passes the
+    // navigation view model's value, the session carries its own flag, and the panel
+    // must never offer an edit while either says navigation is running (spec:
+    // route-planning-session — Reviewing a route during navigation is read-only).
+    val navigationActive = isNavigating || state.isNavigating
+    // The session owns the anchor (spec: route-planning-session — Session overlay anchors)
+    // and the content follows it. Each anchor is a *fixed* card height, not a sheet
+    // position: Material3's partially expanded anchor is a fraction of the content, so it
+    // cannot express "compact" — the device measured 36 % (edit) and 48 % (route) for what
+    // the session called compact, and ~97 % expanded, which hid the map entirely and left
+    // the overview fit (nominal 0.22) 614 px short (2026-10-03; design D8).
+    val anchor = state.overlayAnchor
+    val compact = anchor != RouteOverlayAnchor.EXPANDED
 
-    // Report the sheet's covered height (px) so the map fits the route overview
-    // into the visible area above the panel (spec: route-map-overview, Decision 8).
-    // `SheetState.offset` is internal in Material3; requireOffset() is the public
-    // equivalent and is measured against the sheet's window, which the
-    // edge-to-edge map canvas fills, so the covered height is
-    // canvasHeight - offset (Hidden anchor = canvasHeight, Expanded = canvas - sheet).
-    LaunchedEffect(sheetState, canvasHeightPx) {
-        if (canvasHeightPx <= 0) return@LaunchedEffect
-        snapshotFlow { runCatching { sheetState.requireOffset() }.getOrNull() }
-            .filterNotNull()
-            .map { offset -> (canvasHeightPx - offset).roundToInt().coerceIn(0, canvasHeightPx) }
-            .distinctUntilChanged()
-            .collect { viewModel.setSheetCoveredHeightPx(it) }
-    }
-    // A disposed panel covers nothing — the map fits the full canvas again.
-    DisposableEffect(Unit) {
-        onDispose { viewModel.setSheetCoveredHeightPx(0) }
-    }
     // The map center is the search reference fallback when no GPS fix exists
     // (spec: search-result-ranking — distance reference).
     LaunchedEffect(centerLat, centerLon) {
         viewModel.setFallbackSearchCenter(centerLat, centerLon)
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
+    // The session's content is one composable used by both frames: the phone's fixed-height
+    // card and the docked side panel of a wide layout (spec: route-planning-session —
+    // Overlay docks when width allows). [docked] decides the wide-only content: the
+    // selectable step list and the vehicle selector stay out of the phone card, whose map
+    // area they would eat (design D10 — the phone has no list surface).
+    val body: @Composable (Boolean) -> Unit = { docked ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp)
         ) {
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ---- Title with the anchored-overlay controls ----
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        // The header already carries the destination while a route is on screen: the
+                        // card's height belongs to the list, so the title row is the one place that
+                        // is always visible (owner request, 2026-10-03).
+                        text = state.destLocation?.label?.takeIf { it.isNotEmpty() }
+                            ?.let { stringResource(R.string.route_with_destination, it) }
+                            ?: stringResource(R.string.route),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag("routeHeaderTitle")
+                    )
+                    // …and the two statistics on their own line, smaller (owner request,
+                    // 2026-10-03: the single dense line was hard to read). They used to be the
+                    // list's headline block, which cost ~90 dp of the card's height.
+                    state.routeEntry?.let { route ->
+                        Text(
+                            text = stringResource(
+                                if (com.naviveylin.core.distanceUsesKilometers(route.distance)) {
+                                    R.string.distance_unit_km
+                                } else {
+                                    R.string.distance_unit_m
+                                },
+                                com.naviveylin.core.formatDistanceNumber(route.distance)
+                            ) + " · " + com.naviveylin.core.formatDurationText(route.duration),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            modifier = Modifier.testTag("routeHeaderStats")
+                        )
+                    }
+                }
+                if (compact) {
+                    IconButton(
+                        onClick = { viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED) },
+                        modifier = Modifier.testTag("routeOverlayExpand")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = stringResource(R.string.route_overlay_expand)
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = { viewModel.setOverlayAnchor(RouteOverlayAnchor.COMPACT) },
+                        modifier = Modifier.testTag("routeOverlayCollapse")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = stringResource(R.string.route_overlay_collapse)
+                        )
+                    }
+                }
+                // Minimizing leaves the map entirely free; the route-ready affordance
+                // brings the overlay back (spec: anchors — hidden).
+                IconButton(
+                    onClick = { viewModel.setOverlayAnchor(RouteOverlayAnchor.HIDDEN) },
+                    modifier = Modifier.testTag("routeOverlayMinimize")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.route_overlay_minimize)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ---- Title ----
-            Text(
-                text = stringResource(R.string.route),
-                style = MaterialTheme.typography.titleLarge
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // Reading a calculated route: the two editable field rows collapse into one line,
+            // because the card's fixed height belongs to the route list (owner directive,
+            // 2026-10-03 — the list has to start on screen; the device run showed its header
+            // at the very fold). Tapping the line opens the fields for editing. While a field
+            // is being edited, or before a route exists, the fields render as usual.
+            val showRouteBar = !docked && state.routeEntry != null &&
+                state.activeField == ActiveField.NONE
+            if (showRouteBar) {
+                Text(
+                    text = "${state.startLocation?.label.orEmpty()}  →  " +
+                        state.destLocation?.label.orEmpty(),
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.setActiveField(ActiveField.DEST) }
+                        .padding(vertical = 6.dp)
+                        .testTag("routeBar")
+                )
+            } else {
             // ---- Fields with the swap button to the right, vertically
             // centered between start and destination ----
             Row(
@@ -141,6 +285,10 @@ fun RoutePanel(
                         value = startFieldValue,
                         placeholder = stringResource(R.string.start_location),
                         isActive = state.activeField == ActiveField.START,
+                        requestFocus = state.activeField == ActiveField.START,
+                        // Reviewing an active navigation is read-only (spec:
+                        // route-planning-session — Reviewing a route during navigation).
+                        enabled = !navigationActive,
                         onFocus = { viewModel.setActiveField(ActiveField.START) },
                         onBlur = {
                             if (viewModel.uiState.value.activeField == ActiveField.START) {
@@ -182,6 +330,8 @@ fun RoutePanel(
                         value = destFieldValue,
                         placeholder = stringResource(R.string.destination),
                         isActive = state.activeField == ActiveField.DEST,
+                        requestFocus = state.activeField == ActiveField.DEST,
+                        enabled = !navigationActive,
                         onFocus = { viewModel.setActiveField(ActiveField.DEST) },
                         onBlur = {
                             if (viewModel.uiState.value.activeField == ActiveField.DEST) {
@@ -225,58 +375,119 @@ fun RoutePanel(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // ---- Vehicle selector ----
-            Text(
-                text = stringResource(R.string.vehicle),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                VehicleButton(
-                    label = stringResource(R.string.vehicle_car),
-                    selected = state.vehicle == Vehicle.CAR,
-                    onClick = { viewModel.setVehicle(Vehicle.CAR) }
-                )
-                VehicleButton(
-                    label = stringResource(R.string.vehicle_bicycle),
-                    selected = state.vehicle == Vehicle.BICYCLE,
-                    onClick = { viewModel.setVehicle(Vehicle.BICYCLE) }
-                )
-                VehicleButton(
-                    label = stringResource(R.string.vehicle_pedestrian),
-                    selected = state.vehicle == Vehicle.PEDESTRIAN,
-                    onClick = { viewModel.setVehicle(Vehicle.PEDESTRIAN) }
-                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // The vehicle selector is a pre-calculation control: once a route exists it makes
+            // room for the route list (owner directive: MAX shows the list, and the list has to
+            // start on screen), so it stays visible while editing and in the docked layout,
+            // which has the height for both.
+            if (docked || state.routeEntry == null) {
+                // ---- Vehicle selector ----
+                Text(
+                    text = stringResource(R.string.vehicle),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    VehicleButton(
+                        label = stringResource(R.string.vehicle_car),
+                        selected = state.vehicle == Vehicle.CAR,
+                        onClick = { viewModel.setVehicle(Vehicle.CAR) }
+                    )
+                    VehicleButton(
+                        label = stringResource(R.string.vehicle_bicycle),
+                        selected = state.vehicle == Vehicle.BICYCLE,
+                        onClick = { viewModel.setVehicle(Vehicle.BICYCLE) }
+                    )
+                    VehicleButton(
+                        label = stringResource(R.string.vehicle_pedestrian),
+                        selected = state.vehicle == Vehicle.PEDESTRIAN,
+                        onClick = { viewModel.setVehicle(Vehicle.PEDESTRIAN) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+        }
+    }
+
+    // The phone's step list is the MAX card's content (owner directive 2026-10-03): the rows
+    // scroll inside the card, a tap analyses that step and collapses the card to MIN, and the
+    // analysed step stays marked, so the map shows its manoeuvre and highlighted segment next.
+    // It brings the headline distance and duration with it, which is where the phone shows
+    // them (spec: `route-analysis` — Step selection).
+    val bodyList: @Composable () -> Unit = {
+        if (state.routeEntry != null && state.routeSteps.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            RouteSummary(
+                routeEntry = state.routeEntry!!,
+                steps = state.routeSteps,
+                activeStepIndex = if (navigationActive) state.activeStepIndex else null,
+                // The card's header carries the two statistics, so the list does not repeat them
+                // (owner choice, 2026-10-03).
+                showStats = false,
+                // The card scrolls as a whole; a nested vertical scrollable would be measured
+                // with an infinite height inside it (found by the MAX tests, 2026-10-03).
+                scrollable = false,
+                analysedStepIndex = state.analysedStepIndex,
+                onStepSelected = { index ->
+                    viewModel.analyseStep(index)
+                    viewModel.setOverlayAnchor(RouteOverlayAnchor.COMPACT)
+                }
+            )
+        }
+    }
+
+    // The session's actions are their own element, pinned to the card's bottom edge instead
+    // of living inside the scrolling content: with a fixed card height the device run
+    // (2026-10-03) left "Navigation starten" below the card's fold, so the primary control
+    // was unreachable without scrolling the card. The docked layout keeps them in flow (its
+    // whole column scrolls) and its step list follows them.
+    val bodyActions: @Composable (Boolean) -> Unit = { docked ->
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp)
+        ) {
             // ---- Action buttons ----
             when (state.routeState) {
                 is RouteState.Idle -> {
-                    Button(
-                        onClick = { viewModel.calculateRoute() },
-                        enabled = state.startLocation != null && state.destLocation != null &&
-                                state.startLocation!!.label.isNotEmpty() &&
-                                state.destLocation!!.label.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.calculate))
-                    }
-
-                    if (state.routeEntry != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { viewModel.clearRoute() },
-                            modifier = Modifier.fillMaxWidth()
+                    // Read-only review during navigation: no calculate, no clear
+                    // (spec: route-planning-session).
+                    if (!navigationActive) {
+                        // The two actions share one row: the card is a fixed-height share of
+                        // the screen, and stacked full-width buttons pushed the statistics
+                        // (and the primary action itself) out of the card on the device
+                        // (2026-10-03).
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(stringResource(R.string.clear_route))
+                            Button(
+                                onClick = { viewModel.calculateRoute() },
+                                enabled = state.startLocation != null && state.destLocation != null &&
+                                        state.startLocation!!.label.isNotEmpty() &&
+                                        state.destLocation!!.label.isNotEmpty(),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(R.string.calculate))
+                            }
+
+                            if (state.routeEntry != null) {
+                                OutlinedButton(
+                                    onClick = { viewModel.clearRoute() },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(stringResource(R.string.clear_route))
+                                }
+                            }
                         }
                     }
                 }
@@ -306,55 +517,106 @@ fun RoutePanel(
                 }
 
                 is RouteState.Done -> {
-                    // Calculate stays visible for recalculation; Start/Stop
-                    // Navigation sits between Calculate and the inline summary
-                    // (spec: move-routing-summary).
-                    Button(
-                        onClick = { viewModel.calculateRoute() },
-                        enabled = state.startLocation != null && state.destLocation != null &&
-                                state.startLocation!!.label.isNotEmpty() &&
-                                state.destLocation!!.label.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth()
+                    // With a route on screen the endpoints are what a max view can change:
+                    // "Berechnen" only recalculated the same route (owner finding, 2026-10-03),
+                    // so the secondary action opens the start/target fields instead. The
+                    // primary action starts navigation; both share one row.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(stringResource(R.string.calculate))
+                        if (!navigationActive) {
+                            // Reviewing: the endpoints are what can change, so the secondary
+                            // action opens the fields. While a field is being edited the same
+                            // slot is the calculation again (otherwise a changed destination
+                            // could not be recalculated at all).
+                            if (state.activeField == ActiveField.NONE) {
+                                OutlinedButton(
+                                    onClick = { viewModel.setActiveField(ActiveField.DEST) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(stringResource(R.string.route_edit_endpoints))
+                                }
+                            } else {
+                                Button(
+                                    onClick = { viewModel.calculateRoute() },
+                                    enabled = state.startLocation != null &&
+                                            state.destLocation != null &&
+                                            state.startLocation!!.label.isNotEmpty() &&
+                                            state.destLocation!!.label.isNotEmpty(),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(stringResource(R.string.calculate))
+                                }
+                            }
+                        }
+                        if (navigationActive) {
+                            Button(
+                                onClick = onStopNavigation,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(R.string.stop_navigation))
+                            }
+                        } else {
+                            Button(
+                                onClick = onStartNavigation,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(R.string.start_navigation))
+                            }
+                        }
+                    }
+                    // The way *out* of the session without starting navigation (owner finding,
+                    // 2026-10-03: "I do not see how I can leave the stateful route analysis
+                    // without starting the navigation"). The header's close only minimises
+                    // (the route stays, the pill brings it back) and "Start/Ziel ändern" keeps
+                    // the session too, so the session's own exit needs its own labelled control
+                    // (spec: route-planning-session — the exits are Start Navigation and
+                    // Cancel/End). It is a text button on its own line: three buttons in one row
+                    // would clip their labels at phone width.
+                    if (!navigationActive) {
+                        TextButton(
+                            onClick = { viewModel.endSession() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("routeEndSession")
+                        ) {
+                            Text(stringResource(R.string.route_end_session))
+                        }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    if (isNavigating) {
-                        Button(
-                            onClick = onStopNavigation,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(stringResource(R.string.stop_navigation))
-                        }
-                    } else {
-                        Button(
-                            onClick = onStartNavigation,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(stringResource(R.string.start_navigation))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (state.routeEntry != null) {
+                    // The selectable step list is the wide layout's selector; the phone's
+                    // selector is the pinned navigator below the card, so the phone never
+                    // renders a list that would have to be scrolled inside the card
+                    // (spec: `route-analysis` — Step selection; design D10).
+                    if (docked && state.routeEntry != null) {
                         RouteSummary(
                             routeEntry = state.routeEntry!!,
                             steps = state.routeSteps,
-                            activeStepIndex = if (isNavigating) state.activeStepIndex else null
+                            activeStepIndex = if (navigationActive) state.activeStepIndex else null,
+                            // The docked panel's column scrolls as a whole (same reason as the
+                            // phone card: a nested vertical scrollable is measured infinite).
+                            scrollable = false,
+                            // Tapping the analysed step again clears the analysis; any other
+                            // step becomes the analysed one (spec: `route-analysis`).
+                            analysedStepIndex = state.analysedStepIndex,
+                            onStepSelected = { index -> viewModel.toggleAnalysedStep(index) }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
-                    Button(
-                        onClick = { viewModel.showSummaryDialog() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.show_route))
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { viewModel.clearRoute() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.clear_route))
+                    // The clear action keeps its own row only in the docked layout: on the
+                    // phone the two-button row above is what the fixed card's height can
+                    // afford without pushing the statistics out, and the session's cancel
+                    // exit (system back) already clears the route (spec:
+                    // route-planning-session — the session's exits).
+                    if (docked && !navigationActive) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { viewModel.clearRoute() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.clear_route))
+                        }
                     }
                 }
 
@@ -375,7 +637,206 @@ fun RoutePanel(
                 }
             }
 
-            // ---- Turn-by-turn instructions removed — shown in RouteSummaryDialog instead ----
+            // ---- Turn-by-turn instructions live in the summary above (and in the
+            // docked panel's step list); the phone has no second surface (D10) ----
+        }
+    }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        // Landscape/wide (spec: landscape-layout — detect orientation with
+        // BoxWithConstraints, never the deprecated orientation API): the panel docks to the
+        // side so the map keeps the remaining area for analysis.
+        if (useDockedPanel(maxWidth.value, maxHeight.value)) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .width(360.dp)
+                        .fillMaxHeight(),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 3.dp,
+                    shadowElevation = 6.dp
+                ) {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        body(true)
+                        bodyActions(true)
+                    }
+                }
+            }
+        } else {
+            // The phone card has two modes (owner directive, 2026-10-03). MAX carries the
+            // route's step list and the session actions inside a capped height, so the map
+            // keeps its share; MIN is the small overlay with only the analysed step — its
+            // position, its name and the two step controls. Selecting a step in MAX collapses
+            // to MIN, so what the user looks at next is the map with that manoeuvre and its
+            // highlighted segment; tapping the step name in MIN brings MAX back. With no route
+            // (editing) there is nothing to minimise to, so the card stays in MAX.
+            val maxMode = anchor == RouteOverlayAnchor.EXPANDED ||
+                state.routeEntry == null ||
+                state.activeField != ActiveField.NONE
+            val maxCapDp = phoneCardHeightDp(RouteOverlayAnchor.EXPANDED, maxHeight.value)
+            val cardCapDp = if (maxMode) {
+                maxCapDp
+            } else {
+                phoneCardHeightDp(RouteOverlayAnchor.COMPACT, maxHeight.value)
+            }
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    // Both states hug their content and take the cap only as an upper bound: a
+                    // fixed max height left empty space below the list and a fixed min strip did
+                    // the same above the navigation bar (owner findings, 2026-10-03). The
+                    // measured height still reaches the map for the overview fit.
+                    .heightIn(max = cardCapDp.dp)
+                    .testTag(ROUTE_PANEL_CARD_TAG)
+                    .onSizeChanged { onOverlayHeightChanged(it.height) },
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+                shadowElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        // MIN wraps (its content decides the height, the cap only bounds it);
+                        // MAX wraps too, bounded by its scroll region plus the action band.
+                        .fillMaxWidth()
+                        // The card reaches the screen's bottom edge; only its content is
+                        // lifted above the navigation bar. (The deleted summary dialog put
+                        // this padding on its surface instead and left a scrim strip above
+                        // the navigation bar — device finding 2.)
+                        .navigationBarsPadding()
+                ) {
+                    if (maxMode) {
+                        Column(
+                            modifier = Modifier
+                                // The scrolling content stops short of the pinned action band,
+                                // so the card as a whole stays inside the cap while its height
+                                // still follows the content.
+                                .heightIn(max = (cardCapDp - ACTIONS_BAND_DP).dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            body(false)
+                            bodyList()
+                        }
+                        // The actions are pinned: starting navigation never depends on a
+                        // scroll position (device finding 2026-10-03).
+                        bodyActions(false)
+                    } else {
+                        StepNavigator(
+                            steps = state.routeSteps,
+                            analysedIndex = state.analysedStepIndex,
+                            onPrevious = { viewModel.analysePreviousStep() },
+                            onNext = { viewModel.analyseNextStep() },
+                            onStepNameClick = {
+                                viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
+                            },
+                            onEndSession = { viewModel.endSession() }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The phone's step selector (spec: `route-analysis` — Step navigator; design D10): the
+ * analysed step's instruction, distance and duration, where it sits in the route, and the
+ * two controls that move the selection. Pinned to the card's bottom edge, so the map above
+ * keeps showing the route while the selection moves the camera (never a full-height list).
+ */
+@Composable
+private fun StepNavigator(
+    steps: List<RouteStepDisplay>,
+    analysedIndex: Int?,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onStepNameClick: () -> Unit,
+    onEndSession: () -> Unit
+) {
+    val count = steps.size
+    if (count == 0) return
+    // The route always has a current step (the first one after a calculation), so the
+    // indicator always names one (owner finding, 2026-10-03: "– / n" before the first paging
+    // was wrong).
+    val index = (analysedIndex ?: 0).coerceIn(0, count - 1)
+    val step = steps.getOrNull(index)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onPrevious,
+                enabled = index > 0,
+                modifier = Modifier.testTag("routeStepPrevious")
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = stringResource(R.string.route_step_previous)
+                )
+            }
+            // The step name is the way back to the list (owner directive: in MIN a tap on the
+            // step name shows the list again).
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onStepNameClick() }
+                    .testTag("analysedStepName")
+            ) {
+                Text(
+                    text = step?.instruction ?: stringResource(R.string.route_step_none),
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("analysedStepText")
+                )
+                val detail = listOfNotNull(
+                    step?.distanceText?.takeIf { it.isNotEmpty() },
+                    step?.timeText?.takeIf { it.isNotEmpty() }
+                ).joinToString(" · ")
+                if (detail.isNotEmpty()) {
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    // The indicator agrees with the current step, which always exists.
+                    text = stringResource(R.string.route_step_progress, index + 1, count),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("analysedStepProgress")
+                )
+            }
+            IconButton(
+                onClick = onNext,
+                enabled = index < count - 1,
+                modifier = Modifier.testTag("routeStepNext")
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = stringResource(R.string.route_step_next)
+                )
+            }
+            // MIN is the analysis view and carries no header, so its exit lives here: the
+            // explicit End action the session owes the user (spec: route-planning-session —
+            // "the user starts navigation or ends the session", and the exits are Cancel, the
+            // system back gesture or an explicit End action). Without it the only way out of a
+            // minimised analysis was to open the list again (owner finding, 2026-10-03).
+            IconButton(
+                onClick = onEndSession,
+                modifier = Modifier.testTag("routeEndSessionCompact")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.route_end_session)
+                )
+            }
         }
     }
 }
@@ -388,9 +849,20 @@ private fun RouteSearchField(
     onFocus: () -> Unit,
     onBlur: () -> Unit = {},
     onQueryChanged: (String) -> Unit,
-    onClear: () -> Unit
+    onClear: () -> Unit,
+    enabled: Boolean = true,
+    requestFocus: Boolean = false
 ) {
     val isReadOnly = value.isNotEmpty() && !isActive
+    // A field that is opened programmatically (tapping the read-only route line, which is how
+    // the edit path is reached while a route is on screen) must take focus itself: an
+    // unfocused field reports a focus loss straight away and closes the edit state again.
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(requestFocus) {
+        if (requestFocus) {
+            runCatching { focusRequester.requestFocus() }
+        }
+    }
 
     OutlinedTextField(
         value = value,
@@ -403,6 +875,7 @@ private fun RouteSearchField(
         },
         modifier = Modifier
             .fillMaxWidth()
+            .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
                 // Tap on an empty field must open the results popup (with the
                 // convenience entries) immediately — not only after the first
@@ -432,7 +905,7 @@ private fun RouteSearchField(
             }
         },
         singleLine = true,
-        enabled = true
+        enabled = enabled
     )
 }
 

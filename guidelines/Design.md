@@ -49,7 +49,28 @@ strong preference.
 - Always-visible navigation info lives in overlays on the map canvas, not
   dialogs.
 - Dialogs that must cover a bottom sheet live at top-level screen scope
-  (separate windows can hide behind the sheet window).
+  (separate windows can hide behind the sheet window). The route-planning session is **one**
+  surface on the phone for exactly this reason: its step summary used to be a second window
+  (capped at 400 dp, rows without a click handler, its own dismissal ordering) and was
+  deleted in favour of doing everything in the card (design D10, 2026-10-03).
+- Route planning is a **session**, not a sheet (change `route-planning-session`, spec
+  `route-planning-session`): the phone overlay is **two fixed card heights** (compact /
+  expanded) plus a hidden pill, and docks to the side when the surface is wider than it is
+  tall — the docked layout carries the selectable step list, the phone's selector is the
+  step navigator inside the expanded card. The heights are fixed shares of the screen
+  (expanded ≤ 45 %, so the map always keeps ≥ 55 %), never content-driven: a Material3
+  sheet's partially expanded anchor is a fraction of the *content*, and the same panel
+  measured 36 % (edit) and 48 % (route) for what the session called "compact" and ~97 %
+  expanded on the device. The session owns the camera and the route overlay while it is
+  active — a lease on top of BROWSE / FREE_DRIVE / NAVIGATION, never a fourth map mode. Its
+  only exits are Start Navigation and Cancel/End; stopping navigation gives a bounded grace
+  with Restart / End. The route-overview fit uses the height the card **reports**
+  (`MapCanvasViewModel.setOverlayCoveredPx`, measured by the card's `onSizeChanged`) and
+  re-runs when that height changes while a route is reviewed — the nominal fraction it
+  replaced left 614 px of route behind the card; an unchanged height never moves a
+  user-moved viewport.
+- Compose overlays that project map content sit above the frame bitmap and below the
+  markers — see `guidelines/MapRendering.md` (analysed-route-segment overlay).
 
 ## 3. ViewModel & state
 

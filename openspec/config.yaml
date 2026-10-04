@@ -49,6 +49,7 @@ rules:
     - Include risk assessment per approach
     - State the threading model (dispatcher, main vs background) and lifecycle handling per new component — see guidelines/Design.md §4
     - "Describe verification: unit tests + on-device checks (logcat, GPX replay where relevant)"
+    - For any visual requirement, name the *measurement* that will settle it on device (coordinate-free diagnostics line, UI-dump geometry, `tools/measure-highlight.py` verdict) — "verify visually" is not a verification
     - Follow the design principles in guidelines/Design.md — architecture, state management, threading, native boundary, rendering, Android Auto, and build conventions
 
   tasks:
@@ -64,6 +65,8 @@ rules:
     - Include Gradle sync or build verification steps for Android-specific tasks
     - Every new invariant, bound, predicate or refusal path needs one revert-check task — name the single mutation and the case that must fail, restore, then re-run green forced (`--rerun-tasks`); the `revert-check` skill holds the discipline and the evidence format
     - State each task's verification in the task itself (a test, command, observable behavior or delivered artifact), not in a separate late testing group
+    - For a visual or observable-behaviour requirement, include a task that records the on-device measurement (diagnostics line output, UI-dump geometry, or the `pixel-check` verdict) with its numbers
+    - For a UI/rendering change, include one task that measures the *pixels* (screenshot + `pixel-check`) for the claimed property, and say so when the property cannot be produced on a stationary emulator
 
 operations:
   apply:
@@ -85,6 +88,10 @@ operations:
       - When starting feature development, check "ki_processing_failures.log" to avoid doing the same error twice.
       - For Android Auto changes, verify on emulator/head unit (surface lifecycle, host template constraints)
       - If user points to bugs in your code always question yourself, why did I not find it myself, which test was missing and add thee tests.
+      - MEASURE FIRST: never change projection/fit/layout code to fix a symptom described in pixels. Add a coordinate-free diagnostics line (numbers, never coordinates), read it on the device, and measure screenshots with the pixel-check skill before touching the code.
+      - Iterate with focused test suites (`--tests "com.naviveylin.ui.<area>.*"`); run the full both-flavor gate once, before marking the change complete. Use the device-check skill for device runs instead of writing a new ad-hoc script per finding.
+      - When a finding needs the owner's observation, ask 2-4 independent questions in ONE ask_user call (where/when/whether), not one question per round.
+      - "When a fix cannot be verified by measurement (e.g. a stationary emulator cannot produce follow drift), say so explicitly in the task and the report instead of implying device proof."
       - Generate test coverage report and make sure that essential business logic and strategical gluing and integration code has a high test coverage
 
 

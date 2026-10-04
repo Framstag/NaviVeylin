@@ -28,7 +28,37 @@
 - **ui** — bug: §70 §72 §73 §74
 - **ui** — improvement: §39
 - **ui** — feature: §4 §5
-- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111
+- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111; bug: §121
+
+---
+
+## 121. Three navigation-engine flakes fail intermittently in a full-suite run — Found 2026-10-03 while running the full `:app:testMobileDebugUnitTest` suite during `route-planning-session`
+**id:** 121 · **category:** verification · **class:** bug · **status:** open
+
+- **Observed** ℹ: in full-suite runs these cases failed, each passing immediately afterwards in isolation
+  (`--rerun-tasks`, green):
+  - `NavigationEngineTest.staleSpeedTickerZeroesAStaleSpeed` —
+    `java.lang.AssertionError: expected:<100.0> but was:<NaN>` (12 tests green in isolation);
+  - `NavigationEngineRerouteTest` — `java.lang.AssertionError: State condition not met within 5s`
+    (8 tests green in isolation);
+  - `NavigationEngineTest.lane guidance mirrored` — same class, in the **automotive** flavor run
+    (`tests=1605 failures=1`), while the mobile run of the same commit was green.
+  - `NavigationEngineTest.listenerCallbacksDriveTheSharedState` — **automotive** flavor run
+    (`tests=1607 failures=1`), `java.lang.AssertionError: expected:<100.0> but was:<NaN>` at
+    `NavigationEngineTest.kt:120`; the same class then ran green in isolation (21 s, `--rerun-tasks`).
+  The runs reported `tests=1562 failures=1`, `tests=1605 failures=1` and `tests=1607 failures=1`. The
+  changes in flight (`route-planning-session`) touch neither `NavigationEngine` nor the reroute path, so
+  this is pre-existing flake, not a regression.
+- **Hypothesis** ℹ: both cases read wall-clock time — the stale-speed ticker's window, and a
+  `withTimeout(5s)` wait for an engine state condition — so under a loaded full-suite JVM the window can
+  elapse before the case expects it (or the condition not arrive in time).
+- **Why it matters** ✗: a flaky case in the shared suite makes every later full-suite verdict unreliable
+  (the same problem §117 recorded for the viewport-restore hang) and costs a re-run + triage each time it
+  fires; it also hides a genuine regression behind "probably just the flake".
+- **Fix candidate**: drive both cases off the injected clock/test scheduler instead of wall-clock (the way
+  the phone's follow/staleness cases use virtual time), or inject the timeout window as a named constant
+  the test can widen; then revert-check each (mutation: restore the wall-clock read — the case must fail
+  deterministically).
 
 ---
 
@@ -58,7 +88,7 @@
 ---
 
 ## 116. The phone loads the whole stylesheet set ~13 times during one startup — Found 2026-10-02 while verifying `condense-style-load-warnings` on `emulator-5554` (phone AVD, stale map data)
-**id:** 116 · **category:** stylesheets · **class:** improvement · **status:** open
+**id:** 116 · **category:** stylesheets · **class:** improvement · **status:** in-flight dedupe-stylesheet-loads
 
 - **Observed** ℹ: with the condensed report in place, one startup of the debug build emitted **104** `Unknown types in '…'` lines — 8 files (`standard.oss` plus `basemap`, `place`, `religious`, `shop`, `tourism`, `natural`, `amenity`) × **13 loads**, all inside **one** process (`Start proc` count 1, same pid, 13:08:28-13:08:41). The native Info line of every adopted load agrees: `Created new style with …/standard.oss` appears **12** times in the same window (the basemap's own stylesheet is loaded per basemap database open on top).
 - **Consequence** ⏳: every load parses `standard.oss` and its ~40 `MODULE` includes, so a startup pays that parse cost a dozen times — and, before `condense-style-load-warnings`, paid 9159 log lines for it. The condensation did not create the repetition; it made it visible by attributing each line to a file (`TODO.md` §89/§90/§91 are the data side of the same lines).
@@ -551,7 +581,7 @@
 ---
 
 ## 66. `hostbuild`'s JNI target is configured against a JDK that is not installed — Found 2026-09-21 during `fix-native-database-open-race` task 1.1 (harness gap)
-**id:** 66 · **category:** build-and-harness · **class:** improvement · **status:** unverified
+**id:** 66 · **category:** build-and-harness · **class:** improvement · **status:** open
 
 - **Observed** ℹ: `ninja -C hostbuild libosmscout-client-java/src/libosmscout_client_java.so.1.1.1`
   fails with `fatal error: jni.h: Datei oder Verzeichnis nicht gefunden`; the compile line carries
@@ -807,7 +837,7 @@ GPS back                     →  REAL
 - **Residual hardening after the `config.yaml` rules bug (2026-09-13)** ℹ: three rule sets in `openspec/config.yaml` (proposal/specs/design) were silently dropped — colon+space entries parsed as YAML mappings, the array failed the array-of-strings check; quoting the entries fixed it. No CI guard exists (checked `build.yml`); add `openspec doctor`, or a tasks.md marker-style validation (§17), so a silently dropped rules file fails loudly.
 
 ## 23. libosmscout-kotlin port stubs — verify the binding is unused before anyone wires it in
-**id:** 23 · **category:** native-jni · **class:** feature · **status:** open (decision)
+**id:** 23 · **category:** native-jni · **class:** feature · **status:** on-hold (decision)
 
 - **Submodule `app/src/main/cpp/libosmscout/libosmscout-kotlin/` carries 7 unfinished port markers (found 2026-09-15)** ℹ: `objecttypes/TypeConfig.kt` skips feature-description handling in `loadFromData` (“TODO Fetch feature”, “TODO: Add description to feature”), `registerType` has “TODO: Calculate wayTypeIdBytes & Co.” plus two “TODO: Fix” lines, and `index/AreaWayIndex.kt:120` has “TODO: Reserve capacity for offsets”. Grep across every `*.gradle*`/`CMakeLists.txt` shows **no module references `libosmscout-kotlin`** — the binding is inert today (the app uses the C++ JNI bridge + `:osmscout-client-java`; a plain-JUnit or Kotlin binding is not on any build path). The submodule is our own fork (`naviveylin-local`), so this is decision material, not urgent: either finish the port to match C++/Java behavior (TypeConfig without feature descriptions would render/query differently), or document the binding as deliberately unbuilt and add a code comment so a future dependency addition fails loudly instead of silently using a stub.
 
@@ -1111,13 +1141,8 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   (`Path`/`Paint`/`BlurMaskFilter`/`LinearGradient`) are built once per presentation/density/bounds
   instead of per drawn frame. Tests: `RenderBitmapPoolTest` (7), `MapRendererSmokeTest` +3 cases,
   `AutoMapRendererPooledTargetTest` (4), `AutoMapRendererMarkerDrawCacheTest` (4), with three
-  revert-checks quoted in that change's tasks. This entry is removed when the change is archived.
-- **Still open ✗ — the native half (the bigger two of the four buffers)**: the C++ `argbPixels`
-  `std::vector<uint32_t>`, the Cairo RGB24 surface and its per-pixel conversion loop, plus the JNI
-  `jintArray`, are still allocated per render (`OSMScoutClient.cpp:1793-1818`). Removing them needs a
-  new JNI entry point that renders into a caller-owned buffer (submodule commit on `naviveylin-local`
-  + gitlink bump + `:osmscout-client-java` override, per `AGENTS.md`). Deliberately out of scope in
-  `fix-render-buffer-reuse` (its Non-Goals).
+  revert-checks quoted in that change's tasks. This entry stays open for the two items its header
+  names as unfixed: the `Graphics` footprint and the on-device growth measurement (device-gated).
 - **Still open ✗ — the measurement**: no device was attached (`adb devices` empty) and the AAOS AVD is
   unusable for headless sessions (§40.45), so the `dumpsys meminfo` before/after comparison did not
   run. Recipe for a session with a device: note native + Java heap and the `MAP` render count, drive
@@ -1128,7 +1153,7 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   `dumpsys meminfo` before/after; a phone render-path change, not a car-only one.
 
 ## 51. The host-crash mechanism: an app-process death takes the templates host down — Found 2026-09-21 (triage frame for the "AA crashes while NaviVeylin drives" report)
-**id:** 51 · **category:** car · **class:** bug · **status:** open
+**id:** 51 · **category:** car · **class:** bug · **status:** in-flight fix-car-render-loop-restart
 
 - **Mechanism** ℹ: the ordering is proven (pitfall in `guidelines/Build.md` §10) — the app is force-stopped → the host's queued template
   operation runs against an invalidated `CarHost` → `IllegalStateException: Accessed the car host

@@ -744,3 +744,31 @@ switch, a real day/night change, a map database open (each `initMap`, i.e. every
 an app update that refreshed the bundled stylesheets, and a basemap download
 (`reloadBasemap`). Count per start and compare per source rather than trusting one number —
 and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, not a cache hit.
+
+## 11. Measuring a phone UI finding (do this before changing code)
+
+A finding that lives in pixels ("the segment is still not completely visible", "the card is too
+high", "the highlight is the wrong one") cannot be settled by reading projection, fit or layout
+code: the model and the tests you write from it are self-consistent by construction. Change
+`route-planning-session` spent nine review rounds on exactly that (`ki_processing_failures.log`) and
+found both real causes only after measuring.
+
+1. **Make the app tell you the numbers, coordinate-free.** Add (or read) a diagnostics line that
+   reports indices, pixels, the free band and a verdict — never a position (spec
+   `auto-diagnostics`). The route analysis carries `MapCanvasVM: segment focus: range=… mag=…
+   covered=… band=[0,…] margin=… bboxPx=[…] inside=…`.
+2. **Measure the screenshot instead of describing it.** `tools/measure-highlight.py` finds the
+   analysed-segment highlight by its casing colour, derives the card top from a `uiautomator dump`
+   and prints the highlight's bounding box against the free band (exit 0 inside / 1 clipped / 2 no
+   highlight). Its detector is covered by `.pi/skills/pixel-check/selftest.sh` (ImageMagick, no
+   device). Screenshot and dump must come from the same moment.
+3. **Compare the two verdicts.** Model `inside=true` + measured `CLIPPED` is the bug (it found the
+   follow-drift offset, which the fit model knows nothing about). Model `inside=true` + measured
+   `inside=true` means the symptom is somewhere else — ask the owner *where* and *when* before
+   changing anything.
+4. **Say when a measurement was impossible** (a stationary emulator cannot produce follow drift)
+   instead of implying device proof.
+5. Iterate with focused suites (`--tests "com.naviveylin.ui.<area>.*"`) and run the full both-flavor
+   gate once before the commit; drive the device with one reusable script (`.pi/skills/device-check`),
+   and delete it before committing. `.pi/` is gitignored — rules that must survive belong here, in
+   `AGENTS.md` or in `openspec/config.yaml`.

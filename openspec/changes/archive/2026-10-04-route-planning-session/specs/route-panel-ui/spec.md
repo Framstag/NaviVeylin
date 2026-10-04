@@ -1,10 +1,32 @@
-# route-panel-ui Specification
+# Spec Delta
 
-## Purpose
+## REMOVED Requirements
 
-Lets users plan a route between two locations with vehicle choice, view the route polyline on the map, and see turn-by-turn instructions — bridging search results to route calculation.
+### Requirement: Route panel dismiss
+**Reason**: The route panel is replaced by the route-planning session. Dismissing planning now ends the session and clears the route from the map instead of preserving it indefinitely.
+**Migration**: Use the added requirement "Session overlay dismissal ends the session"; collapsing the overlay is not a dismissal and keeps the route and the session state.
 
-## Requirements
+## ADDED Requirements
+
+### Requirement: Session overlay dismissal ends the session
+
+The session overlay SHALL be dismissable, and dismissing it SHALL end the session: the route polyline and the start/target markers SHALL be removed from the map and the session state SHALL be reset. Collapsing the overlay to a smaller anchor SHALL NOT be a dismissal.
+
+#### Scenario: Dismiss removes route
+
+- **WHEN** a route is displayed in the session
+- **AND** the user dismisses the overlay without starting navigation
+- **THEN** the route polyline and the start/target markers SHALL be removed from the map
+- **AND** re-opening the session SHALL show the empty state
+
+#### Scenario: Collapsing is not dismissing
+
+- **WHEN** a route is displayed in the session
+- **AND** the user collapses the overlay to the compact or hidden anchor
+- **THEN** the route polyline and markers SHALL remain visible
+- **AND** the session state SHALL be preserved
+
+## MODIFIED Requirements
 
 ### Requirement: Route button on location details sheet
 The `LocationDetailsSheet` SHALL display a "Route" button that opens the route-planning session with the current location prefilled as the start point.
@@ -89,97 +111,6 @@ The route-planning session SHALL present two location fields: start and destinat
 - **THEN** both location fields SHALL remain visible
 - **AND** tapping a field SHALL expand the overlay so its results are readable
 
-### Requirement: Swap start and destination
-The route panel SHALL have a swap button that exchanges the start and destination locations.
-
-#### Scenario: Swap exchanges locations
-- **WHEN** start is "Museum Island" and destination is "Brandenburg Gate"
-- **AND** user taps the swap button
-- **THEN** start SHALL become "Brandenburg Gate"
-- **AND** destination SHALL become "Museum Island"
-
-### Requirement: Vehicle selector
-The route panel SHALL provide a vehicle selector with three options: Car, Bicycle, and Pedestrian. The selected vehicle SHALL be visually highlighted. The default selection SHALL be Car.
-
-#### Scenario: Car selected by default
-- **WHEN** the route panel opens
-- **THEN** the Car button SHALL be visually highlighted as selected
-- **AND** the routing profile SHALL use `Vehicle.CAR`
-
-#### Scenario: Switch to bicycle
-- **WHEN** user taps the Bicycle button
-- **THEN** the Bicycle button SHALL be visually highlighted
-- **AND** the routing profile SHALL use `Vehicle.BICYCLE`
-
-#### Scenario: Switch to pedestrian
-- **WHEN** user taps the Pedestrian button
-- **THEN** the Pedestrian button SHALL be visually highlighted
-- **AND** the routing profile SHALL use `Vehicle.PEDESTRIAN`
-
-### Requirement: Calculate route
-When both start and destination are set, the route panel SHALL display a "Calculate" button. Tapping it SHALL call `OSMScoutClient.calculateRouteAsync()` with the selected start/dest coordinates and routing profile.
-
-#### Scenario: Calculate button enabled when both fields set
-- **WHEN** both start and destination locations are set
-- **THEN** the "Calculate" button SHALL be enabled
-- **AND** tapping it SHALL initiate route calculation
-
-#### Scenario: Calculate button disabled when fields missing
-- **WHEN** either start or destination is not set
-- **THEN** the "Calculate" button SHALL be disabled
-
-#### Scenario: Progress indicator during calculation
-- **WHEN** route calculation is in progress
-- **THEN** a progress indicator SHALL be shown in the route panel
-- **AND** the "Calculate" button SHALL be replaced with a "Cancel" button
-
-#### Scenario: Route polyline rendered on map
-- **WHEN** route calculation completes successfully
-- **THEN** the route polyline SHALL be rendered on the map via `renderWithRoute()`
-- **AND** `_route_start` and `_route_end` markers SHALL appear at the start and destination coordinates
-
-#### Scenario: Route calculation failure
-- **WHEN** route calculation fails (no route found, disconnected graph)
-- **THEN** an error message SHALL be displayed in the route panel
-- **AND** no route polyline SHALL be rendered
-
-### Requirement: Cancel route calculation
-During route calculation, the user SHALL be able to cancel the operation.
-
-#### Scenario: Cancel during calculation
-- **WHEN** route calculation is in progress
-- **AND** user taps the "Cancel" button
-- **THEN** `OSMScoutClient.cancelRoute()` SHALL be called
-- **AND** the progress indicator SHALL be removed
-- **AND** the "Calculate" button SHALL be re-enabled
-
-### Requirement: Clear route
-The route panel SHALL have a "Clear" button that removes the current route from the map and resets the panel state.
-
-#### Scenario: Clear removes route from map
-- **WHEN** a route is displayed on the map
-- **AND** user taps "Clear"
-- **THEN** the route polyline SHALL be removed from the map
-- **AND** the `_route_start` and `_route_end` markers SHALL be removed
-- **AND** the route panel SHALL reset to its initial state
-
-### Requirement: Turn-by-turn instruction list
-After successful route calculation, the route panel SHALL show the route summary inline, below the calculate button. The route panel SHALL remain open and SHALL NOT be dismissed. The route panel SHALL NOT show the instruction list separately — the route summary component contains the instructions.
-
-#### Scenario: Route summary dialog triggered after calculation
-- **WHEN** route calculation completes successfully
-- **THEN** the route summary SHALL be shown inline in the route panel below the calculate button
-- **AND** the route panel SHALL remain open
-- **AND** the instruction list SHALL NOT be shown separately in the route panel
-
-#### Scenario: Route panel re-opens on summary dismiss
-- **WHEN** the route summary dialog is dismissed
-- **THEN** the route panel SHALL re-open with all previous state intact (start, destination, vehicle, route)
-
-#### Scenario: Instructions scrollable in summary dialog
-- **WHEN** the route summary component is displayed in the route panel
-- **THEN** the instruction list SHALL be scrollable within the summary component
-
 ### Requirement: Start Navigation button in route panel
 When a route is calculated and navigation is not active, the session SHALL display a "Start Navigation" button below the calculate button and above the route summary component.
 
@@ -195,14 +126,6 @@ When a route is calculated and navigation is not active, the session SHALL displ
 - **WHEN** navigation is active
 - **THEN** the "Start Navigation" button SHALL be replaced with a "Stop Navigation" button
 - **AND** tapping it SHALL stop navigation
-
-### Requirement: Swap button position
-The swap button SHALL be positioned to the right of the start and destination fields, vertically centered between them. It SHALL NOT be placed centered between the two fields.
-
-#### Scenario: Swap button right of the fields
-- **WHEN** the route panel is open
-- **THEN** the swap button SHALL be visible to the right of the start and destination fields
-- **AND** the button SHALL be vertically centered between the two fields
 
 ### Requirement: Stop navigation hides route from map
 When navigation is stopped, the route polyline and the `_route_start`/`_route_end` markers SHALL be removed from the map once the session's stopped-state grace period ends, while the route data (start, destination, vehicle, route summary, steps) SHALL be preserved during that grace period so navigation can be restarted without recalculating.
@@ -231,21 +154,3 @@ When navigation is stopped, the route polyline and the `_route_start`/`_route_en
 - **WHEN** navigation has been stopped and the session has ended
 - **AND** the user navigates away from the map screen and back (screen recomposition)
 - **THEN** the route polyline SHALL NOT reappear on the map
-
-### Requirement: Session overlay dismissal ends the session
-
-The session overlay SHALL be dismissable, and dismissing it SHALL end the session: the route polyline and the start/target markers SHALL be removed from the map and the session state SHALL be reset. Collapsing the overlay to a smaller anchor SHALL NOT be a dismissal.
-
-#### Scenario: Dismiss removes route
-
-- **WHEN** a route is displayed in the session
-- **AND** the user dismisses the overlay without starting navigation
-- **THEN** the route polyline and the start/target markers SHALL be removed from the map
-- **AND** re-opening the session SHALL show the empty state
-
-#### Scenario: Collapsing is not dismissing
-
-- **WHEN** a route is displayed in the session
-- **AND** the user collapses the overlay to the compact or hidden anchor
-- **THEN** the route polyline and markers SHALL remain visible
-- **AND** the session state SHALL be preserved

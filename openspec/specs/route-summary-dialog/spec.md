@@ -7,17 +7,18 @@ Shows a focused route summary after calculation with key statistics, a scrollabl
 ## Requirements
 
 ### Requirement: Route summary dialog shown after calculation
-When route calculation completes successfully, the route summary SHALL be shown inline in the route panel, below the calculate button. The route panel SHALL remain open. The full-screen route summary dialog SHALL NOT be shown automatically after calculation; it remains available via the "Show Route" action in the route panel.
+When a route calculation completes successfully, the route summary SHALL be shown inline in the session overlay, below the calculate button. The session SHALL remain open. No dialog and no other second surface SHALL open: the summary is part of the session card.
 
 #### Scenario: Dialog appears after successful calculation
 - **WHEN** route calculation completes successfully
-- **THEN** the route summary SHALL be shown inline in the route panel below the calculate button
-- **AND** the route panel SHALL remain open
+- **THEN** the route summary SHALL be shown inline in the session overlay below the calculate button
+- **AND** the session SHALL remain open
+- **AND** no dialog SHALL be shown
 
 #### Scenario: Dialog not shown on calculation failure
 - **WHEN** route calculation fails
 - **THEN** the route summary SHALL NOT be shown
-- **AND** an error message SHALL be displayed in the route panel
+- **AND** an error message SHALL be displayed in the session overlay
 
 ### Requirement: Route statistics displayed
 The route summary dialog SHALL display key route statistics: total distance and estimated travel time.
@@ -59,19 +60,6 @@ When navigation is active, the route summary dialog SHALL show a "Stop Navigatio
 - **THEN** the "Start Navigation" button SHALL be replaced with a "Stop Navigation" button
 - **AND** tapping it SHALL stop navigation and return to summary mode
 
-### Requirement: Dialog dismiss returns to route panel
-Dismissing the route summary dialog SHALL return the user to the route panel with the calculated route still visible.
-
-#### Scenario: Dismiss via close button
-- **WHEN** user taps the close (X) button on the route summary dialog
-- **THEN** the dialog SHALL be dismissed
-- **AND** the route panel SHALL remain visible with the calculated route state
-
-#### Scenario: Dismiss via back gesture
-- **WHEN** user presses the system back button
-- **THEN** the route summary dialog SHALL be dismissed
-- **AND** the route panel SHALL re-open with the calculated route state
-
 ### Requirement: Active navigation mode with step highlighting
 The same route summary dialog SHALL be reusable during active navigation, highlighting the current navigation step.
 
@@ -85,19 +73,6 @@ The same route summary dialog SHALL be reusable during active navigation, highli
 - **WHEN** the user progresses to the next navigation step
 - **THEN** the highlighted step SHALL advance to the new current step
 - **AND** the step list SHALL auto-scroll to keep the current step visible
-
-### Requirement: Route summary dialog via Show Route action
-The route panel SHALL provide a "Show Route" action that displays the route summary as a full-screen dialog overlay.
-
-#### Scenario: Show Route opens the dialog
-- **WHEN** a route is calculated
-- **AND** the user taps "Show Route"
-- **THEN** the full-screen route summary dialog SHALL appear
-- **AND** the route panel SHALL be dismissed
-
-#### Scenario: Dialog dismiss returns to route panel
-- **WHEN** the route summary dialog is dismissed
-- **THEN** the route panel SHALL re-open with the calculated route state intact
 
 ### Requirement: Stop navigation from summary dialog hides route
 When navigation is stopped from the route summary dialog, the route polyline and markers SHALL be removed from the map, and the dialog SHALL return to summary mode with the route still available for restart.

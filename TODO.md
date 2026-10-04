@@ -1347,3 +1347,31 @@ Re-run the extraction with the `.pi/skills/process-failure-log` skill (gitignore
   4. **The car favorites titles** — fixed 2026-09-30 by `fix-remaining-untranslated-strings` (`R.string.favorites` / `R.string.starred_favorites`, German titles asserted at unit level), but never seen in German: no AAOS AVD or head unit attached; also the outstanding car-side German run for `fix-comma-decimal-coordinate-entry`'s coordinate row.
 - **Fix candidate** (a verification pass, not a code change): with a car surface attached, run §10 of `guidelines/Build.md` against the release build for (1)-(3) — a coordinate `geo:` link or long-press with a coordinate candidate, free driving from the phone, and a map download to re-create the channel — plus the car favorites screens in German. The recipes that worked here are worth reusing: `uiautomator dump <path under /data/local/tmp>` (a `/sdcard` path is refused by this harness), `exec-out screencap -p` + `tesseract … -l deu tsv` for coordinates, and the map screen's German `content-desc` nodes (`Favoriten`, `Ort suchen`, `Freie Fahrt starten`) for tap targets — the Compose canvas exposes almost no text nodes.
 
+
+## 122. The navigation overlay's stop button cannot be tapped reliably — Found 2026-10-03 while verifying the grace period of `route-planning-session` (task 10.5)
+**id:** 122 · **category:** ui · **class:** bug · **status:** open
+
+- **Observed** ℹ: while turn-by-turn navigation is running, the status row's stop control
+  (`NavigationStateOverlay`, `IconButton` 40 dp, `content-desc="Navigation beenden"`, bounds
+  `[986,2233][1049,2296]` on the 1080×2400 phone) is **not** the node the semantics tree marks as
+  clickable: the only clickable node covering that band is the overlay's **outer container**
+  `[0,2018][1080,2400]` (`.clickable(onClick = onClick)`, `NavigationStateOverlay.kt` line 63, which
+  opens the expanded details). Tapping the stop icon's own coordinates turned **free driving** on in
+  three attempts — and free driving ends navigation itself, so the session never entered `STOPPED`
+  and the grace period never ran.
+- **Impact** ℹ: the session's stopped state and its grace after navigation stops (spec
+  `route-planning-session`) cannot be verified end-to-end on the phone; a user aiming at
+  "Navigation beenden" can end up in free driving instead. The state machine itself is unit-verified
+  (`RoutePanelViewModelSessionTest` + the revert-check `expected:<INACTIVE> but was:<STOPPED>`).
+- **Fix candidates** ℹ: give the stop control its own semantics node
+  (`clearAndSetSemantics { }`/`semantics { }` on the `IconButton`) *and* keep the container's
+  `.clickable` out of the status row's hit area (the container click currently overlaps a 40 dp
+  control). Then re-run the task 10.5 recipe: start navigation → tap the stop icon (verified
+  clickable and small) → the panel returns with the route still drawn → the grace line
+  `RoutePanelVM: session grace period expired - ending the session` ~45 s later → no overlay, no
+  pill, no route.
+- **Recipe notes** ℹ: `adb shell uiautomator dump /sdcard/ui-x.xml` + `adb pull /sdcard/ui-x.xml`
+  works (a bare device-side `$EXTERNAL_STORAGE` argument is *not* expanded by `adb pull`); a
+  clickable ancestor read from a flattened dump is not necessarily the node a tap must aim at, and
+  the map/canvas screens expose almost no text nodes (`tesseract … -l deu tsv` is available for the
+  ones they do expose).

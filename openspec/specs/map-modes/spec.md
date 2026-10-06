@@ -8,7 +8,7 @@ Defines the explicit map mode model (Browse / Free drive / Navigation) on the ph
 
 ### Requirement: Map mode model
 
-The system SHALL maintain an explicit map mode with exactly three states: BROWSE, FREE_DRIVE, and NAVIGATION. The mode SHALL be derived from a single source of truth: navigation active → NAVIGATION; otherwise follow mode active → FREE_DRIVE; otherwise BROWSE. The app SHALL always start in BROWSE mode regardless of the mode used in a previous session.
+The system SHALL maintain an explicit map mode with exactly three states: BROWSE, FREE_DRIVE, and NAVIGATION. The mode SHALL be derived from a single source of truth: navigation active → NAVIGATION; otherwise follow mode active → FREE_DRIVE; otherwise BROWSE. The app SHALL always start in BROWSE mode regardless of the mode used in a previous session. The mode the map returns to when navigation stops SHALL NOT depend on which control stopped it: every phone stop control SHALL leave the pre-navigation mode in effect.
 
 #### Scenario: App starts in browse mode
 
@@ -33,6 +33,14 @@ The system SHALL maintain an explicit map mode with exactly three states: BROWSE
 - **THEN** the map mode SHALL return to the mode that was active before navigation started (BROWSE or FREE_DRIVE)
 - **AND** the representation preset of that restored mode SHALL be applied: north-up orientation for BROWSE (follow disabled, drive suspension cleared), follow enabled for FREE_DRIVE
 - **AND** the map viewport SHALL remain at the position and zoom where navigation ended
+
+#### Scenario: The status card's stop restores prior mode
+
+- **WHEN** navigation stops because the user tapped the routing status card's stop control
+- **AND** the mode before navigation started was BROWSE
+- **THEN** the map mode SHALL be BROWSE
+- **AND** the map SHALL be north-up with follow disabled
+- **AND** the mode toggle SHALL offer entering free drive
 
 #### Scenario: Navigation end applies browse orientation on the map
 

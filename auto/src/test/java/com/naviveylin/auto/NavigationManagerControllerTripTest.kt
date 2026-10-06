@@ -43,6 +43,7 @@ class NavigationManagerControllerTripTest {
     private fun instruction(distanceTo: Double = 250.0) = RouteInstruction(
         distanceTo,
         30.0,
+        distanceTo,
         TurnType.LEFT,
         "Hauptstrasse",
         "Turn left into Hauptstrasse",

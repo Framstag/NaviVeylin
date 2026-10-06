@@ -30,6 +30,7 @@ class NavigationNotificationServiceActionTest {
 
         override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) = Unit
         override fun clearError() = Unit
+        override fun cancelAcquisition() = Unit
         override fun reportError(message: String, origin: SurfaceOrigin) = Unit
     }
 

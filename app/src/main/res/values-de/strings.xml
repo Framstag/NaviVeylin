@@ -134,7 +134,9 @@
     <string name="calculate">Berechnen</string>
     <string name="clear_route">Route löschen</string>
     <string name="route_end_session">Analyse beenden</string>
+    <string name="restart_navigation">Navigation fortsetzen</string>
     <string name="calculating_route">Route wird berechnet...</string>
+    <string name="calculating_route_percent">Route wird berechnet… %1$d %%</string>
     <string name="stop_navigation">Navigation beenden</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Zeigt während der Fahrt die aktuelle Navigationsführung an</string>
@@ -158,7 +160,6 @@
     <string name="steps">Schritte</string>
     <string name="route_overlay_expand">Routenfenster aufklappen</string>
     <string name="route_overlay_collapse">Routenfenster zuklappen</string>
-    <string name="route_overlay_minimize">Routenfenster minimieren</string>
     <string name="close">Schließen</string>
     <string name="no_favorites_yet">Noch keine Favoriten</string>
     <string name="eta">Ankunft</string>

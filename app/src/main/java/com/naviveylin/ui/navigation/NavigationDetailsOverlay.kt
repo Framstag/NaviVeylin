@@ -34,7 +34,7 @@ import androidx.compose.ui.res.stringResource
 import com.naviveylin.R
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
-import com.naviveylin.core.formatDurationText
+import com.naviveylin.core.formatStepDurationText
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -152,18 +152,27 @@ fun NavigationDetailsOverlay(
                                 modifier = Modifier.width(80.dp),
                                 horizontalAlignment = Alignment.End
                             ) {
-                                Text(
-                                    stringResource(
-                                        if (distanceUsesKilometers(instruction.distanceTo)) R.string.distance_unit_km else R.string.distance_unit_m,
-                                        formatDistanceNumber(instruction.distanceTo)
-                                    ),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                if (instruction.timeTo > 0) {
+                                // Both values are the step's own segment (spec: navigation-status-details
+                                // — Route description list): the leg leading to its manoeuvre, from the
+                                // bridge's per-instruction leg distance and leg time. `distanceTo` is not
+                                // shown here - in this list it is the distance from the route start, and a
+                                // route-start distance next to a leg time is not a pair.
+                                if (instruction.legDistance > 0.0) {
                                     Text(
-                                        formatDurationText(instruction.timeTo),
+                                        stringResource(
+                                            if (distanceUsesKilometers(instruction.legDistance)) R.string.distance_unit_km
+                                            else R.string.distance_unit_m,
+                                            formatDistanceNumber(instruction.legDistance)
+                                        ),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                val segmentTime = formatStepDurationText(instruction.timeTo)
+                                if (segmentTime.isNotEmpty()) {
+                                    Text(
+                                        segmentTime,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

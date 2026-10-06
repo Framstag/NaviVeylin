@@ -144,7 +144,11 @@
     <string name="clear_route">Clear Route</string>
     <!-- The session's explicit End action (spec: route-planning-session — the exits). -->
     <string name="route_end_session">End analysis</string>
+    <!-- Restarting navigation from the stopped state (spec: route-planning-session — Grace
+         period after navigation is stopped). -->
+    <string name="restart_navigation">Restart navigation</string>
     <string name="calculating_route">Calculating route...</string>
+    <string name="calculating_route_percent">Calculating route… %1$d%%</string>
     <string name="stop_navigation">Stop Navigation</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Shows live navigation guidance while driving</string>
@@ -175,7 +179,6 @@
     <string name="steps">Steps</string>
     <string name="route_overlay_expand">Expand route panel</string>
     <string name="route_overlay_collapse">Collapse route panel</string>
-    <string name="route_overlay_minimize">Minimize route panel</string>
     <string name="close">Close</string>
     <string name="no_favorites_yet">No favorites yet</string>
     <string name="eta">ETA</string>

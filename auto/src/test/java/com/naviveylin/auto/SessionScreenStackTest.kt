@@ -159,4 +159,72 @@ class SessionScreenStackTest {
         assertFalse("the notice went with the stack", stack.isDismissalOwed)
         assertSame(null, stack.consumeOwedDismissal())
     }
+
+    @Test
+    fun aCalculationNoticeIsRecordedAndNeverStackedTwice() {
+        val stack = SessionScreenStack()
+        val notice = Any()
+
+        assertTrue("the first notice needs a push", stack.needsCalculationNoticePush())
+        stack.onCalculationNoticePushed(notice)
+
+        assertTrue(stack.hasCalculationNotice)
+        assertFalse(
+            "a second progress value updates the notice that is up",
+            stack.needsCalculationNoticePush()
+        )
+    }
+
+    @Test
+    fun aCalculationNoticesRemovalIsIdentityGuarded() {
+        val stack = SessionScreenStack()
+        val first = Any()
+        val second = Any()
+        stack.onCalculationNoticePushed(first)
+
+        assertFalse("a removal of another notice changes nothing", stack.onCalculationNoticeDismissed(second))
+        assertTrue(stack.hasCalculationNotice)
+
+        stack.onCalculationNoticePushed(second)
+        assertFalse(
+            "the superseded notice's removal must not clear the live one",
+            stack.onCalculationNoticeDismissed(first)
+        )
+        assertTrue(stack.hasCalculationNotice)
+        assertTrue(stack.onCalculationNoticeDismissed(second))
+        assertFalse(stack.hasCalculationNotice)
+    }
+
+    @Test
+    fun aCalculationNoticesRemovalSkippedWhileStoppedIsOwedToTheNextStart() {
+        val stack = SessionScreenStack()
+        val notice = Any()
+        stack.onCalculationNoticePushed(notice)
+
+        stack.onCalculationNoticeDismissalDeferred()
+
+        assertSame("the owed removal names the notice", notice, stack.consumeOwedCalculationDismissal())
+        assertSame("taken once, not repeatedly", null, stack.consumeOwedCalculationDismissal())
+    }
+
+    @Test
+    fun nothingIsOwedForACalculationNoticeThatWasNeverUp() {
+        val stack = SessionScreenStack()
+
+        stack.onCalculationNoticeDismissalDeferred()
+
+        assertSame(null, stack.consumeOwedCalculationDismissal())
+    }
+
+    @Test
+    fun poppingToTheRootForgetsTheCalculationNoticeAndItsOwedRemoval() {
+        val stack = SessionScreenStack()
+        stack.onCalculationNoticePushed(Any())
+        stack.onCalculationNoticeDismissalDeferred()
+
+        stack.onRootPopped()
+
+        assertFalse("the notice went with the stack", stack.hasCalculationNotice)
+        assertSame(null, stack.consumeOwedCalculationDismissal())
+    }
 }

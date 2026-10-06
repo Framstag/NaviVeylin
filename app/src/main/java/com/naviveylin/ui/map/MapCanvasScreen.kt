@@ -111,8 +111,10 @@ import com.naviveylin.ui.route.ActiveField
 import com.naviveylin.ui.route.FavoritePickerDialog
 import com.naviveylin.ui.route.RoutePanel
 import com.naviveylin.ui.route.RoutePanelViewModel
+import com.naviveylin.ui.route.RouteSessionState
 import com.naviveylin.ui.route.elapsedTimePercent
 import com.naviveylin.ui.route.routeProgressPercent
+import com.naviveylin.ui.route.sessionEndClosesTheSurface
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.ProjectionUtils
@@ -166,8 +168,25 @@ fun MapCanvasScreen(
         navigationViewModel.setFollowModeCallback { enabled ->
             viewModel.onToggleFollowMode(enabled)
         }
+        // The adapter records the surface's own mode when a session starts, before it forces
+        // follow on (spec: `map-modes` — navigation end restores prior mode).
+        navigationViewModel.setPreNavigationSnapshotCallback {
+            viewModel.snapshotPreNavigationMode()
+        }
         navigationViewModel.setRoutePanelViewModel(routePanelViewModel)
         viewModel.setNavigationViewModel(navigationViewModel)
+    }
+
+    // The surface closes with the session, whichever way the session ends (spec:
+    // `route-planning-session` — Ending the session removes its surface, "Grace expiry closes an
+    // open surface", "No surface survives the session"). The session can end by itself when its
+    // grace expires; the host is told here, so no card outlives its session.
+    LaunchedEffect(routePanelViewModel) {
+        routePanelViewModel.sessionState.collect { session ->
+            if (sessionEndClosesTheSurface(session, state.showRoutePanel)) {
+                viewModel.dismissRoutePanel()
+            }
+        }
     }
 
     // Surface route-calc failures while navigating (spec: reroute-route-visibility):
@@ -871,6 +890,14 @@ fun MapCanvasScreen(
     ) { _ ->
         viewModel.refreshAddressBookAvailability()
     }
+
+    // The phone's one stop path (spec: `navigation-status-details` — The status card's stop is the
+    // phone's shared stop path; design D2). Every stop control — the routing status card, the
+    // expanded description and the session's own Stop Navigation — ends navigation through this
+    // lambda; the session adapter observes the engine and decides the rest, so no control clears
+    // the route behind the session's back (spec: `route-planning-session` — Grace period after
+    // navigation is stopped).
+    val stopNavigation: () -> Unit = { navigationViewModel.stopNavigation() }
 
     // Request location permission on first composition if not granted. Any grant
     // (approximate included) is enough to start updating; the precise upgrade is
@@ -2044,45 +2071,29 @@ fun MapCanvasScreen(
         // the session's cancel exit (`dismissRoutePanel` → `endSession`; spec:
         // `route-planning-session` — the session's exits, `map-canvas-screen` — back dismisses
         // the topmost overlay). The deleted Material3 sheet brought its own back handler;
-        // without this one, back would fall through to the activity. At the hidden anchor the
-        // card is not composed (only the pill, which is not a dismissible overlay), so back
-        // keeps the behaviour it had there and is not captured.
-        BackHandler(
-            enabled = state.showRoutePanel &&
-                routeState.overlayAnchor != com.naviveylin.ui.route.RouteOverlayAnchor.HIDDEN
-        ) { viewModel.dismissRoutePanel() }
+        // without this one, back would fall through to the activity. The card is the whole
+        // phone surface now (two anchors), so back is captured whenever it is shown.
+        BackHandler(enabled = state.showRoutePanel) { viewModel.dismissRoutePanel() }
 
         // Route panel — the session's single surface (design D10)
         if (state.showRoutePanel) {
-            if (routeState.overlayAnchor == com.naviveylin.ui.route.RouteOverlayAnchor.HIDDEN) {
-                // Hidden anchor: only the route-ready affordance remains and the whole map
-                // is free for analysis (spec: route-planning-session — anchors). The card
-                // covers nothing, so the overview fit is told exactly that.
-                LaunchedEffect(Unit) { viewModel.setOverlayCoveredPx(0) }
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.BottomStart
-                ) {
-                    com.naviveylin.ui.route.RouteReadyPill(
-                        routeEntry = routeState.routeEntry,
-                        onExpand = {
-                            routePanelViewModel.setOverlayAnchor(
-                                com.naviveylin.ui.route.RouteOverlayAnchor.EXPANDED
-                            )
-                        },
-                        modifier = Modifier.padding(start = 16.dp, bottom = 32.dp)
-                    )
-                }
-            } else {
-                RoutePanel(
+            RoutePanel(
                 viewModel = routePanelViewModel,
                 onOpenFavoritePicker = { field ->
                     favoritePickerField = field
                     showFavoritePicker = true
                 },
                 // The card reports the height it covers — the fit uses that number and
-                // re-runs when it changes (spec: `route-map-overview`).
-                onOverlayHeightChanged = { viewModel.setOverlayCoveredPx(it) },
+                // re-runs when it changes (spec: `route-map-overview`). It is also the band's
+                // inset while it is shown: the status card is not composed then, so its last
+                // height must not keep the right-side controls inset (screen-local state).
+                onOverlayHeightChanged = { height ->
+                    viewModel.setOverlayCoveredPx(height)
+                    overlayBottomInset = height
+                },
+                // The card's exit: the session ends and the surface closes with it (spec:
+                // `route-planning-session` — Ending the session removes its surface).
+                onEndSession = { viewModel.dismissRoutePanel() },
                 onStartNavigation = {
                     val entry = routeState.routeEntry
                     if (entry != null) {
@@ -2092,14 +2103,21 @@ fun MapCanvasScreen(
                         viewModel.dismissRoutePanel()
                     }
                 },
-                onStopNavigation = { navigationViewModel.stopNavigation()
-                    routePanelViewModel.setNavigating(false)
-                    routePanelViewModel.clearRouteFromMap() },
+                onStopNavigation = stopNavigation,
+                // Restart from the stopped state: navigation resumes on the route the session still
+                // holds, and the session hands it back without recalculating (spec:
+                // `route-planning-session` — Restart resumes navigation).
+                onRestartNavigation = {
+                    val entry = routeState.routeEntry
+                    if (entry != null) {
+                        navigationViewModel.start(entry, routeState.vehicle)
+                        routePanelViewModel.onNavigationRestarted()
+                    }
+                },
                 isNavigating = navState.isNavigating,
                 centerLat = state.viewport.centerLat,
                 centerLon = state.viewport.centerLon
             )
-            }
         }
 
         // Favorite picker dialog (for route field selection)
@@ -2382,29 +2400,36 @@ fun MapCanvasScreen(
                         )
                     }
                 }
-                // Bottom: routing status, full width
-                NavigationStateOverlay(
-                    remainingDistance = navState.remainingDistance,
-                    etaMillis = navState.etaMillis,
-                    currentRoadInfo = navState.currentRoadInfo,
-                    distanceProgressPercent = if (navState.isNavigating) {
-                        routeProgressPercent(navState.totalDistance, navState.remainingDistance)
-                    } else null,
-                    timeProgressPercent = if (navState.isNavigating) {
-                        elapsedTimePercent(
-                            start = navState.navigationStartTimeMillis,
-                            eta = navState.etaMillis,
-                            now = System.currentTimeMillis()
-                        )
-                    } else null,
-                    isRerouting = navState.isRerouting,
-                    isOffRoute = navState.isOffRoute,
-                    onStopNavigation = { navigationViewModel.stopNavigation()
-                        routePanelViewModel.setNavigating(false)
-                        routePanelViewModel.clearRouteFromMap() },
-                    onClick = { showNavDetails = true },
-                    modifier = Modifier.onSizeChanged { overlayBottomInset = it.height }
-                )
+                // Bottom: routing status, full width — but not while the route-planning session's own
+                // card is shown. Both sit on the same bottom edge and the session card is composed
+                // earlier, so composing the status card over it left the review with no visible or
+                // tappable pixel at all (measured 2026-10-06, task 5.1 run (b): the card's layout
+                // bounds `top=2059 h=341` lay inside the status card's band, and not one pixel of the
+                // card's own content was drawn). One band, one owner (guidelines/Design.md §12): the
+                // session offers the route review with its own Stop, and the status card returns when
+                // the session's surface closes.
+                if (!state.showRoutePanel) {
+                    NavigationStateOverlay(
+                        remainingDistance = navState.remainingDistance,
+                        etaMillis = navState.etaMillis,
+                        currentRoadInfo = navState.currentRoadInfo,
+                        distanceProgressPercent = if (navState.isNavigating) {
+                            routeProgressPercent(navState.totalDistance, navState.remainingDistance)
+                        } else null,
+                        timeProgressPercent = if (navState.isNavigating) {
+                            elapsedTimePercent(
+                                start = navState.navigationStartTimeMillis,
+                                eta = navState.etaMillis,
+                                now = System.currentTimeMillis()
+                            )
+                        } else null,
+                        isRerouting = navState.isRerouting,
+                        isOffRoute = navState.isOffRoute,
+                        onStopNavigation = stopNavigation,
+                        onClick = { showNavDetails = true },
+                        modifier = Modifier.onSizeChanged { overlayBottomInset = it.height }
+                    )
+                }
             }
         }
 
@@ -2416,11 +2441,7 @@ fun MapCanvasScreen(
                 currentRoadInfo = navState.currentRoadInfo,
                 remainingDistance = navState.remainingDistance,
                 etaMillis = navState.etaMillis,
-                onStopNavigation = {
-                    navigationViewModel.stopNavigation()
-                    routePanelViewModel.setNavigating(false)
-                    routePanelViewModel.clearRouteFromMap()
-                },
+                onStopNavigation = stopNavigation,
                 onDismiss = { showNavDetails = false }
             )
         }

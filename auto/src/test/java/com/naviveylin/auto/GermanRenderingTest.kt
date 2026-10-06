@@ -75,4 +75,20 @@ class GermanRenderingTest {
         )
         assertEquals("Letzte Suchanfragen", historyRows[0].title.toString())
     }
+
+    @Test
+    fun theRouteCalculationNoticeRendersGerman() {
+        val template = RouteCalculatingScreen(
+            carContext = testCarContext(),
+            destinationName = "Zuhause",
+            percent = 42,
+            cancellable = true
+        ).onGetTemplate()
+
+        assertEquals("Route wird berechnet", template.header?.title?.toString())
+        val row = template.pane.rows.single()
+        assertEquals("Zuhause", row.title.toString())
+        assertEquals("40 %", row.texts.single().toString())
+        assertEquals("Abbrechen", row.actions.single().title.toString())
+    }
 }

@@ -48,11 +48,21 @@ every surface renders the same navigation session.
 - **WHEN** navigation is active
 - **THEN** the state carries the destination identity and the vehicle profile the route was acquired with
 
+#### Scenario: A field published during a background tick is not lost
+
+- **WHEN** the native listener publishes position, lane guidance, instructions, current speed and
+  maximum speed while the engine's staleness tick is evaluating
+- **THEN** every published field is present in the observable state afterwards
+- **AND** a field whose value is the speed-unknown default (maximum speed) is not reverted to that
+  default by the tick
+
 ### Requirement: Route acquisition independent of a surface UI
 
 The engine SHALL acquire a route on request, both when a surface UI drives the acquisition (vehicle
 profile, alternatives) and when no surface UI is available, and SHALL re-acquire on reroute with the
-vehicle profile the active navigation started with.
+vehicle profile the active navigation started with. An acquisition whose result carries no usable
+polyline coordinates SHALL NOT fail the surface that reflects it: the surface's route views SHALL be
+left without geometry while navigation continues.
 
 #### Scenario: Reroute without a surface UI
 
@@ -65,6 +75,13 @@ vehicle profile the active navigation started with.
 - **WHEN** a surface acquires a route with a chosen vehicle profile
 - **THEN** the engine starts navigation with that route and profile
 - **AND** the surface's route views reflect the acquired route
+
+#### Scenario: Acquisition without usable polyline geometry
+
+- **WHEN** the engine acquires a route whose polyline coordinates are absent
+- **THEN** navigation SHALL continue on that route with its destination and vehicle profile retained
+- **AND** an observing surface SHALL adopt the acquisition without raising an exception
+- **AND** that surface SHALL publish no route geometry for drawing
 
 ### Requirement: Errors carry the surface that caused them
 
@@ -104,7 +121,10 @@ navigation on one surface SHALL NOT move another surface's viewport, zoom, rotat
 The engine SHALL live for the process lifetime with a single long-lived scope, SHALL release the native
 navigation controller when navigation stops, and SHALL NOT retain location updates while not
 navigating. Native navigation calls (start, stop, route calculation, road lookup) SHALL run off the
-main thread; navigation state publication SHALL be main-thread confined.
+main thread; navigation state publication SHALL be main-thread confined and SHALL be applied as an
+atomic update, so a publisher can never revert a field another publisher set concurrently. The
+staleness tick's decision SHALL be taken from the engine's injected time source, not from the system
+clock read at the tick site.
 
 #### Scenario: Controller released on stop
 
@@ -121,3 +141,22 @@ main thread; navigation state publication SHALL be main-thread confined.
 - **WHEN** a route is calculated or a navigation is started
 - **THEN** the native call is performed off the main thread
 - **AND** the resulting state update is published on the main thread
+
+#### Scenario: A background writer cannot revert a concurrent publication
+
+- **WHEN** one publisher has set a field and a second publisher that started from an earlier state
+  snapshot applies its own update
+- **THEN** the first publisher's field keeps its published value
+- **AND** the second publisher's own field is changed as intended
+
+#### Scenario: The staleness tick reads the injected time source
+
+- **WHEN** the engine's time source reports a moment beyond the staleness window after the last fix
+- **THEN** the tick decays the displayed speed to zero
+- **AND** when the time source reports the fix as fresh, the tick leaves the displayed speed unchanged
+
+#### Scenario: A native lookup result is published on the main thread
+
+- **WHEN** the road lookup answers on a background thread
+- **THEN** the resulting road information is published on the main thread
+- **AND** publishing it leaves a field another publisher set meanwhile unchanged

@@ -597,4 +597,11 @@ object DiagnosticsLog {
     const val SESSION_TAG = "SESSION"
     const val CAR_APP_TAG = "CARAPP"
     const val TEMPLATE_TAG = "TEMPLATE"
+
+    /**
+     * Route analysis measurements of the phone's calculated route: the per-step values it lists and
+     * what they add up to against the route's own totals (spec: `route-analysis` — Step values
+     * describe the step's own leg). Numbers only, never a coordinate (spec: `auto-diagnostics`).
+     */
+    const val ROUTE_TAG = "ROUTE"
 }

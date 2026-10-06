@@ -54,6 +54,9 @@
     <string name="search_history_hint">Orte auf der Karte suchen, um Verlauf aufzubauen</string>
     <string name="loading_map_data">Kartendaten werden geladen…</string>
     <string name="preparing_navigation">Navigation wird vorbereitet</string>
+    <string name="route_calculation_title">Route wird berechnet</string>
+    <string name="route_calculation_percent">%1$d %%</string>
+    <string name="cancel">Abbrechen</string>
     <string name="retry">Erneut versuchen</string>
     <string name="back">Zurück</string>
     <string name="startup_failed">Start fehlgeschlagen</string>

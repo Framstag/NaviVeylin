@@ -352,6 +352,14 @@ class FakeOSMScoutClient : OSMScoutClient() {
     @Volatile
     var lastRouteDest: Pair<Double, Double>? = null
 
+    /**
+     * The thread [calculateRouteWithProfile] was invoked on — the seam a case uses to prove the
+     * engine's native work runs on its injected dispatcher (spec: `navigation-engine` — Engine
+     * lifecycle and threading).
+     */
+    @Volatile
+    var lastRouteCalculationThread: Thread? = null
+
     /** Error text delivered when [routeToDeliver] is null. */
     var deliverRouteError: String? = null
 
@@ -367,6 +375,32 @@ class FakeOSMScoutClient : OSMScoutClient() {
     @Volatile
     var routeCalculationCount = 0
 
+    /** Progress values delivered to the callback, in order, before its outcome. */
+    var progressToReport: List<Int> = emptyList()
+
+    /**
+     * When true, [calculateRouteWithProfile] keeps the calculation open: it reports
+     * [progressToReport] and records its callback in [pendingRouteCallbacks] instead of
+     * delivering a route or an error, so a test can drive the in-flight state
+     * (spec: `route-calculation-feedback` — In-flight route calculation is part of the
+     * shared navigation state).
+     */
+    @Volatile
+    var holdRouteDelivery = false
+
+    /** Callbacks of held [calculateRouteWithProfile] invocations, in call order. */
+    @Volatile
+    var pendingRouteCallbacks: MutableList<RouteCallback> =
+        java.util.Collections.synchronizedList(mutableListOf())
+
+    /** Number of [cancelRoute] invocations. */
+    @Volatile
+    var cancelRouteCount = 0
+
+    override fun cancelRoute() {
+        cancelRouteCount++
+    }
+
     override fun calculateRouteWithProfile(
         startLat: Double, startLon: Double,
         destLat: Double, destLon: Double,
@@ -374,10 +408,16 @@ class FakeOSMScoutClient : OSMScoutClient() {
         callback: RouteCallback
     ) {
         routeCalculationCount++
+        lastRouteCalculationThread = Thread.currentThread()
         routeCalculationError?.let { throw it }
         lastRouteProfile = profile
         lastRouteStart = startLat to startLon
         lastRouteDest = destLat to destLon
+        progressToReport.forEach { callback.onProgress(it) }
+        if (holdRouteDelivery) {
+            pendingRouteCallbacks.add(callback)
+            return
+        }
         val route = routeToDeliver
         if (route != null) {
             callback.onSuccess(route)
@@ -450,8 +490,15 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** (lat, lon, bearing) passed to [getRoadAt] in call order. */
     val roadAtLookupCalls = mutableListOf<Triple<Double, Double, Double>>()
 
+    /**
+     * Runs inside [getRoadAt], before it returns — the seam a test uses to publish something
+     * while a lookup is in flight (e.g. to prove the lookup's own publish cannot revert it).
+     */
+    var onGetRoadAt: (() -> Unit)? = null
+
     override fun getRoadAt(lat: Double, lon: Double, bearing: Double): RoadInfo? {
         roadAtLookupCalls.add(Triple(lat, lon, bearing))
+        onGetRoadAt?.invoke()
         roadAtError?.let { throw it }
         return roadAt
     }

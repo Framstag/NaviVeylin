@@ -1881,4 +1881,30 @@ class AutoMapRendererTest {
         assertFalse("no coordinate shape: $message", coordinateShape.containsMatchIn(message))
         assertFalse("no decimal-comma form of the magnification", message.contains("mag=13,25"))
     }
+
+    @Test
+    fun setRouteWithoutGeometryStillSchedulesAndDrawsTheFrame() {
+        // The car's route view is fed the shared navigation state's route geometry, which is absent
+        // for a route the engine acquired without a polyline (spec: `navigation-engine` —
+        // Acquisition without usable polyline geometry; spec: `route-map-overview` — absent counts
+        // as an empty polyline). Absent must be accepted, not dereferenced.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.frameIteration()
+        val requestsBefore = renderer.renderRequestCount
+        val framesBefore = renderer.fullRenderCount + renderer.blitCount
+
+        renderer.setRoute(null, null)
+        renderer.frameIteration()
+
+        assertEquals(
+            "clearing the route schedules its own frame",
+            requestsBefore + 1, renderer.renderRequestCount
+        )
+        assertEquals(
+            "the scheduled frame is drawn",
+            framesBefore + 1, renderer.fullRenderCount + renderer.blitCount
+        )
+    }
 }

@@ -89,6 +89,38 @@ jobs:
           fi
           echo "libosmscout is Android-free outside Android/."
 
+      # ── OpenSpec artifact hygiene ─────────────────────────────
+      # Two silent-failure classes with no CLI in the runner:
+      #   1. a tasks.md that uses bare '1. [x]' items — the parser then reports
+      #      0 tasks and the change reads as 'no-tasks' without any error;
+      #   2. an operations.*.guidance list entry containing ': ' that is not
+      #      quoted — it parses as a YAML mapping, the array fails the
+      #      array-of-strings check and the CLI drops that operation's guidance
+      #      with only a warning.
+      - name: Check OpenSpec artifact hygiene
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in openspec/changes/*/tasks.md; do
+            [ -e "$f" ] || continue
+            if ! grep -qE '^- \[[ x]\]' "$f"; then
+              echo "::error file=$f::no '- [x]' / '- [ ]' task markers — the parser reports 0 tasks"
+              fail=1
+            fi
+            if grep -qE '^[0-9]+\. \[[ x]\]' "$f"; then
+              echo "::error file=$f::bare numbered task marker — use '- [x] N.M' under a '## N.' heading"
+              fail=1
+            fi
+          done
+          bad=$(awk '/^  (apply|archive):/{inop=1;next} /^  [a-z-]+:/{inop=0} inop && /^      - /{ line=$0; sub(/^      - /,"",line); if (line !~ /^"/ && line ~ /: /) print line }' openspec/config.yaml)
+          if [ -n "$bad" ]; then
+            echo "::error file=openspec/config.yaml::unquoted guidance entry containing ': ' (parses as a mapping; the operation's guidance is dropped)"
+            printf '%s\n' "$bad"
+            fail=1
+          fi
+          [ "$fail" -eq 0 ] || exit 1
+          echo "OpenSpec artifacts are consistent."
+
       # ── Android SDK ──────────────────────────────────────────
       - name: Cache Android SDK
         id: cache-sdk
@@ -224,8 +256,23 @@ jobs:
       # osmscout-client-java). Runs on the host JVM via the JNI stub — no
       # device/emulator needed. Catches test-source breakage that the APK
       # build alone misses (e.g. fakes drifting from OSMScoutClient API).
+      # Same task set and same forcing rule as the documented full gate
+      # (guidelines/Build.md §3, change `speed-up-build-test-gate`): `-PforceTests`
+      # makes the test tasks execute, `--no-build-cache` keeps a warm cache from
+      # answering with a previous run's outputs.
       - name: Run unit tests
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests --no-build-cache
+
+      # A green verdict says nothing about what ran: name the suites and their
+      # tallies in the log, per module and per `:app` flavor.
+      - name: Report executed test suites
+        run: |
+          for d in app/build/test-results/testMobileDebugUnitTest app/build/test-results/testAutomotiveDebugUnitTest \
+                   auto/build/test-results/testDebugUnitTest core/build/test-results/testDebugUnitTest \
+                   osmscout-client-java/build/test-results/test; do
+            echo -n "$d: "
+            awk -F'"' '/testsuite /{t+=$4;f+=$8;e+=$10;c++} END{printf "%d classes, %d tests, %d failures, %d errors\n", c, t, f, e}' "$d"/TEST-*.xml 2>/dev/null || echo "no result XML"
+          done
 
       # Code coverage (report-only, no gate): root Kover tasks merge
       # app/auto/core unit-test coverage into one HTML+XML report; the

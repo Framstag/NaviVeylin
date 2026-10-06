@@ -77,13 +77,47 @@ class SearchHistoryRepository @Inject constructor(
             } else {
                 emptyList()
             }
-            _history.value = entries
+            // A file written before the move-to-front rule can hold the same text
+            // several times; collapse it so the chip row never shows one text twice
+            // (spec: search-history — Duplicate entries are collapsed when the history
+            // is loaded). Rewritten only when the collapse actually changed the list, so
+            // a plain start does not touch the file.
+            val collapsed = collapseDuplicates(entries)
+            _history.value = collapsed
+            if (collapsed.size != entries.size) {
+                persist(collapsed)
+            }
         }
     }
 
     /**
-     * Record a search selection. Blank text is ignored. Appends the entry
-     * (youngest first) and evicts the oldest entry beyond [MAX_ENTRIES].
+     * One entry per search text: the first occurrence keeps its position — the stored order
+     * is youngest first (see [record]), so that is the text's newest occurrence — and it
+     * carries the newest timestamp found for that text, so an out-of-order file cannot leave
+     * a stale date behind.
+     */
+    private fun collapseDuplicates(entries: List<SearchHistoryEntry>): List<SearchHistoryEntry> {
+        val newestTimestamp = HashMap<String, Long>()
+        entries.forEach { entry ->
+            newestTimestamp[entry.text] =
+                maxOf(newestTimestamp[entry.text] ?: entry.timestamp, entry.timestamp)
+        }
+        val seen = HashSet<String>()
+        return buildList {
+            entries.forEach { entry ->
+                if (seen.add(entry.text)) {
+                    val newest = newestTimestamp.getValue(entry.text)
+                    add(if (newest == entry.timestamp) entry else entry.copy(timestamp = newest))
+                }
+            }
+        }
+    }
+
+    /**
+     * Record a search selection. Blank text is ignored. An entry with the same text is
+     * moved to the front instead of being duplicated, and the oldest entry beyond
+     * [MAX_ENTRIES] is evicted (spec: search-history — No duplicate entry for the same
+     * search text).
      */
     suspend fun record(text: String) {
         if (text.isBlank()) return
@@ -91,7 +125,8 @@ class SearchHistoryRepository @Inject constructor(
             withContext(defaultDispatcher) {
                 load()
                 val newEntry = SearchHistoryEntry(text = text, timestamp = System.currentTimeMillis())
-                val updated = (listOf(newEntry) + _history.value).take(MAX_ENTRIES)
+                val updated = (listOf(newEntry) + _history.value.filterNot { it.text == text })
+                    .take(MAX_ENTRIES)
                 _history.value = updated
                 persist(updated)
             }

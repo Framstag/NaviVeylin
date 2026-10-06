@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.AaaTest" tests="2" skipped="0" failures="1" errors="0" timestamp="2026-10-04T16:25:07.455Z" hostname="fixture" time="12.5">
+  <properties/>
+  <testcase name="passes" classname="com.naviveylin.AaaTest" time="2.5"/>
+  <testcase name="fails" classname="com.naviveylin.AaaTest" time="10.0">
+    <failure message="fixture failure" type="java.lang.AssertionError">fixture</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

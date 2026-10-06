@@ -1,3 +1,6 @@
+import com.naviveylin.build.testing.CoverageInstrumentation
+import com.naviveylin.build.testing.ForcedTestExecution
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlinx.kover")
@@ -37,6 +40,18 @@ android {
             // guidelines/Build.md §6 for the measured numbers and the rule.
             all {
                 it.maxHeapSize = "1024m"
+
+                // Declared test-JVM concurrency (change `speed-up-build-test-gate`, spec
+                // `unit-test-suite-runtime` — "Unit-test parallelism is declared and result-preserving").
+                // Measured 2026-10-04 on this suite (76 classes / 779 tests, one invocation per setting):
+                // 1 fork 38.3s / 1.21 GB peak worker RSS, 2 forks 40.0s / 1.70 GB, 4 forks 48.9s / 2.62 GB —
+                // the class set was identical throughout, so here concurrency buys nothing and costs memory:
+                // this suite is short enough that per-JVM start-up outweighs the split. One fork, declared.
+                it.maxParallelForks = 1
+
+                if (forceTests) {
+                    it.outputs.upToDateWhen { false }
+                }
             }
         }
     }
@@ -49,11 +64,26 @@ android {
     }
 }
 
+// Forced test execution (change `speed-up-build-test-gate`, spec `build-test-gate` — "A gate run
+// proves that its tests executed"): `-PforceTests` makes the unit-test tasks not up to date, so a
+// run is evidence of what executed; pair it with `--no-build-cache` (guidelines/Build.md §4).
+val forceTests: Boolean =
+    ForcedTestExecution.isRequested(providers.gradleProperty(ForcedTestExecution.PROPERTY).orNull)
+// Coverage instrumentation stays attached by default so the aggregated reports keep working;
+// `-PnoCoverage` detaches the Kover agent for an iteration run (spec `test-coverage`).
+val noCoverage: Boolean =
+    CoverageInstrumentation.isDisabled(providers.gradleProperty(CoverageInstrumentation.PROPERTY).orNull)
+
 // ── Test coverage (Kover) ───────────────────────────────────────────────
 // JVM unit test coverage, report-only. Generated code (BuildConfig, R,
 // Hilt/Dagger/KSP wiring) is excluded so metrics reflect hand-written
 // logic. See guidelines/Build.md → Code coverage.
 kover {
+    currentProject {
+        instrumentation {
+            disabledForAll.set(noCoverage)
+        }
+    }
     reports {
         filters {
             excludes {

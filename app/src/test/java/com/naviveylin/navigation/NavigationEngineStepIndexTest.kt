@@ -8,6 +8,9 @@ import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.location.LocationService
+import com.naviveylin.core.EngineDispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -15,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Verifies the phone navigation VM's reroute-restart state handling
@@ -27,28 +31,39 @@ import org.robolectric.Shadows.shadowOf
  * "JNI stub for unit tests" classloader rule — this class instantiates
  * [FakeOSMScoutClient] and [NavigationEngine].
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class NavigationEngineStepIndexTest {
+
+    /**
+     * The engine's off-main work runs on these schedulers, so a case drains them instead of
+     * polling real threads (spec: `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private val computeDispatcher = StandardTestDispatcher()
+    private val ioDispatcher = StandardTestDispatcher()
+    private val engineDispatchers = EngineDispatchers(computeDispatcher, ioDispatcher)
 
     private fun buildViewModel(
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
         locationService: LocationService = LocationService(ApplicationProvider.getApplicationContext())
     ): NavigationEngine {
-        return NavigationEngine(
+        return engineUnderTest(
             { client }, locationService,
-            ApplicationProvider.getApplicationContext()
+            ApplicationProvider.getApplicationContext(),
+            dispatchers = engineDispatchers
         )
     }
 
-    /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
+    /** Drain the injected schedulers and the looper, then assert — no wall-clock deadline. */
     private fun awaitState(condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline) {
+        repeat(2) {
+            computeDispatcher.scheduler.advanceUntilIdle()
+            ioDispatcher.scheduler.advanceUntilIdle()
             shadowOf(Looper.getMainLooper()).idle()
-            if (condition()) return
-            Thread.sleep(10)
         }
-        throw AssertionError("State condition not met within 5s")
+        if (!condition()) {
+            throw AssertionError("State condition not met after draining the test scheduler")
+        }
     }
 
     private fun routeEntry(): RouteEntry = RouteEntry().apply {

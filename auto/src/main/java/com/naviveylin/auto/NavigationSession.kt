@@ -17,6 +17,7 @@ import com.naviveylin.core.DeepLinkParser
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.RouteCalculation
 import com.naviveylin.core.StringResolver
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.stringResolver
@@ -79,6 +80,7 @@ class NavigationSession : Session() {
     private var observeJob: Job? = null
     private var errorJob: Job? = null
     private var tripJob: Job? = null
+    private var noticeJob: Job? = null
     private var warmupJob: Job? = null
     private var errorDismissalJob: Job? = null
     private var navigationScreen: NavigationScreen? = null
@@ -99,6 +101,28 @@ class NavigationSession : Session() {
      * the root — which used to take the navigation view down with it (design D5).
      */
     private var errorNotice: ErrorOverlayScreen? = null
+
+    /**
+     * The route-calculation wait notice on the stack, or null (spec:
+     * `route-calculation-feedback` — Car wait notice while a route is being calculated).
+     * Held so the removal names exactly this screen and a stale removal cannot take a
+     * newer notice down (design D5).
+     */
+    private var calculationNotice: RouteCalculatingScreen? = null
+
+    /**
+     * The percentage step the notice currently displays, or null while no notice is up. Kept so a
+     * percent change *inside* the same 5 % step costs no host push (design D5).
+     */
+    private var calculationNoticeBucket: Int? = null
+
+    /**
+     * The delay that keeps a fast route from flashing a screen, and the calculation token it
+     * was armed for: a calculation that ends (or is superseded) before the delay elapses
+     * never raises a notice.
+     */
+    private var noticeArmJob: Job? = null
+    private var noticeArmToken: Long? = null
 
     @Volatile
     private var sessionDestroyed = false
@@ -667,6 +691,17 @@ class NavigationSession : Session() {
                     }
                 }
         }
+        // Observe the route calculation in flight and raise the wait notice once it has
+        // outlasted the delay (spec: `route-calculation-feedback` — Car wait notice while a
+        // route is being calculated). The engine publishes the calculation immediately; the
+        // delay lives here, at the display site, so the phone is not made to wait for it
+        // (design D5). A percent change re-runs the sync, which updates the notice in place.
+        noticeJob = scope.launch(CoroutineName("calculation-notice")) {
+            navigationViewModel.state
+                .map { navState -> navState.calculation }
+                .distinctUntilChanged()
+                .collect { calculation -> onCalculationChanged(calculation) }
+        }
     }
 
     private fun stopObserving() {
@@ -676,6 +711,11 @@ class NavigationSession : Session() {
         errorJob = null
         tripJob?.cancel()
         tripJob = null
+        noticeJob?.cancel()
+        noticeJob = null
+        noticeArmJob?.cancel()
+        noticeArmJob = null
+        noticeArmToken = null
     }
 
     private fun getNavigationScreen(): NavigationScreen {
@@ -769,6 +809,24 @@ class NavigationSession : Session() {
                 screenStack.onErrorNoticeDismissed(owedNotice)
             }
         }
+        // The wait notice belongs to the calculation in flight: re-applied once now (a push
+        // deferred by the stop), and — the other way round — a notice whose calculation ended
+        // while the session was stopped is removed here and never shown
+        // (spec: `route-calculation-feedback` — The car notice never outlives its calculation).
+        guardedHostCall("sync calculation notice", tag = SESSION_DIAG_TAG) {
+            applyCalculationNotice(navigationViewModel.state.value.calculation)
+        }
+        val owedCalculationNotice =
+            screenStack.consumeOwedCalculationDismissal() as? RouteCalculatingScreen
+        if (owedCalculationNotice != null) {
+            val removed = guardedHostCall("remove RouteCalculatingScreen (deferred)") {
+                carContext.getCarService(ScreenManager::class.java).remove(owedCalculationNotice)
+            }
+            if (removed) {
+                if (calculationNotice === owedCalculationNotice) calculationNotice = null
+                screenStack.onCalculationNoticeDismissed(owedCalculationNotice)
+            }
+        }
     }
 
     /**
@@ -807,6 +865,161 @@ class NavigationSession : Session() {
         // on a refused push loses the free-driving view for the rest of the session.
         freeDrivingRestore.recordPush(landed)
     }
+    /**
+     * A change of the route calculation in flight: show, update or remove the wait notice.
+     *
+     * The notice is a host mutation, so while the session is not started the gate defers the
+     * sync (and owes it to the next start). A calculation that ended in the meantime is then
+     * never shown — there is no notice for it to outlive
+     * (spec: `route-calculation-feedback` — The car notice never outlives its calculation).
+     */
+    private fun onCalculationChanged(calculation: RouteCalculation?) {
+        if (!hostGate.allowHostMutation()) {
+            Log.d(TAG, "session not started — calculation notice sync deferred")
+            return
+        }
+        applyCalculationNotice(calculation)
+    }
+
+    /**
+     * Show, update or remove the notice for [calculation]. Host mutations are allowed here —
+     * the caller checked the gate (the started sync and the observer both go through
+     * [onCalculationChanged], the sync through a guarded call).
+     */
+    private fun applyCalculationNotice(calculation: RouteCalculation?) {
+        if (sessionDestroyed) return
+        if (calculation == null) {
+            cancelNoticeArm()
+            if (noticeIsStale(calculation, noticeShown = calculationNotice != null)) {
+                removeCalculationNotice()
+            }
+            return
+        }
+        val notice = calculationNotice
+        if (notice != null) {
+            // A notice is up: update it instead of stacking a second screen (spec:
+            // `route-calculation-feedback` — One notice only) — and only when the *displayed*
+            // step changed, so a progressing calculation costs one push per 5 %, not one per
+            // percent (design D5).
+            val shown = calculation.percent
+            if (!noticeNeedsUpdate(calculationNoticeBucket, shown)) return
+            calculationNoticeBucket = displayedCalculationPercent(shown)
+            notice.update(navigationViewModel.state.value.destinationName, shown)
+            DiagnosticsLog.log(
+                CAR_HOST_DIAG_TAG,
+                "calculation notice update pct=$calculationNoticeBucket"
+            )
+            guardedHostCall("invalidate calculation notice") { notice.invalidate() }
+            return
+        }
+        if (!needsNoticeArm(
+                live = calculation,
+                noticeShown = false,
+                armedToken = noticeArmToken,
+                arming = noticeArmJob?.isActive == true
+            )
+        ) {
+            return
+        }
+        cancelNoticeArm()
+        val token = calculation.token
+        noticeArmToken = token
+        noticeArmJob = scope.launch(CoroutineName("calculation-notice-delay")) {
+            delay(CALCULATION_NOTICE_DELAY_MS)
+            // Still the live calculation? The engine's state is the truth and the delay is only
+            // ours, so a calculation that ended — or a newer one that superseded it — must not
+            // raise this notice (spec: `route-calculation-feedback`).
+            if (!noticeIsStillArmedFor(token, navigationViewModel.state.value.calculation)) {
+                Log.d(TAG, "calculation notice not shown: the wait is over")
+                return@launch
+            }
+            pushCalculationNotice(calculation)
+        }
+    }
+
+    private fun cancelNoticeArm() {
+        noticeArmJob?.cancel()
+        noticeArmJob = null
+        noticeArmToken = null
+    }
+
+    /** Push the wait notice. Only called once the delay has elapsed for a live calculation. */
+    private fun pushCalculationNotice(calculation: RouteCalculation) {
+        if (sessionDestroyed) return
+        if (!hostGate.allowHostMutation()) {
+            Log.d(TAG, "session not started — calculation notice push deferred")
+            return
+        }
+        if (!screenStack.needsCalculationNoticePush()) {
+            // A notice landed while the delay ran (a previous push was deferred and re-applied):
+            // update that one instead of pushing a second screen.
+            applyCalculationNotice(navigationViewModel.state.value.calculation)
+            return
+        }
+        val navState = navigationViewModel.state.value
+        val notice = RouteCalculatingScreen(
+            carContext = carContext,
+            destinationName = navState.destinationName,
+            percent = calculation.percent,
+            // A reroute runs with guidance still live: it is neither cancelled nor popped away
+            // from under the driver (spec: `auto/navigation-view` — Reroute keeps the navigation
+            // view live under the notice; owner decision R2).
+            cancellable = !navState.isNavigating,
+            onCancel = { cancelCalculation() }
+        )
+        SessionLog.push("RouteCalculatingScreen")
+        // A host-facing send is recorded like every other one (AGENTS.md diagnostics: the tag
+        // HOST carries what the session sent the host) — this line is what makes the notice's
+        // percentage verifiable on a device whose template tree no UI dump can see.
+        calculationNoticeBucket = displayedCalculationPercent(calculation.percent)
+        DiagnosticsLog.log(
+            CAR_HOST_DIAG_TAG,
+            "calculation notice push pct=$calculationNoticeBucket " +
+                "cancellable=${!navState.isNavigating}"
+        )
+        val landed = guardedHostCall("push RouteCalculatingScreen") {
+            carContext.getCarService(ScreenManager::class.java).push(notice)
+        }
+        // Only a landed push is recorded (spec: car-host-fault-isolation — Host screen-stack
+        // mutations are balanced): a refused push must not claim a screen, and the next state
+        // emission retries.
+        if (landed) {
+            calculationNotice = notice
+            screenStack.onCalculationNoticePushed(notice)
+        }
+    }
+
+    /**
+     * Abort the calculation the notice describes. The engine clears its state, and the synced
+     * notice leaves through [applyCalculationNotice] — so the removal has exactly one path and
+     * cannot leave a screen behind (spec: `route-calculation-feedback` — Cancelling a
+     * calculation aborts it and releases its resources).
+     */
+    private fun cancelCalculation() {
+        guardedHostCall("cancel route calculation") { navigationViewModel.cancelAcquisition() }
+    }
+
+    /**
+     * Remove the notice that is on the stack, or owe its removal to the next started period
+     * (spec: car-host-fault-isolation — Bounded host-facing traffic while not visible).
+     */
+    private fun removeCalculationNotice() {
+        val notice = calculationNotice ?: return
+        if (!hostGate.allowHostMutation()) {
+            Log.d(TAG, "session not started — calculation notice removal deferred")
+            screenStack.onCalculationNoticeDismissalDeferred()
+            return
+        }
+        val removed = guardedHostCall("remove RouteCalculatingScreen") {
+            carContext.getCarService(ScreenManager::class.java).remove(notice)
+        }
+        if (removed) {
+            calculationNotice = null
+            calculationNoticeBucket = null
+            screenStack.onCalculationNoticeDismissed(notice)
+        }
+    }
+
     private fun showError(message: String) {
         if (sessionDestroyed) return
         if (!hostGate.allowHostMutation()) {
@@ -887,6 +1100,14 @@ class NavigationSession : Session() {
     companion object {
         private const val TAG = "NavigationSession"
         private const val ERROR_DISPLAY_MS = 4000L
+
+        /**
+         * How long a route calculation may run before the car shows the wait notice. Provisional
+         * until measured on a device (`ROUTE calc done:` entries — change
+         * `show-route-calculation-progress`, task 5.3): a fast route must never flash a screen,
+         * a long one must not leave the driver in silence.
+         */
+        private const val CALCULATION_NOTICE_DELAY_MS = 400L
         private const val MAX_GEOCODE_RESULTS = 1
 
         /** Same favorites persistence file as the phone app (MapCanvasViewModel). */
@@ -909,6 +1130,47 @@ class NavigationSession : Session() {
  */
 internal fun deepLinkLogMessage(destination: DeepLinkDestination): String =
     "Deep link parsed: shape=${if (destination.hasCoordinates) "coordinates" else "query"}"
+
+/**
+ * Whether the notice that currently shows [showingBucket] has to be refreshed for a
+ * [reportedPercent]: only a changed *display* step is worth a host push — the same rule the
+ * distance bucket applies to the navigation template (spec: `car-host-fault-isolation` —
+ * Bounded host-facing traffic; design D5). Pure seam for unit testing
+ * ([NavigationSession] cannot be constructed in Robolectric).
+ */
+internal fun noticeNeedsUpdate(showingBucket: Int?, reportedPercent: Int?): Boolean =
+    showingBucket != displayedCalculationPercent(reportedPercent)
+
+/**
+ * Whether the car wait notice has to be armed for [live]: a calculation is in flight, no notice
+ * is up, and no delay for exactly this calculation is already running — a second percentage
+ * update must not restart the delay (spec: `route-calculation-feedback` — Car wait notice while
+ * a route is being calculated). Pure seam for unit testing ([NavigationSession] cannot be
+ * constructed in Robolectric).
+ */
+internal fun needsNoticeArm(
+    live: RouteCalculation?,
+    noticeShown: Boolean,
+    armedToken: Long?,
+    arming: Boolean
+): Boolean =
+    live != null && !noticeShown && !(arming && armedToken == live.token)
+
+/**
+ * Whether the notice on the stack belongs to a calculation that is no longer in flight: it has
+ * to leave — the notice never outlives what it describes, and a calculation that ended while the
+ * session was stopped must not leave one behind (spec: `route-calculation-feedback` — The car
+ * notice never outlives its calculation). Pure seam for unit testing.
+ */
+internal fun noticeIsStale(live: RouteCalculation?, noticeShown: Boolean): Boolean =
+    live == null && noticeShown
+
+/**
+ * Whether the delay armed for [armedToken] may still raise its notice: the engine must still
+ * report exactly that calculation in flight. Pure seam for unit testing.
+ */
+internal fun noticeIsStillArmedFor(armedToken: Long?, live: RouteCalculation?): Boolean =
+    live != null && live.token == armedToken
 
 /**
  * Pure mapping from a host [Configuration] to the night-mode flag. Extracted

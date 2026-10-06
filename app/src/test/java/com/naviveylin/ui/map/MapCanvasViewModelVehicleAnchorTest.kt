@@ -35,6 +35,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Verifies the phone follow-mode vehicle anchor selection (spec:
@@ -593,7 +594,7 @@ class MapCanvasViewModelVehicleAnchorTest {
                 )
             }
         }
-        return NavigationEngine(
+        return engineUnderTest(
             { routeClient },
             LocationService(context), context
         )

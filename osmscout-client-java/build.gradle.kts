@@ -1,3 +1,5 @@
+import com.naviveylin.build.testing.ForcedTestExecution
+
 plugins {
     id("java-library")
     id("idea")
@@ -47,8 +49,18 @@ tasks.named<Jar>("jar") {
     archiveVersion.set("1.0.0")
 }
 
+// Forced test execution (change `speed-up-build-test-gate`, spec `build-test-gate` — "A gate run
+// proves that its tests executed"): `-PforceTests` forces this module's test task too, so one
+// invocation can quote all four modules' tallies; `--no-build-cache` keeps the build cache from
+// answering instead of the task (guidelines/Build.md §4).
+val forceTests: Boolean =
+    ForcedTestExecution.isRequested(providers.gradleProperty(ForcedTestExecution.PROPERTY).orNull)
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    if (forceTests) {
+        outputs.upToDateWhen { false }
+    }
 }
 
 // ── Test coverage (JaCoCo) ───────────────────────────────────────────────

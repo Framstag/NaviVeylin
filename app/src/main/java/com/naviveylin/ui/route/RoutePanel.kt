@@ -56,6 +56,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
@@ -80,6 +81,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import com.naviveylin.R
 import com.naviveylin.core.ResultMarkings
+import com.naviveylin.core.distanceUsesKilometers
+import com.naviveylin.core.formatDistanceNumber
+import com.naviveylin.core.formatStepDurationText
 import com.naviveylin.core.search.ResultMarking
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
@@ -124,8 +128,17 @@ internal fun phoneCardHeightDp(anchor: RouteOverlayAnchor, screenHeightDp: Float
         RouteOverlayAnchor.EXPANDED -> screenHeightDp * EXPANDED_CARD_FRACTION
         RouteOverlayAnchor.COMPACT ->
             minOf(COMPACT_CARD_MAX_DP, screenHeightDp * COMPACT_CARD_FRACTION)
-        RouteOverlayAnchor.HIDDEN -> 0f
     }
+
+/**
+ * Whether a session that ended by itself must close its surface (spec: `route-planning-session` —
+ * Ending the session removes its surface; "Grace expiry closes an open surface", "No surface
+ * survives the session"). The session can end without the user asking for it — its grace expiring
+ * is the one path that does — so the host has to be told; otherwise the card stays on screen with
+ * no session behind it (measured on the device, `TODO.md` §140).
+ */
+internal fun sessionEndClosesTheSurface(session: RouteSessionState, panelShown: Boolean): Boolean =
+    session == RouteSessionState.INACTIVE && panelShown
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,12 +147,24 @@ fun RoutePanel(
     onOpenFavoritePicker: (ActiveField) -> Unit,
     onStartNavigation: () -> Unit = {},
     onStopNavigation: () -> Unit = {},
+    // Restart from the stopped state: navigation resumes on the same route, no recalculation
+    // (spec: `route-planning-session` — Grace period after navigation is stopped).
+    onRestartNavigation: () -> Unit = {},
+    // The session's exit (spec: `route-planning-session` — the session's only exits, and
+    // "Ending the session removes its surface"). The card ends the session itself and asks
+    // the host to close the surface: `endSession()` alone left the surface flag set, which
+    // is how a minimised card could survive its session as an unclosable pill.
+    onEndSession: () -> Unit = {},
     onOverlayHeightChanged: (Int) -> Unit = {},
     isNavigating: Boolean = false,
     centerLat: Double,
     centerLon: Double
 ) {
     val state by viewModel.uiState.collectAsState()
+    // The session state is the owner of the stopped state (spec: `route-planning-session` — Grace
+    // period after navigation is stopped): while it lasts, the surface offers Restart and End
+    // instead of the planning actions.
+    val sessionState by viewModel.sessionState.collectAsState()
     // One read of "navigation is active" for the whole panel: the screen passes the
     // navigation view model's value, the session carries its own flag, and the panel
     // must never offer an edit while either says navigation is running (spec:
@@ -153,6 +178,15 @@ fun RoutePanel(
     // the overview fit (nominal 0.22) 614 px short (2026-10-03; design D8).
     val anchor = state.overlayAnchor
     val compact = anchor != RouteOverlayAnchor.EXPANDED
+
+    // The card reports the height it covers; when it leaves composition it covers nothing.
+    // Without this reset the map kept the last card height for its overview fit and for the
+    // right-side control column's inset after a session ended (spec `route-map-overview` —
+    // Ending the session frees the whole map without moving the camera).
+    val currentOnOverlayHeightChanged by rememberUpdatedState(onOverlayHeightChanged)
+    DisposableEffect(Unit) {
+        onDispose { currentOnOverlayHeightChanged(0) }
+    }
 
     // The map center is the search reference fallback when no GPS fix exists
     // (spec: search-result-ranking — distance reference).
@@ -195,14 +229,18 @@ fun RoutePanel(
                     // 2026-10-03: the single dense line was hard to read). They used to be the
                     // list's headline block, which cost ~90 dp of the card's height.
                     state.routeEntry?.let { route ->
+                        // One length for one route: the sum of the steps below, not the bridge's
+                        // separately accumulated figure (`routeLengthMeters`, spec: `osmscout-jni` —
+                        // One route length for a calculated route).
+                        val routeLength = routeLengthMeters(route)
                         Text(
                             text = stringResource(
-                                if (com.naviveylin.core.distanceUsesKilometers(route.distance)) {
+                                if (com.naviveylin.core.distanceUsesKilometers(routeLength)) {
                                     R.string.distance_unit_km
                                 } else {
                                     R.string.distance_unit_m
                                 },
-                                com.naviveylin.core.formatDistanceNumber(route.distance)
+                                com.naviveylin.core.formatDistanceNumber(routeLength)
                             ) + " · " + com.naviveylin.core.formatDurationText(route.duration),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -232,15 +270,17 @@ fun RoutePanel(
                         )
                     }
                 }
-                // Minimizing leaves the map entirely free; the route-ready affordance
-                // brings the overlay back (spec: anchors — hidden).
+                // The close control ends the session: same meaning in both anchors, with its
+                // own content description (owner finding, 2026-10-05 — the glyph was read as
+                // the exit while it minimised, and the minimised state then had no exit).
+                // Collapsing is the toggle above; the two affordances are distinct.
                 IconButton(
-                    onClick = { viewModel.setOverlayAnchor(RouteOverlayAnchor.HIDDEN) },
-                    modifier = Modifier.testTag("routeOverlayMinimize")
+                    onClick = onEndSession,
+                    modifier = Modifier.testTag("routeEndSessionHeader")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.route_overlay_minimize)
+                        contentDescription = stringResource(R.string.route_end_session)
                     )
                 }
             }
@@ -503,7 +543,9 @@ fun RoutePanel(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = stringResource(R.string.calculating_route),
+                            text = (state.routeState as RouteState.Calculating).percent?.let {
+                                stringResource(R.string.calculating_route_percent, it)
+                            } ?: stringResource(R.string.calculating_route),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -550,14 +592,7 @@ fun RoutePanel(
                                 }
                             }
                         }
-                        if (navigationActive) {
-                            Button(
-                                onClick = onStopNavigation,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(stringResource(R.string.stop_navigation))
-                            }
-                        } else {
+                        if (!navigationActive) {
                             Button(
                                 onClick = onStartNavigation,
                                 modifier = Modifier.weight(1f)
@@ -576,7 +611,7 @@ fun RoutePanel(
                     // would clip their labels at phone width.
                     if (!navigationActive) {
                         TextButton(
-                            onClick = { viewModel.endSession() },
+                            onClick = onEndSession,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("routeEndSession")
@@ -637,6 +672,15 @@ fun RoutePanel(
                 }
             }
 
+            // While navigation is active the review always offers its Stop action, whatever the
+            // panel's own route state is: the route belongs to navigation, so a session opened
+            // during navigation can end it even before it has adopted the route, and the review
+            // is never a panel with no way out (spec: `route-planning-session` — Reviewing a route
+            // during navigation is read-only: the review offers the Stop Navigation action).
+            if (navigationActive) {
+                ReviewStopAction(onStopNavigation = onStopNavigation)
+            }
+
             // ---- Turn-by-turn instructions live in the summary above (and in the
             // docked panel's step list); the phone has no second surface (D10) ----
         }
@@ -659,7 +703,15 @@ fun RoutePanel(
                 ) {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         body(true)
-                        bodyActions(true)
+                        if (sessionState == RouteSessionState.STOPPED) {
+                            StoppedActions(
+                                onRestartNavigation = onRestartNavigation,
+                                onEndSession = onEndSession,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+                        } else {
+                            bodyActions(true)
+                        }
                     }
                 }
             }
@@ -720,18 +772,53 @@ fun RoutePanel(
                         }
                         // The actions are pinned: starting navigation never depends on a
                         // scroll position (device finding 2026-10-03).
-                        bodyActions(false)
+                        if (sessionState == RouteSessionState.STOPPED) {
+                            StoppedActions(
+                                onRestartNavigation = onRestartNavigation,
+                                onEndSession = onEndSession,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(bottom = 24.dp)
+                            )
+                        } else {
+                            bodyActions(false)
+                        }
                     } else {
-                        StepNavigator(
-                            steps = state.routeSteps,
-                            analysedIndex = state.analysedStepIndex,
-                            onPrevious = { viewModel.analysePreviousStep() },
-                            onNext = { viewModel.analyseNextStep() },
-                            onStepNameClick = {
-                                viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
-                            },
-                            onEndSession = { viewModel.endSession() }
-                        )
+                        if (sessionState == RouteSessionState.STOPPED) {
+                            // MIN carries no header: the stopped state's two exits are the strip's
+                            // content for as long as the grace runs.
+                            StoppedActions(
+                                onRestartNavigation = onRestartNavigation,
+                                onEndSession = onEndSession,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        } else {
+                            StepNavigator(
+                                steps = state.routeSteps,
+                                analysedIndex = state.analysedStepIndex,
+                                onPrevious = { viewModel.analysePreviousStep() },
+                                onNext = { viewModel.analyseNextStep() },
+                                onStepNameClick = {
+                                    viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
+                                },
+                                onEndSession = onEndSession
+                            )
+                            // The review's Stop is offered in MIN too: the session card is the phone's
+                            // only session surface, and a session opened while navigation runs lands
+                            // COMPACT (openSession) — a review that could not end the navigation it
+                            // reviews would have no way out (spec: `route-planning-session` —
+                            // Reviewing a route during navigation is read-only: Stop Navigation SHALL
+                            // be offered; measured 2026-10-06, task 5.1 run (b): the strip showed the
+                            // step navigator and End only).
+                            if (navigationActive) {
+                                ReviewStopAction(
+                                    onStopNavigation = onStopNavigation,
+                                    modifier = Modifier
+                                        .padding(horizontal = 16.dp)
+                                        .padding(bottom = 8.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -795,8 +882,15 @@ private fun StepNavigator(
                     modifier = Modifier.testTag("analysedStepText")
                 )
                 val detail = listOfNotNull(
-                    step?.distanceText?.takeIf { it.isNotEmpty() },
-                    step?.timeText?.takeIf { it.isNotEmpty() }
+                    step?.takeIf { it.distanceMeters > 0.0 }?.let { stepWithValues ->
+                        stringResource(
+                            if (distanceUsesKilometers(stepWithValues.distanceMeters))
+                                R.string.distance_unit_km
+                            else R.string.distance_unit_m,
+                            formatDistanceNumber(stepWithValues.distanceMeters)
+                        )
+                    },
+                    step?.let { formatStepDurationText(it.durationSeconds) }?.takeIf { it.isNotEmpty() }
                 ).joinToString(" · ")
                 if (detail.isNotEmpty()) {
                     Text(
@@ -837,6 +931,62 @@ private fun StepNavigator(
                     contentDescription = stringResource(R.string.route_end_session)
                 )
             }
+        }
+    }
+}
+
+/**
+ * The stopped state's actions (spec: `route-planning-session` — Grace period after navigation is
+ * stopped): Restart resumes navigation on the route the session still holds, End ends the session
+ * immediately and clears the route. They stand in for the planning actions for as long as the
+ * grace runs, in both phone anchors and in the docked panel.
+ */
+/**
+ * The read-only review's Stop action — the session's way out of the navigation it reviews
+ * (spec: `route-planning-session` — Reviewing a route during navigation is read-only: Stop
+ * Navigation SHALL be offered). One composable for both phone frames (the MAX action band and the
+ * compact strip), so the two anchors cannot drift apart.
+ */
+@Composable
+private fun ReviewStopAction(
+    onStopNavigation: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onStopNavigation,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("stopNavigationReview")
+    ) {
+        Text(stringResource(R.string.stop_navigation))
+    }
+}
+
+@Composable
+private fun StoppedActions(
+    onRestartNavigation: () -> Unit,
+    onEndSession: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Button(
+            onClick = onRestartNavigation,
+            modifier = Modifier
+                .weight(1f)
+                .testTag("restartNavigation")
+        ) {
+            Text(stringResource(R.string.restart_navigation))
+        }
+        OutlinedButton(
+            onClick = onEndSession,
+            modifier = Modifier
+                .weight(1f)
+                .testTag("routeEndSessionStopped")
+        ) {
+            Text(stringResource(R.string.route_end_session))
         }
     }
 }

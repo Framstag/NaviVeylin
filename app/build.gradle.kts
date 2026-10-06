@@ -1,3 +1,5 @@
+import com.naviveylin.build.testing.CoverageInstrumentation
+import com.naviveylin.build.testing.ForcedTestExecution
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -155,6 +157,18 @@ tasks.register("release") {
     }
 }
 
+// Forced test execution (change `speed-up-build-test-gate`, spec `build-test-gate` — "A gate run
+// proves that its tests executed"): `-PforceTests` makes the JVM unit-test tasks not up to date, so
+// a run is evidence of what executed without forcing every compile, package and native task the
+// way `--rerun-tasks` does. Pair it with `--no-build-cache`, or the result outputs are restored
+// from the cache instead of executed (guidelines/Build.md §4; the gate record is in §2).
+val forceTests: Boolean =
+    ForcedTestExecution.isRequested(providers.gradleProperty(ForcedTestExecution.PROPERTY).orNull)
+// Coverage instrumentation stays attached by default so the aggregated reports keep working;
+// `-PnoCoverage` detaches the Kover agent for an iteration run (spec `test-coverage`).
+val noCoverage: Boolean =
+    CoverageInstrumentation.isDisabled(providers.gradleProperty(CoverageInstrumentation.PROPERTY).orNull)
+
 android {
     namespace = "com.naviveylin"
     compileSdk = 36
@@ -283,6 +297,21 @@ android {
             // budget (fixed in `FavoritesSheetReorderComposeTest`; TODO §26).
             all {
                 it.maxHeapSize = "1024m"
+
+                // Declared test-JVM concurrency (change `speed-up-build-test-gate`, spec
+                // `unit-test-suite-runtime` — "Unit-test parallelism is declared and result-preserving").
+                // Measured 2026-10-04 with one invocation per setting on the mobile suite
+                // (218 classes / 1649 tests, `-PforceTests -PnoCoverage --no-build-cache`, no other build on
+                // the machine during the runs): 1 fork 2m50s / 1.92 GB peak worker RSS, 2 forks 2m02s / 3.42 GB
+                // (green, same class set), 4 forks 1m51s / 4.65 GB but NOT result-preserving —
+                // `NavigationEngineRerouteTest.instructionListUpdatesAfterAReroute` failed awaiting a state
+                // change within its bound while the class had been green at 1 and 2 forks minutes earlier.
+                // Two forks is therefore the declared value: 28 % off the suite for a peak the host can hold.
+                it.maxParallelForks = 2
+
+                if (forceTests) {
+                    it.outputs.upToDateWhen { false }
+                }
             }
         }
     }
@@ -306,6 +335,11 @@ android {
 // Hilt/Dagger/KSP wiring) is excluded so metrics reflect hand-written
 // logic. See guidelines/Build.md → Code coverage.
 kover {
+    currentProject {
+        instrumentation {
+            disabledForAll.set(noCoverage)
+        }
+    }
     reports {
         filters {
             excludes {

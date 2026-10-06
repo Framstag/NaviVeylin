@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 2,
+  "invocation": [":app:testMobileDebugUnitTest", ":app:testAutomotiveDebugUnitTest", ":app:assembleMobileDebug"],
+  "startedAt": "2026-10-04T16:22:38Z",
+  "finishedAt": "2026-10-04T16:31:40Z",
+  "durationMs": 542000,
+  "taskFailures": 0,
+  "tasks": [
+    {"path":":app:preBuild","outcome":"executed","startMs":1791130958000,"endMs":1791130960000,"durationMs":2000},
+    {"path":":app:checkHardcodedStrings","outcome":"executed","startMs":1791130960000,"endMs":1791130963000,"durationMs":3000},
+    {"path":":app:compileMobileDebugKotlin","outcome":"executed","startMs":1791130963000,"endMs":1791131024000,"durationMs":61000},
+    {"path":":app:mergeMobileDebugResources","outcome":"up-to-date","startMs":1791131024000,"endMs":1791131024000,"durationMs":0},
+    {"path":":app:testMobileDebugUnitTest","outcome":"executed","startMs":1791131024000,"endMs":1791131219000,"durationMs":195000},
+    {"path":":app:testAutomotiveDebugUnitTest","outcome":"executed","startMs":1791131219000,"endMs":1791131403000,"durationMs":184000},
+    {"path":":auto:testDebugUnitTest","outcome":"executed","startMs":1791131403000,"endMs":1791131404000,"durationMs":1000},
+    {"path":":core:testDebugUnitTest","outcome":"from-cache","startMs":1791131404000,"endMs":1791131404000,"durationMs":0},
+    {"path":":app:assembleAutomotiveDebug","outcome":"skipped","startMs":1791131404000,"endMs":1791131404000,"durationMs":0}
+  ]
+}

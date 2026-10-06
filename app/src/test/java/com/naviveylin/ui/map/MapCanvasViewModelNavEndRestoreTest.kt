@@ -30,6 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Verifies that navigation end applies the representation preset of the
@@ -96,7 +97,7 @@ class MapCanvasViewModelNavEndRestoreTest {
                 )
             }
         }
-        return NavigationEngine(
+        return engineUnderTest(
             { routeClient },
             LocationService(context), context
         )

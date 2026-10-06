@@ -263,6 +263,17 @@ practical outcome.
   grep (`[0-9]{1,3}\.[0-9]{4,}`) is deliberately *stricter* than the rule: a hit that names a
   magnification or another identity value (a raw `Double` can print at that precision) is an identity
   line, not a regression.
+- **A source-level privacy gate needs one rule per delivery *shape*, not one per field name** (2026-10-05,
+  from the same gate's second pass). The first rule set targeted coordinate *identifiers* (`lat`/`lon`) and
+  coordinate-shaped formats, so sites where the value arrives **whole** passed it: an interpolated request
+  object (`$request`), a whole-URI hand-over (`${original?.data}`), a destination object, a label string.
+  The gate now separates those shapes — identifier, format, whole object, URI read — from a *scalar read off*
+  a URI (`scheme=${intent?.data?.scheme}` is identity, not a position; `uri`/`url` are legitimate diagnostics
+  content). Two practices keep such a gate honest: run the new rule against the **fixed** shape before
+  claiming an empty false-positive set (widening to "any `.data` in an interpolation" flagged the fix
+  itself), and check `checkNoCoordinatesInLogs` is not vacuous — a brand-new gate that fails on its first
+  run may be the wrong gate, and a `Sync` task's build **output** is not a mutation point (the sync restores
+  the file before the test runs; the source under `app/src/main/cpp/libosmscout/` is).
 - The exported/shared text and both diagnostics viewers lead with the disclosure
   (`diagnostics_disclosure`, de + en), naming what the file holds and the retention window.
   The wording needs no change for the purge: it already claims the file carries no coordinates, which

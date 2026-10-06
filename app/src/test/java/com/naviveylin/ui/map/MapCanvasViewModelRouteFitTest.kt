@@ -18,7 +18,6 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
@@ -43,6 +42,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import java.io.File
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Verifies the route-overview camera fit (spec: route-map-overview): when a
@@ -106,7 +106,7 @@ class MapCanvasViewModelRouteFitTest {
         )
         routePanelViewModel.defaultDispatcher = mainDispatcherRule.dispatcher
         navigationViewModel = NavigationViewModel(
-            NavigationEngine({ client }, LocationService(context), context)
+            engineUnderTest({ client }, LocationService(context), context)
         )
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
     }
@@ -590,6 +590,24 @@ class MapCanvasViewModelRouteFitTest {
             longitudes = DoubleArray(0)
         }
         calculateAndAwaitRender(48.0, 2.0, 49.0, 2.6, route = empty)
+
+        val vp = viewModel.uiState.value.viewport
+        assertEquals("center on start/target midpoint", 48.5, vp.centerLat, 1e-9)
+        assertEquals(2.3, vp.centerLon, 1e-9)
+        assertEquals(expectedFitMag(doubleArrayOf(48.0, 49.0, 2.0, 2.6)), vp.magnification, 1e-9)
+    }
+
+    @Test
+    fun absentPolyline_fallsBackToEndpointMidpoint() = runTest(mainDispatcherRule.dispatcher) {
+        // A route the bridge hands over without geometry behaves exactly like an empty polyline: the
+        // requested endpoints carry the fit (spec: `route-map-overview` — Absent polyline coordinates
+        // are treated as an empty polyline; change `fix-adopt-route-null-polyline`).
+        wireRendererAndPanel()
+        val absent = RouteEntry().apply {
+            routeHandle = 5L
+            distance = 120000.0
+        }
+        calculateAndAwaitRender(48.0, 2.0, 49.0, 2.6, route = absent)
 
         val vp = viewModel.uiState.value.viewport
         assertEquals("center on start/target midpoint", 48.5, vp.centerLat, 1e-9)

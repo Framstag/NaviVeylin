@@ -96,6 +96,9 @@ licenses/             → Curated license data: native license map, license poli
   "unify" them (spec `native-database-open`).
 - Main repo pins the submodule SHA in the gitlink — bump it (commit) after any submodule commit
 - Keep the submodule clean: uncommitted submodule changes are not built by CI or fresh clones
+- **One session owns the submodule and its pushes.** Run `git ls-remote origin <branch>` (not the local
+  remote-tracking ref) immediately before the push — two sessions created the same JNI commits and
+  force-rewrote `naviveylin-local`, reconciled afterwards by a merge (§40.54).
 - CMake builds all native code
 - vcpkg for cross-compiling C++ dependencies (cairo, pango, harfbuzz, fribidi, protobuf, ...)
   - Location: `$VCPKG_ROOT` env var or `./vcpkg`
@@ -120,7 +123,7 @@ licenses/             → Curated license data: native license map, license poli
   - Installed once in `NaviVeylinApp.onCreate` before any DB open/render/routing
 - Native lines appear in Logcat under tag **`NaviVeylin`**, levels mapped `DEBUG/INFO/WARN/ERROR` → `D/I/W/E`
 - Inspect with: `adb logcat -s NaviVeylin`
-- A stylesheet load reports the type names the installed database cannot resolve as **one line per parsed style file** (`Unknown types in '<file>': N (<sample>, N more)`) — never one line per rule occurrence; the complete per-name list needs `osmscout::log.Debug(true)` (native debug is off by default). One such line per style file **per load** is the expected output on an install whose map data predates the stylesheet (`TODO.md` §89/§90/§91) — a startup loads the set more than once (measured 8 files × 13 loads = 104 lines, `TODO.md` §116), so compare per file; a per-occurrence warning wall means the condensation regressed (`guidelines/Build.md` §10)
+- A stylesheet load reports the type names the installed database cannot resolve as **one line per parsed style file** (`Unknown types in '<file>': N (<sample>, N more)`) — never one line per rule occurrence; the complete per-name list needs `osmscout::log.Debug(true)` (native debug is off by default). One such line per style file **per load** is the expected output on an install whose map data predates the stylesheet (`TODO.md` §91/§99) — a startup loads the set more than once (measured 8 files × 13 loads = 104 lines, `TODO.md` §120), so compare per file; a per-occurrence warning wall means the condensation regressed (`guidelines/Build.md` §10)
 - The bridge links `osmscout_client_java` and is the **only** place in the native build allowed to use Android logging APIs — libosmscout must stay platform-independent
 
 #### Kotlin (app) logging
@@ -228,9 +231,10 @@ quote `§N`). Three skills own the file:
 
 ## Agent iteration loop (measure first)
 
-Three rules come from a change whose single visual symptom ("the segment is still not
-completely visible") needed nine review rounds — the rounds themselves, not the bug, were the
-cost (`ki_processing_failures.log`):
+The rules below are the ones that cost the most rounds (`ki_processing_failures.log`): rules 1–3 come
+from a change whose single visual symptom ("the segment is still not completely visible") needed
+nine review rounds — the rounds themselves, not the bug, were the cost; rule 4 comes from the
+shared-worktree collisions (2026-10-04/05, `ki_processing_failures.log`).
 
 1. **Measure before changing code.** A symptom that lives in pixels cannot be settled by reading
    projection/fit/layout code. Add a coordinate-free diagnostics line (numbers — indices, pixels,
@@ -240,16 +244,45 @@ cost (`ki_processing_failures.log`):
    device needed). If the model says `inside=true` and the pixels say `CLIPPED`, the disagreement
    between model and rendering is the bug.
 2. **Iterate with focused suites, gate once.**
-   `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.route.*"` (~3 min) per edit;
-   the full both-flavor gate with `--rerun-tasks` once before the commit (~16 min). Running the
-   full gate per finding is what made a round cost an hour.
+   Start with the change's own declared cases:
+   `bash tools/declared-cases.sh <change> --diff <this change's file list> --rules declared,touched
+   --command` prints the classes its artifacts name plus the test files its diff touches (seconds of
+   class time, ~30-45 s of wall time) and the `--tests` line to run them; the full union of the three
+   rules is the second stage, because `mention` reaches about half the suite on a change to the app's
+   central types (`guidelines/Build.md` §4). Never treat that pass as gate evidence.
+   Otherwise: `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.route.*"` (~3 min) per edit;
+   the full both-flavor gate with `--rerun-tasks` once before the commit (measured 8m25s on 2026-10-04,
+   `guidelines/Build.md` §2). Running the full gate per finding is what made a round cost an hour. Three
+   measured levers keep iteration cheap (change `speed-up-build-test-gate`, spec `build-test-gate`):
+   `-PforceTests --no-build-cache` forces the *test* tasks instead of the whole graph (compiles stay
+   `UP-TO-DATE`); `-PnoCoverage` drops the Kover agent for a run that does not feed a report (10-12 % of a
+   suite's wall time, identical class set and tallies); and a change that touches only sources both `:app`
+   flavors share needs **one** flavor's suite — the two suites execute the same 215 classes (~3 minutes per
+   gate), so the second flavor's suite is owed at completion, not per iteration. A JVM-only change needs no
+   native build at all, and a one-ABI build (`-Pandroid.injected.build.abi=arm64-v8a`) is available when it
+   does; the configuration cache is off project-wide for a measured reason (`guidelines/Build.md` §7) — do
+   not add `--configuration-cache` to an iteration recipe.
 3. **Batch independent questions.** `ask_user` takes 2–4 independent questions in one call; serial
    one-question rounds each cost a full owner round trip. Ask for the *observation* (where, when)
    before proposing a cause.
+4. **One builder per working tree.** Two Gradle invocations in one tree do not merely slow each other
+down — they corrupt each other's outputs: a foreign build killed `:app:mergeAutomotiveDebugResources`
+("Failed to store cache entry … Could not get file mode") while a foreign edit mid-run inflated a measured
+8m25s gate to 22m37s by forcing the Kotlin compiles to re-execute. Long verification runs are isolated
+with `git worktree add`, or the other session is confirmed done first; a wait loop that never saw a quiet
+window must abort, not fall through into the run. Detection must be right — `pgrep -f 'GradleWrapper[M]ain'`
+can never match (the wrapper runs as `java … -jar gradle-wrapper.jar`), so use
+`pgrep -af 'gradle-wrapper\.ja[r]'` (`guidelines/Build.md` §2). The same check covers an **edit** in flight,
+not just a build: before an apply/verify pass run `find <module> -newermt '-10 minutes'` alongside the wrapper
+probe — if a peer is mid-edit, quote the evidence already collected and stop (§40.46). A foreign edit at
+minute 11 of a gate makes every build in that window unverifiable.
 
 Skills for this: `device-check` (one reusable device loop: dump/tap discipline, logcat tags,
-geometry as evidence), `pixel-check` (screenshot measurement), `provision-phone-emulator`
-(AVD with maps), plus `build-app`/`run-tests`/`revert-check` for the gate.
+geometry as evidence, and the tap-consumer diagnosis that names which node got the tap),
+`pixel-check` (screenshot measurement), `provision-phone-emulator`
+(AVD with maps), `compose-geometry` (assert a control's size/tap target/disjointness/visibility as Dp
+bounds in a Compose case — never `assertExists()`),
+plus `build-app`/`run-tests`/`revert-check` for the gate.
 
 `.pi/` is gitignored — the skills are local tooling. A rule that must survive a fresh clone or
 another agent therefore belongs in **this file**, in `openspec/config.yaml` or in
@@ -266,6 +299,16 @@ proposal → specs → design → tasks → apply
 
 Change artifacts live in `openspec/changes/<change-name>/`.
 Config: `openspec/config.yaml`
+
+Two artifact rules are CI-gated (`.github/workflows/build.yml`, step "Check OpenSpec artifact hygiene"):
+
+- every `tasks.md` uses `- [x]` / `- [ ]` markers — bare `1. [x]` items parse as **no** tasks (the change then
+  reads as `no-tasks` with no error);
+- any `operations.*.guidance` list entry containing `: ` must be **quoted**. An unquoted `KEY: text` entry
+  parses as a YAML mapping, the whole array fails the array-of-strings check and the CLI silently drops that
+  operation's guidance behind a single warning (that hid the entire `apply` guidance until 2026-10-04).
+  Run `openspec doctor` and `openspec instructions apply --change <name> --json | jq .operationGuidance`
+  after editing the config.
 
 ## Build & Test
 

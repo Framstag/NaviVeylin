@@ -14,6 +14,8 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import com.naviveylin.core.search.SearchResultRanker
 import org.junit.After
@@ -143,5 +145,25 @@ class MapCanvasViewModelFreeTextSearchTest {
         val results = viewModel.searchLocations("cafe central")
 
         assertTrue(results.isEmpty())
+    }
+
+    /**
+     * A search request that repeats the previous query text still runs: the trigger
+     * is a request, so an equal text must not be conflated away (spec:
+     * location-search — A repeated query text still runs the search).
+     */
+    @Test
+    fun repeatedQueryTextRunsAgain() = runTest(mainDispatcherRule.dispatcher) {
+        client.nextSearchResults = arrayOf(poiEntry("Bochum", "city", 51.4818, 7.2162))
+
+        viewModel.onSearchQueryChanged("Bochum")
+        advanceTimeBy(400)
+        runCurrent()
+        assertEquals(listOf("Bochum"), client.searchQueries)
+
+        viewModel.onSearchQueryChanged("Bochum")
+        advanceTimeBy(400)
+        runCurrent()
+        assertEquals(listOf("Bochum", "Bochum"), client.searchQueries)
     }
 }

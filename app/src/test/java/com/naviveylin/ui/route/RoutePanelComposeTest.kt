@@ -5,10 +5,12 @@ import android.app.Application
 import android.content.Context
 import android.os.Looper
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -209,7 +211,9 @@ class RoutePanelComposeTest {
      * start & target" and "Start Navigation", and the header's close merely minimised — there
      * was no way to *leave* the analysis. The spec demands an explicit End action
      * (`route-planning-session`: "the user starts navigation or ends the session"), in both
-     * card states.
+     * card states — and the owner's follow-up finding (2026-10-05) is that the header's close
+     * must request that exit rather than minimise, so the card never hides onto a surface
+     * with no exit of its own.
      */
     @Test
     fun theCardOffersAWayOutOfTheAnalysisInBothStates() {
@@ -230,8 +234,17 @@ class RoutePanelComposeTest {
             longitudes = doubleArrayOf(7.0, 8.0)
             descriptions = arrayOf("Start: A  [0.0 km]", "Turn left into Main Street  [1.2 km, 5 min]")
         }
+        // The card requests the exit; the host performs it (the screen wires this callback to
+        // `MapCanvasViewModel.dismissRoutePanel()`, which RouteSessionCardExitTest covers).
+        var endRequests = 0
         composeRule.setContent {
-            RoutePanel(viewModel = viewModel, onOpenFavoritePicker = {}, centerLat = 51.5136, centerLon = 7.4653)
+            RoutePanel(
+                viewModel = viewModel,
+                onOpenFavoritePicker = {},
+                onEndSession = { endRequests++ },
+                centerLat = 51.5136,
+                centerLon = 7.4653
+            )
         }
         viewModel.openSession()
         viewModel.calculateRoute()
@@ -250,9 +263,14 @@ class RoutePanelComposeTest {
 
         composeRule.onNodeWithTag("routeEndSessionCompact").performClick()
         composeRule.waitForIdle()
-        assertEquals(null, viewModel.uiState.value.routeEntry)
-        assertEquals(RouteOverlayAnchor.HIDDEN, viewModel.uiState.value.overlayAnchor)
-        composeRule.onNodeWithText("Start Navigation").assertDoesNotExist()
+        assertEquals("the min close requests the session exit", 1, endRequests)
+
+        // MAX's header close is the same exit, not a second meaning of the glyph.
+        viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("routeEndSessionHeader").performClick()
+        composeRule.waitForIdle()
+        assertEquals("the header close requests the session exit", 2, endRequests)
     }
 
     /** Entry ~1.0 km north of the test center (0.009° latitude). */
@@ -291,5 +309,67 @@ class RoutePanelComposeTest {
             shadowOf(Looper.getMainLooper()).idle()
             composeRule.onAllNodesWithText("1.0 km").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    /**
+     * The card's statistic is the route's own length — the sum of the steps the card itself lists —
+     * not the bridge's separately accumulated figure (spec: `osmscout-jni` — One route length for a
+     * calculated route; `route-planning-session` — Headline agrees with the card's step list).
+     *
+     * The pair is measured, from device 2026-10-05 (Dortmund Hbf -> Bochum Hbf: legs 21 011 m against
+     * a native total of 16 677 m, `TODO.md` §129/§139): the rendered string must follow the legs. This
+     * is the rendered half of the accessor's unit case — a regression to the second figure has to show
+     * up as the wrong string on the card, not only as a helper's return value. It is host-side because
+     * the card is Compose canvas content: the on-device hierarchy exposes almost no text nodes, so an
+     * on-device check of this string would need screenshot OCR, which compares worse than this exact
+     * assertion.
+     */
+    @Test
+    fun theHeaderStatisticIsTheSumOfTheStepsItLists() {
+        val client = FakeOSMScoutClient()
+        val viewModel = RoutePanelViewModel(
+            client = client,
+            favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context()),
+            locationService = LocationService(context()),
+            context = context()
+        )
+        viewModel.setStartLocation(LocationEntry().apply { label = "Start"; lat = 51.0; lon = 7.0 })
+        viewModel.setDestLocation(LocationEntry().apply { label = "Dest"; lat = 52.0; lon = 8.0 })
+        client.routeToDeliver = RouteEntry().apply {
+            distance = 16_677.0
+            duration = 1500.0
+            latitudes = doubleArrayOf(51.0, 52.0)
+            longitudes = doubleArrayOf(7.0, 8.0)
+            instructionDistances = doubleArrayOf(0.0, 21_011.0)
+            instructionTimes = doubleArrayOf(0.0, 1_400.0)
+            descriptions = arrayOf(
+                "--- Route ---",
+                "Start: A  [0.0 km, 0 min]",
+                "Turn left into Main Street  [21.0 km, 23 min]"
+            )
+        }
+        composeRule.setContent {
+            RoutePanel(
+                viewModel = viewModel,
+                onOpenFavoritePicker = {},
+                centerLat = 51.5136,
+                centerLon = 7.4653
+            )
+        }
+        viewModel.calculateRoute()
+        // MAX is where the card carries the header statistics — the panel starts collapsed and the min
+        // state renders no header (the same step `doneStateShowsSummaryInline` takes).
+        viewModel.setOverlayAnchor(com.naviveylin.ui.route.RouteOverlayAnchor.EXPANDED)
+        // Route calc lands on a background dispatcher; pump the main looper until the Done state renders.
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            shadowOf(Looper.getMainLooper()).idle()
+            composeRule.onAllNodesWithText("Start Navigation").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        // The legs' sum, rendered ...
+        composeRule.onNodeWithTag("routeHeaderStats").assertTextContains("21.0", substring = true)
+        // ... and the native total the pre-fix bridge published is not rendered anywhere on the card.
+        composeRule.onAllNodesWithText("16.7", substring = true).assertCountEquals(0)
     }
 }

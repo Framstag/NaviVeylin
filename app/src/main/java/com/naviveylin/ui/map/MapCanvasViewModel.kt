@@ -1009,8 +1009,25 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
-    // Search query flow — debounced and collected for location search
-    private val _searchQueryFlow = MutableStateFlow("")
+    /**
+     * One user-triggered search request: the query text plus a monotonic sequence.
+     *
+     * The sequence makes a request an identity of its own, so a request whose text
+     * repeats the previous one is still a *different* value: `StateFlow` conflates
+     * equal values, and a plain query string would drop the replay of a recent-search
+     * chip (spec: `location-search` — A repeated query text still runs the search;
+     * spec: `search-history` — History selection replays the search).
+     */
+    private data class SearchRequest(val query: String, val seq: Long)
+
+    /**
+     * The search trigger — debounced and collected for location search.
+     *
+     * Every requester publishes a [SearchRequest]; the request carries its own text, so
+     * the displayed query ([MapCanvasUiState.searchQuery]) and the search that actually
+     * ran can never disagree (`guidelines/Design.md` §3 — one truth per value).
+     */
+    private val _searchRequest = MutableStateFlow(SearchRequest("", 0L))
 
     /** Set once the map database is open and the renderer is ready. */
     private val mapReady = MutableStateFlow(false)
@@ -1078,16 +1095,16 @@ class MapCanvasViewModel @Inject constructor(
 
         @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
         viewModelScope.launch {
-            _searchQueryFlow
+            _searchRequest
                 .debounce(300L)
-                .filter { it.length >= 2 || it.isEmpty() }
-                .flatMapLatest { query ->
-                    if (query.length < 2) {
+                .filter { it.query.length >= 2 || it.query.isEmpty() }
+                .flatMapLatest { request ->
+                    if (request.query.length < 2) {
                         _uiState.value = _uiState.value.copy(searchResults = emptyList(), isSearching = false)
                         return@flatMapLatest flowOf(emptyList<MergedSearchResult>())
                     }
                     _uiState.value = _uiState.value.copy(isSearching = true)
-                    flowOf(mergeSearchResults(query))
+                    flowOf(mergeSearchResults(request.query))
                 }
                 .collect { results ->
                     _uiState.value = _uiState.value.copy(
@@ -1109,7 +1126,7 @@ class MapCanvasViewModel @Inject constructor(
         // every second, and for a ViewModel that outlives its test that is a read against another
         // test's `Dispatchers.setMain`, failing that later test with `Dispatchers.Main is used
         // concurrently with setting it` (spec: gps-fix-quality — Fix-quality re-evaluation stays off
-        // the main thread; TODO.md §101). An unchanged quality therefore costs no main-dispatcher
+        // the main thread; TODO.md §121). An unchanged quality therefore costs no main-dispatcher
         // traffic at all, while a real change is detected within one tick and published through the
         // one debounced pipeline below. The comparison is against the published value, so ticks that
         // arrive while a change is still inside the debounce repeat it; the pipeline's own
@@ -2241,10 +2258,19 @@ class MapCanvasViewModel @Inject constructor(
     /** Called when user types in the search field. */
     fun onSearchQueryChanged(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
-        _searchQueryFlow.value = query
+        publishSearchRequest(query)
     }
 
-    /** Called when user picks an entry from the search history: fills the search box. */
+    /**
+     * Publish a search request for [query]. The sequence advances on every call, so a
+     * request repeating the previous text still runs (see [SearchRequest]).
+     */
+    private fun publishSearchRequest(query: String) {
+        Log.d(TAG, "search request: chars=${query.length} seq=${_searchRequest.value.seq + 1L}")
+        _searchRequest.value = SearchRequest(query, _searchRequest.value.seq + 1L)
+    }
+
+    /** Called when user picks an entry from the search history: fills the search box and replays the search. */
     fun onHistoryEntrySelected(text: String) {
         onSearchQueryChanged(text)
     }
@@ -2365,6 +2391,10 @@ class MapCanvasViewModel @Inject constructor(
                 detailsFromPoiSearch = false,
                 isLoading = true
             )
+            // The displayed query is empty again, so the trigger follows it: no committed
+            // search text may be left behind for a later replay to collide with
+            // (spec: `location-search` — A repeated query text still runs the search).
+            publishSearchRequest("")
             updateCenter(entry.lat, entry.lon)
             renderMap()
 
@@ -2853,13 +2883,18 @@ class MapCanvasViewModel @Inject constructor(
         // the follow/suspension state before navigation starts and restore it
         // when navigation stops — a browse-before-nav user lands back in BROWSE.
         viewModelScope.launch {
-            var preNavFollow: Boolean? = null
-            var preNavSuspended: Boolean? = null
             vm.state.collect { navState ->
-                if (navState.isNavigating && preNavFollow == null) {
-                    preNavFollow = _uiState.value.followMode
-                    preNavSuspended = _uiState.value.driveSuspended
-                } else if (!navState.isNavigating && preNavFollow != null) {
+                if (navState.isNavigating && preNavigationFollow == null) {
+                    // Fallback for a host that wired no snapshot callback: the adapter normally
+                    // records the surface's mode when the session starts
+                    // ([snapshotPreNavigationMode]), so this only covers the wiring gap.
+                    preNavigationFollow = _uiState.value.followMode
+                    preNavigationSuspended = _uiState.value.driveSuspended
+                } else if (!navState.isNavigating && preNavigationFollow != null) {
+                    val restoreFollow = preNavigationFollow!!
+                    val restoreSuspended = preNavigationSuspended!!
+                    preNavigationFollow = null
+                    preNavigationSuspended = null
                     // Snapshot the exact position and zoom where routing ended
                     // BEFORE the restore below mutates state (spec: map-modes —
                     // "Navigation end keeps the viewport"). The representation
@@ -2871,11 +2906,9 @@ class MapCanvasViewModel @Inject constructor(
                     val endCenterLon = _uiState.value.viewport.centerLon
                     val endMagnification = _uiState.value.viewport.magnification
                     _uiState.value = _uiState.value.copy(
-                        followMode = preNavFollow!!,
-                        driveSuspended = preNavSuspended!!
+                        followMode = restoreFollow,
+                        driveSuspended = restoreSuspended
                     )
-                    preNavFollow = null
-                    preNavSuspended = null
                     // Landing in BROWSE (follow off and not a suspended drive)
                     // must apply the BROWSE representation: north-up, no drift.
                     // Position and zoom stay where routing ended (spec:
@@ -3176,8 +3209,31 @@ class MapCanvasViewModel @Inject constructor(
     /** Get all favorite group names. */
     fun getFavoriteGroupNames(): List<String> = favoriteRepository.getGroupNames()
 
-    /** Toggle follow mode on/off (runtime state — not persisted; the app
-     *  always starts in BROWSE, spec: map-modes). */
+    /**
+     * The surface's own follow/suspension state before navigation forced follow on. Captured by
+     * [snapshotPreNavigationMode], which the navigation adapter calls when a session *starts* — the
+     * adapter is the one place that knows the session's start and where follow is forced on, so the
+     * restore at the stop cannot observe the forced-on value. Taking the snapshot inside the forcing
+     * instead left the ordering to two collectors of the same navigation state and recorded nothing
+     * at all when a session held the camera and refused the forcing; either way the restore read a
+     * value navigation had already imposed (measured 2026-10-06: `mode restored follow=true` after a
+     * browse-before navigation; spec: `map-modes` — navigation end restores prior mode).
+     */
+    private var preNavigationFollow: Boolean? = null
+    private var preNavigationSuspended: Boolean? = null
+
+    /**
+     * Record the mode this surface is in for the navigation that is about to start
+     * (spec: `map-modes` — navigation end restores prior mode). Called by the navigation adapter
+     * *before* it forces follow on; idempotent, so a second session start inside a running one
+     * cannot overwrite the recorded mode with a value navigation imposed.
+     */
+    internal fun snapshotPreNavigationMode() {
+        if (preNavigationFollow != null) return
+        preNavigationFollow = _uiState.value.followMode
+        preNavigationSuspended = _uiState.value.driveSuspended
+    }
+
     fun onToggleFollowMode(enabled: Boolean) {
         // The session owns the camera while it is open (spec: route-planning-session —
         // Session holds the camera while active): a follow re-engage is refused there,
@@ -3702,7 +3758,7 @@ class MapCanvasViewModel @Inject constructor(
             searchResults = emptyList(),
             isSearching = false
         )
-        _searchQueryFlow.value = ""
+        publishSearchRequest("")
     }
 
     /**

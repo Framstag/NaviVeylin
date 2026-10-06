@@ -5,18 +5,24 @@ package com.naviveylin.auto
  * screen-stack mutations are balanced; design D4).
  *
  * The session's stack is `map root` → `NavigationScreen` while navigating → optionally
- * one transient error notice on top. Two rules make it stable:
+ * one transient notice (the route-calculation wait notice, and the error notice) on top.
+ * Three rules make it stable:
  *
  * - **Bookkeeping follows the mutation that succeeded.** Recording a push before it
  *   lands leaves the session claiming a screen the host refused: `showNavigationScreen`
  *   then early-returns forever and the driver has no navigation view. A rejected push
  *   must leave the record unset so the next state emission tries again.
- * - **At most one error notice.** A notice that is still up is *updated*, not stacked:
- *   repeated errors must not grow the stack, and dismissing a notice must remove only
- *   that notice — `popToRoot()` (which the session used to call) pops the navigation
- *   view away with it while the session still believes it is shown.
+ * - **At most one notice of each kind.** Both notices are *updated* while they are up,
+ *   never stacked: repeated errors must not grow the stack, two progress values must not
+ *   either, and dismissing a notice must remove only that notice — `popToRoot()` (which
+ *   the session used to call) pops the navigation view away with it while the session
+ *   still believes it is shown.
+ * - **A notice never outlives what it describes.** The calculation notice belongs to the
+ *   calculation in flight (spec: `route-calculation-feedback` — The car notice never
+ *   outlives its calculation), so its record is cleared by the same state change that
+ *   removes the screen.
  *
- * Pure state, main-thread only, so both rules are testable without a host-provided
+ * Pure state, main-thread only, so all rules are testable without a host-provided
  * `CarContext` (a [NavigationSession] cannot be constructed in Robolectric — same
  * reason [SessionHostGate] and [FreeDrivingRestoreGate] are pure).
  */
@@ -25,6 +31,8 @@ internal class SessionScreenStack {
     private var navigationShown = false
     private var errorNotice: Any? = null
     private var dismissalOwed = false
+    private var calculationNotice: Any? = null
+    private var calculationDismissalOwed = false
 
     /** True while the session believes its navigation view is on the stack. */
     val isNavigationShown: Boolean
@@ -64,12 +72,14 @@ internal class SessionScreenStack {
 
     /**
      * Record that the stack was popped back to the root and the pop landed: the
-     * navigation view and any error notice are gone with it.
+     * navigation view and any notice are gone with it.
      */
     fun onRootPopped() {
         navigationShown = false
         errorNotice = null
         dismissalOwed = false
+        calculationNotice = null
+        calculationDismissalOwed = false
     }
 
     /**
@@ -116,6 +126,57 @@ internal class SessionScreenStack {
         if (notice == null || errorNotice !== notice) return false
         errorNotice = null
         dismissalOwed = false
+        return true
+    }
+
+    /** True while the route-calculation wait notice is on the stack. */
+    val hasCalculationNotice: Boolean
+        get() = calculationNotice != null
+
+    /**
+     * Whether showing the calculation notice needs a new screen: false while a notice is
+     * already up, in which case the caller updates that notice's progress and invalidates
+     * it instead of stacking a second screen.
+     */
+    fun needsCalculationNoticePush(): Boolean = calculationNotice == null
+
+    /** Record that the calculation [notice] is now on the stack. */
+    fun onCalculationNoticePushed(notice: Any) {
+        calculationNotice = notice
+        calculationDismissalOwed = false
+    }
+
+    /**
+     * Record that the notice's removal was skipped because the session was not started:
+     * the notice stays on the stack and its removal is owed to the next started period.
+     */
+    fun onCalculationNoticeDismissalDeferred() {
+        calculationDismissalOwed = calculationNotice != null
+    }
+
+    /**
+     * Take the owed removal of the calculation notice, if there is one. Called from the
+     * session's started sync, which is the first moment a host mutation is allowed again.
+     *
+     * @return the notice to remove, or null when nothing is owed
+     */
+    fun consumeOwedCalculationDismissal(): Any? {
+        if (!calculationDismissalOwed) return null
+        calculationDismissalOwed = false
+        return calculationNotice
+    }
+
+    /**
+     * Record that the calculation notice left the stack. Identity-guarded: a removal of a
+     * notice that is no longer the current one (a new calculation pushed its own notice in
+     * the meantime) changes nothing.
+     *
+     * @return true when [notice] was the notice on the stack
+     */
+    fun onCalculationNoticeDismissed(notice: Any?): Boolean {
+        if (notice == null || calculationNotice !== notice) return false
+        calculationNotice = null
+        calculationDismissalOwed = false
         return true
     }
 }

@@ -32,6 +32,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Verifies the fractional auto-zoom commit path (spec: auto-speed-zoom —
@@ -74,7 +75,7 @@ class MapCanvasViewModelAutoZoomCommitTest {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         locationService = LocationService(context)
-        navEngine = NavigationEngine({ client }, locationService, context)
+        navEngine = engineUnderTest({ client }, locationService, context)
         navViewModel = NavigationViewModel(navEngine)
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),

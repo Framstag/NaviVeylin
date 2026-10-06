@@ -1,6 +1,8 @@
 package com.naviveylin.di
 
 import android.content.Context
+import com.naviveylin.core.EngineDispatchers
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
@@ -53,4 +55,22 @@ object AppModule {
     fun provideSearchHistoryRepository(@ApplicationContext context: Context): SearchHistoryRepository {
         return SearchHistoryRepository(context)
     }
+
+    /**
+     * The engine's timing seam: components read the injected source instead of the system clock, so a
+     * test moves time rather than waiting for it (spec: `navigation-engine` — Engine lifecycle and
+     * threading).
+     */
+    @Provides
+    @Singleton
+    fun provideEngineTimeSource(): EngineTimeSource = EngineTimeSource.System
+
+    /**
+     * The engine's dispatcher seam: native calls and reroute arithmetic run on a named pair rather
+     * than on inline `Dispatchers.X` references, so a test schedules that work on its own scheduler
+     * (spec: `navigation-engine` — Engine lifecycle and threading).
+     */
+    @Provides
+    @Singleton
+    fun provideEngineDispatchers(): EngineDispatchers = EngineDispatchers.Production
 }

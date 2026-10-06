@@ -297,7 +297,7 @@ class MapCanvasViewModelFixQualityTest {
      * dispatcher that owns the loop), so a ViewModel that outlives its test — every case that replaces
      * its instance, every class that builds one without cancelling it — kept reading the main dispatcher
      * every second from a real thread pool, and a *later* test then failed in `MainDispatcherRule` with
-     * `Dispatchers.Main is used concurrently with setting it` (TODO.md §101).
+     * `Dispatchers.Main is used concurrently with setting it` (TODO.md §121).
      *
      * Real-time case on purpose: the tick runs on the production dispatcher with the real clock while
      * the main dispatcher is instrumented, and the case pumps the main dispatcher the way a following

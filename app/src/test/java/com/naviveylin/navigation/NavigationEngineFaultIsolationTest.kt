@@ -34,6 +34,10 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import com.naviveylin.core.EngineDispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Fault isolation of the process-scoped engine (spec: `navigation-engine` — Engine
@@ -47,8 +51,16 @@ import org.robolectric.Shadows.shadowOf
  * Default Robolectric sandbox — no `@Config`, no `@GraphicsMode` (AGENTS.md: the JNI
  * stub can load in exactly one classloader).
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class NavigationEngineFaultIsolationTest {
+
+    /**
+     * The engine's off-main work runs on this pair (production uses real pools), so a case drains
+     * it instead of polling (spec: `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private val computeDispatcher = StandardTestDispatcher()
+    private val ioDispatcher = StandardTestDispatcher()
 
     @get:Rule
     val tempFolder = TemporaryFolder()
@@ -63,21 +75,23 @@ class NavigationEngineFaultIsolationTest {
     private fun buildEngine(
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
         locationService: LocationService = LocationService(ApplicationProvider.getApplicationContext())
-    ): NavigationEngine = NavigationEngine(
+    ): NavigationEngine = engineUnderTest(
         { client },
         locationService,
-        ApplicationProvider.getApplicationContext()
+        ApplicationProvider.getApplicationContext(),
+        dispatchers = EngineDispatchers(computeDispatcher, ioDispatcher)
     )
 
-    /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
+    /** Drain the injected schedulers and the looper, then assert — no wall-clock deadline. */
     private fun awaitState(condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline) {
+        repeat(2) {
+            computeDispatcher.scheduler.advanceUntilIdle()
+            ioDispatcher.scheduler.advanceUntilIdle()
             shadowOf(Looper.getMainLooper()).idle()
-            if (condition()) return
-            Thread.sleep(10)
         }
-        throw AssertionError("State condition not met within 5s")
+        if (!condition()) {
+            throw AssertionError("State condition not met after draining the test scheduler")
+        }
     }
 
     private fun route(): RouteEntry = RouteEntry().apply {

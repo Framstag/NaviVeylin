@@ -61,8 +61,8 @@ To include libosmscout with map rendering and routing:
 │   │   ├── res/               # Resources
 │   │   └── AndroidManifest.xml
 │   └── build.gradle.kts
-├── osmscout-jni/              # JNI bridge AAR (placeholder — real JNI in submodule)
-├── auto/                      # Android Auto (placeholder)
+├── osmscout-client-java/      # JNI bridge, Java side (local overrides over the submodule sources)
+├── auto/                      # Android Auto + AAOS screens (Car App Library)
 ├── buildSrc/                  # Build-time logic + its own tests (license policy, classification, license assets)
 ├── licenses/                  # Curated license data: native license map, policy, canonical license texts
 ├── initialize.sh              # Add submodule + write CMakeLists.txt
@@ -88,19 +88,21 @@ To include libosmscout with map rendering and routing:
 ## Build Commands
 
 ```bash
-# Debug APK (Kotlin/Java only)
+# Debug builds (mobile = phone + Android Auto projection; automotive = AAOS head units)
+./gradlew :app:assembleMobileDebug
+./gradlew :app:assembleAutomotiveDebug
+
+# Both flavors at once, all three ABIs
 ./gradlew :app:assembleDebug
 
-# Release APK (requires signing config)
-./gradlew :app:assembleRelease
-
-# Play-ready release AAB (generates date-based version, bumps versionCode)
+# Play-ready release AABs (both flavors; date-based versionName, bumps versionCode)
 ./gradlew release
 
-# JNI bridge AAR (placeholder — real JNI in submodule)
-./gradlew :osmscout-jni:assembleRelease
+# Unit tests (both flavors) and the JNI bridge JAR
+./gradlew test
+./gradlew :osmscout-client-java:jar
 
-# Android Auto module
+# Android Auto module (library: screens + NavigationSession)
 ./gradlew :auto:assembleDebug
 
 # License compliance: policy gate over the generated SBOM, and the logic unit tests

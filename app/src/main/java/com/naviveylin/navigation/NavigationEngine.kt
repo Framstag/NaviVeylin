@@ -13,14 +13,19 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
+import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.EngineDispatchers
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.RouteCalculation
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.location.LocationConsumers
 import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
 import com.naviveylin.location.SpeedSpikeFilter
+import com.naviveylin.ui.route.routeLengthMeters
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.Lazy
 import javax.inject.Inject
@@ -33,6 +38,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.atan2
@@ -68,10 +74,16 @@ import kotlin.math.sqrt
  *
  * Threading (`guidelines/Design.md` §4): one process-lifetime
  * `SupervisorJob + Dispatchers.Main` scope, never cancelled — the process is the
- * owner (design D6). Native calls run on [Dispatchers.Default]; state writes and
+ * owner (design D6). Native calls run on the injected compute dispatcher
+ * ([EngineDispatchers], `Dispatchers.Default` in production); state writes and
  * the flows stay main-thread confined, so surface collectors are main-confined.
  * The engine holds a location lease only while navigating and never calls
  * `startLocationUpdates()` itself (task 2.4).
+ *
+ * Timing and threading are seams, not literals: timing decisions read the injected
+ * [EngineTimeSource] and off-main work runs on the injected [EngineDispatchers], so a
+ * test moves time and schedules that work instead of waiting for it (spec:
+ * `navigation-engine` — Engine lifecycle and threading).
  */
 @Singleton
 class NavigationEngine @Inject constructor(
@@ -81,7 +93,9 @@ class NavigationEngine @Inject constructor(
     // and state (design D6).
     private val client: Lazy<OSMScoutClient>,
     private val locationService: LocationService,
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    private val timeSource: EngineTimeSource,
+    private val dispatchers: EngineDispatchers
 ) : com.naviveylin.core.NavigationViewModel {
 
     /**
@@ -118,10 +132,10 @@ class NavigationEngine @Inject constructor(
             if (_state.value.isNavigating) {
                 stopNavigation()
             }
-            _state.value = _state.value.copy(
+            _state.update { it.copy(
                 errorMessage = message,
                 errorOrigin = SurfaceOrigin.ENGINE
-            )
+            ) }
         }
     }
 
@@ -193,23 +207,63 @@ class NavigationEngine @Inject constructor(
         // At standstill the provider goes silent (min-distance throttling), so the
         // last native speed would stay pinned forever; once no fresh fix arrives
         // beyond the staleness window the displayed speed decays to 0.
-        // Dispatchers.Default + real clock: must not feed the (virtual) test
-        // scheduler with an endless delay loop.
-        scope.launch(Dispatchers.Default) {
-            while (true) {
-                delay(SPEED_STALE_TICK_MS)
-                if (_state.value.isNavigating &&
-                    SpeedStaleness.isStale(lastFixTime, System.currentTimeMillis())
-                ) {
-                    _state.value = _state.value.copy(currentSpeedKmH = 0.0)
-                }
-            }
+        // TICKER_DISPATCHER (a real dispatcher, never the test scheduler) + the
+        // injected time source: the endless delay loop must not feed the (virtual)
+        // test scheduler, and its staleness decision is moved by the test clock.
+        scope.launch(TICKER_DISPATCHER) { runStaleSpeedTicker() }
+    }
+
+    /**
+     * The stale-speed ticker loop: one [tickStaleness] per [intervalMs] for the process lifetime.
+     *
+     * In production it runs on [TICKER_DISPATCHER] (see the rationale at the launch site). It is
+     * `internal` so a test can run the same loop on its own scheduler, advance virtual time by one
+     * interval and cancel it — the wiring is then proven, not just the tick body (spec:
+     * `navigation-engine` — The staleness tick reads the injected time source).
+     */
+    internal suspend fun runStaleSpeedTicker(intervalMs: Long = SPEED_STALE_TICK_MS) {
+        while (true) {
+            delay(intervalMs)
+            tickStaleness()
         }
+    }
+
+    /**
+     * One stale-speed tick: while navigating, a fix older than the staleness window decays the
+     * displayed speed to zero (spec: gps-speed-priority — stationary reads zero). The guard reads
+     * the state once; the publication goes through `update`, so a publisher that wrote in between
+     * keeps its field (spec: `navigation-engine` — A background writer cannot revert a concurrent
+     * publication), and the timing decision reads the injected time source (spec: `navigation-engine`
+     * — Engine lifecycle and threading).
+     */
+    internal fun tickStaleness() {
+        val current = _state.value
+        if (!current.isNavigating) return
+        if (!SpeedStaleness.isStale(lastFixTime, timeSource.nowMillis())) return
+        _state.update { it.copy(currentSpeedKmH = 0.0) }
     }
 
     // ---------------------------------------------------------------------
     // Acquisition
     // ---------------------------------------------------------------------
+
+    /**
+     * Token of the newest route calculation request. It is published in
+     * [com.naviveylin.core.RouteCalculation] and increases with every request, so a
+     * callback of a calculation that a newer request superseded can be told apart
+     * from the live one (spec: `route-calculation-feedback` — A superseded calculation
+     * never clears the live calculation's state).
+     */
+    private var calculationToken = 0L
+
+    /** Progress values published for the live calculation (measurement, see [endCalculation]). */
+    private var calculationProgressCount = 0
+
+    /** Wall clock at which the live calculation started (measurement, see [endCalculation]). */
+    private var calculationStartedAtMillis = 0L
+
+    /** Coordinate-free identity of what asked for the live calculation (measurement). */
+    private var calculationTrigger = "acquisition"
 
     /**
      * Start navigation on a route a surface acquired (phone route panel with its
@@ -228,6 +282,14 @@ class NavigationEngine @Inject constructor(
      * and started its cooldown, so resetting the gate here would let the very next
      * off-route report cascade into another reroute
      * (spec: `reroute-trigger` — cascade protection).
+     *
+     * The route's geometry is optional: the bridge hands over platform types, so a route whose
+     * polyline is absent still starts navigation here — the destination falls back to the retained
+     * one, the total distance is 0 (what `computeRouteDistance` answers for fewer than two points),
+     * and the shared state publishes no geometry, which every consumer already accepts
+     * (spec: `navigation-engine` — Acquisition without usable polyline geometry). With usable
+     * geometry the total is the route's own length, never a second app-side sum of it
+     * (spec: `osmscout-jni` — One route length for a calculated route).
      */
     private fun startInternal(routeEntry: RouteEntry, vehicle: Vehicle, keepRerouteCooldown: Boolean) {
         val handle = routeEntry.routeHandle
@@ -248,18 +310,21 @@ class NavigationEngine @Inject constructor(
         resetGuards(keepRerouteCooldown = keepRerouteCooldown)
         // Fresh navigation must not immediately hit the stale-speed zero (no fix
         // of this session has arrived yet).
-        lastFixTime = System.currentTimeMillis()
+        lastFixTime = timeSource.nowMillis()
 
-        val totalDistance = computeRouteDistance(routeEntry.latitudes, routeEntry.longitudes)
+        val startLats = routeEntry.latitudes
+        val startLons = routeEntry.longitudes
+        val totalDistance = routeTotalDistanceMeters(routeEntry, startLats, startLons)
         // Destination identity belongs to the session, whoever acquired the route:
         // the route's last point is the destination, and a name recorded by a
         // deep-link request is kept. A self-sufficient reroute then re-acquires to
-        // the retained destination without asking a surface
+        // the retained destination without asking a surface; a geometry-less route keeps the
+        // retained destination instead of failing
         // (spec: `navigation-engine` — Destination and vehicle are part of the
         // state; Route acquisition independent of a surface UI).
-        val routeEndLat = routeEntry.latitudes.lastOrNull()
-        val routeEndLon = routeEntry.longitudes.lastOrNull()
-        _state.value = _state.value.copy(
+        val routeEndLat = startLats?.lastOrNull()
+        val routeEndLon = startLons?.lastOrNull()
+        _state.update { it.copy(
             isNavigating = true,
             currentStepIndex = 0,
             // Clear the previous route's steps (reroute restart): the old route's
@@ -269,17 +334,20 @@ class NavigationEngine @Inject constructor(
             nextInstruction = null,
             totalDistance = totalDistance,
             // Progress starts at 0%: remaining distance equals the total until the
-            // first arrival estimate arrives (routing-progress-indicator).
+            // first arrival estimate arrives.
             remainingDistance = totalDistance,
-            navigationStartTimeMillis = System.currentTimeMillis(),
+            navigationStartTimeMillis = timeSource.nowMillis(),
             // Route geometry for shared-state consumers (car parity and the
             // phone's route fit).
             routeLats = routeEntry.latitudes,
             routeLons = routeEntry.longitudes,
             vehicle = vehicle,
             destLat = routeEndLat ?: _state.value.destLat,
-            destLon = routeEndLon ?: _state.value.destLon
-        )
+            destLon = routeEndLon ?: _state.value.destLon,
+            // Navigation starting ends any calculation: the wait is over, whether this
+            // route was calculated here or handed to the engine by a surface.
+            calculation = null
+        ) }
 
         scope.launch(Dispatchers.Main) {
             try {
@@ -308,12 +376,12 @@ class NavigationEngine @Inject constructor(
      */
     fun acquire(destLat: Double, destLon: Double, vehicle: Vehicle) {
         if (!LocationGrant.hasPrecise(context)) {
-            _state.value = _state.value.copy(
+            _state.update { it.copy(
                 errorMessage = context.getString(
                     com.naviveylin.core.R.string.location_precise_required_navigation
                 ),
                 errorOrigin = SurfaceOrigin.ENGINE
-            )
+            ) }
             return
         }
 
@@ -333,17 +401,17 @@ class NavigationEngine @Inject constructor(
             if (fix == null) {
                 Log.e(TAG, "acquire: no GPS position available")
                 releaseNavLease()
-                _state.value = _state.value.copy(
+                _state.update { it.copy(
                     errorMessage = "GPS signal required. Please wait for GPS fix.",
                     errorOrigin = SurfaceOrigin.ENGINE
-                )
+                ) }
                 return
             }
             startLat = fix.lat
             startLon = fix.lon
         }
 
-        _state.value = _state.value.copy(errorMessage = null, errorOrigin = null)
+        _state.update { it.copy(errorMessage = null, errorOrigin = null) }
         acquire(startLat, startLon, destLat, destLon, vehicle)
     }
 
@@ -371,18 +439,36 @@ class NavigationEngine @Inject constructor(
         vehicle: Vehicle,
         fromReroute: Boolean
     ) {
-        scope.launch(Dispatchers.Default) {
+        val token = beginCalculation(destLat, destLon, if (fromReroute) "reroute" else "acquisition")
+        scope.launch(dispatchers.compute) {
             try {
                 client.get().calculateRouteWithProfile(
                     startLat, startLon, destLat, destLon, RoutingProfile(vehicle),
                     object : RouteCallback {
                         override fun onProgress(percent: Int) {
+                            // Called from the routing thread (rate-limited in native,
+                            // see JavaRoutingProgress): the state write is marshalled to
+                            // the dispatcher that owns navigation-state publication
+                            // (guidelines/Design.md §4).
+                            scope.launch(Dispatchers.Main) {
+                                publishCalculationProgress(token, percent)
+                            }
                         }
 
                         override fun onSuccess(route: RouteEntry) {
                             scope.launch(Dispatchers.Main) {
+                                // A superseded calculation must not start navigation: its
+                                // route handle is already invalid (native: a handle is valid
+                                // only until the next calculation) and the driver asked for
+                                // the newer destination last (spec: `route-calculation-feedback`
+                                // — A superseded calculation never clears the live
+                                // calculation's state).
+                                if (!endCalculation(token, CalculationOutcome.OK)) {
+                                    Log.d(TAG, "acquire: superseded route result ignored")
+                                    return@launch
+                                }
                                 Log.d(TAG, "acquire: route calculated, starting navigation")
-                                _state.value = _state.value.copy(errorMessage = null, errorOrigin = null)
+                                _state.update { it.copy(errorMessage = null, errorOrigin = null) }
                                 _acquiredRoute.value = route
                                 startInternal(route, vehicle, keepRerouteCooldown = fromReroute)
                             }
@@ -391,17 +477,24 @@ class NavigationEngine @Inject constructor(
                         override fun onError(message: String) {
                             scope.launch(Dispatchers.Main) {
                                 Log.e(TAG, "acquire: route calculation failed: $message")
+                                if (!endCalculation(token, CalculationOutcome.ERROR)) return@launch
                                 releaseNavLease()
-                                _state.value = _state.value.copy(
+                                _state.update { it.copy(
                                     errorMessage = (message ?: "").ifBlank {
                                         "Route calculation failed. Try again."
                                     },
                                     errorOrigin = SurfaceOrigin.ENGINE
-                                )
+                                ) }
                             }
                         }
 
                         override fun onCancel() {
+                            scope.launch(Dispatchers.Main) {
+                                // A cancel this engine asked for has already cleared the
+                                // state; this path covers a cancellation by a newer native
+                                // request. Either way only the live token clears state.
+                                endCalculation(token, CalculationOutcome.CANCELLED)
+                            }
                         }
                     }
                 )
@@ -410,11 +503,12 @@ class NavigationEngine @Inject constructor(
                 // `navigation-engine` — Native failure is confined, not fatal).
                 withContext(Dispatchers.Main) {
                     Log.e(TAG, "acquire failed", e)
+                    if (!endCalculation(token, CalculationOutcome.ERROR)) return@withContext
                     releaseNavLease()
-                    _state.value = _state.value.copy(
+                    _state.update { it.copy(
                         errorMessage = e.message ?: "Route calculation failed. Try again.",
                         errorOrigin = SurfaceOrigin.ENGINE
-                    )
+                    ) }
                 }
             }
         }
@@ -426,12 +520,118 @@ class NavigationEngine @Inject constructor(
      * state and acquires the route itself.
      */
     override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
-        _state.value = _state.value.copy(
+        _state.update { it.copy(
             destLat = destLat,
             destLon = destLon,
             destinationName = destinationName
-        )
+        ) }
         acquire(destLat, destLon, Vehicle.CAR)
+    }
+
+    /**
+     * Cancel the calculation in flight, if any (spec: `route-calculation-feedback` —
+     * Cancelling a calculation aborts it and releases its resources).
+     *
+     * The state is cleared optimistically rather than after the native `onCancel`: the
+     * native breaker is cooperative, so the aborted calculation may report much later
+     * or never, and the surface that asked for the cancel must not keep waiting for it.
+     * The token is gone by then, so a late callback cannot resurrect the state
+     * ([publishCalculationProgress], [endCalculation]).
+     */
+    override fun cancelAcquisition() {
+        val calculation = _state.value.calculation ?: return
+        val ownsLease = !_state.value.isNavigating
+        Log.d(TAG, "cancelAcquisition: cancelling token=${calculation.token}")
+        scope.launch(dispatchers.compute) {
+            try {
+                client.get().cancelRoute()
+            } catch (e: Throwable) {
+                Log.e(TAG, "cancelAcquisition: native cancel failed", e)
+            }
+        }
+        endCalculation(calculation.token, CalculationOutcome.CANCELLED)
+        if (ownsLease) {
+            // The surface-less acquisition leased GPS to obtain its start position; an
+            // aborted attempt must not keep the updates alive (spec: `navigation-engine`
+            // — No location retention while idle). A reroute reuses the lease the running
+            // navigation holds — releasing it would starve live guidance.
+            releaseNavLease()
+        }
+    }
+
+    /**
+     * Publish [destLat]/[destLon] as the calculation in flight and return its token.
+     * The destination is part of the state so a surface can name what is being
+     * calculated for (spec: `route-calculation-feedback` — In-flight route calculation
+     * is part of the shared navigation state). [trigger] is the coordinate-free identity
+     * of what asked for the calculation, for the measurement entry only
+     * (spec: `auto-diagnostics`). Main-thread only.
+     */
+    private fun beginCalculation(destLat: Double, destLon: Double, trigger: String): Long {
+        calculationToken += 1
+        calculationProgressCount = 0
+        calculationStartedAtMillis = timeSource.nowMillis()
+        calculationTrigger = trigger
+        _state.update { it.copy(
+            calculation = RouteCalculation(
+                token = calculationToken,
+                destLat = destLat,
+                destLon = destLon,
+                percent = null
+            )
+        ) }
+        return calculationToken
+    }
+
+    /**
+     * Publish a progress value of the live calculation, if [token] still owns it.
+     * Main-thread only; see the counting and dedupe rules inside
+     * (spec: `route-calculation-feedback` — Route calculation progress is exposed as a
+     * percentage).
+     */
+    private fun publishCalculationProgress(token: Long, percent: Int) {
+        val current = _state.value.calculation
+        if (current == null || current.token != token) return
+        // Every report the live calculation makes is counted — the measurement asks how
+        // much the routing thread paid (spec: `route-calculation-feedback` — Route
+        // calculation is measured without coordinates) — but only a changed value is
+        // written: the native side already rate-limits (`JavaRoutingProgress`), and a
+        // new value costs a recomposition on the phone and a host template push on the
+        // car.
+        calculationProgressCount += 1
+        val capped = percent.coerceIn(0, 99)
+        if (current.percent == capped) return
+        _state.update { it.copy(calculation = current.copy(percent = capped)) }
+    }
+
+    /**
+     * Clear the calculation [token] owns and record its measurement entry.
+     *
+     * Returns whether [token] was still the live one: a calculation a newer request
+     * superseded ends without touching the live state and without an entry — its start
+     * time is gone with the state, so a duration it could report would be a lie
+     * (spec: `route-calculation-feedback` — A superseded calculation never clears the
+     * live calculation's state). Main-thread only.
+     */
+    private fun endCalculation(token: Long, outcome: CalculationOutcome): Boolean {
+        val current = _state.value.calculation
+        if (current == null || current.token != token) return false
+        _state.update { it.copy(calculation = null) }
+        // Coordinate-free by construction: identity (source) and numbers, never a
+        // position (spec: `auto-diagnostics` — no coordinates in diagnostics).
+        DiagnosticsLog.log(
+            ROUTE_TAG,
+            "calc done: source=$calculationTrigger duration=${timeSource.nowMillis() - calculationStartedAtMillis}ms " +
+                "percents=$calculationProgressCount outcome=${outcome.entryValue}"
+        )
+        return true
+    }
+
+    /** How a route calculation ended — the measurement entry's outcome field. */
+    private enum class CalculationOutcome(val entryValue: String) {
+        OK("ok"),
+        ERROR("error"),
+        CANCELLED("cancelled")
     }
 
     // ---------------------------------------------------------------------
@@ -454,11 +654,11 @@ class NavigationEngine @Inject constructor(
     }
 
     override fun clearError() {
-        _state.value = _state.value.copy(errorMessage = null, errorOrigin = null)
+        _state.update { it.copy(errorMessage = null, errorOrigin = null) }
     }
 
     override fun reportError(message: String, origin: SurfaceOrigin) {
-        _state.value = _state.value.copy(errorMessage = message, errorOrigin = origin)
+        _state.update { it.copy(errorMessage = message, errorOrigin = origin) }
     }
 
     /** Acquire the navigation-scoped location lease (idempotent). */
@@ -543,7 +743,7 @@ class NavigationEngine @Inject constructor(
         return object : NavigationListener {
             override fun onPositionEstimate(position: NavigationPosition) {
                 scope.launch(Dispatchers.Main) {
-                    val now = System.currentTimeMillis()
+                    val now = timeSource.nowMillis()
                     when (position.state) {
                         com.framstag.libosmscout.client.NavigationState.EstimateInTunnel,
                         com.framstag.libosmscout.client.NavigationState.NoGpsSignal ->
@@ -551,7 +751,7 @@ class NavigationEngine @Inject constructor(
                         com.framstag.libosmscout.client.NavigationState.OnRoute -> lastOnRouteTime = now
                         else -> {}
                     }
-                    _state.value = _state.value.copy(position = position)
+                    _state.update { it.copy(position = position) }
                     _positionFlow.value = position
                     updateRoadInfoFromPosition(position)
                 }
@@ -563,14 +763,14 @@ class NavigationEngine @Inject constructor(
                 turns: Array<LaneTurn>
             ) {
                 scope.launch(Dispatchers.Main) {
-                    _state.value = _state.value.copy(
+                    _state.update { it.copy(
                         laneOneway = oneway,
                         laneCount = count,
                         laneSuggested = suggested,
                         laneSuggestedFrom = suggestedFrom,
                         laneSuggestedTo = suggestedTo,
                         laneTurns = turns.toList()
-                    )
+                    ) }
                 }
             }
 
@@ -581,33 +781,33 @@ class NavigationEngine @Inject constructor(
                         _state.value.currentStepIndex,
                         instruction
                     )
-                    _state.value = _state.value.copy(
+                    _state.update { it.copy(
                         nextInstruction = instruction,
                         currentStepIndex = idx
-                    )
+                    ) }
                 }
             }
 
             override fun onRouteInstructions(instructions: Array<RouteInstruction>) {
                 scope.launch(Dispatchers.Main) {
-                    _state.value = _state.value.copy(
+                    _state.update { it.copy(
                         instructions = instructions.toList(),
                         currentStepIndex = 0,
                         isRerouting = false,
                         isOffRoute = false
-                    )
+                    ) }
                     if (instructions.isNotEmpty()) {
-                        _state.value = _state.value.copy(nextInstruction = instructions[0])
+                        _state.update { it.copy(nextInstruction = instructions[0]) }
                     }
                 }
             }
 
             override fun onArrivalEstimate(arrivalEstimate: Long, remainingDistance: Double) {
                 scope.launch(Dispatchers.Main) {
-                    _state.value = _state.value.copy(
+                    _state.update { it.copy(
                         etaMillis = arrivalEstimate,
                         remainingDistance = remainingDistance
-                    )
+                    ) }
                 }
             }
 
@@ -615,18 +815,18 @@ class NavigationEngine @Inject constructor(
                 scope.launch(Dispatchers.Main) {
                     // Spike-filtered; native sends negative when unknown — normalize to NaN.
                     val filtered = speedSpikeFilter.filter(speedKmH)
-                    _state.value = _state.value.copy(
+                    _state.update { it.copy(
                         currentSpeedKmH = filtered.takeIf { it >= 0.0 } ?: Double.NaN
-                    )
+                    ) }
                 }
             }
 
             override fun onMaxAllowedSpeed(maxSpeedKmH: Double) {
                 scope.launch(Dispatchers.Main) {
                     // Native engine sends negative when unknown — normalize to NaN.
-                    _state.value = _state.value.copy(
+                    _state.update { it.copy(
                         maxSpeedKmH = maxSpeedKmH.takeIf { it > 0.0 } ?: Double.NaN
-                    )
+                    ) }
                 }
             }
 
@@ -638,7 +838,7 @@ class NavigationEngine @Inject constructor(
                 lat: Double, lon: Double, bearing: Double, destLat: Double, destLon: Double
             ) {
                 scope.launch(Dispatchers.Main) {
-                    val now = System.currentTimeMillis()
+                    val now = timeSource.nowMillis()
 
                     // Ignore reroute requests shortly after tunnel / no-GPS state or
                     // with poor GPS accuracy. Native PositionAgent estimates in
@@ -663,7 +863,7 @@ class NavigationEngine @Inject constructor(
                         // resumes on Main.
                         val lats = _state.value.routeLats
                         val lons = _state.value.routeLons
-                        scope.launch(Dispatchers.Default) {
+                        scope.launch(dispatchers.compute) {
                             val deviation = if (lats != null && lons != null) {
                                 distanceToPolyline(lat, lon, lats, lons)
                             } else {
@@ -698,7 +898,7 @@ class NavigationEngine @Inject constructor(
      * (spec: `navigation-engine` — Reroute without a surface UI).
      */
     private fun confirmReroute(lat: Double, lon: Double, destLat: Double, destLon: Double) {
-        _state.value = _state.value.copy(isRerouting = true, isOffRoute = true)
+        _state.update { it.copy(isRerouting = true, isOffRoute = true) }
         val vehicle = _state.value.vehicle ?: Vehicle.CAR
         val retainedDestLat = _state.value.destLat.takeIf { !it.isNaN() } ?: destLat
         val retainedDestLon = _state.value.destLon.takeIf { !it.isNaN() } ?: destLon
@@ -718,13 +918,13 @@ class NavigationEngine @Inject constructor(
     internal fun updateRoadInfoFromPosition(position: NavigationPosition) {
         val onRoute = position.state == com.framstag.libosmscout.client.NavigationState.OnRoute
         if (onRoute && (position.wayName.isNotEmpty() || position.wayRef.isNotEmpty())) {
-            _state.value = _state.value.copy(
+            _state.update { it.copy(
                 currentRoadInfo = CurrentRoadInfo(position.wayRef, position.wayType, position.wayName)
-            )
+            ) }
             return
         }
 
-        val now = System.currentTimeMillis()
+        val now = timeSource.nowMillis()
         if (now - lastRoadInfoTime < ROAD_INFO_THROTTLE_MS) return
 
         // Skip if position hasn't moved significantly (~50m at mid-latitudes)
@@ -738,12 +938,20 @@ class NavigationEngine @Inject constructor(
         lastRoadInfoLat = position.lat
         lastRoadInfoLon = position.lon
 
-        scope.launch(Dispatchers.IO) {
+        scope.launch(dispatchers.io) {
             try {
                 val road = client.get().getRoadAt(position.lat, position.lon, position.bearing)
-                _state.value = _state.value.copy(
-                    currentRoadInfo = road?.let { CurrentRoadInfo(it.ref, it.typeName, it.name) } ?: null
-                )
+                // The lookup stays off the main thread; its result is published through the
+                // main dispatcher that owns navigation-state publication, so this background
+                // worker cannot publish a snapshot of its own (spec: `navigation-engine` —
+                // Engine lifecycle and threading).
+                withContext(Dispatchers.Main) {
+                    _state.update { it.copy(
+                        currentRoadInfo = road?.let { info ->
+                            CurrentRoadInfo(info.ref, info.typeName, info.name)
+                        } ?: null
+                    ) }
+                }
             } catch (e: Throwable) {
                 // A road-name lookup is cosmetic: confine it (including a native
                 // Error) and keep navigating (spec: `navigation-engine` — Native
@@ -756,8 +964,25 @@ class NavigationEngine @Inject constructor(
     companion object {
         private const val TAG = "NavigationEngine"
 
-        /** Frequency of the stale-speed decay check (spec: gps-speed-priority). */
-        private const val SPEED_STALE_TICK_MS = 1_000L
+        /**
+         * Diagnostics tag of the route-calculation measurement entries (spec:
+         * `route-calculation-feedback` — Route calculation is measured without
+         * coordinates).
+         */
+        internal const val ROUTE_TAG = "ROUTE"
+
+        /**
+         * Frequency of the stale-speed decay check (spec: gps-speed-priority). `internal` so a test
+         * drives the same interval through [runStaleSpeedTicker] instead of pinning its own copy.
+         */
+        internal const val SPEED_STALE_TICK_MS = 1_000L
+
+        /**
+         * Home of the stale-speed ticker loop: a real dispatcher, never the test scheduler — an
+         * endless `delay` loop on the test scheduler would hang every `runTest` (spec:
+         * `navigation-engine` — Engine lifecycle and threading).
+         */
+        private val TICKER_DISPATCHER = Dispatchers.Default
         internal const val ROAD_INFO_THROTTLE_MS = 2000L
         internal const val MAX_REROUTE_ACCURACY = 100.0
         internal const val MIN_REROUTE_CONFIRM_COUNT = 2
@@ -785,6 +1010,28 @@ class NavigationEngine @Inject constructor(
                 total += R * c
             }
             return total
+        }
+
+        /**
+         * The total distance navigation publishes for a route (spec: `osmscout-jni` — One route length
+         * for a calculated route): the route's own length as every other surface reads it
+         * ([routeLengthMeters]), so the routing-status progress denominator and the car trip state the
+         * same length the card's statistic and the step list show.
+         *
+         * A route without usable geometry keeps the documented 0 even when the bridge handed over a
+         * length — the progress a 0 denominator produces is what that case has always published — and a
+         * route whose data carries no length at all falls back to its polyline sum, which is the
+         * behaviour this replaces (spec: `navigation-engine` — Acquisition without usable polyline
+         * geometry).
+         */
+        fun routeTotalDistanceMeters(
+            route: RouteEntry,
+            lats: DoubleArray?,
+            lons: DoubleArray?
+        ): Double {
+            if (lats == null || lons == null || lats.size < 2) return 0.0
+            val length = routeLengthMeters(route)
+            return if (length > 0.0) length else computeRouteDistance(lats, lons)
         }
     }
 }

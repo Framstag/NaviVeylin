@@ -112,3 +112,69 @@ checkout without local configuration and SHALL be accompanied by the measurement
 - **WHEN** a module's declared fork budget is introduced or changed
 - **THEN** `guidelines/Build.md` records the suite, the class and test counts, and the measured heap
   headroom that justify the declared values
+
+### Requirement: Unit-test parallelism is declared and result-preserving
+
+A module SHALL declare, together with its fork budget, how many test JVMs may execute concurrently, and
+that declaration SHALL apply to a fresh checkout without local configuration. A suite executed with the
+declared number of concurrent JVMs SHALL write one result XML per executed class and SHALL report the
+same failing classes as the same suite executed in a single JVM.
+
+#### Scenario: Declared concurrency applies to a fresh checkout
+
+- **WHEN** a module's unit tests run
+- **THEN** at most the declared number of test JVMs run concurrently and each is launched with the
+  declared heap ceiling
+
+#### Scenario: The failure set is unchanged by concurrency
+
+- **WHEN** a module's suite runs with the declared number of concurrent JVMs
+- **THEN** its failing classes are exactly the failing classes of the same suite run in a single JVM
+
+#### Scenario: Per-class results survive concurrency
+
+- **WHEN** test classes execute in concurrent JVMs
+- **THEN** every executed class has its own result XML and the run ends with a verdict rather than a
+  memory failure or a lost result file
+
+#### Scenario: Declared concurrency is justified by a measurement
+
+- **WHEN** a module's declared concurrency is introduced or changed
+- **THEN** the module's budget note and `guidelines/Build.md` record the concurrency, the wall time and
+  peak memory measured at it, and the failure set observed at that concurrency
+
+### Requirement: A unit test controls the time its subject waits on
+
+A unit test SHALL decide its outcome from the behaviour under test and from time it controls, never from
+wall-clock elapsed time or a real-thread wait. A case whose subject decides from a time window SHALL
+advance an injected time source or the test scheduler instead of sleeping; a case that awaits a state
+change SHALL await the observable state on that scheduler instead of a deadline computed from the system
+clock.
+
+#### Scenario: Injected time instead of a real clock
+
+- **WHEN** a case exercises behaviour that depends on a staleness or throttle window
+- **THEN** the case advances the injected time source past that window and the behaviour is observed
+  without the case waiting for real time to elapse
+
+#### Scenario: Awaiting state, not a deadline
+
+- **WHEN** a case awaits a state change published by a component that works off the test thread
+- **THEN** the case drives the work on the test scheduler and awaits the observable condition
+- **AND** no test helper computes a deadline from the system clock or paces itself with a sleep
+
+### Requirement: A module's failure set is independent of host load and concurrency
+
+The module's failing classes SHALL be the same whether its suite runs on an idle host or a loaded one, at
+the declared concurrency or in a single JVM.
+
+#### Scenario: Load does not change the failure set
+
+- **WHEN** the module's suite runs at the declared concurrency while the host is otherwise loaded
+- **THEN** the failing classes are exactly those of the same suite run on an idle host in a single JVM
+
+#### Scenario: A formerly flaky case is decided by its subject
+
+- **WHEN** the previously load-dependent cases run inside the full module suite
+- **THEN** each is green in a forced repeated run whose tallies are recorded, and none of them passes
+  or fails on the strength of elapsed real time

@@ -51,6 +51,8 @@ class NavigationTripTest {
     ) = RouteInstruction(
         distance,
         timeTo,
+        // A car instruction carries the leg of its own manoeuvre as well (spec: navigation-status-details).
+        distance,
         type,
         street,
         "Turn left into Hauptstrasse",

@@ -30,6 +30,7 @@ import com.naviveylin.R
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.formatDurationText
+import com.naviveylin.core.formatStepDurationText
 import com.naviveylin.ui.navigation.NavSymbol
 import com.naviveylin.ui.navigation.NavigationArrow
 
@@ -39,6 +40,12 @@ import com.naviveylin.ui.navigation.NavigationArrow
  * reused by the session overlay's summary (spec: routing-summary). The phone card passes
  * [showStats] = false because its header already carries the two numbers (keeping the card's
  * height for the list); the docked panel and the other surfaces use the default headline.
+ *
+ * A row's distance and duration are the step's **own leg** and come from the route's per-step
+ * values, formatted here by the app (`formatDistanceNumber`, `formatStepDurationText`) — never the
+ * native description's `[x km, y min]` text, which is only the fallback the view model applies when
+ * a route carries no per-step values (spec: `osmscout-jni` — Per-step leg values on a calculated
+ * route; see `RouteStepValues.kt`).
  *
  * The step list carries two independent markings (spec: `route-analysis` — the
  * analysed step is distinguishable from the navigation step): [activeStepIndex] is
@@ -59,13 +66,17 @@ fun RouteSummary(
 ) {
     // Stats
     val durationText = formatDurationText(routeEntry.duration)
+    // The route's own length: the sum of the steps this component lists, so the statistic above the
+    // list and the list itself cannot state two lengths (`routeLengthMeters`, spec: `osmscout-jni` —
+    // One route length for a calculated route).
+    val routeLength = routeLengthMeters(routeEntry)
 
     if (showStats) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             Text(
                 stringResource(
-                    if (distanceUsesKilometers(routeEntry.distance)) R.string.distance_unit_km else R.string.distance_unit_m,
-                    formatDistanceNumber(routeEntry.distance)
+                    if (distanceUsesKilometers(routeLength)) R.string.distance_unit_km else R.string.distance_unit_m,
+                    formatDistanceNumber(routeLength)
                 ),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
@@ -140,17 +151,22 @@ fun RouteSummary(
                         modifier = Modifier.width(80.dp),
                         horizontalAlignment = Alignment.End
                     ) {
-                        if (step.distanceText.isNotEmpty()) {
+                        if (step.distanceMeters > 0.0) {
                             Text(
-                                step.distanceText,
+                                stringResource(
+                                    if (distanceUsesKilometers(step.distanceMeters)) R.string.distance_unit_km
+                                    else R.string.distance_unit_m,
+                                    formatDistanceNumber(step.distanceMeters)
+                                ),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        if (step.timeText.isNotEmpty()) {
+                        val stepTime = formatStepDurationText(step.durationSeconds)
+                        if (stepTime.isNotEmpty()) {
                             Text(
-                                step.timeText,
+                                stepTime,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

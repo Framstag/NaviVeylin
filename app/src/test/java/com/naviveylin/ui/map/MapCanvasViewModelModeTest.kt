@@ -15,6 +15,7 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
+import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,6 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Verifies the explicit map mode model (spec: map-modes): the derived MapMode
@@ -154,7 +156,7 @@ class MapCanvasViewModelModeTest {
                 )
             }
         }
-        return NavigationEngine(
+        return engineUnderTest(
             { routeClient },
             LocationService(context), context
         )
@@ -210,5 +212,80 @@ class MapCanvasViewModelModeTest {
         advanceUntilIdle()
         assertEquals("drive-before-nav lands back in FREE_DRIVE", MapMode.FREE_DRIVE, viewModel.mode)
         assertTrue("follow restored", viewModel.uiState.value.followMode)
+    }
+
+    /**
+     * The status card's stop restores the pre-navigation mode (spec: `map-modes` — "The status
+     * card's stop restores prior mode"). The screen wires the adapter's follow callback
+     * (`MapCanvasScreen`: `setFollowModeCallback { viewModel.onToggleFollowMode(it) }`) *and* the
+     * session adapter to the same surface, so navigation start forces follow on through the object
+     * that will restore it afterwards; the pre-navigation snapshot must not observe that forced
+     * value — the device measured `mode restored follow=true` after a browse-before navigation
+     * (`TODO.md` §140).
+     */
+    @Test
+    fun cardStopRestoresBrowseMode() = runTest(mainDispatcherRule.dispatcher) {
+        val routeClient = FakeOSMScoutClient().apply {
+            routeToDeliver = RouteEntry().apply {
+                routeHandle = 1L
+                latitudes = doubleArrayOf(52.5200, 52.5230, 52.5300)
+                longitudes = doubleArrayOf(13.4050, 13.4080, 13.4100)
+                distance = 5000.0
+                descriptions = arrayOf(
+                    "Start navigation  [0.0 km, 0 min]",
+                    "Destination reached  [0.0 km, 0 min]"
+                )
+            }
+        }
+        val navVm = engineUnderTest({ routeClient }, LocationService(context), context)
+        val surface = NavigationViewModel(navVm)
+        // The screen's wiring, in the screen's order: the session adapter is bound first, the map
+        // surface last (MapCanvasScreen's two LaunchedEffects) — including the pre-navigation
+        // snapshot the adapter takes when a session starts.
+        surface.setFollowModeCallback { viewModel.onToggleFollowMode(it) }
+        surface.setPreNavigationSnapshotCallback { viewModel.snapshotPreNavigationMode() }
+        surface.setRoutePanelViewModel(
+            RoutePanelViewModel(
+                client = routeClient,
+                favoriteRepository = FavoriteRepository(routeClient),
+                searchHistoryRepository = SearchHistoryRepository(context),
+                locationService = LocationService(context),
+                context = context
+            ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
+        )
+        viewModel.setNavigationViewModel(surface)
+        advanceUntilIdle()
+
+        assertFalse("the surface starts in BROWSE", viewModel.uiState.value.followMode)
+
+        // The phone's own session starts navigation: the adapter forces follow on.
+        surface.start(routeClient.routeToDeliver!!, Vehicle.CAR)
+        val deadline = System.currentTimeMillis() + 5000
+        while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
+            advanceUntilIdle()
+            Thread.sleep(10)
+        }
+        assertTrue("navigation is running", navVm.state.value.isNavigating)
+        // The adapter observes the same engine state on the main dispatcher, after the calculation
+        // landed on its real dispatcher — drain it before reading the surface.
+        val followDeadline = System.currentTimeMillis() + 5000
+        while (System.currentTimeMillis() < followDeadline && !viewModel.uiState.value.followMode) {
+            advanceUntilIdle()
+            Thread.sleep(10)
+        }
+        assertTrue("navigation forced follow on", viewModel.uiState.value.followMode)
+
+        // The card's stop control ends navigation through the one engine.
+        navVm.stopNavigation()
+        advanceUntilIdle()
+
+        assertEquals(
+            "the card's stop restores the pre-navigation mode",
+            MapMode.BROWSE, viewModel.mode
+        )
+        assertFalse(
+            "the forced follow must not leak into the restore",
+            viewModel.uiState.value.followMode
+        )
     }
 }

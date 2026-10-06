@@ -73,3 +73,30 @@ fun formatDurationText(durationSec: Double): String {
     val minutes = ((durationSec % 3600.0) / 60.0).toInt()
     return if (hours > 0) "${hours}h ${minutes}min" else "${minutes} min"
 }
+
+/**
+ * Format a **step's** duration in seconds for display, e.g. "45 s", "5 min", "1h 5min".
+ *
+ * Per-step durations are the travel times of the route's own legs and are routinely below a minute,
+ * so - unlike [formatDurationText], which the route's total, the notification and the ETA strings
+ * share - this formatter keeps the seconds and never prints "0 min" for a leg that took 45 s (owner
+ * finding, 2026-10-03: every step of a city route read "0 min").
+ *
+ * A value below a second means "unknown" and produces an empty string, so a caller omits the value
+ * instead of printing a duration it does not have.
+ *
+ * @param durationSec duration in seconds; below 1.0 means unknown
+ * @return formatted duration, or the empty string when the duration is unknown
+ */
+fun formatStepDurationText(durationSec: Double): String {
+    if (durationSec < 1.0) return ""
+    val total = durationSec.toInt()
+    val hours = total / 3600
+    val minutes = (total % 3600) / 60
+    val seconds = total % 60
+    return when {
+        hours > 0 -> "${hours}h ${minutes}min"
+        minutes > 0 -> "${minutes} min"
+        else -> "${seconds} s"
+    }
+}

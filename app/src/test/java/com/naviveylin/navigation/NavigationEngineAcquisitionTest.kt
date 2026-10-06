@@ -18,33 +18,54 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import com.naviveylin.core.EngineDispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import org.robolectric.annotation.Config
 import androidx.test.core.app.ApplicationProvider
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Tests for the car-only route calculation fallback in [NavigationEngine]
  * (used when the phone [com.naviveylin.ui.route.RoutePanelViewModel] is not
  * wired — e.g. navigation started from Android Auto via a deep link).
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class NavigationEngineAcquisitionTest {
+
+    /**
+     * The engine's off-main work runs on these schedulers (production uses real pools), so a case
+     * drains them instead of polling (spec: `unit-test-suite-runtime` — Awaiting state, not a
+     * deadline).
+     */
+    private val computeDispatcher = StandardTestDispatcher()
+    private val ioDispatcher = StandardTestDispatcher()
+    private val engineDispatchers = EngineDispatchers(computeDispatcher, ioDispatcher)
 
     private fun buildViewModel(
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
         locationService: LocationService = LocationService(ApplicationProvider.getApplicationContext())
     ): NavigationEngine {
-        return NavigationEngine({ client }, locationService, ApplicationProvider.getApplicationContext())
+        return engineUnderTest(
+            { client },
+            locationService,
+            ApplicationProvider.getApplicationContext(),
+            dispatchers = engineDispatchers
+        )
     }
 
-    /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
-    private fun awaitState(condition: () -> Boolean) {        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline) {
+    /** Drain the injected schedulers and the looper, then assert — no wall-clock deadline. */
+    private fun awaitState(condition: () -> Boolean) {
+        repeat(2) {
+            computeDispatcher.scheduler.advanceUntilIdle()
+            ioDispatcher.scheduler.advanceUntilIdle()
             shadowOf(Looper.getMainLooper()).idle()
-            if (condition()) return
-            Thread.sleep(10)
         }
-        throw AssertionError("State condition not met within 5s")
+        if (!condition()) {
+            throw AssertionError("State condition not met after draining the test scheduler")
+        }
     }
 
     /** Inject a location into the private LocationService flow (test only). */
@@ -140,7 +161,8 @@ class NavigationEngineAcquisitionTest {
         awaitState { vm.state.value.isNavigating }
         assertEquals(1, client.routeCalculationCount)
         assertNull(vm.state.value.errorMessage)
-        // Total distance is derived from route geometry (haversine), not RouteEntry.distance
+        // The total is the route's own length when its geometry is usable, not a second app-side sum
+        // of that geometry (spec: osmscout-jni — One route length for a calculated route).
         assertTrue(vm.state.value.totalDistance > 0.0)
     }
 
@@ -188,7 +210,12 @@ class NavigationEngineAcquisitionTest {
         val locationService = LocationService(context)
         injectGpsFix(locationService, 52.5200, 13.4050)
 
-        val vm = NavigationEngine({ client }, locationService, ApplicationProvider.getApplicationContext())
+        val vm = engineUnderTest(
+            { client },
+            locationService,
+            ApplicationProvider.getApplicationContext(),
+            dispatchers = engineDispatchers
+        )
 
         vm.navigateTo(52.5300, 13.4100)
 

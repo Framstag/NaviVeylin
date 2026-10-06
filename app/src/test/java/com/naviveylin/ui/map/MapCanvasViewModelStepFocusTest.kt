@@ -16,7 +16,6 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
-import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
@@ -38,6 +37,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import java.io.File
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Verifies the analysed-step camera move (spec: `route-analysis` — "Selecting a step
@@ -93,7 +93,7 @@ class MapCanvasViewModelStepFocusTest {
         )
         routePanelViewModel.defaultDispatcher = mainDispatcherRule.dispatcher
         navigationViewModel = NavigationViewModel(
-            NavigationEngine({ client }, LocationService(context), context)
+            engineUnderTest({ client }, LocationService(context), context)
         )
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
     }

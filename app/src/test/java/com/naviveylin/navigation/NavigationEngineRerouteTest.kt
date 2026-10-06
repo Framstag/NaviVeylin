@@ -7,6 +7,8 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.TurnType
 import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.core.EngineDispatchers
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,6 +23,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import com.naviveylin.test.engineUnderTest
 
 /**
  * The engine's reroute policy (spec: `reroute-trigger` — all requirements;
@@ -43,6 +46,14 @@ class NavigationEngineRerouteTest {
     private lateinit var client: FakeOSMScoutClient
     private lateinit var engine: NavigationEngine
 
+    /**
+     * The engine's injected time source and dispatchers: every coroutine the engine starts runs on
+     * the test scheduler, so a case drains it instead of waiting for real threads (spec:
+     * `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private var nowMillis = 1_000_000L
+    private val clock = EngineTimeSource { nowMillis }
+
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -50,7 +61,16 @@ class NavigationEngineRerouteTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient().apply { routeToDeliver = route() }
-        engine = NavigationEngine({ client }, LocationService(context), context)
+        engine = engineUnderTest(
+            { client },
+            LocationService(context),
+            context,
+            timeSource = clock,
+            dispatchers = EngineDispatchers(
+                compute = mainDispatcherRule.dispatcher,
+                io = mainDispatcherRule.dispatcher
+            )
+        )
     }
 
     private fun route(): RouteEntry = RouteEntry().apply {
@@ -66,28 +86,30 @@ class NavigationEngineRerouteTest {
         )
     }
 
-    private fun awaitState(condition: () -> Boolean, pump: () -> Unit) {
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline) {
-            pump()
-            advanceUntilIdleBlocking()
-            if (condition()) return
-            Thread.sleep(10)
+    /**
+     * Wait for [condition] by draining the test scheduler — no wall-clock deadline, so a condition
+     * that cannot be met fails at once instead of after five real seconds (spec:
+     * `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private fun awaitState(condition: () -> Boolean) {
+        advanceUntilIdleBlocking()
+        if (!condition()) {
+            throw AssertionError("State condition not met after draining the test scheduler")
         }
-        throw AssertionError("State condition not met within 5s")
     }
 
     private fun advanceUntilIdleBlocking() {
-        // The engine publishes on Dispatchers.Main, which the test rule replaces
-        // with the test dispatcher; pumping the looper keeps Robolectric content.
+        // The engine publishes on Dispatchers.Main, which the rule replaces with the test dispatcher;
+        // idling Robolectric's looper keeps any work it posted ordered ahead of the assertions.
         org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
     }
 
     /** Start a session as a surface would (engine.start with a calculated route). */
-    private fun startSession(pump: () -> Unit) {
+    private fun startSession() {
         engine.start(route(), Vehicle.BICYCLE)
-        awaitState({ client.navigationListener != null }, pump)
-        awaitState({ engine.state.value.isNavigating }, pump)
+        awaitState { client.navigationListener != null }
+        awaitState { engine.state.value.isNavigating }
     }
 
     private fun listener() = client.navigationListener!!
@@ -98,40 +120,44 @@ class NavigationEngineRerouteTest {
      * been seen (`lastGpsAccuracy < 0`) — as in production, where the location feed
      * runs ahead of the native reports.
      */
-    private fun requestReroute(lat: Double, feedFreshFix: Boolean = true, pump: () -> Unit) {
+    private fun requestReroute(lat: Double, feedFreshFix: Boolean = true) {
         if (feedFreshFix) {
-            engine.processLocation(52.5200, 13.4500, 17.8, 5.0, System.currentTimeMillis())
+            engine.processLocation(52.5200, 13.4500, 17.8, 5.0, nowMillis)
         }
         listener().onRerouteRequest(
             lat, 13.4500, 90.0, 52.5200, 13.5000
         )
-        pump()
     }
 
     @Test
     fun largeDeviationConfirmsOnTheFastPath() = runTest(mainDispatcherRule.dispatcher) {
-        startSession { advanceUntilIdle() }
+        startSession()
         assertEquals("a surface-acquired start calculates no route in the engine",
             0, client.routeCalculationCount)
 
         // ~200 m north of the route: above the 50 m fast path, first report.
-        requestReroute(lat = 52.5218) { advanceUntilIdle() }
-        awaitState({ client.routeCalculationCount == 1 }) { advanceUntilIdle() }
+        requestReroute(lat = 52.5218)
+        awaitState { client.routeCalculationCount == 1 }
 
         assertEquals("the engine re-acquired the route itself", 1, client.routeCalculationCount)
+        assertEquals(
+            "the native calculation ran on the injected dispatcher (the test thread)",
+            Thread.currentThread(),
+            client.lastRouteCalculationThread
+        )
     }
 
     @Test
     fun marginalDeviationNeedsTheConfirmationGate() = runTest(mainDispatcherRule.dispatcher) {
-        startSession { advanceUntilIdle() }
+        startSession()
 
         // ~10 m north: below the fast path, so the first report only opens the
         // episode and a second report inside the 10 s confirmation window does not
         // confirm either (the gate requires the minimum off-route duration).
-        requestReroute(lat = 52.52009) { advanceUntilIdle() }
+        requestReroute(lat = 52.52009)
         assertEquals("no reroute on the first marginal report", 0, client.routeCalculationCount)
 
-        requestReroute(lat = 52.52009) { advanceUntilIdle() }
+        requestReroute(lat = 52.52009)
         assertEquals(
             "no reroute before the confirmation window elapsed",
             0, client.routeCalculationCount
@@ -140,31 +166,31 @@ class NavigationEngineRerouteTest {
 
     @Test
     fun cooldownBlocksARerouteCascade() = runTest(mainDispatcherRule.dispatcher) {
-        startSession { advanceUntilIdle() }
+        startSession()
 
-        requestReroute(lat = 52.5218) { advanceUntilIdle() }
-        awaitState({ client.routeCalculationCount == 1 }) { advanceUntilIdle() }
+        requestReroute(lat = 52.5218)
+        awaitState { client.routeCalculationCount == 1 }
 
         // The native engine reports every ~5 s while off route: within the 25 s
         // cooldown the next confirmed deviation must not start another reroute.
-        requestReroute(lat = 52.5218) { advanceUntilIdle() }
+        requestReroute(lat = 52.5218)
         assertEquals("cascade blocked by the cooldown", 1, client.routeCalculationCount)
     }
 
     @Test
     fun poorAccuracyBlocksTheReroute() = runTest(mainDispatcherRule.dispatcher) {
-        startSession { advanceUntilIdle() }
+        startSession()
 
         // A fix with 150 m accuracy exceeds the 100 m guard.
-        engine.processLocation(52.5200, 13.4500, 17.8, 150.0, System.currentTimeMillis())
-        requestReroute(lat = 52.5218, feedFreshFix = false) { advanceUntilIdle() }
+        engine.processLocation(52.5200, 13.4500, 17.8, 150.0, nowMillis)
+        requestReroute(lat = 52.5218, feedFreshFix = false)
 
         assertEquals("accuracy guard withheld the reroute", 0, client.routeCalculationCount)
     }
 
     @Test
     fun tunnelExitBlocksTheReroute() = runTest(mainDispatcherRule.dispatcher) {
-        startSession { advanceUntilIdle() }
+        startSession()
 
         // A tunnel estimate within the 30 s guard window.
         listener().onPositionEstimate(
@@ -173,9 +199,9 @@ class NavigationEngineRerouteTest {
                 52.5200, 13.4500, 90.0, 5.0, "", "", ""
             )
         )
-        awaitState({ true }) { advanceUntilIdle() }
-        engine.processLocation(52.5200, 13.4500, 17.8, 5.0, System.currentTimeMillis())
-        requestReroute(lat = 52.5218) { advanceUntilIdle() }
+        awaitState { true }
+        engine.processLocation(52.5200, 13.4500, 17.8, 5.0, nowMillis)
+        requestReroute(lat = 52.5218)
 
         assertEquals("tunnel guard withheld the reroute", 0, client.routeCalculationCount)
     }
@@ -183,12 +209,12 @@ class NavigationEngineRerouteTest {
     @Test
     fun confirmedRerouteKeepsTheRetainedVehicleProfile() =
         runTest(mainDispatcherRule.dispatcher) {
-            startSession { advanceUntilIdle() }
+            startSession()
             assertEquals("no engine acquisition for a surface-acquired start",
                 0, client.routeCalculationCount)
 
-            requestReroute(lat = 52.5218) { advanceUntilIdle() }
-            awaitState({ client.routeCalculationCount == 1 }) { advanceUntilIdle() }
+            requestReroute(lat = 52.5218)
+            awaitState { client.routeCalculationCount == 1 }
 
             assertEquals(
                 "the reroute re-acquired with the retained profile, no surface present",
@@ -198,14 +224,14 @@ class NavigationEngineRerouteTest {
 
     @Test
     fun rerouteUsesTheRetainedDestination() = runTest(mainDispatcherRule.dispatcher) {
-        startSession { advanceUntilIdle() }
+        startSession()
 
         // The session's destination identity is the acquired route's end point.
         assertEquals("the session carries its destination",
             13.5000, engine.state.value.destLon, 1e-9)
 
-        requestReroute(lat = 52.5218) { advanceUntilIdle() }
-        awaitState({ client.routeCalculationCount == 1 }) { advanceUntilIdle() }
+        requestReroute(lat = 52.5218)
+        awaitState { client.routeCalculationCount == 1 }
 
         assertEquals(
             "reroute goes to the retained destination",
@@ -215,21 +241,21 @@ class NavigationEngineRerouteTest {
 
     @Test
     fun instructionListUpdatesAfterAReroute() = runTest(mainDispatcherRule.dispatcher) {
-        startSession { advanceUntilIdle() }
+        startSession()
         listener().onRouteInstructions(
             arrayOf(RouteInstruction(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left"))
         )
-        awaitState({ engine.state.value.instructions.size == 1 }) { advanceUntilIdle() }
+        awaitState { engine.state.value.instructions.size == 1 }
 
-        requestReroute(lat = 52.5218) { advanceUntilIdle() }
-        awaitState({ client.routeCalculationCount == 1 }) { advanceUntilIdle() }
+        requestReroute(lat = 52.5218)
+        awaitState { client.routeCalculationCount == 1 }
 
         // The engine clears the previous route's steps on the restart and reports
         // the new instructions when they arrive.
         listener().onRouteInstructions(
             arrayOf(RouteInstruction(50.0, TurnType.RIGHT, "Alt St", "Turn right", "Turn right"))
         )
-        awaitState({ engine.state.value.instructions.size == 1 }) { advanceUntilIdle() }
+        awaitState { engine.state.value.instructions.size == 1 }
 
         assertEquals("Alt St", engine.state.value.instructions[0].streetName)
         assertFalse(engine.state.value.isRerouting)

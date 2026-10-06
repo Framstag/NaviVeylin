@@ -10,10 +10,14 @@ import com.naviveylin.core.NavigationState
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
+import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.test.MainDispatcherRule
+import com.naviveylin.test.engineUnderTest
 import com.naviveylin.ui.route.RoutePanelViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -50,13 +54,25 @@ class NavigationEngineTwoSurfaceTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    /**
+     * The engine's off-main work runs on this pair (production uses real pools), so a case drains
+     * it instead of polling (spec: `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private val computeDispatcher = StandardTestDispatcher()
+    private val ioDispatcher = StandardTestDispatcher()
+
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         File(context.filesDir, "maps/search_history.json").delete()
         client = FakeOSMScoutClient().apply { routeToDeliver = route() }
         locationService = LocationService(context)
-        engine = NavigationEngine({ client }, locationService, context)
+        engine = engineUnderTest(
+            { client },
+            locationService,
+            context,
+            dispatchers = EngineDispatchers(computeDispatcher, ioDispatcher)
+        )
     }
 
     private fun route(): RouteEntry = RouteEntry().apply {
@@ -75,16 +91,27 @@ class NavigationEngineTwoSurfaceTest {
             context = context
         ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
 
-    private fun awaitState(condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline) {
-            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+    /**
+     * Await [condition] by draining the injected schedulers and the looper — bounded and free of
+     * wall-clock time (spec: `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private fun awaitState(what: String, condition: () -> Boolean) {
+        repeat(20) {
+            computeDispatcher.scheduler.advanceUntilIdle()
+            ioDispatcher.scheduler.advanceUntilIdle()
             mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
             if (condition()) return
-            Thread.sleep(10)
         }
-        throw AssertionError("State condition not met within 5s")
+        throw AssertionError(
+            "$what: not met after draining the test scheduler " +
+                "(navigating=${engine.state.value.isNavigating}, " +
+                "position=${engine.positionFlow.value != null}, " +
+                "engineError=${engine.state.value.errorMessage})"
+        )
     }
+
+    private fun awaitState(condition: () -> Boolean) = awaitState("state condition", condition)
 
     @Test
     fun oneNativeControllerForTwoSurfacesAndSharedState() =
@@ -98,8 +125,13 @@ class NavigationEngineTwoSurfaceTest {
             // The car surface observes the same engine (as :auto does).
             val carStates = mutableListOf<NavigationState>()
             val carPositions = mutableListOf<NavigationPosition?>()
-            backgroundScope.launch { engine.state.collect { carStates += it } }
-            backgroundScope.launch { engine.positionFlow.collect { carPositions += it } }
+            // A surface collector observes every emission synchronously (unconfined), so an
+            // emission cannot be lost to a scheduler round trip; the drains in `awaitState` are
+            // then the only thing a case waits on.
+            backgroundScope.launch(Dispatchers.Unconfined) { engine.state.collect { carStates += it } }
+            backgroundScope.launch(Dispatchers.Unconfined) {
+                engine.positionFlow.collect { carPositions += it }
+            }
 
             // Phone starts the session.
             phone.start(route(), Vehicle.CAR)

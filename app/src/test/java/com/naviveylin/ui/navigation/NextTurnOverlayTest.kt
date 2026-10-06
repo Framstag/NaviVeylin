@@ -30,6 +30,7 @@ class NextTurnOverlayTest {
     private val instruction = RouteInstruction(
         450.0,
         300.0,
+        900.0,
         TurnType.LEFT,
         "Hauptstraße",
         "Turn left into Hauptstraße",

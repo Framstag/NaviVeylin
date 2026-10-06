@@ -54,6 +54,9 @@
     <string name="search_history_hint">Search for places from the map to build up history</string>
     <string name="loading_map_data">Loading map data…</string>
     <string name="preparing_navigation">Preparing navigation</string>
+    <string name="route_calculation_title">Calculating route</string>
+    <string name="route_calculation_percent">%1$d%%</string>
+    <string name="cancel">Cancel</string>
     <string name="retry">Retry</string>
     <string name="back">Back</string>
     <string name="startup_failed">Startup failed</string>

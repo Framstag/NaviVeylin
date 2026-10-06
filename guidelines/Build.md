@@ -11,7 +11,7 @@ this document in the same change.
 
 ## 1. Skills
 
-Four skills wrap the existing Gradle calls and the verification discipline around them. They are named
+Five skills wrap the existing Gradle calls and the verification discipline around them. They are named
 and discoverable by LLM agents (loaded on demand from `.pi/skills/`); use them whenever build, test,
 verification, or release work is requested or required by the OpenSpec apply/archive guidance.
 
@@ -20,6 +20,7 @@ verification, or release work is requested or required by the OpenSpec apply/arc
 | `build-app` | Compile the app — debug APKs, flavors, ABIs | User asks to build/compile; verify code compiles; after Kotlin/native changes |
 | `run-tests` | Execute unit + instrumented tests | User asks to run tests; verify tests pass; before marking a task complete |
 | `revert-check` | Falsify a new guard: one mutation → the named case must fail → restore → forced green, with the evidence recorded | A task says "revert-check"/"one mutation"/"the case that must fail"; a change adds a test for an invariant; before claiming a test covers new behaviour |
+| `compose-geometry` | Assert a UI geometry invariant (size, tap target, disjointness, visibility inside a parent) in a Compose case instead of `assertExists()` | A phone control or tap area is added/moved; a task asks for a bounds/48 dp/disjointness/visibility case; a device run shows a tap landing on the wrong action or an action that is unreachable |
 | `release-build` | Produce Play-ready release AABs (mobile + automotive) | User asks for a release build or version bump; Play upload / sideload artifacts |
 
 Each skill lives in `.pi/skills/<name>/SKILL.md` (gitignored — copy to
@@ -45,6 +46,112 @@ All four skills follow the same contract:
   - Exit code non-zero **or** output contains `BUILD FAILED` → failure
 - **Report a clear verdict** with actionable error excerpts on failure.
 
+### Liveness guard and shell recipes
+
+- **The "no other build is running" guard must be able to match the real process.**
+  `pgrep -f 'GradleWrapper[M]ain'` never matches: the wrapper runs as
+  `java -Xmx64m … -Dorg.gradle.appname=gradlew -jar …/gradle-wrapper.jar <tasks>`, so
+  `org.gradle.wrapper.GradleWrapperMain` lives *inside* the jar and never appears in the argument vector
+  (the daemon shows as `gradle-daemon-main-<version>.jar`). Use `pgrep -af 'gradle-wrapper\.ja[r]'` — the
+  bracket keeps the pattern from matching the `pgrep` call itself — or track the PID the launcher printed,
+  and then confirm with the `BUILD SUCCESSFUL|BUILD FAILED` verdict line in the log. A liveness probe that
+  cannot match the real process reports "finished" for work still in flight (measured 2026-10-04 and again
+  2026-10-04/05), and a guard's own `echo` must never state a verdict the guard did not measure.
+- **Allowlist recipes (use these instead of re-discovering them):** `find <dir> -print | xargs -r rm -rf`
+  (never `find … -exec rm -rf {} +`); `awk` for arithmetic (`bc` is not allowed); `perl -0pi` is blocked —
+  for a bulk edit use the editor's `replace_all` with an anchor on a neighbouring unique line; no `$()` or
+  backtick substitution at command position (prepare the command once, print it, paste it verbatim); a
+  helper script under `/tmp` is not runnable — inline the commands; the projection head unit binary needs
+  `lean-ctx allow desktop-head-unit` (or a human at the DHU window).
+- **Shell traps that look like build failures:** zsh (the harness shell) does **not** word-split — a
+  `$filters` variable or `for x in "a b"` arrives as one argv element, so Gradle answers
+  "Task ' --tests …' not found" (pass filters literally); an `adb` call inside a `printf | while read` loop
+  consumes the pipeline's stdin (add `</dev/null` to every `adb` call in the loop); and
+  `adb logcat -d --pid <pid>` hangs — use `-t <N>` plus an `awk` filter on the PID column instead.
+- **Init-script traps:** in `*.init.gradle.kts` a deprecated Gradle member is a **compile error**, not a
+  warning (a Groovy `*.init.gradle` would only warn). Probe the script API by reflection in a throwaway
+  Groovy init script before writing the Kotlin one. A harness that overrides a value the build script also
+  sets must apply in `gradle.projectsEvaluated { }` (an earlier hook is overridden by the script's own
+  `configureEach`) and must be verified by an observable — the worker-JVM count, not the flag it was given.
+- **A tool that infers a directory layout needs a shape check.** `tools/prune-native-configs.sh` deleted
+  ABI directories *inside* hash trees once because the layout had shifted one level; refuse a root whose
+  grandchildren are ABI names, and dry-run with the **same** arguments as the real run — a dry run validates
+  only the exact invocation that is repeated.
+- **A suite run that died mid-flight is not neutral.** "No verdict in the log" means *killed*, not failed
+  (`TODO.md` §40.3): split the gate per module instead of re-running the aggregate. Before the next run,
+  delete the dead run's results (`rm -rf app/build/test-results/<flavor>`) — otherwise the next invocation
+  can abort with `java.nio.file.NoSuchFileException: …/in-progress-results-generic.bin` *after* printing its
+  tallies, losing the per-test detail. A killed run also leaves its daemon `BUSY`: `./gradlew --status`,
+  `./gradlew --stop`, then re-run (extends §40.4).
+
+- **The allowlist is not a planning assumption — probe it** (§40.1). `python3` (3.14.7), `perl` and `tesseract`
+  (5.5.3) all **run** in this shell (verified 2026-10-03; `TODO.md` §106's device pass used `tesseract`), so
+  do not write a plan around a tool being blocked. `jq`/`grep`/`sed`/`awk` stay the house style for text
+  work, and `openspec` interaction always goes through the CLI's own `--json` output — never a script.
+  Reach for `python3` only when shell text tools genuinely cannot express the thing.
+- **Never `pkill -f "gradlew …"`** (§40.2): `-f` matches the calling tool's own command line, kills the
+  shell, and the rest of the chained command (e.g. a `git commit`) silently never runs. Kill by PID:
+  `ps -o pid,args | grep 'gradle-wrapper\.ja[r]'` → `kill -9 <pid>`.
+- **Do not use `/tmp` for large map imports** (§40.7): it is a RAM tmpfs (~7.7 GB quota), so an import
+  there competes with the build for memory — use a disk path.
+
+### Gate timing record and baseline
+
+Every gate run can leave a machine-readable record of what it cost, so "the gate got faster" is a
+measurement instead of an impression (change `speed-up-build-test-gate`, spec `build-test-gate`):
+
+```bash
+./gradlew -I tools/gate-timings.init.gradle.kts <tasks…>   # writes build/gate-timings.json
+bash tools/gate-timing-report.sh                           # defaults: build/gate-timings.json  .
+```
+
+The script only observes. It never adds an action to a task: a task action would change the task's
+action class and with it the build-cache key, so every instrumented run would miss the cache and
+re-execute everything the record exists to measure. It reports per task (path, outcome, duration) and per
+suite (wall time from the first and last result-XML `timestamp`, class count, test count, failures). Its
+own behaviour is covered without a device: `bash tools/gate-timings-selftest.sh`.
+
+To force execution of the tests — the case where the run itself is the evidence — use
+`-PforceTests --no-build-cache`, not `--rerun-tasks`: it re-executes the test tasks and leaves the rest of
+the graph up to date (§4).
+
+**Baseline (2026-10-04)** — `:app:testMobileDebugUnitTest :app:testAutomotiveDebugUnitTest
+:app:assembleMobileDebug :app:assembleAutomotiveDebug --rerun-tasks --continue`; host with 15 GB RAM of
+which ~1 GB free, Android Studio and the Pixel_8 emulator running, load average 0.8:
+
+| phase (sum of executed task durations) | baseline |
+|---|---|
+| compile & package | 7m57s over 107 tasks |
+| tests | 5m38s over 2 tasks |
+| other executed | 18.0s over 89 tasks |
+| Gradle's own build (buildSrc) | 0.8s over 3 tasks |
+| **wall clock** | **8m25s** (log: `BUILD SUCCESSFUL in 8m26s`, `189 actionable tasks: 189 executed`) |
+| `:app:testMobileDebugUnitTest` | 2m47s — 215 classes, 1635 tests, 0 failures |
+| `:app:testAutomotiveDebugUnitTest` | 2m38s — 215 classes, 1635 tests, 0 failures |
+
+The per-task sums exceed the wall clock because Gradle overlaps compile, packaging and test tasks:
+quote the wall clock and the per-suite windows, and read a phase sum as work, never as elapsed time.
+
+**After the change (2026-10-05)** — the levers this baseline was measured against, each with its numbers:
+the two `:app` suites run at the declared two forks (mobile 2m50s → 2m02s, automotive 2m35s → 2m02s per
+suite, §6); the Kover agent costs 10-12 % and is dropped for an iteration that feeds no report (§7); a
+JVM-only change builds no native artifact, one ABI is buildable for a device target, and `app/.cxx` is kept
+at 4 configuration trees instead of 13 (§4); forcing the test tasks instead of the whole graph leaves the
+compiles `UP-TO-DATE` (§4); a shared-source change runs one flavor instead of two (§4). The full gate — all
+modules, both flavors, instrumentation attached — ran green: `:app` mobile 219 classes / 1666 tests,
+automotive 219 / 1666, `:auto` 76 / 779, `:core` 39 / 444, JNI 2 / 26, all with 0 failures and 0 errors.
+
+**The aggregate is not the sum of those levers — measured, and worth reading before quoting the table
+above.** One clean full gate (`test -PforceTests --no-build-cache`, all four modules, no other build on the
+machine, 4.4 GB RAM free) took **9m46s** wall with only **17 of 185 tasks executed** (168 up-to-date) and
+suites `:app` mobile **4m54s**, automotive **3m56s**, `:auto` 1m39s, `:core` 32.8s, JNI 1.7s. The suites
+share the invocation, so their forks (2+2+1) plus the daemon contend for CPU and — on a box with ~4 GB
+free — for memory: 12m00s of test-task work compressed into 9m46s of wall, and every suite is slower than
+its isolated measurement (2m02s alone at two forks). Consequences to keep in mind: the per-suite table in
+§6 describes **single-suite** runs, the aggregate gate is bounded by suite work rather than by any flag this
+change added, and the declared two forks may be too optimistic when several modules' suites run at once —
+see `TODO.md` §132.
+
 ## 3. Commands reference
 
 | Goal | Command |
@@ -54,8 +161,9 @@ All four skills follow the same contract:
 | Build AAOS flavor only | `./gradlew :app:assembleAutomotiveDebug` |
 | Build single ABI (fastest iteration) | `./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a` |
 | Run all unit tests | `./gradlew test` |
-| Run app unit tests only | `./gradlew :app:testDebugUnitTest` |
-| Run single test class | `./gradlew :app:testDebugUnitTest --tests "<FQCN>"` |
+| Run all unit tests — the **full gate** (all modules, both `:app` flavors, forced) | `./gradlew test -PforceTests --no-build-cache` |
+| Run app unit tests only (one flavor — there is no `:app:testDebugUnitTest`) | `./gradlew :app:testMobileDebugUnitTest` (or `:app:testAutomotiveDebugUnitTest`) |
+| Run single test class | `./gradlew :app:testMobileDebugUnitTest --tests "<FQCN>"` |
 | Run instrumented tests (device required) | `./gradlew connectedAndroidTest` |
 | Release build (both AABs, bumps version) | `./gradlew release` |
 | Generate SBOM for one variant | `./gradlew :app:generateSbom<MobileDebug|MobileRelease|AutomotiveRelease>` |
@@ -75,15 +183,71 @@ All four skills follow the same contract:
   single test with `--tests "<FQCN>"` to isolate, then report.
 - **Per-flavor test tasks**: `:app` has one task per flavor —
   `:app:testMobileDebugUnitTest` and `:app:testAutomotiveDebugUnitTest` (there is
-  no `:app:testDebugUnitTest`). Run **both**: they are separate suites (each
-  ~1300 tests) and a change can pass one and fail the other.
+  no `:app:testDebugUnitTest`).
+- **Which flavors a run must cover** (change `speed-up-build-test-gate`, spec `build-test-gate` —
+  "Gate runs the affected flavors"): the routine gate runs the `:app` suite of the flavors the change can
+  affect — **both** when it modifies `app/src/automotive/**`, a flavor's manifest or resources, the flavor
+  definitions in `app/build.gradle.kts`, or native inputs; **one** (`mobile`, the base flavor) for a change
+  that touches only sources the two flavors share. Measured 2026-10-04: both suites execute the identical
+  215 test classes / 1635 tests, so the second suite is duplicate work unless a flavor input changed —
+  `mobile` 2m58s + `automotive` 2m57s for both against 2m58s for one (agent attached, §7), a saving of about
+  3 minutes per gate. **Before a change is called complete, run both flavors with every shipped ABI built**:
+  the reduced form is an iteration form and must not be reported as a full gate. `build/gate-timings.json`
+  (§2) shows how many suites a run actually executed.
+- **Iteration: run the change's declared cases first** (change `speed-up-test-iteration`, spec
+  `build-test-gate` — "Iteration pre-gate runs the change's declared cases first"). Before the module
+  suite, `bash tools/declared-cases.sh <change> --diff <this change's own file list> --command` prints
+  the test classes the change declares — those its artifacts name, those its diff touches, those whose
+  source mentions a type the diff changes — with their measured class time, and the ready Gradle line.
+  Run it in **two stages**: `--rules declared,touched` is the author-declared stage (measured 9 classes /
+  11.1 s class time for `fix-route-session-stop-path` against 220 classes / 252 s for the whole `:app`
+  suite), the full union is the second stage (82 classes / 91.1 s for the same change — `mention` is the
+  wide rule, because the app's central types are named across the suite). A shared working tree inflates
+  `touched` and `mention` with other changes' dirty files, so the change's own file list is the honest
+  `--diff` input. **A pre-gate run is not gate evidence** and the completion rule is unchanged: the
+  unfiltered module suite, both `:app` flavors and every shipped ABI are still owed before the change is
+  called complete. Expect ~30-45 s for a declared stage — the Robolectric fork bootstrap (~11 s per fork),
+  the daemon and a test-source compile are the floor, so a 10 s iteration loop is not on offer.
 - **Report tallies, not vibes**: quote `tests/failures/errors` per module from
   the XML (`app/build/test-results/testMobileDebugUnitTest/*.xml` etc.), e.g.
   ":core 379/0/0 · :auto 699/0/0 · :app mobile 1314/0/0 · :app automotive 1314/0/0".
   A bare `BUILD SUCCESSFUL` says nothing about what ran.
 - **A cached run is not a run**: `BUILD SUCCESSFUL in 3s` with `UP-TO-DATE` / `FROM-CACHE`
-  executed no tests. When the run itself is the evidence, force it with `--rerun`
-  (single task) or `--rerun-tasks`.
+  executed no tests. When the run itself is the evidence, force the **test tasks** (next bullet), and use
+  `--rerun-tasks` only when the whole graph has to be re-executed.
+- **How to force it: `-PforceTests --no-build-cache`** (change `speed-up-build-test-gate`, spec
+  `build-test-gate`). It makes the JVM unit-test tasks not up to date without re-executing the rest of the
+  graph — measured 2026-10-04 on `:core`: `:core:compileDebugKotlin UP-TO-DATE` with
+  `30 actionable tasks: 2 executed, 28 up-to-date`, where `--rerun-tasks` re-executes every compile,
+  package and native task. `--no-build-cache` is not optional: a task that is not up to date may still
+  have its outputs restored from the cache rather than executed. Keep `--rerun-tasks` for the completion
+  gate and for anything whose inputs the change touched; the gate record in §2 shows what each phase
+  costs.
+- **Native scope of a run** (change `speed-up-build-test-gate`, spec `build-test-gate` — "Iteration runs
+  build no more native artifacts than they test"). A JVM-only change needs **no** native build: the
+  `:app` unit tests use the host stub (`src/test/jniLibs`), not the packaged libraries. When a run does need
+  native artifacts for one device or emulator, `-Pandroid.injected.build.abi=arm64-v8a` builds that ABI
+  only — measured 2026-10-04, the record shows `configureCMakeDebug[arm64-v8a]` / `buildCMakeDebug[arm64-v8a]`
+  executing and nothing for the other ABIs, while the APK carries the app's own libraries
+  (`libosmscout*.so`, `libnaviveylin_log_bridge.so`, `libomp.so`) only under `lib/arm64-v8a/` — the other
+  ABI directories hold just the prebuilt `libandroidx.graphics.path.so`, which AGP ships regardless. Before
+  a change is called complete, every shipped ABI must be built (`:app:assembleMobileDebug
+  :app:assembleAutomotiveDebug` → all three ABIs in both APKs). A one-file native change costs ~5.5 s of
+  CMake work across the three ABIs (arm64 2982 ms, armv7 2500 ms, x86_64 78 ms on 2026-10-05), so the
+  expensive native case is a **new configuration hash**, which is what the prune below and a stable
+  configuration avoid — not an everyday incremental build. CCache/sccache are not installed on this machine;
+  the measured potential saving for an incremental change is a fraction of those 5.5 s, so it was declined
+  rather than assumed (a cold full rebuild is the case that would justify revisiting it).
+- **Superseded native configurations are pruned** (spec `build-test-gate` — "Superseded native
+  configurations are pruned"): `bash tools/prune-native-configs.sh --dry-run --skip tools app/.cxx`, then the
+  same command without `--dry-run`. It keeps the newest N (default 2) configuration trees per build type and
+  removes whole `<buildType>/<hash>` trees; it refuses while a Gradle build is active (deleting the tree of
+  a configuration AGP still considers current would force a reconfigure mid-build) and refuses a mis-scoped
+  root (a build-type directory instead of the `.cxx` root). `--skip tools` leaves the tiny host-tool
+  configurations alone, whose "current" entry is ambiguous and whose deletion costs a re-configure for
+  almost nothing. Measured 2026-10-04/05: `app/.cxx` went from 7.6 GB / 13 trees to 2.1 GB / 4 configuration
+  trees (+ the tool configs), and the next native build reconfigured and rebuilt as needed with no manual
+  step. Device-free self-test: `bash tools/prune-native-configs-selftest.sh`.
 - **Restoring a mutation re-creates a cached tree**: after a revert-check the source hash equals the state
   whose successful result is already cached, so the restored run answers `UP-TO-DATE` in seconds and the
   XML keeps the **previous** run's `timestamp` — a 4-second "green" is not the second half of a
@@ -134,9 +298,98 @@ All four skills follow the same contract:
   `while (true)`/`while (isActive)` loops for a `withContext`, then move the loop's
   home off the main dispatcher (`guidelines/Design.md` §4) instead of enumerating
   the classes that leak a holder.
+- **A new regression test must fail against the *unfixed* revision first.** One that passes against the bug
+  is worse than none: run it on the pre-fix tree (stash, or the parent commit) before claiming it guards the
+  fix. If it cannot fail there — e.g. Robolectric defers the child collector that runs inline on the device —
+  delete it and record that a device run is the only evidence.
+- **A revert-check's green half needs `--rerun-tasks`, and the case must assert the *positive* fact.** After
+  restoring a mutated file the source hash matches an earlier state, so the test task answers `UP-TO-DATE` or
+  restores from cache while the XML keeps the **previous** run's `timestamp`: force it and compare that
+  `timestamp` with the wall clock before quoting counts (`TODO.md` §17). And the assertion must be what the
+  guard produces — the buffer *was* acquired exactly once — not the absence of growth: an "allocation count
+  did not increase" case passes under the reverted path when its baseline is already zero.
+- **A flaky victim needs a rate per configuration (N ≥ 3) before a bisect means anything.** One run per
+  combination decides nothing at a ~1-in-2 rate; measure runs per configuration instead, and never infer the
+  leaker from the victim's *package* — one process-wide leak produced failures in three unrelated packages
+  (`UncaughtExceptionsBeforeTest` above). Also bound the test that perturbs the suite: an oversized drag left
+  a reorder library's auto-scroll running into whatever executed next in the same JVM.
+- **Test-scheduling traps.** `advanceTimeBy` is *exclusive* at its boundary, so a debounce deadline landing
+  exactly on the advanced-to instant never fires — advance past it by more than a tick, or `runCurrent()`
+  after an exactly-at-the-deadline advance (a case that looked 50/50 flaky was this). And a production
+  `withContext(…)` inside a suspend accessor makes a virtual-time test non-deterministic (green alone, red
+  under suite load): give the hop its own dispatcher seam (`guidelines/Design.md` §4).
+- **A background publisher publishes atomically, and its timing decision reads an injected source** (change
+  `fix-navigation-engine-test-flakes`, specs `navigation-engine` / `unit-test-suite-runtime`): a tick or
+  worker that runs off the main thread publishes through `MutableStateFlow.update { … }`, never
+  `state.value = state.value.copy(…)` — the whole-snapshot form writes back a state it read earlier and
+  silently reverts a field another writer published inside that window. Measured 2026-10-05: the
+  navigation engine's stale-speed tick reverted `maxSpeedKmH` to its `Double.NaN` default, which is what
+  made `NavigationEngineTest`'s lane/instruction/max-speed assertions look `~1-in-2` flaky for days
+  (`fix-navigation-engine-test-flakes`, archived 2026-10-06 — the entry it closed, `TODO.md` §121, was
+  removed with it; the same shape was fixed for the road-info lookup's publish, which now hops with
+  `withContext(Dispatchers.Main)`). Timing decisions — staleness, throttle, cooldown — read the
+  component's injected time source, never `System.currentTimeMillis()` at the decision site, so a test
+  moves time instead of waiting for it; and a test may not compute a deadline from the wall clock or pace
+  itself with `Thread.sleep` — it drains the injected schedulers and asserts.
 - **Test reports**: HTML at
   `app/build/reports/tests/testMobileDebugUnitTest/index.html`, XML at
   `app/build/test-results/testMobileDebugUnitTest/*.xml`.
+
+### Artifacts and evidence rules
+
+- **Verify an artifact against its inputs, not by the existence of an output path** (§40.6): a
+  build-cache-restored APK in `outputs/apk/` and a stale `build/outputs/sbom/*` both look exactly like a
+  product bug. Compare content/mtime against the change, and probe a packaged literal rather than trusting
+  the path.
+- **One mutation per revert check** (§40.12): a combined mutation masks the other behaviour and the
+  assertion becomes vacuously true — mutate one guard, run every case it protects, restore, then force the
+  green run.
+- **After a semantic change to a shared value, grep the test tree for the observable it moved** (§40.32):
+  `lastRenderMag` holds the raw scale now (`2^level`), and a focused run cannot see an expectation pinned
+  verbatim in an unrelated class.
+
+### Native verification — new methods, hidden visibility
+
+- **A *new* native method is invisible to the compiler.** Adding a method to `OSMScoutClient` breaks
+  nothing: the test fakes compile without overriding it, and the first *call* throws `UnsatisfiedLinkError`
+  (the host stub exports no symbols). The `native-bridge-signature-change` skill's compiler sweep catches
+  *changed* signatures only — update every fake in the same change and run the affected suites, because the
+  suite is the only proof the call path works. (Two-`#ifdef` verification and meson target naming:
+  `TODO.md` §40.47/§40.48.)
+- **A hidden-visibility library may only expose *exported* types on its interface.** `libosmscout` builds
+  with `-fvisibility=hidden`: taking an older, un-annotated class by value fails for every consumer outside
+  the library with `undefined reference to vtable for …` (including `Tests/`); hold the exported factory
+  handle (`StringMatcherTransliterateFactory`) instead of a by-value base member.
+- **`ctest` after a partial `ninja` is not evidence.** Build every target first (`ninja -k 0`) before
+  reading a suite verdict, and prove a suspected regression by rebuilding that target with the change
+  stashed — a stale executable run against a new shared library was this repo's false positive.
+- **Any change inside an `#ifdef OSMSCOUT_HAVE_LIB_MARISA` block is verified in BOTH configurations**
+  (§40.47): the Android build always defines it (vcpkg ships marisa), so CI's non-Marisa path is invisible
+  here. Reproduce: insert `#undef OSMSCOUT_HAVE_LIB_MARISA` after the include block of `OSMScoutClient.cpp`,
+  build `:app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a`, then remove the `#undef`.
+- **Native test binaries are not directly executable here** (§40.48): `ctest -R <Test> --output-on-failure`
+  does **not** build — `ninja -C <build> <Target>` first, and filter `ctest -N` output for `Test #` lines.
+  The meson `hostbuild/` directory has no `CTestTestfile.cmake`, so `ctest` answers "No tests were
+  found!!!" even for a registered, green test: use `meson test -C hostbuild "<test name>"
+  --print-errorlogs` there, list the real names with `meson test -C hostbuild --list | grep -i <topic>`
+  first, and spend one throwaway `ninja` invocation after a `meson.build` edit so the regeneration lands
+  before the target lookup.
+- **`System.loadLibrary` needs the plain-name `.so`** (§40.49) — a versioned `.so.1` symlink is not found.
+- **Plain `openDatabase(containerRoot)` wipes the DBThread** (§40.50) — the root has no `types.dat`; load a
+  container of maps through the builder's map-lookup scan.
+- **The `:osmscout-client-java` Gradle JAR excludes `OSMScoutClient.java`/`Builder`** (§40.51): never feed
+  it to JavaScout Maven (a stale `~/.m2` JAR breaks the signature) — build the JAR from the submodule's
+  `java/` sources.
+- **JavaScout Maven tests need `JAVA_HOME=java-21`** (§40.52): JUnit 5.10.2 on Java 26 discovers but
+  executes 0 tests.
+- **Stale meson host builds: `sed` the ninja link line to a stub path before rebuilding** (§40.53) —
+  `/usr/lib` is not writable and there is no sudo.
+- **Native index fixtures must be FULL (non-eco) imports** (§40.34): `--eco true` skips the POI indexes, so
+  an index test silently asserts nothing.
+- **`DBThread` loads databases sequentially** (§40.35): wait for two consecutive identical results before
+  asserting.
+- **Verify `md5` after any `git stash` cycle before rebuilding** (§40.36): a stash+pop silently reverted a
+  submodule patch and the "patched" host library was unpatched.
 
 ## 5. Release versioning
 
@@ -191,6 +444,19 @@ All four skills follow the same contract:
   .activeBackgroundJobCount()`; `Job.isActive` is false immediately after
   `cancel()`, so nothing needs waiting for). A leak must fail its own class, not
   starve the suite's heap later.
+- **Geometry claims are asserted as Dp bounds, not as existence** (change `fix-nav-overlay-stop-tap`, spec
+  `navigation-status-details`; skill `.pi/skills/compose-geometry`, machine-local). A Compose case for a
+  control's size, its tap target, its disjointness from a container's tap area, or a node's visibility
+  inside its parent SHALL assert bounds: `assertWidthIsAtLeast(48.dp)` / `assertHeightIsAtLeast(48.dp)`
+  for size, bare Dp comparisons for disjointness (`region.right <= control.left`) and for visibility.
+  `SemanticsNodeInteraction.getBoundsInRoot()` returns a **`DpRect`** here, so `bounds.width` and
+  `bounds.right - bounds.left` do not compile (`Unresolved reference 'width'` / `actual type is 'Float',
+  but 'Dp' was expected`) — never convert to pixels by hand. Two findings were invisible to a suite that
+  asserted existence: a node drawn below the screen edge passes `assertExists()` and `assertIsDisplayed()`
+  (`TODO.md` §138), and a container's `clickable` covering a control does **not** stop Compose delivering
+  the tap to the innermost target (measured 2026-10-05), so a click case alone cannot falsify an overlap
+  guard — assert the geometry and falsify it with the `revert-check` skill (move the tap area / shrink the
+  box / neuter the handler).
 - **Declared unit-test fork budgets.** Two modules need more than the AGP default
   fork heap (512 MB) to hold their whole suite in one JVM; both declare it in
   `testOptions { unitTests { all { it.maxHeapSize = … } } }` so a fresh checkout and
@@ -223,14 +489,53 @@ All four skills follow the same contract:
   previous configuration's results are restored and the setting looks proven when
   it never ran. Verify a budget by CONTENT, not by the build result:
   the fork args (`-Xmx…`, `--info`) and the per-class result XMLs (§4, §17).
+- **Declared test-JVM concurrency** (change `speed-up-build-test-gate`, spec `unit-test-suite-runtime` —
+  "Unit-test parallelism is declared and result-preserving"): the fork budget above decides *how much
+  heap* a fork gets, this one decides *how many run at once*, and both are declared in the same block
+  (`it.maxParallelForks`). Measured 2026-10-04, one invocation per setting with
+  `-PforceTests -PnoCoverage --no-build-cache`, no other Gradle build on the machine during the runs
+  (checked by sampling the wrapper and daemon counts), class set printed with each run:
+
+  | suite | 1 fork | 2 forks | 4 forks | declared |
+  |---|---|---|---|---|
+  | `:app:testMobileDebugUnitTest` (218 classes / 1649 tests) | 2m50s · 1.92 GB | 2m02s · 3.42 GB | 1m51s · 4.65 GB · **1 failure** | `2` |
+  | `:app:testAutomotiveDebugUnitTest` (same 218 classes / 1649 tests) | 2m35s · 1.94 GB | 2m02s · 3.14 GB | 1m46s · 4.42 GB | `2` |
+  | `:auto:testDebugUnitTest` (76 classes / 779 tests) | 38.3s · 1.21 GB | 40.0s · 1.70 GB | 48.9s · 2.62 GB | `1` |
+
+  Durations are the test task's own execution from `build/gate-timings.json`; memory is the peak sum of
+  the suite's worker-JVM RSS, sampled every 2 s. The class-name sets were identical at every setting.
+  **Four forks is deliberately not declared: it is not result-preserving.** At 4 forks mobile failed
+  `NavigationEngineRerouteTest.instructionListUpdatesAfterAReroute` (awaiting a state change inside its
+  bound) while the same class was green at 1 and 2 forks in the same session — four workers held 4.65 GB on
+  top of the daemon. `:auto` is the opposite case: short enough that per-JVM start-up outweighs the split,
+  so more forks only cost wall time (38.3s → 40.0s → 48.9s) and memory. Re-derive both numbers after a
+  meaningful test-suite change (the suites grew from 215/1635 to 218/1649 classes/tests on 2026-10-04).
 - **One invocation per suite.** `:auto` and `:app` each complete in a single
   Gradle invocation at the declared budget; splitting a suite into class batches is
   a diagnostic fallback (e.g. to isolate one class), never the procedure, and a
   batched run is not evidence for the suite as it really runs. A Gradle
   build-cache hit (`FROM-CACHE`, `BUILD SUCCESSFUL in 2s` with no test executor)
   is not test evidence either — use `--rerun` when the run itself is the evidence.
+- **A timeout-shaped failure tests the resource hypothesis first.** Before hunting state pollution, check
+  the fork heap/cadence budget (the table above): a `ComposeTimeoutException`/awaited-state failure that
+  went green only after raising the fork heap from the AGP default 512 MB to 1024 MB was the resource
+  dimension, not a state bug — one measurement run is cheaper and was correct here. And "pre-existing" is
+  proven by a control run (`git stash push -u` → the same failing command → `git stash pop`), never by
+  reasoning about the dependency graph.
 - Instrumented tests need a connected device/emulator; if none is available,
   say so instead of running them.
+- **After a submodule bump, `./gradlew test` is not one invocation.** It carries the native CMake
+  configure/build for **both** flavors × three ABIs (measured 2026-09-27: past a 45-minute tool window,
+  mobile suite done and automotive just started), and the daemon that ran it then failed
+  `:app:mergeExtDexAutomotiveDebug` with `D8: java.lang.OutOfMemoryError: Java heap space`. Prefer the
+  per-module form for the gate (`./gradlew :app:testAutomotiveDebugUnitTest :auto:testDebugUnitTest
+  :core:testDebugUnitTest`, measured 1 m 58 s with the native build warm), quote per-module counts from
+  `test-results/*.xml`, and `./gradlew --stop` before a flavor assemble when a long suite ran first.
+- **The submodule's meson suite has a per-test budget that one test exceeds:**
+  `libosmscout:Check threaded database` (`Tests/ThreadedDatabaseTest --threads 100 --iterations 1000`)
+  is killed at 60 s (`30 s` default × the repo recipe's `--timeout-multiplier 2`) and passes in **120 s**
+  when run alone with `--timeout-multiplier 60`. Quote that timeout in any "suite is green" verdict, and
+  re-run a lone timeout with a bigger multiplier before calling it a failure.
 
 ## 7. Code coverage
 
@@ -263,6 +568,35 @@ standard JaCoCo plugin and is reported separately, outside the Kover merge.
 Running a Kover report task automatically runs the unit tests of the merged
 modules under instrumentation (full suite ≈ a few minutes).
 
+**The agent is attached by default; `-PnoCoverage` detaches it** (change
+`speed-up-build-test-gate`, spec `test-coverage`). The default keeps every existing report path working
+without an extra flag, and an iteration run that does not need coverage data can stop paying for
+the instrumentation:
+
+```bash
+# Iteration run: forced tests, no coverage data
+./gradlew :app:testMobileDebugUnitTest -PforceTests -PnoCoverage --no-build-cache
+
+# Report, from a run that requested coverage
+./gradlew :koverXmlReport :osmscout-client-java:jacocoTestReport
+```
+
+Measured 2026-10-04, one invocation per suite on the same tree, suite wall time from the first and last
+result-XML `timestamp`:
+
+| suite | agent attached | agent detached (`-PnoCoverage`) | classes | tests |
+|---|---|---|---|---|
+| `:app:testMobileDebugUnitTest` | 2m58s | 2m40s | 215 both | 1635 both |
+| `:app:testAutomotiveDebugUnitTest` | 2m57s | 2m36s | 215 both | 1635 both |
+
+The class-name sets and the tallies (1635 tests, 0 failures, 0 errors) are identical with and without the
+agent, so the opt-out buys time and changes nothing about the result — the agent costs 10-12 % of a suite.
+
+**A `-PnoCoverage` run deletes that task's execution data.** Kover removes data it did not produce, so a
+stale file can never be mistaken for this run's coverage; consequently the invocation that feeds a report
+must not pass the opt-out, or the tests have to run again. `> Task :core:testDebugUnitTest UP-TO-DATE`
+while `:core:koverXmlReportDebug` runs is the check that the report came from real data.
+
 **Generated-code exclusions** — Kover report filters (per module AND at the
 root merge) exclude `BuildConfig`, `R`/`R$*`, and Hilt/Dagger/KSP-generated
 classes (`dagger.hilt.*`, `hilt_aggregated_deps.*`, `*.Hilt_*`, `*_Hilt*`,
@@ -273,11 +607,26 @@ classes (`dagger.hilt.*`, `hilt_aggregated_deps.*`, `*.Hilt_*`, `*_Hilt*`,
 (8839/14805), 58.2 % instruction; per module: `app` 58.9 %, `auto` 53.8 %,
 `core` 67.3 % (line). `osmscout-client-java`: LINE 5 covered / 1 missed.
 Re-measure after meaningful test work; a future change may add a
-`koverVerify` threshold gate on top of this baseline.
+`koverVerify` threshold gate on top of this baseline. Re-checked 2026-10-04 after the opt-out
+(`:core` `com/naviveylin/core/AccuracyClass` LINE 0 missed / 3 covered), i.e. the default path still
+yields non-empty counters. The JNI module's own suite is unchanged by the opt-out: 2 classes /
+26 tests / 0 failures.
 
-**CI** — `.github/workflows/build.yml` generates the reports after "Run unit
-tests" and uploads them as the `coverage-reports` artifact
-(`if-no-files-found: error`).
+**Configuration cache: deliberately off (evaluated 2026-10-04/05).** `./gradlew --configuration-cache
+:app:testMobileDebugUnitTest …` does not store an entry: Gradle reports **8 problems**, all of them
+script-level `DefaultTask` registrations whose `doLast` closures capture script objects —
+`:app:checkHardcodedStrings`, `:app:checkNoCoordinatesInLogs`, `:app:generateSbomMobileDebug` (twice: a
+script object and a `DefaultProject`), `:app:mergeNativeSbom`, `:app:downloadSbomCli`, and
+`:auto:`/`:core:checkHardcodedStrings`. Clearing them means moving those tasks into `buildSrc` classes with
+serializable inputs — a change of its own, not a build-flag flip. Until then every invocation pays
+configuration time; `TODO.md` §813 carries the same conclusion, now measured. The release-state contract
+holds meanwhile: `:app:checkLicensePolicy` on 2026-10-05 left `app/release-version.properties`
+byte-identical (same md5), as `release-target` requires.
+
+**CI** — `.github/workflows/build.yml` generates the reports after "Run unit tests" and uploads them as the
+`coverage-reports` artifact (`if-no-files-found: error`). The test step runs the documented full gate
+(`test -PforceTests --no-build-cache`, §3) and a following step prints the per-module, per-flavor tallies
+from the result XML, so the log names which suites executed rather than only the verdict.
 
 **Known upstream issue** — Kover 0.9.8 emits a Gradle deprecation warning on
 Gradle 9.6 (Project-object dependency notation from its own internals); the
@@ -550,6 +899,20 @@ logcat route works on every device and is the primary one:
 adb -s emulator-5556 logcat -d | grep -E 'Diag/HOST|Diag/WARMUP'
 ```
 
+The phone's route analysis records its per-step values under `ROUTE` — what the step rows add up to
+against the route's own total distance, numbers only (spec: `route-analysis` — Step values describe the
+step's own leg). It is the number that tells a leg from a geometry edge, so read it next to the row text:
+
+```bash
+adb logcat -d | grep 'Diag/ROUTE route analysis'
+```
+
+The instrumented route check logs the same relationship with the per-step extremes, under its own tag:
+
+```bash
+adb logcat -d | grep 'RouteDeviceTest: per-step values'
+```
+
 **Rejected host mutations and confined faults.** Every screen-stack mutation (push, pop,
 popToRoot, remove) runs through the guarded seam, and every car-facing scope carries a fault
 handler (change `fix-car-host-mutation-guards`), so a mutation the host refused and a fault
@@ -653,7 +1016,7 @@ search runs unconstrained, exactly as before the change; a coarse fix logs the s
 drive beyond ~500 m the next query logs `RESOLVED` with a new handle and the previous one
 appears in no released-handle error line.
 
-**Data blocker for this check** (TODO.md §89/§91): the installed map sets on the AVDs do not
+**Data blocker for this check** (TODO.md §91): the installed map sets on the AVDs do not
 carry every POI type the stylesheets declare, so an empty result list for a POI-only query does
 **not** by itself mean the scoping failed — read the `CarSearchRegion` line for that, and use a
 street/address query when a result is needed. Those missing types appear as **one line per parsed
@@ -671,7 +1034,7 @@ and a healthy install logs no such line at all. Count them with
 the stylesheet, not a defect. **The same file appears once per load**, and a startup loads the
 stylesheet set more than once (measured 2026-10-02 on the phone AVD with stale data: 8 files × 13
 loads = 104 lines per startup, `Created new style` 12×), so read the count per file and not the raw
-total; the repeated loads themselves are `TODO.md` §116. The full per-name list is obtainable
+total; the repeated loads themselves are `TODO.md` §120. The full per-name list is obtainable
 programmatically and, with `osmscout::log.Debug(true)`, as one additional debug line; the
 per-reference findings are kept (one per occurrence, with its position), so the condensation loses
 no evidence.
@@ -739,11 +1102,75 @@ adb logcat -d -s NaviVeylin | grep -E 'Created new style with|ensureMapStyle'
 
 Expected on the phone: **1-2** `Created new style with` lines per start (the main style plus the
 basemap's stylesheet) and **8** report lines (8 files × 1 load) against the 12 loads / 104 lines the
-2026-10-02 baseline measured (`TODO.md` §116). Both numbers move with a legitimate trigger: a style
+2026-10-02 baseline measured (`TODO.md` §120). Both numbers move with a legitimate trigger: a style
 switch, a real day/night change, a map database open (each `initMap`, i.e. every map re-entry, is one),
 an app update that refreshed the bundled stylesheets, and a basemap download
 (`reloadBasemap`). Count per start and compare per source rather than trusting one number —
 and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, not a cache hit.
+
+### Device recipes that cost a round every time (2026-10-05)
+
+- **Device paths and dumps.** The harness refuses absolute *device* paths in a command (`/sdcard/…`,
+  `/data/local/tmp/…` — `external_directory_read`): keep paths relative inside `adb shell`
+  (`adb shell 'cd /data/local/tmp && uiautomator dump map.xml'`), read the default dump through the device's
+  own variable (`adb shell "cat \$EXTERNAL_STORAGE/window_dump.xml"`), or build the path from an octal-escaped
+  separator (`S=$(printf '\57'); DUMP="${S}sdcard${S}ui.xml"`). A dump is usable only when it is provably
+  **fresh**: require `dumped to` in the output, use a unique literal path per call, retry a few times — a
+  *failed* dump (`ERROR: could not get idle state.`) leaves the previous file behind, and every later tap
+  then aims at the old screen (this cost two contaminated runs in one session).
+- **Tap the node, not its text.** Resolve a node once from one dump and tap *that* node's bounds, class
+  filtered (a result row is a `TextView`, the search field an `EditText`) — re-grepping the text can match the
+  search field and tap (0,0). Read `clickable="true"` (a node carrying the `content-desc` is not necessarily
+  the touch target) and check `mCurrentFocus` before concluding the app ignored input. The top strip
+  (y ≈ 63) belongs to the notification-shade gesture, not to the app.
+- **Verify the install, not the script that installed it.** `dumpsys package <pkg> | grep lastUpdateTime`
+  must match the build's timestamp — a timed-out `adb install` leaves the previous build running and the next
+  smoke run silently exercises it. For a native change, probe the packaged entry that **exists** (the debug
+  library is `libosmscout_client_javad.so`) and grep a *calibrated* control literal from the same file: a
+  surprising probe result is a candidate verification bug before it is a product defect (grep a known
+  literal first to find the library that owns the code).
+- **Host load explains ANR-shaped evidence.** Read `uptime`/`ps` before blaming the app — `./gradlew --stop`
+  stops the daemon but not the native `cc1plus` children it already spawned; ANRs with the app at 63-109 %
+  CPU arrived at host load 19-27 and vanished once the build finished. Check `isKeyguardShowing`/
+  `mDreamingLockscreen` before trusting any UI-driven step (a secure lockscreen returns empty dumps, a
+  `Graphics` reading of ~10 MB, and silently redirects taps; `run-as` does not work on a Play-signed build,
+  so logcat is the only stream). Keep `logcat -G 16M` for a long pass — the default buffer rotates records
+  away before they are counted.
+- **A long-press drag on device is a motionevent sequence.** `input draganddrop x1 y1 x2 y2 900` and
+  `input swipe` never start a reorder library's drag (its own long-press timeout never elapses):
+  `adb shell input motionevent DOWN x y`, `sleep 1`, a loop of `input motionevent MOVE x' y'` at ~120 ms per
+  step, then `input motionevent UP x' y'` — consecutive invocations share pointer 0, so the library sees one
+  long press followed by a drag.
+- **Multi-user and a11y-less car surfaces.** The car session may live in user 10 while `run-as` reaches
+  user 0 (`/data/user/<id>/…` in the app's own log lines; `run-as --user` is rejected on the API 33 toybox;
+  `adb root` fails on a production image): build the state through the car's **own UI** instead of seeding a
+  fixture, or use a userdebug/eng image (`TODO.md` §106). The car surface exposes no accessibility nodes, so
+  read text and positions from `adb exec-out screencap -p` + `tesseract <png> out tsv`, and expect the
+  distant-display mirror to re-assert `CarAppActivity` within seconds — the phone UI is not a stand-in
+  (`am start --user 10` on an external display is refused with a `SecurityException`). A force-stop with a
+  live car session crashes the *host's* renderer process, so it is not a neutral restart on that AVD.
+- **Record a partial pass as partial.** A disappeared AVD (`offline` → gone, no crash trace), an unreachable
+  state or a stale frame goes into the change's tasks with the numbers actually collected, never implied as
+  proof.
+
+- **Never install an ABI-filtered APK for an on-device run** (§40.39): packaging strips the other ABIs, the
+  install succeeds and the app dies at `System.loadLibrary`. Verify with
+  `unzip -l <apk> | grep -o 'lib/[a-z0-9_-]*/'` (the character class needs the underscore) and check the APK
+  mtime against the newest source edit.
+- **An emulator cannot inject a bearing** (§40.40): `geo fix` has no bearing argument (always `bear=0.0`) and
+  NMEA RMC is dropped by `FusedLocationProviderClient` ("too close / too fast"). Cover heading/bearing
+  behaviour with unit tests, never with a GMS-emulator run.
+- **A headless emulator needs `-dns-server 8.8.8.8`** (§40.41): broken DNS answers "Unable to resolve host"
+  while a raw IP works — compare `adb shell ping` against the app's network code before debugging the app.
+- **Check which maps are already installed before attempting a catalog download** (§40.42) — `adb install -r`
+  preserves the app's data, so the maps survive a reinstall (§95).
+- **After toggling `location_mode`, re-send `geo fix`** (§40.43) — Fused may need provider re-registration.
+- **`adb shell input text` goes through the active IME** (§40.44): GBoard rewrote `Erbstollenstrasse` →
+  `Er Stollenstraße`. Disable the IME for a replay and assert the field's actual value from a fresh dump.
+- **The AAOS/car AVD is not usable for headless on-device steps** (§40.45): car system-UI ANRs swallow
+  `input tap`, `uiautomator dump` returns an empty hierarchy, `geo fix` is answered OK but no fix reaches the
+  app, and the host `RendererService` disconnects ~40 s after launch. Plan car verification for an
+  interactive window or a real head unit, and state the blocker instead of burning a session.
 
 ## 11. Measuring a phone UI finding (do this before changing code)
 

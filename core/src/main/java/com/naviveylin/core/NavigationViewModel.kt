@@ -40,6 +40,19 @@ interface NavigationViewModel {
     fun clearError()
 
     /**
+     * Cancel the route calculation that is in flight, if any
+     * (spec: `route-calculation-feedback` — Cancelling a calculation aborts it
+     * and releases its resources).
+     *
+     * Aborts the underlying routing work, clears [NavigationState.calculation],
+     * releases the location updates an acquisition without a surface UI took and
+     * starts nothing. A call while no calculation is in progress changes nothing.
+     * Reroutes are cancellable the same way; a surface that must keep guidance live
+     * simply does not offer this to the driver.
+     */
+    fun cancelAcquisition()
+
+    /**
      * Surface an error message on the navigation surfaces (e.g. deep-link
      * geocoding found no match). Mirrored into [NavigationState.errorMessage] with
      * [origin] as its [NavigationState.errorOrigin], so only the surfaces the error

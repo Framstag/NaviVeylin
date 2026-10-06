@@ -14,6 +14,7 @@ import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
@@ -37,7 +38,13 @@ import javax.inject.Inject
 
 sealed interface RouteState {
     data object Idle : RouteState
-    data object Calculating : RouteState
+
+    /**
+     * A route calculation is in flight. [percent] is the routing engine's progress through its
+     * search, 0..99, and null until it has reported one — 0 is a legal value, so it must not
+     * double as "unknown" (spec: `route-panel-ui` — Progress percentage during calculation).
+     */
+    data class Calculating(val percent: Int? = null) : RouteState
     data object Done : RouteState
     data class Error(val message: String) : RouteState
 }
@@ -64,18 +71,32 @@ enum class RouteSessionState { INACTIVE, EDITING, REVIEWING, STOPPED }
 
 /**
  * Size of the session's overlay on the phone (spec: `route-planning-session` — Session
- * overlay anchors). [HIDDEN] is the session's "map free for analysis" state: only a
- * route-ready affordance remains.
+ * overlay anchors (max and min)). There are two anchors: the card is the phone's whole
+ * session surface, and a session that should free the map is ended, not hidden.
  */
-enum class RouteOverlayAnchor { EXPANDED, COMPACT, HIDDEN }
+enum class RouteOverlayAnchor { EXPANDED, COMPACT }
 
-/** Parsed step info for display. */
+/**
+ * Parsed step info for display.
+ *
+ * [distanceMeters] and [durationSeconds] are the values of the leg that ends at this step's
+ * manoeuvre (spec: `osmscout-jni` — Per-step leg values on a calculated route), formatted by the app
+ * with the shared formatters. Zero means "unknown": the route's start line owns a zero-length leg,
+ * and a step whose values could not be resolved shows none - never a neighbour's and never the last
+ * geometry edge before its manoeuvre (owner finding, 2026-10-04: "14 m" and "2 s" for one step of a
+ * 17,3 km route).
+ */
 data class RouteStepDisplay(
     val instruction: String,       // clean description, no brackets
-    val distanceText: String,       // e.g. "1.2 km"
-    val timeText: String,          // e.g. "5 min" or ""
-    val turnType: com.framstag.libosmscout.client.TurnType
-)
+    val distanceMeters: Double = 0.0,   // leg distance in metres, 0 = unknown
+    val durationSeconds: Double = 0.0,  // leg travel time in seconds, 0 = unknown
+    val turnType: com.framstag.libosmscout.client.TurnType =
+        com.framstag.libosmscout.client.TurnType.STRAIGHT_ON
+) {
+    /** Whether this step carries leg values at all. */
+    val hasLegValues: Boolean
+        get() = distanceMeters > 0.0 || durationSeconds > 0.0
+}
 
 data class RoutePanelUiState(
     val startLocation: LocationEntry? = null,
@@ -114,11 +135,11 @@ data class RoutePanelUiState(
     val stepAnchors: List<StepAnchor> = emptyList(),
     /**
      * The overlay's current anchor (spec: `route-planning-session` — Session overlay
-     * anchors). Reported by the overlay as it is dragged/hidden, and read by the map for
-     * the fit's free area. Defaults to [RouteOverlayAnchor.HIDDEN] so a session whose
-     * overlay is not composed claims no part of the canvas.
+     * anchors (max and min)). Reported by the overlay as the user collapses or expands it,
+     * and read by the map for the fit's free area. Defaults to the anchor a session opens
+     * in; the card reports its real height as soon as it is composed.
      */
-    val overlayAnchor: RouteOverlayAnchor = RouteOverlayAnchor.HIDDEN,
+    val overlayAnchor: RouteOverlayAnchor = RouteOverlayAnchor.COMPACT,
     /**
      * The step the user is analysing, or null when no step is selected (spec:
      * `route-analysis`).
@@ -376,6 +397,11 @@ class RoutePanelViewModel @Inject constructor(
     private fun clearRouteIfNeeded() {
         val s = _uiState.value
         if (s.routeState == RouteState.Done || s.routeEntry != null) {
+            // While navigation is active the route belongs to navigation: opening the session or
+            // touching a field must not wipe the route the map is drawing and the review is
+            // showing (spec: `route-planning-session` — Reviewing a route during navigation is
+            // read-only; the route belongs to navigation).
+            if (s.isNavigating) return
             _uiState.value = s.copy(
                 routeState = RouteState.Idle,
                 routeEntry = null,
@@ -423,7 +449,7 @@ class RoutePanelViewModel @Inject constructor(
         }
 
         _uiState.value = s.copy(
-            routeState = RouteState.Calculating,
+            routeState = RouteState.Calculating(),
             error = null,
             preciseLocationRequired = false
         )
@@ -435,15 +461,26 @@ class RoutePanelViewModel @Inject constructor(
                     start.lat, start.lon, dest.lat, dest.lon, profile,
                     object : RouteCallback {
                         override fun onProgress(percent: Int) {
+                            // Called from the routing thread (rate-limited in native, see
+                            // JavaRoutingProgress): the state write is marshalled into the view
+                            // model's scope, and only a changed percentage is published — the
+                            // panel recomposes for it and nothing else would change
+                            // (spec: `route-panel-ui` — Progress percentage during calculation).
+                            viewModelScope.launch {
+                                val current = _uiState.value.routeState
+                                if (current !is RouteState.Calculating) return@launch
+                                val capped = percent.coerceIn(0, 99)
+                                if (current.percent == capped) return@launch
+                                _uiState.value = _uiState.value.copy(
+                                    routeState = RouteState.Calculating(capped)
+                                )
+                            }
                         }
 
                         override fun onSuccess(route: RouteEntry) {
                             viewModelScope.launch {
-                                val steps = if (route.descriptions != null) {
-                                    route.descriptions!!
-                                        .filter { !it.startsWith("---") }
-                                        .map { desc -> parseStepDisplay(desc) }
-                                } else emptyList()
+                                val steps = buildSteps(route)
+                                logStepValues(route, steps)
 
                                 _uiState.value = _uiState.value.copy(
                                     routeState = RouteState.Done,
@@ -479,9 +516,13 @@ class RoutePanelViewModel @Inject constructor(
                                     setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
                                 }
                                 _routeVisible.value = true
-                                _routeResultFlow.value = RouteResult(
-                                    routeLats = route.latitudes,
-                                    routeLons = route.longitudes,
+                                // The result is always published: absent or too few polyline
+                                // coordinates become an empty polyline, and the requested endpoints
+                                // carry the camera fallback (spec: `route-map-overview` — Empty
+                                // polyline falls back to endpoints; Degenerate route geometry
+                                // degrades safely).
+                                _routeResultFlow.value = calculatedRouteGeometry(
+                                    route,
                                     startLat = start.lat, startLon = start.lon,
                                     destLat = dest.lat, destLon = dest.lon
                                 )
@@ -590,14 +631,63 @@ class RoutePanelViewModel @Inject constructor(
     }
 
     /**
-     * The step a fresh route starts on: the first one the native layer gave a distance or a
-     * time for. The route's start line ("Start: …  []") carries neither, and presenting it
-     * left the min overlay's instruction detail empty (owner finding, 2026-10-03).
+     * The step a fresh route starts on: the first one the native layer gave values for. The route's
+     * start line owns a zero-length leg and carries no values, and presenting it left the min
+     * overlay's instruction detail empty (owner finding, 2026-10-03).
      */
     private fun currentStepOf(steps: List<RouteStepDisplay>): Int? =
-        steps.indexOfFirst { it.distanceText.isNotEmpty() || it.timeText.isNotEmpty() }
+        steps.indexOfFirst { it.hasLegValues }
             .takeIf { it >= 0 }
             ?: steps.indices.firstOrNull()
+
+    /**
+     * The route's steps for display: the instruction text and turn type from the native description
+     * lines, and the distance and duration from the route's per-step leg values when it carries them
+     * (spec: `osmscout-jni` — Per-step leg values on a calculated route). A route without the arrays
+     * - a bridge that predates them, or an alignment guard that dropped them - falls back to the
+     * values in the description's bracket, so the step list keeps working across the change.
+     */
+    private fun buildSteps(route: RouteEntry): List<RouteStepDisplay> {
+        val steps = route.descriptions
+            ?.filter { isInstructionLine(it) }
+            ?.map { desc -> parseStepDisplay(desc) }
+            ?: emptyList()
+        val values = instructionValues(route)
+        if (values.isEmpty() || values.size != steps.size) return steps
+        // The bridge's own numbers win over the bracket: same leg, but they add up to the route's
+        // totals and the app formats them with the locale instead of showing native text.
+        return steps.mapIndexed { index, step ->
+            step.copy(
+                distanceMeters = values[index].distanceMeters,
+                durationSeconds = values[index].durationSeconds
+            )
+        }
+    }
+
+    /**
+     * Record what the route's steps add up to against the route's own totals, as numbers only
+     * (spec: `route-analysis` — Step values describe the step's own leg; spec: `auto-diagnostics` —
+     * Diagnostics carry no coordinates).
+     *
+     * This is the measurement the change's device check reads: the per-step distances are the legs
+     * the analysis highlights, so they have to add up to the route's distance. A bridge that measures
+     * between route nodes instead of between instructions falls short by orders of magnitude, which
+     * no screenshot would show.
+     */
+    private fun logStepValues(route: RouteEntry, steps: List<RouteStepDisplay>) {
+        if (steps.none { it.hasLegValues }) return
+        DiagnosticsLog.log(
+            DiagnosticsLog.ROUTE_TAG,
+            stepValuesSummary(steps, route.distance, route.duration)
+        )
+        if (stepValuesDiverge(steps, route.distance)) {
+            Log.w(
+                TAG,
+                "route analysis: per-step distances sum to ${steps.sumOf { it.distanceMeters }.toInt()} m " +
+                    "but the route totals ${route.distance.toInt()} m (steps=${steps.size})"
+            )
+        }
+    }
 
     /**
      * The polyline vertex range the step at [index] owns, or null when there is no
@@ -641,8 +731,9 @@ class RoutePanelViewModel @Inject constructor(
         cancelGracePeriod()
         if (!_uiState.value.isNavigating) clearRoute()
         _sessionState.value = RouteSessionState.INACTIVE
-        // No session means no overlay claim on the canvas.
-        setOverlayAnchor(RouteOverlayAnchor.HIDDEN)
+        // The surface closes with the session (spec: `route-planning-session` — Ending the
+        // session removes its surface): the card's host closes it, and the next session
+        // opens in the compact anchor (`openSession`).
     }
 
     /**
@@ -660,13 +751,19 @@ class RoutePanelViewModel @Inject constructor(
     }
 
     /**
-     * Navigation was stopped: the session enters its stopped state, where the route
+     * Navigation was stopped: an open session enters its stopped state, where the route
      * stays on the map for the grace period (spec: `route-planning-session` — Grace
      * period after navigation is stopped).
+     *
+     * Returns whether an open session took the route over for that grace window. The
+     * caller that owns the map's route visibility must keep the route drawn when it did,
+     * and clear it when no session was open (spec: `map-modes` — navigation end).
      */
-    fun onNavigationStopped() {
+    fun onNavigationStopped(): Boolean {
         _uiState.value = _uiState.value.copy(isNavigating = false)
-        if (_sessionState.value != RouteSessionState.INACTIVE) startGracePeriod()
+        if (_sessionState.value == RouteSessionState.INACTIVE) return false
+        startGracePeriod()
+        return true
     }
 
     /**
@@ -722,10 +819,8 @@ class RoutePanelViewModel @Inject constructor(
      * own state.
      */
     fun adoptRoute(route: RouteEntry, vehicle: Vehicle) {
-        val steps = route.descriptions
-            ?.filter { !it.startsWith("---") }
-            ?.map { desc -> parseStepDisplay(desc) }
-            ?: emptyList()
+        val steps = buildSteps(route)
+        logStepValues(route, steps)
         _uiState.value = _uiState.value.copy(
             routeState = RouteState.Done,
             routeEntry = route,
@@ -751,16 +846,11 @@ class RoutePanelViewModel @Inject constructor(
         _analysedAnchor.value = null
             _analysedSegmentRange.value = _uiState.value.analysedSegment
         _routeVisible.value = true
-        val lats = route.latitudes
-        val lons = route.longitudes
-        if (lats.size >= 2 && lats.size == lons.size) {
-            _routeResultFlow.value = RouteResult(
-                routeLats = lats,
-                routeLons = lons,
-                startLat = lats.first(), startLon = lons.first(),
-                destLat = lats.last(), destLon = lons.last()
-            )
-        }
+        // A route without usable geometry is adopted all the same: everything above is the
+        // session, and no geometry is published, so the map keeps what it displayed
+        // (spec: `route-map-overview` — Adoption of a route without geometry keeps the session;
+        // spec: `navigation-engine` — Acquisition without usable polyline geometry).
+        adoptedRouteGeometry(route)?.let { _routeResultFlow.value = it }
     }
 
     fun clearRoute() {
@@ -814,32 +904,59 @@ class RoutePanelViewModel @Inject constructor(
 /**
  * Parse a native description line into a [RouteStepDisplay].
  *
- * Native format: `Turn left into Main Street  [1.2 km, 5 min]`. Below a minute the native side
- * writes seconds (`45 s`) — before that, every step of a city route read `0 min` (owner finding,
- * 2026-10-03) — and a segment under a second writes no time at all. The route's start line
- * carries an empty bracket (`Start: …  []`): it has neither distance nor time, so the current
- * step is the first line that has one (see `currentStepOf`).
+ * This is the **fallback** path: it is used only when the route carries no per-step arrays
+ * (spec: `osmscout-jni` — Per-step leg values on a calculated route), i.e. with a bridge that predates
+ * them or when the native alignment guard dropped them. It therefore has to read the description's
+ * own bracket, and it has to do so by unit rather than by position.
+ *
+ * Native format: `Turn left into Main Street  [1.2 km, 5 min]`, below a minute `[45 s]`, below 10 m
+ * only a time (`[2 s]`, no distance at all), and for a segment under a second an empty bracket
+ * (`[]`). Classifying each token by its unit keeps a time out of the distance slot, which the
+ * positional parser did (`[2 s]` became a distance of "2 s").
  */
 internal fun parseStepDisplay(desc: String): RouteStepDisplay {
     val bracketIdx = desc.lastIndexOf("  [")
-    if (bracketIdx < 0) return RouteStepDisplay(desc, "", "", com.framstag.libosmscout.client.TurnType.STRAIGHT_ON)
+    if (bracketIdx < 0) {
+        return RouteStepDisplay(instruction = desc, turnType = parseTurnType(desc))
+    }
 
     val instruction = desc.substring(0, bracketIdx)
     val bracket = desc.substring(bracketIdx + 2) // "[1.2 km, 5 min]"
 
-    // Parse "[1.2 km, 5 min]" or "[800 m]" or "[0.0 km]"
-    val inner = bracket.removeSurrounding("[", "]")
-    val parts = inner.split(", ")
-    val distanceText = parts.getOrElse(0) { "" }
-    val timeText = parts.getOrElse(1) { "" }
+    var meters = 0.0
+    var seconds = 0.0
+    for (raw in bracket.removeSurrounding("[", "]").split(", ")) {
+        val token = raw.trim()
+        when {
+            // "1 h 5 min" is one token, so the combined form has to be read before either unit.
+            token.contains("h") && token.contains("min") -> {
+                val parts = token.split("h")
+                seconds += number(parts[0].removeSuffix("h")) * 3600.0 +
+                    number(parts.getOrElse(1) { "" }.removeSuffix("min")) * 60.0
+            }
+            token.endsWith("km") -> meters += number(token.removeSuffix("km")) * 1000.0
+            token.endsWith("min") -> seconds += number(token.removeSuffix("min")) * 60.0
+            token.endsWith("m") -> meters += number(token.removeSuffix("m"))
+            token.endsWith("h") -> seconds += number(token.removeSuffix("h")) * 3600.0
+            token.endsWith("s") -> seconds += number(token.removeSuffix("s"))
+        }
+    }
 
     return RouteStepDisplay(
         instruction = instruction,
-        distanceText = distanceText,
-        timeText = timeText,
+        distanceMeters = meters,
+        durationSeconds = seconds,
         turnType = parseTurnType(instruction)
     )
 }
+
+/**
+ * The number of a description token. The native layer writes C++ formatted values (a `.` decimal
+ * separator) in this build's locale-independent `std::fixed` form; a comma is accepted too, so a
+ * localized description would not silently become zero. An unparsable token counts as unknown (0).
+ */
+private fun number(text: String): Double =
+    text.trim().replace(',', '.').toDoubleOrNull() ?: 0.0
 
 /**
  * Infer [TurnType] from the instruction text.

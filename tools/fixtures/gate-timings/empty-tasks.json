@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 2,
+  "invocation": [":app:testMobileDebugUnitTest"],
+  "startedAt": "2026-10-04T17:00:00Z",
+  "finishedAt": "2026-10-04T17:00:04Z",
+  "durationMs": 4000,
+  "taskFailures": 0,
+  "tasks": [
+    {"path":":app:testMobileDebugUnitTest","outcome":"from-cache","startMs":1791133200000,"endMs":1791133200000,"durationMs":0},
+    {"path":":app:compileMobileDebugKotlin","outcome":"up-to-date","startMs":1791133200000,"endMs":1791133200000,"durationMs":0}
+  ]
+}

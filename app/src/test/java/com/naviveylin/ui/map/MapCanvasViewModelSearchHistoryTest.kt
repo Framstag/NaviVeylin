@@ -15,9 +15,13 @@ import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -107,5 +111,61 @@ class MapCanvasViewModelSearchHistoryTest {
     fun historyEntrySelectionFillsSearchQuery() {
         viewModel.onHistoryEntrySelected("Café Central")
         assertEquals("Café Central", viewModel.uiState.value.searchQuery)
+    }
+
+    /**
+     * The chip replays the search, not only the text: after a committed selection
+     * emptied the results, tapping the chip for the same text must run the search
+     * again and publish its results (spec: search-history — History selection
+     * replays the search).
+     */
+    @Test
+    fun historyChipReplayAfterSelectionPublishesResults() = runTest(mainDispatcherRule.dispatcher) {
+        client.nextSearchResults = arrayOf(resultEntry("Bochum"))
+
+        viewModel.onSearchQueryChanged("Bochum")
+        advanceTimeBy(400)
+        runCurrent()
+        assertTrue(
+            "precondition: typing the query publishes results",
+            viewModel.uiState.value.searchResults.isNotEmpty()
+        )
+
+        viewModel.onSearchResultSelected(resultEntry("Bochum"))
+        advanceUntilIdle()
+        assertTrue(
+            "precondition: selecting a result empties the results list",
+            viewModel.uiState.value.searchResults.isEmpty()
+        )
+        assertEquals("", viewModel.uiState.value.searchQuery)
+
+        viewModel.onHistoryEntrySelected("Bochum")
+        advanceTimeBy(400)
+        runCurrent()
+
+        assertEquals("Bochum", viewModel.uiState.value.searchQuery)
+        assertTrue(
+            "tapping the chip must replay the search and publish its results",
+            viewModel.uiState.value.searchResults.isNotEmpty()
+        )
+    }
+
+    /**
+     * The list the chip row renders holds each text once, however often the search was
+     * committed (spec: search-history — No duplicate entry for the same search text).
+     */
+    @Test
+    fun committingTheSameSearchThreeTimesYieldsOneChip() = runTest(mainDispatcherRule.dispatcher) {
+        client.nextSearchResults = arrayOf(resultEntry("Bochum"))
+
+        repeat(3) {
+            viewModel.onSearchQueryChanged("Bochum")
+            viewModel.onSearchResultSelected(resultEntry("Bochum"))
+        }
+        // Read the settled state: sampling the first non-empty emission would see only the
+        // first of the three writes and could not distinguish a duplicate from a re-use.
+        advanceUntilIdle()
+
+        assertEquals(1, historyRepo.history.value.count { it.text == "Bochum" })
     }
 }

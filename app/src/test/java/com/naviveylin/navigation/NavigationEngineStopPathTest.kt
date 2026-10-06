@@ -5,17 +5,21 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.Vehicle
+import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.location.LocationService
 import com.naviveylin.service.NavigationNotificationService
 import com.naviveylin.test.MainDispatcherRule
 import com.naviveylin.ui.route.RoutePanelViewModel
+import com.naviveylin.ui.route.RouteSessionState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -23,6 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
+import com.naviveylin.test.engineUnderTest
 
 /**
  * The stop path of the process-scoped engine and its phone surface (spec:
@@ -50,6 +55,13 @@ class NavigationEngineStopPathTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    /**
+     * The engine's off-main work runs on this pair, so a case drains it instead of polling (spec:
+     * `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private val computeDispatcher = StandardTestDispatcher()
+    private val ioDispatcher = StandardTestDispatcher()
+
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
@@ -73,17 +85,38 @@ class NavigationEngineStopPathTest {
             context = context
         ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
 
-    private fun engine(): NavigationEngine = NavigationEngine({ client }, LocationService(context), context)
+    private fun engine(): NavigationEngine = engineUnderTest(
+        { client },
+        LocationService(context),
+        context,
+        dispatchers = EngineDispatchers(computeDispatcher, ioDispatcher)
+    )
 
-    /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
-    private fun awaitState(condition: () -> Boolean, pump: () -> Unit) {
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline) {
-            pump()
-            if (condition()) return
-            Thread.sleep(10)
+    /** Drain the injected schedulers, then assert — no wall-clock deadline. */
+    private fun awaitState(condition: () -> Boolean) {
+        computeDispatcher.scheduler.advanceUntilIdle()
+        ioDispatcher.scheduler.advanceUntilIdle()
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        if (!condition()) {
+            throw AssertionError("State condition not met after draining the test scheduler")
         }
-        throw AssertionError("State condition not met within 5s")
+    }
+
+    /**
+     * Run the schedulers' currently due tasks without advancing virtual time, so a pending grace
+     * deadline stays pending while the collectors catch up (spec: `route-planning-session` — the
+     * stopped state lasts until its bounded grace ends, not until the test drains the scheduler).
+     */
+    private fun awaitDue(condition: () -> Boolean) {
+        repeat(20) {
+            if (condition()) return
+            computeDispatcher.scheduler.runCurrent()
+            ioDispatcher.scheduler.runCurrent()
+            mainDispatcherRule.dispatcher.scheduler.runCurrent()
+        }
+        if (!condition()) {
+            throw AssertionError("State condition not met after running the due tasks")
+        }
     }
 
     @Test
@@ -97,7 +130,7 @@ class NavigationEngineStopPathTest {
         // The phone starts a session, so its surface owns the follow mode and the
         // panel follows the session.
         surface.start(client.routeToDeliver!!, Vehicle.CAR)
-        awaitState({ engine.state.value.isNavigating }, { advanceUntilIdle() })
+        awaitState({ engine.state.value.isNavigating })
         assertTrue("the panel follows the running session", panel.uiState.value.isNavigating)
 
         engine.stopNavigation()
@@ -115,7 +148,7 @@ class NavigationEngineStopPathTest {
             val panel = routePanel()
             surface.setRoutePanelViewModel(panel)
             surface.start(client.routeToDeliver!!, Vehicle.CAR)
-            awaitState({ engine.state.value.isNavigating }, { advanceUntilIdle() })
+            awaitState({ engine.state.value.isNavigating })
             assertTrue("navigation is active before the stop", engine.state.value.isNavigating)
             assertTrue("the panel follows the session", panel.uiState.value.isNavigating)
 
@@ -140,6 +173,64 @@ class NavigationEngineStopPathTest {
             notificationController.dispose()
         }
 
+    /**
+     * A stop with an open session keeps the route: the session owns it for its stopped state and
+     * its grace window, so the adapter must not hide it (spec: `route-planning-session` — Grace
+     * period after navigation is stopped). The no-session counterpart is
+     * [stopNavigationClearsTheRoutePanel].
+     */
+    @Test
+    fun adapterKeepsTheRouteWhileTheSessionIsStopped() = runTest(mainDispatcherRule.dispatcher) {
+        val engine = engine()
+        val surface = NavigationViewModel(engine)
+        val panel = routePanel()
+        surface.setRoutePanelViewModel(panel)
+        surface.start(client.routeToDeliver!!, Vehicle.CAR)
+        awaitState({ engine.state.value.isNavigating })
+        panel.openSession()
+        awaitDue { panel.sessionState.value == RouteSessionState.REVIEWING }
+
+        engine.stopNavigation()
+        awaitDue { panel.sessionState.value == RouteSessionState.STOPPED }
+
+        assertEquals(
+            "the open session entered its stopped state",
+            RouteSessionState.STOPPED, panel.sessionState.value
+        )
+        assertTrue("the stopped state keeps the route drawn", panel.routeVisible.value)
+        assertFalse("navigation ended", engine.state.value.isNavigating)
+        assertFalse("the panel left navigation mode", panel.uiState.value.isNavigating)
+    }
+
+    /**
+     * Restart from the stopped state resumes on the route the session holds, without routing again
+     * (spec: `route-planning-session` — Restart resumes navigation: "the route SHALL NOT need
+     * recalculation").
+     */
+    @Test
+    fun restartingFromTheStoppedStateResumesWithoutARecalculation() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val engine = engine()
+            val surface = NavigationViewModel(engine)
+            val panel = routePanel()
+            surface.setRoutePanelViewModel(panel)
+            surface.start(client.routeToDeliver!!, Vehicle.CAR)
+            awaitState({ engine.state.value.isNavigating })
+            panel.openSession()
+            awaitDue { panel.sessionState.value == RouteSessionState.REVIEWING }
+            engine.stopNavigation()
+            awaitDue { panel.sessionState.value == RouteSessionState.STOPPED }
+
+            // The screen's Restart callback: start navigation on the session's own route.
+            surface.start(client.routeToDeliver!!, Vehicle.CAR)
+            panel.onNavigationRestarted()
+            awaitState({ engine.state.value.isNavigating })
+
+            assertNull("restart does not calculate a route", engine.state.value.calculation)
+            assertEquals(RouteSessionState.INACTIVE, panel.sessionState.value)
+            assertTrue("the route stays drawn for the resumed navigation", panel.routeVisible.value)
+        }
+
     @Test
     fun stopRequestStopsTheEngine() = runTest(mainDispatcherRule.dispatcher) {
         val engine = engine()
@@ -149,7 +240,7 @@ class NavigationEngineStopPathTest {
         val panel = routePanel()
         surface.setRoutePanelViewModel(panel)
         surface.start(client.routeToDeliver!!, Vehicle.CAR)
-        awaitState({ engine.state.value.isNavigating }, { advanceUntilIdle() })
+        awaitState({ engine.state.value.isNavigating })
 
         NavigationNotificationService.handleAction(
             NavigationNotificationService.ACTION_STOP_NAVIGATION, engine

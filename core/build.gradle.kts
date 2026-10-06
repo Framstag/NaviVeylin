@@ -1,3 +1,6 @@
+import com.naviveylin.build.testing.CoverageInstrumentation
+import com.naviveylin.build.testing.ForcedTestExecution
+
 plugins {
     id("com.android.library")
     id("com.google.dagger.hilt.android")
@@ -22,6 +25,20 @@ android {
         compose = false
     }
 
+    testOptions {
+        unitTests {
+            // Forced test execution (change `speed-up-build-test-gate`, spec `build-test-gate` —
+            // "A gate run proves that its tests executed"): `-PforceTests` makes the unit-test
+            // tasks not up to date, so a run is evidence of what executed; pair it with
+            // `--no-build-cache`, or the result outputs come back from the cache (Build.md §4).
+            all {
+                if (forceTests) {
+                    it.outputs.upToDateWhen { false }
+                }
+            }
+        }
+    }
+
     lint {
         // i18n gate: HardcodedText elevated to error via lint.xml, like :app and
         // :auto (spec: i18n-l10n — Shared module owns no wording).
@@ -31,11 +48,28 @@ android {
     }
 }
 
+// Forced test execution (change `speed-up-build-test-gate`, spec `build-test-gate`):
+// `-PforceTests` forces the unit-test tasks, `--no-build-cache` keeps the cache from
+// answering instead of them (guidelines/Build.md §4); `-PnoCoverage` detaches the Kover
+// agent for a run that does not need coverage data (spec `test-coverage`).
+val forceTests: Boolean =
+    ForcedTestExecution.isRequested(providers.gradleProperty(ForcedTestExecution.PROPERTY).orNull)
+val noCoverage: Boolean =
+    CoverageInstrumentation.isDisabled(providers.gradleProperty(CoverageInstrumentation.PROPERTY).orNull)
+
 // ── Test coverage (Kover) ───────────────────────────────────────────────
 // JVM unit test coverage, report-only. Generated code (BuildConfig, R,
 // Hilt/Dagger/KSP wiring) is excluded so metrics reflect hand-written
 // logic. See guidelines/Build.md → Code coverage.
 kover {
+    currentProject {
+        instrumentation {
+            // Attached by default so the aggregated reports keep working; `-PnoCoverage`
+            // detaches it for an iteration run (spec `test-coverage` — "Instrumentation is
+            // attached only when coverage is requested").
+            disabledForAll.set(noCoverage)
+        }
+    }
     reports {
         filters {
             excludes {

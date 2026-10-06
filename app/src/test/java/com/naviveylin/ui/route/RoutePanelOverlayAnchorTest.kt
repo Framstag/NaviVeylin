@@ -28,6 +28,7 @@ import com.naviveylin.location.LocationService
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -39,11 +40,11 @@ import org.robolectric.Shadows.shadowOf
 
 /**
  * Compose and unit tests for the session's overlay anchors (spec:
- * `route-planning-session` — Session overlay anchors): the two card heights are fixed
- * shares of the screen (so the map always keeps its area), the compact card keeps the
+ * `route-planning-session` — Session overlay anchors (max and min)): the two card heights are
+ * fixed shares of the screen (so the map always keeps its area), the compact card keeps the
  * fields, the stats and the session actions while hiding the vehicle selector, the expand
- * control brings the vehicle selector and the step navigator back, and the minimize
- * control hands the map over to the hidden anchor.
+ * control brings the vehicle selector and the step navigator back, and the header's close
+ * control ends the session instead of hiding the card.
  */
 @RunWith(RobolectricTestRunner::class)
 class RoutePanelOverlayAnchorTest {
@@ -75,11 +76,10 @@ class RoutePanelOverlayAnchorTest {
     }
 
     @Test
-    fun `the session anchors are the three overlay sizes`() {
-        assertEquals(3, RouteOverlayAnchor.entries.size)
+    fun `the session anchors are the two overlay sizes`() {
+        assertEquals(2, RouteOverlayAnchor.entries.size)
         assertEquals(RouteOverlayAnchor.EXPANDED, RouteOverlayAnchor.valueOf("EXPANDED"))
         assertEquals(RouteOverlayAnchor.COMPACT, RouteOverlayAnchor.valueOf("COMPACT"))
-        assertEquals(RouteOverlayAnchor.HIDDEN, RouteOverlayAnchor.valueOf("HIDDEN"))
     }
 
     /** Panel showing a calculated route, starting at the compact anchor. */
@@ -104,7 +104,7 @@ class RoutePanelOverlayAnchorTest {
                 longitudes = doubleArrayOf(2.0, 2.3, 2.6)
                 distance = 120_000.0
                 duration = 5_400.0
-                descriptions = arrayOf("Start: A  [0.0 km]", "Right onto B  [120.0 km]")
+                descriptions = arrayOf("Start: A  []", "Right onto B  [120.0 km]")
                 instructionLats = doubleArrayOf(48.0, 48.5)
                 instructionLons = doubleArrayOf(2.0, 2.3)
             }
@@ -114,6 +114,10 @@ class RoutePanelOverlayAnchorTest {
             RoutePanel(
                 viewModel = viewModel,
                 onOpenFavoritePicker = {},
+                // The host's half of the exit: the session ends (the screen additionally
+                // closes the surface, `RouteSessionCardExitTest`). Without it these tests
+                // would only prove the click landed somewhere.
+                onEndSession = { viewModel.endSession() },
                 centerLat = 48.5,
                 centerLon = 2.3
             )
@@ -139,8 +143,6 @@ class RoutePanelOverlayAnchorTest {
         val compact = phoneCardHeightDp(RouteOverlayAnchor.COMPACT, screen)
         assertTrue("the min card stays one line's height", compact <= 160f)
         assertTrue("the min card must leave 65 % of the screen to the map", compact <= screen * 0.65f)
-
-        assertEquals(0f, phoneCardHeightDp(RouteOverlayAnchor.HIDDEN, screen), 1e-4f)
     }
 
     @Test
@@ -211,9 +213,9 @@ class RoutePanelOverlayAnchorTest {
         assertNotNull("route must be adopted", viewModel.uiState.value.routeEntry)
         assertEquals(ActiveField.NONE, viewModel.uiState.value.activeField)
         // The name node merges its texts (it is the tap target), so the position indicator is
-        // read from it: a calculated route starts at its first step.
-        composeRule.onNodeWithTag("analysedStepName").assertTextContains("1 / 2")
-        composeRule.onNodeWithTag("routeStepPrevious").assertIsNotEnabled()
+        // read from it: the route starts on its first step that carries a leg, the start line above
+        // it owning none (spec: route-analysis — Step values describe the step's own leg).
+        composeRule.onNodeWithTag("analysedStepName").assertTextContains("2 / 2")
         composeRule.onNodeWithText("Vehicle").assertDoesNotExist()
         composeRule.onNodeWithText("Steps").assertDoesNotExist()
         composeRule.onNodeWithTag("routeStep0").assertDoesNotExist()
@@ -334,17 +336,36 @@ class RoutePanelOverlayAnchorTest {
     }
 
     @Test
-    fun minimizeHandsTheMapOver() {
+    fun theHeaderCloseEndsTheSession() {
         val viewModel = launchWithRoute()
 
-        // The minimize control lives in MAX's title row (MIN has no chrome of its own).
+        // The close control lives in MAX's title row (MIN has no chrome of its own) and is
+        // the session's exit there: one glyph, one meaning — while the toggle next to it is
+        // what collapses the card (owner finding, 2026-10-05; spec:
+        // `route-planning-session` — Session lifetime and its only exits,
+        // "Ending the session removes its surface").
         viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
         composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription("Minimize route panel").performClick()
+        composeRule.onNodeWithTag("routeEndSessionHeader").performClick()
         composeRule.waitForIdle()
 
-        // The hidden anchor: the screen composes only the route-ready affordance then
-        // (spec: anchors — hidden).
-        assertEquals(RouteOverlayAnchor.HIDDEN, viewModel.uiState.value.overlayAnchor)
+        assertNull(viewModel.uiState.value.routeEntry)
+        assertEquals(RouteSessionState.INACTIVE, viewModel.sessionState.value)
+    }
+
+    @Test
+    fun theCollapseControlOnlyChangesTheAnchor() {
+        val viewModel = launchWithRoute()
+        viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Collapse route panel").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(RouteOverlayAnchor.COMPACT, viewModel.uiState.value.overlayAnchor)
+        assertNotNull("collapsing keeps the session", viewModel.uiState.value.routeEntry)
+        // A calculated route moves an open session into the review state (onSuccess); the
+        // point here is that the collapse did not end it.
+        assertEquals(RouteSessionState.REVIEWING, viewModel.sessionState.value)
     }
 }

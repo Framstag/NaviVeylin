@@ -7,7 +7,13 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.NavigationPosition
 import com.framstag.libosmscout.client.NavigationState
 import com.framstag.libosmscout.client.RoadInfo
+import com.naviveylin.core.EngineDispatchers
+import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.location.LocationService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -15,6 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Tests for the phone VM's road-info source (spec: current-road-info): on
@@ -24,25 +31,34 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(RobolectricTestRunner::class)
 class NavigationEngineRoadInfoTest {
 
+    /**
+     * The engine's off-main work runs on this pair (production uses real pools), so a case drains
+     * it instead of polling (spec: `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private val computeDispatcher = StandardTestDispatcher()
+    private val ioDispatcher = StandardTestDispatcher()
+
     private fun buildViewModel(
         client: FakeOSMScoutClient = FakeOSMScoutClient()
     ): NavigationEngine {
-        return NavigationEngine(
+        return engineUnderTest(
             { client },
             LocationService(ApplicationProvider.getApplicationContext()),
-            ApplicationProvider.getApplicationContext()
+            ApplicationProvider.getApplicationContext(),
+            dispatchers = EngineDispatchers(computeDispatcher, ioDispatcher)
         )
     }
 
-    /** Pump Robolectric's paused main looper until [condition] holds or timeout. */
+    /** Drain the injected schedulers and the looper, then assert — no wall-clock deadline. */
     private fun awaitState(condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline) {
+        repeat(2) {
+            computeDispatcher.scheduler.advanceUntilIdle()
+            ioDispatcher.scheduler.advanceUntilIdle()
             shadowOf(Looper.getMainLooper()).idle()
-            if (condition()) return
-            Thread.sleep(10)
         }
-        throw AssertionError("State condition not met within 5s")
+        if (!condition()) {
+            throw AssertionError("State condition not met after draining the test scheduler")
+        }
     }
 
     @Test
@@ -142,5 +158,49 @@ class NavigationEngineRoadInfoTest {
         awaitState { client.roadAtLookupCalls.isNotEmpty() }
         // The lookup ran and returned null — road info cleared.
         assertNull(vm.state.value.currentRoadInfo)
+    }
+
+    /**
+     * The lookup answers off the main thread, but its result is published on the main dispatcher
+     * (spec: `navigation-engine` — A native lookup result is published on the main thread). The
+     * injected io dispatcher has its own scheduler, so the case can prove *which* scheduler the
+     * publication waits on instead of guessing from timing.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun lookupResultIsPublishedOnTheMainThread() {
+        val client = FakeOSMScoutClient().apply {
+            roadAt = RoadInfo("Nebenstrasse", "", "highway_residential", Double.NaN)
+        }
+        // Its own scheduler: advancing the lookup must not advance the main dispatcher's queue.
+        val ioDispatcher = StandardTestDispatcher(TestCoroutineScheduler())
+        val vm = engineUnderTest(
+            { client },
+            LocationService(ApplicationProvider.getApplicationContext()),
+            ApplicationProvider.getApplicationContext(),
+            dispatchers = EngineDispatchers(compute = Dispatchers.Default, io = ioDispatcher)
+        )
+        // Another publisher writes while the lookup is in flight.
+        client.onGetRoadAt = { vm.reportError("concurrent write", SurfaceOrigin.CAR) }
+
+        vm.updateRoadInfoFromPosition(
+            NavigationPosition(NavigationState.OffRoute, 51.0, 7.0, 180.0, 5.0, "", "", "")
+        )
+
+        ioDispatcher.scheduler.advanceUntilIdle()
+        assertTrue("the lookup ran", client.roadAtLookupCalls.isNotEmpty())
+        assertNull(
+            "the lookup's result waits for the main dispatcher",
+            vm.state.value.currentRoadInfo
+        )
+
+        awaitState { vm.state.value.currentRoadInfo != null }
+
+        assertEquals("Nebenstrasse", vm.state.value.currentRoadInfo?.name)
+        assertEquals(
+            "the publish preserves what another writer set meanwhile",
+            "concurrent write",
+            vm.state.value.errorMessage
+        )
     }
 }

@@ -14,7 +14,6 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
-import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
@@ -32,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Verifies the single follow center (spec: smooth-follow — Prediction state
@@ -68,7 +68,7 @@ class MapCanvasViewModelSingleFollowCenterTest {
         client = FakeOSMScoutClient()
         locationService = LocationService(context)
         navViewModel = NavigationViewModel(
-            NavigationEngine({ client }, locationService, context)
+            engineUnderTest({ client }, locationService, context)
         )
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),

@@ -619,6 +619,14 @@ When "map jumps" / "marker wrong" appears, check first:
 
 ---
 
+- **Log BOTH sides of a seam in one grep-able line** (§40.57): pending vs displayed frame, both path
+  counters, the requested vs applied magnification. Five changes shipped while the AA follow defect was live
+  because no log line compared the two frames — if two layers can disagree about a number, one line must
+  carry both.
+- **Write down which coordinate frame each number lives in before comparing them** (§40.59) — pre-shift
+  projection vs post-shift visible band, frame pixels vs surface pixels, raw scale vs level. A comparison
+  across frames reads as a defect in the code under test and costs a review round to disprove.
+
 ## 14. Android Auto renderer — smooth follow (overrun + blit + extrapolation)
 
 `AutoMapRenderer` (spec `auto-smooth-follow`) mirrors the phone's overrun/blit machinery on the
@@ -814,6 +822,14 @@ car Surface:
   `adb logcat -s NaviVeylin | grep -i "style error"`; the expected outcome is a degraded map (no
   content for the affected database) plus the message, and no `Fatal signal 11`.
   `StylesheetHexColorCaseTest` guards the one packaging-time trigger it detects (uppercase hex).
+- **Test fixtures and report parsing (2026-10-05).** A fixture stylesheet must follow the OSS grammar:
+  a node rule is `NODE.TEXT` / `NODE.ICON` (`NODESTYLEDEF = "NODE" "." (NODETEXTSTYLE | NODEICONSTYLE)`), a
+  way rule needs no suffix (`[TYPE _route] WAY { … }`) — writing `NODE { … }` makes every fixture load fail
+  with `Symbol: "." expected`. Give the test seam a failure path that prints `GetErrors()` instead of only
+  asserting `Load() == false`. And when two emitted lines intentionally share a prefix (the condensed
+  `Unknown types in '…'` report and its gated Debug detail line), select the one under test by **level**
+  (or an exact marker), never by substring — the aggregate helper counted its own detail line and reported
+  `2 == 1`.
 
 ---
 
@@ -961,6 +977,44 @@ give back part of the saving for a cosmetic effect.
 All the counters involved are **high-water marks inside a process** (native heap,
 `Graphics`, `TOTAL PSS`, malloced bitmaps), so any verification of this path needs
 a fresh process per state — recipe in `guidelines/Build.md` §10.
+
+---
+
+## 19. Route data — one length for one route
+
+**The route's length is the route description's own total.** `RouteEntry.distance` is set from the
+description's cumulative node distances (the sum of the per-step legs when the bridge published aligned
+ones — which is the normal case — else the last node's cumulative distance, else the router's own figure as
+the fallback for a route whose description produced nothing). The router's `GetOverallDistance()` is **not**
+the route's length: it disagrees with the geometry the same routing produced, measured on device 2026-10-05
+as 0.748× of the drawn polyline on a ~70 km route, 0.795× on a ~17 km one and 0.552× on a ~1.5 km one —
+its relative error grows as the route shortens, so neither a fixed ratio nor a fixed offset explains it
+(`TODO.md` §139; the user-visible half is §129). Both route-building paths in
+`libosmscout-client-java/src/OSMScoutClient.cpp` (`calculateRouteWithObjectsWithProfile` and
+`calculateRouteWithObjectsAsync`) derive the length this way, and the change is a submodule commit on
+`naviveylin-local` — not an override in the `:osmscout-client-java` module.
+
+**The app reads it in one place.** `routeLengthMeters(route)` (`app/.../ui/route/RouteStepValues.kt`) is the
+single accessor: it prefers the aligned per-step legs sum (so the displayed total is literally the number the
+step list below it adds up to) and falls back to `RouteEntry.distance`. The planning card's statistic, the
+route summary and the summary dialog read it; `NavigationEngine.routeTotalDistanceMeters(route, lats, lons)`
+does the same for the value navigation publishes, which the routing-status progress denominator divides by.
+That helper keeps one older rule intact: a route without usable geometry publishes **0** even when the
+bridge handed over a length, because the surfaces have no geometry to draw it on
+(spec: `navigation-engine` — Acquisition without usable polyline geometry).
+
+**Do not add a second derivation.** A new consumer that sums the polyline itself, or reads the router's
+figure, recreates exactly this defect: two totals for one route, one of them visible next to a step list that
+adds up to the other. `computeRouteDistance` remains only as the geometry-less fallback inside the helper.
+
+**Measurement.** `RoutePanelViewModel.logStepValues` emits one coordinate-free `Diag/ROUTE` line per
+calculated route (`route analysis: steps=… withValues=… sumM=… totalM=… sumS=… totalS=… maxErrM=…`) comparing
+the legs sum with the route's total; `maxErrM` is ~0 on a correct build. That line deliberately keeps
+`RouteEntry.distance` as its `totalM` rather than the accessor's value — computing the total *from* the legs
+would make the comparison vacuous. `stepValuesDiverge` is the guard on it (2 % / 10 m band since this
+change, tightened from 50 %). The on-device half is
+`RouteInstructionPositionDeviceTest` (`lengths:` lines on `adb logcat -s RouteDeviceTest`), which prints the
+router's figure, the legs sum and the drawn polyline per candidate route.
 
 ---
 

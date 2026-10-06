@@ -70,12 +70,16 @@ class RoutePanelStepNavigatorTest {
                 longitudes = doubleArrayOf(2.0, 2.3, 2.6)
                 distance = 120_000.0
                 duration = 5_400.0
+                // The native start line owns a zero-length leg, so it carries no values: the route
+                // starts on the first step that has one (spec: route-analysis — Step values describe
+                // the step's own leg).
                 descriptions = arrayOf(
-                    "Start: A  [0.0 km]",
-                    "Right onto B  [120.0 km]"
+                    "Start: A  []",
+                    "Right onto B  [120.0 km]",
+                    "Left onto C  [5.0 km]"
                 )
-                instructionLats = doubleArrayOf(48.0, 48.5)
-                instructionLons = doubleArrayOf(2.0, 2.3)
+                instructionLats = doubleArrayOf(48.0, 48.5, 49.0)
+                instructionLons = doubleArrayOf(2.0, 2.3, 2.6)
             }
             viewModel.calculateRoute()
         }
@@ -103,49 +107,55 @@ class RoutePanelStepNavigatorTest {
     fun nextMovesTheAnalysedStepAndShowsWhereItIs() {
         val viewModel = launchMinWithRoute()
 
-        // A calculated route starts at its first step (owner finding, 2026-10-03).
-        assertEquals(0, viewModel.uiState.value.analysedStepIndex)
-        composeRule.onNodeWithTag("analysedStepName").assertTextContains("Start: A")
-        composeRule.onNodeWithTag("analysedStepName").assertTextContains("1 / 2")
+        // A calculated route starts on its first step that carries a leg (owner finding, 2026-10-03).
+        assertEquals(1, viewModel.uiState.value.analysedStepIndex)
+        composeRule.onNodeWithTag("analysedStepName").assertTextContains("Right onto B")
+        composeRule.onNodeWithTag("analysedStepName").assertTextContains("2 / 3")
 
         composeRule.onNodeWithTag("routeStepNext").performClick()
         composeRule.waitForIdle()
-        assertEquals(1, viewModel.uiState.value.analysedStepIndex)
-        composeRule.onNodeWithTag("analysedStepName").assertTextContains("Right onto B")
-        composeRule.onNodeWithTag("analysedStepName").assertTextContains("2 / 2")
+        assertEquals(2, viewModel.uiState.value.analysedStepIndex)
+        composeRule.onNodeWithTag("analysedStepName").assertTextContains("Left onto C")
+        composeRule.onNodeWithTag("analysedStepName").assertTextContains("3 / 3")
     }
 
     @Test
     fun theEndsAreNoOpsAndTheControlsSaySo() {
         val viewModel = launchMinWithRoute()
 
-        // On the first step: back has nothing to step to.
+        // Back from the current step reaches the start line, which owns no leg.
+        composeRule.onNodeWithTag("routeStepPrevious").performClick()
+        composeRule.waitForIdle()
         assertEquals(0, viewModel.uiState.value.analysedStepIndex)
+        // On the first step: back has nothing to step to.
         composeRule.onNodeWithTag("routeStepPrevious").assertIsNotEnabled()
 
         composeRule.onNodeWithTag("routeStepNext").performClick()
         composeRule.waitForIdle()
         assertEquals(1, viewModel.uiState.value.analysedStepIndex)
 
+        composeRule.onNodeWithTag("routeStepNext").performClick()
+        composeRule.waitForIdle()
+        assertEquals(2, viewModel.uiState.value.analysedStepIndex)
+
         // Last step reached: further "next" changes nothing.
         composeRule.onNodeWithTag("routeStepNext").performClick()
         composeRule.waitForIdle()
-        assertEquals(1, viewModel.uiState.value.analysedStepIndex)
+        assertEquals(2, viewModel.uiState.value.analysedStepIndex)
         composeRule.onNodeWithTag("routeStepNext").assertIsNotEnabled()
 
         // And back walks the same steps down again.
         composeRule.onNodeWithTag("routeStepPrevious").performClick()
         composeRule.waitForIdle()
-        assertEquals(0, viewModel.uiState.value.analysedStepIndex)
+        assertEquals(1, viewModel.uiState.value.analysedStepIndex)
     }
 
     @Test
     fun theStepNameShowsTheListAndTheSelectionSurvivesTheModeChange() {
         val viewModel = launchMinWithRoute()
         composeRule.onNodeWithTag("routeStepNext").performClick()
-        composeRule.onNodeWithTag("routeStepNext").performClick()
         composeRule.waitForIdle()
-        assertEquals(1, viewModel.uiState.value.analysedStepIndex)
+        assertEquals(2, viewModel.uiState.value.analysedStepIndex)
 
         // Tapping the step name in MIN brings the list (MAX) back…
         composeRule.onNodeWithTag("analysedStepName").performClick()
@@ -156,8 +166,8 @@ class RoutePanelStepNavigatorTest {
         // …and the analysed step survives it, and MIN keeps showing it.
         viewModel.setOverlayAnchor(RouteOverlayAnchor.COMPACT)
         composeRule.waitForIdle()
-        assertEquals(1, viewModel.uiState.value.analysedStepIndex)
-        composeRule.onNodeWithTag("analysedStepName").assertTextContains("2 / 2")
+        assertEquals(2, viewModel.uiState.value.analysedStepIndex)
+        composeRule.onNodeWithTag("analysedStepName").assertTextContains("3 / 3")
     }
 
     @Test

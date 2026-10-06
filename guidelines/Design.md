@@ -84,6 +84,13 @@ strong preference.
   overlay snapshot travel in ONE emission. Never combine separate sub-flows
   for what is drawn; mixed-frame states jump.
 - Prefer a state field over a separate flow for derived signals.
+- **A `Map` is never the carrier for "same contents, different order".** A `StateFlow` drops an emission
+  equal to its current value and `Map.equals` ignores iteration order, so an order-only change never reaches
+  a collector — it "works" only while the values happen to be identity-unequal (`FavoriteLocation` read
+  through the JNI bridge: accidental, not designed). Give a sequence its own `List` channel and pair it with
+  the contents through a shared helper (`orderedGroupNames`, `:core`), so an entry the channel does not name
+  yet cannot vanish from a list. Before leaning on a derived value as a contract, ask what makes it **change**,
+  not what it contains (spec `group-ordering`; `guidelines/UI.md` §1).
 - Every async operation has an explicit error state surfaced to the user;
   errors are user-actionable; the process never crashes on data inconsistency.
 - Settings persist as one `@Serializable` AppSettings JSON; new fields need
@@ -113,6 +120,10 @@ strong preference.
   execution time, never snapshotted into queued work.
 - Platform-object side effects (window refs, keep-screen-on) live in
   `DisposableEffect`, not the ViewModel.
+- **Progress and wall-clock state start at the invariant, not at the data-class default** (§40.61): initialise
+  a progress state to "0 % travelled" (`remainingDistance = totalDistance`) rather than the field default,
+  and give a state machine with wall-clock state a "never set" sentinel plus an explicit first-event branch —
+  otherwise the first tick reads a plausible-looking zero that was never measured.
 
 ## 4. Threading
 
@@ -191,6 +202,28 @@ strong preference.
 - Play Services capabilities are optional: access via provider abstraction
   with runtime availability check and fallback (Fused vs LocationManager) —
   never a hard dependency.
+- **Read the *constant's* deprecation text before building on a lifecycle signal.** A method can survive
+  while the levels it reports are never delivered: `ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW`,
+  `_RUNNING_CRITICAL`, `_RUNNING_MODERATE`, `MODERATE` and `COMPLETE` carry "Apps are not notified of this
+  level since API level 34", and `onLowMemory()` is deprecated since API 35 — a release designed on that
+  ladder would have shipped **inert** on Android 14+ while this app targets 36. The working signals are the
+  still-delivered levels (`TRIM_MEMORY_UI_HIDDEN`, `TRIM_MEMORY_BACKGROUND`) plus a poll of
+  `ActivityManager.MemoryInfo` (`lowMemory`/`availMem`/`threshold`). Two rules from the same defect class:
+  pass intent as an explicit flag, never infer it from a display string (a trigger label `poll-low` compared
+  against `"poll"` silently scoped the poll out), and assert the **negative** case (a comfortable device
+  releases nothing) — the positive cases alone pass on an unguarded implementation.
+- **A process-scoped ticker a test constructs keeps running for the whole suite's JVM.** Give every
+  long-lived loop a test switch (and `runCatching`-wrap the body: a poll must never take anything down with
+  it) — a responder built with polling left enabled fired 30 s later inside an unrelated Robolectric test.
+- **In a bounded writer, the "here is what is missing" marker must not live in the ring it describes** — the
+  bound evicts it (carry the count in the flush instead); the write target must be captured **with the
+  batch** (a writer that reads its target at write time writes one target's lines into another); and a
+  high-water flush only carries the entries present at the crossing, not the tail.
+- **MUST**: a dispatcher hop inside a suspend accessor needs its own test seam. `isLocationSourceEnabled()`
+  hopped to `Dispatchers.Default` to keep a binder call off the main thread, which made a virtual-time test
+  non-deterministic (green alone, red with the suite) — the fix is an injectable dispatcher
+  (`locationSourceDispatcher`), never a test-side timeout or a longer advance. Same rule as the tickers
+  above: production code earns a seam wherever a test must control time.
 
 ## 5. Native boundary
 
@@ -232,6 +265,13 @@ strong preference.
   `android.util.Log` with per-class TAG. Stylesheets: submodule is the single
   source of truth, synced at build time. Mechanics: `AGENTS.md`.
 
+- **JNI-bridge Java types are positional-argument only** (§40.23): no named arguments, read the constructor
+  before writing a helper (`RouteInstruction` has 5- and 10-arg forms), and update EVERY call site in the
+  same change when such a constructor changes — stale test bytecode surfaces as `NoSuchMethodError`, not a
+  compile error.
+- **Do not mock a Kotlin `object`'s `@JvmStatic` methods** (§40.24): mockk cannot intercept them. Stub the
+  real `applicationContext` and the Java delegate the object calls (`dagger.hilt.EntryPoints`).
+
 ## 6. Rendering pipeline
 
 - **MUST**: double-buffered rendering — native writes to the back buffer, the
@@ -256,6 +296,11 @@ strong preference.
   bitmap/array churn); measure before optimizing; keep renders under the frame
   budget.
 - Pipeline details and pitfalls: `guidelines/MapRendering.md`.
+
+- **Decide who paces a transition before coding it** (§40.58): when two layers can both own it, pick
+  render-paced or fix-paced first; never call a stateful controller twice for a check-then-use pair (the
+  second call sees the state the first one just moved); and scope a renderer-wide rule behind an explicit
+  opt-in flag instead of a global branch.
 
 ## 7. Follow mode & GPS
 
@@ -467,6 +512,53 @@ strong preference.
 - Compose UI tests for gesture/panel logic: extract gesture handlers into
   reusable `Modifier` factories; keep presentation composables
   callback-driven.
+- **Check a helper's *visibility* before designing a test around it.** `internal` in `:core` is unreachable
+  from `:app`/`:auto` tests (`DiagnosticsLog.flushNow`/`awaitDrained`/`workerThreadOrNull`), a JUnit rule
+  exposed through a public property cannot be `internal`, and a public class cannot take an internal
+  parameter type. Assert the property structurally instead, and read the KDoc of the seam you mean to drive.
+- **Assert what the contract requires — never an invented count.** Read (or measure) the current behaviour
+  before asserting a call/persist/emission count: a `StateFlow` re-delivers its value to every new collector
+  (snapshot before the emission, assert the delta), a stress test must not compare two observations of shared
+  state (derive every assertion from a single read, and stop all writers before the final-state assertion),
+  and a count the code never had makes a test fail on **correct** code. Three documented instances (favorites
+  persist, `CarScreenObservations`, `DiagnosticsLog`) — treat it as a reflex, and prefer re-expressing the
+  assertion against the spec over pinning a number.
+- **Assert the invariant, not "nothing happened", and make the whole failure path runnable.** An
+  asynchronous seam makes emptiness/absolute assertions racy: assert the specific value, or the host-thread
+  invariant, and poll with a bound. A test of fault confinement must be able to execute *every* line of the
+  handler — a `Log`/`DiagnosticsLog` call inside `.onFailure { }` throws "not mocked" under plain JUnit and
+  kills the collector *outside* the guard under test (run it under Robolectric). Never re-init a buffered
+  logger between act and assert: `DiagnosticsLog.initForTest` clears the ring silently, and the failure reads
+  as "the code logged nothing".
+
+### Kotlin / Compose / Robolectric traps (§40.13–§40.21, §40.28, §40.31, §40.33)
+
+- **`while (isActive)` needs the explicit `kotlinx.coroutines.isActive` import** (§40.13).
+- **`KProperty0.isInitialized` works only for `lateinit`** (§40.14); for `by lazy` state use a nullable `var`
+  or a flag.
+- **Test coroutine helpers need a receiver** (§40.15): declare them `private fun TestScope.foo()`;
+  `advanceTimeBy(Long)` is an extension, `advanceUntilIdle` is a `TestScope`/`TestCoroutineScope` extension.
+- **Lifetime tickers must run on a real dispatcher with test hooks** (§40.16): a
+  `while (true) { delay(1s) }` loop on the test scheduler hangs every `runTest`.
+- **Never pace a unit test off a timer or a debounce (`Thread.sleep`)** (§40.31): control the loop
+  (`asyncLoopsEnabled = false/true`) and land a frame deterministically (`renderFrame()`).
+- **Compose plurals containing `%d` need an explicit format argument** (§40.17):
+  `pluralStringResource(id, count, count)`.
+- **Never call `composeRule.setContent {}` twice in one test** (§40.18) — collect every value in the single
+  composition.
+- **Never nest two `verticalScroll` containers** (§40.19); give an embedded scrollable an opt-out parameter.
+- **Robolectric's Compose root is clamped to 320×470 dp** (§40.20): assert against the screen, not hardcoded
+  sizes, and read the failing bounds out of the assertion message.
+- **The Robolectric shadow canvas discards `drawBitmap`/`drawPath` (0 opaque pixels) and
+  `@GraphicsMode(NATIVE)` does not fix it here** (§40.21): assert the bitmap contract (size/config/caching/
+  no-throw), leave visuals to on-device, and do not add a second sandbox config.
+- **Verify constructor-argument edits against the file's imports in the same pass** (§40.28) — a rename
+  dropped a still-used import and invented a non-existent class.
+- **Compute `log2` expectations with a calculator, not mentally** (§40.33) — a wrong exponent reads as a
+  product bug in a fit/zoom case.
+- **In ViewModel tests, assert pre-state through an entry path that does not mutate the snapshot field**
+  (§40.60): a path that writes the field before the collector resumes makes the pre-state assertion
+  self-defeating.
 
 ## 12. General engineering principles
 
@@ -476,6 +568,21 @@ strong preference.
   out, takes back and recycles the ARGB_8888 targets both renderers draw into
   (change `fix-render-buffer-reuse`, spec `render-performance`) — a renderer
   never keeps a reuse rule of its own and never recycles a pooled target.
+  The same rule covers a shared UI row: when two hosts put a tap area on it, that area is one
+  parameter of the shared composable, not a copy of the control per host — `NavigationStatsRow`
+  exposes `leadingModifier` for the strip a caller makes tappable, so the phone card's details tap
+  and the stop control keep one implementation and one owner (change `fix-nav-overlay-stop-tap`,
+  spec `navigation-status-details`; the tap-target rule itself is `guidelines/UI.md` §8).
+  The route's visibility has one owner at a time: **navigation** while it runs, and the **open
+  session in its stopped state** for the grace window — the engine adapter clears the route on a stop
+  only when no session took it over, and a session that ends (its grace expiring included) is the one
+  that clears it and closes its surface (change `fix-route-session-stop-path`, spec
+  `route-planning-session` — Grace period after navigation is stopped, Ending the session removes its
+  surface). No stop control holds that decision of its own: the phone has one session-aware stop path
+  and no second one beside it. The same "one owner per surface" rule holds for a *band* the phone
+  shares between two composers: the session card and the navigation status card sit on the same bottom
+  edge, and composing both hid the review entirely (measured 2026-10-06) — the card that is shown owns
+  the band and the other is not composed while it is (change `fix-route-session-stop-path`, design D8).
 - **Single owner per process-global resource**: when the phone UI and a car
   session share one process (always the case under Android Auto projection), the
   process-wide resources have explicit owners instead of per-surface toggles
@@ -526,6 +633,29 @@ strong preference.
 - **Separate screen over mode flag**: when two states have different
   lifecycles, state, or exit semantics, use a separate screen, not a mode
   parameter.
+- **Change hygiene when editing files (patch tooling).** One file per `edit` call when the anchors come from
+  different files, and every `edits[]` entry holds exactly `oldText` + `newText` — a prose note key or a
+  foreign anchor rejects the whole atomic call (three instances in one week). One writer per file per turn:
+  a `sed -i` and an `edit` in the same message clobber each other, because the edit writes the file from its
+  own read — use a single tool for both changes. Split a large or function-spanning `oldText` on function
+  boundaries and never re-issue a rejected fragment unchanged (`TODO.md` §40.9–§40.11).
+- **Never retype prose or code from memory into `oldText`** (§40.10) — copy it from the read output. Never
+  emit overlapping or nested `oldText` regions in one call; for a pure insertion keep the whole matched block
+  in `newText` and append to it. After a rejected `oldText`, **re-read the file before re-issuing** (§40.11):
+  a corrective pass can silently duplicate a helper, and the duplicate then makes exact-match edits ambiguous
+  — re-read every changed region before compiling, and make each anchor unique with its distinguishing
+  neighbour line (§40.9).
+- **Reason from the measurement, not from the model.** "No record in my run" is evidence about the run, not
+  about the code: read the trigger's *condition* and construct it before writing a finding
+  (`MemoryInfo.lowMemory` was reported unreachable and then fired mid-walk on the same build). A design
+  table is a hypothesis, not evidence — read every assignment to a buffer before planning to remove it (one
+  bitmap was counted three times as three separate holdings, so two tasks would have "saved" ~30 MB that
+  never existed). And a measurement is meaningless without its context: quote the UI state, the render count
+  and the session presence next to any footprint number (`guidelines/Build.md` §10).
+- **Verify the premise before building a change on it** (§40.56): read what pins it (the tile-path condition
+  in `TileCacheRenderTest`), cross-check the number through a second path (`ProjectionUtils` for the real
+  pixels-per-degree, rather than re-deriving DPI × `cos(lat)` with the formula under test), and locate the
+  "single source of truth" before a dedup change — removing the duplicate must not remove the only instance.
 
 ## 13. Superseded decisions
 

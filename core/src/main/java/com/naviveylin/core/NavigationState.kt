@@ -23,6 +23,23 @@ enum class SurfaceOrigin {
 }
 
 /**
+ * A route calculation that is in flight (spec: `route-calculation-feedback` —
+ * In-flight route calculation is part of the shared navigation state).
+ *
+ * [token] identifies the request and increases with every new calculation, so the
+ * end of a calculation that a newer request superseded cannot clear the live one's
+ * state. [percent] is the routing engine's progress through its search, 0..99, and
+ * is null until the engine has reported one — 0 is a legal value, so it must not
+ * double as "unknown".
+ */
+data class RouteCalculation(
+    val token: Long,
+    val destLat: Double,
+    val destLon: Double,
+    val percent: Int? = null
+)
+
+/**
  * Shared navigation state consumed by both the phone UI and Android Auto.
  */
 data class NavigationState(
@@ -33,8 +50,9 @@ data class NavigationState(
     val remainingDistance: Double = 0.0,
     val totalDistance: Double = 0.0,
     val etaMillis: Long = 0L,
-    // Wall-clock time (epoch millis) when navigation started; reference point
-    // for elapsed-time progress (routing-progress-indicator). 0 when not navigating.
+    // Wall-clock time (epoch millis) when navigation started; reference point for
+    // the phone navigation status card's elapsed-time progress (MapCanvasScreen).
+    // 0 when not navigating.
     val navigationStartTimeMillis: Long = 0L,
     val currentSpeedKmH: Double = Double.NaN,
     val maxSpeedKmH: Double = Double.NaN,
@@ -68,7 +86,11 @@ data class NavigationState(
     // Route polyline for map rendering (native renderer draws the route with
     // the stylesheet "_route" style). Null when not navigating.
     val routeLats: DoubleArray? = null,
-    val routeLons: DoubleArray? = null
+    val routeLons: DoubleArray? = null,
+    // The route calculation in flight, if any (spec: `route-calculation-feedback`).
+    // Null when none is running — also while navigating on an already calculated
+    // route. Default: null.
+    val calculation: RouteCalculation? = null
 ) {
     /**
      * Whether the current [errorMessage] concerns [surface]: the surface's own

@@ -5,10 +5,12 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.Vehicle
+import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import com.naviveylin.test.engineUnderTest
 
 /**
  * Errors carry the surface that caused them (spec: `navigation-engine` — Errors
@@ -40,11 +43,23 @@ class NavigationEngineErrorOriginTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    /**
+     * The engine's off-main work runs on this pair, so a case drains it instead of polling (spec:
+     * `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private val computeDispatcher = StandardTestDispatcher()
+    private val ioDispatcher = StandardTestDispatcher()
+
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
-        engine = NavigationEngine({ client }, LocationService(context), context)
+        engine = engineUnderTest(
+            { client },
+            LocationService(context),
+            context,
+            dispatchers = EngineDispatchers(computeDispatcher, ioDispatcher)
+        )
     }
 
     @Test
@@ -96,7 +111,7 @@ class NavigationEngineErrorOriginTest {
 
     @Test
     fun failedRouteCalculationRaisesAnEngineError() = runTest(mainDispatcherRule.dispatcher) {
-        val engine = NavigationEngine(
+        val engine = engineUnderTest(
             {
                 FakeOSMScoutClient().apply {
                     routeToDeliver = null
@@ -104,16 +119,18 @@ class NavigationEngineErrorOriginTest {
                 }
             },
             LocationService(context),
-            context
+            context,
+            dispatchers = EngineDispatchers(computeDispatcher, ioDispatcher)
         )
 
         engine.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
 
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline && engine.state.value.errorMessage == null) {
+        // Drain the injected schedulers instead of waiting on the wall clock (spec:
+        // `unit-test-suite-runtime` — Awaiting state, not a deadline).
+        repeat(2) {
+            computeDispatcher.scheduler.advanceUntilIdle()
+            ioDispatcher.scheduler.advanceUntilIdle()
             mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
-            Thread.sleep(10)
         }
         assertEquals("Route calculation failed. Try again.", engine.state.value.errorMessage)
         assertEquals(SurfaceOrigin.ENGINE, engine.state.value.errorOrigin)

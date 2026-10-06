@@ -120,6 +120,27 @@ commits only the position the chip is released at: a drag that ends where it sta
 and a sheet dismissed mid-drag, write nothing — the same rule the favorite row and the
 group card follow.
 
+### Drag surface checklist (for any new draggable affordance)
+
+A long press that lifts an item also leaves the clickable *inside* that item's node alive: the starred
+chip carries `longPressDraggableHandle()` on the chip itself (the chip is its own click target, unlike the
+favorite row and the group card, whose handles are siblings of the clickable content), so a long press
+followed by a release fired `onClick` as well — holding a chip started navigation. Whatever the surface:
+set a `suppressNextTap` flag in `onDragStarted` (the tap is delivered **before** `onDragStopped`, so
+setting it there is too late — measured), consume it in the item's `onClick`, and clear it when a drag
+commits a move so a later genuine tap is not swallowed. Both halves are asserted, not assumed: a drag that
+ends where it started commits nothing, a drag that moved commits exactly one position, and a follow-up
+tap still works.
+
+Two rules the tests must follow. A helper returning a **distance** is not a direction: compute the delta
+from the two items (`chipLeft("Berlin") - chipLeft("Office")`), or the drag travels the wrong way and
+commits nothing. And bound every drag to about one item width — a card dragged ~200 px past the grid's
+edge starts the reorder library's drag auto-scroll, which keeps running and perturbs whatever test
+executes next in the same JVM (bounding it turned navigation + that class from 1 failure in 3 into 4
+consecutive green runs). For a laziness test, capture the instance inside the lambda
+(`FavoriteRepository().also { built = it }`) — `assertSame` against a second `dagger.Lazy.get()` compares
+two different objects and fails on identity, not on laziness.
+
 ### Why the license list is phone-only
 
 The bundled dependency list is a several-hundred-row browser with a per-component
@@ -195,6 +216,11 @@ Source: specs `navigation-ongoing-notification` (changes
   changes still post immediately, and trip metadata stays content-deduplicated.
 - The notification is silent and ongoing; it never plays a sound or vibrates.
 
+### Ongoing notification robustness (phone + car)
+
+- **`Notification.actions` is nullable** (§40.25): test `actions?.isEmpty() != false`, and read the icon with
+  `getIcon()` — the Kotlin `icon` field is deprecated and breaks a warning-free build.
+
 ## 2. Action glyphs on the car display
 
 Source: spec `auto-destination-details` — "Details actions visually marked".
@@ -222,6 +248,11 @@ Verified against car-app 1.7.0 (`androidx.car.app`):
   **not actionable** — actions live at pane level.
 - `ListTemplate` scrolls and the host **pages** when the list exceeds one page —
   the mechanism for showing arbitrarily many attributes.
+
+- **Check the real car-app API surface before writing a car screen or screen test** (§40.29): getter names,
+  the resolved lifecycle version, and no `Lifecycle.getObservers()`. Drive the lifecycle through
+  `dispatchLifecycleEvent` in the order a host would — ON_CREATE + ON_START before ON_DESTROY, never straight
+  to DESTROYED.
 
 ## 3a. Map renderer startup (never on the host thread)
 
@@ -301,6 +332,35 @@ placeholder MUST use [`SettingsLoadGuard`]:
 - **Scope hygiene**: `onDestroy` cancels the screen coroutine scope.
 - Applies to `PreferencesScreen`, `VehicleAnchorPickerScreen`,
   `OverspeedDeltaPickerScreen`.
+
+## 3c. Car wait notices (a wait the driver can see and leave)
+
+A car screen MUST NOT leave the driver looking at nothing while the app works: any wait
+that can last longer than a blink gets a notice, and a notice never outlives the thing it
+describes (spec: `route-calculation-feedback`). The route-calculation wait notice
+(`RouteCalculatingScreen`) is the reference implementation:
+
+- **Delayed appearance**: the notice is pushed only after `CALCULATION_NOTICE_DELAY_MS`
+  (400 ms) with the calculation still in flight — a fast result must never flash a screen.
+  The delay is armed for a **calculation token**: a calculation that ends, or that a newer
+  request superseded, before the delay elapses raises no notice.
+- **One notice, updated in place**: a second state change (the next percentage) MUST update
+  the notice that is up and `invalidate()` it — never push a second screen.
+- **Never outlives its work**: when the calculation ends the notice is removed by identity
+  (`ScreenManager.remove`, never `popToRoot()`, which takes the navigation view with it);
+  a calculation that ended while the session was not started MUST NOT leave a notice behind.
+- **A way out when leaving is safe**: the notice offers Cancel while navigation is **not** active,
+  and that Cancel is its **only** exit — car-app 1.7's `Screen` has no back callback (`onBackPressed`
+  does not exist; back is a host-driven stack pop), so a back affordance could only *pop* the notice
+  while the routing work keeps running invisibly. During a reroute guidance is still live, so the
+  notice is neither cancellable nor dismissable — a driver off route must keep the instruction panel
+  (spec: `auto/navigation-view`).
+- **Bounded host traffic**: the percentage is displayed in 5 % steps
+  (`displayedCalculationPercent`), so a progressing calculation costs ~20 host pushes, not
+  one per percent.
+- **Guarded like every other host path**: the template build goes through `carPaneTemplate`,
+  the push/removal through `guardedHostCall`, and the sync is deferred (and re-applied once)
+  while the session is not started — see the car-host rules in AGENTS.md.
 
 ## 4. Details attribute list (Android Auto)
 
@@ -391,6 +451,9 @@ Source: spec `search-dialog` (phone only).
   mirror of the phone dialog: the car `SearchTemplate` shows empty-query
   suggestions (mode rows + recent searches) instead of the phone's
   mode-switch + chips layout.
+
+- **A Compose dropdown popup does not appear in a `uiautomator` dump** (§40.22) — assert the field's text
+  instead of trying to tap the popup on a device run.
 
 ## 6b. Android Auto search surface (SearchTemplate)
 
@@ -525,7 +588,16 @@ Source: spec `route-planning-session`.
   **Min** (at most 18 %, one control row, and it **hugs its content** — a fixed strip that left
   empty space above the navigation bar was the owner's finding) is only the analysed step — its instruction, "i / n" and the two
   step controls, with the step name as the way back to max. Without a route the card stays in max. The card
-  is the phone's only session surface: no summary dialog.
+  is the phone's only session surface: no summary dialog, and **no hidden anchor and no route-ready
+  pill** — the third anchor existed until 2026-10-05, and its pill was a dead end (no exit of its own,
+  and back was not captured there), so the card is now the whole phone surface. A session that should
+  free the map is **ended**, not hidden: ending returns the covered height to zero and hands the map back.
+- The card's controls are one glyph, one meaning (owner finding, 2026-10-05): the **`^`/`v` toggle**
+  collapses to min and expands back, and the **`X` close control ends the session** in both anchors —
+  in max beside the labelled `End analysis` action, in min as the step row's close control (min renders
+  no header). Pressing the close never leaves a smaller surface behind: the card and the session end
+  together. In the docked wide panel the anchor toggle has no effect on the panel's size (the anchor
+  sizes the phone card only).
 - Selecting a step in the list analyses it **and collapses the card to min**, so the map with that manoeuvre
   and its highlighted segment is what the user looks at next; tapping the step name in min brings the list
   back with the analysed step unchanged. While a field is being edited the card takes the max height, because
@@ -533,7 +605,12 @@ Source: spec `route-planning-session`.
 - The step navigator (previous / next, "i / n", and the analysed instruction with its distance and duration)
   is the min overlay's content. It moves the analysed step exactly as tapping a list row does (camera to the
   manoeuvre, segment highlighted) and its controls are disabled at the ends; with nothing analysed the
-  indicator names no step. Wide layouts keep the side panel with the selectable list instead.
+  indicator names no step. Wide layouts keep the side panel with the selectable list instead. A step's
+  distance and duration are the values of the **leg that ends at that step's manoeuvre** — the route's
+  per-step values (spec `osmscout-jni` — Per-step leg values on a calculated route), formatted by the app with
+  `formatDistanceNumber` + `formatStepDurationText` — never the native description's `[x km, y min]` text
+  (that is only the fallback for a route without per-step values) and never a value measured between two route
+  nodes; the rows of a step list therefore add up to the route's total distance and duration.
 - The card's actions are **pinned** in their own band at the bottom edge of max, and the two
   actions of a state share one row: with a fixed card height, stacked full-width buttons pushed
   the statistics and then the primary action out of view on the device (2026-10-03). Reviewing a
@@ -558,6 +635,36 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   current speed 24sp bold, speed-limit sign 64dp with 28sp digits, turn
   distance 32sp bold, turn description/destination 22sp, next-next hint 20sp
   (smaller than the primary instruction).
+- **Tap targets (phone overlays).** An overlay's own control SHALL never sit inside its
+  container's tap target: the control's hit area and any surrounding "open the details" area
+  are disjoint, and the control's hit area is at least 48 dp in each dimension. Reading the
+  container first is the defect: `NavigationStateOverlay` carried `.clickable` on the whole
+  card, so a tap aimed at the stop control's coordinates was handled by the container and the
+  driver never reached the stop (change `fix-nav-overlay-stop-tap`, spec
+  `navigation-status-details`). The card's details tap now lives on two regions that stop
+  short of the control (`navStatusDetailsRegion` for the road name and progress lines,
+  `navStatusDetailsStatsRegion` for the stats strip), and the control is a 48 dp box of its
+  own (`testTag` `stopNavigation`). A shared row that two hosts put a tap area on passes that
+  area in as one parameter (`NavigationStatsRow.leadingModifier`) rather than duplicating the
+  control per host.
+- **A stop control's action (phone).** Every stop affordance SHALL end navigation through the one
+  session-aware stop path — the screen's single `stopNavigation` lambda, which calls
+  `navigationViewModel.stopNavigation()` and lets the session decide the route's fate. An open
+  session then enters its stopped state (route stays drawn, Restart and End offered, bounded grace);
+  with no session open the stop ends navigation and clears the route. A stop control never calls
+  `clearRouteFromMap()` itself, and it never decides session policy: the routing status card, the
+  expanded details view and the panel's Stop Navigation all take that same lambda (change
+  `fix-route-session-stop-path`, specs `navigation-status-details`,
+  `route-planning-session` — Grace period after navigation is stopped).
+- **One owner per band (phone).** The phone's bottom band carries exactly one card: while a
+  route-planning session's card is shown, the navigation status card SHALL NOT be composed, and it SHALL
+  return when the session's surface closes. Composing both left the session card (composed first, same
+  bottom edge) with **no visible or tappable pixel**, so a read-only review of the running navigation was
+  unreachable although its state was correct (measured 2026-10-06, change `fix-route-session-stop-path`
+  task 5.1 run (b): card bounds `top=2059 h=341` inside the status card's band, zero full-width pixels of
+  a probe bar drawn, no node of the card in the accessibility dump). An overlay that must win a band it
+  shares with another composer is not raised above it — the other card yields
+  (spec `route-planning-session` — The review is the surface while it is open).
 - The compass button SHALL be larger than the other overlay buttons
   (56dp layout / 48dp visual vs 48dp / 40dp) so it reads at a glance. Its needle
   SHALL indicate geographic north in EVERY orientation mode (north-up and
@@ -795,6 +902,13 @@ Source: spec `dark-mode` (changes `aa-dark-mode-follow-host`, `phone-ambient-lig
 
 ## 10. Internationalisation / Localisation
 
+- **Every user-facing number/coordinate formatter takes an explicit locale** (§40.26):
+  `String.format(Locale.US, …)`. Default-locale formatting broke tests and reads ambiguously in German; the
+  `:core` `CoordinateFormat` seam is the fix for that family (`fix-comma-decimal-coordinate-entry`). Note
+  that `"%.5f".format()` **rounds, it does not truncate**.
+- **`NavigationTemplateMapper.distanceForDisplay` reports display units** (§40.27) — assert
+  `displayDistance` plus `displayUnit`, never metres.
+
 Source: spec `i18n-l10n` (change `i18n-l10n-support`).
 
 - **All user-facing text SHALL live in Android string resources** — never
@@ -826,6 +940,8 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   the numeric part only (German comma decimals), `distanceUsesKilometers`
   selects the unit. The unit suffix comes from a resource
   (`distance_unit_km` / `distance_unit_m` / `size_unit_mb`), never from code.
+  A **step's** duration uses `formatStepDurationText` (seconds below a minute, so a 45 s leg never reads
+  "0 min"); `formatDurationText` stays with the route's total, the notification and the ETA strings.
   Do NOT use `Locale.ROOT` for display formatting.
 - **Coordinate strings are data, not display text**: they are the one exception
   to locale-aware numbers (spec: `i18n-l10n` — Coordinate string is

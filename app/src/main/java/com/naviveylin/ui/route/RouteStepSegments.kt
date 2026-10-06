@@ -10,9 +10,11 @@ import com.naviveylin.core.haversineDistanceMeters
  * gap: each manoeuvre is matched to the polyline vertex it happens at, and a step owns the leg
  * that **leads to** its manoeuvre — from the previous manoeuvre's vertex up to its own
  * (owner finding, 2026-10-03: the highlighted leg used to be the one *after* the manoeuvre
- * named in the card). That orientation comes from the native description: a line's `[x km, y min]`
- * is `node.GetDistance() - prevDistance` — the cumulative distance at **its own** node minus the
- * previous node's, i.e. the leg that ends where the instruction is executed.
+ * named in the card). That orientation matches the step's values: a step's distance and duration are
+ * the leg that ends at its own manoeuvre (spec: `osmscout-jni` — Per-step leg values on a calculated
+ * route), so the row and the highlight describe the same piece of route. Before that change the
+ * native side measured them between two consecutive route **nodes**, which is the last geometry edge
+ * before the manoeuvre — a step of a 17,3 km route reported "14 m" and "2 s".
  *
  * Matching is **monotonic** — a step's vertex is never earlier than the previous
  * step's — because instructions arrive in route order. Without the constraint a

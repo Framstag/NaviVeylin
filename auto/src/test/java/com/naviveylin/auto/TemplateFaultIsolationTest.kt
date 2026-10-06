@@ -22,9 +22,12 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -253,33 +256,46 @@ class TemplateFaultIsolationTest {
      * screen whose list arrives from a background load is covered too.
      */
     private fun TestScope.clickFirstRow(screen: Screen, timeoutMs: Long = 5_000) {
-        val deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            advanceUntilIdle()
-            val row = runCatching { firstRowOf(screen.onGetTemplate()) }.getOrNull()
-            if (row != null) {
-                row.onClickDelegate?.sendClick(mockk(relaxed = true))
-                return
+        var clicked = false
+        // A screen whose list arrives from a background load is covered by driving the test scheduler
+        // while that work progresses — no wall-clock deadline and no sleep
+        // (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+        runBlocking {
+            withTimeoutOrNull<Boolean>(timeoutMs) {
+                while (!clicked) {
+                    advanceUntilIdle()
+                    val row = runCatching { firstRowOf(screen.onGetTemplate()) }.getOrNull()
+                    if (row != null) {
+                        row.onClickDelegate?.sendClick(mockk(relaxed = true))
+                        clicked = true
+                    } else {
+                        yield()
+                    }
+                }
+                true
             }
-            Thread.sleep(5)
         }
-        failTemplate("no clickable row became available within ${timeoutMs}ms")
+        if (!clicked) failTemplate("no clickable row became available within ${timeoutMs}ms")
     }
 
-    /** Bounded wait for the screen to build a template matching [accept]. */
+    /** Wait for the screen to build a template matching [accept]. */
     private fun TestScope.awaitTemplate(
         screen: Screen,
         accept: (Template) -> Boolean,
         timeoutMs: Long = 5_000
     ): Template? {
-        val deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            advanceUntilIdle()
-            val template = runCatching { screen.onGetTemplate() }.getOrNull()
-            if (template != null && accept(template)) return template
-            Thread.sleep(5)
+        var accepted: Template? = null
+        runBlocking {
+            withTimeoutOrNull<Boolean>(timeoutMs) {
+                while (accepted == null) {
+                    advanceUntilIdle()
+                    accepted = runCatching { screen.onGetTemplate() }.getOrNull()?.takeIf(accept)
+                    if (accepted == null) yield()
+                }
+                true
+            }
         }
-        return null
+        return accepted
     }
 
     /** First row of a list- or search-template, or null when it has none. */

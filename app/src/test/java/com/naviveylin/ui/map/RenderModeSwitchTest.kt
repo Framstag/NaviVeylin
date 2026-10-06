@@ -140,9 +140,9 @@ class RenderModeSwitchTest {
 
     @Test
     fun switchingModeDiscardsInFlightTileRender() = runTest(mainDispatcherRule.dispatcher) {
-        // Slow tile renderer: the tile path blocks long enough to interleave a
-        // mode switch while the first job is in flight.
-        client.renderWithRouteAndPoisDelayMs = 400L
+        // The tile render is requested and then superseded before the scheduler runs it: the switch
+        // lands while the queued tile job is still in flight on the test scheduler, so no real-time
+        // pause is involved (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
         val slowRenderer = MapRenderer(client, 320.0, scope)
         slowRenderer.screenWidth = 1200
         slowRenderer.screenHeight = 1200

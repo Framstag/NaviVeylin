@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.NavigationState
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
@@ -59,6 +60,14 @@ class MapCanvasViewModelSingleFollowCenterTest {
     private lateinit var navViewModel: NavigationViewModel
     private lateinit var viewModel: MapCanvasViewModel
 
+    /**
+     * The time the follow-render throttle sees. It starts at the wall clock so the fix timestamps the
+     * cases inject stay comparable to it (fix age is data), and is then moved by hand instead of by
+     * sleeping past the 200 ms interval (spec `unit-test-suite-runtime` — Injected time instead of a real
+     * clock).
+     */
+    private var fakeNowMs: Long = System.currentTimeMillis()
+
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -81,6 +90,7 @@ class MapCanvasViewModelSingleFollowCenterTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNowMs },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -110,13 +120,12 @@ class MapCanvasViewModelSingleFollowCenterTest {
     }
 
     /**
-     * Pump the collector. The follow render throttle compares REAL
-     * System.currentTimeMillis (GPS_FOLLOW_RENDER_INTERVAL_MS = 200 ms), so
-     * consecutive fixes must be spaced in real time.
+     * Pump the collector. The follow render throttle reads the injected clock
+     * (GPS_FOLLOW_RENDER_INTERVAL_MS = 200 ms), so consecutive fixes are spaced by moving that clock.
      */
     private fun pumpFix(scope: TestScope, step: Int, bearingDeg: Double) {
         injectFix(step, bearingDeg)
-        Thread.sleep(230)
+        fakeNowMs += 230L
         scope.advanceTimeBy(1)
         scope.runCurrent()
     }

@@ -1,5 +1,7 @@
 package com.framstag.libosmscout.client
 
+import java.util.concurrent.CopyOnWriteArrayList
+
 /**
  * [OSMScoutClient] test double for the car map screen's host-callback paths
  * (spec: car-host-fault-isolation — Host callbacks answer promptly): answers the
@@ -23,15 +25,20 @@ class FakeMapScreenClient(
     /** True once [getDescriptionCandidates] was reached. */
     var candidateLookups: Int = 0
 
-    /** Stylesheet flags pushed to the native side, in call order. */
-    val styleSheetFlags = mutableListOf<Pair<String, Boolean>>()
+    /**
+     * Stylesheet flags pushed to the native side, in call order. Copy-on-write: the pushes come from a
+     * real background dispatcher while the case iterates the list on the test thread, so a plain
+     * `mutableListOf` throws `ConcurrentModificationException` under a loaded suite (found by task 4.3's
+     * full `:auto` run).
+     */
+    val styleSheetFlags: MutableList<Pair<String, Boolean>> = CopyOnWriteArrayList()
 
     /**
      * Thread names of the [setStyleSheetFlag] calls, in call order: the flag reloads the
      * style variant on the DB thread, so a host callback must never be the caller
      * (spec: car-host-fault-isolation — Host callbacks answer promptly).
      */
-    val styleSheetFlagThreads = mutableListOf<String>()
+    val styleSheetFlagThreads: MutableList<String> = CopyOnWriteArrayList()
 
     override fun loadStyleSheet(name: String): Boolean {
         styleSheetLoads.add(name)

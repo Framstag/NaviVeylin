@@ -21,6 +21,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.After
@@ -106,19 +108,24 @@ class MapCanvasViewModelInitThreadingTest {
     private fun mapKeyOf(mapPath: String): String = mapPath.substringAfterLast('/')
 
     /**
-     * Starts an initialization and pumps the test scheduler until [condition] holds, with a bounded
-     * real-clock deadline (the initialization section runs on a real background thread, so the test
-     * scheduler cannot advance it).
+     * Starts an initialization and pumps the test scheduler until [condition] holds. The initialization
+     * section deliberately runs on a real background thread in this file (that is its subject), so the case
+     * drives its own scheduler from a real dispatcher while that thread works and awaits the observable
+     * state — no wall-clock deadline and no sleep are involved
+     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline). The loop is bounded by
+     * `runTest`'s own timeout rather than by a clock this case reads.
      */
-    private fun awaitInitialization(condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + DEADLINE_MS
-        while (System.currentTimeMillis() < deadline) {
-            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-            if (condition()) return
-            Thread.sleep(POLL_MS)
+    private fun awaitInitialization(condition: () -> Boolean) = runBlocking {
+        withContext(Dispatchers.Default) {
+            val scheduler = mainDispatcherRule.dispatcher.scheduler
+            // Pump BEFORE checking, exactly as the deadline version did: a state that is not yet set (e.g.
+            // `isLoading` before initMap's first publication) must not satisfy the condition early.
+            while (true) {
+                scheduler.advanceUntilIdle()
+                if (condition()) return@withContext
+                yield()
+            }
         }
-        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-        assertTrue("initialization did not reach the expected state within ${DEADLINE_MS}ms", condition())
     }
 
     /** The thread main-dispatcher work runs on in this case. */

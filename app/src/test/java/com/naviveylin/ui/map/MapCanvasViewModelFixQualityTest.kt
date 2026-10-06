@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
@@ -23,10 +24,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -74,23 +78,29 @@ class MapCanvasViewModelFixQualityTest {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         locationService = LocationService(context)
+        val settingsStorage = SettingsStorage(context).also { it.ioDispatcher = mainDispatcherRule.dispatcher }
+        val searchHistoryRepository = SearchHistoryRepository(context)
+            .also { it.defaultDispatcher = mainDispatcherRule.dispatcher }
+        val favoriteRepository = FavoriteRepository(client)
+            .also { it.defaultDispatcher = mainDispatcherRule.dispatcher }
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = SettingsStorage(context),
+            settingsStorage = settingsStorage,
             assetCopier = AssetCopier(context),
             client = client,
-            favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context),
+            favoriteRepository = favoriteRepository,
+            searchHistoryRepository = searchHistoryRepository,
             locationService = locationService,
-            darkModeController = DarkModeController(SettingsStorage(context)),
+            darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNow },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
+        viewModel.rendererDispatcher = mainDispatcherRule.dispatcher
         viewModel.fixQualityTickMs = SETUP_TICK_MS
         viewModel.fixAgeLimitMs = 200L
-        viewModel.nowMs = { fakeNow }
         // Robolectric starts with location services off; the platform read itself is covered by
         // LocationServiceTest — a case flips this to false for the disabled-source case.
         locationService.setLocationSourceReadForTest { true }
@@ -134,40 +144,36 @@ class MapCanvasViewModelFixQualityTest {
         }
 
     /**
-     * Waits until the *published* quality is [expected], driving the ViewModel's scheduler (and with
-     * it the debounce) while the real-clock tick detects the change. Used by the cases whose
-     * transition only the tick can see: the pipeline is main-confined and virtual, the tick is not.
+     * Pump this test's scheduler from a real dispatcher until [condition] holds. The fix-quality tick runs
+     * on a real dispatcher with the real clock **on purpose** (it must not feed the virtual scheduler), so
+     * the case drives its own scheduler while that thread works and awaits the observable state instead of
+     * reading a clock or sleeping (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
      */
-    private fun awaitQuality(expected: GpsFixQuality) {
-        val deadline = System.currentTimeMillis() + QUALITY_DEADLINE_MS
-        while (System.currentTimeMillis() < deadline) {
-            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-            if (quality() == expected) return
-            Thread.sleep(POLL_MS)
-        }
-        assertEquals("quality must reach this within ${QUALITY_DEADLINE_MS}ms", expected, quality())
-    }
-
-    /** Watches the main dispatcher's scheduler for [TICK_WATCH_MS] of real ticks, without asserting. */
-    private fun watchTicks() {
-        val deadline = System.currentTimeMillis() + TICK_WATCH_MS
-        while (System.currentTimeMillis() < deadline) {
-            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-            Thread.sleep(POLL_MS)
+    private fun pumpUntil(condition: () -> Boolean) = runBlocking {
+        withContext(Dispatchers.Default) {
+            val scheduler = mainDispatcherRule.dispatcher.scheduler
+            while (!condition()) {
+                scheduler.advanceUntilIdle()
+                yield()
+            }
         }
     }
 
     /**
-     * Lets the work the construction started finish: the ViewModel's collaborators read settings,
-     * viewport, favorites and assets through their own background dispatchers, and their `withContext`
-     * completions resume on the main dispatcher from a real thread too.
+     * Awaits the **published** quality, driving the ViewModel's scheduler (and with it the debounce) while
+     * the real-clock tick detects the change.
      */
+    private fun awaitQuality(expected: GpsFixQuality) = pumpUntil { quality() == expected }
+
+    /** Waits for [TICK_WATCH_TICKS] completed ticks — a tick window, not a wall-clock window. */
+    private fun watchTicks() {
+        val from = viewModel.fixQualityTickCount.value
+        pumpUntil { viewModel.fixQualityTickCount.value >= from + TICK_WATCH_TICKS }
+    }
+
+    /** The collaborators are pinned to this test's scheduler, so draining it settles the construction. */
     private fun settleConstruction() {
-        val deadline = System.currentTimeMillis() + SETTLE_MS
-        while (System.currentTimeMillis() < deadline) {
-            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-            Thread.sleep(POLL_MS)
-        }
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
     }
 
     @Test
@@ -373,6 +379,9 @@ class MapCanvasViewModelFixQualityTest {
 
         /** How long a case watches real ticks. */
         const val TICK_WATCH_MS = 300L
+
+        /** [TICK_WATCH_MS] expressed in ticks of [SETUP_TICK_MS] — the window a case actually needs. */
+        const val TICK_WATCH_TICKS = 6L
 
         /** Time the main-dispatcher case gives the construction-time work to settle. */
         const val SETTLE_MS = 600L

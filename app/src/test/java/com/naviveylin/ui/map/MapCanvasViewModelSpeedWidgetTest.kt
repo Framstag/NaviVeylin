@@ -15,8 +15,11 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -226,25 +229,28 @@ class MapCanvasViewModelSpeedWidgetTest {
         pushStaleFix(System.currentTimeMillis(), speedKmH = 60.0)
         testScheduler.advanceUntilIdle()
         // Float round-trip (60f/3.6f*3.6 ≈ 59.9999977): tolerate ±0.01.
-        awaitSpeedCondition(deadlineMs = 1_500) {
+        awaitSpeedCondition(timeoutMs = 1_500) {
             kotlin.math.abs(viewModel.uiState.value.currentSpeedKmH - 60.0) < 0.01
         }
     }
 
-    /** Poll the real-time state until [condition] holds (the decay ticker runs
-     *  on Dispatchers.Default with the real clock, not the test scheduler). */
-    private fun awaitSpeedCondition(
-        deadlineMs: Long = 5_000,
-        condition: () -> Boolean
-    ) {
-        val deadline = System.currentTimeMillis() + deadlineMs
-        while (System.currentTimeMillis() < deadline) {
-            if (condition()) return
-            Thread.sleep(10)
+    /**
+     * Await the state the speed widget publishes. Its decay ticker runs on a real dispatcher with the real
+     * clock (spec `map-speed-widget`), so the case awaits the observable state on a real dispatcher under a
+     * bounded timeout — no sleep and no clock deadline of its own
+     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
+    private suspend fun awaitSpeedCondition(timeoutMs: Long = 5_000, condition: () -> Boolean) {
+        val reached = withContext(Dispatchers.Default) {
+            withTimeoutOrNull(timeoutMs) { viewModel.uiState.first { condition() } }
         }
-        val s = viewModel.uiState.value
-        throw AssertionError("speed condition not met within ${deadlineMs}ms; state=${s.currentSpeedKmH} " +
-            "gpsTime=${s.gpsLocation?.time} gpsSpeed=${s.gpsLocation?.speedKmH} follow=${s.followMode}")
+        if (reached == null) {
+            val s = viewModel.uiState.value
+            throw AssertionError(
+                "speed condition not met within ${timeoutMs}ms; state=${s.currentSpeedKmH} " +
+                    "gpsTime=${s.gpsLocation?.time} gpsSpeed=${s.gpsLocation?.speedKmH} follow=${s.followMode}"
+            )
+        }
     }
 
     @Test

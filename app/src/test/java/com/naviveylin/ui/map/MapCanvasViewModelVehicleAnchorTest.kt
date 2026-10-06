@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.anchorCenter
@@ -21,10 +22,13 @@ import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -48,6 +52,13 @@ import com.naviveylin.test.engineUnderTest
 class MapCanvasViewModelVehicleAnchorTest {
 
     private lateinit var context: Context
+
+    /**
+     * The time the follow-render throttle sees. It starts at the wall clock so the fix timestamps the
+     * cases deliver stay comparable to it (fix age is data), and is then moved instead of slept through
+     * (spec `unit-test-suite-runtime` — Injected time instead of a real clock).
+     */
+    private var fakeNowMs: Long = System.currentTimeMillis()
     private lateinit var client: FakeOSMScoutClient
     private lateinit var locationService: LocationService
     private lateinit var settingsStorage: SettingsStorage
@@ -74,6 +85,7 @@ class MapCanvasViewModelVehicleAnchorTest {
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNowMs },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -115,6 +127,7 @@ class MapCanvasViewModelVehicleAnchorTest {
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNowMs },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -183,6 +196,7 @@ class MapCanvasViewModelVehicleAnchorTest {
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNowMs },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -208,6 +222,7 @@ class MapCanvasViewModelVehicleAnchorTest {
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNowMs },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -571,14 +586,11 @@ class MapCanvasViewModelVehicleAnchorTest {
     private companion object {
         const val SCREEN_W = 1080
         const val SCREEN_H = 1920
+    }
 
-        /**
-         * Follow renders are throttled by real time (GPS_FOLLOW_RENDER_INTERVAL_MS
-         * = 200 ms), so a second fix in the same (virtual) test instant does not
-         * commit a new viewport. Real-time sleep mirrors the existing
-         * `startNavigating` helper's use of Thread.sleep.
-         */
-        fun awaitFollowThrottle() = Thread.sleep(250)
+    /** Move the injected clock past the follow-render throttle (200 ms) without sleeping. */
+    private fun awaitFollowThrottle() {
+        fakeNowMs += 250L
     }
 
     private fun buildNavigationViewModel(): NavigationEngine {
@@ -600,14 +612,13 @@ class MapCanvasViewModelVehicleAnchorTest {
         )
     }
 
-    /** Start a route via the engine's acquisition and wait until navigation is active. */
+    /** Start a route via the engine's acquisition and await the active state. */
     private suspend fun TestScope.startNavigating(navVm: NavigationEngine) {
         navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
-            advanceUntilIdle()
-            Thread.sleep(10)
-        }
+        // The route calculation is real background work (native lookups), so the case awaits the engine's
+        // observable state on a real dispatcher — no clock, no sleep, no bounded poll
+        // (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+        withContext(Dispatchers.Default) { navVm.state.first { it.isNavigating } }
         assertEquals("navigation must become active", true, navVm.state.value.isNavigating)
         advanceUntilIdle()
     }

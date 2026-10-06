@@ -16,6 +16,9 @@ import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -1710,7 +1713,14 @@ class AutoMapRendererTest {
         renderer.onSurfaceDestroyed()
         val renders = renderer.fullRenderCount
         renderer.asyncLoopsEnabled = true // the walk loop now runs with the surface gone
-        Thread.sleep(200)
+        // Give the loop a chance to act: await its turns instead of pausing on the wall clock
+        // (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+        val turns = renderer.zoomWalkLoopTurns
+        runBlocking {
+            withTimeoutOrNull(2_000) {
+                while (renderer.zoomWalkLoopTurns < turns + 3) yield()
+            }
+        }
 
         assertEquals(
             "the walk must not land the target without a surface",

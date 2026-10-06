@@ -19,6 +19,7 @@ import com.naviveylin.core.BundledMapStyles.DEFAULT_STYLE_NAME
 import com.naviveylin.core.CarSessionPresence
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.MapStyleLoadReporter
 import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.ProjectionUtils
@@ -324,6 +325,13 @@ class MapCanvasViewModel @Inject constructor(
      * injects the process-scoped binding.
      */
     private val carSessionPresence: CarSessionPresence = CarSessionPresenceImpl(),
+    /**
+     * The clock the dwell decisions read (spec: `unit-test-suite-runtime` — Injected time instead of a
+     * real clock): the BROWSE re-center dwell window compares against this seam, so a case moves time
+     * instead of sleeping. The default exists for direct construction in tests; production injects the
+     * process-scoped binding.
+     */
+    private val timeSource: EngineTimeSource = EngineTimeSource.System,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -378,6 +386,16 @@ class MapCanvasViewModel @Inject constructor(
     internal var defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 
     /**
+     * The dispatcher the renderer's own scope runs on — its frame work and its debounce. Declared
+     * separately from [defaultDispatcher] because a case may need to gate the ViewModel's
+     * initialization while the renderer keeps running (the viewport-restore window), and because the
+     * renderer scope is created once per `initMap`; a test drives it to move a debounce instead of
+     * waiting real time for a frame (spec `unit-test-suite-runtime` — a unit test controls the time its
+     * subject waits on; change `speed-up-test-iteration`, task 2.4).
+     */
+    internal var rendererDispatcher: CoroutineDispatcher = Dispatchers.Default
+
+    /**
      * Fix age limit behind the GPS fix quality (spec: `gps-fix-quality` — Fix availability and
      * quality tiers). Test hook: shorten it to observe the aged-out transition without waiting the
      * production 60 s.
@@ -392,13 +410,6 @@ class MapCanvasViewModel @Inject constructor(
      */
     @VisibleForTesting
     internal var fixQualityTickMs: Long = FIX_QUALITY_TICK_MS
-
-    /**
-     * Clock behind the fix-age comparison (spec: `gps-fix-quality`). Test hook: a case can age a fix
-     * out by moving this, instead of waiting real seconds for the production age limit.
-     */
-    @VisibleForTesting
-    internal var nowMs: () -> Long = System::currentTimeMillis
 
     /**
      * The OSMScoutClient, exposed for embeddable map widgets (e.g. [MiniMap])
@@ -1044,6 +1055,14 @@ class MapCanvasViewModel @Inject constructor(
      */
     private val fixQualityTicks = MutableStateFlow(0L)
 
+    /**
+     * How many fix-quality ticks have completed, counted for **every** tick rather than only for a
+     * detected change. Internal test seam (spec `unit-test-suite-runtime` — Awaiting state, not a
+     * deadline): the tick loop deliberately runs on a real dispatcher with the real clock, so a case that
+     * needs "several ticks with nothing changing" awaits this counter instead of a wall-clock window.
+     */
+    internal val fixQualityTickCount = MutableStateFlow(0L)
+
     init {
         viewModelScope.launch { searchHistoryRepository.load() }
         refreshAddressBookAvailability()
@@ -1134,6 +1153,7 @@ class MapCanvasViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.Default) {
             while (true) {
                 delay(fixQualityTickMs)
+                fixQualityTickCount.value = fixQualityTickCount.value + 1L
                 if (deriveFixQuality(locationService.location.value) != _gpsFixQuality.value) {
                     fixQualityTicks.value = fixQualityTicks.value + 1L
                 }
@@ -1421,7 +1441,7 @@ class MapCanvasViewModel @Inject constructor(
                 mapRenderer?.prepareViewport(targetLat, targetLon, zoomWalk.renderMag(_uiState.value.viewport.magnification), angle)
 
                 // Coalesce follow-mode renders so GPS ticks cannot overrun the render pipeline.
-                val now = System.currentTimeMillis()
+                val now = timeSource.nowMillis()
                 val throttleElapsed = now - lastFollowRenderMs >= GPS_FOLLOW_RENDER_INTERVAL_MS
                 if (!throttleElapsed && shouldRender) {
                     return@collect
@@ -1542,7 +1562,7 @@ class MapCanvasViewModel @Inject constructor(
                     // against the emitted frame viewport (which is anchor-centered). The
                     // viewport moved — render the anchor-centered frame.
                     renderMap()
-                    lastFollowRenderMs = System.currentTimeMillis()
+                    lastFollowRenderMs = timeSource.nowMillis()
                 } else {
                     // No viewport motion; marker stays at the raw GPS fix via the overlay.
                 }
@@ -2147,8 +2167,10 @@ class MapCanvasViewModel @Inject constructor(
             )
 
             // Create MapRenderer on a dedicated background scope so heavy JNI renders
-            // never block the main thread and the UI stays responsive.
-            val rendererScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            // never block the main thread and the UI stays responsive. The scope takes the injectable
+            // renderer dispatcher (not an inline Dispatchers.Default), so a test can run the renderer's
+            // work — including its debounce — on its own scheduler.
+            val rendererScope = CoroutineScope(SupervisorJob() + rendererDispatcher)
             this@MapCanvasViewModel.rendererScope = rendererScope
             val renderer = MapRenderer(client, density, rendererScope)
             renderer.renderMode = _uiState.value.renderMode
@@ -3429,7 +3451,7 @@ class MapCanvasViewModel @Inject constructor(
      */
     private suspend fun deriveFixQuality(loc: GpsFix?): GpsFixQuality = when {
         loc == null -> GpsFixQuality.NONE
-        FixFreshness.isAgedOut(loc.time, nowMs(), fixAgeLimitMs) -> GpsFixQuality.NONE
+        FixFreshness.isAgedOut(loc.time, timeSource.nowMillis(), fixAgeLimitMs) -> GpsFixQuality.NONE
         !withContext(defaultDispatcher) { locationService.isLocationSourceEnabled() } ->
             GpsFixQuality.NONE
         loc.accuracy > GPS_FIX_MAX_ACCURACY_M -> GpsFixQuality.POOR
@@ -3476,7 +3498,7 @@ class MapCanvasViewModel @Inject constructor(
                 }
                 state.browseReCenterVisible -> true
                 offsetPx >= RECENTER_SHOW_OFFSET_PX -> {
-                    val now = System.currentTimeMillis()
+                    val now = timeSource.nowMillis()
                     if (browseReCenterBeyondSinceMs == 0L) browseReCenterBeyondSinceMs = now
                     now - browseReCenterBeyondSinceMs >= RECENTER_DWELL_MS
                 }
@@ -4532,7 +4554,7 @@ class MapCanvasViewModel @Inject constructor(
         // Ignore duplicate GPS fixes with same coordinates and bearing within this window.
         private const val GPS_DEDUPE_MS = 100L
         // Minimum interval between follow-mode renders (coalesces GPS ticks).
-        private const val GPS_FOLLOW_RENDER_INTERVAL_MS = 200L
+        internal const val GPS_FOLLOW_RENDER_INTERVAL_MS = 200L
         // Minimum interval between non-follow marker-move renders (old native throttle).
         private const val NON_FOLLOW_MARKER_RENDER_INTERVAL_MS = 1000L
         // Ignore bearing changes smaller than this for follow-mode angle updates.

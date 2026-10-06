@@ -20,9 +20,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -159,15 +162,22 @@ class MapScreenTest {
         value: Boolean,
         timeoutMs: Long = 3_000
     ): Int {
-        val deadline = System.currentTimeMillis() + timeoutMs
-        var count = 0
-        while (System.currentTimeMillis() < deadline) {
-            advanceUntilIdle()
-            count = fake.styleSheetFlags.count { it.first == "daylight" && it.second == value }
-            if (count > 0) return count
-            Thread.sleep(10)
+        var count = fake.styleSheetFlags.count { it.first == "daylight" && it.second == value }
+        // The collector applies the request on a real background dispatcher, so the test scheduler is
+        // driven while that work progresses and the observable state is awaited — no wall-clock deadline
+        // and no sleep (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+        runBlocking {
+            withTimeoutOrNull<Boolean>(timeoutMs) {
+                while (count == 0) {
+                    advanceUntilIdle()
+                    count = fake.styleSheetFlags.count { it.first == "daylight" && it.second == value }
+                    if (count == 0) yield()
+                }
+                true
+            }
         }
-        return count
+        advanceUntilIdle()
+        return fake.styleSheetFlags.count { it.first == "daylight" && it.second == value }
     }
 
     /** A host-delivered surface a renderer can lock (see [SessionCarSurfaceHostTest]). */

@@ -191,4 +191,34 @@ class NavigationEngineCalculationCancelTest {
         assertTrue(engine.state.value.isNavigating)
         assertNull("the cancelled acquisition left no wait behind", engine.state.value.calculation)
     }
+
+    /**
+     * The other half of the ownership rule, so the fix cannot read as "never release on failure":
+     * an attempt that took the lease for its own start position still releases it when it fails
+     * (spec: `navigation-engine` — A failed route attempt releases only the lease it took).
+     */
+    @Test
+    fun aFailedSurfaceLessAcquisitionReleasesItsOwnLease() {
+        grantPreciseLocation()
+        val client = FakeOSMScoutClient().apply { holdRouteDelivery = true }
+        val locationService = LocationService(context())
+        injectGpsFix(locationService, 52.5200, 13.4050)
+        val engine = buildEngine(client, locationService)
+
+        engine.navigateTo(52.5300, 13.4100)
+        awaitState { engine.state.value.calculation != null }
+        assertTrue(
+            "the acquisition leased GPS for its start position",
+            locationService.heldLeaseConsumers().contains(LocationConsumers.NAV_ENGINE)
+        )
+
+        awaitCallback(client).onError("No route available")
+        awaitState { engine.state.value.errorMessage != null }
+
+        assertFalse("no navigation may start", engine.state.value.isNavigating)
+        assertTrue(
+            "a failed acquisition that owned the lease must release it",
+            locationService.heldLeaseConsumers().isEmpty()
+        )
+    }
 }

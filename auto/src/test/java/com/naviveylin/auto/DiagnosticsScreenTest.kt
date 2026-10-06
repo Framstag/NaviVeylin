@@ -16,6 +16,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 
@@ -58,15 +61,26 @@ class DiagnosticsScreenTest {
     private fun rows(screen: DiagnosticsScreen): List<String> =
         (screen.onGetTemplate() as PaneTemplate).pane.rows.map { it.title.toString() }
 
-    /** Drive the main looper until the screen's background load published entries. */
+    /**
+     * Drive the main looper until the screen's background load published entries. The screen's own thread
+     * does real work, so the looper is driven while that work progresses and the observable state is
+     * awaited — no wall-clock deadline and no sleep
+     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     */
     private fun awaitEntries(screen: DiagnosticsScreen, expected: String): Boolean {
-        val deadline = System.currentTimeMillis() + 3_000
-        while (System.currentTimeMillis() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
-            if (rows(screen).any { it.contains(expected) }) return true
-            Thread.sleep(10)
+        val seen = runBlocking {
+            withTimeoutOrNull<Boolean>(3_000) {
+                var found = false
+                while (!found) {
+                    shadowOf(Looper.getMainLooper()).idle()
+                    found = rows(screen).any { it.contains(expected) }
+                    if (!found) yield()
+                }
+                found
+            }
         }
-        return rows(screen).any { it.contains(expected) }
+        shadowOf(Looper.getMainLooper()).idle()
+        return seen ?: rows(screen).any { it.contains(expected) }
     }
 
     @Test

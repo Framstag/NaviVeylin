@@ -245,6 +245,14 @@ class AutoMapRenderer internal constructor(
     /** Test seam: when false, the async render/extrapolation loops do not run. */
     @Volatile internal var asyncLoopsEnabled = true
 
+    /**
+     * Turns the zoom-transition loop has taken, counted before its surface gate. Internal test seam
+     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline): the loop is render-synchronous
+     * and runs on a real dispatcher, so a case that must give it a chance to act awaits loop turns
+     * instead of a wall-clock pause.
+     */
+    @Volatile internal var zoomWalkLoopTurns = 0
+
     // Follow mode
     @Volatile private var followMode = initialFollowMode
 
@@ -1004,6 +1012,7 @@ class AutoMapRenderer internal constructor(
         zoomWalkJob = scope.launch {
             var lastFrameMs = 0L
             while (isActive) {
+                zoomWalkLoopTurns += 1
                 val usable = asyncLoopsEnabled && !isShutdown && !paused && !surfaceFailed &&
                     surface != null
                 if (usable) {

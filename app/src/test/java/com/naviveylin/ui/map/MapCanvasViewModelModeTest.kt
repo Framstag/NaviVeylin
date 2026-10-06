@@ -18,9 +18,12 @@ import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -172,13 +175,10 @@ class MapCanvasViewModelModeTest {
         assertFalse(viewModel.uiState.value.followMode)
 
         navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
-        // Route calculation runs on a real Dispatchers.Default thread — poll
-        // with real time, advancing the virtual scheduler each round.
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
-            advanceUntilIdle()
-            Thread.sleep(10)
-        }
+        // The route calculation is real background work (native lookups), so the case awaits the engine's
+        // observable state on a real dispatcher — no clock, no sleep, no bounded poll
+        // (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+        withContext(Dispatchers.Default) { navVm.state.first { it.isNavigating } }
         assertTrue(navVm.state.value.isNavigating)
         assertEquals("navigation overrides the mode", MapMode.NAVIGATION, viewModel.mode)
 
@@ -200,11 +200,7 @@ class MapCanvasViewModelModeTest {
         assertTrue(viewModel.uiState.value.followMode)
 
         navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
-            advanceUntilIdle()
-            Thread.sleep(10)
-        }
+        withContext(Dispatchers.Default) { navVm.state.first { it.isNavigating } }
         assertTrue(navVm.state.value.isNavigating)
         assertEquals(MapMode.NAVIGATION, viewModel.mode)
 
@@ -260,19 +256,11 @@ class MapCanvasViewModelModeTest {
 
         // The phone's own session starts navigation: the adapter forces follow on.
         surface.start(routeClient.routeToDeliver!!, Vehicle.CAR)
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
-            advanceUntilIdle()
-            Thread.sleep(10)
-        }
+        withContext(Dispatchers.Default) { navVm.state.first { it.isNavigating } }
         assertTrue("navigation is running", navVm.state.value.isNavigating)
         // The adapter observes the same engine state on the main dispatcher, after the calculation
-        // landed on its real dispatcher — drain it before reading the surface.
-        val followDeadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < followDeadline && !viewModel.uiState.value.followMode) {
-            advanceUntilIdle()
-            Thread.sleep(10)
-        }
+        // landed on its real dispatcher — await that observable state, then read the surface.
+        withContext(Dispatchers.Default) { viewModel.uiState.first { it.followMode } }
         assertTrue("navigation forced follow on", viewModel.uiState.value.followMode)
 
         // The card's stop control ends navigation through the one engine.

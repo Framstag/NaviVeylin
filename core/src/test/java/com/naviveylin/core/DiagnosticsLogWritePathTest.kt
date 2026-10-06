@@ -56,15 +56,6 @@ class DiagnosticsLogWritePathTest {
 
     private fun disk(): String = if (logFile.exists()) logFile.readText() else ""
 
-    private fun poll(timeoutMs: Long = 3_000, condition: () -> Boolean): Boolean {
-        val deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            if (condition()) return true
-            Thread.sleep(10)
-        }
-        return condition()
-    }
-
     @Test
     fun workerIsCreatedLazilyAndIsADaemon() {
         assertNull("no worker before the first entry", DiagnosticsLog.workerThreadOrNull())
@@ -101,11 +92,11 @@ class DiagnosticsLogWritePathTest {
 
         DiagnosticsLog.log("TEST", "deadline-line")
 
-        // No explicit flush request: only the worker's deadline can deliver this.
-        assertTrue(
-            "the flush deadline delivers the entry",
-            poll { disk().contains("deadline-line") }
-        )
+        // No explicit flush request: only the worker's deadline can deliver this. The lines are buffered
+        // and written by the logging worker, so ask the log to drain instead of polling the file on the
+        // wall clock (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+        assertTrue("the flush deadline delivers the entry", DiagnosticsLog.awaitDrained())
+        assertTrue("the deadline line must be on disk: ${disk()}", disk().contains("deadline-line"))
     }
 
     @Test
@@ -119,10 +110,8 @@ class DiagnosticsLogWritePathTest {
         // flushed by that signal; the rest stays buffered (the worker is parked on a
         // 60 s deadline, so the 3 s poll bound proves the burst, not the deadline,
         // triggered the flush).
-        assertTrue(
-            "a burst flushes at the high-water mark",
-            poll { disk().contains("TEST burst-5") }
-        )
+        assertTrue("a burst flushes at the high-water mark", DiagnosticsLog.awaitDrained())
+        assertTrue("the last burst line must be on disk", disk().contains("TEST burst-5"))
     }
 
     @Test

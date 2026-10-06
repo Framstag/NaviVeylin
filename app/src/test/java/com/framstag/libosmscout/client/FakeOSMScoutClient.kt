@@ -40,11 +40,8 @@ class FakeOSMScoutClient : OSMScoutClient() {
     @Volatile
     var renderReturnsNull: Boolean = false
 
-    /** Optional artificial delay (ms) inside [renderWithRouteAndPois] — used to
-     *  interleave mode switches with an in-flight tile render in tests. */
-    var renderWithRouteAndPoisDelayMs: Long = 0L
-
-    /** Search-selection marker latitude from the last [renderWithRouteAndPois] (NaN when unset). */
+    /**
+     * Search-selection marker latitude from the last [renderWithRouteAndPois] (NaN when unset). */
     var lastSearchSelLat: Double = Double.NaN
 
     /** Search-selection marker longitude from the last [renderWithRouteAndPois] (NaN when unset). */
@@ -268,9 +265,6 @@ class FakeOSMScoutClient : OSMScoutClient() {
         renderMags.add(magnification)
         lastRenderDpi = dpi
         renderDpis.add(dpi)
-        if (renderWithRouteAndPoisDelayMs > 0L) {
-            Thread.sleep(renderWithRouteAndPoisDelayMs)
-        }
         if (renderReturnsNull) return null
         return createTestPixels(width, height)
     }

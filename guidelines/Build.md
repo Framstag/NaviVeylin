@@ -26,6 +26,22 @@ verification, or release work is requested or required by the OpenSpec apply/arc
 Each skill lives in `.pi/skills/<name>/SKILL.md` (gitignored — copy to
 `~/.pi/agent/skills/<name>/` to make it available across projects).
 
+### Screenshot reading (harness prerequisite)
+
+Reading a screenshot is a tool the harness must provide; it is not part of the repository.
+**`view_image`** comes from the Pi package `@luan.sh/pi-view-image`:
+
+```bash
+pi install npm:@luan.sh/pi-view-image   # verified working 2026-10-06, pi 1.0.4
+```
+
+It reads a local PNG/JPEG/GIF/WebP and returns it as an image content block, so a vision-capable
+model sees the pixels — `ctx_read` returns only a placeholder for an image file, and lean-ctx runs in
+`mode: "replace"`, so Pi's built-in image-capable `read` is not available. The package builds a small
+Rust binary on first use (a Rust toolchain is required; set `PI_VIEW_IMAGE_BIN` to use a prebuilt
+executable). Look first, then measure with `tools/measure-highlight.py` — the look is triage, the
+script's numbers and exit code are the evidence (`pixel-check` skill, §10 below).
+
 ## 2. Common behavior
 
 All four skills follow the same contract:
@@ -510,6 +526,39 @@ see `TODO.md` §132.
   top of the daemon. `:auto` is the opposite case: short enough that per-JVM start-up outweighs the split,
   so more forks only cost wall time (38.3s → 40.0s → 48.9s) and memory. Re-derive both numbers after a
   meaningful test-suite change (the suites grew from 215/1635 to 218/1649 classes/tests on 2026-10-04).
+- **Wall-clock waits are refused, and the conversion is measured** (change `speed-up-test-iteration`, spec
+  `unit-test-suite-runtime` — Wall-clock waits in test sources are refused by a build check). Each
+  test-bearing module wires `checkNoWallClockWaits` (the pure `buildSrc` object
+  `com.naviveylin.build.testing.WallClockWaitScanner`) into its `preBuild`, and the check has **no
+  allowlist**: a `Thread.sleep`, a `TimeUnit.X.sleep`, a `while (… System.currentTimeMillis() …)` deadline
+  loop or a clock-derived `deadline` binding fails the build naming file and line. A test that must wait
+  instead drives the component's seam — the ViewModel's `EngineTimeSource` / `rendererDispatcher`,
+  `EngineDispatchers` for the navigation engine, `DiagnosticsLog.awaitDrained()`, the auto renderer's
+  `zoomWalkLoopTurns`, copy-on-write collections in a fake — and awaits observable state. Measured
+  2026-10-06 on the forced gate (`test :app:assembleMobileDebug :app:assembleAutomotiveDebug
+  -PforceTests --no-build-cache -I tools/gate-timings.init.gradle.kts` → `BUILD SUCCESSFUL in 4m 54s`,
+  123 executed tasks, 0 failed tasks):
+
+  | suite | classes / tests | class time | task duration in that gate |
+  |---|---|---|---|
+  | `:app` mobile | 221 / 1719, 0 failures | 129 s | 75 s |
+  | `:app` automotive | 221 / 1719, 0 failures | 138 s | 79 s |
+  | `:auto` | 76 / 781, 0 failures | 64 s | 70 s |
+  | `:core` | 41 / 447, 0 failures | 14 s | 18 s |
+  | JNI | 2 / 26, 0 failures | 1 s | 1.7 s |
+
+  Against the 2026-10-05 gate record (§2: `:app` mobile 4m54s, automotive 3m56s, `:auto` 1m39s, `:core`
+  32.8 s — 12m00s of suite work in a 9m46s wall) the same suites now take **4m02s of suite work in a
+  4m54s wall**. The automotive suite alone went **252 s → 138 s of class time** with the same 221 classes;
+  the classes that owed their time to a wait lost most of it: `MapCanvasViewModelBrowseReCenterTest`
+  16.485 s → 0.359 s, `MapCanvasViewModelViewportRestoreTest` 16.083 s → 7.22 s,
+  `MapCanvasViewModelAutoZoomCommitTest` 18.337 s → 9.42 s, `MapCanvasViewModelSingleFollowCenterTest`
+  13.221 s → 9.29 s, `MapCanvasViewModelFollowModeTest` 7.044 s → 4.812 s. Not every class improved and
+  the honest number needs the right control: cases that await a **real** route calculation still cost
+  5-9 s on a loaded machine (`TODO.md` §143) and one viewport-restore case costs 6.2 s with no wait left
+  in it (§142) — both pre-existing. An earlier reading of this conversion looked like a regression until
+  the *unconverted* class was measured in the same window (18.337 s against the converted 9.42 s), which
+  is why this bullet quotes same-session baselines and not the older, quieter machine's numbers.
 - **One invocation per suite.** `:auto` and `:app` each complete in a single
   Gradle invocation at the declared budget; splitting a suite into class batches is
   a diagnostic fallback (e.g. to isolate one class), never the procedure, and a
@@ -1184,11 +1233,19 @@ found both real causes only after measuring.
    reports indices, pixels, the free band and a verdict — never a position (spec
    `auto-diagnostics`). The route analysis carries `MapCanvasVM: segment focus: range=… mag=…
    covered=… band=[0,…] margin=… bboxPx=[…] inside=…`.
-2. **Measure the screenshot instead of describing it.** `tools/measure-highlight.py` finds the
-   analysed-segment highlight by its casing colour, derives the card top from a `uiautomator dump`
-   and prints the highlight's bounding box against the free band (exit 0 inside / 1 clipped / 2 no
-   highlight). Its detector is covered by `.pi/skills/pixel-check/selftest.sh` (ImageMagick, no
-   device). Screenshot and dump must come from the same moment.
+2. **Look at the screenshot, then measure it — never only describe it.** Read the frame with
+   `view_image` (a local PNG path) and say what is on screen; that look is triage. The verdict comes
+   from `tools/measure-highlight.py`, which finds the analysed-segment highlight by its casing colour,
+   derives the card top from a `uiautomator dump` and prints the highlight's bounding box against the
+   free band (exit 0 inside / 1 clipped / 2 no highlight). Its detector is covered by
+   `.pi/skills/pixel-check/selftest.sh` (ImageMagick, no device). Only the script's numbers and exit
+   code are evidence — a vision description never replaces them, and a vision model's impression is
+   not a pixel verdict. Screenshot and dump must come from the same moment. A positive verdict also
+   needs its precondition: `band` must end above the canvas bottom (a measured card top) and the match
+   must be a stroke — hundreds or thousands of `px` over many rows, not tens of pixels spread wide,
+   which is a colour coincidence (measured 2026-10-06 on a frame with no route: `px=18`,
+   `band=[0,2400]`, `verdict: inside`; the look caught it — `TODO.md` §143). The look establishes the
+   precondition, the script measures given it.
 3. **Compare the two verdicts.** Model `inside=true` + measured `CLIPPED` is the bug (it found the
    follow-drift offset, which the fit model knows nothing about). Model `inside=true` + measured
    `inside=true` means the symptom is somewhere else — ask the owner *where* and *when* before

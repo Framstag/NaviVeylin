@@ -439,6 +439,13 @@ class NavigationEngine @Inject constructor(
         vehicle: Vehicle,
         fromReroute: Boolean
     ) {
+        // Lease ownership belongs to the attempt that took it: a surface-less acquisition
+        // leases GPS for its start position (`navigateTo`), while a reroute reuses the lease
+        // the running navigation holds (`startInternal`) — releasing the latter would starve
+        // live guidance (spec: `navigation-engine` — A failed route attempt releases only the
+        // lease it took). Read here, on the thread every entry point runs on, so the decision
+        // is taken before either failure handler can observe a changed navigation state.
+        val ownsLease = !_state.value.isNavigating
         val token = beginCalculation(destLat, destLon, if (fromReroute) "reroute" else "acquisition")
         scope.launch(dispatchers.compute) {
             try {
@@ -478,7 +485,7 @@ class NavigationEngine @Inject constructor(
                             scope.launch(Dispatchers.Main) {
                                 Log.e(TAG, "acquire: route calculation failed: $message")
                                 if (!endCalculation(token, CalculationOutcome.ERROR)) return@launch
-                                releaseNavLease()
+                                if (ownsLease) releaseNavLease()
                                 _state.update { it.copy(
                                     errorMessage = (message ?: "").ifBlank {
                                         "Route calculation failed. Try again."
@@ -504,7 +511,7 @@ class NavigationEngine @Inject constructor(
                 withContext(Dispatchers.Main) {
                     Log.e(TAG, "acquire failed", e)
                     if (!endCalculation(token, CalculationOutcome.ERROR)) return@withContext
-                    releaseNavLease()
+                    if (ownsLease) releaseNavLease()
                     _state.update { it.copy(
                         errorMessage = e.message ?: "Route calculation failed. Try again.",
                         errorOrigin = SurfaceOrigin.ENGINE

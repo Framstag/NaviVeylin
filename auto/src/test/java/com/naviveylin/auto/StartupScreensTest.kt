@@ -12,6 +12,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 
@@ -107,18 +110,26 @@ class StartupScreensTest {
         }
     }
 
-    /** Template row titles, polling until the screen's background load is published. */
+    /**
+     * Template row titles, driving the main looper until the screen's background load is published
+     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline: no wall-clock window, no sleep).
+     */
     private fun awaitRows(
         screen: DiagnosticsScreen,
         ready: (List<String>) -> Boolean
     ): List<String> {
-        val deadline = System.currentTimeMillis() + 5_000
         var titles: List<String> = emptyList()
-        while (System.currentTimeMillis() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
-            titles = (screen.onGetTemplate() as PaneTemplate).pane.rows.map { it.title.toString() }
-            if (ready(titles)) return titles
-            Thread.sleep(10)
+        runBlocking {
+            withTimeoutOrNull<Boolean>(5_000) {
+                var done = false
+                while (!done) {
+                    shadowOf(Looper.getMainLooper()).idle()
+                    titles = (screen.onGetTemplate() as PaneTemplate).pane.rows.map { it.title.toString() }
+                    done = ready(titles)
+                    if (!done) yield()
+                }
+                true
+            }
         }
         return titles
     }

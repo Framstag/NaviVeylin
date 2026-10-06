@@ -9,6 +9,7 @@ import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.RouteInstruction
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
+import com.naviveylin.location.LocationConsumers
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,6 +45,7 @@ class NavigationEngineRerouteTest {
 
     private lateinit var context: Context
     private lateinit var client: FakeOSMScoutClient
+    private lateinit var locationService: LocationService
     private lateinit var engine: NavigationEngine
 
     /**
@@ -61,9 +63,10 @@ class NavigationEngineRerouteTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient().apply { routeToDeliver = route() }
+        locationService = LocationService(context)
         engine = engineUnderTest(
             { client },
-            LocationService(context),
+            locationService,
             context,
             timeSource = clock,
             dispatchers = EngineDispatchers(
@@ -259,5 +262,39 @@ class NavigationEngineRerouteTest {
 
         assertEquals("Alt St", engine.state.value.instructions[0].streetName)
         assertFalse(engine.state.value.isRerouting)
+    }
+
+    /**
+     * A failed reroute must not release the lease the running navigation holds: the engine keeps
+     * feeding fixes from it, and `LocationService` stops device updates when the last lease goes
+     * (spec: `navigation-engine` — A failed route attempt releases only the lease it took).
+     */
+    @Test
+    fun aFailedRerouteKeepsTheRunningNavigationLease() = runTest(mainDispatcherRule.dispatcher) {
+        startSession()
+        assertTrue(
+            "navigating holds the navigation lease",
+            locationService.heldLeaseConsumers().contains(LocationConsumers.NAV_ENGINE)
+        )
+
+        // Hold the reroute's calculation so its failure is delivered explicitly (the shape a thin
+        // map set produces on device: "No routable node near destination").
+        client.holdRouteDelivery = true
+        requestReroute(lat = 52.5218)
+        awaitState { client.routeCalculationCount == 1 }
+
+        client.pendingRouteCallbacks.first().onError("No routable node near destination")
+        awaitState { engine.state.value.errorMessage != null }
+
+        assertTrue(
+            "a failed reroute must not starve the running guidance of position updates",
+            locationService.heldLeaseConsumers().contains(LocationConsumers.NAV_ENGINE)
+        )
+        assertTrue("the failed reroute does not end the session", engine.state.value.isNavigating)
+        assertEquals(
+            "the failure is still published",
+            "No routable node near destination",
+            engine.state.value.errorMessage
+        )
     }
 }

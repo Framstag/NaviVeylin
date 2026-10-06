@@ -88,8 +88,20 @@ class DiagnosticsLogTest {
 
     @Test
     fun timeHelperLogsDuration() {
-        DiagnosticsLog.time("do work") { Thread.sleep(5) }
-        assertTrue(DiagnosticsLog.readEntries().last().contains("do work took"))
+        // The measured duration comes from the injected clock, so the case moves time instead of sleeping
+        // inside the measured block (spec `unit-test-suite-runtime` — Injected time instead of a real
+        // clock).
+        var fakeNow = 1_000L
+        DiagnosticsLog.timeSource = EngineTimeSource { fakeNow }
+        try {
+            DiagnosticsLog.time("do work") { fakeNow += 5 }
+            assertTrue(
+                "the logged duration is the controlled one: ${DiagnosticsLog.readEntries().last()}",
+                DiagnosticsLog.readEntries().last().contains("do work took 5ms")
+            )
+        } finally {
+            DiagnosticsLog.timeSource = EngineTimeSource.System
+        }
     }
 
     @Test

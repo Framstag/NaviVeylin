@@ -422,6 +422,38 @@ val checkNoCoordinatesInLogs by tasks.registering {
 }
 tasks.named("preBuild") { dependsOn(checkNoCoordinatesInLogs) }
 
+// ── Unit-test wall-clock gate ───────────────────────────────────────────
+// A test decides its outcome from the behaviour under test and from time it controls, never from a
+// sleep or a system-clock deadline (spec unit-test-suite-runtime — Wall-clock waits in test sources are
+// refused by a build check; change `speed-up-test-iteration`, task 3.3). The scanner is pure and its
+// fixtures live in buildSrc (`com.naviveylin.build.testing`), so this task only points it at the module's
+// own test sources. There is no allowlist on purpose: a wait that needs real time is converted to drive
+// the component's seam instead.
+//
+// `:auto` and `:core` get the same wiring in their own build files, each in the change that cleans that
+// module's sources (tasks 4.3 and 5.2).
+val checkNoWallClockWaits by tasks.registering {
+    val testSources = file("src/test/java")
+    inputs.files(testSources)
+    doLast {
+        val findings = testSources.walkTopDown()
+            .filter { it.extension == "kt" }
+            .flatMap { file ->
+                com.naviveylin.build.testing.WallClockWaitScanner.scan(
+                    file.relativeTo(rootProject.projectDir).path,
+                    file.readText()
+                ).asSequence()
+            }
+            .toList()
+        if (findings.isNotEmpty()) {
+            throw GradleException(
+                com.naviveylin.build.testing.WallClockWaitScanner.report(findings)
+            )
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkNoWallClockWaits) }
+
 // Stylesheets are sourced from the libosmscout submodule at build time. Copy the
 // submodule stylesheet directory into a generated assets root so the APK packages
 // exactly the current submodule state — "stylesheets/..." in the APK, matching the

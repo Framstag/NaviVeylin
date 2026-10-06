@@ -236,13 +236,16 @@ from a change whose single visual symptom ("the segment is still not completely 
 nine review rounds — the rounds themselves, not the bug, were the cost; rule 4 comes from the
 shared-worktree collisions (2026-10-04/05, `ki_processing_failures.log`).
 
-1. **Measure before changing code.** A symptom that lives in pixels cannot be settled by reading
-   projection/fit/layout code. Add a coordinate-free diagnostics line (numbers — indices, pixels,
-   band, verdict — never a position, spec `auto-diagnostics`), run it on the device, read the
-   numbers; for anything a screenshot shows, *measure* the screenshot with
-   `tools/measure-highlight.py` (`pixel-check` skill, detector self-tested with ImageMagick, no
-   device needed). If the model says `inside=true` and the pixels say `CLIPPED`, the disagreement
-   between model and rendering is the bug.
+1. **Look, then measure — before changing code.** A symptom that lives in pixels cannot be settled
+   by reading projection/fit/layout code. Read the screenshot with `view_image` (a local PNG path —
+   the model sees the pixels; `ctx_read` returns only a placeholder for an image, so `view_image` is
+   the sanctioned exception to the `ctx_*`-only rule) and say what is on screen. That look is
+   *triage*: then add a coordinate-free diagnostics line (numbers — indices, pixels, band, verdict —
+   never a position, spec `auto-diagnostics`), run it on the device, read the numbers, and *measure*
+   the screenshot with `tools/measure-highlight.py` (`pixel-check` skill, detector self-tested with
+   ImageMagick, no device needed). Only the script's numbers and exit code are evidence — a vision
+   description never replaces the verdict. If the model says `inside=true` and the pixels say
+   `CLIPPED`, the disagreement between model and rendering is the bug.
 2. **Iterate with focused suites, gate once.**
    Start with the change's own declared cases:
    `bash tools/declared-cases.sh <change> --diff <this change's file list> --rules declared,touched
@@ -279,7 +282,8 @@ minute 11 of a gate makes every build in that window unverifiable.
 
 Skills for this: `device-check` (one reusable device loop: dump/tap discipline, logcat tags,
 geometry as evidence, and the tap-consumer diagnosis that names which node got the tap),
-`pixel-check` (screenshot measurement), `provision-phone-emulator`
+`pixel-check` (look with `view_image`, then measure; the script's verdict is the evidence),
+`provision-phone-emulator`
 (AVD with maps), `compose-geometry` (assert a control's size/tap target/disjointness/visibility as Dp
 bounds in a Compose case — never `assertExists()`),
 plus `build-app`/`run-tests`/`revert-check` for the gate.
@@ -288,6 +292,13 @@ plus `build-app`/`run-tests`/`revert-check` for the gate.
 another agent therefore belongs in **this file**, in `openspec/config.yaml` or in
 `guidelines/*.md`; the *tools* a skill uses belong in the repo (`tools/measure-highlight.py`,
 with a self-test that runs without a device).
+
+Screenshot reading needs one harness tool that is not in the repo: **`view_image`**
+(`pi install npm:@luan.sh/pi-view-image`, verified working 2026-10-06 on pi 1.0.4, session model
+`ollama-cloud/deepseek-v4.1-flash`). It reads a local PNG/JPEG/GIF/WebP and returns it as an image
+content block, so the model sees the pixels. It builds a small Rust binary on first use — a Rust
+toolchain is required, or set `PI_VIEW_IMAGE_BIN` to a prebuilt executable. Without the package the
+workflow degrades to the script alone, which answers *where* but not *what*.
 
 ## OpenSpec Workflow
 

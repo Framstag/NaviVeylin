@@ -37,10 +37,12 @@ class AutoInitialViewportTest {
         File(dir, "types.dat").writeText("types")
     }
 
-    private fun writeViewport(root: File, name: String, lat: Double, lon: Double, mag: Int) {
-        File(root, name).writeText(
+    private fun writeViewport(root: File, name: String, lat: Double, lon: Double, mag: Int): File {
+        val file = File(root, name)
+        file.writeText(
             """{"centerLat":$lat,"centerLon":$lon,"magnification":$mag}"""
         )
+        return file
     }
 
     private fun clientWithBbox(bbox: DoubleArray?): OSMScoutClient = FakeClientWithBbox { bbox }
@@ -90,9 +92,11 @@ class AutoInitialViewportTest {
     @Test
     fun `newest saved viewport file wins`() {
         val root = tempMapsRoot()
-        writeViewport(root, "viewport-a.json", 48.0, 2.0, 10)
-        Thread.sleep(5)
-        writeViewport(root, "viewport-b.json", 49.0, 3.0, 11)
+        val older = writeViewport(root, "viewport-a.json", 48.0, 2.0, 10)
+        val newer = writeViewport(root, "viewport-b.json", 49.0, 3.0, 11)
+        // The resolver picks the newest mtime: state the order instead of racing the wall clock for it
+        // (spec `unit-test-suite-runtime` — Injected time instead of a real clock).
+        older.setLastModified(newer.lastModified() - 1_000L)
 
         val result = resolve(root, clientWithBbox(bbox))
 

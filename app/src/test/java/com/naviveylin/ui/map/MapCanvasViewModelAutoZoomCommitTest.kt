@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.SpeedZoomTable
 import com.naviveylin.data.AssetCopier
@@ -67,6 +68,14 @@ class MapCanvasViewModelAutoZoomCommitTest {
     private lateinit var navViewModel: NavigationViewModel
     private lateinit var viewModel: MapCanvasViewModel
 
+    /**
+     * The time the follow-render throttle sees. It starts at the wall clock so the fix timestamps the
+     * cases inject stay comparable to it (fix age is data), and is then moved by hand instead of by
+     * sleeping past the 200 ms interval (spec `unit-test-suite-runtime` — Injected time instead of a real
+     * clock).
+     */
+    private var fakeNowMs: Long = System.currentTimeMillis()
+
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -88,6 +97,7 @@ class MapCanvasViewModelAutoZoomCommitTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNowMs },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -141,15 +151,14 @@ class MapCanvasViewModelAutoZoomCommitTest {
     }
 
     /**
-     * Pump the collector: the follow render throttle compares REAL
-     * System.currentTimeMillis (GPS_FOLLOW_RENDER_INTERVAL_MS = 200 ms), so
-     * consecutive fixes must be spaced in real time; the collector itself runs
-     * on the virtual test scheduler.
+     * Pump the collector: the follow render throttle reads the injected clock
+     * (GPS_FOLLOW_RENDER_INTERVAL_MS = 200 ms), so consecutive fixes are spaced by moving that clock while
+     * the collector itself runs on the virtual test scheduler.
      */
     private fun pumpFix(scope: TestScope, step: Int, speedKmH: Double) {
         setNavSpeed(speedKmH)
         injectFix(step, speedKmH)
-        Thread.sleep(230)
+        fakeNowMs += 230L
         scope.advanceTimeBy(1)
         scope.runCurrent()
     }

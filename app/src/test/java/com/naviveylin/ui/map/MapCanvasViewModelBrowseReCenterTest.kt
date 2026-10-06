@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AssetCopier
@@ -48,6 +49,14 @@ class MapCanvasViewModelBrowseReCenterTest {
     private lateinit var settingsStorage: SettingsStorage
     private lateinit var viewModel: MapCanvasViewModel
 
+    /**
+     * The time the dwell decisions see. It starts at the wall clock so the fix timestamps the cases
+     * deliver stay comparable to it (fix age is data, not a wait); the dwell window is then moved by
+     * hand instead of by sleeping (spec: `unit-test-suite-runtime` — Injected time instead of a real
+     * clock).
+     */
+    private var fakeNowMs: Long = System.currentTimeMillis()
+
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -78,6 +87,7 @@ class MapCanvasViewModelBrowseReCenterTest {
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNowMs },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -118,7 +128,7 @@ class MapCanvasViewModelBrowseReCenterTest {
                 lat = lat, lon = lon,
                 accuracy = 5.0, speedKmH = 30.0,
                 smoothedBearing = 45.0, markerBearing = 45.0,
-                time = System.currentTimeMillis()
+                time = fakeNowMs
             )
         )
     }
@@ -141,7 +151,7 @@ class MapCanvasViewModelBrowseReCenterTest {
         lat: Double = VEHICLE_LAT,
         lon: Double = VEHICLE_LON
     ) {
-        Thread.sleep(MapCanvasViewModel.RECENTER_DWELL_MS + 150L)
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
         emitFix(lat, lon)
     }
 
@@ -213,6 +223,38 @@ class MapCanvasViewModelBrowseReCenterTest {
                 viewModel.uiState.value.browseReCenterVisible
             )
             assertEquals("mode stays BROWSE", MapMode.BROWSE, viewModel.mode)
+        }
+
+    @Test
+    fun theDwellBoundaryIsDecidedByInjectedTimeNotByElapsedRealTime() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Both sides of the window, one millisecond apart: a case that advanced nothing must stay
+            // hidden, and the boundary itself must be the trigger — so a conversion that silently
+            // stopped evaluating the window cannot pass (change `speed-up-test-iteration`, task 2.1).
+            moveViewportBy(400.0, 0.0)
+            advanceUntilIdle()
+            emitFix()
+            advanceUntilIdle()
+            assertFalse(
+                "no time moved, so the dwell cannot have elapsed",
+                viewModel.uiState.value.browseReCenterVisible
+            )
+
+            fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS - 1
+            emitFix()
+            advanceUntilIdle()
+            assertFalse(
+                "one millisecond short of the dwell must stay hidden",
+                viewModel.uiState.value.browseReCenterVisible
+            )
+
+            fakeNowMs += 1
+            emitFix()
+            advanceUntilIdle()
+            assertTrue(
+                "at the dwell boundary the button must appear",
+                viewModel.uiState.value.browseReCenterVisible
+            )
         }
 
     @Test
@@ -355,7 +397,7 @@ class MapCanvasViewModelBrowseReCenterTest {
             val (sLat, sLon) = centerForVehicleOffset(200.0, 0.0, mag = noisyMag)
             emitFix(sLat, sLon)
             advanceUntilIdle()
-            Thread.sleep(MapCanvasViewModel.RECENTER_DWELL_MS + 150L)
+            fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
             emitFix(sLat, sLon)
             advanceUntilIdle()
 

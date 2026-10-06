@@ -122,6 +122,33 @@ val checkHardcodedStrings by tasks.registering {
 }
 tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 
+// ── Unit-test wall-clock gate (change `speed-up-test-iteration`, task 4.3) ────────────────────────
+// Same rule as `:app`'s: a test decides its outcome from the behaviour under test and from time it
+// controls, never from a sleep or a system-clock deadline (spec `unit-test-suite-runtime` — Wall-clock
+// waits in test sources are refused by a build check). The scanner is the pure buildSrc object, so this
+// task only points it at this module's own test sources, and there is no allowlist on purpose.
+val checkNoWallClockWaits by tasks.registering {
+    val testSources = file("src/test/java")
+    inputs.files(testSources)
+    doLast {
+        val findings = testSources.walkTopDown()
+            .filter { it.extension == "kt" }
+            .flatMap { file ->
+                com.naviveylin.build.testing.WallClockWaitScanner.scan(
+                    file.relativeTo(rootProject.projectDir).path,
+                    file.readText()
+                ).asSequence()
+            }
+            .toList()
+        if (findings.isNotEmpty()) {
+            throw GradleException(
+                com.naviveylin.build.testing.WallClockWaitScanner.report(findings)
+            )
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkNoWallClockWaits) }
+
 dependencies {
     implementation(project(":core"))
     implementation(project(":osmscout-client-java"))

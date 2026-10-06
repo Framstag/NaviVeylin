@@ -17,10 +17,13 @@ import com.naviveylin.navigation.NavigationEngine
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -103,14 +106,13 @@ class MapCanvasViewModelNavEndRestoreTest {
         )
     }
 
-    /** Start a route via the engine's acquisition and wait until navigation is active. */
+    /** Start a route via the engine's acquisition and await the active state. */
     private suspend fun TestScope.startNavigating(navVm: NavigationEngine) {
         navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
-        val deadline = System.currentTimeMillis() + 5000
-        while (System.currentTimeMillis() < deadline && !navVm.state.value.isNavigating) {
-            advanceUntilIdle()
-            Thread.sleep(10)
-        }
+        // The route calculation is real background work (native lookups), so the case awaits the engine's
+        // observable state on a real dispatcher — no clock, no sleep, no bounded poll
+        // (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+        withContext(Dispatchers.Default) { navVm.state.first { it.isNavigating } }
         assertTrue("navigation must become active", navVm.state.value.isNavigating)
         advanceUntilIdle()
     }

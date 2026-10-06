@@ -4,7 +4,7 @@
 **Entry metadata:** every numbered section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line under its heading. `class` describes the **remaining** work: a landed fix whose only residue is verification is an `improvement`, one whose residue is still a defect stays a `bug`. Ids are identity — never renumbered (a collision is reported and the duplicate gets a fresh id: the `§79` duplicate became `§119` on 2026-10-03). An id is retired only by **absorption**: the survivor's heading says `absorbed §N` and its body carries the folded entry's record verbatim, so the retired id needs no renumbering and its history is not lost.
 
 **Clusters** (category, then class — jump targets, not an order):
-- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132
+- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143
 - **car** — bug: §56 §57 §83 §92 §93 §126
 - **car** — improvement: §29 §34 §46 §64 §103 §120 §127 §133
 - **data-and-maps** — bug: §91 §99
@@ -1822,3 +1822,87 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   the *window boundary* rather than on the subject. Either key the count to a tick the test itself provokes
   (`tickStaleness` is reachable directly, as the sibling cases show) or require "no dispatch per window"
   across N ≥ 3 windows (rule §83) and record the rate.
+
+---
+
+## 142. A viewport-restore case costs 6.2 s although it contains no wait — the class's remaining cost sits outside its own waits — Found 2026-10-06 while applying `speed-up-test-iteration` (task 2.5, out of that change's scope)
+**id:** 142 · **category:** build-and-harness · **class:** improvement · **status:** open
+
+- **Observed** ℹ: task 2.5 removed `MapCanvasViewModelViewportRestoreTest`'s bounded real-clock polls
+  (`awaitHeldBlock`, a `System.currentTimeMillis()` deadline loop with `Thread.sleep(10)`) and its three
+  `Thread.sleep` sites, replacing them with `driveUntil` asserts on the test scheduler and pinning every
+  dispatcher the restore path hops through. The class now measures **7.22 s** of class time against a
+  **16.083 s** baseline taken minutes earlier on the same machine, and five of its six cases run in
+  0.15-0.24 s (`initMap renders at restored viewport`: **5.549 s → 0.233 s**). But
+  `saveViewport during re-entry window keeps persisted viewport` still costs **6.2 s** — and the file now
+  contains no `Thread.sleep`, no `System.currentTimeMillis()` and no deadline loop at all.
+- **Baseline for the same case** ℹ: 7.996 s measured on this machine in the same session *before* the
+  conversion, 3.762 s in the 05:00 suite run, i.e. the cost is pre-existing and load-sensitive — it is not
+  created by the conversion and not detected by the wall-clock-wait scan (which by design only refuses
+  sleeps and system-clock deadline loops).
+- **Why it was left** ✗: it is not a wait the change is chartered to convert (its own waits are gone), the
+  change's task 2.5 measured and recorded the improvement, and attributing the remainder needs the same
+  phase instrumentation the change used elsewhere — out of scope for this change's tasks.
+- **Fix candidate**: instrument that one case by phase (its two `initMap` calls, `saveViewport`,
+  `viewportStorage.load("mapB")`, and `runTest`/teardown) and name which one consumes the 6.2 s. Most
+  likely candidates: a real-thread wait inside `ViewportStorage` despite the pinned `ioDispatcher`, the
+  renderer's teardown cancel waiting on in-flight work (`MapRenderer`'s retry path carries a real
+  `delay(100)`), or a JNI render still running on a real thread. Then give that component a seam the case
+  owns, exactly as this change did for the ViewModel's clock and the renderer's scope.
+
+---
+
+## 143. Cases that await a real route calculation cost 5-9 s today, though the same cases measured 0.05 s on the quiet machine — Found 2026-10-06 while applying `speed-up-test-iteration` (task 3.2)
+**id:** 143 · **category:** build-and-harness · **class:** improvement · **status:** open
+
+- **Observed** ℹ: converting the `:app` wall-clock waits showed that in five different classes the slowest
+  case is always the one that calls `navVm.acquire(...)` and awaits navigation becoming active, and that it
+  now costs seconds where it used to cost milliseconds. Focused forced runs today
+  (`-PforceTests --no-build-cache -PnoCoverage`, per-case `time=` from the result XML):
+  `MapCanvasViewModelModeTest.navigationEndRestoresBrowseMode` **5.572 s alone** and 8.364 s inside its
+  class (the 05:00 suite measured 0.047 s), `MapCanvasViewModelNavEndRestoreTest.freeDriveBeforeNav…`
+  **8.308 s** (0.055 s at 05:00), `MapCanvasViewModelAutoZoomCommitTest.first commit jumps…` **8.5 s**,
+  `MapCanvasViewModelSingleFollowCenterTest.display active - fix renders…` **8.6 s**,
+  `MapCanvasViewModelViewportRestoreTest.saveViewport during re-entry window…` **6.2 s**. Sibling cases in
+  those same classes measure 0.06-0.1 s, so this is neither JVM/Robolectric warm-up nor case interaction —
+  the case alone still costs 5.57 s.
+- **Where the time is not** ℹ: the case bodies were instrumented. `MapCanvasViewModelAutoZoomCommitTest`
+  reports `nav=1 ms inject=2 ms pump=59 ms` while its reported time is 6.27 s, i.e. the seconds sit outside
+  the body, in the await of the engine's real work (route calculation on real dispatchers with native
+  lookups). A baseline check of the *unconverted* class in the same session gave 18.337 s for the class
+  against 9.42 s after conversion, so the conversion did not create the cost.
+- **Why it was left** ✗: it is not a wall-clock wait in the test source (no sleep, no clock deadline), so the
+  check this change adds does not see it, and attributing it needs the engine/client path rather than the
+  test that awaits it. The change's task 3.2 recorded the conversions and their measured class times.
+- **Fix candidate**: time the `acquire` → `isNavigating` transition and the client's route call to find where
+  the seconds go — candidates are a queue/debounce in the engine's own dispatcher path (its timing seam is
+  injectable since `navigation-engine`), the synthetic route path in `FakeOSMScoutClient`, or plain host CPU
+  starvation (this machine is shared and was busy all session). If it is engine timing, the same cure as
+  `speed-up-test-iteration` applies: a seam the case drives instead of a wait.
+
+## 143. `measure-highlight.py` returns `inside` on a frame with no route — 18 pixels of parking-glyph colour pass its dense-run test — Found 2026-10-06 while applying `screenshot-evidence-via-view-image` (device measurement, task 4.1)
+
+**id:** 143 · **category:** verification · **class:** bug · **status:** open
+
+- **Observation** ✓: on a phone frame that shows no route and no analysed segment, the script printed
+  `highlight (dark): bbox=[619, 641, 413, 734] px=18` / `canvas=1080x2400 band=[0,2400] margin=126` /
+  `verdict: inside`, exit 0. The same frame looked at with `view_image` is an ordinary map (a red primary
+  road `L 684`, light-blue `P` parking glyphs, bicycle icons); a crop of the reported box contains nothing
+  but those glyphs.
+- **Why the guard missed it**: the detector's dense-run test (`MIN_RUN_PX`) was written for the dark-mode
+  casing colour appearing on map *labels*; the light `P` parking glyph and its area fill also land on
+  `#E0F7FA`, and 18 pixels spread over a wide box are enough to pass. `band=[0,2400]` was the visible
+  tell — `--dump` found no card top, so the frame was not in the state the detector assumes.
+- **Why it matters**: `verdict: inside` reads as a measurement, and any consumer that records it as
+  evidence would record a false positive. The look-first step is what caught it.
+- **Fix candidates**: require the route/precondition explicitly (a measured card top inside the canvas,
+  i.e. `band_bottom < canvas height`, or an `inside=` line from `MapCanvasVM` in the same moment), and
+  refuse with a distinct exit code/verdict (e.g. 3 `no analysed segment`) instead of reporting `inside`
+  when no highlight of plausible size was found — a real highlight is a many-row stroke, so a total
+  `px` floor or a per-row run longer than `MIN_RUN_PX` would separate the two cases.
+- **Verified by**: `tools/measure-highlight.py` against `.pi/logs/view-image-check/shot.png` (captured
+  2026-10-06 22:03 from `emulator-5554`) plus its own `.pi/skills/pixel-check/selftest.sh`, which covers
+  inside / behind-card / no-highlight but not "no route on screen". The result **reproduces**: a second
+  capture into `.pi/logs/skill-recipe-check/` on the same screen printed the identical
+  `bbox=[619, 641, 413, 734] px=18` / `band=[0,2400]` / `verdict: inside`, so it is a deterministic
+  colour coincidence, not noise.

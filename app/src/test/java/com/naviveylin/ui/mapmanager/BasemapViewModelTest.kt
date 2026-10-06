@@ -8,9 +8,12 @@ import com.framstag.libosmscout.client.MapProvider
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.test.MainDispatcherRule
 import com.sun.net.httpserver.HttpServer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -44,14 +47,6 @@ class BasemapViewModelTest {
         }
         server.start()
         return server
-    }
-
-    private fun await(timeoutMs: Long = 5_000, condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + timeoutMs
-        while (!condition() && System.currentTimeMillis() < deadline) {
-            Thread.sleep(20)
-        }
-        assertTrue("condition not met within ${timeoutMs}ms", condition())
     }
 
     private class Fixture(
@@ -157,7 +152,7 @@ class BasemapViewModelTest {
 
             f.viewModel.delete()
             advanceUntilIdle()
-            await { f.client.reloadBasemapCount >= 1 }
+            withContext(Dispatchers.Default) { f.notifier.revision.first { it == 1L } }
 
             assertEquals(listOf(""), f.client.basemapLookupDirectories)
             assertEquals(1, f.client.reloadBasemapCount)

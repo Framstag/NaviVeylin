@@ -214,12 +214,19 @@ object DiagnosticsLog {
     }
 
     /** Log the wall-clock duration of [block] under the [WARMUP] tag. */
+    /**
+     * The clock [time] measures with (spec `unit-test-suite-runtime` — Injected time instead of a real
+     * clock; change `speed-up-test-iteration`, task 5.1). Production reads the wall clock; a case moves it
+     * so a measured duration is decided by controlled time instead of by a sleep inside the measured block.
+     */
+    internal var timeSource: EngineTimeSource = EngineTimeSource.System
+
     fun time(label: String, block: () -> Unit) {
-        val start = System.currentTimeMillis()
+        val start = timeSource.nowMillis()
         try {
             block()
         } finally {
-            val elapsed = System.currentTimeMillis() - start
+            val elapsed = timeSource.nowMillis() - start
             log(WARMUP_TAG, "$label took ${elapsed}ms")
         }
     }
@@ -313,8 +320,11 @@ object DiagnosticsLog {
     /**
      * Wait until the worker has moved every buffered entry to the file. Returns
      * false when [timeoutMs] elapsed first (the entry is still buffered, not lost).
+     *
+     * Exposed beyond the module (it is the seam a test uses to await the worker instead of polling the
+     * file on the wall clock, spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
      */
-    internal fun awaitDrained(timeoutMs: Long = READ_DRAIN_TIMEOUT_MS): Boolean {
+    fun awaitDrained(timeoutMs: Long = READ_DRAIN_TIMEOUT_MS): Boolean {
         val deadline = System.currentTimeMillis() + timeoutMs
         bufferLock.withLock {
             while (pending.isNotEmpty() || flushing) {

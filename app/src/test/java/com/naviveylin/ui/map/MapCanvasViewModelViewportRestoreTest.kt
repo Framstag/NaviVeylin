@@ -55,20 +55,32 @@ class MapCanvasViewModelViewportRestoreTest {
         context = ApplicationProvider.getApplicationContext()
         client = FakeOSMScoutClient()
         viewportStorage = ViewportStorage(context)
+        // Every collaborator the restore path hops through runs on this test's scheduler: with a real
+        // Dispatchers.IO hop in the path no amount of advancing reaches the state under test, which is
+        // what forced the bounded real-clock polls this class used to carry (spec
+        // `unit-test-suite-runtime` — a case awaits observable state, not a deadline). The renderer has
+        // its own seam because the restore window deliberately gates the ViewModel's initialization.
+        viewportStorage.ioDispatcher = mainDispatcherRule.dispatcher
+        val settingsStorage = SettingsStorage(context).also { it.ioDispatcher = mainDispatcherRule.dispatcher }
+        val searchHistoryRepository = SearchHistoryRepository(context)
+            .also { it.defaultDispatcher = mainDispatcherRule.dispatcher }
+        val favoriteRepository = FavoriteRepository(client)
+            .also { it.defaultDispatcher = mainDispatcherRule.dispatcher }
         viewModel = MapCanvasViewModel(
             viewportStorage = viewportStorage,
-            settingsStorage = SettingsStorage(context),
+            settingsStorage = settingsStorage,
             assetCopier = AssetCopier(context),
             client = client,
-            favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context),
+            favoriteRepository = favoriteRepository,
+            searchHistoryRepository = searchHistoryRepository,
             locationService = LocationService(context),
-            darkModeController = DarkModeController(SettingsStorage(context)),
+            darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
+        viewModel.rendererDispatcher = mainDispatcherRule.dispatcher
     }
 
     @After
@@ -94,7 +106,7 @@ class MapCanvasViewModelViewportRestoreTest {
             viewModel.initMap("/data/maps/testmap")
             mainDispatcherRule.dispatcher.scheduler.runCurrent()
             // Assert the window: the size report below must land while the restore is in progress.
-            awaitHeldBlock("initMap's viewport load must be held before the size report") {
+            driveUntil("initMap's viewport load must be held before the size report") {
                 gated.heldCount > 0
             }
 
@@ -104,20 +116,16 @@ class MapCanvasViewModelViewportRestoreTest {
             viewModel.setScreenSize(100, 100)
             assertEquals(0, client.renderCount.get() + client.renderWithRouteAndPoisCount.get())
 
-            // Let the restore complete. The real-time pause matters: a buggy
-            // implementation (renderer created before the restore) would have
-            // queued a default-viewport render here, which the debounce fires
-            // during this window — the render-count assertion below catches it.
-            Thread.sleep(300)
+            // Let the restore complete. The frame's debounce runs on this test's scheduler, so
+            // advancing it is what would fire a buggy default-viewport render queued before the
+            // restore — the render-count assertion below catches that.
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
             gated.release()
             mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
-            // Wait for the first render — the renderer's debounce runs on a
-            // real dispatcher, outside the test scheduler's control, and needs real time (measured
-            // ~5 s on a loaded host, which is why the deadline is 15 s and not the 5 s this case
-            // used to assume — the shorter one made the case fail with "expected 1 but was 0"
-            // whenever the host was busy).
-            awaitHeldBlock("the restored viewport must reach the first render", timeoutMs = 15_000) {
+            // Drive the scheduler until the first render lands. That is a state, not a real-time wait:
+            // the renderer's debounce and the restore path are on dispatchers this test owns.
+            driveUntil("the restored viewport must reach the first render") {
                 client.renderCount.get() + client.renderWithRouteAndPoisCount.get() >= 1
             }
 
@@ -199,7 +207,7 @@ class MapCanvasViewModelViewportRestoreTest {
             // no-ops would make the load return null (the shape this case failed with). The hops
             // before the gated load run on real dispatchers, so wait for the observable state
             // instead of assuming the scheduler drained them.
-            awaitHeldBlock("the persisted viewport must be restored before the save is exercised") {
+            driveUntil("the persisted viewport must be restored before the save is exercised") {
                 viewModel.uiState.value.viewport.centerLat == 48.2
             }
 
@@ -210,7 +218,7 @@ class MapCanvasViewModelViewportRestoreTest {
 
             viewModel.saveViewport()
             mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-            awaitHeldBlock("saveViewport must persist the restored viewport") {
+            driveUntil("saveViewport must persist the restored viewport") {
                 file.exists()
             }
 
@@ -242,22 +250,20 @@ class MapCanvasViewModelViewportRestoreTest {
             mainDispatcherRule.dispatcher.scheduler.runCurrent()
             // Assert the window instead of assuming it: mapA's init must be the one suspended at the
             // held load before the re-entry runs.
-            awaitHeldBlock("mapA's init must be suspended at the held viewport load") {
+            driveUntil("mapA's init must be suspended at the held viewport load") {
                 gated.heldCount > 0
             }
             viewModel.initMap("/data/maps/mapB")
 
             // mapB's load ran inline; poll until its restored viewport lands.
             val scheduler = mainDispatcherRule.dispatcher.scheduler
-            awaitHeldBlock("mapB's restored viewport must land before the held load is released") {
+            driveUntil("mapB's restored viewport must land before the held load is released") {
                 viewModel.uiState.value.viewport.centerLat == 52.5
             }
 
             // Run mapA's held load: the cancelled mapA init aborts here
             // (without the fix it would apply mapA's restore on top of mapB's).
             gated.release()
-            scheduler.advanceUntilIdle()
-            Thread.sleep(100)
             scheduler.advanceUntilIdle()
 
             val vp = viewModel.uiState.value.viewport
@@ -293,7 +299,7 @@ class MapCanvasViewModelViewportRestoreTest {
             // run yet — the guard window a lifecycle save must not write into.
             viewModel.initMap("/data/maps/mapA")
             mainDispatcherRule.dispatcher.scheduler.runCurrent()
-            awaitHeldBlock("mapA's init must be suspended at the held viewport load") {
+            driveUntil("mapA's init must be suspended at the held viewport load") {
                 gated.heldCount > 0
             }
             viewModel.initMap("/data/maps/mapB")
@@ -346,18 +352,14 @@ class MapCanvasViewModelViewportRestoreTest {
             // push has submitted its render by then. Real-dispatcher
             // resumptions arrive asynchronously, so poll for the held block.
             val scheduler = mainDispatcherRule.dispatcher.scheduler
-            val pollDeadline = System.currentTimeMillis() + 5000
-            while (gated.heldCount == 0 && System.currentTimeMillis() < pollDeadline) {
-                scheduler.advanceUntilIdle()
-                Thread.sleep(10)
-            }
+            scheduler.advanceUntilIdle()
             assertTrue(
                 "the initialization must have run (and reached the renderer) before the held style load",
                 client.openedDatabases.isNotEmpty() && gated.heldCount > 0
             )
 
-            // Let the debounce fire while the style load is still held.
-            Thread.sleep(300)
+            // The debounce runs on this test's scheduler, so advancing it fires the frame while the
+            // style load is still held — no real-time pause is involved.
             scheduler.advanceUntilIdle()
 
             // The first render must already be at the restored magnification.
@@ -368,12 +370,12 @@ class MapCanvasViewModelViewportRestoreTest {
 
             // Release the style load; the final render is at the restored mag.
             gated.release()
-            val deadline = System.currentTimeMillis() + 5000
-            while (client.renderCount.get() < 2 && System.currentTimeMillis() < deadline) {
-                scheduler.advanceUntilIdle()
-                Thread.sleep(10)
-            }
             scheduler.advanceUntilIdle()
+            assertTrue(
+                "the released style load must produce its frame (renders: " +
+                    "${client.renderCount.get() + client.renderWithRouteAndPoisCount.get()})",
+                client.renderCount.get() + client.renderWithRouteAndPoisCount.get() >= 2
+            )
 
             assertEquals(Math.pow(2.0, 12.0), client.lastRenderMag, 1e-9)
         }
@@ -458,7 +460,7 @@ class MapCanvasViewModelViewportRestoreTest {
      * dispatchers the test scheduler cannot drain — would otherwise have that
      * dispatch queued with nothing left to drain it, suspending the calling
      * coroutine forever. A test that needs the ordering guarantee waits for
-     * [heldCount] itself (see `awaitHeldBlock`), so the intent is asserted
+     * [heldCount] itself (see `driveUntil`), so the intent is asserted
      * instead of assumed.
      */
     private class FirstDispatchGatedDispatcher : CoroutineDispatcher() {
@@ -487,19 +489,14 @@ class MapCanvasViewModelViewportRestoreTest {
     }
 
     /**
-     * Pump the scheduler and wait (bounded, real clock) until [condition] holds. The hops before a
-     * gated suspension point run on real dispatchers the test scheduler cannot drain, so "the
-     * coroutine is already suspended at the held load" has to be waited for and asserted — assuming
-     * it is what let this class hang the whole flavor run (`TODO.md` §117).
+     * Drive this test's scheduler to idle and assert [condition]. Nothing waits real time: every hop the
+     * restore path takes is on a dispatcher this test owns (the ViewModel's initialization, storage and
+     * renderer seams plus the gated ones), so "the coroutine is suspended at the held load" is a state
+     * `advanceUntilIdle` reaches rather than something to poll for — the bounded real-clock poll this
+     * replaces is what let the class hang a whole flavor run (`TODO.md` §117).
      */
-    private fun TestScope.awaitHeldBlock(reason: String, timeoutMs: Long = 5_000, condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-            if (condition()) return
-            Thread.sleep(10)
-        }
+    private fun TestScope.driveUntil(reason: String, condition: () -> Boolean) {
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
-        assertTrue("$reason (waited ${timeoutMs}ms)", condition())
+        assertTrue(reason, condition())
     }
 }

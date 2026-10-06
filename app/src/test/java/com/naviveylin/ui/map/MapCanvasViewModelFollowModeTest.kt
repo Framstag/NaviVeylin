@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.EngineTimeSource
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -43,6 +44,13 @@ class MapCanvasViewModelFollowModeTest {
     private lateinit var locationService: LocationService
     private lateinit var viewModel: MapCanvasViewModel
 
+    /**
+     * The time the follow-render throttle sees. It tracks the fix timestamps this class delivers
+     * (1_000/2_000/3_000 ms), so the throttle boundary is moved by hand instead of by sleeping past it
+     * (spec: `unit-test-suite-runtime` — Injected time instead of a real clock).
+     */
+    private var fakeNowMs = 1_000L
+
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -62,6 +70,7 @@ class MapCanvasViewModelFollowModeTest {
             darkModeController = DarkModeController(SettingsStorage(context)),
             sharedLocationHandler = SharedLocationHandler(),
             basemapReloadNotifier = BasemapReloadNotifier(),
+            timeSource = EngineTimeSource { fakeNowMs },
             context = context
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
@@ -295,15 +304,44 @@ class MapCanvasViewModelFollowModeTest {
 
         locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 0.0, time = 1_000L))
         viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
-        // The follow-mode render throttle uses System.currentTimeMillis() (real
-        // clock in Robolectric) — sleep past the 200 ms interval so the second
-        // fix is not coalesced away.
-        Thread.sleep(250)
+        // The follow-mode render throttle reads the injected clock, so the second fix is not
+        // coalesced away once the interval has been moved past.
+        fakeNowMs += 250L
 
         // 45° change — beyond the deadband → the map rotates toward it (45° < 90° rate clamp).
         locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 45.0, marker = 45.0, time = 2_000L))
         viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
         assertEquals("map must rotate toward the smoothed bearing", -Math.toRadians(45.0), viewModel.uiState.value.viewport.angle, 1e-6)
+    }
+
+    @Test
+    fun theFollowRenderThrottleBoundaryIsDecidedByInjectedTime() = runTest(mainDispatcherRule.dispatcher) {
+        enableFollowDirectionMode()
+        viewModel.uiState.first { it.followMode && !it.navNorthUp }
+
+        locationService.setGpsFixForTest(gpsFix(51.5136, 7.4653, smoothed = 0.0, marker = 0.0, time = 1_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 1_000L }
+        assertEquals("the first fix establishes north-up", 0.0, viewModel.uiState.value.viewport.angle, 1e-9)
+
+        // One millisecond short of the interval: the bearing change is coalesced away, so the map
+        // must not rotate. This is the negative side of the boundary.
+        fakeNowMs += MapCanvasViewModel.GPS_FOLLOW_RENDER_INTERVAL_MS - 1
+        locationService.setGpsFixForTest(gpsFix(51.5156, 7.4673, smoothed = 45.0, marker = 45.0, time = 2_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
+        assertEquals(
+            "inside the throttle interval the render must be coalesced away",
+            0.0, viewModel.uiState.value.viewport.angle, 1e-9
+        )
+
+        // At the boundary the throttle is elapsed: the same kind of bearing change rotates the map,
+        // which proves the interval — not something else — decided the negative side above.
+        fakeNowMs += 1
+        locationService.setGpsFixForTest(gpsFix(51.5176, 7.4693, smoothed = 45.0, marker = 45.0, time = 3_000L))
+        viewModel.uiState.first { it.gpsLocation?.time == 3_000L }
+        assertEquals(
+            "at the throttle boundary the render must happen",
+            -Math.toRadians(45.0), viewModel.uiState.value.viewport.angle, 1e-6
+        )
     }
 
     @Test
@@ -360,7 +398,7 @@ class MapCanvasViewModelFollowModeTest {
         // (0.002° ≈ 220 m) that a commit is due: north-up must stay 0° for all of
         // them.
         listOf(0.0, 45.0, 120.0).forEachIndexed { i, bearing ->
-            Thread.sleep(250)
+            fakeNowMs += 250L
             locationService.setGpsFixForTest(
                 gpsFix(
                     51.5136 + (i + 1) * 0.002, 7.4653 + (i + 1) * 0.002,
@@ -390,7 +428,7 @@ class MapCanvasViewModelFollowModeTest {
         assertEquals(0.0, viewModel.uiState.value.viewport.angle, 1e-9)
 
         // A fix with a bearing must not rotate the map back to the follow angle.
-        Thread.sleep(250)
+        fakeNowMs += 250L
         locationService.setGpsFixForTest(gpsFix(51.5156, 7.4673, smoothed = 270.0, marker = 270.0, time = 2_000L))
         viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
         assertEquals(
@@ -399,7 +437,7 @@ class MapCanvasViewModelFollowModeTest {
         )
 
         // ... and a fix without any bearing must not rotate it either.
-        Thread.sleep(250)
+        fakeNowMs += 250L
         locationService.setGpsFixForTest(
             gpsFix(51.5176, 7.4693, smoothed = Double.NaN, marker = Double.NaN, time = 3_000L)
         )
@@ -420,7 +458,7 @@ class MapCanvasViewModelFollowModeTest {
         // position change that would otherwise trigger a rotation render: the map
         // must keep the last follow-direction angle instead of spinning or snapping
         // to north.
-        Thread.sleep(250)
+        fakeNowMs += 250L
         locationService.setGpsFixForTest(
             gpsFix(51.5156, 7.4673, smoothed = Double.NaN, marker = Double.NaN, time = 2_000L)
         )
@@ -442,7 +480,7 @@ class MapCanvasViewModelFollowModeTest {
 
         // North-up period, still driving.
         viewModel.onSetNavOrientation(true)
-        Thread.sleep(250)
+        fakeNowMs += 250L
         locationService.setGpsFixForTest(gpsFix(51.5156, 7.4673, smoothed = 45.0, marker = 45.0, time = 2_000L))
         viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
         assertEquals(0.0, viewModel.uiState.value.viewport.angle, 1e-9)
@@ -451,7 +489,7 @@ class MapCanvasViewModelFollowModeTest {
         // driving direction is remembered, so the map resumes ~-45° instead of
         // snapping to north-up (design D2).
         viewModel.onSetNavOrientation(false)
-        Thread.sleep(250)
+        fakeNowMs += 250L
         locationService.setGpsFixForTest(
             gpsFix(51.5176, 7.4693, smoothed = Double.NaN, marker = Double.NaN, time = 3_000L)
         )

@@ -168,6 +168,60 @@ its isolated measurement (2m02s alone at two forks). Consequences to keep in min
 change added, and the declared two forks may be too optimistic when several modules' suites run at once —
 see `TODO.md` §132.
 
+### The build JVM (daemon JVM criteria)
+
+The daemon JVM is **not** selected by `JAVA_HOME`, by the `-Dorg.gradle.java.home` in the recipes below, or
+by the committed `org.gradle.java.home=/usr/lib/jvm/java-17-openjdk` in `gradle.properties`: the checked-in
+daemon JVM criteria in `gradle/gradle-daemon-jvm.properties` **take precedence over both** (Gradle 9.6.1
+manual, "Daemon JVM Toolchains"). Three rules follow; CI enforces the first two in the step
+`Check daemon JVM criteria` (`.github/workflows/build.yml`, placed before the SDK/vcpkg work so it fails in
+seconds).
+
+1. **Version 21, no vendor.** The file pins `toolchainVersion=21` and carries **no** `toolchainVendor` line,
+   so any installed JDK 21 satisfies it — the workstation's JBR 21 and the runner's Temurin 21 both start
+   the daemon from what they have, and the routine path downloads nothing. A vendor line would exclude
+   exactly the JDK CI installs, which is how the build broke.
+2. **Provisioning URLs are vendor endpoints, never index package ids.** `updateDaemonJvm` writes foojay
+   Disco *record* URLs (a hash id under `api.foojay.io/disco/v3.0`); the index prunes records, a pruned id
+   answers HTTP 400, and Gradle then cannot provision at all — the build dies at daemon start, before its
+   first task and after the whole SDK/vcpkg setup, which is how CI broke on 2026-10-06
+   (`gradle/foojay-toolchains#196`, closed NOT_PLANNED with "regenerating one is a solution" — which only
+   re-emits expiring ids). The committed URLs are the vendor's permanent endpoint for version 21
+   (`.../latest/21/ga/<os>/<arch>/jdk/hotspot/normal/eclipse`, so a new 21 patch needs no edit); only a
+   machine with no JDK 21 at all uses them. `FREE_BSD`/`UNIX` are deliberately absent — Adoptium publishes
+   no such build — and Gradle then reports "No defined toolchain download url", a first-party message
+   instead of a third party's 400.
+3. **Regeneration is deliberate.** `./gradlew updateDaemonJvm` rewrites the file with package-id URLs;
+   replace them with the vendor endpoints before committing, or the CI step fails the run.
+
+Checks (none of them needs a device or a JDK download):
+
+```bash
+# the guard exactly as CI runs it (expect: "daemon JVM criteria: version 21, no vendor, no package id.", exit 0)
+yq -r '.jobs.build.steps[] | select(.name=="Check daemon JVM criteria") | .run' .github/workflows/build.yml > /tmp/guard.sh && bash /tmp/guard.sh
+
+# every declared platform resolves to that vendor's 21 archive (expect six 307s, tar.gz on unix, zip on windows)
+grep '^toolchainUrl\.' gradle/gradle-daemon-jvm.properties | while IFS='=' read -r k raw; do u=$(printf '%s' "$raw" | sed 's/\\:/:/g'); printf '%-26s %s %s\n' "${k#toolchainUrl.}" "$(curl -sS -o /dev/null -w '%{http_code}' -L --max-redirs 0 "$u")" "$(basename "$(curl -sS -o /dev/null -w '%{redirect_url}' -L --max-redirs 0 "$u")")"; done
+
+# the provisioning path itself, in a scratch project so no other requirement interferes: with
+# auto-detection off, the only way to a daemon JVM is the criteria URL. Expect BUILD SUCCESSFUL and a
+# provisioned JDK under the scratch home (measured 2026-10-06: eclipse_adoptium-21-amd64-linux.2 unpacked
+# from OpenJDK21U-jdk_x64_linux_hotspot_21-any-vendor-21.0.12.1_1.tar.gz, the daemon running on it,
+# BUILD SUCCESSFUL in 1m11s). Do NOT run this in this repository: buildSrc compiles with a Java 17
+# toolchain it can only auto-detect (TODO.md §146), so disabling auto-detection here fails in buildSrc
+# configuration after 700 ms and says nothing about the daemon.
+mkdir -p /tmp/djvm-probe/gradle && cp gradle/gradle-daemon-jvm.properties /tmp/djvm-probe/gradle/
+printf 'rootProject.name = "probe"\n' > /tmp/djvm-probe/settings.gradle.kts
+./gradlew -p /tmp/djvm-probe -g /tmp/djvm-probe-home -Dorg.gradle.java.installations.auto-detect=false help
+```
+
+A green `assembleDebug` proves nothing about this on a workstation that has JBR 21 — the download never
+happens there. The CI run is the only evidence that the runner's installed Temurin 21 is accepted (if a run
+still provisions, the criteria are not the reason the daemon starts, and the fallback is to install the
+same JBR the criteria would name). And the daemon JVM is not the only JVM the build needs: `buildSrc`
+compiles with a Java 17 toolchain that must be detectable locally — a second requirement, tracked as
+`TODO.md` §146.
+
 ## 3. Commands reference
 
 | Goal | Command |

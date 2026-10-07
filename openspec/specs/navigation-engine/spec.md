@@ -160,3 +160,59 @@ clock read at the tick site.
 - **WHEN** the road lookup answers on a background thread
 - **THEN** the resulting road information is published on the main thread
 - **AND** publishing it leaves a field another publisher set meanwhile unchanged
+
+### Requirement: A failed route attempt releases only the lease it took
+
+The engine SHALL release a location lease for a route attempt only when that attempt took the lease itself. A
+route attempt that fails while navigation is already active and that reused the running navigation's lease
+SHALL NOT release it, so guidance keeps receiving position updates; the failure SHALL still be published to the
+surfaces. An attempt that took the lease for its own start position (a surface-less acquisition) SHALL release
+it on failure, as it already does on cancellation.
+
+#### Scenario: Failed reroute keeps the running navigation's lease
+
+- **WHEN** navigation is active and the route calculation of a reroute fails
+- **THEN** the running navigation's location lease SHALL stay held
+- **AND** position updates SHALL keep reaching the guidance
+- **AND** the failure SHALL still be published as an engine error
+
+#### Scenario: Failed surface-less acquisition releases its own lease
+
+- **WHEN** a route attempt that took the location lease to obtain its start position fails while no navigation
+  is active
+- **THEN** the lease taken for that attempt SHALL be released
+
+### Requirement: Arrival is part of the shared navigation state
+
+The shared navigation state SHALL report whether the running navigation reached its destination. The engine SHALL set that fact when the native navigation engine reports the target reached, SHALL keep it while a reroute replaces the route, and SHALL clear it when a new navigation starts and when navigation stops.
+
+#### Scenario: Destination reached is reported in the shared state
+
+- **WHEN** the native navigation engine reports the target reached while navigation is active
+- **THEN** the shared navigation state SHALL report the destination as reached
+- **AND** guidance SHALL otherwise be unchanged: navigation stays active, the step list, route geometry and position updates are unaffected
+
+#### Scenario: Arrival is observable without a surface
+
+- **WHEN** the destination was reached and no surface is displaying the navigation
+- **THEN** the arrival fact SHALL still be readable from the shared state until it is cleared
+
+#### Scenario: Arrival survives a reroute
+
+- **WHEN** a reroute replaces the route after the destination was reached
+- **THEN** the shared state SHALL still report the destination as reached while the new route runs
+
+#### Scenario: Arrival cleared on a new navigation
+
+- **WHEN** navigation starts on a newly acquired route that is not a reroute of the running session
+- **THEN** the shared state SHALL NOT report the destination as reached
+
+#### Scenario: Arrival cleared on navigation stop
+
+- **WHEN** navigation stops, whether the user stopped it or a surface ended it
+- **THEN** the shared state SHALL NOT report the destination as reached
+
+#### Scenario: Late arrival report after a stop
+
+- **WHEN** the native navigation engine reports the target reached for a session that was already stopped
+- **THEN** the shared state SHALL NOT report the destination as reached

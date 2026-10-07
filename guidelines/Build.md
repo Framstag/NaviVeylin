@@ -1275,6 +1275,29 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   app, and the host `RendererService` disconnects ~40 s after launch. Plan car verification for an
   interactive window or a real head unit, and state the blocker instead of burning a session.
 
+### A calculated route's length — which number is a route length (`fix-router-overall-distance`)
+
+- **The route's length is the description's own total, else the drawn polyline's length.** The bridge
+  publishes `RouteEntry.distance` from the description branch (`libosmscout-client-java/src/OSMScoutClient.cpp`:
+  the sum of the published per-step legs, else the description's last-node distance) and, where a route's
+  description produced nothing, from the great-circle length of the polyline it just built. A surface reads a
+  length through `RouteStepValues.routeLengthMeters`, which prefers the sum of the step legs.
+- **`AbstractRoutingService::GetOverallDistance()` is NOT a route length.** It is the start/target air-line
+  estimate (`AbstractRoutingService.cpp:1088-1094`), used for the router's own cost limit and progress
+  denominator, and upstream prints it as "Air-line distance" (`Demos/src/Routing.cpp`). Never publish it as a
+  length: measured 2026-10-05 against the drawn polyline it was 0.748× on a ~70 km route (72 771 m published
+  vs 97 283 m drawn), 0.795× on a 20 km one and 0.552× on a 1.5 km one, while the description tracked the
+  polyline to 1.0014 / 1.0021 / 0.9964 — and the real road distance Dortmund Hbf → Cologne Hbf is ~95-100 km,
+  i.e. the polyline's number, not the published one.
+- **Recipe** — one instrumented run, no UI, and the case is now the guard rather than a log reader:
+  build the x86_64 debug APK (`-Pandroid.injected.build.abi=x86_64`, `testOnly` → `adb install -r -t`), then
+  `./gradlew :app:connectedMobileDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.naviveylin.route.RouteInstructionPositionDeviceTest`
+  and read the per-candidate `RouteDeviceTest` line: `routerTotalM` / `descriptionTotalM` / `polylineM` /
+  `routerOverPoly` / `descriptionOverPoly` / `descriptionOverRouter`. `routeLengthsAreMeasuredForALongAndAShortRoute`
+  fails when the published length leaves `publishedOverPoly 0.95…1.05` or differs from the description's total
+  by more than 2 % (the app's own divergence threshold), so a regression is a red case. The map data must carry
+  the candidate chain (NRW); on the AAOS AVD the basemap can be a format version behind (`TODO.md` §99).
+
 ## 11. Measuring a phone UI finding (do this before changing code)
 
 A finding that lives in pixels ("the segment is still not completely visible", "the card is too

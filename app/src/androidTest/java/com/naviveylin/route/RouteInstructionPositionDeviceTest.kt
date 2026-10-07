@@ -362,6 +362,30 @@ class RouteInstructionPositionDeviceTest {
                 )
                 assertTrue("the route must report a distance", total > 0.0)
                 assertTrue("the published polyline must have a length", polylineMeters > 0.0)
+
+                // The published length must be a length of the route it just published: the
+                // description's own total where the route carries one, and the polyline otherwise -
+                // never the router's start/target air-line estimate, which measured 0.748 / 0.795 /
+                // 0.552 of the polyline on this dataset (spec: osmscout-jni - The published route
+                // length is a length of that route; TODO.md 139).
+                val publishedOverPolyline = total / polylineMeters
+                val descriptionOverPolyline = legsSum / polylineMeters
+                assertTrue(
+                    "the published length must track the drawn route (${candidate.name}: " +
+                        "publishedM=${total.toInt()} descriptionM=${legsSum.toInt()} " +
+                        "polylineM=${polylineMeters.toInt()} " +
+                        "publishedOverPoly=$publishedOverPolyline " +
+                        "descriptionOverPoly=$descriptionOverPolyline)",
+                    publishedOverPolyline in 0.95..1.05
+                )
+                if (legsSum > 0.0) {
+                    assertEquals(
+                        "the published total must be the description's own total " +
+                            "(${candidate.name}: publishedM=${total.toInt()} " +
+                            "descriptionM=${legsSum.toInt()})",
+                        legsSum, total, maxOf(10.0, legsSum * 0.02)
+                    )
+                }
             }
             assumeTrue("no candidate of the measurement pair routes on this map data", routed > 0)
         } finally {

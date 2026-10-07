@@ -1296,6 +1296,14 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   `routerOverPoly` / `descriptionOverPoly` / `descriptionOverRouter`. `routeLengthsAreMeasuredForALongAndAShortRoute`
   fails when the published length leaves `publishedOverPoly 0.95…1.05` or differs from the description's total
   by more than 2 % (the app's own divergence threshold), so a regression is a red case. The map data must carry
+- **Install the freshly built **test** APK, not the one under `outputs/`** (measured 2026-10-07): with
+  `-Pandroid.injected.build.abi=…` AGP writes the variant APKs to `app/build/intermediates/apk/<flavor>/<type>/`,
+  while `app/build/outputs/apk/androidTest/…/app-…-androidTest.apk` can still be the previous build's file.
+  Installing that one runs the *old* assertions and reports `OK` while `RouteDeviceTest` logs the wrong
+  numbers — a revert-check “passed” that way until the intermediate APK was installed. Verify the artifact you
+  install (`unzip -p <apk> classes*.dex | grep -ac '<a string only the new case has>'`, and note the class may
+  live in `classes3.dex`) and always read the case's own log lines, never just the runner's
+  `OK (N tests)` — the same trap as the stale asset APK in `TODO.md` §17, one layer down.
   the candidate chain (NRW); on the AAOS AVD the basemap can be a format version behind (`TODO.md` §99).
 
 ## 11. Measuring a phone UI finding (do this before changing code)

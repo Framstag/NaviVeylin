@@ -289,6 +289,19 @@ class NavigationSession : Session() {
                 guardedHostCall("navigation manager destroy", tag = SESSION_DIAG_TAG) {
                     navigationManagerController?.onDestroy()
                 }
+                // The driver left the car with the destination already reached: the navigation
+                // this session presented ends with the session (spec: `auto/navigation-view` —
+                // Navigation ends when the car session ends after arrival). Ordered after the host
+                // navigation teardown above, so the still-live trip collector cannot publish a
+                // trip built from the state this resets; confined like every other teardown step,
+                // because a fault here must not escape into the library's dispatch. Reading the
+                // engine's state is the whole guard: a session that never navigated reads the
+                // default, and the predicate turns that into a no-op.
+                guardedHostCall("end navigation after arrival", tag = SESSION_DIAG_TAG) {
+                    val endState = navigationViewModel.state.value
+                    val ended = endNavigationAfterArrival(endState, navigationViewModel::stopNavigation)
+                    SessionLog.navigationEndDecision(endState, ended)
+                }
                 sessionDestroyed = true
                 guardedHostCall("stop observing", tag = SESSION_DIAG_TAG) { stopObserving() }
                 // Releases a still-held surface and clears the host registration
@@ -1191,6 +1204,42 @@ internal fun isNightUiMode(configuration: Configuration): Boolean =
  */
 internal fun shouldRestoreFreeDriving(isNavigating: Boolean, freeDrivingActive: Boolean): Boolean =
     freeDrivingActive && !isNavigating
+
+/**
+ * Whether the end of the car session ends the navigation it presented (spec:
+ * `auto/navigation-view` — Navigation ends when the car session ends after arrival): the session
+ * was driving and had reached its destination. The arrival fact lives in the shared navigation
+ * state, so it is read *after* the fact, at the moment the session is gone — no surface state and
+ * no host callback participates. Arriving while the session is live is not a stop: the driver may
+ * still be looking for a parking spot. Pure seam for unit testing ([NavigationSession] cannot be
+ * constructed in Robolectric).
+ */
+internal fun shouldEndNavigationOnSessionEnd(state: NavigationState): Boolean =
+    state.isNavigating && state.hasReachedDestination
+
+/**
+ * Perform that decision: stop the navigation the ended session was driving, and report whether it
+ * was ended. The call is the half with a consequence, so it has its own seam — a unit test drives
+ * it with a fake [stop] instead of leaving it reachable only on a device. Confinement is the
+ * caller's job ([guardedHostCall]): an already-gone host must not let a fault escape the lifecycle
+ * callback.
+ */
+internal fun endNavigationAfterArrival(state: NavigationState, stop: () -> Unit): Boolean {
+    if (!shouldEndNavigationOnSessionEnd(state)) return false
+    stop()
+    return true
+}
+
+/**
+ * The end decision as one diagnostics line (spec: `auto/navigation-view` — End decision is
+ * diagnosable without coordinates): identity and numbers only — was the session driving, was the
+destination reached, the remaining distance in whole metres, and what the session did about it.
+ * Pure seam for unit testing.
+ */
+internal fun sessionEndNavigationDecisionMessage(state: NavigationState, ended: Boolean): String =
+    "Session end: navigating=${state.isNavigating} reached=${state.hasReachedDestination}" +
+        " remaining=${state.remainingDistance.toInt()}m -> navigation " +
+        (if (ended) "ended" else "kept")
 
 /**
  * Trip factory used by the car session's trip publisher (spec:

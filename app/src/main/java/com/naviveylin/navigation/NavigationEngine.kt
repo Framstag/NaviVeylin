@@ -324,6 +324,13 @@ class NavigationEngine @Inject constructor(
         // state; Route acquisition independent of a surface UI).
         val routeEndLat = startLats?.lastOrNull()
         val routeEndLon = startLons?.lastOrNull()
+        // The arrival fact belongs to the destination, not to the route: a reroute re-acquires
+        // the destination that was already reached, so it must not lose the fact, while a newly
+        // started navigation begins with the destination not reached (spec: `navigation-engine`
+        // — Arrival survives a reroute, Arrival cleared on a new navigation).
+        // `keepRerouteCooldown` is the reroute flag at every call site: `start()` passes false,
+        // the engine's own re-acquisition in `calculateAndStart` passes `fromReroute`.
+        val arrivedBefore = keepRerouteCooldown && _state.value.hasReachedDestination
         _state.update { it.copy(
             isNavigating = true,
             currentStepIndex = 0,
@@ -344,6 +351,7 @@ class NavigationEngine @Inject constructor(
             vehicle = vehicle,
             destLat = routeEndLat ?: _state.value.destLat,
             destLon = routeEndLon ?: _state.value.destLon,
+            hasReachedDestination = arrivedBefore,
             // Navigation starting ends any calculation: the wait is over, whether this
             // route was calculated here or handed to the engine by a surface.
             calculation = null
@@ -486,12 +494,14 @@ class NavigationEngine @Inject constructor(
                                 Log.e(TAG, "acquire: route calculation failed: $message")
                                 if (!endCalculation(token, CalculationOutcome.ERROR)) return@launch
                                 if (ownsLease) releaseNavLease()
-                                _state.update { it.copy(
-                                    errorMessage = (message ?: "").ifBlank {
-                                        "Route calculation failed. Try again."
-                                    },
-                                    errorOrigin = SurfaceOrigin.ENGINE
-                                ) }
+                                _state.update {
+                                    it.withoutRerouteAttemptFlag().copy(
+                                        errorMessage = (message ?: "").ifBlank {
+                                            "Route calculation failed. Try again."
+                                        },
+                                        errorOrigin = SurfaceOrigin.ENGINE
+                                    )
+                                }
                             }
                         }
 
@@ -512,10 +522,12 @@ class NavigationEngine @Inject constructor(
                     Log.e(TAG, "acquire failed", e)
                     if (!endCalculation(token, CalculationOutcome.ERROR)) return@withContext
                     if (ownsLease) releaseNavLease()
-                    _state.update { it.copy(
-                        errorMessage = e.message ?: "Route calculation failed. Try again.",
-                        errorOrigin = SurfaceOrigin.ENGINE
-                    ) }
+                    _state.update {
+                        it.withoutRerouteAttemptFlag().copy(
+                            errorMessage = e.message ?: "Route calculation failed. Try again.",
+                            errorOrigin = SurfaceOrigin.ENGINE
+                        )
+                    }
                 }
             }
         }
@@ -557,6 +569,10 @@ class NavigationEngine @Inject constructor(
             }
         }
         endCalculation(calculation.token, CalculationOutcome.CANCELLED)
+        // A cancelled reroute attempt must stop claiming one is running (spec:
+        // `rerouting-visual-feedback` — Cancelled reroute ends rerouting state); the
+        // surface-less acquisition this path also serves never set the flag.
+        _state.update { it.withoutRerouteAttemptFlag() }
         if (ownsLease) {
             // The surface-less acquisition leased GPS to obtain its start position; an
             // aborted attempt must not keep the updates alive (spec: `navigation-engine`
@@ -641,6 +657,22 @@ class NavigationEngine @Inject constructor(
         CANCELLED("cancelled")
     }
 
+    /**
+     * The reroute flag belongs to the attempt that set it, so every terminal outcome ends the
+     * claim that one is running — success clears it in [onRouteInstructions], a failure and a
+     * cancellation through this one rule (spec: `rerouting-visual-feedback` — Rerouting state is
+     * exposed in navigation state). A superseded attempt never reaches a clear site: its
+     * `endCalculation` guard returns first.
+     *
+     * The flag is left alone for an attempt that never set it (a surface-less acquisition), and
+     * `isOffRoute` is deliberately not touched: the vehicle is still off route after a failed
+     * reroute (spec: `rerouting-visual-feedback` — Off-route survives a failed reroute). Written
+     * at the site that publishes the outcome, so a failure reaches the surfaces as one update
+     * carrying both the error and the cleared flag. Main-thread only.
+     */
+    private fun NavigationState.withoutRerouteAttemptFlag(): NavigationState =
+        if (isRerouting) copy(isRerouting = false) else this
+
     // ---------------------------------------------------------------------
     // Lifecycle
     // ---------------------------------------------------------------------
@@ -650,6 +682,8 @@ class NavigationEngine @Inject constructor(
         nativeController = null
         releaseNavLease()
         stopLocationFeed()
+        // The fresh state carries the default, so the arrival fact of the ended session goes
+        // with everything else (spec: `navigation-engine` — Arrival cleared on navigation stop).
         _state.value = NavigationState()
         // The follow stream belongs to the session: a surface collecting it must not
         // keep following a position of the ended navigation.
@@ -838,7 +872,16 @@ class NavigationEngine @Inject constructor(
             }
 
             override fun onTargetReached(bearing: Double, distance: Double) {
-                // no-op
+                // The arrival of the destination (spec: `navigation-engine` — Arrival is part
+                // of the shared navigation state). The native engine reports it on every fix
+                // inside its approach radius, so the write is guarded against the two cases
+                // where it would be wrong or wasteful: a report that arrives after the session
+                // was already stopped, and a repeat of a fact the state already carries.
+                scope.launch(Dispatchers.Main) {
+                    if (!_state.value.isNavigating || _state.value.hasReachedDestination) return@launch
+                    _state.update { it.copy(hasReachedDestination = true) }
+                    Log.d(TAG, "onTargetReached: destination reached")
+                }
             }
 
             override fun onRerouteRequest(

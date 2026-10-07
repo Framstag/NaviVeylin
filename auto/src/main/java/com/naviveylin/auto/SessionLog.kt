@@ -2,6 +2,7 @@ package com.naviveylin.auto
 
 import android.content.Intent
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.NavigationState
 
 /**
  * Centralizes [NavigationSession] event logging so the exact log lines are
@@ -48,6 +49,15 @@ object SessionLog {
 
     fun destroyed() =
         DiagnosticsLog.log(SESSION_TAG, "Session destroyed")
+
+    /**
+     * The end decision taken while the session is torn down (spec: `auto/navigation-view` —
+     * Navigation ends when the car session ends after arrival; End decision is diagnosable without
+     * coordinates). Identity and numbers only, never a position: the message is
+     * [sessionEndNavigationDecisionMessage], so the exact line is unit-tested.
+     */
+    fun navigationEndDecision(state: NavigationState, ended: Boolean) =
+        DiagnosticsLog.log(SESSION_TAG, sessionEndNavigationDecisionMessage(state, ended))
 
     fun warmupComplete() =
         DiagnosticsLog.log(SESSION_TAG, "Warmup complete")

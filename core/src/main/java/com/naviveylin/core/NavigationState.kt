@@ -60,6 +60,12 @@ data class NavigationState(
     val currentRoadInfo: CurrentRoadInfo? = null,
     val isRerouting: Boolean = false,
     val isOffRoute: Boolean = false,
+    // Whether the destination of the running session was reached (spec:
+    // `navigation-engine` — Arrival is part of the shared navigation state). Set when the
+    // native engine reports the target reached, kept while a reroute replaces the route,
+    // and cleared by a new navigation and by a stop. In-memory only, and it carries no
+    // coordinates: a surface reads the fact, never the place.
+    val hasReachedDestination: Boolean = false,
     // Lane guidance
     val laneOneway: Boolean = false,
     val laneCount: Int = 0,

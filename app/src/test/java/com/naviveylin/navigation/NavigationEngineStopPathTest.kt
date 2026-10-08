@@ -119,6 +119,36 @@ class NavigationEngineStopPathTest {
         }
     }
 
+    /**
+     * Stopping while a reroute is in flight leaves no reroute claim behind: the state is reset
+     * whole, so the car template cannot keep a loading trip and the phone cannot keep the
+     * off-route tint after navigation ended (spec: `rerouting-visual-feedback` — Navigation stops
+     * during rerouting, Off-route clears on navigation stop).
+     */
+    @Test
+    fun stoppingDuringARerouteClearsTheRerouteFlags() = runTest(mainDispatcherRule.dispatcher) {
+        val engine = engine()
+        engine.start(client.routeToDeliver!!, Vehicle.CAR)
+        awaitState { engine.state.value.isNavigating }
+        awaitState { client.navigationListener != null }
+
+        // Confirm a reroute without a surface and hold it open, so the attempt's flags are set
+        // while it runs.
+        engine.processLocation(52.5200, 13.4050, 17.8, 5.0, System.currentTimeMillis())
+        client.holdRouteDelivery = true
+        client.navigationListener!!.onRerouteRequest(52.5250, 13.4500, 90.0, 52.5300, 13.4100)
+        // The confirmation travels main -> compute (deviation) -> main (gate), so run the due
+        // tasks of every dispatcher in turn instead of one drain round per dispatcher.
+        awaitDue { engine.state.value.isRerouting }
+        assertTrue("the vehicle is off route while the reroute runs", engine.state.value.isOffRoute)
+
+        engine.stopNavigation()
+
+        awaitState { !engine.state.value.isNavigating }
+        assertFalse("no reroute claim survives the stop", engine.state.value.isRerouting)
+        assertFalse("no off-route cue survives the stop", engine.state.value.isOffRoute)
+    }
+
     @Test
     fun stopNavigationClearsTheRoutePanel() = runTest(mainDispatcherRule.dispatcher) {
         val engine = engine()

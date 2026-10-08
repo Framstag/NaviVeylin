@@ -29,6 +29,7 @@ import com.naviveylin.core.VehicleAnchorPosition
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
 import kotlin.math.abs
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -64,7 +65,14 @@ class MapScreen(
     /** Resolved dark presentation (preference × host signal; see [NavigationSession.resolvedDark]). */
     private val resolvedDark: StateFlow<Boolean> = MutableStateFlow(carContext.isDarkMode()),
     /** Notifies the session that the shared dark mode preference changed (PreferencesScreen saves). */
-    private val onDarkModeChanged: (String) -> Unit = {}
+    private val onDarkModeChanged: (String) -> Unit = {},
+    /**
+     * Dispatcher for every hop that touches the native client — renderer init, style apply,
+     * the stylesheet collector's flag push, the candidate lookup and the road lookup.
+     * Defaults to [Dispatchers.Default]; injectable so a case can own the hop it asserts
+     * (spec `unit-test-suite-runtime` — A case's own bookkeeping is read only on the test thread).
+     */
+    private val backgroundDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : Screen(carContext) {
 
     private val scope = carScreenScope("MapScreen")
@@ -293,7 +301,7 @@ class MapScreen(
             // Everything that touches the native client stays on a background
             // dispatcher (spec: auto-map-renderer — Renderer initialization off the
             // car-app main thread).
-            val prepared = withContext(Dispatchers.Default) {
+            val prepared = withContext(backgroundDispatcher) {
                 val client = entryPoint.autoClientProvider().client()
                 val viewport = resolveInitialAutoViewport(
                     mapsRootDir = File(carContext.filesDir, "maps"),
@@ -358,7 +366,7 @@ class MapScreen(
         scope.launch {
             rendererGate.daylightPush.collect { request ->
                 if (request == null) return@collect
-                val applied = withContext(Dispatchers.Default) {
+                val applied = withContext(backgroundDispatcher) {
                     runCatching { daylightApplier.apply(request.dark, request.force) }
                         .onFailure { Log.w(TAG, "setStyleSheetFlag failed", it) }
                         .getOrDefault(false)
@@ -455,7 +463,7 @@ class MapScreen(
         // Apply the shared map style (loadStyleSheet blocks on the native DB
         // thread — run off the main thread; deduped by the applier).
         val style = settings.styleSheet
-        scope.launch(Dispatchers.Default) {
+        scope.launch(backgroundDispatcher) {
             val styleChanged = style != pushedForStyleSheet
             if (!styleApplier.apply(style)) {
                 Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
@@ -797,7 +805,7 @@ class MapScreen(
         // — Host callbacks answer promptly; No fault escapes into the host path). The
         // guarded calls below resolve it inside their own `try`.
         scope.launch {
-            val candidates = withContext(Dispatchers.Default) {
+            val candidates = withContext(backgroundDispatcher) {
                 try {
                     entryPoint.autoClientProvider().client().getDescriptionCandidates(lat, lon, mag)
                 } catch (e: Exception) {
@@ -866,7 +874,7 @@ class MapScreen(
         if (!streetNameUpdater.shouldGeocode(pos.lat, pos.lon)) return
         if (streetJob?.isActive == true) return
         streetJob = scope.launch {
-            val road = withContext(Dispatchers.Default) {
+            val road = withContext(backgroundDispatcher) {
                 try {
                     entryPoint.autoClientProvider().client().getRoadAt(pos.lat, pos.lon, pos.bearing)
                 } catch (e: Exception) {

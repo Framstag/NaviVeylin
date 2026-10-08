@@ -297,4 +297,84 @@ class NavigationEngineRerouteTest {
             engine.state.value.errorMessage
         )
     }
+
+    /**
+     * A reroute that fails must stop claiming one is running. `onRouteInstructions` is the only
+     * other writer that clears the flag, and a failed attempt never reaches an instruction list,
+     * so the car template would keep mapping `isRerouting` to a loading trip with no turn (spec:
+     * `rerouting-visual-feedback` — Failed reroute ends rerouting state, Off-route survives a
+     * failed reroute, No surface is told a reroute is running after it ended).
+     */
+    @Test
+    fun aFailedRerouteEndsTheReroutingState() = runTest(mainDispatcherRule.dispatcher) {
+        startSession()
+        listener().onRouteInstructions(
+            arrayOf(RouteInstruction(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left"))
+        )
+        awaitState { engine.state.value.instructions.size == 1 }
+
+        // Hold the reroute's calculation so its failure is delivered explicitly (the shape a thin
+        // map set produces on device: "No routable node near destination").
+        client.holdRouteDelivery = true
+        requestReroute(lat = 52.5218)
+        awaitState { client.routeCalculationCount == 1 }
+        assertTrue("the attempt announces itself", engine.state.value.isRerouting)
+
+        client.pendingRouteCallbacks.first().onError("No routable node near destination")
+        awaitState { engine.state.value.errorMessage != null }
+
+        assertFalse(
+            "a failed reroute must not keep the surfaces on a reroute",
+            engine.state.value.isRerouting
+        )
+        assertTrue(
+            "the vehicle is still off route after the failed attempt",
+            engine.state.value.isOffRoute
+        )
+        assertTrue("the failed reroute does not end the session", engine.state.value.isNavigating)
+        assertEquals(
+            "the running route's steps survive the failed attempt",
+            1, engine.state.value.instructions.size
+        )
+        assertEquals("Main St", engine.state.value.instructions[0].streetName)
+        assertEquals(
+            "the failure is still published",
+            "No routable node near destination",
+            engine.state.value.errorMessage
+        )
+
+        // A later emission must not resurrect the claim: the car rebuilds its template from any
+        // state change, so a stale `true` would come back with the next one.
+        listener().onNextRouteInstruction(
+            RouteInstruction(80.0, TurnType.RIGHT, "Alt St", "Turn right", "Turn right")
+        )
+        awaitState { engine.state.value.nextInstruction?.streetName == "Alt St" }
+        assertFalse(engine.state.value.isRerouting)
+    }
+
+    /**
+     * The same rule on the other failure path: a throwable out of the calculation call itself (the
+     * `catch` in `calculateAndStart`) ends the reroute claim and publishes the error, instead of
+     * leaving the car on a loading trip (spec: `rerouting-visual-feedback` — Failed reroute ends
+     * rerouting state; `navigation-engine` — Native failure is confined, not fatal).
+     */
+    @Test
+    fun aThrowingRouteCallEndsTheReroutingState() = runTest(mainDispatcherRule.dispatcher) {
+        startSession()
+        client.routeCalculationError = IllegalStateException("native routing blew up")
+
+        requestReroute(lat = 52.5218)
+        awaitState { engine.state.value.errorMessage != null }
+
+        assertFalse(
+            "a throwing calculation ends the reroute claim",
+            engine.state.value.isRerouting
+        )
+        assertTrue("the session keeps running", engine.state.value.isNavigating)
+        assertTrue(
+            "the off-route cue stays: the vehicle is still off route",
+            engine.state.value.isOffRoute
+        )
+        assertEquals("native routing blew up", engine.state.value.errorMessage)
+    }
 }

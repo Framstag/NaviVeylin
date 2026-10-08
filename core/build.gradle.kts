@@ -32,6 +32,13 @@ android {
             // tasks not up to date, so a run is evidence of what executed; pair it with
             // `--no-build-cache`, or the result outputs come back from the cache (Build.md §4).
             all {
+                // A failing run reports each failure's own message (change
+                // `fix-aggregate-run-test-flakes`, spec `build-test-gate` — "A failing run reports each
+                // failure's message"); guidelines/Build.md §6 carries the rule.
+                it.testLogging {
+                    exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                }
+
                 if (forceTests) {
                     it.outputs.upToDateWhen { false }
                 }

@@ -14,7 +14,7 @@ context: |
   Android Auto: implemented (Car App Library, :auto module + NaviVeylinCarAppService, AAOS support)
   Distribution: Google Play (mobile + Android Automotive OS tracks, same applicationId); sideloading also supported
   External Repo: https://github.com/Framstag/libosmscout
-  Guidelines: guidelines/Design.md, UI.md, MapRendering.md, Build.md — read before design/apply
+  Guidelines: guidelines/Design.md, UI.md, MapRendering.md, Build.md, Regulatory.md, Logging.md — read the section that owns your topic, not the whole document. A whole-document read is expensive (Build.md ~29k tokens, MapRendering.md ~23k, UI.md ~22k, Design.md ~15k, Regulatory.md ~7k, Logging.md ~2k); AGENTS.md "Documentation Map" is the topic-to-section routing table, and `grep -n '^## ' guidelines/<file>.md` lists every section of one file.
   Native purity: libosmscout stays Android-free outside its frozen Android/ dir (CI-gated)
   Google Play Services: optional, used when available (Fused location, car MapController); no hard dependency — replaceable by design (e.g., LocationManager fallback)
   Tooling: do NOT use python3 for openspec interaction or CLI output processing — use plain shell, jq, or openspec's own --json output instead
@@ -63,7 +63,7 @@ rules:
     - When a change supersedes a guideline, include a task to update the guidelines/ document
     - Include on-device verification tasks for UI, rendering, and Auto changes (emulator/head unit, surface lifecycle)
     - Include Gradle sync or build verification steps for Android-specific tasks
-    - Every new invariant, bound, predicate or refusal path needs one revert-check task — name the single mutation and the case that must fail, restore, then re-run green forced (`--rerun-tasks`); the `revert-check` skill holds the discipline and the evidence format
+    - Every new invariant, bound, predicate or refusal path needs one revert-check task — name the single mutation and the case that must fail, restore, then re-run green forced with `-PforceTests --no-build-cache` (`--rerun-tasks` only when the change touched more than the test sources; the gate's own rule is `guidelines/Build.md` §2/§4); the `revert-check` skill holds the discipline and the evidence format
     - State each task's verification in the task itself (a test, command, observable behavior or delivered artifact), not in a separate late testing group
     - For a visual or observable-behaviour requirement, include a task that records the on-device measurement (diagnostics line output, UI-dump geometry, or the `pixel-check` verdict) with its numbers
     - For a UI/rendering change, include one task that measures the *pixels* (screenshot + `pixel-check`) for the claimed property, and say so when the property cannot be produced on a stationary emulator
@@ -80,7 +80,7 @@ operations:
       - Make sure that tests cover all relevant data combinations and process variants and thus cover the complete code under tests in all its variants
       - Make sure that the build has no warnings
       - Build only the targets needed for testing to minimize resource usage and compilation time
-      - Verify all new/modified code against every document in guidelines/ — all conventions and rules defined there must be followed
+      - Verify all new/modified code against the guideline sections that own the conventions the change touches (`AGENTS.md` "Documentation Map" routes a kind of change to them, and `grep -n '^## ' guidelines/<file>.md` lists one file's sections) — a whole-document read is not required
       - Update README.md and AGENTS.md and other documentation if information stored there changed
       - Verify no regressions in unrelated areas
       - For native C++ changes, verify all target ABIs compile
@@ -108,7 +108,7 @@ operations:
       - Make sure that no task references a deleted or renamed spec
       - Make sure that for every feature there are enough tests — especially unit tests
       - Make sure that style guides of the Android platform and Material Design 3 are followed
-      - Verify design decisions follow the guidelines/ documents (Design.md, UI.md, MapRendering.md); if a change supersedes a principle, update the affected document in the same change
+      - Verify design decisions follow the guideline sections that own them (`AGENTS.md` "Documentation Map" routes by kind of change); if a change supersedes a principle, update the affected section in the same change
       - Make sure no dead code remains and specs match the implemented behavior
       - For features in both variants, verify label/hierarchy parity (guidelines/UI.md)
       - Make sure that build and tests are green

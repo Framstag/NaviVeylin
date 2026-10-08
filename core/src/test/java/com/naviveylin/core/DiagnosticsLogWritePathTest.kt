@@ -115,16 +115,38 @@ class DiagnosticsLogWritePathTest {
     }
 
     @Test
+    fun theParkedAwaitReportsTheWorkersWaitingState() {
+        // The state `pendingBufferIsBoundedAndMarksTheDropOnce` assumes: the worker being *parked*, not
+        // merely the ring being empty (spec `unit-test-suite-runtime` — A case awaits the state it needs,
+        // not a proxy of it).
+        DiagnosticsLog.flushIntervalMs = 60_000
+
+        DiagnosticsLog.log("TEST", "park-warm-up")
+        assertTrue("the warm-up entry drains", DiagnosticsLog.flushNow(2_000))
+        assertTrue(
+            "the worker publishes that it is waiting",
+            DiagnosticsLog.awaitParked(2_000)
+        )
+
+        // Without a worker nothing can park, and the await reports that instead of blocking.
+        DiagnosticsLog.reset()
+        assertFalse("no worker means no parked state", DiagnosticsLog.awaitParked(200))
+    }
+
+    @Test
     fun pendingBufferIsBoundedAndMarksTheDropOnce() {
         DiagnosticsLog.flushIntervalMs = 60_000
         DiagnosticsLog.maxPendingEntries = 5
         DiagnosticsLog.maxPendingChars = 100_000
 
-        // Warm-up: start the worker and drain a first entry, so the worker is parked
-        // and the burst below is bounded entirely in the ring (no early drain can
-        // move the oldest entries to the file).
+        // Warm-up: start the worker, drain a first entry, and wait until it is *parked* — not merely
+        // until the ring is empty. `flushNow`/`awaitDrained` return as soon as `pending` is empty and
+        // nothing is being flushed, a state the worker reaches before it waits again; a burst landing in
+        // that window is drained mid-burst, and the file then holds k + 5 burst lines instead of 5
+        // (TODO.md §148 case 2). Parked, the burst below is bounded entirely in the ring.
         DiagnosticsLog.log("TEST", "warm-up")
         assertTrue(DiagnosticsLog.flushNow(2_000))
+        assertTrue("the worker must be parked before the burst", DiagnosticsLog.awaitParked(2_000))
 
         repeat(20) { DiagnosticsLog.log("TEST", "bound-$it") }
 

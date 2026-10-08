@@ -4,8 +4,9 @@
 **Entry metadata:** every numbered section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line under its heading. `class` describes the **remaining** work: a landed fix whose only residue is verification is an `improvement`, one whose residue is still a defect stays a `bug`. Ids are identity — never renumbered (a collision is reported and the duplicate gets a fresh id: the `§79` duplicate became `§119` on 2026-10-03). An id is retired only by **absorption**: the survivor's heading says `absorbed §N` and its body carries the folded entry's record verbatim, so the retired id needs no renumbering and its history is not lost.
 
 **Clusters** (category, then class — jump targets, not an order):
-- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143
-- **car** — bug: §56 §57 §83 §92 §93 §126
+- **build-and-harness** — bug: §146
+- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145
+- **car** — bug: §56 §57 §83 §92 §93
 - **car** — improvement: §29 §34 §46 §64 §103 §120 §127 §133
 - **data-and-maps** — bug: §91 §99
 - **favorites** — bug: §118
@@ -17,17 +18,17 @@
 - **native-jni** — improvement: §81 §82 §119
 - **native-jni** — feature: §23
 - **persistence** — bug: §9
-- **route-and-navigation** — bug: §129 §130 §139
-- **route-and-navigation** — improvement: §140 §141
+- **route-and-navigation** — bug: §129 §130 §139 §144
+- **route-and-navigation** — improvement: §126
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
-- **specs-and-process** — improvement: §40 §113 §134
+- **specs-and-process** — improvement: §40 §113 §134 §153
 - **stylesheets** — bug: §36
 - **ui** — bug: §70 §72 §73 §74 §122 §138
 - **ui** — improvement: §39 §136
 - **ui** — feature: §4 §5
-- **verification** — bug: §131
+- **verification** — bug: §131 §147 §148
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141
 
 ---
@@ -1434,7 +1435,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   visible is the `run-tests` attribution step (baseline green alone, red together).
 
 ## 126. A failed reroute releases the navigation lease of the guidance that is still running — Found 2026-10-04 while implementing `show-route-calculation-progress` (task 2.4, out of that change's scope)
-**id:** 126 · **category:** car · **class:** bug · **status:** open
+**id:** 126 · **category:** route-and-navigation · **class:** improvement · **status:** fixed-by `fix-reroute-lease-release` — the code half is landed and unit-pinned (two revert-checks, 2026-10-06); the on-device half is blocked (no device, no `emulator` binary)
 
 - **Observed** ✗: `NavigationEngine.confirmReroute` reaches `calculateAndStart(fromReroute = true)`, whose
   `onError` (and its synchronous-catch twin) calls `releaseNavLease()`. During a reroute `isNavigating` is
@@ -1453,6 +1454,28 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   failed reroute leaves `heldLeaseConsumers()` holding `nav-engine`.
 - **Related** ℹ: `show-route-calculation-progress` (engine task 2.4) added the guard for the cancel path;
   the failure path was left alone.
+- **Fix 2026-10-06 — change `fix-reroute-lease-release`** ✅: `calculateAndStart` now captures
+  `ownsLease = !_state.value.isNavigating` before its native call (`NavigationEngine.kt:448`) and **both**
+  failure handlers release the lease only when the attempt owned it (`:488` `onError`, `:514` the synchronous
+  `catch`), the same rule `cancelAcquisition` already applied (`:550-565`). The failure is still published
+  (`errorMessage` + `SurfaceOrigin.ENGINE`), so the driver is told exactly as before — only the release is
+  gated. Spec: `navigation-engine` — new requirement "A failed route attempt releases only the lease it
+  took" with one scenario per direction. Cases: `NavigationEngineRerouteTest.aFailedRerouteKeepsTheRunningNavigationLease`
+  (drives the production reroute entry, holds the calculation, fails it → `heldLeaseConsumers()` still holds
+  `nav-engine`, `isNavigating` true, the error published) and
+  `NavigationEngineCalculationCancelTest.aFailedSurfaceLessAcquisitionReleasesItsOwnLease` (the boundary that
+  keeps the rule from being "never release on failure"). Both falsified once: mutating the `onError` site back
+  to an unconditional release fails the reroute case (`java.lang.AssertionError: a failed reroute must not
+  starve the running guidance of position updates`, `tests="9" failures="1"`), mutating `ownsLease` to a
+  constant `false` fails the control. Restored and forced green; both-flavor gate green
+  (mobile/automotive 1721 tests each, `:auto` 781, `:core` 447, JNI 26, `buildSrc` 113, 0 failures, 0
+  warnings). Rule recorded in `guidelines/Design.md` §4.
+- **Still owed** ⏳: the device half — a reroute that fails while guidance is live, read via
+  `adb logcat -s NaviVeylin` (expect **no** `location lease release: nav-engine` in the window). Not run:
+  `adb devices` empty and no `emulator` binary in this session; the blocker is recorded rather than implied
+  as proof (`guidelines/Build.md` §10).
+- **Surfaced by the fix, filed as its own entry** ℹ: a failed reroute leaves `isRerouting`/`isOffRoute` set
+  until the next instruction list — `TODO.md` §144.
 
 ## 127. `LoadingScreen` is production-dead and now has a sibling wait notice — Found 2026-10-04 while implementing `show-route-calculation-progress` (task 3.1)
 **id:** 127 · **category:** car · **class:** improvement · **status:** open
@@ -1704,101 +1727,6 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 
 ---
 
-## 140. Stopping navigation from the routing status card ends the route session outright — no stopped state, no grace — and leaves the map in free driving — Found 2026-10-05 while measuring the stop control for `fix-nav-overlay-stop-tap` (device run, tasks 1.1/1.2)
-**id:** 140 · **category:** route-and-navigation · **class:** improvement · **status:** fixed-by `fix-route-session-stop-path` — the code half is landed, unit/compose-pinned and confirmed on the device (2026-10-06, `emulator-5554`)
-
-- **Note on the id** ℹ: filed as §139 and renumbered to §140 the same session — a concurrent session
-  (`fix-route-length-disagreement`, the native half of §129) took §139 while this run was in flight, per
-  `TODO.md`'s id rule (ids are identity and are never renumbered once referenced; the reference existed only
-  inside this session's artifacts, which were updated with it).
-
-- **Observed** ℹ: on `emulator-5554` (Pixel_8, 1080×2400, maps `north-rhine-westphalia`, install
-  `lastUpdateTime` 2026-10-05 21:53:42, navigation running on a 20,7 km · 24 min route from the current
-  location to Bochum) a tap at the stop control's centre (`content-desc="Navigation beenden"`, bounds
-  `[986,2233][1049,2296]`, centre `1017,2264`) ran the intended stop — `adb logcat -d -s NavigationEngine` →
-  `stopNavigation: stopped` — and then the screen showed **no route panel, no `Navigation beenden`, no
-  `Route · Bochum`**, only `content-desc="Freie Fahrt beenden"`. The route was cleared and the map stood in
-  **FREE_DRIVE** (`DriveModeButton`: `exit_free_drive` is shown only for `MapMode.FREE_DRIVE`), while the
-  label before navigation had been `start_free_drive` (= `BROWSE`). No
-  `RoutePanelVM: session grace period expired - ending the session` line followed, and no Restart/End was
-  offered: the session never entered its stopped state.
-- **Why it matters** ✗: two existing contracts are contradicted. `map-modes` — "the map mode SHALL return to
-  the mode that was active before navigation started (BROWSE or FREE_DRIVE)" (the unit case
-  `MapCanvasViewModelModeTest.navigationEndRestoresBrowseMode` asserts `BROWSE` for the **ViewModel** stop
-  path and is green), and `route-planning-session` — "When the user stops navigation during a session the
-  session SHALL enter a stopped state: the route SHALL stay drawn … the overlay SHALL offer Restart and End"
-  with its bounded grace. The status card's stop path
-  (`MapCanvasScreen.kt:~2380` → `navigationViewModel.stopNavigation()` + `routePanelViewModel
-  .setNavigating(false)` + `clearRouteFromMap()`) is not the path that test covers, so the deviation is
-  specific to the card.
-- **Caveat** ℹ: one run, on a build produced from a working tree that also carried other in-flight work, and
-  the uncommitted diffs of `MapCanvasViewModel.kt`/`MapCanvasScreen.kt` contain no mode/exit-path change — so
-  the cause is **not** established. Re-check on a clean build before scoping a fix; if it reproduces, compare
-  the card's stop path against the session's own Stop entry point (the one that reaches the stopped state) and
-  make the card use it, then extend `MapCanvasViewModelModeTest` to the card path.
-- **How it surfaced** ℹ: `TODO.md` §122 attributed the free-driving screen to the tap and concluded the stop
-  control was unreachable; the measurement above shows the opposite (the stop ran), which is what left this
-  observation without a home. Recorded here rather than in that change's artifacts because it is a different
-  defect on the same control.
-- **Not caught** ✗: no case exercises the status card's stop path end to end — the mode case covers
-  `navVm.stopNavigation()` and the session cases cover the panel, so the card's own callback is only
-  click-tested for reaching `navigationViewModel.stopNavigation()`.
-- **Second measurement (same device, 2026-10-06, on the fixed build of `fix-nav-overlay-stop-tap`) — the
-  during-navigation session offers no Stop of its own** ℹ: a session *can* be opened while navigating (map
-  long-press → candidate → `Route berechnen` → `openRoutePanelWithStart`, which is not gated on navigation), but
-  the panel then renders **without** its route-review action row: the dump shows only the header
-  (`Route · 51.51482, 7.46530`, collapse, `Analyse beenden`), the two location fields with their clear buttons
-  and `Start und Ziel tauschen` — no `Navigation beenden` button, no step list, no `Schritte`, also after
-  expanding and scrolling the panel. `RoutePanel.kt:578` renders that button only `if (navigationActive)`, so
-  with the session's stop out of reach, the only `Navigation beenden` on screen stays the status card's control
-  (`[975,2222][1038,2285]` icon inside the clickable `[943,2190][1069,2316]`). Consequence:
-  `RoutePanelViewModel.onNavigationStopped()` → `RouteSessionState.STOPPED` plus its grace job has **no
-  reachable UI path** on this build — starting navigation closes the session (measured twice), and a session
-  opened while navigating cannot reach its own stop. `RoutePanelVM: session grace period expired` appeared in
-  **none** of the six runs.
-- **Also measured** ℹ: while navigating, that session opens with its start/destination fields as
-  `android.widget.EditText` nodes (`Aktueller Standort`, the tapped coordinate), although spec
-  `route-planning-session` says "the start and destination fields SHALL NOT be editable"; input acceptance was
-  not exercised. The panel also offers no step analysis in that state, while the same requirement says it
-  "SHALL offer the analysis of a step".
-- **Consequence** ⏳: on this build the read-only during-navigation session and the grace period are only
-  reachable in states the UI does not produce, so both need either a reachable entry point plus the panel's
-  route-review row, or an explicit narrowing in the spec — an owner decision, recorded here rather than folded
-  into `fix-nav-overlay-stop-tap`, whose subject is the tap target.
-- **Fix (change `fix-route-session-stop-path`, 2026-10-06) ✅**:
-  - *Defect 1 (the mode)*: the pre-navigation follow/suspension snapshot now happens where the session starts —
-    the navigation adapter calls `MapCanvasViewModel.snapshotPreNavigationMode()` before it forces follow on
-    (`setPreNavigationSnapshotCallback`) — instead of inside the forcing call, where the ordering was left to
-    two collectors of the same state and a camera-holding session took no snapshot at all. Case
-    `MapCanvasViewModelModeTest.cardStopRestoresBrowseMode`; its revert-check (snapshot taken *after* the
-    forcing) fails with exactly this entry's symptom: `expected:<BROWSE> but was:<FREE_DRIVE>`.
-  - *Defect 2 (the read-only review)*: a session opened during navigation keeps the adopted route
-    (`clearRouteIfNeeded` no longer clears while navigating) and the review renders the summary, the step
-    navigator and a **reachable** Stop Navigation action outside the `RouteState.Done` branch — the stop the
-    second measurement could not find. Cases `RoutePanelNavigationReviewTest.*` (5/0), each with a
-    revert-check.
-  - *The stopped state and the surface (newly measured here)*: the panel renders Restart and End while the
-    session is `STOPPED` (`sessionState` is collected now; new `restart_navigation` string in both resource
-    sets) and a session that ends by itself closes its surface
-    (`sessionEndClosesTheSurface` + the screen's observer). Cases `RoutePanelStoppedStateTest` (4/0) and
-    `RoutePanelViewModelSessionTest.\`grace expiry closes the surface\``.
-  - *The review's surface (found while running the device verification, design D8, task 3.10)*: the session
-    card was composed **behind** the navigation status card on the same bottom edge — the review's state was
-    correct and *nothing of it was visible or tappable* (card bounds `top=2059 h=341` inside the status
-    card's band; a temporary probe bar drew zero full-width pixels; the card's nodes were missing from the
-    accessibility dump), and the compact review offered no Stop Navigation at all. Fixed: the status card is
-    not composed while the session's card is shown (it returns when the surface closes), and the review's
-    Stop is one composable used by both phone frames. Case
-    `RoutePanelNavigationReviewTest.aCompactReviewStillOffersStopNavigation`; spec scenario added
-    (`route-planning-session` — The review is the surface while it is open).
-  - *Still owed*: nothing device-gated — 5.1/5.2 ran on 2026-10-06 (`emulator-5554`, post-fix: run (a)
-    `stopNavigation: stopped` + `mode restored follow=false` + `Freie Fahrt starten`; run (b) the review
-    visible with its Stop, the stopped state with Restart/End, Restart resuming on the same route, the grace
-    line and no card afterwards). The polyline's visibility during the grace stays unmeasured (a canvas has
-    no accessibility node); its absence after the grace is the unit case's claim.
-
----
-
 ## 141. `MapCanvasViewModelFixQualityTest.aTickDoesNotDispatchOnTheMainDispatcher` failed once under the forced gate and was green on its rerun — Found 2026-10-06 while gating `fix-route-session-stop-path`
 **id:** 141 · **category:** verification · **class:** improvement · **status:** open
 
@@ -1880,9 +1808,12 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   starvation (this machine is shared and was busy all session). If it is engine timing, the same cure as
   `speed-up-test-iteration` applies: a seam the case drives instead of a wait.
 
-## 143. `measure-highlight.py` returns `inside` on a frame with no route — 18 pixels of parking-glyph colour pass its dense-run test — Found 2026-10-06 while applying `screenshot-evidence-via-view-image` (device measurement, task 4.1)
+## 147. `measure-highlight.py` returns `inside` on a frame with no route — 18 pixels of parking-glyph colour pass its dense-run test — Found 2026-10-06 while applying `screenshot-evidence-via-view-image` (device measurement, task 4.1)
+**id:** 147 · **category:** verification · **class:** bug · **status:** open
 
-**id:** 143 · **category:** verification · **class:** bug · **status:** open
+- **Note on the id** ℹ: filed as §143 on 2026-10-06; `speed-up-test-iteration` filed its route-cost finding as §143
+  the same day and keeps that id (the cluster index and `guidelines/Build.md:612` cite it), so this duplicate took
+  the next free id — ids are never renumbered once referenced (`TODO.md` legend).
 
 - **Observation** ✓: on a phone frame that shows no route and no analysed segment, the script printed
   `highlight (dark): bbox=[619, 641, 413, 734] px=18` / `canvas=1080x2400 band=[0,2400] margin=126` /
@@ -1906,3 +1837,341 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   capture into `.pi/logs/skill-recipe-check/` on the same screen printed the identical
   `bbox=[619, 641, 413, 734] px=18` / `band=[0,2400]` / `verdict: inside`, so it is a deterministic
   colour coincidence, not noise.
+
+---
+
+## 144. A failed reroute leaves `isRerouting`/`isOffRoute` set until the next instruction list — Found 2026-10-06 while landing `fix-reroute-lease-release` (adjacent finding, out of that change's scope)
+**id:** 144 · **category:** route-and-navigation · **class:** bug · **status:** open
+
+- **Observed** ℹ: `confirmReroute` sets both flags when it starts an attempt
+  (`app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt:908` — `it.copy(isRerouting = true,
+  isOffRoute = true)`), and the only writer that clears them is `onRouteInstructions` (`:800-805`) — i.e. a
+  **successful** reroute whose new instruction list arrives. A reroute that **fails** (the `TODO.md` §126
+  failure path) leaves `isRerouting = true` and `isOffRoute = true` in the shared state until the next
+  `onRouteInstructions` emission, so every surface rendering the reroute/off-route indicator (spec
+  `rerouting-visual-feedback`, `off-route-indicator`) keeps showing it for that whole window; on a stretch
+  with no further instructions there is nothing left to clear it.
+- **Why it is filed rather than fixed here** ✗: `fix-reroute-lease-release`'s subject is *which lease a
+  failure releases*; clearing the attempt's own state flags is the failure path's second half, with its own
+  observable (which surface shows what, for how long) and its own decision — a failed reroute should stop
+  claiming `isRerouting`, while `isOffRoute` may genuinely still be true (the vehicle is still off route) and
+  is better left to the native position reports.
+- **Fix candidate**: in both failure handlers of `calculateAndStart`, clear the flag the attempt itself set
+  (`isRerouting = false`; leave `isOffRoute` to the native reports, or clear it and let the next
+  `onPositionEstimate` re-set it), and pin it with a case beside
+  `NavigationEngineRerouteTest.aFailedRerouteKeepsTheRunningNavigationLease`.
+- **Not caught** ✗: no case asserts the state flags after a *failed* reroute — the reroute suite's
+  instruction case (`instructionListUpdatesAfterAReroute`) covers the success path only, where
+  `onRouteInstructions` clears them anyway.
+- **Related** ℹ: `TODO.md` §126 — the same failure path's lease release, fixed by `fix-reroute-lease-release`;
+  the fix's own case (`aFailedRerouteKeepsTheRunningNavigationLease`) does not assert these flags, and
+  deliberately does not, because the change's delta says nothing about them.
+
+---
+
+## 145. `gradle.properties` commits a machine-local JDK path that every other machine must override — Found 2026-10-06 while implementing `fix-daemon-jvm-provisioning` (adjacent finding, out of that change's scope)
+**id:** 145 · **category:** build-and-harness · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `gradle.properties` carries `org.gradle.java.home=/usr/lib/jvm/java-17-openjdk` under the
+  comment "Java home for Gradle daemon (AGP 8.7+ requires Java 17+)". A machine-local absolute path in a
+  versioned file is wrong on every other machine: CI must pass `-Dorg.gradle.java.home="$JAVA_HOME"` and
+  write the same property into `local.properties` (`.github/workflows/build.yml`, steps *Write
+  local.properties* and *Build debug APK*), while `setup-vcpkg.sh` reads that property — so the committed
+  value is load-bearing for the native JDK lookup yet correct only on the machine that committed it.
+- **Observed, second half** ℹ: the comment's claim is the opposite of the behaviour
+  `fix-daemon-jvm-provisioning` documented: the checked-in daemon JVM criteria
+  (`gradle/gradle-daemon-jvm.properties`) take precedence over `org.gradle.java.home` and `JAVA_HOME`
+  (Gradle 9.6.1 manual, *Daemon JVM Toolchains*), so this line no longer selects the daemon JVM at all —
+  even where the path exists.
+- **Fix candidate**: drop the line and let each machine and CI pass its JDK explicitly
+  (`-Dorg.gradle.java.home` / `JAVA_HOME`, which `setup-vcpkg.sh` already tolerates), or keep it and correct
+  the comment.
+- **Related** ℹ: `guidelines/Build.md` §2, "The build JVM (daemon JVM criteria)" (change
+  `fix-daemon-jvm-provisioning`) records that rule; the local JDK 17 is a *different* requirement — see §146.
+
+---
+
+## 146. `buildSrc` requires a Java 17 toolchain it cannot provision, so a machine with only JDK 21 fails at configuration — Found 2026-10-06 while implementing `fix-daemon-jvm-provisioning` (probe finding, out of that change's scope)
+**id:** 146 · **category:** build-and-harness · **class:** bug · **status:** open
+
+- **Observed** ℹ: `buildSrc/build.gradle.kts:13-14` declares
+  `toolchain { languageVersion = JavaLanguageVersion.of(17) }`, and `buildSrc/` has **no**
+  `settings.gradle.kts`. The toolchain download repository comes from the *main* `settings.gradle.kts:9`
+  (`org.gradle.toolchains.foojay-resolver-convention` 1.0.0), which does not apply to the buildSrc build, so
+  buildSrc can only **auto-detect** a local JDK 17.
+- **Reproduced** ℹ: `./gradlew -Dorg.gradle.java.installations.auto-detect=false help` fails in 699 ms with
+  "Failed to calculate the value of task ':buildSrc:compileJava' property 'javaCompiler' → Cannot find a Java
+  installation on your machine (Linux … amd64) matching: {languageVersion=17, vendor=any vendor,
+  implementation=vendor-specific, nativeImageCapable=false}. Toolchain download repositories have not been
+  configured." Disabling auto-detection is equivalent to the real condition for this requirement — no JDK 17
+  is findable — and the run stops before any task, including `help`, with a message that names neither the
+  file nor the fix.
+- **Why it is filed rather than fixed here** ✗: `fix-daemon-jvm-provisioning` settles which JVM runs the
+  Gradle **daemon**; buildSrc's compile toolchain is a second, independent JDK requirement, and changing it
+  (add `buildSrc/settings.gradle.kts` with the resolver, or raise the toolchain) changes what compiles the
+  build logic — its own decision with its own evidence.
+- **Fix candidate**: add `buildSrc/settings.gradle.kts` applying the same foojay-resolver-convention so a
+  machine without a 17 can provision one, or state the 17 requirement in `guidelines/Build.md` §2 beside the
+  daemon-JVM rule so a failing configuration is diagnosable.
+- **Invisible today** ✗: no check asserts that a machine satisfying the daemon criteria can also configure
+  buildSrc. CI was green on 2026-10-03 (inference: its runner had a JDK 17 for Gradle to detect), so the
+  requirement stays unseen until a machine lacks one. The probe above is the only reproduction recorded.
+
+---
+
+## 148. Timing-sensitive cases fail in the loaded aggregate test run — four distinct cases across five aggregate runs, every one of them green in a single-module or solo run — Found 2026-10-07 while landing `fix-daemon-jvm-provisioning` (out of that change's scope)
+**id:** 148 · **category:** verification · **class:** bug · **status:** open
+
+- **Observed** ℹ — four aggregate runs (the CI command `test -PforceTests --no-build-cache`, all four modules in
+  one invocation) reached the test suites; all four failed, each on **one** case, and **three different
+  cases** appeared:
+  1. `:auto:testDebugUnitTest` → `MapScreenTest.theTapPathDoesNotResolveTheNativeClientOnTheHostThread` — CI
+     attempt 1 (job `112505184659`), `781 tests completed, 1 failed` (`AssertionError at MapScreenTest.kt:198`);
+  2. `:core:testDebugUnitTest` → `DiagnosticsLogWritePathTest.pendingBufferIsBoundedAndMarksTheDropOnce` — CI
+     attempt 3 (job `112629042978`), `447 tests completed, 1 failed`
+     (`AssertionError at DiagnosticsLogWritePathTest.kt:142`), **and** worktree run 1 below;
+  3. `:auto:testDebugUnitTest` → `AutoMapRendererRenderCadenceTest.theInFlightFlagIsClearedAndTheDurationMeasuredAfterARender`
+     — worktree run 2, `781 tests completed, 1 failed`.
+  (CI attempt 2 never got past `:buildSrc` dependency resolution — a separate, transient failure.)
+- **Reproduced in isolation, with the messages CI never uploaded** ℹ: from an isolated worktree at the same
+  commit (`git worktree add --detach /tmp/nv-148 cf513f7`, submodule and `vcpkg/` symlinked in, so the shared
+  tree's in-flight edits cannot interfere): `./gradlew test -PforceTests --no-build-cache`
+  - run 1 (cold, 105 tasks executed, 2m15s): the `:core` case failed with
+    **`java.lang.AssertionError: the ring held exactly its capacity expected:<5> but was:<10>`** — i.e. 10 of
+    the 20 burst lines reached the file where the case demands exactly 5;
+  - run 2 (warm, 3m00s): the `:auto` cadence case failed with
+    **`java.lang.AssertionError: the in-flight flag must be cleared`**.
+- **Single-module runs do not reproduce it** ℹ: five forced `:core:testDebugUnitTest` reruns (~40-60 s each) in
+  that worktree were green, as were the earlier forced single-module runs in the main tree (`:core` 41/447/0,
+  `:auto` 76/781/0, `:app` mobile 221/1721/0). The trigger is the loaded, parallel, multi-module run.
+- **A fourth case, with a different mechanism, on 2026-10-07** ℹ (change `fix-router-overall-distance`):
+  `:app:testAutomotiveDebugUnitTest` failed with `MapCanvasViewModelModeTest.cardStopRestoresBrowseMode`
+  **and** `…exitFreeDriveAppliesBrowsePreset` — `java.lang.IllegalStateException: Dispatchers.Main is used
+  concurrently with setting it` (221 classes, 1725 tests, 2 failures), while the **same class solo is green
+  in 22 s** and the **same suite re-run is green** (221/1725/0, 1m49s): 1 of 2 suite runs red, both cases
+  clean alone. The class's file was last modified by the same `3ba476b` that the other three come from (and is
+  not part of the concurrent session's working tree), so the shape is the same — a case reworked into
+  state-awaiting leaves work touching the JVM-wide `Dispatchers.Main` that the next case's setup then sets —
+  but the mechanism is *not* the assertion-across-an-async-boundary one the other three show: this is a
+  Main-dispatcher set/reset race between cases in one JVM. Treat it as one family with two mechanisms, and
+  note that a suite that is red once and green on the re-run is exactly what the `build-test-gate` rule
+  ("evidence must quote the executed task count and the tallies") exists to make visible.
+- **Mechanism, case 2** ℹ: `DiagnosticsLog.flushNow` signals and then returns once `pending` is empty and
+  nothing is being flushed (`core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt:305-337`), while
+  `workerLoop` only waits when `pending.isEmpty()` and otherwise **drains immediately** (`:385`, `:394-402`).
+  The burst of 20 lines therefore needs only to land in the window between a finished flush and the worker
+  parking again: the worker drains the first 5 without waiting, the ring refills with 5, and the case's final
+  `flushNow` writes those — 10 lines where the case expects 5. The in-memory bound (`maxPendingEntries`) holds
+  throughout; what varies is the **file content after a drain**, which the case asserts as if it were bounded.
+  The `3ba476b` rework moved this case from a `poll {}` on the file to `awaitDrained()` but kept the assumption
+  its own comment states — "the worker is parked and the burst below is bounded entirely in the ring":
+  `awaitDrained` returns when the buffer is empty, not when the worker is parked.
+- **Mechanism, case 3** ✓ (traced 2026-10-07, closing the "partially traced" note above): `renderFrame()`
+  sets `renderInFlight = true`, renders inline and clears it in `finally`
+  (`auto/src/main/java/com/naviveylin/auto/AutoMapRenderer.kt:1307-1319`). The stale-read half of the note is
+  **disproved** ✗: the field **is** `@Volatile` (`:790`, as is `lastRenderDurationMs` `:798`). The whole
+  mechanism is a concurrent loop render. The renderer's loops are live on
+  `carScreenScope("AutoMapRenderer", Dispatchers.Default)` (`:103`) because case 3 is the **only** test in its
+  file that drives the renderer without `renderer.asyncLoopsEnabled = false` (its sibling
+  `theFixPathStillDrawsOneFramePerCommit` sets it, `:46`, as does every other renderer test in `:auto`), and
+  `onSurfaceCreated` requests a frame (`:407`). The render collector therefore wakes ~`RENDER_DEBOUNCE_MS = 100 ms`
+  (`:2198`) later and calls `renderFrame()` concurrently with the test's own call — both write the same flag, so
+  it can still read `true` after the test's own render returned. The window is exactly that 100 ms: an idle host
+  finishes the case inside it, a loaded one does not. **Production has no such overlap** ✓ — `renderFrame()`'s
+  only non-test caller is the single, sequential render collector (`frameIteration` `:895`/`:928`) — so the fix
+  is one line in the test, not a change to the renderer.
+- **Case 1 is traced, message included — and it corrects this entry's method** ✓ (2026-10-07): one run of the CI
+  command in the main tree (`./gradlew test -PforceTests --no-build-cache`, 3m14s, 19 of 141 tasks executed,
+  `:app` automotive / `:core` / `:auto` suites live at once, no source file touched during the window, log kept as
+  `.pi/nv-148-run1.log`) failed exactly this case: `:auto:testDebugUnitTest`, `782 tests completed, 1 failed`. Its
+  message, which no CI log carries: **`java.util.ConcurrentModificationException`**, with
+  `ArrayList$Itr.checkForComodification` reached from `AbstractCollection.toString`, thrown in
+  `MapScreenTest$theTapPath…$1.invokeSuspend(MapScreenTest.kt:218)`
+  (`auto/build/test-results/testDebugUnitTest/TEST-com.naviveylin.auto.MapScreenTest.xml`).
+- **Where the console's line number comes from** ✓: the earlier "case 1 has the same shape" reading is **withdrawn**
+  ✗ — this run printed `java.util.ConcurrentModificationException at MapScreenTest.kt:198` for an exception thrown
+  at `:218`. Gradle's short location is the frame of the **test method itself**, not the throw site, so a
+  `runTest`-wrapped case's location always collapses to the `runTest(...)` call and identifies no statement (case
+  2's `:142` is informative only because that test's body is a plain method). CI attempt 1's
+  `java.lang.AssertionError at MapScreenTest.kt:198` is therefore a **real assertion failure** of that case — the
+  exception class is accurate, the line is not — and the 60 s-timeout elimination drops out as unnecessary.
+- **Mechanism, case 1** ✓: `clientThreads` is a plain `mutableListOf` on the test instance
+  (`auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt:55`) and is appended by `clientProvider.client()` from
+  **whatever thread resolves the client** (`:68-73`) — here the tap path's `withContext(Dispatchers.Default)`
+  (`auto/src/main/java/com/naviveylin/auto/MapScreen.kt:800`, and the renderer init at `:296`). `advanceUntilIdle()`
+  cannot own that hop (the screen takes no dispatcher parameter although `MainDispatcherRule`'s contract requires
+  one), so the test thread reads the list while a real thread appends to it: `:218` either sees it still empty
+  (CI's AssertionError) or the append lands inside the `"… got $clientThreads"` message's `toString()` (this run's
+  CME, thrown before the assertion can report). One defect, two observed faces; the class's other awaits
+  (`awaitDaylightPush`: `runBlocking` + `withTimeoutOrNull(3_000)`) are real-thread waits for the same reason.
+- **Why it hides locally** ℹ: `3ba476b`'s own gate was green in 4m54s on an unloaded machine with the same case
+  counts CI reports (`:app` mobile/automotive 221 each, `:auto` 76, `:core` 41), so the variable is machine
+  load and parallelism, not inputs. The JVM-vendor hypothesis is now **disproved for case 2**: the worktree run
+  that reproduced it used the local JBR 21 daemon, not the runner's Temurin 21.
+- **Fix direction** ✗: per case, await the state instead of asserting across an asynchronous boundary — a
+  "worker parked" seam for `DiagnosticsLog` (or assert the contract instead of the file: newest entries
+  survive, one drop marker per flush, and the ring never exceeded `maxPendingEntries`), and an "await the
+  frame"/ownership check for the renderer. `DiagnosticsLog.awaitDrained` is already the shape to copy.
+  Case 3 now has a known fix ✓: set `renderer.asyncLoopsEnabled = false` before `onSurfaceCreated` (the pattern
+  of every sibling case). That is deterministic, not merely likely: `renderSignal` starts at `0L` with
+  `lastRender = 0L` (`:320`/`:884`), so the collector's initial StateFlow emission is neutralised, and the flag
+  is read before the debounce (`:886`).
+  Case 1's fix follows from its mechanism ✓: await the candidate-lookup state on a dispatcher the test owns (or
+  inject that dispatcher into `MapScreen`, as `MainDispatcherRule`'s contract intends) and never read a test-side
+  collection from a background thread — the assertion's own message must not be built from state the renderer's
+  threads still mutate.
+- **Next step** ℹ: fix the three cases (each is small), then re-run the aggregate command until it is green;
+  only then is a green CI run reproducible evidence. A single green aggregate run is not proof of a fix here —
+  the measured failure rate is 4 in 4 aggregate runs, but the *cases* vary, so the check is a green aggregate
+  run plus the single-module reruns staying green. Case 1's message is now in hand (above), and that run makes
+  this the fifth aggregate run of the family and the second to fail in `:auto`. CI's console format cannot carry a
+  message at all — no module sets `testLogging` — so a run that is red only in CI has to be diagnosed from a local
+  report XML, or the modules' `Test` tasks should set `exceptionFormat = "full"`.
+- **Not attributable to `fix-daemon-jvm-provisioning`** ✗: that change touched the daemon JVM criteria, a CI
+  guard step and a guideline section; it contains no test or diagnostics code. Its own evidence is in
+  `openspec/changes/fix-daemon-jvm-provisioning/traceability.md`.
+
+---
+
+## 149. The `view_image` package's extension filter can stop matching and restore the bundled libtui UI drift without any error — Found 2026-10-07 while removing the libtui host extension from the screenshot-reading tooling
+**id:** 149 · **category:** build-and-harness · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `@luan.sh/pi-view-image` declares two extensions in its manifest — `./src/extension.ts`
+  (the tool) and `./node_modules/@luan.sh/pi-libtui/src/extension.ts` (a TUI host). That host is what
+  replaces the editor/user-message layout, drives the streaming status row (waiting animation), restyles
+  markdown tables, and leases the mouse/cursor/split-pane and tool-renderer lookups of the Pi TUI; the
+  symptom of it loading is a changed Pi UI, never an error. The fix lives in `~/.pi/agent/settings.json`:
+  one version-pinned entry per package with `"extensions": ["./src/extension.ts"]` (an allowlist,
+  because the host path is version-nested inside `node_modules`). The package itself stays — it is the only
+  route for a text-only session, since Pi's built-in `read` returns image content only for a vision-capable
+  model while `view_image` falls back to a description from `openai-codex/gpt-6-luna`.
+- **Why it is filed rather than fixed here** ✗: the guard is a check against installed Pi state, not app
+  code — nothing in this repo can assert it, and the settings file is machine-local (outside the working
+  tree, so an agent session cannot read or edit it). What this entry owns is the *check*, recorded in
+  `AGENTS.md` next to the `view_image` paragraph.
+- **Fix candidate**: after any `pi update --extensions`, confirm `pi list` shows exactly one entry for
+  `@luan.sh/pi-view-image` and that `/libtui:colors` — a command registered *only* by the libtui host — is
+  absent from the command list; if the allowlist form ever stops narrowing, fall back to the documented
+  exclusion form (`"!node_modules/@luan.sh/pi-libtui/src/extension.ts"`). A durable alternative is a local
+  vendored copy with the manifest trimmed to one extension entry (pinned, but owned).
+- **Not covered by the filter** ✗: the tool's own row still renders through libtui **library** components
+  (`ToolActivity`, `toolCallPreview`, `ComponentStack` in `pi-view-image/src/tools/view-image/presentation.ts`),
+  and `installPendingMessageTransformer` still re-renders queued rows. Removing the host removes the two
+  symptoms that started the investigation (message layout, waiting animation), not every libtui pixel.
+- **Invisible today** ✗: no check asserts which extensions a package actually loaded, so a filter that stops
+  matching is indistinguishable from an upstream Pi UI change — the same misattribution this entry was
+  filed from. The oracle is one command (`/libtui:colors`), so the cost of missing it is re-walking this
+  analysis.
+
+## 150. After arrival the reroute path re-acquires the destination that was already reached — Found 2026-10-07 while applying `auto-end-navigation-after-arrival` (device run on the AAOS AVD, tasks 3.2/3.3)
+**id:** 150 · **category:** navigation · **class:** improvement · **status:** open
+
+- **Observed** ℹ: the native `RouteStateAgent` reports the target reached only inside a 30 m circle while the
+  position is on route (`app/src/main/cpp/libosmscout/libosmscout/src/osmscout/navigation/RouteStateAgent.cpp`),
+  so continuing past the destination — looking for a parking spot — leaves that circle, the position goes off
+  route, and after 5 s the native emits a `RerouteRequestMessage`. The engine accepts it as it always did and
+  re-acquires the same destination that was already reached: "turn around, N m to destination" while the driver
+  parks. The arrival fact added by this change (`NavigationState.hasReachedDestination`, spec `navigation-engine`
+  — Arrival is part of the shared navigation state) makes the situation decidable, and it is deliberately
+  preserved across such a reroute, so the guidance keeps working on a destination already reached.
+- **Why it is filed rather than fixed here** ✗: the owner took this decision explicitly while planning
+  `auto-end-navigation-after-arrival` ("leave the reroute path as it is"), so suppressing it is a behaviour
+  change of its own — with its own delta for `reroute-trigger` and its own evidence, because the acceptance
+  criterion is what the driver sees while parking, not what the engine computes.
+- **Fix candidate**: once `hasReachedDestination` is set, refuse a reroute whose destination is the arrival of
+  the running session (`NavigationEngine.onRerouteRequest` is the single decision site; a reroute to a *new*
+  destination must stay possible). Verify with a case per path in `NavigationEngineRerouteTest` (arrival plus
+  an off-route report → no route calculation; arrival plus a new destination → a calculation) and one
+  revert-check on the guard; the device trigger is the same `adb emu geo fix` stream used in task 3.2 — drive
+  past the destination and watch for `Diag/ROUTE: calc done: source=reroute`.
+- **Also observed in the same run** ℹ: after arrival the car ETA card keeps being updated with `remaining=0m`
+  (host trip updates, once per position fix) and the native arrival estimate keeps arriving — expected while the
+  session is live, but it is the thing a driver sees if the exit never fires.
+
+## 151. The navigation-time right-side widget column never publishes its width, so the follow anchor can resolve under it — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (adjacent finding, out of that change's scope)
+**id:** 151 · **category:** ui · **class:** bug · **status:** open
+
+- **Observed** ℹ: `LocalOverlayWidthProbe` is provided around the browse overlay block only
+  (`MapCanvasScreen.kt`, the `CompositionLocalProvider` in the chrome band), while the navigation-time copy
+  of the same column (`MapRightWidgetColumn`, composed in the chrome band's navigation overlay block) reads
+  the probe at its own call site. Outside the provider the probe is the default no-op, so
+  `overlayRightInset` stays 0 for the whole navigation, `setMapOverlayInsets(right = 0)` publishes no right
+  band, and the follow anchor may resolve under the compass / speed / zoom column — the exact overlap the
+  probe exists to prevent (spec `smooth-follow` — visible-area scenarios). `fix-phone-map-layer-stack` moved
+  the two blocks into the chrome band but did not widen the provider scope: that would change what the probe
+  measures during navigation, i.e. followed-map framing, which is a change of its own with its own device
+  evidence.
+- **Why it is filed rather than fixed here** ✗: the fix changes the follow framing a driver sees during
+  navigation, so it needs a `smooth-follow` delta and an on-device check of the anchor position — not a side
+  edit inside a layering change.
+- **Fix candidate**: provide the probe once for the whole chrome band (a `CompositionLocalProvider` around
+  the chrome band's content instead of around the browse block), then verify with a case that the navigation
+  column reports a non-zero width and with one device run that the follow anchor sits left of the column
+  (`pixel-check` on the marker's pixels against the column's UI-dump bounds).
+
+## 152. The follow-anchor insets during a navigating session panel follow the chrome the panel covers — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (adjacent finding, out of that change's scope)
+**id:** 152 · **category:** ui · **class:** improvement · **status:** open
+
+- **Observed** ℹ: the chrome band publishes the turn card's, the routing status card's and the street pill's
+  measured heights to `setMapOverlayInsets` (spec `smooth-follow`), and `fix-phone-map-layer-stack` now
+  composes the route-planning session card in the modal band, i.e. over the bottom part of that chrome. While
+  the panel is open during navigation, the published bottom inset still describes the routing status card
+  (which is suppressed) and the widget column (which the card covers), while the band the anchor actually has
+  to avoid is the card — whose own height already reaches the session's fit path (`RoutePanel`'s
+  `onOverlayHeightChanged`, spec `route-planning-session` — Session holds the camera while active). Whether
+  the follow anchor should also be clamped out of the card band is a decision for the session surface, not
+  for the layer stack; the band change only made the overlap visible.
+- **Why it is filed rather than fixed here** ✗: the session panel owns its band and its camera lease, so the
+  inset contract between the chrome band and the panel is a `route-planning-session` / `smooth-follow` change
+  with its own device evidence.
+- **Fix candidate**: let the card's measured height feed the same bottom inset while it is open (one writer
+  per inset: the band that paints the pixels), then verify with a case that the published bottom inset equals
+  the card's height while the panel is open, and one device run of the follow anchor with the panel at MAX.
+
+## 153. Rotating the phone while follow mode is active crashes on an empty coerce range in the follow drift clamp — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (device run on the Pixel_8 AVD, task 4.3)
+**id:** 153 · **category:** ui · **class:** bug · **status:** open
+
+- **Observed** ✗: with navigation running (follow mode engaged) on the phone AVD, `adb shell settings put
+  system user_rotation 1` killed the process:
+  `java.lang.IllegalArgumentException: Cannot coerce value to an empty range: maximum -552.0 is less than
+  minimum 552.0` at `com.naviveylin.core.FollowPrediction$Companion.displayOffsetPx(FollowPrediction.kt:317)`,
+  called from the follow display loop (`MapCanvasScreen.kt:747`), `FATAL EXCEPTION: main`. The mechanism is in
+  the clamp itself: `marginX = (bitmapW - canvasW) / 2.0` goes negative when the *displayed* bitmap still has
+  the old orientation (1296x2880 portrait) while the canvas has the new one (2400x1080 landscape), so
+  `driftX.coerceIn(-marginX, marginX)` becomes `coerceIn(552, -552)` — an empty range. Rotating back and forth
+  during a drive therefore crashes the app instead of re-rendering.
+- **Why it is filed rather than fixed here** ✗: nothing in `fix-phone-map-layer-stack` touches the follow
+  display loop or the drift clamp; the layer bands only decide paint order. It is a rotation/follow bug of its
+  own with its own `smooth-follow` delta and its own device evidence (rotate during a followed drive, both
+  directions).
+- **Fix candidate**: treat a negative margin as zero (`marginX.coerceAtLeast(0.0)`) or, better, skip the drift
+  clamp while the displayed bitmap's aspect does not match the canvas (a frame from the previous orientation is
+  stale and will be re-rendered); verify with a case on `displayOffsetPx` for swapped bitmap/canvas
+  dimensions, a forced configuration change in a Robolectric case, and one device rotation mid-drive in each
+  direction.
+
+---
+
+## 153. `guidelines/MapRendering.md` numbers two sections `## 14.`, so a `§14` reference is ambiguous in eleven citations — Found 2026-10-07 while applying `scope-guideline-reads` (out of that change's scope)
+**id:** 153 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `guidelines/MapRendering.md:553` is `## 14. Rotation Gesture Display-Layer Handoff` and
+  `:630` is `## 14. Android Auto renderer — smooth follow (overrun + blit + extrapolation)`. `§14` of that
+  document is cited **11** times outside it (`grep -rhoE 'MapRendering\.md[` ]*§14' --include=*.md .`), and ten
+  of those citations mean the Android Auto renderer — the surrounding text makes it explicit in each
+  ("§14 (Android Auto renderer — smooth follow)", "§14/§15a", "the loop-liveness invariant"). `§15` is cited
+  15 times and `§1` 30 times, so this numbering is load-bearing beyond the one duplicated pair.
+- **Why it is filed rather than fixed here** ✗: renumbering the second `## 14.` (to `§20`, say) would
+  silently repoint all ten AA-renderer citations — including `guidelines/Design.md:427` and nine archived
+  changes — at the rotation-gesture section, and the archived text cannot be corrected without rewriting
+  history. `scope-guideline-reads` resolves the ambiguity where it is read instead: the routing table names a
+  section by number **and** heading text, and `tools/check-doc-routes.sh` refuses a bare number that its
+  document uses twice (`check-doc-routes-selftest.sh` covers that case).
+- **Fix candidate**: one change that renumbers the second `## 14.` and updates every citation in the same
+  commit (the archived changes keep their historical text), or that decides references are by heading text
+  only and records that decision in the routing convention. Either way `check-doc-routes.sh` stops a future
+  bare `§14` from being added.
+- **Related** ℹ: unnumbered `## ` sections exist beside the numbered ones — `MapRendering.md` carries two
+  (`Known Pitfalls (Regression Checklist)`, `Parameter Overview`), `Design.md` its two appendices, `UI.md`
+  one (`Keeping this document honest`). The routing table names those by their text alone, which the check
+  resolves.

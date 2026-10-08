@@ -886,6 +886,19 @@ car Surface:
 
 ---
 
+## 16b. Stylesheet source and the on-device copy
+
+- The libosmscout submodule's `stylesheets/` directory (`app/src/main/cpp/libosmscout/stylesheets/`) is the
+  **single source of truth** for the map style sheets. The build copies it into
+  `build/generated/assets/stylesheets` — `Build.md` §12 names the sync and check tasks and their `preBuild`
+  wiring — so a submodule bump changes the next APK with no manual step and there is **no committed snapshot**
+  in `app/src/main/assets/`.
+- `AssetCopier` refreshes the on-device copy from the APK on every app start (per-file size + SHA-256
+  compare, deleting stale files), so an existing install picks up new styles after an update without clearing
+  its data. A stylesheet failure at load time is §15a's contract, not this one.
+
+---
+
 ## 17. Native tile-data cache — capacity, retention and its release
 
 `NativeTileDataCache` (core) is the single owner of libosmscout's per-database `MapService` cache

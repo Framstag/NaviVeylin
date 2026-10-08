@@ -94,7 +94,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.naviveylin.ui.addressbook.AddressBookSearchContent
@@ -143,6 +145,48 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 
 private const val TAG = "MapCanvasScreen"
+
+/**
+ * The phone map screen's overlay layer stack (spec: map-canvas-screen — Phone map overlay layer
+ * stack).
+ *
+ * The screen composes its content in these bands, and the band is the only thing that decides the
+ * stacking: a band's [z] value is the `Modifier.zIndex` of the layer wrapper that holds the band's
+ * elements, so an element's depth follows from the band it is composed in and never from where its
+ * composable happens to sit in the file. [tag] names the band in UI dumps and tests.
+ *
+ * Order, back to front: [MAP] < [CHROME] < [MENU] < [MODAL] < [SNACKBAR]. The values are spaced by
+ * ten so a band can be inserted later without renumbering. The rule itself, for the UI side, is
+ * `guidelines/UI.md` §11 (phone overlay layering).
+ */
+internal enum class MapLayer(val z: Float, val tag: String) {
+    /** Canvas bitmap, analysed-route highlight, GPS marker, loading and error state. */
+    MAP(0f, "map-layer-map"),
+
+    /**
+     * The on-map elements that belong to the map: compass, speed widget, zoom controls,
+     * re-center button, street-name pill, turn card, routing status card, OSM attribution and
+     * car-session indicator.
+     */
+    CHROME(10f, "map-layer-chrome"),
+
+    /** The map menu scrim and panel — above the chrome, so no on-map element shows over it. */
+    MENU(20f, "map-layer-menu"),
+
+    /**
+     * The surfaces that open over the map: search dialog, location details, favorites sheet,
+     * route-planning session surface and navigation details.
+     */
+    MODAL(30f, "map-layer-modal"),
+
+    /** Snackbar messages — frontmost band of this screen. */
+    SNACKBAR(40f, "map-layer-snackbar");
+
+    companion object {
+        /** Every band, back to front. */
+        val backToFront: List<MapLayer> = entries.toList()
+    }
+}
 
 @Composable
 fun MapCanvasScreen(
@@ -976,11 +1020,6 @@ fun MapCanvasScreen(
         // overlay layout below re-derives it from its own constraints.
         val isLandscape = maxWidth > maxHeight
 
-        // Snackbar at bottom
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
         val surfaceColor = MaterialTheme.colorScheme.surface
 
         // On-map speed widget (spec: map-speed-widget): navigation engine
@@ -1031,1287 +1070,677 @@ fun MapCanvasScreen(
             }
         }
 
-        when {
-            state.isLoading && state.renderedBitmap == null -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
-            state.error != null && state.renderedBitmap == null -> {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = state.error ?: stringResource(R.string.unknown_error),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { viewModel.retryRender() }) {
-                        Text(stringResource(R.string.retry))
-                    }
-                }
-            }
-
-            else -> {
-                // Map canvas with gesture handling
-                // Single pointerInput block handles all gestures to avoid conflicts
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .focusTarget()
-                        .onSizeChanged { size ->
-                            viewModel.setScreenSize(size.width, size.height)
-                            canvasSize = size
-                        }
-                        // Live gesture transform on the current bitmap: rotation,
-                        // zoom, and pan are applied visually with no render calls
-                        // until the gesture ends (onRenderRequested commits).
-                        // The rotation AND zoom pivot at the finger midpoint
-                        // (gesturePivot, FROZEN at the gesture-start midpoint): the
-                        // geographic point under the midpoint at gesture start stays
-                        // under the midpoint for the whole gesture, and the
-                        // gesture-end commit adjusts the viewport center so the
-                        // anchor holds in the rendered frame (design D1/D2, spec:
-                        // Rotation anchored at the finger midpoint). Rotating around
-                        // an off-center pivot can expose empty corners at large
-                        // angles (accepted — the overrun buffer margin covers
-                        // moderate angles; standard map-app behavior).
-                        .graphicsLayer {
-                            // Rotation display-layer hold (design D1): between gesture
-                            // end and render land the display keeps the final angle by
-                            // rotating the current front buffer by the angle gap
-                            // (committed − front-buffer) — derived from the SAME
-                            // collected state the draw reads, so the rotation zeroes
-                            // atomically with the committed bitmap swap (no one-frame
-                            // double-rotation twist). rotationDisplayTheta is pure.
-                            val theta = rotationDisplayTheta(
-                                gestureRotation, rotationHoldActive,
-                                state.renderViewport?.angle, state.viewport.angle
-                            )
-                            val s = gestureZoom
-                            // Pivot: the frozen gesture-start midpoint during the
-                            // gesture; the gesture-end midpoint (crossfadePivot) while
-                            // the rotation hold is armed, so the held rotation and the
-                            // render-land crossfade pivot around the commit's focal
-                            // point (D2) — the same point the committed render rotates
-                            // around.
-                            val pivot = if (rotationHoldActive && crossfadePivot != Offset.Zero) {
-                                crossfadePivot
-                            } else {
-                                gesturePivot
-                            }
-                            val t = gestureTransformTranslation(
-                                theta, s, pivot, size, gesturePan
-                            )
-                            translationX = t.x
-                            translationY = t.y
-                            rotationZ = normalizeDegrees(Math.toDegrees(theta.toDouble())).toFloat()
-                            scaleX = s
-                            scaleY = s
-                            // Pivot at the finger midpoint (fraction of the layer
-                            // size); fall back to the screen center when unset.
-                            val pw = size.width
-                            val ph = size.height
-                            transformOrigin = if (pw > 0f && ph > 0f &&
-                                pivot.x.isFinite() && pivot.y.isFinite() &&
-                                (pivot != Offset.Zero || theta != 0f)
-                            ) {
-                                TransformOrigin(
-                                    (pivot.x / pw).coerceIn(0f, 1f),
-                                    (pivot.y / ph).coerceIn(0f, 1f)
-                                )
-                            } else {
-                                TransformOrigin(0.5f, 0.5f)
-                            }
-                        }
-                        .mapGestureHandler(
-                            object : MapGestureCallbacks {
-                                override fun onPan(dx: Float, dy: Float) {
-                                    // Gesture-start side effects run once per gesture
-                                    // (spec: render-performance — Pan hot path stays
-                                    // off the frame budget): follow-mode disengagement
-                                    // and the attribution interaction tick must not
-                                    // repeat on every touch event.
-                                    if (!panGestureActive) {
-                                        panGestureActive = true
-                                        attributionInteractionTick++
-                                        // Leave follow mode on the framing the user sees
-                                        // (spec: smooth-follow — anchor restored), then
-                                        // pan from the displayed frame center.
-                                        viewModel.disengageFollowMode()
-                                        val start = viewModel.uiState.value
-                                        panDisplayLat = start.viewport.centerLat
-                                        panDisplayLon = start.viewport.centerLon
-                                    }
-                                    val s = viewModel.uiState.value
-                                    val dpi = context.resources.displayMetrics.densityDpi.toDouble()
-                                    // Chain the delta from the DISPLAYED center (not from
-                                    // the committed viewport): the committed center only
-                                    // follows at gesture end, so chaining off it would
-                                    // make every event recompute from a stale base and
-                                    // the content would lag the finger.
-                                    val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
-                                        dx.toDouble(), dy.toDouble(),
-                                        s.viewport.angle,
-                                        s.viewport.magnification,
-                                        canvasSize.width.toDouble(), canvasSize.height.toDouble(),
-                                        panDisplayLat, panDisplayLon, dpi
-                                    )
-                                    if (newLat.isNaN() || newLon.isNaN()) return
-                                    // Same clamp the ViewModel applies on commit, so the
-                                    // displayed and the committed center can never differ.
-                                    panDisplayLat = newLat.coerceIn(-85.0, 85.0)
-                                    panDisplayLon = newLon.coerceIn(-180.0, 180.0)
-                                    // No render while the frame in hand still covers the
-                                    // pan window (spec: canvas-overrun — Small pan uses
-                                    // sub-region blit).
-                                    requestPanRecenter()
-                                }
-
-                                override fun onCentroidPan(dx: Float, dy: Float) {
-                                    attributionInteractionTick++
-                                    // Update the center state (no render); the visual
-                                    // translation is applied to the current bitmap and
-                                    // committed on gesture end.
-                                    viewModel.disengageFollowMode()
-                                    val s = viewModel.uiState.value
-                                    val dpi = context.resources.displayMetrics.densityDpi.toDouble()
-                                    val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
-                                        dx.toDouble(), dy.toDouble(),
-                                        s.viewport.angle,
-                                        s.viewport.magnification,
-                                        canvasSize.width.toDouble(), canvasSize.height.toDouble(),
-                                        s.viewport.centerLat, s.viewport.centerLon, dpi
-                                    )
-                                    Log.d(TAG, "gesture centroidPan dx=" + dx + " dy=" + dy +
-                                        " canvas=" + canvasSize.width + "x" + canvasSize.height +
-                                        " angle=" + s.viewport.angle + " mag=" + s.viewport.magnification)
-                                    viewModel.updateCenter(newLat, newLon)
-                                    gesturePan += Offset(dx, dy)
-                                }
-
-                                override fun onRotate(angleDeltaRadians: Double) {
-                                    attributionInteractionTick++
-                                    // A new gesture supersedes any held rotation from
-                                    // the previous one (design D1 fallback).
-                                    rotationHoldActive = false
-                                    // Disengage follow mode + clear north-up immediately;
-                                    // the angle is applied visually to the current bitmap
-                                    // and committed on gesture end.
-                                    viewModel.onManualRotationStart()
-                                    gestureRotation += angleDeltaRadians.toFloat()
-                                }
-
-                                override fun onGestureCentroid(centroid: Offset) {
-                                    // A single-finger pan that grew a second finger: the
-                                    // multi-touch commit math builds on the viewport
-                                    // center, so commit the displayed (panned) center
-                                    // here and let the frame catch up. The pan window is
-                                    // KEPT until the re-centered frame lands (clearing it
-                                    // would snap the content back by the offset); the
-                                    // frame loop releases it on that frame.
-                                    if (panGestureActive) {
-                                        panGestureActive = false
-                                        commitPanCenter()
-                                        requestPanRecenter(force = true)
-                                    }
-                                    // A new gesture supersedes any held rotation from the
-                                    // previous one (design D1 fallback).
-                                    rotationHoldActive = false
-                                    // smooth-zoom: a pinch gesture takes over the
-                                    // zoom display (design D3) — park any running
-                                    // discrete-zoom animation at its current scale.
-                                    freezeZoomAnimationForGesture()
-                                    // Clamp the pivot to the canvas: corrupted pointer
-                                    // positions from multi-touch emulation would otherwise
-                                    // produce a garbage zoom/rotation pivot (map swings away).
-                                    val cw = canvasSize.width.toFloat()
-                                    val ch = canvasSize.height.toFloat()
-                                    gestureCentroid = if (cw > 0f && ch > 0f &&
-                                        centroid.x.isFinite() && centroid.y.isFinite()) {
-                                        Offset(centroid.x.coerceIn(0f, cw), centroid.y.coerceIn(0f, ch))
-                                    } else {
-                                        Offset(cw / 2f, ch / 2f)
-                                    }
-                                    // Rotation/zoom pivot = the finger midpoint
-                                    // (design D1), FROZEN at the FIRST midpoint of
-                                    // the gesture: a live pivot re-anchors the
-                                    // accumulated rotation/zoom each frame and jumps
-                                    // the map by (I − s·R(θ))·ΔC (archived
-                                    // 2026-08-15-bugfix-rotation defect). The
-                                    // centroid drift is carried by the pan
-                                    // compensation (gestureTransformTranslation).
-                                    if (!gestureActive) {
-                                        gesturePivot = gestureCentroid
-                                        gestureActive = true
-                                    }
-                                }
-
-                                override fun onZoom(centroid: Offset, zoomFactor: Float) {
-                                    attributionInteractionTick++
-                                    // smooth-zoom: gesture takes over the zoom display.
-                                    freezeZoomAnimationForGesture()
-                                    // Continuous zoom factor vs gesture start; applied
-                                    // visually and committed on gesture end. Clamped to
-                                    // the range the commit can actually deliver: the
-                                    // committed magnification is clamped to
-                                    // [GESTURE_MIN_MAG, MAX_MAG], so at the limits the
-                                    // visual preview must not exceed the headroom —
-                                    // otherwise the map zooms in visually and then
-                                    // snaps back on gesture end.
-                                    // Damped visual factor: track the raw cumulative
-                                    // factor with a short exponential average so noisy
-                                    // input cannot teleport the zoom level mid-gesture.
-                                    // The commit keeps visual == commit parity.
-                                    val rawFactor = clampGestureVisualZoom(
-                                        zoomFactor, viewModel.uiState.value.viewport.magnification
-                                    )
-                                    gestureSmoothFactor = if (gestureSmoothFactor == 1f) {
-                                        rawFactor
-                                    } else {
-                                        gestureSmoothFactor +
-                                            (rawFactor - gestureSmoothFactor) * 0.4f
-                                    }
-                                    gestureZoom = gestureBaseScale * gestureSmoothFactor
-                                }
-
-                                override fun onLongPress(position: Offset) {
-                                    fireLongPress(viewModel, context, position, canvasSize)
-                                }
-
-                                override fun onRenderRequested() {
-                                    attributionInteractionTick++
-                                    // Gesture end: commit the accumulated multi-touch
-                                    // changes to the viewport and render once with the
-                                    // final angle/mag/center (correct label direction).
-                                    val hasMultiTouchChanges = gestureRotation != 0f ||
-                                        gestureZoom != 1f || gesturePan != Offset.Zero
-                                    if (hasMultiTouchChanges) {
-                                        val s = viewModel.uiState.value
-                                        Log.d(TAG, "gesture end rot=" + gestureRotation + " zoom=" + gestureZoom +
-                                            " pan=" + gesturePan + " centroid=" + gestureCentroid +
-                                            " mag=" + s.viewport.magnification + " angle=" + s.viewport.angle)
-                                        val newAngle = normalizeRadians(s.viewport.angle + gestureRotation.toDouble())
-                                        viewModel.updateAngle(newAngle)
-                                        // continuous-pinch-zoom: commit the unrounded
-                                        // fractional magnification — the visual preview
-                                        // factor already equals the committed factor within
-                                        // the headroom clamp, so no snap at gesture end.
-                                        // Commit uses the detector's cumulative factor only —
-                                        // the folded base scale is already committed in
-                                        // viewport.magnification (visual continuity: display
-                                        // = front buffer × gestureBaseScale × factor).
-                                        val detectorFactor = gestureZoom / gestureBaseScale
-                                        val newMag = gestureEndMagnification(s.viewport.magnification, detectorFactor)
-                                        val rotationChanged = gestureRotation != 0f
-                                        val zoomChanged = abs(newMag - s.viewport.magnification) > 1e-6
-                                        if (rotationChanged || zoomChanged) {
-                                                val dpi = context.resources.displayMetrics.densityDpi.toDouble()
-                                                // Generalized focal-point commit (design D2, spec:
-                                                // Rotation anchored at the finger midpoint): the
-                                                // viewport center is adjusted so the geo point under
-                                                // the finger midpoint stays under it after the
-                                                // combined rotate+zoom. Reduces to zoomAtCursor for
-                                                // a pure zoom (Δ=0); a pure rotation now also moves
-                                                // the center.
-                                                val (clat, clon) = ProjectionUtils.rotateZoomAtFocalPoint(
-                                                    gestureCentroid.x.toDouble(), gestureCentroid.y.toDouble(),
-                                                    s.viewport.magnification, newMag,
-                                                    gestureRotation.toDouble(),
-                                                    canvasSize.width.toDouble(), canvasSize.height.toDouble(),
-                                                    s.viewport.centerLat, s.viewport.centerLon,
-                                                    s.viewport.angle, dpi
-                                                )
-                                                Log.d(TAG, "gesture commit angle=" + newAngle +
-                                                    " zoomFactor=" + detectorFactor +
-                                                    " mag=" + s.viewport.magnification + "->" + newMag +
-                                                    " focal=" + gestureCentroid +
-                                                    " canvas=" + canvasSize.width + "x" + canvasSize.height +
-                                                    " -> " + clat + "," + clon)
-                                                viewModel.updateCenter(clat, clon)
-                                                if (zoomChanged) viewModel.updateMagnification(newMag)
-                                        }
-                                        // Full native render only when the angle or mag
-                                        // changed (correct label direction); a pure pan
-                                        // uses the fast tile path.
-                                        // Fold the composed gesture scale into the
-                                        // display layer: the screen keeps showing
-                                        // frontBuffer × gestureZoom (the exact gesture
-                                        // preview) while the debounced render at the
-                                        // fractional commit runs — the render-land handoff
-                                        // resets the display scale when the buffer matches
-                                        // (smooth-zoom D3/D4, no zoom-level snap between
-                                        // gesture end and render completion).
-                                        zoomAnchor = gestureCentroid
-                                        zoomAnimScale = gestureZoom
-                                        val needsFullRender = gestureRotation != 0f || gestureZoom != 1f
-                                        // Rotation display-layer hold (design D1): arm the
-                                        // derived rotation gap (committed − front-buffer
-                                        // angle) until the re-render at the committed angle
-                                        // lands — the frame loop disarms it when the front
-                                        // buffer matches (mirror of the zoomAnimScale
-                                        // handoff).
-                                        rotationHoldActive = gestureRotation != 0f
-                                        // Gesture-end midpoint: the hold and the
-                                        // render-land crossfade pivot around this
-                                        // point (the commit's focal point, D2).
-                                        crossfadePivot = gestureCentroid
-                                        gestureRotation = 0f
-                                        gestureZoom = 1f
-                                        gestureBaseScale = 1f
-                                        gestureSmoothFactor = 1f
-                                        gesturePan = Offset.Zero
-                                        gestureCentroid = Offset.Zero
-                                        gestureActive = false
-                                        viewModel.renderMap(forceFullRender = needsFullRender)
-                                    }
-                                    if (panGestureActive) {
-                                        // Single-finger pan end (spec: map-pan-zoom —
-                                        // Touch-based pan): commit the displayed center
-                                        // and persist it. A pan that stayed inside the
-                                        // overrun margin needs NO render — the frame in
-                                        // hand keeps serving the shifted window; only a
-                                        // saturated (or missing) frame is re-centered.
-                                        panGestureActive = false
-                                        val window = panWindowOffset()
-                                        commitPanCenter()
-                                        viewModel.saveViewport()
-                                        if (PAN_DIAGNOSTICS_ENABLED) {
-                                            // One line per gesture: whether the window was
-                                            // served, the applied offset and the
-                                            // magnification — the two stuck states of a
-                                            // dead pan (renderer dropped the request /
-                                            // display applied a zero offset while the
-                                            // displayed center moved) are distinguishable
-                                            // from logcat alone, with no coordinates and no
-                                            // per-event output (spec: map-pan-zoom —
-                                            // diagnosable without per-event output).
-                                            val state = window?.let {
-                                                if (it.clamped) "clamped" else "served"
-                                            } ?: "unavailable"
-                                            Log.d(
-                                                TAG,
-                                                "pan end: window=" + state +
-                                                    " offsetPx=" + panOffsetX + "," + panOffsetY +
-                                                    " mag=" + viewModel.uiState.value.viewport.magnification
-                                            )
-                                        }
-                                        if (window == null || window.clamped) {
-                                            lastPanRenderRequestMs = System.currentTimeMillis()
-                                            viewModel.renderMap()
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                        // Scroll-wheel zoom (emulator/testing)
-                        .pointerInput(Unit) {
-                            awaitEachGesture {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull() ?: return@awaitEachGesture
-                                if (change.type == PointerType.Mouse &&
-                                    event.type == PointerEventType.Scroll) {
-                                    val scrollDelta = change.scrollDelta
-                                    val deltaY = scrollDelta.y
-                                    if (deltaY != 0f) {
-                                        attributionInteractionTick++
-                                        val s = viewModel.uiState.value
-                                        val mag = s.viewport.magnification
-                                        val dir = if (deltaY < 0) 1 else -1
-                                        val newMag = (mag + dir).coerceIn(
-                                            MapCanvasViewModel.MIN_MAG, MapCanvasViewModel.MAX_MAG
-                                        )
-                                        if (newMag != mag) {
-                                            viewModel.disengageFollowMode()
-                                            val dpi = context.resources.displayMetrics.densityDpi.toDouble()
-                                            val (clat, clon) = ProjectionUtils.zoomAtCursor(
-                                                change.position.x.toDouble(), change.position.y.toDouble(),
-                                                mag, newMag,
-                                                size.width.toDouble(), size.height.toDouble(),
-                                                s.viewport.centerLat, s.viewport.centerLon, dpi
-                                            )
-                                            viewModel.updateCenter(clat, clon)
-                                            viewModel.updateMagnification(newMag)
-                                            // smooth-zoom: animate the discrete zoom
-                                            // anchored at the cursor position.
-                                            animateDiscreteZoom(change.position)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .onKeyEvent { event ->
-                            dispatchMapCanvasKey(
-                                event = event,
-                                onOpenSearch = { viewModel.openSearch() },
-                                onZoomIn = {
-                                    attributionInteractionTick++
-                                    viewModel.disengageFollowMode()
-                                    viewModel.zoomIn()
-                                    viewModel.renderMap()
-                                    animateDiscreteZoomToCenter()
-                                },
-                                onZoomOut = {
-                                    attributionInteractionTick++
-                                    viewModel.disengageFollowMode()
-                                    viewModel.zoomOut()
-                                    viewModel.renderMap()
-                                    animateDiscreteZoomToCenter()
-                                }
-                            )
-                        }
-                ) {
-                    val canvasWidth = size.width
-                    val canvasHeight = size.height
-
-                    drawRect(color = surfaceColor)
-
-                    // Display offset of the frame currently on screen: the follow-mode
-                    // prediction drift in follow mode, the pan overrun window otherwise
-                    // (spec: canvas-overrun — Overrun window shift for pan). Exactly one
-                    // of the two is non-zero: a pan disengages follow mode, and the
-                    // follow display loop resets its offsets whenever follow is off.
-                    //
-                    // A route-planning session that holds the camera (spec:
-                    // `route-planning-session` — Session holds the camera while active) draws
-                    // with **no** offset: the session's fits (route overview, analysed segment)
-                    // place the content in the free area by the viewport alone, so a follow
-                    // drift offset of up to the overrun margin (240 px here) would shift the
-                    // drawn frame and the overlays away from what the fit computed — the
-                    // analysed leg looked centred in the model and sat off-centre/clipped at
-                    // the bottom or a side on the device (owner finding, 2026-10-03).
-                    val sessionOwnsViewport = viewModel.sessionHoldsCamera()
-                    val displayOffsetX = followDisplayOffset(
-                        followActive, sessionOwnsViewport, followOffsetX, panOffsetX
-                    )
-                    val displayOffsetY = followDisplayOffset(
-                        followActive, sessionOwnsViewport, followOffsetY, panOffsetY
-                    )
-
-                    state.renderedBitmap?.let { bitmap ->
-                        // Overrun frame: drawn at natural size, positioned by the
-                        // display offset within the overrun margin.
-                        drawFrontFrame(
-                            bitmap, canvasWidth.toFloat(), canvasHeight.toFloat(),
-                            displayOffsetX, displayOffsetY,
-                            zoomAnimScale, zoomAnchor, 1f
-                        )
-                    }
-
-                    // smooth-zoom render-completion crossfade (zoom-transition-
-                    // scaling delta): the scaled old frame fades out over the
-                    // swapped-in rendered frame — no single-frame content jump.
-                    crossfadeBitmap?.let { old ->
-                        if (crossfadeAlpha > 0f) {
-                            drawFrontFrame(
-                                old, canvasWidth.toFloat(), canvasHeight.toFloat(),
-                                displayOffsetX, displayOffsetY,
-                                crossfadeScale, crossfadeAnchor, crossfadeAlpha,
-                                crossfadeAngle, crossfadePivot
-                            )
-                        }
-                    }
-                }
-
-                // Analysed route step (spec: route-analysis): the polyline range the
-                // selected step owns, drawn on a layer ABOVE the rendered frame and
-                // BELOW the markers/pins, so the route's own paint stays visible around
-                // the highlight and no pin is hidden. Same viewport source as the
-                // markers (the displayed bitmap), and the same pan/zoom display
-                // transform, so the highlight rides the map content it belongs to.
-                if (state.renderedBitmap != null) {
-                    RouteSegmentHighlightOverlay(
-                        polylineLats = routeState.routeEntry?.latitudes,
-                        polylineLons = routeState.routeEntry?.longitudes,
-                        segment = routeState.analysedSegment,
-                        viewport = state.renderViewport,
-                        dpi = context.resources.displayMetrics.densityDpi.toDouble(),
-                        dark = state.isDarkPresentation,
-                        modifier = Modifier.graphicsLayer {
-                            val shift = markerDisplayShiftPx(followActive, panOffsetX, panOffsetY)
-                            translationX = shift.first
-                            translationY = shift.second
-                        },
-                        zoomScale = zoomAnimScale,
-                        zoomAnchor = zoomAnchor
-                    )
-                }
-
-                // GPS marker is rendered as a Compose overlay on top of the rendered map,
-                // never baked into cached tiles or reusable buffers (spec: gps-location-marker).
-                // Projection uses the front-buffer viewport so the marker stays anchored
-                // to the bitmap actually on screen. No bitmap yet → no marker: there is no
-                // displayed frame to project against.
-                if (state.renderedBitmap != null) {
-                    // In follow mode the marker rides the displayed (eased predicted)
-                    // position so it glides with the blitted map; the viewport is
-                    // centered on the same position so the marker lands on the road.
-                    val markerLat = if (followActive) followDisplayLat else state.gpsMarkerLat
-                    val markerLon = if (followActive) followDisplayLon else state.gpsMarkerLon
-                    // The marker projects against the displayed bitmap's viewport. In
-                    // follow mode that viewport is the anchor center of the DISPLAYED
-                    // (eased predicted) position — the frame itself is anchor-centered
-                    // on its own position and then blitted by the drift (spec:
-                    // smooth-follow — Anchor-centered follow framing), so this is the one
-                    // projection that lands the marker on the map content it rides at the
-                    // anchor instead of ahead of it by the blit offset (spec:
-                    // gps-location-marker — Marker projects against displayed bitmap
-                    // viewport).
-                    val markerViewport = if (followActive) {
-                        val shown = state.renderViewport
-                        // Anchor fraction = the value the ViewModel resolved against
-                        // the VISIBLE map area (spec: smooth-follow — visible-area
-                        // scenarios); a second derivation here would break the
-                        // marker/content alignment on surfaces with overlays.
-                        val (aLat, aLon) = anchorCenter(
-                            markerLat, markerLon,
-                            state.resolvedAnchor.fx, state.resolvedAnchor.fy,
-                            shown?.mag ?: 0.0, canvasSize.width, canvasSize.height,
-                            context.resources.displayMetrics.densityDpi.toDouble(),
-                            shown?.angle ?: 0.0
-                        )
-                        MapRenderer.RenderViewport(
-                            aLat, aLon,
-                            shown?.mag ?: 0.0, shown?.angle ?: 0.0
-                        )
-                    } else {
-                        state.renderViewport
-                    }
-                    LocationMarkerOverlay(
-                        lat = markerLat,
-                        lon = markerLon,
-                        bearing = state.gpsMarkerBearing,
-                        accuracy = state.gpsMarkerAccuracy,
-                        viewport = markerViewport,
-                        dpi = context.resources.displayMetrics.densityDpi.toDouble(),
-                        modifier = Modifier.graphicsLayer {
-                            // The map content is drawn shifted by the pan display
-                            // offset, so the overlays must be shifted by the same
-                            // value — the marker can never drift off the content it
-                            // rides (spec: gps-location-marker — Marker projects
-                            // against displayed bitmap viewport). In follow mode the
-                            // anchor-center projection already carries the drift, so
-                            // translating there would apply it twice.
-                            val shift = markerDisplayShiftPx(followActive, panOffsetX, panOffsetY)
-                            translationX = shift.first
-                            translationY = shift.second
-                        },
-                        zoomScale = zoomAnimScale,
-                        zoomAnchor = zoomAnchor,
-                        dark = state.isDarkPresentation
-                    )
-                }
-            }
-        }
-
-        // Orientation-aware overlay layout
-        // Orientation-aware overlay layout.
-        CompositionLocalProvider(
-            LocalOverlayWidthProbe provides { width -> overlayRightInset = width }
-        ) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            val isLandscape = maxWidth > maxHeight
-
-            if (isLandscape) {
-                // Landscape: action buttons top-left, state controls on right.
-                // Hidden during navigation so the turn instruction can start at
-                // the left edge without overlapping the right-side widgets.
-                if (!navState.isNavigating) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(start = 8.dp, top = 8.dp)
-                            .statusBarsPadding()
-                            .verticalScroll(rememberScrollState()),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        MapActionColumn(
-                            isLandscape = true,
-                            onToggleMenu = { menuExpanded = true },
-                            onOpenSearch = { viewModel.openSearch() },
-                            onToggleFavorites = { viewModel.toggleFavoritesSheet() }
-                        )
-                    }
-                }
-
-                // Right side: single bottom-anchored widget column (compass
-                // directly above the speed widget, then location options, then
-                // zoom at the bottom below all other controls) — same placement
-                // as the routing view (spec: phone-align-controls-in-all-modes).
-                // Hidden during navigation — the routing layout owns the right side.
-                if (!navState.isNavigating) {
-                    MapRightWidgetColumn(
-                        isLandscape = true,
-                        bottomInset = with(LocalDensity.current) {
-                            state.overlayCoveredPx.toDp()
-                        },
-                        mapAngleRadians = state.viewport.angle,
-                        gpsFixQuality = state.gpsFixQuality,
-                        isDarkPresentation = state.isDarkPresentation,
-                        onCenterClick = reCenterAction,
-                        onToggleOrientation = toggleOrientationAction,
-                        speedInput = speedInput,
-                        overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
-                        driveToggle = {
-                            DriveModeButton(
-                                mode = viewModel.mode,
-                                onToggle = modeToggleAction
-                            )
-                        },
-                        canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
-                        canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
-                        currentMag = state.viewport.magnification,
-                        onZoomIn = {
-                            android.util.Log.d("MapCanvasScreen", "zoom+ pressed")
-                            attributionInteractionTick++
-                            viewModel.disengageFollowMode()
-                            viewModel.zoomIn()
-                            viewModel.renderMap()
-                            animateDiscreteZoomToCenter()
-                        },
-                        onZoomOut = {
-                            android.util.Log.d("MapCanvasScreen", "zoom- pressed")
-                            attributionInteractionTick++
-                            viewModel.disengageFollowMode()
-                            viewModel.zoomOut()
-                            viewModel.renderMap()
-                            animateDiscreteZoomToCenter()
-                        },
-                        locationOptions = {
-                            LocationOptionsOverlay(
-                                mode = viewModel.mode,
-                                freeFormNorthUp = state.freeFormNorthUp,
-                                onSetFreeFormOrientation = { northUp ->
-                                    viewModel.onSetFreeFormOrientation(northUp)
-                                },
-                                navNorthUp = state.navNorthUp,
-                                onSetNavOrientation = { northUp ->
-                                    viewModel.onSetNavOrientation(northUp)
-                                },
-                                autoZoomEnabled = state.autoZoomEnabled,
-                                onToggleAutoZoom = { enabled ->
-                                    viewModel.onToggleAutoZoom(enabled)
-                                },
-                                keepScreenOn = state.keepScreenOn,
-                                onToggleKeepScreenOn = { enabled ->
-                                    viewModel.onToggleKeepScreenOn(enabled)
-                                },
-                                darkModePreference = state.darkModePreference,
-                                onSetDarkModePreference = { pref ->
-                                    viewModel.onSetDarkModePreference(pref)
-                                },
-                                ambientLightSensitivity = state.ambientLightSensitivity,
-                                onSetAmbientLightSensitivity = { level ->
-                                    viewModel.onSetAmbientLightSensitivity(level)
-                                },
-                                laneHintsEnabled = state.laneHintsEnabled,
-                                onToggleLaneHints = { enabled ->
-                                    viewModel.onToggleLaneHints(enabled)
-                                },
-                                overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
-                                onSetOverspeedWarningDelta = { delta ->
-                                    viewModel.onSetOverspeedWarningDelta(delta)
-                                },
-                                routingAnchor = state.routingAnchor,
-                                onSetRoutingAnchor = { anchor ->
-                                    viewModel.setRoutingAnchor(anchor)
-                                },
-                                freeDrivingAnchor = state.freeDrivingAnchor,
-                                onSetFreeDrivingAnchor = { anchor ->
-                                    viewModel.setFreeDrivingAnchor(anchor)
-                                },
-                                renderMode = state.renderMode,
-                                onSetRenderMode = { mode ->
-                                    viewModel.onSetRenderMode(mode)
-                                },
-                                availableStyles = state.availableStyleSheets,
-                                styleSheet = state.styleSheet,
-                                onSetStyleSheet = { style ->
-                                    viewModel.onStyleSheetSelected(style)
-                                }
-                            )
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 8.dp, bottom = 44.dp)
-                            .navigationBarsPadding()
-                            .verticalScroll(rememberScrollState())
-                    )
-                }
-
-                // Bottom-left: re-center (action) when follow off, or auto-zoom
-                // suspended, when GPS available — free-form only; during
-                // navigation the button sits above the routing status bar
-                // (see navigation overlay branch).
-                if (!navState.isNavigating &&
-                    MapCanvasViewModel.shouldShowReCenterButton(
-                        viewModel.mode, state.driveSuspended, state.browseReCenterVisible
-                    ) && state.gpsFixQuality != GpsFixQuality.NONE) {
-                    MapReCenterButton(
-                        onReCenter = reCenterAction,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(start = 8.dp, bottom = 12.dp)
-                            .navigationBarsPadding()
-                    )
-                }
-            } else {
-                // Portrait: action column top-left, view column top-right.
-                // Action column hidden during navigation (see landscape).
-                if (!navState.isNavigating) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .statusBarsPadding()
-                            .padding(start = 8.dp, top = 4.dp)
-                            .verticalScroll(rememberScrollState()),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        MapActionColumn(
-                            isLandscape = false,
-                            onToggleMenu = { menuExpanded = true },
-                            onOpenSearch = { viewModel.openSearch() },
-                            onToggleFavorites = { viewModel.toggleFavoritesSheet() }
-                        )
-                    }
-                }
-
-                // Portrait: right-side widget column, bottom-anchored like the
-                // routing view (spec: phone-align-controls-in-all-modes).
-                // Hidden during navigation — the routing layout owns the right side.
-                if (!navState.isNavigating) {
-                    MapRightWidgetColumn(
-                        isLandscape = false,
-                        bottomInset = with(LocalDensity.current) {
-                            state.overlayCoveredPx.toDp()
-                        },
-                        mapAngleRadians = state.viewport.angle,
-                        gpsFixQuality = state.gpsFixQuality,
-                        isDarkPresentation = state.isDarkPresentation,
-                        onCenterClick = reCenterAction,
-                        onToggleOrientation = toggleOrientationAction,
-                        speedInput = speedInput,
-                        overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
-                        driveToggle = {
-                            DriveModeButton(
-                                mode = viewModel.mode,
-                                onToggle = modeToggleAction
-                            )
-                        },
-                        canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
-                        canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
-                        currentMag = state.viewport.magnification,
-                        onZoomIn = {
-                            android.util.Log.d("MapCanvasScreen", "zoom+ pressed")
-                            attributionInteractionTick++
-                            viewModel.disengageFollowMode()
-                            viewModel.zoomIn()
-                            viewModel.renderMap()
-                            animateDiscreteZoomToCenter()
-                        },
-                        onZoomOut = {
-                            android.util.Log.d("MapCanvasScreen", "zoom- pressed")
-                            attributionInteractionTick++
-                            viewModel.disengageFollowMode()
-                            viewModel.zoomOut()
-                            viewModel.renderMap()
-                            animateDiscreteZoomToCenter()
-                        },
-                        locationOptions = {
-                            LocationOptionsOverlay(
-                                mode = viewModel.mode,
-                                freeFormNorthUp = state.freeFormNorthUp,
-                                onSetFreeFormOrientation = { northUp ->
-                                    viewModel.onSetFreeFormOrientation(northUp)
-                                },
-                                navNorthUp = state.navNorthUp,
-                                onSetNavOrientation = { northUp ->
-                                    viewModel.onSetNavOrientation(northUp)
-                                },
-                                autoZoomEnabled = state.autoZoomEnabled,
-                                onToggleAutoZoom = { enabled ->
-                                    viewModel.onToggleAutoZoom(enabled)
-                                },
-                                keepScreenOn = state.keepScreenOn,
-                                onToggleKeepScreenOn = { enabled ->
-                                    viewModel.onToggleKeepScreenOn(enabled)
-                                },
-                                darkModePreference = state.darkModePreference,
-                                onSetDarkModePreference = { pref ->
-                                    viewModel.onSetDarkModePreference(pref)
-                                },
-                                ambientLightSensitivity = state.ambientLightSensitivity,
-                                onSetAmbientLightSensitivity = { level ->
-                                    viewModel.onSetAmbientLightSensitivity(level)
-                                },
-                                laneHintsEnabled = state.laneHintsEnabled,
-                                onToggleLaneHints = { enabled ->
-                                    viewModel.onToggleLaneHints(enabled)
-                                },
-                                overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
-                                onSetOverspeedWarningDelta = { delta ->
-                                    viewModel.onSetOverspeedWarningDelta(delta)
-                                },
-                                routingAnchor = state.routingAnchor,
-                                onSetRoutingAnchor = { anchor ->
-                                    viewModel.setRoutingAnchor(anchor)
-                                },
-                                freeDrivingAnchor = state.freeDrivingAnchor,
-                                onSetFreeDrivingAnchor = { anchor ->
-                                    viewModel.setFreeDrivingAnchor(anchor)
-                                },
-                                renderMode = state.renderMode,
-                                onSetRenderMode = { mode ->
-                                    viewModel.onSetRenderMode(mode)
-                                },
-                                availableStyles = state.availableStyleSheets,
-                                styleSheet = state.styleSheet,
-                                onSetStyleSheet = { style ->
-                                    viewModel.onStyleSheetSelected(style)
-                                }
-                            )
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 8.dp, bottom = 44.dp)
-                            .navigationBarsPadding()
-                            .verticalScroll(rememberScrollState())
-                    )
-                }
-
-                // Bottom-left: re-center (action) when follow off, or auto-zoom
-                // suspended, when GPS available — free-form only; during
-                // navigation the button sits above the routing status bar
-                // (see navigation overlay branch).
-                if (!navState.isNavigating &&
-                    MapCanvasViewModel.shouldShowReCenterButton(
-                        viewModel.mode, state.driveSuspended, state.browseReCenterVisible
-                    ) && state.gpsFixQuality != GpsFixQuality.NONE) {
-                    MapReCenterButton(
-                        onReCenter = reCenterAction,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(start = 8.dp, bottom = 12.dp)
-                            .navigationBarsPadding()
-                    )
-                }
-            }
-
-            // Animated map menu overlay (scrim + panel), anchored below the toaster button
-            MapMenu(
-                expanded = menuExpanded,
-                onDismiss = { menuExpanded = false },
-                onDownloadMaps = { onNavigateToMapManager() },
-                onOpenFavorites = { viewModel.toggleFavoritesSheet() },
-                onOpenSearch = { viewModel.openSearch() },
-                onOpenAbout = { showAboutDialog = true },
-                toasterTopPadding = if (isLandscape) 8.dp else 4.dp
-            )
-        }
-
-        // Car-session advisory (spec: `car-session-presence`): shown while a car
-        // session is live, on the free centre-left strip that no action column,
-        // widget column, turn card or status card occupies. Informational only.
-        if (carSessionActive) {
-            CarSessionIndicator(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 8.dp)
-            )
-        }
-
-        // OSM attribution notice (bottom-right corner, per OSMF Attribution
-        // Guidelines). Auto-hides after 5s of no interaction; any map
-        // interaction re-shows it and restarts the timer.
-        OsmAttributionOverlay(
-            interactionTick = attributionInteractionTick,
+        // Map layer (spec: map-canvas-screen — Phone map overlay layer stack): the
+        // rendered frame and its state are the backmost band. Every on-map element and
+        // every surface that opens over the map is composed above it in its own band;
+        // the band decides the stacking, never the position in this file.
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 8.dp, bottom = 8.dp)
-                .navigationBarsPadding()
-        )
-
-        // Unified search dialog (spec: search-dialog) — one surface for
-        // Places / POIs / Contacts search, opened by the search button, the
-        // menu Search entry, the `/` key, and shared-location queries.
-        if (state.searchOpen) {
-            val addressBookViewModel: com.naviveylin.ui.addressbook.AddressBookViewModel =
-                hiltViewModel()
-            val addressBookState by addressBookViewModel.uiState.collectAsState()
-            val history by viewModel.searchHistory.collectAsState()
-            val favoriteGroups by viewModel.favoriteGroups.collectAsState()
-            // Load contacts when the Contacts mode is entered (spec:
-            // address-book-search — searchable list of persons with addresses).
-            LaunchedEffect(state.searchMode) {
-                if (state.searchMode == SearchMode.CONTACTS) {
-                    addressBookViewModel.start()
-                }
-            }
-            SearchDialog(
-                searchMode = state.searchMode,
-                onModeSelected = { viewModel.setSearchMode(it) },
-                onDismiss = { viewModel.closeSearch() },
-                query = state.searchQuery,
-                results = state.searchResults,
-                isSearching = state.isSearching,
-                gpsAvailable = state.gpsFixQuality != GpsFixQuality.NONE,
-                adminRegionName = state.searchAdminRegionName,
-                distanceReference = state.searchReference,
-                historyEntries = history,
-                favoriteGroups = favoriteGroups,
-                onQueryChanged = { viewModel.onSearchQueryChanged(it) },
-                onResultSelected = { entry ->
-                    viewModel.onSearchResultSelected(entry)
-                    viewModel.closeSearch()
-                },
-                onSelectCurrentLocation = {
-                    viewModel.selectCurrentLocation()
-                    viewModel.closeSearch()
-                },
-                onSelectFavorite = { fav ->
-                    viewModel.onFavoriteSelected(fav)
-                    viewModel.closeSearch()
-                },
-                onHistoryEntrySelected = { viewModel.onHistoryEntrySelected(it) },
-                poiCategory = state.poiCategory,
-                poiRadiusMeters = state.poiRadiusMeters,
-                poiResults = state.poiResults,
-                isPoiSearching = state.isPoiSearching,
-                poiError = state.poiSearchError,
-                client = viewModel.osmscoutClient,
-                poiCenterLat = state.poiSearchCenterLat,
-                poiCenterLon = state.poiSearchCenterLon,
-                currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
-                selectedPoi = if (state.poiSelectedLat.isNaN()) null else state.poiSelectedLat to state.poiSelectedLon,
-                onPoiCategorySelected = { viewModel.onPoiCategorySelected(it) },
-                onPoiRadiusChanged = { viewModel.onPoiRadiusChanged(it) },
-                onPoiSearch = { viewModel.performPoiSearch() },
-                onPoiEntryClick = { viewModel.onPoiEntryClick(it) },
-                addressBookAvailable = state.addressBookAvailable,
-                contactsQuery = addressBookState.query,
-                onContactsQueryChanged = { addressBookViewModel.onQueryChanged(it) },
-                contactsContent = {
-                    AddressBookSearchContent(
-                        onResultSelected = { entry ->
-                            viewModel.onAddressBookResultSelected(entry)
-                        }
+                .fillMaxSize()
+                .zIndex(MapLayer.MAP.z)
+                .testTag(MapLayer.MAP.tag)
+        ) {
+            when {
+                state.isLoading && state.renderedBitmap == null -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
-            )
-        }
 
-        // Candidate picker (long-press with multiple objects at the point).
-        // Shown instead of the details sheet; selecting a row opens details.
-        if (state.showCandidatePicker && state.candidateDescriptions.isNotEmpty()) {
-            CandidatePickerSheet(
-                candidates = state.candidateDescriptions,
-                onCandidateSelected = { viewModel.onCandidateSelected(it) },
-                onDismiss = { viewModel.dismissCandidatePicker() }
-            )
-        }
-
-        // Location details dialog (full screen, spec: enhanced-details-sheet).
-        // Its own BackHandler (registered later in composition than the
-        // navigation-reject handler above) dismisses it on system back.
-        if (state.showDetailsSheet && state.selectedLocation != null) {
-            LocationDetailsDialog(
-                entry = state.selectedLocation!!,
-                client = viewModel.osmscoutClient,
-                // Mini map starts 4 levels below the main map so the object's
-                // surroundings are visible (main map is typically zoomed in).
-                initialMag = (state.viewport.magnification - 4).coerceAtLeast(MapCanvasViewModel.MIN_MAG)
-                    .coerceIn(MapCanvasViewModel.MIN_MAG, MapCanvasViewModel.MAX_MAG),
-                objectDescription = state.objectDescription,
-                isFavorite = viewModel.isSelectedLocationFavorite(),
-                groupNames = viewModel.getFavoriteGroupNames(),
-                currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
-                onAddToFavorites = { groupName, favName, isNewGroup ->
-                    viewModel.addSelectedToFavorites(groupName, favName, isNewGroup)
-                },
-                onRemoveFromFavorites = { viewModel.removeSelectedFromFavorites() },
-                onRouteToLocation = { viewModel.openRoutePanelWithStart(state.selectedLocation) },
-                onShowOnMap = { viewModel.showOnMap() },
-                onDismiss = { viewModel.dismissDetailsSheet() }
-            )
-        }
-
-        // About dialog
-        if (showAboutDialog) {
-            AboutDialog(onDismiss = { showAboutDialog = false })
-        }
-
-        // Favorites sheet (full-screen)
-        if (state.showFavoritesSheet) {
-            FavoritesSheet(
-                mapCenterLat = state.viewport.centerLat,
-                mapCenterLon = state.viewport.centerLon,
-                onDismiss = { viewModel.toggleFavoritesSheet() },
-                onFavoriteClick = { fav ->
-                    viewModel.onFavoriteSelected(fav)
-                },
-                onChipRouteTo = { fav ->
-                    val entry = LocationEntry().apply {
-                        label = fav.name
-                        lat = fav.lat
-                        lon = fav.lon
-                        matchQuality = "favorite"
-                    }
-                    viewModel.openRoutePanelWithStart(entry)
-                }
-            )
-        }
-
-        // The session card lives in the map's own window since the 2026-10-03 revision
-        // (design D10), so the screen owns its dismissal: system back on a composed card is
-        // the session's cancel exit (`dismissRoutePanel` → `endSession`; spec:
-        // `route-planning-session` — the session's exits, `map-canvas-screen` — back dismisses
-        // the topmost overlay). The deleted Material3 sheet brought its own back handler;
-        // without this one, back would fall through to the activity. The card is the whole
-        // phone surface now (two anchors), so back is captured whenever it is shown.
-        BackHandler(enabled = state.showRoutePanel) { viewModel.dismissRoutePanel() }
-
-        // Route panel — the session's single surface (design D10)
-        if (state.showRoutePanel) {
-            RoutePanel(
-                viewModel = routePanelViewModel,
-                onOpenFavoritePicker = { field ->
-                    favoritePickerField = field
-                    showFavoritePicker = true
-                },
-                // The card reports the height it covers — the fit uses that number and
-                // re-runs when it changes (spec: `route-map-overview`). It is also the band's
-                // inset while it is shown: the status card is not composed then, so its last
-                // height must not keep the right-side controls inset (screen-local state).
-                onOverlayHeightChanged = { height ->
-                    viewModel.setOverlayCoveredPx(height)
-                    overlayBottomInset = height
-                },
-                // The card's exit: the session ends and the surface closes with it (spec:
-                // `route-planning-session` — Ending the session removes its surface).
-                onEndSession = { viewModel.dismissRoutePanel() },
-                onStartNavigation = {
-                    val entry = routeState.routeEntry
-                    if (entry != null) {
-                        navigationViewModel.start(entry, routeState.vehicle)
-                        routePanelViewModel.setNavigating(true)
-                        // Close the routing window when navigation starts.
-                        viewModel.dismissRoutePanel()
-                    }
-                },
-                onStopNavigation = stopNavigation,
-                // Restart from the stopped state: navigation resumes on the route the session still
-                // holds, and the session hands it back without recalculating (spec:
-                // `route-planning-session` — Restart resumes navigation).
-                onRestartNavigation = {
-                    val entry = routeState.routeEntry
-                    if (entry != null) {
-                        navigationViewModel.start(entry, routeState.vehicle)
-                        routePanelViewModel.onNavigationRestarted()
-                    }
-                },
-                isNavigating = navState.isNavigating,
-                centerLat = state.viewport.centerLat,
-                centerLon = state.viewport.centerLon
-            )
-        }
-
-        // Favorite picker dialog (for route field selection)
-        if (showFavoritePicker) {
-            FavoritePickerDialog(
-                favoriteRepository = routePanelViewModel.favoriteRepository,
-                onFavoriteSelected = { entry ->
-                    when (favoritePickerField) {
-                        ActiveField.START -> {
-                            viewModel.setRouteStart(entry)
-                            routePanelViewModel.setActiveField(ActiveField.NONE)
-                        }
-                        ActiveField.DEST -> {
-                            viewModel.setRouteDest(entry)
-                            routePanelViewModel.setActiveField(ActiveField.NONE)
-                        }
-                        ActiveField.NONE -> {}
-                        null -> {}
-                    }
-                    favoritePickerField = null
-                    showFavoritePicker = false
-                },
-                onDismiss = {
-                    favoritePickerField = null
-                    showFavoritePicker = false
-                }
-            )
-        }
-
-        // Permission rationale dialog
-        if (showPermissionRationale) {
-            AlertDialog(
-                onDismissRequest = { showPermissionRationale = false },
-                title = { Text(stringResource(R.string.location_permission_needed)) },
-                text = {
-                    Text(
-                        stringResource(R.string.location_permission_rationale)
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showPermissionRationale = false
-                        try {
-                            context.startActivity(
-                                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = android.net.Uri.fromParts("package", context.packageName, null)
-                                }
-                            )
-                        } catch (_: Exception) {}
-                    }) {
-                        Text(stringResource(R.string.open_settings))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showPermissionRationale = false }) {
-                        Text(stringResource(R.string.cancel))
-                    }
-                }
-            )
-        }
-        // Navigation gate (spec: `location-permissions` — Starting navigation
-        // requires precise location). The route request was refused; explain it and
-        // offer the upgrade instead of letting a ~2 km start point into the engine.
-        if (routeState.preciseLocationRequired) {
-            PreciseLocationRequiredDialog(
-                onDismiss = { routePanelViewModel.dismissPreciseLocationRequirement() },
-                onUpgrade = {
-                    routePanelViewModel.dismissPreciseLocationRequirement()
-                    onPreciseLocationAction()
-                }
-            )
-        }
-        // Address-book (contacts) rationale dialog — shown once before the
-        // first READ_CONTACTS request (spec: address-book-permission).
-        if (showAddressBookRationale) {
-            com.naviveylin.ui.addressbook.AddressBookRationaleDialog(
-                onDismiss = {
-                    showAddressBookRationale = false
-                    addressBookRationaleStore.markShown()
-                },
-                onContinue = {
-                    showAddressBookRationale = false
-                    addressBookRationaleStore.markShown()
-                    try {
-                        contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-                    } catch (_: Exception) {}
-                },
-                onNotNow = {
-                    showAddressBookRationale = false
-                    addressBookRationaleStore.markShown()
-                }
-            )
-        }
-    
-        // Free-driving street label (spec: current-road-info): bottom-center
-        // pill by default, top-center when the active follow anchor preset is
-        // in the bottom row (so the pill never covers the vehicle marker);
-        // shown only when no route is active (the navigation road-info row
-        // covers the navigating case).
-        if (!navState.isNavigating) {
-            val roadText = state.currentRoadInfo?.let {
-                listOfNotNull(
-                    it.ref.takeIf { r -> r.isNotEmpty() },
-                    it.name.takeIf { n -> n.isNotEmpty() }
-                ).joinToString(" ")
-            }
-            FreeDrivingStreetPill(
-                roadText = roadText,
-                anchor = state.activeFollowAnchor,
-                onPillInset = { overlayPillInset = it }
-            )
-        }
-
-        // Navigation overlays: full-width turn hints at the top, the right-side
-        // widget column (compass directly above the speed widget, zoom at the
-        // bottom below all other controls) spanning from above the routing status
-        // up to the top, and the routing status covering the bottom of the window.
-        //
-        // Publishes what the map overlays cover so the follow anchor stays inside
-        // the part of the map the driver can actually see (spec: smooth-follow —
-        // "Bottom anchor stays visible above the routing status card"). Runs in every
-        // mode: browse/free driving measure no turn/status card, so their insets are
-        // the (usually zero) measured values of the widgets actually shown.
-        // Only a bottom pill must reserve space below the follow anchor: when
-        // the pill sits on top (bottom-row anchor), the bottom inset is zeroed.
-        // Keyed on [pillAtTop] too — the pill size does not change on an anchor
-        // toggle, so the inset decision must not depend on a size callback alone.
-        val pillAtTop = state.activeFollowAnchor.fy == 0.9
-        LaunchedEffect(navState.isNavigating, overlayTopInset, overlayBottomInset, overlayRightInset, overlayPillInset, pillAtTop) {
-            viewModel.setMapOverlayInsets(
-                top = if (navState.isNavigating) overlayTopInset else 0,
-                bottom = if (navState.isNavigating) overlayBottomInset else if (pillAtTop) 0 else overlayPillInset,
-                right = overlayRightInset
-            )
-        }
-        if (navState.isNavigating) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-            ) {
-                // Top: full-width turn hints
-                NextTurnOverlay(
-                    instruction = navState.nextInstruction,
-                    laneOneway = navState.laneOneway,
-                    laneCount = navState.laneCount,
-                    laneSuggested = navState.laneSuggested,
-                    laneSuggestedFrom = navState.laneSuggestedFrom,
-                    laneSuggestedTo = navState.laneSuggestedTo,
-                    laneTurns = navState.laneTurns,
-                    laneHintsEnabled = state.laneHintsEnabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onSizeChanged { overlayTopInset = it.height }
-                )
-                // Middle: right-side widget column (compass directly above the
-                // speed widget, zoom at the bottom below all other controls),
-                // bottom-anchored above the routing status.
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
+                state.error != null && state.renderedBitmap == null -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .align(Alignment.TopEnd)
-                            .padding(end = 8.dp),
+                        modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = state.error ?: stringResource(R.string.unknown_error),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.retryRender() }) {
+                            Text(stringResource(R.string.retry))
+                        }
+                    }
+                }
+
+                else -> {
+                    // Map canvas with gesture handling
+                    // Single pointerInput block handles all gestures to avoid conflicts
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .focusTarget()
+                            .onSizeChanged { size ->
+                                viewModel.setScreenSize(size.width, size.height)
+                                canvasSize = size
+                            }
+                            // Live gesture transform on the current bitmap: rotation,
+                            // zoom, and pan are applied visually with no render calls
+                            // until the gesture ends (onRenderRequested commits).
+                            // The rotation AND zoom pivot at the finger midpoint
+                            // (gesturePivot, FROZEN at the gesture-start midpoint): the
+                            // geographic point under the midpoint at gesture start stays
+                            // under the midpoint for the whole gesture, and the
+                            // gesture-end commit adjusts the viewport center so the
+                            // anchor holds in the rendered frame (design D1/D2, spec:
+                            // Rotation anchored at the finger midpoint). Rotating around
+                            // an off-center pivot can expose empty corners at large
+                            // angles (accepted — the overrun buffer margin covers
+                            // moderate angles; standard map-app behavior).
+                            .graphicsLayer {
+                                // Rotation display-layer hold (design D1): between gesture
+                                // end and render land the display keeps the final angle by
+                                // rotating the current front buffer by the angle gap
+                                // (committed − front-buffer) — derived from the SAME
+                                // collected state the draw reads, so the rotation zeroes
+                                // atomically with the committed bitmap swap (no one-frame
+                                // double-rotation twist). rotationDisplayTheta is pure.
+                                val theta = rotationDisplayTheta(
+                                    gestureRotation, rotationHoldActive,
+                                    state.renderViewport?.angle, state.viewport.angle
+                                )
+                                val s = gestureZoom
+                                // Pivot: the frozen gesture-start midpoint during the
+                                // gesture; the gesture-end midpoint (crossfadePivot) while
+                                // the rotation hold is armed, so the held rotation and the
+                                // render-land crossfade pivot around the commit's focal
+                                // point (D2) — the same point the committed render rotates
+                                // around.
+                                val pivot = if (rotationHoldActive && crossfadePivot != Offset.Zero) {
+                                    crossfadePivot
+                                } else {
+                                    gesturePivot
+                                }
+                                val t = gestureTransformTranslation(
+                                    theta, s, pivot, size, gesturePan
+                                )
+                                translationX = t.x
+                                translationY = t.y
+                                rotationZ = normalizeDegrees(Math.toDegrees(theta.toDouble())).toFloat()
+                                scaleX = s
+                                scaleY = s
+                                // Pivot at the finger midpoint (fraction of the layer
+                                // size); fall back to the screen center when unset.
+                                val pw = size.width
+                                val ph = size.height
+                                transformOrigin = if (pw > 0f && ph > 0f &&
+                                    pivot.x.isFinite() && pivot.y.isFinite() &&
+                                    (pivot != Offset.Zero || theta != 0f)
+                                ) {
+                                    TransformOrigin(
+                                        (pivot.x / pw).coerceIn(0f, 1f),
+                                        (pivot.y / ph).coerceIn(0f, 1f)
+                                    )
+                                } else {
+                                    TransformOrigin(0.5f, 0.5f)
+                                }
+                            }
+                            .mapGestureHandler(
+                                object : MapGestureCallbacks {
+                                    override fun onPan(dx: Float, dy: Float) {
+                                        // Gesture-start side effects run once per gesture
+                                        // (spec: render-performance — Pan hot path stays
+                                        // off the frame budget): follow-mode disengagement
+                                        // and the attribution interaction tick must not
+                                        // repeat on every touch event.
+                                        if (!panGestureActive) {
+                                            panGestureActive = true
+                                            attributionInteractionTick++
+                                            // Leave follow mode on the framing the user sees
+                                            // (spec: smooth-follow — anchor restored), then
+                                            // pan from the displayed frame center.
+                                            viewModel.disengageFollowMode()
+                                            val start = viewModel.uiState.value
+                                            panDisplayLat = start.viewport.centerLat
+                                            panDisplayLon = start.viewport.centerLon
+                                        }
+                                        val s = viewModel.uiState.value
+                                        val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+                                        // Chain the delta from the DISPLAYED center (not from
+                                        // the committed viewport): the committed center only
+                                        // follows at gesture end, so chaining off it would
+                                        // make every event recompute from a stale base and
+                                        // the content would lag the finger.
+                                        val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
+                                            dx.toDouble(), dy.toDouble(),
+                                            s.viewport.angle,
+                                            s.viewport.magnification,
+                                            canvasSize.width.toDouble(), canvasSize.height.toDouble(),
+                                            panDisplayLat, panDisplayLon, dpi
+                                        )
+                                        if (newLat.isNaN() || newLon.isNaN()) return
+                                        // Same clamp the ViewModel applies on commit, so the
+                                        // displayed and the committed center can never differ.
+                                        panDisplayLat = newLat.coerceIn(-85.0, 85.0)
+                                        panDisplayLon = newLon.coerceIn(-180.0, 180.0)
+                                        // No render while the frame in hand still covers the
+                                        // pan window (spec: canvas-overrun — Small pan uses
+                                        // sub-region blit).
+                                        requestPanRecenter()
+                                    }
+
+                                    override fun onCentroidPan(dx: Float, dy: Float) {
+                                        attributionInteractionTick++
+                                        // Update the center state (no render); the visual
+                                        // translation is applied to the current bitmap and
+                                        // committed on gesture end.
+                                        viewModel.disengageFollowMode()
+                                        val s = viewModel.uiState.value
+                                        val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+                                        val (newLat, newLon) = ProjectionUtils.dragDeltaToNewCenterRotated(
+                                            dx.toDouble(), dy.toDouble(),
+                                            s.viewport.angle,
+                                            s.viewport.magnification,
+                                            canvasSize.width.toDouble(), canvasSize.height.toDouble(),
+                                            s.viewport.centerLat, s.viewport.centerLon, dpi
+                                        )
+                                        Log.d(TAG, "gesture centroidPan dx=" + dx + " dy=" + dy +
+                                            " canvas=" + canvasSize.width + "x" + canvasSize.height +
+                                            " angle=" + s.viewport.angle + " mag=" + s.viewport.magnification)
+                                        viewModel.updateCenter(newLat, newLon)
+                                        gesturePan += Offset(dx, dy)
+                                    }
+
+                                    override fun onRotate(angleDeltaRadians: Double) {
+                                        attributionInteractionTick++
+                                        // A new gesture supersedes any held rotation from
+                                        // the previous one (design D1 fallback).
+                                        rotationHoldActive = false
+                                        // Disengage follow mode + clear north-up immediately;
+                                        // the angle is applied visually to the current bitmap
+                                        // and committed on gesture end.
+                                        viewModel.onManualRotationStart()
+                                        gestureRotation += angleDeltaRadians.toFloat()
+                                    }
+
+                                    override fun onGestureCentroid(centroid: Offset) {
+                                        // A single-finger pan that grew a second finger: the
+                                        // multi-touch commit math builds on the viewport
+                                        // center, so commit the displayed (panned) center
+                                        // here and let the frame catch up. The pan window is
+                                        // KEPT until the re-centered frame lands (clearing it
+                                        // would snap the content back by the offset); the
+                                        // frame loop releases it on that frame.
+                                        if (panGestureActive) {
+                                            panGestureActive = false
+                                            commitPanCenter()
+                                            requestPanRecenter(force = true)
+                                        }
+                                        // A new gesture supersedes any held rotation from the
+                                        // previous one (design D1 fallback).
+                                        rotationHoldActive = false
+                                        // smooth-zoom: a pinch gesture takes over the
+                                        // zoom display (design D3) — park any running
+                                        // discrete-zoom animation at its current scale.
+                                        freezeZoomAnimationForGesture()
+                                        // Clamp the pivot to the canvas: corrupted pointer
+                                        // positions from multi-touch emulation would otherwise
+                                        // produce a garbage zoom/rotation pivot (map swings away).
+                                        val cw = canvasSize.width.toFloat()
+                                        val ch = canvasSize.height.toFloat()
+                                        gestureCentroid = if (cw > 0f && ch > 0f &&
+                                            centroid.x.isFinite() && centroid.y.isFinite()) {
+                                            Offset(centroid.x.coerceIn(0f, cw), centroid.y.coerceIn(0f, ch))
+                                        } else {
+                                            Offset(cw / 2f, ch / 2f)
+                                        }
+                                        // Rotation/zoom pivot = the finger midpoint
+                                        // (design D1), FROZEN at the FIRST midpoint of
+                                        // the gesture: a live pivot re-anchors the
+                                        // accumulated rotation/zoom each frame and jumps
+                                        // the map by (I − s·R(θ))·ΔC (archived
+                                        // 2026-08-15-bugfix-rotation defect). The
+                                        // centroid drift is carried by the pan
+                                        // compensation (gestureTransformTranslation).
+                                        if (!gestureActive) {
+                                            gesturePivot = gestureCentroid
+                                            gestureActive = true
+                                        }
+                                    }
+
+                                    override fun onZoom(centroid: Offset, zoomFactor: Float) {
+                                        attributionInteractionTick++
+                                        // smooth-zoom: gesture takes over the zoom display.
+                                        freezeZoomAnimationForGesture()
+                                        // Continuous zoom factor vs gesture start; applied
+                                        // visually and committed on gesture end. Clamped to
+                                        // the range the commit can actually deliver: the
+                                        // committed magnification is clamped to
+                                        // [GESTURE_MIN_MAG, MAX_MAG], so at the limits the
+                                        // visual preview must not exceed the headroom —
+                                        // otherwise the map zooms in visually and then
+                                        // snaps back on gesture end.
+                                        // Damped visual factor: track the raw cumulative
+                                        // factor with a short exponential average so noisy
+                                        // input cannot teleport the zoom level mid-gesture.
+                                        // The commit keeps visual == commit parity.
+                                        val rawFactor = clampGestureVisualZoom(
+                                            zoomFactor, viewModel.uiState.value.viewport.magnification
+                                        )
+                                        gestureSmoothFactor = if (gestureSmoothFactor == 1f) {
+                                            rawFactor
+                                        } else {
+                                            gestureSmoothFactor +
+                                                (rawFactor - gestureSmoothFactor) * 0.4f
+                                        }
+                                        gestureZoom = gestureBaseScale * gestureSmoothFactor
+                                    }
+
+                                    override fun onLongPress(position: Offset) {
+                                        fireLongPress(viewModel, context, position, canvasSize)
+                                    }
+
+                                    override fun onRenderRequested() {
+                                        attributionInteractionTick++
+                                        // Gesture end: commit the accumulated multi-touch
+                                        // changes to the viewport and render once with the
+                                        // final angle/mag/center (correct label direction).
+                                        val hasMultiTouchChanges = gestureRotation != 0f ||
+                                            gestureZoom != 1f || gesturePan != Offset.Zero
+                                        if (hasMultiTouchChanges) {
+                                            val s = viewModel.uiState.value
+                                            Log.d(TAG, "gesture end rot=" + gestureRotation + " zoom=" + gestureZoom +
+                                                " pan=" + gesturePan + " centroid=" + gestureCentroid +
+                                                " mag=" + s.viewport.magnification + " angle=" + s.viewport.angle)
+                                            val newAngle = normalizeRadians(s.viewport.angle + gestureRotation.toDouble())
+                                            viewModel.updateAngle(newAngle)
+                                            // continuous-pinch-zoom: commit the unrounded
+                                            // fractional magnification — the visual preview
+                                            // factor already equals the committed factor within
+                                            // the headroom clamp, so no snap at gesture end.
+                                            // Commit uses the detector's cumulative factor only —
+                                            // the folded base scale is already committed in
+                                            // viewport.magnification (visual continuity: display
+                                            // = front buffer × gestureBaseScale × factor).
+                                            val detectorFactor = gestureZoom / gestureBaseScale
+                                            val newMag = gestureEndMagnification(s.viewport.magnification, detectorFactor)
+                                            val rotationChanged = gestureRotation != 0f
+                                            val zoomChanged = abs(newMag - s.viewport.magnification) > 1e-6
+                                            if (rotationChanged || zoomChanged) {
+                                                    val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+                                                    // Generalized focal-point commit (design D2, spec:
+                                                    // Rotation anchored at the finger midpoint): the
+                                                    // viewport center is adjusted so the geo point under
+                                                    // the finger midpoint stays under it after the
+                                                    // combined rotate+zoom. Reduces to zoomAtCursor for
+                                                    // a pure zoom (Δ=0); a pure rotation now also moves
+                                                    // the center.
+                                                    val (clat, clon) = ProjectionUtils.rotateZoomAtFocalPoint(
+                                                        gestureCentroid.x.toDouble(), gestureCentroid.y.toDouble(),
+                                                        s.viewport.magnification, newMag,
+                                                        gestureRotation.toDouble(),
+                                                        canvasSize.width.toDouble(), canvasSize.height.toDouble(),
+                                                        s.viewport.centerLat, s.viewport.centerLon,
+                                                        s.viewport.angle, dpi
+                                                    )
+                                                    Log.d(TAG, "gesture commit angle=" + newAngle +
+                                                        " zoomFactor=" + detectorFactor +
+                                                        " mag=" + s.viewport.magnification + "->" + newMag +
+                                                        " focal=" + gestureCentroid +
+                                                        " canvas=" + canvasSize.width + "x" + canvasSize.height +
+                                                        " -> " + clat + "," + clon)
+                                                    viewModel.updateCenter(clat, clon)
+                                                    if (zoomChanged) viewModel.updateMagnification(newMag)
+                                            }
+                                            // Full native render only when the angle or mag
+                                            // changed (correct label direction); a pure pan
+                                            // uses the fast tile path.
+                                            // Fold the composed gesture scale into the
+                                            // display layer: the screen keeps showing
+                                            // frontBuffer × gestureZoom (the exact gesture
+                                            // preview) while the debounced render at the
+                                            // fractional commit runs — the render-land handoff
+                                            // resets the display scale when the buffer matches
+                                            // (smooth-zoom D3/D4, no zoom-level snap between
+                                            // gesture end and render completion).
+                                            zoomAnchor = gestureCentroid
+                                            zoomAnimScale = gestureZoom
+                                            val needsFullRender = gestureRotation != 0f || gestureZoom != 1f
+                                            // Rotation display-layer hold (design D1): arm the
+                                            // derived rotation gap (committed − front-buffer
+                                            // angle) until the re-render at the committed angle
+                                            // lands — the frame loop disarms it when the front
+                                            // buffer matches (mirror of the zoomAnimScale
+                                            // handoff).
+                                            rotationHoldActive = gestureRotation != 0f
+                                            // Gesture-end midpoint: the hold and the
+                                            // render-land crossfade pivot around this
+                                            // point (the commit's focal point, D2).
+                                            crossfadePivot = gestureCentroid
+                                            gestureRotation = 0f
+                                            gestureZoom = 1f
+                                            gestureBaseScale = 1f
+                                            gestureSmoothFactor = 1f
+                                            gesturePan = Offset.Zero
+                                            gestureCentroid = Offset.Zero
+                                            gestureActive = false
+                                            viewModel.renderMap(forceFullRender = needsFullRender)
+                                        }
+                                        if (panGestureActive) {
+                                            // Single-finger pan end (spec: map-pan-zoom —
+                                            // Touch-based pan): commit the displayed center
+                                            // and persist it. A pan that stayed inside the
+                                            // overrun margin needs NO render — the frame in
+                                            // hand keeps serving the shifted window; only a
+                                            // saturated (or missing) frame is re-centered.
+                                            panGestureActive = false
+                                            val window = panWindowOffset()
+                                            commitPanCenter()
+                                            viewModel.saveViewport()
+                                            if (PAN_DIAGNOSTICS_ENABLED) {
+                                                // One line per gesture: whether the window was
+                                                // served, the applied offset and the
+                                                // magnification — the two stuck states of a
+                                                // dead pan (renderer dropped the request /
+                                                // display applied a zero offset while the
+                                                // displayed center moved) are distinguishable
+                                                // from logcat alone, with no coordinates and no
+                                                // per-event output (spec: map-pan-zoom —
+                                                // diagnosable without per-event output).
+                                                val state = window?.let {
+                                                    if (it.clamped) "clamped" else "served"
+                                                } ?: "unavailable"
+                                                Log.d(
+                                                    TAG,
+                                                    "pan end: window=" + state +
+                                                        " offsetPx=" + panOffsetX + "," + panOffsetY +
+                                                        " mag=" + viewModel.uiState.value.viewport.magnification
+                                                )
+                                            }
+                                            if (window == null || window.clamped) {
+                                                lastPanRenderRequestMs = System.currentTimeMillis()
+                                                viewModel.renderMap()
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                            // Scroll-wheel zoom (emulator/testing)
+                            .pointerInput(Unit) {
+                                awaitEachGesture {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull() ?: return@awaitEachGesture
+                                    if (change.type == PointerType.Mouse &&
+                                        event.type == PointerEventType.Scroll) {
+                                        val scrollDelta = change.scrollDelta
+                                        val deltaY = scrollDelta.y
+                                        if (deltaY != 0f) {
+                                            attributionInteractionTick++
+                                            val s = viewModel.uiState.value
+                                            val mag = s.viewport.magnification
+                                            val dir = if (deltaY < 0) 1 else -1
+                                            val newMag = (mag + dir).coerceIn(
+                                                MapCanvasViewModel.MIN_MAG, MapCanvasViewModel.MAX_MAG
+                                            )
+                                            if (newMag != mag) {
+                                                viewModel.disengageFollowMode()
+                                                val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+                                                val (clat, clon) = ProjectionUtils.zoomAtCursor(
+                                                    change.position.x.toDouble(), change.position.y.toDouble(),
+                                                    mag, newMag,
+                                                    size.width.toDouble(), size.height.toDouble(),
+                                                    s.viewport.centerLat, s.viewport.centerLon, dpi
+                                                )
+                                                viewModel.updateCenter(clat, clon)
+                                                viewModel.updateMagnification(newMag)
+                                                // smooth-zoom: animate the discrete zoom
+                                                // anchored at the cursor position.
+                                                animateDiscreteZoom(change.position)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            .onKeyEvent { event ->
+                                dispatchMapCanvasKey(
+                                    event = event,
+                                    onOpenSearch = { viewModel.openSearch() },
+                                    onZoomIn = {
+                                        attributionInteractionTick++
+                                        viewModel.disengageFollowMode()
+                                        viewModel.zoomIn()
+                                        viewModel.renderMap()
+                                        animateDiscreteZoomToCenter()
+                                    },
+                                    onZoomOut = {
+                                        attributionInteractionTick++
+                                        viewModel.disengageFollowMode()
+                                        viewModel.zoomOut()
+                                        viewModel.renderMap()
+                                        animateDiscreteZoomToCenter()
+                                    }
+                                )
+                            }
+                    ) {
+                        val canvasWidth = size.width
+                        val canvasHeight = size.height
+
+                        drawRect(color = surfaceColor)
+
+                        // Display offset of the frame currently on screen: the follow-mode
+                        // prediction drift in follow mode, the pan overrun window otherwise
+                        // (spec: canvas-overrun — Overrun window shift for pan). Exactly one
+                        // of the two is non-zero: a pan disengages follow mode, and the
+                        // follow display loop resets its offsets whenever follow is off.
+                        //
+                        // A route-planning session that holds the camera (spec:
+                        // `route-planning-session` — Session holds the camera while active) draws
+                        // with **no** offset: the session's fits (route overview, analysed segment)
+                        // place the content in the free area by the viewport alone, so a follow
+                        // drift offset of up to the overrun margin (240 px here) would shift the
+                        // drawn frame and the overlays away from what the fit computed — the
+                        // analysed leg looked centred in the model and sat off-centre/clipped at
+                        // the bottom or a side on the device (owner finding, 2026-10-03).
+                        val sessionOwnsViewport = viewModel.sessionHoldsCamera()
+                        val displayOffsetX = followDisplayOffset(
+                            followActive, sessionOwnsViewport, followOffsetX, panOffsetX
+                        )
+                        val displayOffsetY = followDisplayOffset(
+                            followActive, sessionOwnsViewport, followOffsetY, panOffsetY
+                        )
+
+                        state.renderedBitmap?.let { bitmap ->
+                            // Overrun frame: drawn at natural size, positioned by the
+                            // display offset within the overrun margin.
+                            drawFrontFrame(
+                                bitmap, canvasWidth.toFloat(), canvasHeight.toFloat(),
+                                displayOffsetX, displayOffsetY,
+                                zoomAnimScale, zoomAnchor, 1f
+                            )
+                        }
+
+                        // smooth-zoom render-completion crossfade (zoom-transition-
+                        // scaling delta): the scaled old frame fades out over the
+                        // swapped-in rendered frame — no single-frame content jump.
+                        crossfadeBitmap?.let { old ->
+                            if (crossfadeAlpha > 0f) {
+                                drawFrontFrame(
+                                    old, canvasWidth.toFloat(), canvasHeight.toFloat(),
+                                    displayOffsetX, displayOffsetY,
+                                    crossfadeScale, crossfadeAnchor, crossfadeAlpha,
+                                    crossfadeAngle, crossfadePivot
+                                )
+                            }
+                        }
+                    }
+
+                    // Analysed route step (spec: route-analysis): the polyline range the
+                    // selected step owns, drawn on a layer ABOVE the rendered frame and
+                    // BELOW the markers/pins, so the route's own paint stays visible around
+                    // the highlight and no pin is hidden. Same viewport source as the
+                    // markers (the displayed bitmap), and the same pan/zoom display
+                    // transform, so the highlight rides the map content it belongs to.
+                    if (state.renderedBitmap != null) {
+                        RouteSegmentHighlightOverlay(
+                            polylineLats = routeState.routeEntry?.latitudes,
+                            polylineLons = routeState.routeEntry?.longitudes,
+                            segment = routeState.analysedSegment,
+                            viewport = state.renderViewport,
+                            dpi = context.resources.displayMetrics.densityDpi.toDouble(),
+                            dark = state.isDarkPresentation,
+                            modifier = Modifier.graphicsLayer {
+                                val shift = markerDisplayShiftPx(followActive, panOffsetX, panOffsetY)
+                                translationX = shift.first
+                                translationY = shift.second
+                            },
+                            zoomScale = zoomAnimScale,
+                            zoomAnchor = zoomAnchor
+                        )
+                    }
+
+                    // GPS marker is rendered as a Compose overlay on top of the rendered map,
+                    // never baked into cached tiles or reusable buffers (spec: gps-location-marker).
+                    // Projection uses the front-buffer viewport so the marker stays anchored
+                    // to the bitmap actually on screen. No bitmap yet → no marker: there is no
+                    // displayed frame to project against.
+                    if (state.renderedBitmap != null) {
+                        // In follow mode the marker rides the displayed (eased predicted)
+                        // position so it glides with the blitted map; the viewport is
+                        // centered on the same position so the marker lands on the road.
+                        val markerLat = if (followActive) followDisplayLat else state.gpsMarkerLat
+                        val markerLon = if (followActive) followDisplayLon else state.gpsMarkerLon
+                        // The marker projects against the displayed bitmap's viewport. In
+                        // follow mode that viewport is the anchor center of the DISPLAYED
+                        // (eased predicted) position — the frame itself is anchor-centered
+                        // on its own position and then blitted by the drift (spec:
+                        // smooth-follow — Anchor-centered follow framing), so this is the one
+                        // projection that lands the marker on the map content it rides at the
+                        // anchor instead of ahead of it by the blit offset (spec:
+                        // gps-location-marker — Marker projects against displayed bitmap
+                        // viewport).
+                        val markerViewport = if (followActive) {
+                            val shown = state.renderViewport
+                            // Anchor fraction = the value the ViewModel resolved against
+                            // the VISIBLE map area (spec: smooth-follow — visible-area
+                            // scenarios); a second derivation here would break the
+                            // marker/content alignment on surfaces with overlays.
+                            val (aLat, aLon) = anchorCenter(
+                                markerLat, markerLon,
+                                state.resolvedAnchor.fx, state.resolvedAnchor.fy,
+                                shown?.mag ?: 0.0, canvasSize.width, canvasSize.height,
+                                context.resources.displayMetrics.densityDpi.toDouble(),
+                                shown?.angle ?: 0.0
+                            )
+                            MapRenderer.RenderViewport(
+                                aLat, aLon,
+                                shown?.mag ?: 0.0, shown?.angle ?: 0.0
+                            )
+                        } else {
+                            state.renderViewport
+                        }
+                        LocationMarkerOverlay(
+                            lat = markerLat,
+                            lon = markerLon,
+                            bearing = state.gpsMarkerBearing,
+                            accuracy = state.gpsMarkerAccuracy,
+                            viewport = markerViewport,
+                            dpi = context.resources.displayMetrics.densityDpi.toDouble(),
+                            modifier = Modifier.graphicsLayer {
+                                // The map content is drawn shifted by the pan display
+                                // offset, so the overlays must be shifted by the same
+                                // value — the marker can never drift off the content it
+                                // rides (spec: gps-location-marker — Marker projects
+                                // against displayed bitmap viewport). In follow mode the
+                                // anchor-center projection already carries the drift, so
+                                // translating there would apply it twice.
+                                val shift = markerDisplayShiftPx(followActive, panOffsetX, panOffsetY)
+                                translationX = shift.first
+                                translationY = shift.second
+                            },
+                            zoomScale = zoomAnimScale,
+                            zoomAnchor = zoomAnchor,
+                            dark = state.isDarkPresentation
+                        )
+                    }
+                }
+            }
+        }
+
+        // Chrome layer (spec: map-canvas-screen — Phone map overlay layer stack): every
+        // element that belongs to the map itself. A surface that opens over the map is
+        // composed above the whole of this band, never between the map and this band.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(MapLayer.CHROME.z)
+                .testTag(MapLayer.CHROME.tag)
+        ) {
+            // Orientation-aware overlay layout
+            // Orientation-aware overlay layout.
+            CompositionLocalProvider(
+                LocalOverlayWidthProbe provides { width -> overlayRightInset = width }
+            ) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val isLandscape = maxWidth > maxHeight
+
+                if (isLandscape) {
+                    // Landscape: action buttons top-left, state controls on right.
+                    // Hidden during navigation so the turn instruction can start at
+                    // the left edge without overlapping the right-side widgets.
+                    if (!navState.isNavigating) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(start = 8.dp, top = 8.dp)
+                                .statusBarsPadding()
+                                .verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            MapActionColumn(
+                                isLandscape = true,
+                                onToggleMenu = { menuExpanded = true },
+                                onOpenSearch = { viewModel.openSearch() },
+                                onToggleFavorites = { viewModel.toggleFavoritesSheet() }
+                            )
+                        }
+                    }
+
+                    // Right side: single bottom-anchored widget column (compass
+                    // directly above the speed widget, then location options, then
+                    // zoom at the bottom below all other controls) — same placement
+                    // as the routing view (spec: phone-align-controls-in-all-modes).
+                    // Hidden during navigation — the routing layout owns the right side.
+                    if (!navState.isNavigating) {
                         MapRightWidgetColumn(
-                            isLandscape = isLandscape,
+                            isLandscape = true,
                             bottomInset = with(LocalDensity.current) {
                                 state.overlayCoveredPx.toDp()
                             },
                             mapAngleRadians = state.viewport.angle,
                             gpsFixQuality = state.gpsFixQuality,
                             isDarkPresentation = state.isDarkPresentation,
-                            onCenterClick = {
-                                val loc = viewModel.getCurrentLocation()
-                                if (loc != null) {
-                                    viewModel.onToggleFollowMode(true)
-                                    viewModel.updateCenter(loc.lat, loc.lon)
-                                } else {
-                                    viewModel.showSnackbar("No GPS location available")
-                                }
-                            },
-                            onToggleOrientation = {
-                                viewModel.onSetNavOrientation(!state.navNorthUp)
-                            },
+                            onCenterClick = reCenterAction,
+                            onToggleOrientation = toggleOrientationAction,
                             speedInput = speedInput,
                             overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
-                            reserveSpeedSlot = true,
+                            driveToggle = {
+                                DriveModeButton(
+                                    mode = viewModel.mode,
+                                    onToggle = modeToggleAction
+                                )
+                            },
+                            canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
+                            canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
+                            currentMag = state.viewport.magnification,
+                            onZoomIn = {
+                                android.util.Log.d("MapCanvasScreen", "zoom+ pressed")
+                                attributionInteractionTick++
+                                viewModel.disengageFollowMode()
+                                viewModel.zoomIn()
+                                viewModel.renderMap()
+                                animateDiscreteZoomToCenter()
+                            },
+                            onZoomOut = {
+                                android.util.Log.d("MapCanvasScreen", "zoom- pressed")
+                                attributionInteractionTick++
+                                viewModel.disengageFollowMode()
+                                viewModel.zoomOut()
+                                viewModel.renderMap()
+                                animateDiscreteZoomToCenter()
+                            },
                             locationOptions = {
                                 LocationOptionsOverlay(
                                     mode = viewModel.mode,
@@ -2343,6 +1772,18 @@ fun MapCanvasScreen(
                                     onToggleLaneHints = { enabled ->
                                         viewModel.onToggleLaneHints(enabled)
                                     },
+                                    overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
+                                    onSetOverspeedWarningDelta = { delta ->
+                                        viewModel.onSetOverspeedWarningDelta(delta)
+                                    },
+                                    routingAnchor = state.routingAnchor,
+                                    onSetRoutingAnchor = { anchor ->
+                                        viewModel.setRoutingAnchor(anchor)
+                                    },
+                                    freeDrivingAnchor = state.freeDrivingAnchor,
+                                    onSetFreeDrivingAnchor = { anchor ->
+                                        viewModel.setFreeDrivingAnchor(anchor)
+                                    },
                                     renderMode = state.renderMode,
                                     onSetRenderMode = { mode ->
                                         viewModel.onSetRenderMode(mode)
@@ -2351,20 +1792,74 @@ fun MapCanvasScreen(
                                     styleSheet = state.styleSheet,
                                     onSetStyleSheet = { style ->
                                         viewModel.onStyleSheetSelected(style)
-                                    },
-                                    // Vehicle anchor rows in the ROUTING view too: the
-                                    // rows are rendered in every mode, so leaving the
-                                    // defaults here made the picker a no-op during
-                                    // navigation (spec: location-options-ui — anchor
-                                    // rows; change fix-anchor-picker-in-navigation).
-                                    routingAnchor = state.routingAnchor,
-                                    onSetRoutingAnchor = { anchor ->
-                                        viewModel.setRoutingAnchor(anchor)
-                                    },
-                                    freeDrivingAnchor = state.freeDrivingAnchor,
-                                    onSetFreeDrivingAnchor = { anchor ->
-                                        viewModel.setFreeDrivingAnchor(anchor)
                                     }
+                                )
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 8.dp, bottom = 44.dp)
+                                .navigationBarsPadding()
+                                .verticalScroll(rememberScrollState())
+                        )
+                    }
+
+                    // Bottom-left: re-center (action) when follow off, or auto-zoom
+                    // suspended, when GPS available — free-form only; during
+                    // navigation the button sits above the routing status bar
+                    // (see navigation overlay branch).
+                    if (!navState.isNavigating &&
+                        MapCanvasViewModel.shouldShowReCenterButton(
+                            viewModel.mode, state.driveSuspended, state.browseReCenterVisible
+                        ) && state.gpsFixQuality != GpsFixQuality.NONE) {
+                        MapReCenterButton(
+                            onReCenter = reCenterAction,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 8.dp, bottom = 12.dp)
+                                .navigationBarsPadding()
+                        )
+                    }
+                } else {
+                    // Portrait: action column top-left, view column top-right.
+                    // Action column hidden during navigation (see landscape).
+                    if (!navState.isNavigating) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .statusBarsPadding()
+                                .padding(start = 8.dp, top = 4.dp)
+                                .verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            MapActionColumn(
+                                isLandscape = false,
+                                onToggleMenu = { menuExpanded = true },
+                                onOpenSearch = { viewModel.openSearch() },
+                                onToggleFavorites = { viewModel.toggleFavoritesSheet() }
+                            )
+                        }
+                    }
+
+                    // Portrait: right-side widget column, bottom-anchored like the
+                    // routing view (spec: phone-align-controls-in-all-modes).
+                    // Hidden during navigation — the routing layout owns the right side.
+                    if (!navState.isNavigating) {
+                        MapRightWidgetColumn(
+                            isLandscape = false,
+                            bottomInset = with(LocalDensity.current) {
+                                state.overlayCoveredPx.toDp()
+                            },
+                            mapAngleRadians = state.viewport.angle,
+                            gpsFixQuality = state.gpsFixQuality,
+                            isDarkPresentation = state.isDarkPresentation,
+                            onCenterClick = reCenterAction,
+                            onToggleOrientation = toggleOrientationAction,
+                            speedInput = speedInput,
+                            overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
+                            driveToggle = {
+                                DriveModeButton(
+                                    mode = viewModel.mode,
+                                    onToggle = modeToggleAction
                                 )
                             },
                             canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
@@ -2373,6 +1868,7 @@ fun MapCanvasScreen(
                             onZoomIn = {
                                 android.util.Log.d("MapCanvasScreen", "zoom+ pressed")
                                 attributionInteractionTick++
+                                viewModel.disengageFollowMode()
                                 viewModel.zoomIn()
                                 viewModel.renderMap()
                                 animateDiscreteZoomToCenter()
@@ -2380,76 +1876,688 @@ fun MapCanvasScreen(
                             onZoomOut = {
                                 android.util.Log.d("MapCanvasScreen", "zoom- pressed")
                                 attributionInteractionTick++
+                                viewModel.disengageFollowMode()
                                 viewModel.zoomOut()
                                 viewModel.renderMap()
                                 animateDiscreteZoomToCenter()
-                            }
+                            },
+                            locationOptions = {
+                                LocationOptionsOverlay(
+                                    mode = viewModel.mode,
+                                    freeFormNorthUp = state.freeFormNorthUp,
+                                    onSetFreeFormOrientation = { northUp ->
+                                        viewModel.onSetFreeFormOrientation(northUp)
+                                    },
+                                    navNorthUp = state.navNorthUp,
+                                    onSetNavOrientation = { northUp ->
+                                        viewModel.onSetNavOrientation(northUp)
+                                    },
+                                    autoZoomEnabled = state.autoZoomEnabled,
+                                    onToggleAutoZoom = { enabled ->
+                                        viewModel.onToggleAutoZoom(enabled)
+                                    },
+                                    keepScreenOn = state.keepScreenOn,
+                                    onToggleKeepScreenOn = { enabled ->
+                                        viewModel.onToggleKeepScreenOn(enabled)
+                                    },
+                                    darkModePreference = state.darkModePreference,
+                                    onSetDarkModePreference = { pref ->
+                                        viewModel.onSetDarkModePreference(pref)
+                                    },
+                                    ambientLightSensitivity = state.ambientLightSensitivity,
+                                    onSetAmbientLightSensitivity = { level ->
+                                        viewModel.onSetAmbientLightSensitivity(level)
+                                    },
+                                    laneHintsEnabled = state.laneHintsEnabled,
+                                    onToggleLaneHints = { enabled ->
+                                        viewModel.onToggleLaneHints(enabled)
+                                    },
+                                    overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
+                                    onSetOverspeedWarningDelta = { delta ->
+                                        viewModel.onSetOverspeedWarningDelta(delta)
+                                    },
+                                    routingAnchor = state.routingAnchor,
+                                    onSetRoutingAnchor = { anchor ->
+                                        viewModel.setRoutingAnchor(anchor)
+                                    },
+                                    freeDrivingAnchor = state.freeDrivingAnchor,
+                                    onSetFreeDrivingAnchor = { anchor ->
+                                        viewModel.setFreeDrivingAnchor(anchor)
+                                    },
+                                    renderMode = state.renderMode,
+                                    onSetRenderMode = { mode ->
+                                        viewModel.onSetRenderMode(mode)
+                                    },
+                                    availableStyles = state.availableStyleSheets,
+                                    styleSheet = state.styleSheet,
+                                    onSetStyleSheet = { style ->
+                                        viewModel.onStyleSheetSelected(style)
+                                    }
+                                )
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 8.dp, bottom = 44.dp)
+                                .navigationBarsPadding()
+                                .verticalScroll(rememberScrollState())
                         )
                     }
-                    // Bottom-left, directly above the routing status bar: the
-                    // screen-bottom placement is covered by NavigationStateOverlay
-                    // during navigation, so anchor the re-center button here.
-                    if (MapCanvasViewModel.shouldShowReCenterButton(
+
+                    // Bottom-left: re-center (action) when follow off, or auto-zoom
+                    // suspended, when GPS available — free-form only; during
+                    // navigation the button sits above the routing status bar
+                    // (see navigation overlay branch).
+                    if (!navState.isNavigating &&
+                        MapCanvasViewModel.shouldShowReCenterButton(
                             viewModel.mode, state.driveSuspended, state.browseReCenterVisible
                         ) && state.gpsFixQuality != GpsFixQuality.NONE) {
                         MapReCenterButton(
                             onReCenter = reCenterAction,
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(start = 8.dp, bottom = 8.dp)
+                                .padding(start = 8.dp, bottom = 12.dp)
+                                .navigationBarsPadding()
                         )
                     }
                 }
-                // Bottom: routing status, full width — but not while the route-planning session's own
-                // card is shown. Both sit on the same bottom edge and the session card is composed
-                // earlier, so composing the status card over it left the review with no visible or
-                // tappable pixel at all (measured 2026-10-06, task 5.1 run (b): the card's layout
-                // bounds `top=2059 h=341` lay inside the status card's band, and not one pixel of the
-                // card's own content was drawn). One band, one owner (guidelines/Design.md §12): the
-                // session offers the route review with its own Stop, and the status card returns when
-                // the session's surface closes.
-                if (!state.showRoutePanel) {
-                    NavigationStateOverlay(
-                        remainingDistance = navState.remainingDistance,
-                        etaMillis = navState.etaMillis,
-                        currentRoadInfo = navState.currentRoadInfo,
-                        distanceProgressPercent = if (navState.isNavigating) {
-                            routeProgressPercent(navState.totalDistance, navState.remainingDistance)
-                        } else null,
-                        timeProgressPercent = if (navState.isNavigating) {
-                            elapsedTimePercent(
-                                start = navState.navigationStartTimeMillis,
-                                eta = navState.etaMillis,
-                                now = System.currentTimeMillis()
-                            )
-                        } else null,
-                        isRerouting = navState.isRerouting,
-                        isOffRoute = navState.isOffRoute,
-                        onStopNavigation = stopNavigation,
-                        onClick = { showNavDetails = true },
-                        modifier = Modifier.onSizeChanged { overlayBottomInset = it.height }
+
+            }
+
+            }
+
+            // Car-session advisory (spec: `car-session-presence`): shown while a car
+            // session is live, on the free centre-left strip that no action column,
+            // widget column, turn card or status card occupies. Informational only.
+            if (carSessionActive) {
+                CarSessionIndicator(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 8.dp)
+                )
+            }
+
+            // OSM attribution notice (bottom-right corner, per OSMF Attribution
+            // Guidelines). Auto-hides after 5s of no interaction; any map
+            // interaction re-shows it and restarts the timer.
+            OsmAttributionOverlay(
+                interactionTick = attributionInteractionTick,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 8.dp, bottom = 8.dp)
+                    .navigationBarsPadding()
+            )
+            // Free-driving street label (spec: current-road-info): bottom-center
+            // pill by default, top-center when the active follow anchor preset is
+            // in the bottom row (so the pill never covers the vehicle marker);
+            // shown only when no route is active (the navigation road-info row
+            // covers the navigating case).
+            if (!navState.isNavigating) {
+                val roadText = state.currentRoadInfo?.let {
+                    listOfNotNull(
+                        it.ref.takeIf { r -> r.isNotEmpty() },
+                        it.name.takeIf { n -> n.isNotEmpty() }
+                    ).joinToString(" ")
+                }
+                FreeDrivingStreetPill(
+                    roadText = roadText,
+                    anchor = state.activeFollowAnchor,
+                    onPillInset = { overlayPillInset = it }
+                )
+            }
+            if (navState.isNavigating) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                ) {
+                    // Top: full-width turn hints
+                    NextTurnOverlay(
+                        instruction = navState.nextInstruction,
+                        laneOneway = navState.laneOneway,
+                        laneCount = navState.laneCount,
+                        laneSuggested = navState.laneSuggested,
+                        laneSuggestedFrom = navState.laneSuggestedFrom,
+                        laneSuggestedTo = navState.laneSuggestedTo,
+                        laneTurns = navState.laneTurns,
+                        laneHintsEnabled = state.laneHintsEnabled,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onSizeChanged { overlayTopInset = it.height }
                     )
+                    // Middle: right-side widget column (compass directly above the
+                    // speed widget, zoom at the bottom below all other controls),
+                    // bottom-anchored above the routing status.
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .align(Alignment.TopEnd)
+                                .padding(end = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(modifier = Modifier.weight(1f))
+                            MapRightWidgetColumn(
+                                isLandscape = isLandscape,
+                                bottomInset = with(LocalDensity.current) {
+                                    state.overlayCoveredPx.toDp()
+                                },
+                                mapAngleRadians = state.viewport.angle,
+                                gpsFixQuality = state.gpsFixQuality,
+                                isDarkPresentation = state.isDarkPresentation,
+                                onCenterClick = {
+                                    val loc = viewModel.getCurrentLocation()
+                                    if (loc != null) {
+                                        viewModel.onToggleFollowMode(true)
+                                        viewModel.updateCenter(loc.lat, loc.lon)
+                                    } else {
+                                        viewModel.showSnackbar("No GPS location available")
+                                    }
+                                },
+                                onToggleOrientation = {
+                                    viewModel.onSetNavOrientation(!state.navNorthUp)
+                                },
+                                speedInput = speedInput,
+                                overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
+                                reserveSpeedSlot = true,
+                                locationOptions = {
+                                    LocationOptionsOverlay(
+                                        mode = viewModel.mode,
+                                        freeFormNorthUp = state.freeFormNorthUp,
+                                        onSetFreeFormOrientation = { northUp ->
+                                            viewModel.onSetFreeFormOrientation(northUp)
+                                        },
+                                        navNorthUp = state.navNorthUp,
+                                        onSetNavOrientation = { northUp ->
+                                            viewModel.onSetNavOrientation(northUp)
+                                        },
+                                        autoZoomEnabled = state.autoZoomEnabled,
+                                        onToggleAutoZoom = { enabled ->
+                                            viewModel.onToggleAutoZoom(enabled)
+                                        },
+                                        keepScreenOn = state.keepScreenOn,
+                                        onToggleKeepScreenOn = { enabled ->
+                                            viewModel.onToggleKeepScreenOn(enabled)
+                                        },
+                                        darkModePreference = state.darkModePreference,
+                                        onSetDarkModePreference = { pref ->
+                                            viewModel.onSetDarkModePreference(pref)
+                                        },
+                                        ambientLightSensitivity = state.ambientLightSensitivity,
+                                        onSetAmbientLightSensitivity = { level ->
+                                            viewModel.onSetAmbientLightSensitivity(level)
+                                        },
+                                        laneHintsEnabled = state.laneHintsEnabled,
+                                        onToggleLaneHints = { enabled ->
+                                            viewModel.onToggleLaneHints(enabled)
+                                        },
+                                        renderMode = state.renderMode,
+                                        onSetRenderMode = { mode ->
+                                            viewModel.onSetRenderMode(mode)
+                                        },
+                                        availableStyles = state.availableStyleSheets,
+                                        styleSheet = state.styleSheet,
+                                        onSetStyleSheet = { style ->
+                                            viewModel.onStyleSheetSelected(style)
+                                        },
+                                        // Vehicle anchor rows in the ROUTING view too: the
+                                        // rows are rendered in every mode, so leaving the
+                                        // defaults here made the picker a no-op during
+                                        // navigation (spec: location-options-ui — anchor
+                                        // rows; change fix-anchor-picker-in-navigation).
+                                        routingAnchor = state.routingAnchor,
+                                        onSetRoutingAnchor = { anchor ->
+                                            viewModel.setRoutingAnchor(anchor)
+                                        },
+                                        freeDrivingAnchor = state.freeDrivingAnchor,
+                                        onSetFreeDrivingAnchor = { anchor ->
+                                            viewModel.setFreeDrivingAnchor(anchor)
+                                        }
+                                    )
+                                },
+                                canZoomIn = state.viewport.magnification < MapCanvasViewModel.MAX_MAG,
+                                canZoomOut = state.viewport.magnification > MapCanvasViewModel.MIN_MAG,
+                                currentMag = state.viewport.magnification,
+                                onZoomIn = {
+                                    android.util.Log.d("MapCanvasScreen", "zoom+ pressed")
+                                    attributionInteractionTick++
+                                    viewModel.zoomIn()
+                                    viewModel.renderMap()
+                                    animateDiscreteZoomToCenter()
+                                },
+                                onZoomOut = {
+                                    android.util.Log.d("MapCanvasScreen", "zoom- pressed")
+                                    attributionInteractionTick++
+                                    viewModel.zoomOut()
+                                    viewModel.renderMap()
+                                    animateDiscreteZoomToCenter()
+                                }
+                            )
+                        }
+                        // Bottom-left, directly above the routing status bar: the
+                        // screen-bottom placement is covered by NavigationStateOverlay
+                        // during navigation, so anchor the re-center button here.
+                        if (MapCanvasViewModel.shouldShowReCenterButton(
+                                viewModel.mode, state.driveSuspended, state.browseReCenterVisible
+                            ) && state.gpsFixQuality != GpsFixQuality.NONE) {
+                            MapReCenterButton(
+                                onReCenter = reCenterAction,
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(start = 8.dp, bottom = 8.dp)
+                            )
+                        }
+                    }
+                    // Bottom: routing status, full width — but not while the route-planning session's own
+                    // card is shown. Both sit on the same bottom edge and the session card is composed in
+                    // the modal band, so the band would already keep the status card off it; composing the
+                    // status card over the review left it with no visible or tappable pixel at all before
+                    // the bands existed (measured 2026-10-06, task 5.1 run (b): the card's layout bounds
+                    // `top=2059 h=341` lay inside the status card's band, and not one pixel of the card's
+                    // own content was drawn). One band, one owner (guidelines/Design.md §12): the session
+                    // offers the route review with its own Stop, and the status card returns when the
+                    // session's surface closes. The guard stays as the band's owner statement.
+                    if (!state.showRoutePanel) {
+                        NavigationStateOverlay(
+                            remainingDistance = navState.remainingDistance,
+                            etaMillis = navState.etaMillis,
+                            currentRoadInfo = navState.currentRoadInfo,
+                            distanceProgressPercent = if (navState.isNavigating) {
+                                routeProgressPercent(navState.totalDistance, navState.remainingDistance)
+                            } else null,
+                            timeProgressPercent = if (navState.isNavigating) {
+                                elapsedTimePercent(
+                                    start = navState.navigationStartTimeMillis,
+                                    eta = navState.etaMillis,
+                                    now = System.currentTimeMillis()
+                                )
+                            } else null,
+                            isRerouting = navState.isRerouting,
+                            isOffRoute = navState.isOffRoute,
+                            onStopNavigation = stopNavigation,
+                            onClick = { showNavDetails = true },
+                            modifier = Modifier.onSizeChanged { overlayBottomInset = it.height }
+                        )
+                    }
                 }
             }
         }
 
-        // Expanded routing status details — full-screen route description
-        if (showNavDetails && navState.isNavigating) {
-            NavigationDetailsOverlay(
-                instructions = navState.instructions,
-                currentStepIndex = navState.currentStepIndex,
-                currentRoadInfo = navState.currentRoadInfo,
-                remainingDistance = navState.remainingDistance,
-                etaMillis = navState.etaMillis,
-                onStopNavigation = stopNavigation,
-                onDismiss = { showNavDetails = false }
+        // Menu layer (spec: map-canvas-screen — The map menu is composed above the map
+        // chrome): the menu scrim and panel cover the chrome, so no on-map element shows
+        // over the menu. Composed after the chrome band and before the modal band, which
+        // keeps the menu's back handler in its registration position relative to the
+        // surfaces (spec: map-canvas-screen — System back dismisses topmost overlay).
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(MapLayer.MENU.z)
+                .testTag(MapLayer.MENU.tag)
+        ) {
+            // Animated map menu overlay (scrim + panel), anchored below the toaster button
+            MapMenu(
+                expanded = menuExpanded,
+                onDismiss = { menuExpanded = false },
+                onDownloadMaps = { onNavigateToMapManager() },
+                onOpenFavorites = { viewModel.toggleFavoritesSheet() },
+                onOpenSearch = { viewModel.openSearch() },
+                onOpenAbout = { showAboutDialog = true },
+                toasterTopPadding = if (isLandscape) 8.dp else 4.dp
             )
+        }
+
+        // Inset block (spec: smooth-follow — visible-area scenarios): publishes what the
+        // map overlays cover so the follow anchor stays inside the part of the map the driver
+        // can actually see. It paints nothing, so it stays at screen level, not in a UI band.
+        // Navigation overlays: full-width turn hints at the top, the right-side
+        // widget column (compass directly above the speed widget, zoom at the
+        // bottom below all other controls) spanning from above the routing status
+        // up to the top, and the routing status covering the bottom of the window.
+        //
+        // Publishes what the map overlays cover so the follow anchor stays inside
+        // the part of the map the driver can actually see (spec: smooth-follow —
+        // "Bottom anchor stays visible above the routing status card"). Runs in every
+        // mode: browse/free driving measure no turn/status card, so their insets are
+        // the (usually zero) measured values of the widgets actually shown.
+        // Only a bottom pill must reserve space below the follow anchor: when
+        // the pill sits on top (bottom-row anchor), the bottom inset is zeroed.
+        // Keyed on [pillAtTop] too — the pill size does not change on an anchor
+        // toggle, so the inset decision must not depend on a size callback alone.
+        val pillAtTop = state.activeFollowAnchor.fy == 0.9
+        LaunchedEffect(navState.isNavigating, overlayTopInset, overlayBottomInset, overlayRightInset, overlayPillInset, pillAtTop) {
+            viewModel.setMapOverlayInsets(
+                top = if (navState.isNavigating) overlayTopInset else 0,
+                bottom = if (navState.isNavigating) overlayBottomInset else if (pillAtTop) 0 else overlayPillInset,
+                right = overlayRightInset
+            )
+        }
+
+        // Modal layer (spec: map-canvas-screen — No surface opens between the map and its
+        // chrome): every surface that opens over the map. Composed above the whole chrome
+        // band, so no compass, speed widget, zoom control, street-name pill, turn card or
+        // routing status card can paint over one of them. The order of the surfaces inside
+        // this band is unchanged, which keeps every back handler in its registration
+        // position (spec: System back dismisses topmost overlay).
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(MapLayer.MODAL.z)
+                .testTag(MapLayer.MODAL.tag)
+        ) {
+            // Unified search dialog (spec: search-dialog) — one surface for
+            // Places / POIs / Contacts search, opened by the search button, the
+            // menu Search entry, the `/` key, and shared-location queries.
+            if (state.searchOpen) {
+                val addressBookViewModel: com.naviveylin.ui.addressbook.AddressBookViewModel =
+                    hiltViewModel()
+                val addressBookState by addressBookViewModel.uiState.collectAsState()
+                val history by viewModel.searchHistory.collectAsState()
+                val favoriteGroups by viewModel.favoriteGroups.collectAsState()
+                // Load contacts when the Contacts mode is entered (spec:
+                // address-book-search — searchable list of persons with addresses).
+                LaunchedEffect(state.searchMode) {
+                    if (state.searchMode == SearchMode.CONTACTS) {
+                        addressBookViewModel.start()
+                    }
+                }
+                SearchDialog(
+                    searchMode = state.searchMode,
+                    onModeSelected = { viewModel.setSearchMode(it) },
+                    onDismiss = { viewModel.closeSearch() },
+                    query = state.searchQuery,
+                    results = state.searchResults,
+                    isSearching = state.isSearching,
+                    gpsAvailable = state.gpsFixQuality != GpsFixQuality.NONE,
+                    adminRegionName = state.searchAdminRegionName,
+                    distanceReference = state.searchReference,
+                    historyEntries = history,
+                    favoriteGroups = favoriteGroups,
+                    onQueryChanged = { viewModel.onSearchQueryChanged(it) },
+                    onResultSelected = { entry ->
+                        viewModel.onSearchResultSelected(entry)
+                        viewModel.closeSearch()
+                    },
+                    onSelectCurrentLocation = {
+                        viewModel.selectCurrentLocation()
+                        viewModel.closeSearch()
+                    },
+                    onSelectFavorite = { fav ->
+                        viewModel.onFavoriteSelected(fav)
+                        viewModel.closeSearch()
+                    },
+                    onHistoryEntrySelected = { viewModel.onHistoryEntrySelected(it) },
+                    poiCategory = state.poiCategory,
+                    poiRadiusMeters = state.poiRadiusMeters,
+                    poiResults = state.poiResults,
+                    isPoiSearching = state.isPoiSearching,
+                    poiError = state.poiSearchError,
+                    client = viewModel.osmscoutClient,
+                    poiCenterLat = state.poiSearchCenterLat,
+                    poiCenterLon = state.poiSearchCenterLon,
+                    currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
+                    selectedPoi = if (state.poiSelectedLat.isNaN()) null else state.poiSelectedLat to state.poiSelectedLon,
+                    onPoiCategorySelected = { viewModel.onPoiCategorySelected(it) },
+                    onPoiRadiusChanged = { viewModel.onPoiRadiusChanged(it) },
+                    onPoiSearch = { viewModel.performPoiSearch() },
+                    onPoiEntryClick = { viewModel.onPoiEntryClick(it) },
+                    addressBookAvailable = state.addressBookAvailable,
+                    contactsQuery = addressBookState.query,
+                    onContactsQueryChanged = { addressBookViewModel.onQueryChanged(it) },
+                    contactsContent = {
+                        AddressBookSearchContent(
+                            onResultSelected = { entry ->
+                                viewModel.onAddressBookResultSelected(entry)
+                            }
+                        )
+                    }
+                )
+            }
+
+            // Candidate picker (long-press with multiple objects at the point).
+            // Shown instead of the details sheet; selecting a row opens details.
+            if (state.showCandidatePicker && state.candidateDescriptions.isNotEmpty()) {
+                CandidatePickerSheet(
+                    candidates = state.candidateDescriptions,
+                    onCandidateSelected = { viewModel.onCandidateSelected(it) },
+                    onDismiss = { viewModel.dismissCandidatePicker() }
+                )
+            }
+
+            // Location details dialog (full screen, spec: enhanced-details-sheet).
+            // Its own BackHandler (registered later in composition than the
+            // navigation-reject handler above) dismisses it on system back.
+            if (state.showDetailsSheet && state.selectedLocation != null) {
+                LocationDetailsDialog(
+                    entry = state.selectedLocation!!,
+                    client = viewModel.osmscoutClient,
+                    // Mini map starts 4 levels below the main map so the object's
+                    // surroundings are visible (main map is typically zoomed in).
+                    initialMag = (state.viewport.magnification - 4).coerceAtLeast(MapCanvasViewModel.MIN_MAG)
+                        .coerceIn(MapCanvasViewModel.MIN_MAG, MapCanvasViewModel.MAX_MAG),
+                    objectDescription = state.objectDescription,
+                    isFavorite = viewModel.isSelectedLocationFavorite(),
+                    groupNames = viewModel.getFavoriteGroupNames(),
+                    currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
+                    onAddToFavorites = { groupName, favName, isNewGroup ->
+                        viewModel.addSelectedToFavorites(groupName, favName, isNewGroup)
+                    },
+                    onRemoveFromFavorites = { viewModel.removeSelectedFromFavorites() },
+                    onRouteToLocation = { viewModel.openRoutePanelWithStart(state.selectedLocation) },
+                    onShowOnMap = { viewModel.showOnMap() },
+                    onDismiss = { viewModel.dismissDetailsSheet() }
+                )
+            }
+
+            // About dialog
+            if (showAboutDialog) {
+                AboutDialog(onDismiss = { showAboutDialog = false })
+            }
+
+            // Favorites sheet (full-screen)
+            if (state.showFavoritesSheet) {
+                FavoritesSheet(
+                    mapCenterLat = state.viewport.centerLat,
+                    mapCenterLon = state.viewport.centerLon,
+                    onDismiss = { viewModel.toggleFavoritesSheet() },
+                    onFavoriteClick = { fav ->
+                        viewModel.onFavoriteSelected(fav)
+                    },
+                    onChipRouteTo = { fav ->
+                        val entry = LocationEntry().apply {
+                            label = fav.name
+                            lat = fav.lat
+                            lon = fav.lon
+                            matchQuality = "favorite"
+                        }
+                        viewModel.openRoutePanelWithStart(entry)
+                    }
+                )
+            }
+
+            // The session card lives in the map's own window since the 2026-10-03 revision
+            // (design D10), so the screen owns its dismissal: system back on a composed card is
+            // the session's cancel exit (`dismissRoutePanel` → `endSession`; spec:
+            // `route-planning-session` — the session's exits, `map-canvas-screen` — back dismisses
+            // the topmost overlay). The deleted Material3 sheet brought its own back handler;
+            // without this one, back would fall through to the activity. The card is the whole
+            // phone surface now (two anchors), so back is captured whenever it is shown.
+            BackHandler(enabled = state.showRoutePanel) { viewModel.dismissRoutePanel() }
+
+            // Route panel — the session's single surface (design D10)
+            if (state.showRoutePanel) {
+                RoutePanel(
+                    viewModel = routePanelViewModel,
+                    onOpenFavoritePicker = { field ->
+                        favoritePickerField = field
+                        showFavoritePicker = true
+                    },
+                    // The card reports the height it covers — the fit uses that number and
+                    // re-runs when it changes (spec: `route-map-overview`). It is also the band's
+                    // inset while it is shown: the status card is not composed then, so its last
+                    // height must not keep the right-side controls inset (screen-local state).
+                    onOverlayHeightChanged = { height ->
+                        viewModel.setOverlayCoveredPx(height)
+                        overlayBottomInset = height
+                    },
+                    // The card's exit: the session ends and the surface closes with it (spec:
+                    // `route-planning-session` — Ending the session removes its surface).
+                    onEndSession = { viewModel.dismissRoutePanel() },
+                    onStartNavigation = {
+                        val entry = routeState.routeEntry
+                        if (entry != null) {
+                            navigationViewModel.start(entry, routeState.vehicle)
+                            routePanelViewModel.setNavigating(true)
+                            // Close the routing window when navigation starts.
+                            viewModel.dismissRoutePanel()
+                        }
+                    },
+                    onStopNavigation = stopNavigation,
+                    // Restart from the stopped state: navigation resumes on the route the session still
+                    // holds, and the session hands it back without recalculating (spec:
+                    // `route-planning-session` — Restart resumes navigation).
+                    onRestartNavigation = {
+                        val entry = routeState.routeEntry
+                        if (entry != null) {
+                            navigationViewModel.start(entry, routeState.vehicle)
+                            routePanelViewModel.onNavigationRestarted()
+                        }
+                    },
+                    isNavigating = navState.isNavigating,
+                    centerLat = state.viewport.centerLat,
+                    centerLon = state.viewport.centerLon
+                )
+            }
+
+            // Favorite picker dialog (for route field selection)
+            if (showFavoritePicker) {
+                FavoritePickerDialog(
+                    favoriteRepository = routePanelViewModel.favoriteRepository,
+                    onFavoriteSelected = { entry ->
+                        when (favoritePickerField) {
+                            ActiveField.START -> {
+                                viewModel.setRouteStart(entry)
+                                routePanelViewModel.setActiveField(ActiveField.NONE)
+                            }
+                            ActiveField.DEST -> {
+                                viewModel.setRouteDest(entry)
+                                routePanelViewModel.setActiveField(ActiveField.NONE)
+                            }
+                            ActiveField.NONE -> {}
+                            null -> {}
+                        }
+                        favoritePickerField = null
+                        showFavoritePicker = false
+                    },
+                    onDismiss = {
+                        favoritePickerField = null
+                        showFavoritePicker = false
+                    }
+                )
+            }
+
+            // Permission rationale dialog
+            if (showPermissionRationale) {
+                AlertDialog(
+                    onDismissRequest = { showPermissionRationale = false },
+                    title = { Text(stringResource(R.string.location_permission_needed)) },
+                    text = {
+                        Text(
+                            stringResource(R.string.location_permission_rationale)
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showPermissionRationale = false
+                            try {
+                                context.startActivity(
+                                    Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    }
+                                )
+                            } catch (_: Exception) {}
+                        }) {
+                            Text(stringResource(R.string.open_settings))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showPermissionRationale = false }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                )
+            }
+            // Navigation gate (spec: `location-permissions` — Starting navigation
+            // requires precise location). The route request was refused; explain it and
+            // offer the upgrade instead of letting a ~2 km start point into the engine.
+            if (routeState.preciseLocationRequired) {
+                PreciseLocationRequiredDialog(
+                    onDismiss = { routePanelViewModel.dismissPreciseLocationRequirement() },
+                    onUpgrade = {
+                        routePanelViewModel.dismissPreciseLocationRequirement()
+                        onPreciseLocationAction()
+                    }
+                )
+            }
+            // Address-book (contacts) rationale dialog — shown once before the
+            // first READ_CONTACTS request (spec: address-book-permission).
+            if (showAddressBookRationale) {
+                com.naviveylin.ui.addressbook.AddressBookRationaleDialog(
+                    onDismiss = {
+                        showAddressBookRationale = false
+                        addressBookRationaleStore.markShown()
+                    },
+                    onContinue = {
+                        showAddressBookRationale = false
+                        addressBookRationaleStore.markShown()
+                        try {
+                            contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                        } catch (_: Exception) {}
+                    },
+                    onNotNow = {
+                        showAddressBookRationale = false
+                        addressBookRationaleStore.markShown()
+                    }
+                )
+            }
+
+
+
+            // Expanded routing status details — full-screen route description
+            if (showNavDetails && navState.isNavigating) {
+                NavigationDetailsOverlay(
+                    instructions = navState.instructions,
+                    currentStepIndex = navState.currentStepIndex,
+                    currentRoadInfo = navState.currentRoadInfo,
+                    remainingDistance = navState.remainingDistance,
+                    etaMillis = navState.etaMillis,
+                    onStopNavigation = stopNavigation,
+                    onDismiss = { showNavDetails = false }
+                )
+            }
         }
 
         // Reset the expanded view when navigation ends
         LaunchedEffect(navState.isNavigating) {
             if (!navState.isNavigating) showNavDetails = false
         }
+
+        // Snackbar layer (spec: map-canvas-screen — Snackbar messages are composed above
+        // the map and its in-window surfaces): the frontmost band of this screen. A dialog
+        // or bottom sheet the platform presents in its own window is still composed over it.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(MapLayer.SNACKBAR.z)
+                .testTag(MapLayer.SNACKBAR.tag)
+        ) {
+            // Snackbar at bottom
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
     }
 }

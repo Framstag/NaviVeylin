@@ -72,6 +72,25 @@ strong preference.
 - Compose overlays that project map content sit above the frame bitmap and below the
   markers — see `guidelines/MapRendering.md` (analysed-route-segment overlay).
 
+### Adding to the stack — the recipes
+
+Five shapes recur. Each names the files it touches; the rules above say what the code must look like, and
+the band a surface composes in belongs to `guidelines/UI.md` §11.
+
+- **Adding a dependency**: `app/build.gradle.kts` (or the module's own build file); a native one
+  additionally needs `CMakeLists.txt` and the vcpkg dependency list (`guidelines/Build.md` §12).
+- **Adding a screen**: define the route in `NavGraph.kt`, add the composable under `ui/`, add its ViewModel
+  under `ui/` or `data/`, and register a Hilt module when it needs one.
+- **Adding a full-screen sheet** (e.g. `FavoritesSheet`): the composable under `ui/<feature>/`, a
+  `@HiltViewModel` beside it, wired into `MapCanvasScreen` by a boolean state flag with conditional
+  composition. Compose it in the **modal band** (`MapLayer.MODAL`, `guidelines/UI.md` §11) — never as a
+  bare sibling after the chrome — so no on-map element paints over it.
+- **Adding a details sheet after a search**: a `ModalBottomSheet`, a `showDetailsSheet` flag on
+  `MapCanvasUiState`, and the selection wired to set the flag and move the centre; its favourite action
+  comes from `FavoriteRepository`.
+- **Adding a native function**: the `native` method in `OSMScoutClient.java` (the libosmscout submodule), the
+  JNI wrapper under `libosmscout-client-java/src/`, and a CMake target link when a new library is involved.
+
 ## 3. ViewModel & state
 
 - One ViewModel per concern; each owns its state as an immutable UiState data
@@ -173,6 +192,29 @@ strong preference.
   acquires the refcounted lease (`LocationService.acquire(LocationConsumers.NAV_ENGINE)`)
   on navigation start, releases it on stop/arrival, and never calls
   `startLocationUpdates()` itself; no surface feeds the engine its own fixes.
+- **MUST**: a route attempt releases a location lease only when **it** took it
+  (change `fix-reroute-lease-release`, spec `navigation-engine` — A failed route attempt
+  releases only the lease it took). `calculateAndStart` captures
+  `ownsLease = !state.isNavigating` before its native call, and both failure handlers
+  (`onError` and the synchronous `catch`) release only when it is true: a reroute that
+  fails while guidance is live reuses the lease the running navigation took
+  (`startInternal`), and releasing it stops device updates by the last-release rule
+  (`location-updates-lease`) until some other consumer takes a lease — the guidance then
+  runs on a frozen position with no error that would explain it. The cancel path
+  (`cancelAcquisition`) applies the same ownership rule, so a new attempt path that takes
+  its own lease MUST state its ownership rather than assume the failure path fits.
+- **MUST**: the attempt that raised a shared-state flag clears it on **every** terminal
+  outcome, through one writer. `isRerouting` is the worked case (change
+  `fix-reroute-failure-state-flags`, spec `rerouting-visual-feedback` — Rerouting state is
+  exposed in navigation state): `confirmReroute` sets it, `onRouteInstructions` clears it on
+  success, and the two failure handlers plus `cancelAcquisition` clear it through
+  `NavigationState.withoutRerouteAttemptFlag()`. A flag whose only clearer is the success
+  path stays set for the whole session when the attempt fails, and the car maps
+  `isRerouting` to a loading trip with no turn (`NavigationTemplateMapper`), so the driver
+  gets a spinner instead of guidance. Place the clear **after** the `endCalculation` token
+  guard: a superseded attempt failing late must not end the attempt a newer request runs.
+  The sibling state keeps its own rule — a failed or cancelled reroute does **not** clear
+  `isOffRoute`, because the vehicle is still off route.
 - Prefer coroutines over raw threads: conflated channels/StateFlow for
   queues, debounce by delay, cancellation via viewModelScope.
 - Debounce high-frequency inputs (search keystrokes, GPS-driven renders)
@@ -271,6 +313,30 @@ strong preference.
   compile error.
 - **Do not mock a Kotlin `object`'s `@JvmStatic` methods** (§40.24): mockk cannot intercept them. Stub the
   real `applicationContext` and the Java delegate the object calls (`dagger.hilt.EntryPoints`).
+
+### The bridge's two sides, the database-open asymmetry and the submodule discipline
+
+- **Patch the JNI bridge in one place, never both.** The C++ side lives in the libosmscout submodule at
+  `app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp`, built as
+  `libosmscout_client_java.so` (CMake target `osmscout_client_java`) and depending on `OSMScout::OSMScout`,
+  `OSMScout::Map`, `OSMScout::MapCairo` and `OSMScout::Client`. The Java side is the `:osmscout-client-java`
+  Gradle module, which compiles the submodule's `libosmscout-client-java/java` sources **except five
+  overridden files** — `OSMScoutClient`, `OSMScoutClientBuilder`, `BasemapManager`, `MapDownloadManager` and
+  `AvailableMapEntry`, which come from `osmscout-client-java/src/main/java`, plus the local-only
+  `InstalledMaps` — and produces `libosmscoutclientjava.jar`. Those overrides are Android ports:
+  `HttpURLConnection` map downloads (no `java.net.http` desugaring), the debug-suffix library loading
+  (`osmscout_client_java` → `osmscout_client_javad`), the `reloadBasemap` declaration, public constructors.
+- **The two database-open entries differ on purpose.** `openDatabase(path)` accepts only an existing
+  directory (a rejected path reports `false`, registers nothing and publishes no database-set change), while
+  `openDatabases(paths[])` registers what it is handed — a directory that disappears between the app's scan
+  and the call must not fail the batch — and only reports it, by directory name. Do not "unify" them
+  (spec `native-database-open`).
+- **The submodule is pinned and kept clean.** This repository pins its SHA in the gitlink and bumps it
+  (commit) after every submodule commit; uncommitted submodule changes are not built by CI or by a fresh
+  clone.
+- **One session owns the submodule and its pushes.** Run `git ls-remote origin <branch>` — the remote, not
+  the local remote-tracking ref — immediately before the push: two sessions created the same JNI commits and
+  force-rewrote `naviveylin-local`, reconciled afterwards by a merge (`TODO.md` §40.54).
 
 ## 6. Rendering pipeline
 
@@ -506,9 +572,8 @@ strong preference.
 - Extract pure, JVM-testable logic from rendering and template code; test
   state transitions rather than timing; use injectable seams for provider
   branches.
-- **MUST**: JNI-dependent unit tests use the host stub and the Robolectric
-  classloader rule — never mix sandbox configs on tests that load the native
-  stub.
+- **MUST**: JNI-dependent unit tests are designed around the host stub's classloader rule — one sandbox
+  config per JVM; `guidelines/Build.md` §6 states the rule itself and its failure mode.
 - Compose UI tests for gesture/panel logic: extract gesture handlers into
   reusable `Modifier` factories; keep presentation composables
   callback-driven.
@@ -583,6 +648,9 @@ strong preference.
   shares between two composers: the session card and the navigation status card sit on the same bottom
   edge, and composing both hid the review entirely (measured 2026-10-06) — the card that is shown owns
   the band and the other is not composed while it is (change `fix-route-session-stop-path`, design D8).
+  The phone's overlay *stacking* has one owner as well: the five bands of `guidelines/UI.md` §11 decide
+  which element may paint over which, so a band is not re-argued per composable and map chrome never
+  lands on top of an open surface (change `fix-phone-map-layer-stack`, spec `map-canvas-screen`).
 - **Single owner per process-global resource**: when the phone UI and a car
   session share one process (always the case under Android Auto projection), the
   process-wide resources have explicit owners instead of per-surface toggles

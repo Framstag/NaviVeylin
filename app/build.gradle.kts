@@ -309,6 +309,15 @@ android {
                 // Two forks is therefore the declared value: 28 % off the suite for a peak the host can hold.
                 it.maxParallelForks = 2
 
+                // A failing run reports each failure's own message (change
+                // `fix-aggregate-run-test-flakes`, spec `build-test-gate` — "A failing run reports each
+                // failure's message"). Gradle's default prints the class and a location only, and for a
+                // `runTest`-wrapped case that location is the `runTest(...)` call, which is misleading;
+                // the message is the diagnosis (guidelines/Build.md §6).
+                it.testLogging {
+                    exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                }
+
                 if (forceTests) {
                     it.outputs.upToDateWhen { false }
                 }

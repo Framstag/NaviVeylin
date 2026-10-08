@@ -8,7 +8,39 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
 
 ## Documentation Map
 
-Pick the right doc: `guidelines/Design.md` = architecture principles; `guidelines/UI.md` = UI rules (phone + Android Auto); `guidelines/MapRendering.md` = render-pipeline details and pitfalls; `guidelines/Build.md` = build/test/release skills; `guidelines/Regulatory.md` = legal/regulatory constraints on the app and its developer; this file = project facts, build commands, logging, stylesheet mechanics.
+This file states **facts** — what exists, where it lives, and how to run it. Rules live in the guideline
+that owns them, next to the measurement that proved them. **Read the section that owns the topic, never the
+whole document** (`openspec/config.yaml` states what a whole-document read costs). Sections are named here as
+`§<number> "<heading text>"`; the complete section list of any file is `grep -n '^## ' guidelines/<file>.md`,
+which also lists the sections this table does not route.
+
+| what you are changing | read |
+|---|---|
+| module layering, DI, ViewModel/state, threading, the native boundary | `Design.md` §1, §3, §4, §5 |
+| a new screen, sheet or composable structure, or a new dependency | `Design.md` §2 — its "Adding to the stack" subsection holds the recipes for a dependency, a screen, a full-screen sheet, a details sheet and a native function |
+| how the map is drawn — pipeline, bitmaps, throttling, epochs, front buffer, overrun | `MapRendering.md` §1, §2, §4, §5, §12, §13 |
+| follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapRendering.md` §3, §6, §7, §8, §9, §10, §11 |
+| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapRendering.md` §15, §15a, §16, §16a, §16b, §17 |
+| phone UI — modes, overlays, layering, controls, dark mode, text | `UI.md` §7, §7a, §8, §8a, §9, §10, §11 |
+| car screens — templates, wait notices, car search and details | `UI.md` §2, §3, §3b, §3c, §4, §6b |
+| parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6 |
+| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `Design.md` §8 "Android Auto & cross-variant", `MapRendering.md` §14 "Android Auto renderer", `UI.md` §3a; specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
+| a surface that must live while a phone and a car session are both active | `MapRendering.md` §18 "The phone canvas while a car session is active", `UI.md` §10a "Phone surface while a car session is active" |
+| search, favourites, settings, persistence | `Design.md` §9 "Data, persistence & search", `UI.md` §6a "Phone search surface" |
+| logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `Build.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
+| route data and the numbers derived from it | `MapRendering.md` §19 |
+| build, run, force a rerun, read a gate result | `Build.md` §2 — its "Agent iteration protocol" subsection is the iteration loop —, §3, §4 |
+| the native build — CMake sources, the ABI→triplet selection, vcpkg dependencies, stylesheet packaging | `Build.md` §12 |
+| writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `Build.md` §6 "Test constraints", §7 "Code coverage", `Design.md` §11 "Testing" |
+| release, versioning, SBOM, licence inventory | `Build.md` §5, §8, §9 |
+| on-device evidence — car crash triage, phone UI measurement | `Build.md` §10, §11 |
+| legal, regulatory, Play policy, privacy, diagnostics disclosure | `Regulatory.md` §2, §3, §4, §6, §9 |
+| engineering principles, and the checklist before an apply pass | `Design.md` §12, "Appendix A — Quick checklist (apply phase)" |
+| why an earlier decision was reversed | `Design.md` §13, "Appendix B — Provenance" |
+| a rendering regression to re-check, and the parameter table | `MapRendering.md` "Known Pitfalls", "Parameter Overview" |
+| what is open, and what to do next | `TODO.md` — skills `triage-todo` (rank), `cleanup-todo` (prune) |
+| whether `UI.md` is still accurate | `UI.md` "Keeping this document honest" |
+| how the guidelines themselves are organized | `openspec/specs/documentation-ownership/spec.md` |
 
 ## Tech Stack
 
@@ -42,22 +74,12 @@ licenses/             → Curated license data: native license map, license poli
 ### License compliance
 
 - The application's own code is licensed under **GPL-3.0-or-later** (`LICENSE`,
-  `SPDX-License-Identifier: GPL-3.0-or-later`). First-party components resolve to
-  that SPDX identifier; there is no `LicenseRef-NaviVeylin` anymore.
-- `licenses/native-license-map.json` and `licenses/license-policy.json` are the
-  curated inputs; `buildSrc` holds the pure logic (`./gradlew -p buildSrc test`,
-  52 tests, run as part of every build).
-- Task group `license`: `generateLicenseAssets<Variant>` (writes each variant's
-  `licenses/dependencies.json`, `licenses/texts/*`, and the `NOTICE` next to the
-  SBOM) and `checkLicensePolicy<Variant>` / `checkLicensePolicy` (the gate; not
-  part of `assemble`, run by CI and by `release` for both flavors).
-- The SBOM carries license identifiers plus `naviveylin:license:*` properties
-  (scope, evidence, ambiguity, notice, caveat). Scope is derived from the
-  packaged native libraries, never maintained by hand.
-- The app shows exactly the inventory the gate validated, read from
-  `licenses/dependencies.json` in its own APK assets.
-- Details, including why text sources are declared rather than inferred: see
-  `guidelines/Build.md` §9.
+  `SPDX-License-Identifier: GPL-3.0-or-later`), and first-party components resolve to that SPDX identifier;
+  `guidelines/Build.md` §9 owns the curated inputs (`licenses/native-license-map.json`,
+  `licenses/license-policy.json`), the `license` task group, the SBOM's `naviveylin:license:*` properties and
+  the policy gate that CI and `release` run for both flavors.
+- The app shows exactly the inventory the gate validated, read from `licenses/dependencies.json`, which the
+  build packages into its own assets — it keeps no list of its own.
 
 ### Code Style
 - Kotlin: official style (per `gradle.properties`)
@@ -75,146 +97,56 @@ licenses/             → Curated license data: native license map, license poli
   `mutate + refreshState + persist` per operation. Do not call the native favourite methods outside
   the store, and do not add a repository write that bypasses the lock — the persist rebuilds the whole
   store from the array it is handed, so an unserialised write can drop another write's favourite.
-- Native calls go through the JNI bridge: C++ side = `libosmscout-client-java` inside the libosmscout submodule; Java side = `:osmscout-client-java` module overrides (see Native Integration)
+- Native calls go through the JNI bridge: C++ side = `libosmscout-client-java` inside the libosmscout submodule; Java side = `:osmscout-client-java` module overrides (see `guidelines/Design.md` §5)
 
 ### Native Integration
-- C++ source: `app/src/main/cpp/`
-- JNI bridge — split across two places; **patch in one, never both**:
-  - C++ side: libosmscout submodule `app/src/main/cpp/libosmscout/` (branch `naviveylin-local`, pushed to Framstag/libosmscout)
-    - `libosmscout-client-java/src/OSMScoutClient.cpp` → `libosmscout_client_java.so` (CMake target `osmscout_client_java`)
-    - Depends on: `OSMScout::OSMScout`, `OSMScout::Map`, `OSMScout::MapCairo`, `OSMScout::Client`
-  - Java side: Gradle module `:osmscout-client-java` (repo root)
-    - Compiles submodule `libosmscout-client-java/java` sources EXCEPT 5 overridden files
-      (`OSMScoutClient`, `OSMScoutClientBuilder`, `BasemapManager`, `MapDownloadManager`, `AvailableMapEntry`)
-      which come from `osmscout-client-java/src/main/java` (plus local-only `InstalledMaps`)
-    - Overrides = Android ports: HttpURLConnection map downloads (no `java.net.http` desugaring), debug-suffix library loading (`osmscout_client_java` → `osmscout_client_javad` fallback), `reloadBasemap` decl, public constructors
-    - Produces `libosmscoutclientjava.jar`
-- The two database-open entries differ **on purpose**: `openDatabase(path)` accepts only an existing
-  directory (a rejected path reports `false`, registers nothing and publishes no database-set change),
-  while `openDatabases(paths[])` registers what it is handed — a directory that disappears between the
-  app's scan and the call must not fail the batch — and only reports it (by directory name). Do not
-  "unify" them (spec `native-database-open`).
-- Main repo pins the submodule SHA in the gitlink — bump it (commit) after any submodule commit
-- Keep the submodule clean: uncommitted submodule changes are not built by CI or fresh clones
-- **One session owns the submodule and its pushes.** Run `git ls-remote origin <branch>` (not the local
-  remote-tracking ref) immediately before the push — two sessions created the same JNI commits and
-  force-rewrote `naviveylin-local`, reconciled afterwards by a merge (§40.54).
-- CMake builds all native code
-- vcpkg for cross-compiling C++ dependencies (cairo, pango, harfbuzz, fribidi, protobuf, ...)
-  - Location: `$VCPKG_ROOT` env var or `./vcpkg`
-  - SDK/NDK/Java paths read from `local.properties` automatically
-- Cairo rendering backend (not OpenGL — better quality for map rendering)
+
+- C++ source lives in `app/src/main/cpp/`, and the JNI bridge is split across the libosmscout submodule and
+  the `:osmscout-client-java` module — **patch in one place, never both**.
+- Everything else about the boundary — both sides and the five overridden files, the two database-open
+  entries and why they differ, the submodule pin and clean-tree rules, the one-session-owns-the-push
+  discipline — is `guidelines/Design.md` §5. CMake and vcpkg are `guidelines/Build.md` §12, including where a
+  local vcpkg lives (`$VCPKG_ROOT` or `./vcpkg`) and that the SDK, NDK and Java paths come from
+  `local.properties`. The Cairo rendering backend is not OpenGL on purpose: better map-rendering quality.
 
 ### Logging
 
-#### Native code (libosmscout submodule)
-- Log through the platform-independent `osmscout::log` API (`#include <osmscout/log/Logger.h>`):
-  ```cpp
-  osmscout::log.Debug() << "...";   // also .Info(), .Warn(), .Error()
-  ```
-- **Never** use Android logging (`android/log.h`, `__android_log_print`, `ANDROID_LOG_*`) in libosmscout outside its frozen `Android/` directory — no conditional or unconditional Android dependencies allowed there. The CI gate `Check libosmscout Android-free outside Android/` (`.github/workflows/build.yml`) fails the build if those patterns reappear.
-- No local changes accepted in the libosmscout `Android/` dir; its `android/log.h` usage is upstream-owned and never compiled by the app build.
-- Debug output is gated — enable with `osmscout::log.Debug(true)` if needed.
-
-#### Native log integration (NaviVeylin side)
-- `osmscout::log` lines are surfaced to Logcat by the **app-owned** NDK bridge:
-  - C++: `app/src/main/cpp/native_log_bridge.cpp/.h` — `AndroidLogLogger` sink forwarding lines to `__android_log_print`
-  - Kotlin: `com.naviveylin.NativeLogBridge` (guarded `System.loadLibrary("naviveylin_log_bridge")`; safe no-op in host unit tests)
-  - Installed once in `NaviVeylinApp.onCreate` before any DB open/render/routing
-- Native lines appear in Logcat under tag **`NaviVeylin`**, levels mapped `DEBUG/INFO/WARN/ERROR` → `D/I/W/E`
-- Inspect with: `adb logcat -s NaviVeylin`
-- A stylesheet load reports the type names the installed database cannot resolve as **one line per parsed style file** (`Unknown types in '<file>': N (<sample>, N more)`) — never one line per rule occurrence; the complete per-name list needs `osmscout::log.Debug(true)` (native debug is off by default). One such line per style file **per load** is the expected output on an install whose map data predates the stylesheet (`TODO.md` §91/§99) — a startup loads the set more than once (measured 8 files × 13 loads = 104 lines, `TODO.md` §120), so compare per file; a per-occurrence warning wall means the condensation regressed (`guidelines/Build.md` §10)
-- The bridge links `osmscout_client_java` and is the **only** place in the native build allowed to use Android logging APIs — libosmscout must stay platform-independent
-
-#### Kotlin (app) logging
-- Use `android.util.Log` (`Log.d/i/w/e`) with per-class `TAG` constants; app diagnostics helpers live in `com.naviveylin.core.DiagnosticsLog` (buffered in memory and written by its own worker thread — logging never touches the file on the caller's thread, and readers use `readEntriesAsync`/`exportTextAsync` instead of reading it in a host callback or during composition)
-- Kotlin logs and forwarded native logs are separate streams; native lines always come from the bridge under the `NaviVeylin` tag
-- **Never log coordinates** (spec `auto-diagnostics` — Diagnostics carry no coordinates): a log or diagnostics line carries identity instead — object label/id, map database or map file name, magnification, screen pixel, accuracy, bearing. The build gate `checkNoCoordinatesInLogs` (buildSrc `CoordinateLogScanner`, in `preBuild`) fails on a new one — including a position copied into a local whose name the coordinate identifier list does not know (`val frameLat = viewportLat`, `val a = fix.lat`, or an alias of one), so renaming the value does not slip past it; the on-device file is pruned to `DiagnosticsLog.RETENTION_MS` (7 days) by the logging worker, and the exported text and both viewers lead with the `diagnostics_disclosure` statement. See `guidelines/Regulatory.md` §9 and `guidelines/UI.md` (gates).
+- Two facts to start with: native lines reach Logcat under the tag **`NaviVeylin`**, surfaced by the
+  app-owned NDK bridge (`native_log_bridge`, `NativeLogBridge`), and **no log or diagnostics line may carry a
+  coordinate** — identity instead (object, database or file name, magnification, pixel, accuracy, bearing),
+  enforced by the `checkNoCoordinatesInLogs` build gate.
+- The rules and the remaining facts — `osmscout::log` and the Android-free rule for libosmscout, the level
+  mapping, the condensed stylesheet-type report, per-class `TAG`, `DiagnosticsLog` with its retention, the
+  disclosure statement — are `guidelines/Logging.md`. Inspect with `adb logcat -s NaviVeylin`; the on-device
+  recipes are `guidelines/Build.md` §10.
 
 ### Stylesheets
 
-- The libosmscout submodule `stylesheets/` dir (`app/src/main/cpp/libosmscout/stylesheets/`) is the **single source of truth** for map style sheets
-- `app/build.gradle.kts` copies it into `build/generated/assets/stylesheets` at build time (`syncSubmoduleStylesheets` task, wired into `preBuild` and all `merge*Assets` tasks) — there is **no committed snapshot** in `app/src/main/assets/`
-- A submodule bump automatically changes the stylesheet content of the next APK; no manual sync step
-- `checkSubmoduleStylesheets` (preBuild) fails the build with an actionable message if the submodule is not initialized (fresh clone: `git submodule update --init --recursive`)
-- `AssetCopier` refreshes the on-device copy from the APK on every app start (per-file size+SHA-256 compare, deletes stale files), so existing installs get new styles after an update without clearing data
-- The raster POI **icon set** follows the same rule: `syncSubmoduleIcons` packages `libosmscout/data/icons/14x14/standard/` as `assets/icons/14x14/standard`, `checkSubmoduleIcons` fails when the submodule or its raster leaf is missing, and `AssetCopier.ensureIcons()` mirrors it on device next to the stylesheets. The stylesheets request icons **by name**, and the renderer resolves them as `<configured dir> + name + ".png"` — so only the PNG leaf ships (the Cairo painter cannot read the SVG set), the configured path comes from `IconAssets.clientDirectory(...)` (it must keep its trailing separator), and `PackagedPoiIconsTest` fails the build when a stylesheet asks for an icon with no inline `symbol:` that the packaged set does not carry. Details: `guidelines/MapRendering.md` §16a
+The submodule's `stylesheets/` directory is the single source of truth for the map styles, and the raster
+icon leaf ships with it; the build copies both into the APK and `AssetCopier` refreshes the on-device copy on
+every app start. The runtime contract — the basemap's dedicated stylesheet, the day/night pair, the icon name
+resolution and its trailing separator, the load-failure rule — is `guidelines/MapRendering.md` §15, §15a,
+§16, §16a and §16b; the sync and check tasks with their packaging gates are `guidelines/Build.md` §12.
 
 ### Android Auto / Android Automotive OS
 
-**Car surface + host safety (change `fix-aaos-host-crash`, spec `car-host-fault-isolation`).**
-The car-app host is a different process and its callbacks run on the app's main thread, so the
-car path has hard rules:
+What this file keeps, with the rest owned by the specs:
 
-- **One surface, one owner per session.** `SessionCarSurfaceHost` (`:auto`, bound in
-  `AutoServiceModule`, reached via `AutoEntryPoint.autoSurfaceHost()`) registers the single
-  `SurfaceCallback` for the whole session and forwards events to the one attached screen
-  (`CarSurfaceOwner` in `:core`). The session releases the surface exactly once — on the host's
-  `onSurfaceDestroyed` or at session end. **No screen and no renderer ever calls
-  `Surface.release()`**: the library starts the incoming screen before it stops the outgoing one,
-  so a release in `onStop` kills the buffer queue the incoming screen draws through. Screens
-  `attach` on start, `detach` on stop (identity-guarded) and keep drawing after a background
-  round trip. A host destroy is **scoped to the surface instance it names**: if the host reports
-  the destroy of a surface it already superseded (AAOS re-delivers after a transition), only that
-  instance is released and the live one is kept.
-- **Nothing native on the host thread.** Car providers (`AutoClientProvider`, `AutoSearchProvider`,
-  `AutoFavoritesProvider`) are injected as `Provider`/`Lazy`, and a host callback only retains
-  state (surface DPI goes to `RendererGate.surfaceDpi` and reaches the renderer as its projection
-  DPI — the client holds no DPI, every render request carries it, spec `render-projection-dpi`).
-  The renderer is constructed *and* published on the main thread with no suspension
-  between, so a cancelled init cannot leak a renderer.
-- **No fault escapes the host path.** Owner dispatch is guarded in `SessionCarSurfaceHost`, the
-  `NavigationManager` calls and the trip build in `NavigationManagerController`, the notification
-  build/post and the foreground start in `NavigationNotificationService`, and **every** car
-  screen's template build (`car*Template` wrappers in `SafeScreen.kt`) — the car-app library
-  rethrows an app exception on the main thread, which kills the process.
-- **Every host mutation goes through the guarded seam (change `fix-car-host-mutation-guards`).**
-  `CarHostGuards.kt` (`:auto`) holds `guardedHostCall(what, tag) { … }` — one `ScreenManager`
-  push/pop/popToRoot/remove, confinement plus an unthrottled `HOST` diagnostics entry per
-  rejection — and, for the click paths, `armScreenPush(carContext, scope, what) { screen }` and
-  `armShowOnMapSwap(...)`: a template row action **arms** the navigation and returns, and the
-  target screen is built and pushed afterwards (never on the host's answering path, where the
-  library rethrows). Never call `screenManager.push/pop/popToRoot/remove` bare in a click listener
-  or a screen function. Every scope that owns host-mutating work carries the shared fault handler —
-  `carSessionScope()` for the session, `carScreenScope(name)` for each screen (and the renderer),
-  `CarScreenObservations` for the screens' shared-state observations — and each screen cancels its
-  own scope in `onDestroy` (a screen popped away kills its armed push instead of pushing onto the
-  new stack). **Screen-stack bookkeeping follows the mutation that succeeded**
-  (`SessionScreenStack`, `FreeDrivingRestoreGate.recordPush(landed)`): a refused push records
-  nothing so the next emission retries, the transient error notice is removed by identity
-  (`ScreenManager.remove`, never `popToRoot()` — that took the navigation view down with it), and a
-  dismissal deferred while the session was stopped is re-applied by the next started sync.
-- **`invalidate()` is main-thread only** (`postTemplateRefresh`) and **backgrounded host traffic is
-  bounded**: `SessionHostGate` defers screen push/pop, template refresh and host navigation-state
-  changes while the session is stopped (re-applied once on start), and the ongoing notification is
-  re-posted only when its host-visible content changed.
-- **Screen observations are scoped to the started period (change `fix-car-screen-observer-leak`,
-  spec `auto/screen-observation`).** A car screen is stopped and started on every background round
-  trip and on every push/pop of another screen, so per-collector job bookkeeping leaks: the screen
-  ran a second copy of its GPS/favorites/dark/basemap observations after every start, each copy
-  requesting renders, native lookups and template refreshes. `CarScreenObservations` (`:auto`) owns
-  the lifetime — one child scope per started period, `start()` idempotent, `stop()` cancels every
-  observation, at most one instance per key per period — and each screen's `<Screen>Observations`
-  class owns what is observed. `onStart` calls `screenObservations.start()`, `onStop`/`onDestroy`
-  call `observations.stop()`; **add a new observation to the screen's `*Observations` class, never as
-  a bare `scope.launch`**, and keep work that must survive a stop (the free-driving stale-speed
-  ticker) on the screen's own scope.
-- **Diagnosis:** every host-facing send is recorded under the diagnostics tag `HOST` (surface
-  adopt/release, notification posts, trip updates, navigation state), a rejection of a host
-  mutation under `HOST` too (`… rejected: …`), a confined fault under `SESSION`/`SCREEN`
-  (`… 'key' failed`), the client build under
-  `WARMUP` **with the thread**, and a tile-data retention release under `MEMORY`
-  (`retention released: trigger=… avail=…MB threshold=…MB 512 -> 256 tiles/db`, from
-  `MemoryPressureResponder`) — see `guidelines/Build.md` §10 for the on-device recipe and for the
-  high-water-mark rule that governs any footprint measurement.
-
-- Real implementation: `:auto` library module (screens, `NavigationSession`); `NaviVeylinCarAppService` lives in the app's base package (`com.naviveylin`) as the car-app spec requires
-- Manifest conventions (`app/src/main/AndroidManifest.xml`):
-  - Android Auto (projection): `com.google.android.gms.car.application` metadata → `automotive_app_desc.xml` (`<uses name="template" />`); `NaviVeylinCarAppService` with `androidx.car.app.CarAppService` action + `androidx.car.app.category.NAVIGATION`; template/access-surface permissions (`NAVIGATION_TEMPLATES`, `MAP_TEMPLATES`, `ACCESS_SURFACE`)
-  - **Two distribution flavors, same applicationId** (`flavorDimensions "dist"`): `mobile` (phones/tablets + Android Auto projection) and `automotive` (standalone AAOS head units). Google Play **rejects** any single AAB declaring both `android.hardware.type.automotive` and `com.google.android.gms.car.application` — the old "dual-mode single APK" (`required="false"`) idea cannot be uploaded to Play, it only works sideloaded. The AAOS manifest lives in `app/src/automotive/AndroidManifest.xml` (flavor overlay): `android.hardware.type.automotive` `required="true"` + `com.android.automotive` metadata, and `tools:node="remove"` for the projection metadata
-  - The `androidx.car.app:app-automotive` AAR merges its own `android.hardware.type.automotive` (`required="false"`) into every build — main manifest strips it with `tools:node="remove"`; the automotive overlay re-declares it `required="true"`
-  - Distribution: mobile AAB → normal tracks; automotive AAB → dedicated "Android Automotive OS" track in Play Console (required for templated apps). Same package name = single store listing
-  - Spec: `openspec/specs/auto/spec.md`, `openspec/specs/android-automotive-os/spec.md`
+- **Two distribution flavors, one applicationId.** The AAOS manifest is a flavor overlay
+  (`app/src/automotive/AndroidManifest.xml`) that re-declares `android.hardware.type.automotive` with
+  `required="true"`, while the main manifest strips the feature the `app-automotive` AAR merges in and removes
+  the projection metadata from the automotive build. The Play constraint that forces this, the
+  `tools:node="remove"` mechanics, the permission set and the two-track upload are spec
+  `android-automotive-os`; the projection declarations are spec `auto`
+  (`openspec/specs/auto/spec.md`, `openspec/specs/android-automotive-os/spec.md`).
+- **The car path's rules and invariants** — one surface owner per session, nothing native on the host
+  thread, no fault escaping the host path, the guarded seam for host mutations, observations scoped to a
+  screen's started period, and the `HOST`/`SESSION`/`SCREEN`/`WARMUP`/`MEMORY` diagnosis tags — are
+  `guidelines/Design.md` §8, `guidelines/UI.md` §3, §3a, §3b and §3c, `guidelines/Build.md` §10, and the specs
+  `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer` and `auto-smooth-follow`. The
+  two that kill a process if broken, in one line each: **no screen or renderer ever calls
+  `Surface.release()`** (the session releases it once), and **every host-facing send and template build is
+  guarded** (the library rethrows on the main thread).
 
 ## Backlog maintenance
 
@@ -231,74 +163,33 @@ quote `§N`). Three skills own the file:
 
 ## Agent iteration loop (measure first)
 
-The rules below are the ones that cost the most rounds (`ki_processing_failures.log`): rules 1–3 come
-from a change whose single visual symptom ("the segment is still not completely visible") needed
-nine review rounds — the rounds themselves, not the bug, were the cost; rule 4 comes from the
-shared-worktree collisions (2026-10-04/05, `ki_processing_failures.log`).
+The loop is `guidelines/Build.md` §2, "Agent iteration protocol": **look then measure before changing code;
+iterate with focused suites and gate once; batch independent questions; one builder per working tree.** It
+exists because those rules cost the most rounds in `ki_processing_failures.log` — rules 1-3 from a change
+whose single visual symptom needed many review rounds, rule 4 from the shared-worktree collisions
+(`TODO.md` §40 item 4) — so a session follows it rather than re-deriving it.
 
-1. **Look, then measure — before changing code.** A symptom that lives in pixels cannot be settled
-   by reading projection/fit/layout code. Read the screenshot with `view_image` (a local PNG path —
-   the model sees the pixels; `ctx_read` returns only a placeholder for an image, so `view_image` is
-   the sanctioned exception to the `ctx_*`-only rule) and say what is on screen. That look is
-   *triage*: then add a coordinate-free diagnostics line (numbers — indices, pixels, band, verdict —
-   never a position, spec `auto-diagnostics`), run it on the device, read the numbers, and *measure*
-   the screenshot with `tools/measure-highlight.py` (`pixel-check` skill, detector self-tested with
-   ImageMagick, no device needed). Only the script's numbers and exit code are evidence — a vision
-   description never replaces the verdict. If the model says `inside=true` and the pixels say
-   `CLIPPED`, the disagreement between model and rendering is the bug.
-2. **Iterate with focused suites, gate once.**
-   Start with the change's own declared cases:
-   `bash tools/declared-cases.sh <change> --diff <this change's file list> --rules declared,touched
-   --command` prints the classes its artifacts name plus the test files its diff touches (seconds of
-   class time, ~30-45 s of wall time) and the `--tests` line to run them; the full union of the three
-   rules is the second stage, because `mention` reaches about half the suite on a change to the app's
-   central types (`guidelines/Build.md` §4). Never treat that pass as gate evidence.
-   Otherwise: `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.route.*"` (~3 min) per edit;
-   the full both-flavor gate with `--rerun-tasks` once before the commit (measured 8m25s on 2026-10-04,
-   `guidelines/Build.md` §2). Running the full gate per finding is what made a round cost an hour. Three
-   measured levers keep iteration cheap (change `speed-up-build-test-gate`, spec `build-test-gate`):
-   `-PforceTests --no-build-cache` forces the *test* tasks instead of the whole graph (compiles stay
-   `UP-TO-DATE`); `-PnoCoverage` drops the Kover agent for a run that does not feed a report (10-12 % of a
-   suite's wall time, identical class set and tallies); and a change that touches only sources both `:app`
-   flavors share needs **one** flavor's suite — the two suites execute the same 215 classes (~3 minutes per
-   gate), so the second flavor's suite is owed at completion, not per iteration. A JVM-only change needs no
-   native build at all, and a one-ABI build (`-Pandroid.injected.build.abi=arm64-v8a`) is available when it
-   does; the configuration cache is off project-wide for a measured reason (`guidelines/Build.md` §7) — do
-   not add `--configuration-cache` to an iteration recipe.
-3. **Batch independent questions.** `ask_user` takes 2–4 independent questions in one call; serial
-   one-question rounds each cost a full owner round trip. Ask for the *observation* (where, when)
-   before proposing a cause.
-4. **One builder per working tree.** Two Gradle invocations in one tree do not merely slow each other
-down — they corrupt each other's outputs: a foreign build killed `:app:mergeAutomotiveDebugResources`
-("Failed to store cache entry … Could not get file mode") while a foreign edit mid-run inflated a measured
-8m25s gate to 22m37s by forcing the Kotlin compiles to re-execute. Long verification runs are isolated
-with `git worktree add`, or the other session is confirmed done first; a wait loop that never saw a quiet
-window must abort, not fall through into the run. Detection must be right — `pgrep -f 'GradleWrapper[M]ain'`
-can never match (the wrapper runs as `java … -jar gradle-wrapper.jar`), so use
-`pgrep -af 'gradle-wrapper\.ja[r]'` (`guidelines/Build.md` §2). The same check covers an **edit** in flight,
-not just a build: before an apply/verify pass run `find <module> -newermt '-10 minutes'` alongside the wrapper
-probe — if a peer is mid-edit, quote the evidence already collected and stop (§40.46). A foreign edit at
-minute 11 of a gate makes every build in that window unverifiable.
+What this file owns about the loop is only where its parts live:
 
-Skills for this: `device-check` (one reusable device loop: dump/tap discipline, logcat tags,
-geometry as evidence, and the tap-consumer diagnosis that names which node got the tap),
-`pixel-check` (look with `view_image`, then measure; the script's verdict is the evidence),
-`provision-phone-emulator`
-(AVD with maps), `compose-geometry` (assert a control's size/tap target/disjointness/visibility as Dp
-bounds in a Compose case — never `assertExists()`),
-plus `build-app`/`run-tests`/`revert-check` for the gate.
+- measuring a pixel symptom: `guidelines/Build.md` §10 and §11, the `pixel-check` skill, and the
+  coordinate-free diagnostics line (spec `auto-diagnostics`);
+- the iteration levers and the measurements behind them: `guidelines/Build.md` §4, §6, §7;
+- the device loop, an emulator with maps, and a Compose geometry assertion: the `device-check`,
+  `provision-phone-emulator` and `compose-geometry` skills;
+- the build, test and falsification skills: `build-app`, `run-tests`, `revert-check`, and the wrapper and
+  peer-edit probes in `guidelines/Build.md` §2.
 
 `.pi/` is gitignored — the skills are local tooling. A rule that must survive a fresh clone or
 another agent therefore belongs in **this file**, in `openspec/config.yaml` or in
 `guidelines/*.md`; the *tools* a skill uses belong in the repo (`tools/measure-highlight.py`,
 with a self-test that runs without a device).
 
-Screenshot reading needs one harness tool that is not in the repo: **`view_image`**
-(`pi install npm:@luan.sh/pi-view-image`, verified working 2026-10-06 on pi 1.0.4, session model
-`ollama-cloud/deepseek-v4.1-flash`). It reads a local PNG/JPEG/GIF/WebP and returns it as an image
-content block, so the model sees the pixels. It builds a small Rust binary on first use — a Rust
-toolchain is required, or set `PI_VIEW_IMAGE_BIN` to a prebuilt executable. Without the package the
-workflow degrades to the script alone, which answers *where* but not *what*.
+Screenshot reading needs one harness tool the repository cannot ship: **`view_image`**, a Pi package that
+returns an image content block so a text-only model sees the pixels — and whose install, `PI_VIEW_IMAGE_BIN`
+override and **pinning/filtering constraint** (it bundles a `@luan.sh/pi-libtui` host that rewrites the TUI,
+so it stays version-pinned with a one-entry `"extensions": ["./src/extension.ts"]` filter) are
+`guidelines/Build.md` §1, "Agent harness and the TUI package". Without the package the workflow degrades to
+the measurement script alone, which answers *where* but not *what*.
 
 ## OpenSpec Workflow
 
@@ -323,141 +214,29 @@ Two artifact rules are CI-gated (`.github/workflows/build.yml`, step "Check Open
 
 ## Build & Test
 
-Build, test, and release workflows are wrapped by four skills — `build-app`,
-`run-tests`, `revert-check`, `release-build` — documented in `guidelines/Build.md`.
-`revert-check` is the falsification step a change owes for every new invariant
-(mutate it once, the named case must fail, restore, forced green — `TODO.md` §113).
-They wrap the Gradle calls below, stream build output to the console, and evaluate results by
-return code and build output. Use them for any build/test/release work.
-
-```bash
-# Build debug APK (all 3 ABIs: arm64-v8a, armeabi-v7a, x86_64; both flavors)
-./gradlew :app:assembleDebug
-
-# Build only the phone/Android Auto flavor (faster iteration)
-./gradlew :app:assembleMobileDebug
-
-# Build only the AAOS flavor (head-unit build, requires android.hardware.type.automotive)
-./gradlew :app:assembleAutomotiveDebug
-
-# Build for specific ABI only (faster iteration)
-./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a
-
-# Build both Play-ready release AABs (mobile + automotive; bumps version state, all 3 ABIs)
-./gradlew release
-
-# Run unit tests
-./gradlew test
-
-# Run Android instrumented tests
-./gradlew connectedAndroidTest
-
-# Code coverage (report-only; no gate) — Kover merge for app/auto/core + JaCoCo for the Java JNI module
-./gradlew :koverHtmlReport :koverXmlReport :osmscout-client-java:jacocoTestReport
-```
+Everything executable — the command table (build, assemble, force a rerun, coverage), the gate's result
+evaluation and evidence rules, the test constraints, the on-device recipes, and the native build with vcpkg
+— is `guidelines/Build.md` (§2 the iteration protocol, §3 commands, §4 results, §6 test constraints, §10 and
+§11 on-device measurement, §12 native build and vcpkg). The skills `build-app`, `run-tests`, `revert-check`
+and `release-build` wrap those calls; `revert-check` is the falsification step a change owes for every new
+invariant (mutate it once, the named case must fail, restore, forced green — `TODO.md` §113). The recipes for
+adding a dependency, a screen, a sheet or a native function are `guidelines/Design.md` §2.
 
 ### Release versioning
-- `./gradlew release` generates `versionName` as `<yyyy>-<MM>-<dd>-<N>` (4-digit year, zero-padded month/day, running number `N` without leading zeros), increments `versionCode` by one, then runs `:app:bundleMobileRelease` and `:app:bundleAutomotiveRelease`
-- Version state lives in `app/release-version.properties` (**gitignored**, machine-local — keep it on the release machine; never release from a fresh clone/checkout): `lastDate`, `runningNumber`, `versionCode`, `lastVersionName`. Same day → `N+1`; new day → `N` resets to 1; `versionCode` starts at 20 (migrated from the old hardcoded 19). `release` **fails fast** (GradleException) if the file is missing or its `lastDate` is in the future — a silently restarted counter would emit a duplicate `versionName` or a `versionCode` at/below the published one, which Play rejects). **Play's dedup key is `versionCode`, not `versionName`** — a date-`-N` name can repeat across days, but every uploaded AAB needs a versionCode strictly greater than every published one (including AABs built from stale/mismatched state — see the 2026-09-12-3 / versionCode-60 duplicate). If the state lags reality (e.g. a release was published elsewhere), set `runningNumber`/`versionCode`/`lastVersionName` to the **last published** values before running `release`
-- The bump happens at configuration time, gated on the `release` task being requested — every other build (`assembleDebug`, etc.) uses the fixed fallback `1.0.0`/`19` and never touches the state file
-- Direct `bundleRelease` without `release` reuses the last persisted values; only `release` bumps (single release machine assumed)
-- `buildConfig = true`; app code reads the version via `BuildConfig.VERSION_NAME` (used by `AboutDialog`)
-- Signing unchanged: `app/release.keystore` present → signed AAB; absent → warning logged, unsigned AAB still produced
-- Outputs: `app/build/outputs/bundle/mobileRelease/app-mobile-release.aab` (phone + Android Auto) and `app/build/outputs/bundle/automotiveRelease/app-automotive-release.aab` (AAOS) — upload each to its own Play track
-- Unit tests cover the dialog display (see `AboutDialogComposeTest.kt`); the date-format logic is inline in the Gradle DSL and verified behaviorally (run `release` twice on the same day)
 
-### JNI stub for unit tests
-`app/src/test/jniLibs/` and `auto/src/test/jniLibs/` each contain a tiny host-compiled stub (ELF, no symbols,
-named both `libosmscout_client_java.so` and `libosmscout_client_javad.so`)
-so `OSMScoutClient`'s static `System.loadLibrary` succeeds in JVM/Robolectric
-unit tests — the Android .so cannot load on the host JVM. The `_javad` variant
-is the fallback name the loader tries second; without it full-suite runs can
-fail flakily. The stubs are **committed** (`.gitignore` re-includes them via
-`!app/src/test/jniLibs/*.so` and `!auto/src/test/jniLibs/*.so`) so CI runners
-and fresh checkouts have them; AGP puts each module's own `src/test/jniLibs`
-on the unit-test `java.library.path`. Keep the stubs only in the test source
-set; never use them in the app. Tests override native methods via fakes (see
-`app/src/test/java/com/framstag/libosmscout/client/FakeOSMScoutClient.kt`).
+Two things are worth knowing before `./gradlew release` (`guidelines/Build.md` §5 owns the rest):
 
-**Classloader rule**: any test class that instantiates `FakeOSMScoutClient`
-(or otherwise triggers `OSMScoutClient`'s static `System.loadLibrary`) MUST run
-under `@RunWith(RobolectricTestRunner::class)` with the DEFAULT sandbox config —
-do NOT set `@Config(sdk=...)` or `@GraphicsMode(...)` on such classes, since a
-different sandbox gets its own classloader and the stub .so can only load in
-one. A plain-JUnit class loading the stub first binds it to the system
-classloader and breaks every Robolectric sandbox class in the same JVM with
-"already loaded in another classloader" — full-suite runs then fail
-systematically. Compose UI tests for the route panel live in
-`app/src/test/java/com/naviveylin/ui/route/RoutePanelComposeTest.kt`.
-
-## Native Build Details
-
-### Architecture
-- Core libosmscout libs (OSMScout, OSMScoutMap, OSMScoutClient) built from source via `add_subdirectory(libosmscout)`
-- Cairo backend (OSMScoutMapCairo) links against vcpkg-installed cairo + deps
-- CMakeLists.txt uses ABI-aware vcpkg triplet selection:
-  - `arm64-v8a` → `arm64-android`
-  - `armeabi-v7a` → `arm-neon-android`
-  - `x86_64` → `x64-android`
-- vcpkg overlay triplet at `vcpkg-overlays/triplets/arm64-android.cmake` uses API 26
-- iconv stub for Android API < 28
-
-### vcpkg Dependencies
-- Cairo, pixman, fontconfig, freetype, libpng, expat, brotli, bzip2
-- Pango, harfbuzz, fribidi, glib, libffi, pcre2, gettext, libiconv, libuuid, pthreads
-- zlib, libxml2, protobuf, abseil
-- All installed for 3 Android triplets: arm64-android, arm-neon-android, x64-android
-
-### Rebuilding vcpkg packages
-```bash
-# Force rebuild of specific package
-rm -rf vcpkg/buildtrees/<package>
-./setup-vcpkg.sh
-```
-
-### vcpkg usage pattern (CI)
-
-- **Classic mode, no manifest**: the dependency list is hardcoded in `setup-vcpkg.sh` (`DEPS=(...)`), not in a `vcpkg.json` manifest. Overlay ports (`vcpkg-overlays/`, e.g. marisa-trie) and overlay triplets are passed via `--overlay-ports`/`--overlay-triplets`.
-- **CI pins vcpkg**: `.github/workflows/build.yml` sets `VCPKG_COMMIT` to a specific commit and fetches it shallowly. Pinning keeps the vcpkg tool ABI-stable — an unpinned daily clone would make restored packages incompatible.
-- **CI binary cache = NuGet feed**: `VCPKG_BINARY_SOURCES=clear;nuget,https://nuget.pkg.github.com/Framstag/index.json,readwrite` stores each compiled package as a NuGet entry versioned by its vcpkg ABI hash (shared org feed, same as libosmscout). Per-package ABI versions mean a runner-image/toolchain update causes exactly one rebuild (new ABI versions pushed), then the cache self-heals; dependency-list/overlay edits rebuild only the affected ports. The job runs with `permissions: packages: write`; mono-complete is installed for `nuget.exe`. Fork PRs restore but skip pushes (read-only token) — never worse than uncached.
-- **Old files-provider design removed**: the previous `files,<dir>` + `actions/cache` setup restored stale archives on an exact key hit, vcpkg rejected them all, and the post-step never re-saved — a full dependency rebuild on nearly every run. Do not reintroduce it.
-- **Adding/removing a dependency**: edit the `DEPS` list in `setup-vcpkg.sh`. For an unregistered port, add an overlay port under `vcpkg-overlays/`; only that port's packages rebuild.
-- **Refreshing ports in CI**: bump `VCPKG_COMMIT` in the workflow — ports rebuild once and re-cache in the feed.
-- **`setup-vcpkg.sh` tolerates install failures** (`|| echo`), so CI runs an explicit `.pc` verification gate after it (see `Verify vcpkg packages` step).
-
-## Common Patterns
-
-### Adding a new dependency
-1. Add to `app/build.gradle.kts` (or module's build file)
-2. If native, add to `CMakeLists.txt` and vcpkg
-
-### Adding a new screen
-1. Define route in `NavGraph.kt`
-2. Create composable in `ui/` package
-3. Add ViewModel in `ui/` or `data/` package
-4. Register Hilt module if needed
-
-### Adding a full-screen sheet (e.g., FavoritesSheet)
-1. Create composable in `ui/<feature>/` package
-2. Create `@HiltViewModel` in same package
-3. Wire into `MapCanvasScreen` via boolean state flag + conditional composition
-4. No nav graph changes needed — sheet lives on top of map
-
-### Adding a details sheet after search
-1. Create composable using `ModalBottomSheet`
-2. Add `showDetailsSheet` flag to `MapCanvasUiState`
-3. Wire `onResultSelected` to set flag + update center
-4. Sheet provides fav action via `FavoriteRepository`
-
-### Adding a native function
-1. Add Java `native` method in `OSMScoutClient.java` (in libosmscout-client-java submodule)
-2. Implement JNI wrapper in C++ (`libosmscout-client-java/src/`)
-3. Add CMake target link if new library
+- the version state lives in `app/release-version.properties`, which is **gitignored and machine-local** —
+  never release from a fresh clone, and never from a state whose `lastDate` is in the future (`Build.md` §5
+  states what `release` refuses and why Play rejects a repeated `versionCode`);
+- it produces one AAB per Play track: `:app:bundleMobileRelease` (phone + Android Auto) and
+  `:app:bundleAutomotiveRelease` (AAOS).
 
 ## Constraints
 
-- Google Play Services optional: used when available (e.g., FusedLocationProviderClient, car MapController); never a hard dependency — provider abstraction + runtime availability check + fallback (e.g., LocationManager) keep it replaceable by design
-- No Google Maps (map rendering stays libosmscout native)
-- No Google account required
-- App distributed outside Play Store (sideload: use the automotive AAB on head units, the mobile AAB on phones); `./gradlew release` also produces the two AABs suitable for Google Play upload (mobile track + dedicated AAOS track)
-- All map rendering from libosmscout native code
+- The three platform constraints this project keeps — Google Play Services is optional and never a hard
+  dependency (a provider abstraction, a runtime availability check and a fallback keep it replaceable), no
+  Google Maps SDK (rendering is libosmscout), no Google account required — are stated as the architecture
+  rule in `guidelines/Design.md` §2. Nothing is added here.
+- Distribution: the app is sideloadable (automotive AAB on head units, mobile AAB on phones), and
+  `./gradlew release` also produces the two AABs for Google Play, one per track — `guidelines/Build.md` §5.

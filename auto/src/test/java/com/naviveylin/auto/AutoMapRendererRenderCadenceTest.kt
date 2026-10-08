@@ -125,6 +125,11 @@ class AutoMapRendererRenderCadenceTest {
         // must always clear it (and record how long the render took).
         val renderer = renderers.newRenderer()
         val surface = mockk<Surface>(relaxed = true)
+        // The assert below is about the frame this case drives: with the render loop live
+        // the collector wakes after RENDER_DEBOUNCE_MS and writes the same flag
+        // (spec `unit-test-suite-runtime` — A case's subject has no background work the
+        // case does not drive).
+        renderer.asyncLoopsEnabled = false
         renderer.onSurfaceCreated(surface, 1920, 720)
 
         renderer.renderFrame()

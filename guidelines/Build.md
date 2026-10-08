@@ -5,7 +5,11 @@ names the skills that wrap the Gradle workflows and explains when and how to use
 them.
 
 **Maintenance rule** — when a change supersedes a build convention here, update
-this document in the same change.
+this document in the same change. This document is the one owner of the gate's rules, of every gate
+measurement, of the agent iteration protocol (§2) and of the native build facts (§12). The other sites that mention them — `AGENTS.md`, the `openspec/config.yaml` tasks/archive
+guidance, and the build/test skills — carry a section reference instead of a restated rule or measurement;
+a restatement found there is repaired by pointing it at the owning section here, and a measured number is
+quoted only where its run is dated (§2, §6).
 
 ---
 
@@ -13,7 +17,9 @@ this document in the same change.
 
 Five skills wrap the existing Gradle calls and the verification discipline around them. They are named
 and discoverable by LLM agents (loaded on demand from `.pi/skills/`); use them whenever build, test,
-verification, or release work is requested or required by the OpenSpec apply/archive guidance.
+verification, or release work is requested or required by the OpenSpec apply/archive guidance. The loop
+they serve — when to look, when to measure, when to run which suite — is §2's *Agent iteration protocol*;
+the skills are its hands, not its rule.
 
 | Skill | Purpose | When to use |
 |---|---|---|
@@ -42,6 +48,26 @@ Rust binary on first use (a Rust toolchain is required; set `PI_VIEW_IMAGE_BIN` 
 executable). Look first, then measure with `tools/measure-highlight.py` — the look is triage, the
 script's numbers and exit code are the evidence (`pixel-check` skill, §10 below).
 
+### Agent harness and the TUI package (the rest of the harness prerequisite)
+
+The screenshot tool above is one of two harness facts that are about the agent, not about this repository's
+code:
+
+- **`view_image` is the only route for a text-only model.** Pi's built-in `read` returns image content only
+  for a vision-capable model, while `view_image` falls back to a description of the picture, so a session
+  without vision still gets a look before it measures.
+- **The `@luan.sh/pi-view-image` package must stay pinned and filtered.** Its manifest declares **two**
+  extensions — its own `./src/extension.ts` plus a bundled `@luan.sh/pi-libtui` host — and the host is what
+  rewrites the TUI: user-message bubbles (default on), the streaming status row (the waiting animation),
+  markdown tables, and the mouse/cursor/editor prototype leases. `~/.pi/agent/settings.json` therefore keeps
+  one entry for it, version-pinned, with `"extensions": ["./src/extension.ts"]`. If an update ever stops
+  matching that filter the drift returns **silently** — the symptom reads as a Pi UI change, not a package
+  regression — so after any `pi update --extensions` check that `pi list` shows one entry and that
+  `/libtui:colors` (registered *only* by that host extension) is absent. Keep the package itself: the day no
+  session runs a text-only model, `read` replaces the tool and the package can go. Residual after the
+  filter: the tool's own row still renders through libtui library components (`ToolActivity`,
+  `toolCallPreview`), never through the host.
+
 ## 2. Common behavior
 
 All four skills follow the same contract:
@@ -61,6 +87,34 @@ All four skills follow the same contract:
   - Exit code `0` **and** output contains `BUILD SUCCESSFUL` → success
   - Exit code non-zero **or** output contains `BUILD FAILED` → failure
 - **Report a clear verdict** with actionable error excerpts on failure.
+
+### Agent iteration protocol
+
+A session that changes this repository works in the loop below. The measurements behind it, the levers it
+uses and the evidence it must quote live where the loop points: §4 (declared-cases pass, the forcing flag,
+the per-module freshness check), §6 (test constraints and the gate's forcing rule), §10 and §11 (the
+on-device and phone-measurement recipes), and the skills §1 names. This subsection states the rules; it
+quotes no measurement.
+
+1. **Look, then measure, before changing code.** A symptom that lives in pixels cannot be settled by
+   reading projection, fit or layout code. Look at the artifact, add a coordinate-free diagnostics line
+   (numbers — indices, pixels, band, verdict — never a position, spec `auto-diagnostics`), read it on the
+   device, and measure the artifact with the `pixel-check` skill's script. Only measured numbers and that
+   script's exit code are evidence; a description of what a picture shows is triage, not a verdict. When
+   the description and the measurement disagree, the disagreement is the bug.
+2. **Iterate with focused suites, gate once.** Run the change's own declared cases first
+   (`tools/declared-cases.sh`, §4), then the module suite of the flavor the change can affect, and the
+   full both-flavor gate once before the commit. A declared-cases pass is never gate evidence.
+3. **Batch independent questions.** Ask the owner two to four independent questions in one call rather
+   than one question per round, and ask for the observation (where, when) before proposing a cause.
+4. **One builder per working tree.** Two Gradle invocations in one tree corrupt each other's outputs: a
+   foreign build has killed a merge task's cache write, and a foreign edit mid-run has forced the Kotlin
+   compiles to re-execute, inflating the measured gate several times over. Isolate a long verification run
+   in its own worktree, or confirm the other session is done first; a wait loop that never saw a quiet
+   window must abort rather than fall through into the run. Detection must be able to match the real
+   process (`pgrep -af 'gradle-wrapper\.ja[r]'`, the liveness guard below), and the same probe covers an
+   **edit** in flight: run `find <module> -newermt '-10 minutes'` beside the wrapper probe, and if a peer
+   is mid-edit, quote the evidence already collected and stop.
 
 ### Liveness guard and shell recipes
 
@@ -372,10 +426,11 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   is worse than none: run it on the pre-fix tree (stash, or the parent commit) before claiming it guards the
   fix. If it cannot fail there — e.g. Robolectric defers the child collector that runs inline on the device —
   delete it and record that a device run is the only evidence.
-- **A revert-check's green half needs `--rerun-tasks`, and the case must assert the *positive* fact.** After
+- **A revert-check's green half needs a forced run, and the case must assert the *positive* fact.** Force the test tasks with
+  `-PforceTests --no-build-cache` (the bullet above — a revert-check is not a completion gate). After
   restoring a mutated file the source hash matches an earlier state, so the test task answers `UP-TO-DATE` or
-  restores from cache while the XML keeps the **previous** run's `timestamp`: force it and compare that
-  `timestamp` with the wall clock before quoting counts (`TODO.md` §17). And the assertion must be what the
+  restores from cache while the XML keeps the **previous** run's `timestamp`: compare that `timestamp` with
+  the wall clock before quoting counts (`TODO.md` §17). And the assertion must be what the
   guard produces — the buffer *was* acquired exactly once — not the absence of growth: an "allocation count
   did not increase" case passes under the reverted path when its baseline is already zero.
 - **A flaky victim needs a rate per configuration (N ≥ 3) before a bisect means anything.** One run per
@@ -613,6 +668,26 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   in it (§142) — both pre-existing. An earlier reading of this conversion looked like a regression until
   the *unconverted* class was measured in the same window (18.337 s against the converted 9.42 s), which
   is why this bullet quotes same-session baselines and not the older, quieter machine's numbers.
+- **A red run is diagnosed from the failure's message, not from its location** (change
+  `fix-aggregate-run-test-flakes`, spec `build-test-gate` — "A failing run reports each failure's message").
+  `:app`, `:auto` and `:core` each set `exceptionFormat = "full"` on their unit-test tasks, so the run's own
+  console output names each failing case and carries the message the failure was raised with — no `--info`,
+  no downloaded result XML. Gradle's short location is the frame of the **test method**: a `runTest`-wrapped
+  case therefore always reports its `runTest(...)` line (measured: an exception thrown at
+  `MapScreenTest.kt:218` reported as `at MapScreenTest.kt:198`), which actively misleads. Read the message as
+  the diagnosis and the location as the method, never as the throwing statement. A load-dependent case —
+  green in a single-module run, red in the loaded, parallel, multi-module one — is diagnosed from that failing
+  run's own record; the invocation that reproduces it is the aggregate one, which CI's unit-test step runs as
+  `./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests --no-build-cache`
+  (`./gradlew test -PforceTests --no-build-cache` locally, §3), never a batched or single-class rerun.
+- **A thread-identity assertion compares the `Thread`, not its name** (change
+  `fix-aggregate-run-test-flakes`, spec `unit-test-suite-runtime` — A case's own bookkeeping is read only on
+  the test thread). Under Robolectric a coroutine's thread name carries a `@coroutine#N` suffix, so
+  `Thread.currentThread().name` inside a coroutine never equals the bare main-thread name captured outside one
+  (measured 2026-10-08: `SDK 34 Main Thread @coroutine#6` against `SDK 34 Main Thread`). A comparison against
+  the name is therefore always false, which made `MapScreenTest`'s "the client is never resolved on the host
+  thread" assertion vacuous — capture `Thread.currentThread()` once and compare identity (`assertSame` /
+  `assertNotSame`). A name is fine in a failure message, not as the guard.
 - **One invocation per suite.** `:auto` and `:app` each complete in a single
   Gradle invocation at the declared budget; splitting a suite into class batches is
   a diagnostic fallback (e.g. to isolate one class), never the procedure, and a
@@ -639,6 +714,17 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   is killed at 60 s (`30 s` default × the repo recipe's `--timeout-multiplier 2`) and passes in **120 s**
   when run alone with `--timeout-multiplier 60`. Quote that timeout in any "suite is green" verdict, and
   re-run a lone timeout with a bigger multiplier before calling it a failure.
+- **The JNI stub for unit tests.** `app/src/test/jniLibs/` and `auto/src/test/jniLibs/` each hold a tiny
+  host-compiled stub (ELF, no symbols, named both `libosmscout_client_java.so` and
+  `libosmscout_client_javad.so`) so `OSMScoutClient`'s static `System.loadLibrary` succeeds in
+  JVM/Robolectric unit tests — the Android `.so` cannot load on the host JVM. The `_javad` variant is the
+  fallback name the loader tries second; without it full-suite runs can fail flakily. The stubs are
+  **committed** (`.gitignore` re-includes them via `!app/src/test/jniLibs/*.so` and
+  `!auto/src/test/jniLibs/*.so`) so CI runners and fresh checkouts have them; AGP puts each module's own
+  `src/test/jniLibs` on the unit-test `java.library.path`. Keep them in the test source set only, and never
+  use them in the app. Tests override the native methods through fakes (see
+  `app/src/test/java/com/framstag/libosmscout/client/FakeOSMScoutClient.kt`). The classloader rule this stub
+  imposes is the first bullet of this section.
 
 ## 7. Code coverage
 
@@ -1296,6 +1382,7 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   `routerOverPoly` / `descriptionOverPoly` / `descriptionOverRouter`. `routeLengthsAreMeasuredForALongAndAShortRoute`
   fails when the published length leaves `publishedOverPoly 0.95…1.05` or differs from the description's total
   by more than 2 % (the app's own divergence threshold), so a regression is a red case. The map data must carry
+  the candidate chain (NRW); on the AAOS AVD the basemap can be a format version behind (`TODO.md` §99).
 - **Install the freshly built **test** APK, not the one under `outputs/`** (measured 2026-10-07): with
   `-Pandroid.injected.build.abi=…` AGP writes the variant APKs to `app/build/intermediates/apk/<flavor>/<type>/`,
   while `app/build/outputs/apk/androidTest/…/app-…-androidTest.apk` can still be the previous build's file.
@@ -1304,7 +1391,6 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   install (`unzip -p <apk> classes*.dex | grep -ac '<a string only the new case has>'`, and note the class may
   live in `classes3.dex`) and always read the case's own log lines, never just the runner's
   `OK (N tests)` — the same trap as the stale asset APK in `TODO.md` §17, one layer down.
-  the candidate chain (NRW); on the AAOS AVD the basemap can be a format version behind (`TODO.md` §99).
 
 ## 11. Measuring a phone UI finding (do this before changing code)
 
@@ -1329,7 +1415,7 @@ found both real causes only after measuring.
    needs its precondition: `band` must end above the canvas bottom (a measured card top) and the match
    must be a stroke — hundreds or thousands of `px` over many rows, not tens of pixels spread wide,
    which is a colour coincidence (measured 2026-10-06 on a frame with no route: `px=18`,
-   `band=[0,2400]`, `verdict: inside`; the look caught it — `TODO.md` §143). The look establishes the
+   `band=[0,2400]`, `verdict: inside`; the look caught it — `TODO.md` §147). The look establishes the
    precondition, the script measures given it.
 3. **Compare the two verdicts.** Model `inside=true` + measured `CLIPPED` is the bug (it found the
    follow-drift offset, which the fit model knows nothing about). Model `inside=true` + measured
@@ -1341,3 +1427,54 @@ found both real causes only after measuring.
    gate once before the commit; drive the device with one reusable script (`.pi/skills/device-check`),
    and delete it before committing. `.pi/` is gitignored — rules that must survive belong here, in
    `AGENTS.md` or in `openspec/config.yaml`.
+
+## 12. Native build and vcpkg
+
+Moved here verbatim from `AGENTS.md`, which keeps only the fact that it is a Cairo/vcpkg build. The
+native facts have no rule status — they are what the build is made of — so they live next to the rest of
+the build documentation (`§2` for the iteration loop, `§6` for the test suites, `§8`/`§9` for the SBOM and
+the licence inventory).
+
+### Architecture
+- Core libosmscout libs (OSMScout, OSMScoutMap, OSMScoutClient) built from source via `add_subdirectory(libosmscout)`
+- Cairo backend (OSMScoutMapCairo) links against vcpkg-installed cairo + deps
+- CMakeLists.txt uses ABI-aware vcpkg triplet selection:
+  - `arm64-v8a` → `arm64-android`
+  - `armeabi-v7a` → `arm-neon-android`
+  - `x86_64` → `x64-android`
+- vcpkg overlay triplet at `vcpkg-overlays/triplets/arm64-android.cmake` uses API 26
+- iconv stub for Android API < 28
+
+### vcpkg Dependencies
+- Cairo, pixman, fontconfig, freetype, libpng, expat, brotli, bzip2
+- Pango, harfbuzz, fribidi, glib, libffi, pcre2, gettext, libiconv, libuuid, pthreads
+- zlib, libxml2, protobuf, abseil
+- All installed for 3 Android triplets: arm64-android, arm-neon-android, x64-android
+
+### Rebuilding vcpkg packages
+```bash
+# Force rebuild of specific package
+rm -rf vcpkg/buildtrees/<package>
+./setup-vcpkg.sh
+```
+
+### vcpkg usage pattern (CI)
+
+- **Classic mode, no manifest**: the dependency list is hardcoded in `setup-vcpkg.sh` (`DEPS=(...)`), not in a `vcpkg.json` manifest. Overlay ports (`vcpkg-overlays/`, e.g. marisa-trie) and overlay triplets are passed via `--overlay-ports`/`--overlay-triplets`.
+- **CI pins vcpkg**: `.github/workflows/build.yml` sets `VCPKG_COMMIT` to a specific commit and fetches it shallowly. Pinning keeps the vcpkg tool ABI-stable — an unpinned daily clone would make restored packages incompatible.
+- **CI binary cache = NuGet feed**: `VCPKG_BINARY_SOURCES=clear;nuget,https://nuget.pkg.github.com/Framstag/index.json,readwrite` stores each compiled package as a NuGet entry versioned by its vcpkg ABI hash (shared org feed, same as libosmscout). Per-package ABI versions mean a runner-image/toolchain update causes exactly one rebuild (new ABI versions pushed), then the cache self-heals; dependency-list/overlay edits rebuild only the affected ports. The job runs with `permissions: packages: write`; mono-complete is installed for `nuget.exe`. Fork PRs restore but skip pushes (read-only token) — never worse than uncached.
+- **Old files-provider design removed**: the previous `files,<dir>` + `actions/cache` setup restored stale archives on an exact key hit, vcpkg rejected them all, and the post-step never re-saved — a full dependency rebuild on nearly every run. Do not reintroduce it.
+- **Adding/removing a dependency**: edit the `DEPS` list in `setup-vcpkg.sh`. For an unregistered port, add an overlay port under `vcpkg-overlays/`; only that port's packages rebuild.
+- **Refreshing ports in CI**: bump `VCPKG_COMMIT` in the workflow — ports rebuild once and re-cache in the feed.
+- **`setup-vcpkg.sh` tolerates install failures** (`|| echo`), so CI runs an explicit `.pc` verification gate after it (see `Verify vcpkg packages` step).
+
+### Stylesheet and icon packaging
+
+The submodule is the single source of truth for the map style sheets and the raster icons
+(`guidelines/MapRendering.md` §16 and §16a own the runtime contract); what follows is how the build packages
+them.
+
+- `app/build.gradle.kts` copies `stylesheets/` into `build/generated/assets/stylesheets` (`syncSubmoduleStylesheets`, wired into `preBuild` and all `merge*Assets` tasks) — there is **no committed snapshot** in `app/src/main/assets/`, so a submodule bump changes the next APK with no manual step.
+- `checkSubmoduleStylesheets` (in `preBuild`) fails with an actionable message when the submodule is not initialized (fresh clone: `git submodule update --init --recursive`).
+- `syncSubmoduleIcons` packages `libosmscout/data/icons/14x14/standard/` as `assets/icons/14x14/standard`, and `checkSubmoduleIcons` fails when the submodule or that raster leaf is missing.
+- `PackagedPoiIconsTest` fails the build when a stylesheet asks for an icon (a `name:` without an inline `symbol:`) that the packaged set does not carry.

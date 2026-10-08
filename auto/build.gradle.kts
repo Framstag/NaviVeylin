@@ -49,6 +49,14 @@ android {
                 // this suite is short enough that per-JVM start-up outweighs the split. One fork, declared.
                 it.maxParallelForks = 1
 
+                // A failing run reports each failure's own message (change
+                // `fix-aggregate-run-test-flakes`, spec `build-test-gate` — "A failing run reports each
+                // failure's message"); guidelines/Build.md §6 carries the rule and why the location alone
+                // is not the diagnosis.
+                it.testLogging {
+                    exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                }
+
                 if (forceTests) {
                     it.outputs.upToDateWhen { false }
                 }

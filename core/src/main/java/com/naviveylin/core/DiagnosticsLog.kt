@@ -108,6 +108,14 @@ object DiagnosticsLog {
     /** True while the worker is moving a drained batch to the file. */
     private var flushing = false
 
+    /**
+     * True while the worker is waiting for work rather than draining or flushing. Published under
+     * [bufferLock], so a caller can await the state its own reasoning assumes instead of inferring it
+     * from an empty ring (spec `unit-test-suite-runtime` — "A case awaits the state it needs, not a
+     * proxy of it"; `TODO.md` §148 case 2).
+     */
+    private var workerWaiting = false
+
     /** Overridable in tests to exercise rotation without writing 256 KB. */
     @Volatile
     internal var maxBytes: Int = MAX_BYTES
@@ -168,6 +176,9 @@ object DiagnosticsLog {
         val stale = bufferLock.withLock {
             val current = worker
             worker = null
+            // A retired worker's parked state must not outlive it: the next awaitParked would
+            // otherwise see a stale `true` for a worker that no longer exists.
+            workerWaiting = false
             current
         }
         if (stale != null) {
@@ -308,6 +319,27 @@ object DiagnosticsLog {
     }
 
     /**
+     * Wait until the worker is waiting for work rather than draining or flushing. Returns false when
+     * [timeoutMs] elapsed first (no worker yet, or a worker still busy).
+     *
+     * [awaitDrained] is not a substitute: it returns as soon as the ring is empty and nothing is being
+     * flushed, a state the worker reaches *before* it waits again — a burst produced after that return
+     * can therefore be drained mid-burst. Exposed beyond the module for the same reason [awaitDrained]
+     * is (spec `unit-test-suite-runtime` — "A case awaits the state it needs, not a proxy of it").
+     */
+    internal fun awaitParked(timeoutMs: Long = READ_DRAIN_TIMEOUT_MS): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        bufferLock.withLock {
+            while (!workerWaiting) {
+                val remaining = deadline - System.currentTimeMillis()
+                if (remaining <= 0) return false
+                bufferChanged.await(remaining, TimeUnit.MILLISECONDS)
+            }
+            return true
+        }
+    }
+
+    /**
      * Number of entries dropped because the pending buffer was full — 0 on a
      * healthy run. Exposed so a reader (and the tests) can tell a truncated log
      * from a complete one.
@@ -392,7 +424,18 @@ object DiagnosticsLog {
             try {
                 bufferLock.withLock {
                     if (pending.isEmpty()) {
-                        bufferChanged.await(flushIntervalMs, TimeUnit.MILLISECONDS)
+                        // Publish "parked" under the lock a waiting caller holds, so it can await the
+                        // worker being idle instead of inferring it from an empty ring (spec
+                        // `unit-test-suite-runtime` — "A case awaits the state it needs, not a proxy of
+                        // it"). The signal reaches a waiting awaitParked, never this worker: it is sent
+                        // before the await below.
+                        workerWaiting = true
+                        bufferChanged.signalAll()
+                        try {
+                            bufferChanged.await(flushIntervalMs, TimeUnit.MILLISECONDS)
+                        } finally {
+                            workerWaiting = false
+                        }
                     }
                     if (pending.isNotEmpty()) {
                         val buffered = ArrayList(pending)

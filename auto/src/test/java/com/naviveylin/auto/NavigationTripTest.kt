@@ -127,6 +127,35 @@ class NavigationTripTest {
         assertTrue(trip?.destinations?.isEmpty() == true)
     }
 
+    /**
+     * After a failed reroute the engine keeps navigating the old route with the reroute claim
+     * cleared, so the host must get that route's guidance rather than a loading trip — otherwise a
+     * failed reroute leaves the driver on a spinning screen with no turn (spec:
+     * `rerouting-visual-feedback` — Car guidance survives a failed reroute).
+     */
+    @Test
+    fun guidanceAfterAFailedRerouteIsNotALoadingTrip() {
+        val state = navigatingState().copy(
+            isRerouting = false,
+            isOffRoute = true,
+            errorMessage = "No routable node near destination"
+        )
+
+        val trip = tripFrom(state)
+
+        assertFalse(
+            "the state a failed reroute leaves behind is not a loading trip",
+            trip?.isLoading == true
+        )
+        assertEquals(1, trip?.steps?.size)
+        assertEquals("Turn left", trip?.steps?.get(0)?.cue.toString())
+        assertEquals(
+            "the running route's step keeps its estimate",
+            250.0,
+            trip?.stepTravelEstimates?.get(0)?.remainingDistance?.displayDistance
+        )
+    }
+
     @Test
     fun loadingTripWhenArrivalTimeIsUnknown() {
         val trip = tripFrom(navigatingState().copy(etaMillis = 0L))

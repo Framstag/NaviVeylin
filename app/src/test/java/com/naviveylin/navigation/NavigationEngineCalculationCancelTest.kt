@@ -128,6 +128,10 @@ class NavigationEngineCalculationCancelTest {
         awaitState { engine.state.value.calculation == null }
         assertEquals(1, client.cancelRouteCount)
         assertFalse("no navigation may start", engine.state.value.isNavigating)
+        assertFalse(
+            "an acquisition cancel never claims a reroute",
+            engine.state.value.isRerouting
+        )
         assertTrue(
             "an aborted acquisition must not keep the location updates alive",
             locationService.heldLeaseConsumers().isEmpty()
@@ -190,6 +194,50 @@ class NavigationEngineCalculationCancelTest {
         )
         assertTrue(engine.state.value.isNavigating)
         assertNull("the cancelled acquisition left no wait behind", engine.state.value.calculation)
+        assertFalse(
+            "an acquisition cancel neither sets nor claims a reroute",
+            engine.state.value.isRerouting
+        )
+    }
+
+    /**
+     * A cancelled reroute stops claiming one is running: the car template maps `isRerouting` to a
+     * loading trip with no turn, and a cancelled attempt reaches no instruction list either (spec:
+     * `rerouting-visual-feedback` — Cancelled reroute ends rerouting state). The other half — a
+     * cancel that never set the flag — is asserted on the two cases above.
+     */
+    @Test
+    fun aCancelledRerouteEndsTheReroutingState() {
+        grantPreciseLocation()
+        val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
+        val locationService = LocationService(context())
+        val engine = buildEngine(client, locationService)
+
+        engine.start(routeEntry(), Vehicle.CAR)
+        awaitState { engine.state.value.isNavigating }
+        awaitState { client.navigationListener != null }
+
+        // A fresh fix clears the engine's accuracy guard, then an off-route report far beyond the
+        // 50 m fast path confirms a reroute without any surface (spec: `navigation-engine` —
+        // Reroute without a surface UI).
+        engine.processLocation(52.5200, 13.4050, 17.8, 5.0, System.currentTimeMillis())
+        client.holdRouteDelivery = true
+        client.navigationListener!!.onRerouteRequest(52.5250, 13.4500, 90.0, 52.5300, 13.4100)
+        awaitState { engine.state.value.isRerouting }
+
+        engine.cancelAcquisition()
+
+        awaitState { engine.state.value.calculation == null }
+        assertEquals(1, client.cancelRouteCount)
+        assertFalse(
+            "a cancelled reroute must not keep the surfaces on a reroute",
+            engine.state.value.isRerouting
+        )
+        assertTrue("the cancelled reroute does not end navigation", engine.state.value.isNavigating)
+        assertTrue(
+            "the vehicle is still off route, so the cue stays",
+            engine.state.value.isOffRoute
+        )
     }
 
     /**

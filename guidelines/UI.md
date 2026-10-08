@@ -664,7 +664,9 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   task 5.1 run (b): card bounds `top=2059 h=341` inside the status card's band, zero full-width pixels of
   a probe bar drawn, no node of the card in the accessibility dump). An overlay that must win a band it
   shares with another composer is not raised above it — the other card yields
-  (spec `route-planning-session` — The review is the surface while it is open).
+  (spec `route-planning-session` — The review is the surface while it is open). Which element may paint
+  over which is not decided here: the five bands of §11 decide it, and the session card is composed in
+  the modal band, so the chrome yields to it as well.
 - The compass button SHALL be larger than the other overlay buttons
   (56dp layout / 48dp visual vs 48dp / 40dp) so it reads at a glance. Its needle
   SHALL indicate geographic north in EVERY orientation mode (north-up and
@@ -1040,6 +1042,50 @@ short of (`guidelines/MapRendering.md` §18 has the numbers).
 - **Diagnosis.** Every transition (suspend / override / lift) is one record on
   the diagnostics stream under the `SESSION` tag, carrying the presence edge
   that caused it and the storage the release gave up.
+
+---
+
+## 11. Phone overlay layering (the band stack)
+
+The phone map screen composes everything into **five named bands**, and the band an element is
+composed in is the only thing that decides the stacking (`MapLayer` in `MapCanvasScreen.kt`, spec
+`map-canvas-screen` — Phone map overlay layer stack). Compose draws a `Box`'s children in source
+order, so before this rule the depth of an on-map element was whatever line number its composable
+happened to sit on: chrome written late (the free-driving street-name pill, the navigation overlay
+block) painted on top of open surfaces, and the snackbar — composed first — sat under the opaque
+map bitmap.
+
+| Band | z | Holds |
+|---|---|---|
+| Map | 0 | canvas bitmap, analysed-route highlight, GPS marker, loading/error state |
+| Chrome | 10 | **everything that belongs to the map**: compass, speed widget, zoom controls, re-center button, street-name pill, turn card, routing status card, OSM attribution, car-session indicator |
+| Menu | 20 | the map menu scrim and panel |
+| Modal | 30 | the surfaces that open over the map: search dialog, location details, favorites sheet, route-planning session surface, navigation details |
+| Snackbar | 40 | snackbar messages |
+
+- **Chrome is part of the map.** A surface that opens over the map is composed above the *whole*
+  chrome band — never between the map and its chrome. Where a surface and a control overlap, the
+  surface owns the pixels and the taps.
+- **A new element picks a band.** Adding an on-map control means composing it in the chrome band;
+  adding a surface means the modal band. Nothing else decides the order, so no element has to
+  reason about its neighbours, and declaring two bands in a different source order changes nothing.
+- **Values are spaced by ten** so a band can be inserted later without renumbering; `MapLayerBandsTest`
+  asserts the order, and the membership is restated in the spec.
+- **The session surface owns the screen while it is open** (`guidelines/Design.md` §12, one band one
+  owner): the route-planning card and docked panel are modal, so the compass / speed / zoom column
+  is covered where the card paints over it — its bottom band in portrait MAX, the whole right side
+  when docked in landscape. The turn card is *not* covered, because the card never reaches it. If
+  the covered speed widget ever proves to hurt a navigating review, fix it by **placement** (a card
+  cap or width that leaves the right column free), never by a z-order exception — an exception
+  re-opens the class this rule closes.
+- **Back priority is registration order, not band order.** Compose dispatches a back gesture to the
+  handler registered last, which is the composable composed last. The menu band is therefore
+  composed *before* the modal band so an open surface keeps the gesture, and the surfaces inside the
+  modal band keep their relative order (`map-canvas-screen` — System back dismisses topmost overlay).
+- **Material dialogs and bottom sheets are a second mechanism.** `AlertDialog` and
+  `ModalBottomSheet` are presented in their own window and are always above every band here,
+  including the snackbar. That asymmetry is deliberate: window-level surfaces keep the platform's
+  dismiss and inset behaviour, and the bands cover the rest.
 
 ---
 

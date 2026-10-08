@@ -179,10 +179,12 @@ What this file owns about the loop is only where its parts live:
 - the build, test and falsification skills: `build-app`, `run-tests`, `revert-check`, and the wrapper and
   peer-edit probes in `guidelines/Build.md` §2.
 
-`.pi/` is gitignored — the skills are local tooling. A rule that must survive a fresh clone or
-another agent therefore belongs in **this file**, in `openspec/config.yaml` or in
-`guidelines/*.md`; the *tools* a skill uses belong in the repo (`tools/measure-highlight.py`,
-with a self-test that runs without a device).
+The hand-written skills under `.pi/skills/` are versioned with the project; the skills the OpenSpec CLI
+generates, and the rest of `.pi/` (session logs, captures, instruction dumps, extension config), are not — the
+split, and what a new skill needs, is `guidelines/Build.md` §1 "Skills". A rule that must survive a fresh
+clone or another agent belongs in **this file**, in `openspec/config.yaml` or in `guidelines/*.md`; the
+*tools* a skill uses belong in the repo (`tools/measure-highlight.py`, with a self-test that runs without a
+device).
 
 Screenshot reading needs one harness tool the repository cannot ship: **`view_image`**, a Pi package that
 returns an image content block so a text-only model sees the pixels — and whose install, `PI_VIEW_IMAGE_BIN`

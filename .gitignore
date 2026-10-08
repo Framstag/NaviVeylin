@@ -10,8 +10,27 @@ app/debug.keystore
 # Release version state (managed by the release task)
 app/release-version.properties
 
-# Agent/tooling state
-.pi/
+# Agent/tooling state. Everything under .pi/ is machine-local — session logs, device
+# captures, instruction dumps, extension config — except the hand-written skills,
+# which are versioned with the project. guidelines/Build.md §1 "Skills" owns the rule.
+#
+# `.pi/` must not lead this block: a negation cannot climb out of an excluded
+# directory, so `.pi/` followed by `!.pi/skills/` re-includes nothing (measured in a
+# scratch repository 2026-10-08 — the tracked set stayed empty). `.pi/*` excludes the
+# children one by one, which lets `.pi/skills/` be re-admitted.
+.pi/*
+!.pi/skills/
+# A stray file directly in .pi/skills/ is not a skill.
+.pi/skills/*
+# Every skill directory is admitted …
+!.pi/skills/*/
+# … except the ones the installed OpenSpec CLI generates and rewrites (`generatedBy:`
+# in the frontmatter); committing one makes `openspec update` report the install as
+# drifted. The two hand-written skills that share that prefix follow, and a new one
+# needs its own line here.
+.pi/skills/openspec-*/
+!.pi/skills/openspec-open-changes/
+!.pi/skills/openspec-proof-gap-audit/
 .pi-subagents/
 
 # Gradle build outputs

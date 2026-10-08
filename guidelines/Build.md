@@ -29,8 +29,13 @@ the skills are its hands, not its rule.
 | `compose-geometry` | Assert a UI geometry invariant (size, tap target, disjointness, visibility inside a parent) in a Compose case instead of `assertExists()` | A phone control or tap area is added/moved; a task asks for a bounds/48 dp/disjointness/visibility case; a device run shows a tap landing on the wrong action or an action that is unreachable |
 | `release-build` | Produce Play-ready release AABs (mobile + automotive) | User asks for a release build or version bump; Play upload / sideload artifacts |
 
-Each skill lives in `.pi/skills/<name>/SKILL.md` (gitignored — copy to
-`~/.pi/agent/skills/<name>/` to make it available across projects).
+Each skill lives in `.pi/skills/<name>/SKILL.md`. The hand-written ones are versioned with the project; a
+skill the installed OpenSpec CLI generates is not, because `openspec update` rewrites those from its own
+templates and reports an edited one as drifted, so committing one breaks the install's freshness check. The
+ignore rule keys on the CLI's `openspec-` prefix, so a hand-written skill whose name carries that prefix needs
+its own `!` line in `.gitignore` (the two that exist are `openspec-open-changes` and
+`openspec-proof-gap-audit`), and `git ls-files .pi` prints the tracked set. To use a skill across projects, copy
+its directory to `~/.pi/agent/skills/<name>/`.
 
 ### Screenshot reading (harness prerequisite)
 
@@ -570,7 +575,7 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   `cancel()`, so nothing needs waiting for). A leak must fail its own class, not
   starve the suite's heap later.
 - **Geometry claims are asserted as Dp bounds, not as existence** (change `fix-nav-overlay-stop-tap`, spec
-  `navigation-status-details`; skill `.pi/skills/compose-geometry`, machine-local). A Compose case for a
+  `navigation-status-details`; the `compose-geometry` skill). A Compose case for a
   control's size, its tap target, its disjointness from a container's tap area, or a node's visibility
   inside its parent SHALL assert bounds: `assertWidthIsAtLeast(48.dp)` / `assertHeightIsAtLeast(48.dp)`
   for size, bare Dp comparisons for disjointness (`region.right <= control.left`) and for visibility.
@@ -1424,9 +1429,10 @@ found both real causes only after measuring.
 4. **Say when a measurement was impossible** (a stationary emulator cannot produce follow drift)
    instead of implying device proof.
 5. Iterate with focused suites (`--tests "com.naviveylin.ui.<area>.*"`) and run the full both-flavor
-   gate once before the commit; drive the device with one reusable script (`.pi/skills/device-check`),
-   and delete it before committing. `.pi/` is gitignored — rules that must survive belong here, in
-   `AGENTS.md` or in `openspec/config.yaml`.
+   gate once before the commit; drive the device with one reusable script — the `device-check` skill
+   (`.pi/skills/device-check/SKILL.md`), or a scratch script you delete before committing, kept outside the
+   tracked tree (`.pi/logs/<check-name>/`, `/tmp`), never beside a skill. The skills under `.pi/skills/` are
+   versioned (§1) — rules that must survive belong here, in `AGENTS.md` or in `openspec/config.yaml`.
 
 ## 12. Native build and vcpkg
 

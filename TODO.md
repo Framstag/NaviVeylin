@@ -25,7 +25,7 @@
 - **search** — improvement: §24 §76 §77 §109
 - **specs-and-process** — improvement: §40 §113 §134 §154
 - **stylesheets** — bug: §36
-- **ui** — bug: §70 §74 §151 §153
+- **ui** — bug: §70 §74 §153
 - **ui** — improvement: §39 §73 §136 §152 §166
 - **ui** — feature: §4 §5
 - **verification** — bug: §131 §147 §148 §169
@@ -2378,27 +2378,6 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Also observed in the same run** ℹ: after arrival the car ETA card keeps being updated with `remaining=0m`
   (host trip updates, once per position fix) and the native arrival estimate keeps arriving — expected while the
   session is live, but it is the thing a driver sees if the exit never fires.
-
-## 151. The navigation-time right-side widget column never publishes its width, so the follow anchor can resolve under it — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (adjacent finding, out of that change's scope)
-**id:** 151 · **category:** ui · **class:** bug · **status:** open
-
-- **Observed** ℹ: `LocalOverlayWidthProbe` is provided around the browse overlay block only
-  (`MapCanvasScreen.kt`, the `CompositionLocalProvider` in the chrome band), while the navigation-time copy
-  of the same column (`MapRightWidgetColumn`, composed in the chrome band's navigation overlay block) reads
-  the probe at its own call site. Outside the provider the probe is the default no-op, so
-  `overlayRightInset` stays 0 for the whole navigation, `setMapOverlayInsets(right = 0)` publishes no right
-  band, and the follow anchor may resolve under the compass / speed / zoom column — the exact overlap the
-  probe exists to prevent (spec `smooth-follow` — visible-area scenarios). `fix-phone-map-layer-stack` moved
-  the two blocks into the chrome band but did not widen the provider scope: that would change what the probe
-  measures during navigation, i.e. followed-map framing, which is a change of its own with its own device
-  evidence.
-- **Why it is filed rather than fixed here** ✗: the fix changes the follow framing a driver sees during
-  navigation, so it needs a `smooth-follow` delta and an on-device check of the anchor position — not a side
-  edit inside a layering change.
-- **Fix candidate**: provide the probe once for the whole chrome band (a `CompositionLocalProvider` around
-  the chrome band's content instead of around the browse block), then verify with a case that the navigation
-  column reports a non-zero width and with one device run that the follow anchor sits left of the column
-  (`pixel-check` on the marker's pixels against the column's UI-dump bounds).
 
 ## 152. The follow-anchor insets during a navigating session panel follow the chrome the panel covers — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (adjacent finding, out of that change's scope)
 **id:** 152 · **category:** ui · **class:** improvement · **status:** open

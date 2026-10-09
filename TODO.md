@@ -116,7 +116,7 @@
 ---
 
 ## 165. The navigation overlay's stop path may never enter the session's stopped state, and the map returns to `FREE_DRIVE` where the ViewModel path asserts `BROWSE` — Filed 2026-10-06 by `fix-nav-overlay-stop-tap` as §140 (an id that never reached this file); re-filed 2026-10-09 by `bugfix-loop`
-**id:** 165 · **category:** route-and-navigation · **class:** bug · **status:** open
+**id:** 165 · **category:** route-and-navigation · **class:** bug · **status:** open (device) — a device logcat diagnosis is owed first, then a spec decision on the missing UI stop-path entry point (`bugfix-loop` 2026-10-09)
 
 - **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was filed as **§154**; that id is
   taken by the in-flight `allow-lan-http-map-repository` work (§154 = the `MapRendering.md` dual-`§14`
@@ -532,7 +532,7 @@
 ---
 
 ## 70. BROWSE still mixes the free-driving anchor preset into a street-pill placement, and an off-screen vehicle has no cue but the re-center button — Found 2026-09-22 during `fix-browse-recenter-visibility` (out of scope)
-**id:** 70 · **category:** ui · **class:** bug · **status:** open
+**id:** 70 · **category:** ui · **class:** bug · **status:** on-hold — needs scoping to one fix: the `pillAtTop` placement, or the new off-screen affordance (`bugfix-loop` 2026-10-09, gate conditions 3 and 5)
 
 - **Observed** ℹ: (a) `MapCanvasScreen.kt` derives `pillAtTop = state.activeFollowAnchor.fy == 0.9` and moves the
   free-driving street pill to the top of the screen "so it never covers the vehicle marker" — in BROWSE too, using the
@@ -1691,7 +1691,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 ---
 
 ## 129. The router's overall route distance and the route description's node distances disagree, by 34 % on a 70 km route — Found 2026-10-05 while applying `fix-step-leg-distance-and-time` (device run, task 5.1)
-**id:** 129 · **category:** route-and-navigation · **class:** bug · **status:** open
+**id:** 129 · **category:** route-and-navigation · **class:** bug · **status:** fixed-by `fix-router-overall-distance` — the user-visible half shipped as the shared `routeLengthMeters` (`refuted` 2026-10-09 by `bugfix-loop`; the removal belongs to `cleanup-todo`)
 
 - **Observed** ⚠: two native numbers describe the same route and do not match. The instrumented check
   `RouteInstructionPositionDeviceTest.perStepValuesAreTheStepsOwnLegs` on the AAOS AVD (`emulator-5556`,
@@ -1860,7 +1860,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   session took §134 (`process-failure-log` guardrails) while this change was being applied.
 
 ## 139. The router's overall distance under-counts the route it produced — by 25 % on a long route and 45 % on a short one — Found 2026-10-05 while measuring `fix-route-length-disagreement` (the native half of `TODO.md` §129)
-**id:** 139 · **category:** route-and-navigation · **class:** bug · **status:** open
+**id:** 139 · **category:** route-and-navigation · **class:** bug · **status:** fixed-by `fix-router-overall-distance` — the native half is addressed by that change; the residual `GetOverallDistance` value is the start-to-target air-line estimate feeding `GetEstimateCosts`/`GetCostLimit` (`refuted` 2026-10-09 by `bugfix-loop`)
 
 - **Observed** ⚠: `GetOverallDistance()` on a successful route reports a distance that departs from the
   geometry the same routing produced. Measured on `emulator-5554` (Pixel_8 AVD, `nordrhein-westfalen` data,

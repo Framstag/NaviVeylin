@@ -1,6 +1,6 @@
 ---
 name: bugfix-loop
-description: Run a budgeted, pre-authorized loop that closes bugs one at a time. Each bug: pre-screen the backlog, prove the root cause with a test that is red on HEAD, create a `fix-*` OpenSpec change, apply it, get an independent review, archive it, update `TODO.md`, take the next bug. Stops at a bug cap, a deadline, or a blocker. Use when asked to "run the bug fix loop", "fix bugs until <time>/<count>", "work the backlog in a loop", or when several triaged bugs should be closed in one session without exhausting the context window.
+description: Run a budgeted, pre-authorized loop that closes bugs one at a time. Per bug, pre-screen the backlog, prove the root cause with a test that is red on HEAD, create a `fix-*` OpenSpec change, apply it, get an independent review, archive it, update `TODO.md`, take the next bug. Stops at a bug cap, a deadline, or a blocker. Use when asked to "run the bug fix loop", "fix bugs until <time>/<count>", "work the backlog in a loop", or when several triaged bugs should be closed in one session without exhausting the context window.
 ---
 
 # bugfix-loop

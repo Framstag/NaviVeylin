@@ -16,7 +16,8 @@
 - **map-rendering** — feature: §6
 - **native-jni** — improvement: §81 §82 §119
 - **native-jni** — feature: §23
-- **persistence** — bug: §9
+- **persistence** — bug: §157
+- **persistence** — improvement: §9
 - **route-and-navigation** — bug: §129 §130 §139 §144 §154
 - **route-and-navigation** — improvement: §126
 - **route-and-navigation** — feature: §1 §2 §3
@@ -715,8 +716,43 @@ GPS back                     →  REAL
 3. Marker UX: ESTIMATED position visually distinct from REAL (color/opacity)?
 4. Where: new Kotlin `@Singleton` service feeding a derived position flow with state (REAL/ESTIMATED/LOST); consumers = marker, center, nav engine, AA.
 
+## 157. `viewport-persist` describes one `viewport.json` while `ViewportStorage` writes one file per map key — Found 2026-10-09 by `bugfix-loop` (iteration 6) while gating §9
+**id:** 157 · **category:** persistence · **class:** bug · **status:** open
+
+- **Observed** ℹ: the spec's storage sentence (`openspec/specs/viewport-persist/spec.md:11`) reads "The file SHALL be
+  written to `filesDir/maps/viewport.json`" — a single file, no per-map key — while `ViewportStorage.fileFor`
+  writes `viewport-<key>.json` per map key and every load path keys by `currentMapKey`
+  (`MapCanvasViewModel.kt:2071`, `:2112`). The spec's only key sentence (`:111`, "nor persist a viewport under the
+  new map key") presupposes a key, so the two statements cannot both describe the shipped storage.
+- **Consequence** ⏳: a reader implementing the storage contract from the spec would build a different layout; same
+  class as §118 (a spec pinned behaviour the code never applied). No user-visible defect observed — the divergence
+  is between two artefacts, which is why no test caught it — but it is why §9's un-keyed case has no destination.
+- **Fix candidate**: correct the spec to the per-map layout (file pattern, key derivation
+  `substringAfterLast('/')` — or whatever §9's decision makes canonical — and the pre-`initMap` behaviour), then add
+  the conformance case the way `fav-auto-zoom` got one (`FavAutoZoomClampRangeTest` reads the spec text and compares
+  it to the code's constants; `MapMenuBackOrderComposeTest` is the precedent). Decide together with §9 so the spec
+  sentence and the un-keyed behaviour land in one change.
+
 ## 9. Viewport Save — Residual Bug
-**id:** 9 · **category:** persistence · **class:** bug · **status:** open
+**id:** 9 · **category:** persistence · **class:** improvement · **status:** on-hold un-keyed viewport semantics (skip vs named bucket vs unify)
+
+- **Loop verdict** ⏳ (bug-fix loop 2026-10-09, `bugfix-loop` iteration 6 — reclassified `bug` → `improvement`,
+  not eligible: gate conditions 3 and 4 fail): the four fallbacks disagree in text, but the stated effect is only
+  half-reachable. `MapCanvasViewModel.kt:2112` sets `currentMapKey = mapPath.substringAfterLast('/')` **before**
+  `:2115`/`:2071` read it, so the load-side `mapPath` fallback is unreachable — loads are always keyed by the
+  basename; the saves at `:2957`/`:4415` use `"default"`, which fires only pre-init, and such a save is
+  **orphaned under both literals** (`viewport-default.json` has no reader, `viewport-<full path>.json` ≠ basename),
+  so the entry's candidate (share one key helper) makes the literals equal and leaves the orphan in place. No
+  authority names a destination for an un-keyed save: `openspec/specs/viewport-persist/spec.md:11` says one file
+  (`filesDir/maps/viewport.json`) and its only key sentence `:111` presupposes a key; `guidelines/Design.md` §9
+  (537-556) says "persist on every meaningful change" and nothing about keys. Today's deliberate handling of "no
+  map yet" is **skip** (`:4410` `if (!viewportRestored) { Log.d(…, "skipped, viewport restore not yet applied");
+  return }`, from archived `2026-09-06-fix-viewport-save-race-residual`). Decision needed, one of: (a) skip the
+  save when `currentMapKey == null` (matches the `:4410` pattern; makes the `"default"` literal removable;
+  rewrites the assertion at `MapCanvasViewModelNavEndRestoreTest.kt:157`), (b) keep writing a named bucket **and**
+  consult it in `initMap`, or (c) hygiene-only unify the literals without behavioural proof. Settle it in a normal
+  (non-loop) change together with **§157** (the spec's single-file sentence vs the per-map files), because no
+  WHEN/THEN is stateable before this decision.
 
 - **Residual: pre-init viewport key mismatch (`mapPath` vs `"default"`) ℹ**: `MapCanvasViewModel.initMap` loads with `viewportStorage.load(currentMapKey ?: mapPath)` (`MapCanvasViewModel.kt:2095`, and the navigation-end restore at `:2194`), while `saveViewport()` (`:2932`) and the save at `:4367` persist with `currentMapKey ?: "default"`. Harmless today because `initMap` sets `currentMapKey` before the load, so the fallbacks never meet — but any future save/load before `initMap` (or after a failed init) would write and read different files. Fix candidate: share one key helper (`currentMapKey ?: mapPath`) across all four call sites. Found 2026-09-13 while triaging `MapCanvasViewModelNavEndRestoreTest` (change `smooth-decimal-auto-zoom`, task 6.2) — test-only fix there, production untouched.
 - **Citations refreshed 2026-10-04 (`cleanup-todo` pass)** ℹ: the call sites above read `:1408` / `:2167` / `:2811` when the finding was written; the code has moved since, and the premise was re-verified before this refresh rather than trusted — `grep -n 'currentMapKey ?: ' app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt` → `2095`, `2194` use `mapPath`, `2932`, `4367` use `"default"`. The mismatch is unchanged; the fix candidate now names **four** call sites, not three.

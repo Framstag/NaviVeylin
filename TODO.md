@@ -599,7 +599,7 @@ Status: all four defects fixed and device-verified (2026-09-18, AAOS), including
 ---
 
 ## 19. Findings from `overlay-projects-against-displayed-frame` (2026-09-17)
-**id:** 19 · **category:** map-rendering · **class:** bug · **status:** open
+**id:** 19 · **category:** map-rendering · **class:** bug · **status:** on-hold Locale.ROOT vs Locale.US for the phone diagnostic numbers (§19(b) and the device run stay open)
 
 Findings detected while fixing the AA follow overlay projection; all out of that change's scope
 (it deliberately keeps the follow re-anchor cadence and the overlay frame bookkeeping only).
@@ -612,7 +612,8 @@ blit-eligibility after a rotation commit, locale-independence), `AutoMapRenderer
 (one frame per commit path), two revert-checks (guard removed → the bare-re-engage case fails; default
 locale restored → the German-locale case fails). **This entry stays open** for the residue:
 
-- **The phone mirrors of the locale item** ⏳: `app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt:720-728`
+- **The phone mirrors of the locale item** ⏳ — **gated out by the loop 2026-10-09, needs decision (see the
+  Loop verdict below)**: `app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt:720-728`
   (the follow log this car entry mirrors) and `MapCanvasViewModel.kt:1157-1159` (the GPS-fix log) still
   format through the default locale. Same rule, two sites — a phone-surface change.
 - **§19(b) stays a measurement** ⏳: the extrapolation loop's ~11 Hz (not the nominal 30 Hz) was never
@@ -627,6 +628,45 @@ locale restored → the German-locale case fails). **This entry stays open** for
 - **✅ FIXED for the car surface (2026-10-03, `fix-car-follow-reengage-render`)** — `reengageFollow` relies on a preceding `setViewport` to have requested the render ✗: it writes `viewportLat/Lon` + `emitViewportState()` but never called `requestRender()`; it worked only because the fix path calls it immediately after `setViewport` (which does request). A caller that re-engages follow on its own — `MapPanHandler.onPanModeChanged(false)` (pan release), `NavigationScreen`, `FreeDrivingScreen` start/resume, the `RendererGate` replay — silently kept the stale frame on the surface. Now: `blitEligible = true; if (!pendingRender) requestRender()`.
 - **ℹ Extrapolation loop measured ~11 Hz, not the nominal 30 Hz** (`EXTRAPOLATION_FRAME_MS = 33`): in the 104 s AA window, 38 diagnostic lines at one line per 30 ticks is ~1140 ticks / 104 s ≈ 11 Hz. Each tick locks the shared surface and draws the full 1296×720 overrun bitmap plus the overlays, so the period is dominated by the draw — measure before tuning the constant (a smaller period would not raise the rate).
 - **✅ FIXED for the car `follow` entry (2026-10-03, `fix-car-follow-reengage-render`)** — diagnostics used the default locale: `"%.6f".format(...)`/`"%.1f".format(...)` printed decimal commas on a German device (`51,513637`, `off=3,4,-1,5`), so those lines were not machine-parseable. The car `follow` entry now formats every number through `Locale.ROOT` (`followDiagnosticLine`, `AutoMapRenderer.kt`). The phone mirrors are still open (see the note below).
+
+- **Loop verdict** ⏳ (bug-fix loop 2026-10-09, `bugfix-loop` iteration 11 — not eligible: gate condition 3
+  fails, `needs decision`): the claim is real in the tree — the `follow` line
+  (`MapCanvasScreen.kt:782-791`, `" spd=" + … "%.1f".format(fix.speedKmH) … " off=" + "%.1f".format(offset.clampedX)`)
+  and the GPS-fix line (`MapCanvasViewModel.kt:1275-1277`,
+  `"GPS fix acc=${"%.1f".format(fix.accuracy)}" … "speed=${"%.1f".format(fix.speedKmH)}"`) both format through
+  the default locale (Kotlin `"%.1f".format(x)` is `String.format(Locale.getDefault(), …)`), so a German device
+  prints a decimal comma. **Why exactly one fix does not follow**: there is no shared helper to reuse. The
+  auto-side counterpart is `followDiagnosticLine` (`auto/src/main/java/com/naviveylin/auto/AutoMapRenderer.kt:610-612`,
+  `internal fun followDiagnosticLine(nowMs: Long, offset: FollowPrediction.Companion.DisplayOffset): String` with
+  `fun f(format: String, value: Double): String = String.format(Locale.ROOT, format, value)`) — `internal` to
+  `:auto`, and its field set (`:613-623`: `spd eff dec stp off clamped frameMag frameAng pendingMag pendingAng dAng
+  dMag last renders blits`) is not the phone line's (`t spd brg avg gps eff savg dec stp off clamped`), so it
+  cannot be called; its own commit `7cb0d5e` records that `Locale.ROOT` was borrowed from "the shape the MAP
+  render line already used" — a **car-module** precedent, not a phone one. The phone module and `:core` fix their
+  locale the other way: `MapCanvasViewModel.kt:2837` `String.format(Locale.US, "%.5f, %.5f", lat, lon)`,
+  `core/.../CoordinateFormat.kt:34` `private val COORDINATE_LOCALE: Locale = Locale.US`,
+  `core/.../DiagnosticsLog.kt:145,148` `SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)`; and a normative
+  sentence names `Locale.ROOT` as the forbidden one: `openspec/specs/i18n-l10n/spec.md:61` "No user-facing
+  numeric formatting SHALL use `Locale.ROOT` or a fixed locale." and `guidelines/UI.md:964` "Do NOT use
+  `Locale.ROOT` for display formatting." Both constants behave identically on these patterns — re-derived
+  2026-10-09 with a single-file `java -Duser.language=de -Duser.country=DE LocaleProbe.java`: `Locale.GERMANY`
+  default → `off=3,4,-1,4 speed=50,0 bearing=87 mag=15,00`; **both** `Locale.ROOT` and `Locale.US` → `off=3.4,-1.4`.
+  Nothing in the evidence picks one, and the pick is the whole change. **Decision needed:** are these phone
+  numbers machine-parseable log evidence (take the car sibling's `Locale.ROOT`) or phone-module values under the
+  `i18n-l10n` user-facing-numeric rule (take the module's `Locale.US`)? The same question settles the fix's
+  boundary, because "same rule, two sites" is incomplete in the tree: `MapCanvasViewModel.kt:1514,1517`
+  (`autoZoom commit/hold speed=`) are default-locale too, and `:3526` (`browse re-center off=…px`) additionally
+  reaches the **file-backed** diagnostics (`:3528-3531` `DiagnosticsLog.log("RECENTER", …`), i.e. the exported
+  log the diagnostics screen and the share sheet show. No device recipe asserts a phone format today — the only
+  asserted one is the car `follow` entry (`guidelines/Regulatory.md:287-288`, `guidelines/Build.md` §10) — so a
+  phone format change invalidates no recipe. Host seam for the later change: the ViewModel site is decidable in
+  a Robolectric test (`location/LocationService.kt:553` `fun setGpsFixForTest(fix: GpsFix?)` → `_location.value`;
+  the first fix logs because `MapCanvasViewModel.kt:1274` `logCount++ % 30 == 0`), the screen site is not — no
+  test mounts the screen (`grep -rn 'MapCanvasScreen(' app/src/test/` → 0 hits) and the block needs
+  `ui.renderedBitmap != null && ui.renderViewport != null && canvasSize.width > 0` inside the frame-loop
+  `LaunchedEffect(Unit)` (`MapCanvasScreen.kt:578`) with `fix.time == lastFixTime` (`:780`), so a German-locale
+  assertion there needs a new full-screen Compose harness or a `followDiagnosticLine`-shaped builder (the shape
+  the car change chose).
 
 ---
 

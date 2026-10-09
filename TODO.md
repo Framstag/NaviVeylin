@@ -25,8 +25,8 @@
 - **search** — improvement: §24 §76 §77 §109
 - **specs-and-process** — improvement: §40 §113 §134 §153
 - **stylesheets** — bug: §36
-- **ui** — bug: §70 §73 §74
-- **ui** — improvement: §39 §136 §155
+- **ui** — bug: §70 §74
+- **ui** — improvement: §39 §73 §136 §155
 - **ui** — feature: §4 §5
 - **verification** — bug: §131 §147 §148
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §156
@@ -417,7 +417,26 @@
 ---
 
 ## 73. Two phone overlays still use fixed colors with no presentation branch — Found 2026-09-24 during `compass-day-night-palette` (out of scope, own change)
-**id:** 73 · **category:** ui · **class:** bug · **status:** open
+**id:** 73 · **category:** ui · **class:** improvement · **status:** on-hold dark-presentation direction for the two overlays (dim vs lighten; and whether the accuracy ring branches at all)
+
+- **Loop verdict** ⏳ (bug-fix loop 2026-10-09, `bugfix-loop` iteration 8 — reclassified `bug` → `improvement`, not
+  eligible: gate condition 3 fails): the literals are real (`MiniMap.kt:91` `Color(0xFF1A73E8)` — literally
+  `ui/theme/Color.kt:6 PrimaryLight`; `LocationMarkerOverlay.kt:239-240` `0x1A4A90D9`/`0x664A90D9`; §73's line
+  numbers are stale by two), but the **authorities conflict on the fix's direction**:
+  `openspec/specs/dark-mode/spec.md:64` ("a control that carries status through a fixed hue family … SHALL dim in
+  dark presentation by using a **dark tone** of its own hue family") covers neither a position dot nor a
+  translucent halo, while the sibling convention `guidelines/UI.md:785-796` (vehicle marker) goes the *other* way
+  ("**lighter** core `#BBDEFB` → `#1E88E5`") and ends "The accuracy circle **is untouched**". For the accuracy
+  ring even the *existence* of a branch is a new requirement: `gps-location-marker/spec.md:17-19` mandates a
+  presentation palette only for the marker's casing and core gradient, its accuracy bullet (`:13`) has none, and
+  `mini-map/spec.md:89` says only "distinct style (e.g. a blue dot…)". Decisions needed: (a) does the accuracy
+  circle get a branch at all, given `UI.md:795-796`; (b) direction for both overlays — dark tone of the same hue
+  (`dark-mode` rule) or the marker convention's lighter tone for dark land; (c) the dark value for the mini-map dot
+  (no free theme role: `primary`/`secondary`/`tertiary` already mean object/additional/selected marker,
+  `MiniMap.kt:88-90`). Not the flag source — `NaviVeylinTheme(darkTheme = darkPresentation)` (`MainActivity.kt:113`)
+  and the mini-map's `STYLE_FLAG_DAYLIGHT` push resolve to the same value, and `isSystemInDarkTheme()` is already
+  ruled out (`CompassButton.kt:84-86`). Host seam exists for later (`CompassNeedleStrokeTest` rasterizes a
+  production Canvas under Robolectric `@GraphicsMode(NATIVE)` and prints drawn pixels into the XML `system-out`).
 
 - **Observed** ℹ: `app/src/main/java/com/naviveylin/ui/map/MiniMap.kt:91` (`gpsMarkerColor = Color(0xFF1A73E8)`) and
   `app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:241-242` (accuracy fill 10 % / border 40 % of

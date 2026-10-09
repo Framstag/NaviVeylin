@@ -617,8 +617,9 @@ Source: spec `route-planning-session`.
   height **is the band's own content at the current font scale**, never a constant reservation: its
   labels are `sp`-sized while the card's share is capped, so a fixed `cardCap - 120 dp` reservation
   squeezed the labelled End action at font scale 2.0 — measured 2026-10-09 on the host (window
-  411 x 891 dp at 420 dpi, `RoutePanelActionBandScaleTest`) as 42.7 dp of action height where the
-  action's own content needs 53.3 dp, and on the AVD as the action leaving the card entirely
+  411 x 891 dp at 420 dpi, `RoutePanelActionBandScaleTest`, whose cases print their geometry into
+  the JUnit XML's `system-out`) as 42.67 dp of action height where the
+  action's own content needs 53.33 dp, and on the AVD as the action leaving the card entirely
   (`TODO.md` §138, change `fix-pinned-band-height`). The band is therefore measured first and the
   scrolling content above it yields the space (`Modifier.weight(1f, fill = false)` on the scroll
   region, so the card still hugs a short route and still stops at its cap). Reviewing a

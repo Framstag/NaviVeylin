@@ -13,16 +13,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertIsDisplayed
@@ -72,7 +77,7 @@ import java.io.File
  * Every map screen element is assigned to a declared band, No surface opens between the map and its
  * chrome, The map menu is composed above the map chrome, Snackbar messages are composed above the
  * map and its in-window surfaces; spec: `route-planning-session` — The session surface is composed
- * above the phone's map chrome).
+ * above the phone's map chrome, and The overlay never covers the map controls).
  *
  * The screen itself cannot be hosted in this suite: `MapCanvasScreen` takes three Hilt view models
  * and no Hilt test host exists here (`RouteSessionCardExitTest` and its siblings compose the
@@ -419,6 +424,72 @@ class MapLayerStackComposeTest {
         assertFalse(
             "the card must have handled the tap and ended the session",
             viewModel.uiState.value.showRoutePanel
+        )
+    }
+
+    @Test
+    fun `the right-side control column sits fully above the session card`() {
+        // The card reports the height it covers; the screen hands that number to the column as its
+        // inset (spec: route-planning-session — The overlay never covers the map controls; owner
+        // finding 2026-10-03: the min strip covered the zoom-out button). The screen itself cannot
+        // be hosted here, so the case composes the two real members in their two bands and
+        // reproduces the screen's wiring one-for-one (`MapCanvasScreen.kt`: `onOverlayHeightChanged
+        // = { height -> viewModel.setOverlayCoveredPx(height); overlayBottomInset = height }` and
+        // `bottomInset = state.overlayCoveredPx.toDp()`): the inset is the number the real card
+        // reported, not a constant — with a zero inset these controls fall to the screen's bottom
+        // edge, i.e. into the card.
+        openSessionOnRoute()
+        var reportedCoveredPx by mutableStateOf(0)
+        composeRule.setContent {
+            Box(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxSize().zIndex(MapLayer.CHROME.z)) {
+                    MapRightWidgetColumn(
+                        isLandscape = true,
+                        mapAngleRadians = 0.0,
+                        gpsFixQuality = GpsFixQuality.GOOD,
+                        isDarkPresentation = false,
+                        onCenterClick = {},
+                        onToggleOrientation = {},
+                        speedInput = SpeedWidgetInput(50.0, 50.0),
+                        canZoomIn = true,
+                        canZoomOut = true,
+                        currentMag = 12.0,
+                        onZoomIn = {},
+                        onZoomOut = {},
+                        bottomInset = with(LocalDensity.current) { reportedCoveredPx.toDp() },
+                        modifier = Modifier.align(Alignment.BottomEnd)
+                    )
+                }
+                Box(Modifier.fillMaxSize().zIndex(MapLayer.MODAL.z)) {
+                    RoutePanel(
+                        viewModel = routePanelViewModel,
+                        onOpenFavoritePicker = {},
+                        onEndSession = { viewModel.dismissRoutePanel() },
+                        centerLat = 51.5136,
+                        centerLon = 7.4653,
+                        onOverlayHeightChanged = { reportedCoveredPx = it }
+                    )
+                }
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) { reportedCoveredPx > 0 }
+        composeRule.waitForIdle()
+
+        val card = composeRule.onNodeWithTag(ROUTE_PANEL_CARD_TAG).getBoundsInRoot()
+        val zoomOut = composeRule.onNodeWithContentDescription("Zoom out").getBoundsInRoot()
+        // Premise: the inset the column received is the card's covered height — a report of 0
+        // would leave the column at the screen's bottom edge.
+        val coveredDp = with(composeRule.density) { reportedCoveredPx.toDp().value }
+        assertEquals(
+            "the column's inset must be the card's covered height, card=$card zoomOut=$zoomOut",
+            card.bottom.value - card.top.value,
+            coveredDp,
+            1f
+        )
+        // The claim: the lowest control of the column lies fully above the card's top edge.
+        assertTrue(
+            "the column's controls must sit fully above the card (zoomOut=$zoomOut card=$card)",
+            zoomOut.bottom.value <= card.top.value + 1f
         )
     }
 }

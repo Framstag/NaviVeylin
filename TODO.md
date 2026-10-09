@@ -29,7 +29,7 @@
 - **ui** — improvement: §39 §73 §136 §152 §166
 - **ui** — feature: §4 §5
 - **verification** — bug: §131 §147 §148 §169
-- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167
+- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167 §170
 ---
 
 ## 169. The highlight detector qualifies a row by its **rightmost** colour run, so a row whose longest run is not last is dropped — Found 2026-10-09 by `bugfix-loop` (iteration 12) while gating §147
@@ -58,6 +58,26 @@
 - **Fix candidate**: qualify a row by its longest run and count that run (`:72-73`), so the row test matches its
   documented "a dense run per row" and `MIN_RUN_PX` stays untouched. Which run's extent a multi-run row
   contributes to the bbox is the part that change must state; it touches the same guard as §147.
+
+---
+
+## 170. The new navigation-column case asserts the raw preset fraction, not the column's edge — Filed by the round-1 review of `fix-nav-column-width-probe` (declined there, out of that fix's scope)
+**id:** 170 · **category:** verification · **class:** improvement · **status:** open
+
+- **Observed** ℹ (`app/src/test/java/com/naviveylin/ui/map/MapNavColumnWidthProbeTest.kt:251`): review round 1 on
+  `fix-nav-column-width-probe` found, verbatim: `assertTrue("… navigatingFx < rawPresetFx")` asserts the raw
+  preset fraction rather than the column's edge (the review's pointer was `:234`; the assertion sits at `:251`
+  since the round's comment edit). The one-sided comparison does fail on a tree where the navigating band
+  publishes nothing, which is the defect the case reproduces, but it would also pass for a right inset of one
+  pixel — a weaker guard than an assertion that the marker stays clear of the column band.
+- **Why it is filed rather than fixed here** ✗: the fix's change was already in its review round, and tightening
+  an assertion inside it would have needed another review round (`.pi/skills/bugfix-loop` — max 2 rounds, plus
+  the subtractive-round rule); the round was subtractive only by its own contract. The change's root cause, fix
+  and evidence were accepted unchanged.
+- **Fix candidate**: assert the resolved marker stays clear of the measured column band instead of the raw
+  preset — the covered-edge fraction the case already prints (`bandWidthFraction`, or the band edge plus
+  `VehicleAnchorPosition.MIN_FRACTION` of the visible extent), or the equivalent right-inset inequality — and
+  leave the case's `system-out` rows as they are. One test edit; no production change.
 
 ---
 

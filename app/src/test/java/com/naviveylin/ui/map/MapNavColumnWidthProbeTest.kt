@@ -51,9 +51,8 @@ import org.robolectric.Shadows.shadowOf
  *
  * **Why the case drives the Compose clock by hand.** `MapCanvasScreen` runs a `while (isActive)`
  * `withFrameNanos` loop (`MapCanvasScreen.kt:578`) feeding the follow display, so the composition
- * never becomes idle: `createComposeRule().waitForIdle()` fails with
- * `AppNotIdleException: Compose did not get idle after 81529 attempts in 60 SECONDS` (measured on
- * HEAD, 2026-10-09) and the screen is therefore not hostable the way the band harnesses are. With
+ * never becomes idle and `createComposeRule().waitForIdle()` cannot be used; the screen is therefore not
+ * hostable the way the band harnesses are. With
  * `mainClock.autoAdvance = false` and explicit `advanceTimeByFrame()` calls the composition, its
  * effects and the screen's callbacks all run, and the observable is the ViewModel's state — the
  * screen's own wiring, exercised whole, with no harness reproducing it.

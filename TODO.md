@@ -66,8 +66,7 @@
 
 - **Observed** ℹ (`app/src/test/java/com/naviveylin/ui/map/MapNavColumnWidthProbeTest.kt:251`): review round 1 on
   `fix-nav-column-width-probe` found, verbatim: `assertTrue("… navigatingFx < rawPresetFx")` asserts the raw
-  preset fraction rather than the column's edge (the review's pointer was `:234`; the assertion sits at `:251`
-  since the round's comment edit). The one-sided comparison does fail on a tree where the navigating band
+  preset fraction rather than the column's edge. The one-sided comparison does fail on a tree where the navigating band
   publishes nothing, which is the defect the case reproduces, but it would also pass for a right inset of one
   pixel — a weaker guard than an assertion that the marker stays clear of the column band.
 - **Why it is filed rather than fixed here** ✗: the fix's change was already in its review round, and tightening

@@ -25,7 +25,7 @@
 - **search** — improvement: §24 §76 §77 §109
 - **specs-and-process** — improvement: §40 §113 §134 §153
 - **stylesheets** — bug: §36
-- **ui** — bug: §70 §72 §73 §74
+- **ui** — bug: §70 §73 §74
 - **ui** — improvement: §39 §136 §155
 - **ui** — feature: §4 §5
 - **verification** — bug: §131 §147 §148
@@ -434,7 +434,7 @@
 ---
 
 ## 72. The compass needle is stroked in raw pixels, so it thins on high-density screens — Found 2026-09-24 during `compass-day-night-palette` (out of scope, sizing/geometry)
-**id:** 72 · **category:** ui · **class:** bug · **status:** open
+**id:** 72 · **category:** ui · **class:** bug · **status:** fixed-by `fix-compass-needle-stroke-density`
 
 - **Observed** ℹ: `app/src/main/java/com/naviveylin/ui/map/CompassButton.kt` draws both needle halves with
   `strokeWidth = 3f` — device pixels, not dp — while every other dimension in the same file is density-aware

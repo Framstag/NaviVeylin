@@ -28,37 +28,8 @@
 - **ui** — bug: §70 §74 §153
 - **ui** — improvement: §39 §73 §136 §152 §166
 - **ui** — feature: §4 §5
-- **verification** — bug: §131 §147 §148 §169
+- **verification** — bug: §131 §147 §148
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167 §170
----
-
-## 169. The highlight detector qualifies a row by its **rightmost** colour run, so a row whose longest run is not last is dropped — Found 2026-10-09 by `bugfix-loop` (iteration 12) while gating §147
-**id:** 169 · **category:** verification · **class:** bug · **status:** open
-
-- **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was filed as **§158**; that id is
-  taken by the in-flight `allow-lan-http-map-repository` work (§154 = the `MapRendering.md` dual-`§14`
-  entry there, §155-§164 = ten entries it added), so this one moved above that range. Ids are identity:
-  references from here on use §169.
-
-- **Observed** ℹ (`tools/measure-highlight.py:72`): `if run >= MIN_RUN_PX or (last - first + 1) >= MIN_RUN_PX:`
-  — both terms describe the **last** run the scan ends on (a row that ends on a match has
-  `run == last - first + 1`; a row that does not keeps the last run's extent in `first`/`last` while `run` is
-  0), so a row is counted only when its rightmost run reaches `MIN_RUN_PX`, never when merely its longest run
-  does. Device-free reproduction: `convert -size 1080x2400 xc:white -fill '#E0F7FA' -draw 'rectangle 300,900
-  340,900' -draw 'rectangle 500,900 504,900' /tmp/long-then-short.png` → `python3
-  tools/measure-highlight.py /tmp/long-then-short.png --margin 126` prints `{"…", "highlight": null, …}`,
-  **exit 2**, although the 41 px run alone (`-draw 'rectangle 300,900 340,900'`) prints
-  `bbox=[300, 340, 900, 900] px=41` / `verdict: inside`, exit 0; put the same 41 px run right of the 5 px one and
-  it is found again (`bbox=[500, 540, 900, 900] px=41`, exit 0). The scan order decides, not the run length.
-- **Why it matters** ℹ: the guard's stated intent is "requires a **dense run** of matching pixels per row"
-  (`:39`), i.e. any run. Under the implemented rule a casing-coloured glyph or label run sitting **right** of the
-  highlight in the same row silently drops that row — shrinking the bbox (a false `CLIPPED` once `--margin` bites)
-  and, with enough such rows, returning `no highlight` where the tool's contract says a highlight was found. The
-  device-side impact is inference, not measured; the synthetic rows above are the record.
-- **Fix candidate**: qualify a row by its longest run and count that run (`:72-73`), so the row test matches its
-  documented "a dense run per row" and `MIN_RUN_PX` stays untouched. Which run's extent a multi-run row
-  contributes to the bbox is the part that change must state; it touches the same guard as §147.
-
 ---
 
 ## 170. The new navigation-column case asserts the raw preset fraction, not the column's edge — Filed by the round-1 review of `fix-nav-column-width-probe` (declined there, out of that fix's scope)
@@ -2067,6 +2038,11 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Doc drift from the id change** ℹ: `.pi/skills/pixel-check/SKILL.md:45` and `:105` still cite this
   observation as `TODO.md` §143, which is now the route-cost entry, so the renumbering recorded above left two
   pointers aimed at the wrong id; whichever change repairs the detector should re-point them at §147.
+- **Update** ℹ (2026-10-09, `fix-highlight-longest-run`, archived): that change landed the longest-run row
+  rule and re-pointed the two skill pointers (`:45`, `:105`) from §143 to §147, so the adjacent finding's
+  `§169` is now carried by that archived change's own record
+  (`openspec/changes/archive/2026-10-09-fix-highlight-longest-run/`) while this entry's false positive stays
+  open as recorded above.
 
 ---
 

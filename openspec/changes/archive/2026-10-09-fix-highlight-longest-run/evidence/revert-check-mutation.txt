@@ -1,0 +1,36 @@
+2026-10-09T20:34:12Z
+# note: the tool's own `"image"` field names its per-run mktemp fixture directory; redacted here as <fixture-dir>
+# revert-check mutation: find_casing keeps only the run the row ends on (HEAD's rightmost-run rule) again
+case longest-run-not-last: {"image": "<fixture-dir>/longest-run-not-last.png", "highlight": null, "image_size": [200, 20], "band_bottom": 20}
+     exit=2
+FAIL longest-run-not-last — measured output does not carry "bbox": [10, 50, 5, 5]: {"image": "<fixture-dir>/longest-run-not-last.png", "highlight": null, "image_size": [200, 20], "band_bottom": 20}
+case longest-run-is-last: {"image": "<fixture-dir>/longest-run-is-last.png", "presentation": "dark", "bbox": [100, 140, 5, 5], "highlight_px": 41, "image_size": [200, 20], "band": [0, 20], "margin_px": 0, "clipped": [], "inside": true}
+     exit=0
+PASS longest-run-is-last
+case longest-run-per-row: {"image": "<fixture-dir>/longest-run-per-row.png", "presentation": "dark", "bbox": [60, 100, 6, 6], "highlight_px": 41, "image_size": [200, 20], "band": [0, 20], "margin_px": 0, "clipped": [], "inside": true}
+     exit=0
+FAIL longest-run-per-row — measured output does not carry "bbox": [10, 100, 5, 6]: {"image": "<fixture-dir>/longest-run-per-row.png", "presentation": "dark", "bbox": [60, 100, 6, 6], "highlight_px": 41, "image_size": [200, 20], "band": [0, 20], "margin_px": 0, "clipped": [], "inside": true}
+case single-run: {"image": "<fixture-dir>/single-run.png", "presentation": "dark", "bbox": [10, 50, 5, 5], "highlight_px": 41, "image_size": [200, 20], "band": [0, 20], "margin_px": 0, "clipped": [], "inside": true}
+     exit=0
+PASS single-run
+case short-only: {"image": "<fixture-dir>/short-only.png", "highlight": null, "image_size": [200, 20], "band_bottom": 20}
+     exit=2
+PASS short-only
+case two-short-runs: {"image": "<fixture-dir>/two-short-runs.png", "highlight": null, "image_size": [200, 20], "band_bottom": 20}
+     exit=2
+PASS two-short-runs
+case behind-card: {"image": "<fixture-dir>/behind-card.png", "presentation": "dark", "bbox": [10, 50, 18, 18], "highlight_px": 41, "image_size": [200, 20], "band": [0, 15], "margin_px": 2, "clipped": ["bottom"], "inside": false}
+     exit=1
+PASS behind-card
+measure-highlight selftest: 5 passed, 2 failed
+harness exit=1
+
+2026-10-09T20:34:21Z
+# restored: the fix re-copied over the mutation, then re-run
+$ grep -rn "REVERT-CHECK MUTATION" tools/ .pi/skills/pixel-check/  -> no match
+PASS behind-card
+measure-highlight selftest: 7 passed, 0 failed
+harness exit=0
+$ git diff --stat tools/measure-highlight.py
+ tools/measure-highlight.py | 37 ++++++++++++++++++++++++++-----------
+ 1 file changed, 26 insertions(+), 11 deletions(-)

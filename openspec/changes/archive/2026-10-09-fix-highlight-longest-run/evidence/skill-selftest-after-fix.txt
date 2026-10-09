@@ -1,0 +1,7 @@
+2026-10-09T20:34:44Z
+$ bash .pi/skills/pixel-check/selftest.sh   # ImageMagick, no device
+ok   inside -> inside=true
+ok   behind-card -> inside=false
+ok   dot -> no highlight
+selftest FAIL=0
+skill selftest exit=0

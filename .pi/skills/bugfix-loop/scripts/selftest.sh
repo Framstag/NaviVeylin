@@ -32,10 +32,40 @@ bash "$S" triage 63 77 81 >/dev/null
 check "queue stored" "63 77 81" "$(jq -r '[.queue[].id] | join(" ")' "$LOOP_STATE")"
 check "next is first" "63" "$(bash "$S" next)"
 
-bash "$S" start fix-a >/dev/null
+bash "$S" start fix-a --id '§63' >/dev/null
 check "current set" "fix-a" "$(jq -r .current "$LOOP_STATE")"
+check "current id set" "63" "$(jq -r .currentId "$LOOP_STATE")"
+check "start logs phase A" "A" "$(jq -r '.steps[-1].phase' "$LOOP_STATE")"
+
+bash "$S" step B --name gate --status ok --note "6/6 conditions" >/dev/null
+check "step advances phase" "B" "$(jq -r .currentPhase "$LOOP_STATE")"
+check "step records status" "ok" "$(jq -r '.steps[-1].status' "$LOOP_STATE")"
+check "step records note" "6/6 conditions" "$(jq -r '.steps[-1].note' "$LOOP_STATE")"
+check "step carries current id" "63" "$(jq -r '.steps[-1].id' "$LOOP_STATE")"
+
+sh="$(bash "$S" show)"
+case "$sh" in
+  *"§63 fix-a · phase B"*) echo "ok   show names issue and phase";;
+  *) echo "FAIL show names issue and phase: [$sh]"; fail=1;;
+esac
+case "$sh" in
+  *"B  gate · ok · 6/6 conditions"*) echo "ok   show step row";;
+  *) echo "FAIL show step row: [$sh]"; fail=1;;
+esac
+
 bash "$S" done fix-a --result done --id '§63' >/dev/null
 check "current cleared" "null" "$(jq -r '.current' "$LOOP_STATE")"
+check "current phase cleared" "null" "$(jq -r '.currentPhase' "$LOOP_STATE")"
+check "steps survive done" "2" "$(jq -r '.steps | length' "$LOOP_STATE")"
+sh="$(bash "$S" show)"
+case "$sh" in
+  *"last: §63 fix-a (closed)"*) echo "ok   show falls back to last iteration";;
+  *) echo "FAIL show last iteration: [$sh]"; fail=1;;
+esac
+case "$sh" in
+  *"B  gate · ok · 6/6 conditions"*) echo "ok   show keeps last iteration's steps";;
+  *) echo "FAIL show last steps: [$sh]"; fail=1;;
+esac
 check "completed has one" "1" "$(jq -r '.completed | length' "$LOOP_STATE")"
 check "default verdict for done" "closed" "$(jq -r '.completed[0].verdict' "$LOOP_STATE")"
 check "queue shrank" "77 81" "$(jq -r '[.queue[].id] | join(" ")' "$LOOP_STATE")"
@@ -60,6 +90,10 @@ esac
 case "$rep" in
   *"skipped  §77	needs-decision"*) echo "ok   report skip row";;
   *) echo "FAIL report skip row"; fail=1;;
+esac
+case "$rep" in
+  *"B/gate · ok · 6/6 conditions"*) echo "ok   report step row";;
+  *) echo "FAIL report step row: [$rep]"; fail=1;;
 esac
 check "verdict histogram" "1	blocked
 1	needs-decision" "$(bash "$S" verdicts | sort)"
@@ -97,6 +131,18 @@ set +e
 bash "$S" done --id '§9' --result maybe >/dev/null 2>&1; code=$?
 set -e
 check_exit "bad result refused" 2 "$code"
+set +e
+bash "$S" step X --name boom >/dev/null 2>&1; code=$?
+set -e
+check_exit "bad phase refused" 2 "$code"
+set +e
+bash "$S" step A --status ok >/dev/null 2>&1; code=$?
+set -e
+check_exit "step without name refused" 2 "$code"
+set +e
+bash "$S" step A --name x --status maybe >/dev/null 2>&1; code=$?
+set -e
+check_exit "bad step status refused" 2 "$code"
 
 # a fresh 1-minute run is live
 bash "$S" init --bugs 1 --minutes 1 >/dev/null

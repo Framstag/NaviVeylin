@@ -2225,7 +2225,32 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   analysis.
 
 ## 150. After arrival the reroute path re-acquires the destination that was already reached — Found 2026-10-07 while applying `auto-end-navigation-after-arrival` (device run on the AAOS AVD, tasks 3.2/3.3)
-**id:** 150 · **category:** navigation · **class:** improvement · **status:** open
+**id:** 150 · **category:** navigation · **class:** improvement · **status:** on-hold suppression of the post-arrival reroute vs the recorded owner decision
+
+- **Loop verdict** ⏳ (bug-fix loop 2026-10-09, `bugfix-loop` iteration 9 — not eligible: gate condition 3 fails,
+  `needs decision`): the claim is real in the tree — `NavigationEngine.kt:887` `onRerouteRequest` reaches
+  `:950` `confirmReroute` with no arrival guard, and the arrival fact is deliberately carried across the reroute
+  (`:333` `val arrivedBefore = keepRerouteCooldown && _state.value.hasReachedDestination`, comment `:327-328`
+  "a reroute re-acquires the destination that was already reached") — but the authorities state the **opposite**
+  of the fix, as a recorded owner decision: `proposal.md:31-32` of the archived change
+  `auto-end-navigation-after-arrival` ("**No reroute behaviour change.** Reaching the destination does not
+  suppress the engine's reroute path (owner decision); the arrival fact is instead retained across a reroute"),
+  its `design.md:150` ("D7 — No reroute suppression, no setting (owner decisions)") and `:137` ("(c) suppress
+  the reroute after arrival — rejected by the owner (D7)"), plus its risk note `:173-174` ("[A drive-by within
+  30 m already counts as arrival, and with reroute unsuppressed the driver can be guided back afterwards] →
+  accepted semantics … Documented in the spec, not silently assumed"). The live spec encodes that same
+  behaviour: `openspec/specs/navigation-engine/spec.md:187` ("SHALL keep it while a reroute replaces the
+  route") with scenario "Arrival survives a reroute" (`:200-203`), asserted today by
+  `NavigationEngineArrivalTest#rerouteKeepsTheArrivalFact` (`:176`); no spec or guideline states that a reached
+  destination must not be re-acquired — the nearest text, `guidelines/UI.md:736`, documents the reroute as
+  re-acquiring the retained destination. So the fix reverses an explicit owner decision and needs its own
+  `reroute-trigger` delta with a driver-visible acceptance criterion (what the driver sees while parking, not
+  what the engine computes — the entry's own line). Decision needed: does the post-arrival reroute stay
+  unsuppressed as decided in D7, or is that decision reversed (and then with which guard: refuse only a reroute
+  whose destination is the running session's arrival, per the fix candidate). Host seam exists for the later
+  change — `NavigationEngineArrivalTest` reports arrival through `listener().onTargetReached(...)` and drives
+  the reroute through `requestReroute()`, `NavigationEngineRerouteTest` asserts the calculation — so only the
+  decision is missing, not the host decidability.
 
 - **Observed** ℹ: the native `RouteStateAgent` reports the target reached only inside a 30 m circle while the
   position is on route (`app/src/main/cpp/libosmscout/libosmscout/src/osmscout/navigation/RouteStateAgent.cpp`),

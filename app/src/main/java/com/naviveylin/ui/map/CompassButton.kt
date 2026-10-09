@@ -216,6 +216,10 @@ private fun DrawScope.drawCompassNeedle(
 
     // Icon area is 24dp; needle spans ~20dp centered on the button
     val needleLength = 10.dp.toPx()
+    // Density-independent, like every other length here: a raw pixel count would let the
+    // needle thin as the screen density grows (spec: compass-button — Compass needle
+    // stroke is density-independent, TODO.md §72).
+    val needleStrokeWidth = 3.dp.toPx()
     val northX = centerX + dirX * needleLength
     val northY = centerY + dirY * needleLength
     val southX = centerX - dirX * needleLength
@@ -226,7 +230,7 @@ private fun DrawScope.drawCompassNeedle(
         color = needleColor,
         start = Offset(centerX, centerY),
         end = Offset(northX, northY),
-        strokeWidth = 3f,
+        strokeWidth = needleStrokeWidth,
         cap = StrokeCap.Round
     )
 
@@ -234,7 +238,7 @@ private fun DrawScope.drawCompassNeedle(
         color = needleColor.copy(alpha = 0.4f),
         start = Offset(centerX, centerY),
         end = Offset(southX, southY),
-        strokeWidth = 3f,
+        strokeWidth = needleStrokeWidth,
         cap = StrokeCap.Round
     )
 

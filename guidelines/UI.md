@@ -696,6 +696,14 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   needle landed on a light fill at 1.04:1. The presentation comes from the
   resolved dark-mode value (`MapCanvasUiState.isDarkPresentation`), never from
   `isSystemInDarkTheme()`, which would bypass a manual On/Off.
+- **Drawn dimensions are density-independent (phone overlays).** A stroke width, a radius and marker geometry
+  SHALL be expressed in dp and converted at draw time (`.dp.toPx()`), never as a raw device-pixel count: the
+  same number is a different visual size on every screen. `CompassButton`'s needle was stroked `strokeWidth = 3f`
+  while its sibling `needleLength = 10.dp.toPx()` and its own rim (`1.dp.toPx()`) were density-aware — 3 dp at
+  1x against 0.86 dp at 3.5x (change `fix-compass-needle-stroke-density`, `TODO.md` §72). Its guard case
+  measures the drawn pixels and prints them into the JUnit XML's `system-out` (`CompassNeedleStrokeTest`:
+  `CompassNeedleStroke 1x=4px (4.0dp) 4x=12px (3.0dp)` after the fix — the ±1 px antialiased edge counted
+  once — against `4x=4px (1.0dp)` on HEAD, re-measurable by reverting `3.dp.toPx()` to `3f`).
 - The speed badge SHALL use the standard overlay card container (theme
   surface at 0.92 alpha, 12dp rounded) — the same treatment as the turn card
   and routing status — in the NORMAL state, with dark (`onSurface`) text;

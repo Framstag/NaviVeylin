@@ -48,8 +48,9 @@ TOLERANCE = 4
 # A short analysed leg is a short highlight: the threshold must stay low enough to see one
 # (a leg crossing the band is hundreds of px, a 40 m leg at city zoom is a handful), while
 # still rejecting the isolated label pixels that carry the same colour in dark mode. It is
-# applied to a row's longest run, so a longer glyph or label run beside the highlight can
-# neither qualify a row nor drop one (TODO.md §169).
+# applied to a row's longest run, so a run to the right of the highlight cannot drop the row
+# (TODO.md §169) — while a longer glyph or label run *is* that row's longest run, so it does
+# qualify the row and is counted (that is §147's false positive, which this rule leaves open).
 MIN_RUN_PX = 8
 
 

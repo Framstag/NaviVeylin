@@ -18,7 +18,7 @@
 - **native-jni** — feature: §23
 - **persistence** — bug: §168
 - **persistence** — improvement: §9
-- **route-and-navigation** — bug: §129 §130 §139 §144 §165
+- **route-and-navigation** — bug: §129 §130 §139 §165
 - **route-and-navigation** — improvement: §126 §150
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
@@ -806,7 +806,7 @@ GPS back                     →  REAL
 4. Where: new Kotlin `@Singleton` service feeding a derived position flow with state (REAL/ESTIMATED/LOST); consumers = marker, center, nav engine, AA.
 
 ## 168. `viewport-persist` describes one `viewport.json` while `ViewportStorage` writes one file per map key — Found 2026-10-09 by `bugfix-loop` (iteration 6) while gating §9
-**id:** 168 · **category:** persistence · **class:** bug · **status:** open
+**id:** 168 · **category:** persistence · **class:** bug · **status:** on-hold (decision: the spec's single `viewport.json` vs one file per map key is the un-keyed-viewport semantics, gated with §9/§157)
 
 - **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was filed as **§157**; that id is
   taken by the in-flight `allow-lan-http-map-repository` work (§154 = the `MapRendering.md` dual-`§14`
@@ -2052,7 +2052,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 ---
 
 ## 144. A failed reroute leaves `isRerouting`/`isOffRoute` set until the next instruction list — Found 2026-10-06 while landing `fix-reroute-lease-release` (adjacent finding, out of that change's scope)
-**id:** 144 · **category:** route-and-navigation · **class:** bug · **status:** open
+**id:** 144 · **category:** route-and-navigation · **class:** bug · **status:** fixed-by `fix-reroute-failure-state-flags` — refuted 2026-10-09 by `bugfix-loop`: the failure path (`NavigationEngine.kt:498`, `:519`) and the cancel path (`:526`) both clear `isRerouting` via `withoutRerouteAttemptFlag()` (`:673`), and `isOffRoute` is kept on purpose by spec `rerouting-visual-feedback`
 
 - **Observed** ℹ: `confirmReroute` sets both flags when it starts an attempt
   (`app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt:908` — `it.copy(isRerouting = true,
@@ -2401,7 +2401,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   the card's height while the panel is open, and one device run of the follow anchor with the panel at MAX.
 
 ## 153. Rotating the phone while follow mode is active crashes on an empty coerce range in the follow drift clamp — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (device run on the Pixel_8 AVD, task 4.3)
-**id:** 153 · **category:** ui · **class:** bug · **status:** open
+**id:** 153 · **category:** ui · **class:** bug · **status:** in-flight fix-follow-rotation-crash (9/10 tasks in the main tree; the `open` metadata was stale)
 
 - **Observed** ✗: with navigation running (follow mode engaged) on the phone AVD, `adb shell settings put
   system user_rotation 1` killed the process:

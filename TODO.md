@@ -1617,7 +1617,23 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 ---
 
 ## 130. The description's first node and the route polyline's first point sit ~200 m apart on a long route — Found 2026-10-05 while applying `fix-step-leg-distance-and-time` (device run, task 5.2)
-**id:** 130 · **category:** route-and-navigation · **class:** bug · **status:** open
+**id:** 130 · **category:** route-and-navigation · **class:** bug · **status:** on-hold start-point authority (requested position vs snapped node) · needs automotive AVD
+
+- **Blocked** ⏳ (bug-fix loop 2026-10-09, `bugfix-loop` iteration 3 — gate conditions 3 and 6 fail):
+  host-decidable = **no**. Both arrays are native outputs — `instructionLats` is filled from the first
+  description node (`OSMScoutClient.cpp:6241`, `:6249`), `latitudes` from `TransformRouteDataToPoints`
+  (`:6463`, `:6481-6489`, geometry `AbstractRoutingService.cpp:1854-1859`) — and host JVM tests load the stub
+  `app/src/test/jniLibs/libosmscout_client_java.so` with `FakeOSMScoutClient`, so a host fixture would
+  hardcode both arrays and assert only the consumer, never the divergence. Condition 3 fails as well: this
+  entry's own fix candidate is a **choice** ("publish the polyline's start as the first instruction's
+  position (or the description's node, consistently)"), i.e. an unapproved product decision. The cited ~198 m
+  is **not retained**: it came from a device JUnit XML on the automotive AVD `emulator-5556`, not attached
+  today (`adb devices` → only `emulator-5554`).
+- **Related** ℹ: **§131** already explains a ~200 m gap as the offset between two consecutive instructions
+  (not step 0 vs `latitudes[0]`) — read §131 before re-diagnosing, and do not open a second entry for one
+  measurement. The seam that would make this closable: a host-runnable route calculation over a test database
+  (submodule C++/ctest level — not wired into this repo's Gradle gate) or a recorded real `RouteEntry` checked
+  in as evidence.
 
 - **Observed** ⚠: `RouteInstructionPositionDeviceTest.analysedStepSegmentsStayMonotonicAndOnThePolyline`
   reported `step 1's segment starts 198 m away from its manoeuvre` on the AAOS AVD (`emulator-5556`,

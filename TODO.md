@@ -6,8 +6,8 @@
 **Clusters** (category, then class — jump targets, not an order):
 - **build-and-harness** — bug: §146
 - **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145
-- **car** — bug: §56 §57 §83 §92 §93
-- **car** — improvement: §29 §34 §46 §64 §103 §120 §127 §133
+- **car** — bug: §57 §83 §92 §93
+- **car** — improvement: §29 §34 §46 §56 §64 §103 §120 §127 §133
 - **data-and-maps** — bug: §91 §99
 - **favorites** — improvement: §102
 - **location** — feature: §8
@@ -1317,7 +1317,22 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `dumpsys meminfo` before/after; a phone render-path change, not a car-only one.
 
 ## 56. Trip publishing is the one host sender that deliberately keeps firing while the session is stopped — Found 2026-09-21 (same review)
-**id:** 56 · **category:** car · **class:** bug · **status:** open
+**id:** 56 · **category:** car · **class:** improvement · **status:** on-hold host-stability trade-off (needs an AVD measurement)
+
+- **Loop verdict** ⏳ (bug-fix loop 2026-10-09, `bugfix-loop` iteration 5 — reclassified `bug` → `improvement`,
+  not eligible): the bug framing is wrong twice. (a) The send **is** bounded today:
+  `NavigationManagerController.kt:101` gates on `navigating` (set in `onNavigationStarted :69`, cleared in
+  `onNavigationEnded :81`, `onDestroy :127` and on a rejected `updateTrip :109`; KDoc `:31-33`), so publishing
+  happens only inside a navigation period. (b) This entry's own second fix candidate is already shipped and
+  asserted — `NavigationManagerControllerTest.kt:144-161` `aRejectedTripUpdateEndsTripPublishing`
+  (`verify(exactly = 1) { nm.updateTrip(any()) }`). The only surviving option — gate the send on the session's
+  started period — is a **decision**, not a repair: it contradicts `guidelines/Design.md:495-499` ("guidance
+  updates and trip metadata keep flowing" while the car app is not visible) and
+  `openspec/specs/car-host-fault-isolation/spec.md:240-243` ("Guidance progresses while backgrounded").
+  Copying the sibling pattern (`NavigationSession.kt:664`) onto the trip collector (`:684-690`) would *delete*
+  that scenario. Path: close this as resolved by the existing gate, or open a **normal (non-loop)** change that
+  modifies the scenario + `Design.md:499` + the collector when the stale-cluster trade-off is chosen — settled
+  by an AVD run counting `HOST` trip lines against host stability, not by a host case.
 
 - **Observation** ℹ: `NavigationSession.kt:573-579` collects every navigation-state emission and calls
   `NavigationManagerController.publishTrip` (`NavigationManagerController.kt:88`), which has no

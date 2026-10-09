@@ -25,7 +25,7 @@
 - **search** — improvement: §24 §76 §77 §109
 - **specs-and-process** — improvement: §40 §113 §134 §153
 - **stylesheets** — bug: §36
-- **ui** — bug: §70 §72 §73 §74 §138
+- **ui** — bug: §70 §72 §73 §74
 - **ui** — improvement: §39 §136 §155
 - **ui** — feature: §4 §5
 - **verification** — bug: §131 §147 §148

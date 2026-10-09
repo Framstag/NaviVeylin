@@ -180,6 +180,28 @@ await runs.run('review', { agent: 'reviewer', task:
 - `FAIL` → send the unproven claims back to the same change as a new `worker` task (fix + re-run the affected
   cases), then one more review. **Max 2 review rounds**; after that record the change `blocked`, leave it
   unarchived, and continue with the next bug.
+- **Round rule (learned in the field, 2026-10-09).** A round-2 `FAIL` whose findings are *strictly
+  subtractive* — delete a claim, correct an evidence pointer, remove a wrong quote, narrow a scenario mapping
+  — does **not** need a third full review: the remediation contract is the reviewer's own quote, and the
+  orchestrator verifies it mechanically (one `grep` per quoted number ↔ named artifact pair, plus the
+  `git diff` of the round). Anything that adds a claim, a case or an assertion gets a third review. A round
+  that finds *new* overreach is a `blocked` change, not a longer round.
+
+## Evidence pointers — what a quoted number must point at
+
+Both review rounds of the first real iteration failed on the same class of defect, so it is a loop invariant:
+**every number, tally or timestamp quoted in an artifact must name an artifact that actually carries it, and
+that artifact must still say the same thing when the change is archived.**
+
+| Rule | Why (the case that proved it) |
+|---|---|
+| Quote the JUnit XML, not the Gradle log, for test-derived numbers | Gradle does not print test stdout, so a `BandGeometry` line was attributed to a `/tmp/loop-*.log` that never contained it |
+| Make the case print what it measures (`println` → XML `system-out`) | the after-fix geometry then survives the run that produced it, and can be re-checked by a reader |
+| Never point at a `/tmp` log | the next run overwrites it: a quoted focus tally turned into `BUILD SUCCESSFUL in 2s … FROM-CACHE` under the same path |
+| A row you can no longer reproduce is labelled **not retained**, with how it was obtained | an honest prose record beats a dangling pointer; re-running a mutation just to recreate a number is only allowed if the new artifact survives |
+| Recheck every pair before archive | `grep` each quoted number in the named artifact; a `FAIL` on this class is cheap to prevent and expensive to argue about |
+
+A number whose only evidence is a device run is stated as such — device-gated, not implied done.
 
 ## Phase F — verify, archive, bookkeeping (iteration child)
 
@@ -248,3 +270,11 @@ State: .pi/bugfix-loop/run.json
 8. **Deleting a `TODO.md` entry the run was not allowed to remove** — mark `fixed-by` and propose the removal.
 9. **Letting the loop exceed the budget because "one more bug".** The cap and the deadline are the user's
    instruction, not a suggestion; `loop-state.sh next` is the authority.
+10. **A tall, convincing artifact with one false pointer.** The first iteration's review passed every *claim*
+    and failed the change twice on pointers alone — a quote aimed at an artifact that never carried it, and a
+    tally aimed at a file a later run had overwritten. Quote the XML (and make the case print its numbers),
+    never a `/tmp` log, and recheck each pair before archive
+    (see "Evidence pointers").
+11. **Reading a round-2 `FAIL` as "the fix is wrong".** Separate the claim classes: a fix/gate/revert-check
+    `PASS` with a pointer `FAIL` is a documentation round, not a redesign — and a *strictly subtractive*
+    round needs no third review, only the orchestrator's mechanical check.

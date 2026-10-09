@@ -37,7 +37,9 @@ import xml.etree.ElementTree as ET
 # *unique to the highlight*, but only per theme: in dark mode a light colour also
 # appears on map labels, so a colour match alone is not evidence. The detector
 # therefore requires a **dense run** of matching pixels per row, which random label
-# pixels never form (a stroke of the analysed segment is ~8 px wide).
+# pixels never form (a stroke of the analysed segment is ~8 px wide). Per row the
+# **longest** run decides, wherever in the row it lies — a casing-coloured glyph or
+# label run to its right must not drop the row (TODO.md §169).
 CASINGS = {
     "day": (0x00, 0x45, 0x4F),
     "dark": (0xE0, 0xF7, 0xFA),
@@ -45,19 +47,29 @@ CASINGS = {
 TOLERANCE = 4
 # A short analysed leg is a short highlight: the threshold must stay low enough to see one
 # (a leg crossing the band is hundreds of px, a 40 m leg at city zoom is a handful), while
-# still rejecting the isolated label pixels that carry the same colour in dark mode.
+# still rejecting the isolated label pixels that carry the same colour in dark mode. It is
+# applied to a row's longest run, so a longer glyph or label run beside the highlight can
+# neither qualify a row nor drop one (TODO.md §169).
 MIN_RUN_PX = 8
 
 
 def find_casing(pixels, width, height, target):
-    """Bounding box of rows that hold a dense horizontal run of [target] pixels."""
+    """Bounding box of rows that hold a dense horizontal run of [target] pixels.
+
+    A row qualifies by its **longest** matching run — not by the run the scan
+    happens to end on — and contributes that run's extent to the box and its
+    length to the count, so a row whose longest run is not its rightmost one is
+    still a highlight row.
+    """
     x0 = y0 = 10 ** 9
     x1 = y1 = -1
     count = 0
     for y in range(height):
         run = 0
         first = -1
-        last = -1
+        best = 0
+        best_first = -1
+        best_last = -1
         for x in range(width):
             r, g, b = pixels[x, y]
             if (abs(r - target[0]) <= TOLERANCE
@@ -66,15 +78,18 @@ def find_casing(pixels, width, height, target):
                 if run == 0:
                     first = x
                 run += 1
-                last = x
             else:
+                if run > best:
+                    best, best_first, best_last = run, first, x - 1
                 run = 0
-        if run >= MIN_RUN_PX or (last - first + 1) >= MIN_RUN_PX:
-            count += last - first + 1
-            if first < x0:
-                x0 = first
-            if last > x1:
-                x1 = last
+        if run > best:
+            best, best_first, best_last = run, first, width - 1
+        if best >= MIN_RUN_PX:
+            count += best
+            if best_first < x0:
+                x0 = best_first
+            if best_last > x1:
+                x1 = best_last
             if y < y0:
                 y0 = y
             if y > y1:

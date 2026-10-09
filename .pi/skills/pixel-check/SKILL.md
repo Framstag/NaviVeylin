@@ -42,7 +42,7 @@ analysed segment on screen and a card top inside the canvas. Two tells, both pri
 Recorded example of the failure (2026-10-06, a phone frame with no route, `.pi/logs/view-image-check/`):
 `highlight (dark): bbox=[619, 641, 413, 734] px=18` / `canvas=1080x2400 band=[0,2400]` / `verdict:
 inside`, exit 0. A crop of that box is ordinary base map; the look caught it. The script's own gap —
-refusing instead of reporting `inside` when no plausible highlight exists — is `TODO.md` §143.
+refusing instead of reporting `inside` when no plausible highlight exists — is `TODO.md` §147.
 **The look establishes the precondition; the script measures given it.** A verdict that fails these
 checks is a false positive, never a finding.
 
@@ -99,14 +99,18 @@ verdict: inside            # exit 0; 1 = clipped (names the edges); 2 = no highl
 - `--dump` derives the card top from the bottom-most full-width view with real
   height, so the band is the *measured* card edge, not an assumption.
 - The detector requires a **dense run** of matching pixels per row
-  (`MIN_RUN_PX`), because in dark mode the light casing colour also appears on map
+  (`MIN_RUN_PX`) — the row's *longest* run, wherever it sits in the row, so a
+  casing-coloured glyph or label run right of the highlight cannot drop the row
+  (`TODO.md` §169) — because in dark mode the light casing colour also appears on map
   labels — a colour match alone is not evidence. It is not sufficient either: on a
   frame with no route, 18 pixels of light-blue `P` parking glyph passed it and the
-  script reported `verdict: inside` (`TODO.md` §143). Check the precondition and the
+  script reported `verdict: inside` (`TODO.md` §147). Check the precondition and the
   `px`/`band` sanity before trusting a positive verdict.
-- `bash .pi/skills/pixel-check/selftest.sh` verifies the detector against
-  synthetic images (inside / behind the card / no highlight) with ImageMagick, no
-  device needed. Run it after touching the script.
+- `bash tools/measure-highlight-selftest.sh` verifies the detector against synthetic
+  images it builds itself (python3 stdlib, no ImageMagick, no device) — the row rule,
+  the bbox extent, the floor and the band verdict. `bash .pi/skills/pixel-check/selftest.sh`
+  covers inside / behind the card / no highlight with ImageMagick. Run one after touching
+  the script.
 
 ## Rules
 

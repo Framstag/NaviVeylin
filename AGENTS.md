@@ -153,13 +153,14 @@ What this file keeps, with the rest owned by the specs:
 `TODO.md` is the live backlog: numbered `## <id>.` sections plus the feature-table groups. Every entry
 carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line
 under its heading; ids are identity and are never renumbered (commit messages, change tasks and sessions
-quote `§N`). Three skills own the file:
+quote `§N`). Four skills own the file:
 
 | Skill | Job |
 |---|---|
 | `triage-todo` | read-only — rank what is open and name the next change |
 | `cleanup-todo` | remove entries already implemented on master / in an archived change / in a merged PR, repair the metadata, optionally cluster |
 | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
+| `bugfix-loop` | run the user-budgeted bug-fix loop — triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → next bug; strict eligibility (one root cause, one fix, host-decidable), one fresh child per bug so the context window survives, and `.pi/skills/bugfix-loop/scripts/loop-state.sh` as the mechanical bug/time cap |
 
 ## Agent iteration loop (measure first)
 
@@ -174,6 +175,8 @@ What this file owns about the loop is only where its parts live:
 - measuring a pixel symptom: `guidelines/Build.md` §10 and §11, the `pixel-check` skill, and the
   coordinate-free diagnostics line (spec `auto-diagnostics`);
 - the iteration levers and the measurements behind them: `guidelines/Build.md` §4, §6, §7;
+- a bug fix inside the loop owes a test that fails on HEAD *before* the fix, and an independent read-only
+  reviewer before archive — the loop, its budget and its eligibility gate are `.pi/skills/bugfix-loop`;
 - the device loop, an emulator with maps, and a Compose geometry assertion: the `device-check`,
   `provision-phone-emulator` and `compose-geometry` skills;
 - the build, test and falsification skills: `build-app`, `run-tests`, `revert-check`, and the wrapper and

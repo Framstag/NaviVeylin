@@ -18,18 +18,61 @@
 - **native-jni** — improvement: §81 §82 §119
 - **native-jni** — feature: §23
 - **persistence** — bug: §9
-- **route-and-navigation** — bug: §129 §130 §139 §144
+- **route-and-navigation** — bug: §129 §130 §139 §144 §154
 - **route-and-navigation** — improvement: §126
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
 - **specs-and-process** — improvement: §40 §113 §134 §153
 - **stylesheets** — bug: §36
-- **ui** — bug: §70 §72 §73 §74 §122 §138
-- **ui** — improvement: §39 §136
+- **ui** — bug: §70 §72 §73 §74 §138
+- **ui** — improvement: §39 §136 §155
 - **ui** — feature: §4 §5
 - **verification** — bug: §131 §147 §148
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141
+
+---
+
+## 155. The stop control's own accessibility target is asserted by geometry only, not by its semantics action — Found 2026-10-09 by `bugfix-loop` (iteration 1) while refuting §122
+**id:** 155 · **category:** ui · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `NavigationStateOverlayComposeTest` pins the control's box
+  (`stopControlHitAreaIsAtLeast48Dp`, `stopControlBoundsLieOutsideDetailsRegionBounds`,
+  `stopControlCentreEndsNavigationWithoutOpeningDetails`) but nothing asserts that the control is an
+  **actionable semantics node of its own** — the property that decides whether a tap or a screen reader
+  resolves to the stop action rather than to the surrounding card. The §122 investigation measured that
+  property out of band (probe over the merged tree: `Tag:'stopNavigation' Role='Button' Actions=[OnClick]`),
+  so the measurement exists but no case holds it.
+- **Consequence** ⏳: a refactor could fold the control back into a card-wide clickable and every existing
+  assertion would stay green — exactly the regression class §122 reported (device dump, 2026-10-07).
+- **Fix candidate**: one host-only case in the same class asserting the semantics contract — the control
+  node `assertHasClickAction()` with its own `contentDescription`, and the details region's node does not
+  own that action (`SemanticsNodeInteraction` fetchers on the merged tree; no device needed).
+
+---
+
+## 154. The navigation overlay's stop path may never enter the session's stopped state, and the map returns to `FREE_DRIVE` where the ViewModel path asserts `BROWSE` — Filed 2026-10-06 by `fix-nav-overlay-stop-tap` as §140 (an id that never reached this file); re-filed 2026-10-09 by `bugfix-loop`
+**id:** 154 · **category:** route-and-navigation · **class:** bug · **status:** open
+
+- **Observed** ℹ: the archived `fix-nav-overlay-stop-tap` records — in `design.md:47` and its device tasks —
+  that the card's stop ends navigation and clears the route **without** entering the session's stopped state
+  (`RoutePanelVM: session grace period expired` appeared in none of its six runs, no Restart/End screen was
+  ever observed), and that the map afterwards showed `exit_free_drive` (= `FREE_DRIVE`) although the
+  pre-navigation label was `start_free_drive` (= `BROWSE`, the mode `map-modes` returns to and
+  `MapCanvasViewModelModeTest.navigationEndRestoresBrowseMode` asserts for the ViewModel path). Its own
+  caveat, quoted: one run, on a tree with other in-flight work.
+- **Consequence** ⏳: the grace period of `route-planning-session` has no **observed** reachable UI path on
+  the phone, and the map can land in a mode the ViewModel-level case excludes. Nothing tracks the subject:
+  the archived change's own reference `TODO.md` §140 is dangling (grep 2026-10-09: no `## 140.` heading and
+  no `§140` mention in this file or in the archive).
+- **Fix candidate**: diagnose on a quiet tree with a device — `adb logcat -s NavigationEngine RoutePanelVM`,
+  stop from the status card, then record the mode label and whether the grace line appears; if the ViewModel
+  path is correct and only the UI entry is missing, the fix is the missing entry point (a spec decision for
+  `route-planning-session`), which makes this entry **not loop-eligible until diagnosed** (`.pi/skills/bugfix-loop`
+  gate condition 2: one root cause, no option to weigh).
+- **Provenance** ℹ: filed by `fix-nav-overlay-stop-tap` (2026-10-06) as `§140`; that id does not exist. Ids
+  are append-only and never renumbered, so the content is re-filed under the next free id by the loop's
+  own bookkeeping rule (append-only, report the anomaly).
 
 ---
 
@@ -1384,7 +1427,19 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 
 
 ## 122. The navigation overlay's stop button cannot be tapped reliably — Found 2026-10-03 while verifying the grace period of `route-planning-session` (task 10.5)
-**id:** 122 · **category:** ui · **class:** bug · **status:** open
+**id:** 122 · **category:** ui · **class:** bug · **status:** fixed-by `fix-nav-overlay-stop-tap`
+
+- **Fixed** ✅ by `fix-nav-overlay-stop-tap` (archived 2026-10-06), **refuted by measurement** in the
+  bug-fix loop on 2026-10-09 (`bugfix-loop`, iteration 1): at HEAD the stop control **is** its own
+  actionable semantics node — a probe of the merged tree printed
+  `Tag:'stopNavigation' Role='Button' Actions=[OnClick] ContentDescription='[Stop Navigation]'` at
+  48×48 dp, disjoint from `navStatusDetailsRegion` (bottom 93) and `navStatusDetailsStatsRegion`
+  (right 268) — so the mechanism this entry cites (one card-wide `.clickable` covering the control's
+  band, `:63`) no longer exists (`grep`: the two remaining `.clickable`s, `:93` and `:140`, are both
+  disjoint from the control), and the card class's 8 cases are green
+  (`tests=8 failures=0`, XML `ts=2026-10-09T17:01:15.029Z`). The residue of the original report is
+  **`§154`** (post-stop mode and session state), not a tap target; the missing assertion that the
+  control owns its accessibility action is **`§155`**.
 
 - **Observed** ℹ: while turn-by-turn navigation is running, the status row's stop control
   (`NavigationStateOverlay`, `IconButton` 40 dp, `content-desc="Navigation beenden"`, bounds

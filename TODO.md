@@ -1719,7 +1719,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   session took §134 (`process-failure-log` guardrails) while this change was being applied.
 
 ## 138. At font scale 2.0 the max card's labelled End action is clipped off the screen, which leaves the header close as the only visible exit — Found 2026-10-05 while applying `fix-route-session-exit` (device measurement, task 4.3)
-**id:** 138 · **category:** ui · **class:** bug · **status:** open
+**id:** 138 · **category:** ui · **class:** bug · **status:** fixed-by `fix-pinned-band-height`
 
 - **Observed** ℹ: same flow, same route, two font scales on the 1080x2400 emulator (`Bürgermeister-Smidt-Straße`
   → Hauptbahnhof): the card occupies `[0,1320][1080,2400]` (1080 px = 45 % of the screen) at both scales. At

@@ -29,7 +29,28 @@
 - **ui** — improvement: §39 §136 §155
 - **ui** — feature: §4 §5
 - **verification** — bug: §131 §147 §148
-- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141
+- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §156
+
+---
+
+## 156. The pinned band's device containment at font scales 1.0/1.3/2.0, and the screen's report→fit/inset join, are still unverified — Left pending by `fix-pinned-band-height` (archived 2026-10-09, task 5.1)
+**id:** 156 · **category:** verification · **class:** improvement · **status:** open (device)
+
+- **Observed** ℹ: `fix-pinned-band-height` proved the band keeps its action's tap target **host-side**
+  (font-scale 2.0 case: End 42.67 dp → 53.33 dp, `BandGeometry` rows retained in the case's XML `system-out`),
+  but its own `openspec-verify-change` run recorded one CRITICAL — task 5.1 unchecked. Two claims therefore
+  stand unverified: (a) the device symptom that opened §138, that the labelled action leaves the card and
+  reaches **no** UI dump at font scale 2.0 (a host harness measures ~1 px/char and cannot reproduce the
+  device's label wrapping), and (b) the screen's wiring between the card's report and its consumers
+  (`MapCanvasScreen.kt:2401-2404` → `setOverlayCoveredPx` / `bottomInset`), which the host case reproduces
+  one-for-one instead of executing (no Hilt host).
+- **Consequence** ⏳: a device-level regression of the same user-visible symptom would again be found by a user,
+  not by the suite; the host case pins the band's shortfall, not the containment.
+- **Fix candidate**: with a phone emulator, run at font scale 1.0/1.3/2.0 and take a UI dump per scale:
+  assert the labelled action's node exists with a ≥48 dp box inside the card's bounds and that
+  `onOverlayHeightChanged`'s reported value equals the covered band the map inset consumes
+  (`guidelines/Build.md` §10/§11 recipes, `pixel-check`/`compose-geometry` skills); record the dumps with their
+  numbers in the change's task 5.1 rather than a new claim.
 
 ---
 

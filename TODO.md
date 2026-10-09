@@ -23,7 +23,7 @@
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
-- **specs-and-process** — improvement: §40 §113 §134 §154
+- **specs-and-process** — improvement: §40 §113 §134 §154 §171
 - **stylesheets** — bug: §36
 - **ui** — bug: §70 §74 §153
 - **ui** — improvement: §39 §73 §136 §152 §166
@@ -31,6 +31,21 @@
 - **verification** — bug: §131 §147 §148
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167 §170
 ---
+
+## 171. Two archived capabilities still carry the archive's placeholder `## Purpose` text — Found 2026-10-09 by `bugfix-loop` (iteration 2) while archiving `fix-highlight-longest-run`
+**id:** 171 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `openspec validate <capability> --type spec` warns that the `Purpose` section is still a
+  placeholder for `openspec/specs/navigation-ongoing-notification/spec.md:4` and
+  `openspec/specs/render-mode-switch/spec.md:4`, both reading `TBD - created by archiving …`. The CLI's own
+  warning says a `## Purpose` in a delta is read only when the capability is created, so neither can be
+  repaired by another delta — each needs one hand-written sentence in the main spec.
+- **Why it is filed rather than fixed here** ✗: `fix-highlight-longest-run` created a third such capability
+  (`highlight-measurement`) and its `## Purpose` was written directly in the main spec as part of this run;
+  these two predate that change, so editing them is outside its scope. The fix is a sentence each, not a
+  decision, so it does not need this loop's review budget.
+- **Fix candidate** ✅: write one sentence per capability (what it is for), then re-run
+  `openspec validate <capability> --type spec` and confirm the `overview` warning is gone.
 
 ## 170. The new navigation-column case asserts the raw preset fraction, not the column's edge — Filed by the round-1 review of `fix-nav-column-width-probe` (declined there, out of that fix's scope)
 **id:** 170 · **category:** verification · **class:** improvement · **status:** open

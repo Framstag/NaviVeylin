@@ -1,7 +1,10 @@
 # highlight-measurement Specification
 
 ## Purpose
-TBD - created by archiving change fix-highlight-longest-run. Update Purpose after archive.
+How a device screenshot's analysed-segment highlight is located and measured reproducibly, with no device
+and no image editor: the row rule the detector applies, the extent and pixel count it reports for a row, and
+the exit-code/verdict contract its callers depend on (`tools/measure-highlight.py`, device-free harness
+`tools/measure-highlight-selftest.sh`; used by the `pixel-check` workflow and `guidelines/Build.md` §11).
 
 ## Requirements
 

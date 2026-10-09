@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Selftest for loop-state.sh — runs without a device, without Gradle, without a repo state.
-# Proves the three things the loop relies on: the cap, the deadline and the queue stop the loop
-# with exit 3 (not with a wrong count), and 'done' consumes a queue entry.
+# Proves the four things the loop relies on: the cap, the deadline and the queue stop the loop with exit 3
+# (never with a wrong count), `done` consumes a queue entry, and a pre-change skip can be recorded by --id
+# with its verdict (the shape the gate actually produces).
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -10,12 +11,8 @@ trap 'rm -rf "$tmp"' EXIT
 export LOOP_STATE="$tmp/run.json"
 S="$here/loop-state.sh"
 fail=0
-check() { # check <what> <expected> <actual>
-  if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1: expected [$2] got [$3]"; fail=1; fi
-}
-check_exit() { # check_exit <what> <expected-code> <code>
-  if [ "$2" = "$3" ]; then echo "ok   $1 (exit $3)"; else echo "FAIL $1: expected exit $2 got $3"; fail=1; fi
-}
+check() { if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1: expected [$2] got [$3]"; fail=1; fi; }
+check_exit() { if [ "$2" = "$3" ]; then echo "ok   $1 (exit $3)"; else echo "FAIL $1: expected exit $2 got $3"; fail=1; fi; }
 
 bash "$S" init --bugs 2 --minutes 60 --review off >/dev/null
 check "budget recorded" "2" "$(jq -r .bugLimit "$LOOP_STATE")"
@@ -25,7 +22,6 @@ set +e
 out="$(bash "$S" remaining)"; code=$?
 set -e
 check_exit "fresh run has budget" 0 "$code"
-# the minute count is floor((deadline - now)/60), so assert the shape and the deadline, not the minute
 case "$out" in
   "2 bugs left, "*" min left (deadline $(jq -r .deadlineAt "$LOOP_STATE"))")
     echo "ok   remaining line: $out";;
@@ -38,30 +34,71 @@ check "next is first" "63" "$(bash "$S" next)"
 
 bash "$S" start fix-a >/dev/null
 check "current set" "fix-a" "$(jq -r .current "$LOOP_STATE")"
-bash "$S" done fix-a --result done --todo '§63' >/dev/null
+bash "$S" done fix-a --result done --id '§63' >/dev/null
 check "current cleared" "null" "$(jq -r '.current' "$LOOP_STATE")"
 check "completed has one" "1" "$(jq -r '.completed | length' "$LOOP_STATE")"
+check "default verdict for done" "closed" "$(jq -r '.completed[0].verdict' "$LOOP_STATE")"
 check "queue shrank" "77 81" "$(jq -r '[.queue[].id] | join(" ")' "$LOOP_STATE")"
 
-bash "$S" done fix-b --result skipped --todo '§77' --note "needs decision" >/dev/null
-check "skipped recorded" "needs decision" "$(jq -r '.skipped[0].note' "$LOOP_STATE")"
+# the pre-change skip shape: no change name, --id + --verdict
+bash "$S" done --id '§77' --result skipped --verdict needs-decision --note "which start is authoritative" >/dev/null
+check "skip needs no change name" "77" "$(jq -r '.skipped[0].id' "$LOOP_STATE")"
+check "skip verdict stored" "needs-decision" "$(jq -r '.skipped[0].verdict' "$LOOP_STATE")"
+check "skip note stored" "which start is authoritative" "$(jq -r '.skipped[0].note' "$LOOP_STATE")"
+check "§-prefix stripped" "" "$(jq -r '.skipped[0].id | select(test("§"))' "$LOOP_STATE")"
+check "queue shrank again" "81" "$(jq -r '[.queue[].id] | join(" ")' "$LOOP_STATE")"
 
-bash "$S" done fix-c --result done --todo '§81' >/dev/null
+bash "$S" done fix-c --result blocked --verdict blocked --note "unrelated flake" >/dev/null
+check "blocked recorded" "1" "$(jq -r '.blocked | length' "$LOOP_STATE")"
+
+# report + verdicts
+rep="$(bash "$S" report)"
+case "$rep" in
+  *"closed 1 · skipped 1 · blocked 1"*) echo "ok   report header";;
+  *) echo "FAIL report header: [$rep]"; fail=1;;
+esac
+case "$rep" in
+  *"skipped  §77	needs-decision"*) echo "ok   report skip row";;
+  *) echo "FAIL report skip row"; fail=1;;
+esac
+check "verdict histogram" "1	blocked
+1	needs-decision" "$(bash "$S" verdicts | sort)"
+
+# the cap counts COMPLETED only: two skips and three blocks must not stop the run
+set +e
+out="$(bash "$S" remaining)"; code=$?
+set -e
+check_exit "cap not reached by skips" 0 "$code"
+bash "$S" done fix-d --result done --id '§81' >/dev/null
 set +e
 out="$(bash "$S" remaining 2>&1)"; code=$?
 set -e
 check_exit "cap reached stops the loop" 3 "$code"
 check "cap message" "0 bugs left (cap reached)" "$out"
+
+# next stops on the empty queue as well
+bash "$S" triage 5 >/dev/null
+bash "$S" done --id '§5' --result skipped --verdict stale --note x >/dev/null
 set +e
 out="$(bash "$S" next 2>&1)"; code=$?
 set -e
-check_exit "next stops on empty queue too" 3 "$code"
+check_exit "next stops on empty queue" 3 "$code"
 
-# deadline path: a zero-minute budget is refused, a 1-minute budget is live
+# argument validation
 set +e
 bash "$S" init --bugs 1 --minutes 0 >/dev/null 2>&1; code=$?
 set -e
 check_exit "zero budget refused" 2 "$code"
+set +e
+bash "$S" done --result skipped --note "no id and no change" >/dev/null 2>&1; code=$?
+set -e
+check_exit "done without id/change refused" 2 "$code"
+set +e
+bash "$S" done --id '§9' --result maybe >/dev/null 2>&1; code=$?
+set -e
+check_exit "bad result refused" 2 "$code"
+
+# a fresh 1-minute run is live
 bash "$S" init --bugs 1 --minutes 1 >/dev/null
 bash "$S" triage 5 >/dev/null
 check "deadline is future" "true" "$(jq -r '.deadlineEpoch > (now | floor)' "$LOOP_STATE")"

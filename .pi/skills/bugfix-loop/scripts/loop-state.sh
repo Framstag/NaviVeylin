@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
-# loop-state.sh — budget bookkeeping for the bugfix-loop skill.
+# loop-state.sh — budget and progress bookkeeping for the bugfix-loop skill.
 #
-# The loop's limits (bug cap, wall-clock deadline) and its progress have to be
-# mechanical, not remembered: this script is the only writer of the run state and
-# exits 3 whenever the run has nothing left to spend, so a caller stops on an exit
-# code instead of on its own arithmetic.
+# The loop's limits (bug cap, wall-clock deadline) and its progress have to be mechanical, not remembered:
+# this script is the only writer of the run state and exits 3 whenever the run has nothing left to spend,
+# so a caller stops on an exit code instead of on its own arithmetic.
 #
-# State lives in .pi/bugfix-loop/run.json — machine-local, gitignored (.pi/*),
-# never committed. Override with LOOP_STATE for the self-test.
+# State lives in .pi/bugfix-loop/run.json — machine-local, gitignored (.pi/*), never committed.
+# Override with LOOP_STATE for the self-test.
 #
 # Usage:
 #   loop-state.sh init --bugs N --minutes M [--review on|off] [--allow-todo-removal yes|no]
 #   loop-state.sh show
-#   loop-state.sh remaining          # exit 3 when bugs == 0 or deadline passed
+#   loop-state.sh remaining          # exit 3 when bugs == 0 or the deadline has passed
+#   loop-state.sh triage <§id> ...   # store the pre-screened survivor queue (§ optional in the argument)
+#   loop-state.sh next               # print the next candidate; exit 3 when the queue or the budget is spent
 #   loop-state.sh start <change>
-#   loop-state.sh done <change> --result done|skipped|blocked [--todo §N] [--note TEXT]
-#   loop-state.sh triage <candidate...>   # store the ranked candidate queue
-#   loop-state.sh next               # exit 3 when the queue is empty or the limit is spent
+#   loop-state.sh done [<change>] [--id §N] --result done|skipped|blocked
+#                     [--verdict <class>] [--note TEXT]
+#                                    # a pre-change skip has no change name: use --id
+#   loop-state.sh report             # the per-iteration table for the run report
+#   loop-state.sh verdicts           # histogram of skip verdicts (what the backlog turned out to be)
+#
+# --verdict class (free text, these are the ones the gate produces):
+#   closed · stale · needs-diagnosis · needs-decision · unspecifiable · too-wide · needs-device · refuted · blocked
 set -euo pipefail
 
 STATE="${LOOP_STATE:-$(git rev-parse --show-toplevel)/.pi/bugfix-loop/run.json}"
@@ -24,6 +30,7 @@ STATE="${LOOP_STATE:-$(git rev-parse --show-toplevel)/.pi/bugfix-loop/run.json}"
 need_jq() { command -v jq >/dev/null || { echo "loop-state: jq not found" >&2; exit 2; }; }
 now() { date +%s; }
 iso() { date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ; }
+norm_id() { printf '%s' "${1#§}"; }
 
 write() { # write <json-on-stdin>
   mkdir -p "$(dirname "$STATE")"
@@ -31,8 +38,6 @@ write() { # write <json-on-stdin>
   cat > "$tmp"
   mv "$tmp" "$STATE"
 }
-
-read_state() { jq . "$STATE"; }
 
 cmd_init() {
   local bugs="" minutes="" review="on" removal="no"
@@ -84,36 +89,9 @@ cmd_remaining() {
   echo "$left bugs left, $(( (deadline - $(now)) / 60 )) min left (deadline $(iso "$deadline"))"
 }
 
-cmd_start() { require_state; local c="${1:?usage: start <change>}"
-  jq --arg c "$c" '.current = $c' "$STATE" | write; echo "current: $c"; }
-
-cmd_done() { require_state; local c="${1:?usage: done <change> --result ...}"; shift
-  local result="" todo="" note=""
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --result) result="${2:?}"; shift 2;;
-      --todo) todo="${2:?}"; shift 2;;
-      --note) note="${2:?}"; shift 2;;
-      *) echo "done: unknown arg $1" >&2; exit 2;;
-    esac
-  done
-  case "$result" in done|skipped|blocked) ;; *) echo "done: --result must be done|skipped|blocked" >&2; exit 2;; esac
-  local entry
-  entry=$(jq -n --arg c "$c" --arg t "$todo" --arg n "$note" --arg at "$(iso "$(now)")" \
-                '{change:$c, todo:$t, note:$n, at:$at}')
-  jq --argjson e "$entry" --arg r "$result" --arg c "$c" '
-    if .current == $c then .current = null else . end
-    | if $r == "done" then .completed += [$e] elif $r == "skipped" then .skipped += [$e] else .blocked += [$e] end
-    | .queue = [ .queue[] | select(.id != ($e.todo | sub("^§";""))) ]
-  ' "$STATE" | write
-  echo "recorded $result: $c"
-  # Do not call cmd_remaining here: its `exit 3` would exit this shell, not return a status.
-  echo "budget: $(jq -r '.bugLimit - (.completed | length)' "$STATE") bugs left"
-}
-
 cmd_triage() { require_state; [ $# -gt 0 ] || { echo "triage: need at least one id" >&2; exit 2; }
   local json='[]'
-  for id in "$@"; do json=$(jq --arg id "${id#§}" '. + [{id:$id}]' <<<"$json"); done
+  for id in "$@"; do json=$(jq --arg id "$(norm_id "$id")" '. + [{id:$id}]' <<<"$json"); done
   jq --argjson q "$json" '.queue = $q' "$STATE" | write
   echo "queue: $(jq -r '[.queue[].id] | join(" ")' "$STATE")"
 }
@@ -128,10 +106,60 @@ cmd_next() {
   echo "$id"
 }
 
+cmd_start() { require_state; local c="${1:?usage: start <change>}"
+  jq --arg c "$c" '.current = $c' "$STATE" | write; echo "current: $c"; }
+
+cmd_done() {
+  require_state
+  local change="" id="" result="" verdict="" note=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --id) id="$(norm_id "${2:?}")"; shift 2;;
+      --result) result="${2:?}"; shift 2;;
+      --verdict) verdict="${2:?}"; shift 2;;
+      --note) note="${2:?}"; shift 2;;
+      --*) echo "done: unknown flag $1" >&2; exit 2;;
+      *) [ -z "$change" ] || { echo "done: change given twice" >&2; exit 2; }; change="$1"; shift;;
+    esac
+  done
+  [ -n "$change$id" ] || { echo "done: need a change name or --id §N" >&2; exit 2; }
+  case "$result" in done|skipped|blocked) ;; *) echo "done: --result must be done|skipped|blocked" >&2; exit 2;; esac
+  if [ -z "$verdict" ]; then
+    case "$result" in done) verdict="closed";; *) verdict="unspecified";; esac
+  fi
+  local entry
+  entry=$(jq -n --arg c "$change" --arg i "$id" --arg v "$verdict" --arg n "$note" --arg at "$(iso "$(now)")" \
+                '{change:$c, id:$i, verdict:$v, note:$n, at:$at}')
+  jq --argjson e "$entry" --arg r "$result" --arg c "$change" --arg i "$id" '
+    (if $c != "" and .current == $c then .current = null else . end)
+    | (if $r == "done" then .completed += [$e] elif $r == "skipped" then .skipped += [$e] else .blocked += [$e] end)
+    | (if $e.id != "" then .queue = [ .queue[] | select(.id != $e.id) ] else . end)
+  ' "$STATE" | write
+  echo "recorded $result ($verdict): ${change:-§$id}"
+  # Do not call cmd_remaining here: its `exit 3` would exit this shell, not return a status.
+  echo "budget: $(jq -r '.bugLimit - (.completed | length)' "$STATE") bugs left"
+}
+
+cmd_report() {
+  require_state
+  jq -r '
+    "closed \(.completed | length) · skipped \(.skipped | length) · blocked \(.blocked | length) of \(.bugLimit) bugs · budget \(.minutesBudget) min · deadline \(.deadlineAt)",
+    "",
+    ( .completed[] | "closed   §\(.id)\t\(.change)\t\(.at)" ),
+    ( .skipped[]   | "skipped  §\(.id)\t\(.verdict)\t\(.note)\t\(.at)" ),
+    ( .blocked[]   | "blocked  §\(.id)\t\(.change)\t\(.verdict)\t\(.note)\t\(.at)" )
+  ' "$STATE"
+}
+
+cmd_verdicts() {
+  require_state
+  jq -r '[.skipped[]?.verdict, .blocked[]?.verdict] | map(select(. != "" and . != null)) | group_by(.) | map("\(length)\t\(.[0])") | .[]' "$STATE" | sort -rn
+}
+
 need_jq
 cmd="${1:-}"; shift || true
 case "$cmd" in
-  init|show|remaining|start|done|triage|next) "cmd_$cmd" "$@";;
-  ""|-h|--help|help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//';; 
+  init|show|remaining|start|done|triage|next|report|verdicts) "cmd_$cmd" "$@";;
+  ""|-h|--help|help) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//';;
   *) echo "loop-state: unknown command '$cmd'" >&2; exit 2;;
 esac

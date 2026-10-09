@@ -9,7 +9,6 @@
 - **car** — bug: §56 §57 §83 §92 §93
 - **car** — improvement: §29 §34 §46 §64 §103 §120 §127 §133
 - **data-and-maps** — bug: §91 §99
-- **favorites** — bug: §118
 - **favorites** — improvement: §102
 - **location** — feature: §8
 - **map-rendering** — bug: §19 §65
@@ -797,7 +796,7 @@ the other way: `:app:checkLicensePolicy` left `app/release-version.properties` b
 - **Recount 2026-10-03 (four-module forced run during `fix-area-fit-zoom-rounding`)** ℹ: **106** warnings, all of the same debt, and none from a file that change touched. Additions since the 2026-09-20 count: `app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:118` — `Java type mismatch: inferred type is 'String?', but 'String' was expected` (arrived with `fix-start-map-selection`, still in flight); `service/NavigationNotificationServiceTapTargetTest.kt:40,69` — the deprecated `isBroadcastIntent`/`isActivityIntent` shadows; and in `:auto`: `RendererTestRule.kt:64` ("Type 'AutoMapRenderer' is final, so the value of the type parameter is predetermined"), `RenderLoopSupervisorTest.kt:40` ("Condition is always 'true'"), `TestCarContext.kt:23` (unchecked cast), `CarStyleLoadNotifierTest.kt:88` (deprecated `field defaults: Int`), plus further `ExperimentalCoroutinesApi` opt-ins (`DetailsScreenTest`, `FavoritesScreenTest`, `MapScreenTest`, `SearchScreenTest`, `TemplateFaultIsolationTest`). Recount rather than trust this list: `./gradlew :app:testMobileDebugUnitTest :app:testAutomotiveDebugUnitTest :core:testDebugUnitTest :auto:testDebugUnitTest --rerun-tasks 2>&1 | grep -c '^w: '`.
 
 ## 118. `fav-auto-zoom`'s clamp scenario says 4–18 while the code clamps area-favorite fits to 14–20
-**id:** 118 · **category:** favorites · **class:** bug · **status:** open
+**id:** 118 · **category:** favorites · **class:** bug · **status:** fixed-by `fix-fav-auto-zoom-clamp-range`
 
 - **Found 2026-10-03 during `fix-area-fit-zoom-rounding`** ℹ: the spec's scenario "Magnitude clamped to valid range" says "WHEN computed magnification is outside valid range (4–18) THEN magnification is clamped to the nearest valid value", but `computeAreaZoom` clamps `coerceIn(minZoom, MAX_MAG)` with `maxZoom = MAX_MAG = 20.0` and, for the area-favorite caller, `minZoom = MIN_AREA_ZOOM = 14.0` (`MapCanvasViewModel.kt`, the constant's own comment: "Minimum zoom level for area-type favorites (prevents too-zoomed-out view)"). So the enforced range is **14–20**, not 4–18 — the spec's numbers are stale on both ends (`MIN_MAG`/`GESTURE_MIN_MAG` are 4.0, and `MAX_MAG` is 20.0). Not fixed in that change because its spec delta had to keep the existing requirement block whole, and the change's `design.md` records it as an Open Question. Fix candidate: one spec-only change that states the range the code actually enforces (and, if 4–18 was ever the intent, the corresponding code change) — or split the clamp scenario per caller, since the floor is caller-specific (area favorites 14, route overview and the POI fit 4).
 

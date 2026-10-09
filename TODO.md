@@ -5,7 +5,7 @@
 
 **Clusters** (category, then class — jump targets, not an order):
 - **build-and-harness** — bug: §146
-- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145
+- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145 §149
 - **car** — bug: §57 §83 §92 §93
 - **car** — improvement: §29 §34 §46 §56 §64 §103 §120 §127 §133
 - **data-and-maps** — bug: §91 §99
@@ -16,25 +16,29 @@
 - **map-rendering** — feature: §6
 - **native-jni** — improvement: §81 §82 §119
 - **native-jni** — feature: §23
-- **persistence** — bug: §157
+- **persistence** — bug: §168
 - **persistence** — improvement: §9
-- **route-and-navigation** — bug: §129 §130 §139 §144 §154
-- **route-and-navigation** — improvement: §126
+- **route-and-navigation** — bug: §129 §130 §139 §144 §165
+- **route-and-navigation** — improvement: §126 §150
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
-- **specs-and-process** — improvement: §40 §113 §134 §153
+- **specs-and-process** — improvement: §40 §113 §134 §154
 - **stylesheets** — bug: §36
-- **ui** — bug: §70 §74
-- **ui** — improvement: §39 §73 §136 §155
+- **ui** — bug: §70 §74 §151 §153
+- **ui** — improvement: §39 §73 §136 §152 §166
 - **ui** — feature: §4 §5
-- **verification** — bug: §131 §147 §148 §158
-- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §156
-
+- **verification** — bug: §131 §147 §148 §169
+- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167
 ---
 
-## 158. The highlight detector qualifies a row by its **rightmost** colour run, so a row whose longest run is not last is dropped — Found 2026-10-09 by `bugfix-loop` (iteration 12) while gating §147
-**id:** 158 · **category:** verification · **class:** bug · **status:** open
+## 169. The highlight detector qualifies a row by its **rightmost** colour run, so a row whose longest run is not last is dropped — Found 2026-10-09 by `bugfix-loop` (iteration 12) while gating §147
+**id:** 169 · **category:** verification · **class:** bug · **status:** open
+
+- **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was filed as **§158**; that id is
+  taken by the in-flight `allow-lan-http-map-repository` work (§154 = the `MapRendering.md` dual-`§14`
+  entry there, §155-§164 = ten entries it added), so this one moved above that range. Ids are identity:
+  references from here on use §169.
 
 - **Observed** ℹ (`tools/measure-highlight.py:72`): `if run >= MIN_RUN_PX or (last - first + 1) >= MIN_RUN_PX:`
   — both terms describe the **last** run the scan ends on (a row that ends on a match has
@@ -57,13 +61,18 @@
 
 ---
 
-## 156. The pinned band's device containment at font scales 1.0/1.3/2.0, and the screen's report→fit/inset join, are still unverified — Left pending by `fix-pinned-band-height` (archived 2026-10-09, task 5.1)
-**id:** 156 · **category:** verification · **class:** improvement · **status:** open (device)
+## 167. The pinned band's device containment at font scales 1.0/1.3/2.0, and the screen's report→fit/inset join, are still unverified — Left pending by `fix-pinned-band-height` (archived 2026-10-09, task 5.1)
+**id:** 167 · **category:** verification · **class:** improvement · **status:** open (device)
+
+- **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was filed as **§156**; that id is
+  taken by the in-flight `allow-lan-http-map-repository` work (§154 = the `MapRendering.md` dual-`§14`
+  entry there, §155-§164 = ten entries it added), so this one moved above that range. Ids are identity:
+  references from here on use §167.
 
 - **Observed** ℹ: `fix-pinned-band-height` proved the band keeps its action's tap target **host-side**
   (font-scale 2.0 case: End 42.67 dp → 53.33 dp, `BandGeometry` rows retained in the case's XML `system-out`),
   but its own `openspec-verify-change` run recorded one CRITICAL — task 5.1 unchecked. Two claims therefore
-  stand unverified: (a) the device symptom that opened §138, that the labelled action leaves the card and
+  stand unverified: (a) the device symptom that opened §138 (removed; archived as `fix-pinned-band-height`), that the labelled action leaves the card and
   reaches **no** UI dump at font scale 2.0 (a host harness measures ~1 px/char and cannot reproduce the
   device's label wrapping), and (b) the screen's wiring between the card's report and its consumers
   (`MapCanvasScreen.kt:2401-2404` → `setOverlayCoveredPx` / `bottomInset`), which the host case reproduces
@@ -78,26 +87,36 @@
 
 ---
 
-## 155. The stop control's own accessibility target is asserted by geometry only, not by its semantics action — Found 2026-10-09 by `bugfix-loop` (iteration 1) while refuting §122
-**id:** 155 · **category:** ui · **class:** improvement · **status:** open
+## 166. The stop control's own accessibility target is asserted by geometry only, not by its semantics action — Found 2026-10-09 by `bugfix-loop` (iteration 1) while refuting the §122 report (removed; `fix-nav-overlay-stop-tap` archived)
+**id:** 166 · **category:** ui · **class:** improvement · **status:** open
+
+- **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was filed as **§155**; that id is
+  taken by the in-flight `allow-lan-http-map-repository` work (§154 = the `MapRendering.md` dual-`§14`
+  entry there, §155-§164 = ten entries it added), so this one moved above that range. Ids are identity:
+  references from here on use §166.
 
 - **Observed** ℹ: `NavigationStateOverlayComposeTest` pins the control's box
   (`stopControlHitAreaIsAtLeast48Dp`, `stopControlBoundsLieOutsideDetailsRegionBounds`,
   `stopControlCentreEndsNavigationWithoutOpeningDetails`) but nothing asserts that the control is an
   **actionable semantics node of its own** — the property that decides whether a tap or a screen reader
-  resolves to the stop action rather than to the surrounding card. The §122 investigation measured that
+  resolves to the stop action rather than to the surrounding card. The §122 investigation (removed after `fix-nav-overlay-stop-tap` was archived) measured that
   property out of band (probe over the merged tree: `Tag:'stopNavigation' Role='Button' Actions=[OnClick]`),
   so the measurement exists but no case holds it.
 - **Consequence** ⏳: a refactor could fold the control back into a card-wide clickable and every existing
-  assertion would stay green — exactly the regression class §122 reported (device dump, 2026-10-07).
+  assertion would stay green — exactly the regression class the §122 report described (removed; archived as `fix-nav-overlay-stop-tap`) (device dump, 2026-10-07).
 - **Fix candidate**: one host-only case in the same class asserting the semantics contract — the control
   node `assertHasClickAction()` with its own `contentDescription`, and the details region's node does not
   own that action (`SemanticsNodeInteraction` fetchers on the merged tree; no device needed).
 
 ---
 
-## 154. The navigation overlay's stop path may never enter the session's stopped state, and the map returns to `FREE_DRIVE` where the ViewModel path asserts `BROWSE` — Filed 2026-10-06 by `fix-nav-overlay-stop-tap` as §140 (an id that never reached this file); re-filed 2026-10-09 by `bugfix-loop`
-**id:** 154 · **category:** route-and-navigation · **class:** bug · **status:** open
+## 165. The navigation overlay's stop path may never enter the session's stopped state, and the map returns to `FREE_DRIVE` where the ViewModel path asserts `BROWSE` — Filed 2026-10-06 by `fix-nav-overlay-stop-tap` as §140 (an id that never reached this file); re-filed 2026-10-09 by `bugfix-loop`
+**id:** 165 · **category:** route-and-navigation · **class:** bug · **status:** open
+
+- **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was filed as **§154**; that id is
+  taken by the in-flight `allow-lan-http-map-repository` work (§154 = the `MapRendering.md` dual-`§14`
+  entry there, §155-§164 = ten entries it added), so this one moved above that range. Ids are identity:
+  references from here on use §165.
 
 - **Observed** ℹ: the archived `fix-nav-overlay-stop-tap` records — in `design.md:47` and its device tasks —
   that the card's stop ends navigation and clears the route **without** entering the session's stopped state
@@ -246,7 +265,7 @@
 ---
 
 ## 95. The retention release had no on-device run: the installed build is Play-signed, so a local build needs an uninstall — and the map data goes with it — Found 2026-09-27, **RESOLVED 2026-09-27 20:27** by a Play release (see the update at the end)
-**id:** 95 · **category:** build-and-harness · **class:** improvement · **status:** on-hold (decision)
+**id:** 95 · **category:** build-and-harness · **class:** improvement · **status:** on-hold Play-signed install vs a local `adb install -r` (uninstall deletes the map data)
 
 - **Observed** ℹ: the phone's installed build (`2026-09-27-3`, versionCode 89, `installerPackageName=com.android.vending`) came from the Play Store, so `adb install -r` with a locally built APK fails on the signing key, and a fresh install means `adb uninstall` first — which deletes the app's files **including the installed map databases** the on-device checks render from (region + basemap; §99/§91 already report that this install's map data is the weak part). Play App Signing cannot be reproduced locally.
 - **Consequence** ⏳: `bound-tile-data-retention` tasks 5.1-5.5 (the walk ceiling, the platform-level release, the poll firing, the car-session scoping) cannot run on this phone without a map re-download; the AAOS AVD has the car side but no phone map path, and the walk protocol needs the phone surface.
@@ -476,19 +495,6 @@
 
 ---
 
-## 72. The compass needle is stroked in raw pixels, so it thins on high-density screens — Found 2026-09-24 during `compass-day-night-palette` (out of scope, sizing/geometry)
-**id:** 72 · **category:** ui · **class:** bug · **status:** fixed-by `fix-compass-needle-stroke-density`
-
-- **Observed** ℹ: `app/src/main/java/com/naviveylin/ui/map/CompassButton.kt` draws both needle halves with
-  `strokeWidth = 3f` — device pixels, not dp — while every other dimension in the same file is density-aware
-  (`needleLength = 10.dp.toPx()`, rim `1.dp.toPx()`, canvas 48.dp). On a 3.5× density screen the needle is ~0.86 dp
-  wide, i.e. visibly thinner than on a 1× screen.
-- **Not caught** ✗: no test asserts the needle's stroke width; `CompassButtonComposeTest` only pins the 56 dp layout
-  and `CompassPaletteTest` only the colors, so a density regression is invisible to the suite.
-- **Fix candidate**: use `3.dp.toPx()` (or a named dp constant) and pin it with a unit-tested geometry helper, the way
-  the phone palette now pins contrast instead of leaving it to review.
-
----
 ## 71. Zoom-walk follow-ups from `fix-phone-zoom-animation-parity` — Found 2026-09-24 during that change (out of scope / pending device)
 **id:** 71 · **category:** map-rendering · **class:** improvement · **status:** open (device)
 
@@ -799,8 +805,13 @@ GPS back                     →  REAL
 3. Marker UX: ESTIMATED position visually distinct from REAL (color/opacity)?
 4. Where: new Kotlin `@Singleton` service feeding a derived position flow with state (REAL/ESTIMATED/LOST); consumers = marker, center, nav engine, AA.
 
-## 157. `viewport-persist` describes one `viewport.json` while `ViewportStorage` writes one file per map key — Found 2026-10-09 by `bugfix-loop` (iteration 6) while gating §9
-**id:** 157 · **category:** persistence · **class:** bug · **status:** open
+## 168. `viewport-persist` describes one `viewport.json` while `ViewportStorage` writes one file per map key — Found 2026-10-09 by `bugfix-loop` (iteration 6) while gating §9
+**id:** 168 · **category:** persistence · **class:** bug · **status:** open
+
+- **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was filed as **§157**; that id is
+  taken by the in-flight `allow-lan-http-map-repository` work (§154 = the `MapRendering.md` dual-`§14`
+  entry there, §155-§164 = ten entries it added), so this one moved above that range. Ids are identity:
+  references from here on use §168.
 
 - **Observed** ℹ: the spec's storage sentence (`openspec/specs/viewport-persist/spec.md:11`) reads "The file SHALL be
   written to `filesDir/maps/viewport.json`" — a single file, no per-map key — while `ViewportStorage.fileFor`
@@ -808,7 +819,7 @@ GPS back                     →  REAL
   (`MapCanvasViewModel.kt:2071`, `:2112`). The spec's only key sentence (`:111`, "nor persist a viewport under the
   new map key") presupposes a key, so the two statements cannot both describe the shipped storage.
 - **Consequence** ⏳: a reader implementing the storage contract from the spec would build a different layout; same
-  class as §118 (a spec pinned behaviour the code never applied). No user-visible defect observed — the divergence
+  class as §118 (removed, archived as `fix-fav-auto-zoom-clamp-range`; a spec pinned behaviour the code never applied). No user-visible defect observed — the divergence
   is between two artefacts, which is why no test caught it — but it is why §9's un-keyed case has no destination.
 - **Fix candidate**: correct the spec to the per-map layout (file pattern, key derivation
   `substringAfterLast('/')` — or whatever §9's decision makes canonical — and the pre-`initMap` behaviour), then add
@@ -834,7 +845,7 @@ GPS back                     →  REAL
   save when `currentMapKey == null` (matches the `:4410` pattern; makes the `"default"` literal removable;
   rewrites the assertion at `MapCanvasViewModelNavEndRestoreTest.kt:157`), (b) keep writing a named bucket **and**
   consult it in `initMap`, or (c) hygiene-only unify the literals without behavioural proof. Settle it in a normal
-  (non-loop) change together with **§157** (the spec's single-file sentence vs the per-map files), because no
+  (non-loop) change together with **§168** (the spec's single-file sentence vs the per-map files), because no
   WHEN/THEN is stateable before this decision.
 
 - **Residual: pre-init viewport key mismatch (`mapPath` vs `"default"`) ℹ**: `MapCanvasViewModel.initMap` loads with `viewportStorage.load(currentMapKey ?: mapPath)` (`MapCanvasViewModel.kt:2095`, and the navigation-end restore at `:2194`), while `saveViewport()` (`:2932`) and the save at `:4367` persist with `currentMapKey ?: "default"`. Harmless today because `initMap` sets `currentMapKey` before the load, so the fallbacks never meet — but any future save/load before `initMap` (or after a failed init) would write and read different files. Fix candidate: share one key helper (`currentMapKey ?: mapPath`) across all four call sites. Found 2026-09-13 while triaging `MapCanvasViewModelNavEndRestoreTest` (change `smooth-decimal-auto-zoom`, task 6.2) — test-only fix there, production untouched.
@@ -873,7 +884,7 @@ the other way: `:app:checkLicensePolicy` left `app/release-version.properties` b
 - **Pre-existing tooling gap found during fix-contact-address-resolution (2026-09-13)** ℹ: in the merged and `:app` Kover XML reports, classes exercised only by Robolectric tests show near-zero instruction coverage while their tests pass and assert behaviour — `ContactsRepository` 5 covered/0 missed, `FavoriteRepository` 16/0, `AddressBookSheetKt` 41 missed/0 covered (its four Compose tests pass). Plain-JUnit-covered classes report plausible numbers. Suspected cause: Robolectric loads app classes in its own sandbox classloader, so JaCoCo/Kover exec data is recorded against a different class identity. Investigate: Kover/Robolectric instrumentation options (offline instrumentation, `kover { }` filters, or `robolectric.properties` sandbox config) before trusting any coverage gate. Until then, use the revert-check (new test fails on pre-change code) as coverage evidence instead.
 
 ## 23. libosmscout-kotlin port stubs — verify the binding is unused before anyone wires it in
-**id:** 23 · **category:** native-jni · **class:** feature · **status:** on-hold (decision)
+**id:** 23 · **category:** native-jni · **class:** feature · **status:** on-hold finish the libosmscout-kotlin port vs document the binding as deliberately unbuilt
 
 - **Submodule `app/src/main/cpp/libosmscout/libosmscout-kotlin/` carries 7 unfinished port markers (found 2026-09-15)** ℹ: `objecttypes/TypeConfig.kt` skips feature-description handling in `loadFromData` (“TODO Fetch feature”, “TODO: Add description to feature”), `registerType` has “TODO: Calculate wayTypeIdBytes & Co.” plus two “TODO: Fix” lines, and `index/AreaWayIndex.kt:120` has “TODO: Reserve capacity for offsets”. Grep across every `*.gradle*`/`CMakeLists.txt` shows **no module references `libosmscout-kotlin`** — the binding is inert today (the app uses the C++ JNI bridge + `:osmscout-client-java`; a plain-JUnit or Kotlin binding is not on any build path). The submodule is our own fork (`naviveylin-local`), so this is decision material, not urgent: either finish the port to match C++/Java behavior (TypeConfig without feature descriptions would render/query differently), or document the binding as deliberately unbuilt and add a code comment so a future dependency addition fails loudly instead of silently using a stub.
 
@@ -894,7 +905,7 @@ the other way: `:app:checkLicensePolicy` left `app/release-version.properties` b
 - **Created 2026-09-18 by `route-overview-fit`** ℹ: that change corrected `computeAreaZoom`'s ground resolution (display DPI + Mercator `cos(lat)`), which *intentionally* changes the zoom the phone picks when selecting an area favorite and when the POI search fits its results — both now zoom out to the geometrically correct level (previously over-zoomed by `dpi / 96 * (1 / cos(lat))`, ≈2 levels on a 420-dpi phone). Unit tests stay green, but no on-device/visual check of those two flows is part of that change. Follow-up: pick an area favorite and run a POI radius search on a real phone/emulator and confirm the framing is sane (not too far out, markers inside the visible area).
 
 ## 36. `public-transport` stylesheet draws no route  — ⏸ ON HOLD (owner decision 2026-09-20)
-**id:** 36 · **category:** stylesheets · **class:** bug · **status:** on-hold (owner decision)
+**id:** 36 · **category:** stylesheets · **class:** bug · **status:** on-hold owner decision (2026-09-20) on the five route-less user-selectable styles — add `include/route` to all five (A), or narrow the selectable set (C)
 
 - **ON HOLD 2026-09-20 — deliberately not the next change.** Re-investigated 2026-09-20 and the blast radius is far larger than this entry first recorded: **5 of the 8 user-selectable styles cannot draw the active route at all**, not one. See the scope block below; the fix is understood and small, but it waits on option A/B/C being chosen.
 - **Corrected scope (verified 2026-09-20).** `BundledMapStyles.USER_SELECTABLE` (`core/src/main/java/com/naviveylin/core/BundledMapStyles.kt:38`) is the 8 styles `boundaries, coastlines, cycle, motorways, public-transport, railways, standard, winter-sports`. `stylesheets/include/route.oss` is the ONLY definition site of `[TYPE _route]` (:56-57), `[TYPE _track]` (:62), `[TYPE _route_start]`/`_route_end` (:68-69), `[TYPE _favorite]`/`_search_selected` (:76-77) and of `SYMBOL route_start`/`route_end`/`favorite_marker`/`search_marker` (:26-46). It is included by `standard.oss`, `cycle.oss` and `winter-sports.oss` only — so the other five (`public-transport`, `railways`, `motorways`, `boundaries`, `coastlines`) draw no route line, no start/end pins, no GPX track, no favourite markers and no selected-search marker. `public-transport.oss` is the tell: it declares `GROUP _route` in `ORDER WAYS` (:4) but never wires the rule. No app-side escape hatch: one stylesheet is loaded (`MapCanvasViewModel.applyStyleSheet` → `loadStyleSheet`) and route/POI drawing goes through `MapRenderer.kt:714 renderWithRouteAndPois` with no per-render style override.
@@ -913,11 +924,6 @@ the other way: `:app:checkLicensePolicy` left `app/release-version.properties` b
 
 - **Found 2026-09-20 during `fix-favorite-store-write-race` (full-suite build)** ℹ: `./gradlew test --continue --rerun-tasks` prints 66 Kotlin warnings, none of them from that change's files. Beyond `LocationMarkerOverlay.kt:167` (already tracked as §37), three classes are untracked: (a) `app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:35` — "This annotation is currently applied to the value parameter only, but in the future it will also be applied to field" (annotation-target migration, a hard change in a future Kotlin); (b) `app/src/test/java/com/naviveylin/data/AmbientLightMonitorTest.kt:35` — Robolectric's `ShadowSensorManager.addSensor` is deprecated in Java; (c) the `ExperimentalCoroutinesApi` opt-in warnings spread over ~13 test files (`MapCanvasViewModelAutoZoomCommitTest`, `MapCanvasViewModelRoadInfoTest`, `MapCanvasViewModelSingleFollowCenterTest`, `RoutePanelViewModelSearchRankingTest`, ...). The archiving guidance requires a warning-free build, so this is build-hygiene debt rather than a defect. Fix candidate: one build-hygiene change that adds the missing `@OptIn` annotations, replaces the deprecated shadow call, and sets the annotation target explicitly.
 - **Recount 2026-10-03 (four-module forced run during `fix-area-fit-zoom-rounding`)** ℹ: **106** warnings, all of the same debt, and none from a file that change touched. Additions since the 2026-09-20 count: `app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:118` — `Java type mismatch: inferred type is 'String?', but 'String' was expected` (arrived with `fix-start-map-selection`, still in flight); `service/NavigationNotificationServiceTapTargetTest.kt:40,69` — the deprecated `isBroadcastIntent`/`isActivityIntent` shadows; and in `:auto`: `RendererTestRule.kt:64` ("Type 'AutoMapRenderer' is final, so the value of the type parameter is predetermined"), `RenderLoopSupervisorTest.kt:40` ("Condition is always 'true'"), `TestCarContext.kt:23` (unchecked cast), `CarStyleLoadNotifierTest.kt:88` (deprecated `field defaults: Int`), plus further `ExperimentalCoroutinesApi` opt-ins (`DetailsScreenTest`, `FavoritesScreenTest`, `MapScreenTest`, `SearchScreenTest`, `TemplateFaultIsolationTest`). Recount rather than trust this list: `./gradlew :app:testMobileDebugUnitTest :app:testAutomotiveDebugUnitTest :core:testDebugUnitTest :auto:testDebugUnitTest --rerun-tasks 2>&1 | grep -c '^w: '`.
-
-## 118. `fav-auto-zoom`'s clamp scenario says 4–18 while the code clamps area-favorite fits to 14–20
-**id:** 118 · **category:** favorites · **class:** bug · **status:** fixed-by `fix-fav-auto-zoom-clamp-range`
-
-- **Found 2026-10-03 during `fix-area-fit-zoom-rounding`** ℹ: the spec's scenario "Magnitude clamped to valid range" says "WHEN computed magnification is outside valid range (4–18) THEN magnification is clamped to the nearest valid value", but `computeAreaZoom` clamps `coerceIn(minZoom, MAX_MAG)` with `maxZoom = MAX_MAG = 20.0` and, for the area-favorite caller, `minZoom = MIN_AREA_ZOOM = 14.0` (`MapCanvasViewModel.kt`, the constant's own comment: "Minimum zoom level for area-type favorites (prevents too-zoomed-out view)"). So the enforced range is **14–20**, not 4–18 — the spec's numbers are stale on both ends (`MIN_MAG`/`GESTURE_MIN_MAG` are 4.0, and `MAX_MAG` is 20.0). Not fixed in that change because its spec delta had to keep the existing requirement block whole, and the change's `design.md` records it as an Open Question. Fix candidate: one spec-only change that states the range the code actually enforces (and, if 4–18 was ever the intent, the corresponding code change) — or split the clamp scenario per caller, since the floor is caller-specific (area favorites 14, route overview and the POI fit 4).
 
 ## 39. Real-life and Android Auto verification for the marker/route colors
 **id:** 39 · **category:** ui · **class:** improvement · **status:** open (device)
@@ -1580,46 +1586,6 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Fix candidate** (a verification pass, not a code change): with a car surface attached, run §10 of `guidelines/Build.md` against the release build for (1)-(3) — a coordinate `geo:` link or long-press with a coordinate candidate, free driving from the phone, and a map download to re-create the channel — plus the car favorites screens in German. The recipes that worked here are worth reusing: `uiautomator dump <path under /data/local/tmp>` (a `/sdcard` path is refused by this harness), `exec-out screencap -p` + `tesseract … -l deu tsv` for coordinates, and the map screen's German `content-desc` nodes (`Favoriten`, `Ort suchen`, `Freie Fahrt starten`) for tap targets — the Compose canvas exposes almost no text nodes.
 
 
-## 122. The navigation overlay's stop button cannot be tapped reliably — Found 2026-10-03 while verifying the grace period of `route-planning-session` (task 10.5)
-**id:** 122 · **category:** ui · **class:** bug · **status:** fixed-by `fix-nav-overlay-stop-tap`
-
-- **Fixed** ✅ by `fix-nav-overlay-stop-tap` (archived 2026-10-06), **refuted by measurement** in the
-  bug-fix loop on 2026-10-09 (`bugfix-loop`, iteration 1): at HEAD the stop control **is** its own
-  actionable semantics node — a probe of the merged tree printed
-  `Tag:'stopNavigation' Role='Button' Actions=[OnClick] ContentDescription='[Stop Navigation]'` at
-  48×48 dp, disjoint from `navStatusDetailsRegion` (bottom 93) and `navStatusDetailsStatsRegion`
-  (right 268) — so the mechanism this entry cites (one card-wide `.clickable` covering the control's
-  band, `:63`) no longer exists (`grep`: the two remaining `.clickable`s, `:93` and `:140`, are both
-  disjoint from the control), and the card class's 8 cases are green
-  (`tests=8 failures=0`, XML `ts=2026-10-09T17:01:15.029Z`). The residue of the original report is
-  **`§154`** (post-stop mode and session state), not a tap target; the missing assertion that the
-  control owns its accessibility action is **`§155`**.
-
-- **Observed** ℹ: while turn-by-turn navigation is running, the status row's stop control
-  (`NavigationStateOverlay`, `IconButton` 40 dp, `content-desc="Navigation beenden"`, bounds
-  `[986,2233][1049,2296]` on the 1080×2400 phone) is **not** the node the semantics tree marks as
-  clickable: the only clickable node covering that band is the overlay's **outer container**
-  `[0,2018][1080,2400]` (`.clickable(onClick = onClick)`, `NavigationStateOverlay.kt` line 63, which
-  opens the expanded details). Tapping the stop icon's own coordinates turned **free driving** on in
-  three attempts — and free driving ends navigation itself, so the session never entered `STOPPED`
-  and the grace period never ran.
-- **Impact** ℹ: the session's stopped state and its grace after navigation stops (spec
-  `route-planning-session`) cannot be verified end-to-end on the phone; a user aiming at
-  "Navigation beenden" can end up in free driving instead. The state machine itself is unit-verified
-  (`RoutePanelViewModelSessionTest` + the revert-check `expected:<INACTIVE> but was:<STOPPED>`).
-- **Fix candidates** ℹ: give the stop control its own semantics node
-  (`clearAndSetSemantics { }`/`semantics { }` on the `IconButton`) *and* keep the container's
-  `.clickable` out of the status row's hit area (the container click currently overlaps a 40 dp
-  control). Then re-run the task 10.5 recipe: start navigation → tap the stop icon (verified
-  clickable and small) → the panel returns with the route still drawn → the grace line
-  `RoutePanelVM: session grace period expired - ending the session` ~45 s later → no overlay, no
-  pill, no route.
-- **Recipe notes** ℹ: `adb shell uiautomator dump /sdcard/ui-x.xml` + `adb pull /sdcard/ui-x.xml`
-  works (a bare device-side `$EXTERNAL_STORAGE` argument is *not* expanded by `adb pull`); a
-  clickable ancestor read from a flattened dump is not necessarily the node a tap must aim at, and
-  the map/canvas screens expose almost no text nodes (`tesseract … -l deu tsv` is available for the
-  ones they do expose).
-
 ## 123. Test harness: `SearchHistoryRepository` is usually built without the test dispatcher, so a test that depends on a result selection races a real-thread file write — Found 2026-10-04 while implementing `fix-search-history-chip-replay` (task 2.3, out of that change's scope)
 **id:** 123 · **category:** build-and-harness · **class:** improvement · **status:** open
 
@@ -1888,32 +1854,6 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Note** ℹ: filed as §134 on 2026-10-05 and renumbered to §136 the same session — a concurrent
   session took §134 (`process-failure-log` guardrails) while this change was being applied.
 
-## 138. At font scale 2.0 the max card's labelled End action is clipped off the screen, which leaves the header close as the only visible exit — Found 2026-10-05 while applying `fix-route-session-exit` (device measurement, task 4.3)
-**id:** 138 · **category:** ui · **class:** bug · **status:** fixed-by `fix-pinned-band-height`
-
-- **Observed** ℹ: same flow, same route, two font scales on the 1080x2400 emulator (`Bürgermeister-Smidt-Straße`
-  → Hauptbahnhof): the card occupies `[0,1320][1080,2400]` (1080 px = 45 % of the screen) at both scales. At
-  **1.0** the labelled `Analyse beenden` is on screen (`bounds=[401,2233][680,2254]`, header close
-  `[944,1363][1007,1426]`). At **2.0** the action row's labels sit at `[105,2106][466,2211]` / `[613,2106][975,2211]`
-  and `Analyse beenden` is **absent from the whole UI dump** — the pinned band (row + the End button below it)
-  overflows the card's 45 % cap at the screen's bottom edge, so the button is drawn below y=2400. The header's
-  close control stays reachable (`[944,1398][1007,1461]`).
-- **Impact** ℹ: the spec's explicit labelled End action ("Session lifetime and its only exits" — both card
-  states) is not visible at large font scale, so the exit depends on one icon-only control. Before
-  `fix-route-session-exit` that icon minimised onto an affordance with no exit, i.e. exactly the trap the owner
-  reported; after it the icon ends the session, so the flow is escapable — but the discoverable labelled action
-  is still missing for accessibility-scale users.
-- **Fix candidate** ℹ: let the pinned band participate in the card's height budget (band height measured, not the
-  fixed `ACTIONS_BAND_DP = 120f`), cap the band's label with a smaller typography at large scale, or place the
-  End action inside the scroll region. Measure again at font scale 1.0/1.3/2.0 and assert the labelled action's
-  bounds are inside `[0,1320][1080,2400]`.
-- **Not caught** ✗: no test asserts the action band's *visibility* at any font scale — `RoutePanelComposeTest`
-  asserts `assertExists()` on the tags, which a node drawn off-screen still satisfies in the compose test
-  harness; a `getBoundsInRoot()` assertion against the card's bounds would be the missing case.
-- **Note** ℹ: the card band property has no pixel detector today — `tools/measure-highlight.py` finds the
-  analysed-segment highlight by its casing colour, so the band evidence here is UI-dump geometry (numbers,
-  coordinate-free) rather than a pixel verdict.
-
 ## 139. The router's overall distance under-counts the route it produced — by 25 % on a long route and 45 % on a short one — Found 2026-10-05 while measuring `fix-route-length-disagreement` (the native half of `TODO.md` §129)
 **id:** 139 · **category:** route-and-navigation · **class:** bug · **status:** open
 
@@ -2104,7 +2044,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   exit code? The self-test is the host seam that will make the chosen behaviour red/green.
 
 - **Adjacent finding** ℹ: the same guard decides a row on its **rightmost** colour run, so a row whose longest
-  run is not last is dropped — filed as §158 with the reproduction.
+  run is not last is dropped — filed as §169 with the reproduction.
 - **Doc drift from the id change** ℹ: `.pi/skills/pixel-check/SKILL.md:45` and `:105` still cite this
   observation as `TODO.md` §143, which is now the route-cost entry, so the renumbering recorded above left two
   pointers aimed at the wrong id; whichever change repairs the detector should re-point them at §147.
@@ -2371,7 +2311,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   analysis.
 
 ## 150. After arrival the reroute path re-acquires the destination that was already reached — Found 2026-10-07 while applying `auto-end-navigation-after-arrival` (device run on the AAOS AVD, tasks 3.2/3.3)
-**id:** 150 · **category:** navigation · **class:** improvement · **status:** on-hold suppression of the post-arrival reroute vs the recorded owner decision
+**id:** 150 · **category:** route-and-navigation · **class:** improvement · **status:** on-hold suppression of the post-arrival reroute vs the recorded owner decision
 
 - **Loop verdict** ⏳ (bug-fix loop 2026-10-09, `bugfix-loop` iteration 9 — not eligible: gate condition 3 fails,
   `needs decision`): the claim is real in the tree — `NavigationEngine.kt:887` `onRerouteRequest` reaches
@@ -2484,8 +2424,14 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 
 ---
 
-## 153. `guidelines/MapRendering.md` numbers two sections `## 14.`, so a `§14` reference is ambiguous in eleven citations — Found 2026-10-07 while applying `scope-guideline-reads` (out of that change's scope)
-**id:** 153 · **category:** specs-and-process · **class:** improvement · **status:** open
+## 154. `guidelines/MapRendering.md` numbers two sections `## 14.`, so a `§14` reference is ambiguous in eleven citations — Found 2026-10-07 while applying `scope-guideline-reads` (out of that change's scope)
+**id:** 154 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Renumbered** ℹ (2026-10-09, `cleanup-todo`): this entry was the *second* section numbered §153 (the
+  other is the ui rotation crash, in-flight `fix-follow-rotation-crash`). The in-flight
+  `allow-lan-http-map-repository` work in main already renumbered it to §154, so this file follows that:
+  a `§14` reference in `guidelines/MapRendering.md` is still ambiguous until that guideline is fixed, and
+  the entry keeps its own number from here on.
 
 - **Observed** ℹ: `guidelines/MapRendering.md:553` is `## 14. Rotation Gesture Display-Layer Handoff` and
   `:630` is `## 14. Android Auto renderer — smooth follow (overrun + blit + extrapolation)`. `§14` of that

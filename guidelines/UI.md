@@ -1095,6 +1095,13 @@ map bitmap.
   the covered speed widget ever proves to hurt a navigating review, fix it by **placement** (a card
   cap or width that leaves the right column free), never by a z-order exception — an exception
   re-opens the class this rule closes.
+- **A contract the whole band shares is provided for the whole band.** A value the band's members read
+  from a `CompositionLocal` — the overlay-width probe the widget column reports its measured width
+  through (`MapCanvasScreen.kt`) — is provided once around the band's content, never around one branch
+  of it: the chrome band composes one right-side widget column from several mutually exclusive branches,
+  so a provider on one branch silently falls back to the local's default for the others, and the band
+  that composes while navigation is already active reports no width at all (`TODO.md` §151, change
+  `fix-nav-column-width-probe`; the follow anchor then resolves under the column).
 - **Back priority is registration order, not band order.** Compose dispatches a back gesture to the
   handler registered last, which is the composable composed last. The menu band is therefore
   composed *before* the modal band so an open surface keeps the gesture, and the surfaces inside the

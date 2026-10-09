@@ -28,8 +28,32 @@
 - **ui** — bug: §70 §74
 - **ui** — improvement: §39 §73 §136 §155
 - **ui** — feature: §4 §5
-- **verification** — bug: §131 §147 §148
+- **verification** — bug: §131 §147 §148 §158
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §156
+
+---
+
+## 158. The highlight detector qualifies a row by its **rightmost** colour run, so a row whose longest run is not last is dropped — Found 2026-10-09 by `bugfix-loop` (iteration 12) while gating §147
+**id:** 158 · **category:** verification · **class:** bug · **status:** open
+
+- **Observed** ℹ (`tools/measure-highlight.py:72`): `if run >= MIN_RUN_PX or (last - first + 1) >= MIN_RUN_PX:`
+  — both terms describe the **last** run the scan ends on (a row that ends on a match has
+  `run == last - first + 1`; a row that does not keeps the last run's extent in `first`/`last` while `run` is
+  0), so a row is counted only when its rightmost run reaches `MIN_RUN_PX`, never when merely its longest run
+  does. Device-free reproduction: `convert -size 1080x2400 xc:white -fill '#E0F7FA' -draw 'rectangle 300,900
+  340,900' -draw 'rectangle 500,900 504,900' /tmp/long-then-short.png` → `python3
+  tools/measure-highlight.py /tmp/long-then-short.png --margin 126` prints `{"…", "highlight": null, …}`,
+  **exit 2**, although the 41 px run alone (`-draw 'rectangle 300,900 340,900'`) prints
+  `bbox=[300, 340, 900, 900] px=41` / `verdict: inside`, exit 0; put the same 41 px run right of the 5 px one and
+  it is found again (`bbox=[500, 540, 900, 900] px=41`, exit 0). The scan order decides, not the run length.
+- **Why it matters** ℹ: the guard's stated intent is "requires a **dense run** of matching pixels per row"
+  (`:39`), i.e. any run. Under the implemented rule a casing-coloured glyph or label run sitting **right** of the
+  highlight in the same row silently drops that row — shrinking the bbox (a false `CLIPPED` once `--margin` bites)
+  and, with enough such rows, returning `no highlight` where the tool's contract says a highlight was found. The
+  device-side impact is inference, not measured; the synthetic rows above are the record.
+- **Fix candidate**: qualify a row by its longest run and count that run (`:72-73`), so the row test matches its
+  documented "a dense run per row" and `MIN_RUN_PX` stays untouched. Which run's extent a multi-run row
+  contributes to the bbox is the part that change must state; it touches the same guard as §147.
 
 ---
 
@@ -2010,7 +2034,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `speed-up-test-iteration` applies: a seam the case drives instead of a wait.
 
 ## 147. `measure-highlight.py` returns `inside` on a frame with no route — 18 pixels of parking-glyph colour pass its dense-run test — Found 2026-10-06 while applying `screenshot-evidence-via-view-image` (device measurement, task 4.1)
-**id:** 147 · **category:** verification · **class:** bug · **status:** open
+**id:** 147 · **category:** verification · **class:** bug · **status:** on-hold detector stroke floor vs precondition refusal
 
 - **Note on the id** ℹ: filed as §143 on 2026-10-06; `speed-up-test-iteration` filed its route-cost finding as §143
   the same day and keeps that id (the cluster index and `guidelines/Build.md:612` cite it), so this duplicate took
@@ -2038,6 +2062,52 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   capture into `.pi/logs/skill-recipe-check/` on the same screen printed the identical
   `bbox=[619, 641, 413, 734] px=18` / `band=[0,2400]` / `verdict: inside`, so it is a deterministic
   colour coincidence, not noise.
+
+- **Loop verdict** ⏳ (bug-fix loop 2026-10-09, iteration 12 — not eligible: gate condition 3 fails,
+  `needs decision`): the claim is real today and re-reproduced without a device. The 2026-10-06 frame is gone
+  (`.pi/logs/` is untracked and absent from this tree), so the reproduction is synthetic and self-contained —
+  the observed shape drawn in the dark casing colour on a 1080×2400 canvas:
+  `convert -size 1080x2400 xc:white -fill '#E0F7FA' -draw 'rectangle 619,413 626,413' -draw 'rectangle
+  619,734 628,734' /tmp/glyph.png` then `python3 tools/measure-highlight.py /tmp/glyph.png --band-bottom 2400
+  --margin 126` prints `highlight (dark): bbox=[619, 628, 413, 734] px=18` / `canvas=1080x2400 band=[0,2400]
+  margin=126` / `verdict: inside`, **exit 0** — the entry's `px=18` / `band=[0,2400]` / `verdict: inside`
+  reproduced, and 18 px over two rows 321 px apart is the whole match. The self-test is green on HEAD and has
+  no no-route case (`bash .pi/skills/pixel-check/selftest.sh` → `ok inside -> inside=true` /
+  `ok behind-card -> inside=false` / `ok dot -> no highlight` / `selftest FAIL=0`, exit 0), which confirms this
+  entry's own claim about it and makes the red case cheap: it belongs in that self-test (condition 6 holds).
+
+- **Why exactly one fix does not follow** ✓ (condition 3): the tool's contract says what a verdict *means*
+  (`tools/measure-highlight.py:25-26` — "Exit code 0 when the highlight is inside the band, 1 when it is
+  clipped, 2 when no highlight was found (e.g. no step analysed)"), so `inside` on a frame with no analysed
+  segment is wrong under every reading of it — but **three** mechanisms repair it and nothing in the tree
+  chooses between them: (a) the guard's stated intent is untrue for a glyph outline (`:39` — "requires a
+  **dense run** of matching pixels per row, which random label pixels never form") while the *extent* the
+  documents attribute to a highlight is missing from the code (`guidelines/Build.md:1420-1421` — "`band` must
+  end above the canvas bottom (a measured card top) and the match must be a stroke — hundreds or thousands of
+  `px` over many rows, not tens of pixels spread wide"); (b) refuse on that precondition, which the skill
+  makes the **caller's** job (`.pi/skills/pixel-check/SKILL.md:32-40` — "But check the precondition before you
+  trust a positive verdict. … only meaningful when the frame is in the state it assumes", then the two tells), with this entry's suggested fourth
+  verdict value; (c) raise `MIN_RUN_PX` (`:49`), which the script's own comment forbids (`:46-48` — "the
+  threshold must stay low enough to see one"), as does `SKILL.md:145-146`. (a) and (b) differ in reach, not
+  taste: on the reproduced frame **with a measured card** (`--band-bottom 2164 --margin 126`) the tool still
+  prints `"highlight_px": 18, "band": [0, 2164], "inside": true`, exit 0, and the overlay draws nothing at all
+  whenever no step is analysed (`RouteSegmentHighlightOverlay.kt:77` returns on `segment == null`), so "card on
+  screen, no analysed segment" is a state the band rule cannot decide. (a) has no operating point in the
+  documents either: the casing is `SEGMENT_CASING_WIDTH_DP = 9f` (`RouteSegmentHighlightOverlay.kt:50`), so the
+  smallest mark the overlay can draw is a round cap of 9 px at density 1.0 — drawn as a 9 px disc
+  (`convert -size 1080x2400 xc:white -fill '#E0F7FA' -draw 'circle 500,900 504.5,900' /tmp/cap.png` then
+  `--margin 126`) the tool reports `bbox=[496, 504, 898, 902] px=45`, exit 0, i.e. **below** `Build.md:1421`'s "hundreds" and above this
+  entry's 18 px / 2 rows; every floor in 19-44 px (or ≥3-5 qualifying rows) separates those two synthetic
+  samples, the population of other glyphs and labels is unmeasured, and (b) would additionally add a fourth
+  verdict value to a contract pinned in three places (`tools/measure-highlight.py:25`, `SKILL.md:96`,
+  `Build.md:1416`). Decision needed: which signal, at which operating point, and does the tool grow a fourth
+  exit code? The self-test is the host seam that will make the chosen behaviour red/green.
+
+- **Adjacent finding** ℹ: the same guard decides a row on its **rightmost** colour run, so a row whose longest
+  run is not last is dropped — filed as §158 with the reproduction.
+- **Doc drift from the id change** ℹ: `.pi/skills/pixel-check/SKILL.md:45` and `:105` still cite this
+  observation as `TODO.md` §143, which is now the route-cost entry, so the renumbering recorded above left two
+  pointers aimed at the wrong id; whichever change repairs the detector should re-point them at §147.
 
 ---
 

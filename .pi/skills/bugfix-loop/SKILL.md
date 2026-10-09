@@ -78,10 +78,24 @@ loop's guarantees come from the contract, not from the transport.
 
 ```js
 await runs.run('triage', { agent: 'scout', skill: ['triage-todo'], task:
-  'Run the triage-todo skill on TODO.md. Return ONLY the ranked bug segment (class: bug, open or unverified, '
-  + 'not in-flight, not device-gated) as lines "§<id> | score | <category> | <one-line claim> | <file:line evidence>", '
-  + 'highest score first, at most 8 lines, then one line "queue: §a §b §c"' })
+  'Run the triage-todo skill on TODO.md. Return ONLY the ranked bug segment — class MUST be `bug`: an '
+  + '`improvement` or a `feature` is out of this loop\'s scope however urgent it sounds (an entry that only '
+  + 'adds a requirement is an improvement), status `open` or `unverified`, not in-flight, not device-gated — '
+  + 'as lines "§<id> | score | <category from the file\'s own vocabulary> | <one-line claim> | <file:line '
+  + 'evidence> | eligible: yes/no (<the first of the six conditions it fails>)", highest score first, at '
+  + 'most 8 lines — then one line "queue: §a §b §c", then up to 4 lines "rejected: §<id> — <condition '
+  + 'number + one clause of evidence>".'
+  + ' Apply the six conditions WHILE ranking and drop every candidate that fails one: (1) the claim is '
+  + 'verified in the tree today (not stale); (2) one named root cause explains the symptom; (3) exactly one '
+  + 'fix follows — no trade-off, no product decision, no already-shipped fix, no reversal of a recorded '
+  + 'owner decision; (4) a falsifiable WHEN/THEN exists; (5) one capability and one `fix-*` change; (6) a '
+  + 'host test can decide it.' })
 ```
+
+Measured value of this prefilter (2026-10-09, first run): without it 5 of 8 candidates were not
+loop-eligible; with it the first four survivors still needed the gate, but each was rejected in ~10 minutes
+with a citation instead of a 40-minute analysis. A candidate that reaches the iteration child should
+nonetheless be re-gated there — the scout sees `TODO.md`, the child sees the tree.
 
 Store it: `loop-state.sh triage 63 77 81 …`. Re-triage when the queue empties or after 3 iterations, and say so.
 
@@ -278,3 +292,8 @@ State: .pi/bugfix-loop/run.json
 11. **Reading a round-2 `FAIL` as "the fix is wrong".** Separate the claim classes: a fix/gate/revert-check
     `PASS` with a pointer `FAIL` is a documentation round, not a redesign — and a *strictly subtractive*
     round needs no third review, only the orchestrator's mechanical check.
+12. **A mis-scoped candidate: the loop is bugs-only.** A triage summary can rank a `class: improvement` entry
+    as the top bug (measured: §150 scored 9 and turned out to be a *recorded owner decision* — the live spec
+    asserts the behaviour, and "fixing" it would reverse D7). Have the triage child carry the class, the
+    category from the file's own vocabulary and the gate verdict per candidate, and drop everything that is
+    not a `bug` before the queue is built.

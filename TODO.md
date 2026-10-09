@@ -2053,7 +2053,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 ---
 
 ## 146. `buildSrc` requires a Java 17 toolchain it cannot provision, so a machine with only JDK 21 fails at configuration — Found 2026-10-06 while implementing `fix-daemon-jvm-provisioning` (probe finding, out of that change's scope)
-**id:** 146 · **category:** build-and-harness · **class:** bug · **status:** open
+**id:** 146 · **category:** build-and-harness · **class:** bug · **status:** on-hold pin 17 + provision it vs move buildSrc onto the daemon JDK
 
 - **Observed** ℹ: `buildSrc/build.gradle.kts:13-14` declares
   `toolchain { languageVersion = JavaLanguageVersion.of(17) }`, and `buildSrc/` has **no**
@@ -2077,6 +2077,42 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Invisible today** ✗: no check asserts that a machine satisfying the daemon criteria can also configure
   buildSrc. CI was green on 2026-10-03 (inference: its runner had a JDK 17 for Gradle to detect), so the
   requirement stays unseen until a machine lacks one. The probe above is the only reproduction recorded.
+
+- **Loop verdict** ⏳ (bug-fix loop 2026-10-09, iteration 10 — not eligible: gate condition 3 fails,
+  `needs decision`): the claim is real in the tree — `buildSrc/build.gradle.kts:13-15` pins
+  `languageVersion = JavaLanguageVersion.of(17)` and `buildSrc/` has no `settings.gradle.kts`, so the
+  foojay resolver that `settings.gradle.kts:9` applies to the main build does not reach the buildSrc
+  build. Re-reproduced on this machine 2026-10-09T19:04:17Z:
+  `./gradlew -Dorg.gradle.java.installations.auto-detect=false help` → `Could not resolve all
+  dependencies for configuration ':buildSrc:buildScriptClasspath' … Failed to calculate the value of
+  task ':buildSrc:compileJava' property 'javaCompiler'. > Cannot find a Java installation on your
+  machine (Linux 7.2.9-arch1-1 amd64) matching: {languageVersion=17, vendor=any vendor,
+  implementation=vendor-specific, nativeImageCapable=false}. Toolchain download repositories have not
+  been configured.` → `BUILD FAILED in 827ms`. The `-D…auto-detect=false` flag is the proxy for the real
+  condition ("no JDK 17 findable"): this machine is **not** JDK-21-only — the daemon runs JBR 21
+  (`/home/tim/.jdks/jbr-21.0.11`, `javaToolchains` "Detected by: Current JVM") and
+  `/usr/lib/jvm/java-17-openjdk` is present ("Detected by: Common Linux Locations") — which is why plain
+  `./gradlew help` configures green here (exit 0) and the defect stays invisible on this workstation.
+  **Why exactly one fix does not follow** (condition 3): the only authority touching a JVM pin,
+  `openspec/specs/build-jvm-toolchain/spec.md`, scopes itself to the **daemon** JVM ("Defines how the
+  build declares and satisfies the JVM its Gradle daemon runs on"; "The daemon JVM requirement names a
+  version, not a vendor … SHALL require only a Java version (21)") and says nothing about the buildSrc
+  compile toolchain — so it dictates neither "17 stays" nor "bump". The guidelines record the pin only
+  as a rationale (`guidelines/Build.md:990-991` "Java 17 toolchain is pinned there so Kotlin and Java
+  targets agree (a newer daemon JVM otherwise emits an inconsistent-target warning)"; `:280-282` names
+  this entry as the second requirement), which three different fixes all satisfy: (a) add
+  `buildSrc/settings.gradle.kts` with the foojay resolver — keeps 17, but a JDK-21-only machine then
+  **downloads** a JDK 17, which the archived `fix-daemon-jvm-provisioning` was written against ("No
+  routine run pays for a download"); (b) raise the pin to 21 — the daemon's own JDK 21 is already a
+  detected toolchain (`javaToolchains`, "Detected by: Current JVM"), so no download, but it changes what
+  compiles the build logic (the entry's own recorded caveat); (c) drop the pin — the same effect class as
+  (b) without a version. Decision needed: keep the 17 pin and provision it, or move buildSrc onto the
+  daemon JDK? The entry's other half ("state the 17 requirement … so a failing configuration is
+  diagnosable") is documentation, not a fix, and satisfies no spec scenario. No check exists today (no CI
+  step names `buildSrc`; `.github/workflows/build.yml:60-64` installs Temurin 21 only), so the later
+  change owes the check that makes the chosen behaviour red/green; the host seam is a plain
+  configuration-phase invocation (`./gradlew -Dorg.gradle.java.installations.auto-detect=false help`),
+  which cannot decide the choice itself.
 
 ---
 

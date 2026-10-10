@@ -4,7 +4,7 @@
 # A bug-fix change's own review failed twice in the loop's first run on claims that no artifact carried: a test
 # tally attributed to a /tmp log, and a file:line whose premise had moved. Both are greppable, so they are checked
 # mechanically here instead of by a reviewer's patience. Run it in phase C/D before the gate and again before
-# archive (`.pi/skills/bugfix-loop/SKILL.md`, "Evidence pointers").
+# archive (`.pi/skills/fix-loop/SKILL.md`, "Evidence pointers").
 #
 # Checks (FAIL => exit 1, WARN => exit 0 with a note):
 #   C1 §references   every `§N` in the change's markdown exists as a `## N.` section in TODO.md,

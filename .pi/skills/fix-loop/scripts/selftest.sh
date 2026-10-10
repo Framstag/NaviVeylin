@@ -3,6 +3,8 @@
 # Proves the four things the loop relies on: the cap, the deadline and the queue stop the loop with exit 3
 # (never with a wrong count), `done` consumes a queue entry, and a pre-change skip can be recorded by --id
 # with its verdict (the shape the gate actually produces).
+# Also guards the skill document's structure and the `itemLimit`/`bugLimit` handover, so a revert of the
+# widen-fix-loop change makes a named check go red.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -14,8 +16,8 @@ fail=0
 check() { if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1: expected [$2] got [$3]"; fail=1; fi; }
 check_exit() { if [ "$2" = "$3" ]; then echo "ok   $1 (exit $3)"; else echo "FAIL $1: expected exit $2 got $3"; fail=1; fi; }
 
-bash "$S" init --bugs 2 --minutes 60 --review off >/dev/null
-check "budget recorded" "2" "$(jq -r .bugLimit "$LOOP_STATE")"
+bash "$S" init --items 2 --minutes 60 --review off >/dev/null
+check "budget recorded" "2" "$(jq -r .itemLimit "$LOOP_STATE")"
 check "review flag" "off" "$(jq -r .review "$LOOP_STATE")"
 
 set +e
@@ -23,9 +25,21 @@ out="$(bash "$S" remaining)"; code=$?
 set -e
 check_exit "fresh run has budget" 0 "$code"
 case "$out" in
-  "2 bugs left, "*" min left (deadline $(jq -r .deadlineAt "$LOOP_STATE"))")
+  "2 items left, "*" min left (deadline $(jq -r .deadlineAt "$LOOP_STATE"))")
     echo "ok   remaining line: $out";;
   *) echo "FAIL remaining line: [$out]"; fail=1;;
+esac
+
+# a state file from before the rename carries bugLimit only: every reader must still resolve the budget
+legacy="$tmp/legacy.json"
+jq 'del(.itemLimit) + {bugLimit: 3}' "$LOOP_STATE" > "$legacy"
+set +e
+out="$(LOOP_STATE="$legacy" bash "$S" remaining 2>&1)"; code=$?
+set -e
+check_exit "legacy bugLimit-only state resolves its budget" 0 "$code"
+case "$out" in
+  "3 items left, "*) echo "ok   legacy bugLimit-only state: $out";;
+  *) echo "FAIL legacy bugLimit-only state: [$out]"; fail=1;;
 esac
 
 bash "$S" triage 63 77 81 >/dev/null
@@ -108,7 +122,7 @@ set +e
 out="$(bash "$S" remaining 2>&1)"; code=$?
 set -e
 check_exit "cap reached stops the loop" 3 "$code"
-check "cap message" "0 bugs left (cap reached)" "$out"
+check "cap message" "0 items left (cap reached)" "$out"
 
 # next stops on the empty queue as well
 bash "$S" triage 5 >/dev/null
@@ -120,9 +134,13 @@ check_exit "next stops on empty queue" 3 "$code"
 
 # argument validation
 set +e
-bash "$S" init --bugs 1 --minutes 0 >/dev/null 2>&1; code=$?
+bash "$S" init --items 1 --minutes 0 >/dev/null 2>&1; code=$?
 set -e
 check_exit "zero budget refused" 2 "$code"
+set +e
+bash "$S" init --bugs 1 --minutes 1 >/dev/null 2>&1; code=$?
+set -e
+check_exit "the old --bugs flag is refused" 2 "$code"
 set +e
 bash "$S" done --result skipped --note "no id and no change" >/dev/null 2>&1; code=$?
 set -e
@@ -145,8 +163,21 @@ set -e
 check_exit "bad step status refused" 2 "$code"
 
 # a fresh 1-minute run is live
-bash "$S" init --bugs 1 --minutes 1 >/dev/null
+bash "$S" init --items 1 --minutes 1 >/dev/null
 bash "$S" triage 5 >/dev/null
 check "deadline is future" "true" "$(jq -r '.deadlineEpoch > (now | floor)' "$LOOP_STATE")"
+
+# the skill document's structure — guards the restructure, so a re-added duplicate or a restored
+# `## ` template heading makes a named check fail
+skill="$here/../SKILL.md"
+if [ ! -f "$skill" ]; then
+  echo "FAIL skill document not found: $skill"; fail=1
+else
+  check "no report-template heading is a section" "0" "$(grep -c '^## .*— <date>' "$skill" || true)"
+  check "report template still present" "1" "$(grep -c 'fix-loop — <date>' "$skill" || true)"
+  check "pre-screen admits improvements" "1" "$(grep -c 'In scope: `bug`, and `improvement`' "$skill" || true)"
+  check "copy-out rule stated once" "1" "$(grep -c 'Copy the cited XMLs' "$skill" || true)"
+  check "gate table has seven conditions" "7" "$(grep -c '^| [1-7] |' "$skill" || true)"
+fi
 
 [ "$fail" = 0 ] && echo "selftest: PASS" || { echo "selftest: FAIL"; exit 1; }

@@ -18,7 +18,7 @@ context: |
   Native purity: libosmscout stays Android-free outside its frozen Android/ dir (CI-gated)
   Google Play Services: optional, used when available (Fused location, car MapController); no hard dependency — replaceable by design (e.g., LocationManager fallback)
   Tooling: do NOT use python3 for openspec interaction or CLI output processing — use plain shell, jq, or openspec's own --json output instead
-  Bug fixes: `.pi/skills/bugfix-loop` owns the budgeted bug-fix loop (triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → TODO.md bookkeeping). A bug may only enter that loop when exactly one fix follows from a proven root cause; otherwise it is skipped, not guessed at.
+  Defect-shaped items: `.pi/skills/fix-loop` owns the budgeted loop that closes bugs and defect-shaped improvements (triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → TODO.md bookkeeping). An item may only enter that loop when exactly one fix follows from a proven root cause; otherwise it is skipped, not guessed at.
 
 rules:
   proposal:
@@ -100,7 +100,7 @@ operations:
       - When a finding needs the owner's observation, ask 2-4 independent questions in ONE ask_user call (where/when/whether), not one question per round.
       - "When a fix cannot be verified by measurement (e.g. a stationary emulator cannot produce follow drift), say so explicitly in the task and the report instead of implying device proof."
       - Generate test coverage report and make sure that essential business logic and strategical gluing and integration code has a high test coverage
-      - "In the bug-fix loop (`.pi/skills/bugfix-loop`), reproduce the defect with a test that fails on HEAD before changing production code, and have a fresh read-only child confirm each spec scenario against the diff and the gate XMLs before archiving — the writer may not be the reviewer."
+      - "In the fix-loop (`.pi/skills/fix-loop`), reproduce the defect — or, for a defect-shaped improvement, the missing bound — with a test that fails on HEAD before changing production code, and have a fresh read-only child confirm each spec scenario against the diff and the gate XMLs before archiving — the writer may not be the reviewer."
 
 
   # Verify gates (validation + review): openspec 1.10.0 loads guidance only

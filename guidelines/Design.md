@@ -751,6 +751,17 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   instead of live values. The notification and the FGS protection remain; the
   deliberate no-lease case is pinned in `specs/location-updates-lease` so a later
   reader cannot re-add always-on fixes by accident.
+- The repository's readiness flag deferred as API surface (archived
+  `fix-aa-favorites-latency` design: "*`initialized` flag on the repository* —
+  … Deferred") → published as its own signal
+  (`AutoFavoritesProvider.storeReady`, change `fix-car-favorites-loading-stall`) —
+  the deferral assumed the favourites list's loading row was short-lived, but the
+  store publishes from an empty map, so "not initialised yet" and "initialised and
+  holds none" were the same value and the row's end was gated on whichever async
+  emission happened to arrive first. The signal is what lets the car screen show
+  the row only for a genuinely uninitialised store, and the owner's 2026-10-10
+  report ("seconds — noticeably stuck on Loading") is why the trade-off was
+  reopened.
 
 ---
 

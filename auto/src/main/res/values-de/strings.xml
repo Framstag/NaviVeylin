@@ -61,6 +61,7 @@
     <string name="back">Zurück</string>
     <string name="startup_failed">Start fehlgeschlagen</string>
     <string name="no_favorites_saved">Keine Favoriten gespeichert</string>
+    <string name="more_items">Mehr (%1$d)</string>
     <string name="favorites_save_hint">Favoriten von der Karte speichern, um sie hier zu sehen</string>
     <string name="no_starred_favorites">Keine markierten Favoriten</string>
     <string name="starred_hint">Favoriten auf der Karte markieren, um sie hier zu sehen</string>

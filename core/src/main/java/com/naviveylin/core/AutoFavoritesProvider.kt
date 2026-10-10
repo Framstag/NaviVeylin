@@ -32,6 +32,18 @@ interface AutoFavoritesProvider {
     fun starredOrder(): StateFlow<List<StarredFavoriteLocation>>
 
     /**
+     * Whether the store's initialisation attempt has finished — success or failure.
+     *
+     * The favorites store publishes its contents from an empty map, so "not initialised yet" and
+     * "initialised and holds no favorites" are the same [favoriteLocations] value. A surface that shows
+     * a loading state has to tell them apart, and this is the signal that does: false until the
+     * initialisation attempt ends, true afterwards whatever its outcome (spec `auto-favorites` — The
+     * favourites list distinguishes a loading store from an empty one). A surface therefore shows its
+     * loading placeholder only while this is false, never for a state it already holds.
+     */
+    fun storeReady(): StateFlow<Boolean>
+
+    /**
      * Initialize the favorites repository with the JSON persistence path
      * (typically `filesDir/favorites.json`). Must be called before
      * [favoriteLocations] returns any data; mirrors the phone app's

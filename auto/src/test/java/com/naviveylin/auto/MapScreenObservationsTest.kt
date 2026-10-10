@@ -6,15 +6,23 @@ import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoLocationProvider
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.BasemapReloadNotifier
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * Tests for [MapScreenObservations] (spec: auto/screen-observation — One instance of
@@ -49,9 +57,18 @@ class MapScreenObservationsTest {
         val flow = MutableStateFlow<Map<String, List<FavoriteLocation>>>(emptyMap())
         val order = MutableStateFlow<List<String>>(emptyList())
         val starred = MutableStateFlow<List<StarredFavoriteLocation>>(emptyList())
-        override fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>> = flow.asStateFlow()
+
+        /** The calling thread of the accessor this screen resolves. */
+        val accessorThreads = ConcurrentLinkedQueue<Pair<String, Thread>>()
+
+        override fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>> {
+            accessorThreads += "favoriteLocations" to Thread.currentThread()
+            return flow.asStateFlow()
+        }
+
         override fun groupOrder(): StateFlow<List<String>> = order.asStateFlow()
         override fun starredOrder(): StateFlow<List<StarredFavoriteLocation>> = starred.asStateFlow()
+        override fun storeReady(): StateFlow<Boolean> = MutableStateFlow(true)
         override suspend fun init(filePath: String): Boolean = false
         override suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean = false
         override suspend fun removeFavorite(lat: Double, lon: Double): Boolean = false
@@ -69,10 +86,14 @@ class MapScreenObservationsTest {
 
     private fun observations() = CarScreenObservations(mainDispatcher.dispatcher)
 
-    private fun wiring(observations: CarScreenObservations) = MapScreenObservations(
+    private fun wiring(
+        observations: CarScreenObservations,
+        backgroundDispatcher: CoroutineDispatcher = mainDispatcher.dispatcher
+    ) = MapScreenObservations(
         observations = observations,
         locationProvider = location,
         favoritesProvider = favorites,
+        backgroundDispatcher = backgroundDispatcher,
         basemapNotifier = basemap,
         resolvedDark = dark,
         onFix = { fixes += it },
@@ -82,6 +103,44 @@ class MapScreenObservationsTest {
     )
 
     private val fix = AutoPosition(lat = 51.5, lon = 7.5, bearing = 90.0, accuracy = 5.0, speedKmH = 40.0)
+
+    /**
+     * Pump the test scheduler while the resolution's real background dispatcher progresses, until the
+     * accessor has been reached. The bound is a backstop, not the assertion.
+     */
+    private fun TestScope.awaitAccessorThread(timeoutMs: Long = 3_000) {
+        runBlocking {
+            withTimeoutOrNull(timeoutMs) {
+                while (favorites.accessorThreads.isEmpty()) {
+                    advanceUntilIdle()
+                    yield()
+                }
+                true
+            }
+        }
+        advanceUntilIdle()
+    }
+
+    /**
+     * The map screen is the session's root screen: it starts before the warmup's client build has
+     * finished, so its favorites observation is a first touch like the favorites screen's
+     * (spec: auto-map-renderer — A screen observation resolves its provider off the host thread;
+     * design D1).
+     */
+    @Test
+    fun theFavoritesProviderResolvesOffTheHostThread() = runTest(mainDispatcher.dispatcher) {
+        val hostThread = Thread.currentThread()
+
+        wiring(observations(), backgroundDispatcher = Dispatchers.Default).start()
+        awaitAccessorThread()
+
+        val resolved = favorites.accessorThreads.toList()
+        assertEquals("the case must observe the accessor", listOf("favoriteLocations"), resolved.map { it.first })
+        assertTrue(
+            "the map screen resolved its provider on the host thread ($hostThread)",
+            resolved.none { it.second === hostThread }
+        )
+    }
 
     @Test
     fun everyObservedSourceReachesItsEffect() = runTest(mainDispatcher.dispatcher) {

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A car group row's favorite count (spec: auto-favorites — Group headers shown). The wording
+         is the phone's group-card wording (`app/src/main/res/values/plurals.xml`), so the two
+         surfaces show the same sentence for the same number; the count is passed as the format
+         argument. -->
+    <plurals name="favorite_count">
+        <item quantity="one">%d favorite</item>
+        <item quantity="other">%d favorites</item>
+    </plurals>
+</resources>

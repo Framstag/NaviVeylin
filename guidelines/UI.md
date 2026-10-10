@@ -34,9 +34,9 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Remove favorite | "Remove from Favorites" (error-colored button) | "☆ Remove from Favorites" (clickable row) |
 | Open-source license list | Reachable from About → "Open source licenses": components with identifiers, full license texts, links for licenses whose terms stay with their owner | Not surfaced — the car About screen keeps app identity and the map-data attribution only |
 | Auto-zoom magnification changes | Animated — `smooth-zoom` scales the displayed map from the current scale toward the target while the native render is queued, and a change farther than the window the frame in hand can serve is applied as a sequence of steps, each step a native render at the magnification it displays (`ZoomWalk`), one step per landed frame; the animation pivots on the vehicle's resolved follow anchor while a follow mode is active | Animated by the same observable contract, implemented in the renderer — a magnification request larger than the blit window is WALKED across rendered frames (`AutoMapRenderer.advanceZoomWalk`, spec `auto-speed-zoom` — Auto-zoom entry transition), also pivoting on the resolved follow anchor. The observable contract (no single-frame jump, no frame showing a magnification the frame in hand cannot serve, anchored on the vehicle, ends on an exact render) is the parity requirement, the mechanism (Compose display scale over walked renders vs renderer walk) is not shared. Car gesture/zoom-button paths keep their immediate response; the phone walks every animated change, and a programmatic camera fit lands directly on both surfaces |
-| Reorder favorites inside a group | Drag handle on each favorite row in the group detail list (`sh.calvin.reorderable`); the position the drag ends in is persisted | Not offered — Car App Library templates have no drag gesture. The car `PlaceListTemplate` shows the **same stored order** read-only, so the data is at parity, the interaction is not (see below) |
+| Reorder favorites inside a group | Drag handle on each favorite row in the group detail list (`sh.calvin.reorderable`); the position the drag ends in is persisted | Not offered — Car App Library templates have no drag gesture. The car's group screen (`ListTemplate`) shows the **same stored order** read-only, so the data is at parity, the interaction is not (see below) |
 | Reorder favorite groups | Long-press drag handle on each group card in the grid (`sh.calvin.reorderable`, `rememberReorderableLazyGridState`); the position the drag ends in is persisted — change `reorder-favorite-groups` | Not offered — same platform constraint as the favorite order, and a per-header move action would duplicate a management task the phone owns. The car list renders the **same stored group order** read-only, so the data is at parity, the interaction is not (see below) |
-| Move a favorite into another group | Row action on the favorite (overflow menu → "Move to group", shared wording `move_favorite_to_group`) opening a destination dialog that lists the other groups plus "New Group" (shared wording `new_group_title`) — change `move-favorite-between-groups` | Not offered — the destination-selection step has no template equivalent and the screen is driver-facing. The car `PlaceListTemplate` renders the resulting grouping under the destination group's header, so the data is at parity, the interaction is not (see below) |
+| Move a favorite into another group | Row action on the favorite (overflow menu → "Move to group", shared wording `move_favorite_to_group`) opening a destination dialog that lists the other groups plus "New Group" (shared wording `new_group_title`) — change `move-favorite-between-groups` | Not offered — the destination-selection step has no template equivalent and the screen is driver-facing. The car renders the resulting grouping twice over: the moved favorite's destination group row carries the new count on the group level, and that group's own screen lists the favorite (§1, "Favorites browsing hierarchy"), so the data is at parity, the interaction is not (see below) |
 | Reorder starred favorites | Long-press drag on a starred chip in the favorites sheet's chip bar (`sh.calvin.reorderable`, `rememberReorderableLazyListState`), which renders the one starred order spanning all groups — the position the chip is released at is persisted — change `order-starred-favorites` | Not offered — same platform constraint as the other two orders. The car's starred-favorites screen renders the **same stored starred order** read-only, as one list without group headers (a cross-group sequence cannot be rendered as group blocks), so the data is at parity, the interaction is not (see below) |
 | Stylesheet could not be loaded | Non-blocking snackbar next to the map with the shared wording (`MapStyleLoadReporter` → `uiState.snackbarMessage`) | **Same wording**, also non-blocking, but a different surface: a one-shot low-importance notification (channel `map_style`, silent, auto-cancel) — the car templates have no general message slot, so `CarStyleLoadNotifier` is used instead of a template change. Guidance is never interrupted on either surface (change `fix-stylesheet-load-crash`, design D2) |
 | Car session live while the phone UI is open | Advisory indication on the map (centre-left pill, shared wording `car_session_active_indicator`, translated): "Navigation on car display". Informational only — no map, search or navigation control is disabled while a car session is live (change `shared-resource-arbitration`, spec `car-session-presence`) | Not shown — the car surface is the session, so the indication would tell the driver nothing (platform constraint, not an omission) |
@@ -81,6 +81,35 @@ stacked on the browse list while driving — so the action stays on the phone an
 the car screen stays a browse-and-select surface. Favorites management as a whole
 (rename, color, reorder, move — and the order of the groups themselves) is a phone
 surface by this rule; only browsing and selecting are shared.
+
+### Favorites browsing hierarchy (both surfaces)
+
+Source: change `car-favorites-group-level` (specs `auto-favorites`, `fav-management-ui` — phone and car
+surfaces keep the same browsing hierarchy and the same wording for it).
+
+- **Two levels on both surfaces, in the same order:** the **group level** first, then that group's own
+  favorites. The phone sheet opens on the group grid and a group card opens the group detail list; the
+  car's all-favorites entry opens one row per group and a group row opens that group's favorites. The
+  group row carries the group name plus the `plurals/favorite_count` sentence the phone's group card
+  shows — `:auto` carries its own copy of the plural, word for word, and
+  `GermanTranslationCompletenessTest` guards both locales — so the count is at parity by construction,
+  not by a second wording that could drift.
+- **The starred entry stays a top-level list of its own** (`Starred favorites`): one flat sequence in the
+  stored starred order, no group rows, because a cross-group sequence cannot be rendered as group blocks
+  (spec `starred-ordering`).
+- **Deliberate deviation — a group holding no favorites:** the phone's grid lists it (that is how a freshly
+  created group appears, and the phone is where it can be filled) and the car's group level hides it,
+  because no car affordance can move a favorite into a group, so a car row for it would be a dead end
+  (spec `auto-favorites` — A group holding no favorites is not listed). The phone half is asserted by
+  `FavoritesViewModelTest` (`addGroup creates group and shows snackbar`), the car half by
+  `FavoritesScreenTest.anEmptyGroupIsNotListedOnTheCar`.
+- **Both levels are browse-and-select only:** a row tap starts the destination-picker flow; neither level
+  offers a drag, a rename, a color or a move. The management split in "Why favorite, group and starred
+  reordering are phone-only" is unchanged. A group's own screen is reached by a template row click, so
+  the push leaves the host's click callback like every other screen push (§3, spec
+  `car-host-fault-isolation`).
+- **Neither level exceeds the host's row budget:** each ends with the page row that opens the remainder
+  (§3, spec `car-list-row-limit`).
 
 ### Favorites row actions (phone)
 
@@ -255,8 +284,33 @@ Verified against car-app 1.7.0 (`androidx.car.app`):
   (`Row.setTitle().setOnClickListener()`), never list actions.
 - `PaneTemplate` rows: ~4–6 visible on most hosts, no scrolling, rows are
   **not actionable** — actions live at pane level.
-- `ListTemplate` scrolls and the host **pages** when the list exceeds one page —
-  the mechanism for showing arbitrarily many attributes.
+- `ListTemplate` does **not** page on its own. The Car App Library's own build contract for
+  `ItemList` is: "The number of items in the `ItemList` should be smaller or equal than the limit
+  provided by `ConstraintManager#CONTENT_LIMIT_TYPE_LIST`. **The host will ignore any items over that
+  limit**" — and the host, not the app, chooses that number. The library's packaged default is **6**
+  (`androidx.car.app.R.integer.content_limit_list`, car-app 1.7.0, read out of the AAR), and
+  `ConstraintManager.getContentLimit` returns that resource itself when its remote call fails. → A car
+  list screen MUST ask the host for the capacity and present **at most** that many rows, ending with its
+  own page row, because rows past the limit disappear with no signal (spec `car-list-row-limit`; the
+  shipped implementation is `CarListCapacityReader` + `FavoritesScreenMapper.page`, change
+  `car-favorites-group-level`).
+  - The query is `carContext.getCarService(ConstraintManager::class.java)
+    .getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST)`. `ConstraintManager` is
+    `@RequiresCarApi(2)` while the manifest declares `minCarApiLevel = 1`, so a screen guards on
+    `CarContext.getCarAppApiLevel()` (which throws `IllegalStateException` before the handshake) and
+    falls back to the library default rather than calling it. The service factory is registered
+    unconditionally, so it is the level guard, not a `try`, that keeps the API-1 path correct.
+  - The call is a plain binder call (`HostDispatcher.dispatchForResult` →
+    `RemoteUtils.dispatchCallToHostForResult`); nothing on that path checks the main thread, so the read
+    runs on a screen's `backgroundDispatcher` — never inside a template build.
+  - The number is a runtime fact and the app records it instead of hard-coding it: one line per car list
+    screen start, `Diag/SCREEN: list capacity N rows (host, car API level M)` (or
+    `(library default, <reason>)`). Measured 2026-10-10 on this AVD's templates host
+    (`Automotive_Distant_Display_with_Google_Play`, `emulator-5554`, change `car-favorites-group-level`
+    task 1.1): **100 rows at car API level 8** — the *host's* number, not the library's floor. So neither
+    6 nor 100 may be read as "the car list limit": always take the query, and always leave the remainder
+    reachable. No projection host was available in that session, so a projected host's number is
+    unrecorded.
 
 - **Check the real car-app API surface before writing a car screen or screen test** (§40.29): getter names,
   the resolved lifecycle version, and no `Lifecycle.getObservers()`. Drive the lifecycle through
@@ -277,6 +331,23 @@ The car map renderer MUST initialize off the car-app main thread (spec:
   frozen host thread during warmup delayed template delivery for every screen
   in the session. The car providers are injected as `Provider`/`Lazy` for this
   reason: resolving one must not build the client.
+- **A screen's observation body counts as a host call site** (change
+  `fix-car-favorites-loading-stall`): `CarScreenObservations.observe` runs its
+  body on the observation scope's main dispatcher, started from `onStart`, so a
+  provider resolved there first-touches the client on the host thread and blocks
+  it on the singleton lock while the session's warmup is mid-build. An
+  observation therefore resolves its providers inside
+  `withContext(backgroundDispatcher)`, on the injectable
+  `backgroundDispatcher: CoroutineDispatcher = Dispatchers.Default` that
+  `MapScreen` introduced and `FavoritesScreen`, `DetailsScreen`,
+  `MapScreenObservations` and `DetailsScreenObservations` now share; only the
+  effects (state writes, `invalidate()`) stay on the main dispatcher. The
+  favourites screen is the sharpest instance because the session's root is a
+  menu, so it is often the first touch of the client in a session — and the
+  loading row it shows for that wait is honest only while the store is
+  uninitialised, which is why the store's readiness is its own signal
+  (`AutoFavoritesProvider.storeReady`) rather than a guess made from an empty
+  favourites map.
 - **Host callbacks retain state only**: `onSurfaceAvailable` buffers the surface
   DPI (`RendererGate.surfaceDpi`) and hands it to the renderer as that renderer's
   projection DPI — resolving the client from a callback is forbidden even when the
@@ -414,6 +485,10 @@ Source: `DetailsResolver` in `:core` (specs `auto-destination-details`,
 - Destination identity: name → address → area → hint.
 - One `DetailsData` bundle (`DetailsResolver.resolve`) is consumed by both UIs —
   never re-derive per view; extend the resolver instead.
+- The favorites **browsing hierarchy** is shared the same way: group level → that group's favorites on both
+  surfaces, with the group row's count drawn from the same `favorite_count` wording the phone's group card
+  uses (see §1, "Favorites browsing hierarchy"). The one deliberate deviation is the empty group — the
+  car hides it, the phone's grid lists it — and its reason is recorded there.
 
 ## 6a. Phone search surface (unified search dialog)
 

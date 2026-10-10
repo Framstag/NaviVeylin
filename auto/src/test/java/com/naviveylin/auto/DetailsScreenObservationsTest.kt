@@ -6,18 +6,25 @@ import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoLocationProvider
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.BasemapReloadNotifier
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * Tests for [DetailsScreenObservations] (spec: auto/screen-observation — One instance of each
@@ -55,9 +62,18 @@ class DetailsScreenObservationsTest {
         val flow = MutableStateFlow<Map<String, List<FavoriteLocation>>>(emptyMap())
         val order = MutableStateFlow<List<String>>(emptyList())
         val starred = MutableStateFlow<List<StarredFavoriteLocation>>(emptyList())
-        override fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>> = flow.asStateFlow()
+
+        /** The calling thread of the accessor this screen resolves. */
+        val accessorThreads = ConcurrentLinkedQueue<Pair<String, Thread>>()
+
+        override fun favoriteLocations(): StateFlow<Map<String, List<FavoriteLocation>>> {
+            accessorThreads += "favoriteLocations" to Thread.currentThread()
+            return flow.asStateFlow()
+        }
+
         override fun groupOrder(): StateFlow<List<String>> = order.asStateFlow()
         override fun starredOrder(): StateFlow<List<StarredFavoriteLocation>> = starred.asStateFlow()
+        override fun storeReady(): StateFlow<Boolean> = MutableStateFlow(true)
         override suspend fun init(filePath: String): Boolean = false
         override suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean = false
         override suspend fun removeFavorite(lat: Double, lon: Double): Boolean = false
@@ -75,15 +91,57 @@ class DetailsScreenObservationsTest {
 
     private fun observations() = CarScreenObservations(mainDispatcher.dispatcher)
 
-    private fun wiring(observations: CarScreenObservations) = DetailsScreenObservations(
+    private fun wiring(
+        observations: CarScreenObservations,
+        backgroundDispatcher: CoroutineDispatcher = mainDispatcher.dispatcher
+    ) = DetailsScreenObservations(
         observations = observations,
         locationProvider = location,
         favoritesProvider = favorites,
+        backgroundDispatcher = backgroundDispatcher,
         basemapNotifier = basemap,
         onFix = { fixes += it },
         onFavorites = { favoriteSets += it },
         onBasemapRevision = { basemapInvalidations++ }
     )
+
+    /**
+     * Pump the test scheduler while the resolution's real background dispatcher progresses, until the
+     * accessor has been reached. The bound is a backstop, not the assertion.
+     */
+    private fun TestScope.awaitAccessorThread(timeoutMs: Long = 3_000) {
+        runBlocking {
+            withTimeoutOrNull(timeoutMs) {
+                while (favorites.accessorThreads.isEmpty()) {
+                    advanceUntilIdle()
+                    yield()
+                }
+                true
+            }
+        }
+        advanceUntilIdle()
+    }
+
+    /**
+     * The details screen is reached by a push from the map or a search result, so its favorites
+     * observation can be the session's first touch of the native client, and it too runs on the
+     * observation scope's main dispatcher (spec: auto-map-renderer — A screen observation resolves its
+     * provider off the host thread; design D1).
+     */
+    @Test
+    fun theFavoritesProviderResolvesOffTheHostThread() = runTest(mainDispatcher.dispatcher) {
+        val hostThread = Thread.currentThread()
+
+        wiring(observations(), backgroundDispatcher = Dispatchers.Default).start()
+        awaitAccessorThread()
+
+        val resolved = favorites.accessorThreads.toList()
+        assertEquals("the case must observe the accessor", listOf("favoriteLocations"), resolved.map { it.first })
+        assertTrue(
+            "the details screen resolved its provider on the host thread ($hostThread)",
+            resolved.none { it.second === hostThread }
+        )
+    }
 
     private val fix = AutoPosition(lat = 51.5, lon = 7.5, bearing = 90.0, accuracy = 5.0, speedKmH = 40.0)
 
@@ -230,6 +288,9 @@ class DetailsScreenObservationsTest {
                 observations = observations,
                 locationProvider = location,
                 favoritesProvider = favorites,
+                // The failing effect is reached through the provider hop, so the test scheduler owns it:
+                // the case is about fault confinement, not about a real thread pool's timing.
+                backgroundDispatcher = mainDispatcher.dispatcher,
                 basemapNotifier = basemap,
                 onFix = { fixes += it },
                 onFavorites = { throw IllegalStateException("boom") },

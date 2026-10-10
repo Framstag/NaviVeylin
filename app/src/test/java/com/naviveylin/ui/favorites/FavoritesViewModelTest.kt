@@ -437,6 +437,10 @@ class FavoritesViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(vm.uiState.value.groups.containsKey("NewGroup"))
+        // The new group holds no favorites yet and is still a group the phone's grid renders (spec:
+        // auto-favorites — A group holding no favorites is not listed: the car hides it, the phone's
+        // group grid keeps listing it).
+        assertTrue(vm.uiState.value.groups["NewGroup"]?.isEmpty() == true)
         assertTrue(vm.uiState.value.snackbarMessage != null)
     }
 

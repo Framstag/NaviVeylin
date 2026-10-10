@@ -43,6 +43,16 @@ class AutoFavoritesProviderImpl(
     override fun starredOrder(): StateFlow<List<StarredFavoriteLocation>> =
         repository.get().starredOrder
 
+    /**
+     * Forwards the store's initialisation outcome, so a car surface can show its loading placeholder
+     * only while the store is genuinely uninitialised (spec `auto-favorites` — The favourites list
+     * distinguishes a loading store from an empty one). Like the other accessors this resolves the
+     * repository — and, with it, the native client on first use — so a screen reaches it from a
+     * background context, never from the car-app host thread (spec `auto-map-renderer` — A screen
+     * observation resolves its provider off the host thread).
+     */
+    override fun storeReady(): StateFlow<Boolean> = repository.get().storeReady
+
     override suspend fun init(filePath: String): Boolean = repository.get().init(filePath)
 
     override suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean =

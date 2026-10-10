@@ -90,4 +90,37 @@ class AutoFavoritesProviderImplTest {
         assertEquals("Work" to "Office", findFavoriteByCoordinates(favorites, 1.0, 2.0))
         assertNull(findFavoriteByCoordinates(favorites, 9.0, 9.0))
     }
+
+    // --- The store's readiness (spec auto-favorites — The favourites list distinguishes a loading
+    // store from an empty one; design D2) ---
+
+    @Test
+    fun storeIsNotReadyBeforeItsInitialisation() = runTest {
+        // The favorites flow is an empty map from construction, so a surface cannot tell "not
+        // initialised" from "initialised and empty" without this signal.
+        assertFalse("an uninitialised store must not report readiness", provider.storeReady().value)
+    }
+
+    @Test
+    fun storeReportsReadyAfterASuccessfulInitialisation() = runTest {
+        initRepository()
+
+        assertTrue("a finished initialisation reports readiness", provider.storeReady().value)
+    }
+
+    /**
+     * The failing path: the attempt ends even when the store cannot be read, because a permanent
+     * loading state would hide the failure behind a promise that never resolves. A repository without a
+     * client stands in for the failure — the fake client's load path always succeeds and never throws.
+     */
+    @Test
+    fun storeReportsReadyAfterAFailedInitialisation() = runTest {
+        val broken = FavoriteRepository()
+        val brokenProvider = AutoFavoritesProviderImpl(dagger.Lazy { broken })
+
+        val attempt = runCatching { broken.init(context.filesDir.absolutePath + "/fav-broken.json") }
+
+        assertTrue("the initialisation has to fail for this case to mean anything", attempt.isFailure)
+        assertTrue("a failed attempt still reports readiness", brokenProvider.storeReady().value)
+    }
 }

@@ -14,9 +14,9 @@ import org.w3c.dom.Element
  */
 class GermanTranslationCompletenessTest {
 
-    private fun stringKeys(xmlFile: File): Set<String> {
+    private fun keys(xmlFile: File, tag: String): Set<String> {
         val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xmlFile)
-        val nodes = doc.getElementsByTagName("string")
+        val nodes = doc.getElementsByTagName(tag)
         val keys = mutableSetOf<String>()
         for (i in 0 until nodes.length) {
             val el = nodes.item(i) as Element
@@ -32,7 +32,21 @@ class GermanTranslationCompletenessTest {
         val valuesDe = File("src/main/res/values-de/strings.xml")
         assertTrue("values/strings.xml missing", values.exists())
         assertTrue("values-de/strings.xml missing", valuesDe.exists())
-        val missing = stringKeys(values) - stringKeys(valuesDe)
+        val missing = keys(values, "string") - keys(valuesDe, "string")
         assertTrue("Missing German string translations: $missing", missing.isEmpty())
+    }
+
+    /**
+     * The plural resources are a second file per locale, so a count added to `values/plurals.xml`
+     * would otherwise reach a German driver in English (spec: i18n-l10n, German is fully supported).
+     */
+    @Test
+    fun everyEnglishPluralHasGermanTranslation() {
+        val values = File("src/main/res/values/plurals.xml")
+        val valuesDe = File("src/main/res/values-de/plurals.xml")
+        assertTrue("values/plurals.xml missing", values.exists())
+        assertTrue("values-de/plurals.xml missing", valuesDe.exists())
+        val missing = keys(values, "plurals") - keys(valuesDe, "plurals")
+        assertTrue("Missing German plural translations: $missing", missing.isEmpty())
     }
 }

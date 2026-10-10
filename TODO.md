@@ -6,7 +6,7 @@
 **Clusters** (category, then class — jump targets, not an order):
 - **build-and-harness** — bug: §146
 - **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145 §149 §155
-- **car** — bug: §57 §83 §92 §93
+- **car** — bug: §57 §83 §92 §93 §177 §178 §179 §180
 - **car** — improvement: §29 §34 §46 §56 §64 §103 §120 §127 §133
 - **data-and-maps** — bug: §91 §99
 - **data-and-maps** — improvement: §163 §164
@@ -31,7 +31,7 @@
 - **ui** — bug: §70 §74 §153
 - **ui** — improvement: §39 §73 §136 §152 §166
 - **ui** — feature: §4 §5
-- **verification** — bug: §131 §147 §148
+- **verification** — bug: §131 §147 §148 §181
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167 §170
 ---
 
@@ -1760,20 +1760,9 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   check is false as a subset check and is filed as §174.
 
 ## 103. `FavoritesScreen` (car) is the one screen still outside the `CarScreenObservations` pattern — Found 2026-09-29 during `order-starred-favorites`
-**id:** 103 · **category:** car · **class:** improvement · **status:** in-flight fix-details-screen-observation-scope
-- **Debt** ℹ: `auto/src/main/java/com/naviveylin/auto/FavoritesScreen.kt` collects its favorites, group-order
-  and starred-order flows in one `combine` inside `init`, on `carScreenScope("FavoritesScreen")`, and
-  cancels it through its own `onDestroy` lifecycle observer. Map, Navigation and FreeDriving screens use
-  `CarScreenObservations` plus a `<Screen>Observations` class with started-period lifetime (change
-  `fix-car-screen-observer-leak`, spec `auto/screen-observation`). The screen has no accumulation bug
-  today — it launches one collector per screen instance and destroys the scope with the screen — so this is
-  consistency, not correctness.
-- **Fix candidate**: give `FavoritesScreen` a `FavoritesScreenObservations` owned by
-  `CarScreenObservations` (favorites map, group order and starred order as its observations),
-  `start()`/`stop()` from `onStart`/`onStop`, and a test for the started-period lifetime like the other
-  screens' observations tests.
-- **Why deferred** ✗: `order-starred-favorites` needed one more input on that existing collector; migrating
-  the screen's whole observation lifetime was scope its specs do not require.
+**id:** 103 · **category:** car · **class:** improvement · **status:** fixed-by `fix-details-screen-observation-scope`, extended by `fix-car-favorites-loading-stall`
+- **Resolved** ✓: the screen now runs a `FavoritesScreenObservations` class over `CarScreenObservations` — started in `onStart`, stopped in `onStop`, one instance per started period, faults confined to their observation — so the claim that it is outside the pattern no longer holds. `fix-car-favorites-loading-stall` then moved its provider resolution onto the injectable `backgroundDispatcher`, because the observation body runs on the observation scope's main dispatcher (the car-app host thread) and the first touch of the favorites provider builds the native client. The original debt note (it collected its flows in `init` on `carScreenScope`) describes the pre-migration state and is kept only as the reason the entry existed.
+- **Fix candidate**: was to give the screen a `FavoritesScreenObservations` owned by `CarScreenObservations` — done.
 
 ## 106. The AAOS AVD's car session lives in user 10 while adb reaches user 0 only, so its favorites storage cannot be seeded — Found 2026-09-29 on `emulator-5554` (automotive distant-display AVD) during `order-starred-favorites`
 **id:** 106 · **category:** verification · **class:** improvement · **status:** open (device)
@@ -2836,3 +2825,63 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   decision is what §119's evidence did not make for it.
 - **Related**: §119 (the fixed instance), `guidelines/Design.md` §5 (mirror upstream APIs; deviations live
   as local overrides in the bridge module, never patched into the submodule).
+
+## 175. A car screen's observation body is still a main-thread provider call site on the remaining screens — Found 2026-10-10 while implementing `fix-car-favorites-loading-stall`
+**id:** 175 · **category:** car · **class:** bug · **status:** open
+
+- **Debt** ℹ: `fix-car-favorites-loading-stall` moved the favorites provider resolution of `FavoritesScreenObservations`, `MapScreenObservations` and `DetailsScreenObservations` onto the injectable `backgroundDispatcher`. One call site of the same shape was left alone because it is a different kind of path: `SearchScreen.kt:152` reads `favoritesProvider.favoriteLocations().value` — reading the value is a provider touch, and the touch resolves the Hilt `OSMScoutClient` singleton on its first use, so the first search of a cold session can build the native client on whichever thread answers the host (spec `auto-map-renderer` — "Provider resolution does not build the client"; `guidelines/UI.md` §3a states the rule). The favourites path no longer does this; the search path has not been measured, so whether it is reachable before the warmup's client step (and therefore whether it can stall a host callback) is unknown.
+- **Fix candidate**: measure the search path's first touch on a cold session (the `WARMUP` step lines against the search screen's own timing), then either resolve the provider behind the same `backgroundDispatcher` parameter the other three classes carry or record that the path is unreachable before the client exists.
+- **Related**: §103 (the migrated screen), spec `auto-map-renderer`, `guidelines/UI.md` §3a.
+
+## 176. The first favourites template can take seconds on a cold session while the map's first render congests the main dispatcher — Found 2026-10-10 during the `fix-car-favorites-loading-stall` device run (§5.1)
+**id:** 176 · **category:** car · **class:** bug · **status:** open
+
+- **Observed** ℹ: on `emulator-5554` (AAOS distant-display AVD, automotive debug build), the favourites screen's own chain — observation start → `withContext(backgroundDispatcher)` → publish → template — measured **2156 ms** and **4927 ms** in two runs, and **18 ms** / **45 ms** in two later runs. In all four the store was already initialised (`storeReady=true`, `groups=1, favorites=1`), so the readiness gate is not the variable; the difference is when the screen opened: the two slow runs opened it within ~1 s of the session's first surface adoption, the two fast ones after the map had rendered. The user-visible form of the slow case is the loading row: the OCR'd screenshot `win-b.png` in `.pi/logs/favorites-loading-5.1/` reads `Favoriten | Wird geladen...`, and the settled one `Favoriten | Favorites | Tacos Fever`. Two further runs with the resolution hop instrumented added `resolution entered after 7/20 ms (DefaultDispatcher-worker-*)` and `resolution done after 16/44 ms (main)`, i.e. the hop itself is fast and the seconds sit between the hop and the publish, on the main dispatcher. **Not reproduced** in those two instrumented runs, so the ownership is unattributed: the candidates are the map's first-frame work (tile decode, style/viewport application) and first-use class loading of the car-app template path on the main thread.
+- **Why it matters**: this is very likely the seconds part of the owner's 2026-10-10 report ("sometimes see the loading message … seconds — noticeably stuck on Loading"). `fix-car-favorites-loading-stall` removed the host-thread block (the spec violation) and bounded the published state, but it does not shorten this window: the row is shown while no state has been published, and the publication is queued behind whatever occupies the main dispatcher.
+- **Fix candidate**: attribute before changing anything — repeat the cold-session tap with the hop lines in place (`.pi/logs/favorites-loading-5.1/logcat*.txt` shows the shape), and if the delay is the main dispatcher, decide whether the first-template path can avoid it at all: a session-scoped last-known-favourites snapshot the template build reads synchronously would make the row unnecessary for an initialised store, which is the mechanism `fix-car-favorites-loading-stall`'s design D3 recorded as rejected for scope, not for cost.
+- **Related**: §103, §175, change `fix-car-favorites-loading-stall` (5.1's note holds the raw numbers), spec `auto-favorites` (its added requirement deliberately bounds the published state, not the instant of the first template).
+
+## 177. The car address book presents every contact with an address in one list, over any host's row capacity — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
+**id:** 177 · **category:** car · **class:** bug · **status:** open
+
+- **Observed** ⚠: `AddressBookScreen` (`auto/src/main/java/com/naviveylin/auto/AddressBookScreen.kt`) builds one `Row` per contact returned by `AddressBookContactsProvider.contactsWithAddresses()` into a single `ItemList` with **no cap**, so the row count is whatever the device's address book holds — unbounded, and over any host capacity once the driver has more contacts with addresses than the host displays. The capacity is the host's own number (measured 2026-10-10 on the AAOS AVD's templates host: **100 rows at car API level 8**, task 1.1 of `car-favorites-group-level`; the Car App Library's floor and this app's fallback is **6**, `CarListCapacityReader.LIBRARY_DEFAULT`), and the library's build contract is explicit that the host **ignores** every item over it — so the loss is silent.
+- **Why it is out of scope here** ℹ: `car-favorites-group-level` added the capability (`car-list-row-limit` — A car list never presents more rows than the host displays / Items beyond the capacity stay reachable) and applied it to the three favourites lists only. The other car lists keep the behaviour they had; the capability is now there to be applied to them.
+- **Impact** ℹ: the tail of a large address book is unreachable on the car with no signal at all — the same defect the favourites list had.
+- **Fix candidate** ℹ: use the shipped seam — `CarListCapacityReader.read(carContext)` on the screen's started period plus `FavoritesScreenMapper.page(rows, capacity, page)` and a final page row carrying the remaining count (spec `car-list-row-limit`, wording `R.string.more_items`) — and add a per-screen page parameter as `FavoritesScreen` did. The paging row is the shared contract, so this should be one small screen change plus its cases, not a new capability.
+- **Related**: §178, §179, §180, change `car-favorites-group-level` (spec `car-list-row-limit`), `guidelines/UI.md` §3.
+
+## 178. The car search history presents all stored entries in one list, over a host capacity below 50 — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
+**id:** 178 · **category:** car · **class:** bug · **status:** open
+
+- **Observed** ⚠: `SearchHistoryScreen` (`auto/src/main/java/com/naviveylin/auto/SearchHistoryScreen.kt`) renders every entry of `historyProvider.load()` into one `ItemList`, and the store keeps up to `MAX_ENTRIES = 50` (`SearchHistoryRepository`, `core/src/main/java/com/naviveylin/core/AutoSearchHistoryProvider.kt`). 50 rows is under the AAOS host's measured 100 (task 1.1 of `car-favorites-group-level`) but over the library's default of 6 — which is what any host that cannot answer, and any host with a smaller list budget, gives the screen: everything past its capacity disappears without a signal (the library's own build contract for `ItemList`).
+- **Why it is out of scope here** ℹ: `car-favorites-group-level` applied the row cap to the favourites lists and left the other car lists as they were. The capability it added (`car-list-row-limit`) covers this screen's shape too.
+- **Impact** ℹ: with 7+ entries the oldest searches vanish from the car list with no indication, while the phone's history keeps them.
+- **Fix candidate** ℹ: the same seam as §177 — `CarListCapacityReader` + `FavoritesScreenMapper.page` + a final page row with the remaining count (`R.string.more_items`), per screen start, with the page as a screen parameter.
+- **Related**: §177, §179, §180, change `car-favorites-group-level`, `guidelines/UI.md` §3.
+
+## 179. The car POI result list caps at 20 rows, over a host capacity below 20, and its cap is a constant rather than the host's — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
+**id:** 179 · **category:** car · **class:** bug · **status:** open
+
+- **Observed** ⚠: `PoiResultsScreen` (`auto/src/main/java/com/naviveylin/auto/PoiResultsScreen.kt`, `MAX_RESULTS = 20`) presents up to 20 result rows in one `ItemList`. 20 is under the AAOS host's measured 100 but over the library's default 6 (`CarListCapacityReader.LIBRARY_DEFAULT`), i.e. over any host that answers less than 20 — and this cap is a *fixed constant*, which is the pattern the new capability forbids: a host that reports more than 20 is under-filled (reachable today only with more results, which the search itself caps), and a host that reports fewer loses the tail silently.
+- **Why it is out of scope here** ℹ: the change capped the favourites lists; the POI list's own result cap is a search concern it kept. The capacity query, not a constant, is what `car-list-row-limit` requires of any new car list.
+- **Impact** ℹ: the number of results a driver can reach is decided by a constant rather than by what the host will show; with a host below 20 the results past its capacity are dropped without a signal. Note also that the search itself asks for `MAX_RESULTS` candidates, so the two limits are one design decision, not two.
+- **Fix candidate** ℹ: decide the pair together — the search's candidate count and the screen's row cap — and let the row cap come from `CarListCapacityReader` with the remainder behind the page row (`FavoritesScreenMapper.page`, `R.string.more_items`), rather than from `MAX_RESULTS`.
+- **Related**: §177, §178, §180, change `car-favorites-group-level`, spec `car-list-row-limit`.
+
+## 180. The car diagnostics screen caps at 20 rows with the same fixed-constant gap as the POI list — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
+**id:** 180 · **category:** car · **class:** bug · **status:** open
+
+- **Observed** ⚠: `DiagnosticsScreen` (`auto/src/main/java/com/naviveylin/auto/DiagnosticsScreen.kt`, `MAX_ROWS = 20`, `takeLast(MAX_ROWS).asReversed()`) shows the newest 20 log entries in one `ItemList` and drops the rest by construction. 20 is under the AAOS host's measured 100 (task 1.1 of `car-favorites-group-level`) and over the library's default 6 (`CarListCapacityReader.LIBRARY_DEFAULT`), so on a host answering less than 20 the tail is lost silently by the host *in addition to* the screen's own 20-row window.
+- **Why it is out of scope here** ℹ: a diagnostics screen is a bounded recent-entries view by design (its own window is deliberate, the diagnostics file holds the full history, §126 and the retention rules in `guidelines/Logging.md`); what the change did not touch is that the window is a constant rather than the host's capacity, and that the rows past the host's capacity are dropped without a signal on a host below 20.
+- **Impact** ℹ: on a host with a small list budget a driver may see fewer entries than the screen intends to show, with no indication — which for a diagnostics surface is exactly the wrong failure mode (a partial view that reads as complete). The same fixed-constant pattern as §179, one screen further on.
+- **Fix candidate** ℹ: keep the deliberate recent-entries window, but present `min(MAX_ROWS, hostCapacity)` with the remainder behind the page row (`CarListCapacityReader` + `FavoritesScreenMapper.page`, `R.string.more_items`), and state in the header or the first row how many entries are shown of how many.
+- **Related**: §177, §178, §179, §126, change `car-favorites-group-level`, `guidelines/Logging.md` §3.
+
+## 181. `SettingsStorageSourceTest.unknownStoredSourceFallsBackToBuiltIn` asserts "no coordinate" by substring, so any other class's buffered `…52.…` line drains into its file and reddens it — Found 2026-10-10 during the `car-favorites-group-level` full gate (4.2, first attempt)
+**id:** 181 · **category:** verification · **class:** bug · **status:** open
+
+- **Observed** ⚠: the first `./gradlew test -PforceTests --no-build-cache` of that change (started 14:03:26Z, `:app` mobile) failed exactly one case: `SettingsStorageSourceTest.unknownStoredSourceFallsBackToBuiltIn`, message `the diagnostics line carries no coordinate` (`app/src/test/java/com/naviveylin/data/SettingsStorageSourceTest.kt:95`, `assertFalse(logged.contains("52."))`). The class passes alone (`BUILD SUCCESSFUL in 35s`) and passes in a single-JVM pair with `com.naviveylin.ui.map.DiagnosticsCoordinatePrivacyTest` — the class that logs coordinates *on purpose* to exercise the gate — and the failure did not reproduce in the immediate re-run of the whole gate (8m 38s, 5107 cases, 0 failures). `DiagnosticsLog` is process-wide and each test class installs its own file target with `initForTest`, with a buffer drained on `awaitDrained()`, so a line logged by another class can land in this class's file.
+- **Why it is a defect of the assertion, not of the rule** ℹ: `"52."` is not a coordinate test — it is a substring test that any `…52.…` number satisfies (`152.7ms`, `1052.`, `252.`), and the assertion is about a *shared* sink while pretending to be about this class's own line. The coordinate rule itself (`guidelines/Logging.md` §3, the `checkNoCoordinatesInLogs` gate, and `DiagnosticsCoordinatePrivacyTest`) is intact; what flaked is the test's ability to attribute a line to itself.
+- **Impact** ℹ: an unrelated in-flight change can redden this case for reasons its author cannot see, which is the shape of `fix-aggregate-run-test-flakes` (TODO.md §148) — one flake per gate run costs a 5-9 minute re-run and an attribution round, and a flake that is *not* chased is how a suite starts being read as "probably fine".
+- **Fix candidate** ℹ: make the assertion about *this* class's line rather than about the file's contents — assert the fallback line's own text (it already asserts `SOMETHING_ELSE` and `without a base URL`) and drop the file-wide coordinate grep, or assert it against the *entries* that carry this test's marker (a per-test unique string in the message, matched as a whole line), and keep `DiagnosticsCoordinatePrivacyTest` as the one place where a coordinate-in-a-line assertion lives. If a file-wide grep is wanted, `DiagnosticsLog.reset()` in `@Before` plus checking that no *earlier* class's buffer can drain here is the precondition.
+- **Related**: §148 (the aggregate-run flake work), §131, §147, `DiagnosticsCoordinatePrivacyTest`, change `car-favorites-group-level` task 4.2 (its note holds the two green runs and the failing case).

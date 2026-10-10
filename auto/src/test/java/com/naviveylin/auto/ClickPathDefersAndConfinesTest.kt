@@ -6,6 +6,7 @@ import androidx.car.app.Screen
 import androidx.car.app.ScreenManager
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
+import androidx.lifecycle.Lifecycle
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.DiagnosticsLog
@@ -166,6 +167,59 @@ class ClickPathDefersAndConfinesTest {
         assertEquals("no row pushes while answering the host", 0, pushes)
         advanceUntilIdle()
         assertTrue("the picker rows push after the callback", pushes > 0)
+    }
+
+    /**
+     * The group level's push (spec: auto-favorites — A group row opens that group's favorites; spec:
+     * car-host-fault-isolation — Host callbacks answer promptly, "Template row action opens a
+     * screen"): opening a group is a template row click like any other, so it must leave the callback
+     * and run on the screen's own scope.
+     */
+    @Test
+    fun favoritesGroupRowsNeverPushOnTheCallbackPath() = runTest(mainDispatcher.dispatcher) {
+        val favorites = MutableStateFlow(
+            mapOf(
+                "Cities" to listOf(
+                    com.framstag.libosmscout.client.FavoriteLocation("Rome", 51.5, 7.5)
+                ),
+                "Work" to listOf(
+                    com.framstag.libosmscout.client.FavoriteLocation("Office", 51.6, 7.6)
+                )
+            )
+        )
+        val entry = mockk<AutoEntryPoint>(relaxed = true)
+        every { entry.autoFavoritesProvider() } returns mockk<com.naviveylin.core.AutoFavoritesProvider>().apply {
+            every { favoriteLocations() } returns favorites
+            every { groupOrder() } returns MutableStateFlow(listOf("Cities", "Work"))
+            every { starredOrder() } returns MutableStateFlow(emptyList())
+            every { storeReady() } returns MutableStateFlow(true)
+        }
+        every { EntryPoints.get(any(), AutoEntryPoint::class.java) } returns entry
+
+        val screen = FavoritesScreen(
+            carContext,
+            navigationViewModel(),
+            backgroundDispatcher = mainDispatcher.dispatcher
+        )
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+        advanceUntilIdle()
+
+        val rows = clickableRows(screen.onGetTemplate() as ListTemplate)
+        assertEquals("one row per non-empty group", 2, rows.size)
+
+        rows.forEach { it.onClickDelegate!!.sendClick(object : OnDoneCallback {}) }
+
+        assertEquals("no row pushes while answering the host", 0, pushes)
+        advanceUntilIdle()
+        assertEquals(
+            "every group row pushes after the callback; faults: " +
+                DiagnosticsLog.readEntries().filter { !it.contains("rejected") },
+            rows.size,
+            pushes
+        )
+
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     }
 
     /** Every row of a list template that carries a click action. */

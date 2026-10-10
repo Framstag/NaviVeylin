@@ -1026,8 +1026,44 @@ adb -s emulator-5556 install -r -t app/build/intermediates/apk/automotive/debug/
 adb -s emulator-5556 shell am start -n com.framstag.naviveylin/androidx.car.app.activity.CarAppActivity
 ```
 
-The car UI itself is not reachable through `uiautomator`; drive the session through intents
-instead (a deep link starts navigation, `KEYCODE_HOME` backgrounds the app):
+The car UI itself is not reachable through `uiautomator` (the templates are drawn into a
+`SurfaceView`, so a dump returns the harness with empty texts) — but it **is** visible on the AVD's
+default display and **is** tappable, which is how the favourites device checks were run (`car-favorites-group-level`
+§1.1/§6.1, `fix-car-favorites-loading-stall` §5.1). Drive it by OCR + coordinate, and confirm every tap
+from the app's own diagnostics tags:
+
+```bash
+adb -s emulator-5554 shell am force-stop com.framstag.naviveylin
+adb -s emulator-5554 logcat -c
+adb -s emulator-5554 shell am start -n com.framstag.naviveylin/androidx.car.app.activity.CarAppActivity
+sleep 14
+d=$(date -u +%H%M%S); adb -s emulator-5554 exec-out screencap -p > .pi/logs/car-$d/root.png
+sh .pi/logs/ocr.sh .pi/logs/car-$d/root.png deu     # "text [x=… y=… w=… h=… conf=…]" per line
+adb -s emulator-5554 shell input tap <x+w/2> <y+h/2>   # centre of the OCR'd row
+adb -s emulator-5554 logcat -d | grep -E 'Diag/(SCREEN|HOST|SESSION)'
+```
+
+Three things this session got wrong once each, and they are the whole cost of the method:
+
+- **A live session is not the same as a connected host.** `Diag/WARMUP` lines appear while the native
+  client builds, but the host binds to `NaviVeylinCarAppService` only then: if `logcat` shows no
+  `Diag/SESSION:` line and no `Diag/HOST:` line, the session never started a screen — restart the
+  activity (`am force-stop` first) and check again **before** interpreting a dead tap as "input cannot
+  reach the app".
+- **`dumpsys display` shows the app's own `CarAppService` virtual display as `touch NONE`** — that is the
+  surface the app *creates*; the templates the host renders are on the emulator's physical display 0,
+  where `input tap` works. Do not conclude from that line that the UI is unreachable.
+- **The tap lands on whatever screen is on top.** The session's root is `RootScreen` (a list: `Freie Fahrt`,
+  `Markierte Favoriten`, `Alle Favoriten`, …), but a restored free-driving or map screen can be in front,
+  and then the same coordinate opens nothing — the OCR of the screenshot is what tells the two apart
+  (place names = the map).
+
+The car UI's own tags are the readable half of every check: `Diag/SCREEN` (what a screen observed, incl. the
+list capacity it read), `Diag/HOST` (what the app sent the host), `Diag/SESSION` (session steps) and the
+plain `RootScreen`/`FavoritesScreen` `Log.d` lines from the click actions.
+
+A deep link drives navigation without needing the UI at all (`geo:` starts navigation, `KEYCODE_HOME`
+backgrounds the app):
 
 ```bash
 adb -s emulator-5556 shell am start -n com.framstag.naviveylin/com.naviveylin.DeepLinkActivity \

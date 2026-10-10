@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A car group row's favorite count: the phone's group-card wording in German
+         (`app/src/main/res/values-de/plurals.xml`). -->
+    <plurals name="favorite_count">
+        <item quantity="one">%d Favorit</item>
+        <item quantity="other">%d Favoriten</item>
+    </plurals>
+</resources>

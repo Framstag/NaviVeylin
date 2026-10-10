@@ -61,6 +61,9 @@
     <string name="back">Back</string>
     <string name="startup_failed">Startup failed</string>
     <string name="no_favorites_saved">No favorites saved</string>
+    <!-- The final row of a car list that holds more rows than the host displays: it names how many
+         items are left and opens the next page (spec: car-list-row-limit). -->
+    <string name="more_items">More (%1$d)</string>
     <string name="favorites_save_hint">Save favorites from the map to see them here</string>
     <string name="no_starred_favorites">No starred favorites</string>
     <string name="starred_hint">Star favorites from the map to see them here</string>

@@ -5,7 +5,10 @@ import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoLocationProvider
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.BasemapReloadNotifier
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.withContext
 
 /**
  * What the browse map screen observes (spec: auto/screen-observation; design D2).
@@ -26,6 +29,13 @@ internal class MapScreenObservations(
     private val observations: CarScreenObservations,
     private val locationProvider: AutoLocationProvider,
     private val favoritesProvider: AutoFavoritesProvider,
+    /**
+     * Dispatcher of the hop that touches the native client: resolving this provider builds the Hilt
+     * `OSMScoutClient` on first use, and this body runs on the observation scope's main dispatcher —
+     * the car-app host thread (spec: auto-map-renderer — A screen observation resolves its provider off
+     * the host thread). Defaults to [Dispatchers.Default]; injectable so a case can own the hop.
+     */
+    private val backgroundDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val basemapNotifier: BasemapReloadNotifier,
     private val resolvedDark: StateFlow<Boolean>,
     private val onFix: (AutoPosition) -> Unit,
@@ -43,8 +53,9 @@ internal class MapScreenObservations(
             }
         }
         observations.observe(KEY_FAVORITES) {
-            favoritesProvider.favoriteLocations().collect { favorites ->
-                onFavorites(favorites.values.flatten())
+            val favorites = withContext(backgroundDispatcher) { favoritesProvider.favoriteLocations() }
+            favorites.collect { value ->
+                onFavorites(value.values.flatten())
             }
         }
         observations.observe(KEY_DARK) {

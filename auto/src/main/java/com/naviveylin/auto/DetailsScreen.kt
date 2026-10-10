@@ -35,6 +35,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,7 +63,13 @@ class DetailsScreen(
     private val lon: Double,
     private val preloadedDescription: ObjectDescription? = null,
     private val mag: Int = DEFAULT_MAGNIFICATION,
-    private val nameHint: String? = null
+    private val nameHint: String? = null,
+    /**
+     * Dispatcher of the hop that touches the native client (spec: auto-map-renderer — A screen
+     * observation resolves its provider off the host thread; design D1). Defaults to
+     * [Dispatchers.Default], the production value; injectable so a case can own the hop it asserts.
+     */
+    private val backgroundDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : Screen(carContext) {
 
     private var address: Array<String>? = null
@@ -93,6 +100,7 @@ class DetailsScreen(
         observations = observations,
         locationProvider = locationProvider,
         favoritesProvider = favoritesProvider,
+        backgroundDispatcher = backgroundDispatcher,
         basemapNotifier = entryPoint.basemapReloadNotifier(),
         onFix = ::onGpsFix,
         onFavorites = ::onFavorites,

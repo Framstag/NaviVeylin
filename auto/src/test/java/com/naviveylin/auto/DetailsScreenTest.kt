@@ -92,7 +92,15 @@ class DetailsScreenTest {
         every { EntryPoints.get(any(), AutoEntryPoint::class.java) } returns entryPoint
     }
 
-    private fun newScreen() = DetailsScreen(carContext, mockk(relaxed = true), lat = destLat, lon = destLon)
+    private fun newScreen() = DetailsScreen(
+        carContext,
+        mockk(relaxed = true),
+        lat = destLat,
+        lon = destLon,
+        // The hop that touches the provider is owned by the test scheduler, so the cases here assert
+        // the screen's state rather than a real thread pool's timing (design D1).
+        backgroundDispatcher = mainDispatcher.dispatcher
+    )
 
     /** The favorite action row of the built template, i.e. what the screen currently believes. */
     private fun favoriteRowTitle(screen: DetailsScreen): String {

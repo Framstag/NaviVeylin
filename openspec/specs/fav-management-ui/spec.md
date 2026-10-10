@@ -314,7 +314,7 @@ Each favorite item row SHALL offer a "Move to group" action, presented the same 
 
 ### Requirement: Favorites management stays on the phone
 
-Moving a favorite between groups SHALL be a phone-only surface. The Android Auto and Android Automotive OS favorites screen SHALL remain a browse-and-select place list without favorites-management actions, because the car templates cannot express the destination-group selection step and the car screen must stay operable while driving. Phone and car surfaces SHALL keep their existing labels and hierarchy for browsing; the car surface SHALL NOT gain a phone-derived action.
+Moving a favorite between groups SHALL be a phone-only surface. The Android Auto and Android Automotive OS favorites screen SHALL remain a browse-and-select surface without favorites-management actions, because the car templates cannot express the destination-group selection step and the car screen must stay operable while driving. Phone and car surfaces SHALL keep the same browsing hierarchy and the same wording for it — the group level first, then the group's own favorites — so that adding a level to either surface is a change to this requirement rather than a silent deviation; the car surface SHALL NOT gain a phone-derived action.
 
 #### Scenario: Car favorites screen offers no move action
 
@@ -326,4 +326,4 @@ Moving a favorite between groups SHALL be a phone-only surface. The Android Auto
 
 - **GIVEN** the user moves a favorite into another group on the phone
 - **WHEN** the car favorites screen lists the favorites afterwards
-- **THEN** the favorite SHALL appear under the destination group's header
+- **THEN** the favorite SHALL appear in the destination group's list on both surfaces

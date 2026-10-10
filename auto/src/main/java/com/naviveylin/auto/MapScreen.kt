@@ -151,6 +151,7 @@ class MapScreen(
         observations = observations,
         locationProvider = locationProvider,
         favoritesProvider = favoritesProvider,
+        backgroundDispatcher = backgroundDispatcher,
         basemapNotifier = entryPoint.basemapReloadNotifier(),
         resolvedDark = resolvedDark,
         onFix = ::onGpsFix,

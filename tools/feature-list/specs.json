@@ -44,6 +44,7 @@
     "button-elevation": { "area": "device-fit", "userVisible": true, "surfaces": ["phone"] },
     "canvas-overrun": { "area": "map-appearance", "userVisible": false, "surfaces": ["phone"] },
     "car-host-fault-isolation": { "area": "car-only", "userVisible": false, "surfaces": ["car"] },
+    "car-list-row-limit": { "area": "car-only", "userVisible": false, "surfaces": ["car"] },
     "car-session-presence": { "area": "car-only", "userVisible": true, "surfaces": ["car"] },
     "ci-unit-test-jni": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "ci-vcpkg-cache": { "area": "build-tooling", "userVisible": false, "surfaces": [] },

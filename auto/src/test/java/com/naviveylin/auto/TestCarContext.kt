@@ -15,6 +15,9 @@ fun testCarContext(): CarContext {
     val appContext = ApplicationProvider.getApplicationContext<Context>()
     return mockk<CarContext>().apply {
         every { getOnBackPressedDispatcher() } returns mockk(relaxed = true)
+        // The screens resolve plurals (`resources.getQuantityString`) as well as strings; both come
+        // from the Robolectric application's real resources.
+        every { resources } returns appContext.resources
         every { getString(any()) } answers { appContext.getString(firstArg()) }
         every { getString(any(), *anyVararg()) } answers {
             val resId = firstArg<Int>()

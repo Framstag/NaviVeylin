@@ -62,6 +62,21 @@ open class FavoriteRepository @Inject constructor(
     private var favoritesFile: String? = null
     private var loaded = false
 
+    private val _storeReady = MutableStateFlow(false)
+
+    /**
+     * Whether the initialisation attempt has finished — success or failure.
+     *
+     * [favorites] is published from an empty map, so a surface cannot tell "not initialised yet" from
+     * "initialised and holds no favourites"; this signal is what lets the car favourites screen show
+     * its loading placeholder only while the store is genuinely uninitialised (spec `auto-favorites` —
+     * The favourites list distinguishes a loading store from an empty one; design D2). A failing
+     * initialisation still reports readiness: a permanent loading state would hide the failure, while
+     * the empty store it leaves behind is the honest state — the failure itself is logged by the
+     * caller.
+     */
+    open val storeReady: StateFlow<Boolean> = _storeReady.asStateFlow()
+
     /**
      * Serialises the write operations against each other.
      *
@@ -94,10 +109,16 @@ open class FavoriteRepository @Inject constructor(
         val dir = File(filePath).parentFile
         if (dir != null && !dir.exists()) dir.mkdirs()
 
-        val success = client!!.loadFavoriteLocations(filePath)
-        loaded = true
-        refreshState()
-        success
+        try {
+            val success = client!!.loadFavoriteLocations(filePath)
+            loaded = true
+            refreshState()
+            success
+        } finally {
+            // Report the end of the attempt whatever its outcome: a surface waiting for the store must
+            // stop waiting even when the load failed or threw (design D2).
+            _storeReady.value = true
+        }
     }
 
     /** Reload state from JNI. */

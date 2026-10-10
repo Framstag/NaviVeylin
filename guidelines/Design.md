@@ -741,6 +741,16 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   layer, render protection in the render layer.
 - Single render path with `blitSubRegion` → TILES/DIRECT split
   (`2026-08-17-render-mode-switch`) — dead code removed, spec corrected.
+- "No new GPS load — location keeps streaming from the existing
+  `LocationService`" (archived `background-navigation-notification` design) →
+  an invisible, non-navigating FREE_DRIVE holds **no** location lease
+  (`fix-free-drive-background-liveness`, owner decision C) — the assurance
+  stopped being true when the lease mechanism landed
+  (`shared-resource-arbitration`): the phone map's `PHONE_MAP` lease is released
+  on pause, so the background notification keeps the last known road/speed
+  instead of live values. The notification and the FGS protection remain; the
+  deliberate no-lease case is pinned in `specs/location-updates-lease` so a later
+  reader cannot re-add always-on fixes by accident.
 
 ---
 

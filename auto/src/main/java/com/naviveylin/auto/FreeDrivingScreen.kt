@@ -11,6 +11,7 @@ import androidx.car.app.navigation.model.NavigationTemplate
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import com.framstag.libosmscout.client.RoadInfo
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoFixDerivation
 import com.naviveylin.core.AutoPosition
@@ -19,6 +20,7 @@ import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.FreeDrivingStatusProvider
 import com.naviveylin.core.SpeedStaleness
 import kotlin.math.roundToInt
 import dagger.hilt.android.EntryPointAccessors
@@ -61,6 +63,7 @@ class FreeDrivingScreen(
     private val locationProvider = entryPoint.autoLocationProvider()
     private val settingsProvider = entryPoint.autoSettingsProvider()
     private val drivingModeProvider = entryPoint.autoDrivingModeProvider()
+    private val freeDrivingStatusProvider = entryPoint.autoFreeDrivingStatusProvider()
 
     /**
      * Session-scoped car surface owner (spec: car-host-fault-isolation — Single-owner
@@ -504,6 +507,10 @@ class FreeDrivingScreen(
                 // A destroy without a stop must not leave an observation running.
                 observations.stop()
                 surfaceHost.detach(surfaceOwner)
+                // The car surface is gone: drop its published road/speed so no road
+                // from an earlier session is shown (spec: `current-road-info` — Status
+                // is empty before the first fix).
+                clearCarRoadStatus(freeDrivingStatusProvider)
                 // Cancel a still-running init first, so no renderer work
                 // continues after the screen is destroyed; the gate shuts
                 // down a published renderer.
@@ -657,14 +664,20 @@ class FreeDrivingScreen(
         if (!streetNameUpdater.shouldGeocode(pos.lat, pos.lon)) return
         if (streetJob?.isActive == true) return
         streetJob = scope.launch {
+            var failed = false
             val road = withContext(Dispatchers.Default) {
                 try {
                     entryPoint.autoClientProvider().client().getRoadAt(pos.lat, pos.lon, pos.bearing)
                 } catch (e: Exception) {
                     Log.w(TAG, "road info lookup failed", e)
+                    failed = true
                     null
                 }
             }
+            // A failed lookup keeps the last values (design D4): it is not the
+            // "no road at this position" answer and must not blank the label or
+            // publish an empty status.
+            if (failed) return@launch
             if (road != null) {
                 streetName = StreetNameUpdater.roadDisplayText(road.ref, road.name)
                 // getRoadAt returns NaN when the road has no limit — hide the
@@ -673,12 +686,23 @@ class FreeDrivingScreen(
                 streetNameUpdater.markGeocoded(pos.lat, pos.lon)
                 rendererGate.requestRender()
             }
+            // Publish the car's own resolution into the shared free-driving status
+            // (spec: `current-road-info` — Car publishes its own resolution into the
+            // same status): the same road/speed the car label shows is what the
+            // ongoing notification renders. A null road is a real publish
+            // ("no road here") — the label disappears, the notification keeps the
+            // fallback text.
+            publishCarRoadStatus(freeDrivingStatusProvider, road, currentSpeedKmH)
         }
     }
 
     private fun exitFreeDriving() {
         Log.d(TAG, "Exit free driving")
         drivingModeProvider.setFreeDriving(DrivingModeProvider.SURFACE_AUTO, false)
+        // Leaving the mode drops the car's published status, so no road from an
+        // ended session survives into the notification (spec: `current-road-info`
+        // — Status is empty before the first fix).
+        clearCarRoadStatus(freeDrivingStatusProvider)
         guardedHostCall("pop (exit free driving)") { screenManager.pop() }
     }
 
@@ -791,6 +815,32 @@ class FreeDrivingScreen(
     }
 
     companion object {
+        /**
+         * Publish the car's resolved road/speed into the shared free-driving status
+         * (spec: `current-road-info` — Car publishes its own resolution into the same
+         * status): the same road/speed the car label shows is what the ongoing
+         * notification renders. Extracted from `resolveStreetName` so the surface key
+         * and the publish shape are pinnable without a live CarContext (the screen
+         * itself needs one; see [FreeDrivingScreenTest]).
+         */
+        internal fun publishCarRoadStatus(
+            provider: FreeDrivingStatusProvider,
+            road: RoadInfo?,
+            speedKmH: Double
+        ) {
+            provider.publish(FreeDrivingStatusProvider.SURFACE_CAR, road, speedKmH)
+        }
+
+        /**
+         * Drop the car's published road/speed (screen destroy, free-driving exit) so
+         * no road from an ended session survives into the notification (spec:
+         * `current-road-info` — Status is empty before the first fix). Extracted for
+         * the same reason as [publishCarRoadStatus].
+         */
+        internal fun clearCarRoadStatus(provider: FreeDrivingStatusProvider) {
+            provider.clear(FreeDrivingStatusProvider.SURFACE_CAR)
+        }
+
         /**
          * Commit an auto-zoom magnification immediately and transition-eligible (spec:
          * auto-speed-zoom — Auto-zoom entry transition / Auto-zoom re-enabled after a manual

@@ -203,7 +203,16 @@ Source: specs `navigation-ongoing-notification` (changes
   arrival time, the manoeuvre arrow as large icon and the same stop action.
 - FREE_DRIVE content: the current street/ref (same text as the free-driving
   view's street label) and the current speed; no destination-dependent guidance
-  and no stop action.
+  and no stop action. The road and speed come from the **shared free-driving
+  status** the on-screen label also reads (spec `current-road-info` — One
+  free-driving road/speed status feeds every surface and the notification; change
+  `fix-free-drive-background-liveness`), so the shade and the label cannot
+  disagree: one resolution per fix, never a lookup of the notification's own. An
+  unknown value is omitted — an unknown speed leaves the street alone with no
+  trailing separator and no empty slot, an unknown road shows the off-road
+  fallback, and no fix yet shows the neutral title without a street or speed
+  (spec `navigation-ongoing-notification` — Unknown free-driving values leave no
+  empty fragment, No fix yet means no stale road).
 - **Channels.** The phone channel stays silent and badge-free; on Android
   Automotive OS the notification uses a car channel of at least
   `IMPORTANCE_DEFAULT`, because the platform does not represent

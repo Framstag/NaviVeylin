@@ -293,4 +293,51 @@ class FollowPredictionTest {
         assertEquals(withDefault.rawX, explicit.rawX, 1e-9)
         assertEquals(withDefault.clamped, explicit.clamped)
     }
+
+    @Test
+    fun `portrait frame against a landscape canvas yields a zero offset on the margin-less axis`() {
+        // Orientation change still in flight: the displayed frame is portrait
+        // (1296x2880) while the canvas already is landscape (2400x1080), so the
+        // x margin (1296-2400)/2 is negative and must coerce to zero instead of
+        // throwing "Cannot coerce value to an empty range".
+        val dLon = 500.0 / FollowPrediction.METERS_PER_DEG_LON
+        val off = FollowPrediction.displayOffsetPx(
+            48.0, 2.0 + dLon, 48.0, 2.0, 14.0, 0.0, 1296, 2880, 2400, 1080, 320.0
+        )
+        assertTrue(off.clampedX.isFinite())
+        assertEquals(0.0, off.clampedX, 1e-9) // no overrun margin on x
+        assertTrue("the clamp must have acted on a non-zero drift", off.clamped)
+    }
+
+    @Test
+    fun `landscape frame against a portrait canvas yields a zero offset on the margin-less axis`() {
+        // The reverse transition: the displayed frame is landscape (2880x1296)
+        // while the canvas is portrait (1080x1920), so the y margin is negative.
+        val dLat = 500.0 / FollowPrediction.METERS_PER_DEG_LAT
+        val off = FollowPrediction.displayOffsetPx(
+            48.0 + dLat, 2.0, 48.0, 2.0, 14.0, 0.0, 2880, 1296, 1080, 1920, 320.0
+        )
+        assertTrue(off.clampedY.isFinite())
+        assertEquals(0.0, off.clampedY, 1e-9) // no overrun margin on y
+        assertTrue("the clamp must have acted on a non-zero drift", off.clamped)
+    }
+
+    @Test
+    fun `a frame with an overrun margin keeps the existing clamp`() {
+        // Same orientation as before the guard: the clamp still bounds the drift
+        // to the frame's own margin, and an in-margin drift stays unclamped.
+        val inMargin = FollowPrediction.displayOffsetPx(
+            48.0, 2.0 + 50.0 / FollowPrediction.METERS_PER_DEG_LON,
+            48.0, 2.0, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0
+        )
+        assertTrue(inMargin.clampedX > 0.0)
+        assertTrue(inMargin.clampedX < 108.0)
+        assertFalse(inMargin.clamped)
+        val clamped = FollowPrediction.displayOffsetPx(
+            48.0, 2.0 + 500.0 / FollowPrediction.METERS_PER_DEG_LON,
+            48.0, 2.0, 14.0, 0.0, 1296, 2304, 1080, 1920, 320.0
+        )
+        assertEquals(108.0, clamped.clampedX, 1e-6)
+        assertTrue(clamped.clamped)
+    }
 }

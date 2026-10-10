@@ -1,0 +1,138 @@
+{
+  "comment": "The selling points of the feature catalogue. This file — not the spec set — decides what the catalogue contains: the catalogue is a pitch, not an inventory, so a capability is published only if a highlight here names its spec. Add a highlight when a capability is something you would put on a landing page; leave the basics out. `keyword` is a suggestion for the entry's bold lead and the model may improve it; `specs` are the specs whose user-visible capabilities the entry is written from, and a spec may appear in more than one highlight. `why` is for a reviewer, not for the document.",
+  "highlights": [
+    {
+      "id": "offline",
+      "area": "offline-maps",
+      "keyword": "Works without a connection",
+      "specs": ["basemap-download", "basemap-ui", "map-download-ui", "download-wake-lock"],
+      "why": "The app's central claim: the map, the search and the routing all work with no network."
+    },
+    {
+      "id": "plan",
+      "area": "routing",
+      "keyword": "Plan it before you set off",
+      "specs": ["route-panel-ui", "route-summary-dialog", "route-map-overview"],
+      "why": "Distance, time and the whole turn list on screen before you commit to driving."
+    },
+    {
+      "id": "turn",
+      "area": "routing",
+      "keyword": "Follow the turn",
+      "specs": ["next-turn-overlay", "immediate-turn-instruction", "navigation-state-display", "nav-hud-visuals"],
+      "why": "The guidance a driver actually reads: the next manoeuvre, the street, the arrival estimate."
+    },
+    {
+      "id": "lane",
+      "area": "routing",
+      "keyword": "Know which lane to be in",
+      "specs": ["lane-guidance", "roundabout-renderer", "navigation-symbols"],
+      "why": "Junctions are where a navigation app earns its keep; drawn lane arrows and roundabout exits."
+    },
+    {
+      "id": "reroute",
+      "area": "routing",
+      "keyword": "Off course, then back on it",
+      "specs": ["reroute-trigger", "reroute-route-visibility", "rerouting-visual-feedback", "off-route-indicator"],
+      "why": "Miss a turn and the app notices, says so and recalculates without losing the route that is still valid."
+    },
+    {
+      "id": "search",
+      "area": "search",
+      "keyword": "Find anywhere by name",
+      "specs": ["location-search", "search-free-text", "search-dialog", "search-history", "search-result-ranking", "precise-location-results"],
+      "why": "Free-text and structured search over the offline database, ranked, with history."
+    },
+    {
+      "id": "poi",
+      "area": "search",
+      "keyword": "What is around you",
+      "specs": ["poi-search"],
+      "why": "Category and radius search — fuel, food, charging — the thing you actually do mid-journey."
+    },
+    {
+      "id": "contacts",
+      "area": "search",
+      "keyword": "Your contacts, on the map",
+      "specs": ["address-book-search", "address-book-permission"],
+      "why": "Navigate to a person's address by name, with the contacts permission asked for properly."
+    },
+    {
+      "id": "favorites",
+      "area": "favorites",
+      "keyword": "The places you keep",
+      "specs": ["fav-management-ui", "group-grid-display", "group-ordering", "group-rename", "fav-group-color", "fav-ordering", "fav-star", "fav-starred-chip-bar", "fav-markers", "favorite-search", "fav-search"],
+      "why": "Groups, colours, explicit ordering, stars and markers: favourites that stay usable past twenty entries."
+    },
+    {
+      "id": "inspect",
+      "area": "object-info",
+      "keyword": "Tap the map to see what is there",
+      "specs": ["long-press-details", "long-press-candidate-picker", "enhanced-details-sheet", "mini-map"],
+      "why": "A long press resolves what is under your finger and shows a structured description with a mini map."
+    },
+    {
+      "id": "car",
+      "area": "car-only",
+      "keyword": "The same app on your car screen",
+      "specs": ["android-automotive-os", "car-session-presence"],
+      "why": "A real car app: standalone Android Automotive OS head units and Android Auto projection, one installation."
+    },
+    {
+      "id": "car-navigation",
+      "area": "car-only",
+      "keyword": "Guidance on the car display",
+      "specs": ["auto/navigation-view", "auto-navigation-hints", "auto-map-layout", "auto-map-destination-picker"],
+      "why": "The car has its own guidance surface, and the host's rail widget and cluster can show the same manoeuvre."
+    },
+    {
+      "id": "car-search",
+      "area": "car-only",
+      "keyword": "Find a destination from the car",
+      "specs": ["auto-search", "auto-search-suggestions", "auto-favorites", "auto-destination-details"],
+      "why": "Search, favourites and details without touching the phone."
+    },
+    {
+      "id": "handoff",
+      "area": "handoff",
+      "keyword": "Send a place to the car",
+      "specs": ["auto-deep-links", "share/location-receiving", "auto-cross-device-sync"],
+      "why": "Share a location from any app, or start on the phone and continue on the car screen."
+    },
+    {
+      "id": "style",
+      "area": "map-appearance",
+      "keyword": "Day, night, or your own style",
+      "specs": ["map-styles", "dark-mode", "render-mode-switch"],
+      "why": "Every bundled stylesheet, day and night, chosen once and shared between phone and car."
+    },
+    {
+      "id": "smooth",
+      "area": "map-interaction",
+      "keyword": "A map that keeps up with your fingers",
+      "specs": ["smooth-zoom", "adaptive-zoom", "zoom-transition-scaling"],
+      "why": "Zoom and pan stay fluid because the map is redrawn deliberately rather than on every touch."
+    },
+    {
+      "id": "driving",
+      "area": "positioning",
+      "keyword": "Speed, limit and the road you are on",
+      "specs": ["map-speed-widget", "road-lookup-bearing", "gps-fix-quality", "smooth-follow"],
+      "why": "Live speed against the limit, and the street name resolved by heading rather than by proximity."
+    },
+    {
+      "id": "language",
+      "area": "device-fit",
+      "keyword": "German and English, phone and car",
+      "specs": ["i18n-l10n", "turn-instruction-localization"],
+      "why": "Localised interface and rebuilt turn instructions, on both surfaces."
+    },
+    {
+      "id": "privacy",
+      "area": "settings-legal",
+      "keyword": "No account, no tracking",
+      "specs": ["about-dialog", "osm-attribution"],
+      "why": "OpenStreetMap data, its attribution on the map, and a documented answer to what the app does with your location."
+    }
+  ]
+}

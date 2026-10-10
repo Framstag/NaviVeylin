@@ -51,6 +51,18 @@ class FakeMapScreenClient(
     }
 
     /**
+     * Symbol/icon preferences passed to [setPreferSymbolIcons]. The car has no control for the
+     * preference, so nothing here pushes it; the override keeps a screen that renders after the phone
+     * changed it away from the host stub's missing symbol (spec: `map-styles` — Car surface follows
+     * the shared preference without a control).
+     */
+    val preferSymbolIconsCalls = CopyOnWriteArrayList<Boolean>()
+
+    override fun setPreferSymbolIcons(preferSymbolIcons: Boolean) {
+        preferSymbolIconsCalls.add(preferSymbolIcons)
+    }
+
+    /**
      * The screen's renderer may render once a surface is delivered; the native render
      * cannot run in a JVM test, so dummy pixel data answers instead (same shape as
      * [FakeAutoRenderClient]).

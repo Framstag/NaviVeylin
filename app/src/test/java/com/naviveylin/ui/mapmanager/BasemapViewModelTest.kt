@@ -6,6 +6,10 @@ import com.framstag.libosmscout.client.BasemapManager
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.MapProvider
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.data.BasemapRegistrar
+import com.naviveylin.data.HttpUrlFetcher
+import com.naviveylin.data.MapSourceRegistry
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.test.MainDispatcherRule
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.Dispatchers
@@ -68,11 +72,16 @@ class BasemapViewModelTest {
         )
         val client = FakeOSMScoutClient()
         val notifier = BasemapReloadNotifier()
+        val provider = MapProvider("test", "http://127.0.0.1:${server.address.port}", "")
         val vm = BasemapViewModel(
             ApplicationProvider.getApplicationContext() as Application,
             manager,
-            client,
-            notifier
+            BasemapRegistrar(client, notifier),
+            MapSourceRegistry(
+                SettingsStorage(ApplicationProvider.getApplicationContext()),
+                provider,
+                HttpUrlFetcher()
+            )
         )
         return Fixture(vm, client, notifier)
     }

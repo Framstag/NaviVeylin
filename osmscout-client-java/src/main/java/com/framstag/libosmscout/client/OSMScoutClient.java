@@ -197,6 +197,22 @@ public class OSMScoutClient {
     public native void setNativeDataCacheSize(int cacheSize);
 
     /**
+     * Select which of a map style entry's two renderings is drawn when the
+     * active stylesheet carries both a raster icon name and a vector symbol
+     * for the same object.
+     * <p>
+     * Off by default: the raster icon keeps its precedence and the symbol
+     * stays the fallback. The value is stored natively and read when the next
+     * frame's render parameters are built, so it takes effect without a
+     * stylesheet reload. Because the native client is shared by both surfaces,
+     * the Android Auto map renders with the same value.
+     *
+     * @param preferSymbolIcons true draws the symbol of such an entry, false
+     *                          keeps the raster icon in precedence
+     */
+    public native void setPreferSymbolIcons(boolean preferSymbolIcons);
+
+    /**
      * Close the client and release native resources.
      *
      * @return true if closed successfully

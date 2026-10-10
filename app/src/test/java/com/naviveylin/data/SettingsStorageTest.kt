@@ -136,6 +136,36 @@ class SettingsStorageTest {
     }
 
     @Test
+    fun roundTripPersistsSymbolIconPreference() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        storage.save(AppSettings(preferSymbolPoiIcons = true))
+        val loaded = storage.load()
+        assertEquals(true, loaded.preferSymbolPoiIcons)
+    }
+
+    @Test
+    fun missingSymbolIconPreferenceDefaultsToIconFirst() = runTest {
+        val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
+        val loaded = storage.load()
+        assertEquals(false, loaded.preferSymbolPoiIcons)
+    }
+
+    @Test
+    fun oldSettingsJsonWithoutSymbolIconPreferenceLoadsAsIconFirst() = runTest {
+        // Simulate a settings file written by an app version predating the
+        // symbol/icon preference — the missing key must decode to the default,
+        // which keeps the raster icon in precedence (spec: `map-styles`).
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val file = java.io.File(context.filesDir, "maps/settings.json")
+        file.parentFile?.mkdirs()
+        file.writeText("""{"styleSheet":"cycle","renderMode":"TILES"}""")
+        val storage = SettingsStorage(context)
+        val loaded = storage.load()
+        assertEquals("cycle", loaded.styleSheet)
+        assertEquals(false, loaded.preferSymbolPoiIcons)
+    }
+
+    @Test
     fun missingStyleSheetDefaultsToStandard() = runTest {
         val storage = SettingsStorage(ApplicationProvider.getApplicationContext())
         val loaded = storage.load()

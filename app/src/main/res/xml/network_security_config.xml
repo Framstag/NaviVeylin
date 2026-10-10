@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Transport policy for the map repository (spec `map-download-infrastructure` — "Shipped builds
+  permit cleartext repository transport"; change `allow-lan-http-map-repository`).
+
+  A self-hosted libosmscout mapgen repository is served over plain HTTP by upstream's own web
+  server — the submodule's `openspec/specs/web-server/spec.md` serves the repository "over plain
+  HTTP without any authentication" — and its address is a LAN host or IP that the user types.
+  Android's policy is fixed at build time and a `<domain-config>` can only name hosts known when
+  the APK is built, so the allowance cannot be narrowed to "the host this user entered": it is a
+  `base-config`. The app's only cleartext traffic is that user-chosen repository, plus the
+  `https` short-link resolution in `SharedLocationParser`.
+
+  An `https` source is unaffected: this changes no TLS validation, and the trust anchors below
+  stay the system ones (a later change that wants self-signed hosts would add `src="user"`).
+
+  `checkCleartextTransportPolicy` (`com.naviveylin.build.transport`) asserts the permission and
+  the reference to this file from the main manifest, because a later edit could otherwise remove
+  either one silently.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

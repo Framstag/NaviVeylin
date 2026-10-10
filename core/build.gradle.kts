@@ -5,6 +5,7 @@ plugins {
     id("com.android.library")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.kover")
 }
 
@@ -148,6 +149,10 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.59")
     ksp("com.google.dagger:hilt-compiler:2.59")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    // Map source protocol: a repository's region index and database metadata are JSON documents
+    // whose shape is defined by the repository format, so they are parsed with data classes rather
+    // than by hand (change `add-mapgen-map-source`, design D1/D2; the same coordinates `:app` uses).
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")

@@ -2,13 +2,13 @@ package com.naviveylin.service
 
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
+import com.naviveylin.core.FreeDrivingStatus
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.R
 import com.naviveylin.core.StringResolver
 import com.naviveylin.core.TurnInstructionLocalizer
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.distanceUsesKilometers
-import com.naviveylin.ui.navigation.currentRoadText
 import com.naviveylin.ui.navigation.formatRemainingTime
 import com.naviveylin.R as AppR
 import java.text.SimpleDateFormat
@@ -97,6 +97,9 @@ object NavigationNotificationContentFormatter {
      * @param resolver localizes the notification's own text (spec: i18n-l10n —
      *   All user-facing text is translatable, Phone and Auto label parity: the
      *   neutral title is the same `:core` resource the car hint uses)
+     * @param freeDrivingStatus the shared free-driving road/speed status (spec:
+     *   `navigation-ongoing-notification` — Free-driving content comes from the
+     *   free-driving status); null before the first fix
      * @param etaClock wall-clock formatter for the arrival time; injectable
      *   for tests, defaults to device-locale "HH:mm"
      */
@@ -104,13 +107,14 @@ object NavigationNotificationContentFormatter {
         state: NavigationState,
         freeDrivingActive: Boolean,
         resolver: StringResolver,
+        freeDrivingStatus: FreeDrivingStatus? = null,
         etaClock: (Long) -> String = ::formatEtaClock,
         locale: Locale = Locale.getDefault()
     ): NavigationNotificationContent {
         return if (state.isNavigating) {
             navigationContent(state, resolver, etaClock, locale)
         } else {
-            freeDriveContent(state, freeDrivingActive, resolver, locale)
+            freeDriveContent(freeDrivingActive, freeDrivingStatus, resolver)
         }
     }
 
@@ -193,10 +197,9 @@ object NavigationNotificationContentFormatter {
     }
 
     private fun freeDriveContent(
-        state: NavigationState,
         freeDrivingActive: Boolean,
-        resolver: StringResolver,
-        locale: Locale
+        status: FreeDrivingStatus?,
+        resolver: StringResolver
     ): NavigationNotificationContent {
         val freeDrivingTitle = resolver.get(AppR.string.navigation_notification_title_free_driving)
         if (!freeDrivingActive) {
@@ -209,11 +212,26 @@ object NavigationNotificationContentFormatter {
                 showStopAction = false
             )
         }
-        val road = currentRoadText(state.currentRoadInfo, resolver.get(AppR.string.road_offroad))
-        val speed = if (!state.currentSpeedKmH.isNaN()) {
-            resolver.get(AppR.string.speed_unit_kmh, state.currentSpeedKmH.roundToInt())
+        if (status == null) {
+            // No fix has been processed yet: the neutral title, no street and no
+            // speed — a road from an earlier session must never show (spec:
+            // `navigation-ongoing-notification` — No fix yet means no stale road).
+            return NavigationNotificationContent(
+                title = freeDrivingTitle,
+                contentText = freeDrivingTitle,
+                bigTextLines = emptyList(),
+                showStopAction = false
+            )
+        }
+        // A known fix with no road there reads as the off-road fallback; an
+        // unknown speed is omitted, never an empty fragment or a stray separator
+        // (spec: `navigation-ongoing-notification` — Unknown free-driving values
+        // leave no empty fragment).
+        val road = status.roadText ?: resolver.get(AppR.string.road_offroad)
+        val speed = if (!status.speedKmH.isNaN()) {
+            resolver.get(AppR.string.speed_unit_kmh, status.speedKmH.roundToInt())
         } else {
-            ""
+            null
         }
         return NavigationNotificationContent(
             title = freeDrivingTitle,

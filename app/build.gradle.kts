@@ -431,6 +431,36 @@ val checkNoCoordinatesInLogs by tasks.registering {
 }
 tasks.named("preBuild") { dependsOn(checkNoCoordinatesInLogs) }
 
+// ── Repository transport policy gate ────────────────────────────────────
+// The shipping build permits cleartext for the map repository transport, because a self-hosted
+// libosmscout mapgen repository is served over plain HTTP on a LAN host the user types (spec
+// map-download-infrastructure — Shipped builds permit cleartext repository transport; change
+// allow-lan-http-map-repository). Four facts make that permission real, and a later edit can drop
+// any of them while the build stays green: the config exists, it sits in the shared source set so
+// both flavours inherit it, the permission is on a `<base-config>` (a `<domain-config>` can only
+// name build-time hosts), and the main manifest references the config — without that reference no
+// config applies at all. The scanner and its fixtures live in buildSrc
+// (`com.naviveylin.build.transport`).
+val checkCleartextTransportPolicy by tasks.registering {
+    val configFile = file("src/main/res/xml/network_security_config.xml")
+    val manifestFile = file("src/main/AndroidManifest.xml")
+    inputs.files(configFile, manifestFile)
+    doLast {
+        val findings = com.naviveylin.build.transport.CleartextTransportPolicyScanner.check(
+            manifestSource = manifestFile.readText(),
+            configSource = if (configFile.exists()) configFile.readText() else null,
+            configPath = configFile.relativeTo(rootProject.projectDir).path,
+            manifestPath = manifestFile.relativeTo(rootProject.projectDir).path
+        )
+        if (findings.isNotEmpty()) {
+            throw GradleException(
+                com.naviveylin.build.transport.CleartextTransportPolicyScanner.report(findings)
+            )
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkCleartextTransportPolicy) }
+
 // ── Unit-test wall-clock gate ───────────────────────────────────────────
 // A test decides its outcome from the behaviour under test and from time it controls, never from a
 // sleep or a system-clock deadline (spec unit-test-suite-runtime — Wall-clock waits in test sources are

@@ -85,9 +85,10 @@ class MapCanvasViewModelRoadInfoTest {
     fun currentRoadResolvedFromClient() = runTest(mainDispatcherRule.dispatcher) {
         client.roadAt = RoadInfo("Hauptstrasse", "B 1", "highway_primary", 50.0)
         pushFix(51.5136, 7.4653, bearing = 90.0, time = 1_000L)
-        val state = viewModel.uiState.first { it.currentRoadInfo != null }
-        assertEquals("B 1", state.currentRoadInfo?.ref)
-        assertEquals("Hauptstrasse", state.currentRoadInfo?.name)
+        val status = viewModel.freeDrivingStatus.first { it?.hasRoad == true }
+        assertEquals("B 1", status?.roadRef)
+        assertEquals("Hauptstrasse", status?.roadName)
+        assertEquals("B 1 Hauptstrasse", status?.roadText)
         assertEquals(1, client.roadAtLookupCalls.size)
         assertEquals(51.5136, client.roadAtLookupCalls[0].first, 1e-9)
         assertEquals(7.4653, client.roadAtLookupCalls[0].second, 1e-9)
@@ -98,17 +99,17 @@ class MapCanvasViewModelRoadInfoTest {
         client.roadAt = null
         pushFix(51.5136, 7.4653, bearing = 90.0, time = 1_000L)
         // Run the async lookup on the shared test scheduler, then assert the
-        // state stayed null (no road found).
+        // status carries no road (no road found).
         advanceUntilIdle()
         assertEquals(1, client.roadAtLookupCalls.size)
-        assertNull(viewModel.uiState.value.currentRoadInfo)
+        assertNull(viewModel.freeDrivingStatus.value?.roadText)
     }
 
     @Test
     fun currentRoadThrottledOnStationaryFixes() = runTest(mainDispatcherRule.dispatcher) {
         client.roadAt = RoadInfo("Hauptstrasse", "B 1", "highway_primary", 50.0)
         pushFix(51.5136, 7.4653, bearing = 90.0, time = 1_000L)
-        viewModel.uiState.first { it.currentRoadInfo != null }
+        viewModel.freeDrivingStatus.first { it?.hasRoad == true }
         pushFix(51.5136, 7.4653, bearing = 91.0, time = 2_000L)
         viewModel.uiState.first { it.gpsLocation?.time == 2_000L }
         assertEquals("stationary fixes must not re-resolve", 1, client.roadAtLookupCalls.size)
@@ -118,13 +119,13 @@ class MapCanvasViewModelRoadInfoTest {
     fun currentRoadReResolvedAfterMovement() = runTest(mainDispatcherRule.dispatcher) {
         client.roadAt = RoadInfo("Hauptstrasse", "B 1", "highway_primary", 50.0)
         pushFix(51.5136, 7.4653, bearing = 90.0, time = 1_000L)
-        viewModel.uiState.first { it.currentRoadInfo != null }
+        viewModel.freeDrivingStatus.first { it?.hasRoad == true }
 
         // ~1.1 km away → beyond the 50 m movement threshold → re-resolve.
         client.roadAt = RoadInfo("Nebenstrasse", "", "highway_residential", Double.NaN)
         pushFix(51.52, 7.4653, bearing = 90.0, time = 2_000L)
-        val state = viewModel.uiState.first { it.currentRoadInfo?.name == "Nebenstrasse" }
-        assertEquals("Nebenstrasse", state.currentRoadInfo?.name)
+        val status = viewModel.freeDrivingStatus.first { it?.roadName == "Nebenstrasse" }
+        assertEquals("Nebenstrasse", status?.roadName)
         assertEquals(2, client.roadAtLookupCalls.size)
     }
 }

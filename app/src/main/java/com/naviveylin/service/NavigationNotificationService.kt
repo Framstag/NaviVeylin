@@ -15,6 +15,7 @@ import com.naviveylin.MainActivity
 import com.naviveylin.NaviVeylinCarAppService
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.FreeDrivingStatusProvider
 import com.naviveylin.core.ManeuverSymbols
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.NotificationIds
@@ -50,6 +51,9 @@ class NavigationNotificationService : Service() {
     @Inject
     lateinit var drivingModeProvider: DrivingModeProvider
 
+    @Inject
+    lateinit var freeDrivingStatusProvider: FreeDrivingStatusProvider
+
     private var scope: CoroutineScope? = null
 
     override fun onCreate() {
@@ -64,7 +68,12 @@ class NavigationNotificationService : Service() {
         // keep re-rendering from the observer.
         val state = navigationViewModel.state.value
         val freeDriving = drivingModeProvider.freeDrivingActive.value
-        val content = NavigationNotificationContentFormatter.format(state, freeDriving, stringResolver())
+        val content = NavigationNotificationContentFormatter.format(
+            state,
+            freeDriving,
+            stringResolver(),
+            freeDrivingStatus = freeDrivingStatusProvider.status.value
+        )
         val hint = carHintFor(state)
         // The foreground post is unconditional (the FGS contract), but it also seeds
         // the dedup baseline for the observer's later posts.
@@ -116,22 +125,32 @@ class NavigationNotificationService : Service() {
         scope.launch {
             combine(
                 navigationViewModel.state,
-                drivingModeProvider.freeDrivingActive
-            ) { navState, freeDriving -> Pair(navState, freeDriving) }
-                .collect { (navState, freeDriving) ->
+                drivingModeProvider.freeDrivingActive,
+                freeDrivingStatusProvider.status
+            ) { navState, freeDriving, freeDrivingStatus -> Triple(navState, freeDriving, freeDrivingStatus) }
+                .collect { (navState, freeDriving, freeDrivingStatus) ->
                     val active = navState.isNavigating || freeDriving
                     if (!active) {
                         Log.d(TAG, "Driving state cleared — stopping service")
                         stopSelf()
                         return@collect
                     }
-                    render(navState, freeDriving)
+                    render(navState, freeDriving, freeDrivingStatus)
                 }
         }
     }
 
-    private fun render(navState: com.naviveylin.core.NavigationState, freeDriving: Boolean) {
-        val content = NavigationNotificationContentFormatter.format(navState, freeDriving, stringResolver())
+    private fun render(
+        navState: com.naviveylin.core.NavigationState,
+        freeDriving: Boolean,
+        freeDrivingStatus: com.naviveylin.core.FreeDrivingStatus?
+    ) {
+        val content = NavigationNotificationContentFormatter.format(
+            navState,
+            freeDriving,
+            stringResolver(),
+            freeDrivingStatus = freeDrivingStatus
+        )
         val hint = carHintFor(navState)
         val post = NotificationPost(content, hint)
         // Re-post only when the host-visible content changed (spec:

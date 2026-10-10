@@ -1,0 +1,3737 @@
+{
+  "version": "2026-10-08-1",
+  "promptDigest": "c11844c82933be98fe1cf63784ded868db67511adf100d25d9a4d3e41d620de4",
+  "keys": {
+    "about-dialog#About dialog displays app name and version": {
+      "spec": "about-dialog",
+      "digest": "51fe50c98c09952cda320af33ec8bf91a63ccc2f465928efb9da3fa2d9582049"
+    },
+    "about-dialog#About dialog displays app description": {
+      "spec": "about-dialog",
+      "digest": "cf104192311d9bd2c3ca54f9c3a0ba139c69717bc2a039fc1cedd6dc82503c30"
+    },
+    "about-dialog#About dialog provides link to project source and licenses": {
+      "spec": "about-dialog",
+      "digest": "29e056d8103124b35c2b226a4c46d0dc19c9161f24f963054acb2bf3f32c2595"
+    },
+    "about-dialog#About dialog is reachable from map screen menu": {
+      "spec": "about-dialog",
+      "digest": "6e02c67e5ce2abfe4ace5093244bc4314cf97b512725d77c38726312f287ce2a"
+    },
+    "about-dialog#About dialog can be dismissed": {
+      "spec": "about-dialog",
+      "digest": "28966c844f1e1e165c1f8547dfc3508c3c3af5bced5d0a98d4f2f1920e59a292"
+    },
+    "about-dialog#About dialog displays author name": {
+      "spec": "about-dialog",
+      "digest": "d13b5ca737a34fb8490fe113e805a841d52db7a0bd2b1a2724616eda04d84767"
+    },
+    "about-dialog#About dialog displays copyright year": {
+      "spec": "about-dialog",
+      "digest": "afe8ea2a47d5b009d15c39bc32b1ba3bc6af0cc290b84605876e3994f80ae635"
+    },
+    "about-dialog#About dialog provides link to OSM data licence": {
+      "spec": "about-dialog",
+      "digest": "c018109d9af921b25ccd58f24a634769b1d8cb528a7d323f2277a7a3fd79acf9"
+    },
+    "about-dialog#About dialog provides the bundled dependency license list": {
+      "spec": "about-dialog",
+      "digest": "26b216f8565631f2fb383ca00ae9a8e122923ddb04c5f387fa25c9726687c361"
+    },
+    "about-dialog#License list is not surfaced in the car app": {
+      "spec": "about-dialog",
+      "digest": "e90b64adb21f1e335e098ecc8f2812c2dd12b77e491e5d521770e175c0241448"
+    },
+    "about-dialog#About dialog shows the application's own license with full text": {
+      "spec": "about-dialog",
+      "digest": "eb4957d7a82875a8a7d374a20a40b617833d2b26d5235a19b68b5bf1cc114d1f"
+    },
+    "about-dialog#About dialog states what the app does with location and diagnostics": {
+      "spec": "about-dialog",
+      "digest": "115a3c39c5802f9ddbc9ad4c867c3087aa6438a9efb88b227c021521f148444b"
+    },
+    "adaptive-zoom#Zoom placeholder from scaled buffer": {
+      "spec": "adaptive-zoom",
+      "digest": "810866b1adcaaefed2cfcc37b4c9e447fa7f5a00b1b31f610b0ad055f0f3877e"
+    },
+    "adaptive-zoom#Render timing metrics": {
+      "spec": "adaptive-zoom",
+      "digest": "d33a9f50cae94c7b869e5f6096c18b77b4806518c077d58caa63a39444375222"
+    },
+    "address-book-permission#First-use rationale dialog before permission request": {
+      "spec": "address-book-permission",
+      "digest": "45ba29d6d691640721f3719ca0ba39094713bae551533aa6559210607aa3e134"
+    },
+    "address-book-permission#Requested permission can be granted or denied": {
+      "spec": "address-book-permission",
+      "digest": "8fce613d2be6a52204000542109c74fbe703b7943f7a7cab9fab833424bab314"
+    },
+    "address-book-permission#Decision is remembered": {
+      "spec": "address-book-permission",
+      "digest": "45dcfe12da52ace6ac7fd9018da8fe5ad27da776e344c9594ebb518a2f49ee75"
+    },
+    "address-book-permission#Permission state drives feature visibility": {
+      "spec": "address-book-permission",
+      "digest": "21cb46ec8cb8a49ffee6a481ca65b01cc8f3881aaf719f1ef1e75439861f5b25"
+    },
+    "address-book-search#Address book entry in the phone map menu": {
+      "spec": "address-book-search",
+      "digest": "3d74a8c40bd12f52ac46c857ad93512ec7f13170d4eb2f102cc88ee137852d8a"
+    },
+    "address-book-search#Address book entry on the Android Auto car screen": {
+      "spec": "address-book-search",
+      "digest": "0d9b7e79f5a94e1f1f745704f420b41f8009844d9cd4bc61a02a3270e165a091"
+    },
+    "address-book-search#Searchable list of persons with addresses": {
+      "spec": "address-book-search",
+      "digest": "acda3a41693b71db2afb2620c2355a6c3eed718749910344c045e1e2eb6df3e7"
+    },
+    "address-book-search#Selecting a person with multiple addresses asks for the address": {
+      "spec": "address-book-search",
+      "digest": "b72bbe3861a9c48080576a2350db747f8b09c7d7ef350012ce6fe0271f15c4a0"
+    },
+    "address-book-search#Address resolution search": {
+      "spec": "address-book-search",
+      "digest": "ab8bcd30ceb3bf035c9498667117eae61a6aafff9c172722f603a9886500d0c6"
+    },
+    "address-book-search#Details view for the resolved object": {
+      "spec": "address-book-search",
+      "digest": "286ee525e7b1afb5e9bc7effcfe771e5a392fba7c33b08e9a329cde5e4525c2c"
+    },
+    "always-on-display#Screen stays on while app is in the foreground": {
+      "spec": "always-on-display",
+      "digest": "32422d54ed843d6b04be3f6e35a1f10bc6319497ea90c3f2b8512c22356b74d0"
+    },
+    "always-on-display#Keep screen on setting persisted": {
+      "spec": "always-on-display",
+      "digest": "6e5b728eb3de2268ccd8f4d06374922429e885efeda436739244cd9fdf121161"
+    },
+    "always-on-display#Keep screen on toggle in location options": {
+      "spec": "always-on-display",
+      "digest": "a21b10a3102baf44066c7e1dfcd650d70fa6764666302b34f3343a4a42f5caed"
+    },
+    "android-automotive-os#Automotive template host metadata": {
+      "spec": "android-automotive-os",
+      "digest": "c6e53e3d02f34a6f3ee6f81dd2d0b3a42a80ddf318bc598e01fe4e099b94289a"
+    },
+    "android-automotive-os#Automotive hardware feature declaration": {
+      "spec": "android-automotive-os",
+      "digest": "139915ffcd1492ac00e104535545d5ccf180669270ac3e492391d82011dec68e"
+    },
+    "android-automotive-os#Android Auto projection declarations intact in the mobile build": {
+      "spec": "android-automotive-os",
+      "digest": "48d075c7af77349d39a9fc4d9e98bfb49da3cc1fcb5a3b9cbff2750390eba27f"
+    },
+    "android-automotive-os#AAOS launch entry point": {
+      "spec": "android-automotive-os",
+      "digest": "f405d8dba98b815cdfd786f9d91cae513aae2d79c1bf5031948874b0b923ed00"
+    },
+    "android-automotive-os#Distribution as separate bundle": {
+      "spec": "android-automotive-os",
+      "digest": "b2284e61d620cef6e17645343f2f7096725ff1bd483bdbc8c6e922d4982a5600"
+    },
+    "app#App scaffold with Gradle build": {
+      "spec": "app",
+      "digest": "4788f52500cafcb60670d29af448f34928f3d1a494f3f28c377432533f2c422a"
+    },
+    "app#Jetpack Compose UI": {
+      "spec": "app",
+      "digest": "58cf5348343d0cd093277dd4ca813c168948c3300b37a3743c7af8d8459430fb"
+    },
+    "app#Jetpack Navigation": {
+      "spec": "app",
+      "digest": "f5aa68c111c0261a4b4ee7fcf06892aef15891be7fee570f58e8e99c16236bfb"
+    },
+    "app#ViewModel + State management": {
+      "spec": "app",
+      "digest": "2cb075d3e2f896352e7e4273e9a7ecf4418783872daf396db0280f5f01b10b30"
+    },
+    "app#Hilt dependency injection": {
+      "spec": "app",
+      "digest": "ab3cca86010266a9c8054b6599388f1212a003a57dc19683fce4769ab5abd5e2"
+    },
+    "app#Room local persistence": {
+      "spec": "app",
+      "digest": "cd7f8a47cb1385b48fa06a9ace19617b2df2933c7916997a0c75d32da866d50d"
+    },
+    "app#Adaptive layouts for phone, foldable, tablet": {
+      "spec": "app",
+      "digest": "f388d360a5c8952dd77510f2b1e38730b914de76a33834418d2383f252191997"
+    },
+    "auto/browse#Current street name shown while browsing": {
+      "spec": "auto/browse",
+      "digest": "dc1f66d4d925bb0dc3b495fa07833ef8927c56d1545e0655c95521f89290e6c9"
+    },
+    "auto-cross-device-sync#Car-only navigation start": {
+      "spec": "auto-cross-device-sync",
+      "digest": "316564a7bf70d69d2254113dac18147e4ddac2cbfc6d9c7b37037a510e29d22d"
+    },
+    "auto-cross-device-sync#Connect mid-navigation shows active route": {
+      "spec": "auto-cross-device-sync",
+      "digest": "ff4be7775a3eeab5edfe60f83c47c94c72398c7a2813da36393d516bb924e025"
+    },
+    "auto-cross-device-sync#Phone stop navigation reflected on car": {
+      "spec": "auto-cross-device-sync",
+      "digest": "c983dc14043d77c7e4b220c9bc0d4735078db3cd80b9c2478b2c327ea91e46c2"
+    },
+    "auto-cross-device-sync#Car stop navigation reflected on phone": {
+      "spec": "auto-cross-device-sync",
+      "digest": "8f60f7307ff5b5e68f3880d12622734b73e161bb600f004f9d460f4d66c19835"
+    },
+    "auto-cross-device-sync#Session lifecycle cleanup": {
+      "spec": "auto-cross-device-sync",
+      "digest": "d6bd5062ae32443ed87931a5cf37eb40cb85d34550a58064a7757d8ea288082c"
+    },
+    "auto-deep-links#Deep-link entry point declared": {
+      "spec": "auto-deep-links",
+      "digest": "f078b5afa9cb70bf2d16b2798cf6d48df16f529f99ebf578a2602882a1894263"
+    },
+    "auto-deep-links#Deep link parsed into a destination": {
+      "spec": "auto-deep-links",
+      "digest": "5ab5cb9e44ec6659671eb57132d603c00dcc4d00a997499d99bf4ea4815ecdf5"
+    },
+    "auto-deep-links#Deep link starts navigation": {
+      "spec": "auto-deep-links",
+      "digest": "f092af34b2f767984ec4d85fb7fd28dd55eaf09a214eda746f702d1333dc376e"
+    },
+    "auto-deep-links#Deep-link activity forwards to phone app": {
+      "spec": "auto-deep-links",
+      "digest": "34c8ae777e38a82751f6871f67c2c7ef2832032062469b9a015a871247130900"
+    },
+    "auto-destination-details#Details screen shown before navigation starts": {
+      "spec": "auto-destination-details",
+      "digest": "22f5f0d96431ae636159148544ad59cb9466b097e55582325dbfe953555dd2c0"
+    },
+    "auto-destination-details#Favorite management on details screen": {
+      "spec": "auto-destination-details",
+      "digest": "34d9f08b61c6693b7333ffaeb652d03c7c235a09058ee9b328ca1252eb19d0cb"
+    },
+    "auto-destination-details#Navigation starts from the details screen": {
+      "spec": "auto-destination-details",
+      "digest": "1a279568f733adf470a12a2b5efae7f5edef7e65d730d24d105fd22284c71fdf"
+    },
+    "auto-destination-details#Details actions visually marked": {
+      "spec": "auto-destination-details",
+      "digest": "afb88b749513a29d36fe220e26d8a06cdd316b2f1d5d50d238b4e319e210d6f0"
+    },
+    "auto-destination-details#Destination identity retained during navigation": {
+      "spec": "auto-destination-details",
+      "digest": "2cff4f1cf7a437c8350d8018097ac91acfdfb41d36b568a1ea04daaa8b149474"
+    },
+    "auto-destination-details#Coordinate row uses the locale-stable format": {
+      "spec": "auto-destination-details",
+      "digest": "deeb46704a5b28e994d71e180b358d6a2046db02b995a47325ffba46cccd0b1b"
+    },
+    "auto-destination-picker#\"Navigate here\" action on search results": {
+      "spec": "auto-destination-picker",
+      "digest": "b181892e8a4a7b2930ded1ab72864b5f73c4aa1bf2f8e30b85e05d5f24a84907"
+    },
+    "auto-destination-picker#\"Navigate here\" action on favorites": {
+      "spec": "auto-destination-picker",
+      "digest": "138d280ce4dc5f182b4682b62f20295cb11626cd2a99324dc6737ebfa605998b"
+    },
+    "auto-destination-picker#Route calculation uses current GPS position as start": {
+      "spec": "auto-destination-picker",
+      "digest": "92e8666b10f41ae11b809677a0424008f10ebccb3dc928cf89563a2fc05e54f4"
+    },
+    "auto-destination-picker#Route calculation uses current routing profile": {
+      "spec": "auto-destination-picker",
+      "digest": "e6503eab22089b8bca54a5f6abc040f319b66a95d57f609f7f2403176aaa8ffd"
+    },
+    "auto-destination-picker#Navigation starts immediately after route calculation": {
+      "spec": "auto-destination-picker",
+      "digest": "38fd1ab99b68bf93e6ea59d5742e44efbfdd249c1c8eb30f6c3a87ca0490dea4"
+    },
+    "auto-destination-picker#PaneTemplate as root screen": {
+      "spec": "auto-destination-picker",
+      "digest": "71e46b64ef30f31f14027bc75c14242564dd107deef0b45fbc165dea22c3121e"
+    },
+    "auto-diagnostics#Fatal crashes are captured to a log file": {
+      "spec": "auto-diagnostics",
+      "digest": "b4034a3560bedd9f16d590c28d772a96fcaa13a633749eb942bd45adb22630ce"
+    },
+    "auto-diagnostics#Android Auto session lifecycle is logged": {
+      "spec": "auto-diagnostics",
+      "digest": "d58103d6c69892c608e656a1fe0e2d8bbfba5becfd56f6c4f50bf20de1a1b320"
+    },
+    "auto-diagnostics#Diagnostics viewable on the car screen": {
+      "spec": "auto-diagnostics",
+      "digest": "edbd6a4d5def94e6f517f4891d6b6d5285d7c95d09392079210676a1a633e2bf"
+    },
+    "auto-diagnostics#Diagnostics viewable and exportable on the phone": {
+      "spec": "auto-diagnostics",
+      "digest": "fb2f3333568267b73cff1511afdfd0e0fbf46fc41f45c36dff513fe11dd27055"
+    },
+    "auto-diagnostics#Log storage is bounded": {
+      "spec": "auto-diagnostics",
+      "digest": "43a526fa44e42c494aa501f6ca4f8ae682f008764565960d8f65153100b2eb27"
+    },
+    "auto-diagnostics#Diagnostic logging never blocks the caller": {
+      "spec": "auto-diagnostics",
+      "digest": "d20910be894c0a85d7eec44bb6f683855c1d6ff6add12f995b7d7cd3cff269b4"
+    },
+    "auto-diagnostics#The in-memory diagnostic buffer is bounded": {
+      "spec": "auto-diagnostics",
+      "digest": "26e59db2deb2ffce6ef555e07f1311a54c0190e4015aa3df359ab2027214fcfe"
+    },
+    "auto-diagnostics#Buffered entries reach the file within a bounded delay": {
+      "spec": "auto-diagnostics",
+      "digest": "0a62479ca4c76ab422d285714b1cd1cf9e052e562c09cdae07c22381fd680599"
+    },
+    "auto-diagnostics#Crash capture does not depend on the logging worker": {
+      "spec": "auto-diagnostics",
+      "digest": "ede6df414eccc0a4b30c2b07ad7ae819cffb258d1b869ad767ab569bc5ae331d"
+    },
+    "auto-diagnostics#Reading diagnostics does not block the UI": {
+      "spec": "auto-diagnostics",
+      "digest": "bdd2ab0e49c2b1e0abaf051e38354bb5630c18b6ab87a54f9ca5ca1aa466de66"
+    },
+    "auto-diagnostics#Diagnostics carry no coordinates": {
+      "spec": "auto-diagnostics",
+      "digest": "e86f30ff5bd4982b7d9d10ba81d714aeba49277a0edc433d5977f3bcd4c9af78"
+    },
+    "auto-diagnostics#Export and viewers disclose the log contents": {
+      "spec": "auto-diagnostics",
+      "digest": "6506af4f2511145abc82bc102e6ab0ea269d25e0faedb778adb6a0fb32169935"
+    },
+    "auto-diagnostics#Coordinate-carrying entries do not survive the retention pass": {
+      "spec": "auto-diagnostics",
+      "digest": "eb5c1cf91a836f5f43abb6d38dba25ebb6b5ae18a11fa8487c366a46cf288152"
+    },
+    "auto-favorites#PlaceListTemplate displays favorites": {
+      "spec": "auto-favorites",
+      "digest": "ae563015ce4a1cb01a7f2330dffaf0516b4f3b3d985da7b8e402acbd23d930d7"
+    },
+    "auto-favorites#Favorites grouped by category": {
+      "spec": "auto-favorites",
+      "digest": "64bca77bd5a87be5d959c870d4d0522f84f1847f0cc6167a1b5aeac1051020da"
+    },
+    "auto-favorites#Favorite displays name and address": {
+      "spec": "auto-favorites",
+      "digest": "b5760bf98b22660d1f958615ac0eba25745c95c3574c901e2010d91391327b86"
+    },
+    "auto-favorites#Favorite selection triggers destination picker": {
+      "spec": "auto-favorites",
+      "digest": "1620166d66bfa444cba361dd3f2ff429f6d128f6e42d507e8b8b10bc91f74388"
+    },
+    "auto-favorites#Favorite add/remove from details screen": {
+      "spec": "auto-favorites",
+      "digest": "4142c5fd144f589dd51bf500cd564d82f708a0d30aa75ce90d54a290ff40ad1a"
+    },
+    "auto-favorites#AA place list reflects the stored favorite order": {
+      "spec": "auto-favorites",
+      "digest": "2ae75aad1dd56436f012b82019d7a4676dfd6e2b6c85a403057b35987f0bd63f"
+    },
+    "auto-favorites#AA place list follows the stored group order": {
+      "spec": "auto-favorites",
+      "digest": "aad3b0dd43d162e7868537bb741660e72285ca07161c8977af76ba514b80feff"
+    },
+    "auto/free-driving#Free driving entered from map menu": {
+      "spec": "auto/free-driving",
+      "digest": "edf0807052dcb5bb2834484a722bed23374481289d93bfdb0bf4b22b798a269e"
+    },
+    "auto/free-driving#GPS position marker shown": {
+      "spec": "auto/free-driving",
+      "digest": "89dedad4a247a00938a7e2a9641fff977c677165e76872e283d5c86082ccf9f0"
+    },
+    "auto/free-driving#Follow mode activated": {
+      "spec": "auto/free-driving",
+      "digest": "becd59927ae74a552debe1ddd53e9b74cbfb1e58eae23f592e3873c872edc1d5"
+    },
+    "auto/free-driving#Free-driving anchor applies when the setting changes during a session": {
+      "spec": "auto/free-driving",
+      "digest": "47e0d690a4176524764412775ea72783e6d2a5cf635ed7f1ad85562dce33f9c8"
+    },
+    "auto/free-driving#Free-driving anchor survives a settings re-read failure": {
+      "spec": "auto/free-driving",
+      "digest": "4e315bce140048a692e6aeaf196f2558b6edc52d309baaa336a8a9843a8814ec"
+    },
+    "auto/free-driving#Heading-up orientation": {
+      "spec": "auto/free-driving",
+      "digest": "61c81bf35a4f85fc340ec707326f88668e2c335a767c782105344f2c1aa2d2ae"
+    },
+    "auto/free-driving#Free-driving compass rose points at true north": {
+      "spec": "auto/free-driving",
+      "digest": "811fd8aef886b4ea9e5241789f8ceb966caa69c9d08d93fcd07ea9fd17aa2617"
+    },
+    "auto/free-driving#Auto-zoom by speed": {
+      "spec": "auto/free-driving",
+      "digest": "1d483262793d4b3ab95c9c5d7248bfc9518207131b015f9e88d9abcf2835946d"
+    },
+    "auto/free-driving#Current street name shown": {
+      "spec": "auto/free-driving",
+      "digest": "37765675db4a4b8ecb9c5ce8c23736b406530556d6216aa2787b5cda78d1745f"
+    },
+    "auto/free-driving#Current driving speed shown": {
+      "spec": "auto/free-driving",
+      "digest": "455d72c171c15a4029c5c766cd8c565fcd14878c54b76958d934133dc12fc44e"
+    },
+    "auto/free-driving#Speed limit sign shown": {
+      "spec": "auto/free-driving",
+      "digest": "5ab23a34c96e28766304646654461c7b1e866ea89e2a58426ff23766e6820993"
+    },
+    "auto/free-driving#No turn-by-turn guidance shown": {
+      "spec": "auto/free-driving",
+      "digest": "6646d327436efbc6d81405428058e480191bbf58eff8e708df4dea857d2b809c"
+    },
+    "auto/free-driving#Exit free driving": {
+      "spec": "auto/free-driving",
+      "digest": "3fa46118eac82f9485d5e558c8ec7d67aa4bd14b7f676b93b05a663e0dec2924"
+    },
+    "auto/free-driving#Free-driving restore is idempotent": {
+      "spec": "auto/free-driving",
+      "digest": "f2128f63e8b92db88ba022f31be088573a1d9d62217d2f6c43c3a10364cd9ad1"
+    },
+    "auto/free-driving#Manual map panning while free driving": {
+      "spec": "auto/free-driving",
+      "digest": "81c51a69d12c8144f0f678aaf15817522770e2ff2e2b1e79b64fe31050016651"
+    },
+    "auto-map-destination-picker#Candidate picker on car map selection": {
+      "spec": "auto-map-destination-picker",
+      "digest": "0258c03d4ce810bcd56546df05b5e4332ee436e3afc3a6a9aab85a058169f0e0"
+    },
+    "auto-map-interaction#Pan gesture on car map": {
+      "spec": "auto-map-interaction",
+      "digest": "0c2fd5330da65aed83c93fe6483b8f628faab05a0c7601a4115e1b41cc76937a"
+    },
+    "auto-map-interaction#Zoom gesture on car map": {
+      "spec": "auto-map-interaction",
+      "digest": "fee6fe91350b85e8f3854a796142524cf4ed124ad0ca7c8632661b3c0083b359"
+    },
+    "auto-map-interaction#Map rotation on car display": {
+      "spec": "auto-map-interaction",
+      "digest": "5706939c68380815d152cadc094dbe47e02d20b0cb423f6c22e548c45986b60e"
+    },
+    "auto-map-interaction#Map interaction disengages follow mode": {
+      "spec": "auto-map-interaction",
+      "digest": "0b14b6e1da2b83f09d864bb4f5be775743a22f990309903554b33c0c602ad0a2"
+    },
+    "auto-map-interaction#Zoom controls on car map": {
+      "spec": "auto-map-interaction",
+      "digest": "4807bf7b8b046bbfff83fa3a3deca305800e6f36a95a28c039c9e160480c5b3a"
+    },
+    "auto-map-layout#Visualisation controls": {
+      "spec": "auto-map-layout",
+      "digest": "c215764fa89b1ebc9ef81bc024c090e6ff1ea960df2ecb2ee0b83ddd106c6ea7"
+    },
+    "auto-map-layout#Compass rose north pointer direction": {
+      "spec": "auto-map-layout",
+      "digest": "2f3ce6ed96b021e1f50e0362d54c72bd51582e9767a6ee34cd177b2c162225d7"
+    },
+    "auto-map-layout#Content box acts as the app menu": {
+      "spec": "auto-map-layout",
+      "digest": "e0f209607cc5d15b9e6a9289951239a67c4d40eb899a024254e536c9da370392"
+    },
+    "auto-map-layout#Speed-limit indicator during navigation": {
+      "spec": "auto-map-layout",
+      "digest": "7293847b1221e024125e1b69a3e96f050b6bf394fe0e22d958036aa8175671e0"
+    },
+    "auto-map-layout#Settings dialog reachable while driving": {
+      "spec": "auto-map-layout",
+      "digest": "700e848b905dc2a4837262101db8507f61c73e283a69159770f15489322ca690"
+    },
+    "auto-map-layout#Anchor settings reflect the persisted value on re-visibility": {
+      "spec": "auto-map-layout",
+      "digest": "97773f617469fcfd40075e377b957b364759efad023edbb4288ee23e83d6a529"
+    },
+    "auto-map-layout#Anchor selection survives immediate dismissal": {
+      "spec": "auto-map-layout",
+      "digest": "1e587672bf01fa0d5393a1ca74c5b65ade2a223ff3c7d3054412a3bcf67ac9e7"
+    },
+    "auto-map-layout#Compass rose follows the resolved surface presentation": {
+      "spec": "auto-map-layout",
+      "digest": "5df39a3e93eb2efc45f705dd02ffcc1504f7aab6d36eb670b0bd5ca5d00a32c7"
+    },
+    "auto/map-pan#Speed-band crossing while panned": {
+      "spec": "auto/map-pan",
+      "digest": "834e35556e9430e669a8e6715fd124c4f5c912c3da37c876c03ce7679d92f3f8"
+    },
+    "auto/map-pan#Pan affordance on map surfaces": {
+      "spec": "auto/map-pan",
+      "digest": "ac6d51887c51da0fe12c5c9b43a7000bca213b4fc19f27dda6292c60d457861b"
+    },
+    "auto/map-pan#Manual pan moves the map": {
+      "spec": "auto/map-pan",
+      "digest": "2cbba3a189884c65b51267f46a674831929550508d781cbeff6729aea81c68b1"
+    },
+    "auto/map-pan#Pinch zoom while panned": {
+      "spec": "auto/map-pan",
+      "digest": "db4930453ac37ca41ed309798f9c321bd037a76d213f152af09374d3e55a6b39"
+    },
+    "auto/map-pan#Follow suspended while panned": {
+      "spec": "auto/map-pan",
+      "digest": "15e4cbe0da27f8fb3863491a78e72a391779617a72d1250bbab3aadd4f41cb5d"
+    },
+    "auto/map-pan#Auto-zoom suspended while panned": {
+      "spec": "auto/map-pan",
+      "digest": "064374b5fe5312d6de36425cff24ab51d72f3319bc885a25d9112df1abf48f8b"
+    },
+    "auto/map-pan#Heading-up rotation frozen while panned": {
+      "spec": "auto/map-pan",
+      "digest": "1c0a8200f7363ee32c71f10d1beaaf5aa3de01d11066759c7a058821b5aeb084"
+    },
+    "auto/map-pan#Follow re-engaged on pan exit": {
+      "spec": "auto/map-pan",
+      "digest": "e0f3d175270c561dbba8439f64c93d1f11f7f88d867445cbc5daa8c59097b7bb"
+    },
+    "auto-map-renderer#Map rendered on car display": {
+      "spec": "auto-map-renderer",
+      "digest": "210f1ca5dd3c1dc4c614cb94000d0c5d5c5dbdb07a3ddb37df043ef05ae32131"
+    },
+    "auto-map-renderer#Map renders at correct center and zoom": {
+      "spec": "auto-map-renderer",
+      "digest": "276f421b39e2c72e982f10d45993192d80cc64cf36a48b8bf86d0d521d0810b9"
+    },
+    "auto-map-renderer#GPS position marker on car map": {
+      "spec": "auto-map-renderer",
+      "digest": "6c9f7047d90d5827345ef8abcd7a7c0c9ff20600b47836985fe39fda670f03c6"
+    },
+    "auto-map-renderer#Favorites markers on car map": {
+      "spec": "auto-map-renderer",
+      "digest": "ff4603dfc8c5568121d96fe3a7c4cf4a5ea5945ce3e6e9b9336eb615208cf562"
+    },
+    "auto-map-renderer#Map re-renders on viewport change": {
+      "spec": "auto-map-renderer",
+      "digest": "39c36e70687ad8bece2b37765e414dd0b503ca9a0dd0a9cccfd4594af4e8b986"
+    },
+    "auto-map-renderer#Map follows host day/night": {
+      "spec": "auto-map-renderer",
+      "digest": "9a778bd585c1ee8fb4210c2c6d2b34019c6f00dcab1cf2a271c1e201ada249d8"
+    },
+    "auto-map-renderer#Renderer initialization off the car-app main thread": {
+      "spec": "auto-map-renderer",
+      "digest": "e87cfb6394cfd68b986a9c8669c2ef55d1ca000daaa4efc3cbfbbbd79e44a7ee"
+    },
+    "auto-map-renderer#No map state lost during renderer initialization": {
+      "spec": "auto-map-renderer",
+      "digest": "3aa58be22aeeb8481f4189a3e5b8eac8592cf46e08b680aa0405011728dd1023"
+    },
+    "auto-map-renderer#A stopped renderer holds no surface or frame buffer": {
+      "spec": "auto-map-renderer",
+      "digest": "861ec94e026e71cda0cf65e1c40f20350ec067ee10ccef405bae0805b2727366"
+    },
+    "auto-map-renderer#Marker drawing allocates no per-frame objects": {
+      "spec": "auto-map-renderer",
+      "digest": "294a5b16e6a727fe09407f94eda914924821f239a8f70c2e3e6862e9cfc155e2"
+    },
+    "auto-map-renderer#A re-created renderer restores the displayed map state": {
+      "spec": "auto-map-renderer",
+      "digest": "3de521ad3c7b09358d68bc6189961e7b62ddec8daea26a3022a4c1e428ff031c"
+    },
+    "auto-navigation-hints#Turn-by-turn notification contract while navigating": {
+      "spec": "auto-navigation-hints",
+      "digest": "9fcb474da472211b9bbf043a91fead976fc1f61ef4a6a3852a5d0e7ced98e324"
+    },
+    "auto-navigation-hints#Turn hints in the car rail widget": {
+      "spec": "auto-navigation-hints",
+      "digest": "8ab64bc12158ce5f51f8ab6f7bb1d24594cbdc0e8e291b6574fbd2361b62f03e"
+    },
+    "auto-navigation-hints#Car hint content": {
+      "spec": "auto-navigation-hints",
+      "digest": "6f8dadb4a607b5bd87900683b64589b4a8d62acc182749712d73579aea446d17"
+    },
+    "auto-navigation-hints#End navigation from the car hint": {
+      "spec": "auto-navigation-hints",
+      "digest": "fad676e8d3bffac29db9bc3773068165aa66327e90f56db4c81e2781f146fa81"
+    },
+    "auto-navigation-hints#Notification importance per surface": {
+      "spec": "auto-navigation-hints",
+      "digest": "3e5106aba3838cf29001153d821c4a58b51a2c0a2ac49025be119b77f91c02ba"
+    },
+    "auto-navigation-hints#No car surface for free driving": {
+      "spec": "auto-navigation-hints",
+      "digest": "8e65e84e0d3ec42fccde1c8ae49f53a949be1c1de182b39da1a0fcefd9278894"
+    },
+    "auto-navigation-hints#Trip metadata for cluster and heads-up display": {
+      "spec": "auto-navigation-hints",
+      "digest": "4e6cc625c8f3f8667d78abecb5d74961cceb0baaa89badf67bed3b768cc13ba0"
+    },
+    "auto-navigation-hints#Trip publishing cadence": {
+      "spec": "auto-navigation-hints",
+      "digest": "34380b460f6bb238a0c2893f4dabbaa320bda4ba54ce7ad55311d56775ca2c2a"
+    },
+    "auto-navigation-hints#Hint teardown without host connection": {
+      "spec": "auto-navigation-hints",
+      "digest": "6045b9cf20507336bdc1478cb215dcaffa8db9299eb93e04f38848d7a6aa4cc5"
+    },
+    "auto/navigation-view#Next turn maneuver in host instruction panel": {
+      "spec": "auto/navigation-view",
+      "digest": "64e092580d2b633f3ab74062809ebed2395d872d73481f155d11750a338daefa"
+    },
+    "auto/navigation-view#Current and next step in host instruction panel": {
+      "spec": "auto/navigation-view",
+      "digest": "004e1e6e124616eab57bbcc0d11a288416801e05aabc2f4a0af07f333684c719"
+    },
+    "auto/navigation-view#Route line on navigation map": {
+      "spec": "auto/navigation-view",
+      "digest": "29ef739401233aad8aac2be63f89dea8ca6684a84932837289675afec1d1b5d5"
+    },
+    "auto/navigation-view#Route description screen": {
+      "spec": "auto/navigation-view",
+      "digest": "0f455820bad89c1904bfe30850145efa151b7e62495886538d8ad073ff5fb05f"
+    },
+    "auto/navigation-view#Host-rendered lane guidance": {
+      "spec": "auto/navigation-view",
+      "digest": "f4254dcd17fe1724a3bb41c8cdbdb0a8924d0b780927d0a8553283f43376d9f3"
+    },
+    "auto/navigation-view#Time and distance to destination": {
+      "spec": "auto/navigation-view",
+      "digest": "ec30904796dbe5ce39a271bfb1d656e1fb90d71385e7f3df2e629057dc10652c"
+    },
+    "auto/navigation-view#Current street name shown during navigation": {
+      "spec": "auto/navigation-view",
+      "digest": "c997413a1ad63ffe77c74eff94955f45d0cc9f816d45b2085ff6ac06e4656dca"
+    },
+    "auto/navigation-view#Speed-driven auto-zoom during navigation": {
+      "spec": "auto/navigation-view",
+      "digest": "18dd391187d26c01cdfd979b1badfead120e180fd27138c4a8c7edccf0e91262"
+    },
+    "auto/navigation-view#Leave navigation at any time": {
+      "spec": "auto/navigation-view",
+      "digest": "9587596eaacc367c6face202f0eb994a6338d9d4fa9e437f1f02313ff58ae707"
+    },
+    "auto/navigation-view#Smooth follow-mode scrolling during navigation": {
+      "spec": "auto/navigation-view",
+      "digest": "258dfd61915fe28b5a7fd50dd2354d8cee8fefb406643d37a1b6167a515a2230"
+    },
+    "auto/navigation-view#Vehicle anchor during navigation": {
+      "spec": "auto/navigation-view",
+      "digest": "7bf52d69201fde2ba1614c2bae33f737ec19188646096d3382a45a69839d1a24"
+    },
+    "auto/navigation-view#Routing anchor applies when the setting changes during navigation": {
+      "spec": "auto/navigation-view",
+      "digest": "a589e5ce74eb50056896f189f0e03b678a0f906ee1739de310fb7a62e2741129"
+    },
+    "auto/navigation-view#Manual map panning during navigation": {
+      "spec": "auto/navigation-view",
+      "digest": "09f18a87e66945da40a5ca5b886a4f0c1c56cd81936730494bfa6b94e3d5d03f"
+    },
+    "auto/navigation-view#Navigation ends when the car session ends after arrival": {
+      "spec": "auto/navigation-view",
+      "digest": "d10cf03cad0c943d9b8b704e5bd03b19f92cf77e84bce72006aa140b69ac2f5e"
+    },
+    "auto/preferences#Preferences screen accessible from root": {
+      "spec": "auto/preferences",
+      "digest": "5a5a9a626f54d8deecd8422d152ecf79c49165af95f1a4b567b1fffb3c24716a"
+    },
+    "auto/preferences#Preferences displayed with current values": {
+      "spec": "auto/preferences",
+      "digest": "a0b995f9459151a1a7b9ee7fcc7561124566c9efd1b70888e469545fa645cec3"
+    },
+    "auto/preferences#Preferences editable from car": {
+      "spec": "auto/preferences",
+      "digest": "c60f8ba86d8b3efed8f920dc481a971ae3f6959548a67b5c327b340c00d4a8ae"
+    },
+    "auto/preferences#Preferences shared with phone app": {
+      "spec": "auto/preferences",
+      "digest": "1dd0bd4add3dff23c0451b35197080fd9f1dc08e518c710d304e59488cd86fbd"
+    },
+    "auto/preferences#Phone-only preferences excluded": {
+      "spec": "auto/preferences",
+      "digest": "7190568bf34fa4558dc2b86a6f67dcb43cb3c9a9c48152a8274121b8b3c29032"
+    },
+    "auto/preferences#Settings screens never wedge on a loading placeholder": {
+      "spec": "auto/preferences",
+      "digest": "e9dc49695c8dc7e8247542dd7c220f476865271c0aa3c47964949dbe92700eb5"
+    },
+    "auto/preferences#Dark mode preference applies to car rendering": {
+      "spec": "auto/preferences",
+      "digest": "379ab6d01827503efad04351b7d5a94b935ceef2a7948881dd970e15a5252dab"
+    },
+    "auto/screen-observation#One instance of each observation per started period": {
+      "spec": "auto/screen-observation",
+      "digest": "41dcc35e5fcdf08852bfe1684616d8bf965f4dddfad13a5626b762e21d327869"
+    },
+    "auto/screen-observation#A stopped screen performs no renderer or host work": {
+      "spec": "auto/screen-observation",
+      "digest": "aa95360ad63db64d70711007cec7ae5238494f7c7bcc9941f6ffc60d8ebd9fc3"
+    },
+    "auto/screen-observation#Observations are re-established with the current state on start": {
+      "spec": "auto/screen-observation",
+      "digest": "9f7b1f3d56ce6061d26b147576db3cac8afd0c096808665b9500eb24a076179b"
+    },
+    "auto/screen-observation#Work that must continue while stopped is not scoped to the started period": {
+      "spec": "auto/screen-observation",
+      "digest": "d72ad870a03006c5d309bd15f560f9437888560651e5b867efe3d011fa21eb33"
+    },
+    "auto/screen-observation#An observation fault is confined to its observation": {
+      "spec": "auto/screen-observation",
+      "digest": "dc277cfa151d7eb0b27d15a350f517485e84b97f63705ef9494bcba10e7ad5ad"
+    },
+    "auto-search#SearchTemplate displayed on car screen": {
+      "spec": "auto-search",
+      "digest": "8c60ae08463b0fa35a7a2949e26b707b2e7e88d9979b30de1a562a2cb8cc59bc"
+    },
+    "auto-search#Search-as-you-type with debounce": {
+      "spec": "auto-search",
+      "digest": "3c80206d26a52323d09da97f9ab117067e5b3e898abd9bac908d53915a24c956"
+    },
+    "auto-search#Search results displayed as list": {
+      "spec": "auto-search",
+      "digest": "246223d9ea1a57b38ee8bf5bd5fafcf4c990849775007d5733b3c00995e5ef98"
+    },
+    "auto-search#Search result limit": {
+      "spec": "auto-search",
+      "digest": "b9ef38a08d2e0c0a64cb90f297f0e2bd44151fe128bc4cd779b7b96108cbff11"
+    },
+    "auto-search#Search result selection triggers destination picker": {
+      "spec": "auto-search",
+      "digest": "1efca5a97099d75c3e14bcacffa9ae6ba9af1a87c748334f4c69e740d0864d07"
+    },
+    "auto-search#Favorite hits in search results": {
+      "spec": "auto-search",
+      "digest": "711c882c0829023cc0c507843c01aa3bb3165aa77e7ad303fcb375b8fd80c69c"
+    },
+    "auto-search#Full formatted address resolution on car screen": {
+      "spec": "auto-search",
+      "digest": "9635472d763a30fe601a41cc90af6c4e6b3cd57d19a88356c765d20bd41646d9"
+    },
+    "auto-search#Transliterated name matching parity with phone search": {
+      "spec": "auto-search",
+      "digest": "253f93f64fbe20d0159ece92a7434dd84ebb769235bb5600176df3322565c8da"
+    },
+    "auto-search-suggestions#Mode rows on empty query": {
+      "spec": "auto-search-suggestions",
+      "digest": "8191a69a610e1cbba0a82246741fe37b0c9673d799a07b52ef852c55fb6ec942"
+    },
+    "auto-search-suggestions#Recent searches on empty query": {
+      "spec": "auto-search-suggestions",
+      "digest": "064a02e028e387aac828287ba80d463a6bfb96f9885703876d40d51389e275ae"
+    },
+    "auto-search-suggestions#Typing replaces suggestions": {
+      "spec": "auto-search-suggestions",
+      "digest": "a7e5cf418660fd530d30deaaddde3fc5704f512933ac44a2b140c1731ff7f27d"
+    },
+    "auto-search-suggestions#No-results state keeps mode rows": {
+      "spec": "auto-search-suggestions",
+      "digest": "7eb7b1ecf574d2360ca25c9e0704b85442af3de6050d3e24cfc00f8abd7281ae"
+    },
+    "auto-smooth-follow#Overrun render buffer": {
+      "spec": "auto-smooth-follow",
+      "digest": "3a25192bc49bb3b5fa317c7242236dfeb12fba43f7442ea26222d2cc8b01c29e"
+    },
+    "auto-smooth-follow#Sub-region blit on viewport change": {
+      "spec": "auto-smooth-follow",
+      "digest": "4a57a77e9ce76655cb50c1ded4f7f8f37fc411d5c2d20c9352aaa146451cb423"
+    },
+    "auto-smooth-follow#Display center extrapolation": {
+      "spec": "auto-smooth-follow",
+      "digest": "73cab688030b3428248b398356019e3554ca991f55d47ed114f117ae9fdaed01"
+    },
+    "auto-smooth-follow#Heading commit deadband": {
+      "spec": "auto-smooth-follow",
+      "digest": "78ae5a646f2a2153bbf4ebb7ee541271511f55a7190d21f9d7a92c5865102589"
+    },
+    "auto-smooth-follow#Correction easing": {
+      "spec": "auto-smooth-follow",
+      "digest": "ce37173ca762d9c12cdb410a101cd532940ab6cdbacf9d3037217f6e95abb35d"
+    },
+    "auto-smooth-follow#Display-only prediction": {
+      "spec": "auto-smooth-follow",
+      "digest": "05584ec7edfe42b818b09164639284cf0dff4428987d9928a1500c63e4bb33da"
+    },
+    "auto-smooth-follow#Extrapolation loop gating": {
+      "spec": "auto-smooth-follow",
+      "digest": "5dd64fcf5bc876a1d3b139933832bfac898efe409a09fb34adaa9cdb0a0785f5"
+    },
+    "auto-smooth-follow#Fix feed from follow-mode screens": {
+      "spec": "auto-smooth-follow",
+      "digest": "393f063ef5202177255ab0f8fa71643452ab90299391906494cb80c26057fc0a"
+    },
+    "auto-smooth-follow#Single resolved anchor in the AA follow blit": {
+      "spec": "auto-smooth-follow",
+      "digest": "14a4e5a469ab9a9bab8faf95ad3fa0185da8c8662e5f415dad142d75c3b781b9"
+    },
+    "auto#Placeholder Android Auto module": {
+      "spec": "auto",
+      "digest": "30454a987028e78a0dd74d4690122c3a788df5306192634f60b9d312f3ffd368"
+    },
+    "auto#Android Auto manifest declarations": {
+      "spec": "auto",
+      "digest": "58b0ea2acf91d136b64f83da032f4cdcb7bef8caa7cb379375747221f3d54bce"
+    },
+    "auto#NavigationTemplate displays turn-by-turn guidance": {
+      "spec": "auto",
+      "digest": "f9ed9a14b9323b4d851af4395e9b281b2a39b06154cce5e8eefcb8c6ba909a56"
+    },
+    "auto#Next turn instruction updates in real-time": {
+      "spec": "auto",
+      "digest": "67720babc7c9c75d490b445f64a3e8647522ddc309474de7cc9d6adbf5621799"
+    },
+    "auto#ETA and remaining distance displayed": {
+      "spec": "auto",
+      "digest": "686b4ebc3fb4648e0520ee9f6843bb7af2e348bd41973526dfc004ebc412bb37"
+    },
+    "auto#Current speed displayed": {
+      "spec": "auto",
+      "digest": "ff3c31de38fdbac59034d8d228e3584e2d07eca902e204ff62ca1eab056d43c1"
+    },
+    "auto#Lane guidance displayed": {
+      "spec": "auto",
+      "digest": "7a81f9e7fb7e5f58257c1ef71e40d0d8fce741e70106bd9a06c3cb6d221931ff"
+    },
+    "auto#Trip progress bar": {
+      "spec": "auto",
+      "digest": "255e87e7e66806e5e3939453d85428e92ec9c33b8d40d352adc9b6f799a768d0"
+    },
+    "auto#Rerouting indicator": {
+      "spec": "auto",
+      "digest": "38bf5805320af83dec7a6dd193b06c150dbedd4b22c1d8458cd61c03f75d2eff"
+    },
+    "auto#Lifecycle-aware state observation": {
+      "spec": "auto",
+      "digest": "0741adc839a61ae8f03ac6818a85f963c169a053926d36b16f232f4da9dad95b"
+    },
+    "auto#Map browsing screen on Android Auto": {
+      "spec": "auto",
+      "digest": "c783b24a7bdecfa0e6c18ba51dcc24ab32674c2542bde284f540b97d089cc936"
+    },
+    "auto#Screen stack includes map screen": {
+      "spec": "auto",
+      "digest": "cc60af604ea04f1c5219b0b58ba76ae5cae48b13b6bb22657b1cfc484d2e76df"
+    },
+    "auto#Preferences entry on root screen": {
+      "spec": "auto",
+      "digest": "889e8b5cf4059b8a6ae28bc0d76bb3d277553bd46aa6e51a09a9197a0ca332b5"
+    },
+    "auto-speed-zoom#Map magnification adjusts automatically based on navigation speed": {
+      "spec": "auto-speed-zoom",
+      "digest": "fd4c51e12b093f9186ab525a3ecfbd5effb0390ff98ef6c53c8a0401fb93ec9b"
+    },
+    "auto-speed-zoom#Auto-zoom uses linear interpolation between speed breakpoints": {
+      "spec": "auto-speed-zoom",
+      "digest": "1fa95dbfdc163f5c0a99d20973bdc932b56f4f2211887e7a669245430a04d620"
+    },
+    "auto-speed-zoom#Manual zoom temporarily suspends auto-zoom": {
+      "spec": "auto-speed-zoom",
+      "digest": "3b4f72a7770df6615a5b93d88b9dd52b113d12f2fb2f5d1d0252f6717d530479"
+    },
+    "auto-speed-zoom#Auto-zoom can be toggled on and off": {
+      "spec": "auto-speed-zoom",
+      "digest": "796edaae35edbbfbef21b54e2bfab595aa638fc57181982c3799c07bafc5643b"
+    },
+    "auto-speed-zoom#Auto-zoom uses the navigation engine's reported speed": {
+      "spec": "auto-speed-zoom",
+      "digest": "85f7288b7fe3c63e686001faf7d79c55a1bfc4033fc9bf4f8d3cec7ff7dfe658"
+    },
+    "auto-speed-zoom#Smooth zoom transitions": {
+      "spec": "auto-speed-zoom",
+      "digest": "b57d1e5999a14f1225eb1dd487ed8b8ceec7b6250a22b6f7437bcede1f54dbb4"
+    },
+    "auto-speed-zoom#Initial zoom uses routing-sensible default": {
+      "spec": "auto-speed-zoom",
+      "digest": "35a61367ad8abaa3a97937314eee961795b59d6598cd43a94540daba164b8e31"
+    },
+    "auto-speed-zoom#SPEED_ZOOM_TABLE with narrowed range": {
+      "spec": "auto-speed-zoom",
+      "digest": "87201dd1ac2b1f3b2a76cd39c8f877e955b16d6b6dd793d89e074a59ec89fb4f"
+    },
+    "auto-speed-zoom#Auto-zoom entry transition starts from the displayed magnification": {
+      "spec": "auto-speed-zoom",
+      "digest": "14651eeeacc225da894d27b07fa8038b48134aca8f6e92b8776f8d2874605f16"
+    },
+    "auto-speed-zoom#Entry transition is bounded in time and render requests": {
+      "spec": "auto-speed-zoom",
+      "digest": "5579758f15065b897a717190a601d2a78956cb2d01f62cf8f0308c92c8dff43e"
+    },
+    "auto-startup-hardening#Session startup never crashes the process": {
+      "spec": "auto-startup-hardening",
+      "digest": "769a3fc01a117860f86f0e82d61ade2aaa170b0d5ff017c7b72d43f1b954c83f"
+    },
+    "auto-startup-hardening#Heavy initialization does not block the first screen": {
+      "spec": "auto-startup-hardening",
+      "digest": "af1205f080c0f3a6978b85e428d9d8e962d5bc16e9e312b89ced7c9239b92ef5"
+    },
+    "auto-startup-hardening#Startup failure surfaces a readable error": {
+      "spec": "auto-startup-hardening",
+      "digest": "753cd3ce4afbbe018a569ee118e4aab6254634f365aa21c5ec2e60b5d990709e"
+    },
+    "auto-turn-zoom#Turn-aware zoom boosting": {
+      "spec": "auto-turn-zoom",
+      "digest": "a108db1cadc270e5e104f4e9b83fb8bd01a1ba356ea54283e42568d0fcb076db"
+    },
+    "auto-turn-zoom#Turn zoom boost overrides speed-based zoom": {
+      "spec": "auto-turn-zoom",
+      "digest": "7b4b3d0bb4d11793504d4d944a03b6a3e13dd7f9942e9b2d8d66c710044ff484"
+    },
+    "auto-turn-zoom#Turn distance from route instructions": {
+      "spec": "auto-turn-zoom",
+      "digest": "ce06c29ecbe152e4b90918cbf140e403bb77ad53e2a094e9117c987e4bb0a209"
+    },
+    "auto-turn-zoom#Turn boost hold distance": {
+      "spec": "auto-turn-zoom",
+      "digest": "b1b30c5fcedd79b559840186c8a4bc5ee40c67db163a5fc91ce0613ffcd388de"
+    },
+    "back-gesture#Back gesture closes topmost sheet or dialog": {
+      "spec": "back-gesture",
+      "digest": "785758c815c27e72c81dbc4e73b3f9a11cc259c0338549e8001e59b90822557b"
+    },
+    "back-gesture#Back falls through when nothing is open": {
+      "spec": "back-gesture",
+      "digest": "972fd0f9acf4874bb0c59cc5a70fa64bee2aded4a16a3d6d2b38089a8f3a73b0"
+    },
+    "back-gesture#Back rejected while navigation is active": {
+      "spec": "back-gesture",
+      "digest": "2d8dd6ccbb673fa85f052e4460415810ae259c0a2ffc8c83e70405cc7b278301"
+    },
+    "back-gesture#Predictive back animation": {
+      "spec": "back-gesture",
+      "digest": "00b20daf0852d1d0a3b97c15fef1268c3ba4e624ff19092fccd7d28332451593"
+    },
+    "basemap-cancel#Cancelled download reports \"Download cancelled\"": {
+      "spec": "basemap-cancel",
+      "digest": "1de6ba8b4e8e21ce570f86e2a5a2fddb1568864af404a23c171786dd70c8cf66"
+    },
+    "basemap-cancel#Late cancel does not install a completed download": {
+      "spec": "basemap-cancel",
+      "digest": "db21f251d971582793db56fd1ef4180e2b73764edc8b593058d1d86fe4c3dc8f"
+    },
+    "basemap-cancel#Cancel aborts without leaving partial state": {
+      "spec": "basemap-cancel",
+      "digest": "5d99bad69b4f66e065b8a197f9a86e20f587b8d92b32b4f03086274591c3ba5f"
+    },
+    "basemap-discovery#Probe basemap availability": {
+      "spec": "basemap-discovery",
+      "digest": "7225fa07e3b4a89cc529805c80bb149c490b88c972d19a263027b6fd66f16cb7"
+    },
+    "basemap-discovery#Report basemap version for updates": {
+      "spec": "basemap-discovery",
+      "digest": "dd2bb8b40d59616302621e1254f131d7b8f28eae12cc64aef4d4adfe71cdae2e"
+    },
+    "basemap-download#Download and extract basemap archive": {
+      "spec": "basemap-download",
+      "digest": "f37d0ac4b637dd12b3e8f14025d173d59ab338c80c882c3daa95d0f47ad6a348"
+    },
+    "basemap-download#Select basemap variant": {
+      "spec": "basemap-download",
+      "digest": "201a905017ad23f0ff6ddde451847213e02c34ae792146c100e7ddf4a50c3570"
+    },
+    "basemap-download#Update basemap atomically": {
+      "spec": "basemap-download",
+      "digest": "edb8fd0a5416d36ed4cee9a1b4b5528f40a0f725cd9c0e4355db0ccf55c69b2a"
+    },
+    "basemap-download#Cancel basemap download": {
+      "spec": "basemap-download",
+      "digest": "91a0820344103f152f5c7bff0149c59dc0684002a25844e1b2d82283f85247b1"
+    },
+    "basemap-download#Delete basemap": {
+      "spec": "basemap-download",
+      "digest": "b0bcfdf44da8c8fbc80800b8ecc7cbe2626ed2fb801909cbab45311058f40afb"
+    },
+    "basemap-loading#Register basemap directory at client initialization": {
+      "spec": "basemap-loading",
+      "digest": "2c4fdcf46fb483e27ca5a3acf5b4f1ee34be9b22343704aff05153a654bfcba9"
+    },
+    "basemap-loading#Reload basemap after download or delete": {
+      "spec": "basemap-loading",
+      "digest": "feef66387382f38082e9228a83c7584cce280734f183b71f377cae527c48e219"
+    },
+    "basemap-loading#Basemap renders underneath regional maps": {
+      "spec": "basemap-loading",
+      "digest": "3612feee6e5b4c87be371c72df18a05860ac7abb14c9f65a8157238eaf535ad8"
+    },
+    "basemap-loading#Stylesheet directory fully populated before load": {
+      "spec": "basemap-loading",
+      "digest": "acfaccccebd009eda5eac05b74790f4515bf5454390e7709ac88983479094ed2"
+    },
+    "basemap-loading#Basemap renders with its own stylesheet": {
+      "spec": "basemap-loading",
+      "digest": "62da7acea098ab6b88fd4ae19d3b22da1dd87a9eedd896a7a5d62e4533fa1dad"
+    },
+    "basemap-ui#Show basemap in installed maps list": {
+      "spec": "basemap-ui",
+      "digest": "aadffa20f7ee58e70964d77fb39c717f962f0ad005dfca843db15b555cd31bc3"
+    },
+    "basemap-ui#Provide basemap download/update control": {
+      "spec": "basemap-ui",
+      "digest": "44c6097f53468d62f62a4ffa59b0a75f91dcda21cc77540048d2ff75452dacd3"
+    },
+    "basemap-ui#Indicate basemap status in map view": {
+      "spec": "basemap-ui",
+      "digest": "976514a00a7bf54cb98a4477b0af0b845499002f890f5e391544cb5f611289c8"
+    },
+    "build-jvm-toolchain#The daemon JVM requirement names a version, not a vendor": {
+      "spec": "build-jvm-toolchain",
+      "digest": "21d7e31bdddaacc217b6ab89baedc91d36ef13888c7176220f1d252a2265a8da"
+    },
+    "build-jvm-toolchain#Provisioning URLs are durable vendor endpoints, not index package ids": {
+      "spec": "build-jvm-toolchain",
+      "digest": "d7ab46a61d190f4ce5cbdab98ea6441e64722372bd7699bf7948b6e8dcde4830"
+    },
+    "build-jvm-toolchain#The JVM rule and the regeneration caveat are checked in": {
+      "spec": "build-jvm-toolchain",
+      "digest": "efcec5aedfde95dc5a2fe39a7aa8afa9d2139dee590b260487345313d3e081e0"
+    },
+    "build-sbom#Release target produces SBOM per distribution flavor": {
+      "spec": "build-sbom",
+      "digest": "bde2927c97a4912105dac363a7819adb2905c86ec281461b2ccab997d0fbc503"
+    },
+    "build-sbom#Any build variant can generate SBOM": {
+      "spec": "build-sbom",
+      "digest": "ceee2b6e7a16a564e575d9da80520476022e69483fe5b0ea154cba4ccde0b664"
+    },
+    "build-sbom#SBOM covers all JVM dependencies": {
+      "spec": "build-sbom",
+      "digest": "9d8bb2bc3da828f275c11f1d964b73f5d6177fcb70a14b1818a92f9e81980aca"
+    },
+    "build-sbom#SBOM covers native vcpkg dependencies": {
+      "spec": "build-sbom",
+      "digest": "b3c05643ef142124650817f9408dacab892edb89dd07c12dae1e39df94e07dce"
+    },
+    "build-sbom#SBOM records libosmscout submodule": {
+      "spec": "build-sbom",
+      "digest": "cadbf123478b25207f054413d5c0fc749488713e4991adea8aedec7bdb91db54"
+    },
+    "build-sbom#SBOM output is valid CycloneDX JSON": {
+      "spec": "build-sbom",
+      "digest": "3449fb39b1ce618f641215f019f2a1e538965c936924d5452fde6499e9a1b863"
+    },
+    "build-sbom#Missing native SBOM data fails generation": {
+      "spec": "build-sbom",
+      "digest": "f702707ea4b3786310332b50e7e3210fb2f2440cbcea92ebd6c9ae91f89f3823"
+    },
+    "build-sbom#SBOM generation does not mutate release version state": {
+      "spec": "build-sbom",
+      "digest": "3408ce8b7a49512b08dd686cd3ac35000c5cef5fb680ffae38409af531771774"
+    },
+    "build-sbom#CI uploads SBOM build artifact": {
+      "spec": "build-sbom",
+      "digest": "bdb00ee484694df05c25ac18c579d7f557daed6af11cf70bdc989491f1d9ee39"
+    },
+    "build-sbom#SBOM components declare license and distribution scope": {
+      "spec": "build-sbom",
+      "digest": "30254d082d17de66fcab6503971b1d256de44306e7dbcc0df1d461c254586dfd"
+    },
+    "build-sbom#SBOM records shipped native runtime libraries": {
+      "spec": "build-sbom",
+      "digest": "defa782b36c2009c284470ad510582389b4ef2847e517bf10de71e55cfb0c211"
+    },
+    "build-sbom#SBOM root component carries the application license": {
+      "spec": "build-sbom",
+      "digest": "a08041f39d1555202b44128c0480f559e064486e4a79a9686f6cd1a26d9514fa"
+    },
+    "build-sbom#First-party components resolve to the application license": {
+      "spec": "build-sbom",
+      "digest": "2d100cde1874cf4a268594ce05ea386a89e5686a7a258c61565f97ccbf3a3175"
+    },
+    "build-test-gate#Gate runs the affected flavors": {
+      "spec": "build-test-gate",
+      "digest": "19881d609070167c53ed43c23544a7e1f4d6a1c92f22ef22591ceb8bc7ddac09"
+    },
+    "build-test-gate#A gate run proves that its tests executed": {
+      "spec": "build-test-gate",
+      "digest": "303bc9b62e6944116c7521ed4968d05a865b7c2ff63b9f1fb6da99dc29f8d9b4"
+    },
+    "build-test-gate#Every gate run records its phase timings": {
+      "spec": "build-test-gate",
+      "digest": "085b0d30488cf5257fa11f0eee19b99df3c4cdd2e113b7a18cf47fd9c157b759"
+    },
+    "build-test-gate#Iteration runs build no more native artifacts than they test": {
+      "spec": "build-test-gate",
+      "digest": "6b6174de1e620cd9ae654e39ea0a0b2ef27766f57cf6ae5593edae49bebb7c6b"
+    },
+    "build-test-gate#Superseded native configurations are pruned": {
+      "spec": "build-test-gate",
+      "digest": "a5ad7c938f00916404b043339dbfd07c35477d82598f8e3ee6238f43ae7f0cbd"
+    },
+    "build-test-gate#Local and CI gate recipes agree": {
+      "spec": "build-test-gate",
+      "digest": "0743057733304483e81b39fbbdcf3c8c77ea11de67d85e0d0212afcf83c6fc20"
+    },
+    "build-test-gate#A gate rule or measurement has one documented home": {
+      "spec": "build-test-gate",
+      "digest": "ae02691e95e2d42e072501950b275d04e297e727dd62ad7d5103cd820adb1005"
+    },
+    "build-test-gate#Iteration pre-gate runs the change's declared cases first": {
+      "spec": "build-test-gate",
+      "digest": "766a3f8a706d0b16d79ed0cb7fc325f6c4fc6a62f09da1b3d3e3b159a5473bb8"
+    },
+    "button-elevation#Right-side buttons have Material 3 elevation": {
+      "spec": "button-elevation",
+      "digest": "ed11be4c3a31851cf908a5c648834645938063ae53a127e2642208787d792db3"
+    },
+    "button-elevation#Elevation uses Material 3 elevation system": {
+      "spec": "button-elevation",
+      "digest": "581000f662e5283f4ec348e72720a6b1de686f34e1f1e7b3c1eaf54bf775a1a8"
+    },
+    "button-elevation#Pressed state reduces elevation": {
+      "spec": "button-elevation",
+      "digest": "574283bf3588d9cef9451195f6b511096050e124aa925e6653d2fa1fc73b6dc1"
+    },
+    "canvas-overrun#Configurable canvas overrun": {
+      "spec": "canvas-overrun",
+      "digest": "aeac5351e60a077d95d11d73bc0a73637febac4e262021051ba4b193ffa928c9"
+    },
+    "canvas-overrun#Sub-region blit for pan": {
+      "spec": "canvas-overrun",
+      "digest": "ec0ab690824a3219402c8737cd42ee12f8a5091f3c0df88df72d68d17a05432e"
+    },
+    "car-host-fault-isolation#Host callbacks answer promptly": {
+      "spec": "car-host-fault-isolation",
+      "digest": "11e16e2976ee94c9f000f7a9c9a6bcbd51038a6f4b989fd32220372e8290a5fd"
+    },
+    "car-host-fault-isolation#No fault escapes into the host path": {
+      "spec": "car-host-fault-isolation",
+      "digest": "68d9b124eda0a3552f3e52c3bc429e5db83fe135fd7e26387a3d3544b4e1c0d0"
+    },
+    "car-host-fault-isolation#Template invalidation is main-thread only": {
+      "spec": "car-host-fault-isolation",
+      "digest": "e7cbfb0bfc8e59a8e47f65d7421af628cae25517abac6940c5438c10a8938588"
+    },
+    "car-host-fault-isolation#Single-owner car surface": {
+      "spec": "car-host-fault-isolation",
+      "digest": "a752ddc78b91b41bffacbd46c1ab90d993758c30cac095321314244c2d8b5940"
+    },
+    "car-host-fault-isolation#Bounded host-facing traffic while not visible": {
+      "spec": "car-host-fault-isolation",
+      "digest": "1bd3cac69cf3ed4c7ab0062deb4879f0efb56fd62fa1b5a9d1b8371999bfd7ae"
+    },
+    "car-host-fault-isolation#Bounded periodic render work": {
+      "spec": "car-host-fault-isolation",
+      "digest": "a9e874989d77fe7a3b1906b611cdc7789acfd8ac85ee78bb2ef98e50088d4a32"
+    },
+    "car-host-fault-isolation#Host interaction is diagnosable": {
+      "spec": "car-host-fault-isolation",
+      "digest": "a42f51687469a955fdf47de72f3ddf3552d3cd8eb52dee95f152aaf974d837d5"
+    },
+    "car-host-fault-isolation#Session registration follows the host session": {
+      "spec": "car-host-fault-isolation",
+      "digest": "2fc14f8b02ea16d56fcd688058f2247886024684fede1803879725c1f475c20e"
+    },
+    "car-host-fault-isolation#Host screen-stack mutations are balanced": {
+      "spec": "car-host-fault-isolation",
+      "digest": "cfc670f51e040daf946bd03619bb2d446ca4ccc2f131c7f9d25624874c05eae5"
+    },
+    "car-host-fault-isolation#A repeatedly faulting car renderer recovers, then degrades visibly": {
+      "spec": "car-host-fault-isolation",
+      "digest": "4bb79b3f582df7a5f12cd92a62d993de33f45f79cb69e013fe7286796796fdc8"
+    },
+    "car-session-presence#A live car session is observable in the process": {
+      "spec": "car-session-presence",
+      "digest": "24a1ab5fc5f2bd7a214b5cc38435efdde792d91f15e5fcaf2285ba676bbaf5ef"
+    },
+    "car-session-presence#The phone is informed, not disabled": {
+      "spec": "car-session-presence",
+      "digest": "ae47b218e221fc72430249a96457eeff17fc46c1eaab51c240ef7adcd40755b3"
+    },
+    "car-session-presence#The signal never claims a session that is gone": {
+      "spec": "car-session-presence",
+      "digest": "445b7e32db1707de668af2bf9ccb9dd5d7afe0c1c3b571b8b4c52867cd21ff6a"
+    },
+    "ci-unit-test-jni#JNI stub committed for CI unit tests": {
+      "spec": "ci-unit-test-jni",
+      "digest": "9b03da623dfcf3400df88b98eb369a6749c5355d0d7cde13ecf5c9cbca6663eb"
+    },
+    "ci-unit-test-jni#Stub stays test-only": {
+      "spec": "ci-unit-test-jni",
+      "digest": "14314874ae3c590040662383a03fad61da0d8bbb5bbd7d069fdf4c2669e7bd21"
+    },
+    "ci-unit-test-jni#Stub reachable per module": {
+      "spec": "ci-unit-test-jni",
+      "digest": "68c93cdcd9adc72c9cd26ce3025b3cd38834d275153795d8c8cb4e8351a86cf1"
+    },
+    "ci-vcpkg-cache#vcpkg dependencies restored between CI builds": {
+      "spec": "ci-vcpkg-cache",
+      "digest": "fb4f9b0810148a3e9babc5120450716f2980df4ee2198d302d9b06c667a400ba"
+    },
+    "ci-vcpkg-cache#Cache self-heals after toolchain or runner-image changes": {
+      "spec": "ci-vcpkg-cache",
+      "digest": "444175d7254b3619a4721bb1e7d2feee05f724fb08dc95161d5dfda89374366c"
+    },
+    "ci-vcpkg-cache#Dependency-list changes rebuild only affected packages": {
+      "spec": "ci-vcpkg-cache",
+      "digest": "da8834c5e1e2108e3a7abbcf91dd659b51c81a30b43b3be609e31ac61c4d9abc"
+    },
+    "ci-vcpkg-cache#CI caching requires no repository secrets": {
+      "spec": "ci-vcpkg-cache",
+      "digest": "37fe70f70b0582e089e93e5766d3f195fe0d4050319f2cb9b6ca7ba43823d933"
+    },
+    "compass-button#Compass shows north direction": {
+      "spec": "compass-button",
+      "digest": "f76f256a6ad14d67e74bff05c55748b168a8fa7d15cf7d23ee1e5a06e475bb9a"
+    },
+    "compass-button#North pointer points at rendered north": {
+      "spec": "compass-button",
+      "digest": "abcb64336d898bddc16b995e0cf3fd0d8d342769596afa88ac6d2e34c204c92a"
+    },
+    "compass-button#GPS fix status fill color": {
+      "spec": "compass-button",
+      "digest": "42182d8f9c18f1b9cd4d55fc121f7eb1585d8eba9d663caabac2914256d742a0"
+    },
+    "compass-button#Short press re-centers on location": {
+      "spec": "compass-button",
+      "digest": "0c88920b23bd73bca5819cf7e8de755027e51c45a19ec1a1a4b5158e9980e8bb"
+    },
+    "compass-button#Long press toggles orientation mode": {
+      "spec": "compass-button",
+      "digest": "b77de2c1f76d14451862ee9f8b2647e6ef892c1c666c9d97f7b95be2cbdbfb81"
+    },
+    "compass-button#Compass mode syncs with orientation settings": {
+      "spec": "compass-button",
+      "digest": "3b8623b76fc96262306867ef7ea0d6559faca615bdf0d53dec0233b72c368417"
+    },
+    "compass-button#Compass positioned at top of right view column": {
+      "spec": "compass-button",
+      "digest": "5c9a7abd6b9a606f813fc53613e793cc38dba6f3445e7653df77c289655fb409"
+    },
+    "compass-button#Compass button matches overlay button sizing": {
+      "spec": "compass-button",
+      "digest": "6f66fd91769847102e3d763faddc3106065c037dd704341d63474150fd8a029e"
+    },
+    "compass-button#Compass colors follow the resolved day/night presentation": {
+      "spec": "compass-button",
+      "digest": "dff4b5d74edf3bb77533119d11d4d89d75cb0c19421e288eda6678b6c1fab9af"
+    },
+    "compass-settings#Per-mode orientation setting": {
+      "spec": "compass-settings",
+      "digest": "9cd19994bf0ad8d1564e7e44da554a23cb65b8691bc39f0a392c4a1d3f8db3de"
+    },
+    "compass-settings#Orientation settings persisted": {
+      "spec": "compass-settings",
+      "digest": "de58ab08f4df583a53ab1efd02c7f3c26251a5e0a6d980e8b9d46f21dcff9a69"
+    },
+    "cross-variant-ui-parity#Cross-variant UI parity": {
+      "spec": "cross-variant-ui-parity",
+      "digest": "ea109b5c8d81c407da3584a232bf84f443edd9b97ee89756883eaa295c41a668"
+    },
+    "current-road-info#Current road info is reported during navigation": {
+      "spec": "current-road-info",
+      "digest": "77a275fc0bb52031cf3a654a09bf75d3e66b438ddd46b7464ee2df65ee940a11"
+    },
+    "current-road-info#Current road info is displayed in the route status view": {
+      "spec": "current-road-info",
+      "digest": "2b4133dc561df8b204cb86e733266b62d84904f3e8302a8f45cef26a2022dc96"
+    },
+    "current-road-info#Road info uses DescriptionService lookup at current position": {
+      "spec": "current-road-info",
+      "digest": "b1efc76f72b1ccad77014f2fc4649a8d9041a0854b4c783f81a14ddadba04fd9"
+    },
+    "current-road-info#Current road info shown in free driving (no active route)": {
+      "spec": "current-road-info",
+      "digest": "f19b99e73fb26224b2b17e4c4af51c7b66ae29f702d3cad2e32036dbba43f711"
+    },
+    "dark-mode#Three-state dark mode preference": {
+      "spec": "dark-mode",
+      "digest": "da59a80232e2fc1977536d0f4f43ff22014f1f4ad2b9e0034562b2f5d8a32937"
+    },
+    "dark-mode#Automatic mode follows environment dimming": {
+      "spec": "dark-mode",
+      "digest": "e26bc0514ec1056479ae8bedc19c8b9bebf69ee30dfa07dbb49bd5e6aa374cdb"
+    },
+    "dark-mode#Dark presentation applies to UI controls": {
+      "spec": "dark-mode",
+      "digest": "79f445e0156b2534cc0a07a28602327d944c6b9d4e2c6e33856717aa1dd80191"
+    },
+    "dark-mode#Dark presentation applies to map rendering": {
+      "spec": "dark-mode",
+      "digest": "3528df4f1f10da1af2db0761e38a79284355ea4909bbc38cd91f3cb83677085e"
+    },
+    "dark-mode#Manual dark mode control": {
+      "spec": "dark-mode",
+      "digest": "b2e594dc05a9e512dbdf1192722942ad3249e8c499820edfa7b5eda51718ce85"
+    },
+    "dark-mode#Ambient light sensor option": {
+      "spec": "dark-mode",
+      "digest": "f5cbd8afb7e2b5a34334f45c6fdadfada91c8c8b9b9a1aa65443f3e0099074fe"
+    },
+    "dark-mode#Android Auto template chrome is host-owned and host-themed": {
+      "spec": "dark-mode",
+      "digest": "ddf9e4404740259b6a56f7ab61ac74b883d1e1da24e5ea232e723bedd9d4632c"
+    },
+    "daylight-map-palette#Daylight road fills keep black street labels legible": {
+      "spec": "daylight-map-palette",
+      "digest": "17c84c3dbe837214f5315d0643b010318c6470b3c1b078b7c7b896f468cb954d"
+    },
+    "daylight-map-palette#Highway shields keep white shield text legible": {
+      "spec": "daylight-map-palette",
+      "digest": "34d91852cec61f316c6b1ecdedde68b1dc4e57083ca70ad0d72ff8ef33419b98"
+    },
+    "daylight-map-palette#Low-zoom road rendering stays visible on land": {
+      "spec": "daylight-map-palette",
+      "digest": "3e9a1fba9dd403346c757a0b523f91ed48f47524ff5a08a68415c153e8629144"
+    },
+    "daylight-map-palette#Motorway junction labels stay legible on land": {
+      "spec": "daylight-map-palette",
+      "digest": "9b7af8564c3d5c6b7c19f629e61df1467c88ff4b2210552d8305dba8524df757"
+    },
+    "daylight-map-palette#Daylight palette is shared by every surface and by every style using the scheme": {
+      "spec": "daylight-map-palette",
+      "digest": "f02ed7c473f0a4183574ee92d46c8d427466acbba87f82b74f0858a6d85f5484"
+    },
+    "daylight-map-palette#Daylight palette change alters no geometry, priority or pass count": {
+      "spec": "daylight-map-palette",
+      "digest": "83b49b2752130eaf0a05f1779d82d16d046c223294437a9a0ebc141413ed3763"
+    },
+    "daylight-map-palette#Daylight palette change does not alter the dark presentation": {
+      "spec": "daylight-map-palette",
+      "digest": "211d12e7a546aaee326629cbcb551eb11f5ef4dd493440c64ce1f510f9360ad9"
+    },
+    "documentation-ownership#A change is routed to the sections that own its conventions": {
+      "spec": "documentation-ownership",
+      "digest": "f9ca82f6feaa92c72fd4b787041729ab2cc14d9efbf9c9e44cabe2aff363a865"
+    },
+    "documentation-ownership#A route resolves to a section that exists": {
+      "spec": "documentation-ownership",
+      "digest": "c96b0c02689f335dd74d647688c3c457af2cb82ea29fc014a752597edeb760c1"
+    },
+    "documentation-ownership#The change-artifact guidance reads by section": {
+      "spec": "documentation-ownership",
+      "digest": "9adc9ece437c78392af57d48d8dec3c960b80c29a8c52b7c3fb1b56172b9779a"
+    },
+    "documentation-ownership#The routing cost is measured": {
+      "spec": "documentation-ownership",
+      "digest": "d06a07ddd82bceba92af4d1d5d892ad024e086404538458e3b9460ca5dd0a1e1"
+    },
+    "documentation-ownership#The always-read document states facts and references rules": {
+      "spec": "documentation-ownership",
+      "digest": "cb93c1c17bf56a119248aba64b7e3e3ffac94169e7989e3902621d63b7077a75"
+    },
+    "documentation-ownership#A rule has one normative home": {
+      "spec": "documentation-ownership",
+      "digest": "a242ef7e72b89404f735a3bc65c284f99a69a34bbb0d59c53778e0f05d75288e"
+    },
+    "documentation-ownership#A relocated rule keeps its statement": {
+      "spec": "documentation-ownership",
+      "digest": "2aad9ede144d91fbe0f8267156651215d561628b0f6e827d01f208eb63096f1c"
+    },
+    "documentation-ownership#A concern has one owning document": {
+      "spec": "documentation-ownership",
+      "digest": "093c995323f9168a6ceba068d061bb59a0a9ce6d6ffd7be3be16b3b4d06e65bf"
+    },
+    "documentation-ownership#The entry document is bounded by what a session needs before it reads anything else": {
+      "spec": "documentation-ownership",
+      "digest": "2ab5cb7d0a17cad88b698f597994fce14f3a3694f879a63fe91e21a33478e124"
+    },
+    "documentation-ownership#Every guideline document is covered by the route check": {
+      "spec": "documentation-ownership",
+      "digest": "fbf9dcb7662857ca98a22016b3f738511fe95b983d6fd99e389fed4197c86cc4"
+    },
+    "double-buffering#Double-buffered render pipeline": {
+      "spec": "double-buffering",
+      "digest": "6280b397d619cf30a3c8a67b4de2664c58da88525063695ce44191b7a776d9cd"
+    },
+    "double-buffering#Stale render detection": {
+      "spec": "double-buffering",
+      "digest": "66dc1b012f6ca543d6a5f7ab50a35c1e7be4a9f969c4ad5f513423ebd01f5071"
+    },
+    "double-buffering#Buffers hold only rendered map content": {
+      "spec": "double-buffering",
+      "digest": "341103a7bfb1b9b5537d844c214530fe448e177f82cd75a202330c9068fe5ab0"
+    },
+    "download-wake-lock#Wake lock acquired during download": {
+      "spec": "download-wake-lock",
+      "digest": "4071b137246ae0d3222d209cca530948a1ce10ed3c5b810bbe777b8363d9bfe9"
+    },
+    "download-wake-lock#App hibernation prevention": {
+      "spec": "download-wake-lock",
+      "digest": "4f735552502e82a42c322aa4aaa4e55ba8693d1fe5706a23a2e4bae0f071c351"
+    },
+    "enhanced-details-sheet#Full-screen details dialog": {
+      "spec": "enhanced-details-sheet",
+      "digest": "336578a206d407fdd9ef743c3b29884f828ea7f6b98bbc3575bc24d7a68f27c7"
+    },
+    "enhanced-details-sheet#Structured description display": {
+      "spec": "enhanced-details-sheet",
+      "digest": "91ac7b3abb5d79a9f34c57807aedc6740a15f92c8d24e51958cbf67200fd1f3d"
+    },
+    "enhanced-details-sheet#Favorite management in sheet": {
+      "spec": "enhanced-details-sheet",
+      "digest": "7322136b7cf8f31de3e60f03519773d963a86217bdc888ea6cdc6f90ac7985f0"
+    },
+    "enhanced-details-sheet#Coordinates display": {
+      "spec": "enhanced-details-sheet",
+      "digest": "f7edb31ff15126e88d0149c4403f27847fd70e5b1304cb6e409aaf169f3d17b4"
+    },
+    "enhanced-details-sheet#Navigate to button in details sheet": {
+      "spec": "enhanced-details-sheet",
+      "digest": "89fcd31e208bff1ade40054db4477a885b0b5464efd329d638a5489d419d0e01"
+    },
+    "enhanced-details-sheet#Area as list entry": {
+      "spec": "enhanced-details-sheet",
+      "digest": "d4ab52ec9049f3bbec20ea5a31db7bf4c9e418bc822cd44b9f44c2687c57e8ec"
+    },
+    "enhanced-details-sheet#Title shows name or address": {
+      "spec": "enhanced-details-sheet",
+      "digest": "69183ade3c72c0efe65b861894c5d305b9263210a4c817b36f7933e44cb4d932"
+    },
+    "enhanced-details-sheet#Address entry when house number present": {
+      "spec": "enhanced-details-sheet",
+      "digest": "de9716d1f0eab053f7457703f70cf6ae68d15be82f312e51fd1cac1b577ccfce"
+    },
+    "enhanced-details-sheet#Current position on details mini map": {
+      "spec": "enhanced-details-sheet",
+      "digest": "93f4e24f146b6fd3d71548a6e4fb2c051fc61028a97bb91fb4a99ab5860d32c9"
+    },
+    "fav-auto-zoom#Zoom to favorite on selection": {
+      "spec": "fav-auto-zoom",
+      "digest": "f429972eebf7345903119bf2bb5d3afb2048714f99904068afa741701be04e83"
+    },
+    "fav-auto-zoom#Object type detection": {
+      "spec": "fav-auto-zoom",
+      "digest": "478e3702e7a7dd92ae5db66705c92c78dfe840f116292e6282ea2d5508c3e87c"
+    },
+    "fav-auto-zoom#Bounding box zoom calculation": {
+      "spec": "fav-auto-zoom",
+      "digest": "d7206a72c98803de1406073f2bb6208086efaaee636e4fd191e301cd0675583c"
+    },
+    "fav-auto-zoom#Zoom independent of current zoom": {
+      "spec": "fav-auto-zoom",
+      "digest": "6e9101de0e59911d122ac7e309cffc9c887ccb41ccf785f2ccd337400ba893e5"
+    },
+    "fav-detail-save#Details sheet opens after search result selection": {
+      "spec": "fav-detail-save",
+      "digest": "85ca94537ab4e0ba916bc654cc346d5e8ba718e67d34f53a39b66282bba9fbb3"
+    },
+    "fav-detail-save#Details sheet has \"Add to Favorites\" button": {
+      "spec": "fav-detail-save",
+      "digest": "02966425b84a5df57eb9cd32763a9ad62f0caf289908dab9f60d9faff1660d50"
+    },
+    "fav-detail-save#Details sheet shows \"Remove from Favorites\" for already-faved locations": {
+      "spec": "fav-detail-save",
+      "digest": "b19c231304b5a2974a06efc3df268ace119535fb2a3bd2e91af7fcc2732eb5a9"
+    },
+    "fav-detail-save#New group name collision error": {
+      "spec": "fav-detail-save",
+      "digest": "84ac093ce11c9f0d1fcd259b697e5cfc3718e3da4776f436ac2d27536e5b1f0b"
+    },
+    "fav-group-color#Group color can be set via card menu": {
+      "spec": "fav-group-color",
+      "digest": "48a0bdef0d835a7e2d818b3531c4a028360aea5d8b67ed4fb49d7546d4e60759"
+    },
+    "fav-group-color#Group card renders with color shading": {
+      "spec": "fav-group-color",
+      "digest": "939d6864c78c9420b8521d54088d4e8ee7bbb4e3502afbd8f3ff84412b57d131"
+    },
+    "fav-management-ui#Full-screen favorites sheet opens from map screen": {
+      "spec": "fav-management-ui",
+      "digest": "0691498ab43e5878dcf483fa48636e1a87c5c8b6f3e1806676aef949e88f9b6c"
+    },
+    "fav-management-ui#Favorites sheet displays groups as expandable sections": {
+      "spec": "fav-management-ui",
+      "digest": "7c53f3105f1c770dc3b294273fcb316f34eb0d8e8e4b0393ae3992f652d11339"
+    },
+    "fav-management-ui#Favorites sheet supports group CRUD": {
+      "spec": "fav-management-ui",
+      "digest": "a7b6246445135ff0e78153765b0e3db256ec865366fa1cb6849cc1f545f6dddb"
+    },
+    "fav-management-ui#Favorites sheet supports favorite CRUD within groups": {
+      "spec": "fav-management-ui",
+      "digest": "0a1d2827bc149988c4bc9d9b342a3eb2fbc1ee2f210963c44b3402bf69c90932"
+    },
+    "fav-management-ui#Favorites sheet has \"Add current map location\" option": {
+      "spec": "fav-management-ui",
+      "digest": "1c4c2ff84b963cdf3eb4a5ff76648721ea804e8e516e4ffb0b95457d4e024416"
+    },
+    "fav-management-ui#Favorites sheet resets to main screen on open": {
+      "spec": "fav-management-ui",
+      "digest": "5586fc6b6e6eafe2c6199b3ba08b3f2a4a6e04dd0db37d32d213c2132101c161"
+    },
+    "fav-management-ui#Group card menu has \"Set Color\" option": {
+      "spec": "fav-management-ui",
+      "digest": "76eeba69eb5cef08a76ea7a3b5d27d4c905b3a763d33ce651a6af223cb163152"
+    },
+    "fav-management-ui#Favorite item has star toggle button": {
+      "spec": "fav-management-ui",
+      "digest": "c032bed838dad0eca0e9faaaf9cf8f78d2701bbf8507a1e79bfcaeb052f6eba8"
+    },
+    "fav-management-ui#Starred chip bar at top of main view": {
+      "spec": "fav-management-ui",
+      "digest": "f1f8cb205fb3a60fd66b3113d509cf845630c514c24d1791f7ca8d650338999e"
+    },
+    "fav-management-ui#Back gesture from group detail returns to main grid first": {
+      "spec": "fav-management-ui",
+      "digest": "c7f5b0e80bf872c558072920c3d95bc40f5a74271120791031e451414fd7cfb0"
+    },
+    "fav-management-ui#Group detail list supports drag-and-drop reordering": {
+      "spec": "fav-management-ui",
+      "digest": "e0c8ef150c688455ad5301195721aaf53823cb68caae17428f69eeeeb4a3568d"
+    },
+    "fav-management-ui#Reorder gesture only applies to favorite rows": {
+      "spec": "fav-management-ui",
+      "digest": "566fe6951fdbdff176ec5c1d1fde43e7d58a0eb361ca73d054c09ee1bb9c90a5"
+    },
+    "fav-management-ui#Drag end commits the visible order; no-op and aborted drags write nothing": {
+      "spec": "fav-management-ui",
+      "digest": "d3658632993209841f6c215fcd719abf47cc5b58ec97cd8f0d03241f8c499db2"
+    },
+    "fav-management-ui#Row actions remain available": {
+      "spec": "fav-management-ui",
+      "digest": "f8394f714052a25ec4daf587a6bd8982a7a425b67c89ecb31b81397ea4a99693"
+    },
+    "fav-management-ui#Reorder commits are serialised": {
+      "spec": "fav-management-ui",
+      "digest": "bd40db4e7b7d9584498bf43b02048af6fd64b4f6a418c0649e6967c409ee6293"
+    },
+    "fav-management-ui#Search results are not reorderable": {
+      "spec": "fav-management-ui",
+      "digest": "9922fdbeb8d1d386ae33ef5cc44d88e96df91f46f7339666d92b6f7cab6ed770"
+    },
+    "fav-management-ui#Coordinate entry accepts either decimal separator": {
+      "spec": "fav-management-ui",
+      "digest": "5995acca999e0daeaa1fdf38626cc950e59210e378c4675831c2f35966573300"
+    },
+    "fav-markers#All saved favorites render as map markers": {
+      "spec": "fav-markers",
+      "digest": "233e9d039064d1446c324ed36eb923fa291db84a756ccd2308a8c0a4a387121e"
+    },
+    "fav-markers#Favorite markers update reactively": {
+      "spec": "fav-markers",
+      "digest": "4a372fd55ebfac47d934b6ce446f0ad88bfc966afb5d932aca3fd80a59ec8b7d"
+    },
+    "fav-markers#Favorite markers use the `_favorite` type": {
+      "spec": "fav-markers",
+      "digest": "d843ec1dc94fa2ef330f48115ce2ba61c632b03d878a6a6bddeebbb7a17f7cff"
+    },
+    "fav-ordering#Favorite position within a group is user-defined": {
+      "spec": "fav-ordering",
+      "digest": "7d445ac5463ac03a704ba4caed1984fd532ca1a6f70f3e6a03cd61b61571c6c2"
+    },
+    "fav-ordering#Move semantics for invalid or out-of-range targets": {
+      "spec": "fav-ordering",
+      "digest": "a69c32f5b403c3d4bc0226077c0c817d96a8f511928cb9626b169c6e5ab1f760"
+    },
+    "fav-ordering#Order is scoped to a group": {
+      "spec": "fav-ordering",
+      "digest": "442a255e832618c80281f185384f2f41899a64b885a060e794f7326d23b09fa8"
+    },
+    "fav-ordering#Order is stable across other operations": {
+      "spec": "fav-ordering",
+      "digest": "328a454a971496086412d4f27fd47797b48472ee832dc0aca285aa2941966acb"
+    },
+    "fav-ordering#Reordering persists with a single write per committed move": {
+      "spec": "fav-ordering",
+      "digest": "11c2e2f6046ad81c508717cb5f3cc1dd8f42f2204c04fbe667769fbcdb12963c"
+    },
+    "favorite-search#Favorites searchable by name": {
+      "spec": "favorite-search",
+      "digest": "05159a99afbba1ba6c64417c9c39a6fd8d6c039a306c50f48567c4fcfdc9871f"
+    },
+    "favorite-search#Favorite hits prioritized and marked": {
+      "spec": "favorite-search",
+      "digest": "82e11d4b5774d4dddc3c6412cb067b2ad753c9666995c474e1c1121413bb6f39"
+    },
+    "favorite-search#Deduplication of identical objects": {
+      "spec": "favorite-search",
+      "digest": "b14b716a4792f8a4279fdc368e0bbcadea37ad4ffd82e475577bf9694c49a46f"
+    },
+    "favorite-search#Favorite hit selection": {
+      "spec": "favorite-search",
+      "digest": "efe91413735541914fc59df076cdfe6991722e2c9a0e773747b04b7b9addcdae"
+    },
+    "favorite-search#Phone and Android Auto parity": {
+      "spec": "favorite-search",
+      "digest": "26f693703ae43403b96823e520808c81385cccf360d8f88a2af27112ed32cdf0"
+    },
+    "fav-search#Search bar on favorites sheet": {
+      "spec": "fav-search",
+      "digest": "7467e2284cb8c99c987daac2e91c5ad6ec214705a54a71a0631f812d9ac821dc"
+    },
+    "fav-search#Real-time filter by name": {
+      "spec": "fav-search",
+      "digest": "c53cd7ab0e531cf95ebfa24d7b90277a83ffbcadcd68395490f49854f543fe9b"
+    },
+    "fav-search#Search across all groups": {
+      "spec": "fav-search",
+      "digest": "5b477ac5df0220eabaa8941ec29d437c23e2746d8a9fc4d9fdbb881b644f4596"
+    },
+    "fav-search#Empty state for no matches": {
+      "spec": "fav-search",
+      "digest": "28195f747ca907f70d319e876dde5de0837dbb32374dc48712653f35a14d02d8"
+    },
+    "fav-service#FavoriteRepository loads favorites on init": {
+      "spec": "fav-service",
+      "digest": "3e49472141063e71ffd80d086bef8df3adae33c4ff0953cd82d8cbe5e35bbe1c"
+    },
+    "fav-service#Repository exposes CRUD methods for groups": {
+      "spec": "fav-service",
+      "digest": "9a7078754c5c96c48cfa06d926c3282ade1502278fd0984c522f59ccce521d70"
+    },
+    "fav-service#Repository exposes CRUD methods for favorites": {
+      "spec": "fav-service",
+      "digest": "aaf6a7454effa87e2cdaf80340ab8b6784fc3b405941322305c35473a19c9bed"
+    },
+    "fav-service#Repository persists on every write": {
+      "spec": "fav-service",
+      "digest": "a6d06377bd298cf0a17acfcb9cc4f888c2695d1ad1af6acc0809b5bd17631f9a"
+    },
+    "fav-service#Repository exposes a move method for favorites": {
+      "spec": "fav-service",
+      "digest": "f8a6a2c5d3ea8ca3ad23c20ebddb964fd976f9222fbfa1e229d2c8fc23d83ef3"
+    },
+    "fav-service#Overlapping write operations are serialised": {
+      "spec": "fav-service",
+      "digest": "5b07faeb8e816d60be5e8348f57a580da53a7d6bfa8c7c4b6d34109a1368ca51"
+    },
+    "fav-service#Serialisation does not change the single-writer contract": {
+      "spec": "fav-service",
+      "digest": "5e19b2eaf4f02525dadcdc6a70a10cce4c1a600f0a21a5849f229bc65fe19efc"
+    },
+    "fav-service#Repository exposes the group order as its own state": {
+      "spec": "fav-service",
+      "digest": "9b099421ce0bad9fdff0b27a5cb1f44ba9b63ef0014475c59d3a941c75cc7347"
+    },
+    "fav-service#Repository exposes a move method for groups": {
+      "spec": "fav-service",
+      "digest": "252014a8485274454180a9b59a678f1cc9e2926234c4bb68e04af5fd04ddc7ed"
+    },
+    "fav-starred-chip-bar#Starred favorites shown in chip bar": {
+      "spec": "fav-starred-chip-bar",
+      "digest": "8a341462df8bc9cce1ceee608a4531480570c3279f2ed50a1138e82615549030"
+    },
+    "fav-starred-chip-bar#Chip click opens route panel": {
+      "spec": "fav-starred-chip-bar",
+      "digest": "693453d3c858ab04abed0befdf00414a5b2e1a7a3367a5daeccdcb706d086130"
+    },
+    "fav-starred-chip-bar#Chip order follows the stored favorite order": {
+      "spec": "fav-starred-chip-bar",
+      "digest": "34bf13eec39d2b84095a183e4c0452bf8b4c3f4c9f0359cdfe55323f45ece5f4"
+    },
+    "fav-star#Favorite can be starred/unstarred": {
+      "spec": "fav-star",
+      "digest": "b9533441d6b27136a01bf1f69383c93d6940dbb78a00d750853185e4e27ee11a"
+    },
+    "fav-star#Starred favorites show filled star icon": {
+      "spec": "fav-star",
+      "digest": "d88c9f896c4a4d2cf43cb6f0bfaf4d4d9096c8164c941e022fb2042d67eb2b36"
+    },
+    "gps-bearing-smoothing#LocationService emits uniform fix with two bearings": {
+      "spec": "gps-bearing-smoothing",
+      "digest": "8eea2acb50ec340956ff96a7f94413b89a59c5b39c861f7336037dc13410f84a"
+    },
+    "gps-bearing-smoothing#Fused path adds no bearing lag for the marker": {
+      "spec": "gps-bearing-smoothing",
+      "digest": "0ef972a1648a692f5ea5b90d4720129ac36a16cb39766dfee0b126820bad2690"
+    },
+    "gps-bearing-smoothing#LocationManager path fakes Fused bearing quality": {
+      "spec": "gps-bearing-smoothing",
+      "digest": "d314afa1e6c2408db69bd77fafd7272a83711f6e641da826a2f23fe4e00034bf"
+    },
+    "gps-bearing-smoothing#Map rotation does not re-render on small bearing changes": {
+      "spec": "gps-bearing-smoothing",
+      "digest": "ca168d530d6021bad9680c75d8e3ea845d3a6ba3589f3755b4b0c02fc59d804c"
+    },
+    "gps-bearing-smoothing#Marker bearing has no added lag": {
+      "spec": "gps-bearing-smoothing",
+      "digest": "3b943b9fbe72104dab35e0a1088ed24df90635cc739f7dfbaf8640cafc4145e0"
+    },
+    "gps-bearing-smoothing#Course derived from raw provider positions": {
+      "spec": "gps-bearing-smoothing",
+      "digest": "804d0fce5ecf8327c45cd38c558960b097970c9410c4b5f43021fa981c30f872"
+    },
+    "gps-bearing-smoothing#Car map uses smoothed bearing": {
+      "spec": "gps-bearing-smoothing",
+      "digest": "8cb3347952c0ac87874570d4b83b5626532c2b3325f90dd5dd9c6c1eacda25ca"
+    },
+    "gps-fix-quality#Re-evaluation stays off the main dispatcher while the quality is unchanged": {
+      "spec": "gps-fix-quality",
+      "digest": "62d200e431d8b818d060ee849a3d849e521e8c288142302cb4bd737edef7f061"
+    },
+    "gps-fix-quality#Fix availability and quality tiers": {
+      "spec": "gps-fix-quality",
+      "digest": "90ac0926131504b86d273db7e161a46cd991a386c012ea24783710625799ad6b"
+    },
+    "gps-fix-quality#Quality is re-evaluated without a new fix": {
+      "spec": "gps-fix-quality",
+      "digest": "d707cccb40ec094a8814f112b7ad2f12deb2309acbf9885f45e33fa05fe729b9"
+    },
+    "gps-fix-quality#One definition for every fix-quality consumer": {
+      "spec": "gps-fix-quality",
+      "digest": "5dadd7d6125a2e30eae917867eab78d58225e856f2a6b7eb8006cb08d5197bfc"
+    },
+    "gps-location-marker#Location marker rendering": {
+      "spec": "gps-location-marker",
+      "digest": "dfcdad7afc987f2cd177a69521185a250cb5aa4d0e2ad8326373a91daf580b31"
+    },
+    "gps-location-marker#Marker position tracks map viewport": {
+      "spec": "gps-location-marker",
+      "digest": "36a9efab8d8e3608f75ab8d730567a6ada8a57ae0b1dfc45a5221ebee98b3dae"
+    },
+    "gps-location-marker#Direction arrow corrects for map rotation": {
+      "spec": "gps-location-marker",
+      "digest": "a985e1388b53d5d974405db635d157bad1f863daf0faa1afeaf37bfdd33b24bb"
+    },
+    "gps-location-marker#Marker position stable during map rotation": {
+      "spec": "gps-location-marker",
+      "digest": "bec81e467f3e0b3235484aae77498c4cbca9e62a03b3949f612d516c4761a331"
+    },
+    "gps-location-marker#Marker rendered on dedicated overlay target": {
+      "spec": "gps-location-marker",
+      "digest": "8567672608c8d5c7d1cbab6c14f9696e137a77b29d51ce722c7f5c1545b23dac"
+    },
+    "gps-location-marker#Marker projects against displayed bitmap viewport": {
+      "spec": "gps-location-marker",
+      "digest": "6707ffc5dcd7af81db39cc0aeebd84e67442267d937013a953ca9bdc25d28b07"
+    },
+    "gps-location-marker#Marker glides between fixes": {
+      "spec": "gps-location-marker",
+      "digest": "54110e3c33dfcb00a740a95cf435c168b98047c844b0e9152419373a03bd480c"
+    },
+    "gps-provider-selection#Fused provider preferred when Play Services available": {
+      "spec": "gps-provider-selection",
+      "digest": "fc5123970106c4c6ca63859cccc59c23dee073d646f3b3d21a1955c9fd9dbe8c"
+    },
+    "gps-provider-selection#LocationManager strict fallback without Play Services": {
+      "spec": "gps-provider-selection",
+      "digest": "442c0dc00c9814cd32057b8414a977047838177cba69787050aab505a6a5f04d"
+    },
+    "gps-provider-selection#No parallel provider operation": {
+      "spec": "gps-provider-selection",
+      "digest": "95926ecb0c65b657b580b71450642ae4a6360a57d9b2e17c8b879581e1093167"
+    },
+    "gps-provider-selection#Duplicate fixes filtered on fallback path": {
+      "spec": "gps-provider-selection",
+      "digest": "10d67db2ee217604fc23fd0e8a8b42c41b71d7e33b18d64c6e203bd5d99589cf"
+    },
+    "gps-render-coalescing#GPS fix deduplication": {
+      "spec": "gps-render-coalescing",
+      "digest": "016ae6a8d16e79de75640af9ced3bc7a779018494c52da51431239c7777bef0b"
+    },
+    "gps-render-coalescing#Follow-mode render throttling": {
+      "spec": "gps-render-coalescing",
+      "digest": "be98d14c16cb8c42dd729bab1e27e1cc3718ceb92653159c26f4f8ce26c58cfc"
+    },
+    "gps-render-coalescing#Map rotation derived from course-over-ground": {
+      "spec": "gps-render-coalescing",
+      "digest": "3216b73a8530a3cbff752d43f3c7a2e3d5ccce0f3877939bfa2f2766fa71749d"
+    },
+    "gps-render-coalescing#Course-over-ground history": {
+      "spec": "gps-render-coalescing",
+      "digest": "e0c30e3d978ddfb7eb2fe971e1acb98f47a38374f9d5aae7f3e505ec0bdfc574"
+    },
+    "gps-render-coalescing#Course bearing low-pass filter": {
+      "spec": "gps-render-coalescing",
+      "digest": "7ed618a45415c06f7fb128b58ca05a61eb8025fd2362ec374ebdd482b546a7d1"
+    },
+    "gps-render-coalescing#Bearing jitter suppression": {
+      "spec": "gps-render-coalescing",
+      "digest": "8e27ce59db75284aa1c3ce0a27de922cbba0ef8eb23a73715465a0dff85df1a7"
+    },
+    "gps-render-coalescing#Map rotation rate limit": {
+      "spec": "gps-render-coalescing",
+      "digest": "d654900f9ad75731374e5360bb041cab1b5f508eb8b77228bd3fa759eaf50e1d"
+    },
+    "gps-render-coalescing#Course unavailable": {
+      "spec": "gps-render-coalescing",
+      "digest": "93f151de06c7b4d5c50c9f5bc1371b9f8916c4436e89d6d8dd1280c251ca2af2"
+    },
+    "gps-render-coalescing#Course-over-ground minimum distance": {
+      "spec": "gps-render-coalescing",
+      "digest": "4bf8b2e2489f22b01878b2efb68b7bcf771cf70bf24e099c8983fdedb3b6bdb6"
+    },
+    "gps-render-coalescing#Keep last valid course bearing": {
+      "spec": "gps-render-coalescing",
+      "digest": "21bfed317905a08e62419ec1638375539851d807a7d0704209dea871ccde9653"
+    },
+    "gps-render-coalescing#Marker bearing persistence": {
+      "spec": "gps-render-coalescing",
+      "digest": "47a3d211a3727a96d7d5b9bdecf46e52c6ad113d1661db97b489b4423daefea7"
+    },
+    "gps-render-coalescing#Map angle normalization": {
+      "spec": "gps-render-coalescing",
+      "digest": "12854147daf829e5a5368b31f878c39a87732a196aff060818d77638fe61059b"
+    },
+    "gps-render-coalescing#Course bearing turn detection": {
+      "spec": "gps-render-coalescing",
+      "digest": "17c9e41210b7e6ca1d87dd482c514161ae0ebe4ecd8e4d80128d3aae8b19c647"
+    },
+    "gps-render-coalescing#Fast course reconvergence after reset": {
+      "spec": "gps-render-coalescing",
+      "digest": "ae21bd25a127160406b064bfe00e1b6312dc387f4f0dbcc59d06b5adb79dc5b9"
+    },
+    "gps-render-coalescing#Course bearing NaN instead of sentinel": {
+      "spec": "gps-render-coalescing",
+      "digest": "aff0620c19e10d7f4addf4976599a31bc2d32cc4da1bc459584b2bf0419386ca"
+    },
+    "gps-render-coalescing#Marker bearing consistency": {
+      "spec": "gps-render-coalescing",
+      "digest": "f05a9cf138b1d7727fa35c50b3e26056d805f81076f691bfdd8556316abf6497"
+    },
+    "gps-render-coalescing#Marker arrow uses freshest direction": {
+      "spec": "gps-render-coalescing",
+      "digest": "91d889c813b75c30ac61b1108045b02946b932def17b6b28f6c627b9a3575df9"
+    },
+    "gps-render-coalescing#Center position smoothing": {
+      "spec": "gps-render-coalescing",
+      "digest": "b82b8b3f687f55ac33525b7daf8d2a05067451c5bd2aed8c66d1b6063536b00c"
+    },
+    "gps-render-coalescing#GPS marker stays on the raw GPS fix in follow mode": {
+      "spec": "gps-render-coalescing",
+      "digest": "5602f6c95bd0f9cf0cc985883ebbcc36b17717b83aa47d811a237855b8dfd173"
+    },
+    "gps-render-coalescing#Auto-zoom hysteresis": {
+      "spec": "gps-render-coalescing",
+      "digest": "30f81e23f585ca960cc0ac0561cc47e7ebc9f23c6d07efbb6440a37730c915a3"
+    },
+    "gps-render-coalescing#Render job uses snapshotted viewport": {
+      "spec": "gps-render-coalescing",
+      "digest": "3d4de1d6fe8df46bdf072291d8b5ffe3e29ba785ff81912fd297f8cfb5683b8e"
+    },
+    "gps-render-coalescing#Running render not discarded by GPS epoch bump": {
+      "spec": "gps-render-coalescing",
+      "digest": "d91c1a0d89db996b1f8ba4f36e3ef3e79b232230bb3206f5acaff8725b29b33a"
+    },
+    "gps-render-coalescing#Completed render emission": {
+      "spec": "gps-render-coalescing",
+      "digest": "2f4fa115d0588be96727a3cbe1e07c6fa09cc3ea2938f7362023a5c749e2747d"
+    },
+    "gps-render-coalescing#Independent front-buffer frame": {
+      "spec": "gps-render-coalescing",
+      "digest": "61b8f4bb549f85fb5159539ece0d907937efc6764b7652ade0b7b422be7bb71c"
+    },
+    "gps-render-coalescing#Rotation-aware sub-region blit": {
+      "spec": "gps-render-coalescing",
+      "digest": "96cce341e40ceda00eaa42c71686dd4edc7393a60268459dec1bc3fff6b4e92f"
+    },
+    "gps-speed-priority#SpeedAgent prefers GPS-reported speed": {
+      "spec": "gps-speed-priority",
+      "digest": "6c77bc1529124a4533e8704a71d5535e545aef307c12e1d005eb593c933904c8"
+    },
+    "gps-speed-priority#FIFO cleared when stationary": {
+      "spec": "gps-speed-priority",
+      "digest": "e1a2a3a43a9f40af2efb9cf65dae13be637235bee5ea5650c50d8500a766c167"
+    },
+    "gps-speed-priority#Stationary fix reads zero": {
+      "spec": "gps-speed-priority",
+      "digest": "e953c5ea3534c6545fea480eb4673e0b64455042601219dbee775929810c7ba3"
+    },
+    "gps-speed-priority#Kotlin side passes speed-unknown correctly": {
+      "spec": "gps-speed-priority",
+      "digest": "ada20856ffdf93ae5f54c10fb483cc6d900a95e8e1b4c1dd3052c0ee03c22acd"
+    },
+    "group-grid-display#Groups displayed in grid": {
+      "spec": "group-grid-display",
+      "digest": "50f128096a36306bd1af49525f1516dcb9ebd9bae8bf9c4b6a016d4c1d9f261e"
+    },
+    "group-grid-display#Group card has action menu": {
+      "spec": "group-grid-display",
+      "digest": "864a1fc0d4b8a5e54d6295ce972f06b7ad89e4e805267975850551b706165c2c"
+    },
+    "group-grid-display#Click group card to view favorites": {
+      "spec": "group-grid-display",
+      "digest": "4139b504e0f470c5414bbfed61a3c63022a0d43528a069b68c58f2d7c24fbfdc"
+    },
+    "group-grid-display#Back navigation from group detail": {
+      "spec": "group-grid-display",
+      "digest": "446a97460c18c2af316d002b86821b9e4aad88e4c99df96705b84fe4a97a0a01"
+    },
+    "group-grid-display#Group grid supports drag-and-drop reordering": {
+      "spec": "group-grid-display",
+      "digest": "b01bc1ae1da57923bff5795d649f5e0440f601c8a2c0cb5442cf59f6c626d19f"
+    },
+    "group-grid-display#Group drag writes nothing when it commits nothing": {
+      "spec": "group-grid-display",
+      "digest": "76d882b8b1eba1a957dd4d59d0e0839ba9a79690b4d939395991cd1972c4c5f8"
+    },
+    "group-grid-display#Group card tap and action menu survive the drag affordance": {
+      "spec": "group-grid-display",
+      "digest": "cc26cf0ca5906cb021dd6a673efd380616f569c0ecf9a90980b16574964803ee"
+    },
+    "group-grid-display#Group reorder commits are serialised": {
+      "spec": "group-grid-display",
+      "digest": "cd722b93896fc6dff9960a5d6b64785233494261962f774665f3fc4b72777203"
+    },
+    "group-ordering#Group position is user-defined": {
+      "spec": "group-ordering",
+      "digest": "073dbba5522e330973cb4f8d9478fa042499ffad1170d8126a39b27fe5a6d78e"
+    },
+    "group-ordering#Group order survives a restart": {
+      "spec": "group-ordering",
+      "digest": "3057a0c67580b7429f39af037b9d995b19e448e789287cf828504fa3ed95ece5"
+    },
+    "group-ordering#Group order is what every group-listing surface renders": {
+      "spec": "group-ordering",
+      "digest": "198608c10ee31441a1a5bf97777fd1f18975a9a54e5a5925838331bcc9e30514"
+    },
+    "group-ordering#An order change is observable on its own": {
+      "spec": "group-ordering",
+      "digest": "9cd7c68cf20d4eebd66602dc9bcfc2a62c711ccc904bd90d55b5caf140da5a1a"
+    },
+    "group-ordering#Group reorder semantics for invalid or out-of-range targets": {
+      "spec": "group-ordering",
+      "digest": "de641e7340c4f7c908d8e774b3851a33b132858b36c777696952619967ee4977"
+    },
+    "group-ordering#Group order is stable across other operations": {
+      "spec": "group-ordering",
+      "digest": "10cd6a982bf2fabd91be0b91e9a8bc8b52978d5aac50a4e0456d10d18441cf4d"
+    },
+    "group-ordering#Reordering groups persists with a single write per committed move": {
+      "spec": "group-ordering",
+      "digest": "2b0c23694cee3e3b9ba5154d608b1e25827389271ce19c7f8f7e0ab177436478"
+    },
+    "group-ordering#Group reorder commits are serialised": {
+      "spec": "group-ordering",
+      "digest": "6dd4ebf7d8022b16995b39a2f96f2f2d0847818ce576a8b819cef99b137f41ac"
+    },
+    "group-rename#Rename group via menu": {
+      "spec": "group-rename",
+      "digest": "4b5aaccc237161b9935a906d6a238e844a13efe05d6b10fd26bcf641a19c0fd8"
+    },
+    "group-rename#Rename validates uniqueness": {
+      "spec": "group-rename",
+      "digest": "b096967a75775c2c58f5a2bd446bff9e50f486f67e85766a83953d1e2afdee31"
+    },
+    "group-rename#Rename persists across restarts": {
+      "spec": "group-rename",
+      "digest": "9bb7108ba42166943bebc479f90025443228a92aaf34ee7a289427366e901c56"
+    },
+    "i18n-l10n#All user-facing text is translatable": {
+      "spec": "i18n-l10n",
+      "digest": "df5f285acfb71d882dae7a642dc8724bfa5dd599f93349d75bd82c1f8403e4c3"
+    },
+    "i18n-l10n#English is the default locale": {
+      "spec": "i18n-l10n",
+      "digest": "010796896ea75b72df7de1b8b6f7e6d84397c5e347f03174e2da3047e5a090a3"
+    },
+    "i18n-l10n#German is fully supported": {
+      "spec": "i18n-l10n",
+      "digest": "d30364228117506b090f75f79ef5fb15e7c6fe8c07eda9b0409c0a49becab119"
+    },
+    "i18n-l10n#Locale-aware number formatting": {
+      "spec": "i18n-l10n",
+      "digest": "4f017bf3a78ee9ffeb0d27f21490c3ba843a93c1c2d11d133b542849167fd9dd"
+    },
+    "i18n-l10n#Units are localized resources": {
+      "spec": "i18n-l10n",
+      "digest": "59b1f730c63775f6b32db4ef22ce3b15e8a130e450800a9d50b10f898cf91175"
+    },
+    "i18n-l10n#Count-dependent strings use plurals": {
+      "spec": "i18n-l10n",
+      "digest": "9ef241c4fb2eef9083c47ffc77693ad00e7c021061fbdd02fb8f585b3a575cd3"
+    },
+    "i18n-l10n#Parameterized strings use format arguments": {
+      "spec": "i18n-l10n",
+      "digest": "7c067b630a66e57fa98e4c63f966ccefbaefeb1cc3ac5945b16196236a591ba3"
+    },
+    "i18n-l10n#POI category names are localized at the frontend": {
+      "spec": "i18n-l10n",
+      "digest": "67e44ea2687d91579033ab685b174edff58d6dbb5db98889db69d7a9b5c6c7f4"
+    },
+    "i18n-l10n#Native-generated navigation text is localized at the frontend": {
+      "spec": "i18n-l10n",
+      "digest": "ea3d603c3c753f4fc101ef1916691341fae2272c0182c33477a2fbb98639b977"
+    },
+    "i18n-l10n#Phone and Auto label parity": {
+      "spec": "i18n-l10n",
+      "digest": "ffac79969531ff6624cad313d9dc7777f1005d23275f27d59661025c64a34603"
+    },
+    "i18n-l10n#Diagnostics UI text is translated": {
+      "spec": "i18n-l10n",
+      "digest": "dcbcb68b61749f6ae139fff5d8a38df45c350dd0b1e7d70bb4847394e86bae7e"
+    },
+    "i18n-l10n#RTL readiness": {
+      "spec": "i18n-l10n",
+      "digest": "14bf9ac5ace14c9df2b464f85c1e6510813a658f37c5d09c303abfc40f464ae3"
+    },
+    "immediate-turn-instruction#Show first instruction on route start": {
+      "spec": "immediate-turn-instruction",
+      "digest": "a5637b70a7aa30a89363e8b0b3b957053824186d46d9f5beffbdf15e426b74f5"
+    },
+    "immediate-turn-instruction#State flag for immediate instruction": {
+      "spec": "immediate-turn-instruction",
+      "digest": "4dda7d9bac96c6a44ab24a7f617f9eed0c7c5ccf512588916da7eb3a571dd09c"
+    },
+    "immediate-turn-instruction#No regression for subsequent instructions": {
+      "spec": "immediate-turn-instruction",
+      "digest": "7688b3f0149cfa15dda7e612cb7c5e433a18ddb691f68e9b859b9916539e729d"
+    },
+    "jnisync-java-scout#JavaScout rendering fixes are identified and listed": {
+      "spec": "jnisync-java-scout",
+      "digest": "feda61f4f514f9577c6c46106c909f847af7faf641bbd946a3f21b4b4d87a579"
+    },
+    "jnisync-java-scout#JNI bridge applies equivalent projection corrections": {
+      "spec": "jnisync-java-scout",
+      "digest": "4f3df9cd8dfbb299a066778b6025e25a486361182f133fd6bb33d82346a68bda"
+    },
+    "jnisync-java-scout#Native marker and POI rendering matches JavaScout output": {
+      "spec": "jnisync-java-scout",
+      "digest": "1f0cffd5ba9953dcf636914d3ba3c6b530447a9927fde3be09144dd3748795e1"
+    },
+    "keyboard-shortcuts#Zoom in via `+` key": {
+      "spec": "keyboard-shortcuts",
+      "digest": "76347f930c5e2cc53c79156dc2ed8fcf1ded0cd667f097052139f1a041bd115b"
+    },
+    "keyboard-shortcuts#Zoom out via `-` key": {
+      "spec": "keyboard-shortcuts",
+      "digest": "110dd6814b32f990eada262352cc011753ba12eb14445c852ff69a4f0ccfba20"
+    },
+    "keyboard-shortcuts#Search via `/` key": {
+      "spec": "keyboard-shortcuts",
+      "digest": "d8ae4a42edaff326e39d6d7bdfe4cadcc01d8b655bc9ebacc8dd6372c0b04437"
+    },
+    "kover-aggregate-report#Root Kover merge resolves project modules": {
+      "spec": "kover-aggregate-report",
+      "digest": "0ca3406d6df08ad7d6a490edc68bcb1986ba3605f0812ad016d87f0baf7c14d5"
+    },
+    "kover-aggregate-report#Aggregated report produced": {
+      "spec": "kover-aggregate-report",
+      "digest": "073cf6da5c74e4eb931188d2e9532f6ca8aaec8b985bf3306249dac3eeed9956"
+    },
+    "kover-aggregate-report#No deprecation regression from the declaration": {
+      "spec": "kover-aggregate-report",
+      "digest": "48d485c33312552fa2f5ec736096b515022ebfeefd46500d0379bf927bad5496"
+    },
+    "landscape-layout#Orientation detection via BoxWithConstraints": {
+      "spec": "landscape-layout",
+      "digest": "ec89430d17b682752adf1bd14795d1bc311953e028e4393222b4f2c0637f3280"
+    },
+    "landscape-layout#Safe-zone placement in landscape": {
+      "spec": "landscape-layout",
+      "digest": "1143867c6517c281388d0c5e2848f41224f99bac656970984fa905abfe3241fc"
+    },
+    "landscape-layout#Control cluster arrangement in landscape": {
+      "spec": "landscape-layout",
+      "digest": "e23691a4fae5980ebddbcd6ad20cc96403548a61aaa1dcb13036e4aac050f4d1"
+    },
+    "lane-guidance#Lane arrows in next-turn overlay": {
+      "spec": "lane-guidance",
+      "digest": "5dda68fa629098010e0d6efae64b4807b6dd026a90be21391a86826667f3c807"
+    },
+    "lane-guidance#Lane data flow": {
+      "spec": "lane-guidance",
+      "digest": "4d1d8f99f23ed7e6e1e94acb830f136ddc8603afaf6801c49c7b0ea77a819526"
+    },
+    "lane-guidance#Lane hints toggle": {
+      "spec": "lane-guidance",
+      "digest": "126460e69ac299a828afcee6f239a615c49facffbc0fffa6a52f2a9120b7d847"
+    },
+    "lane-guidance#Arrow mapping": {
+      "spec": "lane-guidance",
+      "digest": "066aaea9d9cfe695eaad0bc7ed317f226e44c7254768dbfb34f54b43750fe31b"
+    },
+    "license-compliance#Every distributed component has a resolvable license": {
+      "spec": "license-compliance",
+      "digest": "4457e282dffa34528394368201624575070f8c92ffec9c6a52851f7bae183c77"
+    },
+    "license-compliance#Dual-licensed components record an explicit election": {
+      "spec": "license-compliance",
+      "digest": "02f33ecfd02ae711c96aa4bfc39c530e3941462235bbecf41c543979e13ad0be"
+    },
+    "license-compliance#Components are classified as shipped or build-time only": {
+      "spec": "license-compliance",
+      "digest": "983f546946754bbb1eade10278840500e7155beca7d585562be2c42bdb3d473c"
+    },
+    "license-compliance#License policy gate fails the build": {
+      "spec": "license-compliance",
+      "digest": "7335e30daad056adc3c22479e2cddf904950d497b34b1912d2506e15d55a72be"
+    },
+    "license-compliance#Permitted license policy is declared in the repository": {
+      "spec": "license-compliance",
+      "digest": "dc381a5c3adcd5d0bff02c72cc00fe32436b898907c3ee2913dfa81480ec49bd"
+    },
+    "license-compliance#Notices of bundled components are distributed": {
+      "spec": "license-compliance",
+      "digest": "9e42dde351285aa5e22e758dbca195cc5e0b46878d54d4ce7c804fb82c672470"
+    },
+    "license-compliance#License inventory covers both distribution flavors": {
+      "spec": "license-compliance",
+      "digest": "282b07c060951a247b2cecaf9769d8078d6a9d7350684baa466bea8ac6894039"
+    },
+    "location-options-ui#Location options button": {
+      "spec": "location-options-ui",
+      "digest": "d824d34b56b0ad8677f2cde4c4a9f77201857058025ad3ca0b91ae40d795930b"
+    },
+    "location-options-ui#Orientation controls in bottom sheet": {
+      "spec": "location-options-ui",
+      "digest": "7cee21eec492a67d0d05c8993a36ea1aa6098cba8bc8a7dcd93b8b7d491f64d3"
+    },
+    "location-options-ui#Auto-zoom toggle in bottom sheet": {
+      "spec": "location-options-ui",
+      "digest": "118bed3cba9353b9664a7b2ab914fc67fa360c319d3b9b493becc4214c785b85"
+    },
+    "location-options-ui#Overspeed warning delta control": {
+      "spec": "location-options-ui",
+      "digest": "4e5c25a30b72df7e282f77429ebca3192bff22784a84d3d4e73d15d7dd60eda1"
+    },
+    "location-options-ui#Vehicle anchor position controls": {
+      "spec": "location-options-ui",
+      "digest": "8bbae6f33fd7fa7d1346740a3db3e4b184423b589612620fcd9cbb56048c3cbc"
+    },
+    "location-options-ui#Mode header without mode switch": {
+      "spec": "location-options-ui",
+      "digest": "578d16ae550f3d3e5059a11fc2d8c055f76bc3067307caee39043de270bd5624"
+    },
+    "location-options-ui#Sheet reachable during navigation": {
+      "spec": "location-options-ui",
+      "digest": "39e032a3a3035ee8a3729ee89257869b81aa336f4cfbc870db2d81453bcf1878"
+    },
+    "location-permissions#Runtime permission request": {
+      "spec": "location-permissions",
+      "digest": "8bd9bcdc09381708fcc63d97e65e5cf59a582f157aa295054600efea04205ae2"
+    },
+    "location-permissions#Graceful degradation without permission": {
+      "spec": "location-permissions",
+      "digest": "4185465334df854ab9534deba5496097398c4f628b272e1ce54811b74e6c7c24"
+    },
+    "location-permissions#The granted accuracy class governs provider updates": {
+      "spec": "location-permissions",
+      "digest": "0bb8e3d9e9d8ea49ee822907aa5c8f3614b7de6e56040ad0e8afceffffa5735f"
+    },
+    "location-permissions#Starting navigation requires precise location": {
+      "spec": "location-permissions",
+      "digest": "64a3968e1e8772c9e5b3d211a14b86583534b6bdf7d6b9f76886555c43039c67"
+    },
+    "location-search#Search button on map screen": {
+      "spec": "location-search",
+      "digest": "219c63316ae95a844a7e9baaa35081aafb9e3a7082a21ab880c927efa15087bc"
+    },
+    "location-search#Auto-focused search input": {
+      "spec": "location-search",
+      "digest": "a7b9446b76353077c0bef75a866eb236f2c302e1e0ce94163ef2fb924f6f2f16"
+    },
+    "location-search#Suggestions-while-type": {
+      "spec": "location-search",
+      "digest": "e5ef179e4bb250e3c9923f341ffada9dd6ae94a89001821ee8d289a4eaeeac52"
+    },
+    "location-search#Clear text button": {
+      "spec": "location-search",
+      "digest": "2cb3e438c0eb8acd1947e937de95e800e19dd74262138d2e1d5af4e483c03709"
+    },
+    "location-search#Result item display": {
+      "spec": "location-search",
+      "digest": "47e3549909972af619fa103976e424ec62afc621dd79cb150c9f4edecb301a4f"
+    },
+    "location-search#Map centers on selected location": {
+      "spec": "location-search",
+      "digest": "f2fab104e8a3a097cbd1c9cbeb8c3ff48406c8b2d7d788128f7e5c37c6bcf4bb"
+    },
+    "location-search#Marker at selected location": {
+      "spec": "location-search",
+      "digest": "a3f5a5045597f540e3459271203e92b37540394be557a9f64b5f4e6352f10ad9"
+    },
+    "location-search#Search results reusable for route location picking": {
+      "spec": "location-search",
+      "digest": "7e112628d6be4a784ec43ad33eee343ccc798d54fd28b811dee805ebfbf3b286"
+    },
+    "location-search#Search resilient to inconsistent map data": {
+      "spec": "location-search",
+      "digest": "d0e723a00acd60399c50a1b59de7da4c075085fbe5dda99f3b5f301f37b76fd1"
+    },
+    "location-search#Follow mode deactivated on search result selection": {
+      "spec": "location-search",
+      "digest": "074c8b728c91783f1d2d9acf9639224d77f2dc3c55b07f14fcb182bc482380dd"
+    },
+    "location-search#Convenience entries on empty query": {
+      "spec": "location-search",
+      "digest": "5244f8848a058081182ece8761fc3f0dbcc82a7e076e512473c12a618c0ac51a"
+    },
+    "location-search#Search scoped by current admin region": {
+      "spec": "location-search",
+      "digest": "5407801aba06067495785df08b8e0cb924c59f06004fa643e5bd4ea99d16dcb8"
+    },
+    "location-search#Admin region follows user movement": {
+      "spec": "location-search",
+      "digest": "c216db7235569f83f061f978a4a5bd571d0641b1a4071d1e23cce0f4f85520b8"
+    },
+    "location-search#Search scope region name shown in search panel": {
+      "spec": "location-search",
+      "digest": "2ea45a264c3bbd116c7d16bd8b0bb823a468e36a2260be0d661b4a998b992cfc"
+    },
+    "location-search#Free-text matches in search suggestions": {
+      "spec": "location-search",
+      "digest": "9d065f2a3abca8323d289052e56849220e2dfc22f888f04db01f6fdbcc74a274"
+    },
+    "location-search#Result distance display": {
+      "spec": "location-search",
+      "digest": "1e1c88c0079dd2ce1dbd13b717d15f29b80d415c54c6c0af946ba48fddcd230c"
+    },
+    "location-search#Full formatted address resolution": {
+      "spec": "location-search",
+      "digest": "d4b3e4e36725ee98dc1eb5c627a67de36445432fa5ff55236b8dc6a41767dff2"
+    },
+    "location-search#Structured matches above free-text for address queries": {
+      "spec": "location-search",
+      "digest": "37199a20b0171a585912dd5cdc07ed105dc4e9859a2bf0ce49375f31c095cd95"
+    },
+    "location-search#Transliteration-consistent name matching": {
+      "spec": "location-search",
+      "digest": "e51b2f34cc69c631af2857b6bd99a590cb50829305daa2a7db1ed11ff9ada074"
+    },
+    "location-search#A repeated query text still runs the search": {
+      "spec": "location-search",
+      "digest": "3bac67fd8885841cc50086ec44f03ca2cda603748c7e9a9611dc2c9b8b2d0b94"
+    },
+    "location-updates-lease#Location updates are leased, not toggled globally": {
+      "spec": "location-updates-lease",
+      "digest": "78da410e23e4ec9dbfd43a52549634ec1eff9657ffa5395cc7925b636964655e"
+    },
+    "location-updates-lease#One consumer's release never silences another": {
+      "spec": "location-updates-lease",
+      "digest": "6ef754e7b1917aa5958d6a7cdb2a581c01226a47957958380ea65f6ac6dbbcf3"
+    },
+    "location-updates-lease#A lease is released when its owner ends": {
+      "spec": "location-updates-lease",
+      "digest": "ef2107c0891dbca3760c18b328901e1809e558026e633fa497a95d838eab0c6f"
+    },
+    "location-updates-lease#Lease state is diagnosable": {
+      "spec": "location-updates-lease",
+      "digest": "a893155b3ff3052143af13d2d1268cd0ba041cbbf94397f8924eafb0b67aa200"
+    },
+    "long-press-candidate-picker#Long press shows candidate list": {
+      "spec": "long-press-candidate-picker",
+      "digest": "d4ef0c371e62f23e18154c2644b22d75ea1078a5f1aae559fee60472b6bdcf12"
+    },
+    "long-press-candidate-picker#User selects a candidate": {
+      "spec": "long-press-candidate-picker",
+      "digest": "43ada2046052b1f1878a319d00a38a2536c884bb2cf05f5805468962cb06ac51"
+    },
+    "long-press-candidate-picker#Close candidate picker without selection": {
+      "spec": "long-press-candidate-picker",
+      "digest": "a545b5790c1168eae0756c67b8f07100c3768ef1919db43448fce7cbc5113af6"
+    },
+    "long-press-details#Object lookup by coordinate": {
+      "spec": "long-press-details",
+      "digest": "89378abeaeadb8f592c018034abbea61ed124c13a78659f601155a39b7df8cc1"
+    },
+    "long-press-details#Candidate ranking algorithm": {
+      "spec": "long-press-details",
+      "digest": "4d2357a8fd0a04b375f64f228fd660caa56dc5def688d8c73ac4e943b31a6b83"
+    },
+    "long-press-details#DescriptionService integration via JNI": {
+      "spec": "long-press-details",
+      "digest": "19f99bf4186b0810620c2cff399d760b84edcbfd3af9449fea28d7b6ed15e32a"
+    },
+    "map-canvas-screen#Full-screen map canvas placeholder": {
+      "spec": "map-canvas-screen",
+      "digest": "93711128e8e2d1ce19acfe3d2f26a4f71c5fc5f7a23aacc67784c98cde722c9d"
+    },
+    "map-canvas-screen#Top-right overflow menu": {
+      "spec": "map-canvas-screen",
+      "digest": "238156025195e3f4b8e3c8e3297fc10aa290f4ef26fe3720cc798e6eb2e7a210"
+    },
+    "map-canvas-screen#Menu contains Download Maps entry": {
+      "spec": "map-canvas-screen",
+      "digest": "4eb39b4b0bb46881149e98172bc0f4e458c59015c541d76f3aa40a0ffc48d0dd"
+    },
+    "map-canvas-screen#Menu extensible for future settings": {
+      "spec": "map-canvas-screen",
+      "digest": "5435e1bd0c168c736c2fa1c1785c193f703e25288d898fabd40f666450b469a4"
+    },
+    "map-canvas-screen#Top-right overlay column": {
+      "spec": "map-canvas-screen",
+      "digest": "f19e947019cd92c3d14a5a707f7d5e4646dd0f4a5c43ed949d9348e49959ee95"
+    },
+    "map-canvas-screen#System back dismisses topmost overlay": {
+      "spec": "map-canvas-screen",
+      "digest": "8864a40c6fd159c5edc160d427ac818165ceb2e72ee9efd71daeb0ab84b28094"
+    },
+    "map-canvas-screen#Navigation right column includes location options": {
+      "spec": "map-canvas-screen",
+      "digest": "a8b6b04f029fa1a5a08523c3c5eacefba1b63e9523cd2ab194c9aaa98aee4638"
+    },
+    "map-canvas-screen#The phone map canvas is suspended while a car session is active": {
+      "spec": "map-canvas-screen",
+      "digest": "0acfb4c559fd1ca62779c449af8e42670348487b67f6639a844e2efaf0890469"
+    },
+    "map-canvas-screen#The car-session surface is informative and offers the map back": {
+      "spec": "map-canvas-screen",
+      "digest": "82f4cd4d547e05430b2ccd568e35810370fd102060ccff201ceedd77a0cac78a"
+    },
+    "map-download-infrastructure#Hilt module provides MapDownloadManager": {
+      "spec": "map-download-infrastructure",
+      "digest": "f6d4b8ee030269f1e6a3ad4e88c85d9774748212204d7bff9f1997b9545942d1"
+    },
+    "map-download-infrastructure#Maps stored in internal storage": {
+      "spec": "map-download-infrastructure",
+      "digest": "c34b1be881e5edb6e295bd4b90972be2f910dc9b6748e521334d5eb514166dc4"
+    },
+    "map-download-infrastructure#Download directory registered with native MapManager": {
+      "spec": "map-download-infrastructure",
+      "digest": "547d917ea1ed17d46e65ab8edccb7f052f859de46f86b9c5ccd402cf84aaea8b"
+    },
+    "map-download-infrastructure#Installed list reflects completed lookup": {
+      "spec": "map-download-infrastructure",
+      "digest": "64113dc4d74cb40ac74c7e3f8b288142c74a36e205c8000472d06d9dc4c00ef0"
+    },
+    "map-download-infrastructure#Multiple maps usable simultaneously": {
+      "spec": "map-download-infrastructure",
+      "digest": "cc1796209223ff1cee5cefc180ccc85122ca51aabeb6ddc310a049576bff9df8"
+    },
+    "map-download-infrastructure#Clean redownload": {
+      "spec": "map-download-infrastructure",
+      "digest": "e6a4bd55a4f9ab371b4375fc8681d9e37110bb2171ed67dc4a78afedf621553d"
+    },
+    "map-download-infrastructure#Delete removes map manager registration": {
+      "spec": "map-download-infrastructure",
+      "digest": "a9c0e52ece23eb52975ea7e8056563547fa57fdaa2c287108007c484d65ebc52"
+    },
+    "map-download-infrastructure#Default map provider configured": {
+      "spec": "map-download-infrastructure",
+      "digest": "a2a1887825622c0cd6967659804d15b97f5141242995407c8a23a5405abdcb9b"
+    },
+    "map-download-infrastructure#Error handling for download failures": {
+      "spec": "map-download-infrastructure",
+      "digest": "60f95f54a09c52f8eb210b1f4a6f1d25c481a058622cab123d964773d40a49d3"
+    },
+    "map-download-infrastructure#Installed maps discovered at startup": {
+      "spec": "map-download-infrastructure",
+      "digest": "f95aa26758fb5239e00737307a318114647ce630ae4055d4a5edee567721ef76"
+    },
+    "map-download-infrastructure#Jar module for JNI bridge": {
+      "spec": "map-download-infrastructure",
+      "digest": "918fea3d2e90e25b8bb73be4aba2a5df84347662c437b9ad0b24b34e1fc00c31"
+    },
+    "map-download-infrastructure#Native library debug suffix handling": {
+      "spec": "map-download-infrastructure",
+      "digest": "84fdfa4e6aea8655c9168ca766ecd6c0c8737dc8502a2677694fce12d98a7475"
+    },
+    "map-download-infrastructure#HttpURLConnection for HTTP": {
+      "spec": "map-download-infrastructure",
+      "digest": "004144e3712dfb09b5252b955e453a805bc568b50554537ddc9552c947841a27"
+    },
+    "map-download-infrastructure#Wake lock managed via download lifecycle": {
+      "spec": "map-download-infrastructure",
+      "digest": "da2023cb9358ba51691908c5ea92539c4049a82fb099b7a33abde5fef8516019"
+    },
+    "map-download-infrastructure#Foreground service for download": {
+      "spec": "map-download-infrastructure",
+      "digest": "7d1ab84b96c58312c1db1db5a8bfe21e09fdcc529a769dbc5f10e4d02c89cc2a"
+    },
+    "map-download-infrastructure#BasemapManager provided via Hilt": {
+      "spec": "map-download-infrastructure",
+      "digest": "5d56d4794405ded09eeb4504804c63e6d38ddea1efd3e0a78d7c8af0d681c2d7"
+    },
+    "map-download-infrastructure#Basemap directory registered with native client": {
+      "spec": "map-download-infrastructure",
+      "digest": "dea4b9a7b731b68c0c0c716680f5b3bd14056eee1395ff72e16fcc4a691bae33"
+    },
+    "map-download-ui#Unified map tree view": {
+      "spec": "map-download-ui",
+      "digest": "0fed1785b74ff52fcf58d67c83684f822e53f25f589c515481d2ea8f0b2eb91c"
+    },
+    "map-download-ui#Active downloads section": {
+      "spec": "map-download-ui",
+      "digest": "288e5ad023fee290cc187398ed4df6d57ebd0f86520fa75a7aca0c9776ab1542"
+    },
+    "map-download-ui#Section ordering": {
+      "spec": "map-download-ui",
+      "digest": "0d2de273560404395512fe403964a0a54784ec085d50cbb720cb3e8559590f1e"
+    },
+    "map-download-ui#Loading indicator placement": {
+      "spec": "map-download-ui",
+      "digest": "dead664918df0d4f3798c09426ed57a574b2b4ae30120ee996f3ae6046ac4837"
+    },
+    "map-download-ui#Error banner placement": {
+      "spec": "map-download-ui",
+      "digest": "5701c608f38e56e1311cd25335156c51c1f539b38a8d3dd0c008920458fd3406"
+    },
+    "map-download-ui#Provider selection and refresh": {
+      "spec": "map-download-ui",
+      "digest": "818f03442b2bc9579e7b66412f406199bc27a97531ad507b60d305c4cf2268f8"
+    },
+    "map-download-ui#Download a map": {
+      "spec": "map-download-ui",
+      "digest": "411b77ba6f75d2c39cb9dcbd4318dc51674991a4649aba0ee591f176dd382d2c"
+    },
+    "map-download-ui#Cancel a download": {
+      "spec": "map-download-ui",
+      "digest": "8b277f5dea8e31b9ff171153bf438f53b3648949ee06b03266ed88b0a6de0924"
+    },
+    "map-download-ui#Delete an installed map": {
+      "spec": "map-download-ui",
+      "digest": "e6137e618ca3c820466adbe143986ef57cf7a9d27b97c0c93144464a529e20fd"
+    },
+    "map-download-ui#Search/filter available maps": {
+      "spec": "map-download-ui",
+      "digest": "098e9fabdfb6e60604119b1727ba2bf45b77b56f5909158b2a8200b9d33ce639"
+    },
+    "map-download-ui#Download button shows progress inline": {
+      "spec": "map-download-ui",
+      "digest": "099566836a22a47985e2d1b7bb3b6cf2fbaafa04de324fef5054d8b6d948bd0c"
+    },
+    "map-download-ui#Installed maps visible without refresh": {
+      "spec": "map-download-ui",
+      "digest": "d51324391f445629a1555de6cd0408e2105e889941db63b9fe7d9eb19056df3d"
+    },
+    "map-download-ui#Installed maps stay on top after refresh": {
+      "spec": "map-download-ui",
+      "digest": "1955decb5d839f245eee530a76fe2008cd5d19fba5c86488ad039b96fb92c4af"
+    },
+    "map-download-ui#Download errors shown with explicit OK": {
+      "spec": "map-download-ui",
+      "digest": "9fdcce022ccc9c75cfa3d54e6861244146496ef0b761087cd3ecf90916398140"
+    },
+    "map-download-ui#Delete and refresh errors surfaced": {
+      "spec": "map-download-ui",
+      "digest": "94bff555d9b52fe795146eb7084e020b29765cee477f899ee14398173ccd3698"
+    },
+    "map-download-ui#Basemap section in map manager screen": {
+      "spec": "map-download-ui",
+      "digest": "25559155fe36ed9823754070d71c878acaa6a8ff482a5eb1dfa28f1fe9c729bb"
+    },
+    "map-menu#Toaster button at top-left": {
+      "spec": "map-menu",
+      "digest": "4ef7d33a80f5b34b74cfb3cbe1274748245a57915ae06c23e2fc1e0cd6cb8d28"
+    },
+    "map-menu#Menu animates in and out": {
+      "spec": "map-menu",
+      "digest": "2ed4752eb754f6968443108a6cc319a87cefef4b7b922060288e567e87ca70a7"
+    },
+    "map-menu#Menu entries with leading icons": {
+      "spec": "map-menu",
+      "digest": "fd31f88fbdf06a6de042b2f9af4b23b21c676ea5d6c0b581deba5b415ad39bff"
+    },
+    "map-menu#Menu dismiss behavior": {
+      "spec": "map-menu",
+      "digest": "86da923157084f08546279708a5902056c2f4013dd92432994c86877ce57322e"
+    },
+    "map-modes#Map mode model": {
+      "spec": "map-modes",
+      "digest": "b0e69a8740070249ee940ade8b1a428d4e81a0b5b2d1330731bbbd535af42bd2"
+    },
+    "map-modes#Browse re-center": {
+      "spec": "map-modes",
+      "digest": "f710758175a9951f0d6c722535945b09a9e77e0a193ec637506e08556e4d8675"
+    },
+    "map-modes#Mode toggle button": {
+      "spec": "map-modes",
+      "digest": "6f0229fe774cc977e45aad7a50e00b36b543d16a99cafd83c3b8f5e5544b2a5a"
+    },
+    "map-modes#Mode presets": {
+      "spec": "map-modes",
+      "digest": "c35dd1ebab98c457b408d0d900eb1a088f733cd53ad42c328aa1de1603b01692"
+    },
+    "map-modes#Drive suspension and reset": {
+      "spec": "map-modes",
+      "digest": "0fa3c976c2041c5754d4def4892e418d5b27a0305b3d2b1bc7f47f05ec253ddf"
+    },
+    "map-modes#Planning session suspends the drive preset": {
+      "spec": "map-modes",
+      "digest": "f4aade6e4ca96e4f7c8c77d5845be92f31609aedee8595df37a92cbbc30b6d49"
+    },
+    "map-pan-zoom#Touch-based pan": {
+      "spec": "map-pan-zoom",
+      "digest": "888709d04a5e92ca5180bcbcafb6e671324e6c956a82946869cf73ea80bb145f"
+    },
+    "map-pan-zoom#Pinch-to-zoom": {
+      "spec": "map-pan-zoom",
+      "digest": "5126e7d9d23ec55d035c78336ccc34897693809f72d84b283b3de153c002c777"
+    },
+    "map-pan-zoom#Pinch placeholder scale is derived from magnification delta": {
+      "spec": "map-pan-zoom",
+      "digest": "822dc984f1c13b054e894fa38fc854a34451e1f91982ef650390509f0764a4c7"
+    },
+    "map-pan-zoom#Pinch placeholder anchor keeps focal point stationary": {
+      "spec": "map-pan-zoom",
+      "digest": "d040becd5f4ca9667b094eba6f022b14f649463b8a4898a314ec68ba283f7096"
+    },
+    "map-recenter-button#Re-center button appears when follow mode is inactive or auto-zoom suspended": {
+      "spec": "map-recenter-button",
+      "digest": "36620fb66e46a37ef64570fff87f4729c1aa9a17f635387cbe03418b8e227f2c"
+    },
+    "map-recenter-button#Re-center button has a clear icon": {
+      "spec": "map-recenter-button",
+      "digest": "bcdd4806a0f65aece8c262e4c5cd3ace5cdbd78b8ad46ab5da9a0e4983ec3812"
+    },
+    "map-render#Render map to Compose canvas": {
+      "spec": "map-render",
+      "digest": "8d1fb13c92a617fd1ab6aca722fb9d3b0dc2c3da1f5891bcb5b366926423b222"
+    },
+    "map-render#Map database selection": {
+      "spec": "map-render",
+      "digest": "78846bc0120080cfa880429a96889f9d96fb04c1fe9069a8e7fbdfd4f4482d5b"
+    },
+    "map-render#Safe bitmap lifecycle for sub-region blit": {
+      "spec": "map-render",
+      "digest": "3b71f59317a79106f5c5122dfaceb3108eb2b9b036cfcfc4cb4e38fdc9ff8dbe"
+    },
+    "map-render#Basemap overlay rendering": {
+      "spec": "map-render",
+      "digest": "3d741204dc9965cc58844bf587442baa16e32d93eaa358fe0dd23a6fdcbc5067"
+    },
+    "map-render#Stylesheets sourced from submodule at build time": {
+      "spec": "map-render",
+      "digest": "cf4a3c213e98a09fca4284c21a8508db7844df957f13336d9f364d6f2e652f40"
+    },
+    "map-render#Stylesheet refresh on device": {
+      "spec": "map-render",
+      "digest": "f4f36985852804f401013b780a23f7da650181a845e484b2569b5981da918ac0"
+    },
+    "map-render#Forced overlay renders are never dropped by the blit fast-path": {
+      "spec": "map-render",
+      "digest": "8de4f697dd06b7a5a7595bff82d16ff86e30fc147a424230181fcf6ee3e6a045"
+    },
+    "map-render#New route appears without user interaction": {
+      "spec": "map-render",
+      "digest": "16eaa69aac800a011f824573f1319eb2c55b842800f0cc036b79fbc80bfd6d47"
+    },
+    "map-render#A stylesheet that cannot be loaded degrades the map instead of crashing the app": {
+      "spec": "map-render",
+      "digest": "f5b1b7324d0b89da9fadf0500c59e141166ae697484fba5fcd3626b1eaa5ffd3"
+    },
+    "map-render#Map initialization keeps native and file work off the main thread": {
+      "spec": "map-render",
+      "digest": "fa2cd165568afe645815446e91de1289cb50ba7ae4e1aee1dea5f905aa29a88c"
+    },
+    "map-rotation-gesture#Two-finger rotation gesture": {
+      "spec": "map-rotation-gesture",
+      "digest": "0d70728b78784b7d4686f369771fd4dbf366767bcda245c9686bda9751a79b81"
+    },
+    "map-rotation-gesture#Rotation gesture disengages follow mode and north-up": {
+      "spec": "map-rotation-gesture",
+      "digest": "7dd89fb64abe7db4c373e8639e2db5c84f109a2465a4edb229bae80ade8be025"
+    },
+    "map-rotation-gesture#Rotation gesture does not conflict with pinch-to-zoom": {
+      "spec": "map-rotation-gesture",
+      "digest": "77823047af2c347357255b2d585e252a129be2f3292f723c470b88d39d1892a1"
+    },
+    "map-speed-widget#Speed widget shown in follow mode": {
+      "spec": "map-speed-widget",
+      "digest": "ae9fbeffe8d665ecf5ccd642dad5433066ea99dababd64a2e151d5f96d346d32"
+    },
+    "map-speed-widget#Speed widget shown during navigation": {
+      "spec": "map-speed-widget",
+      "digest": "f6d3d7aaff78b38fa3cef126c035b0bb4eb6feb1b07e89463b687a079125e896"
+    },
+    "map-speed-widget#Overspeed warning color": {
+      "spec": "map-speed-widget",
+      "digest": "3cbb4c1037989dd24de7c64fc2337f7ea2b33b6236a5a1b48114bcef7f95a278"
+    },
+    "map-speed-widget#Widget placement on map": {
+      "spec": "map-speed-widget",
+      "digest": "07228a99f0c1b552decbcffe5cfacbf2d6311591be651989640f5dc6ccb533a2"
+    },
+    "map-speed-widget#Centered indicator cluster": {
+      "spec": "map-speed-widget",
+      "digest": "7f1304e13d092c8b67895c47a209af3fefd1481ca0462a1b3b91819832dc99fe"
+    },
+    "map-speed-widget#Stable widget layout": {
+      "spec": "map-speed-widget",
+      "digest": "b0e8573341ef4c022b5b25a814c21cd514f5b5ebe4cf7f384ff0f6a771d09039"
+    },
+    "map-speed-widget#Speed badge uses the standard overlay card container": {
+      "spec": "map-speed-widget",
+      "digest": "b80f37c202cefec023cba9991faf0fb80933478f361b3df7ce4e1aa0a20f6792"
+    },
+    "map-speed-widget#Minimum readable size for speed text": {
+      "spec": "map-speed-widget",
+      "digest": "4dea8cf800db707d616cf1b20474cfcbbf0eea86fb53e61366b4c266e02ec81d"
+    },
+    "map-speed-widget#Minimum readable size for the max-speed sign": {
+      "spec": "map-speed-widget",
+      "digest": "64bbcd95b8c8e7f4a1a870ea1288c564c86534efd23bc544c43684e1eb1d39ef"
+    },
+    "map-styles#All bundled styles are selectable": {
+      "spec": "map-styles",
+      "digest": "84083433e35ce0be8c1daf1a3105e2cd19ae99602ab4961b48144a7b633d782f"
+    },
+    "map-styles#Style display name is file name without postfix": {
+      "spec": "map-styles",
+      "digest": "7e835276a9020ce1c9fec79f7a9dd38670eb16c79fb9ce20eb2f246e68e6354b"
+    },
+    "map-styles#Style selection is persisted": {
+      "spec": "map-styles",
+      "digest": "a51b703fcfb146f16612cd398aa7315e70b727cfeb21d5a87dd92ff90527fce7"
+    },
+    "map-styles#Phone settings entry": {
+      "spec": "map-styles",
+      "digest": "6b56090f6cd0c9ea7f0b40e8d83b3d516dc9abf3145d35427289f8d351b1cf7e"
+    },
+    "map-styles#Android Auto settings entry": {
+      "spec": "map-styles",
+      "digest": "15b15dc40cbb45b569d16985c579f5613a84103727380df69a1eadec5fb296ee"
+    },
+    "map-styles#Persisted style applied on start": {
+      "spec": "map-styles",
+      "digest": "161edd267618c691ed47f9547eb014259b73b4f0ff94dbea6e8538401461a62e"
+    },
+    "map-styles#Failed style switch keeps previous style": {
+      "spec": "map-styles",
+      "digest": "a241ab7d9674d390680dc1b0359c098cbe3e92398371f119958c5c8a7389a677"
+    },
+    "map-styles#Style load failure is visible on both surfaces": {
+      "spec": "map-styles",
+      "digest": "4bce4b820266f6b65dcd6564080dd816b0d420a7f6769367b3f7af5914ccccd2"
+    },
+    "marker-render-accuracy#GPS marker position matches projected map coordinate": {
+      "spec": "marker-render-accuracy",
+      "digest": "88f15689d3c12f9799780fee866855082751c7e2105d14dce796f7a05c3db31b"
+    },
+    "marker-render-accuracy#GPS direction arrow reflects true heading": {
+      "spec": "marker-render-accuracy",
+      "digest": "f6c835e82faa899a1962fa8d9f078a6b0afed8e5bd17948b30234957a1c9e0f8"
+    },
+    "marker-render-accuracy#Favorite markers align with native-rendered POIs": {
+      "spec": "marker-render-accuracy",
+      "digest": "a56946d3a622929638121d8b45be37fe2f60c068fac5ded8a229e1d4f6472a83"
+    },
+    "mini-map#Independent interactive viewport": {
+      "spec": "mini-map",
+      "digest": "cdbc8916c33d6f069cdd7f29e1d05451c4b91d7306a89baebad5e99190626eb3"
+    },
+    "mini-map#Zoom controls": {
+      "spec": "mini-map",
+      "digest": "077704497e56220a9ca005f56f6bd70a47d4fb93b015bf391613f5cef9eb5d46"
+    },
+    "mini-map#Panning": {
+      "spec": "mini-map",
+      "digest": "eee3b731eb6541792222fb134b43575c2fd4753da57691b8c2711864a268cc67"
+    },
+    "mini-map#North-aligned orientation": {
+      "spec": "mini-map",
+      "digest": "ff540e9ca6c308f4d9c218cb0d98267737954cb6c7e9e355bb8d1b88c9368967"
+    },
+    "mini-map#Object marker": {
+      "spec": "mini-map",
+      "digest": "db508ca08db5360daca0016e4de0154b92973bb7e8a95652d07f8957548e633b"
+    },
+    "mini-map#Reusable embeddable widget": {
+      "spec": "mini-map",
+      "digest": "dfcf5351073009c5a26613863b5fd37faf121861912f2c4f3565a11d89dd9ce1"
+    },
+    "mini-map#Multiple object markers": {
+      "spec": "mini-map",
+      "digest": "01e38db9493e318775f3ed00b82c1914ccca417e4668ae272be226bac88427f4"
+    },
+    "mini-map#Optional current-position marker": {
+      "spec": "mini-map",
+      "digest": "8683f29fdcad7c543bb5015c0d4660258a51116c81d19741cb0d7cc76a05f154"
+    },
+    "native-database-open#Concurrent database registration is safe": {
+      "spec": "native-database-open",
+      "digest": "1565d063c38a1bd83f584a507ee342e6498f8c5b3360cd8f6c1cb475a35fc86b"
+    },
+    "native-database-open#A whole database set is registered in one coordinated change": {
+      "spec": "native-database-open",
+      "digest": "bf6c6e0041a7954da6059f692a9112601694574b2cea4185581498c89f6a1098"
+    },
+    "native-database-open#Single-database open keeps its contract": {
+      "spec": "native-database-open",
+      "digest": "6eaa61f00cd2707f20fe5012e76f243ad73ad7583128db501b513b0b53ef08fb"
+    },
+    "native-database-open#Registration does not stall the render path proportionally to the number of maps": {
+      "spec": "native-database-open",
+      "digest": "b1a64d591d7df2da568693da08f1390c47827f2082f913a3811cd86c2e7e523b"
+    },
+    "native-tile-data-cache#Native tile data cache capacity configured": {
+      "spec": "native-tile-data-cache",
+      "digest": "047e41ca341999771fd80a37a4c003197dfec4478b012966a8c2aee6884d5e23"
+    },
+    "native-tile-data-cache#Retention is released when the device is low on memory or the app stops using it": {
+      "spec": "native-tile-data-cache",
+      "digest": "81cc338a20bab1effe12b037d87972873ffcfcd4860e784f1bf7c80528103aeb"
+    },
+    "native-tile-data-cache#Retention stops at the configured capacity": {
+      "spec": "native-tile-data-cache",
+      "digest": "94d9cc56f76133c7c8aa34423c47a199d0489393bbc458816be62a4274d54a07"
+    },
+    "native-tile-data-cache#Cache sizing must not change rendering output": {
+      "spec": "native-tile-data-cache",
+      "digest": "11b190013a96bf8e1674ca059f46dd67583ba55d7f6448214d12cdb549d99e92"
+    },
+    "nav-hints-layout#Navigation hints full width": {
+      "spec": "nav-hints-layout",
+      "digest": "e7596a5be598a7834db4eda53c73780979e0d33f882724c44a20a0730318f4fd"
+    },
+    "nav-hints-layout#Routing status panel full width": {
+      "spec": "nav-hints-layout",
+      "digest": "e79bb6560d93ad764a945cb12278a0f0f18945f3573f9d7a62a62d6cf64c7937"
+    },
+    "nav-hints-layout#Routing status covers the bottom of the window": {
+      "spec": "nav-hints-layout",
+      "digest": "ffbfd14b345a9a907be5d0da8feb9755aea2fa818c3005b2dcd917f92cf18274"
+    },
+    "nav-hud-visuals#Road name excludes type": {
+      "spec": "nav-hud-visuals",
+      "digest": "17b06654fa6d886612367d8359156116ee22eaf5d82ec7bf8b3b6609ae3c068e"
+    },
+    "nav-hud-visuals#Navigation instruction text is larger": {
+      "spec": "nav-hud-visuals",
+      "digest": "77437a44db9dc36431a36c3a3a5e3173bbcc8d1398881d22e2f13838475fe8d9"
+    },
+    "nav-hud-visuals#ETA is primary stat with compact labels": {
+      "spec": "nav-hud-visuals",
+      "digest": "7296ab96cafab1f5a6c6e6c3b22eeb0d64e976911c3616d8bcfe66790b43d0a3"
+    },
+    "nav-hud-visuals#Stop button uses icon only": {
+      "spec": "nav-hud-visuals",
+      "digest": "859f076546af87349052c70d3dabbcbb7d417f435ff717cbca8535b206fedddb"
+    },
+    "nav-hud-visuals#Remaining time until arrival": {
+      "spec": "nav-hud-visuals",
+      "digest": "1d04b00d00bfdd66c88991e767136b76271202d34e1819777c28670d3c3a6491"
+    },
+    "navigation-controller#Start navigation from route summary dialog": {
+      "spec": "navigation-controller",
+      "digest": "3af150dc435a88a64e167b9db0af75f127b54e189fab71c35e85a4489afdf5ca"
+    },
+    "navigation-controller#Start navigation from route panel": {
+      "spec": "navigation-controller",
+      "digest": "ad73e1c92d8e4a1d800e59e92c73aaa4deccc07375e1158ec0885d452a12d4a6"
+    },
+    "navigation-controller#Stop navigation": {
+      "spec": "navigation-controller",
+      "digest": "d15f80f9a9d2e1c2047cb8eb594cbbccc59a902273c81d879da4c248c5cf2e23"
+    },
+    "navigation-controller#GPS follow mode": {
+      "spec": "navigation-controller",
+      "digest": "dc3440ee8504a879620e09bb26cc1ed113923df39e17c6a8637e574d58710107"
+    },
+    "navigation-controller#Reroute handling": {
+      "spec": "navigation-controller",
+      "digest": "487621672cca87dd75877b84ee089d13f46476e36c60465f114cd78d9efd7622"
+    },
+    "navigation-controller#Navigation state exposed as StateFlow": {
+      "spec": "navigation-controller",
+      "digest": "673e270acb4583e1c62bb3ec65e449a6e8ad5dfa7a3d07a9afd3fa2ba00bfa23"
+    },
+    "navigation-engine#Exactly one navigation engine per process": {
+      "spec": "navigation-engine",
+      "digest": "41b96e67d729ec8f94d3b84b29474145474f2e361531a1ed9089ebd06072280f"
+    },
+    "navigation-engine#One navigation state shared by all surfaces": {
+      "spec": "navigation-engine",
+      "digest": "9e02cc7dc969f715c724b37f4bdd9490868ebbb6883f4fa266d3e772abea40d4"
+    },
+    "navigation-engine#Route acquisition independent of a surface UI": {
+      "spec": "navigation-engine",
+      "digest": "6a65fcf86a9f3471bd650fb26e1fb3b13a4574ee1e346f155c7fdf4f7645ed37"
+    },
+    "navigation-engine#Errors carry the surface that caused them": {
+      "spec": "navigation-engine",
+      "digest": "e107410a1aa40a3aab6ab42dad8cd8bd96e14775443caff5b03a75cecf262df6"
+    },
+    "navigation-engine#Per-surface view state never moves into the engine": {
+      "spec": "navigation-engine",
+      "digest": "041c1d79288e97859f1cb72b686cefcd0a810da938da5e5685c491ddb7c7e1a5"
+    },
+    "navigation-engine#Engine lifecycle and threading": {
+      "spec": "navigation-engine",
+      "digest": "b920d7c1e0849203d752e39929a68bb115939c45c45d73bb780a6d4ebb8cf2dc"
+    },
+    "navigation-engine#A failed route attempt releases only the lease it took": {
+      "spec": "navigation-engine",
+      "digest": "60d4796cccd1913f4ba49b53f089976acf6c0df3f846593e6d5f9eca721e4351"
+    },
+    "navigation-engine#Arrival is part of the shared navigation state": {
+      "spec": "navigation-engine",
+      "digest": "62c0fc1ac73cb8d9bcc5613cd455a7740172ab8e50e43c56785e7f2cfacecdfd"
+    },
+    "navigation-ongoing-notification#Distinct notification identity": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "0cb40dd1c3337a3888fc063583de3e21713f58987f0d4a22581b1270c29f37fe"
+    },
+    "navigation-ongoing-notification#Active-driving notification": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "5bf88b11faba341a61cc874813360672a028a33659736383ea82cd37e8faefaf"
+    },
+    "navigation-ongoing-notification#Process survival during background driving": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "7e6275a56ca7e5dffbac35ba6edeeca81fc00cb39446b332a78843e9c7dc728b"
+    },
+    "navigation-ongoing-notification#Navigation guidance content": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "d1a65f555ea8284598a32cc6433e7bd5b8172367ed3a881161dd51ebe14fea36"
+    },
+    "navigation-ongoing-notification#Stop action for navigation": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "779bfeaa88a91a6769920dd9e888bb56a552e6c133c83c20d32e04564b98e38a"
+    },
+    "navigation-ongoing-notification#Free-driving content": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "d632876d5721d7a4959c76e6b156c0b73bf94fcc9b5bef257d3078cd127d0147"
+    },
+    "navigation-ongoing-notification#Return to the app from the notification": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "aca0d64b776dd23150258a6345e06e75cacbf63b943b9ed2905f77e73431b76e"
+    },
+    "navigation-ongoing-notification#Notification permission degradation": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "942f0417b627e26ae04ba21b46b729480a9a62aee4f96054cf185216621a04ba"
+    },
+    "navigation-ongoing-notification#Surface parity": {
+      "spec": "navigation-ongoing-notification",
+      "digest": "2b929002e670612521afc3f321287c898ab44f35169127309724dbfbcf21986f"
+    },
+    "navigation-state-display#ETA and remaining distance displayed": {
+      "spec": "navigation-state-display",
+      "digest": "9ae8602fdc0e8bd5dacb04b52eb97ac6b8dea4d1059fe0b4c9672dd20a2ac288"
+    },
+    "navigation-state-display#Current speed displayed": {
+      "spec": "navigation-state-display",
+      "digest": "1a4ce5daeb864dd8770ab07c08f298a08fa48a98ead0a419e797d90a248f2c3c"
+    },
+    "navigation-state-display#Max allowed speed displayed": {
+      "spec": "navigation-state-display",
+      "digest": "9723b5676a72781d3d0a38fda0fda727f5b5abab4561959871ace7b5092f7587"
+    },
+    "navigation-state-display#Navigation state overlay hides on stop": {
+      "spec": "navigation-state-display",
+      "digest": "ec80a11b61830ddd4f8a59ea58bdde5231290c3a8ca1173024c3248b193ebe8f"
+    },
+    "navigation-status-details#Routing status card is clickable": {
+      "spec": "navigation-status-details",
+      "digest": "eea67666555fb7c71f1f8ec4d504bc01d5ac796891f25ec5c7654754d70dda31"
+    },
+    "navigation-status-details#Full-screen view shows status content": {
+      "spec": "navigation-status-details",
+      "digest": "beb756a54ff0b4dd95034009d3740c5b65aae84f82c41b18cd730d37c015f637"
+    },
+    "navigation-status-details#Route description list": {
+      "spec": "navigation-status-details",
+      "digest": "a933727b7c6d0d92711efc665121cfb900a919c9150fa9bbe75f2fc624a15e00"
+    },
+    "navigation-status-details#Current step selected at top": {
+      "spec": "navigation-status-details",
+      "digest": "1de022ff5cdb18040780dd93f7454d901a25c8a1cdcb86ab25f0784e5bf08c3b"
+    },
+    "navigation-status-details#Dismiss returns to map": {
+      "spec": "navigation-status-details",
+      "digest": "d0627b4051c473a5ae7d9732d30db92dd00f7701f84142a090ea54f0624cd9ed"
+    },
+    "navigation-status-details#Route progress lines in routing status card": {
+      "spec": "navigation-status-details",
+      "digest": "a330b8b630ef922133527604f077d89195be5b98fd31fddc822095354ea9dd5e"
+    },
+    "navigation-status-details#The status card's stop is the phone's shared stop path": {
+      "spec": "navigation-status-details",
+      "digest": "0d3f11070565ebaa5c4a120e05ffa75fff0ddf76982195249d4ac3319b0d4a90"
+    },
+    "navigation-symbols#Turn type arrow rendering": {
+      "spec": "navigation-symbols",
+      "digest": "a0934cf3a8009c725650d0589e7822f6edbdac9631bda74daf2e134516889854"
+    },
+    "navigation-symbols#Lane turn arrow rendering": {
+      "spec": "navigation-symbols",
+      "digest": "d6267cedc1d1f74778386e362b0ecff174cc704e5c41d728db52350aa26b7798"
+    },
+    "navigation-symbols#Single composable API entry point": {
+      "spec": "navigation-symbols",
+      "digest": "d29b53df6afdb5f2a98cda4f31a46ba8171d74bb2052a68a0e8528f17ff69b18"
+    },
+    "navigation-symbols#Duplicated code removal": {
+      "spec": "navigation-symbols",
+      "digest": "1f31e22351756e331c171f6d9752f77d2cbda676cbe3e517f9a2501d09bb56a2"
+    },
+    "next-turn-overlay#Next turn overlay visible during navigation": {
+      "spec": "next-turn-overlay",
+      "digest": "24302c87132068fed295a9e3ff2e2e9138d91710dae9d988ea7e14ee16e41565"
+    },
+    "next-turn-overlay#Turn type icon": {
+      "spec": "next-turn-overlay",
+      "digest": "8c3dab4fadbbcce9223cdd4a1b9d72abbec6ceb5b10c4745701a16fe9fd5b2c1"
+    },
+    "next-turn-overlay#Distance display": {
+      "spec": "next-turn-overlay",
+      "digest": "26bdd8a70a1506ee6bd3a1b387830cfe04acc217ee029f4773d016f411e2b285"
+    },
+    "next-turn-overlay#\"Next next\" hint": {
+      "spec": "next-turn-overlay",
+      "digest": "8652a76128cda69d873a5d19ae498def7b99a1a0ab176cbd0f963aefe88eef26"
+    },
+    "next-turn-overlay#Left-aligned layout": {
+      "spec": "next-turn-overlay",
+      "digest": "053d89eb237afd41efcd94d69c2f8d0d61745cb4870d54ceb8fd10e7691d1476"
+    },
+    "next-turn-overlay#Text wrapping": {
+      "spec": "next-turn-overlay",
+      "digest": "00d1c2ee1d056ddde22a4dbea101e767a5601981c7dbbb76ffd14a4903ed6abd"
+    },
+    "next-turn-overlay#No gap when lanes absent": {
+      "spec": "next-turn-overlay",
+      "digest": "ab7816315953e15d3d19d5a85b4d7f9f66f942f22c13a4d01d6a7098fe4c67d6"
+    },
+    "next-turn-overlay#Next-next turn smaller": {
+      "spec": "next-turn-overlay",
+      "digest": "44059dd4b656c9a53a5f55fccb7a0978adf348a2e137ff0e54dcf593be8f0e0f"
+    },
+    "next-turn-overlay#Driver-seat readable font sizes": {
+      "spec": "next-turn-overlay",
+      "digest": "fd1eea172ebf9b3884b45a02dab1bff98ccd0e57ac3d98d885f888afdfd7ea47"
+    },
+    "off-route-indicator#Off-route red tint on status card": {
+      "spec": "off-route-indicator",
+      "digest": "839915c12a99406e8adc8fe4220db5135b6a566595dc05a3e0befb521cc991ce"
+    },
+    "osm-attribution#Map displays OSM attribution notice": {
+      "spec": "osm-attribution",
+      "digest": "c7abf1eeeb0032b24178c903e53af5c1151842f90e31d74eb1cffce1b0bfa873"
+    },
+    "osm-attribution#Attribution links to OSM copyright page": {
+      "spec": "osm-attribution",
+      "digest": "5627fde9b67cadcd884b6ecee519e92a861561f1630926acf6fb08e5b8761a60"
+    },
+    "osm-attribution#Attribution may collapse but licence info stays reachable": {
+      "spec": "osm-attribution",
+      "digest": "9091337826d7c6aa44164ec6d8523e41d3690b2a2a9813bf06ccd332ba49d29f"
+    },
+    "osm-attribution#Attribution shown on all distribution flavors": {
+      "spec": "osm-attribution",
+      "digest": "683ff6197eef2a48c4d81897b6af2b0b3e7e6862277010b4c9706cace07c78b2"
+    },
+    "osm-attribution#Attribution shown in Android Auto variant": {
+      "spec": "osm-attribution",
+      "digest": "f09a8bc31a2f6d54f3de4e1e5757c639cec338a3c16e5e7018b93fe3c7f622e6"
+    },
+    "osmscout-jni#JNI bridge to native library": {
+      "spec": "osmscout-jni",
+      "digest": "3ab6bceb7d2ce3c52d88b1e92af7f6fc1699fb8f44ea0cf125c0c50771808799"
+    },
+    "osmscout-jni#Native library loading": {
+      "spec": "osmscout-jni",
+      "digest": "03de91fce9983885d3cc57f545f763484cf0083acdd50f940d86fe1b47cd2bfa"
+    },
+    "osmscout-jni#Error handling across JNI boundary": {
+      "spec": "osmscout-jni",
+      "digest": "b19a6ba6857cd2ccacbc7afa2258376d2ec04788357afd354cb8a7a1958142d3"
+    },
+    "osmscout-jni#Search result region hierarchy scoped to originating database": {
+      "spec": "osmscout-jni",
+      "digest": "ea3f8d4f1876b939864a81c43f709316ca813d81cae8c57f50334a39bad006e3"
+    },
+    "osmscout-jni#Search result object identity scoped to originating database": {
+      "spec": "osmscout-jni",
+      "digest": "09df4dcc1ab34c62a2faacb2b7887bae25ffb0305db9a9d964fed0319662947d"
+    },
+    "osmscout-jni#Free-text dedup scoped to originating database": {
+      "spec": "osmscout-jni",
+      "digest": "a102aa61d6f6b3fad8e8f565d0a64afb5489cf0c0c3661648d4612c7667dd15f"
+    },
+    "osmscout-jni#Favorite calls are safe while the favorite store is replaced": {
+      "spec": "osmscout-jni",
+      "digest": "925c7526191805f2dee454dd498fff7fde85cf26d6dea2b4db0eb4abc94d3b47"
+    },
+    "osmscout-jni#Render entry point writing into a caller-supplied pixel buffer": {
+      "spec": "osmscout-jni",
+      "digest": "e7f9ef9e3d1788ff3948d2ef1d70a2a81adc2909ec6624bfb8d192f6bdb76a99"
+    },
+    "osmscout-jni#The allocating render entry point remains available and unchanged": {
+      "spec": "osmscout-jni",
+      "digest": "fee6c26b947f7b756ac4c6d6fa6de558af1d8d9700ca1c00628f2f57a5c759f5"
+    },
+    "osmscout-jni#One route length for a calculated route": {
+      "spec": "osmscout-jni",
+      "digest": "40cb3f8e4f7c7f8ce41b6e445c40691d504cd8457a888b26c8a378e95db927fc"
+    },
+    "osmscout-jni#The published route length is a length of that route": {
+      "spec": "osmscout-jni",
+      "digest": "6c8ad926cd6f3934a7921e4b81bead7c27955fdbd2c4b1fa4abf850d4e5a4768"
+    },
+    "osmscout-jni#The start/target estimate is not exposed as a route length": {
+      "spec": "osmscout-jni",
+      "digest": "3f44c556ec16a8b4cb1b1ce0e3e4a45d70ff93cdcb0a38900f870c5b1142f2de"
+    },
+    "osmscout-native#Git submodule for libosmscout-client": {
+      "spec": "osmscout-native",
+      "digest": "570b8345314c1dd267f5160c911fb6e40ecadae1a52cc78da47f22354b38475a"
+    },
+    "osmscout-native#CMake build via Android NDK": {
+      "spec": "osmscout-native",
+      "digest": "bb4240bec72b024697bb54f88e2bf05a17e65563f983debf4cf618691974a66e"
+    },
+    "osmscout-native#External dependency cross-compilation": {
+      "spec": "osmscout-native",
+      "digest": "5b296034a87bb2f3744d199b829243da50125a873aa3f152fb07629af697b081"
+    },
+    "osmscout-native#CMakeLists.txt integration": {
+      "spec": "osmscout-native",
+      "digest": "e1a275b3015f382a92ae8aab3d79a6f7ccb0a4ae8a4105f5a201b16d6efccb1d"
+    },
+    "path-text-font-caching#Font set on Cairo context before drawing glyphs": {
+      "spec": "path-text-font-caching",
+      "digest": "05eb09d6e9bdc74c146c103bac529d65f0169441d1dfc63f54b1eb7e7a73e754"
+    },
+    "path-text-font-caching#Glyph stores font reference": {
+      "spec": "path-text-font-caching",
+      "digest": "5504b80d86a8e1ed0f895075530831a555368a86daa68d77a14d869637f89c48"
+    },
+    "path-text-font-caching#Font cache uses full-precision key": {
+      "spec": "path-text-font-caching",
+      "digest": "f5d1fa11fe5269748f99356ca580d69894b7923b16531f6ba85968b12fea200d"
+    },
+    "path-text-font-caching#Font cache cleared on style change": {
+      "spec": "path-text-font-caching",
+      "digest": "76384087592228310d7e2cff3e151fd432e31fce86b08a51eae58aa42814e36c"
+    },
+    "poi-search#POI search accessible from the map menu": {
+      "spec": "poi-search",
+      "digest": "038651fdefd88377e242f9feddc6434d67948275aa2f4865e47ff9d26088b63a"
+    },
+    "poi-search#No category preselected and no preloaded results": {
+      "spec": "poi-search",
+      "digest": "a660a7e811888aa06b3a73762761c7b5d3d1b2a3af1982e3d8edd313b8aa18a7"
+    },
+    "poi-search#Category and radius selection": {
+      "spec": "poi-search",
+      "digest": "4e0dd63419306a918e034f64d0829ca360bdd2690e1c60af543be632787b89fe"
+    },
+    "poi-search#POI results list": {
+      "spec": "poi-search",
+      "digest": "cf9a9227975d1f9beff971a2ff117141c403031e2dc79eaae941a4ad5d36dc83"
+    },
+    "poi-search#Search radius up to 100 km": {
+      "spec": "poi-search",
+      "digest": "f506504c4692f50cde3d53b9d901d1ea5e93800bf58a705c9c69b251288385e4"
+    },
+    "poi-search#Details via single click": {
+      "spec": "poi-search",
+      "digest": "e0cf02fdcc637816ee9790c1a1a179554c161643fcaba35732e8e2802ac8c4d1"
+    },
+    "poi-search#Viewport restored when POI search closes": {
+      "spec": "poi-search",
+      "digest": "d6e6c19d340f111dec7488efaf43de18035b1d98190368228c9e433e7b8adff1"
+    },
+    "poi-search#Selective action closes both dialogs": {
+      "spec": "poi-search",
+      "digest": "aadcd7a70b24ae4e2d35267c034be634e76ea19ff5343f044f20b21aa955bc6a"
+    },
+    "poi-search#POI results map embedded in the search sheet": {
+      "spec": "poi-search",
+      "digest": "f4d5cf0e2b54e9ffbcf306996cb902598a558de31bf54be440af0562f507baf3"
+    },
+    "poi-search#Selection changes the maps": {
+      "spec": "poi-search",
+      "digest": "471e7860ac19c469a5b19c38432defcd275fd57ec4b6570b9a4427ff39e82dde"
+    },
+    "poi-search#POI search covers all loaded maps with deterministic ordering": {
+      "spec": "poi-search",
+      "digest": "33cb9643b928e3db8c3c8683893050e650fd31688eb003e47dd153af6bdce8ae"
+    },
+    "poi-search#Embedded result map fit never clips a result": {
+      "spec": "poi-search",
+      "digest": "99b149eb69005518239a5332d16589fde562c3fd8adae08cf575958417d69768"
+    },
+    "precise-location-results#Duplicate-label detection": {
+      "spec": "precise-location-results",
+      "digest": "a2db03a6fb21ec58bbd6f67d760a4aae0207194b3a66efc8f0753d5c5371c90a"
+    },
+    "precise-location-results#Disambiguation fields on duplicate results": {
+      "spec": "precise-location-results",
+      "digest": "769164f9d76f301a67af5baa853597501b06348b8617c92ec22064e7e143d91c"
+    },
+    "precise-location-results#Single-result items unchanged": {
+      "spec": "precise-location-results",
+      "digest": "c0361986acb3147ff5aedc09777c14875069e9b28ea2bfa30dc0fa548d73fefb"
+    },
+    "precise-location-results#Disambiguation fields use existing data only": {
+      "spec": "precise-location-results",
+      "digest": "8a859c6a5e13c318f9b48649ba82890750f4d999c4be64bcb2972fedad58d852"
+    },
+    "release-target#Release target generates date-based version name": {
+      "spec": "release-target",
+      "digest": "96870aa8c2adc1f6ac01836451930bf9c614909b71a84c40c6d7953fad6319e0"
+    },
+    "release-target#Release target increments version code": {
+      "spec": "release-target",
+      "digest": "0c4b945c0ae3f2926475cfd58c395e7df308d607f5f66da6fe6326739a15d243"
+    },
+    "release-target#Release target produces Play-ready app bundle": {
+      "spec": "release-target",
+      "digest": "69c2c2406838eb6d14e97654f6faf51dade2215e527a22fd4c888d2f3669c269"
+    },
+    "release-target#Generated version name available to application": {
+      "spec": "release-target",
+      "digest": "50a30a903159f0628e1af011dc9fdd4ad58ab0fb62b5da149d2af1178e09269b"
+    },
+    "release-target#Non-release builds keep deterministic version": {
+      "spec": "release-target",
+      "digest": "23bc9829f2214efb9279fe8f14973c69ab1dc45f925c106027e35c4016c54380"
+    },
+    "release-target#Release target emits SBOM per distribution flavor": {
+      "spec": "release-target",
+      "digest": "b83b0495600d7d7e35aac53a0219bc677d52e1b87615f609f0b7064cb375ed87"
+    },
+    "render-mode-switch#User-selectable render mode": {
+      "spec": "render-mode-switch",
+      "digest": "aea00b9cae7894979f575eb262a370cb1bf6c8db8187e6c3c89ce1d9d0677a01"
+    },
+    "render-mode-switch#Render pipeline honors the selected mode": {
+      "spec": "render-mode-switch",
+      "digest": "7e1c069836601d9c35aecf169a468f636cda775adfff3b1896b1168cb9f8f733"
+    },
+    "render-mode-switch#Mode switch re-renders from scratch": {
+      "spec": "render-mode-switch",
+      "digest": "1d5364acf3df435acaec5ffce36f9d97eed0dad4a261178253c05dca1411748f"
+    },
+    "render-mode-switch#Dead direct-render remnants removed": {
+      "spec": "render-mode-switch",
+      "digest": "542e03b53f269fe1dbfaca5167a58ee6c3141526f65bd79aa05c30005dd73fd4"
+    },
+    "render-performance#Native way node optimization": {
+      "spec": "render-performance",
+      "digest": "1475b458abbfb5d79f81bc7aa4ef3cc69577107dad7f0d53691f02e80cb04387"
+    },
+    "render-performance#Native area node optimization": {
+      "spec": "render-performance",
+      "digest": "eaab45fccdcdd63d233e5fa32b61e1bf368e75c2f3f0fd0f50711ae77e9d9a32"
+    },
+    "render-performance#Node reduction error tolerance": {
+      "spec": "render-performance",
+      "digest": "b9eba278052973f5afd9928122dc9e97b84898efed8b5df41445f64edb0a0f75"
+    },
+    "render-performance#Multithreaded tile data loading": {
+      "spec": "render-performance",
+      "digest": "9a9ba20ef3d08028647c76882abb42be16fe312afc9e971bf94797c273f8a861"
+    },
+    "render-performance#Double-buffer swap without pixel copies": {
+      "spec": "render-performance",
+      "digest": "b7fe41e498e89d1d1941f4542706b9435f0fe3579f2aea0a9dccfeb4f2b641f6"
+    },
+    "render-performance#Frame emission only on change": {
+      "spec": "render-performance",
+      "digest": "18b4e0e2ff2a6de68f8b142687cbb739bebe6d3da017532f043f777ca1d46f2e"
+    },
+    "render-performance#Reusable render target for map frames": {
+      "spec": "render-performance",
+      "digest": "9b681fe2992f7e77b0e942bef456a46701fad694d0a2ca6b1fbca8107621f111"
+    },
+    "render-performance#A frame handed to the display layer is never overwritten": {
+      "spec": "render-performance",
+      "digest": "6b8889e0d604294ca582b43c11f11f821634534ca2d8f30ecb6baf1dee402ac1"
+    },
+    "render-performance#Pan hot path stays off the frame budget": {
+      "spec": "render-performance",
+      "digest": "f1689433a92581c675551e26dac99e03c8934784d1480ac62bf9c3c33f826efe"
+    },
+    "render-performance#A render writes into caller-owned pixel storage": {
+      "spec": "render-performance",
+      "digest": "ead509830c8724a318159e355b972c0bc6414096c81d15559198a9cb1761292d"
+    },
+    "render-performance#Per-render transient allocation is bounded": {
+      "spec": "render-performance",
+      "digest": "a97c3f4b47a5593a5ea402ad585e176d73a2dc2948d773731c10d0bd6de6ad9b"
+    },
+    "render-performance#The displayed frame is not duplicated for reuse detection": {
+      "spec": "render-performance",
+      "digest": "7afd85d3c1b68a3cc202360ccaad5ed8f931b4e224ee4034f52d34c7b656ebe1"
+    },
+    "render-performance#Animation frame references are released when the transition completes": {
+      "spec": "render-performance",
+      "digest": "c55f4eb3bf647803a23f62a0578d947901ee5b70f1d95e8179d8ce61a84bce58"
+    },
+    "reroute-route-visibility#Route stays drawn during reroute calculation": {
+      "spec": "reroute-route-visibility",
+      "digest": "3d5bdfba4900d44819e69b0656a12344eacd43b36593331ffbf036eab4710e61"
+    },
+    "reroute-route-visibility#Failed reroute calculation is surfaced during navigation": {
+      "spec": "reroute-route-visibility",
+      "digest": "8dd7123a3304eb9b024061bdaa8612f7787f60507ec5c335776a1f4103044ac2"
+    },
+    "reroute-route-visibility#Phone and Android Auto parity for route geometry state": {
+      "spec": "reroute-route-visibility",
+      "digest": "1980472871cbf0c9468bd248695aebee051705d3917e0b58573622e03a7abdfa"
+    },
+    "reroute-route-visibility#Panel-driven route clearing unchanged": {
+      "spec": "reroute-route-visibility",
+      "digest": "e97d38c0fb767a4634f7c332fb29978707aefbdd41df2d21bb040fcea27faed0"
+    },
+    "reroute-trigger#Fast first reroute trigger": {
+      "spec": "reroute-trigger",
+      "digest": "496b3631354268a0576291b412a2b0d329ee31c238fac69a4111c8c4050a1227"
+    },
+    "reroute-trigger#Distance-based fast path": {
+      "spec": "reroute-trigger",
+      "digest": "c4959c67c44682b1289bbc177c78e33dd89d9735b2a2c4a723e30e7de0b0890d"
+    },
+    "reroute-trigger#Post-reroute cooldown": {
+      "spec": "reroute-trigger",
+      "digest": "2df9ca8577dd70e6bf7c64034a12d3a81a2e82c60967adf73eb264c9155fb470"
+    },
+    "reroute-trigger#Noise guards preserved": {
+      "spec": "reroute-trigger",
+      "digest": "859cf16ae10bcb33bc60003cefd75aad568621ce880c8862e1b929befad9b3bc"
+    },
+    "reroute-trigger#Phone and Android Auto parity": {
+      "spec": "reroute-trigger",
+      "digest": "12aba4822e606225f820877bd971ec1662a69170371e1727a4c135c8f203756f"
+    },
+    "rerouting-visual-feedback#Rerouting state is exposed in navigation state": {
+      "spec": "rerouting-visual-feedback",
+      "digest": "2b2ac587b6e8029ad5df4f5aac4b02dbe62d000b1986e9d07acd0baa85560675"
+    },
+    "rerouting-visual-feedback#Off-route state is exposed in navigation state": {
+      "spec": "rerouting-visual-feedback",
+      "digest": "7f6245b8cb72f0dbc19da65e9dbec5bd62324cfb368a5f6028a7219258013548"
+    },
+    "rerouting-visual-feedback#Solid red tint on status card during rerouting": {
+      "spec": "rerouting-visual-feedback",
+      "digest": "17ed8c35912c6ae2d7f3cff6ab455eb7eef7fd49713a6d686bee6f57bcdf8631"
+    },
+    "road-lookup-bearing#Road lookup uses vehicle bearing to disambiguate": {
+      "spec": "road-lookup-bearing",
+      "digest": "e10f818fdda929e303d076537b6e9ce3101a5ed38c36570d311bce2a86dbd1bb"
+    },
+    "road-lookup-bearing#Road lookup returns name, ref, type, and max speed": {
+      "spec": "road-lookup-bearing",
+      "digest": "9bd471e51da0a38025d4ef609913449bd2e1652190346aef7d85c19fddce8466"
+    },
+    "roundabout-renderer#Roundabout rendered as circle with exits": {
+      "spec": "roundabout-renderer",
+      "digest": "313127f92970fb75c335bdc1658cd0d3c19b98e258acaf24c85ccb29f32a1128"
+    },
+    "roundabout-renderer#Exit position reflects actual geometry": {
+      "spec": "roundabout-renderer",
+      "digest": "939fb0f4c5d310c5d36c2cfc4dfd2c6c2f21932e8aa376feab97bec4ea5d95a5"
+    },
+    "roundabout-renderer#Selected exit visually distinct": {
+      "spec": "roundabout-renderer",
+      "digest": "77138a597e4b11f1e8c5dd79ff199fac31564d0e1f1d8f69e2d11a4130226e1f"
+    },
+    "roundabout-renderer#Entry direction indicator": {
+      "spec": "roundabout-renderer",
+      "digest": "33b3ee4645ac1d7f9498237f6baaea7174c46f730a68c7d9fe364ba91f604075"
+    },
+    "roundabout-renderer#Roundabout composable API": {
+      "spec": "roundabout-renderer",
+      "digest": "8790d393a3a924e15f3c1d78b8a75ab5969648dd4ea1d18802eba3723fa6cd12"
+    },
+    "route-analysis#Step selection": {
+      "spec": "route-analysis",
+      "digest": "381cb1b214cdfd9cbc0a2cf0a0214f1f652b5b524ac2b8c7ec11836c589e877a"
+    },
+    "route-analysis#Step navigator": {
+      "spec": "route-analysis",
+      "digest": "55d8c24513dc00d864115453d05926fe4a2dd5b081c4a32df4ce498a3717f1b7"
+    },
+    "route-analysis#Analysed step is locatable on the map": {
+      "spec": "route-analysis",
+      "digest": "9ba28a37e6589d9b5deef7f5692f212fed1a51e92de5923279df8d5024d8eb96"
+    },
+    "route-analysis#Analysed segment is highlighted on the map": {
+      "spec": "route-analysis",
+      "digest": "36cc7b52135f09308f98b36954a30616f09c55946f5378a7116bf26307de7acc"
+    },
+    "route-appearance#Active route stands out from road classes in daylight": {
+      "spec": "route-appearance",
+      "digest": "bfd6d089c589e6eacf7280202279fcc74b966c86b3b11c5189d562a0a6028a43"
+    },
+    "route-appearance#Route keeps its established colors in dark presentation": {
+      "spec": "route-appearance",
+      "digest": "669dd9bb355d12609ab3c6541dc4e3694026a5e18eac84653bccd505c9c0c5e0"
+    },
+    "route-appearance#Both surfaces draw the route with the same colors": {
+      "spec": "route-appearance",
+      "digest": "c17ff60d5834124c28984ed0d1ee6db38efa164f23f0ff9caee75f5ce6848cd7"
+    },
+    "route-appearance#Every map style draws the route with the shared route colors": {
+      "spec": "route-appearance",
+      "digest": "55a3a8b8a1c8e34835dbc27bd65e953ef26c11197f85e458407808bf63589003"
+    },
+    "route-appearance#Route appearance change alters no geometry or cost": {
+      "spec": "route-appearance",
+      "digest": "5143a6d9a7b7f86d508ce4aebcd5e8dbb867012fdabcbd0cbd6b7ba3dc2ea31a"
+    },
+    "route-appearance#Daylight route keeps street labels legible": {
+      "spec": "route-appearance",
+      "digest": "fe19b0a0eb73e3a0ef34876b356a466cfe49836f1414fc08d73919472c63a455"
+    },
+    "route-appearance#Translucent daylight route keeps a readable edge": {
+      "spec": "route-appearance",
+      "digest": "d2b6bf9033438a44d35978b8a535ed02b11b11a5166a894b9d84dfca23374cc4"
+    },
+    "route-map-overview#Route overview fits the route bounding box": {
+      "spec": "route-map-overview",
+      "digest": "0f67a131e75b85a1a0d16e33deb93b2fff30f9710d9c606e34ed957681af2086"
+    },
+    "route-map-overview#Route fit is suppressed while driving": {
+      "spec": "route-map-overview",
+      "digest": "5cfab0b7a4af7ff4537ca29dde1e9617a80c82f580dd49c16dfd3dadb9292abe"
+    },
+    "route-map-overview#Degenerate route geometry degrades safely": {
+      "spec": "route-map-overview",
+      "digest": "ab22e0ecdc705de4b6e3626377b70a16ce3f883fb685ecdd5bda19f34cdb9d27"
+    },
+    "route-panel-ui#Route button on location details sheet": {
+      "spec": "route-panel-ui",
+      "digest": "02b0369b8831944efd067c7b15ccd9c3ac22eaa0a69f5ccc65673565dfba983c"
+    },
+    "route-panel-ui#Route panel with start and destination fields": {
+      "spec": "route-panel-ui",
+      "digest": "aa5054a2d8f59441fccb7110020e05558f2ab9193f7ceab386d7bc7d4559eec5"
+    },
+    "route-panel-ui#Swap start and destination": {
+      "spec": "route-panel-ui",
+      "digest": "b45445387669f0f235ee615b5d9b1ec8022b988b73d5c470f0578b076142f464"
+    },
+    "route-panel-ui#Vehicle selector": {
+      "spec": "route-panel-ui",
+      "digest": "7f91e2fa6c5386fef2cd875a7b05c28e30afc12f906eb59c1c2373694ad80ccd"
+    },
+    "route-panel-ui#Calculate route": {
+      "spec": "route-panel-ui",
+      "digest": "5087dbcd8682be3a0395e469bfb56852d73782eb547ae50e065e798a187e8486"
+    },
+    "route-panel-ui#Cancel route calculation": {
+      "spec": "route-panel-ui",
+      "digest": "c6dc02b9ef48465ffc7bfb45d27dd9318d4a8cb6f6684ac262145d0ed2efb4df"
+    },
+    "route-panel-ui#Clear route": {
+      "spec": "route-panel-ui",
+      "digest": "7642186d27e24aee8785aba9161e1928bf94f011d9b7dcf59d2cba770f3291dc"
+    },
+    "route-panel-ui#Turn-by-turn instruction list": {
+      "spec": "route-panel-ui",
+      "digest": "0b4d94537a288bcc6534d823c8cef4f9a44616a56e0898a1203ed53af0ae512e"
+    },
+    "route-panel-ui#Start Navigation button in route panel": {
+      "spec": "route-panel-ui",
+      "digest": "5877f5283738d615e9ce2b152d1a2b4f07c9b00fa1fe9a7b5240e9fde6bb861a"
+    },
+    "route-panel-ui#Swap button position": {
+      "spec": "route-panel-ui",
+      "digest": "96f61ad7dac534b9beda5422cbbe919bcfed2edd71132e1435b698038680b70d"
+    },
+    "route-panel-ui#Stop navigation hides route from map": {
+      "spec": "route-panel-ui",
+      "digest": "c1e2a48d7f2f0a3bb81bc245f042243c6e9af7705388dced0d509f32c9d9b56a"
+    },
+    "route-panel-ui#Session overlay dismissal ends the session": {
+      "spec": "route-panel-ui",
+      "digest": "4606617f54bbbd4b125d8c9d594dcf9a2d1dffbc53dd52f92b01eef5172c7f06"
+    },
+    "route-planning-session#Session lifetime and its only exits": {
+      "spec": "route-planning-session",
+      "digest": "15d58ee3fc5ed74ce4395255b269444c66fed011d84134acf29114e77bef84e7"
+    },
+    "route-planning-session#Session overlay anchors (max and min)": {
+      "spec": "route-planning-session",
+      "digest": "8eb7b80308f30bcf3756a294bffc21061c5244ed0ff6ad4a0b61edc5745f102a"
+    },
+    "route-planning-session#Planning card content and its pinned actions": {
+      "spec": "route-planning-session",
+      "digest": "1433f37ade4c55eaa432d4170c19d23a51fe5d81157f0c5e10d0c30fbf03b33b"
+    },
+    "route-planning-session#Ending the session removes its surface": {
+      "spec": "route-planning-session",
+      "digest": "e271b1f0147eed74d5cbbaeea3a428550b935129eb338b42e653834b8348bfaa"
+    },
+    "route-planning-session#Overlay docks when width allows": {
+      "spec": "route-planning-session",
+      "digest": "4a93a989dbc83b458ff3c8ba06bc047b97e5e7170325020f2f2486e7caabd63b"
+    },
+    "route-planning-session#Session holds the camera while active": {
+      "spec": "route-planning-session",
+      "digest": "e2f921fac0373a2a8db4f9f8f02022037cfa62440930dd755d1da42959e58808"
+    },
+    "route-planning-session#Reviewing a route during navigation is read-only": {
+      "spec": "route-planning-session",
+      "digest": "5fe8e4fb80cb34e2e2596bee3e803a76aaf216a1e007089000219c3abe255d70"
+    },
+    "route-planning-session#Grace period after navigation is stopped": {
+      "spec": "route-planning-session",
+      "digest": "0d907a34336216bd894854562bf7141a588f02efe7f83ab3e35f48c3f7a0731e"
+    },
+    "route-planning-session#The planning card's route statistics state the route's length": {
+      "spec": "route-planning-session",
+      "digest": "b6c7067fa10efa4db0b425bd52e2a887890b76c73e523a0392e3b631568d02c5"
+    },
+    "route-summary-dialog#Route summary dialog shown after calculation": {
+      "spec": "route-summary-dialog",
+      "digest": "d23ab108f4b7183c38c116413fd00716780e77674dddb6c08f164982c3a91336"
+    },
+    "route-summary-dialog#Route statistics displayed": {
+      "spec": "route-summary-dialog",
+      "digest": "099abca8df05e414edcf15277272db55b8242b93c824345e533ba6e807aab12e"
+    },
+    "route-summary-dialog#Scrollable step list": {
+      "spec": "route-summary-dialog",
+      "digest": "e00e6cf1cc15050717d6440b288bba4a7f06551c0bbf52365172442e2a419808"
+    },
+    "route-summary-dialog#Start Navigation button": {
+      "spec": "route-summary-dialog",
+      "digest": "b5578f9e36234d2f30989b955cc07204e4158cc4dcdf56a0f04f43ba1457ef81"
+    },
+    "route-summary-dialog#Stop Navigation button": {
+      "spec": "route-summary-dialog",
+      "digest": "76b375fb1d7ed2edda222c7650de73d94170383fe4f5fe401214a975b404660b"
+    },
+    "route-summary-dialog#Active navigation mode with step highlighting": {
+      "spec": "route-summary-dialog",
+      "digest": "627993217f3ef3e6ba3321db2229aef04ab83d0497525c246931060f7d7e9713"
+    },
+    "route-summary-dialog#Stop navigation from summary dialog hides route": {
+      "spec": "route-summary-dialog",
+      "digest": "07ba9bc47be3af3dcfe945fd974496456bf9b089c0f5f99c6a9214314710f6f0"
+    },
+    "routing-summary#Route summary component": {
+      "spec": "routing-summary",
+      "digest": "467b4eb1f05115ee7bbc1c9edfdbc36f7db158d435b923e907dce19fed0893e2"
+    },
+    "routing-summary#Active step highlighting": {
+      "spec": "routing-summary",
+      "digest": "adb45b15a0247040c2890b856191bd1542a107a800b3cf290612f66cadc57848"
+    },
+    "routing-summary#Analysed step in the route summary component": {
+      "spec": "routing-summary",
+      "digest": "5abd063dec21acd7ce77fe74476cb56f76db4d0ec52b86374aeaf40f93e027b2"
+    },
+    "search-dialog#Unified search dialog entry points": {
+      "spec": "search-dialog",
+      "digest": "062c7c27e236d9cc533b1b547f4ab1fa315c1f10edf25bc4a5e43e06f32024a2"
+    },
+    "search-dialog#Full-screen dialog behavior": {
+      "spec": "search-dialog",
+      "digest": "722c22a4d0aa01da3361aa14baee5cff3f1e2a6296cc6a3cb79a6bfc5aa00458"
+    },
+    "search-dialog#Search mode switch": {
+      "spec": "search-dialog",
+      "digest": "25c03f4958b0edd351e77a39c11a0272da4eb7c52c140281634095a969dbe521"
+    },
+    "search-dialog#Places mode suggestions": {
+      "spec": "search-dialog",
+      "digest": "9d552373f3087b0492586ca489aad92d03aa539d5ffad8609cb66766472ea4cf"
+    },
+    "search-dialog#POIs mode search flow": {
+      "spec": "search-dialog",
+      "digest": "d8175376b486bae6a0b7c86df753f09505020489627ee876718b0ce2ee9c4a0b"
+    },
+    "search-dialog#Contacts mode": {
+      "spec": "search-dialog",
+      "digest": "2c570c6c06558a6c041f594a4986c179deeb89538eb98b73033ebab2219d08fa"
+    },
+    "search-free-text#Free-text search over text index": {
+      "spec": "search-free-text",
+      "digest": "952ca1a7950e1bffb03f1e46e0b95127729cb4ac6bbb9272186ba6b7f2592dd6"
+    },
+    "search-free-text#Free-text results merged with structured results": {
+      "spec": "search-free-text",
+      "digest": "d1b3cb0834c1b267be8ed0b7e5d71bc0683fd72b95716c429f8909fba33c9e41"
+    },
+    "search-free-text#Free-text search excludes basemap": {
+      "spec": "search-free-text",
+      "digest": "faa8598c821c94e67a49b7ed8a12aa6c47e8ef6571046187400321231ef1c7c0"
+    },
+    "search-free-text#Free-text results without garbage entries": {
+      "spec": "search-free-text",
+      "digest": "a5af071182f4003b18f8abdf9a000ad68aa1fcbaa7581c734dbbcfaf072ede2b"
+    },
+    "search-history#History entry recorded on result selection": {
+      "spec": "search-history",
+      "digest": "da9d2b20769a049eb5743123f282393b97aac8076dae5bfbcd6594543be854a6"
+    },
+    "search-history#History entry content": {
+      "spec": "search-history",
+      "digest": "c222618b7ddaac469ffe6e8d4b5415f3b6120f1b05fc9fe6706ca8a97a0fd85b"
+    },
+    "search-history#History capped at 50 entries": {
+      "spec": "search-history",
+      "digest": "85d501264bced9f303df51112e8f9b39f06400c37c66341af4ba998a2fc3ccc4"
+    },
+    "search-history#History persists across restarts": {
+      "spec": "search-history",
+      "digest": "26641673ea60696d2ba44e6adb27c47b2aadd6690759f0d85d41077d770cc997"
+    },
+    "search-history#Select from history entry on empty search box": {
+      "spec": "search-history",
+      "digest": "7fc5d17293c85a48c48a3e066ff91e6e61b58a83e8bc548734bca123c684e533"
+    },
+    "search-history#History view lists entries youngest first": {
+      "spec": "search-history",
+      "digest": "0ed7ecf32a30211e240f95c147c0dd900fae86f64fd221fc98ed1227b4f94f06"
+    },
+    "search-history#History selection replays the search": {
+      "spec": "search-history",
+      "digest": "ed3772d9d1d37542baf0fae01215e691ae2addba083eb148106b50d051cb537c"
+    },
+    "search-history#No duplicate entry for the same search text": {
+      "spec": "search-history",
+      "digest": "406fece48d5baa3055a09f47753c6a8efe1c753b8fe46775c9f77f2d5e50680d"
+    },
+    "search-history#Duplicate entries are collapsed when the history is loaded": {
+      "spec": "search-history",
+      "digest": "c90104d7cadfbe47f41d8c7ef43adcd424c77af844118ed33335e628007fdee3"
+    },
+    "search-result-ranking#Query attributes classified as criteria or context": {
+      "spec": "search-result-ranking",
+      "digest": "c3a161a5de69dd61c64346c75f0a88c7dec95af86a9740a8649a93c55b22ad88"
+    },
+    "search-result-ranking#Perfect match classification uses native per-attribute quality": {
+      "spec": "search-result-ranking",
+      "digest": "9d433ba26b4f499959549bc27459ed8fcac366f00bbce2a0c57d7bda8801bf04"
+    },
+    "search-result-ranking#Coordinate result answers a coordinate query exactly": {
+      "spec": "search-result-ranking",
+      "digest": "f9b55526fe3d9f91934b8074f950e2424412eccfe29a0b5b40997ed89d35b753"
+    },
+    "search-result-ranking#Result ordering by tier then distance": {
+      "spec": "search-result-ranking",
+      "digest": "df39b2ee6e1f864548e935684f989aa0a478b72990fa0af71165a707ee2832ce"
+    },
+    "search-result-ranking#Candidate set larger than displayed list": {
+      "spec": "search-result-ranking",
+      "digest": "637e02524c538971cd2715d403ff06bf415b6fff94c5ee9bf75dc71c29009e87"
+    },
+    "search-result-ranking#Distance reference for ordering and display": {
+      "spec": "search-result-ranking",
+      "digest": "1de5a10c4a86cbee105b39d3cb8a696d7fdd310f6aca6927fbcde8eb5a95bfed"
+    },
+    "search-result-ranking#Degradation without per-attribute quality": {
+      "spec": "search-result-ranking",
+      "digest": "bcd3122b34d73c62cc1f90038844f4320f40cadbd18006273586de2cbf4492dc"
+    },
+    "search-result-ranking#Perfect-match marking and cross-surface parity": {
+      "spec": "search-result-ranking",
+      "digest": "a47f007b3000aee9fd4235457a0d898c4af2246516d304053fb41a18873220a1"
+    },
+    "settings-persistence#Settings writes are serialized read-modify-write transactions": {
+      "spec": "settings-persistence",
+      "digest": "2c7002854c1d4878c9bdad80d6ba43d5e843cc55d51602eae789f0ea0b346f45"
+    },
+    "settings-persistence#A writer persists only the fields it owns": {
+      "spec": "settings-persistence",
+      "digest": "d32e1bd7b30d2a45203143a1ec611ce29e1c480229f90c31f5760d948342203c"
+    },
+    "settings-persistence#Write failures are non-fatal and observed": {
+      "spec": "settings-persistence",
+      "digest": "8a43e69247740e80f0e84890a9f72c1d927bd0b372af13bdab13b59f71a4a8d3"
+    },
+    "share/location-receiving#Shared location received while app running": {
+      "spec": "share/location-receiving",
+      "digest": "55d5074040bc7db935d8a4c2739eb6b4d2b39274f2abc47a545e1eb7c886f920"
+    },
+    "share/location-receiving#Shared coordinate disambiguated through candidate picker": {
+      "spec": "share/location-receiving",
+      "digest": "6c423e40120ac58817d18646328f7211ed89818aa06c7cce58a587ae9f669bdb"
+    },
+    "share/location-receiving#Shared address triggers search": {
+      "spec": "share/location-receiving",
+      "digest": "444b1130ae9ebf285052df5c620e705bcc92b3f0f1d3ef39a91ea673d4f11497"
+    },
+    "share/location-receiving#Map centers on shared location": {
+      "spec": "share/location-receiving",
+      "digest": "0c5aae9b2320195d872144fd29e01bf22ef3e55b5faf2c254ece8bc7499ae357"
+    },
+    "smooth-follow#Display center extrapolation": {
+      "spec": "smooth-follow",
+      "digest": "cf5d175abf298ae79ebfa1de3b1c9d9308d3c2c19d0a4fc203a68aa1b5465e2b"
+    },
+    "smooth-follow#Correction easing": {
+      "spec": "smooth-follow",
+      "digest": "a3d98bbe60b2d2b565eeb87aae4072d68c39f9f59de905bec03f4859876ad3ba"
+    },
+    "smooth-follow#Display-only prediction": {
+      "spec": "smooth-follow",
+      "digest": "3f684ca57fba1eccf1a5115aa0e3caf3af7b24bcfc8c015639ff71e87c9c3258"
+    },
+    "smooth-follow#Extrapolation loop gating": {
+      "spec": "smooth-follow",
+      "digest": "8cba3228be80f872c7b564ccbb5789fd90f726e1ae5bccc3890a870aa83b9c26"
+    },
+    "smooth-follow#Prediction state update": {
+      "spec": "smooth-follow",
+      "digest": "7bff97bf09a59a9259aa31a6eab93bdcf56336b025f5a02868fbb903924e5635"
+    },
+    "smooth-follow#Anchor-centered follow framing": {
+      "spec": "smooth-follow",
+      "digest": "1724ffeab226e5e62f50e501818707473b7ae319a7a2de888eb608d55f0141cd"
+    },
+    "smooth-follow#Vehicle position anchor in follow mode": {
+      "spec": "smooth-follow",
+      "digest": "0770e0c4660a92b84476b8d28d2e0b766f2a4344e1a33ff8de14c11052ef82ae"
+    },
+    "smooth-follow#Single resolved anchor across render, blit and marker": {
+      "spec": "smooth-follow",
+      "digest": "9fca2ace7e5ffee7088e947243b4dd1b31322195bc00cb4d8fba248cba7920c7"
+    },
+    "smooth-zoom#Eased zoom animation on discrete zoom input": {
+      "spec": "smooth-zoom",
+      "digest": "64df5bba734320ff5032e06f01e7e1e0405b15cf4377c36cd283a8bda9998719"
+    },
+    "smooth-zoom#Geographic anchor stays fixed during zoom animation": {
+      "spec": "smooth-zoom",
+      "digest": "7942f462dd4e92053d7e239a190487939d06d4797b1098cf5e0412e803a67537"
+    },
+    "smooth-zoom#Retracking on rapid zoom input": {
+      "spec": "smooth-zoom",
+      "digest": "f6897b282285e0863395a62a2716d6ceb90a99ae4b1a7d64b1c586749aa218ba"
+    },
+    "smooth-zoom#Animation continues until native render completes": {
+      "spec": "smooth-zoom",
+      "digest": "5844d3ca59010d1f2e747be17624e2c835053f7dd87a1c841090506020848d1e"
+    },
+    "smooth-zoom#Zoom animation composes with follow mode": {
+      "spec": "smooth-zoom",
+      "digest": "034a2ea59dd522c7b5a83cfc80a7e38fae1e382334d92a03c15a111d7b5bff06"
+    },
+    "smooth-zoom#Viewport records final magnification": {
+      "spec": "smooth-zoom",
+      "digest": "a5fe519d1a5ee283676269c34d7c4a686574d713cae3960d930e634bea2fcd0c"
+    },
+    "smooth-zoom#Zoom animation never exposes uncovered map area": {
+      "spec": "smooth-zoom",
+      "digest": "4bef8ec2af6443ebd8fbf0fcf625ca17b3eea920ab0d8cbcc14920344670337f"
+    },
+    "speed-spike-filtering#Speed spike rejection": {
+      "spec": "speed-spike-filtering",
+      "digest": "ba7912aed8340137000a6d9e29f229b47902c6ef7030c60d3fc6b1cf951e142b"
+    },
+    "speed-spike-filtering#Spike filter applies to all zoom consumers": {
+      "spec": "speed-spike-filtering",
+      "digest": "47c710c1b58272cc8d34cbc961b341b593ebb19397c98d856019f0d4d7dc2e24"
+    },
+    "speed-spike-filtering#Spike filter resets on valid speed": {
+      "spec": "speed-spike-filtering",
+      "digest": "23ae07c10052504ace4ad710fd3633117e9ada8d2e5ba34240044870771f85b6"
+    },
+    "speed-spike-filtering#No valid speed yet": {
+      "spec": "speed-spike-filtering",
+      "digest": "49cb7b6c42094daa1826c876edf2386a582bcf8f51454a48a9a16c5daccc3d0e"
+    },
+    "style-load-diagnostics#A style load reports unresolved type names in one condensed line": {
+      "spec": "style-load-diagnostics",
+      "digest": "f30a29440b9d28cfc92fb6766ab4cdee8dfe6d017140df80a7524dd4a55737c9"
+    },
+    "style-load-diagnostics#The report does not change the load outcome or the recorded findings": {
+      "spec": "style-load-diagnostics",
+      "digest": "7ccdae281a841c882890af58261eabf5087b7232a2d13b2d7c1245ea2777b9c6"
+    },
+    "style-load-diagnostics#The complete unresolved-name list stays obtainable": {
+      "spec": "style-load-diagnostics",
+      "digest": "4e537ebb67740707dae6c319c4e017e8ea8a58e31a9c02ea0bb1535b79c006f9"
+    },
+    "style-load-diagnostics#Log-line count does not grow with references to an already-reported name": {
+      "spec": "style-load-diagnostics",
+      "digest": "0277b96a166f00badf40a35a8aaaa88baf7b49091ab05993c00c5132c6bb6f86"
+    },
+    "style-load-diagnostics#Consecutive loads report independently": {
+      "spec": "style-load-diagnostics",
+      "digest": "6b250c2fc538254aff380e6a29c7a467805f3db12ea6127271c510bcfc5b2f07"
+    },
+    "test-coverage#All test-bearing modules produce coverage metrics": {
+      "spec": "test-coverage",
+      "digest": "dd9c52928df46c2eba9d4df2d5c598357d2e4f5d0167831009713f4307327627"
+    },
+    "test-coverage#Aggregated multi-module report": {
+      "spec": "test-coverage",
+      "digest": "835cf10a27a595225aa5f3c11350617579d943c0079062a96d668d231e53c96c"
+    },
+    "test-coverage#HTML and XML report formats": {
+      "spec": "test-coverage",
+      "digest": "35f1975deaed47fff7ad7a9c879e2ff4bfac27003724d779fe4073d97ffa1573"
+    },
+    "test-coverage#Generated code excluded from metrics": {
+      "spec": "test-coverage",
+      "digest": "e7a94076e5c1febe3edd880920522a26d1d90215390d6abb1ab6dd88be257212"
+    },
+    "test-coverage#CI publishes coverage artifacts": {
+      "spec": "test-coverage",
+      "digest": "0242276cf588b8772bec6485f6201b4a404a23b08184782c2f12055509051ebc"
+    },
+    "tile-cache#LRU tile cache": {
+      "spec": "tile-cache",
+      "digest": "e39435ca5ce9e1f3450ed7ac0c1164965a2f231fcc18cae3b7d35128df90ed22"
+    },
+    "tile-cache#Epoch-based cache invalidation": {
+      "spec": "tile-cache",
+      "digest": "0464c092d2cf900b9f91195b94f3db804a3d0d4d14c321cd94cdc25ef85b2730"
+    },
+    "tile-cache#Tile composition": {
+      "spec": "tile-cache",
+      "digest": "a59b9009fbee6e1a00b70fb5828d278dd2148f689d426b002ebd251cd052a0b1"
+    },
+    "tile-cache#Cached tiles contain only static map content": {
+      "spec": "tile-cache",
+      "digest": "f945c6339a8a0a11812becb828340c631e162bbb1db4a331119e1482fc8e39e9"
+    },
+    "turn-instruction-localization#Instruction text is rebuilt from structured fields": {
+      "spec": "turn-instruction-localization",
+      "digest": "e660796107b5c4c8173d4ee771dab3749fcc54a008c8b05cac9bad0154446fc6"
+    },
+    "turn-instruction-localization#All native instruction kinds are covered": {
+      "spec": "turn-instruction-localization",
+      "digest": "5d97646243c2e9bb405e650a0539902a261d5e6ed9112bd411a703f3d1c7a7fc"
+    },
+    "turn-instruction-localization#Fallback to native text": {
+      "spec": "turn-instruction-localization",
+      "digest": "40292dd14681489016bae25c0855c753945f0374aef5125e5754cc3f80ba2fe1"
+    },
+    "turn-instruction-localization#Shared resources for phone and Auto": {
+      "spec": "turn-instruction-localization",
+      "digest": "c78143ed358e6c92cdfb330006340e758912c3ed9b518278ee6d3750ac7b0b66"
+    },
+    "unit-test-suite-runtime#Test-created components release their background work": {
+      "spec": "unit-test-suite-runtime",
+      "digest": "2b345d99bf061095143c7ba6f7f5513050885cc9112194c48f5362bc528bc993"
+    },
+    "unit-test-suite-runtime#Module unit-test suite completes in a single invocation": {
+      "spec": "unit-test-suite-runtime",
+      "digest": "8159ce35b5f00a4500da7233c88a1a3e09648682092883311205dcdd9f37e6c4"
+    },
+    "unit-test-suite-runtime#Unit-test fork budget is declared and bounded": {
+      "spec": "unit-test-suite-runtime",
+      "digest": "dccdb794ffd1a1eb7a7e38f3ffeb21da3c2c877effa89fec863dab1001217ae3"
+    },
+    "unit-test-suite-runtime#Unit-test parallelism is declared and result-preserving": {
+      "spec": "unit-test-suite-runtime",
+      "digest": "907ad9a06536d3f80096e989e1a29104f1edbb4e212d242c761a87f73956232d"
+    },
+    "unit-test-suite-runtime#A unit test controls the time its subject waits on": {
+      "spec": "unit-test-suite-runtime",
+      "digest": "4483bacb93c46be25ec052e78ad79a96f2a657b96a1c99d71d7b55fc4eba9bcb"
+    },
+    "unit-test-suite-runtime#A module's failure set is independent of host load and concurrency": {
+      "spec": "unit-test-suite-runtime",
+      "digest": "0f81555c91bee500d70e18ec61e028844978dbfbc0e79829b88141289d6b43b1"
+    },
+    "unit-test-suite-runtime#Wall-clock waits in test sources are refused by a build check": {
+      "spec": "unit-test-suite-runtime",
+      "digest": "cf07dc679cc504e17d6adf01ac5792dcd1714242e0941620b721bb5a0b168c6a"
+    },
+    "viewport-persist#Save viewport state": {
+      "spec": "viewport-persist",
+      "digest": "e61ec116a693f483c1940d5b3f330412dc0207271abec659c5d899bc48129d96"
+    },
+    "viewport-persist#Load viewport state": {
+      "spec": "viewport-persist",
+      "digest": "ec229fb4c08065013ce6c32d6b2b66beb5d151d646f2157403c7654420cb67e5"
+    },
+    "viewport-persist#Reject invalid viewport states on save": {
+      "spec": "viewport-persist",
+      "digest": "9efe1b8ce82064f5f7fd49e1cdc935ecce6560a779735dcecf9412b53ae8a330"
+    },
+    "viewport-persist#Apply restored viewport before wiring the view-change listener": {
+      "spec": "viewport-persist",
+      "digest": "2edf4db095867e6d5254e1177924985435b811fbe31e6512f2c0bc68bfad3776"
+    },
+    "viewport-persist#Re-entry supersedes an in-flight map init": {
+      "spec": "viewport-persist",
+      "digest": "9002d7cd41b953db2917e173f221c8a4adc2e0a043ed13550a64cd5b51ee32a4"
+    },
+    "viewport-persist#Restored viewport drives the renderer": {
+      "spec": "viewport-persist",
+      "digest": "176b8ffc39b4c3332e6daa316ee8a999379a2ef7c695a002347b9b8d8786e837"
+    },
+    "zoom-controls#Zoom in button": {
+      "spec": "zoom-controls",
+      "digest": "135ae45c9c117cc70a81f6bbdf4a6457bd58be2c21e53e7a8356cf89381320eb"
+    },
+    "zoom-controls#Zoom out button": {
+      "spec": "zoom-controls",
+      "digest": "d421f95688ad554a74fe2f59e637e0aee8d4a1a5785b1bf8a06f4f343e1c950b"
+    },
+    "zoom-controls#Magnification level display": {
+      "spec": "zoom-controls",
+      "digest": "27ceb28d07f2b0e2fdead03b4a83833304658e321286df0e604708a260d3b28c"
+    },
+    "zoom-controls#Zoom controls shown during navigation": {
+      "spec": "zoom-controls",
+      "digest": "acb0c3851aee47eb8e95d3e8f316b5ee1f3acc9fb02952cc554324f122614e52"
+    },
+    "zoom-transition-scaling#Zoom placeholder uses continuous scale factor": {
+      "spec": "zoom-transition-scaling",
+      "digest": "3fe18b33c79781aa69ecdf81606ae5890b31a0b27badc78f5b311c9d5fdae092"
+    },
+    "zoom-transition-scaling#Placeholder origin matches geographic anchor": {
+      "spec": "zoom-transition-scaling",
+      "digest": "366c6568a494053714462bde810a0c0335e7988395c5ed2bfcc318a6985d2043"
+    },
+    "zoom-transition-scaling#Native render replaces placeholder at exact target magnification": {
+      "spec": "zoom-transition-scaling",
+      "digest": "d798f8e77cacf465cfd5fd785add7757495c65734d4baa8eb70fabbfc302dd14"
+    }
+  },
+  "areas": {
+    "routing": "131fb398be624caef061bde8b2bc00239a0f22869367c8061f0caa803af31774",
+    "search": "9f5d095164fb208562d3d7a20ee884d3b87e5e07c79e1ebbd019eeb814e938aa",
+    "object-info": "eabf202a38ee74d9c892b18bb25bc1a1efb055a3439c8c96eccba0ccf7ba5ef7",
+    "favorites": "e57bd117407a2d6373ab74112f5bc06d7af893a954fc77e59b778546824236f6",
+    "offline-maps": "a824c5a7825c5ea0732aa1b3a16d782dc6aad0f6b322f1a73295367a4eba2fee",
+    "map-appearance": "a99eeeaf13351da6789d2166d1e81e6c3c437e183a4b179003549339480deaf3",
+    "map-interaction": "967dd44842b6fa159574033ffa9058729016775f656e2d655f525b5fb30a2026",
+    "positioning": "1306b0c316f3d37f721b4cfb23e05764566950dca31d9972ea13dd4c0e7fc9c9",
+    "handoff": "5141e684c2654570b7a2ec3f7090fd48ce0dfc3babf70643f6a9c215d94a591a",
+    "car-only": "72b5cf84a217d12646f6e1059b91b80c19de686b7d6d46f420f34b96bfbcdfd7",
+    "device-fit": "f77eabb34cc04fde327bcadbb764246e10d32e048375f3b3a3db5093010ac309",
+    "settings-legal": "b7e6b2903d5056d7bef2caa767315261b6a1d9f1ae329b3691dab3a5b6c40b71",
+    "build-tooling": "9188cc9b05573d7a8526d1c35c5c2b88ac87d295f2c0b14c0fb1c05223f3d781"
+  }
+}

@@ -90,11 +90,16 @@ The system SHALL remove a deleted map's directory from the native map manager's 
 - **AND** the map appears in the installed list
 
 ### Requirement: Default map provider configured
-The system SHALL configure the default map provider (karry.cz) for map list fetching and downloads.
+The system SHALL configure a map source registry that offers the built-in karry.cz provider and a libosmscout mapgen repository source, and SHALL use the active source for map list fetching and downloads.
 
 #### Scenario: Default provider available
 - **WHEN** MapManagerScreen loads
-- **THEN** the karry.cz provider is pre-selected in the provider dropdown
+- **THEN** the karry.cz provider is pre-selected as the active source
+
+#### Scenario: Repository source available alongside the built-in provider
+- **WHEN** MapManagerScreen loads
+- **THEN** the repository source is offered in the same selector as the built-in provider
+- **AND** selecting it fetches the repository's region index instead of the provider's listing
 
 ### Requirement: Error handling for download failures
 The system SHALL handle download errors gracefully and report them to the user.
@@ -139,6 +144,11 @@ The system SHALL use `java.net.HttpURLConnection` instead of `java.net.http.Http
 - **WHEN** the system probes `{provider.uri}/basemap/` or downloads a basemap archive
 - **THEN** the HTTP requests use `HttpURLConnection`
 - **AND** the basemap flow works without `java.net.http` availability
+
+#### Scenario: Repository requests use HttpURLConnection
+- **WHEN** the system fetches a repository's region index, a database's metadata, a database file, or its basemap manifest or slot files
+- **THEN** every one of those requests uses `HttpURLConnection`
+- **AND** no repository code path imports `java.net.http`
 
 ### Requirement: Wake lock managed via download lifecycle
 The system SHALL integrate wake lock acquisition and release with the map download lifecycle — acquire when the first download starts, release when the last download ends (complete, cancelled, or error).
@@ -202,3 +212,96 @@ The system SHALL pass the basemap directory to the native client builder via `wi
 - **WHEN** no basemap directory exists
 - **THEN** the builder is created without a basemap directory
 - **AND** the app starts normally
+
+### Requirement: Database format version has one source of truth
+
+The database format version the app requests from a source — the version slot of a repository database and the version bounds of a provider listing — SHALL come from a single value that matches the version the native client can read. No request URL and no metadata check SHALL embed a literal version value.
+
+#### Scenario: Version slot and listing bounds agree
+
+- **WHEN** the app requests a provider listing and when it builds a repository database's version slot URL
+- **THEN** both use the same version value
+- **AND** that value is the client's supported database format version
+
+#### Scenario: A version change reaches every request
+
+- **WHEN** the client's supported database format version changes
+- **THEN** the provider listing's requested bounds and the repository's version slot URL both change with it
+- **AND** no other source of the version has to be edited
+
+### Requirement: Repository downloads join the download lifecycle
+
+A repository download — regional database or basemap slot — SHALL be a first-class map download: it SHALL report progress and completion through the same listener contract as a provider download, SHALL be cancellable, and SHALL keep the foreground service and its wake lock alive while it runs.
+
+#### Scenario: Repository download keeps the foreground service alive
+
+- **WHEN** the only active download is a repository database or basemap slot download
+- **THEN** the foreground service runs with a progress notification
+- **AND** no wake lock outlives the service
+
+#### Scenario: Repository download is cancellable
+
+- **WHEN** the user cancels a repository download
+- **THEN** the transfer stops, partial files are removed, and the entry returns to its available state
+- **AND** the same cancellation path serves provider downloads
+
+#### Scenario: Repository download completes into the installed list
+
+- **WHEN** a repository download finishes and verifies
+- **THEN** the directory is registered with the native map manager
+- **AND** the map appears in the installed list without an app restart
+
+### Requirement: Shipped builds permit cleartext repository transport
+
+Shipped NaviVeylin builds SHALL permit cleartext HTTP for map repository transport, so a libosmscout mapgen repository served over plain HTTP on a local network is reachable after installation. The permission SHALL be app-wide, SHALL be identical in both distribution flavours, and SHALL NOT alter how an `https://` source is fetched.
+
+#### Scenario: Plain-HTTP source is reachable in a shipped build
+
+- **WHEN** a Play-installed (release) build tests or downloads from a repository base URL whose scheme is `http`
+- **AND** the host answers
+- **THEN** the request reaches the host
+- **AND** no cleartext refusal is raised
+
+#### Scenario: HTTPS source is unaffected
+
+- **WHEN** a repository base URL's scheme is `https`
+- **THEN** the request is made with the platform's normal TLS validation
+- **AND** the cleartext permission changes neither the request nor its validation
+
+#### Scenario: Both flavours permit it
+
+- **WHEN** the same plain-HTTP source is used from the mobile build and from the automotive build
+- **THEN** both reach the host
+- **AND** the two flavours' transport policy is identical
+
+### Requirement: A denied cleartext request reports the denial itself
+
+The system SHALL report a repository request that the platform's cleartext policy denies as an unencrypted-transport refusal, naming the requested URL, instead of reproducing the platform's exception text or reporting a generic connection failure.
+
+#### Scenario: Denied request names the reason
+
+- **WHEN** the platform's cleartext policy denies a repository request
+- **THEN** the reported failure identifies the refusal as one of unencrypted transport
+- **AND** it names the URL that was requested
+- **AND** it does not reproduce the platform's own exception sentence
+
+#### Scenario: Permitted request is not reported as a denial
+
+- **WHEN** the platform's cleartext policy permits the request
+- **THEN** a failure, if any, is reported as its own kind and not as a cleartext refusal
+
+### Requirement: A base URL that cannot be parsed is reported as an unusable URL
+
+The system SHALL report a repository base URL it cannot parse as an unusable URL, naming the URL and the expected form, instead of reporting a transport or connection failure.
+
+#### Scenario: An unparseable URL is named as unusable
+
+- **WHEN** the source test or a fetch is given a base URL that cannot be parsed
+- **THEN** the reported failure identifies the URL as unusable
+- **AND** it names the URL and the expected form
+- **AND** it is not reported as a transport or connection failure
+
+#### Scenario: A parseable URL is never reported as unusable
+
+- **WHEN** the base URL can be parsed
+- **THEN** no unusable-URL failure is reported, whatever the request's outcome

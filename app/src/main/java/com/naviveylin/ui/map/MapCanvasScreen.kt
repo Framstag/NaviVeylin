@@ -198,6 +198,11 @@ fun MapCanvasScreen(
     carSessionPresence: CarSessionPresence = rememberCarSessionPresence()
 ) {
     val state by viewModel.uiState.collectAsState()
+    // Shared free-driving road/speed status (spec: `current-road-info` — One
+    // free-driving road/speed status feeds every surface and the notification):
+    // the street label reads this, not a private copy, so it cannot disagree
+    // with the ongoing notification.
+    val freeDrivingStatus by viewModel.freeDrivingStatus.collectAsState()
     val routeState by routePanelViewModel.uiState.collectAsState()
     val navState by navigationViewModel.state.collectAsState()
     // Advisory only (spec: `car-session-presence`): informs the driver that a car
@@ -1799,6 +1804,10 @@ fun MapCanvasScreen(
                                     styleSheet = state.styleSheet,
                                     onSetStyleSheet = { style ->
                                         viewModel.onStyleSheetSelected(style)
+                                    },
+                                    preferSymbolPoiIcons = state.preferSymbolPoiIcons,
+                                    onSetPreferSymbolPoiIcons = { preferSymbols ->
+                                        viewModel.onSetPreferSymbolPoiIcons(preferSymbols)
                                     }
                                 )
                             },
@@ -1939,6 +1948,10 @@ fun MapCanvasScreen(
                                     styleSheet = state.styleSheet,
                                     onSetStyleSheet = { style ->
                                         viewModel.onStyleSheetSelected(style)
+                                    },
+                                    preferSymbolPoiIcons = state.preferSymbolPoiIcons,
+                                    onSetPreferSymbolPoiIcons = { preferSymbols ->
+                                        viewModel.onSetPreferSymbolPoiIcons(preferSymbols)
                                     }
                                 )
                             },
@@ -1997,14 +2010,8 @@ fun MapCanvasScreen(
             // shown only when no route is active (the navigation road-info row
             // covers the navigating case).
             if (!navState.isNavigating) {
-                val roadText = state.currentRoadInfo?.let {
-                    listOfNotNull(
-                        it.ref.takeIf { r -> r.isNotEmpty() },
-                        it.name.takeIf { n -> n.isNotEmpty() }
-                    ).joinToString(" ")
-                }
                 FreeDrivingStreetPill(
-                    roadText = roadText,
+                    roadText = freeDrivingStatus?.roadText,
                     anchor = state.activeFollowAnchor,
                     onPillInset = { overlayPillInset = it }
                 )
@@ -2107,6 +2114,10 @@ fun MapCanvasScreen(
                                         styleSheet = state.styleSheet,
                                         onSetStyleSheet = { style ->
                                             viewModel.onStyleSheetSelected(style)
+                                        },
+                                        preferSymbolPoiIcons = state.preferSymbolPoiIcons,
+                                        onSetPreferSymbolPoiIcons = { preferSymbols ->
+                                            viewModel.onSetPreferSymbolPoiIcons(preferSymbols)
                                         },
                                         // Vehicle anchor rows in the ROUTING view too: the
                                         // rows are rendered in every mode, so leaving the

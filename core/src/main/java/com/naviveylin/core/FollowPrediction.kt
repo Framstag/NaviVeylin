@@ -286,6 +286,13 @@ class FollowPrediction {
          * vehicle content at the surface center while the marker draws at the
          * anchor. With the default center anchor the drift equals the absolute
          * offset and the behavior is identical to the pre-anchor implementation.
+         *
+         * The overrun margin is never negative: a frame that offers no overrun
+         * margin on an axis (for example a frame that still carries the previous
+         * orientation after a rotation while the canvas already has the new one)
+         * yields a ZERO offset on that axis, reported as [DisplayOffset.clamped],
+         * so the caller requests a frame in the current orientation instead of
+         * constructing an empty coercion range.
          */
         fun displayOffsetPx(
             displayLat: Double, displayLon: Double,
@@ -304,8 +311,11 @@ class FollowPrediction {
             val sinA = sin(angle)
             val oxR = ox * cosA - oy * sinA
             val oyR = ox * sinA + oy * cosA
-            val marginX = (bitmapW - canvasW) / 2.0
-            val marginY = (bitmapH - canvasH) / 2.0
+            // Coerce to zero: during an orientation change the frame in hand can
+            // offer no overrun margin on the swapped axis, and a negative margin
+            // would make the clamp below an empty (throwing) range.
+            val marginX = ((bitmapW - canvasW) / 2.0).coerceAtLeast(0.0)
+            val marginY = ((bitmapH - canvasH) / 2.0).coerceAtLeast(0.0)
             // Anchor offset in the viewport frame: the anchor is defined in the
             // surface frame, so its rotated-frame offset is (fx-0.5)*W, (fy-0.5)*H.
             val anchorOX = (anchorX - 0.5) * canvasW

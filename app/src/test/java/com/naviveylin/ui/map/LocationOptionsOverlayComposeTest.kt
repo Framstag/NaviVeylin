@@ -2,6 +2,8 @@ package com.naviveylin.ui.map
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -46,7 +48,9 @@ class LocationOptionsOverlayComposeTest {
 
     private fun openSheet(
         mode: MapMode = MapMode.BROWSE,
-        onSetStyleSheet: (String) -> Unit = {}
+        onSetStyleSheet: (String) -> Unit = {},
+        preferSymbolPoiIcons: Boolean = false,
+        onSetPreferSymbolPoiIcons: (Boolean) -> Unit = {}
     ) {
         composeRule.setContent {
             LocationOptionsOverlay(
@@ -57,12 +61,17 @@ class LocationOptionsOverlayComposeTest {
                 mode = mode,
                 availableStyles = styles,
                 styleSheet = "standard",
-                onSetStyleSheet = onSetStyleSheet
+                onSetStyleSheet = onSetStyleSheet,
+                preferSymbolPoiIcons = preferSymbolPoiIcons,
+                onSetPreferSymbolPoiIcons = onSetPreferSymbolPoiIcons
             )
         }
         composeRule.onNodeWithContentDescription("Location options").performClick()
         composeRule.waitForIdle()
     }
+
+    /** The symbol/icon preference switch, found by the label it sits next to. */
+    private fun symbolIconToggle() = composeRule.onNodeWithTag("preferSymbolIconsToggle")
 
     @Test
     fun sheetShowsMapStyleDropdownWithAllStyles() {
@@ -190,6 +199,26 @@ class LocationOptionsOverlayComposeTest {
         composeRule.onNodeWithText("Navigation").assertIsDisplayed()
         composeRule.onNodeWithText("Auto zoom").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Follow direction").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun sheetShowsTheSymbolIconPreferenceOffByDefault() {
+        openSheet()
+
+        symbolIconToggle().performScrollTo().assertIsOff()
+    }
+
+    @Test
+    fun symbolIconToggleReportsTheChange() {
+        var received: Boolean? = null
+        openSheet(preferSymbolPoiIcons = true, onSetPreferSymbolPoiIcons = { received = it })
+
+        val toggle = symbolIconToggle().performScrollTo()
+        toggle.assertIsOn()
+        toggle.performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(false, received)
     }
 
     @Test

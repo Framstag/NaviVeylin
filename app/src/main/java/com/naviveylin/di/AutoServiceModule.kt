@@ -15,6 +15,7 @@ import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.CarSurfaceHost
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.FreeDrivingStatusProvider
 import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.TileCacheConfig
 import com.naviveylin.core.search.SearchQueryParser
@@ -293,6 +294,16 @@ object AutoServiceModule {
     fun provideDrivingModeProvider(
         impl: com.naviveylin.navigation.DrivingModeProviderImpl
     ): DrivingModeProvider = impl
+
+    /**
+     * Process-scoped free-driving status (spec: `current-road-info` — One
+     * free-driving road/speed status feeds every surface and the notification):
+     * one instance shared by the phone ViewModel, the car screen and the
+     * notification service.
+     */
+    @Provides
+    @Singleton
+    fun provideFreeDrivingStatusProvider(): FreeDrivingStatusProvider = FreeDrivingStatusProvider()
 
     private const val TAG = "AutoServiceModule"
 }

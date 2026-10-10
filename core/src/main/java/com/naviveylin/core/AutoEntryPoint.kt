@@ -48,6 +48,13 @@ interface AutoEntryPoint {
     fun autoDrivingModeProvider(): DrivingModeProvider
 
     /**
+     * Shared free-driving road/speed status (spec: `current-road-info` — One
+     * free-driving road/speed status feeds every surface and the notification):
+     * the car's free-driving screen publishes its own resolution into it.
+     */
+    fun autoFreeDrivingStatusProvider(): FreeDrivingStatusProvider
+
+    /**
      * Session-scoped car surface owner (spec: car-host-fault-isolation — Single-owner
      * car surface): the car-app host registers exactly one surface callback per session.
      */

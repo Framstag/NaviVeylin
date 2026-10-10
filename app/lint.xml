@@ -3,7 +3,17 @@
   i18n gate: hardcoded user-facing text fails the build.
   All user-facing strings must live in res/values/strings.xml
   (see guidelines/UI.md — Internationalisation / Localisation).
+
+  `InsecureBaseConfiguration` is suppressed on purpose: the shipping build permits cleartext for
+  the map repository transport (`app/src/main/res/xml/network_security_config.xml`), because a
+  self-hosted libosmscout mapgen repository is served over plain HTTP and its host is a LAN
+  address the user types — a host Android's static policy cannot name in advance. The allowance
+  is asserted by `checkCleartextTransportPolicy`; spec `map-download-infrastructure` — "Shipped
+  builds permit cleartext repository transport" (change `allow-lan-http-map-repository`).
+  If a future AGP renames or drops this issue id, the suppression below needs the same decision
+  re-made rather than copied blindly.
 -->
 <lint>
     <issue id="HardcodedText" severity="error"/>
+    <issue id="InsecureBaseConfiguration" severity="ignore"/>
 </lint>

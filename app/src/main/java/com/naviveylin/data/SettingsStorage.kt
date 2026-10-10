@@ -46,6 +46,26 @@ data class AppSettings(
     val renderMode: RenderMode = RenderMode.TILES,
     val styleSheet: String = "standard",
     /**
+     * Draw the vector symbol of a map style entry that carries both a raster icon and a symbol,
+     * instead of its raster icon (spec: `map-styles` — Icon-versus-symbol preference is a persisted
+     * phone setting). `false` keeps the raster icon in precedence, which is the behavior before this
+     * setting existed. Phone-only control; the car surface renders the same persisted value. Additive
+     * with a default, so a settings file written before the field existed decodes to `false`.
+     */
+    val preferSymbolPoiIcons: Boolean = false,
+    /**
+     * The map source the user selected (spec: `map-source-selection` — "Map source is a
+     * registered, persisted choice"): the name of a `MapSourceKind`, so settings written
+     * before this change decode to the built-in provider and keep today's behaviour.
+     */
+    val mapSourceKind: String = com.naviveylin.core.mapsource.MapSourceKind.BUILT_IN_PROVIDER.name,
+    /**
+     * Base URL of the repository source, empty until the user entered one. Only read when
+     * [mapSourceKind] selects the repository source (spec: `map-source-selection` — "Base URL of
+     * the repository source is validated before use").
+     */
+    val mapRepositoryUrl: String = "",
+    /**
      * Overspeed warning delta (km/h): the badge warns when `current >= max +
      * delta`. Single global value shared with Android Auto (spec:
      * map-speed-widget — Overspeed warning color; auto-map-layout). Range

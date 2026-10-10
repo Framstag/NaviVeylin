@@ -8,4 +8,9 @@ package com.framstag.libosmscout.client
  */
 class FakeClientWithBbox(private val bbox: (String) -> DoubleArray?) : OSMScoutClient() {
     override fun getDatabaseBoundingBox(path: String): DoubleArray? = bbox(path)
+
+    // The car path never pushes the symbol/icon preference; the override keeps the
+    // native method out of the host stub's reach for a screen that renders after the
+    // phone changed it.
+    override fun setPreferSymbolIcons(preferSymbolIcons: Boolean) = Unit
 }

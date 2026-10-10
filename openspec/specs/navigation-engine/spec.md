@@ -35,7 +35,8 @@ of its own.
 
 The engine SHALL expose navigation state — active/inactive, current step and instructions, remaining
 distance, arrival estimate, current and maximum speed, position and bearing, lane guidance, current
-road, route geometry, destination identity and vehicle profile — as a single observable state, so
+road, route geometry, destination identity, vehicle profile and the in-flight route calculation
+including its progress — as a single observable state, so
 every surface renders the same navigation session.
 
 #### Scenario: Position update reaches both surfaces
@@ -216,3 +217,15 @@ The shared navigation state SHALL report whether the running navigation reached 
 
 - **WHEN** the native navigation engine reports the target reached for a session that was already stopped
 - **THEN** the shared state SHALL NOT report the destination as reached
+
+### Requirement: Surface-less route acquisition is cancellable
+The engine SHALL offer cancellation of an in-flight route acquisition whether or not a surface UI is present, and SHALL release the location lease a surface-less acquisition took whenever that acquisition ends without starting navigation.
+
+#### Scenario: Cancel without a surface UI
+- **WHEN** an acquisition that no surface UI drives is cancelled
+- **THEN** the engine SHALL request cancellation from the routing engine
+- **AND** the acquisition SHALL NOT start navigation
+
+#### Scenario: Aborted acquisition releases the location lease
+- **WHEN** a surface-less acquisition is cancelled, fails or reports no GPS position
+- **THEN** the location lease taken for that acquisition SHALL be released

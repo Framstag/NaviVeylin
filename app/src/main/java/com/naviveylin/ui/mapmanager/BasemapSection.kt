@@ -150,8 +150,39 @@ fun BasemapSection(
             }
 
             state.availability == BasemapAvailability.Available -> {
-                // Available on server, not installed: download (variant selection)
-                if (state.variants.size > 1) {
+                // Available on server, not installed: download (variant selection).
+                // A repository source publishes one version slot, so it offers one download
+                // control labelled with that version (spec `basemap-ui`).
+                if (state.sourceIsRepository) {
+                    val version = state.repositoryVersion
+                    if (version != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    R.string.basemap_repository_version,
+                                    version.typeConfigVersion
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Button(onClick = {
+                                runWithNotificationPermission {
+                                    viewModel.downloadRepositoryBasemap(version)
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    modifier = Modifier.width(16.dp).height(16.dp)
+                                )
+                                Text(stringResource(R.string.download_basemap))
+                            }
+                        }
+                    }
+                } else if (state.variants.size > 1) {
                     Text(
                         text = stringResource(R.string.basemap_variant_prompt),
                         style = MaterialTheme.typography.bodySmall,

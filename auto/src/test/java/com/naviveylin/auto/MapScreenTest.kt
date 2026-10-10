@@ -179,6 +179,32 @@ class MapScreenTest {
         destroy(screen)
     }
 
+    @Test
+    fun theCarSurfaceNeverPushesTheSymbolIconPreference() = runTest(mainDispatcherRule.dispatcher) {
+        // The car has no control for the preference and must not set it: the native client is one
+        // process-wide instance, so the car map renders whatever the phone persisted
+        // (spec: `map-styles` — Car surface follows the shared preference without a control;
+        // spec: `cross-variant-ui-parity` — A phone-only control whose effect reaches the car).
+        val host = SessionCarSurfaceHost()
+        every { entryPoint.autoSurfaceHost() } returns host
+        val fake = client as FakeMapScreenClient
+        val screen = MapScreen(carContext, navigationViewModel, resolvedDark = MutableStateFlow(false))
+        val lifecycle = screen.lifecycle as LifecycleRegistry
+
+        awaitDaylightPush(fake, value = true)
+        host.onSurfaceAvailable(surfaceContainer())
+        lifecycle.currentState = Lifecycle.State.CREATED
+        lifecycle.currentState = Lifecycle.State.STARTED
+        awaitDaylightPush(fake, value = true)
+
+        assertTrue(
+            "the car screen must leave the preference to the phone, got ${fake.preferSymbolIconsCalls}",
+            fake.preferSymbolIconsCalls.isEmpty()
+        )
+
+        destroy(screen)
+    }
+
     /**
      * Count the daylight-flag pushes with [value], bounded in real time: the collector applies
      * the request on a real background dispatcher, which the test scheduler cannot drain, and the

@@ -456,3 +456,17 @@ When the car session ends and the navigation it presented had reached its destin
 - **WHEN** the session ends and the end decision is taken
 - **THEN** a diagnostics line SHALL record the decision (arrival fact, whether navigation was ended, and the remaining distance in metres when it is known)
 - **AND** it SHALL carry no coordinates
+
+### Requirement: Reroute keeps the navigation view live under the notice
+While a reroute is being calculated the system SHALL keep the navigation view displayed and usable under the calculation notice, with its instruction panel and trip metadata continuing to describe the route the vehicle is still on, and the notice SHALL NOT offer to cancel the reroute while navigation is active.
+
+#### Scenario: Reroute notice over live navigation
+- **WHEN** a reroute is still running after the calculation notice delay has elapsed
+- **THEN** the calculation notice SHALL be shown over the navigation view
+- **AND** the navigation view SHALL remain displayed underneath it
+- **AND** the notice SHALL NOT offer to cancel
+
+#### Scenario: Rerouted route arrives
+- **WHEN** the rerouted route arrives
+- **THEN** the calculation notice SHALL be removed
+- **AND** the navigation view SHALL continue with the new route

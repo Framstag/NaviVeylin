@@ -133,6 +133,11 @@ When both start and destination are set, the route panel SHALL display a "Calcul
 - **THEN** a progress indicator SHALL be shown in the route panel
 - **AND** the "Calculate" button SHALL be replaced with a "Cancel" button
 
+#### Scenario: Progress percentage during calculation
+- **WHEN** route calculation is in progress and the routing engine has reported a progress percentage
+- **THEN** the route panel SHALL show that percentage alongside the progress indicator
+- **AND** it SHALL show an updated percentage as the calculation progresses
+
 #### Scenario: Route polyline rendered on map
 - **WHEN** route calculation completes successfully
 - **THEN** the route polyline SHALL be rendered on the map via `renderWithRoute()`

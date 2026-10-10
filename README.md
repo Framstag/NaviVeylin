@@ -78,6 +78,32 @@ To include libosmscout with map rendering and routing:
 └── gradle/
 ```
 
+## Features
+
+The user-facing feature catalogue and the release notes are generated from the capability specs in
+`openspec/specs/`, so they cannot drift from what the app is specified to do:
+
+| Document | What it is |
+|----------|------------|
+| [`FEATURES.md`](FEATURES.md) | The feature catalogue, clustered by feature area, for phone and car |
+| [`RELEASE-NOTES.md`](RELEASE-NOTES.md) | One entry per release version, listing the user-visible capabilities that changed |
+
+```bash
+# Regenerate the catalogue (and the note for a release version; a capability the note would list that no
+# bullet of the catalogue carries fails the run, so this is a check as well as a build step)
+bash tools/gen-feature-list.sh --release 2026-10-08-1
+
+# Read what the index knows: every capability with its area, visibility and surfaces
+bash tools/gen-feature-list.sh --list
+
+# The gate over the classification alone
+bash tools/gen-feature-list.sh --check-classification
+```
+
+`RELEASE-NOTES.md` is absent until a release carries a user-visible change: a version with nothing to report gets
+no entry rather than an entry saying nothing happened. Neither document is ever edited by hand — the next run
+would discard the edit. The rules are `guidelines/FeatureList.md`; the tool and its data live in `tools/`.
+
 ## Scripts
 
 | Script | What it does |

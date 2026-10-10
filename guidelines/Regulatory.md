@@ -160,6 +160,17 @@ Design requirement: a country-keyed feature gate, default **off** for the layers
 
 Google Play Developer Program Policies bind the developer directly.
 
+- **Cleartext repository transport is deliberate** (audited 2026-10-09, change
+  `allow-lan-http-map-repository`). The shipped build permits cleartext HTTP app-wide
+  (`app/src/main/res/xml/network_security_config.xml`, asserted by `checkCleartextTransportPolicy`),
+  because a self-hosted libosmscout mapgen repository is served over plain HTTP by upstream's own web
+  server and its address is a LAN host the user types — Android's static policy cannot name that host
+  in advance, and no narrower form exists. No Play policy forbids it; the **data safety declaration is
+  unchanged** (the app sends no user data — the traffic is a GET for the source the user chose), and
+  the app marks an `http` source as unencrypted in its own UI. The one consequence to state rather
+  than hide: such a transfer has **no integrity protection**, because the download's declared size and
+  CRC-32 arrive over the same connection (`TODO.md` §163).
+
 - **Data safety form + privacy policy + prominent disclosure** must match what the app
   actually does (and what its SDKs do). Misdeclaration → removal.
 - **Location policy** (updated 2026-04-15, effective **2026-10-28**): precise location is

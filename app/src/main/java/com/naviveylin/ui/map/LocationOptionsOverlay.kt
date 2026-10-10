@@ -109,6 +109,13 @@ fun LocationOptionsOverlay(
     availableStyles: List<String> = emptyList(),
     styleSheet: String = "standard",
     onSetStyleSheet: (String) -> Unit = {},
+    /**
+     * Symbol/icon preference: draw the symbol of a style entry that carries both renderings. Sits
+     * with the style picker, because it selects how the active style's icon entries resolve
+     * (spec: `map-styles` — Phone control for the preference).
+     */
+    preferSymbolPoiIcons: Boolean = false,
+    onSetPreferSymbolPoiIcons: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showSheet by remember { mutableStateOf(false) }
@@ -167,7 +174,9 @@ fun LocationOptionsOverlay(
                 onSetRenderMode = onSetRenderMode,
                 availableStyles = availableStyles,
                 styleSheet = styleSheet,
-                onSetStyleSheet = onSetStyleSheet
+                onSetStyleSheet = onSetStyleSheet,
+                preferSymbolPoiIcons = preferSymbolPoiIcons,
+                onSetPreferSymbolPoiIcons = onSetPreferSymbolPoiIcons
             )
         }
     }
@@ -201,7 +210,9 @@ private fun LocationOptionsSheetContent(
     onSetRenderMode: (RenderMode) -> Unit,
     availableStyles: List<String>,
     styleSheet: String,
-    onSetStyleSheet: (String) -> Unit
+    onSetStyleSheet: (String) -> Unit,
+    preferSymbolPoiIcons: Boolean,
+    onSetPreferSymbolPoiIcons: (Boolean) -> Unit
 ) {
     // Vehicle anchor grid dialog target (spec: location-options-ui — Vehicle
     // anchor position controls): null = no picker open.
@@ -562,6 +573,31 @@ private fun LocationOptionsSheetContent(
                     }
                 }
             }
+        }
+
+        // Symbol/icon preference — next to the style picker: both decide what the active style
+        // draws (spec: map-styles — Phone control for the preference).
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.prefer_symbol_icons),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = preferSymbolPoiIcons,
+                onCheckedChange = { preferSymbols ->
+                    onSetPreferSymbolPoiIcons(preferSymbols)
+                },
+                modifier = Modifier.testTag("preferSymbolIconsToggle")
+            )
         }
     }
 }

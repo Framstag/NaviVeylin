@@ -685,6 +685,18 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   run's own record; the invocation that reproduces it is the aggregate one, which CI's unit-test step runs as
   `./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests --no-build-cache`
   (`./gradlew test -PforceTests --no-build-cache` locally, §3), never a batched or single-class rerun.
+- **A falsification that no local machine reproduces is run in CI, on a throwaway branch** (change
+  `fix-aggregate-run-test-flakes`, spec `unit-test-suite-runtime`; measured 2026-10-08). The family's
+  load-dependent reds were recorded on CI's 4 vCPU runner, and a 16-core dev box could not be made to reproduce
+  them: 11 aggregate reps of one mutation (one of them with 12 extra CPU-saturating shells, which only slowed
+  the run to 9m32s), 8 of another (3 with `-XX:ActiveProcessorCount=2` injected into every test JVM) — all green.
+  The route that carries CI's conditions is: commit **one** mutation on a throwaway branch →
+  `gh workflow run build.yml --ref <branch>` (the workflow triggers on `main`, on PRs to it and on
+  `workflow_dispatch`, and a dispatch accepts any ref) → read the failing case from the step log
+  (`gh run view <id> --log`) → delete the branch (`git push upstream --delete <branch>`). Keep the mutation off
+  `main`: the branch is evidence, not a fix. **And read the result honestly**: two such CI runs on 2026-10-08
+  (runs `37842541876`, `37842545107`) stayed green with their mutations in place, so a green run with the
+  mutation in place means *not falsified* — the task stays open, it is not marked done.
 - **A thread-identity assertion compares the `Thread`, not its name** (change
   `fix-aggregate-run-test-flakes`, spec `unit-test-suite-runtime` — A case's own bookkeeping is read only on
   the test thread). Under Robolectric a coroutine's thread name carries a `@coroutine#N` suffix, so

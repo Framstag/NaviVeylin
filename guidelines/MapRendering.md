@@ -507,6 +507,12 @@ FollowPrediction.displayOffsetPx(displayedCenter, frameViewport, …, anchor = c
 
 - The offset MUST be rotated by the viewport angle. Without rotation, a shift at -40° map angle
   moves the content horizontally by up to `sin(40°) × move` wrongly.
+- **The overrun margin is never negative.** A frame that offers no overrun margin on an axis — for
+  example a frame that still carries the previous orientation right after a rotation while the canvas
+  already has the new one — yields a ZERO offset on that axis, reported as clamped
+  (`FollowPrediction.displayOffsetPx` coerces its margin with `coerceAtLeast(0.0)`), so the surface
+  requests a frame in the current orientation instead of constructing an empty coercion range and
+  killing the process (`TODO.md` §153).
 - Exactly ONE displayed center: derive the offset from the frame in hand, never from the render
   target. The pan path keeps the displayed center as display-only screen state (`panDisplayLat/Lon`)
   and holds it until a frame carrying THAT center lands (`PanWindowRules.holdReleased`, released only
@@ -893,6 +899,12 @@ car Surface:
 - On-device evidence is the absence of the failure line:
   `adb logcat -s NaviVeylin | grep "ERROR while loading image"` leaves only `charging_station` and
   `mini_roundabout` (symbol-backed, upstream SVG only).
+- The **icon-versus-symbol preference** moves that line. With it on (`preferSymbolIcons` in
+  `MapParameter`, the phone setting `preferSymbolPoiIcons`, default off), `MapPainter::LayoutPointLabels`
+  draws an entry that carries a symbol from the symbol and never reaches `HasIcon`, so no image is
+  looked for: `charging_station` and `mini_roundabout` then produce **no** failure line, and a dual
+  entry such as `hospital` or `bus_stop` stops drawing its raster icon. The recipe above is the
+  **preference-off** one; on device, name which value is in effect next to the log.
 
 ---
 

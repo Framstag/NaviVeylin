@@ -33,6 +33,13 @@ class FakeAutoRenderClient : OSMScoutClient() {
         styleSheetLoads.add(name)
         return styleSheetLoadResult
     }
+
+    /** Symbol/icon preferences passed to [setPreferSymbolIcons] in call order. */
+    val preferSymbolIconsCalls = mutableListOf<Boolean>()
+
+    override fun setPreferSymbolIcons(preferSymbolIcons: Boolean) {
+        preferSymbolIconsCalls.add(preferSymbolIcons)
+    }
     override fun render(
         width: Int, height: Int,
         lat: Double, lon: Double,

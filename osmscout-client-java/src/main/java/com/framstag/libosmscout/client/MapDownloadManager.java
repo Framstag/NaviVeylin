@@ -22,6 +22,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class MapDownloadManager {
 
+    /**
+     * The database format version this client can read — the same value the native layer uses as
+     * {@code FILE_FORMAT_VERSION}, and the version slot a repository database is addressed with.
+     * One value for both, so a provider listing's version bounds and a repository's slot URL
+     * cannot drift apart (spec: map-download-infrastructure — "Database format version has one
+     * source of truth").
+     */
+    public static final int DATABASE_FORMAT_VERSION = 27;
+
     /** Reference to the OSMScoutClient that owns this manager. */
     private final OSMScoutClient client;
     /** List of currently active downloads. */
@@ -44,10 +53,7 @@ public class MapDownloadManager {
      */
     public List<AvailableMapEntry> fetchAvailableMaps(MapProvider provider) {
         try {
-            String urlStr = provider.getListUri()
-                .replace("%1", "27")
-                .replace("%2", "27")
-                .replace("%3", "en");
+            String urlStr = listingUrl(provider);
 
             HttpURLConnection conn = (HttpURLConnection) URI.create(urlStr).toURL().openConnection();
             conn.setRequestMethod("GET");
@@ -67,6 +73,24 @@ public class MapDownloadManager {
             System.err.println("[MapDownloadManager] HTTP error: " + e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * Build the provider listing URL for {@code provider}, substituting the version bounds and the
+     * locale.
+     * <p>
+     * Extracted from {@link #fetchAvailableMaps} so the version bounds are testable without HTTP
+     * and without the native parse step: both bounds come from {@link #DATABASE_FORMAT_VERSION}.
+     *
+     * @param provider the provider whose list URI template to fill in
+     * @return the listing URL with {@code %1}/{@code %2} replaced by the database format version
+     *         and {@code %3} by the requested locale
+     */
+    static String listingUrl(MapProvider provider) {
+        return provider.getListUri()
+            .replace("%1", String.valueOf(DATABASE_FORMAT_VERSION))
+            .replace("%2", String.valueOf(DATABASE_FORMAT_VERSION))
+            .replace("%3", "en");
     }
 
     /**
@@ -252,6 +276,22 @@ public class MapDownloadManager {
                 return;
             }
         }
+    }
+
+    /**
+     * Register a downloaded map directory with the native map manager, so a map that just finished
+     * downloading appears in the installed list without an app restart.
+     * <p>
+     * Exposes the native registration the provider download path already uses internally. It is
+     * deliberately not final: the repository download path in the app is tested with a subclass
+     * that records the call instead of executing native code (the host test stub exports no JNI
+     * symbols).
+     *
+     * @param path absolute path of the directory to register
+     * @return true when the map manager accepted the directory
+     */
+    public boolean registerMapDirectory(String path) {
+        return nativeRegisterMapDirectory(path);
     }
 
     /**

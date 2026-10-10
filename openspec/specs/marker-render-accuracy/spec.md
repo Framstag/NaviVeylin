@@ -8,8 +8,9 @@ Ensure GPS location markers and favorite markers stay visually aligned with map 
 
 The system SHALL project the GPS coordinate to the screen pixel using the same projection and state that the native renderer uses for the current map viewport.
 
-- The projection SHALL use the viewport center, current magnification, display DPI, and map rotation.
+- The projection SHALL use the viewport center, current magnification, map rotation, and the same DPI value the frame it is drawn on was rendered with — the DPI carried by that render request, never a separately tracked display or client-wide value.
 - The marker screen position SHALL be recomputed on every GPS fix and on every viewport change.
+- When the DPI of the surface changes, marker positions SHALL be recomputed for the new value before the next frame is displayed.
 
 #### Scenario: Marker stays on road while panning
 
@@ -21,6 +22,12 @@ The system SHALL project the GPS coordinate to the screen pixel using the same p
 - **WHEN** the user pinch-zooms the map
 - **THEN** the GPS marker screen position SHALL be recomputed at the current placeholder magnification
 - **THEN** the marker SHALL land on the same geographic point after the native render completes
+
+#### Scenario: Marker stays on the map across a surface switch
+
+- **WHEN** the car surface and the phone canvas both render in the same process, without a restart in between
+- **THEN** on each surface the marker lands on the map content of that surface's own frame
+- **THEN** neither surface's frames are projected at the other surface's DPI
 
 ### Requirement: GPS direction arrow reflects true heading
 

@@ -20,6 +20,8 @@ import com.naviveylin.core.CarSessionPresence
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.EngineTimeSource
+import com.naviveylin.core.FreeDrivingStatus
+import com.naviveylin.core.FreeDrivingStatusProvider
 import com.naviveylin.core.MapStyleLoadReporter
 import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.ProjectionUtils
@@ -270,6 +272,12 @@ data class MapCanvasUiState(
     val overspeedWarningDeltaKmh: Int = 5,
     /** Selected map stylesheet (name without the .oss postfix), e.g. "standard". */
     val styleSheet: String = DEFAULT_STYLE_NAME,
+    /**
+     * Draw the vector symbol of a style entry that carries both a raster icon and a symbol, instead
+     * of its raster icon (spec: `map-styles` — Icon-versus-symbol preference is a persisted phone
+     * setting). `false` keeps the raster icon in precedence.
+     */
+    val preferSymbolPoiIcons: Boolean = false,
     /** All bundled map styles offered by the picker (sorted, no .oss postfix). */
     val availableStyleSheets: List<String> = emptyList(),
     /** Last GPS fix for marker overlay; null if unavailable. */
@@ -287,8 +295,6 @@ data class MapCanvasUiState(
     val currentSpeedKmH: Double = Double.NaN,
     /** Max speed of the road at the GPS position (km/h); NaN when unknown. Drives the on-map speed widget in follow mode. */
     val maxSpeedKmH: Double = Double.NaN,
-    /** Road at the GPS position from the bearing-aware lookup (spec: current-road-info free driving); null when none. */
-    val currentRoadInfo: RoadInfo? = null,
     /**
      * Height the session's overlay covers, as the overlay reported it (spec:
      * `route-map-overview` — the fit uses the reported height; `phone-align-controls-in-all-modes`
@@ -320,6 +326,13 @@ class MapCanvasViewModel @Inject constructor(
     private val basemapReloadNotifier: BasemapReloadNotifier,
     private val drivingModeProvider: DrivingModeProvider? = null,
     /**
+     * Shared free-driving road/speed status (spec: `current-road-info` — One
+     * free-driving road/speed status feeds every surface and the notification).
+     * The default instance exists for direct construction in tests; production
+     * injects the process-scoped binding.
+     */
+    private val freeDrivingStatusProvider: FreeDrivingStatusProvider = FreeDrivingStatusProvider(),
+    /**
      * Car-session presence, the source of the phone's suspension (spec: `map-canvas-screen`).
      * The default (an inert instance) exists for direct construction in tests; production
      * injects the process-scoped binding.
@@ -337,6 +350,21 @@ class MapCanvasViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(MapCanvasUiState())
     val uiState: StateFlow<MapCanvasUiState> = _uiState.asStateFlow()
+
+    /**
+     * The shared free-driving road/speed status (spec: `current-road-info` — One
+     * free-driving road/speed status feeds every surface and the notification).
+     * The on-screen street label reads this, not a private copy of the road, so it
+     * cannot disagree with the ongoing notification.
+     */
+    val freeDrivingStatus: StateFlow<FreeDrivingStatus?> = freeDrivingStatusProvider.status
+
+    /**
+     * The last road the phone resolved at a fix, or null when none was found
+     * there. Carried between the fix path (which publishes the fresh speed) and
+     * the asynchronous road lookup (which publishes the fresh road).
+     */
+    private var freeDrivingRoad: RoadInfo? = null
 
     /**
      * The current map mode (spec: map-modes), derived from navigation state and
@@ -841,6 +869,19 @@ class MapCanvasViewModel @Inject constructor(
     /** True once the flag was pushed with a map database open (see [MapStyleApplyReason]). */
     private var stylePushedToNative = false
 
+    /**
+     * Symbol/icon preference last handed to the native client. Starts at the client's own default, so
+     * an app start that agrees with it issues no call.
+     */
+    private var preferSymbolNative: Boolean = false
+
+    /**
+     * Set once the user changes the preference in this session. The start-up settings load then leaves
+     * the value alone: it can resume after the change (a settings read is a suspension point), and the
+     * user's newer choice must not be overwritten by the persisted one it replaced.
+     */
+    private var preferSymbolSetByUser = false
+
     private data class AppliedMapStyle(val styleName: String?, val daylight: Boolean)
 
     /**
@@ -996,6 +1037,41 @@ class MapCanvasViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Hand the symbol/icon preference to the native client, once per value. The render path reads it
+     * when it builds its parameters, so a change applies to the next frame without a stylesheet
+     * reload. With [invalidate] the tile cache is cleared and a full re-render is forced, so no tile
+     * or frame from the previous preference is displayed (spec: `map-styles` — Preference is applied
+     * at start and on change).
+     */
+    private fun applyPreferSymbolIcons(preferSymbolIcons: Boolean, invalidate: Boolean) {
+        if (preferSymbolNative == preferSymbolIcons) {
+            return
+        }
+        preferSymbolNative = preferSymbolIcons
+        try {
+            client.setPreferSymbolIcons(preferSymbolIcons)
+        } catch (e: Exception) {
+            Log.e(TAG, "setPreferSymbolIcons failed", e)
+        }
+        if (invalidate) {
+            mapRenderer?.invalidateStyle()
+        }
+    }
+
+    /**
+     * Toggle the symbol-first rendering of style entries that carry both a raster icon and a symbol;
+     * persists it and applies it to the visible map immediately (spec: `map-styles`).
+     */
+    fun onSetPreferSymbolPoiIcons(preferSymbolIcons: Boolean) {
+        preferSymbolSetByUser = true
+        _uiState.value = _uiState.value.copy(preferSymbolPoiIcons = preferSymbolIcons)
+        viewModelScope.launch {
+            settingsStorage.update { it.copy(preferSymbolPoiIcons = preferSymbolIcons) }
+        }
+        applyPreferSymbolIcons(preferSymbolIcons, invalidate = true)
+    }
+
     /** Select and persist a map style; applies it to the renderer immediately. */
     fun onStyleSheetSelected(name: String) {
         _uiState.value = _uiState.value.copy(styleSheet = name)
@@ -1081,6 +1157,20 @@ class MapCanvasViewModel @Inject constructor(
                         drivingModeProvider.setFreeDriving(DrivingModeProvider.SURFACE_PHONE, freeDriving)
                     }
             }
+        }
+
+        // Leaving free driving clears the surface's published status, so no road
+        // from an ended mode survives into the notification (spec: `current-road-info`
+        // — Status is empty before the first fix). One observer on the mode's own
+        // source, like the driving-mode vote above.
+        viewModelScope.launch {
+            _uiState.map { it.followMode || it.driveSuspended }
+                .distinctUntilChanged()
+                .collect { freeDriving ->
+                    if (!freeDriving) {
+                        freeDrivingStatusProvider.clear(FreeDrivingStatusProvider.SURFACE_PHONE)
+                    }
+                }
         }
 
         // Basemap data changes (download/update/delete while the app runs):
@@ -1318,6 +1408,11 @@ class MapCanvasViewModel @Inject constructor(
                 // Resolve the current road for the free-driving street label
                 // (bearing-aware, throttled; spec: current-road-info).
                 resolveCurrentRoad(fix.lat, fix.lon, fix.markerBearing)
+                // Publish the fresh speed into the shared free-driving status (the
+                // road half follows from the lookup above; spec: `current-road-info`
+                // — One free-driving road/speed status feeds every surface and the
+                // notification).
+                publishFreeDrivingStatus(fix.speedKmH)
 
                 if (!_uiState.value.followMode ||
                     (mode == MapMode.FREE_DRIVE && _uiState.value.driveSuspended)
@@ -1574,6 +1669,13 @@ class MapCanvasViewModel @Inject constructor(
             val settings = settingsStorage.load()
             darkModeController.restorePreference(settings.darkMode)
             darkModeController.restoreSensorSensitivity(settings.ambientLightSensitivity)
+            // A user change that landed while this read was in flight wins: the read is a suspension
+            // point, so the persisted value it returns may already be the one the user replaced.
+            val preferSymbolPoiIcons = if (preferSymbolSetByUser) {
+                _uiState.value.preferSymbolPoiIcons
+            } else {
+                settings.preferSymbolPoiIcons
+            }
             _uiState.value = _uiState.value.copy(
                 // followMode is deliberately NOT restored: the app always starts
                 // in BROWSE (spec: map-modes — always browse on start); free
@@ -1587,7 +1689,8 @@ class MapCanvasViewModel @Inject constructor(
                 laneHintsEnabled = settings.laneHintsEnabled,
                 renderMode = settings.renderMode,
                 overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh,
-                styleSheet = settings.styleSheet
+                styleSheet = settings.styleSheet,
+                preferSymbolPoiIcons = preferSymbolPoiIcons
             )
             routingAnchor = VehicleAnchorPosition.fromId(settings.routingAnchorId)
             freeDrivingAnchor = VehicleAnchorPosition.fromId(settings.freeDrivingAnchorId)
@@ -1606,6 +1709,13 @@ class MapCanvasViewModel @Inject constructor(
                     resolvedDaylight(),
                     MapStyleApplyReason.RE_OBSERVED
                 )
+            }
+            // The preference needs no stylesheet reload — the render path reads it per frame — so it
+            // only has to reach the client before the frame that follows. If the first frame already
+            // ran with the default, invalidate so it re-renders with the persisted value.
+            if (!preferSymbolSetByUser) {
+                applyPreferSymbolIcons(preferSymbolPoiIcons,
+                                       invalidate = mapRenderer != null)
             }
         }
 
@@ -1868,8 +1978,27 @@ class MapCanvasViewModel @Inject constructor(
                 Log.w(TAG, "getRoadAt failed", e)
                 null
             }
-            _uiState.value = _uiState.value.copy(currentRoadInfo = road)
+            // Publish the resolved road (or its absence) into the shared
+            // free-driving status instead of keeping a private copy: the label and
+            // the notification read the same value (spec: `current-road-info` —
+            // One free-driving road/speed status feeds every surface and the
+            // notification).
+            freeDrivingRoad = road
+            publishFreeDrivingStatus(_uiState.value.currentSpeedKmH)
         }
+    }
+
+    /**
+     * Publish the phone surface's road/speed into the shared status (spec:
+     * `current-road-info`). The provider itself drops an unchanged value, so this
+     * is safe to call at the fix rate.
+     */
+    private fun publishFreeDrivingStatus(speedKmH: Double) {
+        freeDrivingStatusProvider.publish(
+            FreeDrivingStatusProvider.SURFACE_PHONE,
+            freeDrivingRoad,
+            speedKmH
+        )
     }
 
     internal suspend fun searchLocations(query: String): List<LocationEntry> = withContext(defaultDispatcher) {
@@ -2245,6 +2374,11 @@ class MapCanvasViewModel @Inject constructor(
             // is effective — mark it as done so the first front-buffer frame does
             // not re-push and invalidate the freshly rendered tiles.
             stylePushedToNative = true
+
+            // The preference is native client state, not part of the stylesheet load, so it is pushed
+            // before the first render and the first frame already follows it (spec: `map-styles` —
+            // Preference is applied at start and on change).
+            applyPreferSymbolIcons(_uiState.value.preferSymbolPoiIcons, invalidate = false)
 
             // The style value comes from the settings load that ran at ViewModel init; its load is
             // part of the single `ensureMapStyle` call above.

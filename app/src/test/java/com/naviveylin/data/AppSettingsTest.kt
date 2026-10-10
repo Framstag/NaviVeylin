@@ -18,6 +18,9 @@ class AppSettingsTest {
         assertFalse(settings.navNorthUp)
         assertEquals(DarkModePreference.AUTOMATIC, settings.darkMode)
         assertEquals(AmbientLightSensitivity.OFF, settings.ambientLightSensitivity)
+        // The raster icon keeps its precedence until the user asks for the symbol
+        // (spec: `map-styles` — Icon-versus-symbol preference is a persisted phone setting).
+        assertFalse(settings.preferSymbolPoiIcons)
     }
 
     @Test

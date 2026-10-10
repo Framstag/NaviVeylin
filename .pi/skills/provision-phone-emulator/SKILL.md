@@ -19,7 +19,7 @@ deletes its data), and an `assumeTrue`-skipped instrumentation run reported `OK 
 
 | Element | Rule |
 |---|---|
-| Installing | `adb install -r -t <apk>` for the app **and** the androidTest APK. Never uninstall. |
+| Installing | `adb install -r -t <apk>` for the app **and** the androidTest APK. Never uninstall. `-r` only updates a build signed with the **same key** as the APK you built: a differently-signed install (Play/release, or another machine's debug key) refuses it with `INSTALL_FAILED_UPDATE_INCOMPATIBLE: signatures do not match`, leaving uninstall as the only in-place path — and that deletes the maps (pitfall 13). |
 | After maps exist | **Never** reinstall/uninstall the app, and **never** run `connectedAndroidTest`: AGP uninstalls/reinstalls, which deletes `files/maps` along with the package data. |
 | Device-side runs | `adb shell am instrument -w -e class <FQCN> com.framstag.naviveylin.test/androidx.test.runner.AndroidJUnitRunner` |
 | Reading a result | The JUnit XML (`app/build/outputs/androidTest-results/…/TEST-*.xml`) — `tests`/`skipped`/`failures`. A run that finishes in ~0.02 s and prints `OK (N tests)` is `assumeTrue` **skipping**, not a pass. |
@@ -106,6 +106,13 @@ Provider list (2026-10, sizes measured on the emulator):
 | Basemap **Minimal** | 2.4 MB | Enough to render a world background — the quick start |
 | Basemap **Full** | 39.0 MB | Full world basemap |
 | `europe → germany → North Rhine-Westphalia` | 783.7 MB | The routable region used by the phone device checks (Dortmund / Cologne / Bochum coordinates are inside it) |
+| `europe → Andorra` | 5.6 MB | The **smallest routable** region seen (2026-10-09) — use it when a check only needs *some* routable database |
+
+**A basemap alone does not provision the app.** Measured 2026-10-09: with only `files/maps/basemap`
+installed, the app still starts on the "Karten holen" prompt and the map screen is unreachable. At least
+one **routable** region must be present, of which Andorra (5.6 MB) is the cheapest. A region far from the
+injected fix is fine for a check that only needs the map screen (for example a rotation/follow crash
+check) — just move `adb emu geo fix` into it so free driving has a real area.
 
 Walking the UI:
 
@@ -148,7 +155,8 @@ sleep 12 && adb logcat -d -s NaviVeylin | grep -E "found valid map|Total install
 adb shell run-as com.framstag.naviveylin ls files/maps     # north-rhine-westphalia, (basemap)
 ```
 
-An app that starts on the map instead of the "Karten holen" start screen is provisioned. `Unknown
+An app that starts on the map instead of the "Karten holen" start screen is provisioned — note that the
+basemap alone is not enough for this (step 4: a routable region is required). `Unknown
 types in '<file>'` warnings are expected on an install whose map data predates the stylesheet
 (`TODO.md` §91/§99) — one line per style file, not a failure.
 
@@ -255,6 +263,15 @@ failure you have not otherwise explained.
     `Reason: Input dispatching timed out … Waited 5001ms for FocusEvent(hasFocus=true)` and the ANR
     report's CPU block showing the app at 109 % — with the *host* at **load average 19.85 on 16 cores**.
     Check `uptime` first; a software-rendered emulator starves and then gets blamed for it.
+13. **A differently-signed build on the AVD, and `install -r` refusing it.** A fresh AVD often carries a
+    Play/release-signed install, so `adb install -r -t <your debug apk>` fails with
+    `INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package … signatures do not match` (measured
+    2026-10-09 on `emulator-5554`; the installed package also answered `run-as: package not debuggable`).
+    The only in-place path is an uninstall, which takes `files/maps` with it. Read the app's own state
+    before deciding: `run-as <pkg> ls files` succeeding means the installed build is debuggable (very
+    likely your own). Once *your* build is installed, `adb install -r -t` updates it and **preserves
+    `files/maps`** (same key, no uninstall) — the normal iteration path stays open. If the AVD holds
+    someone else's signed build, prefer another AVD over wiping this one's map data.
 
 ## References
 

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -25,9 +26,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,13 +52,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.framstag.libosmscout.client.AvailableMapEntry
+import com.naviveylin.core.mapsource.MapSource
+import com.naviveylin.data.MapSourceSwitchPlan
 import com.naviveylin.R
 
 /**
@@ -100,7 +109,10 @@ fun MapManagerScreen(
             )
         }
     }
-    val availableTree = remember(availableEntries, expandedDirs, searchQuery, uiState.downloadingNames) {
+    val availableTree = remember(
+        availableEntries, expandedDirs, searchQuery, uiState.downloadingNames,
+        uiState.repositoryRegionLabels
+    ) {
         val filtered = if (searchQuery.isBlank()) {
             availableEntries
         } else {
@@ -109,12 +121,20 @@ fun MapManagerScreen(
                 entry.path.any { it.contains(searchQuery, ignoreCase = true) }
             }
         }
-        buildTreeItems(filtered, expandedDirs)
+        buildTreeItems(filtered, expandedDirs, uiState.repositoryRegionLabels)
     }
 
-    // Refresh installed maps when screen opens
+    // Refresh installed maps when screen opens, and read the offered map sources
     LaunchedEffect(Unit) {
         viewModel.refreshInstalledMaps()
+        viewModel.refreshSources()
+    }
+
+    // A source change makes the basemap section's state stale: it must probe the newly active source
+    // instead of showing the previous one's basemap (found on device 2026-10-09; spec
+    // `basemap-discovery` — "Probe follows the source, not the stale one").
+    LaunchedEffect(uiState.activeSource) {
+        basemapViewModel.refresh()
     }
 
     Scaffold(
@@ -136,11 +156,20 @@ fun MapManagerScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Provider selector + refresh
+            // Map source selector + refresh
             item {
-                ProviderSelector(
-                    onRefresh = { viewModel.refreshAvailableMaps() },
-                    isLoading = uiState.isLoading
+                SourceSelector(
+                    state = uiState,
+                    onSelect = { source -> viewModel.selectSource(source) },
+                    onUrlChange = { url -> viewModel.updateRepositoryUrlDraft(url) },
+                    onTest = { viewModel.testRepositoryUrl() },
+                    onRefresh = {
+                        if (uiState.activeSource.isRepository) {
+                            viewModel.refreshRepositoryRegions()
+                        } else {
+                            viewModel.refreshAvailableMaps()
+                        }
+                    }
                 )
             }
 
@@ -218,6 +247,7 @@ fun MapManagerScreen(
                         isDownloading = { false },
                         downloadState = { null },
                         progress = { 0 },
+                        installedSourceName = { entry -> viewModel.installedMapSourceName(entry.name) },
                         onToggleDir = { dirKey ->
                             expandedDirs = if (dirKey in expandedDirs) {
                                 expandedDirs - dirKey
@@ -257,12 +287,23 @@ fun MapManagerScreen(
                         isDownloading = { entry -> viewModel.isMapDownloading(entry) },
                         downloadState = { entry -> viewModel.getDownloadState(entry) },
                         progress = { entry -> uiState.progressMap[entry.name] ?: 0 },
+                        installedSourceName = { entry -> viewModel.installedMapSourceName(entry.name) },
+                        leafState = { entry -> viewModel.leafStateOf(entry) },
                         onToggleDir = { dirKey ->
-                            expandedDirs = if (dirKey in expandedDirs) {
-                                expandedDirs - dirKey
-                            } else {
-                                expandedDirs + dirKey
+                            val toggle = toggleExpandedDirs(expandedDirs, dirKey)
+                            expandedDirs = toggle.expanded
+                            // Expanding a region reads the metadata of the leaves it reveals
+                            // (spec `map-repository-source` — "Database metadata is fetched on
+                            // demand per leaf"). Found on device 2026-10-09: this condition was
+                            // inverted, so the probe only ever ran on a collapse — and the row
+                            // quietly showed no size.
+                            if (toggle.justExpanded) {
+                                viewModel.probeLeavesUnder(dirKey)
                             }
+                        },
+                        onLeafProbe = { entry ->
+                            // Selecting a repository leaf reads its metadata when it was not read yet.
+                            viewModel.probeLeaf(entry.serverDirectory.orEmpty().split("/"))
                         },
                         onDownload = { entry -> viewModel.downloadMap(entry) },
                         onCancel = { viewModel.cancelDownload(it.name) },
@@ -284,46 +325,263 @@ fun MapManagerScreen(
                 }
             }
         }
+
+        // A source switch asks before it deletes anything (spec `map-source-selection`).
+        uiState.pendingSourceSwitch?.let { plan ->
+            SourceSwitchConfirmationDialog(
+                plan = plan,
+                onConfirm = { viewModel.confirmSourceSwitch() },
+                onDismiss = { viewModel.cancelSourceSwitch() }
+            )
+        }
     }
 }
 
-// ── Provider Selector ──────────────────────────────────────────
+// ── Previews ───────────────────────────────────────────────────
 
+/** The source row with the repository selected and a tested URL. */
+@Preview(showBackground = true)
 @Composable
-private fun ProviderSelector(
-    onRefresh: () -> Unit,
-    isLoading: Boolean
+private fun SourceSelectorPreview() {
+    SourceSelector(
+        state = MapManagerUiState(
+            sources = listOf(
+                MapSource.BuiltInProvider,
+                MapSource.repository("http://truenas.home.framstag.com:30123")
+            ),
+            activeSource = MapSource.repository("http://truenas.home.framstag.com:30123"),
+            repositoryUrlDraft = "http://truenas.home.framstag.com:30123",
+            sourceTestOutcome = SourceTestOutcome.Success(
+                url = "http://truenas.home.framstag.com:30123/names.json",
+                regionCount = 1,
+                leafCount = 1
+            )
+        ),
+        onSelect = {},
+        onUrlChange = {},
+        onTest = {},
+        onRefresh = {}
+    )
+}
+
+/** The confirmation a switch needs before it deletes the other source's data. */
+@Preview(showBackground = true)
+@Composable
+private fun SourceSwitchConfirmationDialogPreview() {
+    SourceSwitchConfirmationDialog(
+        plan = MapSourceSwitchPlan(
+            mapDirectories = listOf(
+                java.nio.file.Paths.get("/maps/europe-germany-north-rhine-westphalia"),
+                java.nio.file.Paths.get("/maps/iceland")
+            ),
+            mapBytes = 821_788_380L,
+            basemapDirectory = java.nio.file.Paths.get("/maps/basemap"),
+            basemapBytes = 90_500_000L
+        ),
+        onConfirm = {},
+        onDismiss = {}
+    )
+}
+
+// ── Source Selector ────────────────────────────────────────────
+
+/**
+ * The result of toggling a tree group row: the new expanded set and whether the row was *just* expanded
+ * (which is when its leaves' metadata must be read).
+ *
+ * Extracted from the screen because the inline form of this condition was inverted once and nothing
+ * noticed: the row simply showed no size, and only the device run made it visible (2026-10-09).
+ */
+data class ExpandedToggle(val expanded: Set<String>, val justExpanded: Boolean)
+
+/** Toggle [dirKey] in [expanded]; [ExpandedToggle.justExpanded] is true only when it was closed. */
+internal fun toggleExpandedDirs(expanded: Set<String>, dirKey: String): ExpandedToggle {
+    val wasExpanded = dirKey in expanded
+    return ExpandedToggle(
+        expanded = if (wasExpanded) expanded - dirKey else expanded + dirKey,
+        justExpanded = !wasExpanded
+    )
+}
+
+/**
+ * Keyboard options of the repository URL field.
+ *
+ * URL input, not prose: the platform's text input must not insert a space after a period or
+ * capitalise a letter, which is what turns a hand-typed `http://10.0.2.2:30123` into
+ * `http://10.0. 2. 2:30123` (spec `map-source-selection` — "The repository URL field is presented as
+ * URL input with its format shown"). Declared as a value so a test can assert the configuration; that
+ * a given input method honours it is a device question.
+ */
+internal val repositoryUrlKeyboardOptions = KeyboardOptions(
+    keyboardType = KeyboardType.Uri,
+    imeAction = ImeAction.Done
+)
+
+/**
+ * Source selection: the offered sources, the repository's base URL with its test action, and the
+ * refresh that fetches the active source's listing (spec `map-download-ui` — "Provider selection and
+ * refresh").
+ */
+@Composable
+internal fun SourceSelector(
+    state: MapManagerUiState,
+    onSelect: (MapSource) -> Unit,
+    onUrlChange: (String) -> Unit,
+    onTest: () -> Unit,
+    onRefresh: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.provider_label),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = stringResource(R.string.provider_karry),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        Button(
-            onClick = onRefresh,
-            enabled = !isLoading
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.width(16.dp).height(16.dp),
-                    strokeWidth = 2.dp
+            Text(
+                text = stringResource(R.string.provider_label),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            state.sources.forEach { source ->
+                FilterChip(
+                    selected = source == state.activeSource,
+                    onClick = { onSelect(source) },
+                    label = {
+                        Text(
+                            text = if (source.isRepository) {
+                                stringResource(R.string.source_repository_label)
+                            } else {
+                                stringResource(R.string.provider_karry)
+                            }
+                        )
+                    }
                 )
-            } else {
-                Icon(Icons.Default.Refresh, contentDescription = null)
             }
-            Text(stringResource(R.string.refresh))
+            Spacer(modifier = Modifier.weight(1f))
+            Button(
+                onClick = onRefresh,
+                enabled = !state.isLoading
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.width(16.dp).height(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                }
+                Text(stringResource(R.string.refresh))
+            }
+        }
+
+        if (state.activeSource.isRepository || state.repositoryUrlDraft.isNotBlank() ||
+            state.repositoryUrlRevealed
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = state.repositoryUrlDraft,
+                    onValueChange = onUrlChange,
+                    label = { Text(stringResource(R.string.repository_url_label)) },
+                    // URL input, not prose: see `repositoryUrlKeyboardOptions`.
+                    keyboardOptions = repositoryUrlKeyboardOptions,
+                    singleLine = true,
+                    enabled = !state.isTestingSource,
+                    supportingText = { Text(stringResource(R.string.repository_url_format_hint)) },
+                    modifier = Modifier.weight(1f).testTag("repository-url-field")
+                )
+                Button(
+                    onClick = onTest,
+                    enabled = !state.isTestingSource && state.repositoryUrlDraft.isNotBlank(),
+                    modifier = Modifier.testTag("repository-url-test")
+                ) {
+                    Text(stringResource(R.string.source_test_action))
+                }
+            }
+            state.unencryptedUrl?.let { unencrypted ->
+                Text(
+                    text = stringResource(R.string.repository_url_unencrypted_notice, unencrypted),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .testTag("repository-url-unencrypted-notice")
+                )
+            }
+            state.sourceTestOutcome?.let { outcome ->
+                Text(
+                    text = outcome.describe(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (outcome is SourceTestOutcome.Success) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
     }
+}
+
+/** A user-actionable description of a test outcome (spec `map-source-selection`). */
+@Composable
+private fun SourceTestOutcome.describe(): String = when (this) {
+    is SourceTestOutcome.Success ->
+        stringResource(R.string.source_test_success, regionCount, leafCount)
+    is SourceTestOutcome.Failure -> when (val reason = failure) {
+        is com.naviveylin.core.mapsource.RepositoryFailure.UnsupportedSchema ->
+            stringResource(R.string.source_test_unsupported_schema, url, reason.found ?: -1)
+        is com.naviveylin.core.mapsource.RepositoryFailure.TransportFailed ->
+            stringResource(R.string.source_test_unreachable, url, reason.cause.orEmpty())
+        is com.naviveylin.core.mapsource.RepositoryFailure.CleartextBlocked ->
+            stringResource(R.string.source_test_cleartext_blocked, url)
+        is com.naviveylin.core.mapsource.RepositoryFailure.MalformedUrl ->
+            stringResource(R.string.source_test_malformed_url, url)
+        is com.naviveylin.core.mapsource.RepositoryFailure.HttpStatus ->
+            stringResource(R.string.source_test_unreachable, url, reason.status.toString())
+        else -> stringResource(R.string.source_test_not_a_repository, url)
+    }
+}
+
+// ── Source switch confirmation ─────────────────────────────────
+
+/**
+ * The confirmation a source switch needs before it deletes anything: how many maps and how many
+ * bytes disappear, the basemap included (spec `map-source-selection`; spec `map-download-ui` —
+ * "Switching source asks before deleting").
+ */
+@Composable
+internal fun SourceSwitchConfirmationDialog(
+    plan: MapSourceSwitchPlan,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("source-switch-dialog"),
+        title = { Text(stringResource(R.string.source_switch_dialog_title)) },
+        text = {
+            Text(
+                stringResource(
+                    R.string.source_switch_dialog_body,
+                    plan.mapCount,
+                    "%.1f MB".format(plan.totalBytes / (1024.0 * 1024.0))
+                )
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.source_switch_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
 }
 
 // ── Active Downloads Section ───────────────────────────────────
@@ -513,7 +771,8 @@ data class TreeItemData(
 /** Build a flat list of tree items from the hierarchical AvailableMapEntry list. */
 private fun buildTreeItems(
     entries: List<AvailableMapEntry>,
-    expandedDirs: Set<String> = emptySet()
+    expandedDirs: Set<String> = emptySet(),
+    regionLabels: Map<String, String> = emptyMap()
 ): List<TreeItemData> {
     val result = mutableListOf<TreeItemData>()
 
@@ -549,7 +808,10 @@ private fun buildTreeItems(
             val dirEntry = AvailableMapEntry(dirName, parentPath, "")
             result.add(TreeItemData(
                 id = "dir-$dirKey",
-                label = dirName,
+                // A repository's path segment is its identifier; the index's localized name is shown
+                // when it knows one (spec `map-repository-source` — "Tree rendered with localized
+                // names"). A provider's segment is already the name it publishes.
+                label = regionLabels[dirKey] ?: dirName,
                 depth = depth,
                 entry = dirEntry,
                 isDirectory = true,
@@ -580,6 +842,23 @@ private fun buildTreeItems(
 
 // ── Tree Item Row ──────────────────────────────────────────────
 
+/**
+ * The status line of an available row that is not installed: for a repository leaf, what the probe of
+ * its own version slot found (spec `map-repository-source` — "Leaf published for another database
+ * version").
+ */
+@Composable
+private fun leafStatusText(entry: AvailableMapEntry, state: LeafMetadataState?): String? = when (state) {
+    null -> null
+    LeafMetadataState.Probing -> stringResource(R.string.leaf_metadata_probing)
+    is LeafMetadataState.Loaded ->
+        // The size is the entry's own (shown above this line); the version is what the metadata adds.
+        stringResource(R.string.leaf_map_version, state.metadata.typeConfigVersion)
+    is LeafMetadataState.NotPublished ->
+        stringResource(R.string.leaf_not_published, state.databaseFormatVersion)
+    is LeafMetadataState.Failed -> stringResource(R.string.leaf_metadata_failed)
+}
+
 @Composable
 private fun TreeItemRow(
     item: TreeItemData,
@@ -589,6 +868,10 @@ private fun TreeItemRow(
     progress: (AvailableMapEntry) -> Int,
     onToggleDir: (String) -> Unit,
     onDownload: (AvailableMapEntry) -> Unit,
+    installedSourceName: (AvailableMapEntry) -> String = { "" },
+    leafState: (AvailableMapEntry) -> LeafMetadataState? = { null },
+    /** Called when a repository leaf is tapped to read its metadata (spec `map-repository-source`). */
+    onLeafProbe: (AvailableMapEntry) -> Unit = {},
     onCancel: (AvailableMapEntry) -> Unit,
     onDelete: (AvailableMapEntry) -> Unit,
     onMapSelected: (AvailableMapEntry) -> Unit = {}
@@ -626,8 +909,13 @@ private fun TreeItemRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(
-                    if (installed) Modifier.clickable { onMapSelected(entry) }
-                    else Modifier
+                    when {
+                        installed -> Modifier.clickable { onMapSelected(entry) }
+                        // An available repository leaf is tappable to read its metadata; the download
+                        // button stays the action that installs it.
+                        entry.serverDirectory != null -> Modifier.clickable { onLeafProbe(entry) }
+                        else -> Modifier
+                    }
                 )
                 .padding(start = indent, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -669,6 +957,27 @@ private fun TreeItemRow(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+                if (installed) {
+                    // Which source installed this map, so a user running both a provider and a
+                    // repository can tell the two apart (spec `map-download-ui`).
+                    Text(
+                        text = stringResource(R.string.installed_from_source, installedSourceName(entry)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                } else {
+                    leafStatusText(entry, leafState(entry))?.let { status ->
+                        Text(
+                            text = status,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 

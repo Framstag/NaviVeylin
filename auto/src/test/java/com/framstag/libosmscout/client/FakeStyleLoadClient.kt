@@ -14,4 +14,9 @@ class FakeStyleLoadClient(
     override fun wasLastStyleLoadSuccessful(): Boolean = loadSuccessful
 
     override fun getActiveStyleSheet(): String = activeStyle
+
+    // The car path never pushes the symbol/icon preference; the override keeps the
+    // native method out of the host stub's reach for a screen that renders after the
+    // phone changed it.
+    override fun setPreferSymbolIcons(preferSymbolIcons: Boolean) = Unit
 }

@@ -12,6 +12,10 @@ import com.framstag.libosmscout.client.BasemapManager
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.MapProvider
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.data.BasemapRegistrar
+import com.naviveylin.data.HttpUrlFetcher
+import com.naviveylin.data.MapSourceRegistry
+import com.naviveylin.data.SettingsStorage
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +42,13 @@ class BasemapSectionComposeTest {
     val composeRule = createComposeRule()
 
     private fun context(): Context = ApplicationProvider.getApplicationContext()
+
+    /** The source registry the view model needs; the built-in provider is the default selection. */
+    private fun sourceRegistry(port: Int): MapSourceRegistry = MapSourceRegistry(
+        SettingsStorage(context()),
+        MapProvider("test", "http://127.0.0.1:$port", ""),
+        HttpUrlFetcher()
+    )
 
     private val sampleListing =
         "<html><body><table>" +
@@ -79,8 +90,8 @@ class BasemapSectionComposeTest {
             val vm = BasemapViewModel(
                 context() as Application,
                 manager(server.address.port, mapsDir),
-                FakeOSMScoutClient(),
-                BasemapReloadNotifier()
+                BasemapRegistrar(FakeOSMScoutClient(), BasemapReloadNotifier()),
+                sourceRegistry(server.address.port)
             )
             composeRule.setContent { BasemapSection(viewModel = vm) }
 
@@ -99,8 +110,8 @@ class BasemapSectionComposeTest {
             val vm = BasemapViewModel(
                 context() as Application,
                 manager(server.address.port, mapsDir),
-                FakeOSMScoutClient(),
-                BasemapReloadNotifier()
+                BasemapRegistrar(FakeOSMScoutClient(), BasemapReloadNotifier()),
+                sourceRegistry(server.address.port)
             )
             composeRule.setContent { BasemapSection(viewModel = vm) }
 
@@ -123,8 +134,8 @@ class BasemapSectionComposeTest {
             val vm = BasemapViewModel(
                 context() as Application,
                 manager(server.address.port, mapsDir),
-                FakeOSMScoutClient(),
-                BasemapReloadNotifier()
+                BasemapRegistrar(FakeOSMScoutClient(), BasemapReloadNotifier()),
+                sourceRegistry(server.address.port)
             )
             composeRule.setContent { BasemapSection(viewModel = vm) }
 

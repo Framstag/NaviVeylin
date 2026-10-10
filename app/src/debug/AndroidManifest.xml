@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only test scaffolding (change `add-mapgen-map-source`).
+
+  This file used to set the debug-only cleartext flag (the manifest attribute
+  `usesCleartextTraffic`, without a value quoted here so that a policy grep over a merged manifest
+  cannot mistake this comment for a declaration) so a self-hosted mapgen repository
+  served over plain HTTP on a LAN host (`http://truenas.home.framstag.com:30123`, or
+  `http://10.0.2.2:<port>` from an emulator) could be tested on a device.
+
+  That attribute is gone, and deliberately nothing here replaces it: the shipping build now
+  permits cleartext for the repository transport in `src/main/res/xml/network_security_config.xml`,
+  and Android ignores `android:usesCleartextTraffic` entirely once
+  `android:networkSecurityConfig` is set, so leaving the attribute would have been dead
+  configuration asserting a policy the app no longer follows (change
+  `allow-lan-http-map-repository`).
+
+  A debug override is still the place for a debug-only transport change. It is not needed today.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

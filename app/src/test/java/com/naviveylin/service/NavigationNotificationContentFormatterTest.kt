@@ -3,6 +3,7 @@ package com.naviveylin.service
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.R
+import com.naviveylin.core.FreeDrivingStatus
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.StringResolver
 import org.junit.Assert.assertEquals
@@ -87,20 +88,13 @@ class NavigationNotificationContentFormatterTest {
     }
 
     @Test
-    fun freeDrivingShowsRoadAndSpeedWithoutStopAction() {
-        val road = com.framstag.libosmscout.client.CurrentRoadInfo(
-            "A5",
-            "motorway",
-            "Autobahn"
-        )
-        val state = NavigationState(
-            isNavigating = false,
-            currentRoadInfo = road,
-            currentSpeedKmH = 112.0
-        )
+    fun freeDrivingShowsStatusRoadAndSpeed() {
+        val status = FreeDrivingStatus(roadRef = "A5", roadName = "Autobahn", speedKmH = 112.0)
         val content = NavigationNotificationContentFormatter.format(
-            state,
-            resolver = resolver, freeDrivingActive = true, etaClock = { "13:00" }
+            NavigationState(isNavigating = false),
+            resolver = resolver,
+            freeDrivingActive = true,
+            freeDrivingStatus = status
         )
         assertEquals("Free driving", content.title)
         assertTrue(content.contentText.contains("A5 Autobahn"))
@@ -109,17 +103,51 @@ class NavigationNotificationContentFormatterTest {
     }
 
     @Test
-    fun freeDrivingOffRoadShowsFallback() {
-        val state = NavigationState(
-            isNavigating = false,
-            currentRoadInfo = null,
-            currentSpeedKmH = Double.NaN
-        )
+    fun unknownSpeedLeavesNoSeparator() {
+        // A known road with an unknown speed renders the street alone — no trailing
+        // separator and no empty slot (spec: `navigation-ongoing-notification` —
+        // Unknown free-driving values leave no empty fragment).
+        val status = FreeDrivingStatus(roadRef = "A5", roadName = "Autobahn", speedKmH = Double.NaN)
         val content = NavigationNotificationContentFormatter.format(
-            state,
-            resolver = resolver, freeDrivingActive = true, etaClock = { "13:00" }
+            NavigationState(isNavigating = false),
+            resolver = resolver,
+            freeDrivingActive = true,
+            freeDrivingStatus = status
+        )
+        assertEquals("A5 Autobahn", content.contentText)
+        assertFalse(content.contentText.contains("·"))
+    }
+
+    @Test
+    fun unknownRoadShowsFallback() {
+        // A fix was processed but no road was found there: the off-road fallback,
+        // never an empty text (spec: current-road-info — Status clears when the road
+        // is lost).
+        val status = FreeDrivingStatus(speedKmH = Double.NaN)
+        val content = NavigationNotificationContentFormatter.format(
+            NavigationState(isNavigating = false),
+            resolver = resolver,
+            freeDrivingActive = true,
+            freeDrivingStatus = status
         )
         assertTrue(content.contentText.contains("Offroad"))
+    }
+
+    @Test
+    fun noFixYetShowsNeutralTitle() {
+        // No status at all means no fix has been processed: the neutral title with
+        // no street and no speed — no road from an earlier session (spec:
+        // `navigation-ongoing-notification` — No fix yet means no stale road).
+        val content = NavigationNotificationContentFormatter.format(
+            NavigationState(isNavigating = false),
+            resolver = resolver,
+            freeDrivingActive = true,
+            freeDrivingStatus = null
+        )
+        assertEquals("Free driving", content.title)
+        assertEquals("Free driving", content.contentText)
+        assertTrue(content.bigTextLines.isEmpty())
+        assertFalse(content.contentText.contains("Offroad"))
     }
 
     @Test
@@ -141,11 +169,16 @@ class NavigationNotificationContentFormatterTest {
     private fun post(
         state: NavigationState,
         freeDriving: Boolean = false,
+        freeDrivingStatus: FreeDrivingStatus? = null,
         etaClock: (Long) -> String = { "13:00" }
     ): NotificationPost = NotificationPost(
         content = NavigationNotificationContentFormatter.format(
             state,
-            resolver = resolver, freeDrivingActive = freeDriving, etaClock = etaClock, locale = Locale.US
+            resolver = resolver,
+            freeDrivingActive = freeDriving,
+            freeDrivingStatus = freeDrivingStatus,
+            etaClock = etaClock,
+            locale = Locale.US
         ),
         hint = null
     )
@@ -263,24 +296,30 @@ class NavigationNotificationContentFormatterTest {
 
     @Test
     fun theCurrentRoadChangeRepostsInFreeDriving() {
-        val first = NavigationState(
-            isNavigating = false,
-            currentRoadInfo = com.framstag.libosmscout.client.CurrentRoadInfo("A5", "motorway", "Autobahn"),
-            currentSpeedKmH = 100.0
-        )
-        val otherRoad = first.copy(
-            currentRoadInfo = com.framstag.libosmscout.client.CurrentRoadInfo("B7", "trunk", "Bundesstrasse")
-        )
+        val first = NavigationState(isNavigating = false)
+        val firstStatus = FreeDrivingStatus(roadRef = "A5", roadName = "Autobahn", speedKmH = 100.0)
+        val otherStatus = FreeDrivingStatus(roadRef = "B7", roadName = "Bundesstrasse", speedKmH = 100.0)
 
-        assertTrue(NavigationNotificationContentFormatter.hostVisibleContentChanged(post(first, true), post(otherRoad, true)))
+        assertTrue(
+            NavigationNotificationContentFormatter.hostVisibleContentChanged(
+                post(first, freeDriving = true, freeDrivingStatus = firstStatus),
+                post(first, freeDriving = true, freeDrivingStatus = otherStatus)
+            )
+        )
     }
 
     @Test
     fun theFreeDrivingSpeedChangeReposts() {
-        val first = NavigationState(isNavigating = false, currentSpeedKmH = 50.0)
-        val faster = first.copy(currentSpeedKmH = 51.0)
+        val state = NavigationState(isNavigating = false)
+        val first = FreeDrivingStatus(roadRef = "A5", roadName = "Autobahn", speedKmH = 50.0)
+        val faster = first.copy(speedKmH = 51.0)
 
-        assertTrue(NavigationNotificationContentFormatter.hostVisibleContentChanged(post(first, true), post(faster, true)))
+        assertTrue(
+            NavigationNotificationContentFormatter.hostVisibleContentChanged(
+                post(state, freeDriving = true, freeDrivingStatus = first),
+                post(state, freeDriving = true, freeDrivingStatus = faster)
+            )
+        )
     }
 
     @Test

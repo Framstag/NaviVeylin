@@ -1,0 +1,19 @@
+{
+  "comment": "Feature areas of the user-facing catalogue. One entry per area: id (referenced by specs.json), heading (the rendered heading), order (render order), carOnly (true for the single area that groups capabilities existing only for car platforms). An area whose members are all classified userVisible=false is rendered nowhere and therefore needs no heading of its own; build-tooling is such an area.",
+  "surfaceVocabulary": ["phone", "car"],
+  "areas": [
+    { "id": "routing", "heading": "Routing & Turn-by-Turn", "order": 10, "carOnly": false },
+    { "id": "search", "heading": "Search & Destinations", "order": 20, "carOnly": false },
+    { "id": "object-info", "heading": "Places & Objects on the Map", "order": 30, "carOnly": false },
+    { "id": "favorites", "heading": "Favorites & Saved Places", "order": 40, "carOnly": false },
+    { "id": "offline-maps", "heading": "Offline Maps & Data", "order": 50, "carOnly": false },
+    { "id": "map-appearance", "heading": "Map Appearance", "order": 60, "carOnly": false },
+    { "id": "map-interaction", "heading": "Map Interaction & Controls", "order": 70, "carOnly": false },
+    { "id": "positioning", "heading": "Driving, Position & Speed", "order": 80, "carOnly": false },
+    { "id": "handoff", "heading": "Sharing & Handoff", "order": 90, "carOnly": false },
+    { "id": "car-only", "heading": "In Your Car", "order": 100, "carOnly": true },
+    { "id": "device-fit", "heading": "Device Fit & Accessibility", "order": 110, "carOnly": false },
+    { "id": "settings-legal", "heading": "Settings, Data & Legal", "order": 120, "carOnly": false },
+    { "id": "build-tooling", "heading": "Build & Tooling", "order": 130, "carOnly": false }
+  ]
+}

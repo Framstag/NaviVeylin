@@ -204,6 +204,13 @@ class FakeOSMScoutClient : OSMScoutClient() {
         nativeDataCacheSizes.add(cacheSize)
     }
 
+    /** Symbol/icon preferences passed to [setPreferSymbolIcons] in call order. */
+    val preferSymbolIconsCalls = mutableListOf<Boolean>()
+
+    override fun setPreferSymbolIcons(preferSymbolIcons: Boolean) {
+        preferSymbolIconsCalls.add(preferSymbolIcons)
+    }
+
     /** Bounding box returned by [getDatabaseBoundingBox] (null = none). */
     var databaseBoundingBox: DoubleArray? = null
 

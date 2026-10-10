@@ -320,4 +320,25 @@ class FollowAnchorFramingTest {
             kotlin.math.abs(contentX - mx) + kotlin.math.abs(contentY - my) > 50.0
         )
     }
+
+    @Test
+    fun `a frame from the previous orientation reports clamped so the screen requests a render`() {
+        // Rotation handoff: at a configuration change the canvas adopts the new
+        // dimensions at once while the displayed frame still carries the old
+        // orientation until the committed render lands. The phone follow loop
+        // requests a re-render exactly when the offset reports `clamped`
+        // (MapCanvasScreen.kt:740-745 "request a render when clamped"), so this
+        // flag is the render-request signal — and computing it must not throw
+        // (spec: smooth-follow — A frame from the previous orientation yields a
+        // zero offset instead of an error).
+        val dLon = 500.0 / FollowPrediction.METERS_PER_DEG_LON
+        // Portrait frame (1296x2880) against the landscape canvas (2400x1080):
+        // the x margin is negative and coerces to zero.
+        val off = FollowPrediction.displayOffsetPx(
+            lat, lon + dLon, lat, lon, mag, 0.0, 1296, 2880, 2400, 1080, dpi
+        )
+        assertTrue(off.clampedX.isFinite())
+        assertEquals(0.0, off.clampedX, 1e-9)
+        assertTrue("the screen needs `clamped` to request a frame in the new orientation", off.clamped)
+    }
 }

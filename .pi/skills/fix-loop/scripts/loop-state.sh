@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# loop-state.sh — budget and progress bookkeeping for the bugfix-loop skill.
+# loop-state.sh — budget and progress bookkeeping for the fix-loop skill.
 #
-# The loop's limits (bug cap, wall-clock deadline) and its progress have to be mechanical, not remembered:
+# The loop's limits (item cap, wall-clock deadline) and its progress have to be mechanical, not remembered:
 # this script is the only writer of the run state and exits 3 whenever the run has nothing left to spend,
 # so a caller stops on an exit code instead of on its own arithmetic.
 #
-# State lives in .pi/bugfix-loop/run.json — machine-local, gitignored (.pi/*), never committed.
+# State lives in .pi/bugfix-loop/run.json — machine-local, gitignored (.pi/*), never committed. The
+# directory keeps its original name deliberately: renaming it would orphan an open run, and the state is
+# machine-local, so the path and the skill name are allowed to differ.
 # Override with LOOP_STATE for the self-test.
 #
 # Usage:
-#   loop-state.sh init --bugs N --minutes M [--review on|off] [--allow-todo-removal yes|no]
+#   loop-state.sh init --items N --minutes M [--review on|off] [--allow-todo-removal yes|no]
+#                                    # N counts every defect-shaped item, bug or improvement
 #   loop-state.sh show               # which issue, which phase, the result of every step so far
-#   loop-state.sh remaining          # exit 3 when bugs == 0 or the deadline has passed
+#   loop-state.sh remaining          # exit 3 when items == 0 or the deadline has passed
 #   loop-state.sh triage <§id> ...   # store the pre-screened survivor queue (§ optional in the argument)
 #   loop-state.sh next               # print the next candidate; exit 3 when the queue or the budget is spent
 #   loop-state.sh start <change> [--id §N]
@@ -27,6 +30,7 @@
 # <phase> is one of: prescreen A B C D E F
 # --verdict class (free text, these are the ones the gate produces):
 #   closed · stale · needs-diagnosis · needs-decision · unspecifiable · too-wide · needs-device · refuted · blocked
+#   not-spec-shaped · needs-target   (the two verdicts only an improvement can earn)
 set -euo pipefail
 
 STATE="${LOOP_STATE:-$(git rev-parse --show-toplevel)/.pi/bugfix-loop/run.json}"
@@ -45,47 +49,48 @@ write() { # write <json-on-stdin>
 }
 
 cmd_init() {
-  local bugs="" minutes="" review="on" removal="no"
+  local items="" minutes="" review="on" removal="no"
   while [ $# -gt 0 ]; do
     case "$1" in
-      --bugs) bugs="${2:?}"; shift 2;;
+      --items) items="${2:?}"; shift 2;;
       --minutes) minutes="${2:?}"; shift 2;;
       --review) review="${2:?}"; shift 2;;
       --allow-todo-removal) removal="${2:?}"; shift 2;;
       *) echo "init: unknown arg $1" >&2; exit 2;;
     esac
   done
-  [ -n "$bugs" ] && [ -n "$minutes" ] || { echo "init: --bugs and --minutes are mandatory" >&2; exit 2; }
-  case "$bugs" in ''|*[!0-9]*) echo "init: --bugs must be a positive integer" >&2; exit 2;; esac
+  [ -n "$items" ] && [ -n "$minutes" ] || { echo "init: --items and --minutes are mandatory" >&2; exit 2; }
+  case "$items" in ''|*[!0-9]*) echo "init: --items must be a positive integer" >&2; exit 2;; esac
   case "$minutes" in ''|*[!0-9]*) echo "init: --minutes must be a positive integer" >&2; exit 2;; esac
-  [ "$bugs" -gt 0 ] && [ "$minutes" -gt 0 ] || { echo "init: budget must be > 0" >&2; exit 2; }
+  [ "$items" -gt 0 ] && [ "$minutes" -gt 0 ] || { echo "init: budget must be > 0" >&2; exit 2; }
 
   local started deadline
   started="$(now)"
   deadline=$(( started + minutes * 60 ))
   jq -n --arg iso "$(iso "$started")" --arg dl "$(iso "$deadline")" \
         --argjson started "$started" --argjson deadline "$deadline" \
-        --argjson bugs "$bugs" --argjson minutes "$minutes" \
+        --argjson items "$items" --argjson minutes "$minutes" \
         --arg review "$review" --arg removal "$removal" \
         '{startedAt:$iso, startedEpoch:$started, deadlineAt:$dl, deadlineEpoch:$deadline,
-          bugLimit:$bugs, minutesBudget:$minutes, review:$review, allowTodoRemoval:$removal,
+          itemLimit:$items, minutesBudget:$minutes, review:$review, allowTodoRemoval:$removal,
           completed:[], skipped:[], blocked:[], queue:[], current:null, currentId:null,
           currentPhase:null, steps:[]}' | write
-  echo "bugfix-loop: budget ${bugs} bugs / ${minutes} min, deadline $(iso "$deadline")"
+  echo "fix-loop: budget ${items} items / ${minutes} min, deadline $(iso "$deadline")"
 }
 
 require_state() { [ -f "$STATE" ] || { echo "loop-state: no run state at $STATE — run 'init' first" >&2; exit 2; }; }
 
 cmd_show() { require_state; jq -r '
   ((.deadlineEpoch - now) / 60 | floor) as $minLeft
-  | "bugfix-loop — " + (if .current == null
+  | ((.itemLimit // .bugLimit)) as $cap
+  | "fix-loop — " + (if .current == null
                       then "no iteration in progress"
                            + ((.completed[-1] // .blocked[-1]) as $l
                               | if $l then " · last: §\($l.id) \($l.change) (\($l.verdict))" else "" end)
                       else "§\(.currentId // "?") \(.current) · phase \(.currentPhase)" end),
-  "budget   \(.bugLimit) bugs / \(.minutesBudget) min · \(.bugLimit - (.completed | length)) left · deadline \(.deadlineAt) · \((if .deadlineEpoch > now then "" else "EXPIRED · " end))\($minLeft) min left",
+  "budget   \($cap) items / \(.minutesBudget) min · \($cap - (.completed | length)) left · deadline \(.deadlineAt) · \((if .deadlineEpoch > now then "" else "EXPIRED · " end))\($minLeft) min left",
   "review   \(.review) · todo-removal \(.allowTodoRemoval)",
-  "progress closed \(.completed | length) · skipped \(.skipped | length) · blocked \(.blocked | length) of \(.bugLimit)",
+  "progress closed \(.completed | length) · skipped \(.skipped | length) · blocked \(.blocked | length) of \($cap)",
   "queue    \(.queue | length): \([.queue[]?.id] | join(" "))",
   "",
   "steps",
@@ -98,11 +103,11 @@ cmd_show() { require_state; jq -r '
 cmd_remaining() {
   require_state
   local left deadline
-  left=$(jq -r '.bugLimit - (.completed | length)' "$STATE")
+  left=$(jq -r '(.itemLimit // .bugLimit) - (.completed | length)' "$STATE")
   deadline=$(jq -r '.deadlineEpoch' "$STATE")
-  if [ "$left" -le 0 ]; then echo "0 bugs left (cap reached)"; exit 3; fi
+  if [ "$left" -le 0 ]; then echo "0 items left (cap reached)"; exit 3; fi
   if [ "$(now)" -ge "$deadline" ]; then echo "deadline passed at $(iso "$deadline")"; exit 3; fi
-  echo "$left bugs left, $(( (deadline - $(now)) / 60 )) min left (deadline $(iso "$deadline"))"
+  echo "$left items left, $(( (deadline - $(now)) / 60 )) min left (deadline $(iso "$deadline"))"
 }
 
 cmd_triage() { require_state; [ $# -gt 0 ] || { echo "triage: need at least one id" >&2; exit 2; }
@@ -114,7 +119,7 @@ cmd_triage() { require_state; [ $# -gt 0 ] || { echo "triage: need at least one 
 
 cmd_next() {
   require_state
-  local left; left=$(jq -r '.bugLimit - (.completed | length)' "$STATE")
+  local left; left=$(jq -r '(.itemLimit // .bugLimit) - (.completed | length)' "$STATE")
   [ "$left" -gt 0 ] || { echo "cap reached"; exit 3; }
   [ "$(now)" -lt "$(jq -r '.deadlineEpoch' "$STATE")" ] || { echo "deadline passed"; exit 3; }
   local id; id=$(jq -r '.queue[0].id // empty' "$STATE")
@@ -194,13 +199,13 @@ cmd_done() {
   ' "$STATE" | write
   echo "recorded $result ($verdict): ${change:-§$id}"
   # Do not call cmd_remaining here: its `exit 3` would exit this shell, not return a status.
-  echo "budget: $(jq -r '.bugLimit - (.completed | length)' "$STATE") bugs left"
+  echo "budget: $(jq -r '(.itemLimit // .bugLimit) - (.completed | length)' "$STATE") items left"
 }
 
 cmd_report() {
   require_state
   jq -r '
-    "closed \(.completed | length) · skipped \(.skipped | length) · blocked \(.blocked | length) of \(.bugLimit) bugs · budget \(.minutesBudget) min · deadline \(.deadlineAt)",
+    "closed \(.completed | length) · skipped \(.skipped | length) · blocked \(.blocked | length) of \((.itemLimit // .bugLimit)) items · budget \(.minutesBudget) min · deadline \(.deadlineAt)",
     "",
     ( .completed[] as $e
       | ("closed   §\($e.id)\t\($e.change)\t\($e.at)"),

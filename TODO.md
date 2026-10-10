@@ -5,10 +5,12 @@
 
 **Clusters** (category, then class — jump targets, not an order):
 - **build-and-harness** — bug: §146
-- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145
-- **car** — bug: §56 §57 §83 §92 §93
-- **car** — improvement: §29 §34 §46 §64 §103 §120 §127 §133
+- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145 §149 §155
+- **car** — bug: §57 §83 §92 §93
+- **car** — improvement: §29 §34 §46 §56 §64 §103 §120 §127 §133
 - **data-and-maps** — bug: §91 §99
+- **data-and-maps** — improvement: §163 §164
+- **data-and-maps** — feature: §160
 - **favorites** — bug: §118
 - **favorites** — improvement: §102
 - **location** — feature: §8
@@ -18,20 +20,59 @@
 - **native-jni** — improvement: §81 §82 §119
 - **native-jni** — feature: §23
 - **persistence** — bug: §9
-- **route-and-navigation** — bug: §129 §130 §139 §144
-- **route-and-navigation** — improvement: §126
+- **route-and-navigation** — bug: §130
+- **route-and-navigation** — improvement: §126 §150
 - **route-and-navigation** — feature: §1 §2 §3
-- **search** — bug: §27 §75 §110
+- **search** — bug: §27 §110
 - **search** — improvement: §24 §76 §77 §109
-- **specs-and-process** — improvement: §40 §113 §134 §153
+- **specs-and-process** — bug: §161
+- **specs-and-process** — improvement: §40 §113 §134 §154 §156 §157 §158 §159 §162 §172
 - **stylesheets** — bug: §36
-- **ui** — bug: §70 §72 §73 §74 §122 §138
-- **ui** — improvement: §39 §136
+- **ui** — bug: §70 §72 §73 §74 §138 §151
+- **ui** — improvement: §39 §136 §152 §173
 - **ui** — feature: §4 §5
-- **verification** — bug: §131 §147 §148
-- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141
+- **verification** — bug: §148
+- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §147
 
 ---
+
+## 172. A skill document may state the same rule in more than one place — nothing owns "one normative home" for `.pi/skills/` — Found 2026-10-10 while restructuring `.pi/skills/fix-loop` (out of that change's scope)
+**id:** 172 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `openspec/specs/documentation-ownership/spec.md` owns the routing table, the entry document's
+  bounds and the rule "A rule has one normative home" — a normative rule is stated in exactly one document and
+  every other occurrence references the owner — but every one of its requirements is written about `AGENTS.md`
+  and `guidelines/`. The hand-written skills under `.pi/skills/` are versioned with the project and are read by
+  children with fresh context, and no requirement bounds them: the `fix-loop` document had grown to 479 lines
+  with its cited-XML copy-out rule stated five times, the six eligibility conditions twice (once inside a
+  child's JS contract string, once as the gate table), and 12 of its 15 pitfalls restating a body rule. The
+  restructure that removed the duplication is `widen-fix-loop`; the *rule* that would have prevented it has no
+  owner.
+- **Why it matters** ℹ: a duplicated rule diverges silently — an edit to a child's contract leaves the gate table
+  claiming something else, and which of the two a fresh-context child obeys depends on where it reads first.
+- **Candidate fix**: extend `documentation-ownership` with one requirement for the documents under `.pi/skills/`
+  — a rule stated once per skill, and a skill read by a fresh-context child carrying only what that child needs
+  — and have the existing route check resolve skill paths too, so a renamed or deleted skill breaks the check
+  instead of a run.
+- **Related**: `widen-fix-loop` (`design.md` D4; its `evidence/skill-rule-inventory-before.md` and
+  `-after.md` are the measurement of the duplication); §113 (a rule whose enforcement has no owner).
+
+---
+
+## 163. A cleartext repository download has no integrity protection — the declared size and CRC-32 travel the same connection as the data — Found 2026-10-09 while implementing `allow-lan-http-map-repository` (out of that change's scope)
+**id:** 163 · **category:** data-and-maps · **class:** improvement · **status:** open
+
+- **Observed** ℹ: the metadata carries each file's declared `size` and `crc32`, and the download verifies what arrived against them (`core/src/main/java/com/naviveylin/core/mapsource/DatabaseMetadata.kt`, `DatabaseDownloader.kt`). Both come from the same repository over the same connection, so on a cleartext source an active attacker replaces data and checksum together and the verification passes: the check is for corruption, not for authenticity. Change `allow-lan-http-map-repository` permits cleartext for exactly that source (upstream's own web server is plain HTTP by its spec) and states the gap in `guidelines/Regulatory.md` §6 rather than closing it.
+- **Candidate fixes**: a strong hash in `db.json` narrows corruption but not substitution; the fix that closes it is a signature over the repository's contents, verified in the client — an upstream `mapgen` format question.
+- **Related**: §160 (the repository source performs no update check).
+
+## 164. A parseable but non-HTTP base URL is reported as a transport failure with a cast error — Found 2026-10-09 while implementing `allow-lan-http-map-repository` (task 2.5, outside that requirement's scope)
+**id:** 164 · **category:** data-and-maps · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `app/src/main/java/com/naviveylin/data/HttpUrlFetcher.kt` classifies an unparseable URL as `RepositoryFailure.MalformedUrl` (spec `map-download-infrastructure` — "A base URL that cannot be parsed is reported as an unusable URL"), but a URL that parses with a non-HTTP scheme (`ftp://host/x`) throws `ClassCastException` and reaches the user as `TransportFailed(cause=… cannot be cast to HttpURLConnection)` — the same parser-vs-user wording the change removed for the unparseable case.
+- **Why it matters**: the user's fix is the scheme, not the network.
+- **Candidate fix**: report a non-HTTP scheme as the unusable-URL failure, and add its own scenario if the spec is to cover it.
+- **Related**: spec `map-download-infrastructure` — "A base URL that cannot be parsed is reported as an unusable URL"; change `allow-lan-http-map-repository`.
 
 ## 120. The car re-applies the `daylight` flag after every style switch, so a switch costs a second stylesheet reload — Found 2026-10-03 while implementing `dedupe-stylesheet-loads` (out of that change's scope)
 **id:** 120 · **category:** car · **class:** improvement · **status:** open
@@ -303,35 +344,6 @@
 - **Fix candidate**: token-keyed text index entries (one key per word plus the object reference) — an import-side
   change, so every installed map has to be re-imported server-side and re-downloaded before users benefit; the
   query side would then intersect the per-word candidate sets instead of prefix-matching one name.
-
----
-
-## 75. Android Auto search passes no default admin region, so POI search needs the city in the query — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, own change)
-**id:** 75 · **category:** search · **class:** bug · **status:** in-flight fix-car-search-default-admin-region
-
-- **Observed** ℹ: `provideAutoSearchProvider` calls `searchLocations(query, limit, OSMScoutClient.NO_ADMIN_REGION)`,
-  and the native structured search visits POIs only inside an admin region matched from the query tokens
-  (`LocationService::SearchForLocationByString`). A car query naming only a POI (`Hilpert Theater`, without
-  `Lünen`) therefore finds nothing, while the phone searches inside the GPS-derived default region
-  (spec: `location-search` — "Search scoped by current admin region").
-- **Fix candidate**: give the car search the same default-region treatment (resolve the region from the last car
-  GPS fix or the map viewport center), or add a bounded region-less POI pass; both need a cost check against the
-  300 ms search debounce, since a region-less pass walks the POI index of the whole database.
-- **Fix in flight** ⏳ (2026-10-01): `fix-car-search-default-admin-region` resolves the region for the car search
-  through one shared rule (`core/src/main/java/com/naviveylin/core/search/SearchRegionScope.kt`) that the phone's
-  `MapCanvasViewModel.searchAdminRegionHandleForFix` now delegates to as well, and passes that handle from
-  `AutoServiceModule.provideAutoSearchProvider` instead of `NO_ADMIN_REGION` (car adapter
-  `app/src/main/java/com/naviveylin/di/CarSearchRegionSource.kt`). Design decision: the region comes from the
-  position fix only, never the map viewport center, so the car scopes exactly like the phone — which leaves
-  §34 (car search from the root/history screens has no distance reference) open as the sibling change that would
-  introduce the shared car reference the viewport-center fallback needs. This entry is removed when that change
-  is archived.
-- **Verification** ⏳: unit level green and recorded in the change's `design.md` — shared rule 14/0 with a
-  revert-check, the phone's 20 region cases green **unmodified**, car wiring 6/0 with a revert-check, both flavors
-  1462/0/0, `:auto` 713/0/0, both debug APKs with all three ABIs. The on-device halves (a car query naming a POI
-  without its region, the phone regression) are device-gated: no device was attached on 2026-10-01 (`adb devices`
-  empty), and the POI-only positive case additionally waits on the §91 data gap in the installed map sets.
-  Recipe with that caveat: `guidelines/Build.md` §10 ("Car search scoped by the driver's region").
 
 ---
 
@@ -1254,7 +1266,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `dumpsys meminfo` before/after; a phone render-path change, not a car-only one.
 
 ## 56. Trip publishing is the one host sender that deliberately keeps firing while the session is stopped — Found 2026-09-21 (same review)
-**id:** 56 · **category:** car · **class:** bug · **status:** open
+**id:** 56 · **category:** car · **class:** improvement · **status:** open
 
 - **Observation** ℹ: `NavigationSession.kt:573-579` collects every navigation-state emission and calls
   `NavigationManagerController.publishTrip` (`NavigationManagerController.kt:88`), which has no
@@ -1383,34 +1395,6 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Fix candidate** (a verification pass, not a code change): with a car surface attached, run §10 of `guidelines/Build.md` against the release build for (1)-(3) — a coordinate `geo:` link or long-press with a coordinate candidate, free driving from the phone, and a map download to re-create the channel — plus the car favorites screens in German. The recipes that worked here are worth reusing: `uiautomator dump <path under /data/local/tmp>` (a `/sdcard` path is refused by this harness), `exec-out screencap -p` + `tesseract … -l deu tsv` for coordinates, and the map screen's German `content-desc` nodes (`Favoriten`, `Ort suchen`, `Freie Fahrt starten`) for tap targets — the Compose canvas exposes almost no text nodes.
 
 
-## 122. The navigation overlay's stop button cannot be tapped reliably — Found 2026-10-03 while verifying the grace period of `route-planning-session` (task 10.5)
-**id:** 122 · **category:** ui · **class:** bug · **status:** open
-
-- **Observed** ℹ: while turn-by-turn navigation is running, the status row's stop control
-  (`NavigationStateOverlay`, `IconButton` 40 dp, `content-desc="Navigation beenden"`, bounds
-  `[986,2233][1049,2296]` on the 1080×2400 phone) is **not** the node the semantics tree marks as
-  clickable: the only clickable node covering that band is the overlay's **outer container**
-  `[0,2018][1080,2400]` (`.clickable(onClick = onClick)`, `NavigationStateOverlay.kt` line 63, which
-  opens the expanded details). Tapping the stop icon's own coordinates turned **free driving** on in
-  three attempts — and free driving ends navigation itself, so the session never entered `STOPPED`
-  and the grace period never ran.
-- **Impact** ℹ: the session's stopped state and its grace after navigation stops (spec
-  `route-planning-session`) cannot be verified end-to-end on the phone; a user aiming at
-  "Navigation beenden" can end up in free driving instead. The state machine itself is unit-verified
-  (`RoutePanelViewModelSessionTest` + the revert-check `expected:<INACTIVE> but was:<STOPPED>`).
-- **Fix candidates** ℹ: give the stop control its own semantics node
-  (`clearAndSetSemantics { }`/`semantics { }` on the `IconButton`) *and* keep the container's
-  `.clickable` out of the status row's hit area (the container click currently overlaps a 40 dp
-  control). Then re-run the task 10.5 recipe: start navigation → tap the stop icon (verified
-  clickable and small) → the panel returns with the route still drawn → the grace line
-  `RoutePanelVM: session grace period expired - ending the session` ~45 s later → no overlay, no
-  pill, no route.
-- **Recipe notes** ℹ: `adb shell uiautomator dump /sdcard/ui-x.xml` + `adb pull /sdcard/ui-x.xml`
-  works (a bare device-side `$EXTERNAL_STORAGE` argument is *not* expanded by `adb pull`); a
-  clickable ancestor read from a flattened dump is not necessarily the node a tap must aim at, and
-  the map/canvas screens expose almost no text nodes (`tesseract … -l deu tsv` is available for the
-  ones they do expose).
-
 ## 123. Test harness: `SearchHistoryRepository` is usually built without the test dispatcher, so a test that depends on a result selection races a real-thread file write — Found 2026-10-04 while implementing `fix-search-history-chip-replay` (task 2.3, out of that change's scope)
 **id:** 123 · **category:** build-and-harness · **class:** improvement · **status:** open
 
@@ -1435,7 +1419,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   visible is the `run-tests` attribution step (baseline green alone, red together).
 
 ## 126. A failed reroute releases the navigation lease of the guidance that is still running — Found 2026-10-04 while implementing `show-route-calculation-progress` (task 2.4, out of that change's scope)
-**id:** 126 · **category:** route-and-navigation · **class:** improvement · **status:** fixed-by `fix-reroute-lease-release` — the code half is landed and unit-pinned (two revert-checks, 2026-10-06); the on-device half is blocked (no device, no `emulator` binary)
+**id:** 126 · **category:** route-and-navigation · **class:** improvement · **status:** open (device)
 
 - **Observed** ✗: `NavigationEngine.confirmReroute` reaches `calculateAndStart(fromReroute = true)`, whose
   `onError` (and its synchronous-catch twin) calls `releaseNavLease()`. During a reroute `isNavigating` is
@@ -1475,7 +1459,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `adb devices` empty and no `emulator` binary in this session; the blocker is recorded rather than implied
   as proof (`guidelines/Build.md` §10).
 - **Surfaced by the fix, filed as its own entry** ℹ: a failed reroute leaves `isRerouting`/`isOffRoute` set
-  until the next instruction list — `TODO.md` §144.
+  until the next instruction list — fixed by the archived `fix-reroute-failure-state-flags`.
 
 ## 127. `LoadingScreen` is production-dead and now has a sibling wait notice — Found 2026-10-04 while implementing `show-route-calculation-progress` (task 3.1)
 **id:** 127 · **category:** car · **class:** improvement · **status:** open
@@ -1510,84 +1494,40 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 
 ---
 
-## 129. The router's overall route distance and the route description's node distances disagree, by 34 % on a 70 km route — Found 2026-10-05 while applying `fix-step-leg-distance-and-time` (device run, task 5.1)
-**id:** 129 · **category:** route-and-navigation · **class:** bug · **status:** open
+## 130. The published route starts at the node the router snapped the requested start to — the entry's original ~200 m claim is refuted, and the open decision is taken by `publish-requested-route-start`
+**id:** 130 · **category:** route-and-navigation · **class:** bug · **status:** in-flight publish-requested-route-start
 
-- **Observed** ⚠: two native numbers describe the same route and do not match. The instrumented check
-  `RouteInstructionPositionDeviceTest.perStepValuesAreTheStepsOwnLegs` on the AAOS AVD (`emulator-5556`,
-  `nordrhein-westfalen-27-20260820-0826`, candidate chain that resolved to Dortmund Hbf → Cologne Hbf)
-  measured the per-step legs at **97 416 m** while `RouteEntry.distance` (the router's
-  `GetOverallDistance()`) reported **72 771 m** — a ratio of **1.34**. The legs telescope to the route
-  description's last cumulative distance (`RoutePostprocessor::DistanceAndTimePostprocessor` sums
-  `GetEllipsoidalDistance` between consecutive route nodes), so the description's total is the larger of
-  the two. Both are now user-visible side by side: the phone's card header shows `routeEntry.distance`
-  (`RouteReadyPill`/header statistics) while the step list sums the legs.
-- **Why it surfaced now** ℹ: before `fix-step-leg-distance-and-time` each step's bracket was the *last
-  geometry edge* before its manoeuvre (a few hundred metres in total), so nobody ever compared the two
-  totals. The change makes the rows legs and the discrepancy visible — it is not caused by it.
-- **Impact** ℹ: the header and the sum of the steps disagree (34 % is far beyond rounding, and on a
-  short route the start/target sections make the relative gap larger still). The route's real length is
-  whatever the map data and the routing profile say, so one of the two sources is wrong — a caller that
-  relies on either number (the card, the car's trip summary, the progress line's denominator) inherits it.
-- **Fix candidate** ℹ: measure both numbers against a known reference (the GPX of a driven route, or
-  `osmscout`'s own `Demos/src/Routing.cpp` output for the same two coordinates, which prints the
-  description's cumulative distance per node), then make the bridge publish **one** length: either
-  compute `RouteEntry.distance` from the description's last node (which is what the step list sums to) or
-  find why the description's node-to-node sum exceeds the router's accumulated distance (a node whose
-  `GetCurrentNodeIndex()` resolves against a different way would produce exactly such inflation). Note in
-  `guidelines/` which of the two is the route's length; the app's `stepValuesDiverge` threshold (50 %) and
-  the device test's `ratio > 0.5` are deliberately loose until this is settled.
-
----
-
-## 130. The description's first node and the route polyline's first point sit ~200 m apart on a long route — Found 2026-10-05 while applying `fix-step-leg-distance-and-time` (device run, task 5.2)
-**id:** 130 · **category:** route-and-navigation · **class:** bug · **status:** open
-
-- **Observed** ⚠: `RouteInstructionPositionDeviceTest.analysedStepSegmentsStayMonotonicAndOnThePolyline`
-  reported `step 1's segment starts 198 m away from its manoeuvre` on the AAOS AVD (`emulator-5556`,
-  NRW database, the candidate chain resolved to Dortmund Hbf → Cologne Hbf, ~70 km). Step 0 is the
-  route's start line, so its segment starts at the polyline's first vertex — i.e. the start line's
-  manoeuvre position (from the route description's first node, `instructionLats[0]`) is 198 m from the
-  polyline's first point (`RouteEntry.latitudes[0]`, from `TransformRouteDataToPoints`). The case's own
-  bound is 60 m; every later leg stays inside it.
-- **Why it surfaced now** ℹ: two effects, neither from the change being applied. (1) The test's map
-  discovery only looked one level below `files/maps`, so on a device whose region was downloaded
-  through the app (`files/maps/europe/germany/nordrhein-westfalen-<version>`) every case failed earlier
-  with "No databases loaded" and the geometric assertions never ran; that discovery is now recursive.
-  (2) The route it then resolved is a long intercity one, where the start section is large.
-- **Impact** ℹ: the first leg of a long route is drawn/measured from the polyline's first point, which
-  can be ~200 m from where the description says the route starts; analysis of step 0 therefore
-  highlights a leg whose start is off the manoeuvre it names. The app's own `instructionAnchors` and
-  `stepSegments` are unchanged by the fix and inherit it. The device case now allows 300 m for the
-  first leg and keeps 60 m for the rest, so the finding is recorded rather than hidden.
-- **Fix candidate** ℹ: compare the description's first node with `RoutePointsResult`'s first point for
-  the same route (both are available in `calculateRouteWithObjectsWithProfile`), and decide which is
-  the route's start: if the description starts at the snapped routable node while the polyline starts
-  at the requested position, publish the polyline's start as the first instruction's position (or the
-  description's node, consistently) instead of leaving two nearly-equal sources.
+- **Original claim refuted** ✗ (verified 2026-10-09 by reading the native path): the premise — that the
+  description's first node (`instructionLats[0]`) sits ~200 m from the polyline's first point
+  (`RouteEntry.latitudes[0]`) — is false. Both are the **same snapped route node**, by the same index of
+  the same path object: the description's first node is `entry.GetCurrentNodeIndex()`
+  (`AbstractRoutingService.cpp:1662-1663`) with its location resolved as
+  `way->GetCoord(node.GetCurrentNodeIndex())` (`RoutePostprocessor.cpp:118`, `:146`), while
+  `TransformRouteDataToPoints` pushes the first entry's `GetCurrentNodeIndex()` point
+  (`AbstractRoutingService.cpp:1740` area branch / `:1762` way branch) — `Way::GetPoint(i)` and
+  `Way::GetCoord(i)` are the same node (`Way.h:139-146`). The 198 m was the **first leg's straight
+  length**, measured while the device test still asserted the pre-flip segment orientation: the code at
+  `1f6c6fd` already returned `from..own` (`RouteStepSegments.kt`) while the test still asserted "the step's
+  own manoeuvre is at its segment's first vertex", so `distance(anchors[1], lats[range.first])` measured
+  the distance between the first two manoeuvres. That test-orientation finding was §131 (since removed);
+  the current test documents the cause at `RouteInstructionPositionDeviceTest.kt:562-566`.
+- **What is real** ℹ: the route is published from the node the router **snapped** the caller's start to
+  (`ResolveRoutePosition`, `OSMScoutClient.cpp:6118`), and the requested coordinate is then discarded. On
+  a start off the network the drawn polyline, the start marker and the first instruction therefore sit
+  tens to hundreds of metres from where the user asked to depart. That limitation — not the refuted 198 m
+  — is what this entry now records.
+- **Decision taken** ✅ (owner, 2026-10-09): **the requested start wins.** The published route SHALL begin
+  at the requested position, with the approach to the snapped node included in the polyline, in the
+  published total and in the first leg's distance. Implemented by change `publish-requested-route-start`
+  (proposal + design D1-D6 + 22 tasks); the target end of the route is that change's explicit non-goal
+  and gets its own entry.
+- **Earlier blockers cleared** ℹ: the bug-fix loop's 2026-10-09 pre-screen held this entry as
+  "native-only data and an unapproved decision" (branch `bugfix-loop-2026-10-09`). Neither holds now — the
+  decision is taken, and a phone AVD with routeable maps is attached (`emulator-5554`, `andorra`), so the
+  geometry is measurable without the automotive unit. Removed when `publish-requested-route-start`
+  archives.
 
 ---
-
-## 131. The device-test case for `stepSegments` kept the pre-flip segment orientation and only became runnable on 2026-10-05 — Found 2026-10-05 while applying `fix-step-leg-distance-and-time` (device run, task 5.2)
-**id:** 131 · **category:** verification · **class:** bug · **status:** in-flight fix-step-leg-distance-and-time
-
-- **Observed** ⚠: `RouteInstructionPositionDeviceTest.analysedStepSegmentsStayMonotonicAndOnThePolyline`
-  asserted that a step's segment **starts** at the step's own manoeuvre (`lats[range.first]` against
-  `anchors[index]`). That held while a step owned the leg *after* its manoeuvre; `route-planning-session`
-  (task 12.12, 2026-10-03) corrected the orientation to the leg **leading to** it (`stepSegments` returns
-  `previousVertex..ownVertex`), and the assertion was not updated with it. It was invisible because the
-  case could not run on an install whose region was downloaded through the app: the test only looked one
-  level below `files/maps`, found `europe` (a directory, not a database) and failed earlier with
-  "No databases loaded". With the discovery made recursive it reported `step 1's segment starts 198 m away
-  from its manoeuvre` — the *previous* manoeuvre's vertex measured against this step's anchor, i.e. the
-  offset between two different instructions, not a geometry error.
-- **Fix** ✓ (in this change): the case now checks the segment's **last** vertex against the step's own
-  manoeuvre and its **first** vertex against the previous step's, both within the 60 m bound. The
-  observation that motivated the wrong reading — the description's first node sitting ~200 m from the
-  polyline's first point on a long route — is real and is filed as its own finding (TODO.md §130).
-- **Why it is listed here** ℹ: a device case that cannot run is not a guard. The recursive discovery and
-  the corrected orientation belong together, and the next device run should be read as "the case ran"
-  (`tests="4"`, no skip) rather than as "green".
 
 ## 132. The declared fork counts are tuned for a single-suite run, but the full gate runs every module's suite in one invocation — Found 2026-10-05 while applying `speed-up-build-test-gate` (task 8.4)
 **id:** 132 · **category:** build-and-harness · **class:** improvement · **status:** open
@@ -1689,44 +1629,6 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   analysed-segment highlight by its casing colour, so the band evidence here is UI-dump geometry (numbers,
   coordinate-free) rather than a pixel verdict.
 
-## 139. The router's overall distance under-counts the route it produced — by 25 % on a long route and 45 % on a short one — Found 2026-10-05 while measuring `fix-route-length-disagreement` (the native half of `TODO.md` §129)
-**id:** 139 · **category:** route-and-navigation · **class:** bug · **status:** open
-
-- **Observed** ⚠: `GetOverallDistance()` on a successful route reports a distance that departs from the
-  geometry the same routing produced. Measured on `emulator-5554` (Pixel_8 AVD, `nordrhein-westfalen` data,
-  case `RouteInstructionPositionDeviceTest.routeLengthsAreMeasuredForALongAndAShortRoute`), with the length of
-  the published polyline (`RouteEntry.latitudes`/`longitudes`, great-circle distance between consecutive
-  vertices) as the witness — it uses neither native figure:
-
-  | route | router total | drawn polyline | router / polyline |
-  |---|---|---|---|
-  | Dortmund Hbf -> Cologne Hbf | 72 771 m | 97 283 m | 0.748 |
-  | Dortmund Hbf -> Bochum Hbf | 16 677 m | 20 966 m | 0.795 |
-  | short hop within Dortmund | 824 m | 1 493 m | 0.552 |
-
-  The description's own total tracked that polyline to within 0.4 % on all three routes (1.0014 / 1.0021 /
-  0.9964), so the defect is on the router's side. The relative error grows as the route shortens
-  (0.748 -> 0.795 -> 0.552), which rules out both a fixed ratio and a fixed absolute offset as its
-  explanation; the absolute deficits are 24.5 km / 4.3 km / 0.7 km. External check: the real road distance
-  Dortmund Hbf -> Cologne Hbf via A1/A45 is ~95-100 km, matching the drawn 97.3 km; 72.8 km is close to the
-  ~66 km great-circle distance, i.e. implausible for a road route.
-- **Why it is filed rather than fixed** ℹ: `fix-route-length-disagreement` (2026-10-05) made the description's
-  total the route's length, so the app no longer reads this figure — the card statistic, the step list, the
-  progress denominator and the car trip now agree on one number (spec `osmscout-jni` — One route length for a
-  calculated route). The router's figure survives as the fallback for a route whose description produced
-  nothing, and any future consumer of `GetOverallDistance()` would inherit the under-count unseen, which is
-  why it is recorded here rather than left in that change's artifacts.
-- **Fix candidate** ℹ: find where `RouteResult` accumulates its distance over a multi-way route — the deficit
-  is neither proportional to the route nor constant, so a segment or node whose distance never contributes is
-  the shape to look for. Compare against the description's per-node accumulation for the same route, which
-  the case above already prints (three routes per run). Submodule `naviveylin-local`, pushed 2026-10-05 at
-  `96fb43a20`.
-- **Related** ℹ: `TODO.md` §129 is the user-visible half (one route with two totals); this entry is the native
-  half. Neither of the two device cases in the change asserts the router's figure any more, so the numbers
-  above are the evidence of record.
-
----
-
 ## 141. `MapCanvasViewModelFixQualityTest.aTickDoesNotDispatchOnTheMainDispatcher` failed once under the forced gate and was green on its rerun — Found 2026-10-06 while gating `fix-route-session-stop-path`
 **id:** 141 · **category:** verification · **class:** improvement · **status:** open
 
@@ -1809,7 +1711,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `speed-up-test-iteration` applies: a seam the case drives instead of a wait.
 
 ## 147. `measure-highlight.py` returns `inside` on a frame with no route — 18 pixels of parking-glyph colour pass its dense-run test — Found 2026-10-06 while applying `screenshot-evidence-via-view-image` (device measurement, task 4.1)
-**id:** 147 · **category:** verification · **class:** bug · **status:** open
+**id:** 147 · **category:** verification · **class:** improvement · **status:** open
 
 - **Note on the id** ℹ: filed as §143 on 2026-10-06; `speed-up-test-iteration` filed its route-cost finding as §143
   the same day and keeps that id (the cluster index and `guidelines/Build.md:612` cite it), so this duplicate took
@@ -1837,35 +1739,6 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   capture into `.pi/logs/skill-recipe-check/` on the same screen printed the identical
   `bbox=[619, 641, 413, 734] px=18` / `band=[0,2400]` / `verdict: inside`, so it is a deterministic
   colour coincidence, not noise.
-
----
-
-## 144. A failed reroute leaves `isRerouting`/`isOffRoute` set until the next instruction list — Found 2026-10-06 while landing `fix-reroute-lease-release` (adjacent finding, out of that change's scope)
-**id:** 144 · **category:** route-and-navigation · **class:** bug · **status:** open
-
-- **Observed** ℹ: `confirmReroute` sets both flags when it starts an attempt
-  (`app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt:908` — `it.copy(isRerouting = true,
-  isOffRoute = true)`), and the only writer that clears them is `onRouteInstructions` (`:800-805`) — i.e. a
-  **successful** reroute whose new instruction list arrives. A reroute that **fails** (the `TODO.md` §126
-  failure path) leaves `isRerouting = true` and `isOffRoute = true` in the shared state until the next
-  `onRouteInstructions` emission, so every surface rendering the reroute/off-route indicator (spec
-  `rerouting-visual-feedback`, `off-route-indicator`) keeps showing it for that whole window; on a stretch
-  with no further instructions there is nothing left to clear it.
-- **Why it is filed rather than fixed here** ✗: `fix-reroute-lease-release`'s subject is *which lease a
-  failure releases*; clearing the attempt's own state flags is the failure path's second half, with its own
-  observable (which surface shows what, for how long) and its own decision — a failed reroute should stop
-  claiming `isRerouting`, while `isOffRoute` may genuinely still be true (the vehicle is still off route) and
-  is better left to the native position reports.
-- **Fix candidate**: in both failure handlers of `calculateAndStart`, clear the flag the attempt itself set
-  (`isRerouting = false`; leave `isOffRoute` to the native reports, or clear it and let the next
-  `onPositionEstimate` re-set it), and pin it with a case beside
-  `NavigationEngineRerouteTest.aFailedRerouteKeepsTheRunningNavigationLease`.
-- **Not caught** ✗: no case asserts the state flags after a *failed* reroute — the reroute suite's
-  instruction case (`instructionListUpdatesAfterAReroute`) covers the success path only, where
-  `onRouteInstructions` clears them anyway.
-- **Related** ℹ: `TODO.md` §126 — the same failure path's lease release, fixed by `fix-reroute-lease-release`;
-  the fix's own case (`aFailedRerouteKeepsTheRunningNavigationLease`) does not assert these flags, and
-  deliberately does not, because the change's delta says nothing about them.
 
 ---
 
@@ -1956,6 +1829,19 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   Main-dispatcher set/reset race between cases in one JVM. Treat it as one family with two mechanisms, and
   note that a suite that is red once and green on the re-run is exactly what the `build-test-gate` rule
   ("evidence must quote the executed task count and the tallies") exists to make visible.
+- **A fifth case, and the first one seen in a single-class run, on 2026-10-09** ℹ (change
+  `add-mapgen-map-source`): the aggregate run `./gradlew test -PforceTests --no-build-cache` failed at
+  `:core` with `DiagnosticsLogWritePathTest.highWaterMarkFlushesWithoutWaitingForTheDeadline` —
+  `java.lang.AssertionError: a burst flushes at the high-water mark` (`DiagnosticsLogWritePathTest.kt:113`),
+  `519 tests completed, 1 failed`, everything else green (`:app` mobile 1829/0, automotive 1829/0, `:auto`
+  789/0, bridge 33/0). The same class then **failed alone** (`9 tests completed, 1 failed`) and **passed alone**
+  on the identical command straight after — while **two earlier aggregate runs of the same tree were green**
+  (4999 tests, 0 failures, 05:06 and 03:5x). Neither `DiagnosticsLog.kt` nor its test is touched by that change
+  (`git status --porcelain core/` shows only `core/build.gradle.kts` and the new `mapsource/` package), so the
+  case is not a defect of it. Two things this instance adds to the family above: the trigger is **not only**
+  the loaded multi-module run — a single-class run can hit it too, which points at machine load rather than at
+  the parallel module graph — and its assertion is the *high-water-mark* half of the same mechanism (case 2),
+  where what varies is again the file content after a drain.
 - **Mechanism, case 2** ℹ: `DiagnosticsLog.flushNow` signals and then returns once `pending` is empty and
   nothing is being flushed (`core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt:305-337`), while
   `workerLoop` only waits when `pending.isEmpty()` and otherwise **drains immediately** (`:385`, `:394-402`).
@@ -2064,7 +1950,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   analysis.
 
 ## 150. After arrival the reroute path re-acquires the destination that was already reached — Found 2026-10-07 while applying `auto-end-navigation-after-arrival` (device run on the AAOS AVD, tasks 3.2/3.3)
-**id:** 150 · **category:** navigation · **class:** improvement · **status:** open
+**id:** 150 · **category:** route-and-navigation · **class:** improvement · **status:** open
 
 - **Observed** ℹ: the native `RouteStateAgent` reports the target reached only inside a 30 m circle while the
   position is on route (`app/src/main/cpp/libosmscout/libosmscout/src/osmscout/navigation/RouteStateAgent.cpp`),
@@ -2089,7 +1975,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   session is live, but it is the thing a driver sees if the exit never fires.
 
 ## 151. The navigation-time right-side widget column never publishes its width, so the follow anchor can resolve under it — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (adjacent finding, out of that change's scope)
-**id:** 151 · **category:** ui · **class:** bug · **status:** open
+**id:** 151 · **category:** ui · **class:** bug · **status:** in-flight fix-phone-map-layer-stack
 
 - **Observed** ℹ: `LocalOverlayWidthProbe` is provided around the browse overlay block only
   (`MapCanvasScreen.kt`, the `CompositionLocalProvider` in the chrome band), while the navigation-time copy
@@ -2128,32 +2014,8 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   per inset: the band that paints the pixels), then verify with a case that the published bottom inset equals
   the card's height while the panel is open, and one device run of the follow anchor with the panel at MAX.
 
-## 153. Rotating the phone while follow mode is active crashes on an empty coerce range in the follow drift clamp — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (device run on the Pixel_8 AVD, task 4.3)
-**id:** 153 · **category:** ui · **class:** bug · **status:** open
-
-- **Observed** ✗: with navigation running (follow mode engaged) on the phone AVD, `adb shell settings put
-  system user_rotation 1` killed the process:
-  `java.lang.IllegalArgumentException: Cannot coerce value to an empty range: maximum -552.0 is less than
-  minimum 552.0` at `com.naviveylin.core.FollowPrediction$Companion.displayOffsetPx(FollowPrediction.kt:317)`,
-  called from the follow display loop (`MapCanvasScreen.kt:747`), `FATAL EXCEPTION: main`. The mechanism is in
-  the clamp itself: `marginX = (bitmapW - canvasW) / 2.0` goes negative when the *displayed* bitmap still has
-  the old orientation (1296x2880 portrait) while the canvas has the new one (2400x1080 landscape), so
-  `driftX.coerceIn(-marginX, marginX)` becomes `coerceIn(552, -552)` — an empty range. Rotating back and forth
-  during a drive therefore crashes the app instead of re-rendering.
-- **Why it is filed rather than fixed here** ✗: nothing in `fix-phone-map-layer-stack` touches the follow
-  display loop or the drift clamp; the layer bands only decide paint order. It is a rotation/follow bug of its
-  own with its own `smooth-follow` delta and its own device evidence (rotate during a followed drive, both
-  directions).
-- **Fix candidate**: treat a negative margin as zero (`marginX.coerceAtLeast(0.0)`) or, better, skip the drift
-  clamp while the displayed bitmap's aspect does not match the canvas (a frame from the previous orientation is
-  stale and will be re-rendered); verify with a case on `displayOffsetPx` for swapped bitmap/canvas
-  dimensions, a forced configuration change in a Robolectric case, and one device rotation mid-drive in each
-  direction.
-
----
-
-## 153. `guidelines/MapRendering.md` numbers two sections `## 14.`, so a `§14` reference is ambiguous in eleven citations — Found 2026-10-07 while applying `scope-guideline-reads` (out of that change's scope)
-**id:** 153 · **category:** specs-and-process · **class:** improvement · **status:** open
+## 154. `guidelines/MapRendering.md` numbers two sections `## 14.`, so a `§14` reference is ambiguous in eleven citations — Found 2026-10-07 while applying `scope-guideline-reads` (out of that change's scope)
+**id:** 154 · **category:** specs-and-process · **class:** improvement · **status:** open
 
 - **Observed** ℹ: `guidelines/MapRendering.md:553` is `## 14. Rotation Gesture Display-Layer Handoff` and
   `:630` is `## 14. Android Auto renderer — smooth follow (overrun + blit + extrapolation)`. `§14` of that
@@ -2175,3 +2037,165 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   (`Known Pitfalls (Regression Checklist)`, `Parameter Overview`), `Design.md` its two appendices, `UI.md`
   one (`Keeping this document honest`). The routing table names those by their text alone, which the check
   resolves.
+
+---
+
+## 155. Regenerating the feature documents is a manual command; nothing runs it at release time or on a schedule — Found 2026-10-08 while applying `generate-feature-list`
+**id:** 155 · **category:** build-and-harness · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `tools/gen-feature-list.sh` produces `FEATURES.md` and `RELEASE-NOTES.md` correctly, and the
+  phrasing seam can be filled three ways (`--sections`, `--phrase-cmd`, or mechanical), but nothing invokes it:
+  not `./gradlew release` (deliberately — a release must not depend on a model), not CI, not a schedule. The
+  documents go stale the moment a change archives a capability spec.
+- **Why it is filed rather than done here** ✗: wiring it needs two decisions this change does not own — where it
+  runs (a CI job on merge, or a scheduled Pi session), and which harness fills the phrasing seam unattended (a
+  one-shot `pi -p` command per area, or a subagent fanout). Both are recorded as open questions in the change's
+  `design.md` D3.
+- **What the wiring needs from this change** ℹ: the tool takes the version as an argument and never reads
+  `app/release-version.properties` (gitignored, machine-local), so a caller must pass `--release <versionName>`;
+  it exits non-zero and writes nothing when a spec id is unclassified, so an unattended run reports rather than
+  publishes. `guidelines/FeatureList.md` §9 lists what a change owes.
+- **Fix candidate**: a CI job that runs `--check-classification` on every pull request (cheap, model-free, catches
+  an unarchived classification line) and the full run on a release tag, plus a decision on the seam's harness.
+
+## 156. The release note has no length limit, so it cannot be pasted into a store listing as it stands — Found 2026-10-08 while applying `generate-feature-list`
+**id:** 156 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `RELEASE-NOTES.md` entries are grouped by feature area with one bullet per changed
+  user-visible capability, which is the right shape for a changelog and the wrong one for "What's new" in a
+  store listing: no character budget, no ordering by user impact, no trimming rule.
+- **Why it is filed rather than done here** ✗: it is a renderer on top of the note, not a change to what is
+  selected — adding it is a new capability with its own spec, and guessing the budget now would bake a store
+  constraint into the selection logic.
+- **Fix candidate**: a second renderer over the same entry, with the budget as a parameter of the area catalogue,
+  and a case that asserts an over-budget entry is trimmed rather than truncated mid-sentence.
+
+## 157. Nothing forces a change to classify the capability specs it archives — the first unclassified spec fails a later run instead — Found 2026-10-08 while applying `generate-feature-list`
+**id:** 157 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ℹ: the tool refuses to publish an unclassified shipped spec id (`guidelines/FeatureList.md` §4), so
+  the mistake surfaces at the next generation rather than in the change that caused it, and an unattended run
+  then fails for a reason whose fix is one line in a different change's file.
+- **Why it is filed rather than done here** ✗: the enforcement points that would make it immediate — a CI step
+  comparing `openspec/specs/` against `tools/feature-list/specs.json`, or a rule in the archive skill — belong to
+  the archiving workflow, which this change does not modify.
+- **Fix candidate**: a model-free CI check (the tool already has `--check-classification`, which exits 1 and names
+  the id) run on every pull request; it is the same call as §155's cheap stage, so the two entries share a fix.
+- **Instance, 2026-10-09** ℹ: the prediction landed on the change that wrote the rule. Archiving
+  `generate-feature-list` moved its three capability specs into `openspec/specs/`, which is what *ships* them, and
+  none of the three was classified — so the tool that change had just delivered refused to run on the repository
+  (`unclassified: 3`, exit 1) until the three lines were added to `tools/feature-list/specs.json` afterwards. The
+  rule in `guidelines/FeatureList.md` §4 says the archiving change owes that line, and nothing enforced it at the
+  moment it mattered. Two ids from another in-flight change (`allow-lan-http-map-repository`) are in the same state
+  as this is written, and the gate names them — which is the gate working, three changes late.
+- **Second fix candidate** ℹ: make the archive step itself run `--check-classification` before moving `changeRoot`,
+  so a change cannot archive a capability it has not classified. That is the same check, one call earlier.
+
+## 158. Two specs still carry a `TBD` purpose placeholder, so their capabilities cannot be described from their own text — Found 2026-10-08 while applying `generate-feature-list`
+**id:** 158 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `openspec/specs/navigation-ongoing-notification/spec.md` and
+  `openspec/specs/render-mode-switch/spec.md` both read "TBD - created by archiving change &lt;name&gt;. Update
+  Purpose after archive." The archiving workflow copies a new capability's purpose into its main spec, and both
+  changes left the placeholder in place.
+- **Consequence** ℹ: the feature catalogue phrases these two capabilities from their requirement text alone,
+  because there is no purpose line to describe them by; the classification had to be made on the spec id
+  (`userVisible: true` for both). `openspec validate --strict` reports "Purpose is too brief" for a placeholder,
+  so the defect is detectable with one command.
+- **Fix candidate**: write the two purposes from their requirement texts, then add a step to the archive
+  checklist (`openspec/config.yaml` archive guidance) that no archived capability keeps a `TBD` purpose.
+
+## 159. The feature catalogue's word report is unbounded, so its signal is buried — Found 2026-10-08 while applying `generate-feature-list`
+**id:** 159 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ℹ: the first real generation (225 bullets, 12 areas) produced **352** advisory lines of the form
+  `unsourced word: <word> | <bullet>`, one per content word of a bullet that appears in none of the specs that
+  bullet cites. The requirement behind it is deliberate — the report exists so a claim the gates cannot settle is
+  visible to a reviewer — but at this volume nobody reads it, which defeats the requirement rather than serving it.
+- **What the volume was hiding** ℹ: it did flag a real, systematic defect — the phrasing step wrote British English
+  (`favourite`, `centre`, `colour`) where the project's specs, ids and UI strings are American (`fav-*`,
+  `license-compliance`). That is now a rule in `tools/feature-list/prompts/tone.md`, found because the report
+  printed every instance rather than a summary. The lesson is about the *format*, not the check.
+- **Fix candidates** (a decision for the owner, since each changes what the report means):
+  1. cap it — report at most N words per area, ranked by how few specs contain them, and say how many were
+     suppressed;
+  2. narrow it — report only words that appear in **no** spec of the project at all, which keeps a real
+     vocabulary mismatch and drops the ordinary prose connective ("survives", "picks", "lands");
+  3. make it a gate with a vocabulary allow-list, which turns today's noisy report into a maintained word list.
+- **Related** ℹ: the check's own rule is stated as "every content word … SHALL be reported", so options 1 and 2
+  edit `feature-list-generation` "Prose the run cannot verify is reported for review"; option 3 leaves the rule
+  and changes the content-word definition. Whichever is chosen needs a case, and §5.0's row for that requirement
+  points at the three cases that exist today.
+
+## 160. The repository map source checks for updates nowhere, so a newer database is only noticed by reinstalling — Deferred by `add-mapgen-map-source`
+**id:** 160 · **category:** data-and-maps · **class:** feature · **status:** open
+
+- **Observed** ℹ: `add-mapgen-map-source` makes the repository source install a database and its basemap from its
+  metadata (size + CRC-32 per file, version slot from `MapDownloadManager.DATABASE_FORMAT_VERSION`), and deletes
+  the other source's data on a switch. It deliberately adds **no** update check: the installed database's
+  `generatedAt` (or the basemap manifest's `changedAt`) is never compared with the repository's, so the UI offers
+  no update state and a newer database is only picked up by deleting and reinstalling.
+- **Why it was deferred** ℹ: the owner scoped the change to the second source itself; an update check needs its
+  own UI state (badge, update control), its own comparison rule per source family, and a decision about what a
+  downloaded-but-not-installed update means for the running client.
+- **What exists to build on** ℹ: `DatabaseMetadata.generatedAt` is parsed and stored in the installed `db.json`
+  (`:core` `DatabaseMetadata`, written by `DatabaseDownloader`), `BasemapManifestParser` already selects a version
+  from `basemap/index.json`, and the shipped provider's `BasemapManager.isUpdateAvailable()` shows the shape a
+  provider-side check takes. The spec `map-repository-source` states the current refusal explicitly
+  ("The repository source performs no update check"), so the follow-up change replaces that requirement.
+- **Related** ℹ: `openspec/specs/map-repository-source/spec.md` (the requirement to replace),
+  `openspec/specs/basemap-discovery/spec.md` ("Report basemap version for updates"), and
+  `openspec/changes/add-mapgen-map-source/design.md` (decision D7/D8 and its non-goals).
+
+## 161. Two shipped specs are unclassified, so the classification gate is red today, and its two directions are asymmetric — Found 2026-10-09 while applying `add-project-metrics-report`
+**id:** 161 · **category:** specs-and-process · **class:** bug · **status:** open
+
+- **Observed** ℹ: `bash tools/gen-feature-list.sh --check-classification` exits 1 today with
+  `unclassified shipped spec id(s): map-repository-source, map-source-selection` (`specs read: 155`,
+  `classified: 154`, plus `car-only areas: 1`). The same gate also rejects the *opposite* mistake: an entry added
+  for a capability that has not shipped yet is reported as `stale classification entry for a spec that no longer
+  exists` — measured 2026-10-09 by adding `project-metrics-report` to `tools/feature-list/specs.json` while it was
+  still a change-local capability and getting exit 1.
+- **Consequence** ⏳: any generation run — and every check built on it — fails for two specs a different change
+  shipped, while the change that must *not* pre-classify its own capability is told the same thing by the same
+  command. §157 holds the process half (nothing forces classification at archive); this entry is the live state.
+- **Fix candidate**: classify the two spec ids in `tools/feature-list/specs.json` (area and `userVisible` follow
+  §4 of `guidelines/FeatureList.md`), then use `--check-classification` as the archive-time step §157 proposes.
+
+## 162. `guidelines/FeatureList.md` names three behaviour contracts that exist nowhere on disk — Found 2026-10-09 while applying `add-project-metrics-report`
+**id:** 162 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ℹ: §1 of `guidelines/FeatureList.md` states that "the behaviour contract is the capability specs
+  `openspec/specs/spec-feature-index`, `feature-list-generation` and `release-notes-generation`", and
+  `TODO.md` §160 quotes `map-repository-source` the same way. All three of those directories are missing:
+  `find openspec -maxdepth 3 -name '*generation*' -o -maxdepth 3 -name 'spec-feature-index'` returns nothing, and
+  `openspec list --specs --json` (155 ids) contains none of the three.
+- **Consequence** ℹ: a reader sent from the guideline to the contract finds no document, and the tool that
+  implements it (`tools/gen-feature-list.sh`) therefore has no spec to change when its behaviour is deliberately
+  altered — the exact situation the one-normative-home rule exists to prevent.
+- **Fix candidate**: either write the three capability specs from `guidelines/FeatureList.md` (its eight sections
+  state the behaviour) or repoint the guideline at the specs that do exist; that decision belongs to a change
+  about the feature-list tooling, not to the metrics report.
+
+## 173. The FREE_DRIVE ongoing notification showed a fallback road and a dangling separator, and the background "GPS keeps updating" claim was false — Found 2026-10-07 while planning `fix-free-drive-background-liveness` (device run on `emulator-5554`)
+**id:** 173 · **category:** ui · **class:** improvement · **status:** fixed-by 2026-10-10-fix-free-drive-background-liveness
+
+- **Observed** ℹ: on `emulator-5554` (API 37, `com.framstag.naviveylin` code 19, NRW map) with a GOOD 5 m fix
+  and free drive active, the shade showed `android.title = "Freie Fahrt"`, `android.text = "Abseits der Straße · "`
+  — the off-road fallback, no speed, a dangling separator, never refreshed. Root cause: the notification read
+  `NavigationState.currentRoadInfo` / `currentSpeedKmH`, which only `NavigationEngine` writes while navigating;
+  free driving resolves road/speed privately in `MapCanvasViewModel` and `FreeDrivingScreen` and published it
+  nowhere the notification could see. Per-UID GPS on-time with the request active `+124.9 s / 125 s`, per-UID
+  power model `+0.0096 mAh`; with it off `+8.0 s / 127 s` and `+0.0006 mAh` (~16×).
+- **Second defect in the same run** ℹ: `PHONE_MAP` is released on `ON_PAUSE` and no consumer leased for
+  FREE_DRIVE, so a backgrounded free drive survived in the process (FGS `isForeground=true types=0x8`) while
+  `lease release: phone-map (held=0)` → `ProviderRequest[OFF]` left 20 s with zero fixes and zero renders — the
+  archived `background-navigation-notification` assurance "no new GPS load — location keeps streaming" had
+  stopped being true when `shared-resource-arbitration` landed its lease mechanism.
+- **Closure** ✓: `fix-free-drive-background-liveness` — one shared `FreeDrivingStatusProvider` (`:core`) that the
+  phone label, the car label and the notification all read (one resolution per fix), notification formatting
+  that omits absent values, and owner decision C pinning "an invisible, non-navigating FREE_DRIVE holds no
+  location lease" in `specs/location-updates-lease` (the requirement text shrinks to what holds; the
+  notification and the FGS protection stay). The superseded assurance is recorded in `guidelines/Design.md`
+  §13. Remaining device-gated verification (car live content on the AAOS AVD, real GNSS mA on a physical
+  phone) is captured in that change's tasks 6.5/6.6.

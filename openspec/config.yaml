@@ -18,6 +18,7 @@ context: |
   Native purity: libosmscout stays Android-free outside its frozen Android/ dir (CI-gated)
   Google Play Services: optional, used when available (Fused location, car MapController); no hard dependency — replaceable by design (e.g., LocationManager fallback)
   Tooling: do NOT use python3 for openspec interaction or CLI output processing — use plain shell, jq, or openspec's own --json output instead
+  Defect-shaped items: `.pi/skills/fix-loop` owns the budgeted loop that closes bugs and defect-shaped improvements (triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → TODO.md bookkeeping). An item may only enter that loop when exactly one fix follows from a proven root cause; otherwise it is skipped, not guessed at.
 
 rules:
   proposal:
@@ -32,6 +33,7 @@ rules:
     - State whether the change is additive or breaking, and the rollback path
     - "For native/JNI changes, state: submodule patch (minimal, upstreamable) or local override in the bridge module"
     - Assure that scope is clear. Is this a general feature, a feature only for the android auto integration or only for phone
+    - "For a fix-* bug-fix change: state the root cause and its evidence (failing test name plus XML tally on HEAD, file:line, or a repro command) under Why; name the single resulting fix and the spec requirement the defect contradicts. If two fixes are defensible, the entry is not loop-eligible — say so instead of choosing silently."
 
   specs:
     - Write acceptance criteria in WHEN/THEN format
@@ -42,9 +44,11 @@ rules:
     - "For features affecting both phone and AA: state the parity requirement (same labels/hierarchy) or the platform constraint forcing deviation"
     - If a spec contradicts a guidelines/ doc, update the guideline in the same change
     - Include performance requirements where relevant (frame budget, allocation-free hot paths)
+    - "For a fix-* bug-fix change: the delta touches only the requirement the defect contradicts (ADDED/MODIFIED, never a rewrite of unrelated text), and every scenario names the one test case that exercises it."
 
   design:
     - Document at least 2 alternatives per decision with rationale for the chosen one
+    - "Bug-fix exception (fix-* changes): the alternatives are the ones the root-cause evidence eliminated — name each and why it is impossible. A list of viable options means the root cause is not established; stop and re-diagnose instead of writing the design."
     - Reference specific files, modules, and Gradle configurations that will change
     - Include risk assessment per approach
     - State the threading model (dispatcher, main vs background) and lifecycle handling per new component — see guidelines/Design.md §4
@@ -64,6 +68,7 @@ rules:
     - Include on-device verification tasks for UI, rendering, and Auto changes (emulator/head unit, surface lifecycle)
     - Include Gradle sync or build verification steps for Android-specific tasks
     - Every new invariant, bound, predicate or refusal path needs one revert-check task — name the single mutation and the case that must fail, restore, then re-run green forced with `-PforceTests --no-build-cache` (`--rerun-tasks` only when the change touched more than the test sources; the gate's own rule is `guidelines/Build.md` §2/§4); the `revert-check` skill holds the discipline and the evidence format
+    - "For a fix-* bug-fix change the first task writes the test that reproduces the defect and records its red-on-HEAD run (case name plus XML tests/failures); the fix task then makes it green. A revert-check is added only for an invariant the fix introduces beyond the original symptom."
     - State each task's verification in the task itself (a test, command, observable behavior or delivered artifact), not in a separate late testing group
     - For a visual or observable-behaviour requirement, include a task that records the on-device measurement (diagnostics line output, UI-dump geometry, or the `pixel-check` verdict) with its numbers
     - For a UI/rendering change, include one task that measures the *pixels* (screenshot + `pixel-check`) for the claimed property, and say so when the property cannot be produced on a stationary emulator
@@ -95,6 +100,7 @@ operations:
       - When a finding needs the owner's observation, ask 2-4 independent questions in ONE ask_user call (where/when/whether), not one question per round.
       - "When a fix cannot be verified by measurement (e.g. a stationary emulator cannot produce follow drift), say so explicitly in the task and the report instead of implying device proof."
       - Generate test coverage report and make sure that essential business logic and strategical gluing and integration code has a high test coverage
+      - "In the fix-loop (`.pi/skills/fix-loop`), reproduce the defect — or, for a defect-shaped improvement, the missing bound — with a test that fails on HEAD before changing production code, and have a fresh read-only child confirm each spec scenario against the diff and the gate XMLs before archiving — the writer may not be the reviewer."
 
 
   # Verify gates (validation + review): openspec 1.10.0 loads guidance only
@@ -120,3 +126,4 @@ operations:
       - Error messages are user-actionable
       - Native/JNI code follows Android NDK conventions (no leaks, proper JNI exception handling)
       - Compose previews exist for new UI components
+      - "A fix-* change archives only when the independent review reported PASS per scenario (or the failure is recorded and the change is left unarchived), the red-on-HEAD case and the green gate run are both quoted with their timestamps, and the TODO.md entry moved to fixed-by the archived change."

@@ -34,12 +34,14 @@ which also lists the sections this table does not route.
 | writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `Build.md` §6 "Test constraints", §7 "Code coverage", `Design.md` §11 "Testing" |
 | release, versioning, SBOM, licence inventory | `Build.md` §5, §8, §9 |
 | on-device evidence — car crash triage, phone UI measurement | `Build.md` §10, §11 |
+| what one project metrics report run measures, its metric definitions, its excluded classes, its surface rule | `Metrics.md` §1 "Invocation and exit status", §2 "What one run measures, and what it does not", §3, §4, §5, §6 "Surface convention" |
 | legal, regulatory, Play policy, privacy, diagnostics disclosure | `Regulatory.md` §2, §3, §4, §6, §9 |
 | engineering principles, and the checklist before an apply pass | `Design.md` §12, "Appendix A — Quick checklist (apply phase)" |
 | why an earlier decision was reversed | `Design.md` §13, "Appendix B — Provenance" |
 | a rendering regression to re-check, and the parameter table | `MapRendering.md` "Known Pitfalls", "Parameter Overview" |
 | what is open, and what to do next | `TODO.md` — skills `triage-todo` (rank), `cleanup-todo` (prune) |
 | whether `UI.md` is still accurate | `UI.md` "Keeping this document honest" |
+| the feature catalogue or the release notes, or how they are generated | `FeatureList.md` §1 "What the two documents are", §3 "One capability key identifies one requirement", §4 "The classification is the only human judgement, and an unclassified spec stops the run", §6 "The prose gates, not a reviewer's memory", §8 "The version is an input" — those 5 sections are 9 268 of the document's 13 162 chars, ~2.6 k tokens against ~3.7 k for the whole document (measured 2026-10-08) |
 | how the guidelines themselves are organized | `openspec/specs/documentation-ownership/spec.md` |
 
 ## Tech Stack
@@ -153,13 +155,14 @@ What this file keeps, with the rest owned by the specs:
 `TODO.md` is the live backlog: numbered `## <id>.` sections plus the feature-table groups. Every entry
 carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line
 under its heading; ids are identity and are never renumbered (commit messages, change tasks and sessions
-quote `§N`). Three skills own the file:
+quote `§N`). Four skills own the file:
 
 | Skill | Job |
 |---|---|
 | `triage-todo` | read-only — rank what is open and name the next change |
 | `cleanup-todo` | remove entries already implemented on master / in an archived change / in a merged PR, repair the metadata, optionally cluster |
 | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
+| `fix-loop` | run the user-budgeted loop that closes defect-shaped items — bugs, and improvements that clear the same bar — triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → next item; strict eligibility (one root cause, one fix, host-decidable), one fresh child per item so the context window survives, and `.pi/skills/fix-loop/scripts/loop-state.sh` as the mechanical item/time cap |
 
 ## Agent iteration loop (measure first)
 
@@ -174,6 +177,9 @@ What this file owns about the loop is only where its parts live:
 - measuring a pixel symptom: `guidelines/Build.md` §10 and §11, the `pixel-check` skill, and the
   coordinate-free diagnostics line (spec `auto-diagnostics`);
 - the iteration levers and the measurements behind them: `guidelines/Build.md` §4, §6, §7;
+- a defect fix inside the loop owes a test that fails on HEAD *before* the fix, and an independent read-only
+  reviewer before archive — that includes a defect-shaped improvement, whose red case asserts the bound it is
+  missing; the loop, its budget and its eligibility gate are `.pi/skills/fix-loop`;
 - the device loop, an emulator with maps, and a Compose geometry assertion: the `device-check`,
   `provision-phone-emulator` and `compose-geometry` skills;
 - the build, test and falsification skills: `build-app`, `run-tests`, `revert-check`, and the wrapper and

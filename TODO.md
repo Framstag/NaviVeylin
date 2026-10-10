@@ -16,7 +16,7 @@
 - **map-rendering** — bug: §19 §65
 - **map-rendering** — improvement: §49 §71 §78
 - **map-rendering** — feature: §6
-- **native-jni** — improvement: §81 §82 §119
+- **native-jni** — improvement: §81 §82 §119 §174
 - **native-jni** — feature: §23
 - **persistence** — bug: §168
 - **persistence** — improvement: §9
@@ -1727,7 +1727,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   duplication itself has no test, only the rule that a follow-mode overlay shift must stay zero.
 
 ## 119. The Android bridge override trails the submodule's Java favorites API — Found 2026-09-28 (while adding the cross-group favorite move)
-**id:** 119 · **category:** native-jni · **class:** improvement · **status:** open
+**id:** 119 · **category:** native-jni · **class:** improvement · **status:** fixed-by `fix-jni-override-parity`
 
 - **Debt** ℹ: `osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java`
   shadows the submodule's Java source (that file is excluded in `osmscout-client-java/build.gradle.kts`)
@@ -1748,6 +1748,16 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   (the other `§79` was closed and removed). It is still quoted as `§79` by
   `fix-open-database-path-validation/design.md`, the `reorder-favorite-groups` traceability and
   `condense-style-load-warnings`; those historical citations are left as they are.
+- **Loop verdict** ✅: `fixed-by fix-jni-override-parity` (2026-10-10). Root cause: `OSMScoutClient.java` is
+  one of the five hand-maintained override files that shadow the submodule Java sources, and it was not
+  updated when submodule commit `530ac8768` added `getFavoriteFileFormatVersion`/`isFavoriteFileFormatSupported`
+  — the app compiles against the override, so both natives were unreachable (no compiler error, no failing
+  test). One fix: declare both natives in the override with the submodule's KDoc and order. Red on HEAD:
+  `OSMScoutClientFavoriteFileFormatApiTest#favoriteFileFormatNativesAreDeclaredOnTheOverride`,
+  tests="1" failures="1"; green after the fix; one revert-check (the `getFavoriteFileFormatVersion`
+  declaration mutated away) failed the case at its `getDeclaredMethod` premise; one forced both-flavor gate
+  green, 189 tasks executed. Archived with its evidence. Residue: a blanket override/submodule native parity
+  check is false as a subset check and is filed as §174.
 
 ## 103. `FavoritesScreen` (car) is the one screen still outside the `CarScreenObservations` pattern — Found 2026-09-29 during `order-starred-favorites`
 **id:** 103 · **category:** car · **class:** improvement · **status:** in-flight fix-details-screen-observation-scope
@@ -2789,3 +2799,21 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   notification and the FGS protection stay). The superseded assurance is recorded in `guidelines/Design.md`
   §13. Remaining device-gated verification (car live content on the AAOS AVD, real GNSS mA on a physical
   phone) is captured in that change's tasks 6.5/6.6.
+
+## 174. Nothing guards the override/submodule native parity, and a blanket subset check is false — Found 2026-10-10 while applying `fix-jni-override-parity` (§119)
+**id:** 174 · **category:** native-jni · **class:** improvement · **status:** open
+
+- **Debt** ℹ: §119 declared the two file-format natives the Android bridge override was missing, but the
+  drift class stays unguarded. The obvious guard — a buildSrc/CI "submodule natives ⊆ override natives"
+  check — is **false even after §119**, because the override intentionally diverges by more than those two:
+  the submodule declares five natives the override omits (`calculateRouteWithObjectsAsync`, `cancelSearch`,
+  `getRegion`, `setGpsMarker`, `startNavigation`) and the override declares six of its own (`getAddressAt`,
+  `getDatabaseBoundingBox`, `getMaxSpeedAt`, `reloadBasemap`, `renderInto`, `searchLocationByForm`). A
+  blanket subset check would fail on the intended deviations and still not name the next genuinely-missing
+  native, so no gate exists and the next submodule API addition is again a silent `NoSuchMethodError` at the
+  call site (no compiler error, no failing test).
+- **Fix candidate**: define the parity list first — which natives must mirror the submodule and which are
+  deliberate Android deviations — then add a buildSrc/CI check over that list. That family/expected-list
+  decision is what §119's evidence did not make for it.
+- **Related**: §119 (the fixed instance), `guidelines/Design.md` §5 (mirror upstream APIs; deviations live
+  as local overrides in the bridge module, never patched into the submodule).

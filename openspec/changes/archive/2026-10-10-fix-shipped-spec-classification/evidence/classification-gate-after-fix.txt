@@ -1,0 +1,10 @@
+bash tools/gen-feature-list.sh --check-classification
+run 2026-10-10T07:06:28Z, after the six classification entries were added
+
+specs read: 163
+classified: 163
+unclassified: 0
+stale: 0
+car-only areas: 1
+highlights: 19
+exit 0

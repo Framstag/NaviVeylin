@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.data.HttpUrlFetcherTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-10T07:32:39.182Z" hostname="dingens" time="0.964">
+  <properties/>
+  <testcase name="aNonHttpSchemeIsReportedAsUnusable" classname="com.naviveylin.data.HttpUrlFetcherTest" time="0.263"/>
+  <testcase name="servesTextAndFileOverHttp" classname="com.naviveylin.data.HttpUrlFetcherTest" time="0.178"/>
+  <testcase name="anHttpsRequestDoesNotConsultTheCleartextPolicy" classname="com.naviveylin.data.HttpUrlFetcherTest" time="0.178"/>
+  <testcase name="connectFailureIsReported" classname="com.naviveylin.data.HttpUrlFetcherTest" time="0.046"/>
+  <testcase name="aMalformedUrlIsReportedInsteadOfThrown" classname="com.naviveylin.data.HttpUrlFetcherTest" time="0.058"/>
+  <testcase name="nonSuccessStatusIsReported" classname="com.naviveylin.data.HttpUrlFetcherTest" time="0.089"/>
+  <testcase name="aPermittedCleartextRequestProceeds" classname="com.naviveylin.data.HttpUrlFetcherTest" time="0.077"/>
+  <testcase name="aCleartextRefusalIsReportedAsAPolicyDecision" classname="com.naviveylin.data.HttpUrlFetcherTest" time="0.066"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,35 @@
+# Tasks
+
+## 1. Reproduce the defect (red on HEAD)
+
+- [x] 1.1 Add the case `aNonHttpSchemeIsReportedAsUnusable` to `app/src/test/java/com/naviveylin/data/HttpUrlFetcherTest.kt`: `text("ftp://127.0.0.1/names.json")` and `download("ftp://127.0.0.1/names.json")` both report `RepositoryFailure.MalformedUrl`, and the cleartext probe is never consulted — the red half of the added requirement "A base URL with a non-HTTP scheme is reported as an unusable URL". Verify: on HEAD, `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.data.HttpUrlFetcherTest"` → BUILD FAILED, tests="8" failures="1", retained under `evidence/HEAD-red-TEST-com.naviveylin.data.HttpUrlFetcherTest.xml` (`expected:<Failed(failure=MalformedUrl)> but was:<Failed(failure=TransportFailed(cause=class sun.net.www.protocol.ftp.FtpURLConnection cannot be cast to class java.net.HttpURLConnection …))>`, 2026-10-10T07:26:08.451Z). That XML's stack frames the case at `HttpUrlFetcherTest.kt:162`/`:174`; task 1.2's KDoc line was added after it ran, so the file and the later XMLs frame the same case one line lower (`:163`/`:175`).
+- [x] 1.2 Widen the spec-reference KDoc of `HttpUrlFetcherTest` to name the added requirement beside the parse requirement. Verify: the KDoc names both requirements and no other comment claims the failure is parse-only.
+
+## 2. The fix
+
+- [x] 2.1 In `app/src/main/java/com/naviveylin/data/HttpUrlFetcher.kt`, add the scheme guard to `openConnection` after the parse and before the cast: throw the existing private `UnusableUrl(IllegalArgumentException("unsupported scheme ${parsed.protocol}"))` when the protocol is neither `http` nor `https`; add the private `isHttpScheme(protocol: String)` predicate (case-insensitive `http`/`https`). Verify: `HttpUrlFetcherTest` green after the change — the retained `evidence/gate-mobile-TEST-com.naviveylin.data.HttpUrlFetcherTest.xml` and `evidence/gate-automotive-TEST-com.naviveylin.data.HttpUrlFetcherTest.xml` carry tests="8" failures="0", and `git diff` on the file is the guard plus the KDoc.
+- [x] 2.2 Widen the `HttpUrlFetcher` class KDoc to say the unusable-URL failure covers an unparseable URL or one whose scheme is not HTTP. Verify: the KDoc sentence matches the two requirements (`grep 'not an HTTP URL' HttpUrlFetcher.kt`).
+- [x] 2.3 Widen the `RepositoryFailure.MalformedUrl` KDoc in `core/src/main/java/com/naviveylin/core/mapsource/RepositoryFailure.kt` from "could not be parsed into a request URL" to "is not one an HTTP request can use — unparseable, or a scheme that is not HTTP". Verify: `:core` compiles unchanged (no member added) and its gate suite is green — `:core` 51/532/0/0 (classes/tests/failures/errors, from that module's retained XMLs under `build/test-results/`).
+
+## 3. Scenario coverage
+
+- [x] 3.1 Added requirement "A base URL with a non-HTTP scheme is reported as an unusable URL" — scenario "A non-HTTP scheme is named as unusable" is exercised by `HttpUrlFetcherTest#aNonHttpSchemeIsReportedAsUnusable`. Verify: red on HEAD (task 1.1), green after the fix (task 2.1).
+- [x] 3.2 Modified requirement "A base URL that cannot be parsed is reported as an unusable URL" — modified scenario "A parseable URL is never reported as unusable" (narrowed to `http`/`https`) is exercised by `HttpUrlFetcherTest#connectFailureIsReported` (an `http` URL's transport failure stays `TransportFailed`). Verify: the case is unchanged and green.
+- [x] 3.3 Modified requirement — unchanged scenario "An unparseable URL is named as unusable" is exercised by `HttpUrlFetcherTest#aMalformedUrlIsReportedInsteadOfThrown`. Verify: the case is unchanged and green.
+
+## 4. Falsification
+
+- [x] 4.1 Revert-check the new scheme guard, one mutation: make `isHttpScheme` accept every scheme (marked `// REVERT-CHECK MUTATION`) → `aNonHttpSchemeIsReportedAsUnusable` failed at its `MalformedUrl` assertion with `TransportFailed(cause=class sun.net.www.protocol.ftp.FtpURLConnection cannot be cast to class java.net.HttpURLConnection …)`, tests="8" failures="1", 2026-10-10T07:28:18.928Z (retained as `evidence/mutation-TEST-com.naviveylin.data.HttpUrlFetcherTest.xml`); restored (`grep -rc 'REVERT-CHECK MUTATION'` → 0) and re-ran forced (`--rerun-tasks`, 114 actionable tasks: 114 executed (console; log not retained)) green, tests="8" failures="0", 2026-10-10T07:29:57.365Z (retained as `evidence/restore-green-TEST-com.naviveylin.data.HttpUrlFetcherTest.xml`). The failure is at the assertion that describes the invariant, not a compile or premise failure.
+
+## 5. Gate
+
+- [x] 5.1 Run the one forced both-flavor gate for this change shape (production code changed): `./gradlew test -PforceTests --rerun-tasks` → BUILD SUCCESSFUL in 6m 37s, 189 actionable tasks: 189 executed (console; log not retained). Real per-module tallies of the modules this gate ran, each read from that module's own retained XMLs under `build/test-results/`, as classes/tests/failures/errors: `:app` mobile 248/1872/0/0, `:app` automotive 248/1872/0/0, `:auto` 78/793/0/0, `:core` 51/532/0/0, `:osmscout-client-java` 4/33/0/0. `:buildSrc:test` is outside this gate invocation — `./gradlew test` does not run buildSrc's separate build, and the `buildSrc/build/test-results/test/TEST-…xml` on disk is from a separate 2026-10-09 run, not from this gate. `HttpUrlFetcherTest` gate tallies: mobile tests="8" failures="0" at 2026-10-10T07:32:39.182Z (`evidence/gate-mobile-TEST-com.naviveylin.data.HttpUrlFetcherTest.xml`), automotive tests="8" failures="0" at 2026-10-10T07:34:58.165Z (`evidence/gate-automotive-TEST-com.naviveylin.data.HttpUrlFetcherTest.xml`). No `MapCanvasViewModelModeTest` failure occurred (the known §148 flake was not hit).
+- [x] 5.2 Confirm no unrelated expectation moved: no other test reads the non-HTTP *scheme* classification; the one that reads the `MalformedUrl` wording is `app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerSourceSelectorComposeTest.kt:126` `#anUnusableUrlIsExplainedAsAUrlProblem` (unchanged, green in the gate), and `source_test_malformed_url` and `MapManagerScreen.describe()` are unchanged. Verify: the gate ran with no test-source change outside `HttpUrlFetcherTest`, and `grep -rn 'ftp://' app/src/test core/src/test` matches exactly three lines: `HttpUrlFetcherTest.kt:172` and `:173` (the new case's two calls) and `core/src/test/java/com/naviveylin/core/DeepLinkParserTest.kt:205` (an unrelated deep-link parse rejection, unchanged).
+
+## 6. Evidence retention
+
+- [x] 6.1 Every XML the change cites was copied into `openspec/changes/fix-non-http-url-scheme/evidence/` (HEAD-red, mutation, restore-green, gate mobile, gate automotive) and `bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/fix-non-http-url-scheme` ran in live mode. Verify: exit 0, C2 confirms every quoted tally, C4 finds no mutation marker.
+
+## 7. Bookkeeping
+
+- [x] 7.1 Leave the `TODO.md` §164 status line for the orchestrator (the loop's bookkeeping step): the archive moves it to `fixed-by fix-non-http-url-scheme` and updates the `data-and-maps — improvement` cluster index.

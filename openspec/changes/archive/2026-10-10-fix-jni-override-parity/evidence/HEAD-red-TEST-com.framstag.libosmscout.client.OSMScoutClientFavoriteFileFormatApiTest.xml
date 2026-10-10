@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.OSMScoutClientFavoriteFileFormatApiTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-10-10T07:45:58.051Z" hostname="dingens" time="0.052">
+  <properties/>
+  <testcase name="favoriteFileFormatNativesAreDeclaredOnTheOverride()" classname="com.framstag.libosmscout.client.OSMScoutClientFavoriteFileFormatApiTest" time="0.03">
+    <failure message="java.lang.NoSuchMethodException: com.framstag.libosmscout.client.OSMScoutClient.getFavoriteFileFormatVersion()" type="java.lang.NoSuchMethodException">java.lang.NoSuchMethodException: com.framstag.libosmscout.client.OSMScoutClient.getFavoriteFileFormatVersion()
+	at java.base/java.lang.Class.getDeclaredMethod(Class.java:2850)
+	at com.framstag.libosmscout.client.OSMScoutClientFavoriteFileFormatApiTest.declaredNative(OSMScoutClientFavoriteFileFormatApiTest.java:37)
+	at com.framstag.libosmscout.client.OSMScoutClientFavoriteFileFormatApiTest.favoriteFileFormatNativesAreDeclaredOnTheOverride(OSMScoutClientFavoriteFileFormatApiTest.java:25)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

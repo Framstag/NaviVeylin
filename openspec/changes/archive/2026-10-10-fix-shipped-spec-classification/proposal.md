@@ -4,8 +4,9 @@
 
 Root cause: six spec ids are present in `openspec/specs/` but absent from `tools/feature-list/specs.json` —
 the classification file was not updated when those capabilities shipped (`TODO.md` §161 recorded two of them
-on 2026-10-09; the 2026-10-10 land of the parallel workstream added `highlight-measurement`,
-`render-projection-dpi`, `route-calculation-feedback` and `starred-ordering` the same way) — so the
+on 2026-10-09; the 2026-10-09 `fix-highlight-longest-run` archive (commit `3d3d99d`) added
+`highlight-measurement`, and the 2026-10-10 land of the parallel workstream added `render-projection-dpi`,
+`route-calculation-feedback` and `starred-ordering` the same way) — so the
 classification gate reports every one of them as unclassified and exits 1.
 
 Evidence:    `com.naviveylin.featurelist.ShippedSpecClassificationTest#every shipped spec id is classified`

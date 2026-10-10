@@ -2739,9 +2739,10 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Fix candidate**: classify the two spec ids in `tools/feature-list/specs.json` (area and `userVisible` follow
   §4 of `guidelines/FeatureList.md`), then use `--check-classification` as the archive-time step §157 proposes.
 - **Loop verdict** ✅: `fixed-by fix-shipped-spec-classification` (2026-10-10). Root cause: shipped spec ids were
-  absent from `tools/feature-list/specs.json` — the two recorded here *plus* `highlight-measurement`,
-  `render-projection-dpi`, `route-calculation-feedback` and `starred-ordering`, which the 2026-10-10 parallel
-  workstream landed without their classification lines. Six entries added; the gate now reads `specs read: 163 /
+  absent from `tools/feature-list/specs.json` — the two recorded here, `highlight-measurement` (landed by the
+  2026-10-09 `fix-highlight-longest-run` archive), *plus* `render-projection-dpi`,
+  `route-calculation-feedback` and `starred-ordering`, which the 2026-10-10 parallel workstream landed without
+  their classification lines. Six entries added; the gate now reads `specs read: 163 /
   classified: 163 / unclassified: 0 / stale: 0` (exit 0), guarded by
   `com.naviveylin.featurelist.ShippedSpecClassificationTest#every shipped spec id is classified`. The
   **"two directions are asymmetric"** half was **refuted**: a stale entry already does not set `gate_errors`

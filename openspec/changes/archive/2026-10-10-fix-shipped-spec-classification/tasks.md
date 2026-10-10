@@ -46,7 +46,7 @@
       failures="1"`, `expected:<[]> but was:<[starred-ordering]>`; retained as
       `evidence/TEST-ShippedSpecClassification-revert-check-mutation.xml`. Restored the pre-mutation file;
       `git diff --stat tools/feature-list/specs.json` → 6 insertions, 0 deletions; forced green in task 4.1
-      (mobile 2026-10-10T07:14:36.955Z, automotive 2026-10-10T07:16:40.633Z).
+      (mobile 2026-10-10T07:16:40.633Z, automotive 2026-10-10T07:14:36.955Z).
 
 ## 4. Gate shape
 

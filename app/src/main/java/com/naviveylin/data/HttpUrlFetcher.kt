@@ -28,8 +28,9 @@ import javax.inject.Singleton
  *
  * Two failures are told apart from a transport error on purpose, because both are decided before a
  * byte is sent and both point at the request rather than at the network: a plain-HTTP request the
- * platform's cleartext policy refuses ([RepositoryFailure.CleartextBlocked]) and a base URL that
- * cannot be parsed ([RepositoryFailure.MalformedUrl]).
+ * platform's cleartext policy refuses ([RepositoryFailure.CleartextBlocked]) and a base URL that is
+ * not an HTTP URL ([RepositoryFailure.MalformedUrl]) — one that cannot be parsed, or one whose scheme
+ * is neither `http` nor `https`.
  */
 @Singleton
 class HttpUrlFetcher @Inject constructor() : RepositoryFetcher {
@@ -115,12 +116,21 @@ class HttpUrlFetcher @Inject constructor() : RepositoryFetcher {
             }
         }
 
-    /** Open a GET connection with the timeouts the download path uses. */
+    /**
+     * Open a GET connection with the timeouts the download path uses.
+     *
+     * A URL whose scheme is neither `http` nor `https` is rejected as unusable here: no such URL can
+     * become an [HttpURLConnection], so the cast below would otherwise throw `ClassCastException` and
+     * reach the caller as a transport failure.
+     */
     private fun openConnection(url: String): HttpURLConnection {
         val parsed = try {
             URI.create(url).toURL()
         } catch (error: Exception) {
             throw UnusableUrl(error)
+        }
+        if (!isHttpScheme(parsed.protocol)) {
+            throw UnusableUrl(IllegalArgumentException("unsupported scheme ${parsed.protocol}"))
         }
         val connection = parsed.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
@@ -128,6 +138,10 @@ class HttpUrlFetcher @Inject constructor() : RepositoryFetcher {
         connection.readTimeout = READ_TIMEOUT_MS
         return connection
     }
+
+    /** Whether [protocol] is one of the two schemes an HTTP request can carry. */
+    private fun isHttpScheme(protocol: String): Boolean =
+        protocol.equals("http", ignoreCase = true) || protocol.equals("https", ignoreCase = true)
 
     /**
      * A plain-HTTP request the platform's cleartext policy refuses, or null when it permits it or the

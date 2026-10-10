@@ -372,12 +372,13 @@
 - **Related**: §160 (the repository source performs no update check).
 
 ## 164. A parseable but non-HTTP base URL is reported as a transport failure with a cast error — Found 2026-10-09 while implementing `allow-lan-http-map-repository` (task 2.5, outside that requirement's scope)
-**id:** 164 · **category:** data-and-maps · **class:** improvement · **status:** open
+**id:** 164 · **category:** data-and-maps · **class:** improvement · **status:** fixed-by `fix-non-http-url-scheme`
 
 - **Observed** ℹ: `app/src/main/java/com/naviveylin/data/HttpUrlFetcher.kt` classifies an unparseable URL as `RepositoryFailure.MalformedUrl` (spec `map-download-infrastructure` — "A base URL that cannot be parsed is reported as an unusable URL"), but a URL that parses with a non-HTTP scheme (`ftp://host/x`) throws `ClassCastException` and reaches the user as `TransportFailed(cause=… cannot be cast to HttpURLConnection)` — the same parser-vs-user wording the change removed for the unparseable case.
 - **Why it matters**: the user's fix is the scheme, not the network.
 - **Candidate fix**: report a non-HTTP scheme as the unusable-URL failure, and add its own scenario if the spec is to cover it.
 - **Related**: spec `map-download-infrastructure` — "A base URL that cannot be parsed is reported as an unusable URL"; change `allow-lan-http-map-repository`.
+- **Loop verdict** ✅: `fixed-by fix-non-http-url-scheme` (2026-10-10). Root cause: `HttpUrlFetcher.openConnection` cast the parsed URL's connection to `HttpURLConnection` without checking the scheme, so `ftp://host/x` threw `ClassCastException` and reached the user as `TransportFailed`. One fix: a scheme guard (`isHttpScheme`, `http`/`https`) throws the existing private `UnusableUrl`, so the URL is reported as `RepositoryFailure.MalformedUrl` (both the `HttpUrlFetcher` class KDoc and the `RepositoryFailure.MalformedUrl` KDoc widened to match). Red on HEAD: `HttpUrlFetcherTest#aNonHttpSchemeIsReportedAsUnusable`, tests="8" failures="1"; green after the fix; one revert-check (the guard mutated to accept every scheme) failed the case at its `MalformedUrl` assertion; one forced both-flavor gate green (`:app` mobile 248/1872/0/0, `:app` automotive 248/1872/0/0, `:auto` 78/793/0/0, `:core` 51/532/0/0, `:osmscout-client-java` 4/33/0/0, classes/tests/failures/errors). Archived with its evidence.
 
 ## 120. The car re-applies the `daylight` flag after every style switch, so a switch costs a second stylesheet reload — Found 2026-10-03 while implementing `dedupe-stylesheet-loads` (out of that change's scope)
 **id:** 120 · **category:** car · **class:** improvement · **status:** open

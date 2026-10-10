@@ -34,11 +34,13 @@ sealed interface RepositoryFailure {
     data object CleartextBlocked : RepositoryFailure
 
     /**
-     * The base URL could not be parsed into a request URL.
+     * The base URL is not one an HTTP request can use: it could not be parsed, or its scheme is not
+     * HTTP.
      *
      * Distinct from [TransportFailed] on purpose: nothing was sent, and the fix is in the URL the
      * user typed, not in the network (spec `map-download-infrastructure` — "A base URL that cannot
-     * be parsed is reported as an unusable URL").
+     * be parsed is reported as an unusable URL", "A base URL with a non-HTTP scheme is reported as
+     * an unusable URL").
      */
     data object MalformedUrl : RepositoryFailure
 

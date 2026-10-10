@@ -26,7 +26,8 @@ import java.nio.charset.StandardCharsets
  *
  * Spec: map-download-infrastructure — "Repository requests use HttpURLConnection", "Shipped builds
  * permit cleartext repository transport", "A denied cleartext request reports the denial itself",
- * "A base URL that cannot be parsed is reported as an unusable URL"; for the outcome cases see
+ * "A base URL that cannot be parsed is reported as an unusable URL", "A base URL with a non-HTTP scheme
+ * is reported as an unusable URL"; for the outcome cases see
  * `map-source-selection` — "Test fails on transport or status".
  */
 @RunWith(RobolectricTestRunner::class)
@@ -156,6 +157,24 @@ class HttpUrlFetcherTest {
         assertTrue(text is TextFetch.Failed)
         assertTrue((text as TextFetch.Failed).failure is RepositoryFailure.TransportFailed)
         assertEquals(emptyList<String>(), probed)
+    }
+
+    @Test
+    fun aNonHttpSchemeIsReportedAsUnusable() = runTest {
+        var probed: String? = null
+        val fetcher = HttpUrlFetcher().apply {
+            ioDispatcher = Dispatchers.Unconfined
+            cleartextPermitted = { host -> probed = host; true }
+        }
+
+        // Parses as a URI and as a URL, but its protocol is ftp: it can never become an
+        // HttpURLConnection, so the request is the URL's fault, not the network's.
+        val text = fetcher.text("ftp://127.0.0.1/names.json")
+        val download = fetcher.download("ftp://127.0.0.1/names.json") { _, _ -> }
+
+        assertEquals(TextFetch.Failed(RepositoryFailure.MalformedUrl), text)
+        assertEquals(RepositoryFailure.MalformedUrl, download)
+        assertEquals(null, probed)
     }
 
     private fun respond(path: String, status: Int, body: ByteArray) {

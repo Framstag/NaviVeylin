@@ -188,6 +188,17 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
 ## Pitfalls
 
 1. **A parallel session can force-rewrite `naviveylin-local`.** 2026-09-19: this branch was pushed as a fast-forward and then replaced by a peer's *copies of the same two JNI commits* (same messages, different SHAs) on an older upstream base — `git fetch` showed a forced update, and the peer tip did not contain the incoming upstream commits. Never trust the local remote-tracking ref for this: run `git ls-remote origin naviveylin-local` immediately before pushing and require `merge-base --is-ancestor <remote-sha> HEAD`. If it moved, merge the two lines (`git merge origin/naviveylin-local`, then push the merge — again a fast-forward). Two sessions must not both "claim" the same uncommitted JNI edits; one session owns the submodule update.
+   **The safety copy that rewrite left behind, `backup-naviveylin-local-262e7de56`, was audited on
+   2026-10-10 and retired** — so a `backup-*` ref is insurance to audit, not evidence of lost work. Neither
+   mechanical test decides it: `git cherry` over-reports (pitfall 7), and `git apply --check`/`-R --check`
+   classified all ten of its commits as *unclear*, applying in neither direction because the patches are
+   511 commits old. What settles it is **line-level presence** — for each added line, test whether the pushed
+   branch's version of the same file contains it (a real file, never a pipe into `grep -q`: under
+   `set -o pipefail` the writer dies of SIGPIPE and *every* line scores absent — a measured `0/73` for a real
+   `73/73`). Result: the four local fixes came back 73/73, 2/2, 381/386 and 910/962, with the identical
+   `IsValidUtf8` helper still at `OSMScoutClient.cpp:3453`; the rest were upstream cherry-picks/merges or the
+   old line's superseded seed (`setMapDpi` → `withPhysicalDpi` plus the per-render `dpi`), so nothing was
+   lost.
 2. **`git checkout --ours <file>` during a merge discards upstream's non-conflicting changes** in that file. Only safe when the file's diff vs `origin/master` is exactly the local intent — verify with `git diff origin/master`.
 3. **A green local Android build says nothing about the marisa-less configuration** (see above). This is the most common way this branch turns PR #1773 red.
 4. **JNI overloads are name-mangled** — symbol greps produce false "MISSING" hits; confirm before "fixing" anything.

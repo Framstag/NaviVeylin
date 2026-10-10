@@ -2346,7 +2346,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   configuration-phase invocation (`./gradlew -Dorg.gradle.java.installations.auto-detect=false help`),
   which cannot decide the choice itself.
 ## 148. Timing-sensitive cases fail in the loaded aggregate test run — four distinct cases across five aggregate runs, every one of them green in a single-module or solo run — Found 2026-10-07 while landing `fix-daemon-jvm-provisioning` (out of that change's scope)
-**id:** 148 · **category:** verification · **class:** bug · **status:** open
+**id:** 148 · **category:** verification · **class:** bug · **status:** in-flight `fix-aggregate-run-test-flakes` (widened 2026-10-10 to all five cases + the test-worker deaths; flips to `fixed-by` when that change archives)
 
 - **Observed** ℹ — four aggregate runs (the CI command `test -PforceTests --no-build-cache`, all four modules in
   one invocation) reached the test suites; all four failed, each on **one** case, and **three different
@@ -2469,6 +2469,25 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Not attributable to `fix-daemon-jvm-provisioning`** ✗: that change touched the daemon JVM criteria, a CI
   guard step and a guideline section; it contains no test or diagnostics code. Its own evidence is in
   `openspec/changes/fix-daemon-jvm-provisioning/traceability.md`.
+- **Update 2026-10-10 (bookkeeping for the widened change) ℹ**: the entry now has **five** named cases and one
+  infrastructure defect, all tasks of `fix-aggregate-run-test-flakes` (its `tasks.md` sections 2–8; the change was
+  widened rather than a second change opened, so `§148` keeps one owner): cases 1-3 (the `MapScreenTest`
+  `ConcurrentModificationException` face, `DiagnosticsLogWritePathTest.pendingBufferIsBoundedAndMarksTheDropOnce`,
+  `AutoMapRendererRenderCadenceTest.theInFlightFlagIsClearedAndTheDurationMeasuredAfterARender`) fixed by its 2.x/3.x/4.x
+  tasks; case 4 (`MapCanvasViewModelModeTest`'s `Dispatchers.Main is used concurrently with setting it`, whose Main
+  user is the engine's process-lifetime scope, `NavigationEngine.kt:109-111`/`:213`/`:360-375`) fixed by 6.2 with a
+  falsified guard 6.3; case 5
+  (`highWaterMarkFlushesWithoutWaitingForTheDeadline`) fixed by 7.1/7.2; and the test-worker `java.io.EOFException`
+  deaths (3 of 24 reps on 2026-10-08) diagnosed in 8.1/8.2 and given an evidence rule in the change's
+  `build-test-gate` delta (8.3). Case 1's message is now in hand: the run's own output carries it (task 1.1), which
+  is why the family is diagnosable where it failed. **Open residue (owner decision 2026-10-10): three guards stay
+  unfalsified** — 2.2, 3.3 and 7.2, each green with its mutation in place at CI's core count (`taskset -c 0-3`,
+  and for 7.2 a dispatched CI run) against recorded pre-fix rates of 0/11, 0/8 and 3/24 — so the change stays
+  **unarchived** with those checkboxes open rather than closing them on a green run with the mutation present.
+  Independent review (fresh read-only child): PASS per scenario on both spec deltas; its one MAJOR (the guard
+  proved cancellation rather than the join) is fixed and falsified, its two MINORs are recorded residuals
+  (the rule discards the finished-case count outside the guard; `awaitParked` bounds its wait with the sanctioned
+  `System.currentTimeMillis()` shape).
 
 ---
 

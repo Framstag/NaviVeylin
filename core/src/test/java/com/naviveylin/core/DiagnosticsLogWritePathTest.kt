@@ -104,14 +104,29 @@ class DiagnosticsLogWritePathTest {
         DiagnosticsLog.flushIntervalMs = 60_000
         DiagnosticsLog.maxPendingChars = 2_000
 
+        // Park the worker before the burst (spec `unit-test-suite-runtime` — A case awaits the state it
+        // needs, not a proxy of it): with the ring empty and the worker provably waiting, the burst is the
+        // only thing that can wake it. `awaitDrained` is that proxy here — it returns when the ring is empty,
+        // a state the worker reaches before it waits again, so a burst landing in that window is split and its
+        // tail then waits for the 60 s deadline (TODO.md §148 case 5, red in 3 of 24 aggregate reps).
+        DiagnosticsLog.log("TEST", "warm-up")
+        assertTrue(DiagnosticsLog.flushNow(2_000))
+        assertTrue("the worker must be parked before the burst", DiagnosticsLog.awaitParked(2_000))
+
         repeat(20) { DiagnosticsLog.log("TEST", "burst-$it " + "x".repeat(80)) }
 
-        // Only the entries present when the ring crossed the high-water mark are
-        // flushed by that signal; the rest stays buffered (the worker is parked on a
-        // 60 s deadline, so the 3 s poll bound proves the burst, not the deadline,
-        // triggered the flush).
-        assertTrue("a burst flushes at the high-water mark", DiagnosticsLog.awaitDrained())
-        assertTrue("the last burst line must be on disk", disk().contains("TEST burst-5"))
+        // Only the entries present when the ring crossed the high-water mark are flushed by that signal; the
+        // rest may still be buffered, so the state to await is the worker being parked again, not an empty
+        // ring. The bounded 2 s wait against the 60 s deadline makes a line on disk the high-water signal's
+        // work, not the deadline's.
+        assertTrue(
+            "a burst returns the worker to its wait without the deadline",
+            DiagnosticsLog.awaitParked(2_000)
+        )
+        assertTrue(
+            "the line at the high-water crossing must be on disk: ${disk()}",
+            disk().contains("TEST burst-5")
+        )
     }
 
     @Test

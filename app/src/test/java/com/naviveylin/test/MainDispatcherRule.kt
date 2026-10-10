@@ -19,6 +19,11 @@ import org.junit.runner.Description
  * That makes `advanceUntilIdle` / `advanceTimeBy` control all coroutine work —
  * including `debounce` timers — instead of racing real thread pools
  * ([Dispatchers.Default] / [Dispatchers.IO]), which is what made tests flaky.
+ *
+ * [finished] also stops the engines the case built ([EngineUnderTestRegistry]): every engine is a
+ * process-lifetime scope that keeps dispatching through Main (spec `unit-test-suite-runtime` — A case leaves no
+ * process-wide dispatcher state to race a neighbouring case, The teardown joins the subject before the
+ * dispatcher is restored), so its queued dispatch must not race this rule's `setMain` in the next case.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(
@@ -30,6 +35,10 @@ class MainDispatcherRule(
     }
 
     override fun finished(description: Description) {
+        // Cancel and join the engines of the finished case, completing the work they queued on this rule's
+        // scheduler *before* Main is restored — `resetMain()` on the same thread would otherwise overlap a
+        // dispatch that a real thread of the previous case is still issuing.
+        EngineUnderTestRegistry.shutdownAll { dispatcher.scheduler.advanceUntilIdle() }
         Dispatchers.resetMain()
     }
 }

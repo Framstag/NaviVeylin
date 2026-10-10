@@ -34,7 +34,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -241,6 +244,31 @@ class NavigationEngine @Inject constructor(
         if (!current.isNavigating) return
         if (!SpeedStaleness.isStale(lastFixTime, timeSource.nowMillis())) return
         _state.update { it.copy(currentSpeedKmH = 0.0) }
+    }
+
+    /**
+     * Test hook: stop an engine scope a test constructed (`engineUnderTest`). The scope is process-lifetime by
+     * design (spec: `navigation-engine` — Engine lifecycle and threading), but a test that builds its own engine
+     * owns it, and must stop it before `Dispatchers.resetMain()`: work this engine handed to `Dispatchers.Main`
+     * (the native start at [startWithRoute], the calculation outcomes, the fault publication) can otherwise
+     * reach Main while the next case installs its dispatcher — the recorded
+     * `Dispatchers.Main is used concurrently with setting it` of `TODO.md` §148 case 4.
+     *
+     * [drainScheduler] is supplied by the caller because only it owns the dispatcher this engine dispatched on:
+     * draining completes the work queued there, and the bounded join awaits what runs on a real dispatcher
+     * (spec `unit-test-suite-runtime` — The teardown joins the subject before the dispatcher is restored).
+     *
+     * @return true when the scope really stopped within [timeoutMs]. A `false` means work of this engine outlived
+     * its teardown — the state the next case's `Dispatchers.setMain` must not meet — and is reported to the caller
+     * instead of being swallowed here. The default bound is generous on purpose: it is a safety net for a stalled
+     * runner, not a timer, so a loaded machine cannot turn "still working" into a red guard.
+     */
+    internal fun shutdownForTest(drainScheduler: () -> Unit = {}, timeoutMs: Long = 1_000): Boolean {
+        scope.cancel()
+        drainScheduler()
+        val job = scope.coroutineContext[Job]
+        runBlocking { withTimeoutOrNull(timeoutMs) { job?.join() } }
+        return job?.isCompleted == true
     }
 
     // ---------------------------------------------------------------------

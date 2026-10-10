@@ -2725,7 +2725,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `openspec/changes/add-mapgen-map-source/design.md` (decision D7/D8 and its non-goals).
 
 ## 161. Two shipped specs are unclassified, so the classification gate is red today, and its two directions are asymmetric — Found 2026-10-09 while applying `add-project-metrics-report`
-**id:** 161 · **category:** specs-and-process · **class:** bug · **status:** open
+**id:** 161 · **category:** specs-and-process · **class:** bug · **status:** fixed-by `fix-shipped-spec-classification`
 
 - **Observed** ℹ: `bash tools/gen-feature-list.sh --check-classification` exits 1 today with
   `unclassified shipped spec id(s): map-repository-source, map-source-selection` (`specs read: 155`,
@@ -2738,6 +2738,17 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   command. §157 holds the process half (nothing forces classification at archive); this entry is the live state.
 - **Fix candidate**: classify the two spec ids in `tools/feature-list/specs.json` (area and `userVisible` follow
   §4 of `guidelines/FeatureList.md`), then use `--check-classification` as the archive-time step §157 proposes.
+- **Loop verdict** ✅: `fixed-by fix-shipped-spec-classification` (2026-10-10). Root cause: shipped spec ids were
+  absent from `tools/feature-list/specs.json` — the two recorded here *plus* `highlight-measurement`,
+  `render-projection-dpi`, `route-calculation-feedback` and `starred-ordering`, which the 2026-10-10 parallel
+  workstream landed without their classification lines. Six entries added; the gate now reads `specs read: 163 /
+  classified: 163 / unclassified: 0 / stale: 0` (exit 0), guarded by
+  `com.naviveylin.featurelist.ShippedSpecClassificationTest#every shipped spec id is classified`. The
+  **"two directions are asymmetric"** half was **refuted**: a stale entry already does not set `gate_errors`
+  (`tools/gen-feature-list.sh:215-218`), matching `spec-feature-index`'s scenario "A removed spec id is reported
+  without failing on it" and `tools/gen-feature-list-selftest.sh`'s `gate: a stale classification entry does not
+  fail the run`; this entry's exit-1 stale measurement was confounded by the two genuinely unclassified ids
+  present in the same run. §157 (the archive-time step) stays open.
 
 ## 162. `guidelines/FeatureList.md` names three behaviour contracts that exist nowhere on disk — Found 2026-10-09 while applying `add-project-metrics-report`
 **id:** 162 · **category:** specs-and-process · **class:** improvement · **status:** open

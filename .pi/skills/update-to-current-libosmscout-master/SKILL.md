@@ -102,6 +102,13 @@ The script prints this figure in its summary; treat it as a burn-down metric and
 every update. It includes upstream's `style`-independent noise only if we carry it — e.g. a duplicated
 `#include` that upstream has once is pure residual and belongs in the bin, not in a PR.
 
+**Recorded baselines** — append a row after every update, so the next run reports a delta instead of a
+bare number:
+
+| date | `naviveylin-local` | upstream `master` | residual |
+|---|---|---|---|
+| 2026-10-10 | `4f701f1ee` | `0205b359e` | 19 files, +2127/-124 |
+
 How to retire residual, cheapest first:
 
 - **Artifact, zero intent** (duplicated includes, formatting left over from an earlier merge): drop
@@ -166,7 +173,7 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
    ```
    **Overload gotcha:** an overloaded method is name-mangled (`Java_..._searchLocations__Ljava_lang_String_2IJ(`), so a `MISSING` line may be a false positive — confirm with `grep -n "<name>"` in the `.cpp` before acting.
 4. Configuration parity: `--check-non-marisa` (or the manual recipe above).
-5. Smoke build, single ABI to stay fast: `./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a`. Verify it *really* compiled the merged C++: `:app:buildCMakeDebug[arm64-v8a]` executed (not UP-TO-DATE) and a fresh `.so` under `app/build/intermediates/cxx/Debug/*/obj/arm64-v8a/`.
+5. Smoke build, single ABI to stay fast: `./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a`. Verify it *really* compiled the merged C++: `:app:buildCMakeDebug[arm64-v8a]` executed (not UP-TO-DATE) and a fresh `libosmscout_client_javad.so` under `app/build/intermediates/cxx/Debug/*/obj/arm64-v8a/` — note the debug suffix: the unsuffixed `libosmscout_client_java.so` exists only in the release variants (`stripped_native_libs/<variant>Release/…`), so a check for that name finds nothing on a debug build and reads as "not fresh" on a perfectly good build.
 6. **PR checks** (authoritative):
    ```bash
    gh pr checks 1773 -R Framstag/libosmscout

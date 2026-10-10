@@ -1,0 +1,11 @@
+./gradlew test -PforceTests --rerun-tasks
+ran 2026-10-10T07:10:05Z -> BUILD SUCCESSFUL in 8m 44s, 189 actionable tasks: 189 executed, 0 from cache
+
+:app mobile       248 classes / 1871 tests / 0 failures / 0 errors
+:app automotive   248 classes / 1871 tests / 0 failures / 0 errors
+:auto              78 classes /  793 tests / 0 failures / 0 errors
+:core              51 classes /  532 tests / 0 failures / 0 errors
+:osmscout-client-java 4 classes / 33 tests / 0 failures / 0 errors
+
+ShippedSpecClassificationTest green on both flavors: mobile 2026-10-10T07:16:40.633Z, automotive 2026-10-10T07:14:36.955Z (tests="1" failures="0")
+MapCanvasViewModelModeTest (TODO.md §148) did not fail in this gate.

@@ -887,6 +887,28 @@ public class OSMScoutClient {
     public native StarredFavoriteLocation[] getStarredFavorites();
 
     /**
+     * The format version of the loaded favorites file.
+     *
+     * @return the version found in the file, or -1 when no favorites file is loaded
+     */
+    public native int getFavoriteFileFormatVersion();
+
+    /**
+     * Whether the loaded favorites file carries a version this client can read
+     * and write.
+     *
+     * <p>False means the file was written by a newer client: it is not read as
+     * groups and every favorite changing call, including
+     * {@link #saveFavoriteLocations(String, FavoriteLocationGroup[])}, reports
+     * failure instead of overwriting it. This is how a caller tells "written by a
+     * newer version" apart from "no favorites".</p>
+     *
+     * @return true if the loaded file can be read and written, false if the version is
+     *         unsupported or no file is loaded
+     */
+    public native boolean isFavoriteFileFormatSupported();
+
+    /**
      * Set or clear the starred flag on a favorite.
      *
      * @param groupName group name

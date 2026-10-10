@@ -72,6 +72,7 @@ description: Runs NaviVeylin unit and instrumented tests via Gradle — full uni
 | Module unit tests (`:auto`, `:core`) | `./gradlew :auto:testDebugUnitTest` / `./gradlew :core:testDebugUnitTest` |
 | Single test class | `./gradlew :app:testMobileDebugUnitTest --tests "<fully.qualified.ClassName>"` |
 | Force a rerun (evidence) | add `-PforceTests --no-build-cache` (test tasks only) or `--rerun-tasks` (whole graph) |
+| A case that fails only under load (CI's 4 vCPU) | `taskset -c 0-3 ./gradlew test -PforceTests --no-build-cache` — see Notes |
 | Instrumented tests (device/emulator required) | `./gradlew connectedAndroidTest` |
 
 `:app` has **one test task per flavor** — there is no `:app:testDebugUnitTest`. Run both for a gate:
@@ -131,6 +132,14 @@ which now have declared fork budgets, so that is no longer an OOM risk).
   copy-out). Never the documented procedure, and never evidence for how the suite really runs.
 - A run that reports `FROM-CACHE` with no test executor did not execute anything — re-run with `--rerun`
   when the run itself is the evidence (the evidence rules: `guidelines/Build.md` §4).
+- **A case that reddens only in the loaded multi-module run needs a contended runner, and the core count is the
+  lever**: `taskset -c 0-3 ./gradlew test -PforceTests --no-build-cache` pins the whole invocation (daemon and
+  every test JVM) to CI's 4 vCPUs, which is the shape the recorded `TODO.md` §148 reds came from
+  (`fix-aggregate-run-test-flakes` used it 2026-10-10 for task 7.2's mutation run). `taskset` **is** on this
+  shell's allowlist (verified 2026-10-10 with `taskset -c 0-0 echo`; an earlier task note claimed otherwise) —
+  check that before declaring a load-dependent case unreproducible locally. One mutation at a time (`revert-check`):
+  a run carrying two mutations cannot attribute a red, and an unfalsified guard stays **open** with its rate
+  recorded rather than being marked done on a green run with the mutation in place.
 
 ## Related skills
 

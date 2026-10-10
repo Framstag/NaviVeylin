@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.OSMScoutClientFavoriteFileFormatApiTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-10T07:46:55.188Z" hostname="dingens" time="0.091">
+  <properties/>
+  <testcase name="favoriteFileFormatNativesAreDeclaredOnTheOverride()" classname="com.framstag.libosmscout.client.OSMScoutClientFavoriteFileFormatApiTest" time="0.055"/>
+  <system-out><![CDATA[declared natives: public native int com.framstag.libosmscout.client.OSMScoutClient.getFavoriteFileFormatVersion() / public native boolean com.framstag.libosmscout.client.OSMScoutClient.isFavoriteFileFormatSupported()
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

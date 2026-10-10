@@ -1,0 +1,7 @@
+revert-check mutation: sed -i '/"starred-ordering":/d' tools/feature-list/specs.json
+run 2026-10-10T07:09:56.709Z (JUnit XML tests="1" failures="1")
+
+ShippedSpecClassificationTest > every shipped spec id is classified FAILED
+java.lang.AssertionError: every shipped spec id must be named by tools/feature-list/specs.json expected:<[]> but was:<[starred-ordering]>
+
+restored: cp of the pre-mutation file; git diff --stat tools/feature-list/specs.json -> 1 file changed, 6 insertions(+)

@@ -16,7 +16,7 @@
 - **map-rendering** — bug: §19 §65
 - **map-rendering** — improvement: §49 §71 §78
 - **map-rendering** — feature: §6
-- **native-jni** — improvement: §81 §82 §119
+- **native-jni** — improvement: §81 §82 §119 §174
 - **native-jni** — feature: §23
 - **persistence** — bug: §168
 - **persistence** — improvement: §9
@@ -372,12 +372,13 @@
 - **Related**: §160 (the repository source performs no update check).
 
 ## 164. A parseable but non-HTTP base URL is reported as a transport failure with a cast error — Found 2026-10-09 while implementing `allow-lan-http-map-repository` (task 2.5, outside that requirement's scope)
-**id:** 164 · **category:** data-and-maps · **class:** improvement · **status:** open
+**id:** 164 · **category:** data-and-maps · **class:** improvement · **status:** fixed-by `fix-non-http-url-scheme`
 
 - **Observed** ℹ: `app/src/main/java/com/naviveylin/data/HttpUrlFetcher.kt` classifies an unparseable URL as `RepositoryFailure.MalformedUrl` (spec `map-download-infrastructure` — "A base URL that cannot be parsed is reported as an unusable URL"), but a URL that parses with a non-HTTP scheme (`ftp://host/x`) throws `ClassCastException` and reaches the user as `TransportFailed(cause=… cannot be cast to HttpURLConnection)` — the same parser-vs-user wording the change removed for the unparseable case.
 - **Why it matters**: the user's fix is the scheme, not the network.
 - **Candidate fix**: report a non-HTTP scheme as the unusable-URL failure, and add its own scenario if the spec is to cover it.
 - **Related**: spec `map-download-infrastructure` — "A base URL that cannot be parsed is reported as an unusable URL"; change `allow-lan-http-map-repository`.
+- **Loop verdict** ✅: `fixed-by fix-non-http-url-scheme` (2026-10-10). Root cause: `HttpUrlFetcher.openConnection` cast the parsed URL's connection to `HttpURLConnection` without checking the scheme, so `ftp://host/x` threw `ClassCastException` and reached the user as `TransportFailed`. One fix: a scheme guard (`isHttpScheme`, `http`/`https`) throws the existing private `UnusableUrl`, so the URL is reported as `RepositoryFailure.MalformedUrl` (both the `HttpUrlFetcher` class KDoc and the `RepositoryFailure.MalformedUrl` KDoc widened to match). Red on HEAD: `HttpUrlFetcherTest#aNonHttpSchemeIsReportedAsUnusable`, tests="8" failures="1"; green after the fix; one revert-check (the guard mutated to accept every scheme) failed the case at its `MalformedUrl` assertion; one forced both-flavor gate green (`:app` mobile 248/1872/0/0, `:app` automotive 248/1872/0/0, `:auto` 78/793/0/0, `:core` 51/532/0/0, `:osmscout-client-java` 4/33/0/0, classes/tests/failures/errors). Archived with its evidence.
 
 ## 120. The car re-applies the `daylight` flag after every style switch, so a switch costs a second stylesheet reload — Found 2026-10-03 while implementing `dedupe-stylesheet-loads` (out of that change's scope)
 **id:** 120 · **category:** car · **class:** improvement · **status:** open
@@ -1726,7 +1727,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   duplication itself has no test, only the rule that a follow-mode overlay shift must stay zero.
 
 ## 119. The Android bridge override trails the submodule's Java favorites API — Found 2026-09-28 (while adding the cross-group favorite move)
-**id:** 119 · **category:** native-jni · **class:** improvement · **status:** open
+**id:** 119 · **category:** native-jni · **class:** improvement · **status:** fixed-by `fix-jni-override-parity`
 
 - **Debt** ℹ: `osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java`
   shadows the submodule's Java source (that file is excluded in `osmscout-client-java/build.gradle.kts`)
@@ -1747,6 +1748,16 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   (the other `§79` was closed and removed). It is still quoted as `§79` by
   `fix-open-database-path-validation/design.md`, the `reorder-favorite-groups` traceability and
   `condense-style-load-warnings`; those historical citations are left as they are.
+- **Loop verdict** ✅: `fixed-by fix-jni-override-parity` (2026-10-10). Root cause: `OSMScoutClient.java` is
+  one of the five hand-maintained override files that shadow the submodule Java sources, and it was not
+  updated when submodule commit `530ac8768` added `getFavoriteFileFormatVersion`/`isFavoriteFileFormatSupported`
+  — the app compiles against the override, so both natives were unreachable (no compiler error, no failing
+  test). One fix: declare both natives in the override with the submodule's KDoc and order. Red on HEAD:
+  `OSMScoutClientFavoriteFileFormatApiTest#favoriteFileFormatNativesAreDeclaredOnTheOverride`,
+  tests="1" failures="1"; green after the fix; one revert-check (the `getFavoriteFileFormatVersion`
+  declaration mutated away) failed the case at its `getDeclaredMethod` premise; one forced both-flavor gate
+  green, 189 tasks executed. Archived with its evidence. Residue: a blanket override/submodule native parity
+  check is false as a subset check and is filed as §174.
 
 ## 103. `FavoritesScreen` (car) is the one screen still outside the `CarScreenObservations` pattern — Found 2026-09-29 during `order-starred-favorites`
 **id:** 103 · **category:** car · **class:** improvement · **status:** in-flight fix-details-screen-observation-scope
@@ -2335,7 +2346,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   configuration-phase invocation (`./gradlew -Dorg.gradle.java.installations.auto-detect=false help`),
   which cannot decide the choice itself.
 ## 148. Timing-sensitive cases fail in the loaded aggregate test run — four distinct cases across five aggregate runs, every one of them green in a single-module or solo run — Found 2026-10-07 while landing `fix-daemon-jvm-provisioning` (out of that change's scope)
-**id:** 148 · **category:** verification · **class:** bug · **status:** open
+**id:** 148 · **category:** verification · **class:** bug · **status:** in-flight `fix-aggregate-run-test-flakes` (widened 2026-10-10 to all five cases + the test-worker deaths; flips to `fixed-by` when that change archives)
 
 - **Observed** ℹ — four aggregate runs (the CI command `test -PforceTests --no-build-cache`, all four modules in
   one invocation) reached the test suites; all four failed, each on **one** case, and **three different
@@ -2458,6 +2469,25 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Not attributable to `fix-daemon-jvm-provisioning`** ✗: that change touched the daemon JVM criteria, a CI
   guard step and a guideline section; it contains no test or diagnostics code. Its own evidence is in
   `openspec/changes/fix-daemon-jvm-provisioning/traceability.md`.
+- **Update 2026-10-10 (bookkeeping for the widened change) ℹ**: the entry now has **five** named cases and one
+  infrastructure defect, all tasks of `fix-aggregate-run-test-flakes` (its `tasks.md` sections 2–8; the change was
+  widened rather than a second change opened, so `§148` keeps one owner): cases 1-3 (the `MapScreenTest`
+  `ConcurrentModificationException` face, `DiagnosticsLogWritePathTest.pendingBufferIsBoundedAndMarksTheDropOnce`,
+  `AutoMapRendererRenderCadenceTest.theInFlightFlagIsClearedAndTheDurationMeasuredAfterARender`) fixed by its 2.x/3.x/4.x
+  tasks; case 4 (`MapCanvasViewModelModeTest`'s `Dispatchers.Main is used concurrently with setting it`, whose Main
+  user is the engine's process-lifetime scope, `NavigationEngine.kt:109-111`/`:213`/`:360-375`) fixed by 6.2 with a
+  falsified guard 6.3; case 5
+  (`highWaterMarkFlushesWithoutWaitingForTheDeadline`) fixed by 7.1/7.2; and the test-worker `java.io.EOFException`
+  deaths (3 of 24 reps on 2026-10-08) diagnosed in 8.1/8.2 and given an evidence rule in the change's
+  `build-test-gate` delta (8.3). Case 1's message is now in hand: the run's own output carries it (task 1.1), which
+  is why the family is diagnosable where it failed. **Open residue (owner decision 2026-10-10): three guards stay
+  unfalsified** — 2.2, 3.3 and 7.2, each green with its mutation in place at CI's core count (`taskset -c 0-3`,
+  and for 7.2 a dispatched CI run) against recorded pre-fix rates of 0/11, 0/8 and 3/24 — so the change stays
+  **unarchived** with those checkboxes open rather than closing them on a green run with the mutation present.
+  Independent review (fresh read-only child): PASS per scenario on both spec deltas; its one MAJOR (the guard
+  proved cancellation rather than the join) is fixed and falsified, its two MINORs are recorded residuals
+  (the rule discards the finished-case count outside the guard; `awaitParked` bounds its wait with the sanctioned
+  `System.currentTimeMillis()` shape).
 
 ---
 
@@ -2725,7 +2755,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `openspec/changes/add-mapgen-map-source/design.md` (decision D7/D8 and its non-goals).
 
 ## 161. Two shipped specs are unclassified, so the classification gate is red today, and its two directions are asymmetric — Found 2026-10-09 while applying `add-project-metrics-report`
-**id:** 161 · **category:** specs-and-process · **class:** bug · **status:** open
+**id:** 161 · **category:** specs-and-process · **class:** bug · **status:** fixed-by `fix-shipped-spec-classification`
 
 - **Observed** ℹ: `bash tools/gen-feature-list.sh --check-classification` exits 1 today with
   `unclassified shipped spec id(s): map-repository-source, map-source-selection` (`specs read: 155`,
@@ -2738,6 +2768,18 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   command. §157 holds the process half (nothing forces classification at archive); this entry is the live state.
 - **Fix candidate**: classify the two spec ids in `tools/feature-list/specs.json` (area and `userVisible` follow
   §4 of `guidelines/FeatureList.md`), then use `--check-classification` as the archive-time step §157 proposes.
+- **Loop verdict** ✅: `fixed-by fix-shipped-spec-classification` (2026-10-10). Root cause: shipped spec ids were
+  absent from `tools/feature-list/specs.json` — the two recorded here, `highlight-measurement` (landed by the
+  2026-10-09 `fix-highlight-longest-run` archive), *plus* `render-projection-dpi`,
+  `route-calculation-feedback` and `starred-ordering`, which the 2026-10-10 parallel workstream landed without
+  their classification lines. Six entries added; the gate now reads `specs read: 163 /
+  classified: 163 / unclassified: 0 / stale: 0` (exit 0), guarded by
+  `com.naviveylin.featurelist.ShippedSpecClassificationTest#every shipped spec id is classified`. The
+  **"two directions are asymmetric"** half was **refuted**: a stale entry already does not set `gate_errors`
+  (`tools/gen-feature-list.sh:215-218`), matching `spec-feature-index`'s scenario "A removed spec id is reported
+  without failing on it" and `tools/gen-feature-list-selftest.sh`'s `gate: a stale classification entry does not
+  fail the run`; this entry's exit-1 stale measurement was confounded by the two genuinely unclassified ids
+  present in the same run. §157 (the archive-time step) stays open.
 
 ## 162. `guidelines/FeatureList.md` names three behaviour contracts that exist nowhere on disk — Found 2026-10-09 while applying `add-project-metrics-report`
 **id:** 162 · **category:** specs-and-process · **class:** improvement · **status:** open
@@ -2776,3 +2818,21 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   notification and the FGS protection stay). The superseded assurance is recorded in `guidelines/Design.md`
   §13. Remaining device-gated verification (car live content on the AAOS AVD, real GNSS mA on a physical
   phone) is captured in that change's tasks 6.5/6.6.
+
+## 174. Nothing guards the override/submodule native parity, and a blanket subset check is false — Found 2026-10-10 while applying `fix-jni-override-parity` (§119)
+**id:** 174 · **category:** native-jni · **class:** improvement · **status:** open
+
+- **Debt** ℹ: §119 declared the two file-format natives the Android bridge override was missing, but the
+  drift class stays unguarded. The obvious guard — a buildSrc/CI "submodule natives ⊆ override natives"
+  check — is **false even after §119**, because the override intentionally diverges by more than those two:
+  the submodule declares five natives the override omits (`calculateRouteWithObjectsAsync`, `cancelSearch`,
+  `getRegion`, `setGpsMarker`, `startNavigation`) and the override declares six of its own (`getAddressAt`,
+  `getDatabaseBoundingBox`, `getMaxSpeedAt`, `reloadBasemap`, `renderInto`, `searchLocationByForm`). A
+  blanket subset check would fail on the intended deviations and still not name the next genuinely-missing
+  native, so no gate exists and the next submodule API addition is again a silent `NoSuchMethodError` at the
+  call site (no compiler error, no failing test).
+- **Fix candidate**: define the parity list first — which natives must mirror the submodule and which are
+  deliberate Android deviations — then add a buildSrc/CI check over that list. That family/expected-list
+  decision is what §119's evidence did not make for it.
+- **Related**: §119 (the fixed instance), `guidelines/Design.md` §5 (mirror upstream APIs; deviations live
+  as local overrides in the bridge module, never patched into the submodule).

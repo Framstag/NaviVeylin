@@ -327,8 +327,9 @@ class RoutePanelViewModelStepAnalysisTest {
         }
 
     @Test
-    fun `an adopted reroute starts at its first step with a leg`() =
+    fun `an adopted reroute during a review starts at the new route's first step with a leg`() =
         runTest(mainDispatcherRule.dispatcher) {
+            viewModel.openSession()
             calculateAndAwaitSuccess()
             viewModel.analyseStep(2)
 
@@ -603,5 +604,99 @@ class RoutePanelViewModelStepAnalysisTest {
                 DiagnosticsLog.reset()
                 logFile.delete()
             }
+        }
+
+    /**
+     * Start Navigation ends the session, and the analysis is the session's, not the route's: the analysed
+     * step, its camera anchor and its segment end with it, while the route stays drawn for navigation
+     * (specs: `route-analysis` — Start Navigation ends the highlight; `route-planning-session` — Start
+     * navigation ends the session's analysis).
+     */
+    @Test
+    fun `start navigation ends the analysed step with the session`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            viewModel.openSession()
+            calculateAndAwaitSuccess()
+            viewModel.analyseStep(1)
+            assertEquals(1, viewModel.uiState.value.analysedStepIndex)
+            assertEquals(0..1, viewModel.uiState.value.analysedSegment)
+            assertNotNull(viewModel.analysedSegmentRange.value)
+
+            viewModel.setNavigating(true)
+
+            assertNull(viewModel.uiState.value.analysedStepIndex)
+            assertNull(viewModel.uiState.value.analysedSegment)
+            assertNull(viewModel.analysedSegmentRange.value)
+            assertNull(viewModel.analysedAnchor.value)
+            // The route belongs to navigation from here on, so it stays drawn.
+            assertNotNull(viewModel.uiState.value.routeEntry)
+            assertNotNull(viewModel.routeResultFlow.value)
+        }
+
+    /**
+     * A session opened during navigation reviews the route navigation owns; ending that review ends the
+     * analysis and leaves the route (spec: `route-planning-session` — Ending a review during navigation
+     * ends the analysis).
+     */
+    @Test
+    fun `ending a navigation-time review ends the analysed step and keeps the route`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            viewModel.openSession()
+            calculateAndAwaitSuccess()
+            viewModel.setNavigating(true)
+            viewModel.openSession()
+            viewModel.analyseStep(1)
+            assertNotNull(viewModel.analysedSegmentRange.value)
+
+            viewModel.endSession()
+
+            assertEquals(RouteSessionState.INACTIVE, viewModel.sessionState.value)
+            assertNull(viewModel.uiState.value.analysedStepIndex)
+            assertNull(viewModel.uiState.value.analysedSegment)
+            assertNull(viewModel.analysedSegmentRange.value)
+            assertNull(viewModel.analysedAnchor.value)
+            assertNotNull(viewModel.uiState.value.routeEntry)
+            assertNotNull(viewModel.routeResultFlow.value)
+        }
+
+    /**
+     * A route the navigation engine acquired while no session is open carries no analysis — otherwise every
+     * reroute re-lights the highlight the session ended (spec: `route-analysis` — An adopted route without a
+     * session carries no analysis).
+     */
+    @Test
+    fun `a route adopted without a session carries no analysis`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            viewModel.setNavigating(true)
+
+            viewModel.adoptRoute(routeEntry(), Vehicle.CAR)
+
+            assertNull(viewModel.uiState.value.analysedStepIndex)
+            assertNull(viewModel.uiState.value.analysedSegment)
+            assertNull(viewModel.analysedSegmentRange.value)
+            // The route itself is adopted all the same: geometry, steps and anchors.
+            assertNotNull(viewModel.uiState.value.routeEntry)
+            assertEquals(3, viewModel.uiState.value.routeSteps.size)
+            assertEquals(3, viewModel.uiState.value.stepAnchors.size)
+            assertNotNull(viewModel.routeResultFlow.value)
+        }
+
+    /**
+     * A step selected during navigation is the review's own selection and leaves the step navigation follows
+     * alone (spec: `route-analysis` — A selection made during navigation is unaffected).
+     */
+    @Test
+    fun `a selection made during navigation leaves the navigation step alone`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            viewModel.setNavigating(true)
+            viewModel.openSession()
+            calculateAndAwaitSuccess()
+            viewModel.setActiveStepIndex(2)
+
+            viewModel.analyseStep(1)
+
+            assertEquals(1, viewModel.uiState.value.analysedStepIndex)
+            assertEquals(0..1, viewModel.uiState.value.analysedSegment)
+            assertEquals(2, viewModel.uiState.value.activeStepIndex)
         }
 }

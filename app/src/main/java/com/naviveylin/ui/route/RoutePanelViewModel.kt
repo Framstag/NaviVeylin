@@ -591,6 +591,17 @@ class RoutePanelViewModel @Inject constructor(
 
     /** Drop the analysed step (spec: `route-analysis`). */
     fun clearAnalysedStep() {
+        endAnalysis()
+    }
+
+    /**
+     * End the analysis: the analysed step and its segment in the panel's state, the range the map's camera
+     * fit reacts to, and the anchor that asks it to move. One place ends an analysis, so a session exit
+     * cannot clear half of it: the exits that leave a route on the map — Start Navigation and End while
+     * navigation runs — come through here, and `clearRoute()` resets the same three with the whole state
+     * (spec: `route-analysis` — the analysis lives exactly as long as the session that owns it).
+     */
+    private fun endAnalysis() {
         _uiState.value = _uiState.value.copy(analysedStepIndex = null, analysedSegment = null)
         _analysedSegmentRange.value = null
         _analysedAnchor.value = null
@@ -729,7 +740,7 @@ class RoutePanelViewModel @Inject constructor(
     fun endSession() {
         if (_sessionState.value == RouteSessionState.INACTIVE) return
         cancelGracePeriod()
-        if (!_uiState.value.isNavigating) clearRoute()
+        if (!_uiState.value.isNavigating) clearRoute() else endAnalysis()
         _sessionState.value = RouteSessionState.INACTIVE
         // The surface closes with the session (spec: `route-planning-session` — Ending the
         // session removes its surface): the card's host closes it, and the next session
@@ -744,9 +755,11 @@ class RoutePanelViewModel @Inject constructor(
     fun onNavigationStarted() {
         cancelGracePeriod()
         _uiState.value = _uiState.value.copy(isNavigating = true)
-        _analysedAnchor.value = null
-        // Navigation started: the analysis is over with the session (spec: `route-analysis`).
-        _analysedSegmentRange.value = null
+        // Navigation started: the analysis is over with the session (spec: `route-analysis` — the analysis
+        // lives exactly as long as its session). The analysed step, its camera anchor and its highlighted
+        // segment all go; the route stays, because navigation owns it from here on
+        // (spec: `route-planning-session` — Start navigation ends the session's analysis).
+        endAnalysis()
         _sessionState.value = RouteSessionState.INACTIVE
     }
 
@@ -821,30 +834,31 @@ class RoutePanelViewModel @Inject constructor(
     fun adoptRoute(route: RouteEntry, vehicle: Vehicle) {
         val steps = buildSteps(route)
         logStepValues(route, steps)
-        _uiState.value = _uiState.value.copy(
+        val anchors = instructionAnchors(route)
+        // A new route starts at its current step (owner finding, 2026-10-03: the min
+        // overlay showed no usable entry before the first paging). The camera stays with
+        // the overview fit — the step is the *current* one, not a camera request: only an
+        // explicit step selection (`analyseStep`) moves the camera.
+        //
+        // An adoption is not a selection: with no session open nothing asked for an analysis, and a route
+        // navigation owns carries none — otherwise every reroute re-lights the highlight the session's exit
+        // ended (spec: `route-analysis` — an analysis is created only by the selector that owns it). The
+        // route itself is adopted either way, and a selection from the previous route never survives the
+        // swap, because its step indices do not address this one.
+        val analysedIndex =
+            if (_sessionState.value == RouteSessionState.INACTIVE) null else currentStepOf(steps)
+        val withRoute = _uiState.value.copy(routeEntry = route, routeSteps = steps, stepAnchors = anchors)
+        val analysedSegment = analysedIndex?.let { segmentOf(withRoute, it) }
+        _uiState.value = withRoute.copy(
             routeState = RouteState.Done,
-            routeEntry = route,
-            routeSteps = steps,
-            stepAnchors = instructionAnchors(route),
-            // A new route starts at its current step (owner finding, 2026-10-03: the min
-            // overlay showed no usable entry before the first paging). The camera stays with
-            // the overview fit — the step is the *current* one, not a camera request: only an
-            // explicit step selection (`analyseStep`) moves the camera.
-            analysedStepIndex = currentStepOf(steps),
-            analysedSegment = segmentOf(
-                _uiState.value.copy(
-                    routeEntry = route,
-                    routeSteps = steps,
-                    stepAnchors = instructionAnchors(route)
-                ),
-                currentStepOf(steps) ?: 0
-            ),
+            analysedStepIndex = analysedIndex,
+            analysedSegment = analysedSegment,
             vehicle = vehicle,
             error = null,
             preciseLocationRequired = false
         )
         _analysedAnchor.value = null
-            _analysedSegmentRange.value = _uiState.value.analysedSegment
+        _analysedSegmentRange.value = analysedSegment
         _routeVisible.value = true
         // A route without usable geometry is adopted all the same: everything above is the
         // session, and no geometry is published, so the map keeps what it displayed

@@ -260,6 +260,7 @@ class RoutePanelViewModelSessionTest {
         runTest(mainDispatcherRule.dispatcher) {
             viewModel.openSession()
             calculateAndAwaitSuccess()
+            viewModel.analyseStep(1)
             val signalBefore = viewModel.clearRouteSignal.value
 
             viewModel.setNavigating(true)
@@ -269,6 +270,11 @@ class RoutePanelViewModelSessionTest {
             assertNotNull(viewModel.routeResultFlow.value)
             assertNotNull(viewModel.uiState.value.routeEntry)
             assertEquals(true, viewModel.uiState.value.isNavigating)
+            // The analysis is the session's, not the route's (spec: `route-planning-session` — Start
+            // navigation ends the session's analysis).
+            assertNull(viewModel.uiState.value.analysedStepIndex)
+            assertNull(viewModel.uiState.value.analysedSegment)
+            assertNull(viewModel.analysedSegmentRange.value)
         }
 
     @Test

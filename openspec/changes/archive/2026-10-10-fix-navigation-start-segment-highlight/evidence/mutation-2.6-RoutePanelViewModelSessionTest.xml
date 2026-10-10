@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" tests="27" skipped="0" failures="1" errors="0" timestamp="2026-10-10T16:18:45.668Z" hostname="dingens" time="49.043">
+  <properties/>
+  <testcase name="opening a session does not close its surface immediately" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="39.018"/>
+  <testcase name="a stop with an open session reports that the session took the route over" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.773"/>
+  <testcase name="a reroute outside a session does not open one" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.39"/>
+  <testcase name="a stop without a session reports that no session took the route over" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.267"/>
+  <testcase name="a fresh state owner has no session" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.359"/>
+  <testcase name="grace expiry ends the session and clears the route" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.297"/>
+  <testcase name="a stopped session is not persisted across a state-owner recreation" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.266"/>
+  <testcase name="opening a session twice keeps the state" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.217"/>
+  <testcase name="a calculation without geometry publishes the endpoint fallback" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.199"/>
+  <testcase name="stopping navigation moves an open session into its stopped state" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.139"/>
+  <testcase name="grace expiry while nothing is on screen writes only the session end" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.202"/>
+  <testcase name="ending without a session changes nothing" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.223"/>
+  <testcase name="ending the session clears the route and resets the state" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.317"/>
+  <testcase name="restarting navigation inside the grace keeps the route and cancels expiry" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.334"/>
+  <testcase name="ending from the stopped state clears the route immediately" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.339"/>
+  <testcase name="opening a session during navigation keeps the adopted route" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.417"/>
+  <testcase name="opening a session during navigation reviews read-only" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.193"/>
+  <testcase name="an adopted route without geometry keeps the geometry already drawn" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.397"/>
+  <testcase name="grace expiry closes the surface" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.331"/>
+  <testcase name="opening a session on an adopted route reviews it" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.254"/>
+  <testcase name="opening a session without a route starts editing" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.141"/>
+  <testcase name="a calculated route moves the session to reviewing" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.253"/>
+  <testcase name="stopping navigation without a session opens none" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.17"/>
+  <testcase name="start navigation ends the session but keeps the route drawn" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.175">
+    <failure message="java.lang.AssertionError: expected null, but was:&lt;1&gt;" type="java.lang.AssertionError">java.lang.AssertionError: expected null, but was:&lt;1&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotNull(Assert.java:756)
+	at org.junit.Assert.assertNull(Assert.java:738)
+	at org.junit.Assert.assertNull(Assert.java:748)
+	at com.naviveylin.ui.route.RoutePanelViewModelSessionTest$start navigation ends the session but keeps the route drawn$1.invokeSuspend(RoutePanelViewModelSessionTest.kt:275)
+	at com.naviveylin.ui.route.RoutePanelViewModelSessionTest$start navigation ends the session but keeps the route drawn$1.invoke(RoutePanelViewModelSessionTest.kt)
+	at com.naviveylin.ui.route.RoutePanelViewModelSessionTest$start navigation ends the session but keeps the route drawn$1.invoke(RoutePanelViewModelSessionTest.kt)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+	at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:160)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+	at com.naviveylin.ui.route.RoutePanelViewModelSessionTest.start navigation ends the session but keeps the route drawn(RoutePanelViewModelSessionTest.kt:260)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.rules.TestWatcher$1.evaluate(TestWatcher.java:61)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+</failure>
+  </testcase>
+  <testcase name="ending a review during navigation keeps the route" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.242"/>
+  <testcase name="clearing the route keeps the session open for a new plan" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.221"/>
+  <testcase name="adopting a route without geometry adopts the session and publishes no geometry" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.129"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

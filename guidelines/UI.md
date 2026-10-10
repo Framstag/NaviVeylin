@@ -620,6 +620,15 @@ Source: spec `route-planning-session`.
   `formatDistanceNumber` + `formatStepDurationText` — never the native description's `[x km, y min]` text
   (that is only the fallback for a route without per-step values) and never a value measured between two route
   nodes; the rows of a step list therefore add up to the route's total distance and duration.
+- The analysis is the **session's, not the route's**: the analysed step, the camera anchor that moves onto it
+  and the highlighted segment live exactly as long as the session, so every exit ends all three — Start
+  Navigation above all, and End while navigation runs — while the route itself stays drawn, because
+  navigation owns it from Start Navigation on (spec `route-analysis`; reported on device 2026-10-10: the
+  segment of the auto-analysed first step stayed drawn on the route's opening leg for the whole drive,
+  change `fix-navigation-start-segment-highlight`). A route that arrives with **no session open** — a reroute
+  the navigation engine adopted, or a route acquired for another surface — carries no analysis at all: the
+  panel publishes its geometry, steps and anchors, and no analysed step, so no later event of a drive
+  re-lights a mark nobody selected.
 - The card's actions are **pinned** in their own band at the bottom edge of max, and the two
   actions of a state share one row: with a fixed card height, stacked full-width buttons pushed
   the statistics and then the primary action out of view on the device (2026-10-03). That band's

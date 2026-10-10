@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" tests="31" skipped="0" failures="0" errors="0" timestamp="2026-10-10T16:21:08.389Z" hostname="dingens" time="42.858">
+  <properties/>
+  <testcase name="toggling the analysed step selects it and toggling again clears it" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="32.473"/>
+  <testcase name="a route with positions but no per-step values still lists its steps" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.461"/>
+  <testcase name="a route starts on its first step that carries values" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.42"/>
+  <testcase name="a new route calculation starts at its first step with a leg" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.391"/>
+  <testcase name="the analysed segment is published before the anchor a consumer reacts to" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.275"/>
+  <testcase name="ending a navigation-time review ends the analysed step and keeps the route" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.279"/>
+  <testcase name="clearing the analysed step leaves the route drawn" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.289"/>
+  <testcase name="clearing the analysed step drops the segment" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.347"/>
+  <testcase name="the analysis records one coordinate-free value summary per route" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.492"/>
+  <testcase name="ending the session drops the analysed step with the route" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.275"/>
+  <testcase name="clearing the route drops the analysed step and the anchors" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.313"/>
+  <testcase name="the navigator does nothing without a route" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.188"/>
+  <testcase name="a step without a position is analysed without a segment" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.169"/>
+  <testcase name="a selection made during navigation leaves the navigation step alone" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.126"/>
+  <testcase name="a step without a position analyses without an anchor" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.176"/>
+  <testcase name="an adopted reroute during a review starts at the new route's first step with a leg" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.276"/>
+  <testcase name="a route adopted without a session carries no analysis" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.235"/>
+  <testcase name="analysing another step replaces the selection" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.182"/>
+  <testcase name="the row's values and the published segment describe the same leg" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.318"/>
+  <testcase name="toggling another step swaps the analysed step" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.254"/>
+  <testcase name="analysing the first step resolves the leading segment" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.257"/>
+  <testcase name="a mismatched per-step array is not used" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.334"/>
+  <testcase name="the navigator steps forward to the last step and stops there" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.318"/>
+  <testcase name="start navigation ends the analysed step with the session" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.393"/>
+  <testcase name="analysing a step selects it and resolves its segment" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.2"/>
+  <testcase name="the navigator steps back and stops on the first step" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.299"/>
+  <testcase name="the analysed anchor is dropped with the route" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.231"/>
+  <testcase name="a route without per-step values still lists every step" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.142"/>
+  <testcase name="the route's per-step values win over the description's bracket" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.188"/>
+  <testcase name="analysing an out-of-range step changes nothing" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.171"/>
+  <testcase name="the analysed anchor follows the analysed step" classname="com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest" time="0.151"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

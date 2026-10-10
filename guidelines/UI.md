@@ -613,7 +613,16 @@ Source: spec `route-planning-session`.
   nodes; the rows of a step list therefore add up to the route's total distance and duration.
 - The card's actions are **pinned** in their own band at the bottom edge of max, and the two
   actions of a state share one row: with a fixed card height, stacked full-width buttons pushed
-  the statistics and then the primary action out of view on the device (2026-10-03). Reviewing a
+  the statistics and then the primary action out of view on the device (2026-10-03). That band's
+  height **is the band's own content at the current font scale**, never a constant reservation: its
+  labels are `sp`-sized while the card's share is capped, so a fixed `cardCap - 120 dp` reservation
+  squeezed the labelled End action at font scale 2.0 — measured 2026-10-09 on the host (window
+  411 x 891 dp at 420 dpi, `RoutePanelActionBandScaleTest`, whose cases print their geometry into
+  the JUnit XML's `system-out`) as 42.67 dp of action height where the
+  action's own content needs 53.33 dp, and on the AVD as the action leaving the card entirely
+  (`TODO.md` §138, change `fix-pinned-band-height`). The band is therefore measured first and the
+  scrolling content above it yields the space (`Modifier.weight(1f, fill = false)` on the scroll
+  region, so the card still hugs a short route and still stops at its cap). Reviewing a
   route, that row is **`Start/Ziel ändern` + `Navigation starten`** — a recalculation of the
   same route did nothing useful (owner finding, 2026-10-03) — and while a field is being edited
   the first slot becomes `Berechnen` again, so a changed destination stays recalculable. The
@@ -687,6 +696,14 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   needle landed on a light fill at 1.04:1. The presentation comes from the
   resolved dark-mode value (`MapCanvasUiState.isDarkPresentation`), never from
   `isSystemInDarkTheme()`, which would bypass a manual On/Off.
+- **Drawn dimensions are density-independent (phone overlays).** A stroke width, a radius and marker geometry
+  SHALL be expressed in dp and converted at draw time (`.dp.toPx()`), never as a raw device-pixel count: the
+  same number is a different visual size on every screen. `CompassButton`'s needle was stroked `strokeWidth = 3f`
+  while its sibling `needleLength = 10.dp.toPx()` and its own rim (`1.dp.toPx()`) were density-aware — 3 dp at
+  1x against 0.86 dp at 3.5x (change `fix-compass-needle-stroke-density`, `TODO.md` §72). Its guard case
+  measures the drawn pixels and prints them into the JUnit XML's `system-out` (`CompassNeedleStrokeTest`:
+  `CompassNeedleStroke 1x=4px (4.0dp) 4x=12px (3.0dp)` after the fix — the ±1 px antialiased edge counted
+  once — against `4x=4px (1.0dp)` on HEAD, re-measurable by reverting `3.dp.toPx()` to `3f`).
 - The speed badge SHALL use the standard overlay card container (theme
   surface at 0.92 alpha, 12dp rounded) — the same treatment as the turn card
   and routing status — in the NORMAL state, with dark (`onSurface`) text;
@@ -1078,6 +1095,13 @@ map bitmap.
   the covered speed widget ever proves to hurt a navigating review, fix it by **placement** (a card
   cap or width that leaves the right column free), never by a z-order exception — an exception
   re-opens the class this rule closes.
+- **A contract the whole band shares is provided for the whole band.** A value the band's members read
+  from a `CompositionLocal` — the overlay-width probe the widget column reports its measured width
+  through (`MapCanvasScreen.kt`) — is provided once around the band's content, never around one branch
+  of it: the chrome band composes one right-side widget column from several mutually exclusive branches,
+  so a provider on one branch silently falls back to the local's default for the others, and the band
+  that composes while navigation is already active reports no width at all (change
+  `fix-nav-column-width-probe`, archived 2026-10-09; the follow anchor then resolves under the column).
 - **Back priority is registration order, not band order.** Compose dispatches a back gesture to the
   handler registered last, which is the composable composed last. The menu band is therefore
   composed *before* the modal band so an open surface keeps the gesture, and the surfaces inside the

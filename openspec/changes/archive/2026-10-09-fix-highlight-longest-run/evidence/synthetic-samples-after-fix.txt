@@ -1,0 +1,29 @@
+2026-10-09T20:33:38Z
+# Two synthetic 1080x2400 samples measured with the fixed tools/measure-highlight.py — post-fix runs only;
+# no HEAD run of either sample is retained in this file (the HEAD side of §169's pattern was reproduced by
+# the reviewer's round-1 re-check, and §147's frame was measured here on the fixed tool alone)
+# Regenerable fixtures (ImageMagick; 'convert' is the allowed form, 'magick' is not):
+#   convert -size 1080x2400 xc:white -fill '#E0F7FA' -draw 'rectangle 300,900 340,900' -draw 'rectangle 500,900 504,900' long-then-short.png   # 41 px run at x=300..340, 5 px run right of it at x=500..504, both on y=900
+#   convert -size 1080x2400 xc:white -fill '#E0F7FA' -draw 'rectangle 619,413 626,413' -draw 'rectangle 619,734 628,734' no-route-147.png   # §147's no-route frame: an 8 px run on y=413, a 10 px run on y=734
+
+--- §169's row pattern (longest run is NOT the rightmost one):
+$ python3 tools/measure-highlight.py long-then-short.png --margin 126
+highlight (dark): bbox=[300, 340, 900, 900] px=41
+canvas=1080x2400 band=[0,2400] margin=126
+verdict: inside
+exit=0
+
+--- the same pattern with the runs swapped (longest run IS the rightmost one; this direction is unchanged by
+    the fix — arithmetic, not measured here: only the post-fix run is recorded):
+highlight (dark): bbox=[500, 540, 900, 900] px=41
+canvas=1080x2400 band=[0,2400] margin=126
+verdict: inside
+exit=0
+
+--- §147's no-route frame measured on the fixed tool (18 px over two rows, one run per row; the HEAD side of
+    this sample is not retained in this file):
+$ python3 tools/measure-highlight.py no-route-147.png --band-bottom 2400 --margin 126
+highlight (dark): bbox=[619, 628, 413, 734] px=18
+canvas=1080x2400 band=[0,2400] margin=126
+verdict: inside
+exit=0

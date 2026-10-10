@@ -57,7 +57,7 @@ For area objects, the system SHALL compute a magnification that fits the object'
 - **THEN** the applied magnification SHALL be that floor — the object is not fitted further out — and no magnification below it SHALL be used
 
 #### Scenario: Magnitude clamped to valid range
-- **WHEN** computed magnification is outside valid range (4–18)
+- **WHEN** the computed magnification is below the area-favorites magnification floor (14) or above the maximum magnification (20)
 - **THEN** magnification is clamped to the nearest valid value
 
 ### Requirement: Zoom independent of current zoom

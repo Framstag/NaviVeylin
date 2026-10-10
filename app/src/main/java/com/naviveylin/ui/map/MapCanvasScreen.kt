@@ -1666,11 +1666,18 @@ fun MapCanvasScreen(
                 .zIndex(MapLayer.CHROME.z)
                 .testTag(MapLayer.CHROME.tag)
         ) {
-            // Orientation-aware overlay layout
-            // Orientation-aware overlay layout.
+            // One overlay-width provider for the whole chrome band (spec: smooth-follow —
+            // visible-area scenarios): the band composes the right-side widget column in
+            // its browse branches and in its navigation branch, one at a time, and the
+            // navigation branch must publish the column's measured width too — a band that
+            // composes while navigation is already active (the car-session resume) has no
+            // remembered inset to fall back on (TODO.md §151). The browse block below is
+            // the first branch of the band, not its owner.
             CompositionLocalProvider(
                 LocalOverlayWidthProbe provides { width -> overlayRightInset = width }
             ) {
+            // Orientation-aware overlay layout
+            // Orientation-aware overlay layout.
             BoxWithConstraints(
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -1963,8 +1970,6 @@ fun MapCanvasScreen(
 
             }
 
-            }
-
             // Car-session advisory (spec: `car-session-presence`): shown while a car
             // session is live, on the free centre-left strip that no action column,
             // widget column, turn card or status card occupies. Informational only.
@@ -2183,6 +2188,7 @@ fun MapCanvasScreen(
                         )
                     }
                 }
+            }
             }
         }
 

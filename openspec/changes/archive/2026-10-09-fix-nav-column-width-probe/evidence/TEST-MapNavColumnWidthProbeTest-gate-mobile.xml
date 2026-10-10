@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapNavColumnWidthProbeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T20:15:23.612Z" hostname="dingens" time="24.242">
+  <properties/>
+  <testcase name="theBrowsingWidgetColumnStillPublishesItsWidth" classname="com.naviveylin.ui.map.MapNavColumnWidthProbeTest" time="21.989"/>
+  <testcase name="theNavigationWidgetColumnPublishesItsWidthSoTheRightAnchorStaysClearOfIt" classname="com.naviveylin.ui.map.MapNavColumnWidthProbeTest" time="1.367"/>
+  <system-out><![CDATA[NavColumnProbe (browse) anchor=MIDDLE_FAR_RIGHT browseFx=0.7773722627737226 rawPresetFx=0.9 bandWidthFraction=0.13625304136253047
+NavColumnProbe anchor=MIDDLE_FAR_RIGHT browseFx=0.7773722627737226 navigatingFx=0.7598540145985402 rawPresetFx=0.9
+NavColumnProbe bandWidthFraction browse=0.13625304136253047 navigating=0.15571776155717765
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -153,6 +153,8 @@ The follow blit offset (the prediction drift) SHALL remain inside the overrun ma
 
 The phone map SHALL keep the vehicle marker in follow mode at the configured anchor position instead of at the screen center. The active anchor depends on the driving state: the routing anchor while turn-by-turn route guidance is active, the free-driving anchor otherwise. Each anchor is one of 15 positions on a 5×3 grid (horizontal 10/30/50/70/90% of the screen width, vertical 10/50/90% of the screen height); the default for both is center/center (50% width, 50% height), which reproduces the pre-feature framing exactly. To place the marker at the anchor, the map render target SHALL be shifted so the vehicle's geographic position projects to the anchor under the current map rotation.
 
+The regions the phone's own chrome covers SHALL be measured from the chrome the surface **currently composes**: the right-side widget column reports its measured width in navigation exactly as it does in browse, including on a surface whose chrome band composes while navigation is already active — the car-session resume composes the band from scratch, with no remembered measurement (`map-canvas-screen` — The phone map canvas is suspended while a car session is active; `guidelines/MapRendering.md`, section 18), and the band publishes its width before the anchor is resolved. A right-edge preset SHALL therefore resolve left of the column in every composition of the band, never only in the ones that passed through browse first (measured on the host, 2026-10-09: the browsing column's width already resolved `MIDDLE_FAR_RIGHT` to `fx=0.7773722627737226`, while the same preset stayed at the raw `fx=0.9` after a car-session resume that composed the band during navigation).
+
 #### Scenario: Default anchors reproduce today's framing
 
 - **GIVEN** both anchors are at their defaults (center/center)
@@ -235,7 +237,7 @@ The phone map SHALL keep the vehicle marker in follow mode at the configured anc
 
 #### Scenario: No overlay measured means the preset fraction
 
-- **WHEN** no overlay region is measured (browse mode, or a surface without app overlays)
+- **WHEN** no overlay region is measured
 - **THEN** every resolved anchor SHALL equal the preset fraction
 - **AND** the framing SHALL be identical to a surface without overlay clearance
 
@@ -252,6 +254,14 @@ The phone map SHALL keep the vehicle marker in follow mode at the configured anc
 - **WHEN** Android Auto reads its anchor
 - **THEN** it SHALL use the value the phone stored for that mode
 - **AND** once an anchor is chosen on the car, the car SHALL keep that value independently
+
+#### Scenario: A band that composes during navigation still measures its column
+
+- **GIVEN** the phone map is suspended by a car session, navigation is started on the car, and the driver asks for the map back on the phone
+- **WHEN** the chrome band composes from scratch with navigation active and the map is in follow mode with a right-edge anchor preset
+- **THEN** the navigation-time right-side widget column SHALL report its measured width like the browsing one, so the screen publishes a right inset for it
+- **AND** the resolved horizontal fraction SHALL stay left of the column instead of resolving to the raw preset
+- **AND** the browsing band SHALL keep publishing the column's width unchanged
 
 ### Requirement: Single resolved anchor across render, blit and marker
 

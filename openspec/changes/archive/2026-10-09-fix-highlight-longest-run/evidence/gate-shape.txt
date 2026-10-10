@@ -1,0 +1,18 @@
+2026-10-09T20:35:49Z
+# Gate shape (a): the change touches no Gradle-visible source
+$ git diff --name-only HEAD~1..HEAD
+.pi/skills/pixel-check/SKILL.md
+guidelines/Build.md
+tools/measure-highlight-selftest.sh
+tools/measure-highlight.py
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 71 section references resolve
+check-doc-routes exit=0
+
+$ bash .pi/skills/pixel-check/selftest.sh
+ok   inside -> inside=true
+ok   behind-card -> inside=false
+ok   dot -> no highlight
+selftest FAIL=0
+skill selftest exit=0

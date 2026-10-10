@@ -111,9 +111,6 @@ internal const val COMPACT_CARD_FRACTION = 0.18f
 /** Cap for the min card, so a tall screen does not hand it more than one line's height. */
 private const val COMPACT_CARD_MAX_DP = 160f
 
-/** Room the pinned action band needs at the card's bottom edge (action row + bottom padding). */
-private const val ACTIONS_BAND_DP = 120f
-
 /** Test tag of the phone card, so a test can assert where it sits on the screen. */
 const val ROUTE_PANEL_CARD_TAG = "routePanelCard"
 
@@ -761,10 +758,15 @@ fun RoutePanel(
                     if (maxMode) {
                         Column(
                             modifier = Modifier
-                                // The scrolling content stops short of the pinned action band,
-                                // so the card as a whole stays inside the cap while its height
-                                // still follows the content.
-                                .heightIn(max = (cardCapDp - ACTIONS_BAND_DP).dp)
+                                // The pinned action band keeps the height its own content
+                                // needs — it is measured first and the scrolling content takes
+                                // what is left of the cap. A fixed reservation for the band
+                                // (`cardCap - 120 dp`) handed it less than that once a large
+                                // font scale grew the action labels, so the last action of the
+                                // band was squeezed out of the card (device, 1080x2400, font
+                                // scale 2.0: the labelled End action left the card and reached
+                                // no UI dump at all — TODO.md §138).
+                                .weight(1f, fill = false)
                                 .verticalScroll(rememberScrollState())
                         ) {
                             body(false)

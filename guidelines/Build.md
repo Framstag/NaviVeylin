@@ -1413,9 +1413,10 @@ found both real causes only after measuring.
    `view_image` (a local PNG path) and say what is on screen; that look is triage. The verdict comes
    from `tools/measure-highlight.py`, which finds the analysed-segment highlight by its casing colour,
    derives the card top from a `uiautomator dump` and prints the highlight's bounding box against the
-   free band (exit 0 inside / 1 clipped / 2 no highlight). Its detector is covered by
-   `.pi/skills/pixel-check/selftest.sh` (ImageMagick, no device). Only the script's numbers and exit
-   code are evidence — a vision description never replaces them, and a vision model's impression is
+   free band (exit 0 inside / 1 clipped / 2 no highlight). Its detector is covered device-free by
+   `bash tools/measure-highlight-selftest.sh` — synthetic images it builds itself with `python3`, no
+   ImageMagick and no device — and by the older `.pi/skills/pixel-check/selftest.sh` (ImageMagick).
+   Only the script's numbers and exit code are evidence — a vision description never replaces them, and a vision model's impression is
    not a pixel verdict. Screenshot and dump must come from the same moment. A positive verdict also
    needs its precondition: `band` must end above the canvas bottom (a measured card top) and the match
    must be a stroke — hundreds or thousands of `px` over many rows, not tens of pixels spread wide,

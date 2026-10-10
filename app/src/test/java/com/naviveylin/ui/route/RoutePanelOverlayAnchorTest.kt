@@ -82,8 +82,15 @@ class RoutePanelOverlayAnchorTest {
         assertEquals(RouteOverlayAnchor.COMPACT, RouteOverlayAnchor.valueOf("COMPACT"))
     }
 
-    /** Panel showing a calculated route, starting at the compact anchor. */
-    private fun launchWithRoute(): RoutePanelViewModel {
+    /**
+     * Panel showing a calculated route, starting at the compact anchor.
+     *
+     * [onOverlayHeightChanged] is the screen's probe: `MapCanvasScreen` hands the card's reported
+     * height to the map's overview fit and to the right-side control column's inset.
+     */
+    private fun launchWithRoute(
+        onOverlayHeightChanged: (Int) -> Unit = {}
+    ): RoutePanelViewModel {
         val client = FakeOSMScoutClient()
         val viewModel = RoutePanelViewModel(
             client = client,
@@ -118,6 +125,7 @@ class RoutePanelOverlayAnchorTest {
                 // closes the surface, `RouteSessionCardExitTest`). Without it these tests
                 // would only prove the click landed somewhere.
                 onEndSession = { viewModel.endSession() },
+                onOverlayHeightChanged = onOverlayHeightChanged,
                 centerLat = 48.5,
                 centerLon = 2.3
             )
@@ -166,6 +174,48 @@ class RoutePanelOverlayAnchorTest {
         assertTrue(
             "the card must leave map area above it (card top=${card.top.value})",
             card.top.value > 0f
+        )
+    }
+
+    @Test
+    fun `the card reports the covered height it occupies`() {
+        val reportedPx = mutableListOf<Int>()
+        val viewModel = launchWithRoute(onOverlayHeightChanged = { reportedPx += it })
+
+        // The card reports the height it covers to the map screen, which is what the overview fit
+        // and the right-side control column's inset are given (spec: `route-planning-session` —
+        // Planning card content and its pinned actions, "the card reports the height it has";
+        // `MapCanvasScreen` passes the number to `setOverlayCoveredPx` and to `bottomInset`). The
+        // card is bottom-anchored, so the band it covers is its own height.
+        viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
+        composeRule.waitForIdle()
+        val root = composeRule.onRoot().getBoundsInRoot()
+        val maxCard = composeRule.onNodeWithTag(ROUTE_PANEL_CARD_TAG).getBoundsInRoot()
+        val coveredInMax = with(composeRule.density) { reportedPx.last().toDp().value }
+        assertEquals(
+            "the max card must report the height it covers (card top=${maxCard.top.value}, " +
+                "root bottom=${root.bottom.value})",
+            root.bottom.value - maxCard.top.value,
+            coveredInMax,
+            1f
+        )
+
+        // The report follows the anchor: min covers a smaller band, so the map's fit and the
+        // column's inset move with it.
+        viewModel.setOverlayAnchor(RouteOverlayAnchor.COMPACT)
+        composeRule.waitForIdle()
+        val minCard = composeRule.onNodeWithTag(ROUTE_PANEL_CARD_TAG).getBoundsInRoot()
+        val coveredInMin = with(composeRule.density) { reportedPx.last().toDp().value }
+        assertEquals(
+            "the min card must report the height it covers (card top=${minCard.top.value}, " +
+                "root bottom=${root.bottom.value})",
+            root.bottom.value - minCard.top.value,
+            coveredInMin,
+            1f
+        )
+        assertTrue(
+            "min must cover less than max ($coveredInMin vs $coveredInMax)",
+            coveredInMin < coveredInMax
         )
     }
 

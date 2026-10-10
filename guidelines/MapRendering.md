@@ -93,6 +93,16 @@ travel while the map itself rotates at its own pace.
   the offset outside the overrun margin for pane-band presets, turning every tick into a full render.
   A remap of the whole grid into the remaining strip was tried and
   rejected: it moves the default preset to 0.7 and changes the specified default framing.
+- **Every chrome branch that composes a control measures it, and the probe spans the whole band.** The
+  right-side widget column publishes its width through `LocalOverlayWidthProbe`, which the chrome band
+  provides **once around its content** (`MapCanvasScreen.kt`, the `MapLayer.CHROME` box) — the band
+  composes one column from its browse branches and from its navigation branch, only one at a time, and
+  the two do not measure the same width: the navigation column reserves the speed-limit slot and
+  measured 64 px against the browsing column's 56 px in the 411 px window (2026-10-09). A provider
+  around one branch leaves a band that composes while navigation is already active with no right inset
+  at all — the car-session resume composes the band from scratch (§18), so the driver's phone framed the
+  followed map with a right-edge preset under the column for the rest of the session (change
+  `fix-nav-column-width-probe`, archived 2026-10-09).
 - The anchor presets are bounded to `0.1..0.9` on purpose: that is exactly the overrun margin
   (`(1.2 − 1)/2 = 0.1` of the surface), so the visible window always lies inside the rendered frame.
   A new preset outside that range would require a larger `canvasOverrun`, and

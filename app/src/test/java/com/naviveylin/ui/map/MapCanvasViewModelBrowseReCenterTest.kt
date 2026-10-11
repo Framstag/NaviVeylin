@@ -17,9 +17,13 @@ import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -146,6 +150,10 @@ class MapCanvasViewModelBrowseReCenterTest {
      * Wait out the appear dwell, then deliver a fix so the rule re-evaluates.
      * The fix repeats the position the case is about — in BROWSE the map does not
      * follow, so a test that moved the *vehicle* must repeat the moved position.
+     *
+     * The dwell itself no longer needs this second fix (the rule completes it on the clock, see
+     * [awaitReveal]); the cases below still deliver the fix because the fix is what moves the vehicle
+     * they are about.
      */
     private fun awaitDwellAndRefresh(
         lat: Double = VEHICLE_LAT,
@@ -153,6 +161,66 @@ class MapCanvasViewModelBrowseReCenterTest {
     ) {
         fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
         emitFix(lat, lon)
+    }
+
+    /**
+     * Pump this test's scheduler from a real dispatcher until [condition] holds. The shared
+     * re-evaluation tick runs on a real dispatcher (it may not feed the virtual scheduler), so a case
+     * has to give it a chance to happen while awaiting the observable state — never a clock: a
+     * wall-clock deadline in test sources is refused by `checkNoWallClockWaits` (spec
+     * `unit-test-suite-runtime`). Bounded by a spin budget so a missing condition fails the assertion
+     * instead of hanging the case.
+     */
+    private fun pumpUntil(maxSpins: Int = REVEAL_PUMP_SPIN_BUDGET, condition: () -> Boolean) = runBlocking {
+        withContext(Dispatchers.Default) {
+            val scheduler = mainDispatcherRule.dispatcher.scheduler
+            var spins = 0
+            while (!condition() && spins < maxSpins) {
+                scheduler.advanceUntilIdle()
+                yield()
+                spins++
+            }
+            condition()
+        }
+    }
+
+    /** Await the reveal of the re-center button (the dwell completing on the clock). */
+    private fun awaitReveal(): Boolean = pumpUntil { viewModel.uiState.value.browseReCenterVisible }
+
+    /**
+     * Like [pumpUntil], but drains only the tasks that are already runnable (`runCurrent`) and never
+     * advances the test scheduler's virtual time. A case that must observe a state *before* a debounced
+     * publication arrives uses this: `advanceUntilIdle` would fire the debounce first and close the very
+     * window under test.
+     */
+    private fun pumpCurrentUntil(
+        maxSpins: Int = REVEAL_PUMP_SPIN_BUDGET,
+        condition: () -> Boolean
+    ) = runBlocking {
+        withContext(Dispatchers.Default) {
+            val scheduler = mainDispatcherRule.dispatcher.scheduler
+            var spins = 0
+            while (!condition() && spins < maxSpins) {
+                scheduler.runCurrent()
+                yield()
+                spins++
+            }
+            condition()
+        }
+    }
+
+    /**
+     * Await [count] further shared-tick heartbeats. The tick loop counts **every** tick in
+     * [MapCanvasViewModel.fixQualityTickCount], so waiting for heartbeats proves the loop ran — the
+     * bounded way to assert that nothing was published for the dwell, without reading a clock.
+     */
+    private fun awaitTickHeartbeats(count: Int) {
+        val from = viewModel.fixQualityTickCount.value
+        pumpUntil { viewModel.fixQualityTickCount.value >= from + count }
+        assertTrue(
+            "the shared re-evaluation tick must still be running for this case to mean anything",
+            viewModel.fixQualityTickCount.value >= from + count
+        )
     }
 
     /**
@@ -207,6 +275,9 @@ class MapCanvasViewModelBrowseReCenterTest {
         runTest(mainDispatcherRule.dispatcher) {
             // Stands in for the persisted start viewport: the viewport is set
             // before the first fix ever arrives, and no pan/zoom happens at all.
+            // The fix is repeated below because this case is about a *fix* arriving on such a viewport;
+            // the reveal no longer needs it — `offCenterStartAtStandstillShowsTheButtonWithoutAnyFurtherEvent`
+            // covers the dwell completing on its own.
             moveViewportBy(400.0, 0.0)
             advanceUntilIdle()
             assertFalse("no fix yet", viewModel.uiState.value.browseReCenterVisible)
@@ -224,6 +295,233 @@ class MapCanvasViewModelBrowseReCenterTest {
             )
             assertEquals("mode stays BROWSE", MapMode.BROWSE, viewModel.mode)
         }
+
+    @Test
+    fun offCenterStartAtStandstillShowsTheButtonWithoutAnyFurtherEvent() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // The reported defect: the app is started in phone mode with a persisted viewport that is
+            // away from the vehicle, and the vehicle stands still — one fix, then the location provider
+            // goes silent (min-distance throttling). The dwell must complete on elapsed time, so the
+            // button has to appear with NO further fix, NO pan and NO other state change.
+            moveViewportBy(400.0, 0.0)
+            advanceUntilIdle()
+            assertFalse("no fix yet", viewModel.uiState.value.browseReCenterVisible)
+
+            emitFix()
+            advanceUntilIdle()
+            assertFalse("dwell not elapsed yet", viewModel.uiState.value.browseReCenterVisible)
+
+            // Only the clock moves from here on.
+            fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+
+            assertTrue(
+                "the dwell elapsing on its own must show the button without a further fix or interaction",
+                awaitReveal()
+            )
+            assertEquals("mode stays BROWSE", MapMode.BROWSE, viewModel.mode)
+        }
+
+    @Test
+    fun aSingleFlickPanRevealsTheButtonWithoutAFollowUpEvent() = runTest(mainDispatcherRule.dispatcher) {
+        startCenteredOnVehicle()
+        advanceUntilIdle()
+        assertFalse(
+            "a centered viewport stays hidden past the dwell",
+            viewModel.uiState.value.browseReCenterVisible
+        )
+
+        // One flick: exactly one viewport write, and then no further event of any kind.
+        moveViewportBy(-500.0, 0.0)
+        advanceUntilIdle()
+        assertFalse("dwell not elapsed yet", viewModel.uiState.value.browseReCenterVisible)
+
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+
+        assertTrue(
+            "a flick pan must reveal the button once the dwell elapses, with no further event",
+            awaitReveal()
+        )
+    }
+
+    @Test
+    fun theDwellBoundaryIsDecidedByElapsedTime() = runTest(mainDispatcherRule.dispatcher) {
+        moveViewportBy(400.0, 0.0)
+        advanceUntilIdle()
+        emitFix()
+        advanceUntilIdle()
+
+        // One millisecond short of the dwell, with the tick loop proven to have run: the deadline is
+        // exceeded strictly, so this must stay hidden.
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS - 1
+        awaitTickHeartbeats(2)
+        assertFalse(
+            "one millisecond short of the dwell must stay hidden",
+            viewModel.uiState.value.browseReCenterVisible
+        )
+        assertEquals(
+            "no dwell re-evaluation before the deadline",
+            0L.toLong(),
+            viewModel.recenterDwellTickCount.value
+        )
+
+        fakeNowMs += 1
+        assertTrue("at the dwell boundary the button must appear", awaitReveal())
+    }
+
+    @Test
+    fun noDwellEvaluationWhileTheViewportIsCentered() = runTest(mainDispatcherRule.dispatcher) {
+        moveViewportBy(0.0, 0.0)
+        advanceUntilIdle()
+        emitFix()
+        advanceUntilIdle()
+        assertFalse("centered", viewModel.uiState.value.browseReCenterVisible)
+
+        awaitTickHeartbeats(2)
+
+        assertEquals(
+            "a centered viewport must not publish a dwell re-evaluation",
+            0L.toLong(),
+            viewModel.recenterDwellTickCount.value
+        )
+    }
+
+    @Test
+    fun pressingReCenterDiscardsThePendingDwell() = runTest(mainDispatcherRule.dispatcher) {
+        moveViewportBy(400.0, 0.0)
+        advanceUntilIdle()
+        emitFix()
+        advanceUntilIdle()
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+        assertTrue(awaitReveal())
+
+        viewModel.recenterInBrowse()
+        advanceUntilIdle()
+        assertFalse("pressing re-center hides the button", viewModel.uiState.value.browseReCenterVisible)
+
+        val published = viewModel.recenterDwellTickCount.value
+        awaitTickHeartbeats(2)
+        assertEquals(
+            "a re-centered viewport leaves no dwell pending",
+            published,
+            viewModel.recenterDwellTickCount.value
+        )
+    }
+
+    @Test
+    fun leavingBrowseDiscardsTheDwellAndReturningReArmsIt() = runTest(mainDispatcherRule.dispatcher) {
+        moveViewportBy(400.0, 0.0)
+        advanceUntilIdle()
+        emitFix()
+        advanceUntilIdle()
+
+        // Leave BROWSE with the dwell pending, then let it elapse. FREE_DRIVE owns its own visibility
+        // rule, so the browse dwell must neither fire nor leak into it.
+        viewModel.enterFreeDrive()
+        advanceUntilIdle()
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+        awaitTickHeartbeats(2)
+        assertFalse(
+            "the browse dwell must not fire outside BROWSE",
+            viewModel.uiState.value.browseReCenterVisible
+        )
+        assertEquals(
+            "the browse dwell must not publish anything outside BROWSE",
+            0L.toLong(),
+            viewModel.recenterDwellTickCount.value
+        )
+
+        // Back in BROWSE. Entering FREE_DRIVE re-engaged follow on the vehicle, so the map is centered
+        // again; pan away to get an off-center viewport and prove the discarded dwell needs a full
+        // fresh one — the elapsing clock alone must not reveal the button.
+        viewModel.exitFreeDrive()
+        advanceUntilIdle()
+        moveViewportBy(400.0, 0.0)
+        advanceUntilIdle()
+        assertFalse(
+            "returning to BROWSE must not reveal the button without a fresh dwell",
+            viewModel.uiState.value.browseReCenterVisible
+        )
+
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+        assertTrue(awaitReveal())
+    }
+
+    @Test
+    fun agedOutFixSuppressesThePendingDwell() = runTest(mainDispatcherRule.dispatcher) {
+        moveViewportBy(400.0, 0.0)
+        advanceUntilIdle()
+        emitFix()
+        advanceUntilIdle()
+
+        // The source is switched off, so the quality gate reports NONE and the rule must not reveal
+        // anything however long the dwell is left to run. The tier is republished by the real-clock
+        // tick, so wait for it (not for a clock) before the dwell is left to elapse.
+        locationService.setLocationSourceReadForTest { false }
+        pumpUntil { viewModel.uiState.value.gpsFixQuality == GpsFixQuality.NONE }
+        assertEquals(
+            "the source-off tier must have reached the state before the dwell is left to run",
+            GpsFixQuality.NONE,
+            viewModel.uiState.value.gpsFixQuality
+        )
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+        awaitTickHeartbeats(2)
+        assertFalse(
+            "a fix that aged out must not reveal the button",
+            viewModel.uiState.value.browseReCenterVisible
+        )
+        assertEquals(
+            "a suppressed dwell must not publish anything",
+            0L.toLong(),
+            viewModel.recenterDwellTickCount.value
+        )
+
+        // A usable fix again needs a fresh dwell.
+        locationService.setLocationSourceReadForTest { true }
+        pumpUntil { viewModel.uiState.value.gpsFixQuality != GpsFixQuality.NONE }
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+        assertTrue(
+            "with a usable fix the button must appear after a fresh dwell",
+            awaitReveal()
+        )
+    }
+
+    @Test
+    fun anAgingFixDoesNotLetTheClockRevealTheButton() = runTest(mainDispatcherRule.dispatcher) {
+        // The age route, not the source-off route of `agedOutFixSuppressesThePendingDwell`: the fix is
+        // still present but no longer usable, and the *published* tier lags the derived one by the
+        // quality pipeline's debounce. The clock path must read the tier it derives itself, otherwise it
+        // reveals the button inside that window — which the requirement's "A fix that ages out suppresses
+        // the pending dwell" scenario forbids (independent review 2026-10-11, finding P2-1).
+        moveViewportBy(400.0, 0.0)
+        advanceUntilIdle()
+        emitFix()
+        advanceUntilIdle()
+        assertFalse("dwell not elapsed yet", viewModel.uiState.value.browseReCenterVisible)
+        assertEquals(
+            "the fix starts usable",
+            GpsFixQuality.GOOD,
+            viewModel.uiState.value.gpsFixQuality
+        )
+
+        // Only the clock moves: the fix ages past the limit, and nothing is emitted.
+        fakeNowMs += viewModel.fixAgeLimitMs + 1L
+
+        val heartbeats = viewModel.fixQualityTickCount.value
+        pumpCurrentUntil { viewModel.fixQualityTickCount.value >= heartbeats + 3 }
+        assertTrue(
+            "the shared tick loop must have run for this case to mean anything",
+            viewModel.fixQualityTickCount.value >= heartbeats + 3
+        )
+        assertEquals(
+            "the clock path must not publish a dwell re-evaluation for an unusable fix",
+            0L.toLong(),
+            viewModel.recenterDwellTickCount.value
+        )
+        assertFalse(
+            "an aged-out fix must not reveal the button, not even briefly",
+            viewModel.uiState.value.browseReCenterVisible
+        )
+    }
 
     @Test
     fun theDwellBoundaryIsDecidedByInjectedTimeNotByElapsedRealTime() =
@@ -542,6 +840,13 @@ class MapCanvasViewModelBrowseReCenterTest {
     private companion object {
         const val SCREEN_W = 1080
         const val SCREEN_H = 1920
+
+        /**
+         * Spin budget for [awaitReveal]: each spin advances the test scheduler and yields, so the
+         * budget covers many real-clock tick periods while still turning a missing completion into a
+         * bounded failure rather than a hang.
+         */
+        const val REVEAL_PUMP_SPIN_BUDGET = 5_000_000
         const val MAG = 15.0
         const val ROTATION_RAD = 0.7
         const val VEHICLE_LAT = 52.51

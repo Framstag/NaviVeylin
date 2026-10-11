@@ -40,6 +40,7 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Reorder starred favorites | Long-press drag on a starred chip in the favorites sheet's chip bar (`sh.calvin.reorderable`, `rememberReorderableLazyListState`), which renders the one starred order spanning all groups — the position the chip is released at is persisted — change `order-starred-favorites` | Not offered — same platform constraint as the other two orders. The car's starred-favorites screen renders the **same stored starred order** read-only, as one list without group headers (a cross-group sequence cannot be rendered as group blocks), so the data is at parity, the interaction is not (see below) |
 | Stylesheet could not be loaded | Non-blocking snackbar next to the map with the shared wording (`MapStyleLoadReporter` → `uiState.snackbarMessage`) | **Same wording**, also non-blocking, but a different surface: a one-shot low-importance notification (channel `map_style`, silent, auto-cancel) — the car templates have no general message slot, so `CarStyleLoadNotifier` is used instead of a template change. Guidance is never interrupted on either surface (change `fix-stylesheet-load-crash`, design D2) |
 | Car session live while the phone UI is open | Advisory indication on the map (centre-left pill, shared wording `car_session_active_indicator`, translated): "Navigation on car display". Informational only — no map, search or navigation control is disabled while a car session is live (change `shared-resource-arbitration`, spec `car-session-presence`) | Not shown — the car surface is the session, so the indication would tell the driver nothing (platform constraint, not an omission) |
+| Map updates: the list, its `[Update all]` and the check control | The map manager screen's updates section: the count, when the last check ran, one row per updatable installation with its size and `[Update]`, `[Update all]`, and `[Check for updates]` (spec `map-updates`, change `add-map-update-check`) | Not surfaced — the car has no map-manager screen at all; the checked state is process-wide, so a car session sees the same result while it keeps rendering whatever is installed. Accepted deviation per spec `cross-variant-ui-parity` ("a settings control may exist only in the phone variant when the car's surface cannot carry it") |
 | Route requested without the precise location grant | Actionable dialog with the shared wording (`location_precise_required_navigation`, `PreciseLocationRequiredDialog`): "Grant precise location" re-requests the permission while the platform can still ask, and opens the app's system settings once it will not ask again — no route request reaches the routing engine meanwhile (change `fix-location-permission-scope`, spec `location-permissions` — Starting navigation requires precise location) | **Same wording**, non-blocking: the refusal is published on the shared navigation state, so the session shows it in the existing guarded error notice (one row, back action). The car SHALL NOT launch a settings screen — platform constraint, so the driver is told to grant it on the phone / in the system settings. Free driving and the map keep working on both surfaces with approximate location |
 
 ### Why the phone is not locked during a car session
@@ -629,11 +630,22 @@ Source: spec `map-modes` (drive suspension and reset; Browse re-center), spec
     vehicle is more than the appear threshold off the center (screen pixels, so
     the value means the same visible displacement at every zoom) and has stayed
     beyond it for a short dwell; it hides below the smaller hide threshold,
-    immediately. So it is also visible on the start screen when the persisted
-    viewport is not where the vehicle is, and it appears when the vehicle moves
-    while browsing. Rotation about the center does not change the offset and
-    therefore does not change its visibility. Tapping it puts the current GPS
-    position at the center of the map, stays in BROWSE, and hides the button.
+    immediately. **The dwell completes on elapsed time, not on the next state
+    change**: it is armed by the evaluation that first sees the offset, and the
+    shared re-evaluation tick reveals the button once the dwell has run out, so it
+    appears with no further fix, pan or zoom. That is what makes the standstill
+    case work — at a standstill the location provider goes silent (min-distance
+    throttling) and nothing else emits. So it is also visible on the start screen
+    when the persisted viewport is not where the vehicle is, and it appears when
+    the vehicle moves while browsing. A pending dwell is discarded when the mode
+    leaves BROWSE or the vehicle comes back inside the hide threshold, so it
+    cannot reveal the button later — that includes an available fix that stops
+    being usable (aged past the fix limit, or the location source switched off),
+    which the same gate that hides the button also ends a pending dwell on.
+    Rotation about the center does not change the offset and therefore does not
+    change its visibility. Tapping it puts the
+    current GPS position at the center of the map, stays in BROWSE, and hides the
+    button.
   - **NAVIGATION**: a manual zoom suspends auto-zoom; tapping re-centers on the
     current position (existing behavior).
 - BROWSE framing is **not** anchor-framed: the "Vehicle position" presets

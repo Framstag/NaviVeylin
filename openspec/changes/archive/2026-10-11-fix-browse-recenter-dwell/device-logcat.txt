@@ -1,0 +1,26 @@
+Device evidence for fix-browse-recenter-dwell (task 5.6), captured 2026-10-11 16:22-16:23 CEST
+AVD: Pixel_8 / emulator-5554, region europe-germany-bremen, mag 15, German locale (de-DE)
+Build: :app:assembleMobileDebug from this revision (both review fixes), adb install -r -t
+Flow: force-stop, start, wait 16 s, ONE 'adb emu geo fix 8.8049983 53.0870' (vehicle ~555 m north of the persisted viewport centre), then NO touch.
+NOTE: the persisted viewport centre is 53.082/8.8049983, which an earlier re-center tap wrote; a fix at the same
+coordinates gives offset 0.0 px and correctly shows no button (measured, 16:21:06 - 'TEMP derive off=0,0 ... q=GOOD').
+
+== adb logcat -d -s MapCanvasVM (grep: fix | quality | browse re-center) ==
+10-11 16:22:36.928  9484  9484 D MapCanvasVM: initMap: viewport mag=15.0 (saved)
+10-11 16:22:41.418  9484  9484 D MapCanvasVM: GPS fix acc=5,0 bearing=- speed=0,0 follow=false
+10-11 16:22:44.332  9484  9484 D MapCanvasVM: GPS fix quality: GOOD
+10-11 16:22:48.410  9484  9484 D MapCanvasVM: browse re-center off=848,6px vis=true
+
+== adb shell run-as com.framstag.naviveylin cat files/diagnostics/app.log | grep RECENTER | tail -3 ==
+[2026-10-11 15:25:47.925] RECENTER off=-px vis=false mag=15,00
+[2026-10-11 15:28:28.713] RECENTER off=568,4px vis=true mag=15,00
+[2026-10-11 16:22:48.410] RECENTER off=848,6px vis=true mag=15,00
+
+== native fault-like lines: adb logcat -d -s NaviVeylin | grep -ciE 'fatal|exception|crash|assert' ==
+0
+
+== UI dumps ==
+VISIBLE  (/tmp/visF.xml, 16:22:4x): content-desc="Auf Standort zentrieren" nodes = 1
+bounds="[53,2211][116,2274]"
+HIDDEN   (/tmp/hidF.xml, after tapping 84,2242): nodes = 0
+BROWSE kept (content-desc="Freie Fahrt starten") = 1

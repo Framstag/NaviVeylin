@@ -1139,6 +1139,36 @@ class MapCanvasViewModel @Inject constructor(
      */
     internal val fixQualityTickCount = MutableStateFlow(0L)
 
+    /**
+     * Timestamp the browse offset first exceeded the appear threshold, or 0 while it is not beyond it
+     * (spec: map-modes — Browse re-center). `@Volatile` because the shared re-evaluation tick reads it
+     * from its own thread; the visibility decision itself stays on the collector's dispatcher
+     * (design D2). It is cleared once the button is visible, so a revealed button costs no further tick
+     * work.
+     *
+     * Declared before [init] for the same reason as [fixQualityTicks]: the ticker launched there runs
+     * its body during construction on `Dispatchers.Main.immediate`.
+     */
+    @Volatile
+    private var browseReCenterBeyondSinceMs = 0L
+
+    /**
+     * Counter driving the browse re-center dwell completion (spec: map-modes — Browse re-center). The
+     * appear dwell is armed by a state emission but must complete on elapsed time, because the failing
+     * case has no later emission: a stationary vehicle goes silent (the provider's min-distance
+     * throttling) and the user is not touching the map. Incremented only while an arm is pending, so a
+     * settled viewport emits nothing.
+     */
+    private val recenterDwellTicks = MutableStateFlow(0L)
+
+    /**
+     * How many dwell re-evaluations have been published, counted **every** time one is published.
+     * Internal test seam (spec `unit-test-suite-runtime` — Awaiting state, not a deadline): the tick
+     * runs on a real dispatcher with the real clock, so a case awaits this counter instead of a
+     * wall-clock window.
+     */
+    internal val recenterDwellTickCount = MutableStateFlow(0L)
+
     init {
         viewModelScope.launch { searchHistoryRepository.load() }
         refreshAddressBookAvailability()
@@ -1243,8 +1273,29 @@ class MapCanvasViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.Default) {
             while (true) {
                 delay(fixQualityTickMs)
+                val quality = deriveFixQuality(locationService.location.value)
+                // The same tick completes a pending BROWSE appear dwell (spec: map-modes — Browse
+                // re-center). The dwell is armed by a state emission, but the failing case has no later
+                // emission — a stationary vehicle with the location provider silent — so the deadline
+                // has to be delivered on the clock instead of waiting for one. The arm is cleared as
+                // soon as the button is visible, and no arm means no write at all.
+                //
+                // The guard reads the tier this tick just derived, not the published one: the published
+                // NONE arrives through a 2 s debounce (see the pipeline below), and the arm is only
+                // cleared by a state emission, so a fix that becomes unusable right after arming would
+                // otherwise let the clock path reveal the button — the case the requirement's
+                // "age out" scenario forbids (independent review 2026-10-11, finding P2-1).
+                val armedAtMs = browseReCenterBeyondSinceMs
+                if (armedAtMs != 0L && quality != GpsFixQuality.NONE &&
+                    timeSource.nowMillis() - armedAtMs >= RECENTER_DWELL_MS
+                ) {
+                    recenterDwellTickCount.value = recenterDwellTickCount.value + 1L
+                    recenterDwellTicks.value = recenterDwellTicks.value + 1L
+                }
+                // Counted after the dwell evaluation of the same iteration, so a case that awaits N
+                // heartbeats knows those N dwell evaluations have also happened.
                 fixQualityTickCount.value = fixQualityTickCount.value + 1L
-                if (deriveFixQuality(locationService.location.value) != _gpsFixQuality.value) {
+                if (quality != _gpsFixQuality.value) {
                     fixQualityTicks.value = fixQualityTicks.value + 1L
                 }
             }
@@ -1332,7 +1383,8 @@ class MapCanvasViewModel @Inject constructor(
         // mutation site. refreshBrowseReCenter emits only on a visibility change,
         // so it does not re-trigger itself forever.
         viewModelScope.launch {
-            uiState.collect { refreshBrowseReCenter(it) }
+            combine(uiState, recenterDwellTicks) { state, _ -> state }
+                .collect { refreshBrowseReCenter(it) }
         }
 
         // Follow mode: keep map center and marker in sync.
@@ -3593,12 +3645,6 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
-     * Timestamp the browse offset first exceeded the appear threshold, or 0 while
-     * it is not beyond it (spec: map-modes — Browse re-center).
-     */
-    private var browseReCenterBeyondSinceMs = 0L
-
-    /**
      * Re-derive the BROWSE re-center visibility from the current viewport, canvas
      * and fix (spec: map-modes — Browse re-center). The offset is measured on
      * every UI-state change, so panning, zooming and vehicle movement all count
@@ -3630,7 +3676,12 @@ class MapCanvasViewModel @Inject constructor(
                     browseReCenterBeyondSinceMs = 0L
                     false
                 }
-                state.browseReCenterVisible -> true
+                state.browseReCenterVisible -> {
+                    // Already visible: nothing is being waited for, so clear the arm and let the
+                    // re-evaluation ticker go quiet (design D1/D2).
+                    browseReCenterBeyondSinceMs = 0L
+                    true
+                }
                 offsetPx >= RECENTER_SHOW_OFFSET_PX -> {
                     val now = timeSource.nowMillis()
                     if (browseReCenterBeyondSinceMs == 0L) browseReCenterBeyondSinceMs = now

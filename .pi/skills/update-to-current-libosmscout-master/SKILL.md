@@ -108,6 +108,7 @@ bare number:
 | date | `naviveylin-local` | upstream `master` | residual |
 |---|---|---|---|
 | 2026-10-10 | `4f701f1ee` | `0205b359e` | 19 files, +2127/-124 |
+| 2026-10-11 | `b37a54f73` | `a2050dfa4` | 0 files, +0/-0 — the trees are identical (`git diff --quiet origin/master HEAD`), so the branch now costs nothing: PR #1773's `cmake`, `cmake + maven`, `meson` and `meson + maven` jobs all pass |
 
 How to retire residual, cheapest first:
 
@@ -120,14 +121,15 @@ How to retire residual, cheapest first:
 - **Larger local-only class** (the favourite store, the path registry): a real upstream PR, usually
   together with the JNI entry points and tests that use it — this is the biggest win, and it is what
   finally stops the recurring `OSMScoutClient.cpp` conflicts.
-- **Pending upstream candidate (2026-09-29): the single-open path validation.** `libosmscout-client` now
-  carries `IsOpenableDatabaseDirectory()` and `DatabasePathRegistry::RegisterOpenable()`, and
-  `OSMScoutClient.cpp` uses them in `openDatabase` (submodule commit `041996945`, change
-  `fix-open-database-path-validation`, spec
-  `map-render`). It is a self-contained guard with its own `DatabaseOpenTest` cases, i.e. the "small
-  self-contained fix" bucket: if upstream has not taken it by the next bump, resolve the conflicts in
-  `DatabasePathRegistry.{h,cpp}` and the two JNI branches **in favour of the branch (ours)** — never
-  `--theirs` — so a merge cannot drop the validation silently (TODO §82 is the precedent).
+- **Retired upstream candidate: the single-open path validation** (was the 2026-09-29 pending
+  candidate). `IsOpenableDatabaseDirectory()`, `DatabasePathRegistry::RegisterOpenable()` and the
+  `openDatabase` use of them (submodule commit `041996945`, change `fix-open-database-path-validation`,
+  spec `map-render`) are on upstream `master` as of the 2026-10-11 bump — `grep -rl RegisterOpenable`
+  finds it in four files of the merged tree — so the recurring `DatabasePathRegistry.{h,cpp}` and JNI
+  conflict no longer has a local side to defend. Resolve it as "theirs" from now on. The same applies
+  to the rest of the old residual: `IsValidUtf8`, `moveFavorite`/`FavoriteLocationService::MoveFavorite`,
+  the `wayType`/`RoadInfo` fields on `NavigationPosition`, the per-request projection DPI and the
+  per-source search candidate budgets all live upstream now.
 
 Do **not** rewrite or force-push `naviveylin-local` to "clean up": parallel sessions rewrite this
 branch, PR #1773 is the review artifact, and old commits left in history cost nothing — only the
@@ -190,7 +192,7 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
 1. **A parallel session can force-rewrite `naviveylin-local`.** 2026-09-19: this branch was pushed as a fast-forward and then replaced by a peer's *copies of the same two JNI commits* (same messages, different SHAs) on an older upstream base — `git fetch` showed a forced update, and the peer tip did not contain the incoming upstream commits. Never trust the local remote-tracking ref for this: run `git ls-remote origin naviveylin-local` immediately before pushing and require `merge-base --is-ancestor <remote-sha> HEAD`. If it moved, merge the two lines (`git merge origin/naviveylin-local`, then push the merge — again a fast-forward). Two sessions must not both "claim" the same uncommitted JNI edits; one session owns the submodule update.
    **The safety copy that rewrite left behind, `backup-naviveylin-local-262e7de56`, was audited on
    2026-10-10 and retired** — so a `backup-*` ref is insurance to audit, not evidence of lost work. Neither
-   mechanical test decides it: `git cherry` over-reports (pitfall 7), and `git apply --check`/`-R --check`
+   mechanical test decides it: `git cherry` over-reports (pitfall 8), and `git apply --check`/`-R --check`
    classified all ten of its commits as *unclear*, applying in neither direction because the patches are
    511 commits old. What settles it is **line-level presence** — for each added line, test whether the pushed
    branch's version of the same file contains it (a real file, never a pipe into `grep -q`: under
@@ -204,7 +206,18 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
 4. **JNI overloads are name-mangled** — symbol greps produce false "MISSING" hits; confirm before "fixing" anything.
 5. **Submodule edits are not built by CI or fresh clones until pushed**; keep the submodule tree clean and push the branch *before* the parent bump (the parent's pinned SHA must exist on origin).
 6. **The non-marisa check temporarily edits a tracked file.** On a normal or failing exit the script restores it via `trap` and then asserts a clean `git status`; only a hard kill (or a full disk) can leave the `#undef` behind — `git -C app/src/main/cpp/libosmscout checkout -- libosmscout-client-java/src/OSMScoutClient.cpp` puts it back, and `git status` must be empty before you continue.
-7. **`git cherry` over-reports local commits.** A feature upstream landed independently keeps our
+7. **A merge can surface a latent parent-repo CMake bug, and the failure looks like the merge's fault.**
+   2026-10-11: the non-marisa check failed at `:app:configureCMakeDebug[arm64-v8a]` with
+   `Imported target "Freetype::Freetype" includes non-existent path
+   ".../vcpkg/installed/arm64-android/include/freetype2"`. The preset in
+   `app/src/main/cpp/CMakeLists.txt` had been stale since the initial import (the vcpkg freetype port
+   2.14.x moves the headers to `include/` + `include/freetype/`,
+   `vcpkg/ports/freetype/portfile.cmake`), and nothing validated an imported target's include dirs
+   until upstream's `libosmscout-map/CMakeLists.txt` linked `Freetype::Freetype` through the map
+   target's interface. Fixed with the correct prefix plus `FORCE` (a stale `CMakeCache.txt` keeps a
+   non-FORCE `set(... CACHE)` value). Read the first `error:`/`CMake Error` in the log before blaming
+   the merge, and remember a *configure* failure is not a compile failure.
+8. **`git cherry` over-reports local commits.** A feature upstream landed independently keeps our
    commit on the `+` (not-upstreamed) side, because the patch shapes differ — e.g. `moveFavorite`,
    the POI multi-database determinism fix, `getRoadAt`/`RoadInfo`, `wayType`. Measure the *residual
    diff* (`git diff --shortstat origin/master HEAD`), never `git cherry`, when judging what the

@@ -110,9 +110,13 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/CMakeLists.txt")
         set(ZLIB_LIBRARY "${VCPKG}/lib/libz.a" CACHE FILEPATH "")
         set(ZLIB_INCLUDE_DIR "${VCPKG}/include" CACHE PATH "")
         set(FREETYPE_LIBRARY "${VCPKG}/lib/libfreetype.a" CACHE FILEPATH "")
-        set(FREETYPE_INCLUDE_DIRS "${VCPKG}/include/freetype2" CACHE PATH "")
-        set(FREETYPE_INCLUDE_DIR_ft2build "${VCPKG}/include/freetype2" CACHE PATH "")
-        set(FREETYPE_INCLUDE_DIR_freetype2 "${VCPKG}/include/freetype2" CACHE PATH "")
+        # The freetype port (2.14.x) moves the headers out of include/freetype2 into
+        # include/ (ft2build.h) and include/freetype/, and rewrites its config module
+        # accordingly; the presets below must point at the same prefix, and FORCE
+        # corrects a build directory whose cache still holds the old freetype2 path.
+        set(FREETYPE_INCLUDE_DIRS "${VCPKG}/include" CACHE PATH "" FORCE)
+        set(FREETYPE_INCLUDE_DIR_ft2build "${VCPKG}/include" CACHE PATH "" FORCE)
+        set(FREETYPE_INCLUDE_DIR_freetype2 "${VCPKG}/include" CACHE PATH "" FORCE)
         set(LIBXML2_LIBRARY "${VCPKG}/lib/libxml2.a" CACHE FILEPATH "")
         set(LIBXML2_INCLUDE_DIR "${VCPKG}/include/libxml2" CACHE PATH "")
         set(PROTOBUF_LIBRARY "${VCPKG}/lib/libprotobuf.a" CACHE FILEPATH "")

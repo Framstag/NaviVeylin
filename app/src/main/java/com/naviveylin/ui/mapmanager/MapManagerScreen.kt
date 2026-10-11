@@ -80,6 +80,7 @@ fun MapManagerScreen(
     basemapViewModel: BasemapViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val updatesState by viewModel.updates.collectAsState()
     val basemapState by basemapViewModel.uiState.collectAsState()
     var expandedDirs by remember { mutableStateOf(setOf<String>()) }
     var searchQuery by remember { mutableStateOf("") }
@@ -210,7 +211,9 @@ fun MapManagerScreen(
             }
 
             // Active downloads section
-            if (uiState.activeDownloads.isNotEmpty() || basemapState.isDownloading) {
+            if (uiState.activeDownloads.isNotEmpty() || basemapState.isDownloading ||
+                uiState.updateTransfers.isNotEmpty()
+            ) {
                 item(key = "active-downloads") {
                     ActiveDownloadsSection(
                         downloads = uiState.activeDownloads,
@@ -219,7 +222,27 @@ fun MapManagerScreen(
                         onDismissError = { viewModel.dismissError(it.entry.name) },
                         basemapDownloading = basemapState.isDownloading,
                         basemapProgress = basemapState.progress,
-                        onCancelBasemap = { basemapViewModel.cancel() }
+                        onCancelBasemap = { basemapViewModel.cancel() },
+                        updateTransfers = uiState.updateTransfers,
+                        onCancelUpdate = { directoryName -> viewModel.cancelUpdate(directoryName) }
+                    )
+                }
+            }
+
+            // Updates section: shown for a repository source, whether or not anything is updatable, so the
+            // check control is reachable when the answer is "nothing to update" (spec `map-updates` —
+            // "The updates section belongs to the repository source").
+            if (uiState.activeSource.isRepository) {
+                item(key = "updates-section") {
+                    MapUpdatesSection(
+                        state = updatesState,
+                        transfers = uiState.updateTransfers,
+                        isUpdating = uiState.isUpdating,
+                        onCheck = { viewModel.checkForUpdates() },
+                        onUpdate = { item -> viewModel.update(item) },
+                        onUpdateAll = { viewModel.updateAll() },
+                        onCancel = { directoryName -> viewModel.cancelUpdate(directoryName) },
+                        onDismissError = { directoryName -> viewModel.dismissUpdateError(directoryName) }
                     )
                 }
             }
@@ -594,9 +617,14 @@ private fun ActiveDownloadsSection(
     onDismissError: (MapEntryState) -> Unit,
     basemapDownloading: Boolean = false,
     basemapProgress: Int = 0,
-    onCancelBasemap: () -> Unit = {}
+    onCancelBasemap: () -> Unit = {},
+    updateTransfers: Map<String, UpdateTransferState> = emptyMap(),
+    onCancelUpdate: (String) -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(true) }
+    // One transfer is presented once: an update's progress belongs here, its state and actions in the
+    // updates section (spec `map-updates` — "The queue is visible as a download").
+    val running = updateTransfers.filterValues { it is UpdateTransferState.Transferring }
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
@@ -609,8 +637,8 @@ private fun ActiveDownloadsSection(
             Text(
                 text = pluralStringResource(
                     R.plurals.active_downloads,
-                    downloads.size + if (basemapDownloading) 1 else 0,
-                    downloads.size + if (basemapDownloading) 1 else 0
+                    downloads.size + (if (basemapDownloading) 1 else 0) + running.size,
+                    downloads.size + (if (basemapDownloading) 1 else 0) + running.size
                 ),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
@@ -646,6 +674,15 @@ private fun ActiveDownloadsSection(
                         )
                     }
                 }
+                for ((directoryName, transfer) in running) {
+                    key("update-$directoryName") {
+                        UpdateDownloadRow(
+                            directoryName = directoryName,
+                            progress = (transfer as UpdateTransferState.Transferring).progress,
+                            onCancel = { onCancelUpdate(directoryName) }
+                        )
+                    }
+                }
             }
         }
 
@@ -658,6 +695,38 @@ private fun BasemapDownloadRow(
     progress: Int,
     onCancel: () -> Unit
 ) {
+    DownloadProgressRow(
+        label = stringResource(R.string.world_basemap),
+        progress = progress,
+        onCancel = onCancel
+    )
+}
+
+/**
+ * One running update transfer, shown where the other downloads are.
+ *
+ * Named after the installation's directory, which is what an update replaces and what its staged transfer
+ * belongs to (spec `map-updates` — "The queue is visible as a download").
+ */
+@Composable
+private fun UpdateDownloadRow(
+    directoryName: String,
+    progress: Int,
+    onCancel: () -> Unit
+) {
+    DownloadProgressRow(
+        label = directoryName,
+        progress = progress,
+        onCancel = onCancel
+    )
+}
+
+@Composable
+private fun DownloadProgressRow(
+    label: String,
+    progress: Int,
+    onCancel: () -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -665,7 +734,7 @@ private fun BasemapDownloadRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = stringResource(R.string.world_basemap),
+                text = label,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

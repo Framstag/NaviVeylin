@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.framstag.libosmscout.client.AvailableMapEntry
+import com.framstag.libosmscout.client.BasemapManager
 import com.framstag.libosmscout.client.MapDownloadListener
+import com.naviveylin.core.mapsource.BasemapAvailability as RepositoryAvailability
 import com.framstag.libosmscout.client.MapDownloadManager
 import com.framstag.libosmscout.client.MapProvider
 import com.naviveylin.core.BasemapReloadNotifier
@@ -17,17 +19,22 @@ import com.naviveylin.core.mapsource.MapSource
 import com.naviveylin.core.mapsource.MapSourceKind
 import com.naviveylin.core.mapsource.MapSourceMarker
 import com.naviveylin.core.mapsource.MapSourceRecord
+import com.naviveylin.core.mapsource.MapUpdateItem
+import com.naviveylin.core.mapsource.MapUpdateKind
 import com.naviveylin.core.mapsource.RegionIndexResult
 import com.naviveylin.core.mapsource.RepositoryFailure
 import com.naviveylin.core.mapsource.RepositoryDownloadPlanResult
 import com.naviveylin.core.mapsource.RepositoryUrlPlanner
 import com.naviveylin.data.BasemapRegistrar
+import com.naviveylin.data.MapDataRegistrar
 import com.naviveylin.data.MapSourceRegistry
 import com.naviveylin.data.MapSourceSwitchPlan
 import com.naviveylin.data.MapSourceSwitchUseCase
 import com.naviveylin.data.MapSourceSwitcher
 import com.naviveylin.data.MapStorageManager
 import com.naviveylin.data.SettingsStorage
+import com.naviveylin.data.MapUpdates
+import com.naviveylin.data.MapUpdatesState
 import com.naviveylin.data.selectedMapSource
 import com.naviveylin.data.withSelectedMapSource
 import com.naviveylin.R
@@ -38,7 +45,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.nio.file.Paths
 import javax.inject.Inject
 
@@ -132,6 +142,14 @@ data class MapManagerUiState(
     val leafMetadata: Map<String, LeafMetadataState> = emptyMap(),
     val downloadingNames: Set<String> = emptySet(),
     val progressMap: Map<String, Int> = emptyMap(),
+    /**
+     * The update transfers of this screen, keyed by the installation's directory name. Only the transfer's
+     * own state is here; its progress is shown in the active-downloads section, like the basemap's
+     * (spec `map-updates` — "Updating every listed item is a queue").
+     */
+    val updateTransfers: Map<String, UpdateTransferState> = emptyMap(),
+    /** True while the update queue runs, so its actions are not taken twice. */
+    val isUpdating: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null
 ) {
@@ -157,6 +175,21 @@ data class MapManagerUiState(
         }
 }
 
+/**
+ * The state of one update transfer this screen runs.
+ *
+ * The progress itself is shown in the active-downloads section, not in the updates row: one transfer is
+ * presented once (spec `map-updates` — "The queue is visible as a download").
+ */
+sealed interface UpdateTransferState {
+
+    /** The transfer runs; [progress] is the percentage done. */
+    data class Transferring(val progress: Int) : UpdateTransferState
+
+    /** The transfer did not complete; [message] says so in the user's words and stays until dismissed. */
+    data class Failed(val message: String) : UpdateTransferState
+}
+
 @HiltViewModel
 class MapManagerViewModel @Inject constructor(
     private val application: Application,
@@ -166,11 +199,22 @@ class MapManagerViewModel @Inject constructor(
     private val settingsStorage: SettingsStorage,
     private val sourceRegistry: MapSourceRegistry,
     private val basemapReloadNotifier: BasemapReloadNotifier,
-    private val basemapRegistrar: BasemapRegistrar
+    private val basemapRegistrar: BasemapRegistrar,
+    private val basemapManager: BasemapManager,
+    private val mapUpdates: MapUpdates,
+    private val mapDataRegistrar: MapDataRegistrar
 ) : ViewModel() {
 
     /** Plans and performs a source switch (spec `map-source-selection`). */
     private val switcher = MapSourceSwitcher(storageManager.mapsRootDir)
+
+    /**
+     * The update check is process-scoped and this screen only reads its result, so the screen collects the
+     * check's own state instead of the view model mirroring it: a copy taken here would lag the check by as
+     * long as its collector waits, and the surface would show a state the check has already replaced
+     * (spec `map-updates` — "The check result survives a restart").
+     */
+    val updates: StateFlow<MapUpdatesState> = mapUpdates.state
 
     private val _uiState = MutableStateFlow(MapManagerUiState())
     val uiState: StateFlow<MapManagerUiState> = _uiState.asStateFlow()
@@ -187,8 +231,185 @@ class MapManagerViewModel @Inject constructor(
     /** Repository downloads the user cancelled, by map name; polled by the running install. */
     private val cancelledRepositoryDownloads = mutableSetOf<String>()
 
+    /** The update transfers of this screen, keyed by the installation's directory name. */
+    private val updateTransfers = mutableMapOf<String, UpdateTransferState>()
+
+    /** Updates the user cancelled, by installation directory name; polled by the running transfer. */
+    private val cancelledUpdates = mutableSetOf<String>()
+
+    /** True while the update queue runs, so the download service is held for the whole queue. */
+    @Volatile
+    private var isUpdating = false
+
+    /** Serialises the update queue: one transfer at a time, whichever action asked for it. */
+    private val updateQueueMutex = Mutex()
+
     init {
         refreshInstalledMaps()
+    }
+
+    /** Run the update check now, whatever the daily throttle says (spec `map-updates` — the manual check). */
+    fun checkForUpdates() {
+        mapUpdates.checkNow()
+    }
+
+    /** Update one installation the section lists. */
+    fun update(item: MapUpdateItem) {
+        enqueueUpdates(listOf(item))
+    }
+
+    /** Update every installation the section lists, one transfer at a time. */
+    fun updateAll() {
+        enqueueUpdates(updates.value.updates)
+    }
+
+    /** Cancel one running update transfer; its partial data is removed by the install path. */
+    fun cancelUpdate(directoryName: String) {
+        cancelledUpdates += directoryName
+    }
+
+    /** Dismiss a failed update's message; the row returns to its update action. */
+    fun dismissUpdateError(directoryName: String) {
+        updateTransfers.remove(directoryName)
+        publishUpdateTransfers()
+    }
+
+    /**
+     * Run [items] as a queue: one transfer at a time, each cancellable on its own, a failure reported for its
+     * own item and never stopping the rest (spec `map-updates` — "Updating every listed item is a queue").
+     *
+     * The queue recomputes the list from the source when it is done: what was just installed is no longer an
+     * update, and the check is what says so.
+     */
+    private fun enqueueUpdates(items: List<MapUpdateItem>) {
+        if (items.isEmpty()) return
+        // A fresh request is the user asking for these updates now, so a cancellation of an earlier attempt
+        // does not apply to it.
+        cancelledUpdates.clear()
+        viewModelScope.launch(ioDispatcher) {
+            updateQueueMutex.withLock {
+                _uiState.update { it.copy(isUpdating = true) }
+                isUpdating = true
+                syncUpdateService()
+                try {
+                    items.forEach { item -> runUpdate(item) }
+                } finally {
+                    isUpdating = false
+                    syncUpdateService()
+                    _uiState.update { it.copy(isUpdating = false) }
+                }
+            }
+            mapUpdates.checkNow()
+        }
+    }
+
+    /** Run one update transfer and record its outcome. */
+    private suspend fun runUpdate(item: MapUpdateItem) {
+        val source = _uiState.value.activeSource
+        if (!source.isRepository) return
+        if (item.directoryName in cancelledUpdates) {
+            // The user cancelled this one while it was still queued: it must not run at all, or a cancel would
+            // be undone by the queue reaching the item it was meant to stop.
+            updateTransfers[item.directoryName] =
+                UpdateTransferState.Failed(application.getString(R.string.update_cancelled))
+            publishUpdateTransfers()
+            return
+        }
+        updateTransfers[item.directoryName] = UpdateTransferState.Transferring(0)
+        publishUpdateTransfers()
+
+        val outcome = when (item.kind) {
+            MapUpdateKind.REGION -> installRegionUpdate(item, source)
+            MapUpdateKind.BASEMAP -> installBasemapUpdate(source)
+        }
+
+        when (outcome) {
+            DownloadOutcome.Completed -> updateTransfers.remove(item.directoryName)
+            else -> updateTransfers[item.directoryName] = UpdateTransferState.Failed(updateFailureText(outcome))
+        }
+        publishUpdateTransfers()
+    }
+
+    /**
+     * Replace an installed regional database with the version the repository publishes, and let the running
+     * client render it.
+     */
+    private suspend fun installRegionUpdate(item: MapUpdateItem, source: MapSource): DownloadOutcome {
+        val idPath = item.idPath ?: return DownloadOutcome.Failed(RepositoryFailure.NoFilesPublished)
+        val outcome = sourceRegistry.databaseInstaller().install(
+            source = source,
+            idPath = idPath,
+            targetDirectory = storageManager.mapsRootDir.resolve(item.directoryName),
+            isCancelled = { item.directoryName in cancelledUpdates },
+            onProgress = { done, total -> publishUpdateProgress(item.directoryName, done, total) }
+        )
+        if (outcome == DownloadOutcome.Completed) {
+            // The installed directory keeps its name and its marker; the client re-opens the set and the
+            // renderers drop what was drawn from the data that is gone.
+            mapDataRegistrar.apply()
+        }
+        return outcome
+    }
+
+    /** Replace the installed basemap with the version the repository's manifest publishes. */
+    private suspend fun installBasemapUpdate(source: MapSource): DownloadOutcome {
+        val basemap = sourceRegistry.repositoryBasemap(source)
+        val version = when (val availability = basemap.availableVersion()) {
+            is RepositoryAvailability.Available -> availability.version
+            RepositoryAvailability.Unavailable, is RepositoryAvailability.Failed ->
+                return DownloadOutcome.Failed(RepositoryFailure.DatabaseNotPublished)
+        }
+        val basemapDirectory = basemapManager.getBasemapDirectory()
+        val outcome = basemap.install(
+            version = version,
+            basemapDirectory = basemapDirectory,
+            isCancelled = { basemapDirectory.fileName.toString() in cancelledUpdates },
+            onProgress = { done, total ->
+                publishUpdateProgress(basemapDirectory.fileName.toString(), done, total)
+            }
+        )
+        if (outcome == DownloadOutcome.Completed) {
+            basemapRegistrar.apply(basemapDirectory.toString())
+        }
+        return outcome
+    }
+
+    /** Publish one transfer's progress: the row's own state, the service notification and the shared state. */
+    private fun publishUpdateProgress(directoryName: String, done: Long, total: Long) {
+        val percent = if (total > 0L) ((done * 100) / total).toInt().coerceIn(0, 99) else 0
+        updateTransfers[directoryName] = UpdateTransferState.Transferring(percent)
+        publishUpdateTransfers()
+        MapDownloadService.update(application, 1)
+    }
+
+    private fun publishUpdateTransfers() {
+        _uiState.update { it.copy(updateTransfers = updateTransfers.toMap()) }
+    }
+
+    /** Hold the download service for the whole queue rather than start and stop it per item. */
+    private fun syncUpdateService() {
+        if (isUpdating) {
+            MapDownloadService.start(application)
+        } else {
+            MapDownloadService.stop(application)
+        }
+    }
+
+    /** The user-actionable text for an update that did not complete. */
+    private fun updateFailureText(outcome: DownloadOutcome): String = when (outcome) {
+        DownloadOutcome.Cancelled -> application.getString(R.string.update_cancelled)
+        is DownloadOutcome.Failed -> when (val failure = outcome.failure) {
+            is RepositoryFailure.VerificationFailed ->
+                application.getString(R.string.map_download_checksum_failed, failure.fileName)
+            RepositoryFailure.DatabaseNotPublished ->
+                application.getString(R.string.map_download_not_published)
+            is RepositoryFailure.HttpStatus ->
+                application.getString(R.string.map_download_http_failed, failure.status)
+            RepositoryFailure.InstallFailed ->
+                application.getString(R.string.update_install_failed)
+            else -> application.getString(R.string.map_download_failed)
+        }
+        DownloadOutcome.Completed -> ""
     }
 
     fun refreshAvailableMaps() {

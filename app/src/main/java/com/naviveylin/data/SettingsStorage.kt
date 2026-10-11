@@ -104,7 +104,24 @@ data class AppSettings(
      * file written before this field existed — the start map then falls back to the deterministic
      * pick. Additive with a default, so an older settings file and an older build both keep working.
      */
-    val lastMapPath: String? = null
+    val lastMapPath: String? = null,
+    /**
+     * When the last **completed** repository update check ran (epoch milliseconds), `0` when none has.
+     *
+     * A check that did not complete leaves this value alone, so the next app start retries it instead of
+     * the user losing a day (spec: `map-updates` — "The app checks for newer repository map data once a
+     * day"). Additive with a default, so a settings file written before the field existed decodes to
+     * "never checked".
+     */
+    val mapUpdateCheckAt: Long = 0L,
+    /**
+     * The installations the last completed check found an update for.
+     *
+     * Replaced as a whole by each completed check and pruned of anything no longer installed when it is
+     * read, so a deleted map cannot leave a stale row (spec: `map-updates` — "The check result survives a
+     * restart", "A stale result is replaced, not merged"). Additive with a default.
+     */
+    val mapUpdates: List<StoredMapUpdate> = emptyList()
 )
 
 /** Persists [AppSettings] to a JSON file in app internal storage. */

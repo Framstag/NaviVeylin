@@ -158,9 +158,10 @@ class BasemapSourceSelectionTest {
     }
 
     @Test
-    fun repositorySourceOffersNoUpdateControl() = runTest(mainDispatcherRule.dispatcher) {
-        val installed = Files.createDirectories(mapsDir.resolve("basemap"))
-        Files.write(installed.resolve("types.dat"), "installed".toByteArray())
+    fun repositorySourceOffersTheUpdateControlWhenTheManifestIsNewer() = runTest(mainDispatcherRule.dispatcher) {
+        // The installed basemap carries the metadata of the slot that was installed; the manifest publishes
+        // a later change time for the same version.
+        installBasemap(installedAt = "2026-09-01T00:00:00Z")
         val (viewModel, _) = viewModel(activeSource = repository())
 
         viewModel.refresh()
@@ -168,11 +169,57 @@ class BasemapSourceSelectionTest {
 
         val state = viewModel.uiState.value
         assertTrue(state.sourceIsRepository)
-        assertFalse("no update check runs for this source, so no update control appears",
-                    state.updateAvailable)
         assertTrue("the installed basemap is still reported", state.installedInfo != null)
-        assertEquals("the published version is still offered for download",
-                     27, state.repositoryVersion?.typeConfigVersion)
+        assertEquals(
+            "the published version is still offered for download",
+            27,
+            state.repositoryVersion?.typeConfigVersion
+        )
+        assertTrue("the manifest's newer change time is an update", state.updateAvailable)
+    }
+
+    @Test
+    fun repositorySourceOffersNoControlWhenTheManifestMatchesTheInstallation() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // The installed slot's metadata is what the manifest states: nothing to update.
+            installBasemap(installedAt = "2026-09-07T10:00:00Z")
+            val (viewModel, _) = viewModel(activeSource = repository())
+
+            viewModel.refresh()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertTrue(state.sourceIsRepository)
+            assertTrue(state.installedInfo != null)
+            assertFalse("the manifest matches the installation, so no update is offered", state.updateAvailable)
+        }
+
+    @Test
+    fun repositorySourceOffersTheUpdateForANewerVersionToo() = runTest(mainDispatcherRule.dispatcher) {
+        installBasemap(installedAt = "2026-09-07T10:00:00Z", typeConfigVersion = 26)
+        val (viewModel, _) = viewModel(activeSource = repository())
+
+        viewModel.refresh()
+        advanceUntilIdle()
+
+        assertTrue(
+            "a newer database format version is an update even with the same change time",
+            viewModel.uiState.value.updateAvailable
+        )
+    }
+
+    /** Install a basemap slot carrying its own metadata, as a completed repository install leaves it. */
+    private fun installBasemap(installedAt: String, typeConfigVersion: Int = 27) {
+        val basemapDir = mapsDir.resolve("basemap")
+        Files.createDirectories(basemapDir)
+        Files.write(basemapDir.resolve("types.dat"), "type config".toByteArray())
+        Files.write(
+            basemapDir.resolve("db.json"),
+            (
+                """{"schema":1,"typeConfigVersion":$typeConfigVersion,"generatedAt":"$installedAt",""" +
+                    """"output":{"files":{"types.dat":{"size":11,"crc32":1}}}}"""
+                ).toByteArray()
+        )
     }
 
     @Test

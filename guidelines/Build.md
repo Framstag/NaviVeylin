@@ -101,6 +101,21 @@ the per-module freshness check), §6 (test constraints and the gate's forcing ru
 on-device and phone-measurement recipes), and the skills §1 names. This subsection states the rules; it
 quotes no measurement.
 
+**Scope — what the changed files owe.** Which verification a delta owes follows its file roster, not the
+habit of running everything:
+
+- **No compiled file changed** (`*.md`, `openspec/**`, `.pi/**`, `guidelines/**`, `TODO.md`): run **no build
+  and no suite**. Say in the task that the delta compiles nothing, and name the check you ran instead — for a
+  docs/spec/skill/backlog delta that is the structural check of the files it edits, the ones CI already runs
+  for it (`.github/workflows/build.yml`, the steps `Check OpenSpec artifact hygiene` and `Check documentation
+  routes`; text-only, no build, no device) plus the CLI's own (`openspec doctor`, `openspec validate`).
+- **Only test sources changed**: run the changed or new cases through the affected module's `--tests`
+  filter (§3), not the suite.
+- **Library or app code changed**: the gate this document defines — the suite of the flavor the change can
+  affect, and the both-flavor gate before the change is called complete (§3, §4).
+- **Name every exclusion**: any test or task a run skipped, and why. A green run that quietly dropped a
+  suite reads as a gate it was not.
+
 1. **Look, then measure, before changing code.** A symptom that lives in pixels cannot be settled by
    reading projection, fit or layout code. Look at the artifact, add a coordinate-free diagnostics line
    (numbers — indices, pixels, band, verdict — never a position, spec `auto-diagnostics`), read it on the

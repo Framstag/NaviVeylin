@@ -223,7 +223,7 @@ class MapManagerSourceSwitchPlanTest {
     ): MapManagerViewModel {
         val registry = MapSourceRegistry(settings, provider, HttpUrlFetcher())
         downloadManager = FakeMapDownloadManager(installedDirs = { emptyList() })
-        val viewModel = MapManagerViewModel(
+        val viewModel = mapManagerViewModelForTest(
             ApplicationProvider.getApplicationContext<Application>(),
             downloadManager,
             storageManager,

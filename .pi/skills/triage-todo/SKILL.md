@@ -37,7 +37,8 @@ A high-impact improvement never outranks a low-impact bug; within a segment, imp
 | the answer | output — the ranked triage plus the recommended next change; nothing is written unless the user asks |
 
 This skill proposes. It does not implement, and it does not create the change; it ends by naming the
-scope and handing off to `/openspec-propose` with a suggested change name.
+scope and handing off to `/openspec-propose` with a suggested change name. It is read-only, so it runs no
+build and no tests — nothing it does compiles.
 
 ## Procedure
 

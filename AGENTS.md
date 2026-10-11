@@ -230,6 +230,11 @@ and `release-build` wrap those calls; `revert-check` is the falsification step a
 invariant (mutate it once, the named case must fail, restore, forced green — `TODO.md` §113). The recipes for
 adding a dependency, a screen, a sheet or a native function are `guidelines/Design.md` §2.
 
+Verification follows the changed files, not the habit of running everything (`guidelines/Build.md` §2, its
+scope block): a delta that touches no compiled file — docs, `openspec/**`, `.pi/**`, `guidelines/**`, the
+backlog — runs no build and no suite, and names the structural check it ran instead; a test-only delta runs
+the changed cases through the module's `--tests` filter; a code delta runs the gate. Name any exclusion.
+
 ### Release versioning
 
 Two things are worth knowing before `./gradlew release` (`guidelines/Build.md` §5 owns the rest):

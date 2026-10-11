@@ -152,6 +152,9 @@ record of the finding) — do not remove anything the plan did not name.
 
 ### 6. Structure self-check (must pass, then report)
 
+A backlog-only pass edits no compiled file, so its gate is this self-check, not a build (`guidelines/Build.md`
+§2, the scope block).
+
 ```bash
 grep -c '^## ' TODO.md                                  # unchanged minus removals
 grep -o '^## [0-9]*' TODO.md | sort | uniq -d            # no collisions

@@ -11,6 +11,11 @@ description: Runs NaviVeylin unit and instrumented tests via Gradle — full uni
 - OpenSpec apply/archive guidance requires verifying existing tests still pass and new tests exist for new/modified code
 - After code changes, before marking a task complete
 
+**Scope first.** How much to run follows the delta's file roster, not habit — the scope block is
+`guidelines/Build.md` §2 ("Agent iteration protocol"): a delta with no compiled file runs neither a build nor a
+suite (name the structural check you ran instead), a test-only delta runs the changed cases through the
+module's `--tests` filter, a code delta runs this skill's gate. Name any test or task you skipped, and why.
+
 ## Procedure
 
 1. Print a status message before running, e.g.:

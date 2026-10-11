@@ -75,7 +75,7 @@ class MapManagerInstalledRowSourceComposeTest {
         val provider = MapProvider("karry.cz", "http://127.0.0.1:1", "")
         val settings = SettingsStorage(context)
         val registry = MapSourceRegistry(settings, provider, HttpUrlFetcher())
-        val viewModel = MapManagerViewModel(
+        val viewModel = mapManagerViewModelForTest(
             context,
             FakeMapDownloadManager(installedDirs = { listOf(directory.toString()) }),
             storageManager,

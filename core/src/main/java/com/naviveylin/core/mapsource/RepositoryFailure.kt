@@ -55,4 +55,12 @@ sealed interface RepositoryFailure {
 
     /** The database's metadata names no data files, so the database cannot be installed. */
     data object NoFilesPublished : RepositoryFailure
+
+    /**
+     * A fully transferred and verified database could not be placed over the installation it replaces.
+     *
+     * The installation that was there is unchanged or restored, so this reports a failed update, not lost
+     * data (spec `map-updates` — "An update replaces the installation only when it is complete").
+     */
+    data object InstallFailed : RepositoryFailure
 }

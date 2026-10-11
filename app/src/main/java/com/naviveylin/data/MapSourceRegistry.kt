@@ -6,6 +6,8 @@ import com.naviveylin.core.mapsource.DatabaseDownloader
 import com.naviveylin.core.mapsource.MapSource
 import com.naviveylin.core.mapsource.MapSourceKind
 import com.naviveylin.core.mapsource.RepositoryBasemap
+import com.naviveylin.core.mapsource.RepositoryDatabaseInstaller
+import com.naviveylin.core.mapsource.RepositoryFetcher
 import com.naviveylin.core.mapsource.RepositorySource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,7 +28,14 @@ import javax.inject.Singleton
 class MapSourceRegistry @Inject constructor(
     private val settings: SettingsStorage,
     private val provider: MapProvider,
-    private val fetcher: HttpUrlFetcher
+    /**
+     * The network access every repository protocol implementation below uses.
+     *
+     * Typed as the protocol's own interface rather than as the Android implementation (`HttpUrlFetcher`), so
+     * the registry and everything it builds can be driven from memory in a test: `:core` describes the
+     * repository as a pure protocol layer for exactly that reason.
+     */
+    private val fetcher: RepositoryFetcher
 ) {
 
     /** The provider the app ships with: its name, base URI and listing template. */
@@ -82,4 +91,13 @@ class MapSourceRegistry @Inject constructor(
      * (spec `map-repository-source`).
      */
     fun databaseDownloader(): DatabaseDownloader = DatabaseDownloader(fetcher)
+
+    /**
+     * The installer for an update of an installed regional database: it transfers into staging beside the
+     * installation, verifies every file, and swaps only a complete slot in, so the map the user has stays
+     * usable until the new one is there (spec `map-updates` — "An update replaces the installation only when
+     * it is complete").
+     */
+    fun databaseInstaller(): RepositoryDatabaseInstaller =
+        RepositoryDatabaseInstaller(fetcher, databaseFormatVersion)
 }

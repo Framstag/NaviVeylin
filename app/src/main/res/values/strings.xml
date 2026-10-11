@@ -190,6 +190,22 @@
     <string name="ok">OK</string>
     <string name="installed">Installed</string>
     <string name="update">Update</string>
+    <string name="updates">Updates</string>
+    <string name="update_all">Update all</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="checking_for_updates">Checking…</string>
+    <plurals name="updates_available_count">
+        <item quantity="one">%1$d update available</item>
+        <item quantity="other">%1$d updates available</item>
+    </plurals>
+    <string name="updates_none_available">No updates available</string>
+    <string name="updates_never_checked">No update check has run yet</string>
+    <string name="updates_last_checked">Last checked %1$s</string>
+    <string name="updates_check_failed">The update check did not complete: %1$s</string>
+    <string name="updates_check_failed_unknown">The update check did not complete</string>
+    <string name="update_install_failed">The update could not be installed — the map you had is unchanged</string>
+    <string name="updating_item">Updating…</string>
+    <string name="update_cancelled">The update was cancelled</string>
     <string name="delete_basemap">Delete basemap</string>
     <string name="basemap_variant_prompt">Available on server — choose a variant:</string>
     <string name="download_basemap">Download Basemap</string>

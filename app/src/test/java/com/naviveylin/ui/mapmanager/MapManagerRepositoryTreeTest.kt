@@ -267,7 +267,7 @@ class MapManagerRepositoryTreeTest {
             provider,
             HttpUrlFetcher().apply { ioDispatcher = mainDispatcherRule.dispatcher }
         )
-        val viewModel = MapManagerViewModel(
+        val viewModel = mapManagerViewModelForTest(
             ApplicationProvider.getApplicationContext<Application>(),
             FakeMapDownloadManager(installedDirs = { emptyList() }),
             storageManager,

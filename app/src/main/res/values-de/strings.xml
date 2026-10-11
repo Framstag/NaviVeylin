@@ -171,6 +171,22 @@
     <string name="ok">OK</string>
     <string name="installed">Installiert</string>
     <string name="update">Aktualisieren</string>
+    <string name="updates">Aktualisierungen</string>
+    <string name="update_all">Alle aktualisieren</string>
+    <string name="check_for_updates">Nach Aktualisierungen suchen</string>
+    <string name="checking_for_updates">Suche läuft…</string>
+    <plurals name="updates_available_count">
+        <item quantity="one">%1$d Aktualisierung verfügbar</item>
+        <item quantity="other">%1$d Aktualisierungen verfügbar</item>
+    </plurals>
+    <string name="updates_none_available">Keine Aktualisierungen verfügbar</string>
+    <string name="updates_never_checked">Es wurde noch nicht nach Aktualisierungen gesucht</string>
+    <string name="updates_last_checked">Zuletzt geprüft: %1$s</string>
+    <string name="updates_check_failed">Die Suche nach Aktualisierungen wurde nicht abgeschlossen: %1$s</string>
+    <string name="updates_check_failed_unknown">Die Suche nach Aktualisierungen wurde nicht abgeschlossen</string>
+    <string name="update_install_failed">Die Aktualisierung konnte nicht installiert werden — die vorhandene Karte bleibt unverändert</string>
+    <string name="updating_item">Wird aktualisiert…</string>
+    <string name="update_cancelled">Die Aktualisierung wurde abgebrochen</string>
     <string name="delete_basemap">Basiskarte löschen</string>
     <string name="basemap_variant_prompt">Auf dem Server verfügbar — Variante wählen:</string>
     <string name="download_basemap">Basiskarte herunterladen</string>

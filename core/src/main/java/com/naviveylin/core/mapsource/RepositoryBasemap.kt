@@ -1,8 +1,6 @@
 package com.naviveylin.core.mapsource
 
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 
 /**
  * The basemap of a libosmscout mapgen repository: reads the availability manifest, and installs the
@@ -80,17 +78,28 @@ class RepositoryBasemap(
             is RepositoryDownloadPlanResult.Refused -> return DownloadOutcome.Failed(result.failure)
         }
 
-        val incoming = basemapDirectory.resolveSibling(".${basemapDirectory.fileName}.incoming")
-        val outcome = DatabaseDownloader(fetcher).download(
-            plan.plan, plan.metadataDocument, incoming, isCancelled, onProgress
+        val incoming = SlotInstall.incomingFor(basemapDirectory)
+        SlotInstall.sweep(basemapDirectory)
+        val outcome = SlotInstall.downloadInto(
+            incoming = incoming,
+            fetcher = fetcher,
+            plan = plan.plan,
+            metadataDocument = plan.metadataDocument,
+            isCancelled = isCancelled,
+            onProgress = onProgress
         )
         if (outcome != DownloadOutcome.Completed) {
             // The previously installed basemap is untouched.
             return outcome
         }
 
-        swap(incoming, basemapDirectory)
-        return DownloadOutcome.Completed
+        return try {
+            SlotInstall.replace(incoming, basemapDirectory)
+            DownloadOutcome.Completed
+        } catch (failure: Exception) {
+            // The previous basemap is in place or restored; nothing is installed.
+            DownloadOutcome.Failed(RepositoryFailure.InstallFailed)
+        }
     }
 
     /** Read a slot's metadata and plan its download, addressed by the slot's own version. */
@@ -121,58 +130,6 @@ class RepositoryBasemap(
         ) {
             is DownloadPlanResult.Planned -> RepositoryDownloadPlanResult.Planned(plan, document, metadata)
             is DownloadPlanResult.Refused -> RepositoryDownloadPlanResult.Refused(plan.failure)
-        }
-    }
-
-    /**
-     * Replace [target] with [incoming], keeping the installed basemap until the new one is in place.
-     * The previous basemap is restored when the swap fails.
-     */
-    private fun swap(incoming: Path, target: Path) {
-        val backup = target.resolveSibling(".${target.fileName}.backup")
-        deleteRecursively(backup)
-
-        val hadInstalled = Files.exists(target)
-        if (hadInstalled) {
-            Files.move(target, backup, StandardCopyOption.REPLACE_EXISTING)
-        }
-        try {
-            Files.createDirectories(target.parent)
-            try {
-                Files.move(incoming, target, StandardCopyOption.ATOMIC_MOVE)
-            } catch (notSupported: java.nio.file.AtomicMoveNotSupportedException) {
-                copyRecursively(incoming, target)
-                deleteRecursively(incoming)
-            }
-        } catch (failure: Exception) {
-            if (hadInstalled) {
-                deleteRecursively(target)
-                Files.move(backup, target, StandardCopyOption.REPLACE_EXISTING)
-            }
-            deleteRecursively(incoming)
-            throw failure
-        }
-        deleteRecursively(backup)
-    }
-
-    private fun copyRecursively(source: Path, target: Path) {
-        Files.walk(source).forEach { path ->
-            val destination = target.resolve(source.relativize(path).toString())
-            if (Files.isDirectory(path)) {
-                Files.createDirectories(destination)
-            } else {
-                Files.createDirectories(destination.parent)
-                Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING)
-            }
-        }
-    }
-
-    private fun deleteRecursively(directory: Path) {
-        if (!Files.exists(directory)) {
-            return
-        }
-        Files.walk(directory).sorted(Comparator.reverseOrder()).forEach { path ->
-            runCatching { Files.deleteIfExists(path) }
         }
     }
 }

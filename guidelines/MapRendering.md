@@ -289,12 +289,14 @@ travel while the map itself rotates at its own pace.
 
 - `epoch.incrementAndGet()` ONLY on zoom, overlay, style, marker visibility, and map-data-set
   changes.
-- **Map data set changes (basemap download/update/delete while the app runs) use the same
-  invalidation contract as mode/style switches:** `MapRenderer.invalidateData()` = epoch bump +
-  tile cache clear + forced full re-render (mirrors `invalidateStyle()`), because cached tiles were
-  rendered without the new data. Driven by `BasemapReloadNotifier` (spec: basemap-loading).
-  `AutoMapRenderer.invalidateData()` = blit-eligibility invalidation + re-render (overrun buffer
-  may hold pre-change pixels).
+- **Map data set changes (basemap download/update/delete, and a *regional* database replaced by an
+  update, while the app runs) use the same invalidation contract as mode/style switches:**
+  `MapRenderer.invalidateData()` = epoch bump + tile cache clear + forced full re-render (mirrors
+  `invalidateStyle()`), because cached tiles were rendered without the new data. Driven by
+  `BasemapReloadNotifier` (spec: basemap-loading), which the update path bumps after it has re-opened
+  the installed database set (`MapDataRegistrar`, spec: map-updates — "An installed update is rendered
+  without an app restart"). `AutoMapRenderer.invalidateData()` = blit-eligibility invalidation +
+  re-render (overrun buffer may hold pre-change pixels).
 - **Pure GPS position updates must NOT increment the epoch** — otherwise the running native render
   is discarded as stale and frame gaps occur ("map freezes / shows old image").
 - The conflated render queue guarantees that the next job picks up the latest position.

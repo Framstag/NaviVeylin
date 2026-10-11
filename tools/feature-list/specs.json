@@ -105,6 +105,7 @@
     "map-repository-source": { "area": "offline-maps", "userVisible": false, "surfaces": ["phone"] },
     "map-rotation-gesture": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
     "map-source-selection": { "area": "offline-maps", "userVisible": true, "surfaces": ["phone"] },
+    "map-updates": { "area": "offline-maps", "userVisible": true, "surfaces": ["phone"] },
     "map-speed-widget": { "area": "positioning", "userVisible": true, "surfaces": ["phone"] },
     "map-styles": { "area": "map-appearance", "userVisible": true, "surfaces": ["phone", "car"] },
     "marker-render-accuracy": { "area": "positioning", "userVisible": false, "surfaces": ["phone"] },

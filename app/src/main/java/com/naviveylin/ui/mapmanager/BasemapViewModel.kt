@@ -9,7 +9,10 @@ import com.framstag.libosmscout.client.BasemapManager
 import com.framstag.libosmscout.client.MapDownloadListener
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.mapsource.BasemapAvailability as RepositoryAvailability
+import com.naviveylin.core.mapsource.BasemapUpdate
 import com.naviveylin.core.mapsource.BasemapVersion
+import com.naviveylin.core.mapsource.DatabaseMetadata
+import com.naviveylin.core.mapsource.DatabaseMetadataParser
 import com.naviveylin.core.mapsource.DownloadOutcome
 import com.naviveylin.core.mapsource.MapSource
 import com.naviveylin.core.mapsource.MapSourceKind
@@ -47,9 +50,9 @@ data class BasemapUiState(
     val updateAvailable: Boolean = false,
     val error: String? = null,
     /**
-     * The active map source. A repository source publishes no version comparable with an installed
-     * basemap, so it reports no update state (spec `basemap-discovery` — "Source publishes no
-     * comparable version"; spec `basemap-ui` — "Source reports no update state").
+     * The active map source. A repository source compares the version its availability manifest publishes
+     * with the metadata the installed basemap carries, so it reports an update state just as the shipped
+     * provider does (spec `basemap-discovery` — "Report basemap version for updates").
      */
     val source: MapSource = MapSource.BuiltInProvider,
     /** The repository's basemap version offered for download, when the active source is a repository. */
@@ -143,6 +146,10 @@ class BasemapViewModel @Inject constructor(
     ) {
         val availability = sourceRegistry.repositoryBasemap(source).availableVersion()
         if (registryHasMovedOn(source)) return
+        val offered = (availability as? RepositoryAvailability.Available)?.version
+        // The comparison base is the installed slot's own metadata; a basemap that is not installed yet has
+        // nothing to compare, so it reports no update (spec `basemap-discovery` — "No basemap installed").
+        val installedMetadata = if (installed != null) installedBasemapMetadata() else null
         _uiState.value = BasemapUiState(
             availability = when (availability) {
                 is RepositoryAvailability.Available -> BasemapAvailability.Available
@@ -150,11 +157,22 @@ class BasemapViewModel @Inject constructor(
                     BasemapAvailability.Unavailable
             },
             installedInfo = installed,
-            updateAvailable = false,
+            updateAvailable = offered != null && installedMetadata != null &&
+                BasemapUpdate.isNewer(offered, installedMetadata),
             source = source,
-            repositoryVersion = (availability as? RepositoryAvailability.Available)?.version
+            repositoryVersion = offered
         )
     }
+
+    /**
+     * The metadata the installed basemap carries, or null when none is installed or it is unreadable.
+     *
+     * This is the comparison base for the repository source: the manifest publishes a version and a change
+     * time, and the installed slot's own metadata says what was installed (spec `basemap-discovery` —
+     * "Report basemap version for updates").
+     */
+    private fun installedBasemapMetadata(): DatabaseMetadata? =
+        DatabaseMetadataParser.readInstalled(basemapManager.getBasemapDirectory())
 
     /** True when the active source changed after [source] was read, so its result must be dropped. */
     private suspend fun registryHasMovedOn(source: MapSource): Boolean =

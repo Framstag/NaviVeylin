@@ -540,6 +540,15 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   temp-suffix files so partials are never picked up; register storage with
   the native layer at startup. Long-running work (downloads) keeps the
   process alive (wake lock / foreground service).
+- An update of installed map data is staged beside its target and swapped in
+  only when it is complete and verified (`.incoming` / `.backup`, `SlotInstall`),
+  so the installation a running client renders stays usable throughout; data a
+  failed or interrupted attempt left in the maps tree is *recognised* by
+  `SlotInstall.stagingTargetOf` rather than only hidden, and the app-start path
+  removes it (spec: `map-updates`). The repository update check runs at most once
+  a day on the app-start path (`MapUpdates`, process-scoped) and persists its
+  result — the last completed check and the installations found — in the settings
+  file under the same serialised transaction as every other setting.
 - Persist after completed operations, not debounced; persist on every
   meaningful change, not only lifecycle events (crash safety). Repositories
   wrap JNI calls in background dispatchers and expose reactive state.

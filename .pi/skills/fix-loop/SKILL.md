@@ -26,7 +26,7 @@ Four properties. Each is enforced by a mechanism, and each mechanism was measure
 | confident analysis and fix | the defect is reproduced by a test that is **red on HEAD before the fix** (Phase A), and a fresh `reviewer` child confirms every scenario against the diff and the gate XMLs before archive (Phase E) |
 | unambiguous specification, no options to weigh | gate condition 3; `design.md` records the alternatives the evidence **eliminated**, never viable ones |
 | manageable implementation | gate condition 5 — one capability, bounded files (run 1: every archived change touched one production file) |
-| all tests green | one forced both-flavor gate per change shape (Phase D), plus one revert-check per new invariant (Phase C) |
+| all tests green | one forced gate per change shape (Phase D) — the both-flavor suite for a `code` change, the affected cases only for a `test-only` change — plus one revert-check per new invariant (Phase C) |
 
 The loop is **pre-authorized** by the user's request: it may create changes, edit code, archive changes and
 repair `TODO.md` metadata without asking per step. It may **not** exceed the budget, invent scope, or delete a
@@ -204,6 +204,9 @@ Use `openspec-propose` (planning only — it must not touch project code). Chang
   per scenario naming its case; a revert-check **only** for an invariant the fix adds beyond the original
   symptom; the forced gate; device or measurement follow-ups stated as pending; the `TODO.md` status and any
   guideline section the fix supersedes.
+- A change that touches no compiled file (`*.md`, `openspec/**`, `.pi/**`, `guidelines/**`, `TODO.md`)
+  replaces the build task with the structural check of the file it edits (`guidelines/Build.md` §2, the scope
+  block) and drops the suite task — the task says so instead of running a build "for completeness".
 - Before the gate, `grep` the suite for the constants the change moves (`run-tests` step 5) and plan those
   expectation updates explicitly.
 - New `TODO.md` ids come from the max over **both** trees when a parallel branch exists (see `REFERENCE.md`,
@@ -214,10 +217,15 @@ Record `step C --name propose --note "<change name>"`.
 ## Phase D — apply (iteration child)
 
 `openspec-apply-change` plus `build-app`, `run-tests`, `revert-check`. Iterate with focused suites and run
-**one** forced both-flavor gate per change shape:
+**one** forced gate per change shape:
 
-- `./gradlew test -PforceTests --no-build-cache` when only test sources changed.
+- Only test sources changed — the affected cases through the owning module's filter form (§3 of
+  `guidelines/Build.md`: `./gradlew :<module>:test…DebugUnitTest --tests "<FQCN>"`), both `:app` flavors when
+  the change touches `app/src/test/**`; the suite is **not** required for this shape.
 - `./gradlew test -PforceTests --rerun-tasks` when the change touched more than the test sources.
+- **The gate is scoped by what the change touched** (`guidelines/Build.md` §2, the scope block): no compiled
+  file = no gate, the structural check of the edited file stands in for it; test side only = the red case
+  plus the affected cases, not the suite; code = the forced gate above.
 - **Do not re-run the gate to "refresh" evidence** — the re-run is what destroys it. If a re-run is forced
   (test sources changed), copy the XMLs you cite out first (invariant 1).
 - Never mark a task `[x]` on a cached or partial run, and never while a failure is open.

@@ -166,7 +166,10 @@ class MapDownloadServiceRepositoryLifecycleTest {
                 slotUrl + "map.lib",
                 slotUrl + "types.dat"
             ),
-            requestedPaths
+            // Filtered to this slot's own requests: another test class running in the same JVM can leave a
+            // request in flight that lands on this server once the port is recycled (the family `TODO.md`
+            // §148 records), and that is not what this case is about.
+            requestedPaths.filter { it.startsWith(slotUrl) }
         )
     }
 
@@ -247,7 +250,7 @@ class MapDownloadServiceRepositoryLifecycleTest {
             HttpUrlFetcher().apply { ioDispatcher = mainDispatcherRule.dispatcher }
         )
         val downloadManager = FakeMapDownloadManager(installedDirs = { installedDirectories() })
-        val viewModel = MapManagerViewModel(
+        val viewModel = mapManagerViewModelForTest(
             ApplicationProvider.getApplicationContext<Application>(),
             downloadManager,
             storageManager,

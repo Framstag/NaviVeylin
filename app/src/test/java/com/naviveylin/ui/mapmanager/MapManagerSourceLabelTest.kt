@@ -126,7 +126,7 @@ class MapManagerSourceLabelTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val storage = com.naviveylin.data.SettingsStorage(context)
         val provider = MapProvider("karry.cz", "https://osmscout.karry.cz", "")
-        val viewModel = MapManagerViewModel(
+        val viewModel = mapManagerViewModelForTest(
             context,
             downloadManager,
             storageManager,

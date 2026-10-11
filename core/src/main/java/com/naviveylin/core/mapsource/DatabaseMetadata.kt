@@ -78,6 +78,42 @@ object DatabaseMetadataParser {
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
+     * The database format version an installation's own metadata declares, whatever it is.
+     *
+     * Distinct from [parse]'s `expectedVersion` check on purpose: an *installed* database names the version
+     * it was installed with, which may be older than the constant this client currently reads, and reading it
+     * is what lets a comparison notice that a newer version is published.
+     *
+     * @return the declared version, or null when the document is unusable
+     */
+    fun declaredTypeConfigVersion(document: String): Int? {
+        val element = runCatching { json.parseToJsonElement(document) }.getOrNull() as? JsonObject ?: return null
+        if ((element["schema"] as? JsonPrimitive)?.intOrNull != SUPPORTED_SCHEMA) {
+            return null
+        }
+        return (element["typeConfigVersion"] as? JsonPrimitive)?.intOrNull
+    }
+
+    /**
+     * Read the metadata an *installed* directory carries (`db.json`, written by [DatabaseDownloader]).
+     *
+     * @param directory the installed map or basemap directory
+     * @return the metadata as it was installed, or null when the file is missing or unusable — a comparison
+     *         that cannot be made, never an update
+     */
+    fun readInstalled(directory: java.nio.file.Path): DatabaseMetadata? {
+        val file = directory.resolve(METADATA_FILE_NAME)
+        if (!java.nio.file.Files.isRegularFile(file)) {
+            return null
+        }
+        val document = runCatching {
+            java.nio.file.Files.readAllBytes(file).toString(Charsets.UTF_8)
+        }.getOrNull() ?: return null
+        val declared = declaredTypeConfigVersion(document) ?: return null
+        return (parse(document, declared) as? DatabaseMetadataResult.Loaded)?.metadata
+    }
+
+    /**
      * @param document the metadata document as served by the repository
      * @param expectedVersion the database format version this client reads
      * @return the metadata, or the reason it is unusable

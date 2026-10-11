@@ -3,8 +3,10 @@ package com.naviveylin.di
 import android.content.Context
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
+import com.naviveylin.core.mapsource.RepositoryFetcher
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.data.HttpUrlFetcher
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
@@ -64,6 +66,18 @@ object AppModule {
     @Provides
     @Singleton
     fun provideEngineTimeSource(): EngineTimeSource = EngineTimeSource.System
+
+    /**
+     * The repository protocol's network seam.
+     *
+     * `:core` describes the repository as a pure protocol layer driven by a `RepositoryFetcher`, so a JVM
+     * test can drive it without a server; the Android implementation is `HttpUrlFetcher`. Binding the
+     * interface rather than injecting that class is what lets the update check's tests serve a repository
+     * from memory (spec: `map-download-infrastructure`).
+     */
+    @Provides
+    @Singleton
+    fun provideRepositoryFetcher(fetcher: HttpUrlFetcher): RepositoryFetcher = fetcher
 
     /**
      * The engine's dispatcher seam: native calls and reroute arithmetic run on a named pair rather

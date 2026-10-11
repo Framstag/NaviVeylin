@@ -58,8 +58,8 @@ rules:
 
   tasks:
     - Each task must reference its parent spec
-    - Always include tasks that verify the build compiles without errors
-    - Always include tasks that verify existing tests still pass
+    - Always include tasks that verify the build compiles without errors — unless the change touches no compiled file, in which case the task is the structural check of the file it edits (guidelines/Build.md §2, the scope block)
+    - Always include tasks that verify existing tests still pass — the tests the change can affect; name any exclusion
     - Always include explicit tasks for creating new unit tests when new code is added (unless testing is not feasible)
     - Order tasks by dependency — what must be done first
     - Each task should be completable in one session — if too big, split it
@@ -79,8 +79,8 @@ operations:
   apply:
     guidance:
       - Use the build-app, run-tests, and release-build skills (see guidelines/Build.md) for all build/test/release verification — they wrap the Gradle calls, stream output to the console, and evaluate return codes and build output
-      - Before marking implementation complete, run the build and verify it compiles without errors
-      - Before marking implementation complete, verify tests exist for all new/modified code and they pass
+      - Before marking implementation complete, run the build and verify it compiles without errors — unless the change touches no compiled file, in which case the structural check of the file it edits stands in
+      - Before marking implementation complete, verify tests exist for all new/modified code and they pass — the tests the change can affect; name any exclusion
       - If build or tests fail, do NOT mark tasks complete — report failures and fix them first
       - Make sure that tests cover all relevant data combinations and process variants and thus cover the complete code under tests in all its variants
       - Make sure that the build has no warnings

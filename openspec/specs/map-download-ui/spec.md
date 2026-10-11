@@ -41,11 +41,11 @@ The system SHALL display a collapsible "Active Downloads" section at the top of 
 - **THEN** the "Active Downloads" section disappears
 
 ### Requirement: Section ordering
-The system SHALL render the map manager screen sections in a fixed order: provider row, search field, error banner, active downloads, basemap section, installed maps, available maps. Sections with no content SHALL be omitted without leaving gaps.
+The system SHALL render the map manager screen sections in a fixed order: provider row, search field, error banner, active downloads, updates, basemap section, installed maps, available maps. Sections with no content SHALL be omitted without leaving gaps.
 
 #### Scenario: Sections render in fixed order
-- **WHEN** user opens the map manager screen with downloads active, maps installed, and maps available
-- **THEN** the sections appear in the order: provider row, search field, active downloads, basemap section, installed maps, available maps
+- **WHEN** user opens the map manager screen with downloads active, updates available, maps installed, and maps available
+- **THEN** the sections appear in the order: provider row, search field, active downloads, updates, basemap section, installed maps, available maps
 
 #### Scenario: Empty sections omitted
 - **WHEN** no downloads are active and no maps are installed

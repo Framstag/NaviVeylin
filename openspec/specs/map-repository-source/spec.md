@@ -134,13 +134,3 @@ A cancelled or failed repository download SHALL leave no partially installed map
 
 - **WHEN** a repository basemap download or verification fails
 - **THEN** the previously installed basemap remains installed and renderable
-
-### Requirement: The repository source performs no update check
-
-The repository source SHALL NOT compare an installed database's change time or version against the repository's, and SHALL NOT present an update-available state. The repository's version slots SHALL be read only to locate a database for download.
-
-#### Scenario: Reinstalling an installed database is the user's action
-
-- **WHEN** a database installed from the repository exists and the repository publishes a newer change time for it
-- **THEN** the app shows the map as installed and offers no update action
-- **AND** no comparison request is issued on opening the map manager or on refresh

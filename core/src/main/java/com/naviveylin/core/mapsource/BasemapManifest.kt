@@ -96,7 +96,6 @@ object BasemapManifestParser {
         (parse(document, readableDatabaseVersion) as? BasemapManifestResult.Loaded)
             ?.versions
             ?.firstOrNull()
-
     @Serializable
     private data class ManifestDocument(
         val schema: Int,
@@ -108,4 +107,33 @@ object BasemapManifestParser {
         @SerialName("typeConfigVersion") val typeConfigVersion: Int,
         @SerialName("changedAt") val changedAt: String? = null
     )
+}
+
+/**
+ * Whether the version a repository publishes as its basemap is newer than the installation it would replace.
+ *
+ * One implementation for both readers of that question — the update check, which lists the basemap among the
+ * updatable items, and the basemap section, which decides whether to offer its update control — so the two
+ * cannot disagree about what "newer" means (spec `basemap-discovery` — "Report basemap version for updates").
+ */
+object BasemapUpdate {
+
+    /**
+     * @param offered the version the repository's availability manifest names for this client
+     * @param installed the metadata the installed basemap carries
+     * @return whether [offered] is newer: a newer database format version, or the same version rebuilt and
+     *         carrying a later change time. A change time that is absent or unparsable on either side is not
+     *         evidence of a newer basemap
+     */
+    fun isNewer(offered: BasemapVersion, installed: DatabaseMetadata): Boolean {
+        if (offered.typeConfigVersion > installed.typeConfigVersion) {
+            return true
+        }
+        val installedTime = installed.generatedAt?.toInstantOrNull() ?: return false
+        val changedAt = offered.changedAt?.toInstantOrNull() ?: return false
+        return changedAt.isAfter(installedTime)
+    }
+
+    private fun String.toInstantOrNull(): java.time.Instant? =
+        runCatching { java.time.Instant.parse(this) }.getOrNull()
 }

@@ -15,6 +15,7 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -55,7 +56,8 @@ class RoutePanelNavigationReviewTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         viewModel.openSession()
         runBlocking {
@@ -147,7 +149,8 @@ class RoutePanelNavigationReviewTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         viewModel.setNavigating(true)
         viewModel.openSession()
@@ -202,7 +205,8 @@ class RoutePanelNavigationReviewTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         runBlocking {
             viewModel.updateLocationsForReroute(

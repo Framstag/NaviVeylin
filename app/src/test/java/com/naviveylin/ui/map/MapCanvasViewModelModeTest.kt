@@ -246,7 +246,8 @@ class MapCanvasViewModelModeTest {
                 favoriteRepository = FavoriteRepository(routeClient),
                 searchHistoryRepository = SearchHistoryRepository(context),
                 locationService = LocationService(context),
-                context = context
+                context = context,
+                settingsStorage = SettingsStorage(context)
             ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
         )
         viewModel.setNavigationViewModel(surface)

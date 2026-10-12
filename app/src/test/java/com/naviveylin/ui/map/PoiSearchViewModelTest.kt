@@ -369,7 +369,8 @@ class PoiSearchViewModelTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
         viewModel.setRoutePanelViewModel(routeVm)
 

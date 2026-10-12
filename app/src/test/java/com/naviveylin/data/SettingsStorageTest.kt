@@ -303,4 +303,30 @@ class SettingsStorageTest {
         assertEquals(DarkModePreference.OFF, loaded.darkMode)
         assertEquals(false, loaded.keepScreenOn)
     }
+
+    @Test
+    fun unknownAndMissingMaximumSpeedKeysDoNotBreakALoadOrWrite() = runTest {
+        // Spec: `routing-max-speed` — A per-vehicle maximum speed is a persisted setting
+        // (Scenario: A settings file from before this change decodes to the defaults), through the
+        // file path and across an unrelated write (spec: `settings-persistence` — unknown keys do
+        // not break a write).
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val file = java.io.File(context.filesDir, "maps/settings.json")
+        file.parentFile?.mkdirs()
+        file.writeText("""{"followMode":true,"someFutureSetting":7}""")
+        val storage = SettingsStorage(context)
+
+        val beforeWrite = storage.load()
+        assertEquals(120, beforeWrite.carMaxSpeedKmh)
+        assertEquals(15, beforeWrite.bicycleMaxSpeedKmh)
+        assertEquals(5, beforeWrite.footMaxSpeedKmh)
+
+        storage.update { it.copy(carMaxSpeedKmh = 90) }
+
+        val loaded = storage.load()
+        assertEquals(90, loaded.carMaxSpeedKmh)
+        assertEquals(15, loaded.bicycleMaxSpeedKmh)
+        assertEquals(5, loaded.footMaxSpeedKmh)
+        assertEquals(true, loaded.followMode)
+    }
 }

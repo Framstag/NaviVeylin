@@ -89,7 +89,8 @@ class MapCanvasViewModelStepFocusTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         )
         routePanelViewModel.defaultDispatcher = mainDispatcherRule.dispatcher
         navigationViewModel = NavigationViewModel(

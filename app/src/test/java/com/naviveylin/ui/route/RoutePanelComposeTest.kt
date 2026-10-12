@@ -25,6 +25,7 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.RouteEntry
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import java.time.Duration
 import org.junit.Assert.assertEquals
@@ -68,7 +69,8 @@ class RoutePanelComposeTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         composeRule.setContent {
             RoutePanel(
@@ -151,7 +153,8 @@ class RoutePanelComposeTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         viewModel.setStartLocation(LocationEntry().apply { label = "Start"; lat = 51.0; lon = 7.0 })
         viewModel.setDestLocation(LocationEntry().apply { label = "Dest"; lat = 52.0; lon = 8.0 })
@@ -223,7 +226,8 @@ class RoutePanelComposeTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         viewModel.setStartLocation(LocationEntry().apply { label = "Start"; lat = 51.0; lon = 7.0 })
         viewModel.setDestLocation(LocationEntry().apply { label = "Dest"; lat = 52.0; lon = 8.0 })
@@ -288,7 +292,8 @@ class RoutePanelComposeTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         client.nextSearchResults = arrayOf(distanceEntry())
         composeRule.setContent {
@@ -332,7 +337,8 @@ class RoutePanelComposeTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         viewModel.setStartLocation(LocationEntry().apply { label = "Start"; lat = 51.0; lon = 7.0 })
         viewModel.setDestLocation(LocationEntry().apply { label = "Dest"; lat = 52.0; lon = 8.0 })

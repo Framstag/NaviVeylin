@@ -13,6 +13,7 @@ import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.haversineDistanceMeters
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import java.io.File
 import java.util.concurrent.CountDownLatch
@@ -157,7 +158,10 @@ class NavigationArrivalDeviceTest {
                 LocationService(context),
                 context,
                 EngineTimeSource.System,
-                EngineDispatchers.Production
+                EngineDispatchers.Production,
+                // The engine resolves a calculation's vehicle maximum speed from the settings store
+                // (spec: `routing-max-speed`); a device case reads the app's own file.
+                SettingsStorage(context)
             )
 
             var fed = 0

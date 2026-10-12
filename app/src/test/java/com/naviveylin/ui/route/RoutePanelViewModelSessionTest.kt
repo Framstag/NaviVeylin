@@ -10,6 +10,7 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -59,7 +60,8 @@ class RoutePanelViewModelSessionTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }
@@ -496,7 +498,8 @@ class RoutePanelViewModelSessionTest {
                 favoriteRepository = FavoriteRepository(client),
                 searchHistoryRepository = SearchHistoryRepository(context),
                 locationService = LocationService(context),
-                context = context
+                context = context,
+                settingsStorage = SettingsStorage(context)
             )
 
             assertEquals(RouteSessionState.INACTIVE, recreated.sessionState.value)

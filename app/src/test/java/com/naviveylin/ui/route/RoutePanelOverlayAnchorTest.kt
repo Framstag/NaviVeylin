@@ -24,6 +24,7 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.RouteEntry
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -97,7 +98,8 @@ class RoutePanelOverlayAnchorTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         viewModel.openSession()
         runBlocking {
@@ -335,7 +337,8 @@ class RoutePanelOverlayAnchorTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         viewModel.openSession()
         viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)

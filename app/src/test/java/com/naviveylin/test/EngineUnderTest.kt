@@ -4,6 +4,7 @@ import android.content.Context
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationEngine
 import java.util.Collections
@@ -27,9 +28,13 @@ internal fun engineUnderTest(
     locationService: LocationService,
     context: Context,
     timeSource: EngineTimeSource = EngineTimeSource.System,
-    dispatchers: EngineDispatchers = EngineDispatchers.Production
+    dispatchers: EngineDispatchers = EngineDispatchers.Production,
+    // The engine resolves a calculation's vehicle maximum speed from the settings store. A case that
+    // exercises that path passes its own store; the default reads the app's file, which is what the
+    // app's Hilt singleton does, so an unrelated case sees the shipped defaults 120 / 15 / 5.
+    settingsStorage: SettingsStorage = SettingsStorage(context)
 ): NavigationEngine =
-    NavigationEngine({ client() }, locationService, context, timeSource, dispatchers)
+    NavigationEngine({ client() }, locationService, context, timeSource, dispatchers, settingsStorage)
         .also { EngineUnderTestRegistry.register(it) }
 
 /**

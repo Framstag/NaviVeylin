@@ -14,6 +14,7 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -71,7 +72,8 @@ class RoutePanelStoppedStateTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context()),
             locationService = LocationService(context()),
-            context = context()
+            context = context(),
+            settingsStorage = SettingsStorage(context())
         )
         runBlocking {
             viewModel.updateLocationsForReroute(entry("Start"), entry("Destination"))

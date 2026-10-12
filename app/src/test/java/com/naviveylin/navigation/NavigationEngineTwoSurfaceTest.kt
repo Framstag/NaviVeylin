@@ -9,6 +9,7 @@ import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.NavigationState
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.test.MainDispatcherRule
@@ -88,7 +89,8 @@ class NavigationEngineTwoSurfaceTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
 
     /**

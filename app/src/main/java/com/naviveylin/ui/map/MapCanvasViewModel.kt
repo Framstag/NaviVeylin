@@ -270,6 +270,16 @@ data class MapCanvasUiState(
      * Auto.
      */
     val overspeedWarningDeltaKmh: Int = 5,
+    /**
+     * The car's usual maximum speed in km/h, 30-160, default 120 (spec: `routing-max-speed` —
+     * A per-vehicle maximum speed is a persisted setting). One shared value: the sheet writes it
+     * and every routing calculation for the car reads it, including the car's own destinations.
+     */
+    val carMaxSpeedKmh: Int = 120,
+    /** The bicycle's usual maximum speed in km/h, 5-40, default 15 (spec: `routing-max-speed`). */
+    val bicycleMaxSpeedKmh: Int = 15,
+    /** The pedestrian's usual maximum speed in km/h, 2-15, default 5 (spec: `routing-max-speed`). */
+    val footMaxSpeedKmh: Int = 5,
     /** Selected map stylesheet (name without the .oss postfix), e.g. "standard". */
     val styleSheet: String = DEFAULT_STYLE_NAME,
     /**
@@ -818,6 +828,34 @@ class MapCanvasViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(overspeedWarningDeltaKmh = deltaKmh)
         viewModelScope.launch {
             settingsStorage.update { it.copy(overspeedWarningDeltaKmh = deltaKmh) }
+        }
+    }
+
+    /**
+     * Set the car's usual maximum speed (km/h). Persists immediately; the value reaches routing at
+     * the next calculation and never restarts one already in flight (spec: `routing-max-speed` —
+     * A speed change does not restart a calculation).
+     */
+    fun onSetCarMaxSpeed(kmh: Int) {
+        _uiState.value = _uiState.value.copy(carMaxSpeedKmh = kmh)
+        viewModelScope.launch {
+            settingsStorage.update { it.copy(carMaxSpeedKmh = kmh) }
+        }
+    }
+
+    /** Set the bicycle's usual maximum speed (km/h) and persist it (spec: `routing-max-speed`). */
+    fun onSetBicycleMaxSpeed(kmh: Int) {
+        _uiState.value = _uiState.value.copy(bicycleMaxSpeedKmh = kmh)
+        viewModelScope.launch {
+            settingsStorage.update { it.copy(bicycleMaxSpeedKmh = kmh) }
+        }
+    }
+
+    /** Set the pedestrian's usual maximum speed (km/h) and persist it (spec: `routing-max-speed`). */
+    fun onSetFootMaxSpeed(kmh: Int) {
+        _uiState.value = _uiState.value.copy(footMaxSpeedKmh = kmh)
+        viewModelScope.launch {
+            settingsStorage.update { it.copy(footMaxSpeedKmh = kmh) }
         }
     }
 
@@ -1741,6 +1779,9 @@ class MapCanvasViewModel @Inject constructor(
                 laneHintsEnabled = settings.laneHintsEnabled,
                 renderMode = settings.renderMode,
                 overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh,
+                carMaxSpeedKmh = settings.carMaxSpeedKmh,
+                bicycleMaxSpeedKmh = settings.bicycleMaxSpeedKmh,
+                footMaxSpeedKmh = settings.footMaxSpeedKmh,
                 styleSheet = settings.styleSheet,
                 preferSymbolPoiIcons = preferSymbolPoiIcons
             )

@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.naviveylin.R
 import com.naviveylin.core.VehicleAnchorPosition
@@ -95,6 +96,16 @@ fun LocationOptionsOverlay(
     onToggleLaneHints: (Boolean) -> Unit = {},
     overspeedWarningDeltaKmh: Int = 5,
     onSetOverspeedWarningDelta: (Int) -> Unit = {},
+    // Usual maximum speed per vehicle: REQUIRED (no defaults), for the same reason as the anchor
+    // rows below. The sliders render in EVERY mode, so an optional callback would let a call site
+    // compile into a slider whose selection is silently dropped (spec: location-options-ui —
+    // Vehicle maximum speed sliders in the options sheet).
+    carMaxSpeedKmh: Int,
+    onSetCarMaxSpeed: (Int) -> Unit,
+    bicycleMaxSpeedKmh: Int,
+    onSetBicycleMaxSpeed: (Int) -> Unit,
+    footMaxSpeedKmh: Int,
+    onSetFootMaxSpeed: (Int) -> Unit,
     // Vehicle anchor rows: REQUIRED (no defaults). The rows render in EVERY mode,
     // so an optional callback would let a call site (e.g. the routing view) compile
     // into a picker that silently ignores the selection and keeps showing "Center"
@@ -166,6 +177,12 @@ fun LocationOptionsOverlay(
                 onToggleLaneHints = onToggleLaneHints,
                 overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
                 onSetOverspeedWarningDelta = onSetOverspeedWarningDelta,
+                carMaxSpeedKmh = carMaxSpeedKmh,
+                onSetCarMaxSpeed = onSetCarMaxSpeed,
+                bicycleMaxSpeedKmh = bicycleMaxSpeedKmh,
+                onSetBicycleMaxSpeed = onSetBicycleMaxSpeed,
+                footMaxSpeedKmh = footMaxSpeedKmh,
+                onSetFootMaxSpeed = onSetFootMaxSpeed,
                 routingAnchor = routingAnchor,
                 onSetRoutingAnchor = onSetRoutingAnchor,
                 freeDrivingAnchor = freeDrivingAnchor,
@@ -202,6 +219,12 @@ private fun LocationOptionsSheetContent(
     onToggleLaneHints: (Boolean) -> Unit,
     overspeedWarningDeltaKmh: Int,
     onSetOverspeedWarningDelta: (Int) -> Unit,
+    carMaxSpeedKmh: Int,
+    onSetCarMaxSpeed: (Int) -> Unit,
+    bicycleMaxSpeedKmh: Int,
+    onSetBicycleMaxSpeed: (Int) -> Unit,
+    footMaxSpeedKmh: Int,
+    onSetFootMaxSpeed: (Int) -> Unit,
     routingAnchor: VehicleAnchorPosition,
     onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit,
     freeDrivingAnchor: VehicleAnchorPosition,
@@ -391,6 +414,41 @@ private fun LocationOptionsSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("overspeedDeltaSlider")
+        )
+
+        // Usual maximum speed per vehicle (spec: location-options-ui — Vehicle maximum speed
+        // sliders in the options sheet): one slider per routing vehicle, rendered in EVERY mode
+        // because the value is set before a trip at least as often as during one. The same stored
+        // value is what a routing calculation for that vehicle uses (spec: routing-max-speed).
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        Text(
+            text = stringResource(R.string.max_speed_section),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        )
+
+        MaxSpeedSlider(
+            label = stringResource(R.string.vehicle_car),
+            valueKmh = carMaxSpeedKmh,
+            range = MaxSpeedRange.CAR,
+            testTag = "carMaxSpeedSlider",
+            onSetValue = onSetCarMaxSpeed
+        )
+        MaxSpeedSlider(
+            label = stringResource(R.string.vehicle_bicycle),
+            valueKmh = bicycleMaxSpeedKmh,
+            range = MaxSpeedRange.BICYCLE,
+            testTag = "bicycleMaxSpeedSlider",
+            onSetValue = onSetBicycleMaxSpeed
+        )
+        MaxSpeedSlider(
+            label = stringResource(R.string.vehicle_pedestrian),
+            valueKmh = footMaxSpeedKmh,
+            range = MaxSpeedRange.FOOT,
+            testTag = "footMaxSpeedSlider",
+            onSetValue = onSetFootMaxSpeed
         )
 
         // Vehicle anchor presets (spec: location-options-ui — Vehicle anchor
@@ -745,5 +803,100 @@ private fun AnchorGridCell(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+/**
+ * The km/h range of one vehicle's usual maximum speed (spec: `location-options-ui` — Vehicle
+ * maximum speed sliders in the options sheet). One table, so the sheet, the bounds its test
+ * asserts and the routing profile cannot drift apart silently.
+ */
+internal data class MaxSpeedRange(val minKmh: Int, val maxKmh: Int) {
+    /** A value strictly inside the range, for a test that must move a slider away from a bound. */
+    val midKmh: Int get() = (minKmh + maxKmh) / 2
+
+    companion object {
+        val CAR = MaxSpeedRange(30, 160)
+        val BICYCLE = MaxSpeedRange(5, 40)
+        val FOOT = MaxSpeedRange(2, 15)
+    }
+}
+
+/**
+ * One usual-maximum-speed row: the vehicle's label, the current value in km/h and a slider over
+ * the vehicle's whole range. `steps` fills in every whole km/h between the bounds, so the slider
+ * has 1 km/h precision and no coarser step.
+ *
+ * The slider reports continuously while the user drags; the caller decides where the value is
+ * written, and every drag step is a valid integer in the range.
+ */
+@Composable
+private fun MaxSpeedSlider(
+    label: String,
+    valueKmh: Int,
+    range: MaxSpeedRange,
+    testTag: String,
+    onSetValue: (Int) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.max_speed_value, valueKmh),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Slider(
+        value = valueKmh.toFloat(),
+        onValueChange = { value -> onSetValue(value.roundToInt()) },
+        valueRange = range.minKmh.toFloat()..range.maxKmh.toFloat(),
+        steps = range.maxKmh - range.minKmh - 1,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(testTag)
+    )
+}
+
+/**
+ * The three usual-maximum-speed sliders with their default values, as the sheet shows them on a
+ * fresh install.
+ */
+@Preview(showBackground = true)
+@Composable
+private fun MaxSpeedSlidersPreview() {
+    MaterialTheme {
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            MaxSpeedSlider(
+                label = stringResource(R.string.vehicle_car),
+                valueKmh = 120,
+                range = MaxSpeedRange.CAR,
+                testTag = "previewCarMaxSpeedSlider",
+                onSetValue = {}
+            )
+            MaxSpeedSlider(
+                label = stringResource(R.string.vehicle_bicycle),
+                valueKmh = 15,
+                range = MaxSpeedRange.BICYCLE,
+                testTag = "previewBicycleMaxSpeedSlider",
+                onSetValue = {}
+            )
+            MaxSpeedSlider(
+                label = stringResource(R.string.vehicle_pedestrian),
+                valueKmh = 5,
+                range = MaxSpeedRange.FOOT,
+                testTag = "previewFootMaxSpeedSlider",
+                onSetValue = {}
+            )
+        }
     }
 }

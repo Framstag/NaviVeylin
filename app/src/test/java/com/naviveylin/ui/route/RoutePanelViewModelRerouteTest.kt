@@ -9,6 +9,7 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.RouteEntry
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,7 +70,8 @@ class RoutePanelViewModelRerouteTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }

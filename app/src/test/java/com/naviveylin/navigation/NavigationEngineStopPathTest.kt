@@ -8,6 +8,7 @@ import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.service.NavigationNotificationService
 import com.naviveylin.test.MainDispatcherRule
@@ -82,7 +83,8 @@ class NavigationEngineStopPathTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         ).apply { defaultDispatcher = mainDispatcherRule.dispatcher }
 
     private fun engine(): NavigationEngine = engineUnderTest(

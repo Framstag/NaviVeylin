@@ -91,7 +91,8 @@ class MapCanvasViewModelRouteVisibilityTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = LocationService(context),
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         )
         routePanelViewModel.defaultDispatcher = mainDispatcherRule.dispatcher
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()

@@ -1788,6 +1788,18 @@ fun MapCanvasScreen(
                                     onSetOverspeedWarningDelta = { delta ->
                                         viewModel.onSetOverspeedWarningDelta(delta)
                                     },
+                                    carMaxSpeedKmh = state.carMaxSpeedKmh,
+                                    onSetCarMaxSpeed = { kmh ->
+                                        viewModel.onSetCarMaxSpeed(kmh)
+                                    },
+                                    bicycleMaxSpeedKmh = state.bicycleMaxSpeedKmh,
+                                    onSetBicycleMaxSpeed = { kmh ->
+                                        viewModel.onSetBicycleMaxSpeed(kmh)
+                                    },
+                                    footMaxSpeedKmh = state.footMaxSpeedKmh,
+                                    onSetFootMaxSpeed = { kmh ->
+                                        viewModel.onSetFootMaxSpeed(kmh)
+                                    },
                                     routingAnchor = state.routingAnchor,
                                     onSetRoutingAnchor = { anchor ->
                                         viewModel.setRoutingAnchor(anchor)
@@ -1931,6 +1943,18 @@ fun MapCanvasScreen(
                                     overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                                     onSetOverspeedWarningDelta = { delta ->
                                         viewModel.onSetOverspeedWarningDelta(delta)
+                                    },
+                                    carMaxSpeedKmh = state.carMaxSpeedKmh,
+                                    onSetCarMaxSpeed = { kmh ->
+                                        viewModel.onSetCarMaxSpeed(kmh)
+                                    },
+                                    bicycleMaxSpeedKmh = state.bicycleMaxSpeedKmh,
+                                    onSetBicycleMaxSpeed = { kmh ->
+                                        viewModel.onSetBicycleMaxSpeed(kmh)
+                                    },
+                                    footMaxSpeedKmh = state.footMaxSpeedKmh,
+                                    onSetFootMaxSpeed = { kmh ->
+                                        viewModel.onSetFootMaxSpeed(kmh)
                                     },
                                     routingAnchor = state.routingAnchor,
                                     onSetRoutingAnchor = { anchor ->
@@ -2105,6 +2129,21 @@ fun MapCanvasScreen(
                                         laneHintsEnabled = state.laneHintsEnabled,
                                         onToggleLaneHints = { enabled ->
                                             viewModel.onToggleLaneHints(enabled)
+                                        },
+                                        // Usual maximum speed per vehicle: required by the sheet, which
+                                        // renders the sliders in every mode — the routing view must wire
+                                        // them like the other surfaces do (spec: location-options-ui).
+                                        carMaxSpeedKmh = state.carMaxSpeedKmh,
+                                        onSetCarMaxSpeed = { kmh ->
+                                            viewModel.onSetCarMaxSpeed(kmh)
+                                        },
+                                        bicycleMaxSpeedKmh = state.bicycleMaxSpeedKmh,
+                                        onSetBicycleMaxSpeed = { kmh ->
+                                            viewModel.onSetBicycleMaxSpeed(kmh)
+                                        },
+                                        footMaxSpeedKmh = state.footMaxSpeedKmh,
+                                        onSetFootMaxSpeed = { kmh ->
+                                            viewModel.onSetFootMaxSpeed(kmh)
                                         },
                                         renderMode = state.renderMode,
                                         onSetRenderMode = { mode ->

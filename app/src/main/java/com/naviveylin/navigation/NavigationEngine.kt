@@ -21,6 +21,8 @@ import com.naviveylin.core.NavigationState
 import com.naviveylin.core.RouteCalculation
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.core.SurfaceOrigin
+import com.naviveylin.data.SettingsStorage
+import com.naviveylin.data.maxSpeedKmhFor
 import com.naviveylin.location.LocationConsumers
 import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
@@ -28,6 +30,7 @@ import com.naviveylin.location.SpeedSpikeFilter
 import com.naviveylin.ui.route.routeLengthMeters
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.Lazy
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -98,7 +101,12 @@ class NavigationEngine @Inject constructor(
     private val locationService: LocationService,
     @param:ApplicationContext private val context: Context,
     private val timeSource: EngineTimeSource,
-    private val dispatchers: EngineDispatchers
+    private val dispatchers: EngineDispatchers,
+    // Read, not watched: the vehicle's usual maximum speed is resolved per calculation, so a slider
+    // change applies to the next one — the acquisition of the next destination and the next reroute —
+    // and never restarts a calculation in flight (spec: `routing-max-speed` — A speed change does not
+    // restart a calculation).
+    private val settingsStorage: SettingsStorage
 ) : com.naviveylin.core.NavigationViewModel {
 
     /**
@@ -192,7 +200,11 @@ class NavigationEngine @Inject constructor(
 
     // Reroute confirmation gate: fast first trigger + post-reroute cooldown.
     // Native controller fires every ~5s while off-route (RouteStateAgent.cpp:84).
+    // Its timing decisions read the injected time source, never the system clock
+    // (contract: `EngineTimeSource` — no system clock at a timing decision), so a
+    // test moves the floor, the window and the cooldown instead of waiting for them.
     private val rerouteGate = RerouteConfirmationGate(
+        now = timeSource::nowMillis,
         minConfirmCount = MIN_REROUTE_CONFIRM_COUNT,
         minOffRouteDurationMs = MIN_OFF_ROUTE_DURATION_MS,
         confirmWindowMs = REROUTE_CONFIRM_WINDOW_MS,
@@ -485,8 +497,16 @@ class NavigationEngine @Inject constructor(
         val token = beginCalculation(destLat, destLon, if (fromReroute) "reroute" else "acquisition")
         scope.launch(dispatchers.compute) {
             try {
+                // The calculation vehicle's own stored maximum speed, read here so the reroute of a
+                // running session and a fresh acquisition both use it (spec: `routing-max-speed` —
+                // Every calculation path carries the vehicle's maximum speed), and so a slider change
+                // cannot alter a route already calculated.
+                val profile = RoutingProfile(
+                    vehicle,
+                    settingsStorage.loadOnCallerDispatcher().maxSpeedKmhFor(vehicle)
+                )
                 client.get().calculateRouteWithProfile(
-                    startLat, startLon, destLat, destLon, RoutingProfile(vehicle),
+                    startLat, startLon, destLat, destLon, profile,
                     object : RouteCallback {
                         override fun onProgress(percent: Int) {
                             // Called from the routing thread (rate-limited in native,
@@ -949,13 +969,21 @@ class NavigationEngine @Inject constructor(
                             }
                             withContext(Dispatchers.Main) {
                                 if (rerouteGate.onRequest(deviation)) {
-                                    confirmReroute(lat, lon, destLat, destLon)
+                                    confirmReroute(
+                                        lat, lon, destLat, destLon,
+                                        deviationMeters = deviation,
+                                        confirmElapsedMs = rerouteGate.lastConfirmElapsedMs
+                                    )
                                 }
                             }
                         }
                     } else {
                         if (rerouteGate.onRequest(null)) {
-                            confirmReroute(lat, lon, destLat, destLon)
+                            confirmReroute(
+                                lat, lon, destLat, destLon,
+                                deviationMeters = null,
+                                confirmElapsedMs = rerouteGate.lastConfirmElapsedMs
+                            )
                         }
                     }
                 }
@@ -975,11 +1003,30 @@ class NavigationEngine @Inject constructor(
      * the running session are used, so no surface participates
      * (spec: `navigation-engine` — Reroute without a surface UI).
      */
-    private fun confirmReroute(lat: Double, lon: Double, destLat: Double, destLon: Double) {
+    private fun confirmReroute(
+        lat: Double,
+        lon: Double,
+        destLat: Double,
+        destLon: Double,
+        deviationMeters: Double?,
+        confirmElapsedMs: Long
+    ) {
         _state.update { it.copy(isRerouting = true, isOffRoute = true) }
         val vehicle = _state.value.vehicle ?: Vehicle.CAR
         val retainedDestLat = _state.value.destLat.takeIf { !it.isNaN() } ?: destLat
         val retainedDestLon = _state.value.destLon.takeIf { !it.isNaN() } ?: destLon
+        // Coordinate-free latency measurement (spec: `reroute-trigger` — End-to-end latency
+        // bound on either surface): the off-route age at confirmation, the confirmation floor
+        // that was actually elapsed, and the deviation the fast path saw. `lastOnRouteTime` is
+        // 0 for a session that never reported `OnRoute`, so no off-route age is known then.
+        DiagnosticsLog.log(
+            REROUTE_TAG,
+            rerouteDiagnosticLine(
+                offrouteMs = (timeSource.nowMillis() - lastOnRouteTime).takeIf { lastOnRouteTime > 0L },
+                confirmMs = confirmElapsedMs,
+                deviationM = deviationMeters
+            )
+        )
         Log.d(TAG, "onRerouteRequest: rerouting vehicle=$vehicle")
         calculateAndStart(lat, lon, retainedDestLat, retainedDestLon, vehicle, fromReroute = true)
     }
@@ -1050,6 +1097,32 @@ class NavigationEngine @Inject constructor(
         internal const val ROUTE_TAG = "ROUTE"
 
         /**
+         * Diagnostics tag of the reroute confirmation measurement entries (spec:
+         * `reroute-trigger` — End-to-end latency bound on either surface).
+         */
+        internal const val REROUTE_TAG = "REROUTE"
+
+        /**
+         * The coordinate-free reroute confirmation line: the off-route age at confirmation,
+         * the confirmation floor that was actually elapsed and the deviation the fast path
+         * saw. Numbers only — no log or diagnostics line may carry a coordinate
+         * (`checkNoCoordinatesInLogs`). [offrouteMs] is null when the session never reported
+         * `OnRoute`, and [deviationM] null or NaN when a polyline deviation was not computed.
+         */
+        internal fun rerouteDiagnosticLine(
+            offrouteMs: Long?,
+            confirmMs: Long,
+            deviationM: Double?
+        ): String {
+            val age = offrouteMs?.toString() ?: "unknown"
+            val deviation = deviationM
+                ?.takeIf { !it.isNaN() }
+                ?.let { String.format(Locale.US, "%.1f", it) }
+                ?: "unknown"
+            return "reroute confirmed offroute_ms=$age confirm_ms=$confirmMs deviation_m=$deviation"
+        }
+
+        /**
          * Frequency of the stale-speed decay check (spec: gps-speed-priority). `internal` so a test
          * drives the same interval through [runStaleSpeedTicker] instead of pinning its own copy.
          */
@@ -1065,9 +1138,9 @@ class NavigationEngine @Inject constructor(
         internal const val MAX_REROUTE_ACCURACY = 100.0
         internal const val MIN_REROUTE_CONFIRM_COUNT = 2
         internal const val REROUTE_CONFIRM_WINDOW_MS = 60_000L
-        internal const val MIN_OFF_ROUTE_DURATION_MS = 10_000L
+        internal const val MIN_OFF_ROUTE_DURATION_MS = 4_000L
         internal const val REROUTE_COOLDOWN_MS = 25_000L
-        internal const val FAST_PATH_DISTANCE_M = 50.0
+        internal const val FAST_PATH_DISTANCE_M = 30.0
         internal const val TUNNEL_REROUTE_GUARD_MS = 30_000L
 
         /** Plausibility cap for the speed display filter (Autobahn ~200+). */

@@ -6,6 +6,7 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.flow.first
@@ -47,7 +48,8 @@ class RoutePanelViewModelSearchHistoryTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = historyRepo,
             locationService = LocationService(context),
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         )
         viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
     }

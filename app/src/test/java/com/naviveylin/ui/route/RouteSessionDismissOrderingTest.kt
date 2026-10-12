@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -53,7 +54,8 @@ class RouteSessionDismissOrderingTest {
         favoriteRepository = FavoriteRepository(client),
         searchHistoryRepository = SearchHistoryRepository(context()),
         locationService = LocationService(context()),
-        context = context()
+        context = context(),
+        settingsStorage = SettingsStorage(context())
     )
 
     @Test

@@ -172,4 +172,40 @@ class AppSettingsTest {
         val decoded = json.decodeFromString(AppSettings.serializer(), encoded)
         assertEquals(original, decoded)
     }
+
+    @Test
+    fun defaultsAreCar120Bicycle15Foot5() {
+        // Spec: `routing-max-speed` — A per-vehicle maximum speed is a persisted setting
+        // (Scenario: Defaults on a fresh install).
+        val settings = AppSettings()
+        assertEquals(120, settings.carMaxSpeedKmh)
+        assertEquals(15, settings.bicycleMaxSpeedKmh)
+        assertEquals(5, settings.footMaxSpeedKmh)
+    }
+
+    @Test
+    fun settingsWithoutMaxSpeedFieldsDecodeToDefaults() {
+        // Spec: `routing-max-speed` — A per-vehicle maximum speed is a persisted setting
+        // (Scenario: A settings file from before this change decodes to the defaults).
+        val decoded = json.decodeFromString(AppSettings.serializer(), """{"followMode":true}""")
+        assertEquals(120, decoded.carMaxSpeedKmh)
+        assertEquals(15, decoded.bicycleMaxSpeedKmh)
+        assertEquals(5, decoded.footMaxSpeedKmh)
+    }
+
+    @Test
+    fun maxSpeedsRoundTripThroughTheSettingsFile() {
+        // Spec: `routing-max-speed` — A per-vehicle maximum speed is a persisted setting
+        // (Scenario: The values round-trip through the settings file).
+        val settings = AppSettings(
+            carMaxSpeedKmh = 90,
+            bicycleMaxSpeedKmh = 20,
+            footMaxSpeedKmh = 4
+        )
+        val encoded = json.encodeToString(AppSettings.serializer(), settings)
+        val decoded = json.decodeFromString(AppSettings.serializer(), encoded)
+        assertEquals(90, decoded.carMaxSpeedKmh)
+        assertEquals(20, decoded.bicycleMaxSpeedKmh)
+        assertEquals(4, decoded.footMaxSpeedKmh)
+    }
 }

@@ -13,6 +13,8 @@ import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
+import com.naviveylin.data.SettingsStorage
+import com.naviveylin.data.maxSpeedKmhFor
 import com.naviveylin.location.LocationService
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.LocationGrant
@@ -186,6 +188,10 @@ class RoutePanelViewModel @Inject constructor(
     val favoriteRepository: FavoriteRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
     private val locationService: LocationService,
+    // Read, not watched: the vehicle's usual maximum speed is resolved per calculation, so a slider
+    // change applies to the next one and never restarts a calculation in flight
+    // (spec: `routing-max-speed` — A speed change does not restart a calculation).
+    private val settingsStorage: SettingsStorage,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -456,7 +462,14 @@ class RoutePanelViewModel @Inject constructor(
 
         viewModelScope.launch {
             withContext(defaultDispatcher) {
-                val profile = RoutingProfile(s.vehicle)
+                // The selected vehicle's own stored maximum speed: the settings file is the single
+                // source of truth, so a change the user just made is what this calculation uses
+                // (spec: `routing-max-speed` — Every calculation path carries the vehicle's maximum
+                // speed).
+                val profile = RoutingProfile(
+                    s.vehicle,
+                    settingsStorage.loadOnCallerDispatcher().maxSpeedKmhFor(s.vehicle)
+                )
                 client.calculateRouteWithProfile(
                     start.lat, start.lon, dest.lat, dest.lon, profile,
                     object : RouteCallback {

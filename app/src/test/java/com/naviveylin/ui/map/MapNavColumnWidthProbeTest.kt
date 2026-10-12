@@ -120,7 +120,8 @@ class MapNavColumnWidthProbeTest {
             favoriteRepository = FavoriteRepository(client),
             searchHistoryRepository = SearchHistoryRepository(context),
             locationService = locationService,
-            context = context
+            context = context,
+            settingsStorage = SettingsStorage(context)
         )
         routePanelViewModel.defaultDispatcher = mainDispatcherRule.dispatcher
         navigationViewModel = NavigationViewModel(

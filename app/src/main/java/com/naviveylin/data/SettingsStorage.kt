@@ -73,6 +73,26 @@ data class AppSettings(
      */
     val overspeedWarningDeltaKmh: Int = 5,
     /**
+     * The car's usual maximum speed in km/h (spec: `routing-max-speed` — A per-vehicle maximum speed is a
+     * persisted setting). One value serves both surfaces: the phone's options sheet edits it and every
+     * routing calculation for the car reads it, including the car's own destinations. Range 30-160,
+     * default 120 — the speed the native bridge used before this setting existed, so a settings file
+     * written before the field decodes to today's behaviour. Additive with a default.
+     */
+    val carMaxSpeedKmh: Int = 120,
+    /**
+     * The bicycle's usual maximum speed in km/h (spec: `routing-max-speed`). The native profile applies it
+     * as the flat speed of every cycleway, not as a ceiling, so it changes both the route and the
+     * duration. Range 5-40, default 15. Additive with a default.
+     */
+    val bicycleMaxSpeedKmh: Int = 15,
+    /**
+     * The pedestrian's usual maximum speed in km/h (spec: `routing-max-speed`). Like the bicycle value it
+     * is the flat speed of every foot-routable way, not a ceiling. Range 2-15, default 5. Additive with a
+     * default.
+     */
+    val footMaxSpeedKmh: Int = 5,
+    /**
      * Vehicle anchor preset for navigation **on the phone** (spec: smooth-follow —
      * Vehicle position anchor in follow mode). Persisted as the preset's stable id
      * (see `VehicleAnchorPosition` in `:core`); default `"center"`. The anchors are
@@ -174,6 +194,21 @@ class SettingsStorage @Inject constructor(
         // persisted by the next write).
         writeMutex.withLock { readFromDisk() }
     }
+
+    /**
+     * The current settings, read on the caller's dispatcher.
+     *
+     * For a caller that is already on a background dispatcher and must not add a suspension point to
+     * work a test scheduler drives — a routing calculation resolves the vehicle's maximum speed this
+     * way (spec: `routing-max-speed` — Every calculation path carries the vehicle's maximum speed),
+     * because the calculation is driven to completion by draining that scheduler and a hop to
+     * [ioDispatcher] would leave the route waiting for a dispatcher the test never advances.
+     *
+     * It takes the same lock as [load], so the "never read a half-written file" guarantee is
+     * unchanged; it is the *dispatcher hop* that is dropped, not the lock. A caller on the main
+     * thread uses [load] instead.
+     */
+    suspend fun loadOnCallerDispatcher(): AppSettings = writeMutex.withLock { readFromDisk() }
 
     private fun readFromDisk(): AppSettings {
         if (!file.exists()) return AppSettings()

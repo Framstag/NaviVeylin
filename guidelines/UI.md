@@ -845,6 +845,14 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   sheet (slider 0-30, 1 km/h precision) and on Android Auto via the
   preferences value picker — same global property, identical on both
   surfaces (specs `map-speed-widget`, `auto-map-layout`, `location-options-ui`).
+- Phone-only: the usual maximum speed per vehicle (car 30-160, bicycle 5-40,
+  pedestrian 2-15 km/h; defaults 120 / 15 / 5) is configurable in the
+  location-options sheet, which is its only editor — the car reads the same
+  stored values and has no control for them. The value is the vehicle's own, resolved per
+  calculation: for the car it is a **ceiling** on top of the per-road-type speed table (so a value
+  above the fastest road type changes nothing), for bicycle and pedestrian it is the flat speed of
+  every routable way. It takes effect on the next calculation, never restarting a running one
+  (spec `routing-max-speed`, change `vehicle-max-speed-settings`).
 - Phone-only: Android Auto sizes text via the host template; parity applies to
   labels and hierarchy, not pixel sizes.
 - Free-driving street label (phone, spec `current-road-info`): bottom-center

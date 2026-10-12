@@ -16,7 +16,7 @@
 - **map-rendering** — bug: §19 §65
 - **map-rendering** — improvement: §49 §71 §78
 - **map-rendering** — feature: §6
-- **native-jni** — improvement: §81 §82 §119 §174
+- **native-jni** — improvement: §81 §82 §119 §174 §188
 - **native-jni** — feature: §23
 - **persistence** — bug: §168
 - **persistence** — improvement: §9
@@ -25,7 +25,7 @@
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
-- **specs-and-process** — bug: §161
+- **specs-and-process** — bug: §161 §187
 - **specs-and-process** — improvement: §40 §113 §134 §154 §156 §157 §158 §159 §162 §171 §172
 - **stylesheets** — bug: §36
 - **ui** — bug: §70 §74 §153 §186
@@ -2930,3 +2930,58 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Impact** ℹ: if it is reachable, BROWSE shows no re-center button on a viewport that is off the vehicle's centre, for as long as nothing else emits — the same user-visible symptom as the defect `fix-browse-recenter-dwell` fixed (button absent although it is due), reached by a different route.
 - **Fix candidate** ℹ: make the canvas metrics part of what the derivation observes (publish them into the UI state as the viewport already is, or fold the size change into the same emission path), rather than a side channel the rule reads directly. Prove it first: rotate the phone in BROWSE with follow off and a fix on an off-centre persisted viewport, with no other interaction, and read the `browse re-center off=…px vis=…` diagnostics line.
 - **Related**: `fix-browse-recenter-dwell` (the dwell-liveness fix, whose `proposal.md` — Impact records this as out of scope), spec `map-modes` — Browse re-center, `guidelines/UI.md` §7a.
+
+## 187. `guidelines/UI.md` still states the retired reroute policy numbers (50 m fast path, 10 s confirmation window) after the landed change lowered them to 30 m / 4 s — Found 2026-10-12 while landing the in-flight reroute-latency work found uncommitted in this tree
+**id:** 187 · **category:** specs-and-process · **class:** bug · **status:** open
+
+- **Observed** ⚠: `guidelines/UI.md:838` carries the phone/AA reroute-parity bullet with “50 m fast path,
+  10 s confirmation window, 25 s cooldown, 100 m accuracy guard, 30 s tunnel guard”. The change landed as
+  commit `efc86f3` (archived `openspec/changes/archive/2026-10-12-tune-reroute-trigger-latency`, spec
+  `reroute-trigger` synced) lowers the confirmation floor **10 000 → 4 000 ms** and the distance fast path
+  **50 → 30 m**; `RerouteConfirmationGate`'s constants are the implementation, and the spec's latency
+  requirement is restated around them. The guideline was not updated: its own proposal names
+  `guidelines/Design.md` §3 as the affected section, but `Design.md` states none of these numbers (checked
+  2026-10-12 with `grep -nE "10 s|50 m|4 s|30 m|confirmation|fast path|cooldown" guidelines/Design.md`,
+  no hit), while the section that does state them — `UI.md` §3 — is not named anywhere in that change.
+- **Impact** ℹ: the bullet is the parity record a reader (or an agent reading only the guideline) takes as
+  current, and the numbers are load-bearing for what it claims: “the timing is the same whichever surface
+  displays the session”. With 50 m / 10 s stated there, the guideline contradicts both the code and the
+  spec it cites, and the same section is where the next reroute-policy author looks for the bounds.
+- **Fix candidate** ℹ: update the bullet to **30 m fast path / 4 s confirmation window**, and state the
+  native 5 s `OffRoute` hold it stacks with (`RouteStateAgent`, unchanged by that change) so the ~9 s
+  end-to-end figure the spec now bounds is readable from the guideline alone. Keep the three unchanged
+  guards as they are; they were deliberately left alone.
+- **Related**: commit `efc86f3` (“Land the in-flight reroute-latency work…”), change
+  `tune-reroute-trigger-latency` (archived), spec `reroute-trigger`, `guidelines/UI.md` §3, §144 and §126
+  (the reroute family).
+
+## 188. The routing profile's per-vehicle maximum-speed semantics have no test anywhere, so a change that passes a speed proves only the hand-off — Found 2026-10-12 while applying `vehicle-max-speed-settings` (task 5.3, device run)
+**id:** 188 · **category:** native-jni · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `vehicle-max-speed-settings` (archived 2026-10-12, commit `be53cdd`) lets the user persist a
+  usual maximum speed per vehicle and passes it into the library's profile: `RoutingProfile.maxSpeedKmh` →
+  `CreateRoutingProfile` → `ResolveMaxSpeedKmh` → `ParametrizeForCar`/`ForBicycle`/`ForFoot` (submodule
+  commit `b22af4967`, pushed to `naviveylin-local`). The hand-off is proven — on the phone AVD the profile
+  log line reports the applied value (120 / 15 / 5 by default, 90 after the sheet's slider was moved and the
+  app restarted, 0 fault-like lines) — but the **semantics** the change's spec names are asserted nowhere:
+  a car value below a road type's table speed caps it, a value above the fastest road type changes nothing,
+  and for bicycle/pedestrian the value is the flat speed of every routable way. The submodule ships no
+  `RoutingProfile` unit test (its `Tests/src/` holds CLI programs that need map databases) and this repo's
+  gate cannot execute C++ routing, so no case reddens if a speed table or the parametrisation drifts.
+- **Why it is recorded rather than fixed in that change** ✗: the change's task 5.3 states the limitation in
+  the change's own record (it is not silently claimed as proven), and repairing it means a test in the
+  submodule — a different repository, a different review path, and not required for the app-side contract
+  the change owns.
+- **Impact** ℹ: the numbers a user sets decide both the chosen route and the displayed duration. A future
+  edit to the car speed table, to `ParametrizeFor*` or to the resolve fallback (the 1–300 km/h window and
+  its built-in defaults) can change routing and ETAs with every check green, because nothing asserts what the
+  parametrised profile actually computes.
+- **Fix candidate** ℹ: one upstreamable, test-only commit on `naviveylin-local` adding a `RoutingProfile`
+  case that builds a profile from a `TypeConfig` and asserts (a) the car's `GetVehicleMaxSpeed()`/capped
+  per-type speed for a value below the table entry, (b) per-type speeds unchanged for a value above the
+  fastest type, (c) `ParametrizeForBicycle`/`ForFoot` set every routable type to the value, and (d) the
+  fallback selection for 0 and out-of-range values. A Catch2 case in the existing harness if one fits,
+  otherwise extend `Tests/src/` with a program that needs no map database.
+- **Related**: `vehicle-max-speed-settings` task 5.3 (the recorded limitation) and its archived
+  `specs/routing-max-speed/spec.md`, submodule spec `routing-profile`, submodule commit `b22af4967`,
+  `guidelines/Design.md` §5 (the submodule discipline).

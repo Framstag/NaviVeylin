@@ -5,6 +5,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
+ * Diagnostics tag of one type-icon resolution: the type it asked for, the pixel size and whether
+ * the stylesheet gave artwork. Identity only, never a position (`guidelines/Logging.md` §3), and one
+ * line per resolved type and size — the cache is what bounds it.
+ */
+internal const val ROW_ICON_TAG = "ROWICON"
+
+/**
  * Source of a map object type's stylesheet artwork: the ARGB pixels of [sizePx] × [sizePx]
  * artwork, row-major, in the layout the bridge's render entry points document — or `null`
  * when the active stylesheet gives that type neither a symbol nor icon artwork (spec:
@@ -67,7 +74,12 @@ object SearchRowIcons {
         return lock.withLock {
             icons[key]?.let { return@withLock it }
             if (missing.contains(key)) return@withLock null
-            val bitmap = source.artwork(objectType, sizePx)
+            val artwork = source.artwork(objectType, sizePx)
+            DiagnosticsLog.log(
+                ROW_ICON_TAG,
+                "type=$objectType px=$sizePx result=${if (artwork == null) "none" else "artwork"}"
+            )
+            val bitmap = artwork
                 ?.takeIf { it.size >= sizePx * sizePx }
                 ?.let { Bitmap.createBitmap(it, sizePx, sizePx, Bitmap.Config.ARGB_8888) }
             if (bitmap == null) {

@@ -3,6 +3,7 @@ package com.naviveylin.ui.map
 import androidx.compose.runtime.mutableStateMapOf
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.TypeIconSource
 import com.naviveylin.core.search.needsResolvedAddress
 import com.naviveylin.core.search.resolvedAddressText
@@ -36,11 +37,27 @@ internal fun typeIconSource(client: OSMScoutClient): TypeIconSource =
  */
 internal suspend fun resolveRowAddress(client: OSMScoutClient?, entry: LocationEntry): String? {
     if (client == null || !needsResolvedAddress(entry)) return null
+    val startedAt = System.nanoTime()
     val address = withContext(Dispatchers.Default) {
         runCatching { client.getAddressAt(entry.lat, entry.lon) }.getOrNull()
     }
-    return resolvedAddressText(address)
+    val text = resolvedAddressText(address)
+    // One line per lookup, with its own cost: what task 9.4 measures, and the only way to tell a row
+    // that found no address from a row that was never asked. Identity and numbers only, never a
+    // position (`guidelines/Logging.md` §3).
+    DiagnosticsLog.log(
+        ROW_ADDRESS_TAG,
+        "type=poi ms=${(System.nanoTime() - startedAt) / 1_000_000} result=${if (text == null) "none" else "hit"}"
+    )
+    return text
 }
+
+/**
+ * Diagnostics tag of one per-row address lookup: how long it took and whether the index held an
+ * address. The gate that decides *whether* a row is looked up stays silent, so a missing line is the
+ * evidence for a row that needs no address.
+ */
+internal const val ROW_ADDRESS_TAG = "ROWADDR"
 
 /**
  * Caches the addresses of the rows of the current result list, keyed by their position, so a

@@ -21,21 +21,31 @@ package com.naviveylin.navigation
 class RerouteConfirmationGate(
     private val now: () -> Long = System::currentTimeMillis,
     private val minConfirmCount: Int = 2,
-    private val minOffRouteDurationMs: Long = 10_000L,
+    private val minOffRouteDurationMs: Long = 4_000L,
     private val confirmWindowMs: Long = 60_000L,
     private val cooldownMs: Long = 25_000L,
-    private val fastPathDistanceM: Double = 50.0
+    private val fastPathDistanceM: Double = 30.0
 ) {
 
     private var confirmCount = 0
     private var confirmStart = 0L
     private var lastConfirmedRerouteTime = Long.MIN_VALUE
 
+    /**
+     * Duration of the episode that was last confirmed: milliseconds between its first
+     * report and the confirmation. Zero on the distance fast path, which confirms on the
+     * first report. Read after [onRequest] returned `true` (diagnostics measure the
+     * confirmation floor that was actually elapsed).
+     */
+    var lastConfirmElapsedMs: Long = 0L
+        private set
+
     /** Reset all state (fresh route / navigation stop). */
     fun reset() {
         confirmCount = 0
         confirmStart = 0L
         lastConfirmedRerouteTime = Long.MIN_VALUE
+        lastConfirmElapsedMs = 0L
     }
 
     /**
@@ -63,6 +73,7 @@ class RerouteConfirmationGate(
         if (deviationMeters != null && deviationMeters > fastPathDistanceM && confirmCount == 0) {
             confirmCount = 0
             confirmStart = 0L
+            lastConfirmElapsedMs = 0L
             lastConfirmedRerouteTime = nowMs
             return true
         }
@@ -85,6 +96,7 @@ class RerouteConfirmationGate(
         if (nowMs - confirmStart < minOffRouteDurationMs) {
             return false
         }
+        lastConfirmElapsedMs = nowMs - confirmStart
         confirmCount = 0
         confirmStart = 0L
         lastConfirmedRerouteTime = nowMs

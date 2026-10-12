@@ -5,6 +5,8 @@ import androidx.car.app.model.Row
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.carRowDescription
+import com.naviveylin.core.search.rowTitle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -23,30 +25,14 @@ class SearchScreenMapperTest {
     private fun click(row: Row) = row.onClickDelegate!!.sendClick(object : OnDoneCallback {})
 
     @Test
-    fun buildDescription_withPostalAreaAndRegion() {
+    fun buildDescription_showsThePostalAreaOnce() {
         val entry = LocationEntry().apply {
             postalArea = "44339"
-            region = arrayOf("Eving", "Dortmund", "NRW")
+            // The bridge fills region[] as [adminRegion, postalArea] — not the hierarchy its javadoc
+            // promises, which is what made the row print the code twice.
+            region = arrayOf("Dortmund", "44339")
         }
-        assertEquals("44339 — Eving, Dortmund, NRW", SearchScreenMapper.buildDescription(entry))
-    }
-
-    @Test
-    fun buildDescription_postalAreaOnly() {
-        val entry = LocationEntry().apply {
-            postalArea = "10115"
-            region = emptyArray()
-        }
-        assertEquals("10115", SearchScreenMapper.buildDescription(entry))
-    }
-
-    @Test
-    fun buildDescription_regionOnly() {
-        val entry = LocationEntry().apply {
-            postalArea = ""
-            region = arrayOf("Mitte", "Berlin")
-        }
-        assertEquals("Mitte, Berlin", SearchScreenMapper.buildDescription(entry))
+        assertEquals("44339", carRowDescription(entry))
     }
 
     @Test
@@ -55,25 +41,68 @@ class SearchScreenMapperTest {
             postalArea = ""
             region = emptyArray()
         }
-        assertEquals("", SearchScreenMapper.buildDescription(entry))
+        assertEquals("", carRowDescription(entry))
     }
 
     @Test
-    fun buildDescription_singleRegion() {
+    fun resultRowTitle_carriesTheLabelAndTheCity() {
         val entry = LocationEntry().apply {
-            postalArea = ""
-            region = arrayOf("Berlin")
+            label = "Rosenweg 20"
+            region = arrayOf("Dortmund", "44339")
         }
-        assertEquals("Berlin", SearchScreenMapper.buildDescription(entry))
+        assertEquals("Rosenweg 20 - Dortmund", rowTitle(entry))
     }
 
     @Test
-    fun buildDescription_withPostalAndSingleRegion() {
+    fun resultRowTitle_doesNotRepeatTheNameWhenTheLabelIsTheRegion() {
         val entry = LocationEntry().apply {
-            postalArea = "80331"
-            region = arrayOf("München")
+            label = "Dortmund"
+            region = arrayOf("Dortmund", "44139")
         }
-        assertEquals("80331 — München", SearchScreenMapper.buildDescription(entry))
+        assertEquals("Dortmund", rowTitle(entry))
+    }
+
+    @Test
+    fun buildResultRow_titleAndDescriptionComeFromTheSharedComposer() {
+        val result = MergedSearchResult(
+            entry = LocationEntry().apply {
+                label = "Rosenweg 20"
+                region = arrayOf("Dortmund", "44339")
+                postalArea = "44339"
+            },
+            isFavorite = false,
+            isFavoriteHit = false
+        )
+        val row = SearchScreenMapper.buildResultRow(carContext, result, onClick = {})
+        assertEquals("Rosenweg 20 - Dortmund", row.title.toString())
+        assertEquals("44339", row.texts.first().toString())
+    }
+
+    @Test
+    fun buildResultRow_typeIconAndMarkingShareTheSingleImage() {
+        val result = MergedSearchResult(
+            entry = LocationEntry().apply { label = "Shell" },
+            isFavorite = true,
+            isFavoriteHit = false,
+            isPerfectMatch = false
+        )
+        val icon = android.graphics.Bitmap.createBitmap(60, 60, android.graphics.Bitmap.Config.ARGB_8888)
+        val row = SearchScreenMapper.buildResultRow(carContext, result, typeIcon = icon, onClick = {})
+        // One image slot on a car Row: the composite carries the marking and the icon together, so
+        // the marking is not pushed out by the icon and the row is not given a second image.
+        assertNotNull(row.image)
+    }
+
+    @Test
+    fun buildResultRow_typeIconAloneStillUsesTheImageSlot() {
+        val result = MergedSearchResult(
+            entry = LocationEntry().apply { label = "Shell" },
+            isFavorite = false,
+            isFavoriteHit = false
+        )
+        val icon = android.graphics.Bitmap.createBitmap(60, 60, android.graphics.Bitmap.Config.ARGB_8888)
+        val row = SearchScreenMapper.buildResultRow(carContext, result, typeIcon = icon, onClick = {})
+        assertNotNull(row.image)
     }
 
     // ── Suggestion rows (spec: auto-search-suggestions) ──
@@ -183,8 +212,8 @@ class SearchScreenMapperTest {
         val result = MergedSearchResult(resultEntry("Home"), isFavorite = true, isFavoriteHit = true)
         val row = SearchScreenMapper.buildResultRow(carContext, result, onClick = {})
 
-        assertEquals("Home", row.title.toString())
-        assertEquals("44339 — Eving, Dortmund", row.texts.joinToString(" ") { it.toString() })
+        assertEquals("Home - Eving", row.title.toString())
+        assertEquals("44339", row.texts.joinToString(" ") { it.toString() })
         assertNotNull("favorite row must carry a heart image", row.image)
     }
 
@@ -193,7 +222,7 @@ class SearchScreenMapperTest {
         val result = MergedSearchResult(resultEntry("Home Street"), isFavorite = false, isFavoriteHit = false)
         val row = SearchScreenMapper.buildResultRow(carContext, result, onClick = {})
 
-        assertEquals("Home Street", row.title.toString())
+        assertEquals("Home Street - Eving", row.title.toString())
         assertNull("non-favorite row must not carry an image", row.image)
     }
 
@@ -245,7 +274,7 @@ class SearchScreenMapperTest {
 
         // One image slot on a car Row: both facts live in the composite glyph.
         assertNotNull(row.image)
-        assertEquals("Waltrop", row.title.toString())
+        assertEquals("Waltrop - Eving", row.title.toString())
     }
 
     @Test
@@ -280,7 +309,7 @@ class SearchScreenMapperTest {
         )
 
         assertEquals(
-            listOf("44339 — Eving, Dortmund", "1.0 km"),
+            listOf("44339", "1.0 km"),
             row.texts.map { it.toString() }
         )
     }
@@ -296,6 +325,6 @@ class SearchScreenMapperTest {
 
         val row = SearchScreenMapper.buildResultRow(carContext, result, reference = null, onClick = {})
 
-        assertEquals(listOf("44339 — Eving, Dortmund"), row.texts.map { it.toString() })
+        assertEquals(listOf("44339"), row.texts.map { it.toString() })
     }
 }

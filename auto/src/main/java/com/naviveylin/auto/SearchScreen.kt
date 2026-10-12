@@ -15,6 +15,9 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.SEARCH_ROW_ICON_DP
+import com.naviveylin.core.SearchRowIcons
+import com.naviveylin.core.TypeIconSource
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.core.search.SearchQueryParser
@@ -68,6 +71,7 @@ class SearchScreen(
     private val locationProvider = entryPoint.autoLocationProvider()
     private val historyProvider = entryPoint.autoSearchHistoryProvider()
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
+    private val clientProvider = entryPoint.autoClientProvider()
 
     /** Merges favorite hits with native search results (spec: favorite-search). */
     private val favoriteSearchMerger = FavoriteSearchMerger()
@@ -166,7 +170,28 @@ class SearchScreen(
             lastReference = reference
             lastResults = results
             lastQuery = searchText
+            prefetchTypeIcons(results)
             invalidate()
+        }
+    }
+
+    /**
+     * Resolve the rows' type artwork before the template is built. The build runs on the host
+     * thread and must not touch native code, so it reads the cache ([SearchRowIcons.peek]) and this
+     * pass fills it — off the main thread, once per distinct type, which is what the single-flight
+     * cache makes cheap (spec: `search-result-row-icon` — No native artwork request on a
+     * host-facing build). A type without artwork resolves to nothing and is not retried.
+     */
+    private suspend fun prefetchTypeIcons(results: List<MergedSearchResult>) {
+        val client = runCatching { clientProvider.client() }.getOrNull() ?: return
+        val sizePx = (SEARCH_ROW_ICON_DP * carContext.resources.displayMetrics.density).toInt()
+        if (sizePx <= 0) return
+        val source = TypeIconSource { objectType, px -> client.renderTypeIcon(objectType, px) }
+        withContext(ioDispatcher) {
+            results.map { it.entry.objectTypeName }
+                .filterNotNull()
+                .distinct()
+                .forEach { objectType -> SearchRowIcons.resolve(source, objectType, sizePx) }
         }
     }
 
@@ -200,6 +225,7 @@ class SearchScreen(
 
     private fun buildResultsList(): ItemList {
         val builder = ItemList.Builder()
+        val sizePx = (SEARCH_ROW_ICON_DP * carContext.resources.displayMetrics.density).toInt()
 
         for (result in lastResults) {
             builder.addItem(
@@ -207,6 +233,9 @@ class SearchScreen(
                     carContext,
                     result,
                     reference = lastReference,
+                    // Read-only: the artwork is already resolved (see prefetchTypeIcons), so this
+                    // host-thread build never asks the bridge for it.
+                    typeIcon = result.entry.objectTypeName?.let { SearchRowIcons.peek(it, sizePx) },
                     onClick = {
                         val entry = result.entry
                         Log.d(TAG, "Details for: ${entry.label}")

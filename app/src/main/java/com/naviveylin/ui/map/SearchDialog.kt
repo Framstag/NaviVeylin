@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +71,9 @@ import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.R
 import com.naviveylin.core.ResultMarkings
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.needsResolvedAddress
+import com.naviveylin.core.search.rowDetail
+import com.naviveylin.core.search.rowTitle
 import com.naviveylin.core.search.ResultMarking
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchResultRanker
@@ -196,6 +200,7 @@ fun SearchDialog(
             SearchMode.PLACES -> PlacesContent(
                 query = query,
                 results = results,
+                client = client,
                 isSearching = isSearching,
                 gpsAvailable = gpsAvailable,
                 adminRegionName = adminRegionName,
@@ -274,6 +279,7 @@ private fun SearchModeSwitcher(
 private fun PlacesContent(
     query: String,
     results: List<MergedSearchResult>,
+    client: OSMScoutClient?,
     isSearching: Boolean,
     gpsAvailable: Boolean,
     adminRegionName: String?,
@@ -290,6 +296,11 @@ private fun PlacesContent(
             .filter { it.value.size > 1 }
             .keys
     }
+
+    // The addresses of the rows of this result list, so a row that scrolls out and back does
+    // not look the same position up twice, and a position without an address is not asked
+    // for again (design D8). A new query publishes new results, which drops the whole cache.
+    val addresses = remember(results) { RowAddressCache() }
 
     LazyColumn(
         modifier = Modifier
@@ -358,18 +369,22 @@ private fun PlacesContent(
                 items(results) { result ->
                     val entry = result.entry
                     val isDuplicate = entry.label in duplicateLabels
-                    val disambiguationDetail = if (isDuplicate) {
-                        val detail = buildDisambiguationDetail(entry)
-                        detail.ifEmpty { null }
-                    } else null
-                    val distanceText = distanceFromReference(entry, distanceReference)
+                    if (needsResolvedAddress(entry) && !addresses.contains(entry.lat, entry.lon)) {
+                        LaunchedEffect(entry.lat, entry.lon) {
+                            addresses.put(entry.lat, entry.lon, resolveRowAddress(client, entry))
+                        }
+                    }
                     SearchResultItem(
                         entry = entry,
                         isFavorite = result.isFavorite,
                         isPerfect = result.isPerfectMatch,
-                        isDuplicate = isDuplicate,
-                        disambiguationDetail = disambiguationDetail,
-                        distanceText = distanceText,
+                        detailText = rowDetail(
+                            entry = entry,
+                            isDuplicate = isDuplicate,
+                            resolvedAddress = addresses.get(entry.lat, entry.lon)
+                        ),
+                        distanceText = distanceFromReference(entry, distanceReference),
+                        typeIcon = rememberRowTypeIcon(client, entry.objectTypeName),
                         onClick = { onResultSelected(entry) }
                     )
                     HorizontalDivider()
@@ -684,14 +699,31 @@ private fun PoiContent(
     }
 }
 
+/**
+ * Test tag of a result row's leading artwork, so a UI test can assert that a row carries an
+ * icon, a marking, both or neither (change `search-result-row-content`, task 4.4).
+ */
+internal const val SearchRowIconTag = "search_row_icon"
+
+/**
+ * One result row: the leading artwork, the identifying first line and the detail line.
+ *
+ * `internal` rather than file-private so the row's rendering is testable against the shared
+ * composers and the fake client, the same reason `buildDisambiguationDetail` was internal
+ * before it moved to `:core` (change `search-result-row-content`, task 4.4).
+ *
+ * @param detailText the row's detail line, already composed (spec: `location-search` —
+ *   Result item display); null hides it
+ * @param typeIcon the entry's type artwork, already resolved; null shows the marking alone
+ */
 @Composable
-private fun SearchResultItem(
+internal fun SearchResultItem(
     entry: LocationEntry,
     isFavorite: Boolean = false,
     isPerfect: Boolean = false,
-    isDuplicate: Boolean = false,
-    disambiguationDetail: String? = null,
+    detailText: String? = null,
     distanceText: String? = null,
+    typeIcon: Bitmap? = null,
     onClick: () -> Unit
 ) {
     Row(
@@ -702,31 +734,29 @@ private fun SearchResultItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val marking = resultMarkingOf(isFavorite = isFavorite, isPerfect = isPerfect)
-        if (marking != ResultMarking.NONE) {
-            // One composite artwork for both facts (spec: search-result-ranking —
-            // marking parity); tinted because the artwork is white for the car host.
+        if (marking != ResultMarking.NONE || typeIcon != null) {
+            // One leading slot holds both facts (spec: search-result-row-icon — "One leading
+            // slot carries icon and marking together"); the composite keeps the marking at the
+            // offset it has on a row without an icon. Tinted throughout: the marking artwork is
+            // white for the car host, and the type artwork carries the stylesheet's own colours,
+            // which is legible on the map but not necessarily on this surface in either theme.
             Image(
-                bitmap = ResultMarkings.bitmapFor(marking).asImageBitmap(),
+                bitmap = ResultMarkings.bitmapFor(marking, typeIcon).asImageBitmap(),
                 contentDescription = markingContentDescription(marking),
                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
-                modifier = Modifier.padding(end = 12.dp)
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .testTag(SearchRowIconTag)
             )
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = entry.label,
+                text = rowTitle(entry),
                 style = MaterialTheme.typography.bodyLarge
             )
-            if (isDuplicate && disambiguationDetail != null) {
+            if (detailText != null) {
                 Text(
-                    text = disambiguationDetail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (entry.adminRegionHierarchy != null && entry.adminRegionHierarchy.isNotEmpty()) {
-                Text(
-                    text = entry.adminRegionHierarchy,
+                    text = detailText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -757,23 +787,6 @@ private fun markingContentDescription(marking: ResultMarking): String? = when (m
 private fun distanceFromReference(entry: LocationEntry, reference: SearchReference?): String? {
     val meters = SearchResultRanker.distanceMeters(entry, reference) ?: return null
     return stringResource(R.string.distance_unit_km, formatDistanceKm(meters))
-}
-
-internal fun buildDisambiguationDetail(entry: LocationEntry): String {
-    val parts = mutableListOf<String>()
-    if (entry.name != null && entry.name.isNotEmpty()) {
-        parts.add(entry.name)
-    }
-    if (entry.objectTypeName != null && entry.objectTypeName.isNotEmpty()) {
-        parts.add(entry.objectTypeName)
-    }
-    if (entry.postalArea != null && entry.postalArea.isNotEmpty()) {
-        parts.add(entry.postalArea)
-    }
-    if (entry.region != null && entry.region.isNotEmpty()) {
-        parts.add(entry.region[0])
-    }
-    return parts.joinToString(" · ")
 }
 
 /**

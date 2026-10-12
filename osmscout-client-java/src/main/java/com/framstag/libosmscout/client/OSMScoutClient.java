@@ -353,6 +353,28 @@ public class OSMScoutClient {
     public native String[] getAddressAt(double lat, double lon);
 
     /**
+     * Render the artwork the active stylesheet gives an OSM object type — the leading
+     * icon of a search result row. The type is resolved through the stylesheet's own
+     * selectors, and the icon-versus-symbol preference ({@link #setPreferSymbolIcons})
+     * decides which of the two renderings is drawn, exactly as on the map.
+     *
+     * <p>The projection is the call's own (a detail magnification), so this needs no map
+     * frame and no viewport of the caller's. The artwork is scaled to fit the requested
+     * square. A type the stylesheet gives no artwork, a type whose rule selects on object
+     * tags the call cannot see, and an artwork that cannot be produced all return
+     * {@code null} — the caller shows no icon and never a placeholder.
+     *
+     * <p>This is native work on the database thread: call it off the main thread, and never
+     * from a car host callback.
+     *
+     * @param objectType OSM type name (e.g. {@code amenity_fuel}, {@code address})
+     * @param sizePx edge length of the square, in pixels (1..512)
+     * @return {@code sizePx * sizePx} ARGB pixels in the same element order
+     *         {@link #render} returns, or null when there is no artwork
+     */
+    public native int[] renderTypeIcon(String objectType, int sizePx);
+
+    /**
      * Get the maximum allowed speed (km/h) of the road at the given
      * geographic coordinate, or NaN when no speed limit is defined.
      *

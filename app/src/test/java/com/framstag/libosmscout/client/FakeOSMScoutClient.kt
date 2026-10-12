@@ -462,7 +462,35 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Address returned by [getAddressAt] (null = no indexed address). */
     var addressAt: Array<String>? = null
 
-    override fun getAddressAt(lat: Double, lon: Double): Array<String>? = addressAt
+    /** Positions [getAddressAt] was asked for, in order. */
+    val addressAtRequests = mutableListOf<Pair<Double, Double>>()
+
+    /** When set, [getAddressAt] throws this instead of returning. */
+    @Volatile
+    var addressAtFailure: Throwable? = null
+
+    override fun getAddressAt(lat: Double, lon: Double): Array<String>? {
+        addressAtRequests.add(lat to lon)
+        addressAtFailure?.let { throw it }
+        return addressAt
+    }
+
+    /** Types [renderTypeIcon] answers with artwork for, and every request it received. */
+    val typeIconRequests = mutableListOf<Pair<String, Int>>()
+
+    @Volatile
+    var typesWithArtwork: Set<String> = emptySet()
+
+    /**
+     * Artwork for a type the test declared as having one, square and opaque so a caller
+     * can assert its size; null otherwise, which is what a type without artwork looks like
+     * (change `search-result-row-content`, spec: search-result-row-icon).
+     */
+    override fun renderTypeIcon(objectType: String, sizePx: Int): IntArray? {
+        typeIconRequests.add(objectType to sizePx)
+        if (objectType !in typesWithArtwork) return null
+        return IntArray(sizePx * sizePx) { 0xFF00FF00.toInt() }
+    }
 
     /** Value returned by [getMaxSpeedAt] (negative = no limit, like native). */
     @Volatile

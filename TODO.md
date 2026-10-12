@@ -2985,3 +2985,24 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Related**: `vehicle-max-speed-settings` task 5.3 (the recorded limitation) and its archived
   `specs/routing-max-speed/spec.md`, submodule spec `routing-profile`, submodule commit `b22af4967`,
   `guidelines/Design.md` §5 (the submodule discipline).
+
+## 189. `routing-max-speed` is shipped but absent from `tools/feature-list/specs.json`, so `ShippedSpecClassificationTest` is red on HEAD — Found 2026-10-12 during the `search-result-row-content` gate (task 8.2)
+**id:** 189 · **category:** verification · **class:** bug · **status:** open
+
+- **Observed** ⚠: `openspec/specs/routing-max-speed/spec.md` exists at HEAD (added by `be53cdd feat:
+  vehicle-max-speed-settings`), while `git show HEAD:tools/feature-list/specs.json | grep -c routing-max-speed`
+  returns **0**, so `ShippedSpecClassificationTest.every shipped spec id is classified`
+  (`app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:40`) fails with
+  `every shipped spec id must be named by tools/feature-list/specs.json expected:<[]> but was:<[routing-max-speed]>`.
+  Measured on the `search-result-row-content` gate: `:app` mobile **1974 tests, 1 failure — that case only**
+  (`/tmp/gate.log`), `:core` and `:auto` green, so it is pre-existing and not this change's.
+- **Why it is not fixed here** ℹ: the entry belongs to the change that owns the feature-table classification of
+  that capability (`guidelines/FeatureList.md` §3/§4), not to a row-content change; `search-result-row-content`
+  records it here per the apply guidance that a problem not initiated by a change is documented rather than
+  absorbed.
+- **Impact** ℹ: every `:app` mobile gate run in this tree is red at the verdict line until the entry is added, so
+  a real failure and this one are not distinguishable without reading the XML.
+- **Fix candidate** ℹ: add `routing-max-speed` to `tools/feature-list/specs.json` with its classification, next to
+  the capability's `<!-- cap: routing-max-speed#… -->` keys.
+- **Related**: `guidelines/FeatureList.md` §3, §4; spec `routing-max-speed`; change
+  `search-result-row-content` task 8.2 (its evidence names this case and the measurement).

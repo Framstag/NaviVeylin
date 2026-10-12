@@ -86,4 +86,7 @@ class FakeAutoRenderClient : OSMScoutClient() {
         target.put(IntArray(width * height) { 0xFFCCCCCC.toInt() })
         return true
     }
+
+    /** Type artwork for the result rows: none, so this stub never needs the native symbol. */
+    override fun renderTypeIcon(objectType: String, sizePx: Int): IntArray? = null
 }

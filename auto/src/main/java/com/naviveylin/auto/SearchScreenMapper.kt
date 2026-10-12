@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import android.graphics.Bitmap
 import androidx.car.app.CarContext
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.Row
@@ -7,6 +8,8 @@ import androidx.core.graphics.drawable.IconCompat
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.ResultMarkings
 import com.naviveylin.core.formatDistanceKm
+import com.naviveylin.core.search.carRowDescription
+import com.naviveylin.core.search.rowTitle
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.core.search.ResultMarking
 import com.naviveylin.core.search.SearchReference
@@ -23,27 +26,14 @@ object SearchScreenMapper {
     const val SEARCH_DEBOUNCE_MS = 300L
 
     /**
-     * Build a human-readable description from a [LocationEntry].
-     * Combines postal area and region hierarchy.
-     */
-    fun buildDescription(entry: LocationEntry): String {
-        val parts = mutableListOf<String>()
-        // JNI leaves these fields null when the location index has no data.
-        if (!entry.postalArea.isNullOrEmpty()) {
-            parts.add(entry.postalArea)
-        }
-        if (!entry.region.isNullOrEmpty()) {
-            parts.add(entry.region.joinToString(", "))
-        }
-        return parts.joinToString(" — ")
-    }
-
-    /**
-     * Build a result row for a [MergedSearchResult]: title, description, the
-     * distance from [reference], and the marking the row carries — the favorite
-     * heart, the perfect-match glyph, or the composite when the row is both
-     * (spec: search-result-ranking — "Perfect-match marking and cross-surface
-     * parity"). [onClick] is invoked on row tap.
+     * Build a result row for a [MergedSearchResult]: title, description, the distance from
+     * [reference], and the row's single image (spec: `search-result-row-icon` — "One leading slot
+     * carries icon and marking together"). [onClick] is invoked on row tap.
+     *
+     * [typeIcon] is the entry's type artwork, already resolved by the screen from the shared cache:
+     * resolving it here would be a native call inside a host-thread template build, which is what
+     * `guidelines/Design.md` §4 forbids. A row whose type has no artwork passes null and shows its
+     * marking alone, exactly as before.
      *
      * @param reference point the row distances are measured from — the same one
      *   the list was ranked against; null shows no distance
@@ -52,13 +42,14 @@ object SearchScreenMapper {
         carContext: CarContext,
         result: MergedSearchResult,
         reference: SearchReference? = null,
+        typeIcon: Bitmap? = null,
         onClick: () -> Unit
     ): Row {
         val entry = result.entry
         val builder = Row.Builder()
-            .setTitle(entry.label ?: "Unknown")
+            .setTitle(rowTitle(entry))
 
-        val description = buildDescription(entry)
+        val description = carRowDescription(entry)
         if (description.isNotEmpty()) {
             builder.addText(description)
         }
@@ -71,11 +62,11 @@ object SearchScreenMapper {
         }
 
         val marking = resultMarkingOf(result.isFavorite, result.isPerfectMatch)
-        if (marking != ResultMarking.NONE) {
-            // One image slot on a car Row, so the marking is drawn as a single
+        if (marking != ResultMarking.NONE || typeIcon != null) {
+            // One image slot on a car Row, so the icon and the marking are drawn as a single
             // composite glyph rather than stacking two icons.
             builder.setImage(
-                CarIcon.Builder(IconCompat.createWithBitmap(ResultMarkings.bitmapFor(marking))).build()
+                CarIcon.Builder(IconCompat.createWithBitmap(ResultMarkings.bitmapFor(marking, typeIcon))).build()
             )
         }
 

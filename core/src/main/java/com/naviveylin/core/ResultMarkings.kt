@@ -19,6 +19,12 @@ import com.naviveylin.core.search.ResultMarking
  *
  * White on transparent; the host tints per theme. Bitmaps are created once and
  * cached — car templates are rebuilt on every invalidation.
+ *
+ * A row whose entry has an object type the active stylesheet gives artwork for
+ * carries that artwork *and* its marking in the same slot, drawn into one bitmap
+ * as well ([bitmapFor] with [typeIcon]); see [rowSlotGeometry] for the geometry
+ * the two share (spec: search-result-row-icon — "One leading slot carries icon
+ * and marking together").
  */
 object ResultMarkings {
 
@@ -28,10 +34,66 @@ object ResultMarkings {
     private val cache = HashMap<ResultMarking, Bitmap>()
 
     /**
+     * Composite bitmaps, keyed by the marking and the identity of the icon they
+     * were drawn with. The icon instances are the ones [SearchRowIcons] caches, so
+     * [clear] is called where that cache is cleared and no stale composite can
+     * outlive its icon.
+     */
+    private val compositeCache = HashMap<Long, Bitmap>()
+
+    /**
      * Marking bitmap for [marking], cached per marking. [ResultMarking.NONE]
      * yields a fully transparent bitmap so callers can draw unconditionally.
      */
     fun bitmapFor(marking: ResultMarking): Bitmap = cache.getOrPut(marking) { render(marking) }
+
+    /**
+     * The row's leading slot as one bitmap: [marking] with [typeIcon] beside it, so
+     * a row can carry the entry's type and its marking without a second image slot
+     * (spec: search-result-row-icon — "One leading slot carries icon and marking
+     * together").
+     *
+     * A `null` [typeIcon] returns the marking-only bitmap unchanged, which is the
+     * layout of a row whose type has no artwork. [ResultMarking.NONE] with an icon
+     * returns the icon itself: the transparent marking bitmap would otherwise spend
+     * its own width on nothing.
+     *
+     * The marking keeps the size it has in the marking-only bitmap and the geometry
+     * keeps it at the same offset on screen: the composite is taller when the icon is
+     * taller than the marking, and the row centres the slot vertically
+     * ([rowSlotGeometry]).
+     */
+    fun bitmapFor(marking: ResultMarking, typeIcon: Bitmap?): Bitmap {
+        if (typeIcon == null) return bitmapFor(marking)
+        if (marking == ResultMarking.NONE) return typeIcon
+        val key = (marking.ordinal.toLong() shl 32) or
+            (System.identityHashCode(typeIcon).toLong() and 0xFFFFFFFFL)
+        return compositeCache.getOrPut(key) {
+            val geometry = rowSlotGeometry(typeIcon.width, typeIcon.height)
+            val bitmap = Bitmap.createBitmap(geometry.width, geometry.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.drawBitmap(
+                bitmapFor(marking),
+                geometry.markingX.toFloat(),
+                geometry.markingY.toFloat(),
+                null
+            )
+            canvas.drawBitmap(typeIcon, geometry.iconX.toFloat(), geometry.iconY.toFloat(), null)
+            bitmap
+        }
+    }
+
+    /**
+     * Drop every cached bitmap, the marking artwork and the composites. Called where
+     * the row-icon cache is cleared — when the active stylesheet finishes loading and
+     * when the icon-versus-symbol preference changes — so no composite can outlive the
+     * icon it was drawn with (spec: search-result-row-icon — "Resolved artwork is
+     * reused and follows the style").
+     */
+    fun clear() {
+        cache.clear()
+        compositeCache.clear()
+    }
 
     private fun render(marking: ResultMarking): Bitmap {
         val bitmap = Bitmap.createBitmap(BITMAP_SIZE, BITMAP_SIZE, Bitmap.Config.ARGB_8888)
@@ -84,4 +146,60 @@ object ResultMarkings {
         }
         canvas.drawPath(path, paint)
     }
+}
+
+/**
+ * Where the marking and the type icon sit inside the leading slot — pure arithmetic, so
+ * the layout can be asserted without a canvas (the project's Robolectric sandbox discards
+ * draws).
+ *
+ * @param width total width of the slot, in pixels
+ * @param height total height of the slot, in pixels: the taller of the marking and the icon
+ * @param markingX left edge of the marking bitmap
+ * @param markingY top edge of the marking bitmap
+ * @param iconX left edge of the type icon
+ * @param iconY top edge of the type icon
+ */
+data class RowSlotGeometry(
+    val width: Int,
+    val height: Int,
+    val markingX: Int,
+    val markingY: Int,
+    val iconX: Int,
+    val iconY: Int
+)
+
+/** Horizontal gap between the marking and the icon as a fraction of the icon's height. */
+private const val ICON_GAP_FRACTION = 5
+
+/**
+ * Geometry of the leading slot holding the marking ([ResultMarkings.BITMAP_SIZE] wide) and
+ * an icon of the given pixel size (spec: search-result-row-icon — the marking keeps the
+ * position and size it has without an icon).
+ *
+ * The marking stays at the slot's leading edge and at its own size, and is vertically
+ * centred, so the row centring the slot vertically puts it at the same offset on screen
+ * with and without an icon:
+ *
+ * ```
+ * (rowHeight - height) / 2 + markingY  ==  (rowHeight - BITMAP_SIZE) / 2
+ * ```
+ *
+ * The gap scales with the icon, so the spacing follows the density-scaled icon size — one
+ * fifth of its height, which is 4 dp at the 20 dp icon the result rows request.
+ */
+fun rowSlotGeometry(iconWidth: Int, iconHeight: Int): RowSlotGeometry {
+    val w = iconWidth.coerceAtLeast(0)
+    val h = iconHeight.coerceAtLeast(0)
+    val gap = maxOf(1, h / ICON_GAP_FRACTION)
+    val slotWidth = ResultMarkings.BITMAP_SIZE + gap + w
+    val slotHeight = maxOf(ResultMarkings.BITMAP_SIZE, h)
+    return RowSlotGeometry(
+        width = slotWidth,
+        height = slotHeight,
+        markingX = 0,
+        markingY = (slotHeight - ResultMarkings.BITMAP_SIZE) / 2,
+        iconX = ResultMarkings.BITMAP_SIZE + gap,
+        iconY = (slotHeight - h) / 2
+    )
 }

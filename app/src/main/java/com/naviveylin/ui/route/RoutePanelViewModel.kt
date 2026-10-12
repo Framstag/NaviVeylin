@@ -199,6 +199,13 @@ class RoutePanelViewModel @Inject constructor(
     val uiState: StateFlow<RoutePanelUiState> = _uiState.asStateFlow()
 
     /**
+     * The bridge, for the result rows' type artwork and address lookup — the picker shows the
+     * same row as the search dialog (change `search-result-row-content`). Both lookups are
+     * native: the rows call them off the main thread through the shared helpers.
+     */
+    internal val osmscoutClient: OSMScoutClient get() = client
+
+    /**
      * Background dispatcher for search / route-callback work. Test hook:
      * point it at a TestDispatcher shared with the test's `runTest`.
      */

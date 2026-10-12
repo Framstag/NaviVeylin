@@ -1,5 +1,8 @@
 package com.naviveylin.auto
 
+import com.naviveylin.core.ResultMarkings
+import com.naviveylin.core.SearchRowIcons
+
 /**
  * Applies the shared map style to the renderer's native client, once per
  * distinct value. Settings are re-read periodically on both car screens, so
@@ -29,6 +32,12 @@ internal class CarStyleApplier(
         lastApplied = if (ok) styleSheet else null
         if (!ok) {
             onLoadFailed(styleSheet)
+        } else {
+            // The search result rows draw the same artwork the map draws, so a loaded stylesheet
+            // moves them too: drop the resolved type icons and the composites drawn with them
+            // (spec: search-result-row-icon — Resolved artwork is reused and follows the style).
+            SearchRowIcons.clear()
+            ResultMarkings.clear()
         }
         return ok
     }

@@ -76,11 +76,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.LocationEntry
+import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.Vehicle
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import com.naviveylin.R
 import com.naviveylin.core.ResultMarkings
+import com.naviveylin.core.search.needsResolvedAddress
+import com.naviveylin.core.search.rowDetail
+import com.naviveylin.core.search.rowTitle
+import com.naviveylin.ui.map.RowAddressCache
+import com.naviveylin.ui.map.rememberRowTypeIcon
+import com.naviveylin.ui.map.resolveRowAddress
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.formatStepDurationText
@@ -346,6 +353,7 @@ fun RoutePanel(
                         RouteSearchResults(
                             query = state.searchQuery,
                             results = state.searchResults,
+                            client = viewModel.osmscoutClient,
                             isSearching = state.isSearching,
                             gpsAvailable = state.gpsAvailable,
                             reference = state.searchReference,
@@ -389,6 +397,7 @@ fun RoutePanel(
                         RouteSearchResults(
                             query = state.searchQuery,
                             results = state.searchResults,
+                            client = viewModel.osmscoutClient,
                             isSearching = state.isSearching,
                             gpsAvailable = state.gpsAvailable,
                             reference = state.searchReference,
@@ -1065,6 +1074,7 @@ private fun RouteSearchField(
 private fun RouteSearchResults(
     query: String,
     results: List<LocationEntry>,
+    client: OSMScoutClient?,
     isSearching: Boolean,
     gpsAvailable: Boolean,
     reference: SearchReference?,
@@ -1075,6 +1085,15 @@ private fun RouteSearchResults(
     // The perfect-match fact is derived from the same query the ranking used, so
     // the marking and the order agree (spec: search-result-ranking).
     val criteria = remember(query) { SearchQueryParser.criteriaOf(query) }
+    // The same row composition as the search dialog: a shared label shows what tells the
+    // entries apart, and a name hit gets the address resolved at its position
+    // (spec: location-search — Result item display).
+    val duplicateLabels = remember(results) {
+        results.groupBy { it.label }
+            .filter { it.value.size > 1 }
+            .keys
+    }
+    val addresses = remember(results) { RowAddressCache() }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1164,6 +1183,13 @@ private fun RouteSearchResults(
                             null
                         }
                         val isPerfect = SearchResultRanker.isPerfectMatch(entry, criteria)
+                        if (needsResolvedAddress(entry) && !addresses.contains(entry.lat, entry.lon)) {
+                            LaunchedEffect(entry.lat, entry.lon) {
+                                addresses.put(entry.lat, entry.lon, resolveRowAddress(client, entry))
+                            }
+                        }
+                        val marking = if (isPerfect) ResultMarking.PERFECT else ResultMarking.NONE
+                        val typeIcon = rememberRowTypeIcon(client, entry.objectTypeName)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1171,22 +1197,31 @@ private fun RouteSearchResults(
                                 .padding(vertical = 10.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (isPerfect) {
+                            if (marking != ResultMarking.NONE || typeIcon != null) {
                                 Image(
-                                    bitmap = ResultMarkings.bitmapFor(ResultMarking.PERFECT).asImageBitmap(),
-                                    contentDescription = stringResource(R.string.search_result_exact_match),
+                                    bitmap = ResultMarkings.bitmapFor(marking, typeIcon).asImageBitmap(),
+                                    contentDescription = if (isPerfect) {
+                                        stringResource(R.string.search_result_exact_match)
+                                    } else {
+                                        null
+                                    },
                                     colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                                     modifier = Modifier.padding(end = 12.dp)
                                 )
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = entry.label,
+                                    text = rowTitle(entry),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
-                                if (entry.adminRegionHierarchy != null && entry.adminRegionHierarchy.isNotEmpty()) {
+                                val detailText = rowDetail(
+                                    entry = entry,
+                                    isDuplicate = entry.label in duplicateLabels,
+                                    resolvedAddress = addresses.get(entry.lat, entry.lon)
+                                )
+                                if (detailText != null) {
                                     Text(
-                                        text = entry.adminRegionHierarchy,
+                                        text = detailText,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

@@ -106,6 +106,10 @@ _Phone and car_
   <!-- cap: search-free-text#Free-text results without garbage entries -->
   <!-- cap: search-free-text#Free-text search excludes basemap -->
   <!-- cap: search-free-text#Free-text search over text index -->
+  <!-- cap: search-result-row-icon#One leading slot carries icon and marking together -->
+  <!-- cap: search-result-row-icon#Resolved artwork is reused and follows the style -->
+  <!-- cap: search-result-row-icon#The icon-versus-symbol preference decides the row's artwork -->
+  <!-- cap: search-result-row-icon#The type icon comes from the active stylesheet -->
   <!-- cap: search-history#Duplicate entries are collapsed when the history is loaded -->
   <!-- cap: search-history#History capped at 50 entries -->
   <!-- cap: search-history#History entry content -->

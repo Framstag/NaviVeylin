@@ -7,9 +7,11 @@ import androidx.car.app.ScreenManager
 import androidx.car.app.model.Row
 import androidx.car.app.model.SearchTemplate
 import androidx.test.core.app.ApplicationProvider
+import com.framstag.libosmscout.client.FakeMapScreenClient
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.AutoClientProvider
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoSearchHistoryProvider
 import com.naviveylin.core.AutoLocationProvider
@@ -84,6 +86,12 @@ class SearchScreenTest {
         // center, so the rows show no distance (spec: search-result-ranking).
         every { entryPoint.autoLocationProvider() } returns locationProvider
         every { locationProvider.position() } returns MutableStateFlow(null)
+
+        // The result rows' type artwork: a stub client that answers "no artwork", so the screen's
+        // prefetch pass runs and the rows simply carry no icon (spec: search-result-row-icon).
+        every { entryPoint.autoClientProvider() } returns mockk<AutoClientProvider>().also { provider ->
+            every { provider.client() } returns FakeMapScreenClient()
+        }
         // AddressBookScreen (pushed from the contacts mode row) loads contacts
         // in init; keep it inert so the push is side-effect free.
         every { entryPoint.addressBookContactsProvider() } returns mockk<AddressBookContactsProvider>(relaxed = true)

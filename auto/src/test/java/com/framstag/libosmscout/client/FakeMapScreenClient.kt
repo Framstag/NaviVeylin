@@ -140,6 +140,18 @@ class FakeMapScreenClient(
     /** Reverse geocode of the tapped point (details screen init): no address in these tests. */
     override fun getAddressAt(lat: Double, lon: Double): Array<String>? = null
 
+    /**
+     * Type artwork for the result rows: none by default, so a build that reaches native
+     * artwork on a test path is visible as a request rather than as a missing symbol
+     * (change `search-result-row-content`, spec: search-result-row-icon).
+     */
+    val typeIconRequests = mutableListOf<Pair<String, Int>>()
+
+    override fun renderTypeIcon(objectType: String, sizePx: Int): IntArray? {
+        typeIconRequests.add(objectType to sizePx)
+        return null
+    }
+
     /** Selected-object description (details screen init): none in these tests. */
     override fun getDescription(lat: Double, lon: Double, magnification: Int): ObjectDescription? = null
 

@@ -41,6 +41,13 @@ A car list screen SHALL present at most as many rows as the connected host displ
 - **AND** the remaining contacts SHALL be reachable through its page row
 - **Case**: `auto: AddressBookScreenTest.theAddressBookListFitsTheHostsCapacity`
 
+#### Scenario: The search history list fits the host's capacity
+
+- **WHEN** the car search history holds more stored searches than the host's reported capacity
+- **THEN** its template SHALL carry at most that many entry rows, and both the row slice and the count in its page row SHALL follow the capacity the host reports rather than the Car App Library's default
+- **AND** the remaining searches SHALL be reachable through its page row
+- **Case**: `auto: SearchHistoryScreenTest.theSearchHistoryListFitsTheHostsCapacity`
+
 ### Requirement: Items beyond the capacity stay reachable
 
 A car list whose items exceed the host's capacity SHALL offer the remaining items through a clickable final row that opens the next page in the same order, so every item can be reached while driving, and the way back to the previous page SHALL exist.
@@ -74,3 +81,9 @@ A car list whose items exceed the host's capacity SHALL offer the remaining item
 - **WHEN** the driver taps the address book's page row while a search text filters the contacts
 - **THEN** the page SHALL continue that same filtered list — it SHALL begin with the first matching contact the previous page did not show and SHALL NOT present a contact the search text excluded
 - **Case**: `auto: AddressBookScreenTest.thePageRowCarriesTheSearchTextToTheNextPage`
+
+#### Scenario: The search-history page continues the stored history
+
+- **WHEN** the driver taps the car search history's page row
+- **THEN** the page it opens SHALL carry the next stored searches in the same order, beginning with the first entry the previous page did not show and reaching the oldest one
+- **Case**: `auto: SearchHistoryScreenTest.thePageRowOpensTheNextSliceOfTheHistory`

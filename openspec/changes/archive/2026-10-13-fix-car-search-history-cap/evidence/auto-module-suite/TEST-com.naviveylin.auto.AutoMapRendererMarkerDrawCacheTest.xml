@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:31.383Z" hostname="dingens" time="0.249">
+  <properties/>
+  <testcase name="aDarkPresentationChangeRebuildsThePalette" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.081"/>
+  <testcase name="aSurfaceBoundsChangeRebuildsTheDrawObjects" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.053"/>
+  <testcase name="aDensityChangeRebuildsTheGeometryAtTheNewDensity" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.049"/>
+  <testcase name="consecutiveFramesReuseTheSameDrawObjects" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.066"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -2868,13 +2868,31 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `openspec/changes/archive/2026-10-13-fix-car-list-row-capacity/`.
 
 ## 178. The car search history presents all stored entries in one list, over a host capacity below 50 — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
-**id:** 178 · **category:** car · **class:** bug · **status:** open
+**id:** 178 · **category:** car · **class:** bug · **status:** fixed-by `fix-car-search-history-cap`
 
 - **Observed** ⚠: `SearchHistoryScreen` (`auto/src/main/java/com/naviveylin/auto/SearchHistoryScreen.kt`) renders every entry of `historyProvider.load()` into one `ItemList`, and the store keeps up to `MAX_ENTRIES = 50` (`SearchHistoryRepository`, `core/src/main/java/com/naviveylin/core/AutoSearchHistoryProvider.kt`). 50 rows is under the AAOS host's measured 100 (task 1.1 of `car-favorites-group-level`) but over the library's default of 6 — which is what any host that cannot answer, and any host with a smaller list budget, gives the screen: everything past its capacity disappears without a signal (the library's own build contract for `ItemList`).
 - **Why it is out of scope here** ℹ: `car-favorites-group-level` applied the row cap to the favourites lists and left the other car lists as they were. The capability it added (`car-list-row-limit`) covers this screen's shape too.
 - **Impact** ℹ: with 7+ entries the oldest searches vanish from the car list with no indication, while the phone's history keeps them.
 - **Fix candidate** ℹ: the same seam as §177 — `CarListCapacityReader` + `FavoritesScreenMapper.page` + a final page row with the remaining count (`R.string.more_items`), per screen start, with the page as a screen parameter.
 - **Related**: §177, §179, §180, change `car-favorites-group-level`, `guidelines/UI.md` §3.
+- **Loop verdict** ✅: `fixed-by fix-car-search-history-cap` (2026-10-13). Deciding sentence — `design.md` D1:
+  "Apply the shipped seam, add nothing" — `CarListCapacityReader.read` + `FavoritesScreenMapper.page` + the
+  `More (n)` row, "exactly as `FavoritesScreen` and `AddressBookScreen` use them", so this is the existing
+  capability `car-list-row-limit` applied to one more car list (the eliminated alternatives — let the host cap
+  the list, cap at a fixed constant, shorten the store's `MAX_ENTRIES`, truncate without a page row — are D1's,
+  the read's placement is D2, the pushed page is D3). Red on HEAD:
+  `auto:SearchHistoryScreenTest#theSearchHistoryListFitsTheHostsCapacity` failed with
+  `expected:<[query-1, query-2, query-3, query-4, query-5, query-6, query-7, query-8, More (3)]> but
+  was:<[query-1, query-2, query-3, query-4, query-5, query-6, query-7, query-8, query-9, query-10, query-11]>`
+  (XML `tests="2" skipped="0" failures="2" errors="0"`, 2026-10-13T20:37:54.926Z,
+  `evidence/TEST-SearchHistoryScreenTest-red-on-HEAD.xml`); the second case
+  `thePageRowOpensTheNextSliceOfTheHistory` was red in the same XML. One revert-check (the slice's
+  `capacity = rowCapacity` mutated to `capacity = list.size` at `SearchHistoryScreen.kt:98`) failed both
+  protected cases at the bound (XML `tests="2" failures="2"`, 2026-10-13T20:40:00.895Z); the forced `:auto` gate
+  was green — 82 XMLs, 842 cases, 0 failures, 0 errors, `SearchHistoryScreenTest` `tests="2" failures="0"` at
+  2026-10-13T20:41:43.841Z. Residue: `tasks.md` 5.1 — the capacity line and the `More` row on an AAOS host — left
+  pending (no device attached). Archived with its evidence as
+  `openspec/changes/archive/2026-10-13-fix-car-search-history-cap/`.
 
 ## 179. The car POI result list caps at 20 rows, over a host capacity below 20, and its cap is a constant rather than the host's — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
 **id:** 179 · **category:** car · **class:** bug · **status:** open

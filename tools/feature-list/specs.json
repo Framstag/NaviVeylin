@@ -146,6 +146,7 @@
     "route-panel-ui": { "area": "routing", "userVisible": true, "surfaces": ["phone"] },
     "route-planning-session": { "area": "routing", "userVisible": true, "surfaces": ["phone"] },
     "route-summary-dialog": { "area": "routing", "userVisible": true, "surfaces": ["phone"] },
+    "routing-max-speed": { "area": "routing", "userVisible": true, "surfaces": ["phone", "car"] },
     "routing-summary": { "area": "routing", "userVisible": false, "surfaces": ["phone"] },
     "search-dialog": { "area": "search", "userVisible": true, "surfaces": ["phone"] },
     "search-free-text": { "area": "search", "userVisible": true, "surfaces": ["phone", "car"] },

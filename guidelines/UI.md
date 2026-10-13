@@ -42,6 +42,7 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Car session live while the phone UI is open | Advisory indication on the map (centre-left pill, shared wording `car_session_active_indicator`, translated): "Navigation on car display". Informational only — no map, search or navigation control is disabled while a car session is live (change `shared-resource-arbitration`, spec `car-session-presence`) | Not shown — the car surface is the session, so the indication would tell the driver nothing (platform constraint, not an omission) |
 | Map updates: the list, its `[Update all]` and the check control | The map manager screen's updates section: the count, when the last check ran, one row per updatable installation with its size and `[Update]`, `[Update all]`, and `[Check for updates]` (spec `map-updates`, change `add-map-update-check`) | Not surfaced — the car has no map-manager screen at all; the checked state is process-wide, so a car session sees the same result while it keeps rendering whatever is installed. Accepted deviation per spec `cross-variant-ui-parity` ("a settings control may exist only in the phone variant when the car's surface cannot carry it") |
 | Route requested without the precise location grant | Actionable dialog with the shared wording (`location_precise_required_navigation`, `PreciseLocationRequiredDialog`): "Grant precise location" re-requests the permission while the platform can still ask, and opens the app's system settings once it will not ask again — no route request reaches the routing engine meanwhile (change `fix-location-permission-scope`, spec `location-permissions` — Starting navigation requires precise location) | **Same wording**, non-blocking: the refusal is published on the shared navigation state, so the session shows it in the existing guarded error notice (one row, back action). The car SHALL NOT launch a settings screen — platform constraint, so the driver is told to grant it on the phone / in the system settings. Free driving and the map keep working on both surfaces with approximate location |
+| A shared map link that carries neither a coordinate nor a place name | Non-blocking snackbar next to the map with the wording `shared_link_unreadable` ("Shared link could not be read"); the search field keeps its content and the panel is not opened — the link text is never searched for (spec: `share/location-receiving` — An unreadable shared map link is reported, never searched) | Reported on the shared navigation state, so the session shows it in the existing guarded error notice: wording `deep_link_unreadable`, no template message slot on the car, and the link is no longer geocoded (which is what the session did before — the geocode of a URL can only fail). Same intent, surface-appropriate carrier (change `read-shared-google-maps-links`, design D6) |
 
 ### Why the phone is not locked during a car session
 
@@ -520,12 +521,36 @@ Source: spec `search-dialog` (phone only).
   best-ranked 20, so a perfect match the backend's own order pushed past the
   page still appears. Favorites keep their unconditional position above native
   results (§ favorite-search) regardless of tier.
+- **The row's first line identifies the entry** (spec `location-search`, change
+  `search-result-row-content`): `label` with the entry's admin region name (`region[0]`, in practice
+  the city) appended as `label - city`, omitted when the entry has none and when it is the label
+  itself. Two hits with the same street name in different municipalities — which the search scope
+  (a Regierungsbezirk, §6a's scope rule) makes an everyday case — are told apart without opening them.
+  The **admin region hierarchy is not part of the row**: it belongs to the details sheet's "Area",
+  and the row shows it nowhere.
+- **The detail line carries what the first line does not**: `name` (when it differs from the label),
+  `objectTypeName` and `postalArea` for results that share a label (`"restaurant · 44139"`), and — for
+  a hit whose label is a POI's own name (`matchedComponent == "poi"`) — the address resolved at the
+  entry's position (`"Hauptstraße 20"`), looked up per row through `getAddressAt` off the main thread,
+  cached per position and dropped with the query. A street or address hit already carries street and
+  house number in its label and is never looked up. Nothing is composed per surface: `:core`
+  `ResultRowText` owns the text for both variants.
+- **The row leads with its type's artwork** (spec `search-result-row-icon`): the icon the active
+  stylesheet gives the entry's object type, resolved through the stylesheet itself (`renderTypeIcon`,
+  a native entry point that draws with `MapPainterCairo` and follows the icon-versus-symbol
+  preference), cached once per type, never requested on the main thread or during a car template
+  build. A type the stylesheet gives nothing draws no icon and no placeholder. The icon and the
+  marking share the one leading slot (see the composite bullet above) and are tinted with the
+  primary colour, because the stylesheet's own colours are chosen for the map's surface, not for
+  this one in both themes.
 - **Row marking is one composite glyph** (`:core` `ResultMarkings`, the single
   artwork source): heart for a favorite, tick for a perfect match, both drawn
   into one bitmap when a row is both. The phone tints it with the primary
   color and exposes the facts through the content description ("Favorite",
   "Exact match", "Exact match and favorite"); the row shows the composite
-  instead of stacking two icons.
+  instead of stacking two icons. When the entry's type has artwork, the same bitmap carries it
+  beside the marking (`ResultMarkings.bitmapFor(marking, typeIcon)`), so one slot holds both and the
+  marking keeps the offset it has on a row without an icon.
 - **Row distance is measured from the ranking reference**: the last known GPS
   fix, else the map center, else none (no distance shown). The same value
   ranked the list, so the km labels never contradict the order. The route-panel
@@ -578,6 +603,15 @@ Source: specs `auto-search`, `auto-search-suggestions` (change `unify-auto-searc
   at most two text lines and carries no accessibility text channel, so the
   marking is glyph-only on the car and the two facts cannot be announced — the
   phone row's content description has no car equivalent.
+- **The row's content is the shared composition** (change `search-result-row-content`): the title is
+  `label - city`, the one description line is the postal area — the row used to print that code
+  twice, because `region[]` is `[adminRegion, postalArea]` and not the hierarchy its javadoc
+  promises — and the second text line is the distance. The type artwork the entry's stylesheet gives
+  it joins the marking in the row's single image, resolved off the host thread and read from the
+  shared cache while the template is built. The street address a phone row resolves for a name hit has
+  no room here: a car `Row` allows two text lines and both are taken — the same documented,
+  platform-constrained deviation as the marking, and it removes nothing the driver cannot reach, since
+  the details screen shows the address.
 - **Action-phrase labels — documented parity deviation**: the suggestion rows
   use action phrases ("Search POIs near me", "Search contacts"), not the
   phone's mode labels ("Places" / "POIs" / "Contacts"). This is the

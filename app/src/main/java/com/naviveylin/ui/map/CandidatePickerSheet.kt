@@ -69,14 +69,22 @@ fun CandidatePickerSheet(
     }
 }
 
+/**
+ * The object's name entry ("General"/"Name"), or null when the object has none.
+ *
+ * Shared by the picker row and by the share flow's name ranking, so "the candidate's name"
+ * means one thing (spec: share/location-receiving — Shared place name ranks the candidate list).
+ */
+internal fun ObjectDescription.objectName(): String? =
+    entries.firstOrNull { it.sectionKey == "General" && it.labelKey == "Name" }
+        ?.value?.takeIf { it.isNotBlank() }
+
 @Composable
 private fun CandidateRow(
     candidate: ObjectDescription,
     onClick: () -> Unit
 ) {
-    val name = candidate.entries.firstOrNull {
-        it.sectionKey == "General" && it.labelKey == "Name"
-    }?.value?.takeIf { it.isNotBlank() } ?: "(unnamed)"
+    val name = candidate.objectName() ?: "(unnamed)"
     val type = candidate.objectTypeName?.takeIf { it.isNotBlank() }
     val snippet = candidate.entries
         .filterNot { it.sectionKey == "General" && it.labelKey == "Name" }

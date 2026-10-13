@@ -7,6 +7,7 @@ import androidx.compose.ui.test.performClick
 import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.ObjectDescription
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -88,5 +89,37 @@ class CandidatePickerSheetComposeTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Hotel Central").performClick()
         assertEquals(first, selected)
+    }
+
+    /**
+     * The share flow's name ranking reaches the pixels: the candidate whose name matches the shared
+     * place name is drawn above the others, and the database's own order holds for the rest (spec:
+     * share/location-receiving — Shared place name ranks the candidate list). The list is ranked with
+     * the same function the map screen uses, so the case would fail if the ranking ever became a
+     * filter or stopped reordering.
+     */
+    @Test
+    fun rankedCandidateIsDrawnAboveTheOthers() {
+        val candidates = listOf(
+            candidate("Cafe", "amenity_cafe", 100L),
+            candidate("Hotel Central", "tourism_hotel", 200L),
+            candidate("Eiffel Tower", "tourism_attraction", 300L)
+        )
+
+        composeRule.setContent {
+            CandidatePickerSheet(
+                candidates = rankCandidatesByName(candidates, "Eiffel Tower"),
+                onCandidateSelected = {},
+                onDismiss = {}
+            )
+        }
+        composeRule.waitForIdle()
+
+        val rankedTop = composeRule.onNodeWithText("Eiffel Tower").fetchSemanticsNode().positionInRoot.y
+        val cafe = composeRule.onNodeWithText("Cafe").fetchSemanticsNode().positionInRoot.y
+        val hotel = composeRule.onNodeWithText("Hotel Central").fetchSemanticsNode().positionInRoot.y
+
+        assertTrue("the named candidate is the top row: $rankedTop vs $cafe / $hotel", rankedTop < cafe)
+        assertTrue("the database order holds below it: $cafe vs $hotel", cafe < hotel)
     }
 }

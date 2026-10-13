@@ -61,9 +61,12 @@ import com.naviveylin.location.LocationConsumers
 import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
 import com.naviveylin.core.FixFreshness
+import com.naviveylin.core.ResultMarkings
+import com.naviveylin.core.SearchRowIcons
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.navigation.CarSessionPresenceImpl
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.share.SharedLocationOutcome
 import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.ui.route.RouteOverlayAnchor
 import com.naviveylin.ui.route.RoutePanelViewModel
@@ -548,7 +551,7 @@ class MapCanvasViewModel @Inject constructor(
         if (!followDisplayLon.isNaN()) followDisplayLon else smoothedCenterLon
 
     // Auto-zoom state
-    private var lastValidSpeedKmH: Double = 20.0
+    private var lastValidSpeedKmH: Double = Double.NaN
     private var autoZoomSuspended: Boolean = false
 
     // Vehicle anchors from the shared settings (spec: smooth-follow — Vehicle
@@ -696,7 +699,12 @@ class MapCanvasViewModel @Inject constructor(
     /** Get the current navigation position for marker rendering. */
     fun getNavigationPosition(): com.framstag.libosmscout.client.NavigationPosition? = _navPosition
 
-    /** Filter speed spikes: reject speed above the plausibility ceiling, use last good speed. */
+    /**
+     * Filter speed spikes: reject speed above the plausibility ceiling. An unknown speed stays unknown
+     * (NaN) rather than falling back to a remembered value (spec: `auto-speed-zoom` — Auto-zoom speed
+     * source per surface): the seed this used to hold pinned the phone's free-driving zoom target to
+     * the 20 km/h level, so a free drive at 90+ km/h never zoomed out.
+     */
     private fun filterSpeed(rawSpeedKmH: Double): Double {
         if (rawSpeedKmH >= 0 && rawSpeedKmH <= MAX_PLAUSIBLE_SPEED_KMH) {
             lastValidSpeedKmH = rawSpeedKmH
@@ -996,6 +1004,7 @@ class MapCanvasViewModel @Inject constructor(
         }
         appliedMapStyle = AppliedMapStyle(appliedMapStyle?.styleName, daylight)
         mapRenderer?.invalidateStyle()
+        invalidateRowIcons()
     }
 
     /**
@@ -1026,6 +1035,7 @@ class MapCanvasViewModel @Inject constructor(
         if (ok) {
             appliedMapStyle = AppliedMapStyle(name, daylight)
             mapRenderer?.invalidateStyle()
+            invalidateRowIcons()
             return true
         }
 
@@ -1092,9 +1102,25 @@ class MapCanvasViewModel @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "setPreferSymbolIcons failed", e)
         }
+        // The rows draw the same artwork the map draws, so the preference moves them too
+        // (spec: search-result-row-icon — Preference change reaches the row without a restart).
+        invalidateRowIcons()
         if (invalidate) {
             mapRenderer?.invalidateStyle()
         }
+    }
+
+    /**
+     * Drop the result rows' resolved type-icon artwork — the icon cache and the composites drawn
+     * with it. Called wherever the stylesheet that artwork comes from changes: a loaded style, the
+     * day/night reload (which reloads the active stylesheet), and the icon-versus-symbol preference.
+     * A missed call shows the previous style's icon until the next one (spec:
+     * `search-result-row-icon` — Resolved artwork is reused and follows the style; change
+     * `search-result-row-content`, design D7).
+     */
+    private fun invalidateRowIcons() {
+        SearchRowIcons.clear()
+        ResultMarkings.clear()
     }
 
     /**
@@ -1261,12 +1287,12 @@ class MapCanvasViewModel @Inject constructor(
             carSessionPresence.active.collect { active -> onCarSessionPresenceChanged(active) }
         }
 
-        // Shared locations (share sheet / deep links): process when the map
-        // screen is up. Coordinates go through the candidate flow; address text
-        // opens the search panel with the query filled.
+        // Share sheet / deep links: process when the map screen is up. Coordinates go
+        // through the candidate flow, address text opens the search panel with the query
+        // filled, and a map link that cannot be read is reported, never searched.
         viewModelScope.launch {
-            sharedLocationHandler.request.collect { request ->
-                if (request != null) processSharedLocation(request)
+            sharedLocationHandler.outcome.collect { outcome ->
+                if (outcome != null) processSharedLocation(outcome)
             }
         }
 
@@ -1640,7 +1666,11 @@ class MapCanvasViewModel @Inject constructor(
                 if (positionChanged && _uiState.value.autoZoomEnabled) {
                     val navVm = _navigationViewModel
                     val navState = navVm?.state?.value
-                    val rawSpeed = navState?.currentSpeedKmH ?: Double.NaN
+                    val rawSpeed = autoZoomSpeedKmH(
+                        isNavigating = isNavigatingNow(),
+                        engineSpeedKmH = navState?.currentSpeedKmH ?: Double.NaN,
+                        ownSpeedKmH = _uiState.value.currentSpeedKmH
+                    )
                     val filteredSpeed = filterSpeed(rawSpeed)
                     val speedTarget = SpeedZoomTable.compute(filteredSpeed)
 
@@ -2981,16 +3011,24 @@ class MapCanvasViewModel @Inject constructor(
      * objects near the point and show the picker, or fall back to the raw
      * coordinate entry. Used by long-press and shared-location processing.
      *
+     * @param nameHint a place name the shared input carried (the share subject, else the place
+     *   name the link itself carries): candidates whose name contains it are listed first. It is
+     *   a ranking, never a filter — nothing is dropped.
      * @param openDetailsOnNoCandidates when no objects are found, open the
      *   details sheet on the raw coordinate instead of showing only the marker
      *   (share flow; long-press keeps the marker-only behavior).
+     * @param openDetailsOnSingleCandidate when exactly one object is found, open the details
+     *   sheet for it instead of a one-row picker (share flow; long-press keeps the picker as
+     *   confirmation of the point the user chose).
      */
     private fun showCandidatesFor(
         lat: Double,
         lon: Double,
         zoom: Int,
         label: String,
-        openDetailsOnNoCandidates: Boolean = false
+        nameHint: String? = null,
+        openDetailsOnNoCandidates: Boolean = false,
+        openDetailsOnSingleCandidate: Boolean = false
     ) {
         viewModelScope.launch {
             val entry = LocationEntry().apply {
@@ -3013,14 +3051,22 @@ class MapCanvasViewModel @Inject constructor(
                 }
             }
             if (candidates.isNotEmpty()) {
-                // Multiple (or any) candidates: show the picker, no details yet.
-                _uiState.value = _uiState.value.copy(
-                    candidateDescriptions = candidates,
-                    showCandidatePicker = true,
-                    isLoading = false,
-                    showDetailsSheet = false,
-                    detailsFromPoiSearch = false
-                )
+                val ranked = rankCandidatesByName(candidates, nameHint)
+                if (openDetailsOnSingleCandidate && ranked.size == 1) {
+                    // Exactly one object at the point: the picker would ask a question with one
+                    // answer, so the details flow opens for it (spec: share/location-receiving —
+                    // Exactly one candidate opens the details sheet).
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    onCandidateSelected(ranked.single())
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        candidateDescriptions = ranked,
+                        showCandidatePicker = true,
+                        isLoading = false,
+                        showDetailsSheet = false,
+                        detailsFromPoiSearch = false
+                    )
+                }
             } else {
                 // No objects at the point: keep the coordinate entry, no picker.
                 _uiState.value = _uiState.value.copy(
@@ -3037,23 +3083,35 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
-     * Process a shared location: wait for the map to be ready, then dispatch.
-     * Coordinates go through the candidate flow (fixed high zoom, details on
-     * the raw coordinate when nothing is found); address text opens the search
-     * panel with the query filled.
+     * Process a share outcome: wait for the map to be ready, then dispatch.
+     * Coordinates go through the candidate flow (fixed high zoom, the shared name hint
+     * ranking the candidates, details directly on a single hit and on the raw coordinate
+     * when nothing is found); address text opens the search panel with the query filled; an
+     * unreadable map link is reported and never searched (spec: share/location-receiving).
      */
-    private suspend fun processSharedLocation(request: SharedLocationRequest) {
+    private suspend fun processSharedLocation(outcome: SharedLocationOutcome) {
         // Candidate lookup and search need the map database open.
         mapReady.first { it }
         sharedLocationHandler.consume()
 
+        when (outcome) {
+            SharedLocationOutcome.UnusableLink -> {
+                // Shape only: the link text is exactly what the search must not receive.
+                Log.d(TAG, "Shared location: shape=unusable map=${currentMapKey ?: "?"}")
+                showSnackbar(context.getString(R.string.shared_link_unreadable))
+            }
+            is SharedLocationOutcome.Request -> processSharedRequest(outcome.request)
+        }
+    }
+
+    private fun processSharedRequest(request: SharedLocationRequest) {
         if (request.hasCoordinates) {
             val lat = request.lat!!
             val lon = request.lon!!
             Log.d(
                 TAG,
                 "Shared location: shape=coordinates " +
-                    "labelHint=${if (request.label != null) "subject" else "none"} " +
+                    "labelHint=${if (request.label != null) "present" else "none"} " +
                     "mag=${_uiState.value.viewport.magnification} map=${currentMapKey ?: "?"}"
             )
             updateCenter(lat, lon)
@@ -3062,7 +3120,9 @@ class MapCanvasViewModel @Inject constructor(
                 lon = lon,
                 zoom = SHARE_CANDIDATE_ZOOM,
                 label = request.label ?: String.format(Locale.US, "%.5f, %.5f", lat, lon),
-                openDetailsOnNoCandidates = true
+                nameHint = request.label,
+                openDetailsOnNoCandidates = true,
+                openDetailsOnSingleCandidate = true
             )
         } else {
             val query = request.query
@@ -3496,7 +3556,7 @@ class MapCanvasViewModel @Inject constructor(
             currentTargetMag = 15.0
             lastAutoZoomCommitMs = 0L
             turnPassedDistance = Double.NaN
-            lastValidSpeedKmH = 20.0
+            lastValidSpeedKmH = Double.NaN
             // Set initial magnification to routing-sensible default
             _uiState.value = _uiState.value.copy(
                 viewport = _uiState.value.viewport.copy(magnification = DRIVE_PRESET_MAG)
@@ -3598,7 +3658,7 @@ class MapCanvasViewModel @Inject constructor(
         currentTargetMag = 15.0
         lastAutoZoomCommitMs = 0L
         turnPassedDistance = Double.NaN
-        lastValidSpeedKmH = 20.0
+        lastValidSpeedKmH = Double.NaN
         renderMap()
     }
 
@@ -3662,7 +3722,7 @@ class MapCanvasViewModel @Inject constructor(
         currentTargetMag = 15.0
         lastAutoZoomCommitMs = 0L
         turnPassedDistance = Double.NaN
-        lastValidSpeedKmH = 20.0
+        lastValidSpeedKmH = Double.NaN
         renderMap()
     }
 

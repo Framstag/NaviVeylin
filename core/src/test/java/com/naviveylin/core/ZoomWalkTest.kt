@@ -13,7 +13,7 @@ import kotlin.math.pow
  * Verifies [ZoomWalk]: cold-start landing, window-bounded steps, render-synchronous
  * stepping, exact landing on the requested magnification, in-window single steps,
  * newest-request-wins re-targeting, re-commit tolerance, cancellation, the
- * persisted-value rule and the coverage bound of the display scale.
+ * persisted-value rule, the pin's lifetime and the coverage bound of the display scale.
  *
  * Plain JUnit - no Robolectric, no JNI stub involved.
  */
@@ -179,6 +179,42 @@ class ZoomWalkTest {
         assertEquals(15.5, walk.renderMag(15.5), 1e-9)
         val step = walk.request(ENTRY_TO_MAG, ENTRY_FROM_MAG)
         assertEquals(step, walk.renderMag(15.5), 1e-9)
+    }
+
+    @Test
+    fun `a landed walk does not pin a later committed magnification`() {
+        val walk = ZoomWalk()
+        var frontMag = ENTRY_FROM_MAG
+        var current = walk.request(ENTRY_TO_MAG, frontMag)
+        while (walk.active) {
+            frontMag = current
+            current = walk.onFrameLanded(frontMag)
+                ?: error("walk still active but no next step after $frontMag")
+        }
+        assertEquals("the last step must land exactly on the request", ENTRY_TO_MAG, current, 1e-9)
+
+        // A magnification committed by another path while no walk is pending - the route
+        // overview fit, a mode preset, a re-center - must be the magnification the render
+        // pipeline uses. The landed walk's step must not keep pinning the pipeline.
+        assertEquals(
+            "a landed walk must not pin the render magnification",
+            ENTRY_FROM_MAG,
+            walk.renderMag(ENTRY_FROM_MAG),
+            1e-9
+        )
+    }
+
+    @Test
+    fun `a pending walk still pins its step`() {
+        val walk = ZoomWalk()
+        val step = walk.request(ENTRY_TO_MAG, ENTRY_FROM_MAG)
+        assertTrue("the requested walk must be pending", walk.active)
+        assertEquals(
+            "the frame of the current step has not landed: that step pins the render",
+            step,
+            walk.renderMag(ENTRY_FROM_MAG),
+            1e-9
+        )
     }
 
     @Test

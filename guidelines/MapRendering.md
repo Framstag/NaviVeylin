@@ -483,6 +483,15 @@ Provider-aware inside `LocationService` only:
   exactly on the recorded target. Without this, an entry from a browse viewport at mag 13 to a speed
   target of 17 showed the old raster scaled across a 16x area change (the phone's reported
   "wrong-scale picture", parity with `AutoMapRenderer.advanceZoomWalk` on the car).
+- **The walk's pin on the render magnification lives exactly as long as the walk.** `ZoomWalk.renderMag`
+  honours its `step` only while a walk is pending and falls back to the committed magnification
+  otherwise. A landed walk keeps its `step` deliberately — the display target and the landing check
+  read it — but it must not pin the pipeline: otherwise every magnification committed outside the walk
+  (`fitViewportToRoute`, the follow-engage preset, the mode presets, a re-center) is silently discarded
+  (measured 2026-10-13 on the phone: the route overview fit committed mag 10.0 and the frame was
+  rendered at the landed auto-zoom walk's 17.756, so the fitted route lay outside the frame until an
+  unrelated render put the camera back on the vehicle). The reader bounds the pin, not a `cancel()`
+  obligation at every magnification writer.
 - **The viewport keeps the FINAL magnification while the display walks.** `viewport.magnification`
   is the recorded (and persisted) target; `MapCanvasUiState.zoomWalkStepMag` carries the step the
   render pipeline and the display animation are on, and `zoomAnimationTargetMag` derives the value

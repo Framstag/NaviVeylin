@@ -134,10 +134,18 @@ class ZoomWalk(
     }
 
     /**
-     * The magnification a render should use now: the walk's current step, or
-     * [fallback] (the committed viewport magnification) when no walk has run.
+     * The magnification a render should use now: the walk's current step while a walk is
+     * pending, or [fallback] (the committed viewport magnification) otherwise.
+     *
+     * The pin lives exactly as long as the walk (spec: `smooth-zoom` - The render pin lives only
+     * as long as the walk). [step] keeps the value of the last LANDED walk, so honouring it
+     * unconditionally pins the render pipeline to that value forever and every later magnification
+     * another path commits - the route overview fit, a mode preset, a re-center - never reaches the
+     * map (measured on device 2026-10-13: the fit committed mag 10.0, the frame was rendered at the
+     * landed walk's 17.756, and the route was out of the frame until an unrelated render moved the
+     * camera back onto it).
      */
-    fun renderMag(fallback: Double): Double = if (step.isNaN()) fallback else step
+    fun renderMag(fallback: Double): Double = if (active && !step.isNaN()) step else fallback
 
     /**
      * The magnification to persist: the walk's target while one is pending,

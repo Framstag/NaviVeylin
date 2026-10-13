@@ -42,6 +42,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import java.io.File
+import kotlin.math.log2
 import com.naviveylin.test.engineUnderTest
 
 /**
@@ -215,6 +216,46 @@ class MapCanvasViewModelRouteFitTest {
         assertEquals(expectedFitMag(doubleArrayOf(48.0, 49.0, 2.0, 2.6)), vp.magnification, 1e-9)
         // The route must be drawn on the map as well (spec R1).
         assertNotNull("route must be drawn after fit", client.lastRouteLats)
+    }
+
+    /**
+     * The walk's pin must not outlive the walk (spec `smooth-zoom` — "The render pin lives
+     * only as long as the walk"): a route overview fit committed while no walk is pending
+     * is the magnification the render pipeline uses. Measured on the phone before the fix:
+     * the fit committed mag 10.0 and the frame was rendered at the landed walk's 17.756.
+     */
+    @Test
+    fun fitAfterALandedWalkIsRenderedAtTheFitMagnification() = runTest(mainDispatcherRule.dispatcher) {
+        wireRendererAndPanel()
+        // Frame in hand at 13.0, then a commit that walks to 15.0 and lands through injected
+        // frames (the same path the frame collector uses, no native pipeline needed).
+        viewModel.publishRenderedFrameForTest(13.0)
+        viewModel.updateMagnification(15.0)
+        var walkedFrames = 0
+        while (!viewModel.uiState.value.zoomWalkStepMag.isNaN() && walkedFrames++ < 40) {
+            viewModel.publishRenderedFrameForTest(viewModel.uiState.value.zoomWalkStepMag)
+        }
+        assertTrue("the walk must land inside the frame guard", walkedFrames < 40)
+        assertEquals(
+            "the walk landed on the committed magnification",
+            15.0,
+            viewModel.uiState.value.viewport.magnification,
+            1e-9
+        )
+
+        // No walk is pending now: the route overview fit commits its own magnification and
+        // the next render must use it, not the landed walk's step.
+        calculateAndAwaitRender(48.0, 2.0, 49.0, 2.6)
+        val fitMag = viewModel.uiState.value.viewport.magnification
+        assertEquals(expectedFitMag(doubleArrayOf(48.0, 49.0, 2.0, 2.6)), fitMag, 1e-9)
+        // The client records the magnification SCALE of a render; the renderer derives it as
+        // 2^mag, so compare in magnification levels.
+        assertEquals(
+            "the fit's magnification must be the one the map was rendered at",
+            fitMag,
+            log2(client.lastRenderMag),
+            1e-9
+        )
     }
 
     @Test

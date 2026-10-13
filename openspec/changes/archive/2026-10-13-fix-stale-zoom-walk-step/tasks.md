@@ -1,0 +1,23 @@
+# Tasks
+
+## 1. The red cases (spec `smooth-zoom` — *The render pin lives only as long as the walk*)
+
+- [x] 1.1 Add the case "a landed walk does not pin a later committed magnification" to `core/src/test/java/com/naviveylin/core/ZoomWalkTest.kt`: walk to completion, then assert `renderMag(B)` is B. Verify: the case is red on HEAD with the stale step quoted in the failure (the walk's final magnification returned instead of B), and the tally recorded in the task. **Result:** red on HEAD, `expected:<13.0> but was:<17.0>` (`ZoomWalkTest.kt:199`); class tally 16 tests / 1 failure.
+- [x] 1.2 Add the guard case "a pending walk still pins its step" to `ZoomWalkTest`: a walk whose step's frame has not landed returns that step, not the fallback. Verify: green on HEAD (it pins today's correct behaviour, so the fix must keep it green). **Result:** green on HEAD and after the fix.
+- [x] 1.3 Add the pipeline case `MapCanvasViewModelRouteFitTest.fitAfterALandedWalkIsRenderedAtTheFitMagnification` (`app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelRouteFitTest.kt`, whose `wireRendererAndPanel`/`calculateAndAwaitRender` helpers and recording fake client already serve this): a completed walk, then a route-result fit commits while no walk is pending — the last native render must carry the fit's magnification. Verify: red on HEAD (the render carries the landed walk's step instead); the `fitAfterALandedWalkIsRenderedAtTheFitMagnification` name is the one the `smooth-zoom` delta's scenario quotes.
+
+## 2. The fix and its documentation (spec `smooth-zoom` — *The render pin lives only as long as the walk*)
+
+- [x] 2.1 Change `ZoomWalk.renderMag` (`core/src/main/java/com/naviveylin/core/ZoomWalk.kt:140`) to honour its step only while a walk is pending, and fall back to the committed magnification otherwise. Verify: 1.1, 1.2 and 1.3 green; the whole class green through `--tests com.naviveylin.core.ZoomWalkTest`, including the cancelled-walk case at `:152`.
+- [x] 2.2 Extend `renderMag`'s KDoc to state the pin's scope (the step applies while the walk is pending; the committed magnification wins otherwise). Verify: read-back against the new spec scenario wording; no behaviour change in the same commit.
+- [x] 2.3 Add the sentence to the walk entry in `guidelines/MapRendering.md` §11 (lines 476-491): the pin lives exactly as long as the walk, so a camera fit, a preset or any other later commit is rendered at the committed value. Verify: the section reads consistently with the new spec requirement and with the display path's `zoomWalkStepMag` fallback (`MapCanvasViewModel.kt:4539-4541`).
+
+## 3. Integration verification
+
+- [x] 3.1 Revert-check the new invariant: mutate `renderMag` back to `if (step.isNaN()) fallback else step`, confirm 1.1 and 1.3 fail, restore, and re-run them forced green. Verify: the two named cases are the ones that fail (no other case in the class does), as `revert-check` requires.
+- [x] 3.2 Device re-run of the captured flow (`guidelines/Build.md` §10/§11): plan a route on the phone, note the overview, press Start, stay parked with the vehicle on the route. Verify, and record in the change: the log pair `fitViewportToRoute mag=X` / `executeRender start mag=Y` agrees (HEAD measured X=10.0, Y=17.756), and the route-paint pixels in the displayed frame are non-zero (HEAD measured 0 parked and 47 854 after one re-center render; count with `.pi/logs/route-nav-start/count.py`). A run whose fix is off the road (`Abseits der Straße`) is not attributable — repeat with the vehicle on the route.
+- [x] 3.3 Run the focused module suites, then the both-flavor gate once before committing (`guidelines/Build.md` §2/§3/§4); name every exclusion. Verify: `BUILD SUCCESSFUL` with the changed cases in the tally, and the gate's declared-cases step (`tools/declared-cases.sh`) green. **Result (recorded in `evidence/gate-2026-10-13.md`):** declared-cases selection green (7 classes, 88 tests, 0 failures); gate split per module, forced — `:core` BUILD SUCCESSFUL 26 s, `:auto` BUILD SUCCESSFUL 32 s, `:app:testMobileDebugUnitTest` **no verdict** (killed at the 28-minute harness cap) with 28 failures, all `TODO.md` §195 Compose timeouts, plus §189/§194's `ShippedSpecClassificationTest`; `:app:testAutomotiveDebugUnitTest` not run (identical test classes, same condition). Exclusions named: the two `:app` flavors and the shipped-ABI build — the forced gate is red on HEAD for §195/§189/§194, which no change in this tree can fix.
+
+## Workflow follow-up
+
+- Archive the change after the project's review requirements are satisfied, and verify the archived `smooth-zoom` requirement and the guideline sentence are what landed.

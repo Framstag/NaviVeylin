@@ -110,7 +110,9 @@ travel while the map itself rotates at its own pace.
 - The drawn offset MUST stay inside `(bitmap − canvas)/2`; `FollowPrediction.displayOffsetPx`
   returns the clamped value and a `clamped` flag, and the follow display loop requests a full render
   at the displayed position when the flag is set (the map keeps scrolling instead of sticking at the
-  buffer edge).
+  buffer edge). That clamp is the LAST resort, not the trigger: `FollowRefreshPolicy` requests the
+  frame while margin remains (§4), because a clamped offset freezes the drawn content until the new
+  frame lands.
 - **Marker projection:** the GPS marker is drawn by a separate Compose overlay with no offset of
   its own, so its viewport must absorb the blit offset: in follow mode the marker projects against
   the **anchor center of the displayed (eased predicted) position** — the viewport for which that
@@ -185,12 +187,22 @@ travel while the map itself rotates at its own pace.
   only before the first display frame.
 - **Frozen stop/go (same delta):** below `FOLLOW_MIN_SPEED_KMH` the displayed position and the
   blit offset are FROZEN, never reset, and the marker keeps riding the frozen displayed position;
-  the display is reset (offsets zeroed) only when follow mode disengages. The monotonic
-  forward-only ease lives in `core/FollowDisplayState` (holds when the fix-arrival target drops
-  behind; snaps when the target gap exceeds `TELEPORT_SNAP_METERS`).
+  the display is reset (offsets zeroed) only when follow mode disengages. The bounded-rate display
+  lives in `core/FollowDisplayState`: the displayed position advances at the prediction's committed
+  effective speed (`FollowPrediction.effectiveSpeedMs`) plus a correction toward the extrapolated
+  target, clamped to `CORR_FRACTION` (0.25, floored at `CORR_FLOOR_M_S` = 1 m/s) of that speed — a
+  fix-arrival target that drops behind the display slows the map to 0.75x, it never freezes it and
+  never reverses it; the display snaps when the target gap exceeds `TELEPORT_SNAP_METERS`. The
+  correction and the snap are skipped while the reference is older than `STALE_REFERENCE_SEC` (3 s),
+  so a lost fix dead-reckons at the decaying speed instead of being dragged back onto a fix the
+  vehicle has long left. The committed speed itself moves toward the estimate at no more than
+  `BOUNDED_STEP_MS2` = 2.5 m/s², so the deceleration cap cannot step the displayed rate by 30 % in
+  one fix. The pre-2026-10-12 monotonic forward-only hold is GONE: measured on the emulator it
+  stopped the map for up to 2.7 s (29 % of the driving time at a steady 50 km/h) and paid the gap
+  back at up to 2.9x the vehicle speed.
 - **AA follow loop shares the same contract (delta fix-aa-follow-vehicle-jumps):**
   `AutoMapRenderer`'s extrapolation loop drives the displayed position through the SAME
-  `FollowDisplayState` (phone and AA now use one tested forward-only rule) — `extrapolationTick`
+  `FollowDisplayState` (phone and AA use one tested bounded-rate rule) — `extrapolationTick`
   re-syncs the state after any frozen gap and copies the advance back into the `@Volatile`
   display fields. The stopped gate FROZES the display + marker (no NaN reset / raw-fix fallback;
   a stationary fix re-seeds the viewport to the fix ONCE per stop episode, then jitter fixes are
@@ -284,6 +296,17 @@ travel while the map itself rotates at its own pace.
   per time window is triggered. This keeps the native pipeline from overflowing.
 - `positionChanged` threshold: render only from > 5 m movement (or first fix). Otherwise
   jitter renders.
+- **The follow frame is requested BEFORE the overrun margin is exhausted** (`FollowRefreshPolicy`,
+  spec `smooth-follow` — Follow frame refresh before the overrun margin is exhausted). In a
+  steady-heading drive the clamp used to be the ONLY trigger (`shouldRender` is false while the
+  display loop runs, and a constant heading never sets `angleChanged`), so the request was issued
+  when the margin was already gone and the display sat pinned at the margin for a whole render —
+  measured on the emulator 2026-10-12: byte-identical frames for 1.5-2.7 s, 29 % of the driving time
+  at a steady 50 km/h, then the stall paid back in one frame. The policy requests at
+  `share x margin`, `share = MAX_SHARE` (0.55) when the render latency is unknown, and
+  `min(MAX_SHARE, max(MIN_SHARE, 1 − latency/margin − SAFETY_SHARE))` when it is known, one request
+  outstanding at a time. The clamp remains the last resort for a render slower than the margin the
+  threshold leaves (a latency above ~45 % of the margin, ~108 px or 2.4 s of travel at 50 km/h).
 
 ## 5. Epoch Rules
 
@@ -426,6 +449,15 @@ Provider-aware inside `LocationService` only:
 
 ## 11. Auto-Zoom
 
+- **The speed each surface feeds the table is its own** (`autoZoomSpeedKmH` in
+  `ui/map/AutoZoomSpeedSource.kt`, spec `auto-speed-zoom` — Auto-zoom speed source per surface): the
+  phone uses its GPS fix speed while free driving and the navigation engine's speed while route
+  guidance is active; the car uses the engine's speed (it has no other). Measured 2026-10-12: the
+  phone read the engine speed unconditionally, which is not fed outside navigation, and a
+  `lastValidSpeedKmH` seed of 20.0 stood in for it — a free drive at 90+ km/h kept the 20 km/h
+  target (16.0) instead of the highway one (13.0). The seed is gone; an unknown speed now reaches
+  the table as NaN and the table returns its stationary level (a NaN input otherwise fell through
+  every comparison to the LAST entry, the 130 km/h magnification).
 - Convergence is distance-proportional, not gated. `SpeedZoomTable.stepToward(current, target)`
   (`core/src/main/java/com/naviveylin/core/SpeedZoomTable.kt`) moves a constant fraction of the
   remaining gap (`ZOOM_CONVERGENCE_GAIN = 0.3`), capped at `MAX_ZOOM_STEP_PER_UPDATE = 0.5`
@@ -719,10 +751,15 @@ car Surface:
   `fix-car-follow-reengage-render`, spec `auto-smooth-follow` — A follow re-engage requests the frame
   it re-anchored). The guard matters: the render loop draws one frame per `renderSignal` value, so an
   unconditional request doubles the fix path's renders.
-- **Stale fix must ease back, never freeze**: a GPS gap does NOT gate the extrapolation loop
-  off — `FollowPrediction.predictedPosition` holds past its extrapolation window, so the display
-  eases back to the last fix. Freezing the display at the last predicted position reads as a
-  massive overshoot during gaps.
+- **A stale fix must not freeze the display**: a GPS gap does NOT gate the extrapolation loop off.
+  The feed-forward keeps the last committed speed, decaying to zero over `STALE_FEED_GRACE_SEC` +
+  `STALE_FEED_DECAY_SEC` = 3 + 7 s (`FollowPrediction`), and the correction and the snap are skipped
+  while the reference is older than `STALE_REFERENCE_SEC` — the display keeps advancing forward at
+  the decaying speed instead of stopping. Both alternatives were measured as wrong: freezing the
+  display at the last predicted position reads as a massive overshoot during gaps, and correcting
+  onto the stale fix dragged the map backwards off the road. The first fresh fix afterwards
+  re-applies the correction and, beyond `TELEPORT_SNAP_METERS`, the snap — that is the GPS-recovery
+  case.
 - **Blit eligibility**: only pure viewport/marker changes may blit. Favorites, route, a change of
   the renderer's projection DPI, and
   surface changes force a full render (`blitEligible = false`) — a blit would show stale

@@ -60,6 +60,12 @@ object SpeedZoomTable {
     fun compute(speedKmH: Double): Double {
         if (TABLE.isEmpty()) return 15.0
 
+        // An unknown speed is not a very fast one: without this guard the comparisons below all fail
+        // for NaN and the function falls through to the LAST entry (the 130 km/h magnification), which
+        // is what a surface with no speed yet used to target (spec: `auto-speed-zoom` — Auto-zoom
+        // speed source per surface: the table owns what an unknown input means).
+        if (speedKmH.isNaN()) return TABLE.first().magnification
+
         // Clamp below first entry
         if (speedKmH <= TABLE.first().speedKmH) return TABLE.first().magnification
         // Clamp above last entry

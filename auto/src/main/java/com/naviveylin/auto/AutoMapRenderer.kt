@@ -1128,16 +1128,21 @@ class AutoMapRenderer internal constructor(
         ) {
             followDisplayState.reset()
         }
-        // Forward-only displayed position (delta fix-aa-follow-vehicle-jumps):
-        // FollowDisplayState holds when the target drops behind the display
-        // along the direction of travel (fix-arrival overshoot on curves /
-        // decelerations) and eases forward otherwise — no backward correction
-        // slide at the 1 Hz fix cadence. `gpsMarkerBearing` is the effective
-        // bearing (NaN skips the rule, matching the phone). The result is
-        // copied back into the @Volatile fields, the single cross-thread
+        // Bounded-rate displayed position (spec: auto-smooth-follow — Correction easing, Shared
+        // follow bounds on the car surface): the display advances at the committed effective speed
+        // along the direction of travel plus a rate-clamped correction toward the fix, so a fix that
+        // lands behind the display is a rate dip, never a halt and never a reversal.
+        // `gpsMarkerBearing` is the effective bearing (NaN drops the feed-forward term, matching the
+        // phone). The result is copied back into the @Volatile fields, the single cross-thread
         // source for the marker and the margin render target.
+        val vEff = followPrediction.effectiveSpeedMs(nowMs)
+        // The reference is the extrapolated target ([predicted], the prediction's own output) — a
+        // CONTINUOUS reference. The raw fix is a step function between arrivals, and correcting onto
+        // it would run the map a quarter slow; the prediction supplies the motion, the fix has
+        // already been folded into it.
         val (displayedLat, displayedLon) = followDisplayState.advance(
-            predicted.first, predicted.second, dtSec, gpsMarkerBearing
+            predicted.first, predicted.second, dtSec, gpsMarkerBearing, vEff,
+            followPrediction.feedAgeSec(nowMs)
         )
         displayLat = displayedLat
         displayLon = displayedLon

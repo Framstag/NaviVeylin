@@ -1417,6 +1417,16 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
 - **An emulator cannot inject a bearing** (§40.40): `geo fix` has no bearing argument (always `bear=0.0`) and
   NMEA RMC is dropped by `FusedLocationProviderClient` ("too close / too fast"). Cover heading/bearing
   behaviour with unit tests, never with a GMS-emulator run.
+- **A follow-mode reproduction needs no real drive — `geo fix` injects a SPEED, in KNOTS** (measured
+  2026-10-12 on `emulator-5554` while reproducing `fix-follow-display-pump`):
+  `adb emu geo fix <lon> <lat> <alt> <sat> <velocity>` reads `velocity` as knots (13.9 → `vel=7.1508`
+  m/s, 27.0 → `vel=13.889988` m/s = 50.0 km/h), and Fused passes it straight to the app, so the follow
+  display loop runs at a chosen speed from nothing but `geo fix` at 1 Hz. Two constraints make it a
+  *controlled* rather than a faithful stimulus: the bearing stays 0 (only a due-north track is truthful)
+  and the positions are noise-free (`hAcc=5.0`), so any GPS jitter to be tested must be injected
+  deliberately on the track. The full recipe — injector, screenrecord, and the per-frame shift
+  measurement that turns the video into a rate curve — is in change `fix-follow-display-pump`'s archived
+  `tasks.md` (tasks 3.4, 5.2, 5.3).
 - **A headless emulator needs `-dns-server 8.8.8.8`** (§40.41): broken DNS answers "Unable to resolve host"
   while a raw IP works — compare `adb shell ping` against the app's network code before debugging the app.
 - **Check which maps are already installed before attempting a catalog download** (§40.42) — `adb install -r`

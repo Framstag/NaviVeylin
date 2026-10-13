@@ -478,13 +478,11 @@ class AutoMapRendererTest {
     }
 
     @Test
-    fun forwardOnlyHoldStopsBackwardSlideAtFixArrival() {
-        // Delta fix-aa-follow-vehicle-jumps (spec: auto-smooth-follow —
-        // "Fix arrival behind the display holds"/"Forward-only across
-        // consecutive fixes"): a fix arriving with the prediction overshooting
-        // (curve/deceleration) puts the target behind the display — the
-        // display HOLDS instead of sliding backward, and resumes once the
-        // extrapolation from the new fix passes the held position.
+    fun backwardFixDoesNotHaltCarDisplay() {
+        // Spec (modified): auto-smooth-follow — Correction easing, "Fix arrival behind the display
+        // holds". The behaviour under that name changed with the bounded-rate display: the display no
+        // longer HOLDS when the target drops behind — it slows to no less than (1 - CORR_FRACTION) of
+        // the effective speed and keeps advancing east.
         val (surface, _) = mockSurface()
         renderer.asyncLoopsEnabled = false
         renderer.onSurfaceCreated(surface, 100, 100)
@@ -498,16 +496,184 @@ class AutoMapRendererTest {
         // The display advanced east of the fix.
         assertTrue(lonAhead > 7.4652789)
 
-        // Fix arrives with the vehicle having barely advanced (deceleration):
-        // the target line now lies BEHIND the displayed position -> hold.
+        // Fix arrives with the vehicle having barely advanced (deceleration): the target line now
+        // lies BEHIND the displayed position. The display must keep advancing — slower, never held,
+        // never reversed (the emulator reproduction of 2026-10-12 measured a full stop here).
         renderer.setGpsMarker(51.5142273, 7.4652789 + 1e-6, 90.0, 10.0, speedKmH = 50.4, timeMs = now + 300)
         renderer.extrapolationTick(now + 305, 0.005)
-        assertEquals(lonAhead, renderer.markerPosition().second, 0.0)
+        val lonAfter = renderer.markerPosition().second
+        val stepDeg = lonAfter - lonAhead
+        assertTrue("display must not stop or reverse", stepDeg > 0.0)
+        val freeStepDeg = 14.0 * 0.005 / (111320.0 * kotlin.math.cos(Math.toRadians(51.5142273)))
+        assertTrue("advance $stepDeg deg exceeds the free advance $freeStepDeg", stepDeg < freeStepDeg)
 
-        // Extrapolation from the new fix advances past the held position ->
-        // the display resumes forward.
+        // The display keeps advancing with the following ticks.
         renderer.extrapolationTick(now + 800, 0.2)
-        assertTrue(renderer.markerPosition().second > lonAhead)
+        assertTrue(renderer.markerPosition().second > lonAfter)
+    }
+
+    /** Eastward metres between two displayed positions (the renderer's local-metre convention). */
+    private fun eastMeters(a: Pair<Double, Double>, b: Pair<Double, Double>): Double =
+        (b.second - a.second) * 111320.0 * kotlin.math.cos(Math.toRadians(a.first))
+
+    /** Full distance between two displayed positions — the measure a turned heading needs. */
+    private fun metersBetween(a: Pair<Double, Double>, b: Pair<Double, Double>): Double {
+        val north = (b.first - a.first) * 111320.0
+        val east = (b.second - a.second) * 111320.0 * kotlin.math.cos(Math.toRadians(a.first))
+        return kotlin.math.sqrt(north * north + east * east)
+    }
+
+    @Test
+    fun cornerOvershootStaysInBand() {
+        // Spec: auto-smooth-follow — Correction easing, "Prediction drifts before fix arrival". The
+        // fix lands 8 m behind the extrapolation (a curve / a deceleration): every displayed step
+        // stays inside the bound — never held, never reversed, never faster than the bound.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.renderFrame()
+
+        val now = System.currentTimeMillis()
+        val vMs = 14.0
+        val lat = 51.5142273
+        renderer.setGpsMarker(lat, 7.4652789, 90.0, 10.0, speedKmH = vMs * 3.6, timeMs = now)
+        renderer.extrapolationTick(now + 200, 0.2)
+
+        // The overshooting fix: the vehicle barely advanced while the prediction ran on.
+        val behindLon = 7.4652789 - 8.0 / (111320.0 * kotlin.math.cos(Math.toRadians(lat)))
+        renderer.setGpsMarker(lat, behindLon, 90.0, 10.0, speedKmH = vMs * 3.6, timeMs = now + 200)
+        var prev = renderer.markerPosition()
+        var t = now + 200
+        repeat(20) { i ->
+            t += 50
+            renderer.extrapolationTick(t, 0.05)
+            val cur = renderer.markerPosition()
+            val stepM = eastMeters(prev, cur)
+            assertTrue("tick $i step $stepM m below the bound", stepM >= 0.70 * vMs * 0.05 - 1e-6)
+            assertTrue("tick $i step $stepM m above the bound", stepM <= 1.30 * vMs * 0.05 + 1e-6)
+            prev = cur
+        }
+    }
+
+    @Test
+    fun subPixelCorrectionIsImperceptible() {
+        // Spec: auto-smooth-follow — Correction easing, "Fix arrives close to prediction". A 2 m
+        // correction must not move the displayed rate outside the band.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.renderFrame()
+
+        val now = System.currentTimeMillis()
+        val vMs = 14.0
+        val lat = 51.5142273
+        renderer.setGpsMarker(lat, 7.4652789, 90.0, 10.0, speedKmH = vMs * 3.6, timeMs = now)
+        renderer.extrapolationTick(now + 200, 0.2)
+
+        val aheadLon = 7.4652789 + 2.0 / (111320.0 * kotlin.math.cos(Math.toRadians(lat)))
+        renderer.setGpsMarker(lat, aheadLon, 90.0, 10.0, speedKmH = vMs * 3.6, timeMs = now + 200)
+        var prev = renderer.markerPosition()
+        var t = now + 200
+        repeat(10) { i ->
+            t += 100
+            renderer.extrapolationTick(t, 0.1)
+            val cur = renderer.markerPosition()
+            val stepM = eastMeters(prev, cur)
+            assertTrue("tick $i step $stepM m below the bound", stepM >= 0.70 * vMs * 0.1 - 1e-6)
+            assertTrue("tick $i step $stepM m above the bound", stepM <= 1.30 * vMs * 0.1 + 1e-6)
+            prev = cur
+        }
+    }
+
+    @Test
+    fun curveSequenceStaysInBand() {
+        // Spec: auto-smooth-follow — Correction easing, "Forward-only across consecutive fixes". A
+        // series of curve fixes: the displayed rate stays inside the band on every tick and never
+        // reverses.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.renderFrame()
+
+        val now = System.currentTimeMillis()
+        val vMs = 14.0
+        var bearing = 96.0
+        var lat = 51.5142273
+        var lon = 7.4652789
+        var t = now
+        renderer.setGpsMarker(lat, lon, bearing, 10.0, speedKmH = vMs * 3.6, timeMs = t)
+        // Warm-up tick: the first advance initialises the display to the target, which is not a
+        // displayed step.
+        renderer.extrapolationTick(t + 200, 0.2)
+        t += 200
+        var prev = renderer.markerPosition()
+        repeat(5) { f ->
+            bearing += 6.0
+            lat += 14.0 * kotlin.math.cos(Math.toRadians(bearing)) / 111320.0
+            lon += 14.0 * kotlin.math.sin(Math.toRadians(bearing)) /
+                (111320.0 * kotlin.math.cos(Math.toRadians(lat)))
+            t += 1_000
+            renderer.setGpsMarker(lat, lon, bearing, 10.0, speedKmH = vMs * 3.6, timeMs = t)
+            repeat(4) { i ->
+                t += 250
+                renderer.extrapolationTick(t, 0.25)
+                val cur = renderer.markerPosition()
+                val stepM = metersBetween(prev, cur)
+                assertTrue("fix $f tick $i step $stepM m below the bound", stepM >= 0.70 * vMs * 0.25 - 1e-6)
+                assertTrue("fix $f tick $i step $stepM m above the bound", stepM <= 1.30 * vMs * 0.25 + 1e-6)
+                prev = cur
+            }
+        }
+    }
+
+    @Test
+    fun sharedCorrectionBoundAppliesToCar() {
+        // Spec: auto-smooth-follow — Shared follow bounds on the car surface. Straight driving on a
+        // single fix: every tick's advance stays inside the bound on both sides, so the car needs no
+        // bound of its own.
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.renderFrame()
+
+        val now = System.currentTimeMillis()
+        val vMs = 14.0
+        renderer.setGpsMarker(51.5142273, 7.4652789, 90.0, 10.0, speedKmH = vMs * 3.6, timeMs = now)
+        var prev = renderer.markerPosition()
+        var t = now
+        repeat(30) { i ->
+            t += 50
+            renderer.extrapolationTick(t, 0.05)
+            val cur = renderer.markerPosition()
+            val stepM = eastMeters(prev, cur)
+            assertTrue("tick $i step $stepM m below the bound", stepM >= 0.70 * vMs * 0.05 - 1e-6)
+            assertTrue("tick $i step $stepM m above the bound", stepM <= 1.30 * vMs * 0.05 + 1e-6)
+            prev = cur
+        }
+    }
+
+    @Test
+    fun staleBaseDoesNotStopCarDisplay() {
+        // Spec: auto-smooth-follow — Shared follow bounds, "The car inherits the stop-decision
+        // guard". A 4 s old fix is a lost feed, not a stationary vehicle: the display must keep
+        // advancing (the pre-fix code held it dead still and the reproduction measured a 2.0 s
+        // freeze of exactly this shape).
+        val (surface, _) = mockSurface()
+        renderer.asyncLoopsEnabled = false
+        renderer.onSurfaceCreated(surface, 100, 100)
+        renderer.renderFrame()
+
+        val now = System.currentTimeMillis()
+        renderer.setGpsMarker(51.5142273, 7.4652789, 90.0, 10.0, speedKmH = 50.4, timeMs = now)
+        renderer.extrapolationTick(now + 200, 0.2)
+        val before = renderer.markerPosition()
+
+        renderer.extrapolationTick(now + 4_200, 0.2)
+        val after = renderer.markerPosition()
+        assertTrue(
+            "a stale feed must not stop the car display (moved ${eastMeters(before, after)} m)",
+            eastMeters(before, after) > 0.0
+        )
     }
 
     @Test

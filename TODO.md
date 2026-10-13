@@ -3006,3 +3006,29 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   the capability's `<!-- cap: routing-max-speed#… -->` keys.
 - **Related**: `guidelines/FeatureList.md` §3, §4; spec `routing-max-speed`; change
   `search-result-row-content` task 8.2 (its evidence names this case and the measurement).
+
+## 190. The phone's follow render latency is unmeasured, so the refresh threshold's latency term is a guess — Filed 2026-10-12 by `fix-follow-display-pump` (task 5.2, deferred: no phone attached)
+**id:** 190 · **category:** rendering · **class:** improvement · **status:** open
+
+- **Observed** ℹ: `fix-follow-display-pump` bounds the follow display's rate and requests its frame while
+  overrun margin remains (`FollowRefreshPolicy`, spec `smooth-follow` — Follow frame refresh before the
+  overrun margin is exhausted). The threshold's known-latency branch is
+  `min(MAX_SHARE, max(MIN_SHARE, 1 − latency/margin − SAFETY_SHARE))`; with the latency unknown it uses
+  `MAX_SHARE` = 0.55, i.e. it reserves 45 % of the margin (108 px of 240 on a 1080×2400 canvas) for the
+  render to land.
+- **Why it is unmeasured** ⚠: the emulator's software render takes **2.2-2.7 s** (from the `off` values at
+  a frame landing: −98.9 px ÷ 45 px/s), which is exactly the reserve the share leaves — so the AVD cannot
+  demonstrate the improvement and run G of that change still froze for 35 % of its intervals (longest
+  7.24 s). A phone's render is expected to be an order of magnitude faster, but no phone number exists:
+  the change's tasks 5.2/5.3 were deferred for want of a device.
+- **To measure** ▸: mounted phone, free drive (no route needed — the clamp path depends only on a steady
+  heading), steady ~50 km/h: `adb logcat -c && adb logcat -s MapCanvasScreen | grep 'follow '`, then read
+  `|off|` immediately after a reset and divide by `(pxPerMetre × v)`; `pxPerMetre` follows from the same
+  log's drift growth (45 px/s ÷ v at mag 16, measured on the AVD).
+- **Impact** ℹ: if the phone's latency is a small fraction of the reserve, the default share needs no
+  tuning and this is a documentation number; if it is not, `FollowRefreshPolicy` has to be fed a measured
+  p95 (design D2 of that change already allows the latency-aware branch) and the freeze persists on the
+  phone at the same 5-6 s cadence the reproduction measured.
+- **Related**: change `fix-follow-display-pump` tasks 3.4 (the emulator verdict), 5.2, 5.3; spec
+  `smooth-follow`; `guidelines/MapRendering.md` §4, §13; `.pi/logs/follow-pump/` holds the injector,
+  `shift.py` and the run videos until that change is archived.

@@ -30,6 +30,11 @@ import kotlin.math.sqrt
  *  - When the fix has not moved for 1 s the vehicle is considered stopped and
  *    the prediction holds — some receivers (and the emulator) report a
  *    non-zero speed while stationary.
+ *  - The effective speed the display advances with is COMMITTED: it moves toward the estimate above
+ *    at no more than [BOUNDED_STEP_MS2] per second (design D3, spec: `smooth-follow` - Correction
+ *    easing). A 30 % step of the estimate therefore cannot step the displayed rate in one fix - the
+ *    emulator run C of the 2026-10-12 reproduction showed the displayed rate following such a step
+ *    within a fraction of a second.
  */
 class FollowPrediction {
 
@@ -61,6 +66,19 @@ class FollowPrediction {
     // stop, so a zero GPS speed cannot be relied on).
     private var lastMoveTimeMs = 0L
 
+    // Receipt time of the last [update]. A base that is no longer being refreshed is a lost feed,
+    // not a stationary vehicle (design D4, spec: `smooth-follow` - Stop decision against a current
+    // base): with the emulator the injection stopping at the end of a run made the prediction
+    // report a stop and froze the map.
+    private var lastFixUpdateMs = 0L
+
+    // The committed effective speed the display advances with (design D3) and the time it was last
+    // advanced. `hasCommittedSpeed` false means the first commit takes the estimate directly, so a
+    // session starts at the real speed instead of ramping up from zero.
+    private var committedSpeedMs = 0.0
+    private var committedSpeedTimeMs = 0L
+    private var hasCommittedSpeed = false
+
     /**
      * Debug: expose the last speed-estimate components for logcat diagnosis
      * (fix cadence, speed source quality, prediction behavior).
@@ -80,7 +98,7 @@ class FollowPrediction {
     fun debugState(nowMs: Long = fixTimeMs): DebugState {
         val gpsValid = !speedMs.isNaN()
         val stopped = isStopped(nowMs, gpsValid)
-        val effectiveSpeed = effectiveSpeed(gpsValid, stopped)
+        val effectiveSpeed = effectiveSpeedMs(nowMs)
         return DebugState(
             avgSpeedMs,
             if (gpsValid) speedMs else Double.NaN,
@@ -142,6 +160,7 @@ class FollowPrediction {
         fixTimeMs = timeMs
         hasValidFix = !lat.isNaN() && !lon.isNaN()
         if (hasValidFix && lastMoveTimeMs == 0L) lastMoveTimeMs = timeMs
+        lastFixUpdateMs = timeMs
     }
 
     /**
@@ -153,9 +172,9 @@ class FollowPrediction {
      */
     fun predictedPosition(nowMs: Long): Pair<Double, Double> {
         if (!hasValidFix) return fixLat to fixLon
-        val gpsValid = !speedMs.isNaN()
-        val stopped = isStopped(nowMs, gpsValid)
-        val effectiveSpeed = effectiveSpeed(gpsValid, stopped)
+        // The committed effective speed is the ONE speed the prediction and the display agree on;
+        // calling this before [effectiveSpeedMs] at the same nowMs does not advance the ramp twice.
+        val effectiveSpeed = effectiveSpeedMs(nowMs)
         if (effectiveSpeed <= 0.0 || headingRad.isNaN()) return fixLat to fixLon
         val elapsedSec = (nowMs - fixTimeMs) / 1000.0
         if (elapsedSec < 0.0 || elapsedSec > maxExtrapolationSec) return fixLat to fixLon
@@ -175,9 +194,60 @@ class FollowPrediction {
      * does not drift past it.
      */
     private fun isStopped(nowMs: Long, gpsValid: Boolean): Boolean {
+        // A stop may only be declared from a base that is still being refreshed: a feed that stopped
+        // delivering is not a stationary vehicle, and treating it as one froze the display at the
+        // end of every emulator run (spec: `smooth-follow` - Stop decision against a current base).
+        // A stale feed decays the feed-forward instead (see [targetSpeedMs]).
+        if (nowMs - lastFixUpdateMs > STOP_HOLD_MS) return false
         val sinceMove = nowMs - lastMoveTimeMs
         return sinceMove > STOP_HOLD_MS ||
             (gpsValid && speedMs < STOP_SPEED_MS && sinceMove > STOP_HOLD_FAST_MS)
+    }
+
+    /**
+     * Age of the last applied fix at [nowMs] in seconds — the caller's input for the display's
+     * stale-reference rule (spec: `smooth-follow` — Stop decision against a current base).
+     */
+    fun feedAgeSec(nowMs: Long): Double =
+        if (!hasValidFix) Double.POSITIVE_INFINITY else (nowMs - lastFixUpdateMs) / 1000.0
+
+    /**
+     * The committed effective speed at [nowMs] (spec: `smooth-follow` - Correction easing; design
+     * D3): the instantaneous estimate ([targetSpeedMs]), reached at no more than [BOUNDED_STEP_MS2]
+     * per second. This is the speed both [predictedPosition] and the display's feed-forward term
+     * use, so the extrapolated target and the displayed advance cannot disagree.
+     */
+    fun effectiveSpeedMs(nowMs: Long): Double {
+        val target = targetSpeedMs(nowMs)
+        if (!hasCommittedSpeed) {
+            committedSpeedMs = target
+            committedSpeedTimeMs = nowMs
+            hasCommittedSpeed = true
+            return committedSpeedMs
+        }
+        val dtSec = (nowMs - committedSpeedTimeMs) / 1000.0
+        if (dtSec <= 0.0) return committedSpeedMs
+        committedSpeedTimeMs = nowMs
+        val maxStep = BOUNDED_STEP_MS2 * dtSec
+        committedSpeedMs += (target - committedSpeedMs).coerceIn(-maxStep, maxStep)
+        return committedSpeedMs
+    }
+
+    /**
+     * The instantaneous estimate the committed speed moves toward: the stop rules, the deceleration
+     * cap and the no-receiver-speed fallback as before, scaled down once the fix feed has gone stale
+     * ([STALE_FEED_GRACE_SEC] of grace, then a linear decay to zero over [STALE_FEED_DECAY_SEC]) so a
+     * lost feed keeps the map moving for a few seconds and then settles instead of dead-reckoning
+     * forever.
+     */
+    private fun targetSpeedMs(nowMs: Long): Double {
+        val gpsValid = !speedMs.isNaN()
+        val stopped = isStopped(nowMs, gpsValid)
+        val base = effectiveSpeed(gpsValid, stopped)
+        val staleSec = (nowMs - lastFixUpdateMs) / 1000.0
+        if (staleSec <= STALE_FEED_GRACE_SEC) return base
+        val factor = (1.0 - (staleSec - STALE_FEED_GRACE_SEC) / STALE_FEED_DECAY_SEC).coerceIn(0.0, 1.0)
+        return base * factor
     }
 
     private fun effectiveSpeed(gpsValid: Boolean, stopped: Boolean): Double = when {
@@ -221,6 +291,19 @@ class FollowPrediction {
 
         /** Cap applied to the prediction speed while decelerating. */
         const val DECEL_CAP = 0.7
+
+        /**
+         * Maximum change of the committed effective speed, m/s per second (design D3): bounds how
+         * fast the displayed rate may follow a change of the speed estimate, so the deceleration cap
+         * cannot step the display by 30 % in one fix.
+         */
+        const val BOUNDED_STEP_MS2 = 2.5
+
+        /** Grace period without a fix during which the feed-forward keeps the last speed (seconds). */
+        const val STALE_FEED_GRACE_SEC = 3.0
+
+        /** Time the feed-forward decays to zero over, after the grace period (seconds). */
+        const val STALE_FEED_DECAY_SEC = 7.0
 
         /** EMA time constant for the smoothed position-diff speed (seconds). */
         const val SMOOTH_AVG_TAU_SEC = 1.0

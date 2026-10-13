@@ -114,6 +114,19 @@ class FollowPredictionTest {
     }
 
     @Test
+    fun `staleBaseDoesNotDeclareStop`() {
+        // Spec: smooth-follow - Stop decision against a current base. A base that stopped moving
+        // because no fix refreshed it is a LOST FEED, not a stationary vehicle: declaring a stop
+        // here froze the display at the end of every emulator reproduction run.
+        prediction.update(0.0, 0.0, 10.0, 90.0, 1_000L)
+        prediction.update(0.0, 0.0, 10.0, 90.0, 2_000L)
+        // No further updates: at t = 6000 the base is 4 s stale.
+        val stale = prediction.debugState(6_000L)
+        assertFalse("a stale feed must not declare a stop", stale.stopped)
+        assertTrue("the feed-forward keeps a speed for the decay window", stale.effectiveSpeedMs > 0.0)
+    }
+
+    @Test
     fun `holds position when the fix has not moved`() {
         // Fix A at (0,0) t=1000, GPS 10 m/s.
         prediction.update(0.0, 0.0, 10.0, 90.0, 1_000L)

@@ -123,6 +123,7 @@ import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.CarSessionPresence
 import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.FollowRefreshPolicy
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.ResolvedAnchor
@@ -360,6 +361,12 @@ fun MapCanvasScreen(
     // and HOLDS when the fix-arrival target drops behind — the display never
     // slides backward along travel (the per-fix jump sawtooth).
     val followDisplayState = remember { FollowDisplayState() }
+    // Bounded-rate frame refresh (spec: smooth-follow — Follow frame refresh before the overrun
+    // margin is exhausted): the follow frame is requested while margin remains, instead of only
+    // once the offset is already clamped. One request outstanding; armed again when a new frame
+    // lands in `ui.renderViewport`.
+    val followRefresh = remember { FollowRefreshPolicy() }
+    var lastFrameViewport by remember { mutableStateOf<MapRenderer.RenderViewport?>(null) }
     var followActive by remember { mutableStateOf(false) }
     var followDisplayLat by remember { mutableStateOf(Double.NaN) }
     var followDisplayLon by remember { mutableStateOf(Double.NaN) }
@@ -582,6 +589,10 @@ fun MapCanvasScreen(
 
     LaunchedEffect(Unit) {
         var lastFixTime = -1L
+        // The fix the prediction was last fed, and the position the display's correction references
+        // (design D1: the prediction supplies the speed, the fix supplies the position).
+        var followBaseLat = Double.NaN
+        var followBaseLon = Double.NaN
         var lastFrameMs = 0L
         var lastRenderRequestMs = 0L
         while (isActive) {
@@ -713,6 +724,8 @@ fun MapCanvasScreen(
                     // cannot disagree at a junction snap.
                     val srcLat = if (!ui.gpsMarkerLat.isNaN()) ui.gpsMarkerLat else fix.lat
                     val srcLon = if (!ui.gpsMarkerLon.isNaN()) ui.gpsMarkerLon else fix.lon
+                    followBaseLat = srcLat
+                    followBaseLon = srcLon
                     followPrediction.update(
                         srcLat, srcLon,
                         if (fix.speedKmH.isNaN()) Double.NaN else fix.speedKmH / 3.6,
@@ -726,12 +739,21 @@ fun MapCanvasScreen(
                 val moving = ui.followMode && fix != null &&
                         !fix.speedKmH.isNaN() && fix.speedKmH > FOLLOW_MIN_SPEED_KMH
                 if (moving) {
-                    val predicted = followPrediction.predictedPosition(nowMs)
                     val heading = if (fix!!.smoothedBearing.isNaN()) Double.NaN else fix.smoothedBearing
-                    // Monotonic forward display (spec: smooth-follow — Correction
-                    // easing): never slides backward along travel at fix arrival.
+                    // Bounded-rate display (spec: smooth-follow — Correction easing): the display
+                    // advances at the committed effective speed plus a rate-clamped correction
+                    // toward the fix, so a fix that lands behind the display becomes a rate dip
+                    // instead of a halt. The reference is the fix itself, not the extrapolated
+                    // position: the prediction supplies the speed, the fix supplies the position,
+                    // so the correction cannot double-count the vehicle's own motion.
+                    val vEff = followPrediction.effectiveSpeedMs(nowMs)
+                    // The reference is the extrapolated target the prediction publishes (design D1): a
+                    // CONTINUOUS reference, not the raw fix — the raw fix is a step function between
+                    // arrivals and pulling the display onto it would run the map a quarter slow.
+                    val predicted = followPrediction.predictedPosition(nowMs)
                     val (dLat, dLon) = followDisplayState.advance(
-                        predicted.first, predicted.second, dtSec, heading
+                        predicted.first, predicted.second, dtSec, heading, vEff,
+                        followPrediction.feedAgeSec(nowMs)
                     )
                     followDisplayLat = dLat
                     followDisplayLon = dLon
@@ -772,7 +794,24 @@ fun MapCanvasScreen(
                         // of surface color; the clamp keeps the offset inside the margin.
                         followOffsetX = offset.clampedX.toFloat()
                         followOffsetY = offset.clampedY.toFloat()
-                        if (offset.clamped && nowMs - lastRenderRequestMs > 500) {
+                        // The requested frame landed: arm the refresh threshold again. The viewport is
+                        // the frame description the display holds, so a change means a new frame.
+                        if (vp != lastFrameViewport) {
+                            lastFrameViewport = vp
+                            followRefresh.onFrameLanded()
+                        }
+                        // Request the next frame while margin remains (spec: smooth-follow — Follow
+                        // frame refresh before the overrun margin is exhausted, design D2). The clamp
+                        // below is the LAST resort: requesting only when `offset.clamped` was already
+                        // true pinned the drawn content at the margin for a whole render — measured
+                        // 1.5-2.7 s of byte-identical frames in 29 % of a steady 50 km/h drive.
+                        val (driftPx, marginPx) = followRefreshWindow(
+                            offset.rawX, offset.rawY,
+                            bitmap.width, bitmap.height, canvasSize.width, canvasSize.height
+                        )
+                        if (nowMs - lastRenderRequestMs > 500 &&
+                            followRefresh.shouldRequest(driftPx, marginPx, nowMs)
+                        ) {
                             lastRenderRequestMs = nowMs
                             // Re-anchor on the displayed position (not the viewport
                             // center): the frame stays anchor-centered and the display
@@ -808,7 +847,7 @@ fun MapCanvasScreen(
                         // standstill so the marker has a consistent, road-true point.
                         val seedLat = if (!ui.gpsMarkerLat.isNaN()) ui.gpsMarkerLat else fix!!.lat
                         val seedLon = if (!ui.gpsMarkerLon.isNaN()) ui.gpsMarkerLon else fix!!.lon
-                        followDisplayState.advance(seedLat, seedLon, 0.0, Double.NaN)
+                        followDisplayState.advance(seedLat, seedLon, 0.0, Double.NaN, 0.0)
                         followDisplayLat = seedLat
                         followDisplayLon = seedLon
                         viewModel.followDisplayLat = seedLat
@@ -824,6 +863,7 @@ fun MapCanvasScreen(
                     followOffsetX = 0f
                     followOffsetY = 0f
                     followDisplayState.reset()
+                    followRefresh.reset()
                     viewModel.followDisplayLat = Double.NaN
                     viewModel.followDisplayLon = Double.NaN
                 }

@@ -25,13 +25,13 @@
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
-- **specs-and-process** — bug: §161 §187
+- **specs-and-process** — bug: §161 §187 §199
 - **specs-and-process** — improvement: §40 §113 §134 §154 §156 §157 §158 §159 §162 §171 §172
 - **stylesheets** — bug: §36
 - **ui** — bug: §70 §74 §153 §186
 - **ui** — improvement: §39 §73 §136 §152 §166
 - **ui** — feature: §4 §5
-- **verification** — bug: §131 §147 §148 §181
+- **verification** — bug: §131 §147 §148 §181 §189
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167 §170
 ---
 
@@ -2987,7 +2987,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `guidelines/Design.md` §5 (the submodule discipline).
 
 ## 189. `routing-max-speed` is shipped but absent from `tools/feature-list/specs.json`, so `ShippedSpecClassificationTest` is red on HEAD — Found 2026-10-12 during the `search-result-row-content` gate (task 8.2)
-**id:** 189 · **category:** verification · **class:** bug · **status:** open
+**id:** 189 · **category:** verification · **class:** bug · **status:** fixed-by `fix-routing-max-speed-classification`
 
 - **Observed** ⚠: `openspec/specs/routing-max-speed/spec.md` exists at HEAD (added by `be53cdd feat:
   vehicle-max-speed-settings`), while `git show HEAD:tools/feature-list/specs.json | grep -c routing-max-speed`
@@ -3006,6 +3006,21 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   the capability's `<!-- cap: routing-max-speed#… -->` keys.
 - **Related**: `guidelines/FeatureList.md` §3, §4; spec `routing-max-speed`; change
   `search-result-row-content` task 8.2 (its evidence names this case and the measurement).
+- **Loop verdict** ✅: `fixed-by fix-routing-max-speed-classification` (2026-10-13). Deciding sentence —
+  `spec-feature-index` / "An unclassified spec id stops the run": "A shipped spec id that the classification
+  does not name SHALL be reported by id, SHALL make the run fail, and SHALL produce no regenerated document."
+  The repository's own data met it: `bash tools/gen-feature-list.sh --check-classification` exited **1** with
+  `unclassified shipped spec id(s): routing-max-speed` (`specs read: 166 / classified: 165 / unclassified: 1 /
+  stale: 0`) and `ShippedSpecClassificationTest#every shipped spec id is classified` failed with
+  `expected:<[]> but was:<[routing-max-speed]>` (2026-10-13T18:56:47.467Z). One fix: one line in
+  `tools/feature-list/specs.json` — `"routing-max-speed": { "area": "routing", "userVisible": true,
+  "surfaces": ["phone", "car"] }` — after which the gate exits 0 (`classified: 166 / unclassified: 0`) and the
+  case is green, XML `tests="1" failures="0"` at 2026-10-13T19:16:23.242Z; both runs are retained under
+  `openspec/changes/archive/2026-10-13-fix-routing-max-speed-classification/evidence/`. Nothing else changed,
+  and the alternatives the evidence eliminated are design D3 of that change: `userVisible: false`
+  (unpublishable — `tools/feature-list/gate.awk:151`), `surfaces: ["phone"]` (contradicts the setting's own car
+  scenario), `area: "settings-legal"`, and an invented spec delta. §199, filed by that change's review, is a
+  different divergence and stays open.
 
 ## 190. The phone's follow render latency is unmeasured, so the refresh threshold's latency term is a guess — Filed 2026-10-12 by `fix-follow-display-pump` (task 5.2, deferred: no phone attached)
 **id:** 190 · **category:** rendering · **class:** improvement · **status:** open
@@ -3032,3 +3047,44 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Related**: change `fix-follow-display-pump` tasks 3.4 (the emulator verdict), 5.2, 5.3; spec
   `smooth-follow`; `guidelines/MapRendering.md` §4, §13; `.pi/logs/follow-pump/` holds the injector,
   `shift.py` and the run videos until that change is archived.
+
+## 199. `guidelines/FeatureList.md`'s coverage gate row refuses `a user-visible spec that no bullet reaches` — a check the tool does not have, while 38 user-visible shipped specs reach no bullet and the gate exits 0 — Found 2026-10-13 during the review of `fix-routing-max-speed-classification`
+**id:** 199 · **category:** specs-and-process · **class:** bug · **status:** open
+
+- **Observed** ⚠: the gate table's coverage row (`guidelines/FeatureList.md:143`) states that the gate refuses
+  `a user-visible spec that no bullet reaches`, and the cases line above it names that shape as the case
+  `gates: a user-visible spec no bullet reaches fails the run` (`guidelines/FeatureList.md:116`); §4 of the
+  same file argues from it (no user-visible *spec* is dropped silently). The tool implements no such check.
+  What `tools/gen-feature-list.sh:717` fails on is `selling point not reached: <id>`, selected over
+  `$required` — the *highlights* whose spec set is still shipped (`tools/gen-feature-list.sh:703`) — so the
+  check runs over the shortlist's own selling points, never over the user-visible spec set. The case name the
+  tool does carry is `gates: an unreached selling point fails the run`
+  (`tools/gen-feature-list-selftest.sh:409`). The one spec-versus-bullet check in the prose gate runs the other
+  way: `tools/feature-list/gate.awk:151` fails a key whose spec is not user-visible (`source key cites a spec
+  that is not user-visible`), and an entry citing a spec no highlight names fails as `cites specs the
+  shortlist does not name` (`tools/gen-feature-list.sh:720-722`), so a spec named by no highlight cannot be
+  reached at all. Measured 2026-10-13, on the gate run that closes §189: exit 0 with
+  `specs read: 166 / classified: 166 / unclassified: 0 / stale: 0`, `highlights: 19`
+  (`openspec/changes/archive/2026-10-13-fix-routing-max-speed-classification/evidence/classification-gate-after-fix.txt`)
+  while **38** of the user-visible shipped specs — `routing-max-speed` among them — are named by no highlight:
+  `jq -r --slurpfile h tools/feature-list/highlights.json '(($h[0].highlights | [.[].specs[]]) as $n | [.specs
+  | to_entries[] | select(.value.userVisible == true) | .key] | map(select(. as $s | ($n | index($s)) == null))
+  | length)' tools/feature-list/specs.json` → `38`. The row's case existed once: the archived
+  `2026-10-09-generate-feature-list` records it firing as `user-visible specs no bullet reaches:
+  immediate-turn-instruction`, exit 1
+  (`openspec/changes/archive/2026-10-09-generate-feature-list/apply-evidence.md:303`, `:332`).
+- **Impact** ℹ: the row is the contract a reader (or an agent reading only the guideline) takes for the
+  coverage direction — an author who leaves a user-visible capability unpublished is told the gate refuses it,
+  while nothing refuses it, which is the outcome §4 itself names as the worst case ("silently dropping one");
+  and a reviewer checking coverage against that row measures the wrong set.
+- **Fix candidate** ℹ: decide which side is right, then make the two agree: either restore a spec-level
+  coverage check (its message and its case name are recoverable from the archived `2026-10-09` change) or
+  restate the row and the cases line over highlights (`every selling point is reached by a bullet`).
+  `.pi/skills/feature-list/SKILL.md:60` repeats the row's wording and would follow the chosen side.
+- **Related**: `guidelines/FeatureList.md` §4 (the classification) and its gate table; spec
+  `spec-feature-index`; `tools/feature-list/highlights.json`; the archived changes
+  `2026-10-09-generate-feature-list` (where the row's case fired) and `2026-10-13-fix-routing-max-speed-classification`
+  (the review that filed this entry).
+- **Loop verdict** ⏳ (fix-loop 2026-10-13 — filed during the review of
+  `fix-routing-max-speed-classification`: the finding lies outside that change's diff, so it was reported here
+  instead of fixed there; not yet triaged).

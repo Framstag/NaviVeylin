@@ -2842,13 +2842,30 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Related**: §103, §175, change `fix-car-favorites-loading-stall` (5.1's note holds the raw numbers), spec `auto-favorites` (its added requirement deliberately bounds the published state, not the instant of the first template).
 
 ## 177. The car address book presents every contact with an address in one list, over any host's row capacity — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
-**id:** 177 · **category:** car · **class:** bug · **status:** open
+**id:** 177 · **category:** car · **class:** bug · **status:** fixed-by `fix-car-list-row-capacity`
 
 - **Observed** ⚠: `AddressBookScreen` (`auto/src/main/java/com/naviveylin/auto/AddressBookScreen.kt`) builds one `Row` per contact returned by `AddressBookContactsProvider.contactsWithAddresses()` into a single `ItemList` with **no cap**, so the row count is whatever the device's address book holds — unbounded, and over any host capacity once the driver has more contacts with addresses than the host displays. The capacity is the host's own number (measured 2026-10-10 on the AAOS AVD's templates host: **100 rows at car API level 8**, task 1.1 of `car-favorites-group-level`; the Car App Library's floor and this app's fallback is **6**, `CarListCapacityReader.LIBRARY_DEFAULT`), and the library's build contract is explicit that the host **ignores** every item over it — so the loss is silent.
 - **Why it is out of scope here** ℹ: `car-favorites-group-level` added the capability (`car-list-row-limit` — A car list never presents more rows than the host displays / Items beyond the capacity stay reachable) and applied it to the three favourites lists only. The other car lists keep the behaviour they had; the capability is now there to be applied to them.
 - **Impact** ℹ: the tail of a large address book is unreachable on the car with no signal at all — the same defect the favourites list had.
 - **Fix candidate** ℹ: use the shipped seam — `CarListCapacityReader.read(carContext)` on the screen's started period plus `FavoritesScreenMapper.page(rows, capacity, page)` and a final page row carrying the remaining count (spec `car-list-row-limit`, wording `R.string.more_items`) — and add a per-screen page parameter as `FavoritesScreen` did. The paging row is the shared contract, so this should be one small screen change plus its cases, not a new capability.
 - **Related**: §178, §179, §180, change `car-favorites-group-level` (spec `car-list-row-limit`), `guidelines/UI.md` §3.
+- **Loop verdict** ✅: `fixed-by fix-car-list-row-capacity` (2026-10-13). Deciding sentence — `design.md` D1:
+  "Apply the shipped seam, add nothing" — `CarListCapacityReader.read` + `FavoritesScreenMapper.page` + the
+  `More (n)` row, "exactly as `FavoritesScreen` uses them", so this is the existing capability
+  `car-list-row-limit` applied to one more car list (the eliminated alternatives — let the host page, cap at a
+  fixed constant, replace the `SearchTemplate` — are D1's, the in-place page advance is D3). Red on HEAD:
+  `auto:AddressBookScreenTest#theAddressBookListFitsTheHostsCapacity` failed with
+  `expected:<[Alpha1, Alpha2, Alpha3, Alpha4, Alpha5, Alpha6, More (2)]> but was:<[Alpha1, Alpha2, Alpha3,
+  Alpha4, Alpha5, Alpha6, Alpha7, Bob]>` (XML `tests="2" skipped="0" failures="2" errors="0"`,
+  2026-10-13T19:51:18.268Z, `evidence/TEST-AddressBookScreenTest-red-on-HEAD.xml`); the second case
+  `thePageRowCarriesTheSearchTextToTheNextPage` was red in the same XML. One revert-check (the slice's
+  `capacity = filteredContacts.size` at `AddressBookScreen.kt:168`) failed both protected cases at the bound
+  (XML `tests="2" failures="2"`, 2026-10-13T20:27:13.507Z); the forced `:auto` gate was green — 81 XMLs,
+  840 cases, 0 failures, 0 errors, `AddressBookScreenTest` `tests="2" failures="0"` at
+  2026-10-13T20:26:24.267Z. Residue: `tasks.md` 5.1 — the capacity line and the `More` row on an AAOS host —
+  left pending (no device attached), while §178, §179 and §180 stay `open` because the change fixed the
+  address book only. Archived with its evidence as
+  `openspec/changes/archive/2026-10-13-fix-car-list-row-capacity/`.
 
 ## 178. The car search history presents all stored entries in one list, over a host capacity below 50 — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
 **id:** 178 · **category:** car · **class:** bug · **status:** open

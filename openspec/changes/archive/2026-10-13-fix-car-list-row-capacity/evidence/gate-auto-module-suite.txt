@@ -1,0 +1,29 @@
+Gate for this change: the changed module's own suite, forced
+=============================================================
+
+Command: `./gradlew :auto:testDebugUnitTest -PforceTests --rerun-tasks` (VCPKG_ROOT set)
+Started: 2026-10-13T20:26:02Z · finished 2026-10-13T20:26:44Z
+Result: `BUILD SUCCESSFUL in 42s`, `59 actionable tasks: 59 executed` (no `FROM-CACHE`), zero `FAILED` lines.
+
+Tally, summed over the run's own JUnit XMLs (all of them copied beside this file under
+`auto-module-suite/`, one XML per class):
+
+    sum over the run's 81 XMLs: 81 classes, 840 cases, 0 skipped, 0 failures, 0 errors
+    first XML timestamp=2026-10-13T20:26:15.910Z
+    last  XML timestamp=2026-10-13T20:26:43.511Z
+
+The two cases this change adds are carried by `auto-module-suite/TEST-com.naviveylin.auto.AddressBookScreenTest.xml`
+— `tests="2" skipped="0" failures="0" errors="0"`, `timestamp="2026-10-13T20:26:24.267Z"` — and the classes the
+change can affect are green in the same run: `FavoritesScreenTest` `tests="37" failures="0"` `timestamp="2026-10-13T20:26:33.946Z"`,
+`FavoritesScreenMapperTest` `tests="9" failures="0"` `timestamp="2026-10-13T20:26:33.757Z"`,
+`TemplateFaultIsolationTest` `tests="21" failures="0"` `timestamp="2026-10-13T20:26:43.164Z"`,
+`SearchScreenTest` `tests="12" failures="0"` `timestamp="2026-10-13T20:26:40.964Z"`,
+`RootScreenTest` `tests="2" failures="0"` `timestamp="2026-10-13T20:26:40.511Z"`.
+
+This run is the remediation round's re-run: the test source changed (the address-book capacity case now
+asserts the host-source half as well), so the module suite was re-run once and every cited XML re-copied.
+The revert-check mutations that followed were applied to `AddressBookScreen.kt` and restored exactly, so the
+tree this run measured is the tree the change carries.
+
+Run log retained in the worktree: `.pi/bugfix-loop/gate-auto-module-2026-10-13-round2.log`.
+Scope rule and the exclusion of the whole-suite run: `gate-full-suite-app-compose-preexisting.txt`.

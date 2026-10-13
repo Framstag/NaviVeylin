@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.CarHostGuardsTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:30.260Z" hostname="dingens" time="0.373">
+  <properties/>
+  <testcase name="aFaultingSessionBodyIsLoggedWithItsKey" classname="com.naviveylin.auto.CarHostGuardsTest" time="0.022"/>
+  <testcase name="theHandlerConfinesAFaultForAnyNamedScope" classname="com.naviveylin.auto.CarHostGuardsTest" time="0.019"/>
+  <testcase name="aThrowingCoroutineBodyIsConfinedToItself" classname="com.naviveylin.auto.CarHostGuardsTest" time="0.015"/>
+  <testcase name="aSessionLevelStepIsRecordedUnderTheSessionTag" classname="com.naviveylin.auto.CarHostGuardsTest" time="0.013"/>
+  <testcase name="aMutationThatCompletesReportsSuccessAndLogsNothing" classname="com.naviveylin.auto.CarHostGuardsTest" time="0.012"/>
+  <testcase name="aThrowingMutationIsConfinedAndReportedWithItsName" classname="com.naviveylin.auto.CarHostGuardsTest" time="0.014"/>
+  <testcase name="everyRejectionIsRecordedWithoutThrottling" classname="com.naviveylin.auto.CarHostGuardsTest" time="0.013"/>
+  <testcase name="aRejectionIsReportedAsOneLineWithTheFirstFrame" classname="com.naviveylin.auto.CarHostGuardsTest" time="0.265"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

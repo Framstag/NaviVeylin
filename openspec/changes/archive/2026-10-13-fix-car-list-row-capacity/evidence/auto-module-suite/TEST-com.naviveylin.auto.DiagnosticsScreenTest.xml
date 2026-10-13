@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DiagnosticsScreenTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:33.512Z" hostname="dingens" time="0.067">
+  <properties/>
+  <testcase name="loadedEntriesReachTheTemplate" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.026"/>
+  <testcase name="onGetTemplateDoesNotReadTheFile" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.017"/>
+  <testcase name="theTemplateOpensWithTheDisclosure" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

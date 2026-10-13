@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationTemplateMapperTest" tests="59" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:38.456Z" hostname="dingens" time="0.711">
+  <properties/>
+  <testcase name="stepForInstruction_cueIsGermanOnGermanLocale" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.017"/>
+  <testcase name="laneShape_mergeRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="laneShape_sharpLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="routingInfoFromState_prefersLiveNextInstructionDistance" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.015"/>
+  <testcase name="routingInfoFromState_attachesLanesWhenEnabled" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="hasStateChanged_detectsLaneCountChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="laneShape_right" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="laneShape_slightLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="hasStateChanged_detectsAStepDistanceChangeAcrossTheDisplayedBucket" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.013"/>
+  <testcase name="maneuverType_roundaboutEnter" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="maneuverType_roundaboutLeave" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="stepForInstruction_setsManeuverRoadAndCue" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.013"/>
+  <testcase name="maneuverType_sharpRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="maneuverType_straight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="roundDistanceMeters_showsActualValueUpTo50" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="hasStateChanged_detectsRemainingDistanceAcrossTheDisplayedBucket" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="laneShape_unknownDefaultsToUnknown" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="hasStateChanged_ignoresASubBucketChangeOverOneKilometre" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="laneShape_straight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="maneuverType_unknownDefaultsToStraight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="hasStateChanged_detectsEtaChangeAcrossSecond" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="routingInfoFromState_noNextStepWhenLast" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="maneuverType_depart" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="distanceForDisplay_usesMetersBelow1kmAndKmAbove" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="laneShape_nullDefaultsToUnknown" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="displayedDistanceBucket_clampsNegativeDistances" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="hasStateChanged_ignoresAStepDistanceChangeInsideTheDisplayedBucket" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="routingInfoFromState_rendersArrivalAsDestinationStep" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.013"/>
+  <testcase name="maneuverType_sharpLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="hasStateChanged_detectsNextInstructionDescriptionChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="hasStateChanged_ignoresASubBucketRemainingDistanceChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="maneuverType_slightLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.013"/>
+  <testcase name="roundDistanceMeters_oneDecimalAbove1km" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="hasStateChanged_returnsTrueForNullOldState" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="routeDescriptionRows_fallsBackToShortDescription" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="routingInfoFromState_setsCurrentAndNextStep" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.013"/>
+  <testcase name="maneuverType_left" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="roundDistanceMeters_multiplesOf50Between50And1km" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="hasStateChanged_detectsNextInstructionBecomingNull" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="stepForInstruction_hidesBlankStreet" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="displayedDistanceBucket_followsTheDisplayedRounding" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="maneuverType_destination" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="hasStateChanged_ignoresSameEtaWithinSecond" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.01"/>
+  <testcase name="displayedDistanceBucket_isAbsentWithoutACurrentStep" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.01"/>
+  <testcase name="laneShape_mergeLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="instructionsFromCurrentStep_dropsStepsBeforeCurrent" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="routingInfoFromState_nullWhenNotNavigating" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="laneShape_left" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.01"/>
+  <testcase name="maneuverType_right" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="hasStateChanged_detectsNextInstructionAppearing" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="laneFromTurn_marksRecommended" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="maneuverType_slightRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.01"/>
+  <testcase name="hasStateChanged_detectsDistanceChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="laneShape_sharpRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="laneShape_slightRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="routeDescriptionRows_orderTitleAndCurrentMark" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.012"/>
+  <testcase name="hasStateChanged_detectsReroutingChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.01"/>
+  <testcase name="hasStateChanged_returnsFalseForIdenticalState" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.011"/>
+  <testcase name="hasStateChanged_detectsNavigatingChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

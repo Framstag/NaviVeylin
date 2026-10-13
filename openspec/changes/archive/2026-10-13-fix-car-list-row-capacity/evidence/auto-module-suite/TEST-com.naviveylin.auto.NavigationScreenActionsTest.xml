@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationScreenActionsTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:37.422Z" hostname="dingens" time="0.14">
+  <properties/>
+  <testcase name="routeListCarriesIconAndNoTitle" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.014"/>
+  <testcase name="navigationMapActionStripRouteListInvokesCallback" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.012"/>
+  <testcase name="freeDrivingMapActionStripHasPanAndExit" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.012"/>
+  <testcase name="freeDrivingMapActionStripExitInvokesCallback" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.012"/>
+  <testcase name="navigationMapActionStripHasPanAndRouteList" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.011"/>
+  <testcase name="routeListInvokesCallback" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.012"/>
+  <testcase name="routeListIsNotParkedOnly" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.01"/>
+  <testcase name="stopInvokesCallback" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.011"/>
+  <testcase name="stopIsNotParkedOnly" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.011"/>
+  <testcase name="stopCarriesIconAndNoTitle" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.011"/>
+  <testcase name="zoomInIsNotParkedOnly" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.011"/>
+  <testcase name="zoomOutIsNotParkedOnly" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

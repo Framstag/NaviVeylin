@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationSessionRestoreTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:38.179Z" hostname="dingens" time="0.117">
+  <properties/>
+  <testcase name="aSessionWithoutPushRestoresFreeDriving" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.012"/>
+  <testcase name="theSecondSessionPathDoesNotPushAnotherFreeDrivingView" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.01"/>
+  <testcase name="aRefusedPushIsNotConsumedAndIsRetried" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.011"/>
+  <testcase name="freeDrivingNotRestoredWhileNavigating" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.01"/>
+  <testcase name="startupRetryAllowsOneMoreRestore" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.011"/>
+  <testcase name="aRejectedPushDoesNotConsumeTheOneShotRestore" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.011"/>
+  <testcase name="nothingRestoredWhenNoActiveMode" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.01"/>
+  <testcase name="noRestoreIsConsumedWhileNavigatingOrWithoutAnActiveMode" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.012"/>
+  <testcase name="aLandedPushConsumesTheOneShotRestore" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.016"/>
+  <testcase name="freeDrivingRestoredWhenActiveAndNotNavigating" classname="com.naviveylin.auto.NavigationSessionRestoreTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FavoritesScreenMapperTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:33.757Z" hostname="dingens" time="0.005">
+  <properties/>
+  <testcase name="anUnusableCapacityStillTerminates" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.002"/>
+  <testcase name="aPageNeverCarriesMoreRowsThanTheCapacity" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.001"/>
+  <testcase name="buildDescription_withoutAddress" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.001"/>
+  <testcase name="theLastPageCarriesNoPageRow" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.0"/>
+  <testcase name="buildDescription_emptyAddress" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.0"/>
+  <testcase name="buildDescription_withAddress" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.0"/>
+  <testcase name="aListAtTheCapacityCarriesNoPageRow" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.0"/>
+  <testcase name="anEmptyListIsOneEmptyPage" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.0"/>
+  <testcase name="thePagesPartitionTheSequence" classname="com.naviveylin.auto.FavoritesScreenMapperTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

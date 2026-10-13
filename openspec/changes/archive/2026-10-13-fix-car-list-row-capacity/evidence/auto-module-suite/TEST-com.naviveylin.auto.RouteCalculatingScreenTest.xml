@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.RouteCalculatingScreenTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:40.543Z" hostname="dingens" time="0.099">
+  <properties/>
+  <testcase name="anUnnamedDestinationFallsBackToTheNoticeTitleAndAnUnknownPercentageToNoText" classname="com.naviveylin.auto.RouteCalculatingScreenTest" time="0.014"/>
+  <testcase name="theNoticeCarriesTheDestinationAndTheBucketedPercentage" classname="com.naviveylin.auto.RouteCalculatingScreenTest" time="0.012"/>
+  <testcase name="theNoticeOffersCancelWhileNavigationIsNotActive" classname="com.naviveylin.auto.RouteCalculatingScreenTest" time="0.013"/>
+  <testcase name="aRerouteNoticeOffersNoCancel" classname="com.naviveylin.auto.RouteCalculatingScreenTest" time="0.012"/>
+  <testcase name="theDisplayedPercentageIsBucketedToTheStep" classname="com.naviveylin.auto.RouteCalculatingScreenTest" time="0.011"/>
+  <testcase name="theNoticesProgressIsUpdatedInPlace" classname="com.naviveylin.auto.RouteCalculatingScreenTest" time="0.012"/>
+  <testcase name="theCancelActionRunsTheCallback" classname="com.naviveylin.auto.RouteCalculatingScreenTest" time="0.013"/>
+  <testcase name="aBlankDestinationNameIsNotDisplayed" classname="com.naviveylin.auto.RouteCalculatingScreenTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

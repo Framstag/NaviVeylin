@@ -56,6 +56,9 @@
     <string name="current_location">Aktueller Standort</string>
     <string name="select_favorite">Favorit auswählen</string>
     <string name="no_results_found">Keine Ergebnisse gefunden</string>
+    <!-- A shared map link that carries neither a coordinate nor a place name: the share is
+         reported instead of searching for the link text (spec: share/location-receiving). -->
+    <string name="shared_link_unreadable">Geteilter Link konnte nicht gelesen werden</string>
     <string name="search_mode_places">Orte</string>
     <string name="search_mode_pois">POIs</string>
     <string name="search_mode_contacts">Kontakte</string>

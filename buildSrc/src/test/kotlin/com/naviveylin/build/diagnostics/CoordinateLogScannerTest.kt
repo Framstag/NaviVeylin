@@ -162,7 +162,7 @@ class CoordinateLogScannerTest {
     @Test
     fun flagsACarrierTypedLocalEvenUnderAnotherName() {
         val source = """
-            val parsed: DeepLinkDestination = DeepLinkParser.parse(intent) ?: return
+            val parsed: DeepLinkResult = DeepLinkParser.parse(intent)
             Log.d(TAG, "destination ${'$'}parsed")
         """.trimIndent()
 

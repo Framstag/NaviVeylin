@@ -84,11 +84,21 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <category android:name="androidx.car.app.category.NAVIGATION" />
+                <!-- Google Maps hosts. A filter host cannot wildcard a country TLD
+                     (`*.google.de` is not expressible), so the country hosts users actually
+                     produce are enumerated; a link from an unlisted host still arrives through
+                     the share path below, which matches `text/plain` regardless of host. -->
                 <data android:scheme="https" android:host="maps.google.com" />
                 <data android:scheme="https" android:host="www.google.com" />
+                <data android:scheme="https" android:host="google.com" />
+                <data android:scheme="https" android:host="maps.google.de" />
+                <data android:scheme="https" android:host="www.google.de" />
                 <data android:scheme="https" android:host="maps.app.goo.gl" />
+                <data android:scheme="https" android:host="goo.gl" />
                 <data android:scheme="http" android:host="maps.google.com" />
                 <data android:scheme="http" android:host="www.google.com" />
+                <data android:scheme="http" android:host="maps.google.de" />
+                <data android:scheme="http" android:host="www.google.de" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

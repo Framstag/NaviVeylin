@@ -103,4 +103,9 @@
          car-host-fault-isolation — A repeatedly faulting car renderer recovers, then
          degrades visibly). Shown as a content row and drawn on the map surface. -->
     <string name="map_unavailable">Map unavailable</string>
+
+    <!-- A shared/deep-link map link that carries neither a coordinate nor a place name: the
+         session reports it instead of geocoding the link text (spec: auto-deep-links — Short
+         link does not resolve). -->
+    <string name="deep_link_unreadable">Shared link could not be read</string>
 </resources>

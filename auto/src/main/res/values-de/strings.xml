@@ -99,4 +99,8 @@
     <!-- Karte konnte nach wiederholten Renderer-Fehlern nicht mehr gezeichnet werden
          (spec: car-host-fault-isolation). -->
     <string name="map_unavailable">Karte nicht verfügbar</string>
+
+    <!-- Ein geteilter Kartenlink ohne Koordinate und ohne Ortsnamen: die Session meldet ihn,
+         statt den Linktext zu geocodieren (spec: auto-deep-links). -->
+    <string name="deep_link_unreadable">Geteilter Link konnte nicht gelesen werden</string>
 </resources>

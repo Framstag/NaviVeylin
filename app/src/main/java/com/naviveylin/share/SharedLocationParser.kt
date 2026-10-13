@@ -2,8 +2,8 @@ package com.naviveylin.share
 
 import android.content.Intent
 import com.naviveylin.core.DeepLinkParser
-import java.net.HttpURLConnection
-import java.net.URL
+import com.naviveylin.core.DeepLinkResult
+import com.naviveylin.core.ShortLinkResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -25,56 +25,63 @@ data class SharedLocationRequest(
 }
 
 /**
- * Maps a share/deep-link [Intent] to a [SharedLocationRequest].
+ * What a shared intent turned into on the phone.
  *
- * Format parsing is delegated to [DeepLinkParser] (shared with the car flow);
- * this class adds the phone-specific bits: the display label from
- * [Intent.EXTRA_SUBJECT] and `maps.app.goo.gl` short-link resolution.
+ * - [Request] — a usable location: coordinates (with a name hint) or free text.
+ * - [UnusableLink] — a recognized map link that carries neither a coordinate nor a place
+ *   name. It is reported with a hint; its text never reaches the search field (spec:
+ *   share/location-receiving — An unreadable shared map link is reported, never searched).
+ */
+sealed interface SharedLocationOutcome {
+    data class Request(val request: SharedLocationRequest) : SharedLocationOutcome
+    data object UnusableLink : SharedLocationOutcome
+}
+
+/**
+ * Maps a share/deep-link [Intent] to a [SharedLocationOutcome].
  *
- * @param shortLinkResolver resolves a short link to its target URL; the default
- *   follows HTTP redirects, a fake can be injected in tests. A null result
- *   degrades the link to a raw-text query.
+ * Format parsing is delegated to [DeepLinkParser] (shared with the car flow); this class adds
+ * the phone-specific bits: the display label from [Intent.EXTRA_SUBJECT] (falling back to the
+ * place name the link itself carries) and short-link resolution through the shared
+ * [ShortLinkResolver] transport.
+ *
+ * @param shortLinkResolver resolves a short link to its target URL; the default walks the redirect
+ *   chain through the shared `:core` transport (on the IO dispatcher this method already runs on), a
+ *   fake can be injected in tests. A null result makes the link unreadable rather than a query.
  */
 class SharedLocationParser(
-    private val shortLinkResolver: (String) -> String? = SharedLocationParser::resolveShortLink
+    private val shortLinkResolver: (String) -> String? = ShortLinkResolver()::resolveBlocking
 ) {
 
     /** Parse the intent on the IO dispatcher (short-link resolution is network). */
-    suspend fun parse(intent: Intent?): SharedLocationRequest? = withContext(Dispatchers.IO) {
+    suspend fun parse(intent: Intent?): SharedLocationOutcome? = withContext(Dispatchers.IO) {
         if (intent == null) return@withContext null
-        val dest = DeepLinkParser.parse(intent, shortLinkResolver) ?: return@withContext null
 
-        if (dest.hasCoordinates) {
-            // The label is the share-subject hint only — never a synthesized
-            // coordinate pair: it is identity for the log line, and a pair would be
-            // a position in the diagnostics (spec: auto-diagnostics — Diagnostics
-            // carry no coordinates). The display fallback is composed where the
-            // label is displayed (MapCanvasViewModel).
-            val label = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.takeIf { it.isNotBlank() }
-            SharedLocationRequest(lat = dest.lat, lon = dest.lon, label = label)
-        } else {
-            dest.query?.takeIf { it.isNotBlank() }?.let { SharedLocationRequest(query = it) }
+        when (val result = DeepLinkParser.parse(intent, shortLinkResolver)) {
+            is DeepLinkResult.Destination -> destinationOutcome(intent, result)
+            DeepLinkResult.UnusableLink -> SharedLocationOutcome.UnusableLink
+            DeepLinkResult.None -> null
         }
     }
 
-    companion object {
-        private const val TIMEOUT_MS = 5_000
-
-        /**
-         * Follow HTTP redirects to the final URL of a short link.
-         * Returns null when the URL does not redirect or the request fails.
-         */
-        fun resolveShortLink(url: String): String? = try {
-            val conn = URL(url).openConnection() as HttpURLConnection
-            conn.instanceFollowRedirects = true
-            conn.connectTimeout = TIMEOUT_MS
-            conn.readTimeout = TIMEOUT_MS
-            conn.requestMethod = "GET"
-            val finalUrl = conn.url.toString()
-            conn.disconnect()
-            if (finalUrl == url) null else finalUrl
-        } catch (e: Exception) {
-            null
+    private fun destinationOutcome(
+        intent: Intent,
+        result: DeepLinkResult.Destination
+    ): SharedLocationOutcome? {
+        val destination = result.destination
+        if (!destination.hasCoordinates) {
+            return destination.query?.takeIf { it.isNotBlank() }
+                ?.let { SharedLocationOutcome.Request(SharedLocationRequest(query = it)) }
         }
+        // The label is the share-subject hint, else the place name the link carries — never a
+        // synthesized coordinate pair: it is identity for the log line, and a pair would be a
+        // position in the diagnostics (spec: auto-diagnostics — Diagnostics carry no
+        // coordinates). The display fallback is composed where the label is displayed
+        // (MapCanvasViewModel).
+        val label = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.takeIf { it.isNotBlank() }
+            ?: destination.query?.takeIf { it.isNotBlank() }
+        return SharedLocationOutcome.Request(
+            SharedLocationRequest(lat = destination.lat, lon = destination.lon, label = label)
+        )
     }
 }

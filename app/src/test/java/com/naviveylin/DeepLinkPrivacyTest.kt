@@ -2,6 +2,7 @@ package com.naviveylin
 
 import android.content.Intent
 import android.net.Uri
+import com.naviveylin.share.SharedLocationOutcome
 import com.naviveylin.share.SharedLocationRequest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -10,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowLog
 
 /**
@@ -48,31 +50,74 @@ class DeepLinkPrivacyTest {
         )
     }
 
+    /**
+     * A Google Maps share carries the place name in the subject extra; the forward to the phone
+     * surface keeps it, because that is where the name hint comes from (spec: auto-deep-links —
+     * Share subject survives the forward).
+     */
+    @Test
+    fun shareSubjectSurvivesTheForward() {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://maps.app.goo.gl/abc123")
+            putExtra(Intent.EXTRA_SUBJECT, "Eiffel Tower")
+        }
+
+        val activity = Robolectric.buildActivity(DeepLinkActivity::class.java, intent).create().get()
+
+        val forwarded = shadowOf(activity).nextStartedActivity
+        assertEquals(MainActivity::class.java.name, forwarded.component?.className)
+        assertEquals("Eiffel Tower", forwarded.getStringExtra(Intent.EXTRA_SUBJECT))
+        assertEquals("https://maps.app.goo.gl/abc123", forwarded.getStringExtra(Intent.EXTRA_TEXT))
+    }
+
     @Test
     fun theParsedShareMessageCarriesShapeAndLabelOriginOnly() {
         assertEquals(
-            "Shared location parsed: shape=coordinates labelHint=subject",
-            sharedLocationParsedMessage(
-                SharedLocationRequest(lat = 51.5142, lon = 7.4653, label = "Eiffel Tower")
+            "Shared location parsed: shape=coordinates labelHint=present",
+            sharedLocationOutcomeMessage(
+                SharedLocationOutcome.Request(
+                    SharedLocationRequest(lat = 51.5142, lon = 7.4653, label = "Eiffel Tower")
+                )
             )
         )
         assertEquals(
             "Shared location parsed: shape=coordinates labelHint=none",
-            sharedLocationParsedMessage(SharedLocationRequest(lat = 51.5142, lon = 7.4653))
+            sharedLocationOutcomeMessage(
+                SharedLocationOutcome.Request(SharedLocationRequest(lat = 51.5142, lon = 7.4653))
+            )
         )
         assertEquals(
             "Shared location parsed: shape=query labelHint=none",
-            sharedLocationParsedMessage(SharedLocationRequest(query = "Ruhrallee 1"))
+            sharedLocationOutcomeMessage(
+                SharedLocationOutcome.Request(SharedLocationRequest(query = "Ruhrallee 1"))
+            )
         )
+    }
+
+    /**
+     * An unreadable map link logs its shape only — the link text is exactly what the flow
+     * refuses to search for, and it must not reach the diagnostics either (spec:
+     * share/location-receiving — An unreadable shared map link is reported, never searched).
+     */
+    @Test
+    fun unusableShareLogsShapeOnly() {
+        val message = sharedLocationOutcomeMessage(SharedLocationOutcome.UnusableLink)
+
+        assertEquals("Shared location parsed: shape=unusable", message)
+        assertFalse("no link text and no coordinate: $message", coordinateShaped.containsMatchIn(message))
+        assertFalse("not the link itself: $message", message.contains("http"))
     }
 
     @Test
     fun aLabelThatIsItselfACoordinatePairNeverReachesTheMessage() {
-        val message = sharedLocationParsedMessage(
-            SharedLocationRequest(lat = 51.5142, lon = 7.4653, label = "51.51420, 7.46530")
+        val message = sharedLocationOutcomeMessage(
+            SharedLocationOutcome.Request(
+                SharedLocationRequest(lat = 51.5142, lon = 7.4653, label = "51.51420, 7.46530")
+            )
         )
 
-        assertTrue("the label's origin is still named: $message", message.contains("labelHint=subject"))
+        assertTrue("the label's origin is still named: $message", message.contains("labelHint=present"))
         assertFalse("but never its text: $message", coordinateShaped.containsMatchIn(message))
     }
 }

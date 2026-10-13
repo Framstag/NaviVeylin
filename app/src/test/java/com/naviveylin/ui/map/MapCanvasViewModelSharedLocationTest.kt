@@ -7,6 +7,7 @@ import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.ObjectDescription
+import com.naviveylin.R
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
@@ -15,6 +16,7 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.share.SharedLocationOutcome
 import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,6 +28,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -37,9 +40,11 @@ import org.robolectric.RobolectricTestRunner
 /**
  * Shared-location flow: a request submitted to [SharedLocationHandler] is
  * processed by the map view model — coordinates go through the candidate
- * flow (fixed zoom, details on raw coordinate when nothing found), address
- * text opens the search panel. No @Config — default Robolectric sandbox so
- * the FakeOSMScoutClient JNI stub loads correctly.
+ * flow (fixed zoom, the shared name hint ranking the candidates, details
+ * directly on a single hit and on the raw coordinate when nothing found),
+ * address text opens the search panel, and a map link that cannot be read
+ * is reported without running a search. No @Config — default Robolectric
+ * sandbox so the FakeOSMScoutClient JNI stub loads correctly.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -85,6 +90,11 @@ class MapCanvasViewModelSharedLocationTest {
         viewModel.cancelScopeForTest()
     }
 
+    /** Queue a usable share, the way [com.naviveylin.share.SharedLocationParser] hands one over. */
+    private fun submit(request: SharedLocationRequest) {
+        handler.submit(SharedLocationOutcome.Request(request))
+    }
+
     private fun candidate(
         name: String,
         type: String,
@@ -120,7 +130,7 @@ class MapCanvasViewModelSharedLocationTest {
             candidate("Cafe", "amenity_cafe", 51.52, 7.42, 200L)
         )
 
-        handler.submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Shared point"))
+        submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Shared point"))
         viewModel.uiState.first { it.showCandidatePicker }
 
         val s = viewModel.uiState.value
@@ -137,7 +147,7 @@ class MapCanvasViewModelSharedLocationTest {
         initMap()
         client.nextCandidateDescriptions = emptyList()
 
-        handler.submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Shared point"))
+        submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Shared point"))
         viewModel.uiState.first { it.showDetailsSheet }
 
         val s = viewModel.uiState.value
@@ -149,11 +159,109 @@ class MapCanvasViewModelSharedLocationTest {
         assertNull(s.objectDescription)
     }
 
+    /**
+     * Exactly one object at the shared coordinate: the details sheet opens for it, without the
+     * one-row picker in between (spec: share/location-receiving — Exactly one candidate opens the
+     * details sheet).
+     */
+    @Test
+    fun `shared coordinate with a single candidate opens the details sheet directly`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            initMap()
+            client.nextCandidateDescriptions = listOf(
+                candidate("Hotel Central", "tourism_hotel", 51.51, 7.41, 100L)
+            )
+
+            submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Shared point"))
+            viewModel.uiState.first { it.showDetailsSheet }
+            advanceUntilIdle()
+
+            val s = viewModel.uiState.value
+            assertFalse("a one-row picker must not be shown", s.showCandidatePicker)
+            assertTrue(s.showDetailsSheet)
+            assertNotNull(s.objectDescription)
+            assertTrue(s.candidateDescriptions.isEmpty())
+            assertFalse(s.isLoading)
+            // The marker and the details follow the object, not the raw share point.
+            assertEquals(51.51, s.selectedLocation?.lat ?: Double.NaN, 1e-9)
+            assertEquals(7.41, s.selectedLocation?.lon ?: Double.NaN, 1e-9)
+            assertEquals("object", s.selectedLocation?.matchQuality)
+        }
+
+    /**
+     * The place name a share carries ranks the candidate list — the matching object first, the map
+     * database's own order for the rest, nothing dropped (spec: share/location-receiving — Shared
+     * place name ranks the candidate list).
+     */
+    @Test
+    fun `shared place name ranks the candidates`() = runTest(mainDispatcherRule.dispatcher) {
+        initMap()
+        client.nextCandidateDescriptions = listOf(
+            candidate("Cafe", "amenity_cafe", 51.51, 7.41, 100L),
+            candidate("Hotel Central", "tourism_hotel", 51.52, 7.42, 200L),
+            candidate("Eiffel Tower", "tourism_attraction", 51.53, 7.43, 300L)
+        )
+
+        submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Eiffel Tower"))
+        viewModel.uiState.first { it.showCandidatePicker }
+
+        val names = viewModel.uiState.value.candidateDescriptions.map { it.objectName() }
+        assertEquals(
+            "the named candidate is first, the database order of the rest is preserved",
+            listOf("Eiffel Tower", "Cafe", "Hotel Central"),
+            names
+        )
+    }
+
+    /**
+     * A long press keeps the picker even for a single candidate: there the user chose the point
+     * deliberately, so the list confirms it (only the share flow opens details directly).
+     */
+    @Test
+    fun `long press single candidate still shows the picker`() = runTest(mainDispatcherRule.dispatcher) {
+        initMap()
+        client.nextCandidateDescriptions = listOf(
+            candidate("Hotel Central", "tourism_hotel", 51.51, 7.41, 100L)
+        )
+
+        viewModel.onLongPress(51.5, 7.4)
+        viewModel.uiState.first { it.showCandidatePicker }
+
+        val s = viewModel.uiState.value
+        assertTrue(s.showCandidatePicker)
+        assertFalse(s.showDetailsSheet)
+        assertEquals(1, s.candidateDescriptions.size)
+    }
+
+    /**
+     * A shared map link that carries neither a coordinate nor a name is reported with the hint and
+     * runs no search — the search field keeps its content and the panel stays closed (spec:
+     * share/location-receiving — An unreadable shared map link is reported, never searched,
+     * Unreadable link does not open the search panel).
+     */
+    @Test
+    fun `unreadable shared link shows the hint and keeps the search untouched`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            initMap()
+            handler.submit(SharedLocationOutcome.UnusableLink)
+
+            viewModel.uiState.first { it.snackbarMessage != null }
+            advanceUntilIdle()
+
+            val s = viewModel.uiState.value
+            assertEquals(context.getString(R.string.shared_link_unreadable), s.snackbarMessage)
+            assertFalse("an unreadable link must not open the search panel", s.searchOpen)
+            assertEquals("", s.searchQuery)
+            assertFalse(s.showCandidatePicker)
+            assertFalse(s.showDetailsSheet)
+            assertNull(handler.consume())
+        }
+
     @Test
     fun `shared address opens search panel with query`() = runTest(mainDispatcherRule.dispatcher) {
         initMap()
 
-        handler.submit(SharedLocationRequest(query = "Brandenburger Tor"))
+        submit(SharedLocationRequest(query = "Brandenburger Tor"))
         viewModel.uiState.first { it.searchOpen }
 
         val s = viewModel.uiState.value
@@ -164,9 +272,14 @@ class MapCanvasViewModelSharedLocationTest {
     @Test
     fun `request waits for map ready`() = runTest(mainDispatcherRule.dispatcher) {
         // Submit before the map is initialised: the request must queue and
-        // process once initMap completes.
-        client.nextCandidateDescriptions = listOf(candidate("Hotel", "tourism_hotel", 51.51, 7.41, 100L))
-        handler.submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Early share"))
+        // process once initMap completes. Two candidates, so the share flow
+        // shows the picker: this case is about the queueing, not about the
+        // single-candidate shortcut of the share flow.
+        client.nextCandidateDescriptions = listOf(
+            candidate("Hotel", "tourism_hotel", 51.51, 7.41, 100L),
+            candidate("Cafe", "amenity_cafe", 51.52, 7.42, 200L)
+        )
+        submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Early share"))
 
         initMap()
         viewModel.uiState.first { it.showCandidatePicker }
@@ -179,7 +292,7 @@ class MapCanvasViewModelSharedLocationTest {
         initMap()
         client.nextCandidateDescriptions = emptyList()
 
-        handler.submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Once"))
+        submit(SharedLocationRequest(lat = 51.5, lon = 7.4, label = "Once"))
         viewModel.uiState.first { it.showDetailsSheet }
         advanceUntilIdle()
 
@@ -224,7 +337,7 @@ class MapCanvasViewModelSharedLocationTest {
                 viewModel.uiState.value.searchResults.isEmpty()
             )
 
-            handler.submit(SharedLocationRequest(query = "Bochum"))
+            submit(SharedLocationRequest(query = "Bochum"))
             viewModel.uiState.first { it.searchOpen }
             advanceTimeBy(400)
             runCurrent()

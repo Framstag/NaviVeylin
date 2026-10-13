@@ -25,7 +25,7 @@ The system SHALL declare a phone-side deep-link entry point that Android Auto re
 - **THEN** the share intent matches the deep-link activity
 
 ### Requirement: Deep link parsed into a destination
-The system SHALL parse a deep-link intent into either destination coordinates or a location query.
+The system SHALL parse a deep-link intent into either destination coordinates or a location query. A map short link IS resolved to its target before parsing, on the phone and in the car session alike.
 
 #### Scenario: geo URI with coordinates
 - **WHEN** the intent URI is `geo:48.8566,2.3522`
@@ -38,6 +38,10 @@ The system SHALL parse a deep-link intent into either destination coordinates or
 #### Scenario: Google Maps URL with q parameter
 - **WHEN** the intent URI is `https://maps.google.com/?q=48.8566,2.3522`
 - **THEN** the parser yields the coordinate pair
+
+#### Scenario: Google Maps place link with data coordinates
+- **WHEN** the intent URI is a `https://www.google.com/maps/place/<name>/@<lat>,<lon>,<zoom>z/data=...!3d<lat>!4d<lon>` link
+- **THEN** the parser yields the place pin coordinate pair and the place name as the query label
 
 #### Scenario: Google Maps URL with address query
 - **WHEN** the intent URI is `https://maps.google.com/?q=Eiffel+Tower`
@@ -69,11 +73,11 @@ The system SHALL parse a deep-link intent into either destination coordinates or
 
 #### Scenario: Short link resolves to a map target
 - **WHEN** the intent URI is a `https://maps.app.goo.gl/...` short link that resolves to a map URL
-- **THEN** the parser yields the destination parsed from the resolved target
+- **THEN** the parser yields the destination parsed from the resolved target, and the car session starts navigation to that coordinate
 
 #### Scenario: Short link does not resolve
-- **WHEN** the intent URI is a `https://maps.app.goo.gl/...` short link that cannot be resolved
-- **THEN** the parser yields no coordinates and the raw link text as the query
+- **WHEN** the intent URI is a `https://maps.app.goo.gl/...` short link that cannot be resolved and carries no coordinate or place name of its own
+- **THEN** the parser yields no destination, the raw link text is not offered as a query, and the session surfaces an error instead of geocoding the link
 
 #### Scenario: Unparseable input
 - **WHEN** the intent URI or text cannot be parsed
@@ -105,6 +109,10 @@ The system SHALL forward the deep-link intent from `DeepLinkActivity` to `MainAc
 - **WHEN** `DeepLinkActivity` receives a deep link
 - **THEN** it starts `MainActivity` with the original intent data and finishes itself
 
+#### Scenario: Share subject survives the forward
+- **WHEN** the received deep link carries a place name in its subject extra
+- **THEN** the forwarded intent carries that subject and the phone surface uses it as the place-name hint for a shared coordinate
+
 #### Scenario: Phone surface consumes a shared coordinate
 - **WHEN** `MainActivity` receives a forwarded intent that yields coordinates
 - **THEN** the phone map shows the candidate picker for that coordinate and opens the details flow on selection
@@ -112,3 +120,7 @@ The system SHALL forward the deep-link intent from `DeepLinkActivity` to `MainAc
 #### Scenario: Phone surface consumes a shared address
 - **WHEN** `MainActivity` receives a forwarded intent that yields a query without coordinates
 - **THEN** the phone app runs a location search for the query
+
+#### Scenario: Phone surface receives an unreadable map link
+- **WHEN** `MainActivity` receives a forwarded map link that yields neither coordinates nor a place name
+- **THEN** the phone app shows the hint and does not run a search for the link text

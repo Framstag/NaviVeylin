@@ -12,12 +12,13 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.car.app.navigation.model.Trip
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
-import com.naviveylin.core.DeepLinkDestination
 import com.naviveylin.core.DeepLinkParser
+import com.naviveylin.core.DeepLinkResult
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.RouteCalculation
+import com.naviveylin.core.ShortLinkResolver
 import com.naviveylin.core.StringResolver
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.stringResolver
@@ -608,22 +609,46 @@ class NavigationSession : Session() {
     }
 
     /**
-     * Parse a phone → car deep link and start navigation.
-     * Coordinate destinations navigate directly; address queries are geocoded
-     * via [AutoEntryPoint.autoSearchProvider] with the first match.
+     * Read a phone → car deep link and act on it.
+     *
+     * The whole path runs in the session's own coroutine: a short link needs a network resolution
+     * before it can be read, and that hop must never sit on the host path (guidelines/Design.md §4
+     * and §8 — nothing blocking on the host thread, no native work on it either). The resolver is
+     * asked only for a short link, so a `geo:` URI or a full place link is read without any I/O.
      */
     private fun handleDeepLink(intent: Intent) {
-        val destination = DeepLinkParser.parse(intent) ?: return
-        Log.d(TAG, deepLinkLogMessage(destination))
-
-        if (destination.hasCoordinates) {
-            navigationViewModel.navigateTo(destination.lat!!, destination.lon!!)
-            return
+        val payload = intent.dataString ?: intent.getStringExtra(Intent.EXTRA_TEXT)
+        scope.launch(CoroutineName("deep-link")) {
+            dispatchDeepLink(
+                readDeepLinkPayload(
+                    payload = payload,
+                    parseIntent = { DeepLinkParser.parse(intent) },
+                    resolver = { url -> ShortLinkResolver().resolve(url) }
+                )
+            )
         }
+    }
 
-        val query = destination.query
-        if (query.isNullOrBlank()) return
+    /**
+     * Log the outcome's shape and act on it: a coordinate navigates directly, a query is geocoded
+     * through [AutoEntryPoint.autoSearchProvider] with the first match, and a map link that could
+     * not be read is reported on the car screen instead of being geocoded.
+     */
+    private fun dispatchDeepLink(result: DeepLinkResult) {
+        Log.d(TAG, deepLinkLogMessage(result))
 
+        when (val action = deepLinkAction(result)) {
+            is DeepLinkAction.Navigate -> navigationViewModel.navigateTo(action.lat, action.lon)
+            is DeepLinkAction.Geocode -> geocodeDeepLink(action.query)
+            DeepLinkAction.ReportUnusable -> navigationViewModel.reportError(
+                carContext.stringResolver().get(R.string.deep_link_unreadable),
+                SurfaceOrigin.CAR
+            )
+            DeepLinkAction.Nothing -> Unit
+        }
+    }
+
+    private fun geocodeDeepLink(query: String) {
         scope.launch(CoroutineName("deep-link-geocode")) {
             val results = withContext(Dispatchers.Default) {
                 try {
@@ -1137,12 +1162,17 @@ class NavigationSession : Session() {
 
 /**
  * Identity-only message for a parsed car deep link (spec: auto-diagnostics —
- * Diagnostics carry no coordinates): the destination's shape, never the object —
- * [DeepLinkDestination]'s `toString()` prints the coordinates. Pure seam for unit
- * testing ([NavigationSession] cannot be constructed in Robolectric).
+ * Diagnostics carry no coordinates): the outcome's shape, never the payload —
+ * `DeepLinkDestination`'s `toString()` prints the coordinates, and an unreadable link's text is
+ * exactly what the session refuses to search for. Pure seam for unit testing
+ * ([NavigationSession] cannot be constructed in Robolectric).
  */
-internal fun deepLinkLogMessage(destination: DeepLinkDestination): String =
-    "Deep link parsed: shape=${if (destination.hasCoordinates) "coordinates" else "query"}"
+internal fun deepLinkLogMessage(result: DeepLinkResult): String = when (result) {
+    is DeepLinkResult.Destination ->
+        "Deep link parsed: shape=" + (if (result.destination.hasCoordinates) "coordinates" else "query")
+    DeepLinkResult.UnusableLink -> "Deep link parsed: shape=unusable"
+    DeepLinkResult.None -> "Deep link parsed: shape=none"
+}
 
 /**
  * Whether the notice that currently shows [showingBucket] has to be refreshed for a

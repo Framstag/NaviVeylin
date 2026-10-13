@@ -13,6 +13,7 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.share.SharedLocationOutcome
 import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.test.MainDispatcherRule
 import java.io.File
@@ -146,10 +147,12 @@ class DiagnosticsCoordinatePrivacyTest {
             viewModel.initMap("/data/maps/testmap")
             client.nextCandidateDescriptions = emptyList()
 
-            // A label that is itself a coordinate pair — the shape the parser used to
-            // synthesize for a share without a subject — must never reach a log line.
+            // A label that is itself a coordinate pair — a shape a share can carry and the
+            // parser used to synthesize for a share without a subject — must never reach a log line.
             sharedLocationHandler.submit(
-                SharedLocationRequest(lat = 51.5142, lon = 7.4653, label = "51.51420, 7.46530")
+                SharedLocationOutcome.Request(
+                    SharedLocationRequest(lat = 51.5142, lon = 7.4653, label = "51.51420, 7.46530")
+                )
             )
             // The log line is written before the request reaches the details sheet, so
             // waiting for the sheet is waiting for the line (initMap's style push runs
@@ -160,11 +163,36 @@ class DiagnosticsCoordinatePrivacyTest {
             val line = logcat.firstOrNull { it.contains("Shared location:") }
             assertTrue("the shared-location line is logged: $logcat", line != null)
             assertTrue("it names the request shape: $line", line!!.contains("shape=coordinates"))
-            assertTrue("and the label's origin: $line", line.contains("labelHint=subject"))
+            assertTrue("and the label's origin: $line", line.contains("labelHint=present"))
             assertFalse("the label text must not be logged: $line", line.contains("51.51420"))
             assertFalse(
                 "no logcat line may carry a coordinate-shaped token: $logcat",
                 logcat.any { coordinateShaped.containsMatchIn(it) }
             )
         }
+
+    /**
+     * A shared map link that cannot be read logs its shape only: the link text is the thing the
+     * flow refuses to search for, so it must not reach the diagnostics either (spec:
+     * share/location-receiving — An unreadable shared map link is reported, never searched).
+     */
+    @Test
+    fun unreadableSharedLinkLogsShapeOnly() = runTest(mainDispatcherRule.dispatcher) {
+        viewModel.setScreenSize(100, 100)
+        viewModel.initMap("/data/maps/testmap")
+
+        sharedLocationHandler.submit(SharedLocationOutcome.UnusableLink)
+        // The hint is the line's successor on the same path: waiting for it waits for the log.
+        viewModel.uiState.first { it.snackbarMessage != null }
+
+        val logcat = capturedLogcat()
+        val line = logcat.firstOrNull { it.contains("Shared location:") }
+        assertTrue("the unreadable-share line is logged: $logcat", line != null)
+        assertTrue("it names the shape: $line", line!!.contains("shape=unusable"))
+        assertFalse("never the link text: $line", line.contains("http"))
+        assertFalse(
+            "no logcat line may carry a coordinate-shaped token: $logcat",
+            logcat.any { coordinateShaped.containsMatchIn(it) }
+        )
+    }
 }

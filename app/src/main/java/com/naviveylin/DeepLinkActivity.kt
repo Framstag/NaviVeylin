@@ -17,6 +17,10 @@ class DeepLinkActivity : Activity() {
         forward.data = original?.data
         original?.getStringExtra(Intent.EXTRA_TEXT)?.let { forward.putExtra(Intent.EXTRA_TEXT, it) }
         original?.getStringExtra("android.intent.extra.QUERY")?.let { forward.putExtra("android.intent.extra.QUERY", it) }
+        // A Google Maps share carries the place name in the subject; the phone surface uses it
+        // as the name hint for a shared coordinate (spec: auto-deep-links — Share subject
+        // survives the forward).
+        original?.getStringExtra(Intent.EXTRA_SUBJECT)?.let { forward.putExtra(Intent.EXTRA_SUBJECT, it) }
         forward.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         try {
@@ -40,4 +44,5 @@ class DeepLinkActivity : Activity() {
  */
 internal fun deepLinkReceivedMessage(intent: Intent?): String =
     "Deep link received: action=${intent?.action} scheme=${intent?.data?.scheme} " +
-        "textExtra=${intent?.getStringExtra(Intent.EXTRA_TEXT) != null}"
+        "textExtra=${intent?.getStringExtra(Intent.EXTRA_TEXT) != null} " +
+        "subjectExtra=${intent?.getStringExtra(Intent.EXTRA_SUBJECT) != null}"

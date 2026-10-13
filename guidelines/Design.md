@@ -88,8 +88,12 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 - **Adding a details sheet after a search**: a `ModalBottomSheet`, a `showDetailsSheet` flag on
   `MapCanvasUiState`, and the selection wired to set the flag and move the centre; its favourite action
   comes from `FavoriteRepository`.
-- **Adding a native function**: the `native` method in `OSMScoutClient.java` (the libosmscout submodule), the
-  JNI wrapper under `libosmscout-client-java/src/`, and a CMake target link when a new library is involved.
+- **Adding a native function**: the `native` method in the **override**
+  `osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java` — the submodule's copy of that file is one of the
+  five the Gradle module supersedes and is never compiled, so a declaration added there does
+  nothing — the JNI wrapper under the submodule's `libosmscout-client-java/src/`, and a CMake target
+  link when a new library is involved. The `native-bridge-signature-change` skill holds the
+  procedure, the audit script and the one-commit rule for the gitlink and the declaration.
 
 ## 3. ViewModel & state
 
@@ -563,6 +567,11 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   template match identically (spec: `search-name-matching`). A matching defect
   behind an unchanged JNI contract is fixed in the library (§5), never filtered or
   patched around per surface.
+- *Ordering* the library's result is not matching: a shared map link may carry a place name
+  (`EXTRA_SUBJECT`, else the name in its own URL), and the phone lists the candidates whose name
+  contains it first — a stable partition that drops nothing, asserted in the picker's own UI test
+  as well as in the view model. A name the library did not match keeps its position, and the
+  car path navigates or geocodes exactly as before (change `read-shared-google-maps-links`).
 
 ## 10. Build & release
 

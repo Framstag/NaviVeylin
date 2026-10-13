@@ -85,7 +85,7 @@ object CoordinateLogScanner {
 
     /** Types that hold a position; a local declared with one is a carrier too. */
     private val CARRIER_TYPES = setOf(
-        "SharedLocationRequest", "DeepLinkDestination", "Intent", "Uri", "Location", "GpsFix"
+        "SharedLocationRequest", "DeepLinkDestination", "DeepLinkResult", "Intent", "Uri", "Location", "GpsFix"
     )
 
     /** `val name: Type` declarations, so an explicitly typed carrier is seen too. */

@@ -12,21 +12,22 @@ import org.robolectric.RobolectricTestRunner
 class SharedLocationHandlerTest {
 
     private val request = SharedLocationRequest(lat = 48.8566, lon = 2.3522, label = "Eiffel Tower")
+    private val outcome = SharedLocationOutcome.Request(request)
 
     @Test
     fun submit_exposesRequest() = runTest {
         val handler = SharedLocationHandler()
-        handler.submit(request)
-        assertEquals(request, handler.request.first())
+        handler.submit(outcome)
+        assertEquals(outcome, handler.outcome.first())
     }
 
     @Test
     fun consume_returnsAndClears() = runTest {
         val handler = SharedLocationHandler()
-        handler.submit(request)
-        assertEquals(request, handler.consume())
+        handler.submit(outcome)
+        assertEquals(outcome, handler.consume())
         assertNull(handler.consume())
-        assertNull(handler.request.first())
+        assertNull(handler.outcome.first())
     }
 
     @Test
@@ -38,9 +39,18 @@ class SharedLocationHandlerTest {
     @Test
     fun submit_replacesPrevious() = runTest {
         val handler = SharedLocationHandler()
-        handler.submit(request)
-        val second = SharedLocationRequest(query = "Brandenburger Tor")
+        handler.submit(outcome)
+        val second = SharedLocationOutcome.Request(SharedLocationRequest(query = "Brandenburger Tor"))
         handler.submit(second)
         assertEquals(second, handler.consume())
+    }
+
+    /** An unreadable link is carried like a request: it is an outcome of its own (spec:
+     * share/location-receiving — An unreadable shared map link is reported, never searched). */
+    @Test
+    fun submit_exposesUnusableLink() = runTest {
+        val handler = SharedLocationHandler()
+        handler.submit(SharedLocationOutcome.UnusableLink)
+        assertEquals(SharedLocationOutcome.UnusableLink, handler.consume())
     }
 }

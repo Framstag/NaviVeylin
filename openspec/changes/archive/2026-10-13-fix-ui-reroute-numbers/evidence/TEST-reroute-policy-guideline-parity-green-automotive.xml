@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.ReroutePolicyGuidelineParityTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-13T19:33:08.185Z" hostname="dingens" time="0.126">
+  <properties/>
+  <testcase name="the reroute parity bullet states the policy the engine applies" classname="com.naviveylin.navigation.ReroutePolicyGuidelineParityTest" time="0.121"/>
+  <system-out><![CDATA[reroutePolicy guideline={fast path=30.0, confirmation floor=4.0, cooldown=25.0, accuracy guard=100.0, tunnel guard=30.0} engine={fast path=30.0, confirmation floor=4.0, cooldown=25.0, accuracy guard=100.0, tunnel guard=30.0}
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

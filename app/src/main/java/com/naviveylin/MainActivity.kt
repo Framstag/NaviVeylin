@@ -25,8 +25,8 @@ import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.StartMapResolver
 import com.naviveylin.navigation.NavGraph
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.share.SharedLocationOutcome
 import com.naviveylin.share.SharedLocationParser
-import com.naviveylin.share.SharedLocationRequest
 import com.naviveylin.ui.theme.NaviVeylinTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -127,16 +127,15 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Parse a shared/deep-link intent and queue it for the map screen.
-     * Coordinates land in the candidate/details flow; address text runs search.
+     * Coordinates land in the candidate/details flow; address text runs search; a map link that
+     * cannot be read is queued as such, so the map screen reports it instead of searching for it.
      */
     private fun handleSharedIntent(intent: Intent?) {
         if (intent == null) return
         lifecycleScope.launch {
-            val request = sharedLocationParser.parse(intent)
-            if (request != null) {
-                Log.d(TAG, sharedLocationParsedMessage(request))
-                sharedLocationHandler.submit(request)
-            }
+            val outcome = sharedLocationParser.parse(intent) ?: return@launch
+            Log.d(TAG, sharedLocationOutcomeMessage(outcome))
+            sharedLocationHandler.submit(outcome)
         }
     }
 
@@ -156,11 +155,16 @@ class MainActivity : ComponentActivity() {
 
 /**
  * Identity-only message for a parsed share/deep link (spec: auto-diagnostics —
- * Diagnostics carry no coordinates): the request's shape and whether it carries a
- * name hint, never the request object — [SharedLocationRequest]'s `toString()`
- * prints `lat`/`lon` and a label that is a coordinate pair when a share carries no
- * subject. Pure seam for unit testing.
+ * Diagnostics carry no coordinates): the outcome's shape and whether it carries a
+ * name hint, never the request object —
+ * [com.naviveylin.share.SharedLocationRequest]'s `toString()` prints `lat`/`lon`
+ * and a label that is a coordinate pair when a share carries no subject. Pure seam
+ * for unit testing.
  */
-internal fun sharedLocationParsedMessage(request: SharedLocationRequest): String =
-    "Shared location parsed: shape=${if (request.hasCoordinates) "coordinates" else "query"} " +
-        "labelHint=${if (request.label != null) "subject" else "none"}"
+internal fun sharedLocationOutcomeMessage(outcome: SharedLocationOutcome): String = when (outcome) {
+    is SharedLocationOutcome.Request ->
+        "Shared location parsed: shape=" +
+            (if (outcome.request.hasCoordinates) "coordinates" else "query") +
+            " labelHint=" + (if (outcome.request.label != null) "present" else "none")
+    SharedLocationOutcome.UnusableLink -> "Shared location parsed: shape=unusable"
+}

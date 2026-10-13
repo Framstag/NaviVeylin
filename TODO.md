@@ -26,7 +26,7 @@
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
 - **specs-and-process** — bug: §161 §187 §199
-- **specs-and-process** — improvement: §40 §113 §134 §154 §156 §157 §158 §159 §162 §171 §172
+- **specs-and-process** — improvement: §40 §113 §134 §154 §156 §157 §158 §159 §162 §171 §172 §200
 - **stylesheets** — bug: §36
 - **ui** — bug: §70 §74 §153 §186
 - **ui** — improvement: §39 §73 §136 §152 §166
@@ -2932,9 +2932,9 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Related**: `fix-browse-recenter-dwell` (the dwell-liveness fix, whose `proposal.md` — Impact records this as out of scope), spec `map-modes` — Browse re-center, `guidelines/UI.md` §7a.
 
 ## 187. `guidelines/UI.md` still states the retired reroute policy numbers (50 m fast path, 10 s confirmation window) after the landed change lowered them to 30 m / 4 s — Found 2026-10-12 while landing the in-flight reroute-latency work found uncommitted in this tree
-**id:** 187 · **category:** specs-and-process · **class:** bug · **status:** open
+**id:** 187 · **category:** specs-and-process · **class:** bug · **status:** fixed-by `fix-ui-reroute-numbers`
 
-- **Observed** ⚠: `guidelines/UI.md:838` carries the phone/AA reroute-parity bullet with “50 m fast path,
+- **Observed** ⚠: `guidelines/UI.md:872` carried the phone/AA reroute-parity bullet with “50 m fast path,
   10 s confirmation window, 25 s cooldown, 100 m accuracy guard, 30 s tunnel guard”. The change landed as
   commit `efc86f3` (archived `openspec/changes/archive/2026-10-12-tune-reroute-trigger-latency`, spec
   `reroute-trigger` synced) lowers the confirmation floor **10 000 → 4 000 ms** and the distance fast path
@@ -2942,7 +2942,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   requirement is restated around them. The guideline was not updated: its own proposal names
   `guidelines/Design.md` §3 as the affected section, but `Design.md` states none of these numbers (checked
   2026-10-12 with `grep -nE "10 s|50 m|4 s|30 m|confirmation|fast path|cooldown" guidelines/Design.md`,
-  no hit), while the section that does state them — `UI.md` §3 — is not named anywhere in that change.
+  no hit), while the section that does state them — `UI.md` §8 — is not named anywhere in that change.
 - **Impact** ℹ: the bullet is the parity record a reader (or an agent reading only the guideline) takes as
   current, and the numbers are load-bearing for what it claims: “the timing is the same whichever surface
   displays the session”. With 50 m / 10 s stated there, the guideline contradicts both the code and the
@@ -2952,8 +2952,20 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   end-to-end figure the spec now bounds is readable from the guideline alone. Keep the three unchanged
   guards as they are; they were deliberately left alone.
 - **Related**: commit `efc86f3` (“Land the in-flight reroute-latency work…”), change
-  `tune-reroute-trigger-latency` (archived), spec `reroute-trigger`, `guidelines/UI.md` §3, §144 and §126
+  `tune-reroute-trigger-latency` (archived), spec `reroute-trigger`, `guidelines/UI.md` §8, §144 and §126
   (the reroute family).
+- **Loop verdict** ✅: `fixed-by fix-ui-reroute-numbers` (2026-10-13). Deciding sentence — `design.md` D1:
+  "The guideline is the wrong side; the code and the spec are right" (the spec states 4 s at
+  `openspec/specs/reroute-trigger/spec.md:10` and 30 m at `:25`, the engine applies exactly those, and the
+  archived tuning change records the move). The entry's own anchor was off by 34 and one section — `:838` in
+  §3; the bullet is `:872` in §8, corrected here while landing the fix. Red on HEAD:
+  `ReroutePolicyGuidelineParityTest#the reroute parity bullet states the policy the engine applies` failed with
+  `the bullet's fast path must be the engine's FAST_PATH_DISTANCE_M expected:<30.0> but was:<50.0>` (XML
+  `tests="1" failures="1"`, 2026-10-13T19:25:47.532Z); the bullet now reads 30 m fast path / 4 s confirmation
+  floor and names the constants it mirrors and the guard case; one revert-check (the engine's
+  `FAST_PATH_DISTANCE_M` mutated back to `50.0`) failed the case at its own assertion; the eliminated
+  alternative (delete the numbers and point at `reroute-trigger`) is `design.md` D2. Archived with its
+  evidence.
 
 ## 188. The routing profile's per-vehicle maximum-speed semantics have no test anywhere, so a change that passes a speed proves only the hand-off — Found 2026-10-12 while applying `vehicle-max-speed-settings` (task 5.3, device run)
 **id:** 188 · **category:** native-jni · **class:** improvement · **status:** open
@@ -3088,3 +3100,30 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Loop verdict** ⏳ (fix-loop 2026-10-13 — filed during the review of
   `fix-routing-max-speed-classification`: the finding lies outside that change's diff, so it was reported here
   instead of fixed there; not yet triaged).
+
+## 200. `guidelines/UI.md`'s "Keeping this document honest" rule names only the §1 parity table and the §2 glyph table, so a number the document restates elsewhere has no update obligation — the §8 reroute-policy bullet stayed at 50 m / 10 s through the change that moved it (`TODO.md` §187) — Found 2026-10-13 while applying `fix-ui-reroute-numbers`
+**id:** 200 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ⚠: the honesty rule (`guidelines/UI.md:1266`, its bullets `:1268-1270`) — "Specs are the
+  contract; this document is the condensed knowledge base" plus "When a spec requirement changes labels,
+  styling, or hierarchy, update the parity table (§1) and glyph table (§2) here at the same time" — keys the
+  obligation on labels/styling/hierarchy and enumerates two sections. The document's other restatements of spec'd or
+  code-derived values carry no obligation and no rule names them: the phone/AA reroute-policy bullet
+  (`guidelines/UI.md:870-877`, the instance) and §8's overlay minimums (`:782-784`, 24sp / 64dp / 32sp …).
+  Measured 2026-10-13: `grep -n "reroute" guidelines/UI.md` → the policy bullet is `:870` only, and
+  `guidelines/Design.md` states none of its numbers, so the archived `2026-10-12-tune-reroute-trigger-latency`
+  (which named `Design.md` §3) had no pointer that would have forced the update.
+- **Impact** ℹ: a change that moves a policy number keeps the guideline true only by the author's memory, and
+  the guideline is what a session reads when it reads no spec — where its number contradicts the spec it
+  cites. `fix-ui-reroute-numbers` guards the one bullet with `ReroutePolicyGuidelineParityTest`; the rule that
+  would have caught it without a purpose-built case still lists §1 and §2 only.
+- **Fix candidate** ℹ: decide which side is right and make them agree — either widen the honesty rule to every
+  restatement the document owns (naming the section and the case that holds each to its source), or narrow it
+  explicitly ("a number a section restates is the reader's convenience and must name the case that guards it")
+  and let each code-derived bullet name its guard, as §8's density bullet (`:839-845`) already does with
+  `CompassNeedleStrokeTest`.
+- **Related**: `guidelines/UI.md` §8 (`:870-877`) and "Keeping this document honest" (`:1266`, its bullets
+  `:1268-1270`); spec `documentation-ownership` ("A rule has one normative home"); `TODO.md` §187; change
+  `fix-ui-reroute-numbers`.
+- **Loop verdict** ⏳ (fix-loop 2026-10-13 — filed while applying `fix-ui-reroute-numbers`: the gap lies outside
+  that change's diff, whose fix is the §187 bullet plus its guard case; not yet triaged).

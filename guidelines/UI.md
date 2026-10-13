@@ -869,7 +869,10 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   Picker labels/hierarchy stay identical, so the logical position is comparable across surfaces.
 - Phone/AA reroute parity (spec `reroute-trigger`, change `one-navigation-engine`): one
   process-scoped navigation engine applies **one** reroute policy to the session both surfaces render —
-  50 m fast path, 10 s confirmation window, 25 s cooldown, 100 m accuracy guard, 30 s tunnel guard.
+  30 m fast path, 4 s confirmation floor, 25 s cooldown, 100 m accuracy guard, 30 s tunnel guard
+  (`FAST_PATH_DISTANCE_M`, `MIN_OFF_ROUTE_DURATION_MS`, `REROUTE_COOLDOWN_MS`, `MAX_REROUTE_ACCURACY` and
+  `TUNNEL_REROUTE_GUARD_MS` in `NavigationEngine`; `ReroutePolicyGuidelineParityTest` holds this bullet to
+  them, so a policy move updates the two in the same change).
   No surface carries its own thresholds, interval gate or confirmation rule (the car's former
   25 m / 15 s / 10 s-interval path is gone), so the timing is the same whichever surface displays the
   session, and a reroute re-acquires to the retained destination without a surface acting. The

@@ -19,7 +19,17 @@ prepared the AVD (maps installed, `com.framstag.naviveylin` installed).
 2. **Reset the state you are about to drive** — app-specific, e.g. clear the search
    history so a search flow is deterministic:
    `adb shell run-as com.framstag.naviveylin rm -f files/maps/search_history.json`
-   then `adb shell am force-stop …` and `am start -n …/.MainActivity`, sleep ~14 s.
+   then `adb shell am force-stop com.framstag.naviveylin` and
+   `am start -n com.framstag.naviveylin/com.naviveylin.MainActivity`, sleep ~14 s.
+   The activity is `com.naviveylin.MainActivity` under the applicationId
+   `com.framstag.naviveylin` — `-n <applicationId>/.MainActivity` fails with
+   `Error type 3: Activity class … does not exist`, which reads like a missing app
+   rather than a wrong component name (`resolve-activity --brief <appId>` prints the
+   real one).
+   **Never `connectedAndroidTest`, `pm clear` or an uninstall here:** app data and the
+   AVD's map databases live in `files/maps`, and clearing the package takes them with
+   it (`provision-phone-emulator`, "Never"). Clear the app's own file through
+   `run-as`, never the package.
 3. **Tap by dump, never by remembered coordinates**
    - Dump device-side and read it host-side in one step — the path policy rejects a literal
      `/sdcard/...` in the host command, and `adb pull` cannot expand `$EXTERNAL_STORAGE`: `adb shell

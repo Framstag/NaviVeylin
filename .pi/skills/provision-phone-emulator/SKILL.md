@@ -15,13 +15,33 @@ This skill exists because that happened twice while finishing `route-planning-se
 databases were wiped when the emulator's `PackageManager` dropped the package (losing a package
 deletes its data), and an `assumeTrue`-skipped instrumentation run reported `OK (3 tests)` in 0.02 s.
 
+## Never (read before running anything)
+
+These four have each destroyed provisioned data in this repo. They are the default stance, not advice:
+
+| Never | Because | Use instead |
+|---|---|---|
+| `connectedAndroidTest` (any variant) | AGP **uninstalls and reinstalls** the app; the data directory goes with it | `am instrument` (§6) |
+| `adb uninstall` / `pm uninstall` | deleting a package deletes its data | `adb install -r -t` |
+| `pm clear` | that is the data you provisioned | nothing — fix the state instead |
+| `emulator -wipe-data` / `adb shell pm clear` | re-provisions from zero, 784 MB included | `adb reboot` (§1) |
+
+**Do not clear app data by default.** No build or test invocation here may clear it, and the default for
+any device run is *leave the package data alone*. If a run needs a clean **app** state (a first-run screen,
+a grant dialog), clear the app's own file or setting through `run-as` — never the package.
+
+It happened a third time on 2026-10-14: `:app:connectedMobileDebugAndroidTest` ran for 10 minutes, then
+AGP uninstalled the app, and the AVD's Andorra database went with it. The rule below was already in the
+Contract table and in pitfall 1, and was still not read first. **Read this block, then §6, before the
+first device command of a session.**
+
 ## Contract
 
 | Element | Rule |
 |---|---|
 | Installing | `adb install -r -t <apk>` for the app **and** the androidTest APK. Never uninstall. `-r` only updates a build signed with the **same key** as the APK you built: a differently-signed install (Play/release, or another machine's debug key) refuses it with `INSTALL_FAILED_UPDATE_INCOMPATIBLE: signatures do not match`, leaving uninstall as the only in-place path — and that deletes the maps (pitfall 13). |
-| After maps exist | **Never** reinstall/uninstall the app, and **never** run `connectedAndroidTest`: AGP uninstalls/reinstalls, which deletes `files/maps` along with the package data. |
-| Device-side runs | `adb shell am instrument -w -e class <FQCN> com.framstag.naviveylin.test/androidx.test.runner.AndroidJUnitRunner` |
+| After maps exist | **Never** reinstall/uninstall the app, **never** clear its data, and **never** run `connectedAndroidTest`: AGP uninstalls/reinstalls, which deletes `files/maps` along with the package data. |
+| Device-side runs | `adb shell am instrument -w -e class <FQCN> com.framstag.naviveylin.test/androidx.test.runner.AndroidJUnitRunner` — no reinstall, no uninstall. Do **not** pass `clearPackageData=true` (AGP's runner argument of that name is the other way data disappears). |
 | Reading a result | The JUnit XML (`app/build/outputs/androidTest-results/…/TEST-*.xml`) — `tests`/`skipped`/`failures`. A run that finishes in ~0.02 s and prints `OK (N tests)` is `assumeTrue` **skipping**, not a pass. |
 | The basemap | A rendering-only lookup database with **no routing data**. Never pass it to `openDatabases()`, a routing service or a route test — the app opens it through its own lookup directory. (Prudence, not a proven cause: see pitfall 3.) |
 | Map data | Downloaded through the **app's own map manager** (provider `karry.cz`, built in). The host cannot fetch it: the provider's `latest.php` needs the client's own version arguments, and the directory listing is not the download path. |
@@ -162,6 +182,10 @@ types in '<file>'` warnings are expected on an install whose map data predates t
 
 ### 6. Run the device checks
 
+**Pre-flight, every time:** `adb shell run-as com.framstag.naviveylin ls files/maps` must list a routable
+region. An empty or missing `files/maps` makes every case that needs data `assumeTrue`-**skip**, and a skip
+prints `OK (N tests)` — a run without this check is not a result.
+
 ```bash
 # instrumented test (no reinstall, no uninstall):
 adb shell am instrument -w -e class com.naviveylin.route.RouteInstructionPositionDeviceTest \
@@ -170,6 +194,17 @@ adb shell am instrument -w -e class com.naviveylin.route.RouteInstructionPositio
 grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' \
   "app/build/outputs/androidTest-results/connected/*/flavors/mobile/TEST-*.xml"
 ```
+
+`am instrument` writes its XML to the *same* `connectedAndroidTest-results` directory, so the reading path
+is unchanged. A result is only clear when **three** things are quoted together: the XML tally
+(`tests`/`skipped`/`failures`), the case names that ran, and `run-as … ls files/maps` from the same run —
+the last one is what distinguishes "passed" from "skipped" from "wiped".
+
+**Writing a device case that reads instructions:** `client.startNavigation(handle, listener)` alone
+dispatches **no** instruction list — the engine's agents only run once a position has been processed.
+Feed synthetic fixes (`controller.processLocation(lat, lon, speed, accuracy, timestamp)`) until the
+listener fires; waiting on the list without a fix times out (measured: 5 candidates × 60 s, all routed,
+no list). The neighbouring `RouteInstructionPositionDeviceTest` documents the same limitation as TODO 16.
 
 For a UI scenario (anchors, step analysis, grace expiry, car surfaces): drive it with `adb shell input
 tap/swipe` between dumps, watch `adb logcat -s NaviVeylin`, and export the diagnostics file for the

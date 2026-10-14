@@ -77,7 +77,7 @@ The expanded view SHALL keep the routing status content visible: current road na
 
 ### Requirement: Route description list
 
-The expanded view SHALL show the route description list, styled like the route details view (`RouteSummaryDialog`): each step with its turn icon, distance, and instruction text. A step's distance SHALL be the distance of that step's own segment — the leg leading to its manoeuvre — and each step SHALL additionally show the time for its segment, so both values match the per-step values shown in the route summary (spec: `routing-summary`). A value whose meaning is a route-start-to-here distance next to a leg time SHALL NOT be shown.
+The expanded view SHALL show the route description list, styled like the route details view (`RouteSummaryDialog`): each step with its turn icon, distance, and instruction text. A step's distance SHALL be the distance of that step's own segment — the leg leading to its manoeuvre — and each step SHALL additionally show the time for its segment, so both values match the per-step values shown in the route summary (spec: `routing-summary`). A value whose meaning is a route-start-to-here distance next to a leg time SHALL NOT be shown. A roundabout-exit step's turn icon SHALL carry that step's own exit ordinal.
 
 #### Scenario: Steps listed in order
 
@@ -101,6 +101,19 @@ The expanded view SHALL show the route description list, styled like the route d
 
 - **WHEN** the instruction list exceeds the visible area
 - **THEN** the list SHALL be scrollable
+
+#### Scenario: A roundabout exit step shows its own exit number
+
+- **WHEN** the full-screen view is open and a step is a roundabout exit carrying an ordinal
+- **THEN** that step's icon SHALL carry that step's ordinal
+- **AND** it SHALL NOT carry the ordinal of another step in the list
+- **Case**: `app: NavigationDetailsOverlayTest` "a roundabout exit step icon carries that step's number"
+
+#### Scenario: A roundabout exit step without an ordinal
+
+- **WHEN** the full-screen view is open and a roundabout exit step carries no ordinal
+- **THEN** that step's icon SHALL be the plain roundabout leave icon it showed before the number existed
+- **Case**: `app: NavigationDetailsOverlayTest` "a roundabout exit step without an ordinal keeps the plain icon"
 
 ### Requirement: Current step selected at top
 

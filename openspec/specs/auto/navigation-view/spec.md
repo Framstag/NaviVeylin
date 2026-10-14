@@ -8,7 +8,7 @@ Defines the Android Auto navigation view: the host-rendered `NavigationTemplate`
 
 ### Requirement: Next turn maneuver in host instruction panel
 
-The system SHALL render the next turn instruction in the host-rendered navigation instruction panel of the `NavigationTemplate`, showing a turn-type icon, the distance to the turn and the target street name, and SHALL update it as navigation progresses. The displayed distance SHALL remain a true remaining distance to the maneuver: it SHALL count down as the vehicle approaches and SHALL NOT display 0 m while the maneuver is still ahead and the vehicle is moving, including after a reroute.
+The system SHALL render the next turn instruction in the host-rendered navigation instruction panel of the `NavigationTemplate`, showing a turn-type icon, the distance to the turn and the target street name, and SHALL update it as navigation progresses. The displayed distance SHALL remain a true remaining distance to the maneuver: it SHALL count down as the vehicle approaches and SHALL NOT display 0 m while the maneuver is still ahead and the vehicle is moving, including after a reroute. For a roundabout exit the icon SHALL identify which exit the route takes.
 
 #### Scenario: Maneuver shown during navigation
 
@@ -44,9 +44,16 @@ The system SHALL render the next turn instruction in the host-rendered navigatio
 - **WHEN** navigation is not active
 - **THEN** the host instruction panel shows no maneuver
 
+#### Scenario: A roundabout exit maneuver carries the exit number
+
+- **WHEN** navigation is active and the next maneuver is a roundabout exit carrying an ordinal
+- **THEN** the host panel's maneuver SHALL identify that exit by its ordinal
+- **AND** the ordinal SHALL be the one the panel's cue text names
+- **Case**: `auto: NavigationTemplateMapperTest` "a roundabout exit maneuver carries the exit number"
+
 ### Requirement: Current and next step in host instruction panel
 
-The system SHALL render the next-turn instruction (current step) and the following turn (next step) in the host-rendered navigation instruction panel of the `NavigationTemplate`, showing a turn-type icon, the distance to the turn and the target street name, and SHALL update them as navigation progresses. The current-step distance SHALL NOT freeze at 0 m while the step is still ahead, including after a reroute.
+The system SHALL render the next-turn instruction (current step) and the following turn (next step) in the host-rendered navigation instruction panel of the `NavigationTemplate`, showing a turn-type icon, the distance to the turn and the target street name, and SHALL update them as navigation progresses. The current-step distance SHALL NOT freeze at 0 m while the step is still ahead, including after a reroute. Each step's icon SHALL identify its own exit when that step is a roundabout exit carrying an ordinal.
 
 #### Scenario: Current step shown during navigation
 
@@ -79,6 +86,13 @@ The system SHALL render the next-turn instruction (current step) and the followi
 - **WHEN** the distance to the current step is shown
 - **THEN** it is rounded for display: exact up to 50 m, multiples of 50 m up to 1 km, one decimal km above (meters below 1 km, kilometers above)
 
+#### Scenario: Each step carries its own exit number
+
+- **WHEN** the current step and the next step are both roundabout exits with different ordinals
+- **THEN** each step's maneuver SHALL identify its own exit
+- **AND** neither SHALL show the other step's ordinal
+- **Case**: `auto: NavigationTemplateMapperTest` "current and next steps carry different exit numbers"
+
 ### Requirement: Route line on navigation map
 
 The system SHALL draw the calculated route on the navigation map, styled by the map stylesheet's route style, and SHALL update it when the route changes.
@@ -100,7 +114,7 @@ The system SHALL draw the calculated route on the navigation map, styled by the 
 
 ### Requirement: Route description screen
 
-The system SHALL provide a route description screen reachable from the navigation view that lists every remaining route instruction from the current step to the destination, with the current step marked.
+The system SHALL provide a route description screen reachable from the navigation view that lists every remaining route instruction from the current step to the destination, with the current step marked. A listed roundabout exit SHALL identify its exit ordinal in the row's image.
 
 #### Scenario: Route description opened from navigation view
 
@@ -121,6 +135,13 @@ The system SHALL provide a route description screen reachable from the navigatio
 
 - **WHEN** the user presses back on the route description screen
 - **THEN** the screen returns to the navigation view and navigation keeps running
+
+#### Scenario: A roundabout exit row shows its exit number
+
+- **WHEN** the route description screen lists a roundabout exit carrying an ordinal
+- **THEN** that row's image SHALL carry that exit's number
+- **AND** it SHALL NOT carry another row's number
+- **Case**: `auto: RouteDescriptionScreenTest` "a roundabout exit row shows its exit number"
 
 ### Requirement: Host-rendered lane guidance
 
@@ -470,3 +491,46 @@ While a reroute is being calculated the system SHALL keep the navigation view di
 - **WHEN** the rerouted route arrives
 - **THEN** the calculation notice SHALL be removed
 - **AND** the navigation view SHALL continue with the new route
+### Requirement: A roundabout exit is identified by its ordinal
+
+For a roundabout exit carrying a known ordinal the system SHALL present both identifications: the
+number-bearing roundabout maneuver type with that ordinal set on it, and the app's own numbered glyph. For a
+roundabout exit with no known ordinal the system SHALL use the maneuver type without a number and the app's
+glyph. The system SHALL NOT present a number-bearing type without a number.
+
+#### Scenario: A known ordinal selects the number-bearing type
+
+- **WHEN** a roundabout exit maneuver carries exit ordinal 3
+- **THEN** the host maneuver SHALL be of a number-bearing roundabout type
+- **AND** it SHALL carry the ordinal to the host
+- **Case**: `auto: NavigationTemplateMapperTest` "a known exit ordinal selects a number-bearing maneuver type"
+
+#### Scenario: Both identifications are presented
+
+- **WHEN** a roundabout exit maneuver carries exit ordinal 3
+- **THEN** the number-bearing type SHALL carry the ordinal
+- **AND** the app's numbered glyph SHALL also be supplied for that maneuver
+- **AND** neither identification SHALL be withheld on the assumption that the host draws the other
+- **Case**: `auto: NavigationTemplateMapperTest` "a roundabout exit asks the host for the number as well as our icon"
+
+#### Scenario: An unknown ordinal falls back without throwing
+
+- **WHEN** a roundabout exit maneuver carries no ordinal
+- **THEN** building the step SHALL succeed
+- **AND** the maneuver SHALL be of the roundabout type that carries no number
+- **Case**: `auto: NavigationTemplateMapperTest` "an unknown exit ordinal builds a step instead of throwing"
+
+#### Scenario: Circulation direction selects the clockwise or counter-clockwise type
+
+- **WHEN** a roundabout exit maneuver carries a counter-clockwise circulation direction
+- **THEN** the maneuver type SHALL be the counter-clockwise one
+- **AND** it SHALL NOT be the clockwise one
+- **Case**: `auto: NavigationTemplateMapperTest` "a counter-clockwise roundabout uses the counter-clockwise type"
+
+#### Scenario: The cue text stays at parity with the phone
+
+- **WHEN** the host draws its own numbered roundabout glyph for a roundabout exit
+- **THEN** the step's cue text SHALL be the same string the phone shows for that instruction
+- **AND** only the glyph source SHALL differ between the variants
+- **Case**: `auto: NavigationTemplateMapperTest` "the host-numbered roundabout keeps the shared cue text"
+

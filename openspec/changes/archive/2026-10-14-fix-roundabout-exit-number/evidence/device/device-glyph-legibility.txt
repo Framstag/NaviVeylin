@@ -1,0 +1,8 @@
+
+com.naviveylin.ui.navigation.RoundaboutExitGlyphDeviceTest:.
+
+Time: 0,307
+
+OK (1 test)
+
+

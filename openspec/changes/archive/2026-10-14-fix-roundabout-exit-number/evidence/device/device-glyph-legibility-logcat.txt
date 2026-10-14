@@ -1,0 +1,19 @@
+--------- beginning of main
+10-14 22:24:24.899 30352 30365 I RoundaboutGlyphTest: smallest (notification and car bitmap, 48px) glyph size=48px exit=1 digit=10x13 px ringInner=16 px ink=26 px
+10-14 22:24:24.901 30352 30365 I RoundaboutGlyphTest: smallest (notification and car bitmap, 48px) glyph size=48px exit=3 digit=11x13 px ringInner=16 px ink=44 px
+10-14 22:24:24.903 30352 30365 I RoundaboutGlyphTest: smallest (notification and car bitmap, 48px) glyph size=48px exit=12 digit=14x13 px ringInner=16 px ink=61 px
+10-14 22:24:24.905 30352 30365 I RoundaboutGlyphTest: smallest (notification and car bitmap, 48px) glyph size=48px exit=112 digit=14x12 px ringInner=16 px ink=59 px heightFraction=0,250 (floor 0,160)
+10-14 22:24:24.916 30352 30365 I RoundaboutGlyphTest: phone overlay (64.0dp = 168px on this device) glyph size=168px exit=1 digit=13x32 px ringInner=57 px ink=197 px
+10-14 22:24:24.929 30352 30365 I RoundaboutGlyphTest: phone overlay (64.0dp = 168px on this device) glyph size=168px exit=3 digit=20x33 px ringInner=57 px ink=336 px
+10-14 22:24:24.943 30352 30365 I RoundaboutGlyphTest: phone overlay (64.0dp = 168px on this device) glyph size=168px exit=12 digit=44x32 px ringInner=57 px ink=508 px
+10-14 22:24:24.955 30352 30365 I RoundaboutGlyphTest: phone overlay (64.0dp = 168px on this device) glyph size=168px exit=112 digit=48x24 px ringInner=57 px ink=400 px heightFraction=0,143 (floor 0,160)
+10-14 22:24:24.959 30352 30365 I RoundaboutGlyphTest: verdict: 48px/exit1=10x13px; 48px/exit3=11x13px; 48px/exit12=14x13px; 48px/exit112=14x12px; 168px/exit1=13x32px; 168px/exit3=20x33px; 168px/exit12=44x32px; 168px/exit112=48x24px
+10-14 22:46:31.439 31842 31855 I RoundaboutGlyphTest: smallest (notification and car bitmap, 48px) glyph size=48px exit=1 digit=10x13 px ringInner=16 px ink=26 px
+10-14 22:46:31.444 31842 31855 I RoundaboutGlyphTest: smallest (notification and car bitmap, 48px) glyph size=48px exit=3 digit=11x13 px ringInner=16 px ink=44 px
+10-14 22:46:31.450 31842 31855 I RoundaboutGlyphTest: smallest (notification and car bitmap, 48px) glyph size=48px exit=12 digit=14x13 px ringInner=16 px ink=61 px
+10-14 22:46:31.458 31842 31855 I RoundaboutGlyphTest: smallest (notification and car bitmap, 48px) glyph size=48px exit=112 digit=14x12 px ringInner=16 px ink=59 px heightFraction=0,250 (floor 0,160)
+10-14 22:46:31.481 31842 31855 I RoundaboutGlyphTest: phone overlay (64.0dp = 168px on this device) glyph size=168px exit=1 digit=13x32 px ringInner=57 px ink=197 px
+10-14 22:46:31.520 31842 31855 I RoundaboutGlyphTest: phone overlay (64.0dp = 168px on this device) glyph size=168px exit=3 digit=20x33 px ringInner=57 px ink=336 px
+10-14 22:46:31.551 31842 31855 I RoundaboutGlyphTest: phone overlay (64.0dp = 168px on this device) glyph size=168px exit=12 digit=44x32 px ringInner=57 px ink=508 px
+10-14 22:46:31.581 31842 31855 I RoundaboutGlyphTest: phone overlay (64.0dp = 168px on this device) glyph size=168px exit=112 digit=48x24 px ringInner=57 px ink=400 px heightFraction=0,143 (floor 0,160)
+10-14 22:46:31.628 31842 31855 I RoundaboutGlyphTest: verdict: 48px/exit1=10x13px; 48px/exit3=11x13px; 48px/exit12=14x13px; 48px/exit112=14x12px; 168px/exit1=13x32px; 168px/exit3=20x33px; 168px/exit12=44x32px; 168px/exit112=48x24px

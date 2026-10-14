@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.TurnInstructionLocalizerTest" tests="31" skipped="0" failures="0" errors="0" timestamp="2026-10-14T20:37:40.971Z" hostname="dingens" time="0.368">
+  <properties/>
+  <testcase name="roundaboutLeave_exitCount_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.061"/>
+  <testcase name="knownMoveTypeAlwaysLocalizes" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.24"/>
+  <testcase name="description_motorwayChange_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.025"/>
+  <testcase name="motorwayLeave_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="description_withStreet_english" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.002"/>
+  <testcase name="description_targetReached_ignoresStreet" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="roundabout leave at exit 3 is localized from the instruction's exit ordinal" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="description_start_ignoresStreet" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="slightlyRight_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="description_motorwayLeave_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.0"/>
+  <testcase name="straightOn_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="start_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.0"/>
+  <testcase name="leftTurn_english" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.002"/>
+  <testcase name="description_withoutStreet_equalsShort" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="shortDescriptionFor_nextNextHint" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="leftTurn_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.0"/>
+  <testcase name="sharpLeft_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.0"/>
+  <testcase name="rightTurn_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="description_withStreet_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.0"/>
+  <testcase name="description_roundaboutLeave_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.003"/>
+  <testcase name="roundabout leave without an exit ordinal is still worded" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="motorwayChange_keepRight_english" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="shortDescriptionFor_nextNextRoundabout_usesTheHintsOwnOrdinal" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.002"/>
+  <testcase name="targetReached_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.0"/>
+  <testcase name="motorwayEnter_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="motorwayChange_keepLeft_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.0"/>
+  <testcase name="roundaboutLeave_exitCount_english" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="sharpRight_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="slightlyLeft_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <testcase name="roundaboutEnter_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.0"/>
+  <testcase name="description_motorwayEnter_german" classname="com.naviveylin.core.TurnInstructionLocalizerTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

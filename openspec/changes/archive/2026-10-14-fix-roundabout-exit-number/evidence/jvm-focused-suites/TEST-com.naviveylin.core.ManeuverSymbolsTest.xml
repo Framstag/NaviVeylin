@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.ManeuverSymbolsTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-14T20:37:28.767Z" hostname="dingens" time="11.697">
+  <properties/>
+  <testcase name="the exit ordinal symbol carries no per-exit markers" classname="com.naviveylin.core.ManeuverSymbolsTest" time="9.912"/>
+  <testcase name="bitmapAvailableForUnknownTurnType" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.342"/>
+  <testcase name="the roundabout exit glyph differs per ordinal" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.169"/>
+  <testcase name="bitmapsAreCachedPerTurnType" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.167"/>
+  <testcase name="bitmapRenderedForEveryTurnType" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.41"/>
+  <testcase name="allTurnTypesDrawWithoutError" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.109"/>
+  <testcase name="a two-digit exit ordinal is drawn inside the ring" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.096"/>
+  <testcase name="an ordinal on a non-roundabout instruction draws no number" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.088"/>
+  <testcase name="allLaneTurnsDrawWithoutError" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.147"/>
+  <testcase name="the exit glyph is cached per ordinal" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.122"/>
+  <testcase name="the roundabout exit glyph carries the exit number" classname="com.naviveylin.core.ManeuverSymbolsTest" time="0.1"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

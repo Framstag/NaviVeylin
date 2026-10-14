@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DeepLinkLogMessageTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:36.249Z" hostname="dingens" time="0.001">
+  <properties/>
+  <testcase name="coordinateDestinationLogsTheShapeOnly" classname="com.naviveylin.auto.DeepLinkLogMessageTest" time="0.001"/>
+  <testcase name="unusableLinkLogsTheShapeOnly" classname="com.naviveylin.auto.DeepLinkLogMessageTest" time="0.0"/>
+  <testcase name="queryDestinationLogsTheShapeOnly" classname="com.naviveylin.auto.DeepLinkLogMessageTest" time="0.0"/>
+  <testcase name="noDestinationLogsTheShapeOnly" classname="com.naviveylin.auto.DeepLinkLogMessageTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

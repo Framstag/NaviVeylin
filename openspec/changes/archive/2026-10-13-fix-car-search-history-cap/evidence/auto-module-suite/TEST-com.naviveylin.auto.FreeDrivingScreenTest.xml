@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FreeDrivingScreenTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:38.423Z" hostname="dingens" time="0.388">
+  <properties/>
+  <testcase name="anchorDiffIsNoOpForUnresolvableId" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.035"/>
+  <testcase name="topAndMiddleRowAnchorsPlaceLabelAtBottom" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.028"/>
+  <testcase name="commitAutoZoomIsTransitionEligibleAndReengagesFollow" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.158"/>
+  <testcase name="unknownSpeedUsesTheSeededDefault" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.012"/>
+  <testcase name="anchorDiffIsNoOpWhenUnchanged" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.013"/>
+  <testcase name="reEnableKeepsThePanGate" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.013"/>
+  <testcase name="reEnableIsANoOpWhenTheSettingDidNotFlipOn" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.016"/>
+  <testcase name="reEnableWaitsWithoutAUsableSpeed" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.012"/>
+  <testcase name="zeroBearingKeepsNorthUp" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.012"/>
+  <testcase name="commitAutoZoomIsANoOpBeforeTheRendererIsPublished" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.013"/>
+  <testcase name="reEnablingAutoZoomAppliesTheTargetFromTheLastKnownSpeed" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.014"/>
+  <testcase name="bottomRowAnchorPlacesLabelAtTop" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.012"/>
+  <testcase name="bearingRotatesHeadingUp" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.012"/>
+  <testcase name="unknownBearingReturnsNull" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.011"/>
+  <testcase name="panningSuppressesAutoZoomFeed" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.011"/>
+  <testcase name="anchorDiffReturnsNewAnchorWhenChanged" classname="com.naviveylin.auto.FreeDrivingScreenTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

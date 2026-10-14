@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererPooledTargetTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:26.862Z" hostname="dingens" time="0.185">
+  <properties/>
+  <testcase name="thePairOfTargetsIsAllocatedOnceAndReusedAfterwards" classname="com.naviveylin.auto.AutoMapRendererPooledTargetTest" time="0.055"/>
+  <testcase name="aStoppedRendererHoldsNoTarget" classname="com.naviveylin.auto.AutoMapRendererPooledTargetTest" time="0.026"/>
+  <testcase name="aRenderInFlightNeverSharesTheDisplayedFrameTarget" classname="com.naviveylin.auto.AutoMapRendererPooledTargetTest" time="0.037"/>
+  <testcase name="aSurfaceSizeChangeReturnsTheStaleFrameToThePool" classname="com.naviveylin.auto.AutoMapRendererPooledTargetTest" time="0.065"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

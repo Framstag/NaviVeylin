@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationSessionDarkModeTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:41.289Z" hostname="dingens" time="0.093">
+  <properties/>
+  <testcase name="unknownUiModeMapsToLight" classname="com.naviveylin.auto.NavigationSessionDarkModeTest" time="0.012"/>
+  <testcase name="hostDarkChangeIsLogged" classname="com.naviveylin.auto.NavigationSessionDarkModeTest" time="0.014"/>
+  <testcase name="dayUiModeMapsToLight" classname="com.naviveylin.auto.NavigationSessionDarkModeTest" time="0.012"/>
+  <testcase name="automaticFollowsHostDark" classname="com.naviveylin.auto.NavigationSessionDarkModeTest" time="0.011"/>
+  <testcase name="nightUiModeMapsToDark" classname="com.naviveylin.auto.NavigationSessionDarkModeTest" time="0.011"/>
+  <testcase name="offForcesLightRegardlessOfHost" classname="com.naviveylin.auto.NavigationSessionDarkModeTest" time="0.011"/>
+  <testcase name="onForcesDarkRegardlessOfHost" classname="com.naviveylin.auto.NavigationSessionDarkModeTest" time="0.011"/>
+  <testcase name="unknownPreferenceFallsBackToHost" classname="com.naviveylin.auto.NavigationSessionDarkModeTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

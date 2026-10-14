@@ -1,0 +1,12 @@
+$ bash tools/gen-feature-list.sh --check-classification   # on HEAD fa6151c, before the fix
+2026-10-13T18:58:26Z
+gen-feature-list: unclassified shipped spec id(s):
+  routing-max-speed
+specs read: 166
+classified: 165
+unclassified: 1
+stale: 0
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+exit=1

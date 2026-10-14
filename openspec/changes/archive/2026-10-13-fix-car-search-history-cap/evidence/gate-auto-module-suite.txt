@@ -1,0 +1,36 @@
+Gate for this change: the changed module's own suite, forced
+=============================================================
+
+Command: `./gradlew :auto:testDebugUnitTest -PforceTests --rerun-tasks` (VCPKG_ROOT set)
+Result: `BUILD SUCCESSFUL in 37s`, `59 actionable tasks: 59 executed` (no `FROM-CACHE`), zero `FAILED` lines.
+
+Tally, summed over the run's own JUnit XMLs (all of them copied beside this file under
+`auto-module-suite/`, one XML per class):
+
+    sum over the run's 82 XMLs: 82 classes, 842 cases, 0 skipped, 0 failures, 0 errors
+    first XML timestamp=2026-10-13T20:41:19.594Z
+    last  XML timestamp=2026-10-13T20:41:46.821Z
+
+(The 82nd class is this change's own `SearchHistoryScreenTest`; the same module held 81 classes and 840
+cases before it.)
+
+The two cases this change adds are carried by
+`auto-module-suite/TEST-com.naviveylin.auto.SearchHistoryScreenTest.xml` —
+`tests="2" skipped="0" failures="0" errors="0"`, `timestamp="2026-10-13T20:41:43.841Z"` — and the classes the
+change can affect are green in the same run: `FavoritesScreenTest` `tests="37" failures="0"`
+`timestamp="2026-10-13T20:41:37.509Z"`, `FavoritesScreenMapperTest` `tests="9" failures="0"`
+`timestamp="2026-10-13T20:41:37.381Z"`, `AddressBookScreenTest` `tests="2" failures="0"`
+`timestamp="2026-10-13T20:41:28.885Z"`, `TemplateFaultIsolationTest` `tests="21" failures="0"`
+`timestamp="2026-10-13T20:41:46.470Z"`, `SearchScreenTest` `tests="12" failures="0"`
+`timestamp="2026-10-13T20:41:44.189Z"`, `RootScreenTest` `tests="2" failures="0"`
+`timestamp="2026-10-13T20:41:43.705Z"`.
+
+This run is the gate for the applied change: the test source and `SearchHistoryScreen.kt` are the tree it
+measured, and the revert-check mutation that preceded it was restored exactly, so the run's green state is
+the state the change carries. The known `MapCanvasViewModelModeTest` flake (`TODO.md` §148) did not occur in
+this run (the class is `:app`-side and the excluded whole-project suite is where it lives), so nothing was
+attributed as a flake.
+
+Run log retained in the worktree: `.pi/bugfix-loop/gate-auto-module-2026-10-13-178.log`.
+Scope rule and the exclusion of the whole-project suite: the archived attribution
+`openspec/changes/archive/2026-10-13-fix-car-list-row-capacity/evidence/gate-full-suite-app-compose-preexisting.txt`.

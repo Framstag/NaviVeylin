@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationManagerControllerTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:39.929Z" hostname="dingens" time="0.493">
+  <properties/>
+  <testcase name="aRejectedNavigationStartLeavesTheControllerNotPublishing" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.113"/>
+  <testcase name="hostSendsAreRecordedForDiagnosis" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.268"/>
+  <testcase name="destroyWhileNavigatingDoesNotThrow" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.016"/>
+  <testcase name="navigationStartRegistersCallbackAndStarts" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.017"/>
+  <testcase name="navigationEndEndsThenClearsCallback" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.016"/>
+  <testcase name="aThrowingTripIsNotPublishedAndPublishingRecovers" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.017"/>
+  <testcase name="aRejectedNavigationEndDoesNotEscape" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.015"/>
+  <testcase name="aRejectedTripUpdateEndsTripPublishing" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.016"/>
+  <testcase name="hostStopInvokesStopHandler" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

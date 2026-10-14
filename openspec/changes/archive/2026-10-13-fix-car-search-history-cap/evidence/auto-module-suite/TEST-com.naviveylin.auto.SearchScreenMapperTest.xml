@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SearchScreenMapperTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:43.898Z" hostname="dingens" time="0.284">
+  <properties/>
+  <testcase name="buildResultRow_perfectMatchShowsMarkingImage" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.02"/>
+  <testcase name="buildResultRow_showsNoDistanceWithoutAReference" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.013"/>
+  <testcase name="buildResultRow_typeIconAndMarkingShareTheSingleImage" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.015"/>
+  <testcase name="buildNoResultsRows_contactsRowGatedOnPermission" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildHistoryRows_emptyHistoryShowsOnlyHeader" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildModeRows_contactsRowGatedOnPermission" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildModeRows_clickListenersInvokeCallbacks" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.013"/>
+  <testcase name="buildResultRow_clickInvokesCallback" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildResultRow_favoriteShowsHeartImage" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildHistoryRows_headerThenEntries" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildResultRow_favoriteAndPerfectRowShowsOneCompositeMarking" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildResultRow_closeMatchHasNoMarkingImage" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildModeRows_showsPoiRowAlways" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="resultRowTitle_carriesTheLabelAndTheCity" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildHistoryRows_tapInvokesCallbackWithQuery" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildResultRow_plainNativeResultHasNoImage" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildDescription_empty" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <testcase name="buildNoResultsRows_noResultsRowThenModeRows" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.011"/>
+  <testcase name="buildDescription_showsThePostalAreaOnce" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.011"/>
+  <testcase name="resultRowTitle_doesNotRepeatTheNameWhenTheLabelIsTheRegion" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.011"/>
+  <testcase name="buildResultRow_titleAndDescriptionComeFromTheSharedComposer" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.011"/>
+  <testcase name="buildResultRow_typeIconAloneStillUsesTheImageSlot" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.011"/>
+  <testcase name="buildResultRow_showsDistanceFromTheReferenceAsASecondTextLine" classname="com.naviveylin.auto.SearchScreenMapperTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

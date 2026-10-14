@@ -25,13 +25,13 @@
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
-- **specs-and-process** — bug: §161 §187
-- **specs-and-process** — improvement: §40 §113 §134 §154 §156 §157 §158 §159 §162 §171 §172
+- **specs-and-process** — bug: §161 §187 §199
+- **specs-and-process** — improvement: §40 §113 §134 §154 §156 §157 §158 §159 §162 §171 §172 §200
 - **stylesheets** — bug: §36
 - **ui** — bug: §70 §74 §153 §186
 - **ui** — improvement: §39 §73 §136 §152 §166
 - **ui** — feature: §4 §5
-- **verification** — bug: §131 §147 §148 §181
+- **verification** — bug: §131 §147 §148 §181 §189
 - **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167 §170
 ---
 
@@ -2842,30 +2842,66 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Related**: §103, §175, change `fix-car-favorites-loading-stall` (5.1's note holds the raw numbers), spec `auto-favorites` (its added requirement deliberately bounds the published state, not the instant of the first template).
 
 ## 177. The car address book presents every contact with an address in one list, over any host's row capacity — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
-**id:** 177 · **category:** car · **class:** bug · **status:** open
+**id:** 177 · **category:** car · **class:** bug · **status:** fixed-by `fix-car-list-row-capacity`
 
 - **Observed** ⚠: `AddressBookScreen` (`auto/src/main/java/com/naviveylin/auto/AddressBookScreen.kt`) builds one `Row` per contact returned by `AddressBookContactsProvider.contactsWithAddresses()` into a single `ItemList` with **no cap**, so the row count is whatever the device's address book holds — unbounded, and over any host capacity once the driver has more contacts with addresses than the host displays. The capacity is the host's own number (measured 2026-10-10 on the AAOS AVD's templates host: **100 rows at car API level 8**, task 1.1 of `car-favorites-group-level`; the Car App Library's floor and this app's fallback is **6**, `CarListCapacityReader.LIBRARY_DEFAULT`), and the library's build contract is explicit that the host **ignores** every item over it — so the loss is silent.
 - **Why it is out of scope here** ℹ: `car-favorites-group-level` added the capability (`car-list-row-limit` — A car list never presents more rows than the host displays / Items beyond the capacity stay reachable) and applied it to the three favourites lists only. The other car lists keep the behaviour they had; the capability is now there to be applied to them.
 - **Impact** ℹ: the tail of a large address book is unreachable on the car with no signal at all — the same defect the favourites list had.
 - **Fix candidate** ℹ: use the shipped seam — `CarListCapacityReader.read(carContext)` on the screen's started period plus `FavoritesScreenMapper.page(rows, capacity, page)` and a final page row carrying the remaining count (spec `car-list-row-limit`, wording `R.string.more_items`) — and add a per-screen page parameter as `FavoritesScreen` did. The paging row is the shared contract, so this should be one small screen change plus its cases, not a new capability.
 - **Related**: §178, §179, §180, change `car-favorites-group-level` (spec `car-list-row-limit`), `guidelines/UI.md` §3.
+- **Loop verdict** ✅: `fixed-by fix-car-list-row-capacity` (2026-10-13). Deciding sentence — `design.md` D1:
+  "Apply the shipped seam, add nothing" — `CarListCapacityReader.read` + `FavoritesScreenMapper.page` + the
+  `More (n)` row, "exactly as `FavoritesScreen` uses them", so this is the existing capability
+  `car-list-row-limit` applied to one more car list (the eliminated alternatives — let the host page, cap at a
+  fixed constant, replace the `SearchTemplate` — are D1's, the in-place page advance is D3). Red on HEAD:
+  `auto:AddressBookScreenTest#theAddressBookListFitsTheHostsCapacity` failed with
+  `expected:<[Alpha1, Alpha2, Alpha3, Alpha4, Alpha5, Alpha6, More (2)]> but was:<[Alpha1, Alpha2, Alpha3,
+  Alpha4, Alpha5, Alpha6, Alpha7, Bob]>` (XML `tests="2" skipped="0" failures="2" errors="0"`,
+  2026-10-13T19:51:18.268Z, `evidence/TEST-AddressBookScreenTest-red-on-HEAD.xml`); the second case
+  `thePageRowCarriesTheSearchTextToTheNextPage` was red in the same XML. One revert-check (the slice's
+  `capacity = filteredContacts.size` at `AddressBookScreen.kt:168`) failed both protected cases at the bound
+  (XML `tests="2" failures="2"`, 2026-10-13T20:27:13.507Z); the forced `:auto` gate was green — 81 XMLs,
+  840 cases, 0 failures, 0 errors, `AddressBookScreenTest` `tests="2" failures="0"` at
+  2026-10-13T20:26:24.267Z. Residue: `tasks.md` 5.1 — the capacity line and the `More` row on an AAOS host —
+  left pending (no device attached), while §178, §179 and §180 stay `open` because the change fixed the
+  address book only. Archived with its evidence as
+  `openspec/changes/archive/2026-10-13-fix-car-list-row-capacity/`.
 
 ## 178. The car search history presents all stored entries in one list, over a host capacity below 50 — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
-**id:** 178 · **category:** car · **class:** bug · **status:** open
+**id:** 178 · **category:** car · **class:** bug · **status:** fixed-by `fix-car-search-history-cap`
 
 - **Observed** ⚠: `SearchHistoryScreen` (`auto/src/main/java/com/naviveylin/auto/SearchHistoryScreen.kt`) renders every entry of `historyProvider.load()` into one `ItemList`, and the store keeps up to `MAX_ENTRIES = 50` (`SearchHistoryRepository`, `core/src/main/java/com/naviveylin/core/AutoSearchHistoryProvider.kt`). 50 rows is under the AAOS host's measured 100 (task 1.1 of `car-favorites-group-level`) but over the library's default of 6 — which is what any host that cannot answer, and any host with a smaller list budget, gives the screen: everything past its capacity disappears without a signal (the library's own build contract for `ItemList`).
 - **Why it is out of scope here** ℹ: `car-favorites-group-level` applied the row cap to the favourites lists and left the other car lists as they were. The capability it added (`car-list-row-limit`) covers this screen's shape too.
 - **Impact** ℹ: with 7+ entries the oldest searches vanish from the car list with no indication, while the phone's history keeps them.
 - **Fix candidate** ℹ: the same seam as §177 — `CarListCapacityReader` + `FavoritesScreenMapper.page` + a final page row with the remaining count (`R.string.more_items`), per screen start, with the page as a screen parameter.
 - **Related**: §177, §179, §180, change `car-favorites-group-level`, `guidelines/UI.md` §3.
+- **Loop verdict** ✅: `fixed-by fix-car-search-history-cap` (2026-10-13). Deciding sentence — `design.md` D1:
+  "Apply the shipped seam, add nothing" — `CarListCapacityReader.read` + `FavoritesScreenMapper.page` + the
+  `More (n)` row, "exactly as `FavoritesScreen` and `AddressBookScreen` use them", so this is the existing
+  capability `car-list-row-limit` applied to one more car list (the eliminated alternatives — let the host cap
+  the list, cap at a fixed constant, shorten the store's `MAX_ENTRIES`, truncate without a page row — are D1's,
+  the read's placement is D2, the pushed page is D3). Red on HEAD:
+  `auto:SearchHistoryScreenTest#theSearchHistoryListFitsTheHostsCapacity` failed with
+  `expected:<[query-1, query-2, query-3, query-4, query-5, query-6, query-7, query-8, More (3)]> but
+  was:<[query-1, query-2, query-3, query-4, query-5, query-6, query-7, query-8, query-9, query-10, query-11]>`
+  (XML `tests="2" skipped="0" failures="2" errors="0"`, 2026-10-13T20:37:54.926Z,
+  `evidence/TEST-SearchHistoryScreenTest-red-on-HEAD.xml`); the second case
+  `thePageRowOpensTheNextSliceOfTheHistory` was red in the same XML. One revert-check (the slice's
+  `capacity = rowCapacity` mutated to `capacity = list.size` at `SearchHistoryScreen.kt:98`) failed both
+  protected cases at the bound (XML `tests="2" failures="2"`, 2026-10-13T20:40:00.895Z); the forced `:auto` gate
+  was green — 82 XMLs, 842 cases, 0 failures, 0 errors, `SearchHistoryScreenTest` `tests="2" failures="0"` at
+  2026-10-13T20:41:43.841Z. Residue: `tasks.md` 5.1 — the capacity line and the `More` row on an AAOS host — left
+  pending (no device attached). Archived with its evidence as
+  `openspec/changes/archive/2026-10-13-fix-car-search-history-cap/`.
 
 ## 179. The car POI result list caps at 20 rows, over a host capacity below 20, and its cap is a constant rather than the host's — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
-**id:** 179 · **category:** car · **class:** bug · **status:** open
+**id:** 179 · **category:** car · **class:** bug · **status:** on-hold needs-decision — the POI search's requested candidate count (host-derived vs fixed budget), see Loop verdict
 
 - **Observed** ⚠: `PoiResultsScreen` (`auto/src/main/java/com/naviveylin/auto/PoiResultsScreen.kt`, `MAX_RESULTS = 20`) presents up to 20 result rows in one `ItemList`. 20 is under the AAOS host's measured 100 but over the library's default 6 (`CarListCapacityReader.LIBRARY_DEFAULT`), i.e. over any host that answers less than 20 — and this cap is a *fixed constant*, which is the pattern the new capability forbids: a host that reports more than 20 is under-filled (reachable today only with more results, which the search itself caps), and a host that reports fewer loses the tail silently.
 - **Why it is out of scope here** ℹ: the change capped the favourites lists; the POI list's own result cap is a search concern it kept. The capacity query, not a constant, is what `car-list-row-limit` requires of any new car list.
 - **Impact** ℹ: the number of results a driver can reach is decided by a constant rather than by what the host will show; with a host below 20 the results past its capacity are dropped without a signal. Note also that the search itself asks for `MAX_RESULTS` candidates, so the two limits are one design decision, not two.
 - **Fix candidate** ℹ: decide the pair together — the search's candidate count and the screen's row cap — and let the row cap come from `CarListCapacityReader` with the remainder behind the page row (`FavoritesScreenMapper.page`, `R.string.more_items`), rather than from `MAX_RESULTS`.
+- **Loop verdict** ⏳ (fix-loop 2026-10-13, pre-screen rank 3 of 25): **skipped — needs-decision** (condition 3). The row-cap half is settled and not in question: `CarListCapacityReader.read` on the screen's started period, the remainder behind the page row over **already-fetched** rows with `R.string.more_items` — both archived precedents say so (`2026-10-13-fix-car-list-row-capacity` §177, `2026-10-13-fix-car-search-history-cap` §178), and the spec's "the page it opens SHALL carry the next rows in the same order" bounds rows only. What is **not** settled, and what this entry's own Fix candidate asks the owner to name: **(1)** the car POI search's requested candidate count — a number or a formula over the host's answer, and whether it is host-derived or a fixed search budget (the constant is `PoiResultsScreen.kt:139`, passed as the search's candidate count at `:60` and rendered whole at `:98`); **(2)** whether the POI list inherits `auto-search`'s "at least twice the displayed maximum" fetch rule (`openspec/specs/auto-search/spec.md:55`) or keeps its own. Because the fetch budget and the row cap are one decision here, reading A (row cap only) leaves the entry's own "under-filled on a 100-row host" clause (`TODO.md` §179 Impact) alive and reading B needs one of three candidate counts, each with a different native-search cost — so the fix is not unique until the owner answers. Answering (1) and (2) makes it a one-fix change: rows = the host's capacity, fetch budget = the named number, and the red case (host capacity 8, 20 results → 8 rows + `More (12)`) follows mechanically. Measured 2026-10-13; no change directory written, no test, no code touched.
 - **Related**: §177, §178, §180, change `car-favorites-group-level`, spec `car-list-row-limit`.
 
 ## 180. The car diagnostics screen caps at 20 rows with the same fixed-constant gap as the POI list — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)
@@ -2932,9 +2968,9 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Related**: `fix-browse-recenter-dwell` (the dwell-liveness fix, whose `proposal.md` — Impact records this as out of scope), spec `map-modes` — Browse re-center, `guidelines/UI.md` §7a.
 
 ## 187. `guidelines/UI.md` still states the retired reroute policy numbers (50 m fast path, 10 s confirmation window) after the landed change lowered them to 30 m / 4 s — Found 2026-10-12 while landing the in-flight reroute-latency work found uncommitted in this tree
-**id:** 187 · **category:** specs-and-process · **class:** bug · **status:** open
+**id:** 187 · **category:** specs-and-process · **class:** bug · **status:** fixed-by `fix-ui-reroute-numbers`
 
-- **Observed** ⚠: `guidelines/UI.md:838` carries the phone/AA reroute-parity bullet with “50 m fast path,
+- **Observed** ⚠: `guidelines/UI.md:872` carried the phone/AA reroute-parity bullet with “50 m fast path,
   10 s confirmation window, 25 s cooldown, 100 m accuracy guard, 30 s tunnel guard”. The change landed as
   commit `efc86f3` (archived `openspec/changes/archive/2026-10-12-tune-reroute-trigger-latency`, spec
   `reroute-trigger` synced) lowers the confirmation floor **10 000 → 4 000 ms** and the distance fast path
@@ -2942,7 +2978,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   requirement is restated around them. The guideline was not updated: its own proposal names
   `guidelines/Design.md` §3 as the affected section, but `Design.md` states none of these numbers (checked
   2026-10-12 with `grep -nE "10 s|50 m|4 s|30 m|confirmation|fast path|cooldown" guidelines/Design.md`,
-  no hit), while the section that does state them — `UI.md` §3 — is not named anywhere in that change.
+  no hit), while the section that does state them — `UI.md` §8 — is not named anywhere in that change.
 - **Impact** ℹ: the bullet is the parity record a reader (or an agent reading only the guideline) takes as
   current, and the numbers are load-bearing for what it claims: “the timing is the same whichever surface
   displays the session”. With 50 m / 10 s stated there, the guideline contradicts both the code and the
@@ -2952,8 +2988,20 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   end-to-end figure the spec now bounds is readable from the guideline alone. Keep the three unchanged
   guards as they are; they were deliberately left alone.
 - **Related**: commit `efc86f3` (“Land the in-flight reroute-latency work…”), change
-  `tune-reroute-trigger-latency` (archived), spec `reroute-trigger`, `guidelines/UI.md` §3, §144 and §126
+  `tune-reroute-trigger-latency` (archived), spec `reroute-trigger`, `guidelines/UI.md` §8, §144 and §126
   (the reroute family).
+- **Loop verdict** ✅: `fixed-by fix-ui-reroute-numbers` (2026-10-13). Deciding sentence — `design.md` D1:
+  "The guideline is the wrong side; the code and the spec are right" (the spec states 4 s at
+  `openspec/specs/reroute-trigger/spec.md:10` and 30 m at `:25`, the engine applies exactly those, and the
+  archived tuning change records the move). The entry's own anchor was off by 34 and one section — `:838` in
+  §3; the bullet is `:872` in §8, corrected here while landing the fix. Red on HEAD:
+  `ReroutePolicyGuidelineParityTest#the reroute parity bullet states the policy the engine applies` failed with
+  `the bullet's fast path must be the engine's FAST_PATH_DISTANCE_M expected:<30.0> but was:<50.0>` (XML
+  `tests="1" failures="1"`, 2026-10-13T19:25:47.532Z); the bullet now reads 30 m fast path / 4 s confirmation
+  floor and names the constants it mirrors and the guard case; one revert-check (the engine's
+  `FAST_PATH_DISTANCE_M` mutated back to `50.0`) failed the case at its own assertion; the eliminated
+  alternative (delete the numbers and point at `reroute-trigger`) is `design.md` D2. Archived with its
+  evidence.
 
 ## 188. The routing profile's per-vehicle maximum-speed semantics have no test anywhere, so a change that passes a speed proves only the hand-off — Found 2026-10-12 while applying `vehicle-max-speed-settings` (task 5.3, device run)
 **id:** 188 · **category:** native-jni · **class:** improvement · **status:** open
@@ -2987,7 +3035,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `guidelines/Design.md` §5 (the submodule discipline).
 
 ## 189. `routing-max-speed` is shipped but absent from `tools/feature-list/specs.json`, so `ShippedSpecClassificationTest` is red on HEAD — Found 2026-10-12 during the `search-result-row-content` gate (task 8.2)
-**id:** 189 · **category:** verification · **class:** bug · **status:** open
+**id:** 189 · **category:** verification · **class:** bug · **status:** fixed-by `fix-routing-max-speed-classification`
 
 - **Observed** ⚠: `openspec/specs/routing-max-speed/spec.md` exists at HEAD (added by `be53cdd feat:
   vehicle-max-speed-settings`), while `git show HEAD:tools/feature-list/specs.json | grep -c routing-max-speed`
@@ -3006,6 +3054,21 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   the capability's `<!-- cap: routing-max-speed#… -->` keys.
 - **Related**: `guidelines/FeatureList.md` §3, §4; spec `routing-max-speed`; change
   `search-result-row-content` task 8.2 (its evidence names this case and the measurement).
+- **Loop verdict** ✅: `fixed-by fix-routing-max-speed-classification` (2026-10-13). Deciding sentence —
+  `spec-feature-index` / "An unclassified spec id stops the run": "A shipped spec id that the classification
+  does not name SHALL be reported by id, SHALL make the run fail, and SHALL produce no regenerated document."
+  The repository's own data met it: `bash tools/gen-feature-list.sh --check-classification` exited **1** with
+  `unclassified shipped spec id(s): routing-max-speed` (`specs read: 166 / classified: 165 / unclassified: 1 /
+  stale: 0`) and `ShippedSpecClassificationTest#every shipped spec id is classified` failed with
+  `expected:<[]> but was:<[routing-max-speed]>` (2026-10-13T18:56:47.467Z). One fix: one line in
+  `tools/feature-list/specs.json` — `"routing-max-speed": { "area": "routing", "userVisible": true,
+  "surfaces": ["phone", "car"] }` — after which the gate exits 0 (`classified: 166 / unclassified: 0`) and the
+  case is green, XML `tests="1" failures="0"` at 2026-10-13T19:16:23.242Z; both runs are retained under
+  `openspec/changes/archive/2026-10-13-fix-routing-max-speed-classification/evidence/`. Nothing else changed,
+  and the alternatives the evidence eliminated are design D3 of that change: `userVisible: false`
+  (unpublishable — `tools/feature-list/gate.awk:151`), `surfaces: ["phone"]` (contradicts the setting's own car
+  scenario), `area: "settings-legal"`, and an invented spec delta. §199, filed by that change's review, is a
+  different divergence and stays open.
 
 ## 190. The phone's follow render latency is unmeasured, so the refresh threshold's latency term is a guess — Filed 2026-10-12 by `fix-follow-display-pump` (task 5.2, deferred: no phone attached)
 **id:** 190 · **category:** rendering · **class:** improvement · **status:** open
@@ -3032,3 +3095,71 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Related**: change `fix-follow-display-pump` tasks 3.4 (the emulator verdict), 5.2, 5.3; spec
   `smooth-follow`; `guidelines/MapRendering.md` §4, §13; `.pi/logs/follow-pump/` holds the injector,
   `shift.py` and the run videos until that change is archived.
+
+## 199. `guidelines/FeatureList.md`'s coverage gate row refuses `a user-visible spec that no bullet reaches` — a check the tool does not have, while 38 user-visible shipped specs reach no bullet and the gate exits 0 — Found 2026-10-13 during the review of `fix-routing-max-speed-classification`
+**id:** 199 · **category:** specs-and-process · **class:** bug · **status:** open
+
+- **Observed** ⚠: the gate table's coverage row (`guidelines/FeatureList.md:143`) states that the gate refuses
+  `a user-visible spec that no bullet reaches`, and the cases line above it names that shape as the case
+  `gates: a user-visible spec no bullet reaches fails the run` (`guidelines/FeatureList.md:116`); §4 of the
+  same file argues from it (no user-visible *spec* is dropped silently). The tool implements no such check.
+  What `tools/gen-feature-list.sh:717` fails on is `selling point not reached: <id>`, selected over
+  `$required` — the *highlights* whose spec set is still shipped (`tools/gen-feature-list.sh:703`) — so the
+  check runs over the shortlist's own selling points, never over the user-visible spec set. The case name the
+  tool does carry is `gates: an unreached selling point fails the run`
+  (`tools/gen-feature-list-selftest.sh:409`). The one spec-versus-bullet check in the prose gate runs the other
+  way: `tools/feature-list/gate.awk:151` fails a key whose spec is not user-visible (`source key cites a spec
+  that is not user-visible`), and an entry citing a spec no highlight names fails as `cites specs the
+  shortlist does not name` (`tools/gen-feature-list.sh:720-722`), so a spec named by no highlight cannot be
+  reached at all. Measured 2026-10-13, on the gate run that closes §189: exit 0 with
+  `specs read: 166 / classified: 166 / unclassified: 0 / stale: 0`, `highlights: 19`
+  (`openspec/changes/archive/2026-10-13-fix-routing-max-speed-classification/evidence/classification-gate-after-fix.txt`)
+  while **38** of the user-visible shipped specs — `routing-max-speed` among them — are named by no highlight:
+  `jq -r --slurpfile h tools/feature-list/highlights.json '(($h[0].highlights | [.[].specs[]]) as $n | [.specs
+  | to_entries[] | select(.value.userVisible == true) | .key] | map(select(. as $s | ($n | index($s)) == null))
+  | length)' tools/feature-list/specs.json` → `38`. The row's case existed once: the archived
+  `2026-10-09-generate-feature-list` records it firing as `user-visible specs no bullet reaches:
+  immediate-turn-instruction`, exit 1
+  (`openspec/changes/archive/2026-10-09-generate-feature-list/apply-evidence.md:303`, `:332`).
+- **Impact** ℹ: the row is the contract a reader (or an agent reading only the guideline) takes for the
+  coverage direction — an author who leaves a user-visible capability unpublished is told the gate refuses it,
+  while nothing refuses it, which is the outcome §4 itself names as the worst case ("silently dropping one");
+  and a reviewer checking coverage against that row measures the wrong set.
+- **Fix candidate** ℹ: decide which side is right, then make the two agree: either restore a spec-level
+  coverage check (its message and its case name are recoverable from the archived `2026-10-09` change) or
+  restate the row and the cases line over highlights (`every selling point is reached by a bullet`).
+  `.pi/skills/feature-list/SKILL.md:60` repeats the row's wording and would follow the chosen side.
+- **Related**: `guidelines/FeatureList.md` §4 (the classification) and its gate table; spec
+  `spec-feature-index`; `tools/feature-list/highlights.json`; the archived changes
+  `2026-10-09-generate-feature-list` (where the row's case fired) and `2026-10-13-fix-routing-max-speed-classification`
+  (the review that filed this entry).
+- **Loop verdict** ⏳ (fix-loop 2026-10-13 — filed during the review of
+  `fix-routing-max-speed-classification`: the finding lies outside that change's diff, so it was reported here
+  instead of fixed there; not yet triaged).
+
+## 200. `guidelines/UI.md`'s "Keeping this document honest" rule names only the §1 parity table and the §2 glyph table, so a number the document restates elsewhere has no update obligation — the §8 reroute-policy bullet stayed at 50 m / 10 s through the change that moved it (`TODO.md` §187) — Found 2026-10-13 while applying `fix-ui-reroute-numbers`
+**id:** 200 · **category:** specs-and-process · **class:** improvement · **status:** open
+
+- **Observed** ⚠: the honesty rule (`guidelines/UI.md:1266`, its bullets `:1268-1270`) — "Specs are the
+  contract; this document is the condensed knowledge base" plus "When a spec requirement changes labels,
+  styling, or hierarchy, update the parity table (§1) and glyph table (§2) here at the same time" — keys the
+  obligation on labels/styling/hierarchy and enumerates two sections. The document's other restatements of spec'd or
+  code-derived values carry no obligation and no rule names them: the phone/AA reroute-policy bullet
+  (`guidelines/UI.md:870-877`, the instance) and §8's overlay minimums (`:782-784`, 24sp / 64dp / 32sp …).
+  Measured 2026-10-13: `grep -n "reroute" guidelines/UI.md` → the policy bullet is `:870` only, and
+  `guidelines/Design.md` states none of its numbers, so the archived `2026-10-12-tune-reroute-trigger-latency`
+  (which named `Design.md` §3) had no pointer that would have forced the update.
+- **Impact** ℹ: a change that moves a policy number keeps the guideline true only by the author's memory, and
+  the guideline is what a session reads when it reads no spec — where its number contradicts the spec it
+  cites. `fix-ui-reroute-numbers` guards the one bullet with `ReroutePolicyGuidelineParityTest`; the rule that
+  would have caught it without a purpose-built case still lists §1 and §2 only.
+- **Fix candidate** ℹ: decide which side is right and make them agree — either widen the honesty rule to every
+  restatement the document owns (naming the section and the case that holds each to its source), or narrow it
+  explicitly ("a number a section restates is the reader's convenience and must name the case that guards it")
+  and let each code-derived bullet name its guard, as §8's density bullet (`:839-845`) already does with
+  `CompassNeedleStrokeTest`.
+- **Related**: `guidelines/UI.md` §8 (`:870-877`) and "Keeping this document honest" (`:1266`, its bullets
+  `:1268-1270`); spec `documentation-ownership` ("A rule has one normative home"); `TODO.md` §187; change
+  `fix-ui-reroute-numbers`.
+- **Loop verdict** ⏳ (fix-loop 2026-10-13 — filed while applying `fix-ui-reroute-numbers`: the gap lies outside
+  that change's diff, whose fix is the §187 bullet plus its guard case; not yet triaged).

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.ErrorNoticeDismissalTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:26:33.582Z" hostname="dingens" time="0.173">
+  <properties/>
+  <testcase name="aRejectedRemovalDoesNotReportSuccess" classname="com.naviveylin.auto.ErrorNoticeDismissalTest" time="0.162"/>
+  <testcase name="aDestroyedSessionGetsNoHostCallButStillClearsTheError" classname="com.naviveylin.auto.ErrorNoticeDismissalTest" time="0.003"/>
+  <testcase name="aSupersededNoticeIsNotRemoved" classname="com.naviveylin.auto.ErrorNoticeDismissalTest" time="0.002"/>
+  <testcase name="theNoticeIsRemovedAfterTheDelayAndNothingHappensBefore" classname="com.naviveylin.auto.ErrorNoticeDismissalTest" time="0.004"/>
+  <testcase name="aStoppedSessionGetsNoHostCallAndOwesTheRemoval" classname="com.naviveylin.auto.ErrorNoticeDismissalTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

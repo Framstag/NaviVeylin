@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.RerouteConfirmationGateTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-13T19:37:18.427Z" hostname="dingens" time="0.023">
+  <properties/>
+  <testcase name="cooldownExpiresAndNormalPathApplies" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.007"/>
+  <testcase name="cooldownBlocksReconfirmation" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="consistentDeviationTriggersAfterFourSeconds" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="transientDeviationDoesNotTrigger" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="cooldownExpiryRestoresFastPathEligibility" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="lastConfirmElapsedIsTheConfirmedEpisodeDuration" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="windowExpiryRestartsEpisode" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="fastPathOnlyAppliesToFirstReport" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="resetClearsCooldownAndCounters" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="largeDeviationConfirmsOnFirstReport" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="needsDeviationFalseDuringCooldown" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.001"/>
+  <testcase name="nanDeviationFallsThroughToNormalPath" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="needsDeviationOnlyBeforeEpisodeStarts" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <testcase name="marginalDeviationUsesNormalPath" classname="com.naviveylin.navigation.RerouteConfirmationGateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

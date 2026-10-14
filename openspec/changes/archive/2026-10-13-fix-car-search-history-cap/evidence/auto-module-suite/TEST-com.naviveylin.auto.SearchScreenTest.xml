@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SearchScreenTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:44.189Z" hostname="dingens" time="0.236">
+  <properties/>
+  <testcase name="contactsRowHiddenWithoutPermission" classname="com.naviveylin.auto.SearchScreenTest" time="0.021"/>
+  <testcase name="historyTapPushesScreenWithQuery" classname="com.naviveylin.auto.SearchScreenTest" time="0.034"/>
+  <testcase name="favoriteHitListedAboveNativeResults" classname="com.naviveylin.auto.SearchScreenTest" time="0.017"/>
+  <testcase name="emptyQueryShowsModeRowsAndHistory" classname="com.naviveylin.auto.SearchScreenTest" time="0.018"/>
+  <testcase name="contactsRowShownWithPermission" classname="com.naviveylin.auto.SearchScreenTest" time="0.017"/>
+  <testcase name="poiModeRowPushesPoiSearchScreen" classname="com.naviveylin.auto.SearchScreenTest" time="0.019"/>
+  <testcase name="typingReplacesSuggestionsWithResults" classname="com.naviveylin.auto.SearchScreenTest" time="0.018"/>
+  <testcase name="contactsModeRowPushesAddressBookScreen" classname="com.naviveylin.auto.SearchScreenTest" time="0.019"/>
+  <testcase name="noResultsShowsNoResultsRowThenModeRows" classname="com.naviveylin.auto.SearchScreenTest" time="0.017"/>
+  <testcase name="typedSearchPassesTheGpsFixAsTheDistanceReference" classname="com.naviveylin.auto.SearchScreenTest" time="0.018"/>
+  <testcase name="withoutAFixTheCarViewportCenterIsTheReference" classname="com.naviveylin.auto.SearchScreenTest" time="0.017"/>
+  <testcase name="clearingRestoresSuggestions" classname="com.naviveylin.auto.SearchScreenTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

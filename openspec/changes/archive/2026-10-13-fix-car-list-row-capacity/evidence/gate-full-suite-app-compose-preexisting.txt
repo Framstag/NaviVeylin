@@ -1,0 +1,51 @@
+Gate scope applied: whole-suite forced run excluded — pre-existing redness outside this change's module
+=====================================================================================================
+
+Carrier: the aborted forced run's Gradle log, retained inside the worktree at
+`.pi/bugfix-loop/gate-full-suite-aborted-2026-10-13.log` (68 907 bytes; never `/tmp`).
+Command: `./gradlew test -PforceTests --rerun-tasks`, started 2026-10-13T19:57:29Z.
+State of that run: KILLED while the `:app` automotive flavor ran — the log carries no `BUILD` marker
+(`grep -c '^BUILD ' gate-full-suite-aborted-2026-10-13.log` → 0) and its last line is the flavor's own
+summary, `1830 tests completed, 15 failed, 1 skipped` (line 604). The run is therefore not a gate result
+and is not cited as one; it is the attribution evidence for the failures below.
+
+Failures: 15 `FAILED` lines, all in `:app` Compose test classes this change does not touch
+(the delta is `auto/src/main/java/com/naviveylin/auto/AddressBookScreen.kt` and one new `:auto` test file):
+
+- `BasemapSectionComposeTest` (2): `downloadingShowsCompactStatus` (log line 381),
+  `unavailableShowsSubtleStatus` (line 395)
+- `MapManagerSourceSelectorComposeTest` (13): `selectorListsBothSources` (409),
+  `testFailureNamesTheUrlAndTheReason` (424), `anUnencryptedActiveSourceIsMarkedWhenTheFieldIsEmpty` (439),
+  `anUnsupportedIndexIsReportedPerReason` (454), `anHttpBaseUrlIsMarkedUnencrypted` (469),
+  `urlFieldShowsTheRememberedValue` (484), `aCleartextRefusalIsExplainedAsAPolicyDecision` (499),
+  `urlFieldAndTestActionAreDisjointAndTappable` (514),
+  `noUrlFieldWhileTheProviderSourceIsActiveWithoutAStoredUrl` (529),
+  `repositorySelectionRevealsUrlFieldAndTestAction` (544),
+  `theNoticeDoesNotReplaceTheTestOutcome` (559), `testSuccessShowsRegionAndLeafCounts` (574),
+  `theUrlFieldDeclaresUrlInputAndShowsItsFormat` (589)
+
+Every one of the 15 fails with the same exception, verbatim from the retained log (line 382):
+
+    androidx.test.espresso.AppNotIdleException: Compose did not get idle after 2202442 attempts in 60
+    SECONDS. Please check your measure/layout lambdas, they may be causing an infinite composition loop.
+    Or set Espresso's master idling policy if you require a longer timeout. The following Idle Conditions
+    failed .
+
+raised out of the test's own `setContent` (`…AndroidComposeUiTestImpl.setContent(ComposeUiTest.android.kt:499)`
+→ `AndroidComposeTestRule.setContent(AndroidComposeTestRule.android.kt:348)` → the case's `show()` helper).
+It is a Compose-Idling/environment condition, not an assertion in any case of this change or of these two
+classes' subject under test, and no case of this change's module is involved.
+
+Scope decision for this change's gate: the `code`-delta scope block (`guidelines/Build.md` §2) names the
+forced gate for a production change; with the whole-suite run ruled out by the pre-existing `:app`
+redness above, this change runs its own module's suite instead, forced —
+`./gradlew :auto:testDebugUnitTest -PforceTests --rerun-tasks` — whose tally is carried by
+`evidence/gate-auto-module-suite.txt` (81 classes, 840 tests, 0 failures), by the run's own log retained at
+`.pi/bugfix-loop/gate-auto-module-2026-10-13-round2.log` (`BUILD SUCCESSFUL in 42s`, `59 actionable tasks: 59
+executed`, no `FAILED` line) and by the run's copied XMLs under `evidence/auto-module-suite/`. No claim about
+this change points at a build directory or at `/tmp`.
+
+The `:app` Compose redness is reported, not fixed here: those two classes are not this change's subject,
+their failure is environmental (Compose never idles under the templates host's Robolectric harness), and
+their repair belongs to the aggregate-run-flake work (`TODO.md` §148) rather than to a `:auto` row-cap
+change.

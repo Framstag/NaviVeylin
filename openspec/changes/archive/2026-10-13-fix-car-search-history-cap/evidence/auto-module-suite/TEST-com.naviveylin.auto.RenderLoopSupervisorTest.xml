@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.RenderLoopSupervisorTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:43.071Z" hostname="dingens" time="0.137">
+  <properties/>
+  <testcase name="aFaultSkipsTheIterationAndTheLoopKeepsRunning" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.015"/>
+  <testcase name="aSuccessfulIterationResetsTheStreak" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.011"/>
+  <testcase name="cancellationIsRethrownAndCountedAsNoFault" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.01"/>
+  <testcase name="aCleanIterationReturnsTheBlocksValue" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.011"/>
+  <testcase name="reCreationAndDegradedTransitionsAreRecordedWithTheirAttempts" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.013"/>
+  <testcase name="theThresholdRequestsExactlyOneRecreationPerStreak" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.012"/>
+  <testcase name="aNewPeriodReArmsTheRecoveryBudget" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.012"/>
+  <testcase name="theFaultRecordCarriesIdentityOnlyAndIsThrottled" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.012"/>
+  <testcase name="aSuspendedSupervisorAsksForNothing" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.012"/>
+  <testcase name="aFaultOutsideTheWindowStartsANewStreak" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.015"/>
+  <testcase name="theCapStopsRecoveryAndReportstheDegradedStateOnce" classname="com.naviveylin.auto.RenderLoopSupervisorTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

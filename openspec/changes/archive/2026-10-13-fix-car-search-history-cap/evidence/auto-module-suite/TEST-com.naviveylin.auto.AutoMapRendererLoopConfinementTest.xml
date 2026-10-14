@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererLoopConfinementTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-13T20:41:30.404Z" hostname="dingens" time="0.967">
+  <properties/>
+  <testcase name="aPausedRendererRunsNoIterationAndCountsNoFault" classname="com.naviveylin.auto.AutoMapRendererLoopConfinementTest" time="0.694"/>
+  <testcase name="aFaultedZoomStepDoesNotStopTheWalk" classname="com.naviveylin.auto.AutoMapRendererLoopConfinementTest" time="0.121"/>
+  <testcase name="aFaultedDisplayTickDoesNotStopTheFollowPipeline" classname="com.naviveylin.auto.AutoMapRendererLoopConfinementTest" time="0.098"/>
+  <testcase name="aFaultedFrameIsSkippedAndTheNextRequestStillDraws" classname="com.naviveylin.auto.AutoMapRendererLoopConfinementTest" time="0.026"/>
+  <testcase name="aFaultedFrameLeavesTheSurfaceHealthyAndNothingInFlight" classname="com.naviveylin.auto.AutoMapRendererLoopConfinementTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

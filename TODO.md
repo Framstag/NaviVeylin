@@ -3163,3 +3163,36 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `fix-ui-reroute-numbers`.
 - **Loop verdict** ⏳ (fix-loop 2026-10-13 — filed while applying `fix-ui-reroute-numbers`: the gap lies outside
   that change's diff, whose fix is the §187 bullet plus its guard case; not yet triaged).
+
+## 201. The car guard's roundabout exit ordinal has no upper bound, and the DHU observation that would set one could not be taken while the app's own artwork provably needs no clamp — Found 2026-10-14 while applying `fix-roundabout-exit-number` (task 7.3, design Open Question 2)
+**id:** 201 · **category:** car · **class:** improvement · **status:** on-hold needs-decision — whether the guard takes an upper bound at all, and from what evidence
+
+- **Observed** ⚠: the guard `carriesExitNumber` (`auto/src/main/java/com/naviveylin/auto/NavigationTemplateMapper.kt:96`)
+  bounds the ordinal at the *bottom* only — `<= 0` falls back to the plain leave arrow — while the number-bearing
+  maneuver type it selects (`:71`) has no upper bound, and `androidx.car.app`'s `setRoundaboutExitNumber` documents
+  `@IntRange(from = 1)` with no maximum. The design named a DHU observation as the source for a clamp
+  (Open Question 2); task 7.3 could not take it: `desktop-head-unit` is refused by this project's shell
+  allowlist — `[BLOCKED — DO NOT RETRY] … This is a permanent restriction, not a transient error`, exit 126 —
+  and the binary lies outside a session's working directory. Even lifted, the design had already recorded that
+  the DHU is the AOSP reference renderer rather than Google's projection host, so its answer corroborates
+  without being evidence about the host drivers use (D6). 7.3 is closed in `tasks.md` as a **documented
+  non-observation**, not a pass.
+- **Impact** ℹ: the undecided bound only decides *which* ordinals take the number-bearing path — no requirement
+  contradicts either choice, and D6's "set both" keeps the exit identified by our own numbered glyph regardless
+  (measured: the glyph shrinks any number to fit the ring and never clips it, ordinal 112 → 48×24 px inside a
+  57 px inner diameter; `app(device): RoundaboutExitGlyphDeviceTest`). So this is a decision to record, not a
+  defect to fix — and it is why the entry exists rather than a task left dangling in an archived change.
+- **Fix candidate** ℹ: decide between (a) **no upper bound** — our artwork fits any ordinal and the host's
+  rendering is unobservable, so a clamp would refuse a number on no evidence; or (b) **a bound at two digits**,
+  citing the only legibility measurement that exists: ordinal 112 measures **0.250** of the symbol's edge at
+  48 px but **0.143** at the phone overlay's 168 px, below the 0.16 floor the case holds ordinals 1/3/12 to —
+  which makes "beyond N digits it is illegible" size-dependent rather than a threshold, so even (b) is a
+  judgement rather than a measurement. Whichever is chosen, state it beside `carriesExitNumber` with its
+  reason, so the next reader does not have to re-derive the absence of a bound.
+- **Related**: design Open Question 2 and decision D6 in the archived
+  `openspec/changes/fix-roundabout-exit-number/design.md`; spec `roundabout-renderer` ("The number SHALL be
+  legible at the smallest size any surface draws the symbol"); `auto/src/main/java/com/naviveylin/auto/NavigationTemplateMapper.kt:71`
+  and `:96`; `app/src/androidTest/java/com/naviveylin/ui/navigation/RoundaboutExitGlyphDeviceTest.kt`;
+  `TODO.md` §179 (the same shape — a host capacity held as a constant) and §200.
+- **Loop verdict** ⏳ (filed at archive of `fix-roundabout-exit-number` on the owner's instruction, carrying the
+  verification report's warning 1, so the decision outlives the change; not yet triaged).

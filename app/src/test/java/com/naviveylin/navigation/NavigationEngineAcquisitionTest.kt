@@ -5,8 +5,10 @@ import android.app.Application
 import android.content.Context
 import android.os.Looper
 import com.framstag.libosmscout.client.FakeOSMScoutClient
+import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.Vehicle
+import com.naviveylin.R
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import com.naviveylin.core.EngineDispatchers
+import com.naviveylin.core.FailureReason
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import org.robolectric.annotation.Config
@@ -112,11 +115,24 @@ class NavigationEngineAcquisitionTest {
 
         assertEquals("no route request may reach the engine", 0, client.routeCalculationCount)
         assertTrue("no navigation may start", !vm.state.value.isNavigating)
+        // The refusal carries the reason; the wording is the surface's, from the shared resource, which
+        // is what makes the phone and the car say the same thing (spec: `routing-failure-reporting` —
+        // Each reason is worded by the surface).
+        assertEquals(
+            "the refusal names the precise-location refusal",
+            FailureReason.PRECISE_LOCATION_REQUIRED,
+            vm.state.value.failure?.reason
+        )
+        val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals(
             "the refusal uses the shared wording (phone + car)",
-            ApplicationProvider.getApplicationContext<Context>()
-                .getString(com.naviveylin.core.R.string.location_precise_required_navigation),
-            vm.state.value.errorMessage
+            context.getString(com.naviveylin.core.R.string.location_precise_required_navigation),
+            com.naviveylin.core.navigationFailureText(
+                context = context,
+                failure = vm.state.value.failure!!,
+                unitMetersRes = R.string.distance_unit_m,
+                unitKilometersRes = R.string.distance_unit_km
+            )
         )
         assertTrue(
             "the gate must short-circuit before leasing GPS",
@@ -137,7 +153,7 @@ class NavigationEngineAcquisitionTest {
         vm.navigateTo(52.5300, 13.4100)
 
         assertEquals(0, client.routeCalculationCount)
-        assertNotNull(vm.state.value.errorMessage)
+        assertNotNull(vm.state.value.failure)
     }
 
     @Test
@@ -160,7 +176,7 @@ class NavigationEngineAcquisitionTest {
 
         awaitState { vm.state.value.isNavigating }
         assertEquals(1, client.routeCalculationCount)
-        assertNull(vm.state.value.errorMessage)
+        assertNull(vm.state.value.failure)
         // The total is the route's own length when its geometry is usable, not a second app-side sum
         // of that geometry (spec: osmscout-jni — One route length for a calculated route).
         assertTrue(vm.state.value.totalDistance > 0.0)
@@ -176,10 +192,13 @@ class NavigationEngineAcquisitionTest {
 
         vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
 
-        awaitState { vm.state.value.errorMessage != null }
+        awaitState { vm.state.value.failure != null }
         assertEquals(1, client.routeCalculationCount)
         assertTrue(!vm.state.value.isNavigating)
-        assertEquals("Route calculation failed. Try again.", vm.state.value.errorMessage)
+        // The cause, not a sentence: the message the native layer sent is the failure's detail, which is
+        // log output (spec: `routing-failure-reporting` — A failed route calculation reports a reason).
+        assertEquals(FailureReason.UNKNOWN, vm.state.value.failure?.reason)
+        assertEquals("Route calculation failed. Try again.", vm.state.value.failure?.detail)
     }
 
     @Test
@@ -191,8 +210,8 @@ class NavigationEngineAcquisitionTest {
         vm.navigateTo(52.5300, 13.4100)
 
         assertTrue(!vm.state.value.isNavigating)
-        assertNotNull(vm.state.value.errorMessage)
-        assertTrue(vm.state.value.errorMessage!!.contains("GPS"))
+        assertNotNull(vm.state.value.failure)
+        assertEquals(FailureReason.GPS_SIGNAL_MISSING, vm.state.value.failure?.reason)
     }
 
     @Test
@@ -221,6 +240,6 @@ class NavigationEngineAcquisitionTest {
 
         awaitState { vm.state.value.isNavigating }
         assertEquals(1, client.routeCalculationCount)
-        assertNull(vm.state.value.errorMessage)
+        assertNull(vm.state.value.failure)
     }
 }

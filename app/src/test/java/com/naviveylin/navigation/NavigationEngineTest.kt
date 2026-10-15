@@ -256,7 +256,7 @@ class NavigationEngineTest {
         assertEquals(
             "the concurrent publication survives the tick",
             "concurrent publish",
-            engine.state.value.errorMessage
+            engine.state.value.failure?.surfaceMessage
         )
         assertEquals("the recorded victim field survives the tick", 100.0, engine.state.value.maxSpeedKmH, 1e-9)
     }

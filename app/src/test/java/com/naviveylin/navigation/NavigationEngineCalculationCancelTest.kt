@@ -161,7 +161,7 @@ class NavigationEngineCalculationCancelTest {
         assertEquals("nothing to cancel, nothing to ask native", 0, client.cancelRouteCount)
         assertNull(engine.state.value.calculation)
         assertFalse(engine.state.value.isNavigating)
-        assertNull(engine.state.value.errorMessage)
+        assertNull(engine.state.value.failure)
     }
 
     @Test
@@ -261,7 +261,7 @@ class NavigationEngineCalculationCancelTest {
         )
 
         awaitCallback(client).onError("No route available")
-        awaitState { engine.state.value.errorMessage != null }
+        awaitState { engine.state.value.failure != null }
 
         assertFalse("no navigation may start", engine.state.value.isNavigating)
         assertTrue(

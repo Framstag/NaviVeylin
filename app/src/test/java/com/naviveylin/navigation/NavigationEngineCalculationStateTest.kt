@@ -166,7 +166,7 @@ class NavigationEngineCalculationStateTest {
             engine.state.value.calculation?.token
         )
         assertNull("a superseded report is not published", engine.state.value.calculation?.percent)
-        assertNull("a superseded failure is not published", engine.state.value.errorMessage)
+        assertNull("a superseded failure is not published", engine.state.value.failure)
         assertFalse(
             "a superseded success must not start navigation on an invalid route handle",
             engine.state.value.isNavigating
@@ -175,7 +175,7 @@ class NavigationEngineCalculationStateTest {
         live.onSuccess(routeEntry())
         awaitState { engine.state.value.isNavigating }
         assertNull(engine.state.value.calculation)
-        assertEquals("only the live calculation started", null, engine.state.value.errorMessage)
+        assertEquals("only the live calculation started", null, engine.state.value.failure)
     }
 
     @Test
@@ -186,7 +186,7 @@ class NavigationEngineCalculationStateTest {
 
         awaitCallback(client).onError("No route available")
 
-        awaitState { engine.state.value.errorMessage != null }
+        awaitState { engine.state.value.failure != null }
         assertNull("the wait is over, failed or not", engine.state.value.calculation)
         assertFalse(engine.state.value.isNavigating)
     }

@@ -7,6 +7,7 @@ import android.content.ContextWrapper
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.naviveylin.core.DrivingModeProvider
+import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.service.NavigationNotificationService
@@ -160,6 +161,7 @@ class NavigationNotificationControllerTest {
         override fun clearError() = Unit
         override fun cancelAcquisition() = Unit
         override fun reportError(message: String, origin: com.naviveylin.core.SurfaceOrigin) = Unit
+        override fun reportFailure(failure: NavigationFailure) = Unit
     }
 
     /** Records service start/stop calls, delegates everything else. */

@@ -610,16 +610,6 @@ class FakeOSMScoutClient : OSMScoutClient() {
         limit: Int
     ): Array<LocationEntry>? = recordFormSearch(adminRegion, postalArea, location, address, generation = null)
 
-    override fun searchLocationByForm(
-        adminRegion: String,
-        postalArea: String,
-        location: String,
-        address: String,
-        limit: Int,
-        generation: Long
-    ): Array<LocationEntry>? =
-        recordFormSearch(adminRegion, postalArea, location, address, generation)
-
     private fun recordFormSearch(
         adminRegion: String,
         postalArea: String,
@@ -652,18 +642,6 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     /** Generations passed to [searchPOIsByTypes] in call order. */
     val poiSearchGenerations = mutableListOf<Long>()
-
-    override fun searchPOIsByTypes(
-        typeNames: Array<String>,
-        lat: Double, lon: Double,
-        radiusMeters: Double, limit: Int,
-        generation: Long
-    ): Array<PoiEntry>? {
-        poiSearchTypeNames.add(typeNames.toList())
-        poiSearchGenerations.add(generation)
-        poiSearchError?.let { throw it }
-        return nextPoiResults
-    }
 
     override fun searchPOIs(
         category: String,

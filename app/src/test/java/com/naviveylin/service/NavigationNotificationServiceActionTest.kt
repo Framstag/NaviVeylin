@@ -1,6 +1,7 @@
 package com.naviveylin.service
 
 import com.framstag.libosmscout.client.NavigationPosition
+import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.SurfaceOrigin
@@ -32,6 +33,7 @@ class NavigationNotificationServiceActionTest {
         override fun clearError() = Unit
         override fun cancelAcquisition() = Unit
         override fun reportError(message: String, origin: SurfaceOrigin) = Unit
+        override fun reportFailure(failure: NavigationFailure) = Unit
     }
 
     @Test

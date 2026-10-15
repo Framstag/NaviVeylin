@@ -197,10 +197,12 @@ class NavigationEngineRoadInfoTest {
         awaitState { vm.state.value.currentRoadInfo != null }
 
         assertEquals("Nebenstrasse", vm.state.value.currentRoadInfo?.name)
+        // A producer that words its own failure keeps it as the failure's message (spec:
+        // `routing-failure-reporting` — its surface-specific-wording scenario).
         assertEquals(
             "the publish preserves what another writer set meanwhile",
             "concurrent write",
-            vm.state.value.errorMessage
+            vm.state.value.failure?.surfaceMessage
         )
     }
 }

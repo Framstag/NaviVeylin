@@ -6,6 +6,7 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.EngineDispatchers
+import com.naviveylin.core.FailureReason
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
@@ -67,10 +68,12 @@ class NavigationEngineErrorOriginTest {
         engine.reportError("No matching location found", SurfaceOrigin.CAR)
 
         val state = engine.state.value
-        assertEquals("No matching location found", state.errorMessage)
-        assertEquals(SurfaceOrigin.CAR, state.errorOrigin)
-        assertTrue("the car presents it", state.errorAppliesTo(SurfaceOrigin.CAR))
-        assertFalse("the phone does not", state.errorAppliesTo(SurfaceOrigin.PHONE))
+        // A producer that words its own failure keeps that wording (spec: `routing-failure-reporting` —
+        // its surface-specific-wording scenario): it travels as the failure's own message.
+        assertEquals("No matching location found", state.failure?.surfaceMessage)
+        assertEquals(SurfaceOrigin.CAR, state.failure?.origin)
+        assertTrue("the car presents it", state.failureAppliesTo(SurfaceOrigin.CAR))
+        assertFalse("the phone does not", state.failureAppliesTo(SurfaceOrigin.PHONE))
     }
 
     @Test
@@ -78,8 +81,8 @@ class NavigationEngineErrorOriginTest {
         engine.reportError("Route panel failure", SurfaceOrigin.PHONE)
 
         val state = engine.state.value
-        assertTrue("the phone presents it", state.errorAppliesTo(SurfaceOrigin.PHONE))
-        assertFalse("the car does not", state.errorAppliesTo(SurfaceOrigin.CAR))
+        assertTrue("the phone presents it", state.failureAppliesTo(SurfaceOrigin.PHONE))
+        assertFalse("the car does not", state.failureAppliesTo(SurfaceOrigin.CAR))
     }
 
     @Test
@@ -88,15 +91,20 @@ class NavigationEngineErrorOriginTest {
 
         val state = engine.state.value
         assertTrue("every surface presents an engine error",
-            state.errorAppliesTo(SurfaceOrigin.PHONE) && state.errorAppliesTo(SurfaceOrigin.CAR))
+            state.failureAppliesTo(SurfaceOrigin.PHONE) && state.failureAppliesTo(SurfaceOrigin.CAR))
     }
 
     @Test
     fun originlessErrorIsTreatedAsEngineWide() = runTest(mainDispatcherRule.dispatcher) {
-        // A producer that does not set an origin must not be silently hidden.
-        val state = com.naviveylin.core.NavigationState(errorMessage = "boom")
-        assertTrue(state.errorAppliesTo(SurfaceOrigin.PHONE))
-        assertTrue(state.errorAppliesTo(SurfaceOrigin.CAR))
+        // A producer that does not set an origin must not be silently hidden: the failure's own origin
+        // decides, and its default is engine-wide.
+        val state = com.naviveylin.core.NavigationState(
+            failure = com.naviveylin.core.NavigationFailure(
+                reason = com.naviveylin.core.FailureReason.UNKNOWN
+            )
+        )
+        assertTrue(state.failureAppliesTo(SurfaceOrigin.PHONE))
+        assertTrue(state.failureAppliesTo(SurfaceOrigin.CAR))
     }
 
     @Test
@@ -104,9 +112,9 @@ class NavigationEngineErrorOriginTest {
         engine.reportError("No matching location found", SurfaceOrigin.CAR)
         engine.clearError()
 
-        assertNull("no message survives", engine.state.value.errorMessage)
-        assertNull("no origin survives", engine.state.value.errorOrigin)
-        assertFalse(engine.state.value.errorAppliesTo(SurfaceOrigin.CAR))
+        assertNull("no message survives", engine.state.value.failure)
+        assertNull("no origin survives", engine.state.value.failure?.origin)
+        assertFalse(engine.state.value.failureAppliesTo(SurfaceOrigin.CAR))
     }
 
     @Test
@@ -132,8 +140,9 @@ class NavigationEngineErrorOriginTest {
             ioDispatcher.scheduler.advanceUntilIdle()
             mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
         }
-        assertEquals("Route calculation failed. Try again.", engine.state.value.errorMessage)
-        assertEquals(SurfaceOrigin.ENGINE, engine.state.value.errorOrigin)
+        assertEquals(FailureReason.UNKNOWN, engine.state.value.failure?.reason)
+        assertEquals("Route calculation failed. Try again.", engine.state.value.failure?.detail)
+        assertEquals(SurfaceOrigin.ENGINE, engine.state.value.failure?.origin)
         assertFalse("no navigation started", engine.state.value.isNavigating)
     }
 }

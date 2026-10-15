@@ -6,7 +6,11 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
+import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
+import com.naviveylin.core.FailureReason
+import com.naviveylin.core.NavigationFailure
+import com.naviveylin.core.RouteEndpoint
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
@@ -137,21 +141,25 @@ class RoutePanelViewModelRerouteTest {
     fun onError_emitsRouteErrorEvent_andKeepsLastRoute() =
         runTest(mainDispatcherRule.dispatcher) {
             calculateAndAwaitSuccess()
-            val errors = mutableListOf<String>()
+            val errors = mutableListOf<NavigationFailure>()
             val collectJob = launch { viewModel.routeErrorEvent.collect { errors.add(it) } }
 
             client.routeToDeliver = null
+            client.deliverRouteErrorKind = RouteCallback.KIND_TARGET_UNROUTABLE
             client.deliverRouteError = "No routable node near destination"
             viewModel.updateLocationsForReroute(entry("start"), entry("dest"))
             viewModel.calculateRoute()
             advanceUntilIdle()
 
-            assertTrue(errors.contains("No routable node near destination"))
+            // The cause, not a sentence: the event carries the typed failure, so the snackbar can word
+            // it (spec: `routing-failure-reporting` — A failed route calculation reports a reason).
+            assertEquals(listOf(FailureReason.TARGET_UNROUTABLE), errors.map { it.reason })
+            assertEquals(RouteEndpoint.TARGET, errors.single().endpoint)
             // Last drawn route is preserved after a failed reroute calc.
             assertNotNull(viewModel.routeResultFlow.value)
             assertNotNull(viewModel.uiState.value.routeEntry)
             assertEquals(
-                RouteState.Error("No routable node near destination"),
+                RouteState.Error(errors.single()),
                 viewModel.uiState.value.routeState
             )
             collectJob.cancel()

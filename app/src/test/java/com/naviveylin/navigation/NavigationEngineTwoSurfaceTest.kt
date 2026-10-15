@@ -109,7 +109,7 @@ class NavigationEngineTwoSurfaceTest {
             "$what: not met after draining the test scheduler " +
                 "(navigating=${engine.state.value.isNavigating}, " +
                 "position=${engine.positionFlow.value != null}, " +
-                "engineError=${engine.state.value.errorMessage})"
+                "engineError=${engine.state.value.failure})"
         )
     }
 

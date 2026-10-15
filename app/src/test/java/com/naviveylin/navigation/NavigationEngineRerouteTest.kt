@@ -5,12 +5,14 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.NavigationPosition
 import com.framstag.libosmscout.client.NavigationState
+import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.TurnType
 import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.RouteInstruction
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.EngineDispatchers
+import com.naviveylin.core.FailureReason
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.location.LocationConsumers
@@ -327,8 +329,10 @@ class NavigationEngineRerouteTest {
         requestReroute(lat = 52.5218)
         awaitState { client.routeCalculationCount == 1 }
 
-        client.pendingRouteCallbacks.first().onError("No routable node near destination")
-        awaitState { engine.state.value.errorMessage != null }
+        client.pendingRouteCallbacks.first().onErrorDetail(
+            RouteCallback.KIND_TARGET_UNROUTABLE, "No routable node near destination", Double.NaN
+        )
+        awaitState { engine.state.value.failure != null }
 
         assertTrue(
             "a failed reroute must not starve the running guidance of position updates",
@@ -336,9 +340,9 @@ class NavigationEngineRerouteTest {
         )
         assertTrue("the failed reroute does not end the session", engine.state.value.isNavigating)
         assertEquals(
-            "the failure is still published",
-            "No routable node near destination",
-            engine.state.value.errorMessage
+            "the failure is still published, with its cause",
+            FailureReason.TARGET_UNROUTABLE,
+            engine.state.value.failure?.reason
         )
     }
 
@@ -364,8 +368,10 @@ class NavigationEngineRerouteTest {
         awaitState { client.routeCalculationCount == 1 }
         assertTrue("the attempt announces itself", engine.state.value.isRerouting)
 
-        client.pendingRouteCallbacks.first().onError("No routable node near destination")
-        awaitState { engine.state.value.errorMessage != null }
+        client.pendingRouteCallbacks.first().onErrorDetail(
+            RouteCallback.KIND_TARGET_UNROUTABLE, "No routable node near destination", Double.NaN
+        )
+        awaitState { engine.state.value.failure != null }
 
         assertFalse(
             "a failed reroute must not keep the surfaces on a reroute",
@@ -382,9 +388,9 @@ class NavigationEngineRerouteTest {
         )
         assertEquals("Main St", engine.state.value.instructions[0].streetName)
         assertEquals(
-            "the failure is still published",
-            "No routable node near destination",
-            engine.state.value.errorMessage
+            "the failure is still published, with its cause",
+            FailureReason.TARGET_UNROUTABLE,
+            engine.state.value.failure?.reason
         )
 
         // A later emission must not resurrect the claim: the car rebuilds its template from any
@@ -408,7 +414,7 @@ class NavigationEngineRerouteTest {
         client.routeCalculationError = IllegalStateException("native routing blew up")
 
         requestReroute(lat = 52.5218)
-        awaitState { engine.state.value.errorMessage != null }
+        awaitState { engine.state.value.failure != null }
 
         assertFalse(
             "a throwing calculation ends the reroute claim",
@@ -419,7 +425,8 @@ class NavigationEngineRerouteTest {
             "the off-route cue stays: the vehicle is still off route",
             engine.state.value.isOffRoute
         )
-        assertEquals("native routing blew up", engine.state.value.errorMessage)
+        assertEquals(FailureReason.ENGINE_FAILURE, engine.state.value.failure?.reason)
+        assertEquals("native routing blew up", engine.state.value.failure?.detail)
     }
 
     /**

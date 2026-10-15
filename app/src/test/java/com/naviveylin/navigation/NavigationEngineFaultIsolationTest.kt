@@ -10,6 +10,7 @@ import com.framstag.libosmscout.client.NavigationState
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.FailureReason
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
@@ -154,11 +155,14 @@ class NavigationEngineFaultIsolationTest {
         // thread, never performed synchronously on the failing thread.
         assertEquals(before, vm.state.value)
 
-        awaitState { vm.state.value.errorMessage != null }
+        awaitState { vm.state.value.failure != null }
 
-        assertEquals(SurfaceOrigin.ENGINE, vm.state.value.errorOrigin)
-        assertTrue(vm.state.value.errorMessage!!.contains("Navigation engine fault"))
-        assertTrue(vm.state.value.errorMessage!!.contains("test-fault"))
+        assertEquals(SurfaceOrigin.ENGINE, vm.state.value.failure?.origin)
+        // The fault's description is the failure's detail: a surface words an engine failure from the
+        // shared resource instead of showing an internal message (spec: `routing-failure-reporting`).
+        assertEquals(FailureReason.ENGINE_FAILURE, vm.state.value.failure?.reason)
+        assertTrue(vm.state.value.failure!!.detail!!.contains("Navigation engine fault"))
+        assertTrue(vm.state.value.failure!!.detail!!.contains("test-fault"))
         assertEquals(1, faultEntries().size)
         assertTrue(
             "the scope survives its own child's fault (SupervisorJob + handler)",
@@ -179,15 +183,15 @@ class NavigationEngineFaultIsolationTest {
         awaitState { vm.state.value.isNavigating }
 
         faultTheEngine(vm)
-        awaitState { vm.state.value.errorMessage != null }
+        awaitState { vm.state.value.failure != null }
 
         assertTrue("the faulting engine must not keep presenting guidance", !vm.state.value.isNavigating)
-        assertEquals(SurfaceOrigin.ENGINE, vm.state.value.errorOrigin)
+        assertEquals(SurfaceOrigin.ENGINE, vm.state.value.failure?.origin)
 
         // The engine is still usable: the fault ended one piece of work, not the engine.
         vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
         awaitState { vm.state.value.isNavigating }
-        assertNull(vm.state.value.errorMessage)
+        assertNull(vm.state.value.failure)
     }
 
     @Test
@@ -203,10 +207,10 @@ class NavigationEngineFaultIsolationTest {
 
         vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
 
-        awaitState { vm.state.value.errorMessage != null }
+        awaitState { vm.state.value.failure != null }
         assertEquals(1, client.routeCalculationCount)
         assertTrue(!vm.state.value.isNavigating)
-        assertEquals(SurfaceOrigin.ENGINE, vm.state.value.errorOrigin)
+        assertEquals(SurfaceOrigin.ENGINE, vm.state.value.failure?.origin)
         assertTrue(
             "a failed attempt must not keep the location lease",
             locationService.heldLeaseConsumers().isEmpty()
@@ -227,10 +231,10 @@ class NavigationEngineFaultIsolationTest {
 
         vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
 
-        awaitState { vm.state.value.errorMessage != null }
+        awaitState { vm.state.value.failure != null }
         assertEquals(1, client.navigationStartCount)
         assertTrue(!vm.state.value.isNavigating)
-        assertEquals(SurfaceOrigin.ENGINE, vm.state.value.errorOrigin)
+        assertEquals(SurfaceOrigin.ENGINE, vm.state.value.failure?.origin)
         assertTrue(locationService.heldLeaseConsumers().isEmpty())
     }
 
@@ -256,7 +260,7 @@ class NavigationEngineFaultIsolationTest {
 
             // A road-name lookup is cosmetic: the failure is confined and logged, it is
             // neither an engine error nor a reason to stop anything.
-            assertNull(vm.state.value.errorMessage)
+            assertNull(vm.state.value.failure)
             assertTrue(
                 "the fault never reached the engine's fault handler",
                 faultEntries().isEmpty()
@@ -293,15 +297,15 @@ class NavigationEngineFaultIsolationTest {
         vm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
         awaitState { vm.state.value.isNavigating }
         faultTheEngine(vm)
-        awaitState { phoneSeen.any { it.errorOrigin == SurfaceOrigin.ENGINE } }
+        awaitState { phoneSeen.any { it.failure?.origin == SurfaceOrigin.ENGINE } }
 
-        assertTrue("the phone observation kept running", phoneSeen.any { it.errorOrigin == SurfaceOrigin.ENGINE })
-        assertTrue("the car observation kept running", carSeen.any { it.errorOrigin == SurfaceOrigin.ENGINE })
+        assertTrue("the phone observation kept running", phoneSeen.any { it.failure?.origin == SurfaceOrigin.ENGINE })
+        assertTrue("the car observation kept running", carSeen.any { it.failure?.origin == SurfaceOrigin.ENGINE })
         assertTrue(
             "an engine error applies to both surfaces",
-            phoneSeen.any { it.errorAppliesTo(SurfaceOrigin.PHONE) }
+            phoneSeen.any { it.failureAppliesTo(SurfaceOrigin.PHONE) }
         )
-        assertTrue(carSeen.any { it.errorAppliesTo(SurfaceOrigin.CAR) })
+        assertTrue(carSeen.any { it.failureAppliesTo(SurfaceOrigin.CAR) })
         observers.cancel()
     }
 }

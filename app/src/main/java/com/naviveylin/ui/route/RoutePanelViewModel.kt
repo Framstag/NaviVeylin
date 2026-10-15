@@ -17,7 +17,12 @@ import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.maxSpeedKmhFor
 import com.naviveylin.location.LocationService
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.FailureReason
 import com.naviveylin.core.LocationGrant
+import com.naviveylin.core.NavigationFailure
+import com.naviveylin.core.SurfaceOrigin
+import com.naviveylin.core.navigationFailureText
+import com.naviveylin.navigation.navigationFailureOf
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchResultRanker
@@ -277,8 +282,8 @@ class RoutePanelViewModel @Inject constructor(
      * navigating (spec: reroute-route-visibility). When the route panel is
      * open, the in-panel [RouteState.Error] text already covers the failure.
      */
-    private val _routeErrorEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val routeErrorEvent: SharedFlow<String> = _routeErrorEvent.asSharedFlow()
+    private val _routeErrorEvent = MutableSharedFlow<NavigationFailure>(extraBufferCapacity = 1)
+    val routeErrorEvent: SharedFlow<NavigationFailure> = _routeErrorEvent.asSharedFlow()
 
     private var searchJob: Job? = null
 

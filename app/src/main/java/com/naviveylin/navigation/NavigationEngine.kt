@@ -709,16 +709,24 @@ class NavigationEngine @Inject constructor(
      * (spec: `route-calculation-feedback` — A superseded calculation never clears the
      * live calculation's state). Main-thread only.
      */
-    private fun endCalculation(token: Long, outcome: CalculationOutcome): Boolean {
+    private fun endCalculation(token: Long,
+                               outcome: CalculationOutcome,
+                               failure: NavigationFailure? = null): Boolean {
         val current = _state.value.calculation
         if (current == null || current.token != token) return false
         _state.update { it.copy(calculation = null) }
-        // Coordinate-free by construction: identity (source) and numbers, never a
-        // position (spec: `auto-diagnostics` — no coordinates in diagnostics).
+        // Coordinate-free by construction (spec: `auto-diagnostics` — no coordinates in diagnostics); the
+        // line's own shape, and the reason it names, are asserted in NavigationEngineCalculationDiagnosticsTest.
         DiagnosticsLog.log(
             ROUTE_TAG,
-            "calc done: source=$calculationTrigger duration=${timeSource.nowMillis() - calculationStartedAtMillis}ms " +
-                "percents=$calculationProgressCount outcome=${outcome.entryValue}"
+            routeCalculationDoneLine(
+                source = calculationTrigger,
+                durationMillis = timeSource.nowMillis() - calculationStartedAtMillis,
+                progressCount = calculationProgressCount,
+                outcome = outcome.entryValue,
+                reachedPercent = current.percent,
+                failure = failure
+            )
         )
         return true
     }

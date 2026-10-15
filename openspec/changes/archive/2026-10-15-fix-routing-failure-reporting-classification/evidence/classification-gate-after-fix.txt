@@ -1,0 +1,7 @@
+specs read: 167
+classified: 167
+unclassified: 0
+stale: 0
+car-only areas: 1
+highlights: 19
+exit=0

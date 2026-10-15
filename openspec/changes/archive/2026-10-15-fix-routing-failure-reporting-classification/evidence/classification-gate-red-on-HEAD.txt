@@ -1,0 +1,10 @@
+gen-feature-list: unclassified shipped spec id(s):
+  routing-failure-reporting
+specs read: 167
+classified: 166
+unclassified: 1
+stale: 0
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+exit=1

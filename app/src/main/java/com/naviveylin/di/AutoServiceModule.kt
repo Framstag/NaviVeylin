@@ -2,6 +2,7 @@ package com.naviveylin.di
 
 import android.util.Log
 import com.framstag.libosmscout.client.InstalledMaps
+import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.auto.SessionCarSurfaceHost
 import com.naviveylin.core.AutoClientProvider
@@ -19,6 +20,7 @@ import com.naviveylin.core.FreeDrivingStatusProvider
 import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.TileCacheConfig
 import com.naviveylin.core.search.SearchQueryParser
+import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchResultRanker
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.StructuredAddressSearch
@@ -62,32 +64,49 @@ object AutoServiceModule {
         client: Provider<OSMScoutClient>,
         regionScope: CarSearchRegionScope
     ): AutoSearchProvider {
-        return AutoSearchProvider { query, limit, reference ->
-            // Resolved per search, never while the provider is being resolved: the
-            // native client is built on the caller's thread (spec: auto-map-renderer —
-            // Renderer initialization off the car-app main thread). The region scope
-            // resolves the same client lazily, on the same thread, and scopes the
-            // search with the region containing the car (spec: auto-search — Search
-            // scoped by the car position's admin region).
-            val client = client.get()
-            val adminRegionHandle = regionScope.handleForSearch()
-            // Full formatted addresses resolve via the structured form search
-            // first (a postal code inside the query otherwise empties the
-            // native string search); structured house/street results rank
-            // above raw free-text results (spec: auto-search "Full formatted
-            // address resolution on car screen").
-            //
-            // The candidate set is larger than the displayed list so the
-            // ranking can promote a perfect match the backend's own order put
-            // past the page (spec: search-result-ranking).
-            val raw = client.searchLocations(
-                query,
-                SearchResultRanker.CANDIDATE_LIMIT,
-                adminRegionHandle
-            )?.toList() ?: emptyList()
-            val combined = StructuredAddressSearch.merge(StructuredAddressSearch.resolve(query, client), raw)
-            SearchResultRanker.rank(combined, SearchQueryParser.criteriaOf(query), reference)
-                .take(limit)
+        return object : AutoSearchProvider {
+            override fun beginSearch(slot: String): Long = client.get().beginSearch(slot)
+
+            override fun cancelSearch(generation: Long): Boolean = client.get().cancelSearch(generation)
+
+            override fun searchLocations(
+                query: String,
+                limit: Int,
+                reference: SearchReference?,
+                generation: Long
+            ): List<LocationEntry> {
+                // Resolved per search, never while the provider is being resolved: the
+                // native client is built on the caller's thread (spec: auto-map-renderer —
+                // Renderer initialization off the car-app main thread). The region scope
+                // resolves the same client lazily, on the same thread, and scopes the
+                // search with the region containing the car (spec: auto-search — Search
+                // scoped by the car position's admin region).
+                val osmscoutClient = client.get()
+                val adminRegionHandle = regionScope.handleForSearch()
+                // Full formatted addresses resolve via the structured form search
+                // first (a postal code inside the query otherwise empties the
+                // native string search); structured house/street results rank
+                // above raw free-text results (spec: auto-search "Full formatted
+                // address resolution on car screen").
+                //
+                // The candidate set is larger than the displayed list so the
+                // ranking can promote a perfect match the backend's own order put
+                // past the page (spec: search-result-ranking).
+                //
+                // Both calls carry the request's generation, so a superseded or abandoned car
+                // search stops at its next abort check (spec: `search-request-lifecycle`).
+                val raw = osmscoutClient.searchLocations(
+                    query,
+                    SearchResultRanker.CANDIDATE_LIMIT,
+                    adminRegionHandle,
+                    generation
+                )?.toList() ?: emptyList()
+                val combined = StructuredAddressSearch.merge(
+                    StructuredAddressSearch.resolve(query, osmscoutClient, generation), raw
+                )
+                return SearchResultRanker.rank(combined, SearchQueryParser.criteriaOf(query), reference)
+                    .take(limit)
+            }
         }
     }
 

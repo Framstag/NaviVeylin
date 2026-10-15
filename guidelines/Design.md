@@ -350,6 +350,15 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   `InstalledMaps` — and produces `libosmscoutclientjava.jar`. Those overrides are Android ports:
   `HttpURLConnection` map downloads (no `java.net.http` desugaring), the debug-suffix library loading
   (`osmscout_client_java` → `osmscout_client_javad`), the `reloadBasemap` declaration, public constructors.
+- **A search request carries its generation.** The search entry points take the generation a caller got from
+  `beginSearch(slot)` — `searchLocations(query, limit, adminRegionHandle, generation)`,
+  `searchLocations(query, limit, defaultRegion, generation)`, `searchLocationByForm(…, generation)`,
+  `searchPOIsByTypes(…, generation)` — and `cancelSearch(generation)` cancels exactly that request, reporting
+  whether it was still running. The policy is `search_breaker.h` beside the JNI TU: one slot per search surface
+  (`places`, `poi`, `route`, `car`), a request is aborted once a newer request of its slot began or it was
+  cancelled, and an aborted search returns an empty result rather than a partial one. A cancel naming a
+  superseded generation aborts nothing, which is what makes cancelling from a `finally` block safe
+  (spec `search-request-lifecycle`, `osmscout-jni`).
 - **The two database-open entries differ on purpose.** `openDatabase(path)` accepts only an existing
   directory (a rejected path reports `false`, registers nothing and publishes no database-set change), while
   `openDatabases(paths[])` registers what it is handed — a directory that disappears between the app's scan

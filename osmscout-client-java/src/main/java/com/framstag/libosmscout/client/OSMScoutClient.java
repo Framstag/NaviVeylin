@@ -247,12 +247,22 @@ public class OSMScoutClient {
 
     /**
      * Sentinel for "no default admin region" — pass to
-     * {@link #searchLocations(String, int, long)} for an unconstrained search.
+     * {@link #searchLocations(String, int, long, long)} for an unconstrained search.
      */
     public static final long NO_ADMIN_REGION = 0L;
 
     /**
-     * Search for locations matching the given query.
+     * Search slots: one per search surface, so a supersede or a cancel stops exactly the
+     * request it names and nothing another surface is running (NaviVeylin spec
+     * `search-request-lifecycle`). The same names are the native registry's keys.
+     */
+    public static final String SEARCH_SLOT_PLACES = "places";
+    public static final String SEARCH_SLOT_POI = "poi";
+    public static final String SEARCH_SLOT_ROUTE = "route";
+    public static final String SEARCH_SLOT_CAR = "car";
+
+    /**
+     * Search for locations matching the given query under a caller-owned request.
      *
      * @param query the search string
      * @param limit maximum number of results
@@ -260,9 +270,55 @@ public class OSMScoutClient {
      *        {@link #resolveAdminRegion(double, double)}) used as default region
      *        fallback for incomplete queries, or {@link #NO_ADMIN_REGION} for an
      *        unconstrained search
+     * @param generation the request's generation, from {@link #beginSearch(String)}; the
+     *        search stops at its next abort check once a newer request of its slot began or
+     *        this generation was cancelled
      * @return array of matching locations
      */
-    public native LocationEntry[] searchLocations(String query, int limit, long adminRegionHandle);
+    public native LocationEntry[] searchLocations(String query, int limit, long adminRegionHandle,
+                                                  long generation);
+
+    /**
+     * A standalone location search, for a caller that owns no request of its own: it begins and ends a
+     * request for the place slot, so it supersedes nothing a search gate is running and leaves no
+     * request behind.
+     * <p>
+     * The address book's contact fallback uses this form. A surface whose search is superseded by typing
+     * passes a generation to the overload above instead (spec: `search-request-lifecycle`).
+     */
+    public LocationEntry[] searchLocations(String query, int limit, long adminRegionHandle) {
+        final long generation = beginSearch(SEARCH_SLOT_PLACES);
+
+        try {
+            return searchLocations(query, limit, adminRegionHandle, generation);
+        } finally {
+            cancelSearch(generation);
+        }
+    }
+
+    /**
+     * Begins a search request for a slot and returns its generation.
+     * <p>
+     * Beginning a request supersedes the slot's previous one, which stops at its next abort
+     * check (spec: `search-request-lifecycle`). The generation identifies the request for
+     * every call that belongs to it and for {@link #cancelSearch(long)}.
+     *
+     * @param slot one of the {@code SEARCH_SLOT_*} constants
+     * @return the request's generation, or 0 when the client is not usable
+     */
+    public native long beginSearch(String slot);
+
+    /**
+     * Cancels the request with this generation and reports whether that request was live.
+     * <p>
+     * {@code false} means a newer request of its slot had already replaced it, or it had
+     * ended, so nothing was aborted — which is what makes a cancellation that arrives late
+     * harmless.
+     *
+     * @param generation generation returned by {@link #beginSearch(String)}
+     * @return true when the request was still running and is now cancelled
+     */
+    public native boolean cancelSearch(long generation);
 
     /**
      * Search for a location using the structured address form.
@@ -281,7 +337,28 @@ public class OSMScoutClient {
      * @return array of matching locations, or null on error
      */
     public native LocationEntry[] searchLocationByForm(
-        String adminRegion, String postalArea, String location, String address, int limit);
+        String adminRegion, String postalArea, String location, String address, int limit,
+        long generation);
+
+    /**
+     * A standalone structured address search, for a caller that owns no request of its own: it begins and
+     * ends a request for the place slot. The string search of the same query has ended its own request by
+     * then, so beginning this one supersedes nothing that is still running.
+     * <p>
+     * The address book's contact fallback uses this form; a search surface that owns a request passes its
+     * generation to the overload above (spec: `search-request-lifecycle`).
+     */
+    public LocationEntry[] searchLocationByForm(
+        String adminRegion, String postalArea, String location, String address, int limit) {
+        final long generation = beginSearch(SEARCH_SLOT_PLACES);
+
+        try {
+            return searchLocationByForm(adminRegion, postalArea, location, address, limit,
+                                        generation);
+        } finally {
+            cancelSearch(generation);
+        }
+    }
 
     /**
      * Resolve the admin region containing the given coordinate.
@@ -424,14 +501,18 @@ public class OSMScoutClient {
                                                double lat,
                                                double lon,
                                                double radiusMeters,
-                                               int limit);
+                                               int limit,
+                                               long generation);
 
     /**
      * Search for POIs of the given category within a radius around a coordinate.
      * <p>
      * Resolves the category to its hardcoded OSM type names via
      * {@link PoiCategories} and delegates to
-     * {@link #searchPOIsByTypes(String[], double, double, double, int)}.
+     * {@link #searchPOIsByTypes(String[], double, double, double, int, long)}, beginning and
+     * ending the POI slot's request itself: a standalone POI search for a caller that owns no
+     * request. The POI sheet's search passes its gate's generation instead
+     * (spec: `search-request-lifecycle`).
      *
      * @param category     category id (see {@link PoiCategories#HOTELS},
      *                     {@link PoiCategories#RESTAURANTS}, {@link PoiCategories#GROCERY})
@@ -450,7 +531,14 @@ public class OSMScoutClient {
         if (typeNames == null || typeNames.length == 0 || radiusMeters <= 0) {
             return new PoiEntry[0];
         }
-        return searchPOIsByTypes(typeNames, lat, lon, radiusMeters, limit);
+
+        final long generation = beginSearch(SEARCH_SLOT_POI);
+
+        try {
+            return searchPOIsByTypes(typeNames, lat, lon, radiusMeters, limit, generation);
+        } finally {
+            cancelSearch(generation);
+        }
     }
 
     /**

@@ -11,6 +11,8 @@ import androidx.car.app.model.Row
 import androidx.car.app.model.SearchTemplate
 import androidx.car.app.model.SearchTemplate.SearchCallback
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
@@ -20,14 +22,17 @@ import com.naviveylin.core.SearchRowIcons
 import com.naviveylin.core.TypeIconSource
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.SearchGate
+import com.naviveylin.core.search.SearchGateState
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchResultRanker
+import com.naviveylin.core.search.SearchSlots
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -61,7 +66,6 @@ class SearchScreen(
 ) : Screen(carContext) {
 
     private val scope = carScreenScope("SearchScreen", mainDispatcher)
-    private var searchJob: Job? = null
 
     private val entryPoint = EntryPointAccessors.fromApplication(
         carContext.applicationContext,
@@ -72,6 +76,27 @@ class SearchScreen(
     private val historyProvider = entryPoint.autoSearchHistoryProvider()
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
     private val clientProvider = entryPoint.autoClientProvider()
+
+    /** One car search's outcome: the rows and the reference they were ranked and measured against. */
+    private data class CarSearchResult(
+        val results: List<MergedSearchResult>,
+        val reference: SearchReference?
+    )
+
+    /**
+     * The screen's search request lifecycle: the debounce, the minimum query length (2 characters,
+     * the same as the phone), supersede and abandon (spec: `search-request-lifecycle`). The provider
+     * is the request-lifecycle seam, so a request this gate abandons stops the native walk instead
+     * of running to completion.
+     */
+    private val searchGate = SearchGate(
+        scope = scope,
+        requests = searchProvider,
+        slot = SearchSlots.CAR,
+        debounceMs = SearchScreenMapper.SEARCH_DEBOUNCE_MS,
+        requestDispatcher = { ioDispatcher },
+        search = { query, generation -> searchOnce(query, generation) }
+    )
 
     /** Merges favorite hits with native search results (spec: favorite-search). */
     private val favoriteSearchMerger = FavoriteSearchMerger()
@@ -84,10 +109,45 @@ class SearchScreen(
 
     init {
         enableBackNavigation()
+        // The screen's own scope ends with the screen: a search still running when the driver
+        // leaves is abandoned (so its native walk stops) and cannot publish into a template
+        // (spec: `auto-search` — the car search screen stops its own search when it leaves its
+        // started period; spec: `auto/screen-observation` — a stopped screen performs no host work).
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onDestroy(owner: LifecycleOwner) {
+                searchGate.abandon()
+                scope.cancel()
+            }
+        })
+        // The gate's state becomes this screen's result state, and one publication is one template
+        // refresh: the template is the host-facing half of a search here.
+        scope.launch {
+            searchGate.state.collect { state -> onSearchStateChanged(state) }
+        }
         initialQuery?.let { runSearch(it) }
         scope.launch {
             history = withContext(ioDispatcher) { historyProvider.load() }
             invalidate()
+        }
+    }
+
+    /** Maps the gate's state onto the fields the template build reads, and refreshes the host. */
+    private suspend fun onSearchStateChanged(state: SearchGateState<CarSearchResult>) {
+        when (state) {
+            is SearchGateState.Idle -> Unit
+            is SearchGateState.Searching -> invalidate()
+            is SearchGateState.Cleared -> {
+                lastQuery = ""
+                lastResults = emptyList()
+                invalidate()
+            }
+            is SearchGateState.Completed -> {
+                lastReference = state.results.reference
+                lastResults = state.results.results
+                lastQuery = state.query
+                prefetchTypeIcons(state.results.results)
+                invalidate()
+            }
         }
     }
 
@@ -107,7 +167,7 @@ class SearchScreen(
         // Show the loading state while a search is in flight; once results
         // are ready, render them via setItemList (SearchTemplate results are
         // carried by the template itself, not a separate screen).
-        if (searchJob?.isActive == true) {
+        if (searchGate.state.value is SearchGateState.Searching) {
             builder.setLoading(true)
         } else if (lastQuery.isBlank()) {
             // Empty query: suggestions (mode rows + recent searches).
@@ -143,37 +203,35 @@ class SearchScreen(
     }
 
     private fun runSearch(searchText: String) {
-        searchJob?.cancel()
-        searchJob = scope.launch {
-            delay(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
-            val (results, reference) = withContext(ioDispatcher) {
-                val reference = searchReference()
-                val native = searchProvider.searchLocations(
-                    searchText,
-                    SearchScreenMapper.MAX_RESULTS,
-                    reference
-                )
-                val favorites = favoritesProvider.favoriteLocations().value.values.flatten()
-                val criteria = SearchQueryParser.criteriaOf(searchText)
-                val merged = favoriteSearchMerger.merge(searchText, favorites, native)
-                    .map { result ->
-                        result.copy(
-                            isPerfectMatch = SearchResultRanker.isPerfectMatch(result.entry, criteria)
-                        )
-                    }
-                    .take(SearchScreenMapper.MAX_RESULTS)
-                // Returned, not assigned here: the reference is published on the
-                // screen's dispatcher and read while building the template.
-                merged to reference
-            }
-            Log.d(TAG, "Search results: ${results.size} for '$searchText'")
-            lastReference = reference
-            lastResults = results
-            lastQuery = searchText
-            prefetchTypeIcons(results)
-            invalidate()
-        }
+        searchGate.request(searchText)
     }
+
+    /**
+     * The one search of [generation]'s request, off the screen's dispatcher: the provider's ranked
+     * rows plus the reference they were ranked against (the same one the rows measure their distance
+     * from, so the numbers cannot contradict the order).
+     */
+    private suspend fun searchOnce(searchText: String, generation: Long): CarSearchResult =
+        withContext(ioDispatcher) {
+            val reference = searchReference()
+            val native = searchProvider.searchLocations(
+                searchText,
+                SearchScreenMapper.MAX_RESULTS,
+                reference,
+                generation
+            )
+            val favorites = favoritesProvider.favoriteLocations().value.values.flatten()
+            val criteria = SearchQueryParser.criteriaOf(searchText)
+            val merged = favoriteSearchMerger.merge(searchText, favorites, native)
+                .map { result ->
+                    result.copy(
+                        isPerfectMatch = SearchResultRanker.isPerfectMatch(result.entry, criteria)
+                    )
+                }
+                .take(SearchScreenMapper.MAX_RESULTS)
+            Log.d(TAG, "Search results: ${merged.size} for '$searchText'")
+            CarSearchResult(merged, reference)
+        }
 
     /**
      * Resolve the rows' type artwork before the template is built. The build runs on the host
@@ -292,11 +350,10 @@ class SearchScreen(
 
     internal inner class SearchCallbackImpl : SearchCallback {
         override fun onSearchTextChanged(searchText: String) {
+            // Below the minimum length (and for an empty query) the gate runs nothing and clears the
+            // result area — the same rule as the phone (spec: `search-request-lifecycle`).
             if (searchText.isBlank()) {
-                searchJob?.cancel()
-                lastQuery = ""
-                lastResults = emptyList()
-                invalidate()
+                searchGate.abandon()
                 return
             }
             runSearch(searchText)

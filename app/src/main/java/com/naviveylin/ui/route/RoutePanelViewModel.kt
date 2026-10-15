@@ -23,9 +23,13 @@ import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.navigationFailureText
 import com.naviveylin.navigation.navigationFailureOf
+import com.naviveylin.core.search.ClientSearchRequests
+import com.naviveylin.core.search.SearchGate
+import com.naviveylin.core.search.SearchGateState
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchResultRanker
+import com.naviveylin.core.search.SearchSlots
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
@@ -285,7 +289,18 @@ class RoutePanelViewModel @Inject constructor(
     private val _routeErrorEvent = MutableSharedFlow<NavigationFailure>(extraBufferCapacity = 1)
     val routeErrorEvent: SharedFlow<NavigationFailure> = _routeErrorEvent.asSharedFlow()
 
-    private var searchJob: Job? = null
+    /**
+     * The route panel's search request lifecycle: debounce, the minimum query length, supersede and
+     * abandon (spec: `search-request-lifecycle`). The route field's search runs in its own slot, so a
+     * places or car search never stops it and it never stops theirs.
+     */
+    private val searchGate = SearchGate(
+        scope = viewModelScope,
+        requests = ClientSearchRequests(client),
+        slot = SearchSlots.ROUTE,
+        requestDispatcher = { defaultDispatcher },
+        search = { query, generation -> searchOnce(query, generation) }
+    )
 
     /**
      * Map center reported by the screen, used as the search reference only when
@@ -302,6 +317,7 @@ class RoutePanelViewModel @Inject constructor(
         // The gate's state becomes this panel's search state, so the debounce, the minimum length,
         // supersede and abandon are the shared rule rather than a per-surface copy of it.
         viewModelScope.launch {
+            searchGate.state.collect { state -> onSearchStateChanged(state) }
         }
     }
 
@@ -323,6 +339,9 @@ class RoutePanelViewModel @Inject constructor(
     }
 
     fun setActiveField(field: ActiveField) {
+        // Switching the active field abandons the running search: the field is cleared, so nobody
+        // wants its result any more (spec: `search-request-lifecycle` — abandon without a successor).
+        searchGate.abandon()
         _uiState.value = _uiState.value.copy(
             activeField = field,
             searchQuery = "",
@@ -333,38 +352,59 @@ class RoutePanelViewModel @Inject constructor(
 
     fun onSearchQueryChanged(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
-        searchJob?.cancel()
-        if (query.length < 2) {
-            _uiState.value = _uiState.value.copy(searchResults = emptyList(), isSearching = false)
-            return
+        // The gate owns the debounce, the minimum length and the abandon: a query cleared or
+        // shortened below the minimum stops the request outright.
+        searchGate.request(query)
+    }
+
+    /** Maps the gate's state onto the panel's search state. */
+    private fun onSearchStateChanged(state: SearchGateState<RouteSearchResult>) {
+        when (state) {
+            is SearchGateState.Idle -> Unit
+            is SearchGateState.Searching ->
+                _uiState.value = _uiState.value.copy(isSearching = true)
+            is SearchGateState.Cleared ->
+                _uiState.value = _uiState.value.copy(searchResults = emptyList(), isSearching = false)
+            is SearchGateState.Completed ->
+                _uiState.value = _uiState.value.copy(
+                    searchResults = state.results.ranked,
+                    isSearching = false,
+                    searchReference = state.results.reference
+                )
         }
-        searchJob = viewModelScope.launch {
-            delay(300)
-            _uiState.value = _uiState.value.copy(isSearching = true)
-            val criteria = SearchQueryParser.criteriaOf(query)
-            val reference = searchDistanceReference()
-            val results = withContext(defaultDispatcher) {
-                try {
-                    // Larger candidate set than displayed, so the ranking can
-                    // promote a result the backend's order put past the page
-                    // (spec: search-result-ranking).
-                    val raw = client.searchLocations(
-                        query,
-                        SearchResultRanker.CANDIDATE_LIMIT,
-                        OSMScoutClient.NO_ADMIN_REGION
-                    )?.toList() ?: emptyList()
-                    SearchResultRanker.rankForDisplay(raw, criteria, reference)
-                } catch (e: Exception) {
-                    Log.e(TAG, "searchLocations failed", e)
-                    emptyList()
-                }
+    }
+
+    /** One route-field search's outcome: the ranked list and the reference it was ranked against. */
+    private data class RouteSearchResult(
+        val ranked: List<LocationEntry>,
+        val reference: SearchReference?
+    )
+
+    /**
+     * The one search of [generation]'s request. The generation is what makes it abortable: a
+     * superseded or abandoned route search stops at the native walk's next check.
+     */
+    private suspend fun searchOnce(query: String, generation: Long): RouteSearchResult {
+        val criteria = SearchQueryParser.criteriaOf(query)
+        val reference = searchDistanceReference()
+        val results = withContext(defaultDispatcher) {
+            try {
+                // Larger candidate set than displayed, so the ranking can
+                // promote a result the backend's order put past the page
+                // (spec: search-result-ranking).
+                val raw = client.searchLocations(
+                    query,
+                    SearchResultRanker.CANDIDATE_LIMIT,
+                    OSMScoutClient.NO_ADMIN_REGION,
+                    generation
+                )?.toList() ?: emptyList()
+                SearchResultRanker.rankForDisplay(raw, criteria, reference)
+            } catch (e: Exception) {
+                Log.e(TAG, "searchLocations failed", e)
+                emptyList()
             }
-            _uiState.value = _uiState.value.copy(
-                searchResults = results,
-                isSearching = false,
-                searchReference = reference
-            )
         }
+        return RouteSearchResult(results, reference)
     }
 
     fun selectSearchResult(entry: LocationEntry) {

@@ -6,6 +6,7 @@ import androidx.car.app.OnDoneCallback
 import androidx.car.app.ScreenManager
 import androidx.car.app.model.Row
 import androidx.car.app.model.SearchTemplate
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeMapScreenClient
 import com.framstag.libosmscout.client.FavoriteLocation
@@ -79,6 +80,10 @@ class SearchScreenTest {
         mockkStatic(EntryPoints::class)
         every { EntryPoints.get(any(), AutoEntryPoint::class.java) } returns entryPoint
         every { entryPoint.autoSearchProvider() } returns searchProvider
+        // The screen's gate owns the car slot through the provider: a fresh generation per request,
+        // and a cancellation that reports whether the request was still live.
+        every { searchProvider.beginSearch(any()) } returns 1L
+        every { searchProvider.cancelSearch(any()) } returns true
         every { entryPoint.autoSearchHistoryProvider() } returns historyProvider
         every { entryPoint.autoFavoritesProvider() } returns favoritesProvider
         every { favoritesProvider.favoriteLocations() } returns MutableStateFlow(emptyMap())
@@ -108,6 +113,12 @@ class SearchScreenTest {
         mainDispatcher = mainDispatcherRule.dispatcher,
         ioDispatcher = mainDispatcherRule.dispatcher
     )
+
+    /** Drive the screen to the started state so a destroy is a real down edge. */
+    private fun startScreen(screen: SearchScreen) {
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+    }
 
     private fun titles(template: SearchTemplate): List<String> =
         template.itemList!!.items.map { (it as Row).title.toString() }
@@ -162,7 +173,7 @@ class SearchScreenTest {
     fun typingReplacesSuggestionsWithResults() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns listOf("Dortmund Hbf")
         every {
-            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any())
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
         } returns listOf(resultEntry("Dortmund Hbf"))
         val screen = newScreen()
         advanceUntilIdle()
@@ -184,7 +195,7 @@ class SearchScreenTest {
         val fix = AutoPosition(lat = 51.5, lon = 7.4)
         every { locationProvider.position() } returns MutableStateFlow(fix)
         every {
-            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any())
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
         } returns listOf(resultEntry("Dortmund Hbf"))
         val screen = newScreen()
         advanceUntilIdle()
@@ -197,7 +208,8 @@ class SearchScreenTest {
             searchProvider.searchLocations(
                 "Dortmund",
                 SearchScreenMapper.MAX_RESULTS,
-                SearchReference(51.5, 7.4)
+                SearchReference(51.5, 7.4),
+                any()
             )
         }
     }
@@ -206,7 +218,7 @@ class SearchScreenTest {
     fun withoutAFixTheCarViewportCenterIsTheReference() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns emptyList()
         every {
-            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any())
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
         } returns emptyList()
         val screen = SearchScreen(
             carContext,
@@ -225,7 +237,8 @@ class SearchScreenTest {
             searchProvider.searchLocations(
                 "Dortmund",
                 SearchScreenMapper.MAX_RESULTS,
-                SearchReference(51.5136, 7.4653)
+                SearchReference(51.5136, 7.4653),
+                any()
             )
         }
     }
@@ -234,7 +247,7 @@ class SearchScreenTest {
     fun clearingRestoresSuggestions() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns listOf("Dortmund Hbf")
         every {
-            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any())
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
         } returns listOf(resultEntry("Dortmund Hbf"))
         val screen = newScreen()
         advanceUntilIdle()
@@ -245,6 +258,9 @@ class SearchScreenTest {
         assertEquals(listOf("Dortmund Hbf"), titles(screen.onGetTemplate() as SearchTemplate))
 
         screen.SearchCallbackImpl().onSearchTextChanged("")
+        // The clear is published through the screen's scope, so the state it produces is read after
+        // the dispatcher ran (the gate owns the request lifecycle now).
+        advanceUntilIdle()
         assertEquals(
             listOf("Search POIs near me", "Recent searches", "Dortmund Hbf"),
             titles(screen.onGetTemplate() as SearchTemplate)
@@ -255,7 +271,7 @@ class SearchScreenTest {
     fun noResultsShowsNoResultsRowThenModeRows() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns emptyList()
         every {
-            searchProvider.searchLocations("xyz", SearchScreenMapper.MAX_RESULTS, any())
+            searchProvider.searchLocations("xyz", SearchScreenMapper.MAX_RESULTS, any(), any())
         } returns emptyList()
         val screen = newScreen()
         advanceUntilIdle()
@@ -275,7 +291,7 @@ class SearchScreenTest {
     fun historyTapPushesScreenWithQuery() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns listOf("Dortmund Hbf")
         every {
-            searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS, any())
+            searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS, any(), any())
         } returns emptyList()
         val screen = newScreen()
         advanceUntilIdle()
@@ -288,14 +304,14 @@ class SearchScreenTest {
         // The pushed screen runs the search for the tapped query (design D2).
         advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
         advanceUntilIdle()
-        verify { searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS, any()) }
+        verify { searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS, any(), any()) }
     }
 
     @Test
     fun favoriteHitListedAboveNativeResults() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { historyProvider.load() } returns emptyList()
         every {
-            searchProvider.searchLocations("home", SearchScreenMapper.MAX_RESULTS, any())
+            searchProvider.searchLocations("home", SearchScreenMapper.MAX_RESULTS, any(), any())
         } returns listOf(resultEntry("Home Street"))
         every { favoritesProvider.favoriteLocations() } returns MutableStateFlow(
             mapOf("Home" to listOf(FavoriteLocation("Home", 51.5, 7.4)))
@@ -338,5 +354,73 @@ class SearchScreenTest {
         click(template.itemList!!.items[1] as Row)
         advanceUntilIdle()
         verify { screenManager.push(any<AddressBookScreen>()) }
+    }
+
+    /**
+     * Spec: `search-request-lifecycle` — the minimum query length is 2 characters and is the
+     * same on every surface; a query below it runs nothing.
+     */
+    @Test
+    fun oneCharacterQueryRunsNothingOnTheCar() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { historyProvider.load() } returns emptyList()
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        screen.SearchCallbackImpl().onSearchTextChanged("D")
+        advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+        advanceUntilIdle()
+
+        verify(exactly = 0) { searchProvider.searchLocations(any(), any(), any(), any()) }
+    }
+
+    /**
+     * Spec: `auto-search` — the car search screen stops its own search when it leaves its
+     * started period.
+     */
+    @Test
+    fun leavingTheSearchScreenAbandonsItsSearch() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { historyProvider.load() } returns emptyList()
+        every {
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
+        } returns listOf(resultEntry("Dortmund Hbf"))
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        screen.SearchCallbackImpl().onSearchTextChanged("Dortmund")
+        // The driver leaves the screen before the debounce elapses (the same lifecycle
+        // path the other car screens' tests drive, FavoritesScreenTest#scopeCancelledOnDestroy).
+        startScreen(screen)
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+        advanceUntilIdle()
+
+        verify(exactly = 0) { searchProvider.searchLocations(any(), any(), any(), any()) }
+    }
+
+    /**
+     * Spec: `auto-search` — no result arrives for a screen that is gone;
+     * `auto/screen-observation` — a stopped screen performs no host work. The template
+     * refresh itself is device-gated (change task 5.4); this case asserts the publish it
+     * would carry.
+     */
+    @Test
+    fun aResultOfAStoppedScreenMakesNoHostCall() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { historyProvider.load() } returns emptyList()
+        every {
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
+        } returns listOf(resultEntry("Dortmund Hbf"))
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        screen.SearchCallbackImpl().onSearchTextChanged("Dortmund")
+        startScreen(screen)
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+        advanceUntilIdle()
+
+        assertFalse(
+            "a search abandoned with its screen must not appear in the template",
+            titles(screen.onGetTemplate() as SearchTemplate).contains("Dortmund Hbf")
+        )
     }
 }

@@ -41,6 +41,12 @@ one bridge) plus a route here.
   (`TODO.md` §91/§99) — a startup loads the set more than once (measured 8 files × 13 loads = 104 lines,
   `TODO.md` §120), so compare per file; a per-occurrence warning wall means the condensation regressed
   (`guidelines/Build.md` §10)
+- The **search request line** — `search: slot=<name> gen=<n> aborted=<bool> nativeMs=<ms>` — is written once
+  per search request at `Info` deliberately, so an on-device check reads it with `adb logcat -s NaviVeylin`
+  without enabling native debug; `aborted=true` is what shows a superseded or abandoned search having stopped
+  (spec `search-request-lifecycle`, the device measurement in `guidelines/Build.md` §10). It carries identity
+  only — the slot (`places`, `poi`, `route`, `car`), the request's generation, its abort state and its duration
+  — and never a coordinate.
 - The bridge links `osmscout_client_java` and is the **only** place in the native build allowed to use
   Android logging APIs — libosmscout must stay platform-independent
 

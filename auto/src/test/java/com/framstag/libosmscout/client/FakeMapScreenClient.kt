@@ -158,4 +158,55 @@ class FakeMapScreenClient(
     override fun getRoadAt(lat: Double, lon: Double, bearing: Double): RoadInfo? = null
 
     override fun isInitialized(): Boolean = true
+
+    // --- search request lifecycle (change `fix-search-cancellation`) ---
+    // The car screens' searches go through [SearchGate], whose seam is these two calls plus the
+    // generation-carrying search. The double mirrors the native registry: one live generation per slot,
+    // and a cancel that reports whether the request it named was still live.
+
+    /** Slot names passed to [beginSearch] in call order. */
+    val begunSearchSlots = mutableListOf<String>()
+
+    /** Every cancellation with the outcome the double reported for it. */
+    val cancelledSearches = mutableListOf<Pair<Long, Boolean>>()
+
+    /** Slot -> the generation the double handed out (absent = no live request for that slot). */
+    val liveSearchGenerations = mutableMapOf<String, Long>()
+
+    /** Generations passed to [searchPOIsByTypes] in call order. */
+    val poiSearchGenerations = mutableListOf<Long>()
+
+    /** Rows [searchPOIsByTypes] returns (default: empty). */
+    var nextPoiResults: Array<PoiEntry>? = emptyArray()
+
+    private var nextSearchGeneration = 0L
+
+    override fun beginSearch(slot: String): Long {
+        begunSearchSlots.add(slot)
+        val generation = ++nextSearchGeneration
+        liveSearchGenerations[slot] = generation
+        return generation
+    }
+
+    override fun cancelSearch(generation: Long): Boolean {
+        val slot = liveSearchGenerations.entries.firstOrNull { it.value == generation }?.key
+        val wasLive = slot != null
+
+        if (wasLive) {
+            liveSearchGenerations.remove(slot)
+        }
+
+        cancelledSearches.add(generation to wasLive)
+        return wasLive
+    }
+
+    override fun searchPOIsByTypes(
+        typeNames: Array<String>,
+        lat: Double, lon: Double,
+        radiusMeters: Double, limit: Int,
+        generation: Long
+    ): Array<PoiEntry>? {
+        poiSearchGenerations.add(generation)
+        return nextPoiResults
+    }
 }

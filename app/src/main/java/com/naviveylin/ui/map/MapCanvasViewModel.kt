@@ -10,6 +10,7 @@ import com.framstag.libosmscout.client.InstalledMaps
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
+import com.framstag.libosmscout.client.PoiCategories
 import com.framstag.libosmscout.client.PoiEntry
 import com.framstag.libosmscout.client.RoadInfo
 import com.naviveylin.R
@@ -35,14 +36,18 @@ import com.naviveylin.core.ResolvedAnchor
 import com.naviveylin.core.ZoomWalk
 import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.resolveAnchorFraction
+import com.naviveylin.core.search.ClientSearchRequests
 import com.naviveylin.core.search.FavoriteSearchMerger
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.core.search.RegionFixReference
 import com.naviveylin.core.search.RegionScopeDecision
+import com.naviveylin.core.search.SearchGate
+import com.naviveylin.core.search.SearchGateState
 import com.naviveylin.core.search.SearchQueryParser
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.search.SearchRegionScope
 import com.naviveylin.core.search.SearchResultRanker
+import com.naviveylin.core.search.SearchSlots
 import com.naviveylin.core.search.resolveRegionScope
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.AmbientLightSensitivity
@@ -95,8 +100,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -489,7 +493,21 @@ class MapCanvasViewModel @Inject constructor(
     private var _routePanelViewModel: RoutePanelViewModel? = null
 
     // In-flight POI search job (cancelled on re-search and sheet close)
-    private var poiSearchJob: Job? = null
+    /**
+     * The POI search's request lifecycle. It is button-triggered, so it has no debounce and no
+     * minimum text, but it still runs in its own slot with its own generation: leaving the POI view
+     * abandons it, and a places or car search never stops it (spec: `search-request-lifecycle`,
+     * spec: `poi-search`).
+     */
+    private val poiSearchGate = SearchGate(
+        scope = viewModelScope,
+        requests = ClientSearchRequests(client),
+        slot = SearchSlots.POI,
+        debounceMs = 0L,
+        minQueryLength = 0,
+        requestDispatcher = { defaultDispatcher },
+        search = { category, generation -> searchPoisOnce(category, generation) }
+    )
 
     // Viewport snapshot taken when POI search opens; restored when the sheet closes
     private var poiViewportSnapshot: ViewportState? = null
@@ -1161,24 +1179,20 @@ class MapCanvasViewModel @Inject constructor(
     }
 
     /**
-     * One user-triggered search request: the query text plus a monotonic sequence.
-     *
-     * The sequence makes a request an identity of its own, so a request whose text
-     * repeats the previous one is still a *different* value: `StateFlow` conflates
-     * equal values, and a plain query string would drop the replay of a recent-search
-     * chip (spec: `location-search` — A repeated query text still runs the search;
-     * spec: `search-history` — History selection replays the search).
+     * The phone places search's request lifecycle: debounce, the minimum query length, supersede
+     * and abandon, shared with the other surfaces (spec: `search-request-lifecycle`). A request is
+     * a call of [SearchGate.request], so a repeated query text is a new request and still runs
+     * (spec: `location-search` — A repeated query text still runs the search; spec: `search-history`
+     * — History selection replays the search), and a superseded or abandoned request stops its
+     * native walk instead of running to completion.
      */
-    private data class SearchRequest(val query: String, val seq: Long)
-
-    /**
-     * The search trigger — debounced and collected for location search.
-     *
-     * Every requester publishes a [SearchRequest]; the request carries its own text, so
-     * the displayed query ([MapCanvasUiState.searchQuery]) and the search that actually
-     * ran can never disagree (`guidelines/Design.md` §3 — one truth per value).
-     */
-    private val _searchRequest = MutableStateFlow(SearchRequest("", 0L))
+    private val searchGate = SearchGate(
+        scope = viewModelScope,
+        requests = ClientSearchRequests(client),
+        slot = SearchSlots.PLACES,
+        requestDispatcher = { defaultDispatcher },
+        search = { query, generation -> mergeSearchResults(query, generation) }
+    )
 
     /** Set once the map database is open and the renderer is ready. */
     private val mapReady = MutableStateFlow(false)
@@ -1296,25 +1310,27 @@ class MapCanvasViewModel @Inject constructor(
             }
         }
 
-        @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+        // The gate owns the phone places search's request lifecycle — debounce, the minimum query
+        // length, supersede and abandon — the same seam the other surfaces use
+        // (spec: `search-request-lifecycle`). The search itself is [mergeSearchResults], which needs
+        // the request's generation to stop being aborted halfway.
         viewModelScope.launch {
-            _searchRequest
-                .debounce(300L)
-                .filter { it.query.length >= 2 || it.query.isEmpty() }
-                .flatMapLatest { request ->
-                    if (request.query.length < 2) {
+            searchGate.state.collect { state ->
+                when (state) {
+                    is SearchGateState.Idle -> Unit
+                    is SearchGateState.Searching ->
+                        _uiState.value = _uiState.value.copy(isSearching = true)
+                    is SearchGateState.Cleared ->
                         _uiState.value = _uiState.value.copy(searchResults = emptyList(), isSearching = false)
-                        return@flatMapLatest flowOf(emptyList<MergedSearchResult>())
-                    }
-                    _uiState.value = _uiState.value.copy(isSearching = true)
-                    flowOf(mergeSearchResults(request.query))
+                    is SearchGateState.Completed ->
+                        _uiState.value = _uiState.value.copy(searchResults = state.results, isSearching = false)
                 }
-                .collect { results ->
-                    _uiState.value = _uiState.value.copy(
-                        searchResults = results,
-                        isSearching = false
-                    )
-                }
+            }
+        }
+
+        // The POI sheet's own slot: one collector so its state follows its gate.
+        viewModelScope.launch {
+            poiSearchGate.state.collect { state -> onPoiSearchStateChanged(state) }
         }
 
         // Fix-quality re-evaluation tick (spec: gps-fix-quality — Quality is re-evaluated without a
@@ -2124,7 +2140,27 @@ class MapCanvasViewModel @Inject constructor(
         )
     }
 
-    internal suspend fun searchLocations(query: String): List<LocationEntry> = withContext(defaultDispatcher) {
+    /**
+     * A standalone location search, for callers that own no request of their own (the focused
+     * suites and one-off lookups): it begins and ends a request for the place slot, so it
+     * supersedes nothing a gate is running and leaves no request behind.
+     */
+    internal suspend fun searchLocations(query: String): List<LocationEntry> {
+        val generation = client.beginSearch(SearchSlots.PLACES)
+
+        try {
+            return searchLocations(query, generation)
+        } finally {
+            client.cancelSearch(generation)
+        }
+    }
+
+    /**
+     * The location search of [generation]'s request. Every abort check inside the native walk
+     * asks that generation, so a superseded or abandoned search stops instead of running to
+     * completion (spec: `search-request-lifecycle`).
+     */
+    internal suspend fun searchLocations(query: String, generation: Long): List<LocationEntry> = withContext(defaultDispatcher) {
         val handle = currentSearchAdminRegionHandle()
         try {
             // A candidate set larger than the displayed list: the ranker needs
@@ -2132,7 +2168,7 @@ class MapCanvasViewModel @Inject constructor(
             // (spec: search-result-ranking — "Candidate set larger than
             // displayed list").
             val startedNs = System.nanoTime()
-            val entries = client.searchLocations(query, SearchResultRanker.CANDIDATE_LIMIT, handle)
+            val entries = client.searchLocations(query, SearchResultRanker.CANDIDATE_LIMIT, handle, generation)
             val results = entries?.toList() ?: emptyList()
             // Candidate count and elapsed native time: the device check for the
             // larger candidate set (design D3) reads this line.
@@ -2179,7 +2215,18 @@ class MapCanvasViewModel @Inject constructor(
      * the displayed maximum as the best-ranked prefix of the candidate set.
      */
     internal suspend fun mergeSearchResults(query: String): List<MergedSearchResult> {
-        val nativeResults = searchLocations(query)
+        val generation = client.beginSearch(SearchSlots.PLACES)
+
+        try {
+            return mergeSearchResults(query, generation)
+        } finally {
+            client.cancelSearch(generation)
+        }
+    }
+
+    /** The merged list of [generation]'s request (see [searchLocations]). */
+    internal suspend fun mergeSearchResults(query: String, generation: Long): List<MergedSearchResult> {
+        val nativeResults = searchLocations(query, generation)
         // Everything after the native string search is CPU work over up to
         // CANDIDATE_LIMIT entries plus a second native query (the structured form
         // search) — kept off the main thread together with the ranking
@@ -2191,7 +2238,7 @@ class MapCanvasViewModel @Inject constructor(
             // above the raw string results, which drop such queries when a postal
             // code sits inside the query (spec: location-search "Full formatted
             // address resolution").
-            val structured = StructuredAddressSearch.resolve(query, client)
+            val structured = StructuredAddressSearch.resolve(query, client, generation)
             val combined = StructuredAddressSearch.merge(structured, nativeResults)
             val favorites = favoriteRepository.favorites.value.values.flatten()
             val criteria = SearchQueryParser.criteriaOf(query)
@@ -2537,16 +2584,7 @@ class MapCanvasViewModel @Inject constructor(
     /** Called when user types in the search field. */
     fun onSearchQueryChanged(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
-        publishSearchRequest(query)
-    }
-
-    /**
-     * Publish a search request for [query]. The sequence advances on every call, so a
-     * request repeating the previous text still runs (see [SearchRequest]).
-     */
-    private fun publishSearchRequest(query: String) {
-        Log.d(TAG, "search request: chars=${query.length} seq=${_searchRequest.value.seq + 1L}")
-        _searchRequest.value = SearchRequest(query, _searchRequest.value.seq + 1L)
+        searchGate.request(query)
     }
 
     /** Called when user picks an entry from the search history: fills the search box and replays the search. */
@@ -2670,10 +2708,10 @@ class MapCanvasViewModel @Inject constructor(
                 detailsFromPoiSearch = false,
                 isLoading = true
             )
-            // The displayed query is empty again, so the trigger follows it: no committed
+            // The displayed query is empty again, so the request follows it: no committed
             // search text may be left behind for a later replay to collide with
             // (spec: `location-search` — A repeated query text still runs the search).
-            publishSearchRequest("")
+            searchGate.abandon()
             updateCenter(entry.lat, entry.lon)
             renderMap()
 
@@ -2754,8 +2792,11 @@ class MapCanvasViewModel @Inject constructor(
         if (mode == s.searchMode) return
         when {
             mode == SearchMode.POIS -> {
-                poiSearchJob?.cancel()
-                poiSearchJob = null
+                // Entering POI mode drops any POI search from before it.
+                poiSearchGate.abandon()
+                // Leaving Places mode abandons its search rather than letting it publish into the
+                // POI view (spec: `search-dialog` — leaving Places mode abandons its search).
+                searchGate.abandon()
                 poiViewportSnapshot = s.viewport
                 _uiState.value = s.copy(
                     searchMode = mode,
@@ -2780,8 +2821,9 @@ class MapCanvasViewModel @Inject constructor(
      * clear the POI marker. Cancels any in-flight search.
      */
     private fun restorePoiViewport() {
-        poiSearchJob?.cancel()
-        poiSearchJob = null
+        // The POI view is being left: its search is abandoned outright (spec: `poi-search` — a
+        // POI search keeps its own slot and is abandoned when its view is left).
+        poiSearchGate.abandon()
         val snapshot = poiViewportSnapshot
         poiViewportSnapshot = null
         mapRenderer?.clearSearchSelected()
@@ -2820,34 +2862,66 @@ class MapCanvasViewModel @Inject constructor(
     fun performPoiSearch() {
         val s = _uiState.value
         val category = s.poiCategory ?: return
-        val radiusMeters = s.poiRadiusMeters
-        val lat = s.viewport.centerLat
-        val lon = s.viewport.centerLon
-        poiSearchJob?.cancel()
         _uiState.value = s.copy(
             isPoiSearching = true,
             poiSearchError = null,
-            poiSearchCenterLat = lat,
-            poiSearchCenterLon = lon,
+            poiSearchCenterLat = s.viewport.centerLat,
+            poiSearchCenterLon = s.viewport.centerLon,
             poiSelectedLat = Double.NaN,
             poiSelectedLon = Double.NaN
         )
-        poiSearchJob = viewModelScope.launch {
-            val results = withContext(defaultDispatcher) {
-                try {
-                    client.searchPOIs(category, lat, lon, radiusMeters, MAX_POI_RESULTS)?.toList() ?: emptyList()
-                } catch (e: Exception) {
-                    Log.e(TAG, "POI search failed", e)
-                    null
+        // The gate supersedes this slot's previous request and owns its generation, so a second POI
+        // search replaces the first and leaving the view can abandon it.
+        poiSearchGate.request(category)
+    }
+
+    /**
+     * The one POI search of [category] under [generation]'s request; `null` reports a failure, which
+     * the collector words as [MapCanvasUiState.poiSearchError].
+     */
+    private suspend fun searchPoisOnce(category: String, generation: Long): List<PoiEntry>? {
+        val s = _uiState.value
+        val lat = s.poiSearchCenterLat
+        val lon = s.poiSearchCenterLon
+        val radiusMeters = s.poiRadiusMeters
+
+        return withContext(defaultDispatcher) {
+            try {
+                val typeNames = PoiCategories.getTypeNames(category)
+
+                if (typeNames == null || typeNames.isEmpty()) {
+                    emptyList()
+                } else {
+                    client.searchPOIsByTypes(
+                        typeNames, lat, lon, radiusMeters, MAX_POI_RESULTS, generation
+                    )?.toList() ?: emptyList()
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "POI search failed", e)
+                null
             }
-            if (results != null) {
-                _uiState.value = _uiState.value.copy(isPoiSearching = false, poiResults = results)
-            } else {
-                _uiState.value = _uiState.value.copy(
-                    isPoiSearching = false,
-                    poiSearchError = "POI search failed"
-                )
+        }
+    }
+
+    /** Maps the POI gate's state onto the POI sheet's state. */
+    private fun onPoiSearchStateChanged(state: SearchGateState<List<PoiEntry>?>) {
+        when (state) {
+            is SearchGateState.Idle -> Unit
+            is SearchGateState.Searching ->
+                _uiState.value = _uiState.value.copy(isPoiSearching = true, poiSearchError = null)
+            is SearchGateState.Cleared ->
+                _uiState.value = _uiState.value.copy(isPoiSearching = false, poiResults = emptyList())
+            is SearchGateState.Completed -> {
+                val results = state.results
+                _uiState.value = if (results != null) {
+                    _uiState.value.copy(
+                        isPoiSearching = false,
+                        poiResults = results,
+                        poiSearchError = null
+                    )
+                } else {
+                    _uiState.value.copy(isPoiSearching = false, poiSearchError = "POI search failed")
+                }
             }
         }
     }
@@ -4061,12 +4135,14 @@ class MapCanvasViewModel @Inject constructor(
     fun clearSearch() {
         searchPanelOpen = false
         releaseSearchAdminRegion()
+        // The dialog is going away: the running search is abandoned outright, not left to run to
+        // completion (spec: `search-request-lifecycle` — abandon without a successor).
+        searchGate.abandon()
         _uiState.value = _uiState.value.copy(
             searchQuery = "",
             searchResults = emptyList(),
             isSearching = false
         )
-        publishSearchRequest("")
     }
 
     /**

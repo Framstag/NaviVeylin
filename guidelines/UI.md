@@ -562,6 +562,13 @@ Source: spec `search-dialog` (phone only).
   mirror of the phone dialog: the car `SearchTemplate` shows empty-query
   suggestions (mode rows + recent searches) instead of the phone's
   mode-switch + chips layout.
+- **The typed query has a lifecycle** (spec `search-request-lifecycle`, change
+  `fix-search-cancellation`): the phone places search runs in its own slot, debounced by 300 ms. A newer query
+  supersedes the one in flight, a query shorter than 2 characters runs nothing and leaves the results area
+  empty instead of holding the previous query's results, and dismissing the dialog or switching away from
+  Places abandons the running search rather than letting it finish. Each request carries a generation, so a
+  cancellation arriving after a newer request started is a no-op; §6b states the car's side of the same rule,
+  and the slots (`places`, `poi`, `route`, `car`) keep one surface's search from stopping another's.
 
 - **A Compose dropdown popup does not appear in a `uiautomator` dump** (§40.22) — assert the field's text
   instead of trying to tap the popup on a device run.
@@ -622,6 +629,11 @@ Source: specs `auto-search`, `auto-search-suggestions` (change `unify-auto-searc
   (§1) is unaffected.
 - The keyboard stays shown by default (`setShowKeyboardByDefault(true)`);
   the suggestion rows are scrollable below the field.
+- **The car search has the same request lifecycle as the phone** (spec `search-request-lifecycle`, change
+  `fix-search-cancellation`): the `SearchTemplate`'s search runs in its own slot, debounced by the same 300 ms,
+  a query shorter than 2 characters runs nothing, and leaving the screen abandons the running search and
+  cancels the screen's scope — so a stopped screen makes no host call for a result. §6a holds the phone's side
+  of the same rule.
 
 ## 7. Phone map modes (Browse / Free drive / Navigation)
 

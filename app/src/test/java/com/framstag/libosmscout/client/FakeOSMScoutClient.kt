@@ -575,13 +575,45 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** When set, [searchLocations] throws this instead of returning. */
     var searchLocationsError: Exception? = null
 
-    override fun searchLocations(query: String, limit: Int, adminRegionHandle: Long): Array<LocationEntry>? {
+    /** Generations passed to the generation-carrying search calls, in call order. */
+    val searchGenerations = mutableListOf<Long>()
+
+    /**
+     * When set, a search whose generation is no longer live returns an empty array — the native
+     * fail-closed rule (spec: `search-request-lifecycle` — an aborted search publishes no result).
+     */
+    var failClosedOnAbortedGeneration = true
+
+    private fun recordSearch(
+        query: String,
+        limit: Int,
+        adminRegionHandle: Long,
+        generation: Long?
+    ): Array<LocationEntry>? {
+        generation?.let { searchGenerations.add(it) }
         searchAdminRegionHandles.add(adminRegionHandle)
         searchQueries.add(query)
         searchLimits.add(limit)
         searchLocationsError?.let { throw it }
+
+        if (failClosedOnAbortedGeneration && generation != null &&
+            liveSearchGenerations.values.none { it == generation }
+        ) {
+            return emptyArray()
+        }
+
         return searchResultsByQuery[query] ?: nextSearchResults
     }
+
+    override fun searchLocations(query: String, limit: Int, adminRegionHandle: Long): Array<LocationEntry>? =
+        recordSearch(query, limit, adminRegionHandle, generation = null)
+
+    override fun searchLocations(
+        query: String,
+        limit: Int,
+        adminRegionHandle: Long,
+        generation: Long
+    ): Array<LocationEntry>? = recordSearch(query, limit, adminRegionHandle, generation)
 
     /** (adminRegion, postalArea, location, address) passed to [searchLocationByForm] in call order. */
     val formSearchArgs = mutableListOf<List<String>>()
@@ -609,6 +641,16 @@ class FakeOSMScoutClient : OSMScoutClient() {
         address: String,
         limit: Int
     ): Array<LocationEntry>? = recordFormSearch(adminRegion, postalArea, location, address, generation = null)
+
+    override fun searchLocationByForm(
+        adminRegion: String,
+        postalArea: String,
+        location: String,
+        address: String,
+        limit: Int,
+        generation: Long
+    ): Array<LocationEntry>? =
+        recordFormSearch(adminRegion, postalArea, location, address, generation)
 
     private fun recordFormSearch(
         adminRegion: String,
@@ -643,6 +685,18 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Generations passed to [searchPOIsByTypes] in call order. */
     val poiSearchGenerations = mutableListOf<Long>()
 
+    override fun searchPOIsByTypes(
+        typeNames: Array<String>,
+        lat: Double, lon: Double,
+        radiusMeters: Double, limit: Int,
+        generation: Long
+    ): Array<PoiEntry>? {
+        poiSearchTypeNames.add(typeNames.toList())
+        poiSearchGenerations.add(generation)
+        poiSearchError?.let { throw it }
+        return nextPoiResults
+    }
+
     override fun searchPOIs(
         category: String,
         lat: Double, lon: Double,
@@ -651,6 +705,40 @@ class FakeOSMScoutClient : OSMScoutClient() {
         poiSearchCategories.add(category)
         poiSearchError?.let { throw it }
         return nextPoiResults
+    }
+
+    // --- search request lifecycle stubs (change `fix-search-cancellation`) ---
+
+    /** Slot names passed to [beginSearch] in call order. */
+    val begunSearchSlots = mutableListOf<String>()
+
+    /** Slot name -> the generation the double handed out for it (absent = no live request). */
+    val liveSearchGenerations = mutableMapOf<String, Long>()
+
+    /** Generations passed to [cancelSearch] in call order. */
+    val cancelledSearchGenerations = mutableListOf<Long>()
+
+    private var nextSearchGeneration = 0L
+
+    /**
+     * A fresh generation per request, superseding the slot's previous one — the
+     * double mirrors the native registry closely enough for the cancel/generation
+     * assertions (change task 3.2 adds the cases that pin it).
+     */
+    override fun beginSearch(slot: String): Long {
+        begunSearchSlots.add(slot)
+        val generation = ++nextSearchGeneration
+        liveSearchGenerations[slot] = generation
+        return generation
+    }
+
+    /** Reports a cancel only for the slot's current generation, as the native registry does. */
+    override fun cancelSearch(generation: Long): Boolean {
+        cancelledSearchGenerations.add(generation)
+        val slot = liveSearchGenerations.entries.firstOrNull { it.value == generation }?.key
+            ?: return false
+        liveSearchGenerations.remove(slot)
+        return true
     }
 
     /** Handles returned by [resolveAdminRegion] in call order. */

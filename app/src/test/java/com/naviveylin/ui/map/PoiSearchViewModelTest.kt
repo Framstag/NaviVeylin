@@ -148,7 +148,12 @@ class PoiSearchViewModelTest {
         viewModel.performPoiSearch()
         val state = viewModel.uiState.first { it.poiResults.isNotEmpty() }
 
-        assertEquals(PoiCategories.HOTELS, client.poiSearchCategories.single())
+        // The POI gate calls the generation-carrying type-name entry point, so the request's type
+        // names are what the double records for the chosen category (change `fix-search-cancellation`).
+        assertEquals(
+            PoiCategories.getTypeNames(PoiCategories.HOTELS)!!.toList(),
+            client.poiSearchTypeNames.single()
+        )
         assertEquals(2, state.poiResults.size)
         assertEquals("Hotel Central", state.poiResults[0].label)
         assertFalse(state.isPoiSearching)
@@ -312,7 +317,7 @@ class PoiSearchViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals("results not cleared by selection change", 1, state.poiResults.size)
-        assertEquals("no auto re-search", 1, client.poiSearchCategories.size)
+        assertEquals("no auto re-search", 1, client.poiSearchTypeNames.size)
         assertEquals(PoiCategories.GROCERY, state.poiCategory)
         assertEquals(20000.0, state.poiRadiusMeters, 1e-9)
     }

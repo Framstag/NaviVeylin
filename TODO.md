@@ -2688,6 +2688,15 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   as this is written, and the gate names them — which is the gate working, three changes late.
 - **Second fix candidate** ℹ: make the archive step itself run `--check-classification` before moving `changeRoot`,
   so a change cannot archive a capability it has not classified. That is the same check, one call earlier.
+- **Instance, 2026-10-15** ℹ: the third occurrence, and the first fix candidate is now landed. The archived change
+  `distinguish-routing-failures` shipped `routing-failure-reporting` into `openspec/specs/` (spec directory
+  committed as `97fb38a`) without its line in `tools/feature-list/specs.json`, so the gate named it
+  (`unclassified: 1`, exit 1) and `ShippedSpecClassificationTest` failed for every `:app` mobile run in that
+  tree — the case's red pair, this instance's one-line fix and the CI step are the evidence of
+  `fix-routing-failure-reporting-classification`. `.github/workflows/build.yml` now runs
+  `bash tools/gen-feature-list.sh --check-classification` beside the OpenSpec artifact-hygiene step, so a fourth
+  occurrence fails on the pull request that causes it. The entry stays `open`: the second candidate above does
+  not exist yet, and this change does not modify the archiving skills.
 
 ## 158. Two specs still carry a `TBD` purpose placeholder, so their capabilities cannot be described from their own text — Found 2026-10-08 while applying `generate-feature-list`
 **id:** 158 · **category:** specs-and-process · **class:** improvement · **status:** open

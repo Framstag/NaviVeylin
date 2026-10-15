@@ -73,12 +73,12 @@ data class NavigationState(
     val laneSuggestedFrom: Int = 0,
     val laneSuggestedTo: Int = 0,
     val laneTurns: List<LaneTurn> = emptyList(),
-    // Error message to display on car screen (e.g., GPS missing, route failure)
-    val errorMessage: String? = null,
-    // Surface the error belongs to (spec: `navigation-engine` — Errors carry the
-    // surface that caused them). Null when no error is set; ENGINE means the
-    // engine's own failure and is presented everywhere. Default: null.
-    val errorOrigin: SurfaceOrigin? = null,
+    // The failure the navigation layer raised, as a typed value a surface words and acts on (spec:
+    // `routing-failure-reporting` — Each reason is worded by the surface): it carries the cause, the
+    // failing end, the distance to the nearest usable road and the originating surface, so a surface
+    // shows the wording for the cause instead of a sentence another layer composed, and presents only
+    // the failures that concern it. Null while no failure is set. Default: null.
+    val failure: NavigationFailure? = null,
     // Vehicle profile the active navigation was acquired with, retained by the
     // engine so a reroute re-acquires with the same profile without a surface
     // (spec: `navigation-engine` — Route acquisition independent of a surface
@@ -99,13 +99,10 @@ data class NavigationState(
     val calculation: RouteCalculation? = null
 ) {
     /**
-     * Whether the current [errorMessage] concerns [surface]: the surface's own
-     * error or an engine-wide one. A surface never presents an error another
-     * surface caused (spec: `navigation-engine` — Errors carry the surface that
-     * caused them). An error without an origin is treated as engine-wide, so a
-     * producer that does not set one is never silently hidden.
+     * Whether [failure] concerns [surface]: the failure itself carries its origin, so a surface needs
+     * no second field to decide whether to present it (spec: `navigation-engine` — Errors carry the
+     * surface that caused them).
      */
-    fun errorAppliesTo(surface: SurfaceOrigin): Boolean =
-        errorMessage != null && (errorOrigin == null || errorOrigin == SurfaceOrigin.ENGINE ||
-                errorOrigin == surface)
+    fun failureAppliesTo(surface: SurfaceOrigin): Boolean =
+        failure?.appliesTo(surface) == true
 }

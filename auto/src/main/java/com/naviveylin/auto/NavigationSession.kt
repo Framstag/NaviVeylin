@@ -15,7 +15,10 @@ import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.DeepLinkParser
 import com.naviveylin.core.DeepLinkResult
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
+import com.naviveylin.core.hasMapManagerAction
+import com.naviveylin.core.navigationFailureText
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.RouteCalculation
 import com.naviveylin.core.ShortLinkResolver
@@ -47,8 +50,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  * The stack root is always the browse-map [MapScreen] (design D1 — the root
  * cannot be popped, so a transient-mode view must never be rooted);
  * [NavigationScreen] is pushed while navigation is active, free driving on
- * demand. Displays error messages from [NavigationState.errorMessage] as
- * temporary overlays.
+ * demand. Displays the failures from [NavigationState.failure] that concern the car as temporary
+ * overlays, worded from their reason.
  *
  * Handles phone → car deep links ([DeepLinkParser]) in [onCreateScreen] and
  * [onNewIntent], starting navigation to the parsed destination.
@@ -713,19 +716,21 @@ class NavigationSession : Session() {
                 }
             }
         }
-        // Observe error messages. Only errors that concern the car are shown: the
-        // engine's own errors (ENGINE) and errors raised for the car — never one the
-        // phone surface caused (spec: `navigation-engine` — Errors carry the surface
-        // that caused them).
+        // Observe failures. Only the ones that concern the car are shown: the engine's own failures
+        // and failures raised for the car — never one the phone surface caused, and never the phone's
+        // own failures, which the phone shows itself (spec: `navigation-engine` — Errors carry the
+        // surface that caused them; its new scenario requires the phone to present the engine-wide
+        // ones). The wording comes from the failure's reason, so the car names a cause the same way the
+        // phone does (spec: `routing-failure-reporting` — Each reason is worded by the surface).
         errorJob = scope.launch(CoroutineName("error")) {
             navigationViewModel.state
                 .map { navState ->
-                    navState.errorMessage.takeIf { navState.errorAppliesTo(SurfaceOrigin.CAR) }
+                    navState.failure?.takeIf { it.appliesTo(SurfaceOrigin.CAR) }
                 }
                 .distinctUntilChanged()
-                .collect { errorMsg ->
-                    if (errorMsg != null) {
-                        showError(errorMsg)
+                .collect { failure ->
+                    if (failure != null) {
+                        showError(failureNoticeText(failure))
                     }
                 }
         }
@@ -826,13 +831,13 @@ class NavigationSession : Session() {
                 showRootScreen()
             }
         }
-        // An error raised while the session was stopped is shown once now — car
-        // errors and engine-wide ones only.
+        // A failure raised while the session was stopped is shown once now — car failures and
+        // engine-wide ones only.
         guardedHostCall("show deferred error notice", tag = SESSION_DIAG_TAG) {
             val navState = navigationViewModel.state.value
-            navState.errorMessage
-                ?.takeIf { navState.errorAppliesTo(SurfaceOrigin.CAR) }
-                ?.let { showError(it) }
+            navState.failure
+                ?.takeIf { it.appliesTo(SurfaceOrigin.CAR) }
+                ?.let { showError(failureNoticeText(it)) }
         }
         // A notice whose dismissal was skipped while the session was stopped is removed
         // once now that host mutations are allowed again (spec: car-host-fault-isolation —
@@ -1057,6 +1062,20 @@ class NavigationSession : Session() {
             screenStack.onCalculationNoticeDismissed(notice)
         }
     }
+
+    /**
+     * The notice's text for [failure]: the wording for its reason, and — where the cause is something
+     * the map manager can fix — that the maps belong to the phone, because a car session must not launch
+     * a phone screen (spec: `routing-failure-reporting` — A reason whose cause the user can act on offers
+     * the action). The same reasoning the phone words its action with, stated instead of offered. The
+     * wording itself is built by [failureNoticeText], which is asserted in RoutingFailureNoticeTest.
+     */
+    private fun failureNoticeText(failure: NavigationFailure): String =
+        failureNoticeText(
+            context = carContext,
+            failure = failure,
+            mapsOnPhoneMessage = carContext.getString(R.string.car_failure_maps_on_phone)
+        )
 
     private fun showError(message: String) {
         if (sessionDestroyed) return

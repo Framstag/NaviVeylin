@@ -48,7 +48,7 @@ sealed interface RouteState {
      */
     data class Calculating(val percent: Int? = null) : RouteState
     data object Done : RouteState
-    data class Error(val message: String) : RouteState
+    data class Error(val failure: NavigationFailure) : RouteState
 }
 
 enum class ActiveField { START, DEST, NONE }
@@ -108,6 +108,12 @@ data class RoutePanelUiState(
     val routeEntry: RouteEntry? = null,
     val routeSteps: List<RouteStepDisplay> = emptyList(),
     val error: String? = null,
+    /**
+     * The failure behind the last route request, as the typed value the panel words and acts on
+     * (spec: `routing-failure-reporting` — A failed route calculation reports a reason). [error] is
+     * its rendered form and is being retired in its favour. Null while no failure is set.
+     */
+    val routeFailure: NavigationFailure? = null,
     /**
      * True when the last route request was refused because the precise location
      * grant is missing (spec: `location-permissions` — Starting navigation requires
@@ -288,6 +294,10 @@ class RoutePanelViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(gpsAvailable = loc != null)
             }
         }
+        // The gate's state becomes this panel's search state, so the debounce, the minimum length,
+        // supersede and abandon are the shared rule rather than a per-surface copy of it.
+        viewModelScope.launch {
+        }
     }
 
     /** Report the map center the screen currently shows (search reference fallback). */
@@ -419,7 +429,8 @@ class RoutePanelViewModel @Inject constructor(
                 routeState = RouteState.Idle,
                 routeEntry = null,
                 routeSteps = emptyList(),
-                error = null
+                error = null,
+                routeFailure = null
             )
             _routeResultFlow.value = null
             _clearRouteSignal.value = _clearRouteSignal.value + 1
@@ -448,22 +459,28 @@ class RoutePanelViewModel @Inject constructor(
         // request reaches the routing engine, because the start point could be a
         // kilometre off. The map, free driving, search and favourites are unaffected.
         if (!LocationGrant.hasPrecise(context)) {
-            val message = context.getString(
-                com.naviveylin.core.R.string.location_precise_required_navigation
+            // A reason of its own, worded by the surface from the shared resource (spec:
+            // `routing-failure-reporting` — Each reason is worded by the surface): the panel shows it
+            // and the upgrade dialog offers the fix.
+            val failure = NavigationFailure(
+                reason = FailureReason.PRECISE_LOCATION_REQUIRED,
+                origin = SurfaceOrigin.ENGINE
             )
             Log.w(TAG, "calculateRoute: refused, precise location not granted")
             _uiState.value = s.copy(
-                routeState = RouteState.Error(message),
-                error = message,
+                routeState = RouteState.Error(failure),
+                error = failureText(failure),
+                routeFailure = failure,
                 preciseLocationRequired = true
             )
-            _routeErrorEvent.tryEmit(message)
+            _routeErrorEvent.tryEmit(failure)
             return
         }
 
         _uiState.value = s.copy(
             routeState = RouteState.Calculating(),
             error = null,
+            routeFailure = null,
             preciseLocationRequired = false
         )
 
@@ -522,6 +539,7 @@ class RoutePanelViewModel @Inject constructor(
                                         currentStepOf(steps) ?: 0
                                     ),
                                     error = null,
+                                    routeFailure = null,
                                     preciseLocationRequired = false
                                 )
                                 _analysedAnchor.value = null
@@ -550,20 +568,46 @@ class RoutePanelViewModel @Inject constructor(
                             }
                         }
 
-                        override fun onError(message: String) {
+                        /**
+                         * The routing layer named the cause (spec: `routing-failure-reporting` — A
+                         * failed route calculation reports a reason): the kind becomes the failure the
+                         * panel words and acts on.
+                         */
+                        override fun onErrorDetail(
+                            kind: Int,
+                            detail: String,
+                            nearestRoadDistanceMeters: Double
+                        ) {
                             viewModelScope.launch {
-                                Log.e(TAG, "Route calculation failed: $message")
-                                _uiState.value = _uiState.value.copy(
-                                    routeState = RouteState.Error(message), error = message
+                                val failure = navigationFailureOf(
+                                    kind = kind,
+                                    detail = detail,
+                                    nearestRoadDistanceMeters = nearestRoadDistanceMeters
                                 )
-                                _routeErrorEvent.tryEmit(message)
+                                Log.e(TAG, "Route calculation failed: reason=${failure.reason} detail=$detail")
+                                _uiState.value = _uiState.value.copy(
+                                    routeState = RouteState.Error(failure),
+                                    error = failureText(failure),
+                                    routeFailure = failure
+                                )
+                                _routeErrorEvent.tryEmit(failure)
                             }
+                        }
+
+                        /**
+                         * The fallback of the callback interface: reached only by a native library
+                         * that calls the plain failure callback (see
+                         * `RouteCallback.onErrorDetail`). The cause is then unknown, which is what
+                         * the failure says.
+                         */
+                        override fun onError(message: String) {
+                            onErrorDetail(RouteCallback.KIND_UNKNOWN, message, Double.NaN)
                         }
 
                         override fun onCancel() {
                             viewModelScope.launch {
                                 _uiState.value = _uiState.value.copy(
-                                    routeState = RouteState.Idle, error = null
+                                    routeState = RouteState.Idle, error = null, routeFailure = null
                                 )
                             }
                         }
@@ -572,6 +616,19 @@ class RoutePanelViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * The text the panel shows for [failure]: the shared wording for the reason, with the failure's
+     * nearest-road distance in the surface's own units and the device's number format (spec:
+     * `routing-failure-reporting` — Each reason is worded by the surface).
+     */
+    private fun failureText(failure: NavigationFailure): String =
+        navigationFailureText(
+            context = context,
+            failure = failure,
+            unitMetersRes = R.string.distance_unit_m,
+            unitKilometersRes = R.string.distance_unit_km
+        )
 
     /** Dismiss the phone's precise-location upgrade dialog. */
     fun dismissPreciseLocationRequirement() {
@@ -582,7 +639,9 @@ class RoutePanelViewModel @Inject constructor(
 
     fun cancelRoute() {
         client.cancelRoute()
-        _uiState.value = _uiState.value.copy(routeState = RouteState.Idle, error = null)
+        _uiState.value = _uiState.value.copy(
+            routeState = RouteState.Idle, error = null, routeFailure = null
+        )
     }
 
     fun setActiveStepIndex(index: Int) { _uiState.value = _uiState.value.copy(activeStepIndex = index) }
@@ -875,6 +934,7 @@ class RoutePanelViewModel @Inject constructor(
             analysedSegment = analysedSegment,
             vehicle = vehicle,
             error = null,
+            routeFailure = null,
             preciseLocationRequired = false
         )
         _analysedAnchor.value = null

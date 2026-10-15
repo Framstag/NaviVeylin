@@ -108,4 +108,8 @@
          session reports it instead of geocoding the link text (spec: auto-deep-links — Short
          link does not resolve). -->
     <string name="deep_link_unreadable">Shared link could not be read</string>
+    <!-- Stated where a failure's cause is missing or unreadable map data: a car session must not open a
+         phone screen, so the notice names where the action is (spec: `routing-failure-reporting` —
+         A reason whose cause the user can act on offers the action). -->
+    <string name="car_failure_maps_on_phone">Check your maps on the phone.</string>
 </resources>

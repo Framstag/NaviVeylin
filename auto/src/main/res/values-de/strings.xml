@@ -103,4 +103,5 @@
     <!-- Ein geteilter Kartenlink ohne Koordinate und ohne Ortsnamen: die Session meldet ihn,
          statt den Linktext zu geocodieren (spec: auto-deep-links). -->
     <string name="deep_link_unreadable">Geteilter Link konnte nicht gelesen werden</string>
+    <string name="car_failure_maps_on_phone">Prüfen Sie Ihre Karten auf dem Telefon.</string>
 </resources>

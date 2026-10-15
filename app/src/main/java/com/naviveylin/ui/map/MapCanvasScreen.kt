@@ -126,6 +126,8 @@ import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.FollowRefreshPolicy
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.LocationGrant
+import com.naviveylin.core.NavigationFailure
+import com.naviveylin.core.navigationFailureText
 import com.naviveylin.core.ResolvedAnchor
 import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.ZoomAnimation
@@ -242,12 +244,37 @@ fun MapCanvasScreen(
     // Surface route-calc failures while navigating (spec: reroute-route-visibility):
     // the route panel is hidden during navigation, so the in-panel error text is
     // not visible — show a snackbar instead. Non-navigation failures keep the
-    // in-panel error display and do not snackbar.
+    // in-panel error display and do not snackbar. The snackbar shows the failure's own
+    // wording for its reason (spec: `routing-failure-reporting` — Each reason is worded by the
+    // surface), not one sentence for every cause.
+    val failureContext = LocalContext.current
     LaunchedEffect(routePanelViewModel) {
-        routePanelViewModel.routeErrorEvent.collect { message ->
+        routePanelViewModel.routeErrorEvent.collect { failure ->
             if (navigationViewModel.state.value.isNavigating) {
-                viewModel.showSnackbar(message)
+                viewModel.showSnackbar(navigationFailureText(
+                    context = failureContext,
+                    failure = failure,
+                    unitMetersRes = R.string.distance_unit_m,
+                    unitKilometersRes = R.string.distance_unit_km
+                ))
             }
+        }
+    }
+
+    // A failure the engine raised on the phone's behalf, shown where the user is looking (spec:
+    // `navigation-engine` — Errors carry the surface that caused them, and an engine-wide error
+    // reaches every surface that presents navigation). Route-panel failures never arrive here:
+    // the panel path calls the client itself and publishes to its own state, while the engine path
+    // publishes only to the shared state, so the two carriers can never show the same failure twice.
+    val engineFailure = com.naviveylin.navigation.phoneFailureOf(navState)
+    LaunchedEffect(engineFailure) {
+        if (engineFailure != null) {
+            viewModel.showSnackbar(navigationFailureText(
+                context = failureContext,
+                failure = engineFailure,
+                unitMetersRes = R.string.distance_unit_m,
+                unitKilometersRes = R.string.distance_unit_km
+            ))
         }
     }
 
@@ -2501,6 +2528,13 @@ fun MapCanvasScreen(
                     // The card's exit: the session ends and the surface closes with it (spec:
                     // `route-planning-session` — Ending the session removes its surface).
                     onEndSession = { viewModel.dismissRoutePanel() },
+                    // A failure whose cause the map manager can fix offers that action (spec:
+                    // `routing-failure-reporting` — A reason whose cause the user can act on offers
+                    // the action). The panel closes with the session and the manager opens.
+                    onOpenMapManager = {
+                        viewModel.dismissRoutePanel()
+                        onNavigateToMapManager()
+                    },
                     onStartNavigation = {
                         val entry = routeState.routeEntry
                         if (entry != null) {

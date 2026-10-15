@@ -161,6 +161,7 @@
     <string name="start_navigation">Navigation starten</string>
     <string name="route_edit_endpoints">Start/Ziel ändern</string>
     <string name="route_calculation_failed">Routenberechnung fehlgeschlagen</string>
+    <string name="route_failure_open_map_manager">Kartenverwaltung öffnen</string>
     <string name="clear">Löschen</string>
     <string name="route_summary">Routenzusammenfassung</string>
     <string name="steps">Schritte</string>

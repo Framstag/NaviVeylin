@@ -365,6 +365,16 @@ class FakeOSMScoutClient : OSMScoutClient() {
     var deliverRouteError: String? = null
 
     /**
+     * The failure kind delivered with [deliverRouteError], one of [RouteCallback]'s `KIND_*` constants.
+     * A case that is about the *cause* sets it, so it can assert the reason the surfaces word instead of
+     * a sentence (spec: `routing-failure-reporting` — A failed route calculation reports a reason).
+     */
+    var deliverRouteErrorKind: Int = RouteCallback.KIND_UNKNOWN
+
+    /** The nearest-road distance delivered with [deliverRouteError]; NaN means the router found none. */
+    var deliverRouteErrorDistanceMeters: Double = Double.NaN
+
+    /**
      * Throwable thrown synchronously by [calculateRouteWithProfile] instead of
      * delivering a route. Models a failure at the engine's native boundary: pass an
      * `Error` (e.g. `UnsatisfiedLinkError`) to prove the boundary confines more than
@@ -423,7 +433,11 @@ class FakeOSMScoutClient : OSMScoutClient() {
         if (route != null) {
             callback.onSuccess(route)
         } else {
-            callback.onError(deliverRouteError ?: "No route available")
+            callback.onErrorDetail(
+                deliverRouteErrorKind,
+                deliverRouteError ?: "No route available",
+                deliverRouteErrorDistanceMeters
+            )
         }
     }
 
@@ -585,13 +599,35 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** When set, [searchLocationByForm] throws this instead of returning. */
     var formSearchError: Exception? = null
 
+    /** Generations passed to the generation-carrying form searches, in call order. */
+    val formSearchGenerations = mutableListOf<Long>()
+
     override fun searchLocationByForm(
         adminRegion: String,
         postalArea: String,
         location: String,
         address: String,
         limit: Int
+    ): Array<LocationEntry>? = recordFormSearch(adminRegion, postalArea, location, address, generation = null)
+
+    override fun searchLocationByForm(
+        adminRegion: String,
+        postalArea: String,
+        location: String,
+        address: String,
+        limit: Int,
+        generation: Long
+    ): Array<LocationEntry>? =
+        recordFormSearch(adminRegion, postalArea, location, address, generation)
+
+    private fun recordFormSearch(
+        adminRegion: String,
+        postalArea: String,
+        location: String,
+        address: String,
+        generation: Long?
     ): Array<LocationEntry>? {
+        generation?.let { formSearchGenerations.add(it) }
         formSearchArgs.add(listOf(adminRegion, postalArea, location, address))
         formSearchError?.let { throw it }
         if (formResultsQueue.isNotEmpty()) {
@@ -614,12 +650,17 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** When set, [searchPOIs]/[searchPOIsByTypes] throw this instead of returning. */
     var poiSearchError: Exception? = null
 
+    /** Generations passed to [searchPOIsByTypes] in call order. */
+    val poiSearchGenerations = mutableListOf<Long>()
+
     override fun searchPOIsByTypes(
         typeNames: Array<String>,
         lat: Double, lon: Double,
-        radiusMeters: Double, limit: Int
+        radiusMeters: Double, limit: Int,
+        generation: Long
     ): Array<PoiEntry>? {
         poiSearchTypeNames.add(typeNames.toList())
+        poiSearchGenerations.add(generation)
         poiSearchError?.let { throw it }
         return nextPoiResults
     }

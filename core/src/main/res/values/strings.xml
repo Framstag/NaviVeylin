@@ -61,4 +61,20 @@
     <string name="about_privacy_statement">Location is used on this device for navigation and is never transmitted. The diagnostics log also stays on this device, contains no coordinates and is deleted after 7 days. Map data attribution is listed with the licenses below.</string>
     <!-- Row title for the same statement on the car about screen. -->
     <string name="about_privacy_title">Privacy</string>
+
+    <!-- What a navigation failure says, per cause (spec: `routing-failure-reporting` — Each reason
+         is worded by the surface). The shared wording lives here because both variants show the
+         same cause with the same label (`guidelines/UI.md` §1); the surface picks the resource by
+         the failure's reason, and the phone adds the action where the cause has one. "The nearest
+         road" carries a distance the surface formats with the device locale. -->
+    <string name="navigation_failure_routing_data_unavailable">Routing data is not available for one of the installed maps.</string>
+    <string name="navigation_failure_start_unroutable">Your position has no connection to the road network here. Move onto a road and try again.</string>
+    <string name="navigation_failure_start_unroutable_near">Your position has no connection to the road network here. The nearest road is about %1$s away.</string>
+    <string name="navigation_failure_target_unroutable">The destination has no connection to the road network here.</string>
+    <string name="navigation_failure_target_unroutable_near">The destination has no connection to the road network here. The nearest road is about %1$s away.</string>
+    <string name="navigation_failure_no_route_found">No route found between the start and the destination. The map data on the way may be incomplete.</string>
+    <string name="navigation_failure_routing_data_failure">The route could not be calculated because part of the map data could not be read.</string>
+    <string name="navigation_failure_engine_failure">The route could not be calculated.</string>
+    <string name="navigation_failure_gps_signal_missing">GPS signal required. Please wait for a GPS fix.</string>
+    <string name="navigation_failure_unspecified">The route could not be calculated.</string>
 </resources>

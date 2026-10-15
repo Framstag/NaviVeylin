@@ -61,3 +61,15 @@ one bridge) plus a route here.
   `DiagnosticsLog.RETENTION_MS` (7 days) by the logging worker, and the exported text and both viewers lead
   with the `diagnostics_disclosure` statement. See `guidelines/Regulatory.md` §9 and `guidelines/UI.md`
   (gates).
+- **A failure never carries its own wording across a layer boundary.** Native code publishes a failure as a
+  *kind* (`RouteCallback.KIND_*`, mirrored by `naviveylin::kRouteFailure*` — keep the two in step, the
+  number is what crosses JNI) plus a description for the log; the surface words it from its own resource for
+  that kind (spec `routing-failure-reporting` — Each reason is worded by the surface). A sentence produced
+  outside the resource system is not display text, and a surface that needs to act on a failure needs the
+  cause, not prose.
+- **A failed route calculation's cause is measured, not guessed** (spec `route-calculation-feedback` — Route
+  calculation is measured without coordinates): the `ROUTE` entry carries `outcome`, the failure's `reason`,
+  `reachedPct` (the routing layer's own progress percentage — how far the search got against the
+  start-to-target air-line distance, its own progress denominator; `-1` when it reported none) and
+  `nearestRoadM` (the distance from a failing end to the nearest road the router could use, `-1` when
+  unknown). Those four numbers are what separate the failures that used to read as one sentence.

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.framstag.libosmscout.client.NavigationPosition
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.Vehicle
+import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.ui.route.RoutePanelViewModel
@@ -157,5 +158,9 @@ class NavigationViewModel @Inject constructor(
 
     override fun reportError(message: String, origin: SurfaceOrigin) {
         engine.reportError(message, origin)
+    }
+
+    override fun reportFailure(failure: NavigationFailure) {
+        engine.reportFailure(failure)
     }
 }

@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -89,6 +90,8 @@ import com.naviveylin.ui.map.RowAddressCache
 import com.naviveylin.ui.map.rememberRowTypeIcon
 import com.naviveylin.ui.map.resolveRowAddress
 import com.naviveylin.core.distanceUsesKilometers
+import com.naviveylin.core.hasMapManagerAction
+import com.naviveylin.core.navigationFailureText
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.formatStepDurationText
 import com.naviveylin.core.search.ResultMarking
@@ -151,6 +154,10 @@ fun RoutePanel(
     onOpenFavoritePicker: (ActiveField) -> Unit,
     onStartNavigation: () -> Unit = {},
     onStopNavigation: () -> Unit = {},
+    // The map manager, offered where a failure's cause is missing or unreadable map data (spec:
+    // `routing-failure-reporting` — A reason whose cause the user can act on offers the action). The
+    // host owns the navigation; the panel only offers the action.
+    onOpenMapManager: () -> Unit = {},
     // Restart from the stopped state: navigation resumes on the same route, no recalculation
     // (spec: `route-planning-session` — Grace period after navigation is stopped).
     onRestartNavigation: () -> Unit = {},
@@ -662,12 +669,32 @@ fun RoutePanel(
                 }
 
                 is RouteState.Error -> {
+                    val context = LocalContext.current
+                    val failure = state.routeFailure
                     Text(
-                        text = state.error ?: stringResource(R.string.route_calculation_failed),
+                        text = failure?.let {
+                            navigationFailureText(
+                                context = context,
+                                failure = it,
+                                unitMetersRes = R.string.distance_unit_m,
+                                unitKilometersRes = R.string.distance_unit_km
+                            )
+                        } ?: stringResource(R.string.route_calculation_failed),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    // The action comes first: a cause the map manager can fix is the failure the user
+                    // can do something about without re-running the same calculation.
+                    if (failure != null && failure.hasMapManagerAction()) {
+                        OutlinedButton(
+                            onClick = onOpenMapManager,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.route_failure_open_map_manager))
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                     Button(
                         onClick = { viewModel.calculateRoute() },
                         enabled = state.startLocation != null && state.destLocation != null,

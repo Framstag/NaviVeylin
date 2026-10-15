@@ -73,7 +73,7 @@ class NavigationTripTest {
 
     private fun tripFrom(state: NavigationState) = NavigationTemplateMapper.tripFromState(
         state = state,
-        iconForTurn = { testIcon },
+        iconFor = { testIcon },
         resolver = resolver,
         nowMillis = now,
         timeZone = timeZone
@@ -138,7 +138,10 @@ class NavigationTripTest {
         val state = navigatingState().copy(
             isRerouting = false,
             isOffRoute = true,
-            errorMessage = "No routable node near destination"
+            failure = com.naviveylin.core.NavigationFailure(
+                reason = com.naviveylin.core.FailureReason.TARGET_UNROUTABLE,
+                endpoint = com.naviveylin.core.RouteEndpoint.TARGET
+            )
         )
 
         val trip = tripFrom(state)

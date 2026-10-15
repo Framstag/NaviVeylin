@@ -158,6 +158,20 @@ When both start and destination are set, the route panel SHALL display a "Calcul
 - **THEN** an error message SHALL be displayed in the route panel
 - **AND** no route polyline SHALL be rendered
 
+#### Scenario: Route calculation failure shows the reason's own message
+- **WHEN** route calculation fails with a reason
+- **THEN** the route panel SHALL show the string resource that belongs to that reason
+- **AND** it SHALL NOT show one fixed message for every reason
+
+#### Scenario: Route calculation failure offers the reason's action
+- **WHEN** route calculation fails with a reason whose cause the user can act on
+- **THEN** the route panel SHALL offer that action
+
+#### Scenario: Route calculation failure of an unattachable end names the end
+- **WHEN** route calculation fails because the start or the destination cannot be attached to the road
+  network
+- **THEN** the message SHALL name the affected end
+
 ### Requirement: Cancel route calculation
 During route calculation, the user SHALL be able to cancel the operation.
 

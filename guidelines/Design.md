@@ -310,6 +310,26 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 - Logging: native via `osmscout::log` + app-owned bridge; Kotlin via
   `android.util.Log` with per-class TAG. Stylesheets: submodule is the single
   source of truth, synced at build time. Mechanics: `AGENTS.md`.
+- **A failure crosses the boundary as a kind, never as prose** (change `distinguish-routing-failures`, spec
+  `routing-failure-reporting`): the routing entry point publishes a failure with a kind from a closed set
+  (`RouteCallback.KIND_*`, mirrored by `naviveylin::kRouteFailure*` — the two lists are kept in step by
+  hand, the number is what crosses JNI), plus a description for the log and, at a failing route end, the
+  distance to the nearest road the router could use. The surface words it from its own resource, so the
+  phone and the car name the same cause the same way and neither shows a sentence another layer composed.
+- **The seam is additive and lives on one side** (same change): `RouteCallback.onErrorDetail` is a default
+  method delegating to `onError(String)`, so a caller written before it keeps working and the native
+  fallback to `onError` still exists; `RouteCallback.java` and `OSMScoutClient.cpp` are submodule files,
+  while the app-facing `OSMScoutClient.java` is a local override — patched in one place, never both. The
+  kind is extracted in **one** helper shared by both route entry points, which otherwise carry two copies
+  of the same pipeline and would drift.
+- **A router defect is fixed in the router, not described to the user** (same change): when the endpoint a
+  calculation resolved cannot be attached to the road network, the fix is the candidate **selection**
+  (`SimpleRoutingService::IsEndpointAttachable`, which mirrors the four direction-gated searches of
+  `AbstractRoutingService` — keep the ranges in step), not a message that explains the failure. The rule is
+  parameterized by the route end (`RouteEndpoint`), because the start and the target attach along opposite
+  halves of a way: a one-way street can carry one end and not the other. The existing
+  `GetClosestRoutableNode` signatures keep their behaviour and delegate with `RouteEndpoint::Unspecified`,
+  so no existing caller changes.
 
 - **JNI-bridge Java types are positional-argument only** (§40.23): no named arguments, read the constructor
   before writing a helper (`RouteInstruction` has 5- and 10-arg forms), and update EVERY call site in the

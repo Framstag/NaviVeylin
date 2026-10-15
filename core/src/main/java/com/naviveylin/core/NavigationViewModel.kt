@@ -54,11 +54,25 @@ interface NavigationViewModel {
 
     /**
      * Surface an error message on the navigation surfaces (e.g. deep-link
-     * geocoding found no match). Mirrored into [NavigationState.errorMessage] with
-     * [origin] as its [NavigationState.errorOrigin], so only the surfaces the error
-     * concerns present it (spec: `navigation-engine` — Errors carry the surface
-     * that caused them). Defaults to [SurfaceOrigin.ENGINE] — an error of the
+     * geocoding found no match). Raised as a [NavigationFailure] whose [origin] decides which surfaces
+     * present it, so a surface shows only the errors that concern it (spec: `navigation-engine` —
+     * Errors carry the surface that caused them). Defaults to [SurfaceOrigin.ENGINE] — an error of the
      * navigation engine itself, presented everywhere.
+     *
+     * The producer supplies the wording itself, so the failure carries it as its
+     * [NavigationFailure.surfaceMessage] and its reason is [FailureReason.UNKNOWN]. A producer that
+     * knows the cause raises a typed [reportFailure] instead, and every surface words it from the
+     * shared resource.
      */
     fun reportError(message: String, origin: SurfaceOrigin = SurfaceOrigin.ENGINE)
+
+    /**
+     * Raise a failure the surfaces word themselves (spec: `routing-failure-reporting` — Each reason is
+     * worded by the surface).
+     *
+     * The failure carries its reason and the values a wording needs, never the wording, so the phone
+     * and the car name the same cause the same way and neither shows a sentence another layer
+     * composed. [NavigationFailure.appliesTo] decides which surfaces present it.
+     */
+    fun reportFailure(failure: NavigationFailure)
 }

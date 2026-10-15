@@ -180,6 +180,9 @@
     <string name="start_navigation">Start Navigation</string>
     <string name="route_edit_endpoints">Change start &amp; target</string>
     <string name="route_calculation_failed">Route calculation failed</string>
+    <!-- Action offered when a failure's cause is missing or unreadable map data (spec:
+         `routing-failure-reporting` — A reason whose cause the user can act on offers the action). -->
+    <string name="route_failure_open_map_manager">Open Map Manager</string>
     <string name="clear">Clear</string>
     <string name="route_summary">Route Summary</string>
     <string name="steps">Steps</string>

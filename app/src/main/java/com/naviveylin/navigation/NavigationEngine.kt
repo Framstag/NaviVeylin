@@ -17,6 +17,8 @@ import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.LocationGrant
+import com.naviveylin.core.FailureReason
+import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.RouteCalculation
 import com.naviveylin.core.SpeedStaleness
@@ -49,6 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -143,10 +146,16 @@ class NavigationEngine @Inject constructor(
             if (_state.value.isNavigating) {
                 stopNavigation()
             }
-            _state.update { it.copy(
-                errorMessage = message,
-                errorOrigin = SurfaceOrigin.ENGINE
-            ) }
+            // The fault description is a log line, never display text: the failure names the cause
+            // and carries the description as its detail, so a surface shows the wording for an engine
+            // failure instead of an internal message (spec: `routing-failure-reporting` — Each reason
+            // is worded by the surface).
+            _state.update {
+                it.withFailure(NavigationFailure(
+                    reason = FailureReason.ENGINE_FAILURE,
+                    detail = message
+                ))
+            }
         }
     }
 
@@ -410,7 +419,10 @@ class NavigationEngine @Inject constructor(
                 // `navigation-engine` — Native failure is confined, not fatal).
                 Log.e(TAG, "start failed", e)
                 stopNavigation()
-                reportError("Route calculation failed. Try again.", SurfaceOrigin.ENGINE)
+                reportFailure(NavigationFailure(
+                    reason = FailureReason.ENGINE_FAILURE,
+                    detail = e.message
+                ))
             }
         }
     }
@@ -424,12 +436,9 @@ class NavigationEngine @Inject constructor(
      */
     fun acquire(destLat: Double, destLon: Double, vehicle: Vehicle) {
         if (!LocationGrant.hasPrecise(context)) {
-            _state.update { it.copy(
-                errorMessage = context.getString(
-                    com.naviveylin.core.R.string.location_precise_required_navigation
-                ),
-                errorOrigin = SurfaceOrigin.ENGINE
-            ) }
+            _state.update {
+                it.withFailure(NavigationFailure(reason = FailureReason.PRECISE_LOCATION_REQUIRED))
+            }
             return
         }
 
@@ -449,17 +458,16 @@ class NavigationEngine @Inject constructor(
             if (fix == null) {
                 Log.e(TAG, "acquire: no GPS position available")
                 releaseNavLease()
-                _state.update { it.copy(
-                    errorMessage = "GPS signal required. Please wait for GPS fix.",
-                    errorOrigin = SurfaceOrigin.ENGINE
-                ) }
+                _state.update {
+                    it.withFailure(NavigationFailure(reason = FailureReason.GPS_SIGNAL_MISSING))
+                }
                 return
             }
             startLat = fix.lat
             startLon = fix.lon
         }
 
-        _state.update { it.copy(errorMessage = null, errorOrigin = null) }
+        _state.update { it.withFailure(null) }
         acquire(startLat, startLon, destLat, destLon, vehicle)
     }
 
@@ -531,26 +539,42 @@ class NavigationEngine @Inject constructor(
                                     return@launch
                                 }
                                 Log.d(TAG, "acquire: route calculated, starting navigation")
-                                _state.update { it.copy(errorMessage = null, errorOrigin = null) }
+                                _state.update { it.withFailure(null) }
                                 _acquiredRoute.value = route
                                 startInternal(route, vehicle, keepRerouteCooldown = fromReroute)
                             }
                         }
 
-                        override fun onError(message: String) {
+                        /**
+                         * The routing layer named the cause (spec: `routing-failure-reporting` — A
+                         * failed route calculation reports a reason): the kind, the failing end and the
+                         * distance to the nearest road the router could use reach the surfaces as one
+                         * typed failure.
+                         */
+                        override fun onErrorDetail(
+                            kind: Int,
+                            detail: String,
+                            nearestRoadDistanceMeters: Double
+                        ) {
                             scope.launch(Dispatchers.Main) {
-                                Log.e(TAG, "acquire: route calculation failed: $message")
-                                if (!endCalculation(token, CalculationOutcome.ERROR)) return@launch
+                                val failure = navigationFailureOf(
+                                    kind = kind,
+                                    detail = detail,
+                                    nearestRoadDistanceMeters = nearestRoadDistanceMeters
+                                )
+                                Log.e(TAG, "acquire: route calculation failed: reason=${failure.reason} detail=$detail")
+                                if (!endCalculation(token, CalculationOutcome.ERROR, failure)) return@launch
                                 if (ownsLease) releaseNavLease()
-                                _state.update {
-                                    it.withoutRerouteAttemptFlag().copy(
-                                        errorMessage = (message ?: "").ifBlank {
-                                            "Route calculation failed. Try again."
-                                        },
-                                        errorOrigin = SurfaceOrigin.ENGINE
-                                    )
-                                }
+                                _state.update { it.withoutRerouteAttemptFlag().withFailure(failure) }
                             }
+                        }
+
+                        /**
+                         * The callback interface's fallback: reached only by a native library that calls
+                         * the plain failure callback, so the cause is unknown.
+                         */
+                        override fun onError(message: String) {
+                            onErrorDetail(RouteCallback.KIND_UNKNOWN, message, Double.NaN)
                         }
 
                         override fun onCancel() {
@@ -568,13 +592,14 @@ class NavigationEngine @Inject constructor(
                 // `navigation-engine` — Native failure is confined, not fatal).
                 withContext(Dispatchers.Main) {
                     Log.e(TAG, "acquire failed", e)
-                    if (!endCalculation(token, CalculationOutcome.ERROR)) return@withContext
+                    val failure = NavigationFailure(
+                        reason = FailureReason.ENGINE_FAILURE,
+                        detail = e.message
+                    )
+                    if (!endCalculation(token, CalculationOutcome.ERROR, failure)) return@withContext
                     if (ownsLease) releaseNavLease()
                     _state.update {
-                        it.withoutRerouteAttemptFlag().copy(
-                            errorMessage = e.message ?: "Route calculation failed. Try again.",
-                            errorOrigin = SurfaceOrigin.ENGINE
-                        )
+                        it.withoutRerouteAttemptFlag().withFailure(failure)
                     }
                 }
             }
@@ -743,12 +768,32 @@ class NavigationEngine @Inject constructor(
     }
 
     override fun clearError() {
-        _state.update { it.copy(errorMessage = null, errorOrigin = null) }
+        _state.update { it.withFailure(null) }
     }
 
     override fun reportError(message: String, origin: SurfaceOrigin) {
-        _state.update { it.copy(errorMessage = message, errorOrigin = origin) }
+        // A producer that words its own failure keeps that wording and names no cause (see
+        // NavigationViewModel.reportError); a producer that knows the cause raises the typed value.
+        reportFailure(NavigationFailure(
+            reason = FailureReason.UNKNOWN,
+            origin = origin,
+            surfaceMessage = message
+        ))
     }
+
+    override fun reportFailure(failure: NavigationFailure) {
+        _state.update { it.withFailure(failure) }
+    }
+
+    /**
+     * Publish [failure], or clear the published one when it is null.
+     *
+     * The failure is the whole published value: it carries its own origin, so no second field can
+     * disagree with it, and a surface words it from the shared resource for the reason it names (design
+     * D4). Main-thread only, like every state write.
+     */
+    private fun NavigationState.withFailure(failure: NavigationFailure?): NavigationState =
+        copy(failure = failure)
 
     /** Acquire the navigation-scoped location lease (idempotent). */
     private fun acquireNavLease() {

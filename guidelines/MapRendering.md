@@ -1101,6 +1101,33 @@ router's figure, the legs sum and the drawn polyline per candidate route.
 
 ---
 
+## 20. Label wrapping — the bounds the renderer configures
+
+- The app configures the wrapping on `MapParameter` in the native render (`renderMapIntoPixels` in
+  `OSMScoutClient.cpp`): `LabelLineMinCharCount` 5, `LabelLineMaxCharCount` 15, `LabelLineFitToArea` true,
+  `LabelLineFitToWidth` `min(width, height)` of the render buffer — the bounds the Qt plane renderer uses.
+  Setting none of them leaves the library defaults (`MapParameter.cpp`: 5 / 15 / true / 8000 px), whose
+  8000 px bound never binds.
+- **The character count is the bound that wraps**, not the pixel width: `MapPainter::GetProposedLabelWidth`
+  always caps the proposed width at `LabelLineMaxCharCount * averageCharWidth` and floors it at
+  `LabelLineMinCharCount * averageCharWidth`, so the pixel bound only ever narrows a wide area label.
+- **A label is broken at a word boundary only**, in the backends that wrap at all: a one-word label stays
+  on one line however wide it is (Pango `PANGO_WRAP_WORD`, and the no-Pango Cairo wrapper keeps an over-wide
+  word on a line of its own). `Escaldes-Engordany` therefore stays one line while `Andorra la Vella` wraps.
+  The AGG backend never wraps — it takes the object width and the wrapping flag as unused parameters — so
+  none of this reaches it.
+- **The Android build has no Pango** (`MapCairoFeatures.h` leaves `OSMSCOUT_MAP_CAIRO_HAVE_LIB_PANGO`
+  undefined and no Android vcpkg triplet installs pango), so `MapPainterCairo::Layout` is the
+  FreeType/cairo variant. That variant wraps the text itself and reads the same bounds through
+  `GetProposedLabelWidth`. The Pango variant wraps at the width of the *object* it is handed
+  (`PANGO_WRAP_WORD`) and ignores the label-line parameters, so it does not wrap a point label, whose
+  object width is 0; Android does not build it. The Qt and Skia backends compute their width from
+  `GetProposedLabelWidth` too.
+- A wrapped label reports the ink width of its widest line and the lines' block height, so the label
+  layouter places, culls and breaks overlaps with the size the label is drawn at.
+
+---
+
 ## Parameter Overview
 
 | Parameter | Value | Purpose |

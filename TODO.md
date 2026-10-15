@@ -4,7 +4,7 @@
 **Entry metadata:** every numbered section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line under its heading. `class` describes the **remaining** work: a landed fix whose only residue is verification is an `improvement`, one whose residue is still a defect stays a `bug`. Ids are identity — never renumbered (a collision is reported and the duplicate gets a fresh id: the `§79` duplicate became `§119` on 2026-10-03). An id is retired only by **absorption**: the survivor's heading says `absorbed §N` and its body carries the folded entry's record verbatim, so the retired id needs no renumbering and its history is not lost.
 
 **Clusters** (category, then class — jump targets, not an order):
-- **build-and-harness** — bug: §146
+- **build-and-harness** — bug: §146 §192
 - **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145 §149 §155
 - **car** — bug: §57 §83 §92 §93 §177 §178 §179 §180
 - **car** — improvement: §29 §34 §46 §56 §64 §103 §120 §127 §133
@@ -16,7 +16,8 @@
 - **map-rendering** — bug: §19 §65
 - **map-rendering** — improvement: §49 §71 §78
 - **map-rendering** — feature: §6
-- **native-jni** — improvement: §81 §82 §119 §174 §188
+- **native-jni** — bug: §191
+- **native-jni** — improvement: §81 §82 §119 §174 §188 §193
 - **native-jni** — feature: §23
 - **persistence** — bug: §168
 - **persistence** — improvement: §9
@@ -25,14 +26,15 @@
 - **route-and-navigation** — feature: §1 §2 §3
 - **search** — bug: §27 §75 §110
 - **search** — improvement: §24 §76 §77 §109
-- **specs-and-process** — bug: §161 §187 §199
+- **specs-and-process** — bug: §161 §187 §194 §199
 - **specs-and-process** — improvement: §40 §113 §134 §154 §156 §157 §158 §159 §162 §171 §172 §200
 - **stylesheets** — bug: §36
 - **ui** — bug: §70 §74 §153 §186
 - **ui** — improvement: §39 §73 §136 §152 §166
 - **ui** — feature: §4 §5
-- **verification** — bug: §131 §147 §148 §181 §189
-- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167 §170
+- **verification** — bug: §131 §147 §148 §181 §189 §195 §196
+- **route-and-navigation** — bug: §129 §130 §139 §165 §197
+- **verification** — improvement: §10 §15 §16 §35 §84 §106 §108 §111 §141 §167 §170 §198
 ---
 
 ## 129. The router's overall route distance and the route description's node distances disagree, by 34 % on a 70 km route — Found 2026-10-05 while applying `fix-step-leg-distance-and-time` (device run, task 5.1)
@@ -3096,6 +3098,197 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `smooth-follow`; `guidelines/MapRendering.md` §4, §13; `.pi/logs/follow-pump/` holds the injector,
   `shift.py` and the run videos until that change is archived.
 
+## 191. The legacy route entry logs raw coordinates, and no gate looks at native code for them — Found 2026-10-13 while implementing `distinguish-routing-failures` (task 2.2)
+**id:** 191 · **category:** native-jni · **class:** bug · **status:** open
+
+- **Observed** ✗: the JNI bridge's legacy route entry logs positions verbatim:
+  `calculateRouteWithObjectsAsync` writes `osmscout::log.Warn() << "calculateRouteAsync: resolving start at " <<
+  start.GetDisplayText()` (`libosmscout-client-java/src/OSMScoutClient.cpp:7145`, and the same for the
+  destination at `:7151`, `:7160`, `:7166`, plus `:7198` for the air-line estimate). `GetDisplayText()` is a
+  coordinate pair, and those lines reach Logcat under the app's own tag (`guidelines/Logging.md` §1–2), so
+  they are a coordinate log by the letter of the rule.
+- **Why it was left** ✗: the app's own entry — `calculateRouteWithObjectsWithProfile` — does not call these
+  lines; they sit on the second, legacy entry the Android app never invokes. Removing them would have been
+  an unrelated edit inside a change about failure reporting, and the submodule patch it already carries is
+  deliberately minimal.
+- **Why the gate does not catch it** ⚠: `checkNoCoordinatesInLogs` (`buildSrc` `CoordinateLogScanner`) reads
+  Kotlin sources; the rule for native code (`guidelines/Logging.md` §1) is a *rule*, not a gate. A native
+  line that carries a position is invisible to the build today — including any new one.
+- **Fix candidate**: delete the four tracing lines (they duplicate identity the app can see in Kotlin), and
+  decide deliberately whether native code gets its own scanner or stays rule-only. The scanner already
+  knows `GetDisplayText`-shaped accessors in Kotlin; a C++ variant needs the same list, not a new design.
+- **Related**: change `distinguish-routing-failures` (task 2.2 recorded it rather than fixing it);
+  `guidelines/Logging.md` §1, §3; `guidelines/Regulatory.md` §9.
+
+## 192. `HardcodedStringScanner` misses a user-facing literal assigned to a state field — Found 2026-10-13 while implementing `distinguish-routing-failures` (task 3.3)
+**id:** 192 · **category:** build-and-harness · **class:** bug · **status:** open
+
+- **Observed** ⚠: `HardcodedStringScanner`'s text positions are `Text(`, `text =`, `title =`, `label =`,
+  `contentDescription =`, `placeholder =`, `hint =`, `.setTitle(`, `.addText(`, `.setText(`,
+  `.setContentTitle(`, `.setContentText(`, `description =` and `NotificationChannel(`. A user-facing
+  sentence assigned to a *field* that a surface renders is none of those: the live example was
+  `NavigationEngine.kt`'s `errorMessage = "GPS signal required. Please wait for GPS fix."`, and
+  `NavigationSession.kt`'s `reportError("No matching location found for \"$query\"", …)` — both shipped,
+  both invisible to the gate. The change removed the first and moved the second behind a surface's own
+  resource, but the hole remains for the next author.
+- **Why it was left** ✗: closing it means deciding what counts as a *rendered* field across three modules
+  (a state class in `:core`, a report call in `:auto`, a ViewModel in `:app`), which is a scanner design
+  question of its own — and it is not what this change is about.
+- **Fix candidate**: add the state-field and report-call shapes the codebase actually uses (`errorMessage`,
+  `reportError(`, `reportFailure(`, `surfaceMessage =`) as text positions, or invert the rule for the
+  failure path: a Kotlin source that *carries display words* into a failure is the violation, whatever the
+  field is called. Either way the existing cases in `HardcodedStringScannerTest` are the harness.
+- **Related**: change `distinguish-routing-failures` task 5.4; `specs/i18n-l10n/spec.md`; `TODO.md` §105
+  (the interpolated-literal hole the scanner was written for).
+
+## 193. `avoidTolls` and `avoidUnpaved` are accepted and do nothing but log — Found 2026-10-13 while implementing `distinguish-routing-failures` (task 2.2)
+**id:** 193 · **category:** native-jni · **class:** improvement · **status:** open
+
+- **Observed** ℹ: the bridge's routing profile takes `avoidTolls` and `avoidUnpaved`
+  (`libosmscout-client-java/src/OSMScoutClient.cpp`, `CreateRoutingProfile`) and answers both with a log
+  line: tolls need a per-way `AccessFeature` check at routing time, and unpaved was expected to fall out of
+  the grade system but was never verified. `avoidFerries` is implemented (speed 0 for `route_ferry`).
+- **Impact** ℹ: nothing today — the Android app passes all three as `false` (`RoutingProfile`'s default
+  constructor), so the no-ops are unreachable from the app. They are reachable from any other consumer of
+  the JAR, which would silently get a route it asked to avoid.
+- **Fix candidate**: implement the toll check at the bridge's routing time, or remove the two parameters
+  from the profile and its Javadoc so a caller cannot ask for what the bridge does not do. Removing them is
+  the smaller and more honest change while no caller uses them.
+- **Related**: change `distinguish-routing-failures` task 5.4; `RoutingProfile.java`; `guidelines/Design.md`
+  §5 ("Native method contracts are API").
+
+## 194. The full gate is red on HEAD: the shipped `routing-max-speed` spec is unclassified — Found 2026-10-13 running the forced gate while implementing `distinguish-routing-failures` (task 7.3)
+**id:** 194 · **category:** specs-and-process · **class:** bug · **status:** open
+
+- **Observed** ✗: `./gradlew test -PforceTests --no-build-cache` fails
+  `ShippedSpecClassificationTest > every shipped spec id is classified` with
+  `every shipped spec id must be named by tools/feature-list/specs.json expected:<[]> but was:<[routing-max-speed]>`.
+  `openspec/specs/routing-max-speed/` exists — the spec shipped when the change that owns it was archived — while
+  `tools/feature-list/specs.json` names it **0** times. The feature-list run is stopped by an unclassified
+  spec (`guidelines/FeatureList.md` §4), so this is a gate failure, not a cosmetic one.
+- **Not caused by this change** ℹ: the change's own capability is a *delta* under
+  `openspec/changes/distinguish-routing-failures/specs/`, so it is not in the shipped set the test reads and
+  cannot appear in that list. The spec id the failure names belongs to the earlier
+  `vehicle-max-speed-settings` / `add-map-update-check` work.
+- **Why it was left** ✗: it is a classification decision for a feature area this change does not own
+  (`routing-max-speed` needs an area and a `userVisible`/`surfaces` classification in
+  `tools/feature-list/specs.json`), and the config's rule is that a problem not initiated by the change is
+  recorded rather than absorbed. It has to be fixed before any change can claim a green gate on this tree.
+- **Fix candidate**: add the `routing-max-speed` entry to `tools/feature-list/specs.json` with its area (the
+  speed widget's, per `guidelines/FeatureList.md` §3 — one capability key identifies one requirement), then
+  re-run `tools/feature-list` and the gate. If the classification belongs to a phone-only setting, say so
+  there: the car renders the same persisted value, which is the deviation UI.md §1 already records for
+  settings the car's surface cannot carry.
+- **Related**: `openspec/specs/routing-max-speed`, `tools/feature-list/specs.json`,
+  `guidelines/FeatureList.md` §3/§4; found by `distinguish-routing-failures` task 7.3.
+
+## 195. Every Compose suite times out in the full forced gate, while each passes in isolation — Found 2026-10-13 running the forced gate while implementing `distinguish-routing-failures` (task 7.3)
+**id:** 195 · **category:** verification · **class:** bug · **status:** open
+
+- **Observed** ✗: `./gradlew test -PforceTests --no-build-cache` (32 min, 31 of them in the two `:app` test
+  tasks) fails **31 cases on mobile and 38 on automotive**, and every one of them but the classification
+  failure of §194 is the same exception: `androidx.test.espresso.AppNotIdleException: Compose did not get
+  idle after ~2.9 million attempts in 60 SECONDS`. The classes: `BasemapSectionComposeTest`,
+  `MapManagerSourceSelectorComposeTest`, `MapUpdatesSectionTest`, `NavigationDetailsOverlayTest`,
+  `NextTurnOverlayTest` (both flavors) and `RouteSummaryStepSelectionTest` (automotive only). Not one is an
+  assertion failure, and not one is in a class this change touched.
+- **The isolation run** ℹ: on the same host, after the gate, those six classes run green — twice for three of
+  them, once for the rest; the last four together are 29 tests and 0 failures in 18 s. So the timeout is a
+  property of the **full parallel forced run on a loaded host**, not of the code: Compose's 60 s idling
+  budget is consumed before the composition settles when the machine is busy, and `-PforceTests`
+  re-executes every suite at once to make it busy.
+- **Why it was left** ✗: it is not this change's to fix — the gate is red on this tree before it (§194 alone
+  already fails it), the failing suites are untouched by the change, and the remedy is a harness decision (a
+  shard/fork policy, a longer idling budget, or serialising the two `:app` test tasks).
+- **Impact** ⚠: the gate cannot be quoted as green on this host, which is what every change's archive
+  guidance asks for. A change that *is* green in isolation cannot prove itself, and a real Compose
+  regression would be indistinguishable from this noise in the same run — the shape
+  `guidelines/Build.md` §2's iteration protocol exists to avoid.
+- **Fix candidate**: give the two `:app` test tasks a serialised or sharded policy (or raise the Compose
+  idling budget for them), and record the resulting gate baseline in `guidelines/Build.md` §2 beside the
+  2026-10-04 numbers, so that a red gate means a regression again.
+- **Related**: §194 (the other, independent red cause); `guidelines/Build.md` §2 (the baseline and the
+  forcing rule), §4 (result evaluation); found by `distinguish-routing-failures` task 7.3.
+
+## 196. The phone device suites are bound to a map dataset the reference AVD does not have — Found 2026-10-13 running them while implementing `distinguish-routing-failures` (task 6.1)
+**id:** 196 · **category:** verification · **class:** bug · **status:** open
+
+- **Observed** ✗: `RouteInstructionPositionDeviceTest` opens the installed database and then fails **all six**
+  of its cases with `no candidate routed on this map data: Dortmund centre -> Dortmund north: No routable node
+  near start position; …` — every coordinate it uses (Dortmund, Cologne, Bochum) is outside the region the AVD
+  has installed. On 2026-10-13 that was `europe/andorra` (5.6 MB, the provider's smallest routable region);
+  earlier the same AVD held `europe-germany-bremen`. Either way the fixture's dataset,
+  `north-rhine-westphalia` (783.7 MB), is the one region nobody has installed.
+- **Why it matters** ⚠: the failure reads exactly like a code defect (`No routable node near start position`
+  is a routing verdict, not a skip), so a session that trusts it wastes its device budget diagnosing a
+  routing bug that is a download. It also means the phone's device-level regression coverage for
+  `route-analysis` and the arrival/leg checks is **zero** on a provisioned-with-something-else AVD — and
+  `guidelines/Build.md` §10's recipes assume these cases can be run.
+- **Why it was left** ✗: fixing it is a decision about the fixture, not about this change — either the cases
+  carry a *region-independent* candidate list (coordinates derived from the installed database's own
+  bounding box via `getDatabaseBoundingBox`, so any routable region works), or provisioning is standardised
+  on one region and the 783.7 MB download becomes part of it.
+- **Fix candidate**: derive the candidates from the open database instead of hardcoding North Rhine-Westphalia
+  — the test already opens it, and `OSMScoutClient.getDatabaseBoundingBox` exists. Then the suite runs on
+  whatever region is installed, which is what `provision-phone-emulator` can actually deliver. Keep NRW as an
+  *optional* extra for the cases that need a dense city.
+- **Related**: `.pi/skills/provision-phone-emulator` (the provisioning procedure and its map table);
+  `guidelines/Build.md` §10; found by `distinguish-routing-failures` task 6.1.
+
+## 197. The first route calculation after opening the databases can see an empty database list — Found 2026-10-13 sweeping Dortmund while implementing `distinguish-routing-failures` (task 6.2)
+**id:** 197 · **category:** route-and-navigation · **class:** bug · **status:** open
+
+- **Observed** ⚠: a 416-point sweep of Dortmund's old town on `emulator-5556`
+  (`nordrhein-westfalen-27-20260820-0826`) produced 26 failures: 24 × `No route found!` and — at the **very
+  first two grid points, 51.508/7.455 and 51.508/7.4558** — `calculateRouteAsync: no databases loaded`, i.e.
+  `databases.empty()` inside `RunSynchronousJob`. Nothing about a coordinate can make the database list
+  empty, and the later 414 points never saw it: `openDatabases` returns once the opens succeeded, while the
+  DB thread's own instance list is populated asynchronously, so a calculation that follows immediately can
+  find it still empty. The sweep's own client had just called `openDatabases` for the run.
+- **Why it matters** ⚠: it is a self-healing race that is reported as a hard failure. Before this change the
+  user saw `Route calculation failed`; after it they see a **specific but wrong** message — "Routing data is
+  not available for one of the installed maps" — and are offered the map manager for a condition that a
+  retry would clear. The reason this change publishes (`RoutingDataUnavailable`, the same one the genuine
+  open-failure uses) cannot tell the two apart.
+- **Why it was left** ✗: the fix is a synchronisation question in the native bridge (wait for the DB thread's
+  list, or have `openDatabases` not return until it is populated), which is inside the submodule's contract
+  and its own upstreamable change — not this one. The wording was made neutral ("not available" rather than
+  "missing") so it is true in both cases, which is the part this change could do.
+- **Fix candidate**: make the *readiness* observable — either a readiness signal the caller can wait on, or a
+  distinct failure for "the databases are not loaded yet" so a surface can say "try again" instead of
+  offering the map manager. The second is the smaller seam and matches the taxonomy this change introduces.
+- **Related**: `guidelines/Design.md` §5 (the bridge's error contract);
+  `distinguish-routing-failures` task 6.2/6.3; `TODO.md` §195 (the other measurement-shaped verification
+  finding from the same session).
+
+## 198. The archived `distinguish-routing-failures` left four verification tasks open — Archived 2026-10-13 (its own tasks 6.4, 6.5, 7.3, 8.1)
+**id:** 198 · **category:** verification · **class:** improvement · **status:** open
+
+- **What shipped** ✅: the change is archived (`openspec/changes/archive/2026-10-13-distinguish-routing-failures/`,
+  31 of 35 tasks done, its six spec deltas synced into the main specs). The code, the wording and the
+  taxonomy it introduces are implemented, host-tested (36 new cases) and green in every focused run.
+- **What is not proven** ⏳, in the archived change's own words:
+  - **8.1** — the endpoint-attachment fix has **no device falsification**: mutating the selection back to the
+    pre-change behaviour did not turn the device case red, and ~2 600 swept points across Andorra and
+    Dortmund produced **0** of the defect shapes the fix addresses. Its positive claim rests on the code
+    reading of the four direction-gated searches. Closing it needs a fixture whose nearest routable way is
+    direction-restricted with no route node on the permitted side — the owner's original failing
+    destination, or a dataset that happens to contain it.
+  - **6.4** — the phone panel's failure text and its map-manager action were never measured on a device,
+    because a UI-reachable destination that fails does not exist where every point is near a road, and
+    producing the *action* needs a no-routing-data state (i.e. deleting the installed region).
+  - **6.5** — the car notice was never seen on a screen: the AAOS AVD's visible window is Google Maps
+    (`osdouble` image), its launcher app grid did not appear in the dumps, and the car-specific referral
+    needs the same no-routing-data state. The notice's wording and referral are covered host-side by five
+    cases; only the on-screen rendering is unverified.
+  - **7.3** — the forced gate is red for §194 and §195, neither of which is this change's; every failing case
+    passes in isolation.
+- **Fix candidate**: 8.1 needs a *fixture*, not code — worth asking the owner for the destination that
+  failed on their device, since that is the only known instance of the shape. 6.4/6.5 need the map-manager
+  path made reachable in a test environment (a dataset with no routing data, or a dedicated AVD). 7.3 is
+  §194/§195's to unblock.
+- **Related**: §194, §195 (the gate), §196 (the dataset-bound device fixtures), §197 (the startup race found
+  in the same runs); `.pi/skills/provision-phone-emulator`; the archived change's `tasks.md`.
 ## 199. `guidelines/FeatureList.md`'s coverage gate row refuses `a user-visible spec that no bullet reaches` — a check the tool does not have, while 38 user-visible shipped specs reach no bullet and the gate exits 0 — Found 2026-10-13 during the review of `fix-routing-max-speed-classification`
 **id:** 199 · **category:** specs-and-process · **class:** bug · **status:** open
 
@@ -3196,3 +3389,36 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   `TODO.md` §179 (the same shape — a host capacity held as a constant) and §200.
 - **Loop verdict** ⏳ (filed at archive of `fix-roundabout-exit-number` on the owner's instruction, carrying the
   verification report's warning 1, so the decision outlives the change; not yet triaged).
+
+---
+
+## 202. A Pango-less host build in this working tree compiles against the Android-generated feature headers, so the Cairo text test fails for a font file it cannot read — Found 2026-10-15 while applying `label-word-wrapping` (task 3.2)
+**id:** 202 · **category:** build · **class:** bug · **status:** open
+
+- **Observed** ⚠: with `-DCMAKE_DISABLE_FIND_PACKAGE_Pango=ON`, the host build of `TextMetricsCairoTest` fails
+  the pre-existing case *"Cairo measures a configured font file as the face of that file"*
+  (`REQUIRE(differs)`, both the configured file and the substituted family measure `218.154`) and logs
+  `The configured font file '…/LiberationSans-Regular.ttf' is used as configured, this build cannot read the
+  family it holds`. The cause is the include order, not the configuration: the compile line lists the source
+  tree's `libosmscout-map/include` **before** the build tree's
+  (`build-nopango/build.ninja`: `INCLUDES = -I…/libosmscout-map/include … -I…/build-nopango/libosmscout-map/include`),
+  and the pre-generation loop in `app/src/main/cpp/CMakeLists.txt` (`foreach(_rel …)` + `configure_file`)
+  writes the configured `MapFeatures.h` **into the source tree**, where it is gitignored (`.gitignore:78`)
+  and carries the *Android* feature set — `/* #undef OSMSCOUT_MAP_HAVE_LIB_FREETYPE */`. So
+  `FontNameResolution::CanReadFamilyFromFile()`
+  (`libosmscout-map/src/osmscoutmap/FontNameResolution.cpp:37-46`) returns false and the family the file holds
+  is never read. Aligning that one gitignored header with the host build's features makes the case pass
+  (`7/7` cases green in the same run); it reproduces with no change of mine involved.
+- **Consequence** ⏳: any host build in a tree that has also run an Android configure compiles
+  `libosmscout-map` / `libosmscout-map-cairo` against Android feature macros (FreeType, cairo-ft, Fontconfig,
+  Pango, Marisa …) while linking the host libraries — silent false failures and, worse, false **passes** for
+  every test keyed on those macros. A fresh clone is unaffected (the generated headers are absent there), so
+  the trap fires exactly in the working tree an agent iterates in, and it disguises itself as a
+  configuration defect of the test being run.
+- **Fix candidate**: pre-generate the configured headers into a build-tree directory that precedes the
+  source directories in the include order instead of beside the tracked `.cmake` templates (or have the
+  submodule's build put its own generated include directory first), then delete the source-tree copies and
+  add a check that no generated `*Features.h` sits in the submodule source tree.
+- **Related**: `guidelines/Build.md` §12 (the native build and its configured headers) and §2 (the iteration
+  protocol, through which the false failure was read); `TODO.md` §167 (another `label wrapping` hit, a
+  different mechanism).

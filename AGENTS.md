@@ -21,6 +21,7 @@ which also lists the sections this table does not route.
 | how the map is drawn — pipeline, bitmaps, throttling, epochs, front buffer, overrun | `MapRendering.md` §1, §2, §4, §5, §12, §13 |
 | follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapRendering.md` §3, §6, §7, §8, §9, §10, §11 |
 | stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapRendering.md` §15, §15a, §16, §16a, §16b, §17 |
+| label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapRendering.md` §20 "Label wrapping" |
 | phone UI — modes, overlays, layering, controls, dark mode, text | `UI.md` §7, §7a, §8, §8a, §9, §10, §11 |
 | car screens — templates, wait notices, car search and details | `UI.md` §2, §3, §3b, §3c, §4, §6b |
 | parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6 |

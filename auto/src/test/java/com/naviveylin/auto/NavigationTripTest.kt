@@ -73,7 +73,7 @@ class NavigationTripTest {
 
     private fun tripFrom(state: NavigationState) = NavigationTemplateMapper.tripFromState(
         state = state,
-        iconFor = { testIcon },
+        iconForTurn = { testIcon },
         resolver = resolver,
         nowMillis = now,
         timeZone = timeZone

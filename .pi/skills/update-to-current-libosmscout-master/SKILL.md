@@ -109,6 +109,7 @@ bare number:
 |---|---|---|---|
 | 2026-10-10 | `4f701f1ee` | `0205b359e` | 19 files, +2127/-124 |
 | 2026-10-11 | `b37a54f73` | `a2050dfa4` | 0 files, +0/-0 — the trees are identical (`git diff --quiet origin/master HEAD`), so the branch now costs nothing: PR #1773's `cmake`, `cmake + maven`, `meson` and `meson + maven` jobs all pass |
+| 2026-10-16 | `d09e50e22` | `b8926ae0a` | 22 files, +1728/-189 — the merge carried 16 upstream commits and one conflict (17 hunks, all in `OSMScoutClient.cpp`, all resolved to upstream). Upstream had landed the same work as a refactor (PRs #1888 routing-profile max speed, #1890 type-icon entry point), so the *local* side of those two features is gone: `NAVIVEYLIN_TYPE_ICON_FIT`, both inline fit scales, the byte-vector pixel packing and the file-local `ResolveMaxSpeedKmh()` (deleted in the merge commit) are replaced by `naviveylin::TypeIconFitScale`/`TypeIconArgbWord` (`type_icon_pixels.h`) and `naviveylin::ResolveProfileMaxSpeedKmh` (`routing_profile_speed.h`). Measured against the 2026-10-10 row the residual is smaller, but the row above it (0 files) was already stale when this run started: 21 local commits landed after `b37a54f73`, led by the search-request lifecycle (`search_breaker.h`), the label-wrapping bounds and the route-failure kinds. The push then exposed the lifecycle's own unfinished edge: three *upstream* JavaScout callers still used the pre-lifecycle search shapes, so the merge's `cmake + maven` and `meson + maven` jobs failed on `FavLocationDialog.java:668` (`long` cannot be converted to `String`) — a break that predates the merge (pre-merge tip `dff960e34` lacks the 3-arg native too) and cannot be checked locally, because the maven job compiles JavaScout against a client jar built from the submodule. Follow-up commit `d09e50e22` moves the three callers to `beginSearch`/`cancelSearch` and the generation-carrying overloads (+12/-6, the 3 extra files above), verified with the job's own `mvnw package -DskipTests` (red on HEAD, green after) and `mvnw test-compile` |
 
 How to retire residual, cheapest first:
 
@@ -222,6 +223,29 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
    the POI multi-database determinism fix, `getRoadAt`/`RoadInfo`, `wayType`. Measure the *residual
    diff* (`git diff --shortstat origin/master HEAD`), never `git cherry`, when judging what the
    branch still carries.
+9. **The `maven` jobs compile JavaScout against a client jar built from the submodule, so no local
+   Android build can see a Java API break.** 2026-10-16: the push of `f03066468` left `cmake + maven`
+   and `meson + maven` red on `FavLocationDialog.java:668` (`long` cannot be converted to `String`),
+   while the local non-marisa check and the single-ABI smoke build were green. The API change was the
+   branch's own (`9725fe9a6` replaced `searchLocations(String, int, long)` and the boolean-cancel
+   overload with generation-carrying forms plus `beginSearch`/`cancelSearch`), and three *upstream*
+   JavaScout callers were never updated — pre-existing on the branch, first seen because CI had not run
+   on the branch tips before (`check-runs` for the pre-merge tip is empty). Reproduce it locally without
+   the whole CMake install by jarring the API from the working tree and running the job's own commands,
+   which is also the red-on-HEAD proof:
+
+   ```bash
+   M=app/src/main/cpp/libosmscout
+   javac -nowarn -d /tmp/cj-classes $(find $M/libosmscout-client-java/java -name '*.java')
+   jar cf /tmp/libosmscoutclientjava.jar -C /tmp/cj-classes .
+   (cd $M/JavaScout && ./mvnw -B install:install-file -Dfile=/tmp/libosmscoutclientjava.jar \
+     -DgroupId=net.sf.libosmscout -DartifactId=libosmscout-client-java -Dversion=1.0-SNAPSHOT -Dpackaging=jar)
+   (cd $M/JavaScout && ./mvnw -B -DskipTests package && ./mvnw -B test-compile)
+   ```
+
+   `package -DskipTests` compiles main sources only, so a stale *test* caller (here two test files using
+   the old shapes) also needs `test-compile`. Both jarring and the install are required — compiling
+   JavaScout against a stale installed jar hides the break entirely.
 
 ## Notes
 

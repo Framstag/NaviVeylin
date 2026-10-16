@@ -10,17 +10,24 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.LaneTurn
+import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
+import com.naviveylin.core.ManeuverSymbols
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -36,7 +43,40 @@ sealed interface NavSymbol {
         val selectedExit: Int = 0,
         val entryAngle: Float? = null
     ) : NavSymbol
+
+    /**
+     * A roundabout exit that names which exit is taken: the shared numbered glyph (spec:
+     * roundabout-renderer - Roundabout exit symbol shows the exit number).
+     *
+     * Distinct from [Roundabout], whose `exitCount` is the ring's *total* exits and which needs
+     * the per-exit geometry no part of the route description carries. An ordinal is "which exit you
+     * take", so it must never be fed to that symbol's marker count.
+     */
+    data class RoundaboutExit(val exitNumber: Int) : NavSymbol
 }
+
+/**
+ * The symbol for one manoeuvre: the numbered roundabout-exit glyph when the manoeuvre is a roundabout
+ * exit with a known ordinal, and the plain turn arrow otherwise (spec: next-turn-overlay - Turn type
+ * icon).
+ *
+ * The ordinal has to be the manoeuvre's own. An ordinal is "which exit you take", so passing a
+ * neighbouring manoeuvre's would name the wrong exit instead of failing.
+ */
+fun navSymbolFor(turnType: TurnType, roundaboutExitNumber: Int): NavSymbol =
+    if (turnType == TurnType.ROUNDABOUT_LEAVE && roundaboutExitNumber > 0) {
+        NavSymbol.RoundaboutExit(roundaboutExitNumber)
+    } else {
+        NavSymbol.TurnArrow(turnType)
+    }
+
+/** [navSymbolFor] for an instruction's own manoeuvre. */
+fun navSymbolForInstruction(instruction: RouteInstruction): NavSymbol =
+    navSymbolFor(instruction.turnType, instruction.roundaboutExitNumber)
+
+/** [navSymbolFor] for an instruction's "next next" hint, from the hint's own ordinal. */
+fun navSymbolForNextNext(instruction: RouteInstruction): NavSymbol =
+    navSymbolFor(instruction.nextNextTurnType, instruction.nextNextRoundaboutExitNumber)
 
 // ── Main composable ──
 
@@ -63,6 +103,8 @@ fun NavigationArrow(
                 is NavSymbol.TurnArrow -> drawTurnArrow(symbol.type, this.size.width, resolvedColor)
                 is NavSymbol.LaneArrow -> drawLaneArrow(symbol.turn, this.size.width, resolvedColor)
                 is NavSymbol.Roundabout -> drawRoundabout(symbol, this.size.width, resolvedColor)
+                is NavSymbol.RoundaboutExit ->
+                    drawRoundaboutExit(symbol.exitNumber, this.size.width, resolvedColor)
             }
         })
     }
@@ -492,6 +534,29 @@ private fun DrawScope.drawMergeArrow(color: Color, left: Boolean) {
 }
 
 // ── Roundabout ──
+
+/**
+ * The numbered roundabout-exit icon: the shared `:core` glyph, drawn at the icon's own pixel size
+ * and tinted with the surface's colour, so the phone overlay and the car bitmap surfaces cannot
+ * drift apart. An unknown exit ordinal falls back to the plain leave arrow rather than a ring with
+ * an invented number.
+ */
+private fun DrawScope.drawRoundaboutExit(exitNumber: Int, pxSize: Float, color: Color) {
+    if (exitNumber <= 0) {
+        drawTurnArrow(TurnType.ROUNDABOUT_LEAVE, pxSize, color)
+        return
+    }
+    val size = pxSize.toInt().coerceAtLeast(1)
+    drawImage(
+        image = ManeuverSymbols.roundaboutExitBitmap(exitNumber, size).asImageBitmap(),
+        srcOffset = IntOffset.Zero,
+        srcSize = IntSize(size, size),
+        dstOffset = IntOffset.Zero,
+        dstSize = IntSize(size, size),
+        colorFilter = ColorFilter.tint(color),
+        filterQuality = FilterQuality.None
+    )
+}
 
 private fun DrawScope.drawRoundabout(symbol: NavSymbol.Roundabout, pxSize: Float, color: Color) {
     val cx = size.width / 2f

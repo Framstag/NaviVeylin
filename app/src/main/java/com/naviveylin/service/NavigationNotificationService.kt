@@ -211,7 +211,7 @@ class NavigationNotificationService : Service() {
             // (spec: navigation-ongoing-notification — No car tap target without a car hint).
             carOpenIntent = if (hint != null) carOpenIntent(this) else null,
             stopIntent = stopIntent,
-            turnBitmap = ManeuverSymbols::bitmapForTurnType
+            turnBitmap = { type, exitNumber -> if (exitNumber > 0) ManeuverSymbols.roundaboutExitBitmap(exitNumber, ManeuverSymbols.BITMAP_SIZE) else ManeuverSymbols.bitmapForTurnType(type) }
         )
     }
 

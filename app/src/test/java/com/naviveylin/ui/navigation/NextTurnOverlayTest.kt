@@ -8,6 +8,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -40,6 +41,49 @@ class NextTurnOverlayTest {
         "Turn right into Bahnhofstraße",
         "Turn right"
     )
+
+    // --- the numbered roundabout exit (spec: next-turn-overlay - Turn type icon) ---
+
+    private fun roundaboutInstruction(
+        exit: Int,
+        nextNextType: TurnType = TurnType.STRAIGHT_ON,
+        nextNextExit: Int = 0
+    ) = RouteInstruction(
+        450.0, 300.0, 900.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
+        "Take exit $exit onto Bahnhofstraße", "Exit $exit",
+        100.0, nextNextType, "native next-next", "native next-next short",
+        exit, true, nextNextExit
+    )
+
+    @Test
+    fun `a roundabout exit icon carries the exit number`() {
+        val symbol = navSymbolForInstruction(roundaboutInstruction(exit = 3))
+
+        assertEquals(NavSymbol.RoundaboutExit(3), symbol)
+        // and the overlay renders it, so the symbol reaches the row rather than only the decision
+        composeRule.setContent { NextTurnOverlay(instruction = roundaboutInstruction(exit = 3)) }
+        composeRule.onNodeWithText("Exit 3").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a roundabout exit without an ordinal keeps the plain leave arrow`() {
+        assertEquals(
+            NavSymbol.TurnArrow(TurnType.ROUNDABOUT_LEAVE),
+            navSymbolForInstruction(roundaboutInstruction(exit = 0))
+        )
+    }
+
+    @Test
+    fun `the next-next roundabout exit shows its own number`() {
+        val instruction = roundaboutInstruction(
+            exit = 3,
+            nextNextType = TurnType.ROUNDABOUT_LEAVE,
+            nextNextExit = 1
+        )
+
+        assertEquals(NavSymbol.RoundaboutExit(1), navSymbolForNextNext(instruction))
+        assertEquals(NavSymbol.RoundaboutExit(3), navSymbolForInstruction(instruction))
+    }
 
     private fun styleFontSize(capture: () -> Unit): Float {
         var style: TextStyle? = null

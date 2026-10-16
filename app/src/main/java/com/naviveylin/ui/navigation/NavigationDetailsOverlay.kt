@@ -55,6 +55,12 @@ fun NavigationDetailsOverlay(
     currentRoadInfo: CurrentRoadInfo? = null,
     remainingDistance: Double,
     etaMillis: Long,
+    /**
+     * The same two progress percents the routing status card carries, so the expanded view shows
+     * the same rings (spec: navigation-status-details — The same rings on every host of the row).
+     */
+    distanceProgressPercent: Int? = null,
+    timeProgressPercent: Int? = null,
     onStopNavigation: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -113,6 +119,8 @@ fun NavigationDetailsOverlay(
             NavigationStatsRow(
                 remainingDistance = remainingDistance,
                 etaMillis = etaMillis,
+                distanceProgressPercent = distanceProgressPercent,
+                timeProgressPercent = timeProgressPercent,
                 onStopNavigation = onStopNavigation
             )
 
@@ -144,7 +152,7 @@ fun NavigationDetailsOverlay(
                     ) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                             NavigationArrow(
-                                symbol = NavSymbol.TurnArrow(instruction.turnType),
+                                symbol = navSymbolForInstruction(instruction),
                                 size = 28.dp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )

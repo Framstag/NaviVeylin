@@ -156,6 +156,69 @@ class NavigationNotificationBuilderTest {
         assertEquals(NotificationManagerCompat.IMPORTANCE_UNSPECIFIED, extender.importance)
     }
 
+    // --- the car hint icon's roundabout exit number (spec: auto-navigation-hints - Car hint content) ---
+
+    private fun roundaboutHint(exitNumber: Int) = CarHintContent(
+        title = "Exit $exitNumber",
+        text = "350 m · 12:34",
+        turnType = TurnType.ROUNDABOUT_LEAVE,
+        roundaboutExitNumber = exitNumber
+    )
+
+    @Test
+    fun `the car hint icon shows the roundabout exit number`() {
+        // This surface takes a bitmap, so it cannot fall back on the host's numbered roundabout: the
+        // number has to reach the icon provider or the rail widget shows a numberless roundabout.
+        var receivedType: TurnType? = null
+        var receivedExit = -1
+
+        NavigationNotificationBuilder.carExtender(
+            context = context,
+            hint = roundaboutHint(exitNumber = 3),
+            carOpenIntent = carTapTarget,
+            stopIntent = stopIntent(),
+            turnBitmap = { type, exitNumber ->
+                receivedType = type
+                receivedExit = exitNumber
+                ManeuverSymbols.bitmapForTurnType(type)
+            }
+        )
+
+        assertEquals(TurnType.ROUNDABOUT_LEAVE, receivedType)
+        assertEquals(3, receivedExit)
+    }
+
+    @Test
+    fun `a car hint for a roundabout exit without an ordinal keeps the plain arrow`() {
+        var receivedExit = -1
+
+        NavigationNotificationBuilder.carExtender(
+            context = context,
+            hint = roundaboutHint(exitNumber = 0),
+            carOpenIntent = carTapTarget,
+            stopIntent = stopIntent(),
+            turnBitmap = { type, exitNumber ->
+                receivedExit = exitNumber
+                ManeuverSymbols.bitmapForTurnType(type)
+            }
+        )
+
+        assertEquals(0, receivedExit)
+    }
+
+    @Test
+    fun `the car hint carries the manoeuvre's own roundabout exit number`() {
+        // The formatter is what puts the number into the hint the builder reads.
+        val instruction = RouteInstruction(
+            350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
+            "Take exit 3 onto Bahnhofstraße", "Exit 3",
+            0.0, TurnType.STRAIGHT_ON, "", "", 3, true, 0
+        )
+        val state = NavigationState(isNavigating = true, nextInstruction = instruction)
+
+        assertEquals(3, NavigationNotificationContentFormatter.carHint(state, resolver)!!.roundaboutExitNumber)
+    }
+
     @Test
     fun freeDrivingNotificationIsNotExtended() {
         val state = NavigationState(isNavigating = false, currentSpeedKmH = 54.0)
@@ -170,7 +233,7 @@ class NavigationNotificationBuilderTest {
             openIntent = phoneTapTarget,
             carOpenIntent = carTapTarget,
             stopIntent = stopIntent(),
-            turnBitmap = ManeuverSymbols::bitmapForTurnType
+            turnBitmap = { type, _ -> ManeuverSymbols.bitmapForTurnType(type) }
         )
 
         assertEquals(null, hint)
@@ -248,7 +311,7 @@ class NavigationNotificationBuilderTest {
             openIntent = openIntent,
             carOpenIntent = carOpenIntent,
             stopIntent = stopIntent(),
-            turnBitmap = ManeuverSymbols::bitmapForTurnType
+            turnBitmap = { type, _ -> ManeuverSymbols.bitmapForTurnType(type) }
         )
     }
 

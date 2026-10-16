@@ -709,6 +709,22 @@ class NavigationEngine @Inject constructor(
      * (spec: `route-calculation-feedback` — A superseded calculation never clears the
      * live calculation's state). Main-thread only.
      */
+    /**
+     * One coordinate-free line per roundabout instruction, not one per position update: the engine is
+     * fed on every fix, and the fields only change when the manoeuvre does (task 7.2). Main-thread only,
+     * like the state it reads. The line's shape is asserted in `RoundaboutInstructionDiagnosticsTest`.
+     */
+    private fun logRoundaboutInstruction(instruction: RouteInstruction) {
+        if (!logsRoundabout(instruction)) return
+        val line = roundaboutInstructionLine(instruction)
+        if (line == lastRoundaboutLine) return
+        lastRoundaboutLine = line
+        DiagnosticsLog.log(ROUNDABOUT_TAG, line)
+    }
+
+    /** Last roundabout line logged, so an unchanged manoeuvre is not logged again per fix. */
+    private var lastRoundaboutLine: String? = null
+
     private fun endCalculation(token: Long,
                                outcome: CalculationOutcome,
                                failure: NavigationFailure? = null): Boolean {
@@ -923,6 +939,7 @@ class NavigationEngine @Inject constructor(
                         _state.value.currentStepIndex,
                         instruction
                     )
+                    logRoundaboutInstruction(instruction)
                     _state.update { it.copy(
                         nextInstruction = instruction,
                         currentStepIndex = idx
@@ -1148,6 +1165,9 @@ class NavigationEngine @Inject constructor(
          * coordinates).
          */
         internal const val ROUTE_TAG = "ROUTE"
+
+        /** Roundabout instruction diagnostics (spec: `osmscout-jni`). */
+        internal const val ROUNDABOUT_TAG = "RBT"
 
         /**
          * Diagnostics tag of the reroute confirmation measurement entries (spec:

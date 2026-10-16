@@ -61,6 +61,27 @@ class CarSessionSurfaceComposeTest {
         formatDistanceNumber(DISTANCE_TO_TURN)
     )
 
+    /**
+     * The car session surface renders the same two progress rings as the phone's row, from the
+     * same shared journey (spec: `navigation-status-details` — The same rings on every host of
+     * the row). It is an ordinary Compose surface, so no host substitute is needed here.
+     */
+    @Test
+    fun ringsShownOnCarSurface() {
+        composeRule.setContent {
+            CarSessionSurface(
+                navigationState = navigating.copy(
+                    totalDistance = 10_000.0,
+                    navigationStartTimeMillis = System.currentTimeMillis() - 5 * 60_000L
+                ),
+                onShowMap = {}
+            )
+        }
+
+        composeRule.onNodeWithTag("distanceProgressRing", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("timeProgressRing", useUnmergedTree = true).assertExists()
+    }
+
     @Test
     fun theSurfaceStatesThatTheGuidanceIsOnTheCarDisplay() {
         composeRule.setContent {

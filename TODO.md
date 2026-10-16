@@ -3216,8 +3216,69 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Fix candidate**: give the two `:app` test tasks a serialised or sharded policy (or raise the Compose
   idling budget for them), and record the resulting gate baseline in `guidelines/Build.md` §2 beside the
   2026-10-04 numbers, so that a red gate means a regression again.
+- **Falsified 2026-10-16** ✗: the `MemoryPressureResponder` poll loop is **not** the cause. With that 30 s loop not started at all — an experiment-only edit in `.pi/tmp/verify-gate`, `:app:testAutomotiveDebugUnitTest -PforceTests --no-build-cache`, 1 fork — the suite still hangs: 27 `AppNotIdleException`, first in `ZoomControlsAnimationTest`, then `BasemapSectionComposeTest`
+  (`.pi/logs/195-confirm-nopoll-0652.log`). Turning `pollEnabled = false` could not have answered this, since the wake-up itself
+  would still fire. The bisection's earlier candidate list is therefore empty.
+- **Current candidates** ℹ (nothing else in the tree holds a process-lifetime timer):
+  `ui/map/MapCanvasScreen.kt:636-642` — `LaunchedEffect(Unit) { while (isActive) { withFrameNanos { … } } }`, a frame-clock
+  loop that writes view-model state whenever it has something to animate; `ui/map/MapCanvasViewModel.kt:1353-1360` and
+  `:1449-1456` — two `viewModelScope.launch(Dispatchers.Default) { while (true) { delay(1_000 / fixQualityTickMs); … } }`
+  tick loops, the 1 s one writing `_uiState` on every tick; `data/AmbientLightMonitor.kt:63,130` — a
+  `Handler(Looper.getMainLooper())` with `postDelayed(…, DEBOUNCE_MS = 10_000)`, created by `MainActivity`.
+  `NativeTileDataCache`'s configuration entry point is `apply(client, tiles)` and it is deliberately Android-free, so gating
+  the poll on "configured" remains feasible if it is ever wanted.
+- **Next hypothesis worth testing** ℹ: the classes that hang are the ones that **compose the map screen**, and whether that screen
+  ever idles depends on app-scoped state an earlier test left behind (a fix, follow mode, an eased animation) — which would
+  explain why these classes are green alone, why the boundary moves with the class order, and why both `--tests` slices were
+  green. The sharpest cheap experiment is a **thread dump at the first hang** (`kill -3` the test executor, read the log):
+  it separates "the frame clock keeps producing frames" from "a 1 s tick loop keeps writing state".
+- **Thread dump at the hang, 2026-10-16** ℹ — the instrument the earlier attempts lacked. The 1-fork run was stopped at its first
+  hang (`SpeedWidgetTest > limitSignShownWhenMaxKnown`) and the JVM dumped 79 threads:
+
+  ```
+  "SDK 36 Main Thread"            cpu=135645ms  elapsed=198s   (~68% CPU — spinning)
+      at android.os.TestLooperManager.$$robo$$…$poll(TestLooperManager.java:111)
+  DefaultDispatcher-worker-1…8    parked, cpu≈2s each — no app code running anywhere
+  ```
+
+  Nothing ticks in the background and the frame loop hypothesis of the previous bullet is dead with it: the never-idle condition is a
+  **main-looper work source that never drains** — a task that re-posts itself, or a frame callback still owned by a composition nobody
+  disposed — not background work at all. Log: `.pi/logs/195-threaddump-*.log` (40 of the 79 threads carry Compose/Robolectric/coroutine frames).
+- **Consequence for the candidate list** ✗: the map screen's `withFrameNanos` loop cannot be the cause either — exactly **one** test file in the
+  repository composes `MapCanvasScreen` (`MapNavColumnWidthProbeTest`), while the hanging classes compose their own sections and widgets
+  (`BasemapSectionComposeTest`, `MapUpdatesSectionTest`, … and `SpeedWidgetTest`, which builds a real `MapCanvasViewModel`). So the poison reaches
+  these tests through a **shared Robolectric sandbox**: Robolectric reuses a class loader for the same configuration, so statics — the Hilt graph,
+  `DiagnosticsLog`, a global `Recomposer`/frame clock — survive from class to class, and the classes that stay green in between are plausibly the
+  ones whose `@Config` forces a fresh sandbox. The next instrument is therefore Robolectric's own sandbox/class-loader boundary (which test
+  *leaves* the work source behind), not more `--tests` slices.
 - **Related**: §194 (the other, independent red cause); `guidelines/Build.md` §2 (the baseline and the
   forcing rule), §4 (result evaluation); found by `distinguish-routing-failures` task 7.3.
+- **Re-diagnosed 2026-10-15 on a quiet host** ✗, which supersedes the "loaded host" reading of the first two
+  bullets: `:app:testAutomotiveDebugUnitTest` **alone** (`-PforceTests --no-build-cache`, no other task in the
+  graph, the declared 2 forks) reproduces the same classes — 60 `AppNotIdleException` lines and 38 distinct
+  cases in ~20 minutes, cascading through the class order — while `BasemapSectionComposeTest` **alone** is green
+  (4 tests, 0 failures) and, in the same tree, `:auto` is 853/0, `:core` 633/0 and `osmscout-client-java` 39/0.
+  The aggregate `./gradlew test -PforceTests --no-build-cache` on that tree gave `:app` automotive
+  **2030 tests / 38 failures**, every one `AppNotIdleException`, **0 assertion failures**, `BUILD FAILED` — and
+  its log shows the `:core` and `:auto` test tasks and all three CMake ABI builds **finishing before** the
+  `:app` test task starts, so nothing external was loading the host while the `:app` cases ran.
+- **Quiet-host proof for the run above** ℹ: no other worktree's `build/` directory was written inside the
+  window (`.pi/tmp/verify-routing/build` 20:03, `app/build` a day old, only `.pi/tmp/verify-gate/build` at
+  21:51), and no other Gradle build was alive at the start. Logs:
+  `.pi/logs/gate-195-1015-2105.log` (aggregate), `.pi/logs/auto-suite-alone-2155.log` (the variant alone).
+- **What the re-diagnosis changes** ✗: these timeouts are not "the full parallel forced run on a loaded host"
+  but a property of **one variant's own suite**, cascading: a class that is green alone never gets idle once
+  earlier classes have run in the same fork, and every poisoned case burns its full 60 s budget — which is why
+  the suite now takes an hour rather than minutes. So the fix candidate above ("serialise the two `:app` test
+  tasks", "a longer idling budget", "shard them") does not fit: those change the *load* or the *budget*, and
+  neither explains a cascade that survives on an idle machine. The next step is to **bisect that variant's
+  class order** to find the first case after which composition stops settling — a leak left by a preceding
+  class (a dispatcher, a Compose clock loop, or a resource that keeps the frame clock busy), not a slow render.
+- **Unrelated observation** ℹ: in the aggregate run the mobile unit-test chain starts
+  (`:app:preMobileDebugUnitTestBuild` is in the log) but **no `:app:testMobileDebugUnitTest` task line appears**
+  and no mobile results directory is written, so that run's `:app` tallies are automotive-only. A dry run does
+  list both `:app:testMobileDebugUnitTest` and `:app:testAutomotiveDebugUnitTest`, so this needs explaining
+  before any per-variant tally is quoted as the gate's.
 
 ## 196. The phone device suites are bound to a map dataset the reference AVD does not have — Found 2026-10-13 running them while implementing `distinguish-routing-failures` (task 6.1)
 **id:** 196 · **category:** verification · **class:** bug · **status:** open

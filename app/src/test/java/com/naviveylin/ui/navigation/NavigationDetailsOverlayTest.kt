@@ -43,6 +43,56 @@ class NavigationDetailsOverlayTest {
         }
     }
 
+    // --- the numbered roundabout exit (spec: navigation-status-details - Route description list) ---
+
+    private fun roundaboutSteps(): List<RouteInstruction> = listOf(
+        RouteInstruction(
+            500.0, 300.0, 500.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
+            "Take exit 3 onto Bahnhofstraße", "Exit 3",
+            0.0, TurnType.STRAIGHT_ON, "", "", 3, true, 0
+        ),
+        RouteInstruction(
+            900.0, 300.0, 400.0, TurnType.ROUNDABOUT_LEAVE, "Marktplatz",
+            "Take exit 1 onto Marktplatz", "Exit 1",
+            0.0, TurnType.STRAIGHT_ON, "", "", 1, true, 0
+        ),
+        RouteInstruction(
+            1300.0, 300.0, 400.0, TurnType.ROUNDABOUT_LEAVE, "Ringstraße",
+            "Leave roundabout", "Exit ?",
+            0.0, TurnType.STRAIGHT_ON, "", "", 0, true, 0
+        )
+    )
+
+    @Test
+    fun `a roundabout exit step icon carries that step's number`() {
+        val steps = roundaboutSteps()
+
+        assertEquals(NavSymbol.RoundaboutExit(3), navSymbolForInstruction(steps[0]))
+        assertEquals(NavSymbol.RoundaboutExit(1), navSymbolForInstruction(steps[1]))
+
+        // and the list renders those steps, so the icon decision reaches the row rather than only
+        // the helper: the expanded view is the surface the delta's scenario names.
+        composeRule.setContent {
+            NavigationDetailsOverlay(
+                instructions = steps,
+                currentStepIndex = 0,
+                remainingDistance = 5000.0,
+                etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
+                onStopNavigation = {},
+                onDismiss = {}
+            )
+        }
+        composeRule.onNodeWithText("Take exit 3 onto Bahnhofstraße").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a roundabout exit step without an ordinal keeps the plain icon`() {
+        assertEquals(
+            NavSymbol.TurnArrow(TurnType.ROUNDABOUT_LEAVE),
+            navSymbolForInstruction(roundaboutSteps()[2])
+        )
+    }
+
     private fun launchOverlay(currentStepIndex: Int) {
         composeRule.setContent {
             NavigationDetailsOverlay(
@@ -54,6 +104,30 @@ class NavigationDetailsOverlayTest {
                 onDismiss = {}
             )
         }
+    }
+
+    /**
+     * The expanded view carries the same two progress rings as the routing status card: it is the
+     * second host of the shared stats row (spec: `navigation-status-details` — The same rings on
+     * every host of the row).
+     */
+    @Test
+    fun ringsShownInExpandedView() {
+        composeRule.setContent {
+            NavigationDetailsOverlay(
+                instructions = instructions(),
+                currentStepIndex = 0,
+                remainingDistance = 5000.0,
+                etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
+                distanceProgressPercent = 42,
+                timeProgressPercent = 50,
+                onStopNavigation = {},
+                onDismiss = {}
+            )
+        }
+
+        composeRule.onNodeWithTag("distanceProgressRing", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("timeProgressRing", useUnmergedTree = true).assertExists()
     }
 
     @Test

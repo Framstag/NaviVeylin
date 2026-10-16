@@ -44,6 +44,7 @@ Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared
 | Route requested without the precise location grant | Actionable dialog with the shared wording (`location_precise_required_navigation`, `PreciseLocationRequiredDialog`): "Grant precise location" re-requests the permission while the platform can still ask, and opens the app's system settings once it will not ask again — no route request reaches the routing engine meanwhile (change `fix-location-permission-scope`, spec `location-permissions` — Starting navigation requires precise location) | **Same wording**, non-blocking: the refusal is published on the shared navigation state, so the session shows it in the existing guarded error notice (one row, back action). The car SHALL NOT launch a settings screen — platform constraint, so the driver is told to grant it on the phone / in the system settings. Free driving and the map keep working on both surfaces with approximate location |
 | A shared map link that carries neither a coordinate nor a place name | Non-blocking snackbar next to the map with the wording `shared_link_unreadable` ("Shared link could not be read"); the search field keeps its content and the panel is not opened — the link text is never searched for (spec: `share/location-receiving` — An unreadable shared map link is reported, never searched) | Reported on the shared navigation state, so the session shows it in the existing guarded error notice: wording `deep_link_unreadable`, no template message slot on the car, and the link is no longer geocoded (which is what the session did before — the geocode of a URL can only fail). Same intent, surface-appropriate carrier (change `read-shared-google-maps-links`, design D6) |
 | A route calculation that failed | The route panel shows the wording for the failure's **reason** (`navigation_failure_*` in `:core`, chosen by `navigationFailureWordingRes`), states the affected end and the distance to the nearest usable road when the router reported one, and offers **`[Open Map Manager]`** where the cause is missing or unreadable map data (`hasMapManagerAction()`); while navigating the same wording reaches the snackbar (change `distinguish-routing-failures`, spec `routing-failure-reporting`) | **Same wording** from the same shared resource, plus one statement the platform forces: `car_failure_maps_on_phone` — a car session must not launch a phone screen, so the notice says where the action is instead of offering it. One notice, no action strip. The failure carries its origin, so each surface presents only what concerns it (`failureAppliesTo`) |
+| A roundabout exit's turn icon | The app's own numbered roundabout glyph — the ring with the exit ordinal inside — for the next-turn row (64 dp), the next-next row (36 dp), the step icons of the route panel and the full-screen route description, and the notification's large icon (change `fix-roundabout-exit-number`, spec `roundabout-renderer`) | The car's instruction panel and rail widget are given **both** identifications: the maneuver is built as the number-bearing type (`TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW`/`_CCW` + `setRoundaboutExitNumber`) **and** the app's numbered glyph is supplied as well, because which of the two the host draws is host behaviour — phone projection is rendered by Google's host while the DHU drives the AOSP reference renderer, and neither is observable from a test here. Whichever glyph the driver sees, it carries the exit number (spec `auto/navigation-view` — A roundabout exit is identified by its ordinal). The car route-description list and the car hint take a bitmap and so use the app's glyph alone. Where the exit ordinal is unknown both variants keep the plain roundabout arrow. **The label stays identical**: the cue, the panel text and the notification wording are the same strings on both variants |
 
 ### Why the phone is not locked during a car session
 
@@ -796,6 +797,16 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   current speed 24sp bold, speed-limit sign 64dp with 28sp digits, turn
   distance 32sp bold, turn description/destination 22sp, next-next hint 20sp
   (smaller than the primary instruction).
+- **The numbered roundabout exit (change `fix-roundabout-exit-number`).** A roundabout exit's turn icon
+  SHALL name the exit it takes — the number is inside the ring — and SHALL stay legible at the icon's
+  minimum size: the phone overlay draws it at 64 dp for the next turn and 36 dp for the next-next hint,
+  the routing status row's step icons at 28 dp. The digit's size follows the ring and is shrunk to fit
+  rather than clipped, and the artwork comes from one implementation (`ManeuverSymbols` in `:core`,
+  drawn at the pixel size the surface needs) so the phone and the car cannot drift apart. On Android
+  Auto the instruction panel and the rail widget are given the host's own numbered roundabout *and* the app's
+  glyph, because which of the two a given host draws is not observable from here; the car route-description
+  list and the car hint take a bitmap and so use the app's glyph alone. The instruction wording stays
+  identical on both variants.
 - **Tap targets (phone overlays).** An overlay's own control SHALL never sit inside its
   container's tap target: the control's hit area and any surrounding "open the details" area
   are disjoint, and the control's hit area is at least 48 dp in each dimension. Reading the
@@ -803,11 +814,34 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   card, so a tap aimed at the stop control's coordinates was handled by the container and the
   driver never reached the stop (change `fix-nav-overlay-stop-tap`, spec
   `navigation-status-details`). The card's details tap now lives on two regions that stop
-  short of the control (`navStatusDetailsRegion` for the road name and progress lines,
+  short of the control (`navStatusDetailsRegion` for the road name — the progress lines that used
+  to sit under it are gone, change `nav-status-progress-rings` — and
   `navStatusDetailsStatsRegion` for the stats strip), and the control is a 48 dp box of its
   own (`testTag` `stopNavigation`). A shared row that two hosts put a tap area on passes that
   area in as one parameter (`NavigationStatsRow.leadingModifier`) rather than duplicating the
   control per host.
+- **Route progress lives in the stats row's glyphs, not in a row of its own (phone + car,
+  change `nav-status-progress-rings`, spec `navigation-status-details`).** The routing status card
+  SHALL carry the driver's progress as a ring around the glyph of the value it belongs to — the
+  remaining-distance glyph (travelled share of the route) and the remaining-time glyph (elapsed
+  share of the estimated travel time), filled clockwise from twelve o'clock with the completed
+  fraction — and SHALL NOT spend a row on progress lines: the two full-width bars it replaced cost
+  37 dp of the card's 145 dp, and the card measured **145.0 dp before → 120.0 dp after** (forced
+  Robolectric case `NavigationStateOverlayComposeTest.cardHeightStaysWithinTheBound`, mdpi, measured
+  2026-10-13; the saving is 25 dp rather than the removed block's 37 dp because the row grew around
+  the larger slot, its height being driven by the value's text line rather than by the 48 dp stop
+  control). The three value slots SHALL be one fixed size and share one top edge (28 dp slot, 16 dp
+  glyph, `NavStatSlot`/`NavStatGlyph`), so a value whose progress is unknown keeps its place instead
+  of shifting the row; the arc's stroke SHALL be a density-independent 3 dp (`NavStatRingStroke`,
+  measured `3 px at 1x = 3.0 dp`, `6 px at 2x = 3.0 dp`) — the same rule as every other drawn
+  dimension in this section. The ring carries **no** progress semantics: the glyph keeps the
+  content description that names its value and the value itself is text in the same row, so a
+  `progressBarRangeInfo` would lengthen every TalkBack traversal with a percent the design
+  deliberately does not print. A reroute that lowers a percent moves the arc on the next
+  navigation-state update; the card never holds a stale ring. The arrival-time glyph stays plain
+  and is a distinct glyph (`Icons.Default.Flag`) because it shares the time dimension with the
+  remaining time — two ringed clocks would show one percent twice. The car session surface renders
+  the same row, so it carries the same rings (`cross-variant-ui-parity`).
 - **A stop control's action (phone).** Every stop affordance SHALL end navigation through the one
   session-aware stop path — the screen's single `stopNavigation` lambda, which calls
   `navigationViewModel.stopNavigation()` and lets the session decide the route's fate. An open

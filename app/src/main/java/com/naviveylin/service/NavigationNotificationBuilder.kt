@@ -110,7 +110,8 @@ internal object NavigationNotificationBuilder {
      * @param carOpenIntent car tap target for the rail widget, null when the
      *   caller has none (the car host then uses [openIntent])
      * @param stopIntent end-navigation action target
-     * @param turnBitmap maneuver artwork for the car large icon
+     * @param turnBitmap maneuver artwork for the car large icon, taking the maneuver's
+     *   turn type and its roundabout exit ordinal
      */
     fun build(
         context: Context,
@@ -120,7 +121,7 @@ internal object NavigationNotificationBuilder {
         openIntent: PendingIntent,
         carOpenIntent: PendingIntent?,
         stopIntent: PendingIntent,
-        turnBitmap: (TurnType) -> Bitmap
+        turnBitmap: (TurnType, Int) -> Bitmap
     ): Notification {
         val stopLabel = context.getString(R.string.stop_navigation)
         val builder = NotificationCompat.Builder(context, channelId)
@@ -160,7 +161,7 @@ internal object NavigationNotificationBuilder {
         hint: CarHintContent,
         carOpenIntent: PendingIntent?,
         stopIntent: PendingIntent,
-        turnBitmap: (TurnType) -> Bitmap
+        turnBitmap: (TurnType, Int) -> Bitmap
     ): CarAppExtender {
         val extender = CarAppExtender.Builder()
             .setContentTitle(hint.title)
@@ -171,7 +172,7 @@ internal object NavigationNotificationBuilder {
                 stopIntent
             )
         carOpenIntent?.let { extender.setContentIntent(it) }
-        hint.turnType?.let { extender.setLargeIcon(turnBitmap(it)) }
+        hint.turnType?.let { extender.setLargeIcon(turnBitmap(it, hint.roundaboutExitNumber)) }
         return extender.build()
     }
 }

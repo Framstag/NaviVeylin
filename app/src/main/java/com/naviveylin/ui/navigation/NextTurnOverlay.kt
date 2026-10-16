@@ -73,7 +73,7 @@ fun NextTurnOverlay(
                 verticalAlignment = Alignment.Top
             ) {
                 NavigationArrow(
-                    symbol = NavSymbol.TurnArrow(instruction.turnType),
+                    symbol = navSymbolForInstruction(instruction),
                     size = 64.dp,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
@@ -137,7 +137,7 @@ fun NextTurnOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     NavigationArrow(
-                        symbol = NavSymbol.TurnArrow(instruction.nextNextTurnType),
+                        symbol = navSymbolForNextNext(instruction),
                         size = 36.dp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
@@ -158,7 +158,8 @@ fun NextTurnOverlay(
                             shortDescription = TurnInstructionLocalizer.shortDescriptionFor(
                                 resolver,
                                 instruction.nextNextTurnType,
-                                instruction.nextNextShortDescription
+                                instruction.nextNextShortDescription,
+                                instruction.nextNextRoundaboutExitNumber
                             )
                         )
                         Text(

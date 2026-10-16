@@ -45,11 +45,16 @@ data class NavigationNotificationContent(
  *   destination while no maneuver is known) plus the arrival time
  * @param turnType turn type for the car large icon; null when no maneuver is
  *   known yet, in which case no large icon is offered
+ * @param roundaboutExitNumber the maneuver's roundabout exit ordinal, 0 when it is
+ *   not a roundabout exit — this surface takes a bitmap, so it cannot fall back on
+ *   the host's own numbered roundabout and the number has to be drawn into the icon
+ *   (spec: auto-navigation-hints - Car hint content)
  */
 data class CarHintContent(
     val title: String,
     val text: String,
-    val turnType: TurnType?
+    val turnType: TurnType?,
+    val roundaboutExitNumber: Int = 0
 )
 
 /**
@@ -149,7 +154,8 @@ object NavigationNotificationContentFormatter {
         return CarHintContent(
             title = instructionText(instruction, resolver),
             text = resolver.get(R.string.nav_hint_distance_eta, distance, eta),
-            turnType = instruction?.turnType
+            turnType = instruction?.turnType,
+            roundaboutExitNumber = instruction?.roundaboutExitNumber ?: 0
         )
     }
 

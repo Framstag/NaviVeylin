@@ -143,6 +143,13 @@ fun RouteSummary(
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                     NavigationArrow(
+                        // Deliberately not the numbered roundabout-exit symbol: this step list is built
+                        // from the route's description lines, whose roundabout text is the bare
+                        // "Leave roundabout" (RouteDescription::RoundaboutLeaveDescription::GetDebugString)
+                        // - it carries no exit ordinal, and no requirement asks this icon for one. The
+                        // surfaces that show the number are the next-turn overlay, the expanded route
+                        // description, the car instruction panel and the car hint, all of which have a
+                        // RouteInstruction (change `fix-roundabout-exit-number`).
                         symbol = NavSymbol.TurnArrow(step.turnType),
                         size = 28.dp,
                         color = MaterialTheme.colorScheme.onSurface

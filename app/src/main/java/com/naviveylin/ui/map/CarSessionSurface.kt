@@ -34,6 +34,8 @@ import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.stringResolver
 import com.naviveylin.ui.navigation.NavigationStatsRow
+import com.naviveylin.ui.route.elapsedTimePercent
+import com.naviveylin.ui.route.routeProgressPercent
 
 /**
  * What the phone shows while a car session owns the map (spec: `map-canvas-screen` — The
@@ -146,10 +148,21 @@ fun CarSessionSurface(
                 Spacer(Modifier.height(20.dp))
                 // The phone's own stats row (arrival time, remaining time, remaining
                 // distance), fed by the shared engine state. No stop action here: the
-                // surface's single action is the map.
+                // surface's single action is the map. The row carries the same progress rings
+                // as the phone's, computed from the same shared journey (spec:
+                // `navigation-status-details` — The same rings on every host of the row).
                 NavigationStatsRow(
                     remainingDistance = navigationState.remainingDistance,
                     etaMillis = navigationState.etaMillis,
+                    distanceProgressPercent = routeProgressPercent(
+                        navigationState.totalDistance,
+                        navigationState.remainingDistance
+                    ),
+                    timeProgressPercent = elapsedTimePercent(
+                        start = navigationState.navigationStartTimeMillis,
+                        eta = navigationState.etaMillis,
+                        now = System.currentTimeMillis()
+                    ),
                     onStopNavigation = null,
                     modifier = Modifier
                         .fillMaxWidth()

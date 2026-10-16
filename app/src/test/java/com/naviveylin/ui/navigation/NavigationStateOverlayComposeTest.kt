@@ -2,8 +2,13 @@ package com.naviveylin.ui.navigation
 
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -15,9 +20,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Compose UI tests for the routing status card progress lines
- * (spec: navigation-status-details — "Route progress lines in routing status
- * card"). Robolectric with the default sandbox — no @Config(sdk=...) here,
+ * Compose UI tests for the routing status card's progress rings
+ * (spec: navigation-status-details — "Route progress rings on the routing status row").
+ * Robolectric with the default sandbox — no @Config(sdk=...) here,
  * per the JNI stub classloader rule.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -44,20 +49,105 @@ class NavigationStateOverlayComposeTest {
         }
     }
 
+    /** The value glyph slots the row draws, each in the same fixed slot. */
+    private fun childrenOf(tag: String): Int =
+        composeRule.onNodeWithTag(tag, useUnmergedTree = true)
+            .onChildren().fetchSemanticsNodes().size
+
     @Test
-    fun progressLinesShownWhenValuesPassed() {
+    fun ringsShownWhenPercentsPassed() {
         launchOverlay(distanceProgress = 42, timeProgress = 50)
 
-        composeRule.onNodeWithTag("distanceProgressLine", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag("timeProgressLine", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("distanceProgressRing", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("timeProgressRing", useUnmergedTree = true).assertExists()
+        // …and the full-width bars they replaced are gone, not merely unused: the card renders
+        // no bar row any more (spec: the lines requirement is removed by this change).
+        composeRule.onNodeWithTag("distanceProgressLine", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("timeProgressLine", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
-    fun progressLinesHiddenWhenValuesNull() {
+    fun noRingsWhenPercentsNull() {
         launchOverlay(distanceProgress = null, timeProgress = null)
 
-        composeRule.onNodeWithTag("distanceProgressLine", useUnmergedTree = true).assertDoesNotExist()
-        composeRule.onNodeWithTag("timeProgressLine", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("distanceProgressRing", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("timeProgressRing", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun etaSlotCarriesNoRing() {
+        launchOverlay(distanceProgress = 42, timeProgress = 50)
+
+        // A ringed slot holds its ring and its glyph; the arrival-time slot holds the glyph
+        // alone (spec: the two rings are told apart from the plain glyph).
+        assertEquals("the remaining-time slot must hold its ring", 2, childrenOf("timeGlyphSlot"))
+        assertEquals("the remaining-distance slot must hold its ring", 2, childrenOf("distanceGlyphSlot"))
+        assertEquals("the arrival-time slot must carry no ring", 1, childrenOf("etaGlyphSlot"))
+    }
+
+    @Test
+    fun rowShowsNoPercentText() {        launchOverlay(distanceProgress = 42, timeProgress = 50)
+
+        val values = composeRule.onAllNodes(
+            hasText("", substring = true) and hasAnyAncestor(hasTestTag("navStatusDetailsStatsRegion")),
+            useUnmergedTree = true
+        )
+        // Exactly the three values: no label and no percent value was added to the row
+        // (spec: No labels or percent values shown).
+        values.assertCountEquals(3)
+        composeRule.onAllNodes(hasText("%", substring = true), useUnmergedTree = true)
+            .assertCountEquals(0)
+    }
+
+    // --- The card's own height ---------------------------------------------------
+    // The card sits in the bottom band of a driving screen, so its height is map the driver
+    // does not see. This is the measured bound the ring change is held against (design D1,
+    // guidelines/Build.md §2 "measure first"): the card measured 145.0 dp with the two progress
+    // lines and 120.0 dp with the rings, so the bound sits between the two rather than on
+    // either number — an assertion pinned to the current value breaks on the next 1 dp change
+    // (measured 2026-10-13).
+
+    @Test
+    fun cardHeightStaysWithinTheBound() {
+        launchOverlay(distanceProgress = 42, timeProgress = 50)
+
+        val cardPx = composeRule.onNodeWithTag("routingStatusCard", useUnmergedTree = true)
+            .fetchSemanticsNode().size.height
+        val boundPx = with(composeRule.density) { 130.dp.toPx() }
+        val density = composeRule.density.density
+        println("RoutingStatusCardHeight ${cardPx / density}dp (bound 130dp)")
+
+        assertTrue(
+            "the routing status card must stay within 130 dp (measured ${cardPx / density} dp)",
+            cardPx <= boundPx
+        )
+    }
+
+    // --- The three value slots' shared geometry -----------------------------------
+    // One size, one top edge, whether or not a ring is drawn in them: a value whose progress is
+    // unknown keeps its place instead of shifting the row
+    // (spec: navigation-status-details — A glyph without progress keeps its place in the row).
+
+    @Test
+    fun glyphSlotsShareOneSizeAndAlignment() {
+        // One value without progress and one with: the ringed slot must not outgrow the plain one.
+        launchOverlay(distanceProgress = null, timeProgress = 50)
+
+        val eta = composeRule.onNodeWithTag("etaGlyphSlot", useUnmergedTree = true).fetchSemanticsNode()
+        val time = composeRule.onNodeWithTag("timeGlyphSlot", useUnmergedTree = true).fetchSemanticsNode()
+        val distance = composeRule.onNodeWithTag("distanceGlyphSlot", useUnmergedTree = true)
+            .fetchSemanticsNode()
+
+        assertEquals("the arrival-time slot must match the remaining-time slot", eta.size, time.size)
+        assertEquals("…and the remaining-distance slot", eta.size, distance.size)
+        assertEquals(
+            "the slots must share one top edge",
+            eta.boundsInRoot.top.toDouble(), time.boundsInRoot.top.toDouble(), 0.5
+        )
+        assertEquals(
+            "the slots must share one top edge (distance)",
+            eta.boundsInRoot.top.toDouble(), distance.boundsInRoot.top.toDouble(), 0.5
+        )
     }
 
     // --- Stop control as a tap target of its own --------------------------------

@@ -208,6 +208,22 @@ fun MapCanvasScreen(
     val freeDrivingStatus by viewModel.freeDrivingStatus.collectAsState()
     val routeState by routePanelViewModel.uiState.collectAsState()
     val navState by navigationViewModel.state.collectAsState()
+    // Route progress for the routing status row (spec: `navigation-status-details` — Route
+    // progress rings on the routing status row): the travelled share of the route's distance and
+    // the elapsed share of the estimated travel time. Both are null outside navigation, so no
+    // ring is drawn then (same spec — Progress rings not shown outside navigation). One pair
+    // feeds the status card and the expanded details view, so the two phone surfaces cannot
+    // disagree about the same journey.
+    val distanceProgressPercent = if (navState.isNavigating) {
+        routeProgressPercent(navState.totalDistance, navState.remainingDistance)
+    } else null
+    val timeProgressPercent = if (navState.isNavigating) {
+        elapsedTimePercent(
+            start = navState.navigationStartTimeMillis,
+            eta = navState.etaMillis,
+            now = System.currentTimeMillis()
+        )
+    } else null
     // Advisory only (spec: `car-session-presence`): informs the driver that a car
     // session is live; it disables nothing and gates no map or navigation action.
     val carSessionActive by carSessionPresence.active.collectAsState()
@@ -2287,16 +2303,8 @@ fun MapCanvasScreen(
                             remainingDistance = navState.remainingDistance,
                             etaMillis = navState.etaMillis,
                             currentRoadInfo = navState.currentRoadInfo,
-                            distanceProgressPercent = if (navState.isNavigating) {
-                                routeProgressPercent(navState.totalDistance, navState.remainingDistance)
-                            } else null,
-                            timeProgressPercent = if (navState.isNavigating) {
-                                elapsedTimePercent(
-                                    start = navState.navigationStartTimeMillis,
-                                    eta = navState.etaMillis,
-                                    now = System.currentTimeMillis()
-                                )
-                            } else null,
+                            distanceProgressPercent = distanceProgressPercent,
+                            timeProgressPercent = timeProgressPercent,
                             isRerouting = navState.isRerouting,
                             isOffRoute = navState.isOffRoute,
                             onStopNavigation = stopNavigation,
@@ -2663,6 +2671,8 @@ fun MapCanvasScreen(
                     currentRoadInfo = navState.currentRoadInfo,
                     remainingDistance = navState.remainingDistance,
                     etaMillis = navState.etaMillis,
+                    distanceProgressPercent = distanceProgressPercent,
+                    timeProgressPercent = timeProgressPercent,
                     onStopNavigation = stopNavigation,
                     onDismiss = { showNavDetails = false }
                 )

@@ -1,20 +1,19 @@
 package com.naviveylin.ui.navigation
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
@@ -32,8 +31,14 @@ import com.naviveylin.R
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,7 +68,9 @@ fun NavigationStateOverlay(
 
     val content = @Composable {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("routingStatusCard"),
             // Square bottom corners: the card covers the bottom of the window.
             shape = RoundedCornerShape(
                 topStart = 12.dp,
@@ -85,8 +92,9 @@ fun NavigationStateOverlay(
                 // The details tap lives on the card's own content, never on the whole
                 // card: it stops short of the stop control, so the two hit areas cannot
                 // overlap (spec: navigation-status-details — Routing status card is
-                // clickable). This block covers the road name and the progress lines;
-                // the stats strip below carries the same tap on its leading part.
+                // clickable). This region covers the road name — the progress lines that
+                // used to sit under it are gone; the stats strip below carries the same tap
+                // on its leading part.
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -107,27 +115,6 @@ fun NavigationStateOverlay(
                             .fillMaxWidth()
                             .padding(bottom = 4.dp)
                     )
-
-                    // Route progress lines — always visible during navigation
-                    // (spec: navigation-status-details — "Route progress lines in
-                    // routing status card"). Small, no labels, no percent values.
-                    if (distanceProgressPercent != null && timeProgressPercent != null) {
-                        Column(Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                            ProgressLine(
-                                icon = Icons.Default.Place,
-                                contentDescription = stringResource(R.string.distance),
-                                percent = distanceProgressPercent,
-                                modifier = Modifier.testTag("distanceProgressLine")
-                            )
-                            Spacer(Modifier.height(3.dp))
-                            ProgressLine(
-                                icon = Icons.Default.Schedule,
-                                contentDescription = stringResource(R.string.remaining_time),
-                                percent = timeProgressPercent,
-                                modifier = Modifier.testTag("timeProgressLine")
-                            )
-                        }
-                    }
                 }
 
                 // Stats row — its leading strip carries the same details tap (one region
@@ -135,6 +122,8 @@ fun NavigationStateOverlay(
                 NavigationStatsRow(
                     remainingDistance = remainingDistance,
                     etaMillis = etaMillis,
+                    distanceProgressPercent = distanceProgressPercent,
+                    timeProgressPercent = timeProgressPercent,
                     onStopNavigation = onStopNavigation,
                     leadingModifier = Modifier
                         .clickable(onClick = onClick)
@@ -173,6 +162,14 @@ fun NavigationStateOverlay(
 internal fun NavigationStatsRow(
     remainingDistance: Double,
     etaMillis: Long,
+    /**
+     * Percent of the route's distance travelled, or null when that value's progress is unknown —
+     * the glyph then keeps its slot and is drawn without a ring (spec: navigation-status-details
+     * — A glyph without progress keeps its place in the row).
+     */
+    distanceProgressPercent: Int? = null,
+    /** Percent of the estimated travel time elapsed, or null when it is unknown. */
+    timeProgressPercent: Int? = null,
     /** Stop action; null renders no stop button (the car-session surface has none). */
     onStopNavigation: (() -> Unit)?,
     modifier: Modifier = Modifier,
@@ -194,16 +191,19 @@ internal fun NavigationStatsRow(
                 .then(leadingModifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ETA
+            // ETA — deliberately un-ringed: the arrival time is the same dimension as the
+            // remaining time, so a second ring would show one percent twice, and a plain glyph
+            // beside the ringed clock would read as "no data" if it were also a clock
+            // (spec: navigation-status-details — The two rings are told apart from the plain
+            // glyph).
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
+                NavStatIcon(
+                    glyph = Icons.Default.Flag,
                     contentDescription = stringResource(R.string.eta),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
+                    slotTag = "etaGlyphSlot"
                 )
                 Text(
                     text = if (etaMillis > 0) {
@@ -214,16 +214,17 @@ internal fun NavigationStatsRow(
                 )
             }
 
-            // Remaining time
+            // Remaining time — ringed with the elapsed share of the estimated travel time.
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
+                NavStatIcon(
+                    glyph = Icons.Default.Schedule,
                     contentDescription = stringResource(R.string.remaining_time),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
+                    percent = timeProgressPercent,
+                    slotTag = "timeGlyphSlot",
+                    ringTag = "timeProgressRing"
                 )
                 Text(
                     text = formatRemainingTime(etaMillis),
@@ -232,16 +233,17 @@ internal fun NavigationStatsRow(
                 )
             }
 
-            // Remaining distance
+            // Remaining distance — ringed with the travelled share of the route.
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Default.Place,
+                NavStatIcon(
+                    glyph = Icons.Default.Place,
                     contentDescription = stringResource(R.string.distance),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
+                    percent = distanceProgressPercent,
+                    slotTag = "distanceGlyphSlot",
+                    ringTag = "distanceProgressRing"
                 )
                 Text(
                     text = stringResource(
@@ -301,47 +303,90 @@ internal fun formatRemainingTime(etaMillis: Long): String {
 }
 
 /**
- * One small progress line: a 16 dp icon for differentiation, then a thin track
- * with a filled portion up to the current percent. No labels, no percent
- * values (spec: navigation-status-details — "Route progress lines in routing
- * status card").
+ * The value arc's sweep in degrees for [percent]: the completed fraction of that value's own
+ * dimension, from 0 (nothing done) to 360 (arrived). The percent is clamped to the valid
+ * 0-100 range before it is scaled, so a caller cannot draw past the ring
+ * (spec: navigation-status-details — Progress values clamped to valid range).
+ */
+internal fun ringSweepDegrees(percent: Int): Float = percent.coerceIn(0, 100) * 3.6f
+
+/** The fixed side of every value glyph's slot in the routing status row. */
+private val NavStatSlot = 28.dp
+
+/** The glyph inside that slot: unchanged in size, so a ring around it costs no legibility. */
+private val NavStatGlyph = 16.dp
+
+/** The ring's stroke width — what the progress line it replaces was tall. */
+private val NavStatRingStroke = 3.dp
+
+/**
+ * One value glyph of the routing status row, drawn in a fixed [slot] so a value whose progress is
+ * unknown keeps its place instead of shifting the row (spec: navigation-status-details — A glyph
+ * without progress keeps its place in the row).
+ *
+ * A non-null [percent] rings the glyph with that value's own progress: a full track and a value
+ * arc filled clockwise from twelve o'clock with the completed fraction of the dimension
+ * (spec: navigation-status-details — Route progress rings on the routing status row). The ring
+ * uses the same palette as the progress line it replaces (theme `primary` over `surfaceVariant`)
+ * and a stroke expressed in dp and converted at draw time — never a raw device-pixel count
+ * (guidelines/UI.md §8, "Drawn dimensions are density-independent"). It carries no progress
+ * semantics: the glyph's own content description names the value, and the number under it is the
+ * value itself.
  */
 @Composable
-private fun ProgressLine(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun NavStatIcon(
+    glyph: ImageVector,
     contentDescription: String,
-    percent: Int,
-    modifier: Modifier = Modifier
+    percent: Int? = null,
+    slotTag: String? = null,
+    ringTag: String? = null,
+    slot: Dp = NavStatSlot,
+    glyphSize: Dp = NavStatGlyph
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val valueColor = MaterialTheme.colorScheme.primary
+    val glyphColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Box(
+        modifier = Modifier
+            .size(slot)
+            .then(if (slotTag != null) Modifier.testTag(slotTag) else Modifier),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(14.dp)
-        )
-        Spacer(Modifier.width(6.dp))
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(3.dp)
-                .background(
-                    MaterialTheme.colorScheme.surfaceVariant,
-                    RoundedCornerShape(1.5.dp)
-                )
-        ) {
-            Box(
+        if (percent != null) {
+            Canvas(
                 modifier = Modifier
-                    .fillMaxWidth(percent / 100f)
-                    .height(3.dp)
-                    .background(
-                        MaterialTheme.colorScheme.primary,
-                        RoundedCornerShape(1.5.dp)
-                    )
-            )
+                    .size(slot)
+                    .then(if (ringTag != null) Modifier.testTag(ringTag) else Modifier)
+            ) {
+                val stroke = NavStatRingStroke.toPx()
+                val topLeft = Offset(stroke / 2f, stroke / 2f)
+                val arcSize = Size(size.width - stroke, size.height - stroke)
+                drawArc(
+                    color = trackColor,
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = stroke)
+                )
+                drawArc(
+                    color = valueColor,
+                    startAngle = -90f,
+                    sweepAngle = ringSweepDegrees(percent),
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                )
+            }
         }
+        Icon(
+            imageVector = glyph,
+            contentDescription = contentDescription,
+            tint = glyphColor,
+            modifier = Modifier.size(glyphSize)
+        )
     }
 }

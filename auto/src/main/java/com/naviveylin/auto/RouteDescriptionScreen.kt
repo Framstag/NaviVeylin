@@ -70,7 +70,7 @@ class RouteDescriptionScreen(
                     Row.Builder()
                         .setTitle(title)
                         .addText(row.text)
-                        .setImage(ManeuverGlyphs.forTurnType(row.turnType))
+                        .setImage(ManeuverGlyphs.forTurnTypeAndExit(row.turnType, row.roundaboutExitNumber))
                         .build()
                 )
             }

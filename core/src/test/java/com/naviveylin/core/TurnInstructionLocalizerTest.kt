@@ -3,6 +3,7 @@ package com.naviveylin.core
 import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -26,8 +27,13 @@ class TurnInstructionLocalizerTest {
         type: TurnType,
         street: String = "",
         short: String = "native short",
-        desc: String = "native description"
-    ) = RouteInstruction(100.0, type, street, desc, short)
+        desc: String = "native description",
+        exit: Int = 0
+    ) = RouteInstruction(
+        100.0, 0.0, 0.0, type, street, desc, short,
+        0.0, TurnType.STRAIGHT_ON, "", "",
+        exit, true, 0
+    )
 
     // --- Plain turns ---
 
@@ -92,20 +98,42 @@ class TurnInstructionLocalizerTest {
 
     @Test
     fun roundaboutLeave_exitCount_german() {
-        val i = instr(TurnType.ROUNDABOUT_LEAVE, short = "Exit 3")
+        val i = instr(TurnType.ROUNDABOUT_LEAVE, short = "Exit 3", exit = 3)
         assertEquals("Ausfahrt 3", TurnInstructionLocalizer.shortDescription(de, i))
     }
 
     @Test
     fun roundaboutLeave_exitCount_english() {
-        val i = instr(TurnType.ROUNDABOUT_LEAVE, short = "Exit 3")
+        val i = instr(TurnType.ROUNDABOUT_LEAVE, short = "Exit 3", exit = 3)
         assertEquals("Exit 3", TurnInstructionLocalizer.shortDescription(en, i))
     }
 
+    // --- Roundabout exit ordinal (spec: turn-instruction-localization) ---
+
     @Test
-    fun roundaboutLeave_unparseableExit_fallsBackToZero() {
-        val i = instr(TurnType.ROUNDABOUT_LEAVE, short = "Exit ?")
-        assertEquals("Ausfahrt 0", TurnInstructionLocalizer.shortDescription(de, i))
+    fun `roundabout leave at exit 3 is localized from the instruction's exit ordinal`() {
+        // The number comes from the field, not from parsing "Exit 3" out of the native text:
+        // the native text here says something else entirely and must not influence the wording.
+        val fromField = instr(TurnType.ROUNDABOUT_LEAVE, short = "native short", exit = 3)
+        val full = instr(TurnType.ROUNDABOUT_LEAVE, street = "Bahnhofstraße", short = "native short", exit = 3)
+
+        assertEquals("Ausfahrt 3", TurnInstructionLocalizer.shortDescription(de, fromField))
+        assertEquals("Exit 3", TurnInstructionLocalizer.shortDescription(en, fromField))
+        assertEquals(
+            "Ausfahrt 3 auf Bahnhofstraße",
+            TurnInstructionLocalizer.description(de, full)
+        )
+    }
+
+    @Test
+    fun `roundabout leave without an exit ordinal is still worded`() {
+        // "No exit known" is not an exit number: the wording still has to be produced and must not
+        // be empty. The number it shows is the instruction's, never an invented one.
+        val noOrdinal = instr(TurnType.ROUNDABOUT_LEAVE, short = "Exit ?", exit = 0)
+
+        val short = TurnInstructionLocalizer.shortDescription(de, noOrdinal)
+        assertTrue("the wording must still be produced", short.isNotEmpty())
+        assertEquals("Ausfahrt 0", short)
     }
 
     // --- Motorway ---
@@ -178,7 +206,7 @@ class TurnInstructionLocalizerTest {
 
     @Test
     fun description_roundaboutLeave_german() {
-        val i = instr(TurnType.ROUNDABOUT_LEAVE, street = "A1", short = "Exit 3")
+        val i = instr(TurnType.ROUNDABOUT_LEAVE, street = "A1", short = "Exit 3", exit = 3)
         assertEquals("Ausfahrt 3 auf A1", TurnInstructionLocalizer.description(de, i))
     }
 
@@ -206,7 +234,15 @@ class TurnInstructionLocalizerTest {
     fun shortDescriptionFor_nextNextHint() {
         assertEquals(
             "Links abbiegen",
-            TurnInstructionLocalizer.shortDescriptionFor(de, TurnType.LEFT, "Turn left")
+            TurnInstructionLocalizer.shortDescriptionFor(de, TurnType.LEFT, "Turn left", 0)
+        )
+    }
+
+    @Test
+    fun shortDescriptionFor_nextNextRoundabout_usesTheHintsOwnOrdinal() {
+        assertEquals(
+            "Ausfahrt 1",
+            TurnInstructionLocalizer.shortDescriptionFor(de, TurnType.ROUNDABOUT_LEAVE, "Exit 1", 1)
         )
     }
 

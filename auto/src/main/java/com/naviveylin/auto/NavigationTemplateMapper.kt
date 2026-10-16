@@ -33,7 +33,13 @@ object NavigationTemplateMapper {
     /** [displayedDistanceBucket] value for "no current step" — no real distance produces it. */
     private const val NO_DISTANCE = -1L
 
-    /** Map [TurnType] to [Maneuver] type constant. */
+    /**
+     * Map [TurnType] to [Maneuver] type constant, for a caller that has no instruction.
+     *
+     * The roundabout entries are the fallback: [TurnType] carries neither the circulation direction
+     * nor the exit ordinal, so a roundabout manoeuvre goes through [maneuverTypeForInstruction]
+     * instead, which is direction-aware and picks the number-bearing type when the exit is known.
+     */
     fun maneuverTypeFromTurnType(turnType: TurnType): Int {
         return when (turnType) {
             TurnType.LEFT -> Maneuver.TYPE_TURN_NORMAL_LEFT
@@ -50,6 +56,45 @@ object NavigationTemplateMapper {
             else -> Maneuver.TYPE_STRAIGHT
         }
     }
+
+    /**
+     * The [Maneuver] type for [instruction] (spec: auto/navigation-view — A roundabout exit uses the
+     * number-bearing host maneuver).
+     *
+     * A roundabout needs this per-instruction path: a [TurnType] cannot say which way the ring
+     * circulates, so both roundabout types used to be built clockwise, silently wrong on a
+     * counter-clockwise roundabout. A known exit ordinal selects the number-bearing type, so the car
+     * host draws its own numbered roundabout; an unknown ordinal stays on the numberless type with the
+     * app's own glyph. The number-bearing type requires its number, so [stepForInstruction] sets it on
+     * exactly this branch.
+     */
+    fun maneuverTypeForInstruction(instruction: RouteInstruction): Int {
+        val clockwise = instruction.roundaboutClockwise
+        return when (instruction.turnType) {
+            TurnType.ROUNDABOUT_ENTER -> if (clockwise) {
+                Maneuver.TYPE_ROUNDABOUT_ENTER_CW
+            } else {
+                Maneuver.TYPE_ROUNDABOUT_ENTER_CCW
+            }
+            TurnType.ROUNDABOUT_LEAVE -> when {
+                instruction.roundaboutExitNumber <= 0 -> if (clockwise) {
+                    Maneuver.TYPE_ROUNDABOUT_EXIT_CW
+                } else {
+                    Maneuver.TYPE_ROUNDABOUT_EXIT_CCW
+                }
+                clockwise -> Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW
+                else -> Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW
+            }
+            else -> maneuverTypeFromTurnType(instruction.turnType)
+        }
+    }
+
+    /**
+     * Whether [instruction]'s maneuver carries its exit ordinal to the host, so the host draws its own
+     * numbered roundabout and the app supplies no icon for it.
+     */
+    fun carriesExitNumber(instruction: RouteInstruction): Boolean =
+        instruction.turnType == TurnType.ROUNDABOUT_LEAVE && instruction.roundaboutExitNumber > 0
 
     /** Map [LaneTurn] to [LaneDirection] shape constant. */
     fun laneDirectionShapeFromLaneTurn(turn: LaneTurn?): Int {
@@ -83,18 +128,27 @@ object NavigationTemplateMapper {
         lanesImage: CarIcon? = null,
         resolver: StringResolver
     ): Step {
-        val maneuver = Maneuver.Builder(maneuverTypeFromTurnType(instruction.turnType))
-            .setIcon(icon)
-            .build()
-        val builder = Step.Builder()
+        val builder = Maneuver.Builder(maneuverTypeForInstruction(instruction))
+        if (carriesExitNumber(instruction)) {
+            // The number goes to the host, AND our own numbered glyph is supplied below. The two are
+            // independent setters, and which of them the driver sees is host behaviour: phone
+            // projection is rendered by Google's host while the DHU drives the AOSP reference
+            // renderer, so relying on either precedence would rest the requirement on something no
+            // test here can observe. Setting both identifies the exit whichever glyph the host picks
+            // (spec: auto/navigation-view - A roundabout exit uses the number-bearing host maneuver).
+            builder.setRoundaboutExitNumber(instruction.roundaboutExitNumber)
+        }
+        builder.setIcon(icon)
+        val maneuver = builder.build()
+        val stepBuilder = Step.Builder()
             .setManeuver(maneuver)
             .setCue(TurnInstructionLocalizer.shortDescription(resolver, instruction))
-        instruction.streetName?.takeIf { it.isNotBlank() }?.let { builder.setRoad(it) }
-        lanes.forEach { builder.addLane(it) }
+        instruction.streetName?.takeIf { it.isNotBlank() }?.let { stepBuilder.setRoad(it) }
+        lanes.forEach { stepBuilder.addLane(it) }
         if (lanes.isNotEmpty()) {
-            lanesImage?.let { builder.setLanesImage(it) }
+            lanesImage?.let { stepBuilder.setLanesImage(it) }
         }
-        return builder.build()
+        return stepBuilder.build()
     }
 
     /** One host [Lane] for a lane row; recommended drives [LaneDirection.isRecommended]. */
@@ -135,7 +189,7 @@ object NavigationTemplateMapper {
      */
     fun routingInfoFromState(
         state: NavigationState,
-        iconForTurn: (TurnType) -> CarIcon,
+        iconFor: (RouteInstruction) -> CarIcon,
         includeLanes: Boolean,
         laneImageFor: (List<LaneTurn>, IntRange) -> CarIcon? = { _, _ -> null },
         resolver: StringResolver
@@ -167,7 +221,7 @@ object NavigationTemplateMapper {
             .setCurrentStep(
                 stepForInstruction(
                     current,
-                    iconForTurn(current.turnType),
+                    iconFor(current),
                     lanes,
                     if (lanes.isNotEmpty()) laneImageFor(state.laneTurns, recommended) else null,
                     resolver
@@ -175,7 +229,7 @@ object NavigationTemplateMapper {
                 distanceForDisplay(current.distanceTo)
             )
         if (next != null) {
-            builder.setNextStep(stepForInstruction(next, iconForTurn(next.turnType), resolver = resolver))
+            builder.setNextStep(stepForInstruction(next, iconFor(next), resolver = resolver))
         }
         return builder.build()
     }
@@ -195,7 +249,13 @@ object NavigationTemplateMapper {
         val turnType: TurnType,
         val title: String,
         val text: String,
-        val isCurrent: Boolean
+        val isCurrent: Boolean,
+        /**
+         * The row's own roundabout exit ordinal, or 0. A `Row` image cannot be a host-drawn
+         * `Maneuver`, so this row takes the app's numbered glyph (spec: auto/navigation-view —
+         * Route description screen).
+         */
+        val roundaboutExitNumber: Int = 0
     )
 
     /**
@@ -215,7 +275,8 @@ object NavigationTemplateMapper {
                 turnType = instruction.turnType,
                 title = carContext.getString(R.string.distance_target, distance, target),
                 text = TurnInstructionLocalizer.description(resolver, instruction),
-                isCurrent = index == 0
+                isCurrent = index == 0,
+                roundaboutExitNumber = instruction.roundaboutExitNumber
             )
         }
     }
@@ -239,6 +300,7 @@ object NavigationTemplateMapper {
                 displayedDistanceBucket(old.nextInstruction?.distanceTo) !=
                     displayedDistanceBucket(newState.nextInstruction?.distanceTo) ||
                 old.nextInstruction?.turnType != newState.nextInstruction?.turnType ||
+                old.nextInstruction?.roundaboutExitNumber != newState.nextInstruction?.roundaboutExitNumber ||
                 old.nextInstruction?.description != newState.nextInstruction?.description ||
                 displayedDistanceBucket(old.remainingDistance) !=
                     displayedDistanceBucket(newState.remainingDistance) ||
@@ -272,14 +334,15 @@ object NavigationTemplateMapper {
      * forbids steps in the loading state), which is what the host shows as a
      * transient state.
      *
-     * @param iconForTurn maneuver artwork provider (shared with the template)
+     * @param iconFor maneuver artwork provider (shared with the template), which returns nothing when
+     *   the host draws the maneuver itself
      * @param nowMillis wall clock used for the step's remaining time; injectable
      *   for tests
      * @param timeZone time zone of the arrival times; injectable for tests
      */
     fun tripFromState(
         state: NavigationState,
-        iconForTurn: (TurnType) -> CarIcon,
+        iconFor: (RouteInstruction) -> CarIcon,
         resolver: StringResolver,
         nowMillis: Long = System.currentTimeMillis(),
         timeZone: TimeZone = TimeZone.getDefault()
@@ -292,7 +355,7 @@ object NavigationTemplateMapper {
             ?: return loadingTrip()
         if (state.etaMillis <= 0L) return loadingTrip()
 
-        val step = stepForInstruction(current, iconForTurn(current.turnType), resolver = resolver)
+        val step = stepForInstruction(current, iconFor(current), resolver = resolver)
         val stepArrivalMillis = if (current.timeTo > 0.0) {
             nowMillis + (current.timeTo * 1000.0).toLong()
         } else {
@@ -363,6 +426,7 @@ object NavigationTemplateMapper {
         return old.isNavigating != current.isNavigating ||
                 old.isRerouting != current.isRerouting ||
                 old.nextInstruction?.turnType != current.nextInstruction?.turnType ||
+                old.nextInstruction?.roundaboutExitNumber != current.nextInstruction?.roundaboutExitNumber ||
                 old.nextInstruction?.shortDescription != current.nextInstruction?.shortDescription ||
                 old.nextInstruction?.streetName != current.nextInstruction?.streetName ||
                 roundDistanceMeters(old.nextInstruction?.distanceTo ?: 0.0) !=

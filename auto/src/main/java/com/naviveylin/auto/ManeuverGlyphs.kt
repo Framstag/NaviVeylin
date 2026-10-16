@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import androidx.car.app.model.CarIcon
 import androidx.core.graphics.drawable.IconCompat
 import com.framstag.libosmscout.client.LaneTurn
+import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.ManeuverSymbols
 
@@ -25,11 +26,43 @@ object ManeuverGlyphs {
     /** Suggested-lane highlight (matches the phone lane hint color). */
     private const val SUGGESTED_COLOR = 0xFF2196F3.toInt()
 
-    private val cache = HashMap<TurnType, CarIcon>()
+    /** A maneuver icon's identity: the turn type plus the roundabout exit ordinal. */
+    private data class IconKey(val type: TurnType, val roundaboutExitNumber: Int)
 
-    /** CarIcon for [type]; lazily rendered and cached. */
-    fun forTurnType(type: TurnType): CarIcon = cache.getOrPut(type) {
-        CarIcon.Builder(IconCompat.createWithBitmap(ManeuverSymbols.bitmapForTurnType(type))).build()
+    private const val MAX_CACHED_ICONS = 64
+
+    private val cache = HashMap<IconKey, CarIcon>()
+
+    /** CarIcon for [type] with no roundabout exit number. */
+    fun forTurnType(type: TurnType): CarIcon = forTurnTypeAndExit(type, 0)
+
+    /**
+     * CarIcon for [instruction], carrying the roundabout exit number when the instruction has one
+     * (spec: roundabout-renderer — Roundabout exit symbol shows the exit number).
+     */
+    fun forInstruction(instruction: RouteInstruction): CarIcon =
+        forTurnTypeAndExit(instruction.turnType, instruction.roundaboutExitNumber)
+
+    /** CarIcon for [type] at [roundaboutExitNumber]; an ordinal on a non-exit is ignored. */
+    fun forTurnTypeAndExit(type: TurnType, roundaboutExitNumber: Int): CarIcon {
+        val ordinal = if (type == TurnType.ROUNDABOUT_LEAVE && roundaboutExitNumber > 0) {
+            roundaboutExitNumber
+        } else {
+            0
+        }
+        val key = IconKey(type, ordinal)
+        cache[key]?.let { return it }
+        if (cache.size >= MAX_CACHED_ICONS) {
+            cache.clear()
+        }
+        val bitmap = if (ordinal > 0) {
+            ManeuverSymbols.roundaboutExitBitmap(ordinal, ManeuverSymbols.BITMAP_SIZE)
+        } else {
+            ManeuverSymbols.bitmapForTurnType(type)
+        }
+        val icon = CarIcon.Builder(IconCompat.createWithBitmap(bitmap)).build()
+        cache[key] = icon
+        return icon
     }
 
     /**

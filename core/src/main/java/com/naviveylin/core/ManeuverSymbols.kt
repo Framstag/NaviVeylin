@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import com.framstag.libosmscout.client.LaneTurn
+import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import kotlin.math.PI
 import kotlin.math.cos
@@ -21,25 +22,106 @@ import kotlin.math.sqrt
  * All arrow geometry is a direct port of the phone's
  * `NavigationArrowRenderer` (Compose DrawScope → android.graphics), using the
  * same normalized constants so the on-car symbols match the phone symbols.
+ *
+ * This is also the single implementation of the numbered roundabout-exit glyph
+ * (spec: roundabout-renderer - Phone and car roundabout symbols stay one artwork):
+ * the phone overlays, the phone notification and the car bitmap surfaces all draw
+ * their exit number from [drawRoundaboutExit], so the number's geometry cannot
+ * drift between them. The Android Auto instruction panel is the one deliberate
+ * exception - the host draws that maneuver itself.
+ *
+ * Every cached bitmap lives on the main thread: the consumers are the car template
+ * build (host callback thread) and the ongoing notification (`Dispatchers.Main`),
+ * and no lock is taken here. Do not call this from another thread.
  */
 object ManeuverSymbols {
 
     /** Edge length of a rendered maneuver bitmap, in pixels. */
     const val BITMAP_SIZE = 48
 
-    /** Cached maneuver bitmaps, keyed by turn type (`null` = unknown/straight-on fallback). */
-    private val bitmapCache = HashMap<TurnType?, Bitmap>()
+    /**
+     * Cache bound. Only a handful of turn types exist and a roundabout exit ordinal is
+     * small, so this is reached only if a caller feeds unbounded ordinals; clearing on
+     * overflow keeps the cache bounded rather than growing without limit
+     * (spec: car-host-fault-isolation - a template asset stays bounded).
+     */
+    private const val MAX_CACHED_MANEUVERS = 64
+
+    /** A maneuver bitmap's identity: the turn type plus the roundabout exit ordinal. */
+    private data class ManeuverKey(val type: TurnType?, val roundaboutExitNumber: Int)
+
+    /** Cached maneuver bitmaps, keyed by [ManeuverKey] (`null` type = unknown fallback). */
+    private val bitmapCache = HashMap<ManeuverKey, Bitmap>()
 
     /**
      * White maneuver arrow bitmap for [type], cached per turn type. The car
      * large icon of the ongoing navigation notification (spec:
      * auto-navigation-hints — "Car hint content"), drawn with the same
      * geometry as the host instruction panel arrows.
+     *
+     * A roundabout exit drawn through this entry point carries no number; use
+     * [bitmapForInstruction] wherever the instruction's exit ordinal is available.
      */
-    fun bitmapForTurnType(type: TurnType?): Bitmap = bitmapCache.getOrPut(type) {
+    fun bitmapForTurnType(type: TurnType?): Bitmap = bitmapFor(type, 0)
+
+    /**
+     * Bitmap for [instruction], carrying the roundabout exit ordinal when there is one
+     * (spec: roundabout-renderer - Roundabout exit symbol shows the exit number). An
+     * instruction with no exit ordinal falls back to the plain leave arrow, never to an
+     * invented or zero number.
+     */
+    fun bitmapForInstruction(instruction: RouteInstruction): Bitmap =
+        bitmapFor(instruction.turnType, instruction.roundaboutExitNumber)
+
+    /** A self-drawn exit bitmap's identity: the ordinal and the pixel size it was drawn at. */
+    private data class ExitBitmapKey(val exitNumber: Int, val sizePx: Int)
+
+    private val exitBitmapCache = HashMap<ExitBitmapKey, Bitmap>()
+
+    /**
+     * The numbered roundabout-exit glyph drawn at [sizePx], for a surface that draws it itself at
+     * a size other than [BITMAP_SIZE]: the phone overlay draws the icon at 64 dp, which is several
+     * hundred pixels on a high-density screen, and scaling a 48 px bitmap up would blur the digit.
+     * Same geometry as [bitmapForInstruction], so the phone, the notification and the car bitmap
+     * surfaces cannot drift apart (spec: roundabout-renderer - Phone and car roundabout symbols
+     * stay one artwork).
+     *
+     * Returns the plain leave glyph when [exitNumber] is not a known exit, so a caller cannot get a
+     * numbered glyph for "no exit".
+     */
+    fun roundaboutExitBitmap(exitNumber: Int, sizePx: Int): Bitmap {
+        if (exitNumber <= 0) return bitmapFor(TurnType.ROUNDABOUT_LEAVE, 0)
+        val size = sizePx.coerceAtLeast(1)
+        val key = ExitBitmapKey(exitNumber, size)
+        exitBitmapCache[key]?.let { return it }
+        if (exitBitmapCache.size >= MAX_CACHED_MANEUVERS) {
+            exitBitmapCache.clear()
+        }
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        drawTurnSymbol(
+            Canvas(bitmap), TurnType.ROUNDABOUT_LEAVE, size.toFloat(), 0xFFFFFFFF.toInt(), 0f, 0f, exitNumber
+        )
+        exitBitmapCache[key] = bitmap
+        return bitmap
+    }
+
+    private fun bitmapFor(type: TurnType?, roundaboutExitNumber: Int): Bitmap {
+        // An ordinal is only meaningful on a roundabout exit; anything else must not become
+        // a distinct cache entry nor reach the glyph.
+        val ordinal = if (type == TurnType.ROUNDABOUT_LEAVE && roundaboutExitNumber > 0) {
+            roundaboutExitNumber
+        } else {
+            0
+        }
+        val key = ManeuverKey(type, ordinal)
+        bitmapCache[key]?.let { return it }
+        if (bitmapCache.size >= MAX_CACHED_MANEUVERS) {
+            bitmapCache.clear()
+        }
         val bitmap = Bitmap.createBitmap(BITMAP_SIZE, BITMAP_SIZE, Bitmap.Config.ARGB_8888)
-        drawTurnSymbol(Canvas(bitmap), type, BITMAP_SIZE.toFloat(), 0xFFFFFFFF.toInt(), 0f, 0f)
-        bitmap
+        drawTurnSymbol(Canvas(bitmap), type, BITMAP_SIZE.toFloat(), 0xFFFFFFFF.toInt(), 0f, 0f, ordinal)
+        bitmapCache[key] = bitmap
+        return bitmap
     }
 
     // ── Arrow geometry constants (normalized 0..1, port of the phone renderer) ──
@@ -57,7 +139,8 @@ object ManeuverSymbols {
         pxSize: Float,
         color: Int,
         left: Float,
-        top: Float
+        top: Float,
+        roundaboutExitNumber: Int = 0
     ) {
         when (type) {
             TurnType.STRAIGHT_ON -> drawUpArrow(canvas, pxSize, color, left, top)
@@ -70,7 +153,14 @@ object ManeuverSymbols {
             TurnType.START -> drawStartArrow(canvas, pxSize, color, left, top)
             TurnType.TARGET_REACHED -> drawTargetMarker(canvas, pxSize, color, left, top)
             TurnType.ROUNDABOUT_ENTER -> drawRoundaboutEnter(canvas, pxSize, color, left, top)
-            TurnType.ROUNDABOUT_LEAVE -> drawRoundaboutLeave(canvas, pxSize, color, left, top)
+            TurnType.ROUNDABOUT_LEAVE ->
+                // A known ordinal gets the numbered ring; otherwise the plain leave arrow,
+                // which is what this glyph was before the number existed.
+                if (roundaboutExitNumber > 0) {
+                    drawRoundaboutExit(canvas, pxSize, color, left, top, roundaboutExitNumber)
+                } else {
+                    drawRoundaboutLeave(canvas, pxSize, color, left, top)
+                }
             TurnType.MOTORWAY_ENTER -> drawMotorwayEnter(canvas, pxSize, color, left, top)
             null -> drawRightArrow(canvas, pxSize, color, left, top)
         }
@@ -286,6 +376,62 @@ object ManeuverSymbols {
         canvas.drawLine(xe, cy, xe - hl, cy - hl * 0.5f, stroke(color, sw))
         canvas.drawLine(xe, cy, xe - hl, cy + hl * 0.5f, stroke(color, sw))
     }
+
+    /**
+     * The numbered roundabout-exit glyph: the ring with the exit ordinal in its centre.
+     *
+     * No marker per exit is drawn, and the marker count is never inferred from the ordinal:
+     * an ordinal is "which exit you take", not "how many exits the ring has", and the ring's
+     * total is not part of the route description. The digit's size follows the bitmap and is
+     * shrunk to fit the ring's inner width, so a two-digit ordinal fits the same ring the
+     * single-digit one uses and stays legible when the host rescales the icon.
+     */
+    private fun drawRoundaboutExit(
+        canvas: Canvas,
+        pxSize: Float,
+        color: Int,
+        left: Float,
+        top: Float,
+        exitNumber: Int
+    ) {
+        val sw = px(0.06f, pxSize)
+        val r = px(0.20f, pxSize)
+        val cx = px(0.5f, pxSize) + left
+        val cy = px(0.5f, pxSize) + top
+        canvas.drawCircle(cx, cy, r, stroke(color, sw))
+
+        val text = exitLabel(exitNumber)
+        val textPaint = fill(color).apply {
+            textAlign = Paint.Align.CENTER
+            textSize = px(0.26f, pxSize)
+        }
+        // Fit the whole number inside the ring, whatever its digit count.
+        val innerWidth = r * 2f - sw * 1.5f
+        textPaint.textSize = fittedTextSize(textPaint.textSize, textPaint.measureText(text), innerWidth)
+        val metrics = textPaint.fontMetrics
+        val baseline = cy - (metrics.ascent + metrics.descent) / 2f
+        canvas.drawText(text, cx, baseline, textPaint)
+    }
+
+    /**
+     * The number the numbered roundabout-exit glyph draws for [exitNumber]. Pure so the
+     * glyph's digit count is testable without a rasterising canvas: Robolectric's canvas
+     * discards the draws, so the number itself is asserted as arithmetic here and its look
+     * is the on-device check.
+     */
+    internal fun exitLabel(exitNumber: Int): String = exitNumber.toString()
+
+    /**
+     * The text size to draw [measuredWidthPx] wide text with inside a ring of inner width
+     * [innerWidthPx]: the requested size, shrunk only as far as needed when the text would
+     * overrun the ring. So a two-digit ordinal fits the same ring a single-digit one uses.
+     */
+    internal fun fittedTextSize(requestedPx: Float, measuredWidthPx: Float, innerWidthPx: Float): Float =
+        if (measuredWidthPx > innerWidthPx && measuredWidthPx > 0f) {
+            requestedPx * (innerWidthPx / measuredWidthPx)
+        } else {
+            requestedPx
+        }
 
     private fun drawMotorwayEnter(canvas: Canvas, pxSize: Float, color: Int, left: Float, top: Float) {
         val sw = px(0.05f, pxSize)

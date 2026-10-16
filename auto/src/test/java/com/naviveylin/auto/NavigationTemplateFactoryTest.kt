@@ -96,7 +96,7 @@ class NavigationTemplateFactoryTest {
             isNavigating = true, travelEstimate = estimate,
             mapActionStrip = leftStrip, actionStrip = rightStrip,
             routingInfo = NavigationTemplateMapper.routingInfoFromState(
-                state, ManeuverGlyphs::forTurnType, includeLanes = false,
+                state, ManeuverGlyphs::forInstruction, includeLanes = false,
                 resolver = testCarContext().stringResolver()
             )
         )

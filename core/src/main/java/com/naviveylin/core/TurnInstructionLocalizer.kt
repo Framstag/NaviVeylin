@@ -40,7 +40,6 @@ object TurnInstructionLocalizer {
     // maneuvers the bridge does not expose as a distinct TurnType.
     private const val KEEP_PREFIX = "Keep "
     private const val LEAVE_MOTORWAY = "Leave motorway"
-    private const val EXIT_PREFIX = "Exit "
 
     /**
      * Localized short description ("Turn left" / "Links abbiegen").
@@ -48,23 +47,33 @@ object TurnInstructionLocalizer {
      * or text pattern is not recognized.
      */
     fun shortDescription(resolver: StringResolver, instruction: RouteInstruction): String =
-        shortDescriptionFor(resolver, instruction.turnType, instruction.shortDescription)
+        shortDescriptionFor(
+            resolver,
+            instruction.turnType,
+            instruction.shortDescription,
+            instruction.roundaboutExitNumber
+        )
 
     /**
-     * Localized short description for a (turn type, native short description)
-     * pair — also usable for the "next next" hint, which carries its own
-     * turn type and text on the same [RouteInstruction].
+     * Localized short description for one manoeuvre of a [RouteInstruction]: its turn type, its
+     * native short description and its roundabout exit ordinal. Also usable for the "next next"
+     * hint, which carries its own turn type, text and exit ordinal on the same instruction.
+     *
+     * [roundaboutExitNumber] has no default on purpose: a caller that has an ordinal must pass it,
+     * so a roundabout exit cannot silently be worded as "Exit 0". A non-roundabout manoeuvre
+     * passes `0` and never reads it.
      */
     fun shortDescriptionFor(
         resolver: StringResolver,
         turnType: TurnType,
-        nativeShort: String
+        nativeShort: String,
+        roundaboutExitNumber: Int
     ): String = when (turnType) {
         TurnType.START -> resolver.get(R.string.nav_start)
         TurnType.TARGET_REACHED -> resolver.get(R.string.nav_arrive)
         TurnType.ROUNDABOUT_ENTER -> resolver.get(R.string.nav_roundabout)
         TurnType.ROUNDABOUT_LEAVE ->
-            resolver.get(R.string.nav_exit_roundabout, exitCount(nativeShort))
+            resolver.get(R.string.nav_exit_roundabout, roundaboutExitNumber)
         TurnType.MOTORWAY_ENTER -> resolver.get(R.string.nav_enter_motorway)
         else -> when {
             nativeShort.startsWith(KEEP_PREFIX) -> keepText(resolver, turnType, nativeShort)
@@ -85,7 +94,7 @@ object TurnInstructionLocalizer {
             // Start/arrival carry no street composition in the native text.
             TurnType.START, TurnType.TARGET_REACHED -> short
             TurnType.ROUNDABOUT_LEAVE ->
-                resolver.get(R.string.nav_exit_onto, exitCount(instruction.shortDescription), street)
+                resolver.get(R.string.nav_exit_onto, instruction.roundaboutExitNumber, street)
             TurnType.MOTORWAY_ENTER -> resolver.get(R.string.nav_enter_onto, street)
             else -> when {
                 instruction.shortDescription.startsWith(KEEP_PREFIX) ||
@@ -127,8 +136,4 @@ object TurnInstructionLocalizer {
         // Defensive: unknown turn type falls back to the native text.
         else -> nativeShort
     }
-
-    /** Exit count from the native short description ("Exit 3" → 3); 0 if unparseable. */
-    private fun exitCount(shortDescription: String): Int =
-        shortDescription.removePrefix(EXIT_PREFIX).trim().toIntOrNull() ?: 0
 }

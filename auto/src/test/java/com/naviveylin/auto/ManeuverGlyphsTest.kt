@@ -1,9 +1,11 @@
 package com.naviveylin.auto
 
 import com.framstag.libosmscout.client.LaneTurn
+import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,6 +56,43 @@ class ManeuverGlyphsTest {
         val suggestedRight = ManeuverGlyphs.lanesImage(turns, 1..1)
 
         assertNotSame(suggestedLeft, suggestedRight)
+    }
+
+    // --- the numbered roundabout exit (spec: roundabout-renderer, auto-navigation-hints) ---
+
+    private fun roundaboutExit(exitNumber: Int) = RouteInstruction(
+        350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
+        "Take exit $exitNumber onto Bahnhofstraße", "Exit $exitNumber",
+        0.0, TurnType.STRAIGHT_ON, "", "",
+        exitNumber, true, 0
+    )
+
+    @Test
+    fun `the car hint icon uses the shared exit symbol`() {
+        // One artwork source in `:core`, so a fix to the number's geometry reaches the phone and the
+        // car bitmap surfaces at once.
+        val numbered = ManeuverGlyphs.forTurnTypeAndExit(TurnType.ROUNDABOUT_LEAVE, 3)
+        val plain = ManeuverGlyphs.forTurnType(TurnType.ROUNDABOUT_LEAVE)
+
+        assertNotSame(numbered, plain)
+        assertNotSame(numbered, ManeuverGlyphs.forTurnTypeAndExit(TurnType.ROUNDABOUT_LEAVE, 1))
+        // and an unchanged exit reuses the same icon (spec: car-host-fault-isolation)
+        assertSame(numbered, ManeuverGlyphs.forTurnTypeAndExit(TurnType.ROUNDABOUT_LEAVE, 3))
+    }
+
+    @Test
+    fun `a numbered exit gets the numbered icon, not nothing`() {
+        // The maneuver is handed to the host WITH our numbered glyph as well as the exit number: which
+        // of the two the driver sees is host behaviour, so neither may be the only one supplied
+        // (spec: auto/navigation-view - A roundabout exit uses the number-bearing host maneuver).
+        assertNotSame(
+            ManeuverGlyphs.forInstruction(roundaboutExit(3)),
+            ManeuverGlyphs.forTurnType(TurnType.ROUNDABOUT_LEAVE)
+        )
+        assertSame(
+            ManeuverGlyphs.forInstruction(roundaboutExit(3)),
+            ManeuverGlyphs.forTurnTypeAndExit(TurnType.ROUNDABOUT_LEAVE, 3)
+        )
     }
 
     @Test

@@ -64,7 +64,7 @@ class NavigationManagerControllerTripTest {
 
     private fun tripFor(state: NavigationState): Trip? = NavigationTemplateMapper.tripFromState(
         state = state,
-        iconForTurn = { testIcon },
+        iconFor = { testIcon },
         resolver = resolver,
         nowMillis = now,
         timeZone = TimeZone.getTimeZone("UTC")

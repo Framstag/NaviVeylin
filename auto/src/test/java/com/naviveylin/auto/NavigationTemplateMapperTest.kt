@@ -17,6 +17,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -247,6 +248,113 @@ class NavigationTemplateMapperTest {
         )
         assertEquals("Links abbiegen", step.cue.toString())
         assertEquals("Hauptstraße", step.road.toString())
+    }
+
+    @Test
+    fun `a roundabout exit maneuver carries the exit number`() {
+        // spec: auto/navigation-view - A roundabout exit uses the number-bearing host maneuver
+        val instruction = roundaboutLeave(exit = 3)
+        val step = NavigationTemplateMapper.stepForInstruction(
+            instruction, testIcon, resolver = resolver
+        )
+        assertEquals(3, step.maneuver!!.roundaboutExitNumber)
+    }
+
+    // --- the number-bearing roundabout maneuver (spec: auto/navigation-view) ---
+
+    private fun roundaboutLeave(
+        exit: Int,
+        clockwise: Boolean = true,
+        street: String = "Bahnhofstraße"
+    ) = RouteInstruction(
+        350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, street,
+        "Take exit $exit onto $street", "Exit $exit",
+        0.0, TurnType.STRAIGHT_ON, "", "",
+        exit, clockwise, 0
+    )
+
+    @Test
+    fun `a known exit ordinal selects a number-bearing maneuver type`() {
+        assertEquals(
+            Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW,
+            NavigationTemplateMapper.maneuverTypeForInstruction(roundaboutLeave(exit = 3))
+        )
+    }
+
+    @Test
+    fun `an unknown exit ordinal builds a step instead of throwing`() {
+        // A number-bearing type with no number is rejected by the host builder, so the fallback has to
+        // stay on the numberless type and supply the app's own glyph.
+        val instruction = roundaboutLeave(exit = 0)
+        val step = NavigationTemplateMapper.stepForInstruction(
+            instruction, testIcon, resolver = resolver
+        )
+
+        assertEquals(Maneuver.TYPE_ROUNDABOUT_EXIT_CW, step.maneuver!!.type)
+        assertEquals(0, step.maneuver!!.roundaboutExitNumber)
+        assertNotNull(step.maneuver!!.icon)
+    }
+
+    @Test
+    fun `a roundabout exit asks the host for the number as well as our icon`() {
+        // Both are supplied: the exit number for the host's own glyph, and our numbered icon, because
+        // which of the two the driver sees is host behaviour no test here can observe.
+        val step = NavigationTemplateMapper.stepForInstruction(
+            roundaboutLeave(exit = 3), testIcon, resolver = resolver
+        )
+
+        assertEquals(3, step.maneuver!!.roundaboutExitNumber)
+        assertSame(testIcon, step.maneuver!!.icon)
+    }
+
+    @Test
+    fun `a counter-clockwise roundabout uses the counter-clockwise type`() {
+        assertEquals(
+            Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW,
+            NavigationTemplateMapper.maneuverTypeForInstruction(roundaboutLeave(exit = 3, clockwise = false))
+        )
+        val enter = RouteInstruction(100.0, TurnType.ROUNDABOUT_ENTER, "Ring", "Enter roundabout", "Roundabout")
+        assertEquals(
+            Maneuver.TYPE_ROUNDABOUT_ENTER_CW,
+            NavigationTemplateMapper.maneuverTypeForInstruction(enter)
+        )
+        val enterCcw = RouteInstruction(
+            100.0, 0.0, 0.0, TurnType.ROUNDABOUT_ENTER, "Ring", "Enter roundabout", "Roundabout",
+            0.0, TurnType.STRAIGHT_ON, "", "", 0, false, 0
+        )
+        assertEquals(
+            Maneuver.TYPE_ROUNDABOUT_ENTER_CCW,
+            NavigationTemplateMapper.maneuverTypeForInstruction(enterCcw)
+        )
+    }
+
+    @Test
+    fun `current and next steps carry different exit numbers`() {
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            instructions = listOf(
+                roundaboutLeave(exit = 3),
+                roundaboutLeave(exit = 1, street = "Marktplatz")
+            )
+        )
+        val info = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false, resolver = resolver
+        )!!
+
+        assertEquals(3, info.currentStep!!.maneuver!!.roundaboutExitNumber)
+        assertEquals(1, info.nextStep!!.maneuver!!.roundaboutExitNumber)
+    }
+
+    @Test
+    fun `the host-numbered roundabout keeps the shared cue text`() {
+        // The label stays at parity with the phone; only the glyph's source differs.
+        val step = NavigationTemplateMapper.stepForInstruction(
+            roundaboutLeave(exit = 3), testIcon, resolver = resolver
+        )
+
+        assertEquals(Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW, step.maneuver!!.type)
+        assertEquals("Exit 3", step.cue.toString())
     }
 
     @Test

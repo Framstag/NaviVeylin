@@ -1,0 +1,9 @@
+=== revert-check 3.6 (min length 2 -> 1), expect RED ===
+> Task :core:testDebugUnitTest FAILED
+SearchGateTest > oneCharacterQueryRunsNothingAndClears FAILED
+SearchGateTest > fallingBelowTheMinimumAbandonsTheRunningSearch FAILED
+8 tests completed, 2 failed
+MapCanvasViewModelSearchCancellationTest > oneCharacterQueryShowsNoResults FAILED
+MapCanvasViewModelSearchCancellationTest > shorteningTheQueryToOneCharacterClearsAndAborts FAILED
+6 tests completed, 2 failed
+> Task :app:testMobileDebugUnitTest FAILED

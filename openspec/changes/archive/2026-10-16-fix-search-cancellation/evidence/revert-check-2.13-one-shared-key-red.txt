@@ -1,0 +1,4 @@
+../Tests/src/SearchBreakerTest.cpp:101: FAILED:
+test cases:  8 |  7 passed | 1 failed
+Ok:                0   
+Fail:              1   

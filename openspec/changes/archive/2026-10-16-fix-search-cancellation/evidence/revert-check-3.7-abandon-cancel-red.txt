@@ -1,0 +1,5 @@
+SearchGateTest > fallingBelowTheMinimumAbandonsTheRunningSearch FAILED
+SearchGateTest > abandonStopsTheRunningSearch FAILED
+8 tests completed, 2 failed
+> Task :core:testDebugUnitTest FAILED
+BUILD FAILED in 5s

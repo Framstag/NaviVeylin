@@ -1,0 +1,5 @@
+=== revert-check 3.6 restored, expect GREEN ===
+BUILD SUCCESSFUL in 4s
+tests="8" skipped="0" failures="0" errors="0"
+BUILD SUCCESSFUL in 6s
+tests="6" skipped="0" failures="0" errors="0"

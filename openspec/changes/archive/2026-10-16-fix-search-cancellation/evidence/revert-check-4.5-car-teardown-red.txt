@@ -1,0 +1,5 @@
+SearchScreenTest > leavingTheSearchScreenAbandonsItsSearch FAILED
+SearchScreenTest > aResultOfAStoppedScreenMakesNoHostCall FAILED
+15 tests completed, 2 failed
+> Task :auto:testDebugUnitTest FAILED
+BUILD FAILED in 15s

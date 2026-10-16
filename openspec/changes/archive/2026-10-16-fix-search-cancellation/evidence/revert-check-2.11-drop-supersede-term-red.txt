@@ -1,0 +1,6 @@
+../Tests/src/SearchBreakerTest.cpp:40: FAILED:
+../Tests/src/SearchBreakerTest.cpp:52: FAILED:
+../Tests/src/SearchBreakerTest.cpp:75: FAILED:
+test cases:  8 |  5 passed | 3 failed
+Ok:                0   
+Fail:              1   

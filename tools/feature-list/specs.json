@@ -152,6 +152,7 @@
     "search-dialog": { "area": "search", "userVisible": true, "surfaces": ["phone"] },
     "search-free-text": { "area": "search", "userVisible": true, "surfaces": ["phone", "car"] },
     "search-history": { "area": "search", "userVisible": true, "surfaces": ["phone"] },
+    "search-request-lifecycle": { "area": "search", "userVisible": false, "surfaces": ["phone", "car"] },
     "search-result-ranking": { "area": "search", "userVisible": true, "surfaces": ["phone", "car"] },
     "settings-persistence": { "area": "settings-legal", "userVisible": false, "surfaces": ["phone"] },
     "share/location-receiving": { "area": "handoff", "userVisible": true, "surfaces": ["phone"] },

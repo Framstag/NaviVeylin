@@ -184,6 +184,19 @@ jobs:
       - name: Check backlog references
         run: bash tools/check-todo-references.sh
 
+      # ── sensor tooling ────────────────────────────────────────
+      # The gate for `tools/sensors/**`, the three verbs the engine writes through and the sensor
+      # pipeline's YAML (spec `backlog-sensors`): every case drives the real engine against the fixture
+      # registry, the fixture sensors and the stub `gh` on PATH. Offline, no token, no Gradle, no device —
+      # this step grants nothing beyond the read-only contents the workflow already has, which is exactly
+      # why the pipeline that can write to the tracker is a separate file (D1). The mutation harness's own
+      # list is printed so a harness that no longer parses fails this step instead of rotting; the mutations
+      # themselves are not run here — they mutate the tree (the change-time `revert-check` of task 8).
+      - name: Check sensor tooling
+        run: |
+          bash tools/sensor-selftest.sh
+          bash tools/sensor-mutations.sh --list
+
       # ── Compose sandbox rule ───────────────────────────────────
       # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
       # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has

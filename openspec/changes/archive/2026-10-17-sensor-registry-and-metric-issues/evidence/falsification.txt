@@ -1,0 +1,11 @@
+MUTATION 8.1: guard#refusesOffMain red under the mutation, green after the restore — HEAD is the remote main branch
+MUTATION 8.2: workflow#onlyTwoTriggers red under the mutation, green after the restore — the pipeline has exactly two triggers
+MUTATION 8.3: close#sensorScopeRefusesAForeignIssue red under the mutation, green after the restore — a check closes only what carries its own label
+MUTATION 8.4: run#errorIsNeverTreatedAsClear red under the mutation, green after the restore — a failed check posts nothing and fails the run
+MUTATION 8.5: run#hysteresisBothDirections red under the mutation, green after the restore — a close needs N consecutive clear runs
+MUTATION 8.6: run#escalatesPastKRecurrences red under the mutation, green after the restore — past K recurrences a check stops reopening
+MUTATION 8.7: reopen#refusesANotPlannedClosure red under the mutation, green after the restore — only a completed closure is reopened
+MUTATION 8.8: sensors#brokenMainFingerprintDistinguishesCauses red under the mutation, green after the restore — the condition fingerprint, not the check id, is the anchor
+MUTATION 8.9: sensors#engineNamesNoProjectValue red under the mutation, green after the restore — every row's command comes from the registry
+
+sensor-mutations: 9 behaved, 0 did not

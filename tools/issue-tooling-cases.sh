@@ -190,11 +190,17 @@ case_labels_dryRunListsTaxonomy() {
   local profile expected out got
   profile=$(profile_path)
   expected=$(
-    core Profile "$profile" namespaces | while read -r namespace; do
-      core Profile "$profile" "namespaces.$namespace" | while read -r value; do
-        printf '%s/%s\n' "$namespace" "$value"
+    {
+      core Profile "$profile" namespaces | while read -r namespace; do
+        core Profile "$profile" "namespaces.$namespace" | while read -r value; do
+          printf '%s/%s\n' "$namespace" "$value"
+        done
       done
-    done | sort -u
+      # The `sensor` namespace's values are the check registry's rows, so the taxonomy has two homes by
+      # declaration: the profile names the namespace, the registry names its values
+      # (`sensor-registry-and-metric-issues`, D9/D12).
+      jq -r '.rows[]?.id' "$ISSUES_REPO_ROOT/tools/sensors/sensors.json" 2>/dev/null | sed 's|^|sensor/|'
+    } | sort -u
   )
   out=$(run_tool labels.sh --json) || fail "labels.sh --json failed: $out"
   got=$(jq -r '.toCreate[]' <<< "$out" | sort -u)

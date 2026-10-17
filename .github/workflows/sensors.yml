@@ -1,0 +1,76 @@
+name: Sensors
+
+# The sensor pipeline: a file of its own, so the pipeline that validates changes never carries the
+# credential that writes to the tracker and cannot be influenced by a contributor's code. Two triggers —
+# a schedule, and an explicit dispatch — and no path that runs near a change under review.
+#
+# `schedule` only fires from the default branch; a dispatch can select any ref, so the first step is a
+# runtime guard rather than a line of YAML to be trusted (design D1, D3).
+on:
+  schedule:
+    # hourly, off the top of the hour: scheduled runs can be delayed under load, and a row's own cron
+    # decides whether it is due
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Write to the tracker (default: decide only)"
+        type: boolean
+        default: false
+
+# Read-only by default; the job below raises `issues: write` for itself and nothing else.
+permissions:
+  contents: read
+
+# Two runs can never race to file, reopen or close the same issue.
+concurrency:
+  group: sensors-main
+  cancel-in-progress: false
+
+jobs:
+  sensors:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The guard compares HEAD with the remote main branch's commit, so that ref has to exist. Fetched
+      # by name rather than by the dispatched ref, so a run against a branch still compares against main.
+      - name: Fetch the main branch the guard compares against
+        run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+
+      # Before any sensor: on the main branch, HEAD equal to the remote main branch, a clean tree, an
+      # allowlisted identity and a complete registry. A refusal here writes nothing.
+      - name: Guard the run
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: bash tools/sensors/guard.sh --ref "$GITHUB_REF"
+
+      # The labels the checks file under are declared by the registry (`sensor/<id>`) and by the profile,
+      # so they are created from that declaration before anything files: a filing under a label the tracker
+      # does not carry would fail. Re-running is a no-op.
+      - name: Create the declared labels
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: bash tools/issues/labels.sh --apply
+
+      # The identity is a repository-scoped token, never the workflow's own: the tracker's gate requires
+      # an allowlisted author, and the token can do nothing but file, comment and close issues here.
+      - name: Run the sensors
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: |
+          mode="--dry-run"
+          if [ "${{ inputs.apply }}" = "true" ]; then mode="--apply"; fi
+          bash tools/sensors/run.sh --due "$mode"
+
+      - name: Report the rows
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: bash tools/sensors/report.sh

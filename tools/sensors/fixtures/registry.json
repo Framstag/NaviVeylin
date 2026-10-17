@@ -1,0 +1,33 @@
+{
+  "profile": 1,
+  "comment": "A fixture registry for the sensor tooling's offline cases: the rows point at the fixture sensors, so `run.sh` exercises the whole lifecycle without a real measurement.",
+  "namespace": "sensor",
+  "labels": { "status": "open", "source": "ci" },
+  "escalation": { "maxRecurrences": 3, "labels": ["agent/needs-decision", "status/on-hold"] },
+  "rows": [
+    {
+      "id": "fixture-emit",
+      "cmd": "tools/sensors/fixtures/sensors/emit.sh",
+      "cron": "0 3 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 2,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "fingerprint": { "fields": ["case"] }
+    },
+    {
+      "id": "fixture-error",
+      "cmd": "tools/sensors/fixtures/sensors/error.sh",
+      "cron": "0 4 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file",
+      "fingerprint": { "fields": ["case"] }
+    }
+  ]
+}

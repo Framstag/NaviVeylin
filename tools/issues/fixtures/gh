@@ -12,6 +12,8 @@
 #   gh label list --json …                        -> $GH_STUB_DIR/labels.json
 #   gh issue list [--state …] --json …            -> $GH_STUB_DIR/issues.json
 #   gh issue view <n> --json …                    -> issue <n> of $GH_STUB_DIR/issues.json
+#   gh pr list [--state …] --json …               -> $GH_STUB_DIR/prs.json (the sensor tooling's open
+#                                                    pull requests; a scenario may carry its own)
 #
 # Writes (refused unless GH_STUB_RECORD is set):
 #   gh issue create|edit|close|comment …, gh label create|edit|delete …
@@ -47,11 +49,24 @@ record_write() {
     printf 'stub gh: refusing the write `gh %s` — set GH_STUB_RECORD=<file> to record it\n' "$*" >&2
     exit 1
   }
+  # A `--body-file` is read by the real `gh` at call time, so the stub keeps the content it saw beside the
+  # log: a case can then read what a writer put in a body after the writer's temporary file is gone. The
+  # log's own shape is unchanged, so the log's readers are unaffected.
+  local body_file="" arg="" seq=0
+  for arg in "$@"; do
+    [ "$arg" = "--body-file" ] && body_file="__next__" && continue
+    if [ "$body_file" = "__next__" ]; then body_file="$arg"; fi
+  done
+  [ -f "$GH_STUB_RECORD" ] && seq=$(wc -l < "$GH_STUB_RECORD")
   {
     printf 'gh'
     for a in "$@"; do printf ' %q' "$a"; done
     printf '\n'
   } >> "$GH_STUB_RECORD"
+  if [ -n "$body_file" ] && [ -f "$body_file" ]; then
+    mkdir -p "$GH_STUB_RECORD.bodies"
+    cp "$body_file" "$GH_STUB_RECORD.bodies/$((seq + 1))"
+  fi
 }
 
 [ $# -gt 0 ] || refuse "(no arguments)"
@@ -151,6 +166,20 @@ case "$group" in
         ;;
       *) refuse "issue $sub" ;;
     esac
+    ;;
+
+  pr)
+    [ "${1:-}" = "list" ] || refuse "pr $*"
+    shift
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --state|--limit|--json) shift 2 ;;
+        --paginate) shift ;;
+        *) refuse "pr list $*" ;;
+      esac
+    done
+    need_file prs.json
+    cat "$(fixture_path prs.json)"
     ;;
 
   *) refuse "$group $*" ;;

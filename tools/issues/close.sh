@@ -11,13 +11,21 @@
 # decision to close is not the run's. The comment is the deliverable either way, which is why it lives here
 # rather than in a second writer beside the close.
 #
+# `--sensor <id>` is the ownership scope a check closes under (`sensor-registry-and-metric-issues`, D7):
+# the policy pass runs first, and then the issue must carry that check's *own* label — an issue the check
+# does not own is refused with exit 3 and nothing is written. A check's issues are authorised by the row
+# that declared the check rather than by the automation opt-in, so `missing-eligibility-label` alone does
+# not stop a sensor-scoped close; every other refusal does, and the scope check is what bounds a subverted
+# or buggy sensor. A check closes a completed fix, never a person's decision, so `--not-planned` is
+# refused beside `--sensor`.
+#
 # There is no delete path in this tooling, and this script adds none: the issue is the only record of a
 # finding.
 #
 # Exit: 0 closed (or commented), 2 usage, 3 policy.
 #
 # Usage: close.sh <issue-number> --reason <text> --evidence <text> [--not-planned] [--comment-only]
-#                  [--json] [--profile <path>]
+#                  [--sensor <id>] [--json] [--profile <path>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -38,6 +46,7 @@ reason=""
 evidence=""
 state_reason="completed"
 comment_only=0
+sensor_id=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) profile_arg="${2:-}"; shift 2 ;;
@@ -45,8 +54,9 @@ while [ $# -gt 0 ]; do
     --evidence) evidence="${2:-}"; shift 2 ;;
     --not-planned) state_reason="not_planned"; shift ;;
     --comment-only) comment_only=1; shift ;;
+    --sensor) sensor_id="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) issues_die "close: unknown argument $1" ;;
   esac
 done
@@ -57,6 +67,15 @@ done
 issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
 
+sensor_label=""
+if [ -n "$sensor_id" ]; then
+  [ "$state_reason" = "completed" ] ||
+    issues_die "close: --sensor closes a completed fix — a not-planned closure is a person's decision, and the reopen path refuses to reverse it"
+  sensor_label=$(issues_sensor_label "$sensor_id")
+  [ -n "$sensor_label" ] || issues_refuse "label-opaque" \
+    "sensor/$sensor_id is not a declared check — the registry declares: $(issues_sensor_ids | tr '\n' ' ')"
+fi
+
 login=$(issues_login)
 issues_preflight "$profile" "$login"
 
@@ -66,24 +85,41 @@ issue_file=$(mktemp) || issues_die "close: cannot create a temporary file"
 trap 'rm -f "$issue_file"' EXIT
 printf '%s' "$issue" > "$issue_file"
 
-if [ "$json" -eq 0 ]; then
-  out=$(issues_core Policy check "$issue_file" --profile "$profile" 2>&1)
-  status=$?
-  if [ "$status" -eq 3 ]; then
+# The gate. A sensor-scoped close is refused by the author condition and by any refusal other than the
+# missing opt-in: the check's own issues are authorised by the row, and its scope is the label below.
+out=$(issues_core Policy check "$issue_file" --profile "$profile" 2>&1)
+status=$?
+reason_code="${out%%:*}"
+if [ "$status" -eq 3 ] && [ "$reason_code" = "missing-eligibility-label" ] && [ -n "$sensor_label" ]; then
+  :
+elif [ "$status" -eq 3 ]; then
+  if [ "$json" -eq 1 ]; then
+    jq -n --argjson issue "$number" --arg reason "$reason_code" --arg detail "${out#*: }" \
+      '{closed: false, outcome: "refused", issue: $issue, reason: $reason, detail: $detail}'
+  else
     printf '%s\n' "$out"
     printf 'close: refusing to close #%s — the gate did not pass, so nothing was posted\n' "$number"
+  fi
+  exit "$ISSUES_EXIT_POLICY"
+elif [ "$status" -ne 0 ]; then
+  issues_die "close: policy check failed: $out"
+fi
+
+# The ownership scope, checked after the gate and before any write: a check may act only on an issue that
+# carries its own label, whatever the label or the pipeline claims.
+if [ -n "$sensor_label" ]; then
+  owned=$(printf '%s' "$issue" | jq -r --arg label "$sensor_label" \
+    '[.labels[]? | if type == "string" then . else .name end] | index($label) != null')
+  if [ "$owned" != "true" ]; then
+    if [ "$json" -eq 1 ]; then
+      jq -n --argjson issue "$number" --arg expected "$sensor_label" \
+        '{closed: false, outcome: "refused", issue: $issue, reason: "sensor-scope", expected: $expected}'
+    else
+      printf 'sensor-scope: expected %s\n' "$sensor_label"
+      printf 'close: refusing to close #%s — it does not carry %s\n' "$number" "$sensor_label"
+    fi
     exit "$ISSUES_EXIT_POLICY"
   fi
-  [ "$status" -eq 0 ] || issues_die "close: policy check failed: $out"
-else
-  out=$(issues_core Policy check "$issue_file" --profile "$profile" 2>&1)
-  status=$?
-  if [ "$status" -eq 3 ]; then
-    jq -n --argjson issue "$number" --arg reason "${out%%:*}" --arg detail "${out#*: }" \
-      '{closed: false, outcome: "refused", issue: $issue, reason: $reason, detail: $detail}'
-    exit "$ISSUES_EXIT_POLICY"
-  fi
-  [ "$status" -eq 0 ] || issues_die "close: policy check failed: $out"
 fi
 
 comment=$(printf '%s\n\nEvidence: %s\n' "$reason" "$evidence")

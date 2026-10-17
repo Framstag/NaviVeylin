@@ -1,0 +1,3 @@
+coverage: fingerprint=- verdict=error measurement=error-no-coverage-report issue=- action=posted nothing, the run fails
+broken-main: fingerprint=- verdict=error measurement=error-no-build-result issue=- action=posted nothing, the run fails
+sensors: 2 finding(s) reported an error — nothing was written for them and the run fails

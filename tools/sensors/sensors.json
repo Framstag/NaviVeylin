@@ -1,0 +1,92 @@
+{
+  "profile": 1,
+  "comment": "THE SENSOR REGISTRY — one row per declared check, and the whole definition of that check: the command, the cadence, the bound, the consecutive count, the issue's kind and area, whether the check owns the closing, and the fields its condition fingerprint is derived from. `threshold` is the bound under `comparison` (`greater-than`, `below-floor`, `boolean`, or `baseline-multiple`, where the recorded baseline is multiplied by the threshold). A measurement is one whitespace-free token, so the issue's own marker line can be parsed. `labels` is the set of fixed vocabulary values every issue this registry files carries — each named here rather than in the engine (design D12). A second project adapts this file (and tools/tooling.json) and edits no engine file (design D9, D12).",
+  "namespace": "sensor",
+  "labels": {
+    "status": "open",
+    "source": "ci"
+  },
+  "escalation": {
+    "comment": "A condition that keeps returning is a specification or design problem, not an implementation one, so past `maxRecurrences` reopenings the check stops reopening and hands the issue to a person (design D6). The two labels are the whole label write of an escalation, and neither authorises automated work.",
+    "maxRecurrences": 3,
+    "labels": ["agent/needs-decision", "status/on-hold"]
+  },
+  "rows": [
+    {
+      "id": "build-duration",
+      "cmd": "tools/sensors/metrics/build-duration.sh",
+      "cron": "0 3 * * *",
+      "threshold": 1.5,
+      "comparison": "baseline-multiple",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "input": "app/build/gate-timings.json",
+      "fingerprint": { "fields": ["job"] }
+    },
+    {
+      "id": "package-size",
+      "cmd": "tools/sensors/metrics/package-size.sh",
+      "cron": "0 4 * * *",
+      "threshold": 1.1,
+      "comparison": "baseline-multiple",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "input": "app/build/outputs/apk/mobileRelease/app-mobile-release.apk",
+      "fingerprint": { "fields": ["artifact"] }
+    },
+    {
+      "id": "hotspot",
+      "cmd": "tools/sensors/hotspot-report.sh",
+      "cron": "0 5 * * 1",
+      "threshold": 5000,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "fingerprint": { "fields": ["path"] }
+    },
+    {
+      "id": "coverage",
+      "cmd": "tools/sensors/metrics/coverage.sh",
+      "cron": "0 6 * * *",
+      "threshold": 70,
+      "comparison": "below-floor",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "verification",
+      "lifecycle": "file+close",
+      "input": "app/build/reports/jacoco/coverage.json",
+      "fingerprint": { "fields": ["module"] }
+    },
+    {
+      "id": "broken-main",
+      "cmd": "tools/sensors/conditions/broken-main.sh",
+      "cron": "0 */2 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "input": "app/build/gate-result.json",
+      "fingerprint": { "fields": ["job", "case"] }
+    },
+    {
+      "id": "pr-conflicts",
+      "cmd": "tools/sensors/conditions/pr-conflicts.sh",
+      "cron": "30 */4 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "improvement",
+      "category": "specs-and-process",
+      "lifecycle": "file",
+      "fingerprint": { "fields": ["pr"] }
+    }
+  ]
+}

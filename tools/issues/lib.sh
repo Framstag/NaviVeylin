@@ -219,6 +219,54 @@ issues_occurrence() {
   printf '%s\n' "${value:-1}"
 }
 
+# Set one record entry, or append it: the writer of a record entry and its reader share this one home, so
+# a body record the metadata pass reads cannot be spelled differently by the pass that writes it.
+issues_body_set() { # <body> <key> <value> → the body with that entry set
+  local body="$1" key="$2" value="$3"
+  if printf '%s' "$body" | grep -q "<!--[[:space:]]*${key}:"; then
+    printf '%s' "$body" |
+      sed -E "s|<!--[[:space:]]*${key}:[^>]*-->|<!-- ${key}: ${value} -->|"
+  else
+    printf '%s\n<!-- %s: %s -->' "$body" "$key" "$value"
+  fi
+}
+
+# --------------------------------------------------------------------------- the sensor registry
+#
+# The `sensor` namespace is *declared* in the profile and its *values* are the check registry's rows
+# (`sensor-registry-and-metric-issues`, D9/D12), so the vocabulary keeps one owner and a project without
+# a registry has no sensor labels at all rather than the same list written twice. The lookup lives here,
+# beside the label gate it is used by, and the path is resolved from the working tree like every other
+# project fact.
+issues_sensor_registry() {
+  printf '%s\n' "${ISSUES_SENSOR_REGISTRY:-$ISSUES_ROOT/tools/sensors/sensors.json}"
+}
+
+issues_sensor_namespace() {
+  local registry
+  registry=$(issues_sensor_registry)
+  [ -f "$registry" ] || return 0
+  jq -r '.namespace // empty' "$registry" 2>/dev/null || true
+}
+
+issues_sensor_ids() {
+  local registry
+  registry=$(issues_sensor_registry)
+  [ -f "$registry" ] || return 0
+  jq -r '.rows[]?.id' "$registry" 2>/dev/null || true
+}
+
+# The label the registry's id owns, or nothing when the registry declares no such id: the caller refuses
+# with `label-opaque`, so a label outside the vocabulary stays refused.
+issues_sensor_label() { # <id>
+  local namespace separator
+  namespace=$(issues_sensor_namespace)
+  [ -n "$namespace" ] || return 0
+  issues_sensor_ids | grep -qx -- "$1" || return 0
+  separator=$(issues_profile_value namespaceSeparator)
+  printf '%s%s%s\n' "$namespace" "${separator:-/}" "$1"
+}
+
 # --------------------------------------------------------------------------- the basis (D3)
 #
 # basis = sha256( the labels the score depended on · the body's digest · the citations' existence flag ·

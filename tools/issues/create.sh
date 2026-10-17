@@ -13,9 +13,16 @@
 # means it (the override is recorded in the output). A reserved label in any input is refused with exit 3 —
 # no script here can authorise work (design D2, D4).
 #
+# `--sensor <id>` is the check registry's path into this writer (`sensor-registry-and-metric-issues`,
+# D4): the row's id is validated against the registry — the one owner of the `sensor` namespace's values —
+# and the label is added; the finding's own `fingerprint` is then the dedup anchor, because for a sensor
+# the identity is the *condition* (the failing case, the path, the module) and not the check that reported
+# it. Such a finding's body record also carries `occurrence: 1`, the count the reopen path increments.
+#
 # Exit: 0 created, 2 usage/malformed, 3 policy, 4 duplicate.
 #
-# Usage: create.sh [--finding <file>] [--label <label>]… [--status <value>] [--allow-duplicate] [--json] [--profile <path>]
+# Usage: create.sh [--finding <file>] [--label <label>]… [--status <value>] [--sensor <id>]
+#                  [--allow-duplicate] [--json] [--profile <path>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -28,15 +35,17 @@ allow_duplicate=0
 finding_file="-"
 extra_labels=()
 extra_status=""
+sensor_id=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) profile_arg="${2:-}"; shift 2 ;;
     --finding) finding_file="${2:-}"; shift 2 ;;
     --label) extra_labels+=("${2:-}"); shift 2 ;;
     --status) extra_status="${2:-}"; shift 2 ;;
+    --sensor) sensor_id="${2:-}"; shift 2 ;;
     --allow-duplicate) allow_duplicate=1; shift ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,29p' "$0"; exit 0 ;;
     *) issues_die "create: unknown argument $1" ;;
   esac
 done
@@ -82,11 +91,37 @@ if [ -n "$extra_status" ]; then
   labels+=("status${separator}${extra_status}")
 fi
 
-if [ "${#labels[@]}" -gt 0 ]; then
-  issues_check_labels "$profile" "${labels[@]}"
+# The ownership label a sensor files under. Its vocabulary is the registry's, not the profile's list: the
+# namespace is *declared* in the profile and its values are the rows (design D9/D12), so an id the registry
+# does not declare is refused with the same reason a value outside any vocabulary gets, and no label is
+# created by a typo.
+sensor_label=""
+if [ -n "$sensor_id" ]; then
+  sensor_label=$(issues_sensor_label "$sensor_id")
+  [ -n "$sensor_label" ] || issues_refuse "label-opaque" \
+    "sensor/$sensor_id is not a declared check — the registry declares: $(issues_sensor_ids | tr '\n' ' ')"
+  labels+=("$sensor_label")
 fi
 
-fingerprint=$(issues_core Fingerprint "class=$clazz" "category=$category" "claim=$claim" "anchor=$anchor")
+if [ "${#labels[@]}" -gt 0 ]; then
+  gate_labels=()
+  for label in "${labels[@]}"; do
+    # the ownership label is validated above, against its own vocabulary, so it is not handed to the
+    # profile's gate — which knows the namespace but not the registry's values
+    [ -n "$sensor_label" ] && [ "$label" = "$sensor_label" ] && continue
+    gate_labels+=("$label")
+  done
+  if [ "${#gate_labels[@]}" -gt 0 ]; then
+    issues_check_labels "$profile" "${gate_labels[@]}"
+  fi
+fi
+
+# The dedup anchor: a sensor's condition fingerprint when the finding carries one, and the digest of the
+# structured fields otherwise (`sensor-registry-and-metric-issues`, D4).
+fingerprint=$(jq -r '.fingerprint // empty' <<< "$finding")
+if [ -z "$fingerprint" ]; then
+  fingerprint=$(issues_core Fingerprint "class=$clazz" "category=$category" "claim=$claim" "anchor=$anchor")
+fi
 [ -n "$fingerprint" ] || issues_die "create: could not compute a fingerprint"
 
 existing=$(issues_issue_list)
@@ -109,6 +144,10 @@ if [ -n "$source_id" ]; then
   new_body="${new_body}"$'\n'"<!-- nvid: ${source_id} -->"
 fi
 new_body="${new_body}"$'\n'"<!-- fingerprint: ${fingerprint} -->"
+if [ -n "$sensor_label" ]; then
+  # The recurrence count starts here, and the reopen path increments it: one writer, one home.
+  new_body="${new_body}"$'\n'"<!-- occurrence: 1 -->"
+fi
 
 args=(issue create --title "$title" --body "$new_body")
 for label in "${labels[@]}"; do

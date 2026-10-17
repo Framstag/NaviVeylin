@@ -1,0 +1,19 @@
+PASS  sensor tooling (33 cases)
+PASS  issue tooling (69 cases)
+PASS  metadata self-check
+PASS  metadata mutation list
+PASS  agent issue loop (45 cases)
+PASS  loop mutation guards
+PASS  declared cases
+PASS  feature-list classification
+PASS  feature-list generator
+PASS  doc routes
+PASS  doc routes selftest
+PASS  backlog references
+PASS  backlog references selftest
+PASS  gate timings
+PASS  project metrics report
+PASS  highlight measurement
+PASS  compose sandbox rule
+PASS  native config pruning
+local gate: green

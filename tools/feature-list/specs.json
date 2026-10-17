@@ -34,6 +34,7 @@
     "auto-startup-hardening": { "area": "car-only", "userVisible": false, "surfaces": ["car"] },
     "auto-turn-zoom": { "area": "map-interaction", "userVisible": true, "surfaces": ["car"] },
     "back-gesture": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
+    "backlog-sensors": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "backlog-source-of-truth": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "basemap-cancel": { "area": "offline-maps", "userVisible": false, "surfaces": ["phone", "car"] },
     "basemap-discovery": { "area": "offline-maps", "userVisible": false, "surfaces": ["phone", "car"] },

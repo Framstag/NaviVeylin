@@ -1,0 +1,7 @@
+## host dry run, --only coverage with a fixture report (no baseline on record)
+app: 61.5% (floor 70%)
+core: 88.0% (floor 70%)
+dry-run: would file a new issue for coverage (fingerprint 47c2c6f820cbccf4423b3f2ef01102c56c1886f22f78dc336721699799520813, measurement 61.5)
+coverage: fingerprint=47c2c6f820cbccf4423b3f2ef01102c56c1886f22f78dc336721699799520813 verdict=violation measurement=61.5 issue=- action=filed
+coverage: fingerprint=2b7ce8a6ab9e7052fcec96c424fb2927d7364076ffcb2ce85c364477e8f90a06 verdict=clear measurement=88.0 issue=- action=nothing filed, nothing to clear
+exit=0

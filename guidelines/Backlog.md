@@ -13,8 +13,9 @@ tracker, and the automation over it is the tooling under `tools/issues/**` plus 
 reached by seven changes, in order; each change's tasks include keeping this document true for its own
 sections, so the document becomes a description of the tree exactly as fast as the tree moves.
 
-The first three changes have landed and the rest have not. Concretely, on the tracker today: the label taxonomy
-exists (`class/` · `category/` · `status/` · `source/` · `agent/` · `prio/` · `sensor/`, plus GitHub's nine
+The first two changes landed the tracker and the import, the third the loop and the fifth the metadata pass;
+this document's fourth change, the check registry, has landed too, and the last two have not. Concretely, on the tracker today: the label
+taxonomy exists (`class/` · `category/` · `status/` · `source/` · `agent/` · `prio/` · `sensor/`, plus GitHub's nine
 defaults), the imported backlog carries it — **137** items, every one open and none carrying `agent/eligible`,
 plus **21** `status/retired` tombstones for the ids whose entry had already been removed before the migration,
 so that a `§N` a live file cites still resolves — and `tools/check-todo-references.sh`, one CI step with no
@@ -25,7 +26,7 @@ token, proves exactly that on every push.
 | 1 | `github-issue-tooling` | the tracker surface: taxonomy, gate, identity, closure, the project profile | **applied 2026-10-17** — `tools/issues/**`, the project profile `tools/tooling.json`, four skills, an offline self-test and one CI step; the dry run over the prose backlog is recorded under the change's `evidence/`, and the tracker holds the 36 taxonomy labels and no issue |
 | 2 | `migrate-todo-to-github-issues` | the live import, the prose file deleted, every instruction rewired | **applied 2026-10-17** — 137 items imported (open, none authorised) and 21 retired tombstones, `list.sh --id N` resolving a citation, `tools/check-todo-references.sh` and its CI step, every instruction rewired, the prose file deleted; the run's record is `import-evidence.md` |
 | 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | **applied 2026-10-17** — `tools/loop/**` (the entry `run.sh`, the pre-screen, the state and its lock, the worktree and the branches, the label transitions, the report), two prompt skeletons filled from `loop.conf`, a stub `pi` and an offline self-test with one CI step; the two write paths the loop needed landed in the tooling (`update.sh --remove-label`, `close.sh --comment-only`); §7 and §11 of this document and the `fix-loop` skill describe it |
-| 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | planned |
+| 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | **applied 2026-10-17** — `tools/sensors/**` (the registry `sensors.json`, the runner, the guards, the report, the hotspot measurement, the four metric rows and the two condition sensors), a fixture harness offline against the stub `gh` with one CI step, the three verbs the runner writes through extended (`create.sh --sensor`, `close.sh --sensor`, the new `reopen.sh`), the isolated pipeline `.github/workflows/sensors.yml` with its CODEOWNERS entry, and `labels.sh` learning the registry's labels; the host dry runs, the falsification run and the not-reproducible CI steps are recorded under the change's `report.md` |
 | 5 | `issue-metadata-loop` | persisted priority and classification | **applied 2026-10-17** — `tools/issues/prioritise.sh` (the basis, the partition over every issue, the bounded run, the label+marker writer, the transition comment) and `classify.sh` (the queue of items with no kind), `check-metadata.sh` and its falsification, the `bands` section in `tools/tooling.json`, `list.sh --prio/--unranked`, the `issue-metadata` skill and the `triage-todo` rewrite; the run over the live tracker is recorded under the change's `evidence/` |
 | 6 | `tooling-portability` | the proof that another project can use all of it | planned |
 | 7 | `decision-queue` | the human lane — the queue, the answer path, the mid-item handover | **named, not written** |
@@ -368,7 +369,7 @@ Named so a reader can tell a decision from an omission:
 | a shared home for the engines, or a published tool | premature with one consumer; the profile boundary keeps it cheap |
 | scheduled unattended runs, budgets read from a file | it would put a model provider's key in a pipeline, which is the one place a credential is hardest to bound |
 | parallel runs and a landing queue | serialising runs is the one-writer rule at run scale; parallelism needs a merge queue |
-| the size/frequency loop and a ratified threshold in CI | it needs the check registry to have run for a while first, so that a threshold has a baseline |
+| the size/frequency loop and a ratified threshold in CI | the measurement and its row have landed (`sensor-registry-and-metric-issues`); what is still deferred is *ratifying* the bound from recorded baselines, which needs the check to have run for a while first |
 | periodic spec-drift auditing | it needs a history of checked pairs; the cheap drift forms are worth doing first |
 | running the sensors inside the loop's environment | a scheduled producer and a batch consumer should not be coupled |
 

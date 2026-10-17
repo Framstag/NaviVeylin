@@ -47,7 +47,9 @@ jobs:
         run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
 
       # Before any sensor: on the main branch, HEAD equal to the remote main branch, a clean tree, an
-      # allowlisted identity and a complete registry. A refusal here writes nothing.
+      # allowlisted identity and a complete registry. A refusal here writes nothing. The remote it compares
+      # against defaults to `origin`, which is what this checkout produces; a checkout that names its remote
+      # differently passes `--remote <name>` or sets `SENSORS_REMOTE`.
       - name: Guard the run
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}

@@ -11,8 +11,13 @@
 #   7  an ambient identity on the allowlist?  (asked of the issue tooling, never re-read here)
 #   9  a registry whose every row is complete and whose command exists
 #
-# Usage: guard.sh [--ref <ref>] [--profile <file>] [--registry <file>] [--json]
+# Usage: guard.sh [--ref <ref>] [--remote <name>] [--profile <file>] [--registry <file>] [--json]
 # Exit:  0 every guard passed; otherwise the code of the guard that refused.
+#
+# The remote it compares against is a *checkout* fact, not a project value: `origin` is what a clone and a CI
+# checkout both produce, and a checkout that names its remote differently — or a local run whose only remote
+# is somebody's fork — overrides it with `--remote <name>` or `SENSORS_REMOTE`. The refusal names the remotes
+# that do have a main ref, so the value to pass is in the message rather than in a doc.
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -22,18 +27,21 @@ source "$here/lib.sh"
 profile_arg=""
 registry_arg=""
 ref=""
+remote=""
 json=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --ref) ref="${2:-}"; shift 2 ;;
+    --remote) remote="${2:-}"; shift 2 ;;
     --profile) profile_arg="${2:-}"; shift 2 ;;
     --registry) registry_arg="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
     *) sensors_die "guard: unknown argument $1" ;;
   esac
 done
 ref="${ref:-${SENSORS_REF:-}}"
+remote="${remote:-${SENSORS_REMOTE:-origin}}"
 
 sensors_resolve --profile "$profile_arg" --registry "$registry_arg"
 
@@ -53,17 +61,25 @@ report() { # <guard> <exit> <reason> <detail>
   sensors_refuse "$2" "$3" "$4"
 }
 
-# The project's main branch: the branch the remote HEAD points at, with the conventional name as the
-# fallback for a checkout whose remote HEAD was never resolved.
-main_branch() {
-  local name
-  name=$(git symbolic-ref --short -q refs/remotes/origin/HEAD 2>/dev/null) || name=""
-  case "$name" in origin/*) name="${name#origin/}" ;; esac
-  [ -n "$name" ] || name="main"
+# The project's main branch: the branch the remote's HEAD points at, else the remote's own conventional
+# name, else `main`. It is read from the remote's refs, never from the branch that happens to be checked out.
+main_branch() { # <remote>
+  local remote="$1" name=""
+  name=$(git symbolic-ref --short -q "refs/remotes/$remote/HEAD" 2>/dev/null) || name=""
+  case "$name" in "$remote"/*) name="${name#"$remote"/}" ;; esac
+  if [ -z "$name" ]; then
+    if git rev-parse --verify --quiet "refs/remotes/$remote/main" >/dev/null 2>&1; then
+      name="main"
+    elif git rev-parse --verify --quiet "refs/remotes/$remote/master" >/dev/null 2>&1; then
+      name="master"
+    else
+      name="main"
+    fi
+  fi
   printf '%s\n' "$name"
 }
 
-main=$(main_branch)
+main=$(main_branch "$remote")
 
 # 1. on the main branch — locally the checked-out one, in CI the ref the dispatch selected.
 branch=""
@@ -85,16 +101,18 @@ line on-main "($branch)"
 # 2. HEAD is the remote main branch's commit — a run whose tree is not what is published would file
 #    against a commit nobody else has.
 head_sha=$(git rev-parse HEAD 2>/dev/null) || head_sha=""
-remote_sha=$(git rev-parse --verify --quiet "refs/remotes/origin/$main" 2>/dev/null) || remote_sha=""
+remote_sha=$(git rev-parse --verify --quiet "refs/remotes/$remote/$main" 2>/dev/null) || remote_sha=""
 if [ -z "$remote_sha" ]; then
+  have_remote_main=$(git for-each-ref --format='%(refname)' "refs/remotes/*/$main" 2>/dev/null |
+    sed -e 's|^refs/remotes/||' -e "s|/$main$||" | sort -u | tr '\n' ' ')
   report head-is-remote-main "$SENSORS_HEAD_NOT_REMOTE" "no-remote-main" \
-    "there is no refs/remotes/origin/$main to compare with HEAD $head_sha"
+    "there is no refs/remotes/$remote/$main to compare with HEAD $head_sha; refs exist for: ${have_remote_main:-none} — pass --remote <name> or set SENSORS_REMOTE"
 fi
 if [ "$head_sha" != "$remote_sha" ]; then
   report head-is-remote-main "$SENSORS_HEAD_NOT_REMOTE" "head-is-not-origin" \
-    "HEAD is $head_sha but origin/$main is $remote_sha"
+    "HEAD is $head_sha but $remote/$main is $remote_sha"
 fi
-line head-is-remote-main "${head_sha:0:12}"
+line head-is-remote-main "$remote/$main ${head_sha:0:12}"
 
 # 3. a clean working tree — a run that scribbles beside uncommitted work would be indistinguishable from
 #    the work itself, and the sensors are not a second writer.

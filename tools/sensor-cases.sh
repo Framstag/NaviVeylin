@@ -16,6 +16,7 @@ SENSOR_CASES=(
   'guard#eachCheckHasItsOwnReason'
   'guard#refusesOffMain'
   'guard#refusesARowWithoutThresholdOrConsecutive'
+  'guard#remoteIsConfigurable'
   'sensors#usesTheReservedNamespacesAndAddsNone'
   'Registry#everyRowIsComplete'
   'lib#rejectsAMalformedFinding'
@@ -57,6 +58,7 @@ sensor_run_case() {
     'guard#eachCheckHasItsOwnReason') case_guard_eachCheckHasItsOwnReason ;;
     'guard#refusesOffMain') case_guard_refusesOffMain ;;
     'guard#refusesARowWithoutThresholdOrConsecutive') case_guard_refusesARowWithoutThresholdOrConsecutive ;;
+    'guard#remoteIsConfigurable') case_guard_remoteIsConfigurable ;;
     'sensors#usesTheReservedNamespacesAndAddsNone') case_sensors_usesTheReservedNamespacesAndAddsNone ;;
     'Registry#everyRowIsComplete') case_registry_everyRowIsComplete ;;
     'lib#rejectsAMalformedFinding') case_lib_rejectsAMalformedFinding ;;
@@ -210,9 +212,9 @@ marker_comment() { # <createdAt> <sensor-id> <fingerprint> <verdict> <measuremen
 }
 
 # A throwaway project: the profile, the fixture registry and the fixture sensors, committed, with an
-# `origin/main` that points at HEAD — the state the guard requires.
-throwaway_project() { # [<registry-file>] → the path
-  local registry="${1:-$(fixture registry.json)}" dir
+# `<remote>/main` that points at HEAD — the state the guard requires.
+throwaway_project() { # [<registry-file>] [<remote>] → the path
+  local registry="${1:-$(fixture registry.json)}" remote="${2:-origin}" dir
   dir=$(scratch)
   mkdir -p "$dir/tools/sensors/fixtures/sensors"
   cp "$SENSORS_REPO_ROOT/tools/tooling.json" "$dir/tools/tooling.json"
@@ -224,8 +226,8 @@ throwaway_project() { # [<registry-file>] → the path
   git -C "$dir" add -A >/dev/null 2>&1 || fail "could not stage the throwaway repository"
   git -C "$dir" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm init >/dev/null 2>&1 ||
     fail "could not record the throwaway repository's first state"
-  git -C "$dir" update-ref refs/remotes/origin/main HEAD
-  git -C "$dir" symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
+  git -C "$dir" update-ref "refs/remotes/$remote/main" HEAD
+  git -C "$dir" symbolic-ref "refs/remotes/$remote/HEAD" "refs/remotes/$remote/main"
   printf '%s\n' "$dir"
 }
 
@@ -348,6 +350,34 @@ case_guard_refusesARowWithoutThresholdOrConsecutive() {
   out=$( (cd "$dir" && sensor_engine guard.sh) 2>&1 ); status=$?
   assert_eq "9" "$status" "a row without a consecutive count is refused"
   assert_contains "$out" "row-missing-field: consecutive" "the missing count is named"
+}
+
+case_guard_remoteIsConfigurable() {
+  local dir out status
+  # A checkout whose remote is not named `origin`: the local shape, and the shape of a fork checkout.
+  dir=$(throwaway_project "$(fixture registry.json)" upstream)
+
+  # The default refuses, and the message carries the value to pass.
+  out=$( (cd "$dir" && sensor_engine guard.sh) 2>&1 ); status=$?
+  assert_eq "5" "$status" "without the seam the guard refuses on a differently named remote"
+  assert_contains "$out" "no-remote-main" "the refusal reason"
+  assert_contains "$out" "refs exist for: upstream" "the refusal names the remote that does have a main ref"
+  assert_contains "$out" "SENSORS_REMOTE" "the refusal names the seam"
+
+  # …and the flag and the environment each make it pass, naming what it compared against.
+  out=$( (cd "$dir" && sensor_engine guard.sh --remote upstream) 2>&1 ); status=$?
+  assert_eq "0" "$status" "--remote resolves the comparison: $out"
+  assert_contains "$out" "guard: head-is-remote-main upstream/main" "the resolved remote and branch are reported"
+
+  out=$( (cd "$dir" && SENSORS_REMOTE=upstream sensor_engine guard.sh) 2>&1 ); status=$?
+  assert_eq "0" "$status" "SENSORS_REMOTE resolves the comparison: $out"
+
+  # A remote whose HEAD was never resolved still names the branch from its own refs.
+  git -C "$dir" symbolic-ref --delete "refs/remotes/upstream/HEAD" 2>/dev/null ||
+    git -C "$dir" update-ref -d "refs/remotes/upstream/HEAD"
+  out=$( (cd "$dir" && SENSORS_REMOTE=upstream sensor_engine guard.sh) 2>&1 ); status=$?
+  assert_eq "0" "$status" "the branch is read from the remote's refs, not from its HEAD symref: $out"
+  assert_contains "$out" "guard: head-is-remote-main upstream/main" "the branch is still main"
 }
 
 case_sensors_usesTheReservedNamespacesAndAddsNone() {

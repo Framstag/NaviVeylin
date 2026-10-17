@@ -37,41 +37,39 @@ its own `!` line in `.gitignore` (the two that exist are `openspec-open-changes`
 `openspec-proof-gap-audit`), and `git ls-files .pi` prints the tracked set. To use a skill across projects, copy
 its directory to `~/.pi/agent/skills/<name>/`.
 
-### Screenshot reading (harness prerequisite)
+### Looking at a screenshot (harness prerequisite)
 
-Reading a screenshot is a tool the harness must provide; it is not part of the repository.
-**`view_image`** comes from the Pi package `@luan.sh/pi-view-image`:
+Pixels are read in a **throwaway child session**, never in the session that holds the work:
 
-```bash
-pi install npm:@luan.sh/pi-view-image   # verified working 2026-10-06, pi 1.0.4
+```text
+subagent({agent: "delegate", cwd: "/home/tim/projects/NaviVeylin",
+          task: "read .pi/logs/<check>/shot.png and describe the screen in words — no coordinates,
+                 no numbers; write nothing, change nothing"})
+  -> the answer is text; it goes into the evidence file (or the change's tasks.md as triage)
+python3 tools/measure-highlight.py "$D/shot.png" --dump "$D/ui.xml" --margin 126   <- the verdict
 ```
 
-It reads a local PNG/JPEG/GIF/WebP and returns it as an image content block, so a vision-capable
-model sees the pixels — `ctx_read` returns only a placeholder for an image file, and lean-ctx runs in
-`mode: "replace"`, so Pi's built-in image-capable `read` is not available. The package builds a small
-Rust binary on first use (a Rust toolchain is required; set `PI_VIEW_IMAGE_BIN` to use a prebuilt
-executable). Look first, then measure with `tools/measure-highlight.py` — the look is triage, the
-script's numbers and exit code are the evidence (`pixel-check` skill, §10 below).
+Why the shape, and the one rule behind it:
 
-### Agent harness and the TUI package (the rest of the harness prerequisite)
-
-The screenshot tool above is one of two harness facts that are about the agent, not about this repository's
-code:
-
-- **`view_image` is the only route for a text-only model.** Pi's built-in `read` returns image content only
-  for a vision-capable model, while `view_image` falls back to a description of the picture, so a session
-  without vision still gets a look before it measures.
-- **The `@luan.sh/pi-view-image` package must stay pinned and filtered.** Its manifest declares **two**
-  extensions — its own `./src/extension.ts` plus a bundled `@luan.sh/pi-libtui` host — and the host is what
-  rewrites the TUI: user-message bubbles (default on), the streaming status row (the waiting animation),
-  markdown tables, and the mouse/cursor/editor prototype leases. `~/.pi/agent/settings.json` therefore keeps
-  one entry for it, version-pinned, with `"extensions": ["./src/extension.ts"]`. If an update ever stops
-  matching that filter the drift returns **silently** — the symptom reads as a Pi UI change, not a package
-  regression — so after any `pi update --extensions` check that `pi list` shows one entry and that
-  `/libtui:colors` (registered *only* by that host extension) is absent. Keep the package itself: the day no
-  session runs a text-only model, `read` replaces the tool and the package can go. Residual after the
-  filter: the tool's own row still renders through libtui library components (`ToolActivity`,
-  `toolCallPreview`), never through the host.
+- **A tool result must never carry an image block into the session holding the work.** Measured 2026-10-16: two
+  image-bearing tool results in one session, then a pi error that repeated on every further prompt — the
+  session was unusable and the error text was lost. Measured 2026-10-17: a `delegate` child read
+  `.pi/logs/carnav1/A-browse.png` through its native `read`, *did* receive the pixels, described the frame
+  (the blue "+" plate, the "Driver" chip, the climate rail readings) and completed its turn. The child's
+  transcript is disposable, this session's is not, so the look happens where a loss costs one child.
+- **No second Pi process and no third-party package.** The agent does not run `pi --print` (the owner's rule;
+  `pi` is not in lean-ctx's shell allowlist, so the call is refused anyway). The third-party screenshot package
+  that the earlier version of this section installed is gone as well: it carried a bundled TUI host that had to
+  be version-pinned and filtered through an extension allowlist, i.e. harness code owned by nobody here
+  (`TODO.md` §149, retired 2026-10-17). The child session is the harness-native route to the same thing — a
+  process that can be thrown away.
+- **A child is not a `ctx_*` runtime.** It is handed the native tools (`read`, `bash`, `edit`, `write`) and
+  **not** lean-ctx's `ctx_*` tools, and native `read` returns image content only for a vision-capable model. A
+  child inherits the parent's model, so a session on a vision-capable model sees the pixels while one on a
+  text-only model receives a placeholder; in that case the workflow degrades to the measurement script alone,
+  which answers *where* but not *what*.
+- **Look first, then measure** with `tools/measure-highlight.py`: the look is triage, the script's numbers and
+  exit code are the evidence (`pixel-check` skill, §11 below).
 
 ## 2. Common behavior
 
@@ -1517,8 +1515,9 @@ found both real causes only after measuring.
    reports indices, pixels, the free band and a verdict — never a position (spec
    `auto-diagnostics`). The route analysis carries `MapCanvasVM: segment focus: range=… mag=…
    covered=… band=[0,…] margin=… bboxPx=[…] inside=…`.
-2. **Look at the screenshot, then measure it — never only describe it.** Read the frame with
-   `view_image` (a local PNG path) and say what is on screen; that look is triage. The verdict comes
+2. **Look at the screenshot, then measure it — never only describe it.** Have a throwaway child session
+   read the frame (§1, "Looking at a screenshot") and say what is on screen; that look is triage, and only its
+   text enters this session. The verdict comes
    from `tools/measure-highlight.py`, which finds the analysed-segment highlight by its casing colour,
    derives the card top from a `uiautomator dump` and prints the highlight's bounding box against the
    free band (exit 0 inside / 1 clipped / 2 no highlight). Its detector is covered device-free by

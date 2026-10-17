@@ -3,8 +3,9 @@
 
 Why this exists: "the segment is not completely visible" cannot be settled by
 reasoning about projection code, and a model's impression of a screenshot is not
-evidence either. The agent looks at the frame first (`view_image`, a local PNG
-path), then this script turns the *same* frame into numbers — so a visual claim is
+evidence either. The agent has a throwaway child session look at the frame first (a local PNG path,
+`guidelines/Build.md` §1 "Looking at a screenshot"), then this script turns the *same* frame into numbers — so
+a visual claim is
 verified (or refuted) with reproducible evidence instead of a description, and
 instead of another round trip with the owner.
 

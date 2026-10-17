@@ -44,6 +44,7 @@ which also lists the sections this table does not route.
 | whether `UI.md` is still accurate | `UI.md` "Keeping this document honest" |
 | the feature catalogue or the release notes, or how they are generated | `FeatureList.md` §1 "What the two documents are", §3 "One capability key identifies one requirement", §4 "The classification is the only human judgement, and an unclassified spec stops the run", §6 "The prose gates, not a reviewer's memory", §8 "The version is an input" — those 5 sections are 9 268 of the document's 13 162 chars, ~2.6 k tokens against ~3.7 k for the whole document (measured 2026-10-08) |
 | how the guidelines themselves are organized | `openspec/specs/documentation-ownership/spec.md` |
+| the backlog itself, or the automation over it — where an item comes from, what the tracker holds, who may write what, how an item becomes work, the loop and its refusals, the checks, or using this tooling in another project | `Backlog.md` §1 "Status, and what this document owns", §4 "The invariants", §5 "Who may write what", §10 "Portability" |
 
 ## Tech Stack
 
@@ -193,12 +194,17 @@ clone or another agent belongs in **this file**, in `openspec/config.yaml` or in
 *tools* a skill uses belong in the repo (`tools/measure-highlight.py`, with a self-test that runs without a
 device).
 
-Screenshot reading needs one harness tool the repository cannot ship: **`view_image`**, a Pi package that
-returns an image content block so a text-only model sees the pixels — and whose install, `PI_VIEW_IMAGE_BIN`
-override and **pinning/filtering constraint** (it bundles a `@luan.sh/pi-libtui` host that rewrites the TUI,
-so it stays version-pinned with a one-entry `"extensions": ["./src/extension.ts"]` filter) are
-`guidelines/Build.md` §1, "Agent harness and the TUI package". Without the package the workflow degrades to
-the measurement script alone, which answers *where* but not *what*.
+Screenshot reading needs no harness package and no second Pi process: pixels are read inside a
+**throwaway child session**. A look is one `subagent` call whose task reads the PNG and answers in words;
+the child's disposable transcript takes the image block, this session's gets text only, and that text goes
+into the evidence file. Recorded fact, and the reason the look is a child: an image content block in **this**
+session's transcript killed the session on 2026-10-16 (two image-bearing tool results, then a pi error that
+repeated on every further prompt, error text not captured), while a `delegate` child read the same capture on
+2026-10-17, received the pixels, described the frame and finished its turn normally. The rule: **a tool result
+must never carry an image block into the session holding the work.** The lane needs a vision-capable model — a
+child of a text-only model receives a placeholder, and then only `tools/measure-highlight.py` answers, *where*
+but not *what*; the look is triage, the script's numbers and exit code stay the evidence. Prerequisites, and
+why the agent never runs `pi --print`, are `guidelines/Build.md` §1, "Looking at a screenshot".
 
 ## OpenSpec Workflow
 

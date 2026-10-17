@@ -1,11 +1,11 @@
 # NaviVeylin TODO 
 
 **Legend:** ✗ = missing | ⏳ = in progress / blocked | ✅ = done
-**Entry metadata:** every numbered section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line under its heading. `class` describes the **remaining** work: a landed fix whose only residue is verification is an `improvement`, one whose residue is still a defect stays a `bug`. Ids are identity — never renumbered (a collision is reported and the duplicate gets a fresh id: the `§79` duplicate became `§119` on 2026-10-03). An id is retired only by **absorption**: the survivor's heading says `absorbed §N` and its body carries the folded entry's record verbatim, so the retired id needs no renumbering and its history is not lost.
+**Entry metadata:** every numbered section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line under its heading. `class` describes the **remaining** work: a landed fix whose only residue is verification is an `improvement`, one whose residue is still a defect stays a `bug`. Ids are identity — never renumbered (a collision is reported and the duplicate gets a fresh id: the `§79` duplicate became `§119` on 2026-10-03). An id is retired only by **absorption**: the survivor's heading says `absorbed §N` and its body carries the folded entry's record verbatim, so the retired id needs no renumbering and its history is not lost. The one other retirement is **in place**, for an entry whose subject stops existing: its status line reads `retired — <date>: <reason>`, and its id, heading and body stay exactly where they are (`§149`, retired 2026-10-17 with the package it guarded).
 
 **Clusters** (category, then class — jump targets, not an order):
 - **build-and-harness** — bug: §146 §192
-- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145 §149 §155
+- **build-and-harness** — improvement: §14 §17 §22 §37 §44 §66 §95 §123 §128 §132 §142 §143 §145 §155 §203
 - **car** — bug: §57 §83 §92 §93 §177 §178 §179 §180
 - **car** — improvement: §29 §34 §46 §56 §64 §103 §120 §127 §133
 - **data-and-maps** — bug: §91 §99
@@ -2483,7 +2483,7 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 ---
 
 ## 149. The `view_image` package's extension filter can stop matching and restore the bundled libtui UI drift without any error — Found 2026-10-07 while removing the libtui host extension from the screenshot-reading tooling
-**id:** 149 · **category:** build-and-harness · **class:** improvement · **status:** open
+**id:** 149 · **category:** build-and-harness · **class:** improvement · **status:** retired — 2026-10-17: the package it guarded was removed (change `fix-screenshot-evidence-transcript-safety`), so there is no filter to drift and the residual below has no subject
 
 - **Observed** ℹ: `@luan.sh/pi-view-image` declares two extensions in its manifest — `./src/extension.ts`
   (the tool) and `./node_modules/@luan.sh/pi-libtui/src/extension.ts` (a TUI host). That host is what
@@ -2511,6 +2511,11 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   matching is indistinguishable from an upstream Pi UI change — the same misattribution this entry was
   filed from. The oracle is one command (`/libtui:colors`), so the cost of missing it is re-walking this
   analysis.
+- **Retired 2026-10-17** ✓ (change `fix-screenshot-evidence-transcript-safety`): the package is gone from the
+  harness, so the extension allowlist, `PI_VIEW_IMAGE_BIN` and the `/libtui:colors` oracle all describe
+  nothing that exists. The look is now a throwaway child session (`guidelines/Build.md` §1). The id stays
+  (ids are identity — never renumbered). The residual above is retired with it rather than repaired: with the
+  package removed there is no loaded-extension set to assert.
 
 ## 150. After arrival the reroute path re-acquires the destination that was already reached — Found 2026-10-07 while applying `auto-end-navigation-after-arrival` (device run on the AAOS AVD, tasks 3.2/3.3)
 **id:** 150 · **category:** route-and-navigation · **class:** improvement · **status:** on-hold suppression of the post-arrival reroute vs the recorded owner decision
@@ -3588,3 +3593,30 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
 - **Related**: `guidelines/Build.md` §12 (the native build and its configured headers) and §2 (the iteration
   protocol, through which the false failure was read); `TODO.md` §167 (another `label wrapping` hit, a
   different mechanism).
+
+---
+
+## 203. An image carried by a tool result can kill the session that holds the work, and the error text was never captured — Found 2026-10-16 while designing the screenshot-evidence workflow (change `fix-screenshot-evidence-transcript-safety`)
+**id:** 203 · **category:** build-and-harness · **class:** improvement · **status:** open
+
+- **Observed** ⚠: two tool results that carried an image content block in one session, then a pi error that
+  repeated on **every** further prompt — the session was unusable afterwards. The error text was not captured,
+  so no message can be quoted and the failing path is shaped but not isolated. On 2026-10-17 the same capture
+  (`.pi/logs/carnav1/A-browse.png`) read by a `delegate` **child** session through native `read` returned real
+  pixels, was described correctly (blue "+" plate, "Driver" chip, climate-rail readings) and the child
+  completed its turn — so the shape is not universally fatal, and the main session's tool-result path is the
+  one with the witness against it.
+- **Repro protocol** ℹ (throwaway session only — never the session holding work): in a separate `pi` process
+  started from `/tmp` with nothing in flight, put the image in through a tool result (a `ctx_read` of a local
+  PNG), then send one more prompt; capture the verbatim error, `pi --version`, `lean-ctx --version` and the
+  timestamp. If the session does not fail on the version under test, record that outcome — it is a result, not
+  a reason to drop the rule.
+- **Why it is filed rather than fixed here** ✗: no host-side case can assert an agent transcript, so there is
+  no red-on-HEAD test and no build gate this could ride; the artifact lives outside the repository.
+- **Fix candidate**: re-run the protocol above after any pi or lean-ctx upgrade and **capture the message** this
+  time (the missing text is the whole reason this entry is still open); with the error in hand, decide whether
+  the tool-result path can be repaired rather than avoided. Avoidance is already the shipped rule — a tool
+  result must never carry an image block into the session holding the work, and the look happens in a throwaway
+  child session (`guidelines/Build.md` §1).
+- **Related**: `AGENTS.md` "Agent iteration loop (measure first)"; `.pi/skills/pixel-check`,
+  `.pi/skills/device-check`; `tools/measure-highlight.py`.

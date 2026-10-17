@@ -47,7 +47,8 @@ prepared the AVD (maps installed, `com.framstag.naviveylin` installed).
    (`segment focus: … inside=…`), `-s RoutePanelVM`, `-s NaviVeylin` (native, must
    show **no** fault-like lines: `grep -ciE "fatal|exception|crash|assert"`).
 5. **Screenshot + dump in the same moment** if the claim is visual, then measure it
-   with the `pixel-check` skill instead of describing it.
+   with the `pixel-check` skill (look in a throwaway child session, verdict from
+   `tools/measure-highlight.py`) instead of describing it.
 6. **Record geometry as evidence**: `adb shell uiautomator dump` + grep for the
    card's surface bounds (`bounds="[0,1320][1080,2400]"` = card top 1320) gives the
    *measured* card height that the map's fit reports — the pair is the proof that
@@ -110,8 +111,8 @@ ancestor `clickable="true"` node covered the point when the target's own action 
   verify the read actually wrote a non-empty file — the dump can succeed while the read fails, and
   then every tap "finds no target" for a reason that is not the app.
 - **Capture into a dedicated directory inside the repo** (`.pi/logs/<check-name>/`). A shared scratch
-  dir belongs to nobody: `.tmp-verify/` was emptied by a peer session mid-investigation and a later
-  `view_image` failed with `unable to locate image at …`. Delete your own captures when the change is
+  dir belongs to nobody: `.tmp-verify/` was emptied by a peer session mid-investigation and a later look
+  found nothing at that path (the child session reports the missing file as an error). Delete your own captures when the change is
   committed, and never leave `.tmp-*` behind.
 - **`magick` is not in the shell allowlist here; `convert` is** (ImageMagick 7 prints only a
   deprecation warning). Wrap image work in a script — as `pixel-check` rule 5 says — or call `convert`.

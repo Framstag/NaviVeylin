@@ -1,16 +1,18 @@
 name: Sensors
 
 # The sensor pipeline: a file of its own, so the pipeline that validates changes never carries the
-# credential that writes to the tracker and cannot be influenced by a contributor's code. Two triggers —
-# a schedule, and an explicit dispatch — and no path that runs near a change under review.
+# credential that writes to the tracker and cannot be influenced by a contributor's code. Its triggers are
+# capped at two kinds — a schedule and an explicit dispatch — and it has no path that runs near a change
+# under review.
+#
+# The schedule is **off while the rows' inputs are not yet materialised in this pipeline** (the metric rows
+# consume an artifact the build pipeline produces, and `broken-main` consumes a result record no workflow
+# produces yet; see the tracker item filed for that wiring). Until then a scheduled run would report four
+# `error` rows and exit 8 every hour, so the pipeline is dispatched by hand.
 #
 # `schedule` only fires from the default branch; a dispatch can select any ref, so the first step is a
 # runtime guard rather than a line of YAML to be trusted (design D1, D3).
 on:
-  schedule:
-    # hourly, off the top of the hour: scheduled runs can be delayed under load, and a row's own cron
-    # decides whether it is due
-    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       apply:

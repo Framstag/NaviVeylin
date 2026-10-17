@@ -1039,9 +1039,15 @@ case_workflow_onlyTwoTriggers() {
   out=$(grep -n 'pull_request\|workflow_run' "$file" || true)
   assert_empty "$out" "neither trigger is named anywhere in the file"
 
-  # the trigger block's own keys: exactly a schedule and a dispatch
+  # the trigger block's own keys: only the two the design permits, and a dispatch among them so the pipeline
+  # can be run at all. The cap is the invariant — never a trigger that runs near a change under review — and
+  # the schedule is currently off while the rows' inputs are not yet materialised.
   out=$(awk '/^on:/ { inside = 1; next } /^[^[:space:]]/ { inside = 0 } inside && /^[[:space:]][[:space:]]?[a-z_]+:/ { print $1 }' "$file" | sort -u | tr '\n' ' ')
-  assert_eq "schedule: workflow_dispatch: " "$out" "exactly two triggers"
+  case "$out" in
+    'schedule: '|'workflow_dispatch: '|'schedule: workflow_dispatch: ') ;;
+    *) fail "the pipeline's triggers are outside {schedule, workflow_dispatch}: $out" ;;
+  esac
+  assert_contains "$out" "workflow_dispatch:" "the pipeline can be dispatched"
 
   out=$(grep -n "github.ref == 'refs/heads/main'" "$file" || true)
   [ -n "$out" ] || fail "the job is not pinned to the main branch"

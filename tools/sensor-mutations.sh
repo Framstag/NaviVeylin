@@ -28,7 +28,7 @@ esac
 # a sed expression uses `|` as its own delimiter.
 MUTATIONS=(
   '8.1@tools/sensors/guard.sh@s/if \[ "$head_sha" != "$remote_sha" \]; then/if false; then/@guard#refusesOffMain@HEAD is the remote main branch'
-  '8.2@.github/workflows/sensors.yml@s/^on:$/on:\n  pull_request:/@workflow#onlyTwoTriggers@the pipeline has exactly two triggers'
+  '8.2@.github/workflows/sensors.yml@s/^on:$/on:\n  pull_request:/@workflow#onlyTwoTriggers@the trigger cap — schedule and dispatch only'
   '8.3@tools/issues/close.sh@s/if \[ "$owned" != "true" \]; then/if false; then/@close#sensorScopeRefusesAForeignIssue@a check closes only what carries its own label'
   '8.4@tools/sensors/run.sh@s/error) sensors_fail_row "$id" "$(jq -r '"'"'.measurement'"'"' <<< "$finding")" ;;/error) sensors_outcome_clear "$row" "$id" "$finding" "$issues" ;;/@run#errorIsNeverTreatedAsClear@a failed check posts nothing and fails the run'
   '8.5@tools/sensors/run.sh@s/run=$(sensors_counter "$body" clear-run); run=$((run + 1))/run=$(sensors_counter "$body" clear-run); run=$((run + 2))/@run#hysteresisBothDirections@a close needs N consecutive clear runs'

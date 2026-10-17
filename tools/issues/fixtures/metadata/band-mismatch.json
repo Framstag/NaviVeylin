@@ -1,0 +1,8 @@
+[
+  {
+    "number": 21,
+    "title": "a hand-edited band",
+    "body": "<!-- prio: band=p1 score=13 sev=4 reach=3 conf=1 occ=1 basis=0123456789abcdef at=2026-10-17 -->",
+    "labels": [{ "name": "class/bug" }, { "name": "prio/p2" }]
+  }
+]

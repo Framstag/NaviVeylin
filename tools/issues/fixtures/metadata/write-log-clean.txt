@@ -1,0 +1,2 @@
+gh issue edit 11 --add-label prio/p2 --body-file /tmp/body
+gh issue comment 11 --body "p3 -> p2: the claim now names a user-visible wrong result"

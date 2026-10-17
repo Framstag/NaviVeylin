@@ -85,6 +85,7 @@
     "i18n-l10n": { "area": "device-fit", "userVisible": true, "surfaces": ["phone", "car"] },
     "immediate-turn-instruction": { "area": "routing", "userVisible": true, "surfaces": ["phone", "car"] },
     "issue-backlog": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
+    "issue-priority": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "jnisync-java-scout": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "keyboard-shortcuts": { "area": "device-fit", "userVisible": true, "surfaces": ["phone"] },
     "kover-aggregate-report": { "area": "build-tooling", "userVisible": false, "surfaces": [] },

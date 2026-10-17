@@ -161,7 +161,7 @@ authorised automated work. An item filed **before** the migration also carries `
 change still finds its entry after the file it came from was deleted — `tools/issues/list.sh --id N`, or the
 recorded table in the migration's `import-evidence.md` (its change directory while it is open, its archive entry
 afterwards). An item filed **after**
-the migration has no `§N`; its identity is its issue number, and ids are never renumbered. Eight skills own
+the migration has no `§N`; its identity is its issue number, and ids are never renumbered. Nine skills own
 the tracker:
 
 | Skill | Job |
@@ -170,7 +170,8 @@ the tracker:
 | `list-issues` | select a working set from the labels, without reading bodies; `--id N` for one migrated entry |
 | `update-issue` | repair a label or a status against the closed vocabularies |
 | `close-issue` | the only terminal state — with a reason and its evidence |
-| `triage-todo` | read-only — rank what is open and name the next change |
+| `issue-metadata` | the metadata pass — rescore the items whose basis moved, classify the items with no kind; an interpreter returns numbers and never writes a label (`tools/issues/prioritise.sh`, `classify.sh`) |
+| `triage-todo` | read-only — rank what is open from the persisted band and name the next change |
 | `cleanup-todo` | tracker hygiene: label/status repair, duplicates by fingerprint, `nvid` collisions, evidence before a closure |
 | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
 | `fix-loop` | run the user-budgeted loop that closes defect-shaped items — bugs, and improvements that clear the same bar — one command (`tools/loop/run.sh --items N --minutes M`) → per item: pre-screen, a fresh agent process on a prepared package, an independent review, archive, labels and closure; strict eligibility (one root cause, one fix, host-decidable), one fresh child per item so the context window survives, and the run's script as the mechanical item/time cap |

@@ -1,0 +1,2 @@
+gh issue edit 12 --add-label prio/p0
+gh issue edit 12 --add-label agent/eligible

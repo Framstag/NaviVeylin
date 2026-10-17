@@ -32,7 +32,33 @@
   },
   "namespaceNotes": {
     "sensor": "Declared here, populated by the check registry (`sensor-registry-and-metric-issues`): one value per declared check, so the vocabulary keeps one owner. Empty until that registry lands.",
-    "prio": "The four bands this change fixes. The band EDGES and the TTL are `issue-metadata-loop`'s to add to the `bands` section of this file; the bands themselves are computed there, not here."
+    "prio": "The four bands. The band EDGES, the scoring table and the TTL are the `bands` section below — one home, so a re-tuned model is one committed file."
+  },
+  "bands": {
+    "comment": "THE BAND MAPPING — score → band, owned by `issue-metadata-loop` (design D2). `Bands.java` reads this section and nothing here is repeated in code: the range is derived from `scoring` (severity·reach + confidence → 2..18), the totality of the edges is a case (`Bands#coversTheWholeRange`) and a profile problem, and the label spelling comes from `namespace` plus the edge id. P3 reaches down to 2 because that is the model's own minimum: severity 1 × reach 1 + confidence 1.",
+    "namespace": "prio",
+    "ttlDays": 180,
+    "basisNamespaces": [
+      "class",
+      "category",
+      "status"
+    ],
+    "edges": [
+      { "id": "p0", "min": 15, "max": 18 },
+      { "id": "p1", "min": 11, "max": 14 },
+      { "id": "p2", "min": 7, "max": 10 },
+      { "id": "p3", "min": 2, "max": 6 }
+    ],
+    "scoring": {
+      "comment": "The model `triage-todo` documents and this pass persists, unchanged: score = severity × reach + confidence.",
+      "severity": { "min": 1, "max": 5 },
+      "reach": { "min": 1, "max": 3 },
+      "confidence": { "min": 1, "max": 3 },
+      "statusCaps": {
+        "unverified": { "confidence": 1 },
+        "open-device": { "confidence": 2 }
+      }
+    }
   },
   "sourceRenames": {
     "category": {

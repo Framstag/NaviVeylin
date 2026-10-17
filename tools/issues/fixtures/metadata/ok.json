@@ -1,0 +1,20 @@
+[
+  {
+    "number": 11,
+    "title": "a ranked bug",
+    "body": "The claim, with its marker.\n<!-- prio: band=p2 score=9 sev=4 reach=2 conf=1 occ=1 basis=0123456789abcdef at=2026-10-17 -->",
+    "labels": [{ "name": "class/bug" }, { "name": "prio/p2" }]
+  },
+  {
+    "number": 12,
+    "title": "an unranked bug",
+    "body": "The pass has not scored this one.",
+    "labels": [{ "name": "class/bug" }]
+  },
+  {
+    "number": 13,
+    "title": "an unclassified and unranked issue",
+    "body": "",
+    "labels": []
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "number": 23,
+    "title": "a marker that lost its basis and its date",
+    "body": "<!-- prio: band=p1 score=13 sev=4 reach=3 conf=1 occ=1 -->",
+    "labels": [{ "name": "class/bug" }, { "name": "prio/p1" }]
+  }
+]

@@ -152,6 +152,18 @@ jobs:
       - name: Check issue tooling
         run: bash tools/issue-tooling-selftest.sh
 
+      # ── priority metadata ──────────────────────────────────────
+      # The gate for the priority invariant (`issue-metadata-loop`, D7): the profile's bands are total, the
+      # marker grammar has one home, neither write path can name the automation opt-in, and every check can
+      # be shown red — the last part is what makes the rest a check rather than a claim. Token-free: it reads
+      # the profile and the scripts, and never the tracker. The falsification harness's mutations themselves
+      # are not run here — they mutate the tree (the run is a change-time step, `task 8`) — but its mutation
+      # list is printed, so a harness that no longer parses fails this step instead of rotting.
+      - name: Check issue metadata
+        run: |
+          bash tools/issues/check-metadata.sh
+          bash tools/issues/metadata-mutations.sh --list
+
       # ── agent issue loop ───────────────────────────────────────
       # The gate for `tools/loop/**`: every case drives the real wrapper, worktree, branches, commits,
       # labels and closure in a throwaway git repository, against the stub `gh` (the step above) and a

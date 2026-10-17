@@ -1,0 +1,8 @@
+[
+  {
+    "number": 22,
+    "title": "a label outside the vocabulary and a score outside the model",
+    "body": "<!-- prio: band=p2 score=99 sev=4 reach=2 conf=1 occ=1 basis=0123456789abcdef at=2026-10-17 -->",
+    "labels": [{ "name": "class/bug" }, { "name": "prio/p9" }]
+  }
+]

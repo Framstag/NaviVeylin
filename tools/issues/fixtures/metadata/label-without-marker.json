@@ -1,0 +1,8 @@
+[
+  {
+    "number": 24,
+    "title": "a band with no record of how it was computed",
+    "body": "The body, with no marker at all.",
+    "labels": [{ "name": "class/bug" }, { "name": "prio/p1" }]
+  }
+]

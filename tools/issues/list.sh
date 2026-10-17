@@ -12,8 +12,12 @@
 # `<!-- nvid: 129 -->`. An id no issue carries is a reported no-op (exit 4, the tooling's "already absent"
 # code), because a citation that resolves to nothing must be visible rather than silently empty.
 #
+# `--prio <p0,p1,…>` and `--unranked` are the priority pass's two selectors (`issue-metadata-loop`, D1/D6):
+# the band is a *label*, so "the top of the queue" is a label query and no body is read; `--unranked` is
+# "the pass has not scored this item yet", which is a legitimate state and not an error.
+#
 # Usage: list.sh [--id <n>] [--class <value>] [--category <value>] [--status <value>] [--author <login>]
-#                [--eligible-only] [--json] [--limit <n>] [--profile <path>]
+#                [--prio <p0,p1,…>] [--unranked] [--eligible-only] [--json] [--limit <n>] [--profile <path>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -25,6 +29,8 @@ json=0
 eligible_only=0
 limit=400
 id_arg=""
+prio_filter=""
+unranked=0
 filters=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -34,10 +40,12 @@ while [ $# -gt 0 ]; do
     --category) filters+=("category=${2:-}"); shift 2 ;;
     --status) filters+=("status=${2:-}"); shift 2 ;;
     --author) filters+=("author=${2:-}"); shift 2 ;;
+    --prio) prio_filter="${2:-}"; shift 2 ;;
+    --unranked) unranked=1; shift ;;
     --eligible-only) eligible_only=1; shift ;;
     --limit) limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) issues_die "list: unknown argument $1" ;;
   esac
 done
@@ -83,6 +91,25 @@ if [ "${#label_filters[@]}" -gt 0 ]; then
   issues_check_labels "$profile" "${label_filters[@]}"
 fi
 
+# A band outside the vocabulary is refused before the query, with the same reason a write path gives.
+# The band query is a *label* query, so "the top of the queue" is answered without reading a body; the band
+# namespace and the band order both come from the profile's `bands` section, so no band id is written here
+# (`issue-metadata-loop`, D1, D6).
+band_namespace=$(issues_core Bands meta --profile "$profile" | sed -n 's/^namespace=//p')
+[ -n "$band_namespace" ] || issues_die "list: the profile declares no band namespace"
+prio_order_json=$(issues_core Bands edges --profile "$profile" | awk '{print $1}' | jq -R . | jq -s .)
+
+if [ -n "$prio_filter" ]; then
+  band_labels=()
+  IFS=',' read -r -a band_values <<< "$prio_filter"
+  for band in "${band_values[@]}"; do
+    [ -n "$band" ] || continue
+    band_labels+=("${band_namespace}${separator}${band}")
+  done
+  [ "${#band_labels[@]}" -gt 0 ] || issues_die "list: --prio wants at least one band value"
+  issues_check_labels "$profile" "${band_labels[@]}"
+fi
+
 required_json=$(issues_profile_value requiredLabels | jq -R . | jq -s .)
 issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author)
 
@@ -96,12 +123,33 @@ for filter in "${filters[@]}"; do
     query="$query | select(([.labels[].name] | index(\"${namespace}${separator}${value}\")) != null)"
   fi
 done
+if [ -n "$prio_filter" ]; then
+  bands_query=""
+  for band in "${band_values[@]}"; do
+    [ -n "$band" ] || continue
+    [ -z "$bands_query" ] || bands_query="$bands_query or "
+    bands_query="$bands_query(\$labels | index(\"${band_namespace}${separator}${band}\")) != null"
+  done
+  query="$query | select([.labels[].name] as \$labels | ($bands_query))"
+elif [ "$unranked" -eq 1 ]; then
+  query="$query | select(([.labels[].name | select(startswith(\"${band_namespace}${separator}\"))] | length) == 0)"
+fi
 if [ "$eligible_only" -eq 1 ]; then
   query="$query | select([.labels[].name] as \$labels | (\$required | all(. as \$r | (\$labels | index(\$r)) != null)))"
 fi
 query="$query]"
 
 selected=$(printf '%s' "$issues" | jq -c --argjson required "$required_json" "$query")
+
+# A band query answers in band order (the bands section's own order), then by issue number: the order is the
+# tooling's, never the tracker's. `map(. as $band | $order | index($band))` — the binding matters, because a
+# bare `index(.)` after the pipe would ask for the position of the whole order inside itself, i.e. always 0.
+if [ -n "$prio_filter" ]; then
+  selected=$(printf '%s' "$selected" | jq -c --argjson order "$prio_order_json" --arg sep "$separator" \
+    --arg ns "$band_namespace" '
+    sort_by([([.labels[].name | select(startswith($ns + $sep)) | ltrimstr($ns + $sep)]
+              | map(. as $band | $order | index($band)) | min) // 999, .number])')
+fi
 
 if [ "$json" -eq 1 ]; then
   printf '%s\n' "$selected"

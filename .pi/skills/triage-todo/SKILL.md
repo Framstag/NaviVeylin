@@ -174,8 +174,10 @@ score = severity x reach + confidence          (severity 1-5, reach 1-3, confide
 |---|---|---|---|
 | | reproduced with a citation (device, CI, test name) | read from code with `file:line` | inference, no direct evidence yet |
 
-Bands: `prio/p0` ≥ 13, `prio/p1` 10-12, `prio/p2` 6-9, `prio/p3` ≤ 5. The exact edges are the metadata
-pass's to fix (its own profile section); what this skill relies on is only the **order** the bands give.
+Bands, as the profile currently cuts them (`tools/tooling.json` `.bands.edges` — the pass reads this file,
+this table is the reading aid): `prio/p0` 15-18, `prio/p1` 11-14, `prio/p2` 7-10, `prio/p3` 2-6. The
+edges are the metadata pass's to fix, and the profile wins when the two disagree; what this skill relies on
+is the **order** the bands give.
 
 The status caps confidence and the band inherits it: `unverified` is confidence 1, `open-device` cannot be
 raised above 2 locally unless the item quotes a device run (and it always lands in the device list), and

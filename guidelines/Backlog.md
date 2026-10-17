@@ -26,7 +26,7 @@ token, proves exactly that on every push.
 | 2 | `migrate-todo-to-github-issues` | the live import, the prose file deleted, every instruction rewired | **applied 2026-10-17** — 137 items imported (open, none authorised) and 21 retired tombstones, `list.sh --id N` resolving a citation, `tools/check-todo-references.sh` and its CI step, every instruction rewired, the prose file deleted; the run's record is `import-evidence.md` |
 | 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | **applied 2026-10-17** — `tools/loop/**` (the entry `run.sh`, the pre-screen, the state and its lock, the worktree and the branches, the label transitions, the report), two prompt skeletons filled from `loop.conf`, a stub `pi` and an offline self-test with one CI step; the two write paths the loop needed landed in the tooling (`update.sh --remove-label`, `close.sh --comment-only`); §7 and §11 of this document and the `fix-loop` skill describe it |
 | 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | planned |
-| 5 | `issue-metadata-loop` | persisted priority and classification | planned |
+| 5 | `issue-metadata-loop` | persisted priority and classification | **applied 2026-10-17** — `tools/issues/prioritise.sh` (the basis, the partition over every issue, the bounded run, the label+marker writer, the transition comment) and `classify.sh` (the queue of items with no kind), `check-metadata.sh` and its falsification, the `bands` section in `tools/tooling.json`, `list.sh --prio/--unranked`, the `issue-metadata` skill and the `triage-todo` rewrite; the run over the live tracker is recorded under the change's `evidence/` |
 | 6 | `tooling-portability` | the proof that another project can use all of it | planned |
 | 7 | `decision-queue` | the human lane — the queue, the answer path, the mid-item handover | **named, not written** |
 
@@ -350,6 +350,8 @@ is in the change's `design.md`; this is the map, so a reader can find it and so 
 | reopen rather than re-file; hysteresis; escalation | the record of a fix that did not hold is the valuable part | 4 |
 | ownership scope on a check's reach | a subverted pipeline must still not touch what it does not own | 4 |
 | priority persisted with a recorded basis | recomputation proportional to the backlog is the cost being removed | 5 |
+| a band label **and** a body marker, written together by one script | the label is the cheap selector and the marker is the reason: a label alone cannot decide whether to recompute, and a marker alone makes every selection read a body | 5 |
+| classification rides the same pass | two queues, two write paths and two CI steps for one selection mechanic; and keeping it here is what lets classification write a kind and an area and nothing else | 5 |
 | only the changed subset interpreted, bounded per run | a vocabulary change must not become a sweep | 5 |
 | priority is not authorisation | else a threshold or a check could promote work into the loop | 5 |
 | a correctness check over a value set read from the profile | a hand-written ban list fails open — change 1 landed the check over the tooling's own vocabulary, change 6 adds the synthetic project that proves it in a project that differs | 6 |

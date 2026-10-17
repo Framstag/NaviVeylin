@@ -48,6 +48,14 @@ public final class Profile {
         return Json.stringOr(root, "namespaceSeparator", "/");
     }
 
+    /**
+     * One top-level section as raw JSON, for the readers that own their own shape (the `bands` section is
+     * `issue-metadata-loop`'s, and its validation lives beside its mapping in {@code Bands}).
+     */
+    public Object section(String name) {
+        return Json.get(root, name);
+    }
+
     public List<String> allowedAuthors() {
         return Json.strings(root, "allowedAuthors");
     }
@@ -172,6 +180,10 @@ public final class Profile {
                 problems.add("statusLabels has an invalid match pattern: " + rule[0]);
             }
         }
+
+        // The band section's own shape and totality: the mapping is the project's data, so a hole or a band
+        // id that is not a vocabulary value is reported here rather than surfacing as a wrong label.
+        problems.addAll(Bands.problems(this));
         return problems;
     }
 

@@ -3,6 +3,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,9 @@ public final class Cases {
         cases.put("WorkPackage#oversizedBodyRefuses", Cases::workPackageOversizedBodyRefuses);
         cases.put("Fingerprint#stableAcrossWhitespaceAndLineNumbers", Cases::fingerprintStable);
         cases.put("Fingerprint#separatesDistinctEntries", Cases::fingerprintSeparates);
+        cases.put("Bands#coversTheWholeRange", Cases::bandsCoversTheWholeRange);
+        cases.put("Bands#labelSpellingComesFromTheProfile", Cases::bandsLabelSpelling);
+        cases.put("Bands#refusesAScoreOutsideEveryBand", Cases::bandsRefusesOutsideRange);
         cases.put("TodoSections#parsesEveryStatusShape", Cases::todoSectionsParsesEveryStatusShape);
 
         if (args.length == 0 || args[0].equals("--list")) {
@@ -340,6 +344,75 @@ public final class Cases {
         expect(Fingerprint.canonical("bug", "ui", claim, "app/src/main/X.kt:First")
                         .indexOf("anchor=") > 0,
                 "the canonical string carries the anchor as its own field");
+    }
+
+    private static void bandsCoversTheWholeRange() {
+        Profile profile = profile();
+        List<Bands.Band> bands = Bands.bands(profile);
+        int[] range = Bands.range(profile);
+        expect(bands.size() > 1, "the profile declares no band edges");
+
+        // The model's range is derived from the scoring tables, so a table edit that moves it is visible here
+        // rather than showing up as a score with no band. severity·reach + confidence with (1..5, 1..3, 1..3).
+        equals(2, range[0], "the model's lowest score");
+        equals(18, range[1], "the model's highest score");
+
+        // Totality: exactly one band per score in the derived range, and no band unreachable.
+        Map<String, Integer> perBand = new LinkedHashMap<>();
+        for (Bands.Band band : bands) {
+            perBand.put(band.id, 0);
+        }
+        for (int score = range[0]; score <= range[1]; score++) {
+            Bands.Band band = Bands.bandFor(profile, score);
+            expect(band != null, "score " + score + " maps to no band");
+            perBand.put(band.id, perBand.get(band.id) + 1);
+        }
+        for (Map.Entry<String, Integer> entry : perBand.entrySet()) {
+            expect(entry.getValue() > 0, "band " + entry.getKey() + " is unreachable");
+        }
+        int covered = perBand.values().stream().mapToInt(Integer::intValue).sum();
+        equals(range[1] - range[0] + 1, covered, "every score in the range is covered exactly once");
+
+        // The bands are the vocabulary's own values, in the vocabulary's own order, and the edges are
+        // contiguous: a gap between two bands would be a score the mapping refuses at run time. The order of
+        // the *edges* is not asserted — the vocabulary's order is, and contiguity is checked by score.
+        List<String> ids = bands.stream().map(band -> band.id).toList();
+        equals(profile.values("prio"), ids, "the edges are the prio vocabulary, in order");
+        List<Bands.Band> byScore = new ArrayList<>(bands);
+        byScore.sort(Comparator.comparingInt(band -> band.min));
+        for (int i = 1; i < byScore.size(); i++) {
+            equals(byScore.get(i - 1).max + 1, byScore.get(i).min,
+                    "the edges are contiguous between " + byScore.get(i - 1).id + " and " + byScore.get(i).id);
+        }
+        equals(range[0], byScore.get(0).min, "the lowest band starts at the model's minimum");
+        equals(range[1], byScore.get(byScore.size() - 1).max, "the highest band ends at the model's maximum");
+    }
+
+    private static void bandsLabelSpelling() {
+        Profile profile = profile();
+        // The label is the profile's namespace plus the edge's own id — the engine names neither.
+        for (Bands.Band band : Bands.bands(profile)) {
+            String label = Bands.label(profile, band.min);
+            equals(profile.label("prio", band.id), label, "the label of the band " + band.id);
+            expect(Bands.label(profile, band.max).equals(label), "a band's ends share one label: " + label);
+        }
+        equals("prio/p3", Bands.label(profile, Bands.range(profile)[0]), "the lowest score's label");
+        equals("prio/p0", Bands.label(profile, Bands.range(profile)[1]), "the highest score's label");
+    }
+
+    private static void bandsRefusesOutsideRange() {
+        Profile profile = profile();
+        int[] range = Bands.range(profile);
+        for (int score : new int[] {range[0] - 1, range[1] + 1, 0, -5, 99}) {
+            try {
+                Bands.label(profile, score);
+                throw new AssertionError("a score outside every band was labelled instead of refused: " + score);
+            } catch (Bands.Refusal refusal) {
+                equals("band-undefined", refusal.reason, "the refusal reason code for score " + score);
+                expect(refusal.detail.contains(String.valueOf(score)),
+                        "the refusal names the score: " + refusal.detail);
+            }
+        }
     }
 
     private static void todoSectionsParsesEveryStatusShape() {

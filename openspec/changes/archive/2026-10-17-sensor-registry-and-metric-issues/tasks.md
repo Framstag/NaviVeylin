@@ -90,15 +90,17 @@ evidence (`revert-check`).
 ## 9. Integration
 
 - [x] 9.1 Run `tools/sensors/run.sh --due --dry-run` on the host and record its report: the rows selected, the verdicts, the measurements and what it would file. Verify: the transcript is recorded and no `gh` write occurred (`gh issue list --state all --json number` unchanged) (D9). **Recorded** in `report.md` and `evidence/`: two rows due at the chosen clock, both `error` (their artifacts do not exist on the host, so the run exits 8 and posts nothing), plus a fixture-report run showing the one filing it would make — and the tracker's issue count was 159 before and after every run.
-- [ ] 9.2 Dispatch `.github/workflows/sensors.yml` once against `main` with `--dry-run`, and record the workflow run URL and the report it printed. Verify: the run's log carries the guard lines, the token is not echoed, and no issue was created (D1, D3).
+- [x] 9.2 Dispatch `.github/workflows/sensors.yml` once against `main` with `--dry-run`, and record the workflow run URL and the report it printed. Verify: the run's log carries the guard lines, the token is not echoed, and no issue was created (D1, D3).
 
-  **Owed — not reproducible in this working tree**, and named as such in `report.md`; the owner's decision of
-  2026-10-17 is to leave it owed rather than to push and dispatch from this session. A dispatch needs the
-  workflow on the default branch of `Framstag/NaviVeylin`, a push, and `SENSORS_TOKEN` as a repository
-  secret. The file's own properties (two triggers, the `main` pin, `concurrency`, the permission split, the
-  guard's position, no `github.token`, the CODEOWNERS entry) are asserted by `workflow#onlyTwoTriggers` on
-  every CI run; the owed part is the *run record*, and the first scheduled or dispatched run after the merge
-  produces it.
+  **Ran by the owner on 2026-10-17, after the change was merged** — three dispatches, all green, on
+  `86dab1ea` and `2d048678`: runs
+  [39071848370](https://github.com/Framstag/NaviVeylin/actions/runs/39071848370),
+  [39072358248](https://github.com/Framstag/NaviVeylin/actions/runs/39072358248) and
+  [39072426950](https://github.com/Framstag/NaviVeylin/actions/runs/39072426950). The record is
+  `evidence/run-record.md`: the guard's five lines passing (identity `Framstag`, so the secret works and is
+  attributable), the six `sensor/<id>` labels created from the registry, `no rows selected` because no cron
+  matches that minute, every step holding the token logging `GH_TOKEN: ***`, and the tracker's issue count
+  unchanged at 161. This is the *evidence* half of the task; a real filing is 9.3 and stays owed (see below).
 - [ ] 9.3 Run one sensor for real and record the outcome: the issue number it filed (or reopened), the measurement, and the `sensor/<id>` label on it. Verify: `tools/issues/list.sh --json` shows the issue with its `class/*`, `category/*`, `source/ci` and `sensor/<id>` labels, and its `state_reason` handling is exercised on a close by running the same row after the condition clears — or the clearing case is named as not reproducible and recorded as such (D4, D5).
 
   **Owed by decision** (the owner's, 2026-10-17), for three reasons recorded in `report.md`: it files a real
@@ -108,6 +110,12 @@ evidence (`revert-check`).
   annotate by fingerprint), `run#dispatchMatrixNotPlannedClosure` and `sensors#coverageRow` (a second run at
   the same number comments instead of filing), with the label set asserted on the recorded `gh issue create`
   call.
+
+  **Amended 2026-10-17 by the run record**: the seam the last reason names now exists
+  (`guard.sh --remote`/`SENSORS_REMOTE`, and the CI checkout has `origin` anyway), and the dispatch record in
+  `evidence/run-record.md` shows the pipeline running end to end. What still blocks a *real* filing is not a
+  credential but the missing inputs: four of the six rows would report `error` until #161 lands, and a row is
+  only selected at its own cron minute. So this task is now "run one row for real after #161".
 - [x] 9.4 Confirm the exclusions explicitly in the change report: no Gradle build and no suite was run; `build.yml` gained one token-free step only; the app, the native boundary and the release path are untouched. Verify: `git diff --name-only` lists no file under `app/`, `auto/`, `core/`, `osmscout-client-java/`, `buildSrc/`, and the report names the exclusion (`guidelines/Build.md` §2, scope block).
 - [x] 9.5 Record the change's own numbers for the concept doc §6 value gate: rows run, findings filed, findings that were comments rather than issues (the dedup doing its job), errors, and the CI minutes the pipeline costs. Verify: the numbers are in the change's evidence and the report quotes them rather than describing the run.
 

@@ -1,0 +1,368 @@
+# Backlog — the concept
+
+The project's backlog, and the automation over it: where an item comes from, what the tracker holds about
+it, who may write what, how it becomes work, and where an agent runs when it does the work.
+
+**Read the section that owns your topic, not this whole document.** The section list is
+`grep -n '^## ' guidelines/Backlog.md`; AGENTS.md's Documentation Map routes a kind of change here.
+
+## 1. Status, and what this document owns
+
+**Status.** This document describes an **agreed target**, not the tree as it stands. Today the backlog is
+`TODO.md` and the automation over it is a prose-driven loop. The target is reached by seven changes, in
+order; each change's tasks include keeping this document true for its own sections, so the document
+becomes a description of the tree exactly as fast as the tree moves.
+
+| # | change | what it lands | state |
+|---|---|---|---|
+| 1 | `github-issue-tooling` | the tracker surface: taxonomy, gate, identity, closure, the project profile | planned, not applied |
+| 2 | `migrate-todo-to-github-issues` | the live import, `TODO.md` deleted, every instruction rewired | planned |
+| 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | planned |
+| 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | planned |
+| 5 | `issue-metadata-loop` | persisted priority and classification | planned |
+| 6 | `tooling-portability` | the proof that another project can use all of it | planned |
+| 7 | `decision-queue` | the human lane — the queue, the answer path, the mid-item handover | **named, not written** |
+
+**What this document owns.** The concept: the participants and the flow, what the tracker holds, the
+**invariants** the mechanism must satisfy, who may write what, and the decisions with the reasons they were
+taken and the alternatives they eliminated.
+
+**What it deliberately does not own**, because a second home for a fact is how two documents drift apart:
+
+| concern | its home |
+|---|---|
+| the behavioural contract, as testable conditions | `openspec/specs/issue-backlog`, `backlog-source-of-truth`, `agent-issue-loop`, `backlog-sensors`, `issue-priority`, `tooling-portability` |
+| the reasoning behind one change, and the proof it owes | that change's `design.md` |
+| the operational recipe — how to run a thing | `.pi/skills/*` |
+| conventions of the app itself | `Design.md`, `UI.md`, `MapRendering.md`, `Build.md` — this document routes to them, it does not restate them |
+| the evidence rules a session follows | `Build.md` §2 and its scope block |
+
+The reference input for all of it is `Agentisches-Coding-NaviVeylin.md` at the repository root: the survey
+of the approach, the measurements taken from this repository, and the later steps this document treats as
+deferred (§13).
+
+## 2. The participants and the flow
+
+```
+   PRODUCERS                          THE TRACKER                        CONSUMERS
+   ---------                          -----------                        ---------
+
+   a person  ────────────────┐
+                             │      +---------------------------+
+   a declared check ─────────┼─────>│  one issue per item       │
+   (sensors)                 │      │  labels: kind · area ·    │
+                             │      │  state · provenance ·     │
+   the migrated backlog ─────┘      │  priority                 │
+   (one-time import)                +-------------+-------------+
+                                                  │
+                                    +-------------v-------------+
+                                    |  classification +         |   the metadata pass
+                                    |  persisted priority       |   (interprets only what moved)
+                                    +-------------+-------------+
+                                                  │
+             +------------------------------------+------------------------------------+
+             v                                    v                                    v
+   +---------------------+          +-------------------------+          +---------------------+
+   | the AGENT LOOP      |          | the HUMAN LANE          |          | a person reading    |
+   | closes defect-shaped|          | decisions, conception,  |          | a query: what is    |
+   | items unattended    |          | anything needing taste  |          | open, what is next  |
+   +---------------------+          +-------------------------+          +---------------------+
+```
+
+The three consumers are deliberately separate. The loop is a **budgeted batch**; the human lane is
+**interrupt-driven**; a reader's query is neither. They share the tracker and nothing else, which is why a
+decision the loop cannot take does not block the loop — it becomes an item in the lane.
+
+## 3. What the tracker holds
+
+One item is one issue. Everything a reader selects on is a label, so selection is a query and never a read:
+
+| namespace | carries | why it is separate |
+|---|---|---|
+| kind | a defect, a quality gap, or a capability that does not exist | it drives the order work is taken in, and it is the only fact a claim's shape is judged from |
+| area | where the item lives | it replaces the hand-maintained index that drifted in the prose backlog |
+| state | open, in flight, fixed, on hold, awaiting a device, unverified | the lifecycle, read at the moment of a query |
+| provenance | imported, filed by a check, filed by an agent, filed by a person | a reader can tell a migrated item from a filed one |
+| priority | one of a fixed set of bands, and nothing else | it must be selectable without reading the item |
+| ownership | which check owns the item, when a check filed it | it is what bounds that check's reach (§9) |
+| authorisation | whether automated work is permitted | the one label whose absence is a refusal (§5) |
+
+The **names of the namespaces and the shape of the item are the contract**; the values inside them are the
+project's, held in one profile (§10). An item also carries, in its own body, the facts a machine needs and
+a reader should not have to: the identifier it came from, the fingerprint that says what it is, how many
+times it has recurred, and the basis its priority was computed over.
+
+**Priority is a stored fact with a recorded basis, not a number recomputed on every reading.** The band is
+selectable; the components and the basis explain it; the value is reused while the basis is unchanged, so
+ordering the whole backlog costs a query and a pass over a stable backlog interprets nothing.
+
+## 4. The invariants
+
+These are the rules the mechanism must satisfy. Each names the mechanism that holds it and the observation
+that would falsify it — a rule with no falsifying observation is a preference, and this document does not
+carry preferences.
+
+| # | invariant | held by | falsified when |
+|---|---|---|---|
+| I1 | An item is authorised for automated work only by a person, and never by the tooling, a check or the loop | the authorisation label is reserved: every write path refuses it | any write path can set it, or an escalated item becomes eligible |
+| I2 | Only an allowlisted author's item is acted on, and the tooling refuses rather than narrows when the identity is wrong | the gate; a refusal before any write | an unlisted author's item is worked, or a wrong identity yields "nothing to do" |
+| I3 | Duplication is impossible: one item per distinct finding | a fingerprint; a refusal that names the existing item | the same finding exists twice, or a refusal is indistinguishable from a failure |
+| I4 | Deletion does not exist; closure is the only terminal state and carries evidence | no delete path anywhere; closure requires a reason and evidence | any operation can destroy the only record of a finding |
+| I5 | A check cannot reverse a person's decision | only a closure recorded as a completed fix is reopened | a check reopens an item a person closed as "not to be done" |
+| I6 | A failing check is not a cleared condition | three-valued outcome; only "cleared" may close | a crash, an unreachable input or an unreadable result closes an item |
+| I7 | A check acts only on what it owns | ownership label checked at the write | a check closes, reopens or annotates another's item |
+| I8 | Version control belongs to the script that starts a run, never to an agent | the wrapper; no phase can invoke git on its own behalf | an agent creates a branch, a tree or a commit, or a push happens unasked |
+| I9 | A reviewer never wrote what it reviews | a separate process; a write during review discards the round | a round is accepted although the tree changed during it |
+| I10 | The loop verifies; it does not trust a claim | the wrapper reads the tree, the archive and the evidence itself | a claimed success closes an item with nothing committed |
+| I11 | An item that cannot be finished is preserved, not thrown away | the escalation carries the root cause, the failing case and the branch | work is abandoned and only its absence is recorded |
+| I12 | Exactly one writer per file, per tree, per tracker field, at a time | one lock per run; state written only between agent processes | two writers touch a file, or a bookkeeping edit lands inside another's commit |
+| I13 | A project fact exists in one file | the project profile; a check that forbids it in an engine | a repository name, an author, a vocabulary value or a path appears in an engine |
+| I14 | Every historical reference still resolves | identifiers in item bodies; a check over the tree | a document cites an item identifier that finds nothing |
+| I15 | The mechanism can run somewhere else without a rewrite | one indirection for the agent command; the project's own gate and skills in configuration | a phase names a skill, a command or a path of its own |
+
+## 5. Who may write what
+
+The single table that answers most of the questions about this mechanism. **A writer that does not appear
+in a row does not write that thing.**
+
+| | a person | a declared check | the metadata pass | the agent loop | an agent process |
+|---|---|---|---|---|---|
+| file an item | yes | yes | no | no | no |
+| classify (kind, area) | yes | its row declares them | yes | no | proposes only |
+| set priority | yes | no | yes | no | proposes only |
+| authorise automated work | **yes, and only here** | **no** | **no** | **no** | **no** |
+| comment a measurement | yes | yes | yes | yes | no |
+| close | yes | only its own items, only when cleared | no | after a passing review, with evidence | no |
+| reopen | yes | only its own items | no | no | no |
+| commit, branch, push | yes | never | never | the wrapper | never |
+| decide a design question | **yes, and only here** | no | no | no | proposes only |
+| write the run's state | no | no | no | the wrapper, between processes | no |
+
+Two consequences worth stating plainly, because both were load-bearing decisions:
+
+- **The tracker credential is never in an agent's reach.** The loop's script owns every write, and an agent
+  process receives a prepared package instead. That is what lets an agent run in an isolated environment
+  later without a new security design (§11).
+- **The authorisation label is the only key to unattended work.** Everything else about an item may be
+  machine-set; that one may not. Filing is not authorising.
+
+## 6. How an item becomes work
+
+```
+intake        a person, a check or the one-time import           -> an item, classified by what filed it
+grouping      an item with no kind is classified by a pass       -> kind + area, written by the tooling
+priority      the band is computed once, with its basis          -> reused while the basis holds
+selection     open + a band + the gates, read from labels        -> a ranked working set, no bodies read
+eligibility   author allowlisted AND authorisation label present -> authorised for unattended work
+discovery     the loop's own cheap checks before spending        -> pre-filtered queue, unjudged
+```
+
+The split matters: **a script decides what can be decided cheaply** (kind, state, author, whether the code
+an item cites still exists, whether a device is needed) and **interpretation is spent only where it is
+unavoidable** — grouping an item, scoring it, judging whether one cause explains a symptom. The prose
+backlog had no such split: every reading interpreted everything.
+
+Three consequences the design takes as decisions, not accidents:
+
+- the pass is **bounded per run**, so a project-wide vocabulary change becomes a sequence of bounded runs
+  rather than one sweep of the whole backlog;
+- **selection never samples**: it examines every item and skips by an unchanged basis, because skipping an
+  item that had changed would leave a wrong priority in place indefinitely;
+- the conditions that **gate** an item are derived from labels at reading time and never stored with the
+  priority, because they move far more often than a score does.
+
+## 7. The loop
+
+One command starts a run; the run's script owns the budget, the working tree, the branch, the labels and the
+state; and each item is worked by a fresh agent process with a different process reviewing it.
+
+```
+the run's script                          an agent process (fresh, per item)      a reviewer (fresh)
+  preflight: is the identity allowed?       phase A  the root cause, proven by a     the fixed review
+  decision cap: too many open decisions?             case that is RED before the fix    contract, must
+  prepare one working tree, once            phase B  the eligibility gate             not be the writer
+  per item:                                 phase C  the change, planned
+    a branch of its own, off the base       phase D  applied, with the project's gate
+    select, then authorise by label         (E)      reviewed by the separate process
+    hand over a prepared package            phase F  archived, with the evidence
+    verify, close, record
+```
+
+What makes it survivable over a long run: the orchestrator is a **script**, not a session, so it reads no
+artifact in full; isolation is **structural** (a fresh process) rather than a discipline a session must
+keep; state has exactly **one writer** and is written only between processes; and the run decides an item's
+outcome from what it reads itself (I10).
+
+What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
+is the script's (I8); and the tracker credential is not in the agent's environment (§5).
+
+What it does when it cannot proceed: an item that needs a decision is **escalated** — the work already done
+is named on the item, the item is marked as awaiting a decision, and the run takes the next candidate. The
+work is preserved rather than abandoned (I11), which is the part the prose-era loop got wrong by treating a
+mid-item decision as a failure.
+
+## 8. The human lane
+
+The lane is everything the mechanism must not decide: a design question, a conception, a taste call, a
+bound nobody can falsify, a choice between two defensible fixes.
+
+```
+the loop hits a question it must not answer
+   -> stop the item, keep the branch and the unarchived change, post ONE prepared comment:
+        the question in a sentence · the options with their consequences
+        what is already PROVEN: root cause, the failing case, the specification passage
+        what is already WRITTEN: the change, the branch, the diff
+        what the answer unblocks
+   -> mark it awaiting a decision; take the next candidate, or stop if the cap is reached
+a person answers (label or comment)
+   -> the item returns to the queue and the run RESUMES from the recorded phase
+```
+
+The lane is a **sibling workflow over the same tracker**, not a phase of the loop, because it is
+interrupt-driven while the loop is a batch. But there are exactly two places the loop meets it: the cap
+that stops a run when decisions pile up, and the mid-item escalation. **A pile of open decisions stops the
+run** rather than feeding it — the failure the lane exists to prevent is a machine producing more work while
+nothing gets decided.
+
+One consequence from experience, and the reason the escalation carries evidence: **conceptual questions
+appear during implementation, not only at triage.** A lane that only sees items before they are started
+loses exactly what the work already established.
+
+## 9. Checks
+
+A check is a **declared row**, not a script: the command to run, how often, the bound it compares against,
+how many consecutive runs its verdict needs, the kind and area its items carry, and whether it owns the
+item's closure. Adding a check is a row.
+
+```
+outcome        present  -> file, or reopen the item this condition already has, or annotate it
+               cleared  -> comment the measurement, close once the consecutive count is met
+               failed   -> write NOTHING, fail the run loudly            (I6)
+```
+
+Three rules make a check trustworthy rather than noisy, all three arising from failures this repository has
+already had:
+
+- **Identity is finer than the check.** The ownership label says which check owns an item; a condition
+  fingerprint says which item it is. The same condition returning reopens; a different cause under the same
+  check is a new item. A graveyard of near-duplicate items would lose the one signal that matters — that a
+  fix did not hold.
+- **Hysteresis in both directions**, so a flapping condition churns nothing; and **past a recurrence bound
+  it escalates instead of reopening forever**, because a condition that keeps returning is a specification
+  or design problem rather than an implementation one.
+- **The issue is the measurement history.** Numbers live as comments; nothing is committed, because a check
+  must not become a second committer (I12). The previous measurement *is* the baseline, so growth and level
+  are both answerable without a store.
+
+The checks run in a pipeline of their own, off the change-validation path, triggered only by a schedule or
+an explicit dispatch, pinned to the main branch by a check at run time, holding issue-write and nothing
+else, guarded against overlapping runs, and reviewed like code. The identity that files an item is a
+**concrete allowlisted person**, because the gate's author condition is the only attributable one (§5, I2).
+
+## 10. Portability
+
+The mechanism is meant to be used in another project, so the boundary between **the engine** and **the
+project** is a decision rather than a later refactor.
+
+```
+engine, copied unchanged            the project, adapted
+  the gate, the taxonomy reader       tools/tooling.json      repo · allowlist · reserved labels ·
+  identity and dedup                    · vocabulary values · bounds · band edges
+  the verbs, the closure rules        sensors.json            commands · cadence · bounds · counts
+  the loop's phases and refusals      loop.conf               the agent command · the skills the
+  the metadata pass                     · worker uses · the project's gate command
+  the checks' runner and guards       the source adapter      the one-time record format of THIS project
+```
+
+Every command answers "which project am I in?" from its own working tree, so the copy needs no arguments
+and no configuration pointing at itself. **An engine names no project value** — not a repository, not an
+author, not a vocabulary value, not a path — and a check fails when one appears, reading the values it
+forbids from the profile so that it cannot become a stale list.
+
+The proof is a **synthetic project** in the repository's fixtures — a different repository, a different
+allowlist, a different vocabulary — on which the whole toolchain runs, and a porting recipe whose every
+command is executed by that same check. Distribution is a copy per project; sharing the engines from one
+place stays deferred, and it stays cheap precisely because the profile boundary already exists.
+
+## 11. Where an agent runs
+
+The loop's script owns everything that touches the project's history and its tracker; an agent process
+receives a prepared package and produces a change. That boundary already partitions the system, so running
+an agent in an isolated environment — a container, a sandbox, another machine — is a **value in the
+configuration**, not a rewrite:
+
+```
+LOOP_AGENT_CMD   how a child is started          on the host  |  inside an isolated environment
+LOOP_GATE_CMD    how this project's gate runs    empty for a project with no build
+LOOP_WORKER_SKILLS   which of this project's skills the worker is told to use
+```
+
+Five properties make that true, and each is required by another decision anyway: one injectable child
+command (I15); git, labels, state and closure on the script's side (§5); a reviewer that needs no write
+access, so a read-only mount can later enforce what a prompt enforces today (I9); work needing a **device**
+recorded as a verdict rather than attempted inside the environment, because a device is attached to the
+host; and evidence landing on the shared tree, so the script archives it.
+
+Running agents in an isolated environment is **not built here**: no sandbox invocation, no image, no secret
+registration, no network policy, no dependency on such an environment existing. The wrapper's own tests must
+pass on a machine where none of it is installed.
+
+## 12. The decisions, and why
+
+Every decision below eliminated at least one alternative. The full reasoning, with the alternatives named,
+is in the change's `design.md`; this is the map, so a reader can find it and so a reversal is visible.
+
+| decision | reason | change |
+|---|---|---|
+| the tracker, not a prose file | a prose backlog is read whole to answer any question, and its index drifted; labels make selection a query | 1, 2 |
+| shell wrappers over a small policy core in single-file Java | a gate must be testable offline and must not pay a build system to run | 1 |
+| one project profile, discovery instead of arguments | "adapt one file" and "always the current project" are the adoption cost | 1, 6 |
+| the gate is an allowlist **and** a reserved authorisation label | the two terms share an actor, so the label alone would be self-served | 1 |
+| closure only; no deletion anywhere | an item is the only record of a finding, and closure is reversible | 1 |
+| fingerprint dedup checked live, never a committed ledger | a second source of truth would disagree with the tracker | 1 |
+| the record format behind a source adapter | the format is one project's; the reconciler is everyone's | 2 |
+| the removal of the prose file happens **last** | between import and rewiring, twelve skills would point at a deleted file | 2 |
+| citations preserved, instructions rewired | 300+ citations are history; ~20 instructions are routing | 2 |
+| a budget as arguments, not a dialogue | a script cannot ask, and an unrecorded budget cannot be audited | 3 |
+| one fresh process per item, and a separate reviewer | isolation becomes structural instead of a discipline | 3 |
+| git owned by the script | the landing step is this repository's most fragile, and it is mechanical | 3 |
+| the run verifies rather than trusts | a claim of success is not evidence | 3 |
+| escalation instead of abandonment | a mid-item decision must not discard the work that found it | 3 |
+| a check is a row; its pipeline is separate and pinned | a check must not be able to block a change, and a pipeline credential must not sit near PR content | 4 |
+| three outcomes, and only "cleared" closes | a broken check reading as health is the classic monitoring failure | 4 |
+| reopen rather than re-file; hysteresis; escalation | the record of a fix that did not hold is the valuable part | 4 |
+| ownership scope on a check's reach | a subverted pipeline must still not touch what it does not own | 4 |
+| priority persisted with a recorded basis | recomputation proportional to the backlog is the cost being removed | 5 |
+| only the changed subset interpreted, bounded per run | a vocabulary change must not become a sweep | 5 |
+| priority is not authorisation | else a threshold or a check could promote work into the loop | 5 |
+| a correctness check over a value set read from the profile | a hand-written ban list fails open | 6 |
+| a synthetic project as the proof | only a project that differs tests the profile | 6 |
+| one indirection for the agent command | running agents elsewhere must be configuration | 3 |
+
+## 13. Deferred, and why
+
+Named so a reader can tell a decision from an omission:
+
+| deferred | why it is deferred |
+|---|---|
+| the human lane's queue and answer path (change 7) | it depends on a working loop, and the prepared-options format needs the loop's experience to design |
+| a shared home for the engines, or a published tool | premature with one consumer; the profile boundary keeps it cheap |
+| scheduled unattended runs, budgets read from a file | it would put a model provider's key in a pipeline, which is the one place a credential is hardest to bound |
+| parallel runs and a landing queue | serialising runs is the one-writer rule at run scale; parallelism needs a merge queue |
+| the size/frequency loop and a ratified threshold in CI | it needs the check registry to have run for a while first, so that a threshold has a baseline |
+| periodic spec-drift auditing | it needs a history of checked pairs; the cheap drift forms are worth doing first |
+| running the sensors inside the loop's environment | a scheduled producer and a batch consumer should not be coupled |
+
+## 14. Keeping this document honest
+
+- **Status is a section, not a footnote** (§1). When a change lands, its row moves and its sections are
+  corrected in the same change — each of the seven carries that task.
+- **Every claim here has a home elsewhere** for its detail: a spec for behaviour, a `design.md` for
+  reasoning, a skill for the recipe. If a claim has no such home, it is a concept this document owns and it
+  belongs in §4 as an invariant with a falsifying observation.
+- **A reversal is recorded, not deleted.** A decision that is later reversed moves to §13 or is annotated
+  in §12 with what replaced it and why; `Design.md` §13 does the same for the app's superseded decisions.
+- **The routing table must name this document.** `tools/check-doc-routes.sh` fails when a guideline is
+  unrouted, so AGENTS.md's Documentation Map carries a row for it and CI proves the row resolves.
+- **The concept is not the implementation.** If an invariant here and a spec disagree, the spec decides
+  behaviour and this document is wrong: fix it here, in the same change.

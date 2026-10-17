@@ -51,6 +51,9 @@ javac --release 17 -d "$tmp/classes" "$root"/tools/issues/core/*.java || {
   exit 1
 }
 
+# the compiled core is handed to every script under test, so nothing compiles twice and every case runs
+# exactly the classes this driver verified (`java -cp`, never `java <file>.java` — see `lib.sh`)
+export ISSUES_CORE_CLASSES="$tmp/classes"
 export ISSUES_REPO_ROOT="$root"
 export ISSUES_ENGINE="$root/tools/issues"
 export ISSUES_FIXTURES="$root/tools/issues/fixtures"

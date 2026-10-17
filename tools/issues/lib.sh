@@ -81,11 +81,50 @@ issues_login() {
   gh api user --jq .login 2>/dev/null || true
 }
 
-# Run one of the core's single-file Java classes. The core is Java run as source: no Gradle source set, no
-# build system, no dependency (design D1).
+# Run one of the core's classes. The core is Java with no Gradle source set and no build system (design D1),
+# but it is **compiled once and then run from the class path**, never handed to the single-file source
+# launcher: `java core/Foo.java` resolves Foo's siblings only on some JDKs — JDK 27 finds them, JDK 21 does
+# not, so every script that ran fine on the author's machine failed in CI with `cannot find symbol Json`
+# (measured 2026-10-17: 13 of 33 self-test cases red under JDK 21, 0 under JDK 27). `javac` is the JDK the
+# caller already has, and the build is cached by the sources' own digest, so it costs one compile.
+# The cache directory's name carries no project value — the engine may not name one
+# (`lib#noProjectValueInTheEngine` caught the first attempt); the sources' digest is what keys it.
+ISSUES_CORE_CACHE="${ISSUES_CORE_CACHE:-${TMPDIR:-/tmp}/issues-core}"
+
+issues_core_classes() { # print the class directory for the current sources, compiling at most once
+  # a caller that has already compiled the core (the self-test does) hands its directory in, so nothing is
+  # compiled twice and the tooling runs exactly the classes the caller verified
+  if [ -n "${ISSUES_CORE_CLASSES:-}" ]; then
+    printf '%s\n' "$ISSUES_CORE_CLASSES"
+    return 0
+  fi
+  local digest dir staging
+  if command -v sha256sum >/dev/null 2>&1; then
+    digest=$(cat "$ISSUES_CORE_DIR"/*.java | sha256sum | cut -c1-16)
+  else
+    digest=$(cat "$ISSUES_CORE_DIR"/*.java | cksum | tr -d ' ' | cut -c1-16)
+  fi
+  # `--release 17` makes the class files loadable by any JDK that can run the selftest, and the key carries
+  # the release, so a cache built by a newer JDK can never be handed to an older one (measured 2026-10-17:
+  # a JDK-27 build left class-file v71 in a shared cache and every JDK-21 run died on LinkageError)
+  dir="$ISSUES_CORE_CACHE/17-$digest"
+  if [ ! -d "$dir" ]; then
+    staging="$ISSUES_CORE_CACHE/.staging.$$"
+    mkdir -p "$staging" || return 1
+    javac --release 17 -d "$staging" "$ISSUES_CORE_DIR"/*.java >&2 || { rm -rf "$staging"; return 1; }
+    # a parallel invocation may have won the race: then its directory is the one to use
+    mv "$staging" "$dir" 2>/dev/null || rm -rf "$staging"
+  fi
+  [ -d "$dir" ] || return 1
+  printf '%s\n' "$dir"
+}
+
 issues_core() {
   local class="$1"; shift
-  java "$ISSUES_CORE_DIR/$class.java" "$@"
+  local classes
+  classes=$(issues_core_classes) ||
+    issues_die "issues: the Java core does not compile — JDK 17 or newer (javac) is required to run these scripts"
+  java -cp "$classes" "$class" "$@"
 }
 
 # Read one section of the resolved profile.

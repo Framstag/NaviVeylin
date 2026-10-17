@@ -16,6 +16,7 @@ ISSUES_SHELL_CASES=(
   'lib#refusesOutsideAGitTree'
   'lib#noProjectValueInTheEngine'
   'lib#exitCodeConstants'
+  'lib#coreIsCompiledNotLaunched'
   'policy#preflightRefusesUnknownLogin'
   'create#duplicateRefusesAndNamesTheIssue'
   'create#writesMarkerAndLabels'
@@ -45,6 +46,7 @@ issues_run_shell_case() {
     'lib#refusesOutsideAGitTree') case_lib_refusesOutsideAGitTree ;;
     'lib#noProjectValueInTheEngine') case_lib_noProjectValueInTheEngine ;;
     'lib#exitCodeConstants') case_lib_exitCodeConstants ;;
+    'lib#coreIsCompiledNotLaunched') case_lib_coreIsCompiledNotLaunched ;;
     'policy#preflightRefusesUnknownLogin') case_policy_preflightRefusesUnknownLogin ;;
     'create#duplicateRefusesAndNamesTheIssue') case_create_duplicateRefusesAndNamesTheIssue ;;
     'create#writesMarkerAndLabels') case_create_writesMarkerAndLabels ;;
@@ -88,9 +90,9 @@ run_tool() {
   bash "$ISSUES_ENGINE/$script" "$@"
 }
 
-core() {
+core() { # the classes the driver already compiled — never the single-file source launcher
   local class="$1"; shift
-  java "$ISSUES_ENGINE/core/$class.java" "$@"
+  java -cp "$ISSUES_CORE_CLASSES" "$class" "$@"
 }
 
 scratch() {
@@ -423,6 +425,30 @@ case_surface_reservationIsNotBypassed() {
 # `--id N` is the resolution a `§N` citation depends on after the source record is gone (design D3): the
 # marker is the identity, so exactly one issue answers, and a number that is a prefix of another entry's
 # marker must not answer for it.
+# The core must be run from a class path, never handed to the single-file source launcher: `java core/Foo.java`
+# resolves Foo's siblings on some JDKs and not on others (JDK 27 yes, JDK 21 no — measured 2026-10-17, when
+# every core-backed script passed here and 13 of 33 cases failed in CI). The structural half of this case is
+# what fails on either JDK; the behavioural half proves the compiled path really runs.
+case_lib_coreIsCompiledNotLaunched() {
+  local calls offenders out
+  # every `java` invocation in the tooling — the engine, the driver and its cases — is a `java` command word
+  # at the start of a line, so a `*.java | sha256sum` data line cannot match it
+  calls=$(grep -rnE '^[[:space:]]*java[[:space:]]' "$ISSUES_ENGINE" \
+      "$ISSUES_REPO_ROOT/tools/issue-tooling-selftest.sh" \
+      "$ISSUES_REPO_ROOT/tools/issue-tooling-cases.sh" 2>/dev/null | grep -vE 'javac' || true)
+  [ -n "$calls" ] || fail "no java invocation found in the tooling — the check would be vacuous"
+  offenders=$(printf '%s\n' "$calls" | grep -v -- '-cp' || true)
+  [ -z "$offenders" ] || fail "the core is not run from a class path: $offenders"
+  if printf '%s\n' "$calls" | grep -q '\.java'; then
+    fail "the core is handed to the single-file source launcher: $(printf '%s\n' "$calls" | grep '\.java')"
+  fi
+
+  # and it really runs: a core-backed script invoked from a directory that is not the core's own
+  out=$(cd "$ISSUES_ENGINE" && run_tool list.sh --class bug --json) ||\
+    fail "a core-backed script failed when invoked from another directory"
+  assert_eq "0" "$(jq 'length' <<< "$out")" "the empty tracker answers with an empty selection"
+}
+
 case_list_idResolvesTheMarker() {
   export GH_STUB_DIR="$(scenario nvid)"
   local out status

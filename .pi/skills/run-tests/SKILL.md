@@ -64,7 +64,7 @@ module's `--tests` filter, a code delta runs this skill's gate. Name any test or
 7. **Attribute before blaming or claiming.** The rule and the full ritual are in `guidelines/Build.md` §4 (tracked) — the short form:
    - a failure that **moves between runs or flavors** and **passes alone** may belong to another in-flight change: rerun the class alone, then together with the classes you added, and quote both numbers;
    - find who ran **before** the victim from the JUnit XML `timestamp` of each `testsuite` (one fork here → a single sequence); bisect that order with `--tests` filters (pass them as **literal** arguments — this shell does not word-split variables);
-   - file the residual in `TODO.md` and leave the "zero failures" task item **unchecked** rather than talking the run green.
+   - file the residual as an issue (`.pi/skills/create-issue`, `tools/issues/create.sh`) and leave the "zero failures" task item **unchecked** rather than talking the run green.
    - `UncaughtExceptionsBeforeTest` is **not** a flaky assertion: a coroutine threw on a process-wide dispatcher (`Dispatchers.Default`/`IO`, or main) after its test ended, and the next `runTest` in that JVM reports it. Hunt the owner (a process-scoped ticker/`@Singleton` scope, or any coroutine body on a real dispatcher without `runCatching`/`CoroutineExceptionHandler`) — the same escaping throwable kills the app on a device.
 8. Report the verdict: per-module tallies, failed test names, and the report location.
 

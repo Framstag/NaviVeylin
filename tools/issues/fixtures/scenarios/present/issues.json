@@ -1,0 +1,26 @@
+[
+  {
+    "number": 41,
+    "title": "§901 A fixture finding about the phone card header",
+    "body": "<!-- nvid: 901 -->\n\n- **Observed** ✗: the two numbers disagree.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "source/agent" }
+    ]
+  },
+  {
+    "number": 42,
+    "title": "§902 A fixture finding about the car surface",
+    "body": "<!-- nvid: 902 -->\n\n- **Observed** ✗: an empty surface for a second.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "source/agent" }
+    ]
+  }
+]

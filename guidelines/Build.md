@@ -102,7 +102,7 @@ quotes no measurement.
 **Scope — what the changed files owe.** Which verification a delta owes follows its file roster, not the
 habit of running everything:
 
-- **No compiled file changed** (`*.md`, `openspec/**`, `.pi/**`, `guidelines/**`, `TODO.md`): run **no build
+- **No compiled file changed** (`*.md`, `openspec/**`, `.pi/**`, `guidelines/**`, `tools/**`): run **no build
   and no suite**. Say in the task that the delta compiles nothing, and name the check you ran instead — for a
   docs/spec/skill/backlog delta that is the structural check of the files it edits, the ones CI already runs
   for it (`.github/workflows/build.yml`, the steps `Check OpenSpec artifact hygiene` and `Check documentation
@@ -412,7 +412,8 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
      word-split variables: pass the filters as literal arguments, or wrap the
      call in a script;
   5. quote **both** numbers (the failing set and the alone run) in the change and
-     file the residual in `TODO.md`; leave the "zero failures" task item
+     file the residual as an issue (`.pi/skills/create-issue`, `tools/issues/create.sh`); leave the
+     "zero failures" task item
      **unchecked** rather than talking the run green.
 - **`UncaughtExceptionsBeforeTest`** is not a flaky assertion: a coroutine threw
   on a *process-wide* dispatcher (`Dispatchers.Default`/`IO`, or the main thread)
@@ -873,7 +874,7 @@ script-level `DefaultTask` registrations whose `doLast` closures capture script 
 script object and a `DefaultProject`), `:app:mergeNativeSbom`, `:app:downloadSbomCli`, and
 `:auto:`/`:core:checkHardcodedStrings`. Clearing them means moving those tasks into `buildSrc` classes with
 serializable inputs — a change of its own, not a build-flag flip. Until then every invocation pays
-configuration time; `TODO.md` §813 carries the same conclusion, now measured. The release-state contract
+configuration time; `TODO.md` §22 carries the same conclusion, now measured. The release-state contract
 holds meanwhile: `:app:checkLicensePolicy` on 2026-10-05 left `app/release-version.properties`
 byte-identical (same md5), as `release-target` requires.
 
@@ -885,7 +886,8 @@ from the result XML, so the log names which suites executed rather than only the
 **Known upstream issue** — Kover 0.9.8 emits a Gradle deprecation warning on
 Gradle 9.6 (Project-object dependency notation from its own internals); the
 project's own scripts use string notation. This becomes a hard error in
-Gradle 10 — revisit when upgrading either dependency (tracked in TODO.md).
+Gradle 10 — revisit when upgrading either dependency (tracked as the backlog entry `§22` —
+`tools/issues/list.sh --id 22`).
 
 ## 8. SBOM generation (CycloneDX)
 

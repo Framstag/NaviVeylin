@@ -1,0 +1,201 @@
+# The dry run over TODO.md
+# run:     2026-10-17T08:14:48Z
+# command: bash tools/issues/import/todo-md.sh > findings.json
+#          bash tools/issues/import.sh --findings findings.json --json > todo-dry-run.json
+#          bash tools/issues/import.sh --findings findings.json        (the human output below)
+
+## Counts
+sections in TODO.md:              137
+metadata lines in TODO.md:        137
+findings from the adapter:        137
+previews from the reconciler:     137
+already present (skipped):        0
+created (dry run):                0
+
+## Renames the adapter applied
+  category rendering → map-rendering
+  category build → build-and-harness
+
+## Label histogram
+  19	category/build-and-harness
+  20	category/car
+  7	category/data-and-maps
+  2	category/favorites
+  1	category/location
+  7	category/map-rendering
+  8	category/native-jni
+  2	category/persistence
+  11	category/route-and-navigation
+  7	category/search
+  17	category/specs-and-process
+  1	category/stylesheets
+  15	category/ui
+  20	category/verification
+  51	class/bug
+  9	class/feature
+  77	class/improvement
+  137	source/todo-import
+  17	status/fixed-by
+  8	status/in-flight
+  14	status/on-hold
+  75	status/open
+  21	status/open-device
+  1	status/retired
+  1	status/unverified
+
+## Status labels, as imported
+  17	status/fixed-by
+  8	status/in-flight
+  14	status/on-hold
+  75	status/open
+  21	status/open-device
+  1	status/retired
+  1	status/unverified
+
+## The opt-in label on arrival
+  agent/eligible: 0
+
+## The reconciler's human output
+  findings: 137
+    preview §129  fingerprint 14979deb2604  [class/bug,category/route-and-navigation,status/fixed-by,source/todo-import]
+    preview §131  fingerprint 62affd43d9fc  [class/bug,category/verification,status/in-flight,source/todo-import]
+    preview §139  fingerprint e62f74ef9729  [class/bug,category/route-and-navigation,status/fixed-by,source/todo-import]
+    preview §144  fingerprint d0695b0f5dc6  [class/bug,category/route-and-navigation,status/fixed-by,source/todo-import]
+    preview §153  fingerprint ec59f733e81d  [class/bug,category/ui,status/in-flight,source/todo-import]
+    preview §165  fingerprint c9e6bd4f6d0b  [class/bug,category/route-and-navigation,status/open-device,source/todo-import]
+    preview §166  fingerprint 1cba3795b152  [class/improvement,category/ui,status/open,source/todo-import]
+    preview §167  fingerprint b13c4ec7d16d  [class/improvement,category/verification,status/open-device,source/todo-import]
+    preview §168  fingerprint 927baf9cce5f  [class/bug,category/persistence,status/on-hold,source/todo-import]
+    preview §170  fingerprint f2ca10f8ddea  [class/improvement,category/verification,status/open,source/todo-import]
+    preview §171  fingerprint bec35c461cd4  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §75  fingerprint 61f7e4b0a661  [class/bug,category/search,status/in-flight,source/todo-import]
+    preview §172  fingerprint 9dd22731c3c5  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §163  fingerprint 054c107ca3d4  [class/improvement,category/data-and-maps,status/open,source/todo-import]
+    preview §164  fingerprint 643770db7997  [class/improvement,category/data-and-maps,status/fixed-by,source/todo-import]
+    preview §120  fingerprint e67457449a54  [class/improvement,category/car,status/open,source/todo-import]
+    preview §113  fingerprint 220f311d1693  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §111  fingerprint 284eab1643c3  [class/improvement,category/verification,status/open,source/todo-import]
+    preview §110  fingerprint 81c85badcee0  [class/bug,category/search,status/open-device,source/todo-import]
+    preview §109  fingerprint d89ea4b5e66e  [class/improvement,category/search,status/open,source/todo-import]
+    preview §102  fingerprint fbd82ca7c404  [class/improvement,category/favorites,status/open,source/todo-import]
+    preview §95  fingerprint 22b85dbbc3a3  [class/improvement,category/build-and-harness,status/on-hold,source/todo-import]
+    preview §99  fingerprint 0c72e35f05c1  [class/bug,category/data-and-maps,status/open-device,source/todo-import]
+    preview §93  fingerprint 1d59b4eb967b  [class/bug,category/car,status/open-device,source/todo-import]
+    preview §92  fingerprint 57ef521bc7ce  [class/bug,category/car,status/open-device,source/todo-import]
+    preview §91  fingerprint dc5c346fe1eb  [class/bug,category/data-and-maps,status/open-device,source/todo-import]
+    preview §84  fingerprint 997319a9a5e1  [class/improvement,category/verification,status/open-device,source/todo-import]
+    preview §83  fingerprint 9c8479e7a249  [class/bug,category/car,status/in-flight,source/todo-import]
+    preview §82  fingerprint e0dc193284d0  [class/improvement,category/native-jni,status/open,source/todo-import]
+    preview §81  fingerprint fb72971e6dbd  [class/improvement,category/native-jni,status/open,source/todo-import]
+    preview §77  fingerprint 42dd3275d04a  [class/improvement,category/search,status/open,source/todo-import]
+    preview §76  fingerprint 813119640278  [class/improvement,category/search,status/open,source/todo-import]
+    preview §74  fingerprint 96006376681d  [class/bug,category/ui,status/open-device,source/todo-import]
+    preview §73  fingerprint 68deb50d222b  [class/improvement,category/ui,status/on-hold,source/todo-import]
+    preview §72  fingerprint 540f3f185f5a  [class/bug,category/ui,status/fixed-by,source/todo-import]
+    preview §71  fingerprint d17b56ac2448  [class/improvement,category/map-rendering,status/open-device,source/todo-import]
+    preview §70  fingerprint 410b949abf2b  [class/bug,category/ui,status/on-hold,source/todo-import]
+    preview §66  fingerprint 8be89d3dce50  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §65  fingerprint aaa14ee315ce  [class/bug,category/map-rendering,status/open-device,source/todo-import]
+    preview §64  fingerprint 7acc860b5833  [class/improvement,category/car,status/open-device,source/todo-import]
+    preview §46  fingerprint db5f6e5f81bb  [class/improvement,category/car,status/open-device,source/todo-import]
+    preview §34  fingerprint f54aaf1e97d6  [class/improvement,category/car,status/open,source/todo-import]
+    preview §29  fingerprint 41090d385493  [class/improvement,category/car,status/open-device,source/todo-import]
+    preview §19  fingerprint 34f4e5aa8bf1  [class/bug,category/map-rendering,status/on-hold,source/todo-import]
+    preview §17  fingerprint b6bf49e05bf7  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §16  fingerprint 7e99bcf9ff5e  [class/improvement,category/verification,status/open-device,source/todo-import]
+    preview §1  fingerprint f604948bfd6a  [class/feature,category/route-and-navigation,status/open,source/todo-import]
+    preview §2  fingerprint e7af4984f4e0  [class/feature,category/route-and-navigation,status/open,source/todo-import]
+    preview §3  fingerprint c99147e2b7e7  [class/feature,category/route-and-navigation,status/open,source/todo-import]
+    preview §4  fingerprint e4c5d4613da3  [class/feature,category/ui,status/open,source/todo-import]
+    preview §5  fingerprint 7ab5b5558b81  [class/feature,category/ui,status/open,source/todo-import]
+    preview §6  fingerprint 0d5256bd84f0  [class/feature,category/map-rendering,status/open,source/todo-import]
+    preview §8  fingerprint 9961c715c0a1  [class/feature,category/location,status/open,source/todo-import]
+    preview §9  fingerprint 27a1a3e3ec8a  [class/improvement,category/persistence,status/on-hold,source/todo-import]
+    preview §14  fingerprint 4c5b11c0130c  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §22  fingerprint e02edbd9d44a  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §10  fingerprint da6fe360893f  [class/improvement,category/verification,status/open-device,source/todo-import]
+    preview §15  fingerprint 8e7d742ff34c  [class/improvement,category/verification,status/open,source/todo-import]
+    preview §23  fingerprint 03b405fe3b4e  [class/feature,category/native-jni,status/on-hold,source/todo-import]
+    preview §24  fingerprint 1fbf58e62505  [class/improvement,category/search,status/open,source/todo-import]
+    preview §27  fingerprint 22257aa073c7  [class/bug,category/search,status/in-flight,source/todo-import]
+    preview §35  fingerprint d471f4c9cfff  [class/improvement,category/verification,status/open-device,source/todo-import]
+    preview §36  fingerprint f9052260539b  [class/bug,category/stylesheets,status/on-hold,source/todo-import]
+    preview §37  fingerprint 1f8f4c4c9033  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §44  fingerprint 14cd2b3b4737  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §118  fingerprint ae0fbf0f78c9  [class/bug,category/favorites,status/fixed-by,source/todo-import]
+    preview §39  fingerprint 31dc659f0078  [class/improvement,category/ui,status/open-device,source/todo-import]
+    preview §40  fingerprint 635e5477ea84  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §134  fingerprint 8461ee1224c5  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §49  fingerprint 47ab0857ac64  [class/improvement,category/map-rendering,status/open-device,source/todo-import]
+    preview §56  fingerprint e52aa9391d35  [class/improvement,category/car,status/on-hold,source/todo-import]
+    preview §57  fingerprint c5e2eac92295  [class/bug,category/car,status/in-flight,source/todo-import]
+    preview §78  fingerprint 4cc9f2712910  [class/improvement,category/map-rendering,status/open,source/todo-import]
+    preview §119  fingerprint 4ceb1d7b3201  [class/improvement,category/native-jni,status/fixed-by,source/todo-import]
+    preview §103  fingerprint 5848941bb3d1  [class/improvement,category/car,status/fixed-by,source/todo-import]
+    preview §106  fingerprint 98928f11fd83  [class/improvement,category/verification,status/open-device,source/todo-import]
+    preview §108  fingerprint d8ea5ba0719d  [class/improvement,category/verification,status/open-device,source/todo-import]
+    preview §123  fingerprint 2f745ac6b377  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §126  fingerprint bc3ea51c4d2f  [class/improvement,category/route-and-navigation,status/fixed-by,source/todo-import]
+    preview §127  fingerprint 8c9f47e7fbbc  [class/improvement,category/car,status/open,source/todo-import]
+    preview §128  fingerprint 54ad24f67b34  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §130  fingerprint bb17ebc4104f  [class/bug,category/route-and-navigation,status/in-flight,source/todo-import]
+    preview §132  fingerprint a1c323466ce6  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §133  fingerprint 3a08954caf2b  [class/improvement,category/car,status/open,source/todo-import]
+    preview §136  fingerprint e4454e798992  [class/improvement,category/ui,status/open,source/todo-import]
+    preview §138  fingerprint 985ed3465d28  [class/bug,category/ui,status/fixed-by,source/todo-import]
+    preview §141  fingerprint 9959b4e3cbc6  [class/improvement,category/verification,status/open,source/todo-import]
+    preview §142  fingerprint e93a2a33dbac  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §143  fingerprint 58ca9ab54820  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §147  fingerprint 8c8eb405d010  [class/bug,category/verification,status/on-hold,source/todo-import]
+    preview §145  fingerprint d60b7b11c84b  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §146  fingerprint 67b91fe01784  [class/bug,category/build-and-harness,status/on-hold,source/todo-import]
+    preview §148  fingerprint c5ce94be9fb3  [class/bug,category/verification,status/in-flight,source/todo-import]
+    preview §149  fingerprint 653cd85288c2  [class/improvement,category/build-and-harness,status/retired,source/todo-import]
+    preview §150  fingerprint 62a9d7fbeb2f  [class/improvement,category/route-and-navigation,status/on-hold,source/todo-import]
+    preview §151  fingerprint 5a75b2fbb561  [class/bug,category/ui,status/fixed-by,source/todo-import]
+    preview §152  fingerprint cacb8b9c471a  [class/improvement,category/ui,status/open,source/todo-import]
+    preview §154  fingerprint 048c2123f7fa  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §155  fingerprint 7e4e1373592b  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+    preview §156  fingerprint 4259997b69ec  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §157  fingerprint f7f5427394f4  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §158  fingerprint f2a3b9d529af  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §159  fingerprint df7e6c7295c4  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §160  fingerprint db5905aece95  [class/feature,category/data-and-maps,status/open,source/todo-import]
+    preview §161  fingerprint 0c6830595722  [class/bug,category/specs-and-process,status/fixed-by,source/todo-import]
+    preview §162  fingerprint 201ea6308a40  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §173  fingerprint 2758b645364c  [class/improvement,category/ui,status/fixed-by,source/todo-import]
+    preview §174  fingerprint 2b191aeb8e8e  [class/improvement,category/native-jni,status/open,source/todo-import]
+    preview §175  fingerprint b6cb1c79390f  [class/bug,category/car,status/open,source/todo-import]
+    preview §176  fingerprint ec1aeef9edb7  [class/bug,category/car,status/open,source/todo-import]
+    preview §177  fingerprint c23d7b06d96b  [class/bug,category/car,status/fixed-by,source/todo-import]
+    preview §178  fingerprint b645bcdaa9cf  [class/bug,category/car,status/fixed-by,source/todo-import]
+    preview §179  fingerprint 2588c8b6ebd3  [class/bug,category/car,status/on-hold,source/todo-import]
+    preview §180  fingerprint 0b11a8edbbd0  [class/bug,category/car,status/open,source/todo-import]
+    preview §181  fingerprint 452b9bc15318  [class/bug,category/verification,status/open,source/todo-import]
+    preview §182  fingerprint e0cb8f306cee  [class/improvement,category/data-and-maps,status/open,source/todo-import]
+    preview §183  fingerprint 27085f01e2b2  [class/bug,category/verification,status/open,source/todo-import]
+    preview §184  fingerprint 2d0c0b1643d4  [class/bug,category/specs-and-process,status/open,source/todo-import]
+    preview §185  fingerprint 15fb4f97e92f  [class/bug,category/data-and-maps,status/open,source/todo-import]
+    preview §186  fingerprint 9cc4c8e4035c  [class/bug,category/ui,status/unverified,source/todo-import]
+    preview §187  fingerprint 5f552d401b22  [class/bug,category/specs-and-process,status/fixed-by,source/todo-import]
+    preview §188  fingerprint f984a69881c7  [class/improvement,category/native-jni,status/open,source/todo-import]
+    preview §189  fingerprint 114d7413a9da  [class/bug,category/verification,status/fixed-by,source/todo-import]
+    preview §190  fingerprint 2189018272b9  [class/improvement,category/map-rendering,status/open,source/todo-import]
+    preview §191  fingerprint 1575af7fac6a  [class/bug,category/native-jni,status/open,source/todo-import]
+    preview §192  fingerprint c4ba0fe6e7ee  [class/bug,category/build-and-harness,status/open,source/todo-import]
+    preview §193  fingerprint dd7f98cb9510  [class/improvement,category/native-jni,status/open,source/todo-import]
+    preview §194  fingerprint 2e7100fa2e10  [class/bug,category/specs-and-process,status/open,source/todo-import]
+    preview §195  fingerprint 7fd6c88c7ec8  [class/bug,category/verification,status/open,source/todo-import]
+    preview §196  fingerprint 28893c08df77  [class/bug,category/verification,status/open,source/todo-import]
+    preview §197  fingerprint 05f08ca900ee  [class/bug,category/route-and-navigation,status/open,source/todo-import]
+    preview §198  fingerprint 5c96346ec151  [class/improvement,category/verification,status/open,source/todo-import]
+    preview §199  fingerprint a6aeaa5d57cb  [class/bug,category/specs-and-process,status/open,source/todo-import]
+    preview §200  fingerprint 1a0dde2d33d9  [class/improvement,category/specs-and-process,status/open,source/todo-import]
+    preview §201  fingerprint 773867421a53  [class/improvement,category/car,status/on-hold,source/todo-import]
+    preview §202  fingerprint 12825f8ee8aa  [class/bug,category/build-and-harness,status/open,source/todo-import]
+    preview §203  fingerprint 48f73e0a3b6e  [class/improvement,category/build-and-harness,status/open,source/todo-import]
+  137 preview(s), 0 already present, 0 created (dry run)
+
+## The preflight refusal, when the identity is not allowlisted
+allow
+  exit=0

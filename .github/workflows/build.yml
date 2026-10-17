@@ -145,6 +145,21 @@ jobs:
       - name: Check documentation routes
         run: bash tools/check-doc-routes.sh
 
+      # ── issue tooling ──────────────────────────────────────────
+      # The gate for `tools/issues/**`: the Java core's cases and the shell wrappers driven against a stub
+      # `gh` on PATH. Offline, no token, no Gradle — and it refuses below JDK 17 with a named message. The
+      # surface it protects is the one a later loop trusts (spec `issue-backlog`).
+      - name: Check issue tooling
+        run: bash tools/issue-tooling-selftest.sh
+
+      # ── backlog references ─────────────────────────────────────
+      # Every `§N` a live file cites must still find its entry after `TODO.md` was deleted, and no live
+      # line may name that file without citing one — that is the migration's whole justification
+      # (`migrate-todo-to-github-issues`, D11). No token here: the recorded `§ → issue` table in the
+      # migration's evidence is the record, so the step reads two kinds of text file and nothing else.
+      - name: Check backlog references
+        run: bash tools/check-todo-references.sh
+
       # ── Compose sandbox rule ───────────────────────────────────
       # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
       # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has

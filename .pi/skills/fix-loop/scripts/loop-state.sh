@@ -11,7 +11,7 @@
 # Override with LOOP_STATE for the self-test.
 #
 # Usage:
-#   loop-state.sh init --items N --minutes M [--review on|off] [--allow-todo-removal yes|no]
+#   loop-state.sh init --items N --minutes M [--review on|off] [--allow-closure yes|no]
 #                                    # N counts every defect-shaped item, bug or improvement
 #   loop-state.sh show               # which issue, which phase, the result of every step so far
 #   loop-state.sh remaining          # exit 3 when items == 0 or the deadline has passed
@@ -49,13 +49,13 @@ write() { # write <json-on-stdin>
 }
 
 cmd_init() {
-  local items="" minutes="" review="on" removal="no"
+  local items="" minutes="" review="on" closure="no"
   while [ $# -gt 0 ]; do
     case "$1" in
       --items) items="${2:?}"; shift 2;;
       --minutes) minutes="${2:?}"; shift 2;;
       --review) review="${2:?}"; shift 2;;
-      --allow-todo-removal) removal="${2:?}"; shift 2;;
+      --allow-closure) closure="${2:?}"; shift 2;;
       *) echo "init: unknown arg $1" >&2; exit 2;;
     esac
   done
@@ -70,9 +70,9 @@ cmd_init() {
   jq -n --arg iso "$(iso "$started")" --arg dl "$(iso "$deadline")" \
         --argjson started "$started" --argjson deadline "$deadline" \
         --argjson items "$items" --argjson minutes "$minutes" \
-        --arg review "$review" --arg removal "$removal" \
+        --arg review "$review" --arg closure "$closure" \
         '{startedAt:$iso, startedEpoch:$started, deadlineAt:$dl, deadlineEpoch:$deadline,
-          itemLimit:$items, minutesBudget:$minutes, review:$review, allowTodoRemoval:$removal,
+          itemLimit:$items, minutesBudget:$minutes, review:$review, allowClosure:$closure,
           completed:[], skipped:[], blocked:[], queue:[], current:null, currentId:null,
           currentPhase:null, steps:[]}' | write
   echo "fix-loop: budget ${items} items / ${minutes} min, deadline $(iso "$deadline")"
@@ -89,7 +89,7 @@ cmd_show() { require_state; jq -r '
                               | if $l then " · last: §\($l.id) \($l.change) (\($l.verdict))" else "" end)
                       else "§\(.currentId // "?") \(.current) · phase \(.currentPhase)" end),
   "budget   \($cap) items / \(.minutesBudget) min · \($cap - (.completed | length)) left · deadline \(.deadlineAt) · \((if .deadlineEpoch > now then "" else "EXPIRED · " end))\($minLeft) min left",
-  "review   \(.review) · todo-removal \(.allowTodoRemoval)",
+  "review   \(.review) · closure \(.allowClosure)",
   "progress closed \(.completed | length) · skipped \(.skipped | length) · blocked \(.blocked | length) of \($cap)",
   "queue    \(.queue | length): \([.queue[]?.id] | join(" "))",
   "",

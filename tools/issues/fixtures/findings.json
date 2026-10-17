@@ -1,0 +1,31 @@
+{
+  "source": "fixture",
+  "count": 2,
+  "renames": [],
+  "findings": [
+    {
+      "sourceId": "901",
+      "title": "§901 A fixture finding about the phone card header",
+      "class": "bug",
+      "category": "ui",
+      "status": "open",
+      "claim": "The phone card header shows a number the step list disagrees with",
+      "anchor": "app/src/main/java/com/example/Card.kt:Header",
+      "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "labels": ["class/bug", "category/ui", "status/open", "source/agent"],
+      "body": "- **Observed** ✗: the two numbers disagree."
+    },
+    {
+      "sourceId": "902",
+      "title": "§902 A fixture finding about the car surface",
+      "class": "improvement",
+      "category": "car",
+      "status": "open",
+      "claim": "The car surface renders nothing until the session starts",
+      "anchor": "app/src/main/java/com/example/Car.kt:Surface",
+      "fingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "labels": ["class/improvement", "category/car", "status/open", "source/agent"],
+      "body": "- **Observed** ✗: an empty surface for a second."
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "number": 31,
+    "title": "§31 An issue filed by an author who is not on the allowlist",
+    "body": "<!-- nvid: 31 -->\n\n- **Observed** ✗: a stranger filed this.",
+    "author": { "login": "outsider" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

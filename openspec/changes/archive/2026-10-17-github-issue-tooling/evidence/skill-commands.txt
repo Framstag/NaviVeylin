@@ -1,0 +1,130 @@
+# The four skills' documented commands
+# run: 2026-10-17T08:14:55Z
+# Every command in .pi/skills/{create,update,close,list}-issue/SKILL.md, run as documented against
+# the stub gh on PATH; the exit code in brackets is the one the skill documents.
+
+=== create-issue — base fixtures, no issues yet
+-- bash tools/issues/create.sh
+https://example.invalid/Framstag/NaviVeylin/issues/1
+   exit=0 (as documented)
+-- bash tools/issues/create.sh --finding /tmp/skill-commands.ge24Ri/finding.json
+https://example.invalid/Framstag/NaviVeylin/issues/1
+   exit=0 (as documented)
+-- bash tools/issues/create.sh --label category/car --finding /tmp/skill-commands.ge24Ri/finding.json
+https://example.invalid/Framstag/NaviVeylin/issues/1
+   exit=0 (as documented)
+-- bash tools/issues/create.sh --status open-device --finding /tmp/skill-commands.ge24Ri/finding.json
+https://example.invalid/Framstag/NaviVeylin/issues/1
+   exit=0 (as documented)
+-- bash tools/issues/create.sh --allow-duplicate --finding /tmp/skill-commands.ge24Ri/finding.json
+https://example.invalid/Framstag/NaviVeylin/issues/1
+   exit=0 (as documented)
+-- bash tools/issues/create.sh --json --finding /tmp/skill-commands.ge24Ri/finding.json
+{
+  "created": true,
+  "outcome": "created",
+  "title": "§901 A fixture finding about the phone card header",
+  "labels": [
+    "class/bug",
+    "category/ui",
+    "status/open",
+    "source/agent"
+  ],
+  "fingerprint": "1fe69b8bfc371aff8088041af395ef69f2e0d037792ab0a7e04a17c016876319",
+  "overrideRecorded": false
+}
+   exit=0 (as documented)
+-- bash tools/issues/create.sh --label agent/eligible --finding /tmp/skill-commands.ge24Ri/finding.json
+label-reserved: agent/eligible
+   exit=3 (as documented)
+
+=== update-issue and list-issues — the three-issue fixture
+-- bash tools/issues/update.sh 12 --label category/car
+stub gh: recorded `gh issue edit`
+   exit=0 (as documented)
+-- bash tools/issues/update.sh 12 --status open-device
+stub gh: recorded `gh issue edit`
+   exit=0 (as documented)
+-- bash tools/issues/update.sh 12 --body /tmp/skill-commands.ge24Ri/body.md
+stub gh: recorded `gh issue edit`
+   exit=0 (as documented)
+-- bash tools/issues/update.sh 12 --label class/bug --label source/ci
+stub gh: recorded `gh issue edit`
+   exit=0 (as documented)
+-- bash tools/issues/update.sh 12 --status open-device --json
+{
+  "updated": true,
+  "issue": 12,
+  "labels": [
+    "status/open-device"
+  ],
+  "body": null
+}
+   exit=0 (as documented)
+-- bash tools/issues/update.sh 12 --label category/wibble
+label-opaque: category/wibble
+   exit=3 (as documented)
+-- bash tools/issues/update.sh 12 --label agent/eligible
+label-reserved: agent/eligible
+   exit=3 (as documented)
+-- bash tools/issues/update.sh 12
+update: nothing to change — pass --label, --status or --body
+   exit=2 (as documented)
+-- bash tools/issues/list.sh
+#11 §11 A car entry that is open and eligible [class/bug, category/car, status/open, source/todo-import, agent/eligible]
+#12 §12 A ui entry, open but not eligible [class/improvement, category/ui, status/open, source/todo-import]
+#13 §13 A verification entry, open (device) [class/improvement, category/verification, status/open-device, source/todo-import]
+3 match(es)
+   exit=0 (as documented)
+-- bash tools/issues/list.sh --class bug
+#11 §11 A car entry that is open and eligible [class/bug, category/car, status/open, source/todo-import, agent/eligible]
+1 match(es)
+   exit=0 (as documented)
+-- bash tools/issues/list.sh --category ui
+#12 §12 A ui entry, open but not eligible [class/improvement, category/ui, status/open, source/todo-import]
+1 match(es)
+   exit=0 (as documented)
+-- bash tools/issues/list.sh --status open-device
+#13 §13 A verification entry, open (device) [class/improvement, category/verification, status/open-device, source/todo-import]
+1 match(es)
+   exit=0 (as documented)
+-- bash tools/issues/list.sh --author Framstag
+#11 §11 A car entry that is open and eligible [class/bug, category/car, status/open, source/todo-import, agent/eligible]
+#12 §12 A ui entry, open but not eligible [class/improvement, category/ui, status/open, source/todo-import]
+#13 §13 A verification entry, open (device) [class/improvement, category/verification, status/open-device, source/todo-import]
+3 match(es)
+   exit=0 (as documented)
+-- bash tools/issues/list.sh --eligible-only
+#11 §11 A car entry that is open and eligible [class/bug, category/car, status/open, source/todo-import, agent/eligible]
+1 match(es)
+   exit=0 (as documented)
+-- bash tools/issues/list.sh --class bug --status open --json
+[{"number":11,"title":"§11 A car entry that is open and eligible","body":"<!-- nvid: 11 -->\n<!-- fingerprint: 1111111111111111111111111111111111111111111111111111111111111111 -->\n\n- **Observed** ✗: the car surface shows nothing.","author":{"login":"Framstag"},"labels":[{"name":"class/bug"},{"name":"category/car"},{"name":"status/open"},{"name":"source/todo-import"},{"name":"agent/eligible"}]}]
+   exit=0 (as documented)
+-- bash tools/issues/list.sh --limit 100
+#11 §11 A car entry that is open and eligible [class/bug, category/car, status/open, source/todo-import, agent/eligible]
+#12 §12 A ui entry, open but not eligible [class/improvement, category/ui, status/open, source/todo-import]
+#13 §13 A verification entry, open (device) [class/improvement, category/verification, status/open-device, source/todo-import]
+3 match(es)
+   exit=0 (as documented)
+
+=== close-issue — #11 carries the opt-in label, #12 does not
+-- bash tools/issues/close.sh 11 --reason the router's overall distance is taken from the description total
+close: --evidence is required — a closure carries the evidence for it
+   exit=2 (as documented)
+-- bash tools/issues/close.sh 11 --evidence RouteInstructionPositionDeviceTest is green on HEAD
+close: --reason is required — a closure carries the reason it was made
+   exit=2 (as documented)
+-- bash tools/issues/close.sh 11 --reason the router's overall distance is taken from the description total --evidence RouteInstructionPositionDeviceTest is green on HEAD
+closed #11 (completed)
+   exit=0 (as documented)
+-- bash tools/issues/close.sh 11 --reason not worth the churn --evidence discussion on #17 --not-planned
+closed #11 (not_planned)
+   exit=0 (as documented)
+-- bash tools/issues/close.sh 12 --reason r --evidence e
+missing-eligibility-label: agent/eligible absent
+close: refusing to close #12 — the gate did not pass, so nothing was posted
+   exit=3 (as documented)
+
+writes the stub recorded: 15
+skill commands: every documented command ran against the stub with its documented exit code

@@ -1,0 +1,21 @@
+7.1 instruction detection — the check stops rejecting a mention without a citation
+  ok    refcheck#instructionLineFails → FAIL  refcheck#instructionLineFails: expected exit 1 containing 'file=guidelines/Build.md,line=3', got exit 0:
+  ok    refcheck#instructionLineFails → PASS  refcheck#instructionLineFails (exit 1)
+7.2a the citation half — every number resolves, whatever the record says
+  ok    refcheck#unresolvedCitationFails → FAIL  refcheck#unresolvedCitationFails: expected exit 1 containing '§99999 resolves to nothing', got exit 0:
+  ok    refcheck#unresolvedCitationFails → PASS  refcheck#unresolvedCitationFails (exit 1)
+7.2b the nvid lookup — a substring match instead of the marker's delimiters
+  ok    list#idDoesNotMatchASubstring → FAIL list#idDoesNotMatchASubstring
+  ok    list#idDoesNotMatchASubstring → PASS list#idDoesNotMatchASubstring
+7.3 the allowlist — guidelines/ excluded, so an instruction there is invisible
+  ok    refcheck#instructionLineFails → FAIL  refcheck#instructionLineFails: expected exit 1 containing 'file=guidelines/Build.md,line=3', got exit 0:
+  ok    refcheck#instructionLineFails → PASS  refcheck#instructionLineFails (exit 1)
+7.4 rewiring completeness — the AGENTS.md map row names the file with no citation
+  ok    tools/check-todo-references.sh → exit 1, naming AGENTS.md
+  ok    tools/check-todo-references.sh → exit 0 again
+7.5 the import assertion — 'agent/eligible: 0' relaxed to always pass
+  ok    a fixture carrying the label: the recorded assertion reports 1, the relaxed one 0
+  ok    the recorded assertion is in import-evidence.md (1 line(s) name the label)
+
+restored: the three mutated files are byte-identical to their state before the mutations
+revert-checks: every mutation went red as named, and every restore is green

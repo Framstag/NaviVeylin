@@ -1,0 +1,18 @@
+# Files this change deliberately did not modify
+# run: 2026-10-17T08:16:06Z
+
+## git status --short -- AGENTS.md guidelines openspec/config.yaml .pi/skills
+ M guidelines/Backlog.md
+?? .pi/skills/close-issue/
+?? .pi/skills/create-issue/
+?? .pi/skills/list-issues/
+?? .pi/skills/update-issue/
+  (the guidelines/ line is this change's own task 8.5 edit; the four '??' entries are the new
+   skills — new files, not modifications — and AGENTS.md, openspec/config.yaml and the twelve
+   existing skills appear as no change at all)
+
+## git status --short -- app auto core osmscout-client-java buildSrc
+  (no output above means no Gradle source set, manifest, resource or native file changed)
+
+## the run itself
+  ./gradlew was never invoked; no Gradle build and no test suite was run

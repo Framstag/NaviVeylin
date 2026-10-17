@@ -1,146 +1,165 @@
 ---
 name: triage-todo
-description: Scans NaviVeylin's `TODO.md`, ranks every open entry (bugs first, then improvements, then features, each by impact), and proposes the next change. Reads the entry metadata the file now carries (`id · category · class (bug|improvement|feature) · status`), verifies it against the repo, and flags entries that an in-flight change, an archived change or a merged PR already covers. Use when asked "what should we work on next", "triage TODO.md", "propose the next change", "which bug is most important", or before starting a new OpenSpec change after a backlog grew.
+description: Ranks the tracker's open backlog from its persisted priority band (`prio/p0`–`prio/p3`), bugs first, and proposes the next change. Reads labels first and a body only for a candidate whose recorded basis no longer matches, verifies every claim against the repo, and flags items an in-flight change, an archived change or a merged PR already covers. Use when asked "what should we work on next", "triage the backlog", "propose the next change", "which bug is most important", or before starting a new OpenSpec change after the backlog grew.
 ---
 
-# Triage TODO.md
+# Triage the backlog
 
 Turns the open backlog into a ranked, evidence-checked short list and names the next change to start.
-`TODO.md` holds *what is wrong or missing*; this skill decides *what to do about it first*.
+The tracker holds *what is wrong or missing*; this skill decides *what to do about it first* — and it
+answers from the labels, without reading the items themselves:
 
-Output order is fixed: **bugs → improvements → new features**, each segment sorted by impact/criticality.
-A high-impact improvement never outranks a low-impact bug; within a segment, impact decides.
+| what the selection needs | where it comes from | cost |
+|---|---|---|
+| which items are open, and of which kind | the `status/*` and `class/*` labels | one paged list call |
+| which open item outranks which | the `prio/*` band label | the same call |
+| what the item says | its body | **only** for a candidate the band and the basis do not settle |
+
+Output order is fixed: **bugs → improvements → new features**, each segment in band order. A high-band
+improvement never outranks a low-band bug; within a segment, the band decides.
 
 ## When to use
 
-- User asks what to do next, which bug matters most, or to pick from `TODO.md`
+- User asks what to do next, which bug matters most, or to pick from the backlog
 - A session start after several changes landed and the backlog grew
 - Before `/openspec-propose`, to choose the scope rather than invent one
 
 ## When NOT to use
 
 - The user already named a change → go straight to `/openspec-propose` or `/openspec-apply-change`
-- To *clean* `TODO.md` — remove entries that are already implemented, repair ids/categories/classes, or
-  cluster the backlog → the **`cleanup-todo` skill**; this skill only reads it
+- To *repair* the tracker — labels that are wrong, duplicates, `nvid` collisions → the
+  **`cleanup-todo` skill**; this skill only reads
+- To recompute the bands or the scores → `issue-metadata-loop`; this skill reads what that pass recorded
 - To process `ki_processing_failures.log` → `process-failure-log`
 - To mine the openspec changes for unproven requirements (why an area was fixed twice) →
   `openspec-proof-gap-audit`
 
 ## Inputs / outputs
 
-| Path | Role |
+| Input | Role |
 |---|---|
-| `TODO.md` | input — read-only, never edited by this skill |
+| the tracker (`tools/issues/list.sh`) | input — the labels are read-only to this skill |
+| an item's body | input — read only for a candidate whose recorded basis no longer matches, or whose band is missing |
 | `openspec/specs/**`, `openspec/changes/**` | input — which of the triaged items an in-flight change already covers |
-| `guidelines/*.md`, `AGENTS.md` | input — the contract an entry deviates from (cite the section, not the prose) |
+| `guidelines/*.md`, `AGENTS.md` | input — the contract an item deviates from (cite the section, not the prose) |
 | the repo tree (`file:line`) | input — every proposed item must be verified against it |
 | the answer | output — the ranked triage plus the recommended next change; nothing is written unless the user asks |
 
-This skill proposes. It does not implement, and it does not create the change; it ends by naming the
-scope and handing off to `/openspec-propose` with a suggested change name. It is read-only, so it runs no
-build and no tests — nothing it does compiles.
+This skill proposes. It does not implement, it does not create the change, and **it never writes a label**
+— a band is the metadata pass's to compute, and this skill is read-only by contract, which is what makes
+its ranking trustworthy. It runs no build and no tests: nothing it does compiles.
 
 ## Procedure
 
-### 1. Read the whole of `TODO.md`
-
-`ctx_read` compression drops lines of long files, so read raw ranges and do not triage from a
-compressed excerpt. Derive the windows from the real length (1301 lines as of 2026-10-03) instead of
-trusting fixed offsets from an older session:
+### 1. Read the labels, in one call
 
 ```bash
-wc -l TODO.md                    # then read in <=300-line raw windows until EOF
-sed -n '1,300p' TODO.md          # 301-600, 601-900, 901-1200, 1201-end
-grep -n '^## ' TODO.md           # inventory: ids + titles (76 sections as of 2026-10-03)
-grep -n '^\*\*id:\*\*' TODO.md    # the metadata line of every entry: id · category · class · status
-grep -c '^## ' TODO.md; grep -c '^\*\*id:\*\*' TODO.md   # equal counts — every section carries metadata (76/76)
+tools/issues/list.sh --status open --json            # every open item: number, title, labels, author
+tools/issues/list.sh --status unverified --json      # the ones nobody has confirmed anywhere
+tools/issues/list.sh --status open-device --json     # the device-gated ones
 ```
 
-Every open section must be seen at least once. Build the inventory table from the metadata line:
-`§id | category | class | status | title | one-line claim`. The `**Clusters**` block in the header is a
-generated index (category, then class → `§ids`); use it to navigate, never as a substitute for reading
-the entries.
+Build the inventory from the labels — no body is read yet:
 
-The file's own legend (`✗` missing / `⏳` in progress or blocked / `✅` done) is **prose emphasis inside a
-body**. The machine-readable state of an entry is its `status:` field — `open` · `open (device)` ·
-`in-flight <change>` · `fixed-by <change|commit>` · `on-hold <decision>` · `unverified` — which is what
-the gate lists in step 6 are derived from. Treat a `✗`/`⏳`/`✅` in a title or bullet as a hint you still
-verify.
+| # | class | category | status | band | title |
 
-Sections are numbered and referenced from change artifacts and sessions — a number you renumber silently
-breaks those references, so never renumber here (the `cleanup-todo` skill owns ids; adding or repairing
-metadata is its job too). Report a collision instead of fixing it: the known `§79` duplicate was resolved
-to `§119` on 2026-10-03, so a new one is news.
+Facts the vocabulary fixes, and that decide the rest of the run:
+
+- **the band** is `prio/p0` … `prio/p3`. It is the primary key of the ranking, and it is *persisted*: it
+  was computed by `issue-metadata-loop` from the item's severity, reach, confidence and occurrence, and
+  the same pass is the only thing that recomputes it.
+- **an item with no `prio/*` band is _unranked_** — the import set none, and this skill cannot. List it in
+  its own section, with the reason (`the band pass has not scored it yet`), and never invent a score for
+  it. A first triage over an unranked backlog therefore reports what the metadata pass owes, rather than
+  ranking noise.
+- **`agent/eligible` is authorisation, not priority.** It is present only when a human opted the item into
+  the automated loop; it never reorders the segments.
+- **`status/fixed-by` is not work.** With the change archived it is a closure candidate; without the
+  archive it is *already covered*.
+- **the body marker** `<!-- prio: band=… score=… sev=… reach=… conf=… occ=… basis=… at=… -->` carries how
+  the band was computed and what it was computed from. It is the reason a body is read at all (step 3).
 
 ### 2. Cross-check what is already in flight
 
 ```bash
 openspec list --json                                    # active changes + task progress
 openspec list --specs --json                            # existing capabilities (what already exists)
-ls -d openspec/changes/archive/*<change>*                # is that entry's change released yet?
-git log --oneline -30                                   # what just landed (and "(TODO n)" in the subjects)
+ls -d openspec/changes/archive/*<change>*                # is that item's change released yet?
+git log --oneline -30                                   # what just landed
 ls .pi/skills/                                          # skills that already wrap a recurring task
 ```
 
-Then build the two sets **mechanically from the metadata** instead of hunting prose:
+Then build the two sets **mechanically from the labels** instead of hunting prose:
 
-- **already covered** — every entry with `status: in-flight <change>`; quote that change and its task
-  progress. Never propose a change that duplicates an in-flight one.
-- **archive candidates** — every entry with `status: fixed-by <change>` **whose change has a directory
-  under `openspec/changes/archive/`**. An entry whose text says "removed when the change is archived" is
-  a *covered* item while that archive is missing: do not triage it away, and do not call it an archive
-  candidate yet.
+- **already covered** — every item with `status/in-flight`; quote that change and its task progress. Never
+  propose a change that duplicates an in-flight one.
+- **closure candidates** — every item with `status/fixed-by` **whose change has a directory under
+  `openspec/changes/archive/`**. An item that says work remains is *covered*, not closed: it stays out of
+  the ranked segments and out of the closure candidates.
 
-### 3. Verify before you rank
+### 3. Load a body only where the basis says so
 
-An entry is a memory, not a fact. Before an item enters a segment:
+For each candidate in a ranked segment — never for the whole backlog — read its body **once** and use it
+for three things: the claim, the evidence pointers (`file:line`, a device run, a test name), and the
+`prio` marker.
 
-- open the named file and confirm the condition still holds (`file:line`) — entries go stale when a
-  later change touches the same code
-- confirm the entry is not already `✅`/`FIXED` with evidence; those become **archive candidates**, not
-  work items
-- if the entry names a spec, read that spec's requirement and check the deviation is real
-- if the entry claims on-device evidence, treat it as confirmed; if its `status:` is `open (device)` or
-  `unverified`, or its text says "not verified / unconfirmed / suspected", cap the confidence score and
-  say so in the row
-- verify the **metadata** too, not just the claim: a `class: improvement` entry that describes a crash,
-  an `open` entry whose named code no longer exists, or an `in-flight` entry whose change is gone is a
-  reclassification or a stale entry to *report* — never silently re-derived (rewriting it is
-  `cleanup-todo`'s job)
+```bash
+tools/issues/list.sh --id <N> --json | jq -r '.[0].body'      # one item
+```
+
+An item is *due for rescoring* when the basis the marker recorded no longer matches the labels it
+depends on (the marker's `basis=` is a digest of the item's `class/*`, `category/*` and `status/*`
+labels). Report that per item as `<!-- prio: basis mismatch -->`, and **do not rescore it here** — a
+recomputation proportional to the backlog is exactly the cost this pipeline exists to remove, and the
+pass that owns it is `issue-metadata-loop`.
+
+The bands are only as good as the labels they were computed from, so verify the **item** too:
+
+- open the named file and confirm the condition still holds (`file:line`) — items go stale when a later
+  change touches the same code
+- if the item names a spec, read that spec's requirement and check the deviation is real
+- if the item claims on-device evidence, treat it as confirmed; if its status is `open-device` or
+  `unverified`, cap the confidence and say so in the row
+- verify the **labels** as well, not just the claim: a `class/improvement` item that describes a crash, a
+  `status/open` item whose named code no longer exists, an `in-flight` item whose change is gone — each is
+  a reclassification or a stale item to *report*, never to re-derive silently (repairing it is
+  `cleanup-todo`'s job, and a band change is the metadata pass's)
 
 Anything that cannot be verified from the tree is reported, never silently dropped.
 
-### 4. Classify each open entry
+### 4. Classify each open item
 
-One class per entry. **Read the entry's recorded `class:` first** — a cleanup pass assigned it against
-these same tests, so re-deriving it invents churn. Classify from scratch only for an entry with no
-metadata, and when the evidence contradicts the recorded class, say so as a **reclassification**
-("§n is recorded `improvement`, but the crash it describes makes it a `bug`") instead of quietly
-overriding it. When in doubt the earlier class wins (a crash is a bug, not a missing feature).
+One class per item, and it is the recorded `class/*` label — a cleanup pass assigned it against these same
+tests, so re-deriving it invents churn. Classify from scratch only for an item with no `class/*` label,
+and when the evidence contradicts the recorded class, say so as a **reclassification** ("§129 is recorded
+`improvement`, but the crash it describes makes it a `bug`") instead of quietly overriding it. When in
+doubt the earlier class wins (a crash is a bug, not a missing feature).
 
-| Class | Test | Typical `TODO.md` shapes |
+| Class | Test | Typical shapes |
 |---|---|---|
 | **Bug** | current behaviour contradicts a spec, crashes, loses data, or silently fails a user action | "Spec deviation", "Defect", native crash / ANR / process death, wrong search results, leak, "the Save button is inert", flaky gate that masks real failures, compliance deadline risk |
-| **Improvement** | behaviour is correct but a quality attribute is poor: performance, memory, latency, noise, robustness, testability, harness/tooling, debt, docs that mislead | "Debt", "hygiene", "not caught by any test", "tooling gap", deprecation sweeps, refactor candidates, stale verification recipes, guardrail items (§40) that belong in `guidelines/*` |
-| **Feature** (`class: feature`) | capability absent entirely; nothing is broken because nothing exists | the `✗` feature tables (no UI yet, callback exists in JNI, unwired platform support), new platform support, `PositionSimulator`-style design notes |
+| **Improvement** | behaviour is correct but a quality attribute is poor: performance, memory, latency, noise, robustness, testability, harness/tooling, debt, docs that mislead | "Debt", "hygiene", "not caught by any test", "tooling gap", deprecation sweeps, refactor candidates, stale verification recipes, guardrail items (`§40`) that belong in `guidelines/*` |
+| **Feature** (`class/feature`) | capability absent entirely; nothing is broken because nothing exists | the `✗` feature tables (no UI yet, callback exists in JNI, unwired platform support), new platform support, `PositionSimulator`-style design notes |
 
-Special shapes that are **not** change candidates on their own — each is now readable from the status
-and the category rather than from prose:
+Special shapes that are **not** change candidates on their own — each is readable from the labels:
 
-- `category: specs-and-process` guardrail items (the `§40` block) → home is `guidelines/*`, `AGENTS.md`,
-  CI or a skill; route them through `process-failure-log` or a docs change, and say so instead of ranking
-  them
-- `status: open (device)` → the device list (step 6), and for a table of pending device checks
-  (`§10`-style) each row is a verification step of the change that owns it
-- `status: on-hold <decision>` → the blocked list (step 6), with the decision named
-- `status: fixed-by …` → not a work item: an archive candidate (released) or already covered (not yet)
+- `category/specs-and-process` guardrail items (the imported `§40` block) → home is `guidelines/*`,
+  `AGENTS.md`, CI or a skill; route them through `process-failure-log` or a docs change, and say so
+  instead of ranking them
+- `status/open-device` → the device list (step 6), and for a table of pending device checks (`§10`-style)
+  each row is a verification step of the change that owns it
+- `status/on-hold` → the blocked list (step 6), with the decision named
+- `status/fixed-by …` → not a work item: a closure candidate (archived) or already covered (not yet)
+- `status/retired` → a tombstone of an item that was removed from the backlog before the migration; it
+  exists so that a `§N` citation still resolves. Never rank one, and never close one.
 
-### 5. Score impact / criticality
+### 5. Read the band, fall back to the score
 
-Per entry, with citations as the justification:
+The band is the ranking key, and the score behind it is defined here so a reader can audit a band without
+recomputing it:
 
 ```
-score = severity x reach + confidence
+score = severity x reach + confidence          (severity 1-5, reach 1-3, confidence 1-3)
 ```
 
 | severity | 5 | 4 | 3 | 2 | 1 |
@@ -155,116 +174,122 @@ score = severity x reach + confidence
 |---|---|---|---|
 | | reproduced with a citation (device, CI, test name) | read from code with `file:line` | inference, no direct evidence yet |
 
-The `status:` field caps confidence. `unverified` (never confirmed anywhere) is 1. `open (device)` cannot
-be raised above 2 locally unless the entry quotes a device run, and it always lands in the device list.
-`fixed-by` means the fix landed, so what you score is the **residue the entry still describes** — a
-verification, a measurement, or a defect the fix left behind — not the original defect.
+Bands: `prio/p0` ≥ 13, `prio/p1` 10-12, `prio/p2` 6-9, `prio/p3` ≤ 5. The exact edges are the metadata
+pass's to fix (its own profile section); what this skill relies on is only the **order** the bands give.
 
-Tie-breakers, in order: smallest effort first; a deadline-forced item before the rest of its segment;
-an item that unblocks several other entries (e.g. a diagnosis that gates device verification) before
-sibling items of equal score.
+The status caps confidence and the band inherits it: `unverified` is confidence 1, `open-device` cannot be
+raised above 2 locally unless the item quotes a device run (and it always lands in the device list), and
+`fixed-by` means the fix landed — what is left to rank is the **residue** the item still describes, a
+verification or a measurement, not the original defect.
 
-Deadline override: an entry with a dated external deadline (a store policy, a dependency removal) is
-placed at the top of its segment even at a lower raw score, and the date is quoted.
+Tie-breakers, in order: smallest effort first; a deadline-forced item before the rest of its segment; an
+item that unblocks several others (e.g. a diagnosis that gates device verification) before its siblings.
+
+Deadline override: an item with a dated external deadline (a store policy, a dependency removal) is placed
+at the top of its segment even in a lower band, and the date is quoted.
 
 ### 6. Sort, gate, and present
 
-Sort each segment by score descending. Then move items out of the ranked lists into these gate lists —
-derived from `status:` plus the repo state, not from prose:
+Sort each segment by band first (`p0` → `p3`), then by the recorded `score=` inside a band. Then move
+items out of the ranked lists into these gate lists — derived from the labels plus the repo state:
 
-- **Blocked / needs a decision** — `status: on-hold <decision>`; name the decision and the consequence of
-  each option
-- **Needs a device** — `status: open (device)`; cannot be validated locally right now (`adb devices`
-  empty, car AVD unusable, a head unit required). Recommend one only if the user can provide the device,
+- **Unranked** — no `prio/*` band: the metadata pass has not scored it. Name it, do not rank it
+- **Blocked / needs a decision** — `status/on-hold`; name the decision and the consequence of each option
+- **Needs a device** — `status/open-device`; cannot be validated locally right now (`adb devices` empty,
+  car AVD unusable, a head unit required). Recommend one only if the user can provide the device,
   otherwise they are verification steps for a later pass
-- **Already covered** — `status: in-flight <change>`: an active change will close it; quote the change
-  name and its task progress
-- **Unverifiable** — `status: unverified`: report the entry and what could not be checked; never rank it
-  as if it had evidence
+- **Already covered** — `status/in-flight`: an active change will close it; quote the change name and its
+  task progress
+- **Unverifiable** — `status/unverified`: report the item and what could not be checked; never rank it as
+  if it had evidence
+- **Retired** — `status/retired`: not work (a tombstone the migration filed); listed only when a citation
+  brought it up
 
-Cap each ranked segment at 5 rows and state the totals ("3 of 17 bug entries shown"). Keep the report
-short enough that the recommendation is unmistakable.
+Cap each ranked segment at 5 rows and state the totals ("3 of 17 bug items shown"). Keep the report short
+enough that the recommendation is unmistakable.
 
 ### 7. Report, then hand off
 
 Use this shape:
 
 ```markdown
-## TODO.md triage — <date> (N sections scanned, M open)
+## Backlog triage — <date> (N open items, M ranked, U unranked)
 
-### 1. Bugs (highest impact first)
-| score | § | category | Title | Evidence | Next action |
+### 1. Bugs (band first, then score)
+| band | # | category | Title | Evidence | Next action |
 |---|---|---|---|---|---|
-| 18 | 63 | car | car path never configures the tile data cache | OSMScoutClient.cpp:1530, AutoServiceModule.kt:107 | configure at the shared open seam; spec delta |
+| p0 | 63 | car | car path never configures the tile data cache | OSMScoutClient.cpp:1530, AutoServiceModule.kt:107 | configure at the shared open seam; spec delta |
 
-Quote the entry's recorded `class:` in the row whenever it disagrees with the segment (a reclassification
-from step 4), and name the `category` so the reader can jump via the header's cluster index.
+Name the recorded `class/*` in the row whenever it disagrees with the segment (a reclassification from
+step 4), and name the `category` so a reader can narrow the next query with
+`tools/issues/list.sh --category <value>`.
 
-**Recommended for this segment:** <§n> — why now (one sentence), scope sketch, verification path
+**Recommended for this segment:** #N — why now (one sentence), scope sketch, verification path
 (unit test / on-device recipe), suggested change name `fix-<slug>`.
 
-### 2. Improvements (highest impact first)
+### 2. Improvements (band first, then score)
 ...
-### 3. New features (highest impact first)
+### 3. New features (band first, then score)
 ...
 
+### Unranked (no band yet)
 ### Blocked / needs a decision
 ### Needs a device
 ### Already covered by an in-flight change
 ### Unverifiable
-### Archive candidates (status fixed-by, change already archived)
+### Closure candidates (status/fixed-by, change already archived)
+### Retired (tombstones, not work)
 
 ### Recommended next change
-<one item> — segment, score, why it beats the runner-up, and the handoff:
+<one item> — segment, band, why it beats the runner-up, and the handoff:
 run `/openspec-propose` with this scope: "<one-sentence scope>"; suggested change name `fix-<slug>`.
 ```
 
 Rules for the recommendation:
 
 - **Exactly one** recommended next change, plus one named runner-up in the same segment.
-- Every claim carries a citation: `TODO.md` §number **and** at least one `file:line` or command output.
+- Every claim carries a citation: the issue number (`#N`, or `§N` when the item predates the migration)
+  **and** at least one `file:line` or command output.
 - Name the verification path — a change whose result cannot be verified (no test seam, no device) is
   recommended with that limitation stated, not hidden.
 - If the top item is a diagnosis rather than a fix, say so and say what it unblocks.
-- Do not restate the whole entry; the entry is the long form, the report is the decision.
+- Do not restate the whole item; the item is the long form, the report is the decision.
 
 ## Pitfalls
 
-1. **Compressed reads lose entries.** `ctx_read` windows and truncated `grep` output silently drop lines
-   of `TODO.md`; a dropped entry is a wrong triage. Read raw ranges, and verify the count
-   (`grep -c '^## ' TODO.md`) against the inventory.
-2. **Stale entries look urgent.** An entry found two changes ago may already be fixed or moved; always
-   re-check the tree in step 3. Conversely, `status: fixed-by <change>` is neither work nor yet a removal:
-   with the change archived it is an archive candidate, with the archive missing it is *already covered*.
-3. **`✗` is not a bug.** In the feature tables `✗` means *missing capability* — the metadata's
-   `class: feature` is the same rule in machine-readable form. Ranking it as a defect inflates the bug
-   segment and buries real deviations.
-4. **Do not double-count.** One root cause can produce several entries (memory growth, host kill,
-   transient buffers); rank the cluster by its highest-severity member and note the siblings, instead
-   of presenting the same work three times.
-5. **Guardrails are not bugs.** `category: specs-and-process` items (the `§40` block) and
-   `ki_processing_failures.log`-derived rules belong in `guidelines/*`/CI/skills; report them as a docs
-   change, not as ranked defects.
-6. **Device-gated items are not "next".** Without a device, recommending them stalls the session;
-   put them in the device list unless the user offers hardware.
-7. **Never edit `TODO.md`, never implement.** Removing or adding entries and repairing
-   id/category/class/status is the `cleanup-todo` skill's job, and it needs explicit approval; creating
-   the change is `/openspec-propose`. This skill only reads and ranks.
-8. **Shell tools, not a blocked allowlist.** Use `jq`, `grep`, `sed`, `awk` (and the metadata lines, not
-   the prose, for the mechanical sets). `python3`/`perl`/`tesseract` are **not** blocked — verified
-   2026-10-03 (3.14.7 / present / 5.5.3); `openspec/config.yaml` still forbids `python3` for OpenSpec
-   interaction. `pgrep -f gradlew` matches its own command line: use `pgrep -af 'gradle-wrapper\.ja[r]'`
-   (the `GradleWrapper[M]ain` pattern can never match — that class lives inside the jar); git/gh output may
-   be German, and that is normal.
+1. **Bodies are the expensive read.** A triage that loads every body is the cost this pipeline removes;
+   select from the labels, and read a body only for a candidate whose basis changed or whose band is
+   missing.
+2. **An unranked item is not a low-priority one.** No band means the metadata pass has not run; ranking it
+   by your own estimate duplicates that pass and hides the fact that it is owed.
+3. **Never write a band.** This skill is read-only; a band written here would be unverifiable and would
+   invalidate the basis the metadata pass recorded.
+4. **Stale items look urgent.** An item found two changes ago may already be fixed or moved; always
+   re-check the tree in step 3. Conversely, `status/fixed-by` is neither work nor yet a closure: with the
+   change archived it is a closure candidate, with the archive missing it is *already covered*.
+5. **`✗` is not a bug.** In the feature tables `✗` means *missing capability* — the `class/feature` label
+   is the same rule in machine-readable form. Ranking it as a defect inflates the bug segment and buries
+   real deviations.
+6. **Do not double-count.** One root cause can produce several items (memory growth, host kill, transient
+   buffers); rank the cluster by its highest-severity member and note the siblings, instead of presenting
+   the same work three times.
+7. **Guardrails are not bugs.** `category/specs-and-process` items and `ki_processing_failures.log`-derived
+   rules belong in `guidelines/*`/CI/skills; report them as a docs change, not as ranked defects.
+8. **Device-gated items are not "next".** Without a device, recommending them stalls the session; put them
+   in the device list unless the user offers hardware.
+9. **Never write anything, never implement.** Repairing a label or closing an item is `cleanup-todo`'s job
+   and needs approval; computing a band is `issue-metadata-loop`'s; creating the change is
+   `/openspec-propose`. This skill only reads and ranks.
+10. **Shell tools, not a blocked allowlist.** Use `jq`, `grep`, `sed`, `awk`. `python3`/`perl` are present
+    but `openspec/config.yaml` forbids `python3` for OpenSpec interaction; `pgrep -f gradlew` matches its
+    own command line, so use `pgrep -af 'gradle-wrapper\.ja[r]'`; git/gh output may be German, and that is
+    normal.
 
 ## Notes
 
-- The three-segment order is the default contract of this skill; if the user asks for a different order
-  or a single flat list, follow the user and say which order was used.
-- `TODO.md` is a working file: entries carried "until the change is archived", stale metadata, an
-  `unverified` entry and a category outside the vocabulary all occur. Report those anomalies; do not fix
-  them here (that is `cleanup-todo`).
-- The recorded `class`, `category` and `status` are the triage's starting point, not its conclusion: they
-  save the re-derivation, and verifying them (step 3) is what makes the ranking trustworthy.
-- The result is deliberately a *proposal*: the ranking is an input to the user's decision, and the
-  next artefact is an OpenSpec change, not a code edit.
+- The three-segment order is the default contract of this skill; if the user asks for a different order or
+  a single flat list, follow the user and say which order was used.
+- The bands are a starting point, not a conclusion: verifying the item (step 3) is what makes the ranking
+  trustworthy, and reporting a wrong label is how the next hygiene pass learns about it.
+- The result is deliberately a *proposal*: the ranking is an input to the user's decision, and the next
+  artefact is an OpenSpec change, not a code edit.

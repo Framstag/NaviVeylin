@@ -40,7 +40,7 @@ which also lists the sections this table does not route.
 | engineering principles, and the checklist before an apply pass | `Design.md` §12, "Appendix A — Quick checklist (apply phase)" |
 | why an earlier decision was reversed | `Design.md` §13, "Appendix B — Provenance" |
 | a rendering regression to re-check, and the parameter table | `MapRendering.md` "Known Pitfalls", "Parameter Overview" |
-| what is open, and what to do next | `TODO.md` — skills `triage-todo` (rank), `cleanup-todo` (prune) |
+| what is open, and what to do next | the issue tracker (`Framstag/NaviVeylin`, operated by `tools/issues/*.sh`) — `tools/issues/list.sh --status open`, plus the two saved searches (open bugs, open improvements); `--id N` resolves one migrated entry. Skills `triage-todo` (rank), `cleanup-todo` (prune), and the four tooling skills `create-issue`, `list-issues`, `update-issue`, `close-issue` |
 | whether `UI.md` is still accurate | `UI.md` "Keeping this document honest" |
 | the feature catalogue or the release notes, or how they are generated | `FeatureList.md` §1 "What the two documents are", §3 "One capability key identifies one requirement", §4 "The classification is the only human judgement, and an unclassified spec stops the run", §6 "The prose gates, not a reviewer's memory", §8 "The version is an input" — those 5 sections are 9 268 of the document's 13 162 chars, ~2.6 k tokens against ~3.7 k for the whole document (measured 2026-10-08) |
 | how the guidelines themselves are organized | `openspec/specs/documentation-ownership/spec.md` |
@@ -154,15 +154,24 @@ What this file keeps, with the rest owned by the specs:
 
 ## Backlog maintenance
 
-`TODO.md` is the live backlog: numbered `## <id>.` sections plus the feature-table groups. Every entry
-carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …` on the line
-under its heading; ids are identity and are never renumbered (commit messages, change tasks and sessions
-quote `§N`). Four skills own the file:
+The tracker is the live backlog: one GitHub issue per item in `Framstag/NaviVeylin`, carrying exactly one
+`class/*`, one `category/*`, one `status/*` and one `source/*` label, and `agent/eligible` only when a human
+authorised automated work. An item filed **before** the migration also carries `§N` in its title and a
+`<!-- nvid: N -->` marker in its body: that is how a `§N` quoted by a guideline, a config rule or an archived
+change still finds its entry after the file it came from was deleted — `tools/issues/list.sh --id N`, or the
+recorded table in the migration's `import-evidence.md` (its change directory while it is open, its archive entry
+afterwards). An item filed **after**
+the migration has no `§N`; its identity is its issue number, and ids are never renumbered. Eight skills own
+the tracker:
 
 | Skill | Job |
 |---|---|
+| `create-issue` | file one finding, fingerprint-deduped, never self-authorising |
+| `list-issues` | select a working set from the labels, without reading bodies; `--id N` for one migrated entry |
+| `update-issue` | repair a label or a status against the closed vocabularies |
+| `close-issue` | the only terminal state — with a reason and its evidence |
 | `triage-todo` | read-only — rank what is open and name the next change |
-| `cleanup-todo` | remove entries already implemented on master / in an archived change / in a merged PR, repair the metadata, optionally cluster |
+| `cleanup-todo` | tracker hygiene: label/status repair, duplicates by fingerprint, `nvid` collisions, evidence before a closure |
 | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
 | `fix-loop` | run the user-budgeted loop that closes defect-shaped items — bugs, and improvements that clear the same bar — triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → next item; strict eligibility (one root cause, one fix, host-decidable), one fresh child per item so the context window survives, and `.pi/skills/fix-loop/scripts/loop-state.sh` as the mechanical item/time cap |
 

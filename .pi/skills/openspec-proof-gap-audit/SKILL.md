@@ -1,6 +1,6 @@
 ---
 name: openspec-proof-gap-audit
-description: Audits NaviVeylin's OpenSpec bugfix changes for proof gaps — compares what the original change did to prove a requirement (its tasks, tests, verification clauses) with what the later bugfix change had to add to make the bug observable, and turns each gap into a new actionable `TODO.md` task plus process recommendations. Use when asked to "audit proof gaps", "why do our changes keep regressing", "which specs are unproven", "compare bugfixes against the original changes", or as a periodic verification-hygiene pass after several `fix-*` changes landed.
+description: Audits NaviVeylin's OpenSpec bugfix changes for proof gaps — compares what the original change did to prove a requirement (its tasks, tests, verification clauses) with what the later bugfix change had to add to make the bug observable, and files each gap as a new actionable issue through `tools/issues/create.sh`, plus process recommendations. Use when asked to "audit proof gaps", "why do our changes keep regressing", "which specs are unproven", "compare bugfixes against the original changes", or as a periodic verification-hygiene pass after several `fix-*` changes landed.
 ---
 
 # Audit proof gaps in OpenSpec bugfix changes
@@ -8,7 +8,7 @@ description: Audits NaviVeylin's OpenSpec bugfix changes for proof gaps — comp
 A bugfix change is a retrospective experiment. Everything it had to add to *demonstrate* the defect —
 a revert-check, a concurrency case, a new test seam, an injected failure, an invalid input — is exactly
 the proof the original change should have shipped and did not. This skill diffs those two task sets,
-classifies the gap, and writes the missing proof obligations back into `TODO.md` as new tasks.
+classifies the gap, and files the missing proof obligations as issues in the tracker.
 
 `openspec-verify-change` asks *"is this change done?"*. This skill asks *"was this change ever provable
 as specified, and what would have proved it?"*
@@ -52,11 +52,11 @@ That is a **spec gap**, not a test gap — recommend a spec-delta task, never a 
 | `openspec/changes/*/` | input — in-flight changes: a gap in one becomes a task addition, not a TODO entry |
 | `openspec/specs/<cap>/spec.md` | input — the merged baseline: which requirements and scenarios existed before the fix |
 | the repo tree (`file:line`) | input — the tests that actually exist now |
-| `TODO.md` | output — one numbered section per gap (appended at top, new highest numbers) |
+| the tracker | output — one issue per gap, filed with `tools/issues/create.sh --json`, fingerprint-deduped |
 | active change `tasks.md` | output **only on explicit request** — proposed task additions for an in-flight change |
 | `guidelines/Build.md`, `.pi/skills/*` | output only when a gap class is systemic (routed like a guardrail) |
 
-This skill writes `TODO.md`. It never edits `openspec/specs/**` or archived change artifacts.
+This skill files issues. It never edits `openspec/specs/**` or archived change artifacts.
 
 ## Procedure
 
@@ -66,7 +66,7 @@ This skill writes `TODO.md`. It never edits `openspec/specs/**` or archived chan
 openspec list --json                                   # in-flight changes
 ls openspec/changes/archive | grep -E '(^|-)(fix|bugfix)-'   # archived bugfix changes
 ls openspec/changes/archive | wc -l
-grep -n 'FIXED by\|fixed by' TODO.md                   # fixes recorded in the backlog
+bash tools/issues/list.sh --status fixed-by           # fixes the backlog already records
 ```
 
 Default scope: the bugfix changes since the last audit (ask the user which; otherwise take the newest
@@ -105,7 +105,7 @@ Extract, with the task number as citation:
   second database, permission failure.
 - **Device recipes** the fix introduced, and which of them actually ran.
 - **Claimed-but-not-run proof** — `BLOCKED`, "by inspection", "verified by grep", "no CMake host build dir
-  exists", "recorded as a finding in TODO.md". These are gaps, not evidence.
+  exists", "recorded as a finding in the backlog". These are gaps, not evidence.
 
 Also read the fix's spec delta: `## MODIFIED Requirements` for a pre-existing `R` → possible spec gap (G8).
 
@@ -117,7 +117,8 @@ The origin is the change that introduced or last modified `R` before the fix:
 # earlier changes touching the same capability
 for d in openspec/changes/archive/*/; do [ -d "$d/specs/<cap>" ] && echo "$d"; done
 git log --oneline -- openspec/specs/<cap>/spec.md     # if the spec was ever tracked
-grep -rn 'Found .* during `\?<origin-change>' TODO.md  # the origin's own leftover findings
+gh issue list --state all --limit 400 --json number,title,body |   # the origin's own leftover findings
+  jq -r '.[] | select(.body | test("<origin-change>")) | "#\(.number) \(.title)"'
 ```
 
 From the origin change collect, with task numbers:
@@ -164,11 +165,19 @@ entries — same routing `process-failure-log` uses for guardrails. State the cl
 
 ### 6. Write the recommendations
 
-**Per gap → one `TODO.md` section** (this is the deliverable). Follow the file's own format exactly:
+**Per gap → one issue** (this is the deliverable), filed through the tool rather than by hand:
+
+```bash
+jq -n '{sourceId: "", title: "<one-line claim> — Proof gap of `<origin-change>` found <date> auditing `<fix-change>` (spec `<cap>`)",
+        class: "improvement", category: "verification", claim: "<one-line claim>",
+        anchor: "<file:line or archived change path>",
+        labels: ["class/improvement", "category/verification", "status/open", "source/agent"],
+        body: "<the three bullets below>"}' | bash tools/issues/create.sh --json
+```
+
+The body carries three bullets, in the tracker's prose:
 
 ```markdown
-## <new-max>. <one-line claim> — Proof gap of `<origin-change>` found <date> auditing `<fix-change>` (spec `<cap>`)
-
 - **Observed** ℹ: <what the origin shipped as proof of `R`, cited by origin task number / test name /
   `file:line`>, and what `<fix-change>` had to add to make the defect observable (fix task number,
   revert-check sentence, new case).
@@ -181,28 +190,24 @@ entries — same routing `process-failure-log` uses for guardrails. State the cl
 
 Rules for writing:
 
-- **Numbering is append-only**: new sections take `max+1, max+2, …` (this file's numbers descend by
-  insertion, newest at top, so insert the new block directly under the `---` after the legend) and
-  **never renumber** an existing section — change artifacts and sessions reference §numbers.
-  ```bash
-  grep -o '^## [0-9]*' TODO.md | awk '{print $2}' | sort -n | tail -3   # current max
-  grep -o '^## [0-9]*' TODO.md | awk '{print $2}' | sort -n | uniq -d   # collisions already present
-  ```
-- **Deduplicate**: if the gap is already tracked (§102-style coverage list, a `✗`/`⏳` entry, an entry
-  marked "removed when the change is archived"), add a cross-reference inside the new entry or skip it —
-  never a second copy.
-- **One gap per section**, one concrete action per `Fix candidate`.
-- **Gap in an in-flight change** → do not write a TODO entry; propose the `tasks.md` addition instead and
-  write it only if the user asks.
+- **An issue's identity is its number**, and `category/verification` is where a proof obligation belongs.
+  A gap filed today carries no `§N`; a `§N` quoted inside a body names the migrated entry the finding came
+  from, and `tools/issues/list.sh --id N` resolves it.
+- **Deduplicate**: if the gap is already tracked (a migrated coverage entry, a closed `fixed-by` item, an
+  item marked "removed when the change is archived"), cross-reference it in the report or skip it — never a
+  second issue. `create.sh` refuses a duplicate by fingerprint (`exit 4`, naming the issue).
+- **One gap per issue**, one concrete action per `Fix candidate`.
+- **Gap in an in-flight change** → no issue; propose the `tasks.md` addition instead and write it only if
+  the user asks.
 - **Spec gap (G8)** → the `Fix candidate` is a spec-delta change for the capability, not a test.
 - **G7** → the fix candidate must name a host-side substitute; if none exists, say the gap is closed only
   by a device pass and state the blocker.
 
 ### 7. Ask once, then write
 
-Show the finished report (scope table, gap diff, class/capability tables, the exact TODO sections) and
-ask one question: write the sections into `TODO.md`, write + also draft the process recommendations, or
-report only. `TODO.md` is the only file modified; edits are insert-only.
+Show the finished report (scope table, gap diff, class/capability tables, the exact issues to file) and ask
+one question: file the issues, file them and also draft the process recommendations, or report only. Filing
+is the only write, and it is insert-only — the tooling has no delete path; an issue is closed, never removed.
 
 ### 8. Report
 
@@ -222,8 +227,8 @@ report only. `TODO.md` is the only file modified; edits are insert-only.
 ### Not proof gaps
 <new-behaviour bugs, data/import defects, harness gaps — with the reason>
 
-### Written to TODO.md
-<new section numbers and titles> · <cross-references added instead of new entries>
+### Filed as issues
+<new issue numbers and titles> · <cross-references reported instead of new issues>
 ```
 
 ## Evidence rules
@@ -251,10 +256,11 @@ report only. `TODO.md` is the only file modified; edits are insert-only.
    the siblings.
 6. **The spec delta is evidence too.** A `## MODIFIED Requirements` block for a pre-existing requirement is
    the fix admitting the old text could not fail — G8, and the recommendation is a spec change.
-7. **`TODO.md` is a working file.** Duplicate section numbers, `FIXED by …` markers and
-   "removed when the change is archived" entries all occur; report anomalies, cross-reference instead of
-   duplicating, and never renumber.
-8. **Never edit `openspec/specs/**` or archived artifacts.** The audit reads them; only `TODO.md` is written.
+7. **The tracker is a working record.** An imported item may be stale, and a citation may name an id whose
+   entry was removed before the migration (`status/retired`); report anomalies, cross-reference instead of
+   duplicating, and never renumber an id — ids are identity.
+8. **Never edit `openspec/specs/**` or archived artifacts.** The audit reads them; the only write is a new
+   issue.
 9. **Repo shell constraints.** `python3`/`perl` are blocked — use `jq`, `grep`, `sed`, `awk`.
    `ctx_read` compression silently drops lines of long files (`tasks.md` here is 15-20 KB): read raw
    ranges for any artifact whose exact sentence is being cited. Git/gh output may be German; that is normal.

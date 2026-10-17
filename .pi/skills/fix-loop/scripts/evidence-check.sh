@@ -7,27 +7,38 @@
 # archive (`.pi/skills/fix-loop/SKILL.md`, "Evidence pointers").
 #
 # Checks (FAIL => exit 1, WARN => exit 0 with a note):
-#   C1 §references   every `§N` in the change's markdown exists as a `## N.` section in TODO.md,
-#                    unless the same line names an archived change ("archived")
+#   C1 §references   every `§N` in the change's markdown resolves against the recorded `§ → issue` table
+#                    (the migration's `import-evidence.md`), unless the same line names an archived change
+#                    ("archived")
 #   C2 test tallies  every `tests="A" … failures="B"` pair quoted in the markdown is carried by a JUnit XML
 #                    under <root>/app/build/test-results (a line saying "not retained" is exempt, by policy)
 #   C3 /tmp pointers a cited `/tmp/...` path without "not retained" on its line is a dangling pointer
 #   C4 mutations     `REVERT-CHECK MUTATION` must not survive anywhere under <root>/app/src
 #   C5 file:line     every cited `path:NN` resolves (by path or by basename) and NN <= the file's line count
 #
-# Usage: evidence-check.sh <change-dir> [--todo TODO.md] [--root .] [--selftest]
+# Usage: evidence-check.sh <change-dir> [--table <file>] [--root .] [--selftest]
 set -euo pipefail
 
-usage() { sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; }
+
+# The recorded `§ → issue` table: the migration wrote it into its change directory, and archiving moved that
+# directory under `openspec/changes/archive/`. Either location is the same record.
+find_table() {
+  local root="$1" candidate
+  for candidate in "$root"/openspec/changes/*/import-evidence.md "$root"/openspec/changes/archive/*/import-evidence.md; do
+    [ -f "$candidate" ] && { printf '%s\n' "$candidate"; return 0; }
+  done
+  return 1
+}
 
 SELFTEST_TMP=""
 trap 'if [ -n "$SELFTEST_TMP" ]; then rm -rf "$SELFTEST_TMP"; fi' EXIT
 
 run_checks() {
-  local change="$1" root="$2" todo="$3"
+  local change="$1" root="$2" table="$3"
   local fails=0 warns=0
   [ -d "$change" ] || { echo "FAIL change dir not found: $change"; return 1; }
-  [ -f "$todo" ] || { echo "FAIL TODO file not found: $todo"; return 1; }
+  [ -f "$table" ] || { echo "FAIL reference table not found: $table"; return 1; }
 
   local mds
   mds=$(find "$change" -name '*.md' -type f | sort)
@@ -44,14 +55,15 @@ run_checks() {
     refs=$(grep -o '§[0-9]\+' <<<"$line" | sort -u || true)
     for n in $refs; do
       n="${n#§}"; total=$((total+1))
-      if grep -qE "^## $n\." "$todo"; then continue; fi
+      # the record is markdown: a row whose first column is exactly this id
+      if grep -qE "^\|[[:space:]]*$n[[:space:]]*\|" "$table"; then continue; fi
       if grep -qi 'archiv' <<<"$line"; then exempt=$((exempt+1)); continue; fi
       if [ "$mode" = "archived" ]; then
         exempt=$((exempt+1))
         echo "DRIFT C1 archived artifact cites §$n, which the backlog no longer carries (history, not a defect)"
         continue
       fi
-      echo "FAIL C1 dangling §$n in $change (no '## $n.' in $todo; the line names no archived change)"
+      echo "FAIL C1 dangling §$n in $change (no row for §$n in $table; the line names no archived change)"
       missing=$((missing+1))
     done
   done < <(grep -n '' $mds)
@@ -151,7 +163,8 @@ selftest() {
   printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/app/src/main/kotlin/Foo.kt"
   printf '<?xml version="1.0"?>\n<testsuite name="x" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-01-01T00:00:00Z"></testsuite>\n' \
     > "$tmp/root/app/build/test-results/TEST-x.xml"
-  printf '# t\n\n## 12. a section\n**id:** 12 · **category:** ui · **class:** bug · **status:** open\n' > "$tmp/root/TODO.md"
+  # the recorded table the migration wrote: §12 resolves, §999 does not
+  printf '| § | issue |\n|---|---|\n| 12 | #7 |\n' > "$tmp/table.md"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 # Why
@@ -161,50 +174,50 @@ selftest() {
 MD
 
   local out
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/root/TODO.md"); local code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); local code=$?; set -e
   ok 0 "$code" "green fixture passes"
   case "$out" in *"evidence-check: PASS"*) echo "ok   green fixture verdict";; *) echo "FAIL green verdict: $out"; fail=1;; esac
   case "$out" in *"C2 test tallies: 1 pairs confirmed"*) echo "ok   tally confirmed against the XML";; *) echo "FAIL tally count: $out"; fail=1;; esac
 
   # C3 is report-only by design, so the strict half of this pair is C2: a number with no artifact fails there
   printf -- '- old evidence lived in /tmp/loop-1.log\n- Evidence: XML tests="999" failures="0"\n' > "$tmp/change/proposal.md"
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/root/TODO.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
   ok 1 "$code" "C2 red on an unbacked tally"
   case "$out" in *"DRIFT C3 /tmp path cited"*) echo "ok   C3 reports the /tmp pointer without failing";; *) echo "FAIL C3 drift line missing"; fail=1;; esac
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Related: §999 does not exist
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/root/TODO.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
   ok 1 "$code" "C1 red on a dangling §"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Related: §999 but the change is archived as fix-thing
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/root/TODO.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
   ok 0 "$code" "C1 exempts an archived pointer"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Files: `app/src/main/kotlin/Foo.kt:99`
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/root/TODO.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
   ok 1 "$code" "C5 red on a line past EOF"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Files: `Foo.kt:9`
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/root/TODO.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
   ok 0 "$code" "C5 resolves a basename-only citation"
 
   printf '// REVERT-CHECK MUTATION (task 1)\n' >> "$tmp/root/app/src/main/kotlin/Foo.kt"
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/root/TODO.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
   ok 1 "$code" "C4 red on a leftover mutation"
 
   printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/app/src/main/kotlin/Foo.kt"
   cat > "$tmp/change/proposal.md" <<'MD'
 - Evidence: XML tests="7" failures="0" — the red copy is not retained (overwritten by the gate run)
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/root/TODO.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
   ok 0 "$code" "a row labelled not retained is exempt by policy"
 
   [ "$fail" = 0 ] && echo "evidence-selftest: PASS" || { echo "evidence-selftest: FAIL"; return 1; }
@@ -212,19 +225,19 @@ MD
 
 main() {
   if [ "${1:-}" = "--selftest" ]; then selftest; return; fi
-  local change="" root="." todo=""
+  local change="" root="." table=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --root) root="${2:?}"; shift 2;;
-      --todo) todo="${2:?}"; shift 2;;
+      --table) table="${2:?}"; shift 2;;
       -h|--help) usage; return 0;;
       --*) echo "evidence-check: unknown flag $1" >&2; exit 2;;
       *) change="$1"; shift;;
     esac
   done
   [ -n "$change" ] || { usage; exit 2; }
-  [ -n "$todo" ] || todo="$root/TODO.md"
-  run_checks "$change" "$root" "$todo"
+  [ -n "$table" ] || table=$(find_table "$root") || table="$root/openspec/changes/import-evidence.md"
+  run_checks "$change" "$root" "$table"
 }
 
 main "$@"

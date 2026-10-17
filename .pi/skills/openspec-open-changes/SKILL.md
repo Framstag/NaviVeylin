@@ -31,7 +31,7 @@ Derived from the change's own artifacts (`*.md` in the change dir, plus the chan
 
 ### Test advice (column 4)
 
-- Kind priority: `on-device` (on-device/emulator/head unit/DHU/GPX/logcat/manual/regression check) → `unit test` → `docs` (openspec status, finalize, TODO.md, README, guidelines) → `build` (build/gradle/assemble/compile/ABI) → `code`.
+- Kind priority: `on-device` (on-device/emulator/head unit/DHU/GPX/logcat/manual/regression check) → `unit test` → `docs` (openspec status, finalize, README, guidelines, the tracker's own text) → `build` (build/gradle/assemble/compile/ABI) → `code`.
 - The clause is capped at `TASK_ADVICE_MAX` chars — it is a hint for the session, not a replacement for the task text in column 3.
 
 ## Usage

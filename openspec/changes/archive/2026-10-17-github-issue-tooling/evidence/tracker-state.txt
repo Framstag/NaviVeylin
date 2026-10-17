@@ -1,0 +1,64 @@
+# The tracker's state
+# run: 2026-10-17T08:14:54Z
+
+## Issues, open and closed
+[]
+
+## Labels
+count: 45
+  bug	Something isn't working	#d73a4a
+  documentation	Improvements or additions to documentation	#0075ca
+  duplicate	This issue or pull request already exists	#cfd3d7
+  enhancement	New feature or request	#a2eeef
+  good first issue	Good for newcomers	#7057ff
+  help wanted	Extra attention is needed	#008672
+  invalid	This doesn't seem right	#e4e669
+  question	Further information is requested	#d876e3
+  wontfix	This will not be worked on	#ffffff
+  agent/eligible	agent — from the project profile	#8bdd84
+  agent/in-progress	agent — from the project profile	#c77e4a
+  agent/needs-decision	agent — from the project profile	#afecb2
+  agent/needs-device	agent — from the project profile	#fba994
+  category/build-and-harness	category — from the project profile	#07af22
+  category/car	category — from the project profile	#764bbd
+  category/data-and-maps	category — from the project profile	#570728
+  category/favorites	category — from the project profile	#430f6f
+  category/location	category — from the project profile	#b0a3c7
+  category/map-rendering	category — from the project profile	#6faebe
+  category/native-jni	category — from the project profile	#efc491
+  category/persistence	category — from the project profile	#40aac5
+  category/route-and-navigation	category — from the project profile	#dd4fc9
+  category/search	category — from the project profile	#da1258
+  category/specs-and-process	category — from the project profile	#44645a
+  category/stylesheets	category — from the project profile	#f791b0
+  category/ui	category — from the project profile	#56e2de
+  category/verification	category — from the project profile	#a51eac
+  class/bug	class — from the project profile	#96e7bb
+  class/feature	class — from the project profile	#0d92cb
+  class/improvement	class — from the project profile	#752509
+  prio/p0	prio — from the project profile	#4df4bf
+  prio/p1	prio — from the project profile	#543563
+  prio/p2	prio — from the project profile	#bf6ab0
+  prio/p3	prio — from the project profile	#a6ab6c
+  source/agent	source — from the project profile	#71e4bb
+  source/ci	source — from the project profile	#434e25
+  source/human	source — from the project profile	#1ebefc
+  source/todo-import	source — from the project profile	#4c0d2f
+  status/fixed-by	status — from the project profile	#36a8a2
+  status/in-flight	status — from the project profile	#a3c15f
+  status/on-hold	status — from the project profile	#e609e5
+  status/open	status — from the project profile	#a365d9
+  status/open-device	status — from the project profile	#e77276
+  status/retired	status — from the project profile	#4f7184
+  status/unverified	status — from the project profile	#40557b
+
+## The dry run created nothing
+  issues:        0 (the JSON above is an empty array)
+  comments:      0 (no issue exists to carry one)
+  labels by this run: 0 — every write path goes through the stub, and the dry run calls none of them
+
+## Recorded honestly: the 36 taxonomy labels already existed when this run started
+  They were created on 2026-10-17 by this session's own probe script, which ran
+  tools/issues/labels.sh --apply without the stub gh on PATH and so reached the real repository.
+  The plan (tasks.md 5.5) expected only GitHub's 9 default labels; the operator decided to keep the
+  labels and to qualify that expectation here rather than delete them. The run above changed nothing.

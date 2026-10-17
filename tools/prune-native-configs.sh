@@ -70,7 +70,7 @@ busy() {
     [ "${NAVIVEYLIN_PRUNE_ASSUME_BUSY:-0}" = "1" ] && return 0
     [ "$force" -eq 1 ] && return 1
     # The documented check in guidelines/Build.md §2 (`pgrep -f 'GradleWrapper[M]ain'`) cannot match the
-    # wrapper — the main class lives inside the jar (TODO.md §125) — so match the jar on the command line.
+    # wrapper — the main class lives inside the jar (TODO.md §134) — so match the jar on the command line.
     pgrep -f 'gradle-wrapper\.ja[r]' >/dev/null && return 0
     return 1
 }

@@ -1,0 +1,65 @@
+revert checks — /home/tim/projects/NaviVeylin
+started: 2026-10-17T08:10:03Z
+
+7.1 — Policy#gateMatrix
+  mutation: remove the allowlisted author from the profile
+  with the mutation: FAIL Policy#gateMatrix: an allowlisted author's eligible issue is allowed
+  restored:          PASS Policy#gateMatrix
+
+7.1b — policy#preflightRefusesUnknownLogin
+  mutation: the same mutation, seen through the preflight command
+  with the mutation: FAIL policy#preflightRefusesUnknownLogin
+  restored:          PASS policy#preflightRefusesUnknownLogin
+
+7.2 — Fingerprint#separatesDistinctEntries
+  mutation: drop the anchor term from the canonical string
+  with the mutation: FAIL Fingerprint#separatesDistinctEntries: the anchor separates two otherwise identical findings
+  restored:          PASS Fingerprint#separatesDistinctEntries
+
+7.3 — Taxonomy#unknownValueRefuses
+  mutation: add an undeclared value to the category vocabulary
+  with the mutation: FAIL Taxonomy#unknownValueRefuses: an unknown category was mapped instead of refused
+  restored:          PASS Taxonomy#unknownValueRefuses
+
+7.3b — update#refusesUnknownLabel
+  mutation: the same mutation, seen through the update path
+  with the mutation: FAIL update#refusesUnknownLabel
+  restored:          PASS update#refusesUnknownLabel
+
+7.4 — WorkPackage#bodyCannotBreakOutOfTheDataBlock
+  mutation: remove the delimiter escaping
+  with the mutation: FAIL WorkPackage#bodyCannotBreakOutOfTheDataBlock: exactly one opening delimiter: expected 1, got 2
+  restored:          PASS WorkPackage#bodyCannotBreakOutOfTheDataBlock
+
+7.5 — WorkPackage#oversizedBodyRefuses
+  mutation: raise the body bound past the fixture
+  with the mutation: FAIL WorkPackage#oversizedBodyRefuses: the committed bound must be below the fixture's 1 MiB body, was 8388608
+  restored:          PASS WorkPackage#oversizedBodyRefuses
+
+7.6 — lib#noProjectValueInTheEngine
+  mutation: name a profile value in the engine
+  with the mutation: FAIL lib#noProjectValueInTheEngine
+  restored:          PASS lib#noProjectValueInTheEngine
+
+7.6b — lib#discoversTheCurrentProject
+  mutation: resolve the profile beside the engine instead of the project
+  with the mutation: FAIL lib#discoversTheCurrentProject
+  restored:          PASS lib#discoversTheCurrentProject
+
+7.7 — import#secondRunIsANoOp
+  mutation: make the reconciler ignore the existing source id
+  with the mutation: FAIL import#secondRunIsANoOp
+  restored:          PASS import#secondRunIsANoOp
+
+7.8 — surface#reservedLabelRefusesInEveryWritePath
+  mutation: drop the reserved label from the profile
+  with the mutation: FAIL surface#reservedLabelRefusesInEveryWritePath
+  restored:          PASS surface#reservedLabelRefusesInEveryWritePath
+
+7.8b — surface#reservationIsNotBypassedByTheOtherLabelFlags
+  mutation: the same mutation, through the other label routes
+  with the mutation: FAIL surface#reservationIsNotBypassedByTheOtherLabelFlags
+  restored:          PASS surface#reservationIsNotBypassedByTheOtherLabelFlags
+
+revert checks: every mutation falsified its case and every restore left the suite green
+finished: 2026-10-17T08:11:19Z

@@ -119,7 +119,7 @@ class RouteStepValuesTest {
     fun `the measured defect's own pair counts as a divergence`() {
         // The numbers the change removed, measured on device 2026-10-05 (Dortmund Hbf -> Cologne Hbf):
         // the route total reported 72 771 m while the legs summed to 97 416 m. The tightened bound must
-        // catch exactly this, which the 50 % band it replaces did not have to (TODO.md 129/139).
+        // catch exactly this, which the 50 % band it replaces did not have to (TODO.md §129/§139).
         val legs = listOf(
             RouteStepDisplay("Start", 0.0, 0.0),
             RouteStepDisplay("Leg", 97_416.0, 4_100.0)

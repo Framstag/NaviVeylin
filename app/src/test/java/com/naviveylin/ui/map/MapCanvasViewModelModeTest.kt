@@ -217,7 +217,7 @@ class MapCanvasViewModelModeTest {
      * session adapter to the same surface, so navigation start forces follow on through the object
      * that will restore it afterwards; the pre-navigation snapshot must not observe that forced
      * value — the device measured `mode restored follow=true` after a browse-before navigation
-     * (`TODO.md` §140).
+     * (`TODO.md` §165).
      */
     @Test
     fun cardStopRestoresBrowseMode() = runTest(mainDispatcherRule.dispatcher) {

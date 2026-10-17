@@ -33,9 +33,10 @@ Four facts shape verification in a worktree:
 - `openspec/changes/*/` is **gitignored** (only `archive/` is versioned), so the worktree sees **no** in-flight
   changes. Verify an `in-flight` claim against the **main tree's** `openspec list --json`. Archiving is what
   makes a change's artifacts versioned on the loop branch.
-- The worktree's `TODO.md` is the branch's copy. When the main tree has another change's WIP in the same file,
-  **allocate new §ids from the max over both trees** (measured: main's WIP owned §155–§164 while the loop filed
-  §154–§158, so `cleanup-todo` had to renumber the loop's five to §165–§169).
+- The tracker is not in the worktree: issues live in the repository, and every write goes through
+  `tools/issues/*.sh` against the **one** repository, so two trees cannot allocate the same identity — the
+  §id collision that `cleanup-todo` had to renumber five entries for (measured: §154–§158 against
+  §155–§164) is gone, because a filed issue's number is the tracker's.
 - The loop owns the branch; the orchestrator owns the skill in the **repo** copy. Edit the repo copy, copy it
   into the worktree (step 4), and commit it with the next iteration commit — otherwise the branch's children
   read stale rules.
@@ -75,7 +76,7 @@ Each line names the section of `SKILL.md` that owns the rule; none of them is a 
 3. **Asking the user inside the loop** — only the run-start budget is a prompt (Start, Phase B).
 4. **The orchestrator reading artifacts** — context exhaustion is the failure mode this design removes
    (Roles).
-5. **Two writers in one tree**, including the orchestrator's own `TODO.md` bookkeeping during a child's run
+5. **Two writers in one tree**, including the orchestrator's own issue bookkeeping during a child's run
    (invariant 2).
 6. **Archiving on the writer's word** — the review child is read-only and independent on purpose (Phase E).
 7. **Exceeding the budget because "one more"** — `loop-state.sh next` is the authority (invariant 3).

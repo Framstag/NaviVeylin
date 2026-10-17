@@ -2,8 +2,8 @@ package com.naviveylin.core
 
 /**
  * Recognises a diagnostics line that carries a device position, so the retention pass can remove it
- * (spec: auto-diagnostics — Coordinate-carrying entries do not survive the retention pass; `TODO.md`
- * §88). The rule exists because the coordinate-free rule for *new* writes (the `checkNoCoordinatesInLogs`
+ * (spec: auto-diagnostics — Coordinate-carrying entries do not survive the retention pass; `TODO.md` §88).
+ * The rule exists because the coordinate-free rule for *new* writes (the `checkNoCoordinatesInLogs`
  * build gate) cannot reach what an earlier build already wrote: those entries stay in the file for the
  * whole 7-day window, which is the window the exported log and its disclosure call coordinate-free.
  *

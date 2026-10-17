@@ -142,7 +142,7 @@ internal fun phoneCardHeightDp(anchor: RouteOverlayAnchor, screenHeightDp: Float
  * Ending the session removes its surface; "Grace expiry closes an open surface", "No surface
  * survives the session"). The session can end without the user asking for it — its grace expiring
  * is the one path that does — so the host has to be told; otherwise the card stays on screen with
- * no session behind it (measured on the device, `TODO.md` §140).
+ * no session behind it (measured on the device, `TODO.md` §165).
  */
 internal fun sessionEndClosesTheSurface(session: RouteSessionState, panelShown: Boolean): Boolean =
     session == RouteSessionState.INACTIVE && panelShown

@@ -76,8 +76,8 @@ catalogue needs no "is it released yet" filter. An in-flight change contributes 
 Cases: `keys: an in-flight change contributes no key`.
 
 Consequence for a change author: **archiving a capability is what publishes it.** A capability spec left in a
-change directory is invisible to the catalogue, and `TODO.md`'s unimplemented feature rows are not published at
-all.
+change directory is invisible to the catalogue, and an unimplemented feature entry is not published at all — nor
+is an issue of the tracker, which is not an input to the catalogue.
 
 ## 3. One capability key identifies one requirement
 

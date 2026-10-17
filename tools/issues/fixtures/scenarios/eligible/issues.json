@@ -1,0 +1,15 @@
+[
+  {
+    "number": 21,
+    "title": "§21 An eligible issue, filed by the allowlisted author",
+    "body": "<!-- nvid: 21 -->\n\n- **Observed** ✗: the surface shows nothing.\n- **Evidence** ⟹: logcat line at the frame.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

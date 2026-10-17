@@ -31,7 +31,7 @@ import org.robolectric.Shadows.shadowOf
  * Compose tests for the session's stopped state (spec: `route-planning-session` — Grace period
  * after navigation is stopped): while the grace runs the surface offers Restart and End instead of
  * the planning actions, in the phone card's action band. The device measured the state being
- * reached with no surface of its own — the card kept showing the planning content (`TODO.md` §140).
+ * reached with no surface of its own — the card kept showing the planning content (`TODO.md` §165).
  */
 @RunWith(RobolectricTestRunner::class)
 class RoutePanelStoppedStateTest {

@@ -1,12 +1,12 @@
 ---
 name: process-failure-log
-description: Processes NaviVeylin's `ki_processing_failures.log` — extracts every failed approach into an actionable guardrail (guideline / skill / AGENTS.md / CI / build-file item) appended to the guardrail section of `TODO.md`, then clears the processed entries from the log. Use when asked to "process the failure log", "turn the failure log into actions/guardrails", "clean up ki_processing_failures.log", or as a periodic hygiene pass after several changes shipped.
+description: Processes NaviVeylin's `ki_processing_failures.log` — extracts every failed approach into an actionable guardrail (guideline / skill / AGENTS.md / CI / build-file item), filed as one issue through `tools/issues/create.sh` (fingerprint-deduped), then clears the processed entries from the log. Use when asked to "process the failure log", "turn the failure log into actions/guardrails", "clean up ki_processing_failures.log", or as a periodic hygiene pass after several changes shipped.
 ---
 
 # Process the KI failure log
 
 Turns `ki_processing_failures.log` (raw incident notes, gitignored) into durable guardrails:
-the log holds *what went wrong*, `TODO.md` §40 holds *what prevents it*.
+the log holds *what went wrong*; the guardrail issues of the tracker hold *what prevents it*.
 
 ## When to use
 
@@ -22,7 +22,7 @@ changes the same way this skill harvests unproven approaches from the log.
 | Path | Role |
 |---|---|
 | `ki_processing_failures.log` | input — one entry per failure; cleared at the end |
-| `TODO.md` | output — guardrail section (currently `## 40. Guardrails extracted from …`), appended, never rewritten wholesale |
+| the tracker | output — one issue per extracted action, filed with `tools/issues/create.sh --json`; an existing finding is refused by fingerprint (`exit 4`, naming the issue) rather than duplicated |
 | `guidelines/Build.md`, `guidelines/Design.md`, `guidelines/MapRendering.md`, `guidelines/UI.md`, `AGENTS.md`, `.pi/skills/*` | the artifacts the extracted actions *name* as their home (this skill records the target, it does not edit them unless the user asks) |
 
 ## Procedure
@@ -59,9 +59,11 @@ Rules:
 
 - **An action, not a story.** "Never install an ABI-filtered APK — verify with `unzip -l … | grep <abi>`",
   not "once we installed the wrong APK and it crashed".
-- **Deduplicate against what already exists.** If `TODO.md` already tracks the defect (§17 test-results
-  masking, §33 `:auto` heap, §38 stylesheet crash, §15 Kover/Robolectric, …), add a *cross-reference*,
-  not a second copy.
+- **Deduplicate against what already exists.** The dedup is the tool's, not a habit: `create.sh` compares
+  the finding's fingerprint against the live tracker and refuses with `exit 4`, naming the issue that
+  already carries it. An action the tracker already holds gets a *cross-reference in the report*, never a
+  second issue; `tools/issues/list.sh --class bug --category build-and-harness` (and the neighbouring
+  filters) is how you look before you file.
 - **Verify every claim about the current tree** before writing it down (see step 3), so the guardrail
   states the tree as it is, not as the log remembered it.
 
@@ -72,29 +74,40 @@ Two verifications, both required:
 - **"already implemented"** — never delete an entry (or write a guardrail that says "is now handled")
   on the strength of the entry's own `✅`/`Fixed:` sentence. Check the tree: `grep -n` the function,
   read the file, confirm the build file sets the property. Cite `file:line` in the report.
-- **Existing numbering / references** — before renumbering or deleting a `TODO.md` section:
+- **Ids and citations** — an id is identity and is never renumbered; a guardrail that quotes one must
+  quote an id that resolves:
 
   ```bash
-  grep -n '^## ' TODO.md                        # inventory + duplicate numbers
-  grep -rn 'TODO\.md.*§[0-9]*\|§[0-9]*.*TODO' openspec guidelines *.md | grep -v '^TODO.md'
+  tools/issues/list.sh --id 29                     # does this migrated entry exist?
+  bash tools/check-todo-references.sh              # does every live citation still resolve?
   ```
 
-  Keep the number that external artifacts reference (e.g. `aa-entry-zoom-animation` references
-  `TODO.md` §29/§33); renumber only the later duplicate of a collision, and report any reference that
-  a deletion leaves dangling.
+  A guardrail filed *now* carries no `§N` — its identity is its issue number, and its labels are its
+  facts. Report any citation the check flags rather than editing it yourself: a citation is provenance
+  for somebody else's rule.
 
-### 4. Append to the guardrail section of `TODO.md`
+### 4. File the extracted guardrails as issues
 
-- Add one dated section (new highest number) with a one-paragraph preamble: date, that the processed
-  entries were removed, the meaning of the **[open]** marker, and that items cross-referencing an
-  existing section are already tracked there.
-- Keep stable group headings (A. Harness/shell/Gradle, B. Editing, C. Kotlin/Compose, D. Test/verification,
-  E. On-device/emulator, F. Native/libosmscout, G. Design/scope).
-- **Append-only numbering**: continue the existing item numbers, never renumber existing items —
-  the section is referenced from sessions and change artifacts.
-- Mark `**[open]**` when the named artifact does not carry the rule yet; drop the marker when the item
-  is only a cross-reference to an existing section.
-- One action per item, imperative, with the concrete command/API/value where one exists.
+- One issue per action, through the tool rather than by hand, so the dedup and the label vocabulary are
+  the tool's job and not yours:
+
+  ```bash
+  jq -n '{sourceId: "", title: "…", class: "improvement", category: "build-and-harness",
+          claim: "…", anchor: "guidelines/Build.md:§…",
+          labels: ["class/improvement", "category/build-and-harness", "status/open", "source/agent"],
+          body: "…"}' | bash tools/issues/create.sh --json
+  ```
+
+- `class` and `category` come from step 2's classification, which is the same mapping the migration
+  used: the action's kind is `class/improvement` (or `class/bug` when the log records a defect the tree
+  still has), and its home is the category that owns the artifact it names — `build-and-harness`,
+  `specs-and-process`, `ui`, `map-rendering`, `native-jni`.
+- `source/agent` is the provenance: the action came from the log, not from a person.
+- One action per issue, imperative, with the concrete command/API/value where one exists; the body names
+  the artifact that must carry the rule and the log entry it came from.
+- **Never file `agent/eligible`.** It is the reserved authorisation label: filing an issue records a
+  finding, and only a human authorises the loop to act on it.
+- An action that is only a cross-reference to something the tracker already holds is reported, not filed.
 
 ### 5. Clear the log
 
@@ -106,19 +119,22 @@ must not survive in both places:
 
 Failed solution approaches and problems, with timestamps, to avoid repeating them.
 
-<date>: every entry up to this date was processed — the actions derived from them now live in
-`TODO.md` §<n> and the entries were removed from this file. Add new entries below; keep the format
+<date>: every entry up to this date was processed — the actions derived from them now live as
+issues in the tracker (`bash tools/issues/list.sh --status open`) and the entries were removed from this
+file. Add new entries below; keep the format
 `<timestamp> — <change>: <problem> → <cause> → <fix> → Lesson:` so the next processing pass can
 extract an action from each one.
 ```
 
 ### 6. Report
 
-- entry count processed, guardrail items added, groups touched
-- items verified as *already implemented* (with `file:line`) that were deleted from `TODO.md`, and why
+- entry count processed, issues created (with their numbers), categories touched
+- items verified as *already implemented* (with `file:line`) that were closed and removed from the
+  backlog, and why
 - items kept because still open, with the check that says so
-- cross-references used instead of new items
-- dangling references created by a deletion (report; the user decides)
+- cross-references used instead of new issues, naming the issue that already carries each one
+- a `§N` the check flags as unresolvable (report; the user decides)
+- the dedup refusals (`exit 4`) the run hit, with the issue each one named
 - which `[open]` items are pure text additions to `guidelines/*` or `AGENTS.md` and can be written next
 
 ## Environment constraints (do not re-learn these)
@@ -129,6 +145,6 @@ extract an action from each one.
   any file whose *complete* sentence matters.
 - Multi-edit is atomic: one ambiguous `oldText` rejects the whole call and nothing is applied.
   Copy anchors from a read, keep insertion blocks whole, and re-read the changed regions afterwards.
-- `TODO.md` is a working file, not a spec: it may carry duplicate section numbers and stale entries.
-  Fixing numbering and deleting verified-resolved entries is in scope; rewriting prose or dropping
-  open items is not.
+- The tracker is the record of the backlog, not a spec: an imported item may carry text the tree has
+  moved past, and its `§N` names the entry it came from. Repairing a label or a status, and closing an
+  item with evidence, are in scope; rewriting an item's prose or dropping open work is not.

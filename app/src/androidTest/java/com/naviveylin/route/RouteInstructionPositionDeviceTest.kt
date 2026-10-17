@@ -246,7 +246,7 @@ class RouteInstructionPositionDeviceTest {
             //
             // Measured on device 2026-10-05 (Dortmund Hbf -> Cologne Hbf, ~70 km) BEFORE the fix: the
             // legs summed to 97 416 m while `route.distance` reported 72 771 m, from the router's
-            // separately accumulated distance - a 25 % gap whose native half is filed as TODO.md 139
+            // separately accumulated distance - a 25 % gap whose native half is filed as TODO.md §139
             // (§129 is the user-visible half). After it, the two are the same number: this case
             // therefore asserts agreement within rounding, not an order of magnitude.
             val sumMeters = distances.sum()
@@ -266,7 +266,7 @@ class RouteInstructionPositionDeviceTest {
             )
             assertTrue("the route must report a distance", totalMeters > 1000.0)
             val ratio = sumMeters / totalMeters
-            // Tightened by `fix-route-length-disagreement` (TODO.md 129/139): the bound was 0.5, loose
+            // Tightened by `fix-route-length-disagreement` (TODO.md §129/§139): the bound was 0.5, loose
             // enough to accept the very defect the change removed (the router's figure sat at 0.748).
             // The route's total and its legs are the same figure now, so agreement is asserted within the
             // rounding of the per-step values - the measured pairs were exactly equal on all three routes.
@@ -317,8 +317,8 @@ class RouteInstructionPositionDeviceTest {
      * (`RouteEntry.distance`) and the description's own total (the sum of the per-step legs) - and
      * the third is independent of both: the length of the polyline the bridge published
      * (`latitudes`/`longitudes`) as great-circle distances between consecutive vertices. Whichever
-     * native figure the polyline matches is the route's length as the driver drives it (`TODO.md`
-     * 129 decides which of the two becomes the contract).
+     * native figure the polyline matches is the route's length as the driver drives it (`TODO.md` §129
+     * decides which of the two becomes the contract).
      *
      * Numbers and route names only, no coordinates (spec: `auto-diagnostics`). Read it with
      * `adb logcat -s RouteDeviceTest`.
@@ -367,7 +367,7 @@ class RouteInstructionPositionDeviceTest {
                 // description's own total where the route carries one, and the polyline otherwise -
                 // never the router's start/target air-line estimate, which measured 0.748 / 0.795 /
                 // 0.552 of the polyline on this dataset (spec: osmscout-jni - The published route
-                // length is a length of that route; TODO.md 139).
+                // length is a length of that route; TODO.md §139).
                 val publishedOverPolyline = total / polylineMeters
                 val descriptionOverPolyline = legsSum / polylineMeters
                 assertTrue(

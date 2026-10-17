@@ -1000,7 +1000,7 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   `winter-sports`, `cycle` — the cycle style's own semi-transparent
   single-color rule was removed), so switching map style keeps the route
   colors. `public-transport` has no route rule at all and draws no route
-  (pre-existing, tracked in `TODO.md`).
+  (pre-existing, tracked as a backlog entry in the tracker).
   - light presentation: translucent violet fill `#ba68c8` at 85 % alpha over an
     **opaque**, wider, magenta-leaning violet casing `#6a1b9a` (composited
     centre `#ae5dc1`). No daylight road class is violet, and the casing keeps

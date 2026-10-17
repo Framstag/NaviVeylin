@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# Stub `gh` for the issue tooling's offline self-test.
+#
+# It answers exactly the invocations `tools/issues/*.sh` make, from fixture files, so the whole toolchain
+# runs with no token and no network (guidelines/Build.md §1; design D9). Anything else — and every write
+# unless recording is switched on — exits non-zero with a visible message, so a call the fixtures do not
+# describe is seen rather than silently passing.
+#
+# Reads (always answered):
+#   gh api user --jq .login                       -> $GH_STUB_DIR/login.txt
+#   gh repo view --json nameWithOwner [--jq …]    -> $GH_STUB_DIR/repo.txt
+#   gh label list --json …                        -> $GH_STUB_DIR/labels.json
+#   gh issue list [--state …] --json …            -> $GH_STUB_DIR/issues.json
+#   gh issue view <n> --json …                    -> issue <n> of $GH_STUB_DIR/issues.json
+#
+# Writes (refused unless GH_STUB_RECORD is set):
+#   gh issue create|edit|close|comment …, gh label create|edit|delete …
+#   with GH_STUB_RECORD=<file> the invocation is appended to <file> as one shell-quoted `gh …` line and a
+#   plausible result is printed instead of the call being made.
+#
+# Env: GH_STUB_DIR (fixture directory, default: this file's directory), GH_STUB_RECORD (write log).
+set -uo pipefail
+
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+stub="${GH_STUB_DIR:-$here}"
+
+refuse() {
+  printf 'stub gh: unsupported invocation: gh %s\n' "$*" >&2
+  printf 'stub gh: fixtures are in %s — add the invocation there or change the tool\n' "$stub" >&2
+  exit 1
+}
+
+need_file() {
+  local path
+  path=$(fixture_path "$1")
+  [ -f "$path" ] || { printf 'stub gh: missing fixture %s\n' "$path" >&2; exit 1; }
+}
+
+# A scenario directory may carry only the fixtures it changes; anything it does not carry falls back to the
+# base fixture directory next to this script.
+fixture_path() {
+  if [ -f "$stub/$1" ]; then printf '%s\n' "$stub/$1"; else printf '%s\n' "$here/$1"; fi
+}
+
+record_write() {
+  [ -n "${GH_STUB_RECORD:-}" ] || {
+    printf 'stub gh: refusing the write `gh %s` — set GH_STUB_RECORD=<file> to record it\n' "$*" >&2
+    exit 1
+  }
+  {
+    printf 'gh'
+    for a in "$@"; do printf ' %q' "$a"; done
+    printf '\n'
+  } >> "$GH_STUB_RECORD"
+}
+
+[ $# -gt 0 ] || refuse "(no arguments)"
+
+group="$1"; shift
+
+case "$group" in
+  api)
+    [ "${1:-}" = "user" ] || refuse "api $*"
+    shift
+    jq_filter=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --jq) jq_filter="${2:-}"; shift 2 ;;
+        *) refuse "api user $*" ;;
+      esac
+    done
+    need_file login.txt
+    login_path=$(fixture_path login.txt)
+    if [ -n "$jq_filter" ]; then
+      jq -nr --rawfile v "$login_path" '{"login": ($v | sub("\n$"; ""))} | '"$jq_filter"
+    else
+      tr -d '\n' < "$login_path"; echo
+    fi
+    ;;
+
+  repo)
+    [ "${1:-}" = "view" ] || refuse "repo $*"
+    shift
+    jq_filter=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --json|--jq) if [ "$1" = "--jq" ]; then jq_filter="${2:-}"; fi; shift 2 ;;
+        *) refuse "repo view $*" ;;
+      esac
+    done
+    need_file repo.txt
+    repo_path=$(fixture_path repo.txt)
+    if [ -n "$jq_filter" ]; then
+      jq -nr --rawfile v "$repo_path" '{"nameWithOwner": ($v | sub("\n$"; ""))} | '"$jq_filter"
+    else
+      jq -nc --rawfile v "$repo_path" '{nameWithOwner: ($v | sub("\n$"; ""))}'
+    fi
+    ;;
+
+  label)
+    case "${1:-}" in
+      list)
+        shift
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --json|--limit) [ "$1" = "--json" ] || true; shift 2 ;;
+            *) refuse "label list $*" ;;
+          esac
+        done
+        need_file labels.json
+        cat "$(fixture_path labels.json)"
+        ;;
+      create|edit|delete)
+        action="$1"; shift
+        record_write label "$action" "$@"
+        printf 'stub gh: recorded `gh label %s %s`\n' "$action" "${1:-}"
+        ;;
+      *) refuse "label $*" ;;
+    esac
+    ;;
+
+  issue)
+    sub="${1:-}"; shift || true
+    case "$sub" in
+      list)
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --state|--limit|--json) shift 2 ;;
+            --paginate) shift ;;
+            *) refuse "issue list $*" ;;
+          esac
+        done
+        need_file issues.json
+        cat "$(fixture_path issues.json)"
+        ;;
+      view)
+        number="${1:-}"; shift || true
+        case "$number" in ''|*[!0-9]*) refuse "issue view $number" ;; esac
+        while [ $# -gt 0 ]; do
+          case "$1" in --json) shift 2 ;; *) refuse "issue view $*" ;; esac
+        done
+        need_file issues.json
+        jq --argjson n "$number" '[.[] | select(.number == $n)] | if length == 1 then .[0] else error("no fixture issue #\($n)") end' "$(fixture_path issues.json)"
+        ;;
+      create|edit|close|comment|delete|reopen)
+        record_write issue "$sub" "$@"
+        case "$sub" in
+          create) printf 'https://example.invalid/%s/issues/1\n' "$(cat "$(fixture_path repo.txt)" 2>/dev/null || echo repo)" ;;
+          *) printf 'stub gh: recorded `gh issue %s`\n' "$sub" ;;
+        esac
+        ;;
+      *) refuse "issue $sub" ;;
+    esac
+    ;;
+
+  *) refuse "$group $*" ;;
+esac

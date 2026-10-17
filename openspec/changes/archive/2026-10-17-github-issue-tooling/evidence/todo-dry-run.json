@@ -1,0 +1,1623 @@
+{
+  "findings": 137,
+  "previews": 137,
+  "skipped": 0,
+  "created": 0,
+  "applied": false,
+  "renames": [
+    "category rendering → map-rendering",
+    "category build → build-and-harness"
+  ],
+  "histogram": [
+    {
+      "label": "category/build-and-harness",
+      "count": 19
+    },
+    {
+      "label": "category/car",
+      "count": 20
+    },
+    {
+      "label": "category/data-and-maps",
+      "count": 7
+    },
+    {
+      "label": "category/favorites",
+      "count": 2
+    },
+    {
+      "label": "category/location",
+      "count": 1
+    },
+    {
+      "label": "category/map-rendering",
+      "count": 7
+    },
+    {
+      "label": "category/native-jni",
+      "count": 8
+    },
+    {
+      "label": "category/persistence",
+      "count": 2
+    },
+    {
+      "label": "category/route-and-navigation",
+      "count": 11
+    },
+    {
+      "label": "category/search",
+      "count": 7
+    },
+    {
+      "label": "category/specs-and-process",
+      "count": 17
+    },
+    {
+      "label": "category/stylesheets",
+      "count": 1
+    },
+    {
+      "label": "category/ui",
+      "count": 15
+    },
+    {
+      "label": "category/verification",
+      "count": 20
+    },
+    {
+      "label": "class/bug",
+      "count": 51
+    },
+    {
+      "label": "class/feature",
+      "count": 9
+    },
+    {
+      "label": "class/improvement",
+      "count": 77
+    },
+    {
+      "label": "source/todo-import",
+      "count": 137
+    },
+    {
+      "label": "status/fixed-by",
+      "count": 17
+    },
+    {
+      "label": "status/in-flight",
+      "count": 8
+    },
+    {
+      "label": "status/on-hold",
+      "count": 14
+    },
+    {
+      "label": "status/open",
+      "count": 75
+    },
+    {
+      "label": "status/open-device",
+      "count": 21
+    },
+    {
+      "label": "status/retired",
+      "count": 1
+    },
+    {
+      "label": "status/unverified",
+      "count": 1
+    }
+  ],
+  "previewList": [
+    {
+      "sourceId": "129",
+      "title": "§129 The router's overall route distance and the route description's node distances disagree, by 34 % on a 70 km route — Found 2026-10-05 while applying `fix-step-leg-distance-and-time` (device run, task 5.1)",
+      "fingerprint": "14979deb260430e38d4bfa4ff5210083d489e3ad9eefd62a794a27498559afc7",
+      "labels": [
+        "class/bug",
+        "category/route-and-navigation",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "131",
+      "title": "§131 The device-test case for `stepSegments` kept the pre-flip segment orientation and only became runnable on 2026-10-05 — Found 2026-10-05 while applying `fix-step-leg-distance-and-time` (device run, task 5.2)",
+      "fingerprint": "62affd43d9fc0bf0e3d05f0aaab99cd1e2976c9e8c8b8395ec2b591f0340930a",
+      "labels": [
+        "class/bug",
+        "category/verification",
+        "status/in-flight",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "139",
+      "title": "§139 The router's overall distance under-counts the route it produced — by 25 % on a long route and 45 % on a short one — Found 2026-10-05 while measuring `fix-route-length-disagreement` (the native half of `TODO.md` §129)",
+      "fingerprint": "e62f74ef972951174bdf9c4dbdd94831aa48df1c880d341eb0ec28f747f49088",
+      "labels": [
+        "class/bug",
+        "category/route-and-navigation",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "144",
+      "title": "§144 A failed reroute leaves `isRerouting`/`isOffRoute` set until the next instruction list — Found 2026-10-06 while landing `fix-reroute-lease-release` (adjacent finding, out of that change's scope)",
+      "fingerprint": "d0695b0f5dc6414d0a1f930f8a40dc3fa2483d7ea2f222fc227c01bfdc59cb48",
+      "labels": [
+        "class/bug",
+        "category/route-and-navigation",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "153",
+      "title": "§153 Rotating the phone while follow mode is active crashes on an empty coerce range in the follow drift clamp — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (device run on the Pixel_8 AVD, task 4.3)",
+      "fingerprint": "ec59f733e81d95f0ad7cdd73d75295e3e5aa8fbbfdb2230c000557ba805f9b85",
+      "labels": [
+        "class/bug",
+        "category/ui",
+        "status/in-flight",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "165",
+      "title": "§165 The navigation overlay's stop path may never enter the session's stopped state, and the map returns to `FREE_DRIVE` where the ViewModel path asserts `BROWSE` — Filed 2026-10-06 by `fix-nav-overlay-stop-tap` as §140 (an id that never reached this file); re-filed 2026-10-09 by `bugfix-loop`",
+      "fingerprint": "c9e6bd4f6d0b6c0481d7e2b23dce4e20134c5276c7176cb54263330900365a04",
+      "labels": [
+        "class/bug",
+        "category/route-and-navigation",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "166",
+      "title": "§166 The stop control's own accessibility target is asserted by geometry only, not by its semantics action — Found 2026-10-09 by `bugfix-loop` (iteration 1) while refuting the §122 report (removed; `fix-nav-overlay-stop-tap` archived)",
+      "fingerprint": "1cba3795b152ff983a10bf1f7520d30e2ff4e2e77cf0584057b1364666c1565a",
+      "labels": [
+        "class/improvement",
+        "category/ui",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "167",
+      "title": "§167 The pinned band's device containment at font scales 1.0/1.3/2.0, and the screen's report→fit/inset join, are still unverified — Left pending by `fix-pinned-band-height` (archived 2026-10-09, task 5.1)",
+      "fingerprint": "b13c4ec7d16d5f49bead8e7de9b461f0427099e1a7ea3d924e80dd288b77a9cd",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "168",
+      "title": "§168 `viewport-persist` describes one `viewport.json` while `ViewportStorage` writes one file per map key — Found 2026-10-09 by `bugfix-loop` (iteration 6) while gating §9",
+      "fingerprint": "927baf9cce5fdfe115a6958823118b79c8bbaf3cc62d38586bb9a90025bfb5f7",
+      "labels": [
+        "class/bug",
+        "category/persistence",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "170",
+      "title": "§170 The new navigation-column case asserts the raw preset fraction, not the column's edge — Filed by the round-1 review of `fix-nav-column-width-probe` (declined there, out of that fix's scope)",
+      "fingerprint": "f2ca10f8ddeaf61f2560e67c0d152794f8ecd308f3b152558ce5a8cd08171532",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "171",
+      "title": "§171 Two archived capabilities still carry the archive's placeholder `## Purpose` text — Found 2026-10-09 by `bugfix-loop` (iteration 2) while archiving `fix-highlight-longest-run`",
+      "fingerprint": "bec35c461cd4b50471a8f8f5fab9ac2f6fa41577c2f710ddfd8b7ac3c4dfb97b",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "75",
+      "title": "§75 Android Auto search passes no default admin region, so POI search needs the city in the query — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, own change)",
+      "fingerprint": "61f7e4b0a661092e5af8d7045cdc2035a1fdfc935d18d7ca486d271ecb7a885e",
+      "labels": [
+        "class/bug",
+        "category/search",
+        "status/in-flight",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "172",
+      "title": "§172 A skill document may state the same rule in more than one place — nothing owns \"one normative home\" for `.pi/skills/` — Found 2026-10-10 while restructuring `.pi/skills/fix-loop` (out of that change's scope)",
+      "fingerprint": "9dd22731c3c594baa4339f7f5fe56bcc797aa397da512863b7467ca33d252cf3",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "163",
+      "title": "§163 A cleartext repository download has no integrity protection — the declared size and CRC-32 travel the same connection as the data — Found 2026-10-09 while implementing `allow-lan-http-map-repository` (out of that change's scope)",
+      "fingerprint": "054c107ca3d479a026353d7180fc2f6c89fa3bada4cff7bb6d24baa4d272224e",
+      "labels": [
+        "class/improvement",
+        "category/data-and-maps",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "164",
+      "title": "§164 A parseable but non-HTTP base URL is reported as a transport failure with a cast error — Found 2026-10-09 while implementing `allow-lan-http-map-repository` (task 2.5, outside that requirement's scope)",
+      "fingerprint": "643770db7997509b22e9ebec6957a9ff688d8c9597f10c0c526e82f57c9567db",
+      "labels": [
+        "class/improvement",
+        "category/data-and-maps",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "120",
+      "title": "§120 The car re-applies the `daylight` flag after every style switch, so a switch costs a second stylesheet reload — Found 2026-10-03 while implementing `dedupe-stylesheet-loads` (out of that change's scope)",
+      "fingerprint": "e67457449a54eb6648d93e56553ad9efdbf24beaed22303a3d1d248e996f367f",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "113",
+      "title": "§113 Origin changes ship without a falsification step — every later fix change then adds one — Proof gap of the 2026-08-13 … 2026-09-19 origin changes, found 2026-10-01 auditing the 15 newest `fix-*` changes (process)",
+      "fingerprint": "220f311d1693f64e72a08563f97abfa04a373e0b8c8befd546444bf79154394c",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "111",
+      "title": "§111 The follow blit anchor is proven only as pure geometry — no test drives the production call site, and the pipeline was patched twice on 2026-09-27 — Proof gap of `anchor-per-surface-visible-area` (and of `fix-follow-vehicle-jumps`), found 2026-10-01 auditing `fix-phone-follow-blit-anchor-mismatch` (spec `smooth-follow`)",
+      "fingerprint": "284eab1643c3234a2d7e90a05a1c3d1b6d1ebe1fa6b71ec35e213e7fdbe4f465",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "110",
+      "title": "§110 The scope filter can leave a scoped search with fewer free-text candidates than the requested limit — Found 2026-10-01 while implementing `fix-cross-database-search-scope` (design Open Question)",
+      "fingerprint": "81c85badcee04bc1f2dea56df760447cd26369196f497b460c25e17f80522310",
+      "labels": [
+        "class/bug",
+        "category/search",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "109",
+      "title": "§109 The cross-database scope filter is host-tested only as a pure helper — the wiring inside the JNI search has no database-backed test — Found 2026-10-01 while implementing `fix-cross-database-search-scope`",
+      "fingerprint": "d89ea4b5e66e21707ac0e7248a419679bd1975aedf6ba587e38bb84793207a03",
+      "labels": [
+        "class/improvement",
+        "category/search",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "102",
+      "title": "§102 Four scenarios added by `reorder-favorite-groups` have no automated test — Found 2026-09-29 (during that change's task 5.5 traceability pass)",
+      "fingerprint": "fbd82ca7c404f0fff359139b78993798026826963d0388877dcb851cf4fed37a",
+      "labels": [
+        "class/improvement",
+        "category/favorites",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "95",
+      "title": "§95 The retention release had no on-device run: the installed build is Play-signed, so a local build needs an uninstall — and the map data goes with it — Found 2026-09-27, **RESOLVED 2026-09-27 20:27** by a Play release (see the update at the end)",
+      "fingerprint": "22b85dbbc3a3893ea97870eb4fff544ff247bd13a0c1a5d58ef8a4e5f64b358f",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "99",
+      "title": "§99 The AAOS AVD's basemap is a format version behind the submodule, so car-side device work on it cannot draw the basemap until it is re-downloaded — Found 2026-09-27 during the emulator A/B (absorbed §90 on 2026-10-05)",
+      "fingerprint": "0c72e35f05c1a78668b61ac22048e94232923776131f25fd8b726e7aeab1ac09",
+      "labels": [
+        "class/bug",
+        "category/data-and-maps",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "93",
+      "title": "§93 The AA start crash of release `2026-09-27-2` has no root cause yet — only its confinement is fixed — Found 2026-09-27 (release 88, versionCode 88, built 08:47)",
+      "fingerprint": "1d59b4eb967b80f94acc13c0cce93a39f8a5c1268600e4d06bbc034f5409d2f1",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "92",
+      "title": "§92 The car free-driving surface can stay blank for ~30 s after the screen opens — Found 2026-09-27 on `emulator-5554` (AAOS) during the `compass-day-night-palette` on-device pass (low confidence: 1 of 4 runs)",
+      "fingerprint": "57ef521bc7cefcce8b6ca3220f48ef5b4f15ff79fedc6515f2b4b304ea13d0a9",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "91",
+      "title": "§91 POI name search finds nothing for objects the category index returns — this install's name index does not carry its POIs — Found 2026-09-27 on `emulator-5554` (AAOS) during the `fix-compound-name-matching` car pass (data side; absorbed §89 on 2026-10-05)",
+      "fingerprint": "dc5c346fe1ebc79fdb235c7b328a5dfcdde6d3f82a6e12eae7be7eca92fdcc60",
+      "labels": [
+        "class/bug",
+        "category/data-and-maps",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "84",
+      "title": "§84 Two surfaces in one process shared their process-global resources without an owner rule — FIXED by `shared-resource-arbitration` (2026-09-26); device verification pending",
+      "fingerprint": "997319a9a5e1692b42db3bc9548709f8b754a7011f09fe40754bbd65faf28ebc",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "83",
+      "title": "§83 The rail-widget tap fix is unit-verified but not confirmed on device — Found 2026-09-26 (reported on phone + head unit under Android Auto) and implemented by `fix-car-rail-widget-tap` (2026-09-26)",
+      "fingerprint": "9c8479e7a2491b17ad2ae925960250b7c357a7d142614f3f8aa3f6fc57bc4b25",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/in-flight",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "82",
+      "title": "§82 The native search-scope diagnostics were dropped with the branch's last diff — Found 2026-09-26 during the libosmscout merge / PR #1773 closure (`update-to-current-libosmscout-master`)",
+      "fingerprint": "e0dc193284d05b02c8af09732a1b5d2faebf8554d47c01e08c5e782eaaab5ec2",
+      "labels": [
+        "class/improvement",
+        "category/native-jni",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "81",
+      "title": "§81 The word-matching allocation-cost case did not travel upstream with the matcher work — Found 2026-09-26 during the libosmscout merge of PR #1849 (`update-to-current-libosmscout-master`)",
+      "fingerprint": "fb72971e6dbd14e7fed5f59ffb29c78688e486258ed0e4203c4906847e0083f3",
+      "labels": [
+        "class/improvement",
+        "category/native-jni",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "77",
+      "title": "§77 Words joined without a separator stay unmatched (`Bahnhof Straße` vs `Bahnhofstraße`) — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, boundary of the word rule)",
+      "fingerprint": "42dd3275d04ad3ac58c5e3bf259faba470a883622fdc5277acf162bd3021293e",
+      "labels": [
+        "class/improvement",
+        "category/search",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "76",
+      "title": "§76 The free-text index keys whole names, so a mid-name word is unreachable without a region token — Found 2026-09-25 during `fix-compound-name-matching` (out of scope, index format)",
+      "fingerprint": "8131196402780df4aed52f040fcc3f58fa80bcbd4c065d29c4fa37f7eda845b1",
+      "labels": [
+        "class/improvement",
+        "category/search",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "74",
+      "title": "§74 The debug app ANRs on a cold emulator start with no map data, and the ANR trace is unreadable without root — Found 2026-09-24 during `compass-day-night-palette` task 7.3 (verification blocker, unverified)",
+      "fingerprint": "96006376681d5e4133b8032cd88a270ea4cfb6523aaeb7c3f3d10c04a6fdeefa",
+      "labels": [
+        "class/bug",
+        "category/ui",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "73",
+      "title": "§73 Two phone overlays still use fixed colors with no presentation branch — Found 2026-09-24 during `compass-day-night-palette` (out of scope, own change)",
+      "fingerprint": "68deb50d222b4199a71e500f39a328ef3c0fe291be3310583d462be041da6333",
+      "labels": [
+        "class/improvement",
+        "category/ui",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "72",
+      "title": "§72 The compass needle is stroked in raw pixels, so it thins on high-density screens — Found 2026-09-24 during `compass-day-night-palette` (out of scope, sizing/geometry)",
+      "fingerprint": "540f3f185f5a4cf95be0a902a5866e6f71861c1c8f874b367ad5c6f2461f123a",
+      "labels": [
+        "class/bug",
+        "category/ui",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "71",
+      "title": "§71 Zoom-walk follow-ups from `fix-phone-zoom-animation-parity` — Found 2026-09-24 during that change (out of scope / pending device)",
+      "fingerprint": "d17b56ac2448d7e4fc5ab8f2f365c9799724cebe9cfdaf54c48a0f6f934e5aa4",
+      "labels": [
+        "class/improvement",
+        "category/map-rendering",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "70",
+      "title": "§70 BROWSE still mixes the free-driving anchor preset into a street-pill placement, and an off-screen vehicle has no cue but the re-center button — Found 2026-09-22 during `fix-browse-recenter-visibility` (out of scope)",
+      "fingerprint": "410b949abf2bd0eef590b61fe8e7d392ef4f935d3c4faef0ad9d39202ffa18f1",
+      "labels": [
+        "class/bug",
+        "category/ui",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "66",
+      "title": "§66 `hostbuild`'s JNI target is configured against a JDK that is not installed — Found 2026-09-21 during `fix-native-database-open-race` task 1.1 (harness gap)",
+      "fingerprint": "8be89d3dce50e0fc6da8a446cdf5948f0b3fbf88af03e8a8983f8746a0d4f9d6",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "65",
+      "title": "§65 Both processes grow by ~50 MB over a 10-minute car drive — Found 2026-09-21 during `fix-host-crash-residual-paths` task 8.2 (post-change baseline)",
+      "fingerprint": "aaa14ee315ce432a91afbe8219cd65de6bf737b1b1063a72bfbb4074719aa938",
+      "labels": [
+        "class/bug",
+        "category/map-rendering",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "64",
+      "title": "§64 The car template rebuild rate is still bounded by the arrival estimate, not by the distance buckets — Found 2026-09-21 during `fix-host-crash-residual-paths` (task 4.2/4.4)",
+      "fingerprint": "7acc860b5833078666d327bd439896dd002464a28a3f6407ec85e701b412209d",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "46",
+      "title": "§46 Phone notification `Stop` action does not end navigation — FIXED by `background-navigation-notification` and closed by `one-navigation-engine` (2026-09-27)",
+      "fingerprint": "db5f6e5f81bbfb491562eeb9e606ad7d72f892577796f4afcc1e1d56f245cccf",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "34",
+      "title": "§34 Car search opened from the root/history screens has no distance reference",
+      "fingerprint": "f54aaf1e97d61eb21078e077dcdad3f365631a44012cbd888e66363901d316bb",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "29",
+      "title": "§29 AA follow jumping — open points handed over (2026-09-17, stable-version handover)",
+      "fingerprint": "41090d385493db83c2e39277802bcc46af6e72ea29583c40dcd0b2d890bbcd7c",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "19",
+      "title": "§19 Findings from `overlay-projects-against-displayed-frame` (2026-09-17)",
+      "fingerprint": "34f4e5aa8bf106b7fe5956769eb95caf6852010f845bdbf9a86c6d9935ec6a52",
+      "labels": [
+        "class/bug",
+        "category/map-rendering",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "17",
+      "title": "§17 Verification-gate blind spots: Gradle test up-to-date masking + OpenSpec task-marker parsing",
+      "fingerprint": "b6bf49e05bf77c789712f990b9fdd9e6899585655f0ec3fceca408e4219ec7a3",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "16",
+      "title": "§16 On-device verification pending: fix-zero-distance-to-turn (native step distance)",
+      "fingerprint": "7e99bcf9ff5e9dcc5f4add330e8ef01c44432917262ae451ec7421c58a321913",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "1",
+      "title": "§1 Route Calculation & Visualization",
+      "fingerprint": "f604948bfd6aea99bf3f1158b06edf9baf66487ee801fc0ec0aa4114b38e0a9d",
+      "labels": [
+        "class/feature",
+        "category/route-and-navigation",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "2",
+      "title": "§2 Turn-by-Turn Navigation",
+      "fingerprint": "e7af4984f4e0363755fcb37fcd1e8d3549913eb067360fa80f37d0c960000f9e",
+      "labels": [
+        "class/feature",
+        "category/route-and-navigation",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "3",
+      "title": "§3 GPX Track Import & Playback",
+      "fingerprint": "c99147e2b7e7fc2ad22c1b1abd512bf2e062091f932026814fbb9e95551e9f53",
+      "labels": [
+        "class/feature",
+        "category/route-and-navigation",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "4",
+      "title": "§4 Object Description & Long-Press",
+      "fingerprint": "e4c5d4613da30ed9c4c80e09110cad5d5be4213728b5bfe3412337684ab77643",
+      "labels": [
+        "class/feature",
+        "category/ui",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "5",
+      "title": "§5 UI / Shell",
+      "fingerprint": "7ab5b5558b81172245fa6af8ad9653e5699926696ff4583e1fe7a3db3b92e961",
+      "labels": [
+        "class/feature",
+        "category/ui",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "6",
+      "title": "§6 Rendering",
+      "fingerprint": "0d5256bd84f0ee560ebb40012a8b9e3eb8a0a99e77ba45cabeba9b48dd876109",
+      "labels": [
+        "class/feature",
+        "category/map-rendering",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "8",
+      "title": "§8 GPS / Position",
+      "fingerprint": "9961c715c0a19d3a647d92a445b585fbdf20c618f4ef20201e008051707aa2e9",
+      "labels": [
+        "class/feature",
+        "category/location",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "9",
+      "title": "§9 Viewport Save — Residual Bug",
+      "fingerprint": "27a1a3e3ec8acbc410aee8bfa81743f4436efcad48c482236f9f316897c20031",
+      "labels": [
+        "class/improvement",
+        "category/persistence",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "14",
+      "title": "§14 Kover deprecation on the Gradle 10 path",
+      "fingerprint": "4c5b11c0130ccb4e707706c6a331d2e8672b9df5e2d959bcb010ac9b515d3036",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "22",
+      "title": "§22 Gradle 10 deprecation sweep (build-level, pre-upgrade audit)",
+      "fingerprint": "e02edbd9d44a59aa722e87a9d58ecb9e75c2b0371a669ed5ae3d4fc8b72f6fbf",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "10",
+      "title": "§10 Pending On-Device Verification",
+      "fingerprint": "da6fe360893f1e71d547b2b49b0cb47a7283c9465314f4df355fe1d623cdbba5",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "15",
+      "title": "§15 Kover coverage attribution for Robolectric-tested classes",
+      "fingerprint": "8e7d742ff34cf94c2087fdf8af04c5e290233441ba4d661835121e3a511bd0ca",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "23",
+      "title": "§23 libosmscout-kotlin port stubs — verify the binding is unused before anyone wires it in",
+      "fingerprint": "03b405fe3b4ee830d332542d097bd6a90c590a671f11d21ff60b83063a76cb6f",
+      "labels": [
+        "class/feature",
+        "category/native-jni",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "24",
+      "title": "§24 Sharp-s uppercase form (ẞ U+1E9E) is not folded",
+      "fingerprint": "1fbf58e6250539fc41973f60e33dfd2e0548990390979aff64173c50ba6d1a08",
+      "labels": [
+        "class/improvement",
+        "category/search",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "27",
+      "title": "§27 Unconstrained search of a second loaded database returns out-of-area noise",
+      "fingerprint": "22257aa073c77507623fb14e5b2dee57a242f3765fb0be4b346a7c303134fe80",
+      "labels": [
+        "class/bug",
+        "category/search",
+        "status/in-flight",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "35",
+      "title": "§35 On-device re-check of the area-favorites and POI-search fit zooms",
+      "fingerprint": "d471f4c9cfffe8276e44445516bc5a5d09ec697ff0b342214507cde361d91355",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "36",
+      "title": "§36 `public-transport` stylesheet draws no route  — ⏸ ON HOLD (owner decision 2026-09-20)",
+      "fingerprint": "f9052260539b00ee5e72d2c0653609b49dfd7a76af9a66f1be9ca9682a062dc0",
+      "labels": [
+        "class/bug",
+        "category/stylesheets",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "37",
+      "title": "§37 Pre-existing Kotlin deprecation warning in the marker overlay",
+      "fingerprint": "1f8f4c4c90336fc4d2dc3f16d6bb005e34d23fd3b2028e71d4cfeea9687763b3",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "44",
+      "title": "§44 Pre-existing Kotlin build warnings beyond the marker overlay",
+      "fingerprint": "14cd2b3b47375cbc7c7d44229dff71b4ca0b5434c622e104b536b4a647fdcb70",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "118",
+      "title": "§118 `fav-auto-zoom`'s clamp scenario says 4–18 while the code clamps area-favorite fits to 14–20",
+      "fingerprint": "ae0fbf0f78c9177bdf123e6abffe29fad5a4f2161524d631d81794c0e2018016",
+      "labels": [
+        "class/bug",
+        "category/favorites",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "39",
+      "title": "§39 Real-life and Android Auto verification for the marker/route colors",
+      "fingerprint": "31dc659f0078eb08fbef132e874555211ef77f57552d59bde715f0ab4893d6f9",
+      "labels": [
+        "class/improvement",
+        "category/ui",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "40",
+      "title": "§40 Guardrails extracted from `ki_processing_failures.log` (2026-09-19)",
+      "fingerprint": "635e5477ea841e26b28dc59cbe0889ab0e466f7e9fe5b95c68b72eec054c8e33",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "134",
+      "title": "§134 Guardrails extracted from `ki_processing_failures.log` (2026-10-05)",
+      "fingerprint": "8461ee1224c5ea4eba8e6889c922dbf700cf3fcbd69527f9bd5928bcf3b0e34c",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "49",
+      "title": "§49 One full car render allocates ~15 MB of transient buffers — app-side FIXED by `fix-render-buffer-reuse` (2026-09-26), native half FIXED by `reduce-render-peak-memory` (2026-09-27); the `Graphics` footprint and the growth measurement stay open",
+      "fingerprint": "47ab0857ac6451275a024cfea8aac816080a44292648763fe36b8c0a6316a72d",
+      "labels": [
+        "class/improvement",
+        "category/map-rendering",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "56",
+      "title": "§56 Trip publishing is the one host sender that deliberately keeps firing while the session is stopped — Found 2026-09-21 (same review)",
+      "fingerprint": "e52aa9391d35f848205be826123ade3c9abf763ff53b192557371fc768d3556a",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "57",
+      "title": "§57 `DetailsScreen` observers are init-scoped and keep rendering while stopped — Found 2026-09-21 (same review)",
+      "fingerprint": "c5e2eac9229550a66a30617c7a59f7f79e29834e69ac166c4b203a4fbce0cb73",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/in-flight",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "78",
+      "title": "§78 Overrun-window offset math lives in `FollowPrediction` and the follow overlay path is not unified — Found 2026-09-24 (while fixing the phone pan tracking)",
+      "fingerprint": "4cc9f2712910e21e604d37364f2839b0f68a89bc17a70a17c1e17048d6cd70ee",
+      "labels": [
+        "class/improvement",
+        "category/map-rendering",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "119",
+      "title": "§119 The Android bridge override trails the submodule's Java favorites API — Found 2026-09-28 (while adding the cross-group favorite move)",
+      "fingerprint": "4ceb1d7b32015640f01a9db7263cf1aea4b14c7e75a0cb4f1540f09cf069e8d3",
+      "labels": [
+        "class/improvement",
+        "category/native-jni",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "103",
+      "title": "§103 `FavoritesScreen` (car) is the one screen still outside the `CarScreenObservations` pattern — Found 2026-09-29 during `order-starred-favorites`",
+      "fingerprint": "5848941bb3d115e96780d5273329dd8d326def1a9fe1fdbe09b4d33195613af7",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "106",
+      "title": "§106 The AAOS AVD's car session lives in user 10 while adb reaches user 0 only, so its favorites storage cannot be seeded — Found 2026-09-29 on `emulator-5554` (automotive distant-display AVD) during `order-starred-favorites`",
+      "fingerprint": "98928f11fd8307b65c87b7425320c899898187a479305bd428b6ca2a5ac47bec",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "108",
+      "title": "§108 Three surfaces of the i18n sweep could not be seen on a device — found 2026-09-30 while landing `fix-remaining-untranslated-strings` (task 5.2)",
+      "fingerprint": "d8ea5ba0719dae7a93981c45e2d3a9a287da7aed7b6293e642feb422890a4dc6",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open-device",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "123",
+      "title": "§123 Test harness: `SearchHistoryRepository` is usually built without the test dispatcher, so a test that depends on a result selection races a real-thread file write — Found 2026-10-04 while implementing `fix-search-history-chip-replay` (task 2.3, out of that change's scope)",
+      "fingerprint": "2f745ac6b3777b4ee109467b5038566544aa5ff1f2999e3169f36cbcf29f04c1",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "126",
+      "title": "§126 A failed reroute releases the navigation lease of the guidance that is still running — Found 2026-10-04 while implementing `show-route-calculation-progress` (task 2.4, out of that change's scope)",
+      "fingerprint": "bc3ea51c4d2faee287afcdf853b7fdec50cee5a0103e47caaacd98ab4f110ade",
+      "labels": [
+        "class/improvement",
+        "category/route-and-navigation",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "127",
+      "title": "§127 `LoadingScreen` is production-dead and now has a sibling wait notice — Found 2026-10-04 while implementing `show-route-calculation-progress` (task 3.1)",
+      "fingerprint": "8c9f47e7fbbc6457fa90a9457434849bda86dcae5ae14f7dcbc390da86fb2aa1",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "128",
+      "title": "§128 `NavigationEngineAcquisitionTest` pins `@Config(sdk = [34])` although the project's classloader rule forbids it — Found 2026-10-04 while adding `NavigationEngineCalculationStateTest`",
+      "fingerprint": "54ad24f67b34bd7abce316789a1bf21744bf38810bab53935922a0629006327c",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "130",
+      "title": "§130 The published route starts at the node the router snapped the requested start to — the entry's original ~200 m claim is refuted, and the open decision is taken by `publish-requested-route-start`",
+      "fingerprint": "bb17ebc4104f6c430cc0975c5768755c6178092047f05e60c66a3217c954777c",
+      "labels": [
+        "class/bug",
+        "category/route-and-navigation",
+        "status/in-flight",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "132",
+      "title": "§132 The declared fork counts are tuned for a single-suite run, but the full gate runs every module's suite in one invocation — Found 2026-10-05 while applying `speed-up-build-test-gate` (task 8.4)",
+      "fingerprint": "a1c323466ce63a5eeb33e6ed5ad1bdd32bf43966e7432274398d13f7c46cb126",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "133",
+      "title": "§133 A route that finishes just after the notice delay flashes the car notice for a few hundred milliseconds — Found 2026-10-05 while measuring the delay of `show-route-calculation-progress` (task 5.3)",
+      "fingerprint": "3a08954caf2b8edaad70441aa377e9d9cf8e56980f5f05fdcfb401f38f59eec1",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "136",
+      "title": "§136 The docked wide panel shows the anchor toggle, which cannot change its size — Found 2026-10-05 while applying `fix-route-session-exit` (design D1, Open Questions)",
+      "fingerprint": "e4454e7989923cdb8fad92366ae3036c06b5ee124b5240443dd1c7c3368ae1ef",
+      "labels": [
+        "class/improvement",
+        "category/ui",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "138",
+      "title": "§138 At font scale 2.0 the max card's labelled End action is clipped off the screen, which leaves the header close as the only visible exit — Found 2026-10-05 while applying `fix-route-session-exit` (device measurement, task 4.3)",
+      "fingerprint": "985ed3465d28a9b4e5cc1df72a97a5a33f6aecc3fca425f460cc26f0c2585881",
+      "labels": [
+        "class/bug",
+        "category/ui",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "141",
+      "title": "§141 `MapCanvasViewModelFixQualityTest.aTickDoesNotDispatchOnTheMainDispatcher` failed once under the forced gate and was green on its rerun — Found 2026-10-06 while gating `fix-route-session-stop-path`",
+      "fingerprint": "9959b4e3cbc69ed13d1f3ccdc03556ada9f2f61b74097ebe560312e585b0be81",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "142",
+      "title": "§142 A viewport-restore case costs 6.2 s although it contains no wait — the class's remaining cost sits outside its own waits — Found 2026-10-06 while applying `speed-up-test-iteration` (task 2.5, out of that change's scope)",
+      "fingerprint": "e93a2a33dbac023ec98ce4ca3364be6de81e5bd42c899fd34f560276186ea128",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "143",
+      "title": "§143 Cases that await a real route calculation cost 5-9 s today, though the same cases measured 0.05 s on the quiet machine — Found 2026-10-06 while applying `speed-up-test-iteration` (task 3.2)",
+      "fingerprint": "58ca9ab54820fa35dba9f79704d848a87b199d780693fc575c3722038d52c2e3",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "147",
+      "title": "§147 `measure-highlight.py` returns `inside` on a frame with no route — 18 pixels of parking-glyph colour pass its dense-run test — Found 2026-10-06 while applying `screenshot-evidence-via-view-image` (device measurement, task 4.1)",
+      "fingerprint": "8c8eb405d01087e4f9673820be033320de824038407d0b3206f49ade7bf8e2d7",
+      "labels": [
+        "class/bug",
+        "category/verification",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "145",
+      "title": "§145 `gradle.properties` commits a machine-local JDK path that every other machine must override — Found 2026-10-06 while implementing `fix-daemon-jvm-provisioning` (adjacent finding, out of that change's scope)",
+      "fingerprint": "d60b7b11c84b4d864b8d5668bd43a367c7680903876fd7acc808d73e8f8faa3a",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "146",
+      "title": "§146 `buildSrc` requires a Java 17 toolchain it cannot provision, so a machine with only JDK 21 fails at configuration — Found 2026-10-06 while implementing `fix-daemon-jvm-provisioning` (probe finding, out of that change's scope)",
+      "fingerprint": "67b91fe01784e85684b591924613c41fc3bc9d2f27b4abc63fd76f1680e16b5f",
+      "labels": [
+        "class/bug",
+        "category/build-and-harness",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "148",
+      "title": "§148 Timing-sensitive cases fail in the loaded aggregate test run — four distinct cases across five aggregate runs, every one of them green in a single-module or solo run — Found 2026-10-07 while landing `fix-daemon-jvm-provisioning` (out of that change's scope)",
+      "fingerprint": "c5ce94be9fb39f0c97605e7b92dcf6636dbf9c8ab1d0e611f34b10fcfe4055de",
+      "labels": [
+        "class/bug",
+        "category/verification",
+        "status/in-flight",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "149",
+      "title": "§149 The `view_image` package's extension filter can stop matching and restore the bundled libtui UI drift without any error — Found 2026-10-07 while removing the libtui host extension from the screenshot-reading tooling",
+      "fingerprint": "653cd85288c22dd0ee9565ad90b8e7bd0181b1f3c32dda57c5b319d728dcb58f",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/retired",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "150",
+      "title": "§150 After arrival the reroute path re-acquires the destination that was already reached — Found 2026-10-07 while applying `auto-end-navigation-after-arrival` (device run on the AAOS AVD, tasks 3.2/3.3)",
+      "fingerprint": "62a9d7fbeb2f3b537792021fe110b3bd1d0fc953bcd56f7c2e8eb39fd36972a4",
+      "labels": [
+        "class/improvement",
+        "category/route-and-navigation",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "151",
+      "title": "§151 The navigation-time right-side widget column never publishes its width, so the follow anchor can resolve under it — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (adjacent finding, out of that change's scope)",
+      "fingerprint": "5a75b2fbb561d5cf01cd027bfe0b3bb94798d9082ae3f9261b24c145c25f44a1",
+      "labels": [
+        "class/bug",
+        "category/ui",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "152",
+      "title": "§152 The follow-anchor insets during a navigating session panel follow the chrome the panel covers — Found 2026-10-07 while applying `fix-phone-map-layer-stack` (adjacent finding, out of that change's scope)",
+      "fingerprint": "cacb8b9c471aed06844b040f1f3c0bbef2ca3f26562988f6474043a99cc0eb43",
+      "labels": [
+        "class/improvement",
+        "category/ui",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "154",
+      "title": "§154 `guidelines/MapRendering.md` numbers two sections `## 14.`, so a `§14` reference is ambiguous in eleven citations — Found 2026-10-07 while applying `scope-guideline-reads` (out of that change's scope)",
+      "fingerprint": "048c2123f7fa5ad5cf59118da10fbf75e6f62c3d7bba106ba97fd19d0d81c109",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "155",
+      "title": "§155 Regenerating the feature documents is a manual command; nothing runs it at release time or on a schedule — Found 2026-10-08 while applying `generate-feature-list`",
+      "fingerprint": "7e4e1373592baa75588c66f0f0d6becb989fad377cf793d6b4e5155cad33208c",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "156",
+      "title": "§156 The release note has no length limit, so it cannot be pasted into a store listing as it stands — Found 2026-10-08 while applying `generate-feature-list`",
+      "fingerprint": "4259997b69ec3edf73e1ae3188f097da299c9529470fc389eac878bb522e1d8c",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "157",
+      "title": "§157 Nothing forces a change to classify the capability specs it archives — the first unclassified spec fails a later run instead — Found 2026-10-08 while applying `generate-feature-list`",
+      "fingerprint": "f7f5427394f4eb34d2637871317ec3b7d464abfad95f6f03c900300411867efa",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "158",
+      "title": "§158 Two specs still carry a `TBD` purpose placeholder, so their capabilities cannot be described from their own text — Found 2026-10-08 while applying `generate-feature-list`",
+      "fingerprint": "f2a3b9d529af6ac65398b053f6da6f3f83cedf3f1bf831384620ba106c8729a0",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "159",
+      "title": "§159 The feature catalogue's word report is unbounded, so its signal is buried — Found 2026-10-08 while applying `generate-feature-list`",
+      "fingerprint": "df7e6c7295c45b7f2f8c2cb018c3bf0b57183d5a79567d161586c51fd8ef7adb",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "160",
+      "title": "§160 The repository map source checks for updates nowhere, so a newer database is only noticed by reinstalling — Deferred by `add-mapgen-map-source`",
+      "fingerprint": "db5905aece9522a6af952d9b85fd86024fef8386c06aa05de048456ce7138783",
+      "labels": [
+        "class/feature",
+        "category/data-and-maps",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "161",
+      "title": "§161 Two shipped specs are unclassified, so the classification gate is red today, and its two directions are asymmetric — Found 2026-10-09 while applying `add-project-metrics-report`",
+      "fingerprint": "0c683059572287c627aa5b8837146159e51e3979c809a9dfe9514e3bf17738a7",
+      "labels": [
+        "class/bug",
+        "category/specs-and-process",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "162",
+      "title": "§162 `guidelines/FeatureList.md` names three behaviour contracts that exist nowhere on disk — Found 2026-10-09 while applying `add-project-metrics-report`",
+      "fingerprint": "201ea6308a40528f34bfbe9bca087ac50b4330947d12810627f54c429d0d5413",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "173",
+      "title": "§173 The FREE_DRIVE ongoing notification showed a fallback road and a dangling separator, and the background \"GPS keeps updating\" claim was false — Found 2026-10-07 while planning `fix-free-drive-background-liveness` (device run on `emulator-5554`)",
+      "fingerprint": "2758b645364c69f41a58de53f8e35acbc8dd913fb54f70702310f34f9af8151e",
+      "labels": [
+        "class/improvement",
+        "category/ui",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "174",
+      "title": "§174 Nothing guards the override/submodule native parity, and a blanket subset check is false — Found 2026-10-10 while applying `fix-jni-override-parity` (§119)",
+      "fingerprint": "2b191aeb8e8e26fb1d9e44170a24522afe614cdee9618165daef0cfb7776aba2",
+      "labels": [
+        "class/improvement",
+        "category/native-jni",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "175",
+      "title": "§175 A car screen's observation body is still a main-thread provider call site on the remaining screens — Found 2026-10-10 while implementing `fix-car-favorites-loading-stall`",
+      "fingerprint": "b6cb1c79390fb872c6d0c3db60a19cf62e54e33a0adb48f9e6b60bbb20effff7",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "176",
+      "title": "§176 The first favourites template can take seconds on a cold session while the map's first render congests the main dispatcher — Found 2026-10-10 during the `fix-car-favorites-loading-stall` device run (§5.1)",
+      "fingerprint": "ec1aeef9edb731fcaedccafcc512ead77678b2b2a06f4e6b01948f29c31ef4a8",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "177",
+      "title": "§177 The car address book presents every contact with an address in one list, over any host's row capacity — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)",
+      "fingerprint": "c23d7b06d96b0e86527485e319e30e952d0fac4f9232105dae599e5e53232436",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "178",
+      "title": "§178 The car search history presents all stored entries in one list, over a host capacity below 50 — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)",
+      "fingerprint": "b645bcdaa9cfddb96f2785190401834c2a47c54aead13d34921fae46814eded6",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "179",
+      "title": "§179 The car POI result list caps at 20 rows, over a host capacity below 20, and its cap is a constant rather than the host's — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)",
+      "fingerprint": "2588c8b6ebd3e691fa3940526787e0263439e84103bc9b1478d3161bc296f845",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "180",
+      "title": "§180 The car diagnostics screen caps at 20 rows with the same fixed-constant gap as the POI list — Found 2026-10-10 while applying `car-favorites-group-level` (task 1.1's capacity measurement, task 7.3)",
+      "fingerprint": "0b11a8edbbd037898efa1d16dfb9bbae3231d4ea03b6ea2f961dccd0c086fa83",
+      "labels": [
+        "class/bug",
+        "category/car",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "181",
+      "title": "§181 `SettingsStorageSourceTest.unknownStoredSourceFallsBackToBuiltIn` asserts \"no coordinate\" by substring, so any other class's buffered `…52.…` line drains into its file and reddens it — Found 2026-10-10 during the `car-favorites-group-level` full gate (4.2, first attempt)",
+      "fingerprint": "452b9bc15318974b14b274e70bc999e25e60456142e3e87eb73df7b0a32832ef",
+      "labels": [
+        "class/bug",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "182",
+      "title": "§182 A leftover staging directory of an update is discoverable as an installed map until it is swept — Found 2026-10-10 while applying `add-map-update-check` (task 3.8)",
+      "fingerprint": "e0cb8f306ceeaf1ab378c6817c7c7f1c21a91ccb34518bf1d50ac603a8970b0e",
+      "labels": [
+        "class/improvement",
+        "category/data-and-maps",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "183",
+      "title": "§183 The aggregate gate run logs a `StackOverflowError` from a leaked `map-download-*` thread, and no case fails for it — Found 2026-10-10 while running the full gate of `add-map-update-check` (task 7.1)",
+      "fingerprint": "27085f01e2b27c82918e479f503778ba7961dfa0174c1781d452aacf53fc3713",
+      "labels": [
+        "class/bug",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "184",
+      "title": "§184 The feature-list prose gate fails on four over-long entry paragraphs, so the catalogue cannot be written — Found 2026-10-10 while classifying `map-updates` for `add-map-update-check` (task 8.4)",
+      "fingerprint": "2d0c0b1643d43f3653b070dd1350f58d512d0ffdd3ed0956a6ff60132e426263",
+      "labels": [
+        "class/bug",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "185",
+      "title": "§185 A map installed from a repository cannot be deleted — the native `DeleteDatabase()` does not know the app-added `db.json` or the slot's `ptroutes.dat`, and returns false with a broken directory left behind — Found 2026-10-10 while applying `add-map-update-check` (task 7.2/7.4 device run)",
+      "fingerprint": "15fb4f97e92f0941cf6f81d57238704eae01c616d6800445681955d462a0c6fb",
+      "labels": [
+        "class/bug",
+        "category/data-and-maps",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "186",
+      "title": "§186 A canvas-size change alone cannot re-derive the BROWSE re-center offset — `setScreenSize` writes no UI state, so the derivation's inputs and its trigger disagree — Found 2026-10-11 while fixing the dwell liveness of `map-modes` — Browse re-center (`fix-browse-recenter-dwell`)",
+      "fingerprint": "9cc4c8e4035cb21883ecc45a60373d37c1040ab266eb8a8002add8a98281cb90",
+      "labels": [
+        "class/bug",
+        "category/ui",
+        "status/unverified",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "187",
+      "title": "§187 `guidelines/UI.md` still states the retired reroute policy numbers (50 m fast path, 10 s confirmation window) after the landed change lowered them to 30 m / 4 s — Found 2026-10-12 while landing the in-flight reroute-latency work found uncommitted in this tree",
+      "fingerprint": "5f552d401b228537100ff2fc282ef1df3f38562aab4ce2a4f7b6c6e0f7a3dd91",
+      "labels": [
+        "class/bug",
+        "category/specs-and-process",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "188",
+      "title": "§188 The routing profile's per-vehicle maximum-speed semantics have no test anywhere, so a change that passes a speed proves only the hand-off — Found 2026-10-12 while applying `vehicle-max-speed-settings` (task 5.3, device run)",
+      "fingerprint": "f984a69881c7e0c9510e6183dcf15677add8c1e3ffe9f939a6755c1e7db72338",
+      "labels": [
+        "class/improvement",
+        "category/native-jni",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "189",
+      "title": "§189 `routing-max-speed` is shipped but absent from `tools/feature-list/specs.json`, so `ShippedSpecClassificationTest` is red on HEAD — Found 2026-10-12 during the `search-result-row-content` gate (task 8.2)",
+      "fingerprint": "114d7413a9da37f30fc06c5fc6f4d5c8bdd64ce702ddcc9df2ef0c6798729165",
+      "labels": [
+        "class/bug",
+        "category/verification",
+        "status/fixed-by",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "190",
+      "title": "§190 The phone's follow render latency is unmeasured, so the refresh threshold's latency term is a guess — Filed 2026-10-12 by `fix-follow-display-pump` (task 5.2, deferred: no phone attached)",
+      "fingerprint": "2189018272b9dcfadf076c68ae741dabb4d24631328cb53efd265c14cb61a03e",
+      "labels": [
+        "class/improvement",
+        "category/map-rendering",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "191",
+      "title": "§191 The legacy route entry logs raw coordinates, and no gate looks at native code for them — Found 2026-10-13 while implementing `distinguish-routing-failures` (task 2.2)",
+      "fingerprint": "1575af7fac6aa2aac720a605cac6b2ad732d80ba3490fd6840c0bf8c2cac81c1",
+      "labels": [
+        "class/bug",
+        "category/native-jni",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "192",
+      "title": "§192 `HardcodedStringScanner` misses a user-facing literal assigned to a state field — Found 2026-10-13 while implementing `distinguish-routing-failures` (task 3.3)",
+      "fingerprint": "c4ba0fe6e7ee905a99b2b25daa60e5a65491e2313baec9e787422f3bf98f3fe5",
+      "labels": [
+        "class/bug",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "193",
+      "title": "§193 `avoidTolls` and `avoidUnpaved` are accepted and do nothing but log — Found 2026-10-13 while implementing `distinguish-routing-failures` (task 2.2)",
+      "fingerprint": "dd7f98cb9510eee77f3dc74e106df526f780a4605ab4be05c936d38e1659e6ce",
+      "labels": [
+        "class/improvement",
+        "category/native-jni",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "194",
+      "title": "§194 The full gate is red on HEAD: the shipped `routing-max-speed` spec is unclassified — Found 2026-10-13 running the forced gate while implementing `distinguish-routing-failures` (task 7.3)",
+      "fingerprint": "2e7100fa2e10ddc983cc627654409a2704daa63e0a7314f577b5cf106020c6d6",
+      "labels": [
+        "class/bug",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "195",
+      "title": "§195 Every Compose suite times out in the full forced gate, while each passes in isolation — Found 2026-10-13 running the forced gate while implementing `distinguish-routing-failures` (task 7.3)",
+      "fingerprint": "7fd6c88c7ec83c492be304572b4a912769a7dfc3a6c997d1e2f1b124494a7314",
+      "labels": [
+        "class/bug",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "196",
+      "title": "§196 The phone device suites are bound to a map dataset the reference AVD does not have — Found 2026-10-13 running them while implementing `distinguish-routing-failures` (task 6.1)",
+      "fingerprint": "28893c08df770291cbad5174bd4bb8e4e61b818d02b5c31548a6a73d223c9293",
+      "labels": [
+        "class/bug",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "197",
+      "title": "§197 The first route calculation after opening the databases can see an empty database list — Found 2026-10-13 sweeping Dortmund while implementing `distinguish-routing-failures` (task 6.2)",
+      "fingerprint": "05f08ca900eee9bf24496dfca91def4f8f0cdf0d2554b12f56de42a9666da8b1",
+      "labels": [
+        "class/bug",
+        "category/route-and-navigation",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "198",
+      "title": "§198 The archived `distinguish-routing-failures` left four verification tasks open — Archived 2026-10-13 (its own tasks 6.4, 6.5, 7.3, 8.1)",
+      "fingerprint": "5c96346ec151f41f4ce70e70cc108921c4e36434a33dffda5e88a27e222efe43",
+      "labels": [
+        "class/improvement",
+        "category/verification",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "199",
+      "title": "§199 `guidelines/FeatureList.md`'s coverage gate row refuses `a user-visible spec that no bullet reaches` — a check the tool does not have, while 38 user-visible shipped specs reach no bullet and the gate exits 0 — Found 2026-10-13 during the review of `fix-routing-max-speed-classification`",
+      "fingerprint": "a6aeaa5d57cbb4285d9821c0bb724c1b53f9f6821ad05620d24390c77d3d5aff",
+      "labels": [
+        "class/bug",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "200",
+      "title": "§200 `guidelines/UI.md`'s \"Keeping this document honest\" rule names only the §1 parity table and the §2 glyph table, so a number the document restates elsewhere has no update obligation — the §8 reroute-policy bullet stayed at 50 m / 10 s through the change that moved it (`TODO.md` §187) — Found 2026-10-13 while applying `fix-ui-reroute-numbers`",
+      "fingerprint": "1a0dde2d33d9153f88a7ded0595be37ecfcf998e5b6d6afc7d3b1663bb584f9c",
+      "labels": [
+        "class/improvement",
+        "category/specs-and-process",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "201",
+      "title": "§201 The car guard's roundabout exit ordinal has no upper bound, and the DHU observation that would set one could not be taken while the app's own artwork provably needs no clamp — Found 2026-10-14 while applying `fix-roundabout-exit-number` (task 7.3, design Open Question 2)",
+      "fingerprint": "773867421a534455bc193c4e1cbb741c09de90462f5488734f5b5afa6e6e1f5e",
+      "labels": [
+        "class/improvement",
+        "category/car",
+        "status/on-hold",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "202",
+      "title": "§202 A Pango-less host build in this working tree compiles against the Android-generated feature headers, so the Cairo text test fails for a font file it cannot read — Found 2026-10-15 while applying `label-word-wrapping` (task 3.2)",
+      "fingerprint": "12825f8ee8aa3934a2acf1a0bf9d7586fe3d3d65f092bfd58bc1d2313059060f",
+      "labels": [
+        "class/bug",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    },
+    {
+      "sourceId": "203",
+      "title": "§203 An image carried by a tool result can kill the session that holds the work, and the error text was never captured — Found 2026-10-16 while designing the screenshot-evidence workflow (change `fix-screenshot-evidence-transcript-safety`)",
+      "fingerprint": "48f73e0a3b6ee49762d41511dfdc6cde23f09401287c667d2065a032b37de17f",
+      "labels": [
+        "class/improvement",
+        "category/build-and-harness",
+        "status/open",
+        "source/todo-import"
+      ]
+    }
+  ],
+  "skippedList": []
+}

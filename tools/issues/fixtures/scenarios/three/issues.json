@@ -1,0 +1,39 @@
+[
+  {
+    "number": 11,
+    "title": "§11 A car entry that is open and eligible",
+    "body": "<!-- nvid: 11 -->\n<!-- fingerprint: 1111111111111111111111111111111111111111111111111111111111111111 -->\n\n- **Observed** ✗: the car surface shows nothing.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 12,
+    "title": "§12 A ui entry, open but not eligible",
+    "body": "<!-- nvid: 12 -->\n<!-- fingerprint: 2222222222222222222222222222222222222222222222222222222222222222 -->\n\n- **Observed** ✗: the phone card is wrong.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "source/todo-import" }
+    ]
+  },
+  {
+    "number": 13,
+    "title": "§13 A verification entry, open (device)",
+    "body": "<!-- nvid: 13 -->\n<!-- fingerprint: 3333333333333333333333333333333333333333333333333333333333333333 -->\n\n- **Observed** ✗: only on a device.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/verification" },
+      { "name": "status/open-device" },
+      { "name": "source/todo-import" }
+    ]
+  }
+]

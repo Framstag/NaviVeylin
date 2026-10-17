@@ -1,0 +1,71 @@
+# tools/issue-tooling-selftest.sh
+# run:      2026-10-17T08:11:19Z
+# command:  bash tools/issue-tooling-selftest.sh
+# a full run, then the same command in an empty environment (what the CI step does)
+
+PASS Profile#everySectionIsPresent
+PASS Taxonomy#vocabulariesAreClosed
+PASS Taxonomy#mapsEveryEntryInTodoMd
+PASS Taxonomy#unknownValueRefuses
+PASS Policy#allowlistIsNotEmptyAndNamesTheAuthenticatedUser
+PASS Policy#gateMatrix
+PASS WorkPackage#bodyCannotBreakOutOfTheDataBlock
+PASS WorkPackage#oversizedBodyRefuses
+PASS Fingerprint#stableAcrossWhitespaceAndLineNumbers
+PASS Fingerprint#separatesDistinctEntries
+PASS TodoSections#parsesEveryStatusShape
+PASS labels#dryRunListsTaxonomy
+PASS lib#discoversTheCurrentProject
+PASS lib#refusesOutsideAGitTree
+PASS lib#noProjectValueInTheEngine
+PASS lib#exitCodeConstants
+PASS policy#preflightRefusesUnknownLogin
+PASS create#duplicateRefusesAndNamesTheIssue
+PASS create#writesMarkerAndLabels
+PASS update#refusesUnknownLabel
+PASS close#requiresReasonAndEvidence
+PASS close#recordsStateReason
+PASS close#refusesOnPolicyFailure
+PASS list#filtersByEachCriterion
+PASS surface#noDeletePath
+PASS surface#reservedLabelRefusesInEveryWritePath
+PASS surface#reservationIsNotBypassedByTheOtherLabelFlags
+PASS import#dryRunEmitsOnePreviewPerFinding
+PASS import#secondRunIsANoOp
+PASS adapter#emitsTheSameFindingsAsTheDryRun
+issue-tooling-selftest: all 30 cases passed (JDK 27, offline, no token)
+exit=0
+
+# env -i PATH="$PATH" bash tools/issue-tooling-selftest.sh
+PASS Profile#everySectionIsPresent
+PASS Taxonomy#vocabulariesAreClosed
+PASS Taxonomy#mapsEveryEntryInTodoMd
+PASS Taxonomy#unknownValueRefuses
+PASS Policy#allowlistIsNotEmptyAndNamesTheAuthenticatedUser
+PASS Policy#gateMatrix
+PASS WorkPackage#bodyCannotBreakOutOfTheDataBlock
+PASS WorkPackage#oversizedBodyRefuses
+PASS Fingerprint#stableAcrossWhitespaceAndLineNumbers
+PASS Fingerprint#separatesDistinctEntries
+PASS TodoSections#parsesEveryStatusShape
+PASS labels#dryRunListsTaxonomy
+PASS lib#discoversTheCurrentProject
+PASS lib#refusesOutsideAGitTree
+PASS lib#noProjectValueInTheEngine
+PASS lib#exitCodeConstants
+PASS policy#preflightRefusesUnknownLogin
+PASS create#duplicateRefusesAndNamesTheIssue
+PASS create#writesMarkerAndLabels
+PASS update#refusesUnknownLabel
+PASS close#requiresReasonAndEvidence
+PASS close#recordsStateReason
+PASS close#refusesOnPolicyFailure
+PASS list#filtersByEachCriterion
+PASS surface#noDeletePath
+PASS surface#reservedLabelRefusesInEveryWritePath
+PASS surface#reservationIsNotBypassedByTheOtherLabelFlags
+PASS import#dryRunEmitsOnePreviewPerFinding
+PASS import#secondRunIsANoOp
+PASS adapter#emitsTheSameFindingsAsTheDryRun
+issue-tooling-selftest: all 30 cases passed (JDK 27, offline, no token)
+exit=0

@@ -167,8 +167,8 @@ class MapDownloadServiceRepositoryLifecycleTest {
                 slotUrl + "types.dat"
             ),
             // Filtered to this slot's own requests: another test class running in the same JVM can leave a
-            // request in flight that lands on this server once the port is recycled (the family `TODO.md`
-            // §148 records), and that is not what this case is about.
+            // request in flight that lands on this server once the port is recycled (the family `TODO.md` §148
+            // records), and that is not what this case is about.
             requestedPaths.filter { it.startsWith(slotUrl) }
         )
     }

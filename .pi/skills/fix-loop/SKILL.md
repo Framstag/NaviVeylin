@@ -1,6 +1,6 @@
 ---
 name: fix-loop
-description: 'Run a budgeted, pre-authorized loop that closes defect-shaped backlog items one at a time — bugs, and improvements that clear the same bar. Per item: pre-screen the backlog, prove the root cause with a test that is red on HEAD, create a `fix-*` OpenSpec change, apply it, get an independent review, archive it, update `TODO.md`, take the next item. Stops at an item cap, a deadline or a blocker. Use when asked to "run the bug fix loop", "fix bugs until <time>/<count>", "work the backlog in a loop", or when several triaged defects should be closed in one session without exhausting the context window.'
+description: 'Run a budgeted, pre-authorized loop that closes defect-shaped backlog items one at a time — bugs, and improvements that clear the same bar. Per item: pre-screen the backlog, prove the root cause with a test that is red on HEAD, create a `fix-*` OpenSpec change, apply it, get an independent review, archive it, update the issue (`update.sh`, `close.sh`), take the next item. Stops at an item cap, a deadline or a blocker. Use when asked to "run the bug fix loop", "fix bugs until <time>/<count>", "work the backlog in a loop", or when several triaged defects should be closed in one session without exhausting the context window.'
 ---
 
 # fix-loop
@@ -11,7 +11,7 @@ child runs with fresh context, which is what lets a long run survive.
 
 ```
 pre-screen the whole backlog → eligibility gate → root cause + red test → fix-* change
-  → apply → independent review → verify + archive → TODO.md bookkeeping → next item
+  → apply → independent review → verify + archive → issue bookkeeping (`update.sh`, `close.sh`) → next item
 ```
 
 A **bug** contradicts a spec. An **improvement** enters when it is defect-shaped: one named gap, one fix, and
@@ -29,8 +29,8 @@ Four properties. Each is enforced by a mechanism, and each mechanism was measure
 | all tests green | one forced gate per change shape (Phase D) — the both-flavor suite for a `code` change, the affected cases only for a `test-only` change — plus one revert-check per new invariant (Phase C) |
 
 The loop is **pre-authorized** by the user's request: it may create changes, edit code, archive changes and
-repair `TODO.md` metadata without asking per step. It may **not** exceed the budget, invent scope, or delete a
-`TODO.md` entry the run was not allowed to delete.
+repair an issue's labels and status without asking per step. It may **not** exceed the budget, invent scope, or
+close an issue the run was not allowed to close.
 
 ## When to use
 
@@ -42,8 +42,8 @@ repair `TODO.md` metadata without asking per step. It may **not** exceed the bud
 - The user named one entry → one ordinary `fix-*` change via `openspec-propose`. The loop adds overhead.
 - `class: feature` → the ordinary change flow. A feature has no wrong behaviour to falsify, so only condition
   5 bounds its scope, and scope growth — not the gate — is a feature's failure mode.
-- Cleaning `TODO.md` → `cleanup-todo`. Auditing proof gaps → `openspec-proof-gap-audit`.
-- No `TODO.md` entry exists → triage first with `triage-todo`, then report.
+- Tracker hygiene → `cleanup-todo`. Auditing proof gaps → `openspec-proof-gap-audit`.
+- No issue carries the item → triage first with `triage-todo`, then report.
 
 ## Start — the budget (the only prompt of the run)
 
@@ -54,10 +54,10 @@ Ask **once**, in ONE `ask_user` call. Start nothing before the answers exist.
 | item cap `N` | how many items this run may close — bugs and improvements together |
 | wall-clock budget `M` minutes | when the run must stop even if items remain |
 | review `on/off` | `on` = one fresh `reviewer` child per change (costs time, buys the correctness property) |
-| `TODO.md` removal allowed `yes/no` | whether an archived entry may be deleted or only marked `fixed-by` |
+| closure allowed `yes/no` | whether the archived issue may be **closed** (`close.sh --reason/--evidence`) or only marked `status/fixed-by` (`update.sh`), with the change named as the evidence |
 
 ```bash
-.pi/skills/fix-loop/scripts/loop-state.sh init --items N --minutes M --review on|off --allow-todo-removal yes|no
+.pi/skills/fix-loop/scripts/loop-state.sh init --items N --minutes M --review on|off --allow-closure yes|no
 .pi/skills/fix-loop/scripts/loop-state.sh show
 ```
 
@@ -79,8 +79,8 @@ eligible, so the pass covers everything and concludes in minutes.
    `triage-todo`'s order — **bugs first, then improvements** — so the budget goes to bugs before an
    improvement is reached.
 3. The queue holds **survivors only**. Every rejection is reported with the condition that failed and one
-   clause of evidence. A distinct defect the pass uncovers is filed as a new `TODO.md` entry (append-only,
-   new highest id, cross-reference instead of duplicating).
+   clause of evidence. A distinct defect the pass uncovers is filed as a new issue (`create.sh`,
+   fingerprint-deduped, cross-referencing the issue it touches instead of duplicating).
 4. **Two triages per run, maximum.** The second is for a queue that emptied mid-run; a third pass over a file
    that already answered "eligible: none" is budget burned on a known answer.
 
@@ -88,7 +88,7 @@ The child's contract:
 
 ```js
 await runs.run('triage', { agent: 'scout', skill: ['triage-todo'], task:
-  'Run the triage-todo skill on TODO.md. Cover EVERY entry with status open or unverified whose class is bug '
+  'Run the triage-todo skill. Cover EVERY issue with status/open or status/unverified whose class is bug '
   + 'or improvement (not the top N); drop feature entirely, and anything in-flight, on-hold, fixed-by or '
   + 'device-gated. Output one line per surviving candidate: "§<id> | score | <class> | <category from the '
   + 'file vocabulary> | <one-line claim> | <file:line evidence> | eligible: yes", then "queue: §a §b §c" in '
@@ -202,15 +202,16 @@ Use `openspec-propose` (planning only — it must not touch project code). Chang
   **eliminated**. A list of viable options means condition 3 was wrong: stop and re-gate.
 - `tasks.md` — ordered, each with its own verification: the red case with its quoted XML; the fix; one task
   per scenario naming its case; a revert-check **only** for an invariant the fix adds beyond the original
-  symptom; the forced gate; device or measurement follow-ups stated as pending; the `TODO.md` status and any
+  symptom; the forced gate; device or measurement follow-ups stated as pending; the issue's status and any
   guideline section the fix supersedes.
-- A change that touches no compiled file (`*.md`, `openspec/**`, `.pi/**`, `guidelines/**`, `TODO.md`)
+- A change that touches no compiled file (`*.md`, `openspec/**`, `.pi/**`, `guidelines/**`, `tools/**`)
   replaces the build task with the structural check of the file it edits (`guidelines/Build.md` §2, the scope
   block) and drops the suite task — the task says so instead of running a build "for completeness".
 - Before the gate, `grep` the suite for the constants the change moves (`run-tests` step 5) and plan those
   expectation updates explicitly.
-- New `TODO.md` ids come from the max over **both** trees when a parallel branch exists (see `REFERENCE.md`,
-  "Running the loop in a worktree").
+- A finding filed mid-run gets an **issue**, never an id: the tracker is the only writer, so the id
+  collisions a second TODO-writing tree used to cause cannot arise (see `REFERENCE.md`, "Running the loop in a
+  worktree").
 
 Record `step C --name propose --note "<change name>"`.
 
@@ -277,11 +278,12 @@ Record `step E --name review --status ok|fail --note "<round count / verdict>"`.
    headers left; `openspec validate <capability> --type spec`). Re-run `evidence-check.sh` against the
    archived directory (report-only mode) and quote its drift count — a drifted row is a claim a reader can no
    longer check.
-4. `TODO.md`: entry → `**status:** fixed-by \`<change>\``. Update the **Clusters** index so it matches the
-   metadata (a `class` change is an index change). Delete the entry **only** when the run was started with
-   `--allow-todo-removal yes` and the archive exists; otherwise report it as a removal candidate. Re-run the
-   structure checks: `##` count == `**id:**` count, every heading followed by its metadata line, no id
-   collision.
+4. the **issue**: `tools/issues/update.sh` sets `status/fixed-by` with `<change>` as the recorded value —
+   the item's `class` and `category` are left alone. Then the closure: `tools/issues/close.sh --reason …
+   --evidence …` **only** when the run was started with `--allow-closure yes` and the archive exists
+   (`close.sh` refuses a closure without both, and it names the archived change as the evidence); otherwise
+   report the item as a closure candidate. Re-run `tools/issues/list.sh --id <N>` to confirm the state and
+   the identity, and `tools/check-todo-references.sh` to confirm the bookkeeping broke no citation.
 5. `loop-state.sh done <change> --result done --id '§<n>'`.
 6. Commit on the loop branch: `fix: <slug> (§N)` for the fix, `fix: <slug> (§N) — archive with its evidence`
    for the archive. Do not push unless asked.
@@ -305,7 +307,8 @@ the first run failed on this class, and both times the *fix* was sound. It is an
 | A row you can no longer reproduce is labelled **not retained**, with how it was obtained | an honest prose record beats a dangling pointer |
 
 `evidence-check.sh` is the mechanical form of the table: it resolves every `file:line`, every quoted
-`tests=/failures=`, every `/tmp` pointer and every `§N` against `TODO.md`, and checks the absence of
+`tests=/failures=`, every `/tmp` pointer and every `§N` against the recorded `§ → issue` table (or the
+tracker), and checks the absence of
 `REVERT-CHECK MUTATION` in the tree. It exits non-zero on a dangling claim, runs in Phases C/D before the gate
 and again before archive, and has two modes — **live** (strict) and **archived** (report-only for the `§N` and
 tally checks, strict for `file:line`, mutation and structure). Its own `--selftest` proves each check can go
@@ -313,7 +316,8 @@ red.
 
 ### 2. One writer per tree
 
-Never run two iteration children concurrently. The orchestrator writes `TODO.md`, `config` or skill files
+Never run two iteration children concurrently. The orchestrator writes the tracker (labels, status, closure),
+`config` or skill files
 **only while no child is running** — a bookkeeping edit during a child's `git add -A` is committed under the
 child's message. The loop owns its branch; the orchestrator owns the skill in the **repo** copy (see
 `REFERENCE.md`, "Running the loop in a worktree").
@@ -349,7 +353,7 @@ file.
 | child reports `blocked` mid-change | record `--result blocked --note`. Write a `ki_processing_failures.log` entry (timestamp, approach, problem). Leave the change unarchived, take the next item |
 | the fix needs a decision, or grows beyond one capability | re-gate. On a fail, abandon the change (do not archive; say so explicitly) |
 | tests red after 3 focused attempts | `blocked`, as above. Never weaken a test to make it green |
-| a defect is found that is not this change's | append a new `TODO.md` entry (append-only, new highest id, cross-reference) and continue |
+| a defect is found that is not this change's | file it as a new issue (`create.sh`, fingerprint-deduped, cross-referencing the issue it touches) and continue |
 | the gate needs a device that is absent | state the device task as pending in the report, file the residue (`class: improvement`, `status: open (device)`). An item counts as closed only if **host** evidence proves correctness |
 | a candidate looks out of scope for its class | the pre-screen carries the class and applies the Phase B conditions; a `feature` is dropped there, not during analysis |
 

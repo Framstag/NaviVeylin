@@ -1,0 +1,57 @@
+{
+  "profile": 1,
+  "comment": "THE PROJECT PROFILE — the one file a second project adapts. Every project-specific fact the issue tooling needs lives here: the repository, who may authorise work, the label vocabulary, the source renames and the input bounds. Nothing under tools/issues/*.sh, tools/issues/import.sh or tools/issues/core/*.java names a project value; those files read this profile at run time (design D11).",
+  "repo": "Framstag/NaviVeylin",
+  "allowedAuthors": ["Framstag"],
+  "requiredLabels": ["agent/eligible"],
+  "reservedLabels": ["agent/eligible"],
+  "namespaceSeparator": "/",
+  "namespaces": {
+    "class": ["bug", "improvement", "feature"],
+    "category": [
+      "build-and-harness",
+      "car",
+      "data-and-maps",
+      "favorites",
+      "location",
+      "map-rendering",
+      "native-jni",
+      "persistence",
+      "route-and-navigation",
+      "search",
+      "specs-and-process",
+      "stylesheets",
+      "ui",
+      "verification"
+    ],
+    "status": ["open", "in-flight", "fixed-by", "on-hold", "open-device", "unverified", "retired"],
+    "source": ["todo-import", "agent", "human", "ci"],
+    "agent": ["eligible", "in-progress", "needs-decision", "needs-device"],
+    "prio": ["p0", "p1", "p2", "p3"],
+    "sensor": []
+  },
+  "namespaceNotes": {
+    "sensor": "Declared here, populated by the check registry (`sensor-registry-and-metric-issues`): one value per declared check, so the vocabulary keeps one owner. Empty until that registry lands.",
+    "prio": "The four bands this change fixes. The band EDGES and the TTL are `issue-metadata-loop`'s to add to the `bands` section of this file; the bands themselves are computed there, not here."
+  },
+  "sourceRenames": {
+    "category": {
+      "rendering": "map-rendering",
+      "build": "build-and-harness"
+    }
+  },
+  "statusLabels": [
+    { "match": "^open \\(device\\)", "label": "open-device" },
+    { "match": "^open \\(unproven on a device\\)", "label": "unverified" },
+    { "match": "^open(\\s|$)", "label": "open" },
+    { "match": "^in-flight(\\s|$)", "label": "in-flight" },
+    { "match": "^fixed-by(\\s|$)", "label": "fixed-by" },
+    { "match": "^on-hold(\\s|$)", "label": "on-hold" },
+    { "match": "^retired(\\s|$)", "label": "retired" }
+  ],
+  "bounds": {
+    "maxBodyBytes": 65536,
+    "maxLines": 5000,
+    "forbidNul": true
+  }
+}

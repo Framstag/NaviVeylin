@@ -1,260 +1,219 @@
 ---
 name: cleanup-todo
-description: Cleans up TODO.md — removes entries already implemented on master, in an archived/in-flight OpenSpec change, or in a merged branch/PR, keeps the file's structure intact, and gives every entry an id, a category and a bug/improvement/feature class. Optionally clusters the backlog by category. Use when asked to clean up, prune, deduplicate, restructure or re-classify TODO.md, or to check which TODO entries are already done.
+description: Tracker hygiene — repairs an issue's labels and status against the closed vocabularies, finds duplicates by fingerprint and `nvid` collisions, and closes the items whose work is provably done on master, in an archived change or in a merged PR. Closures carry evidence; nothing is ever deleted. Use when asked to clean up, prune or repair the backlog, to deduplicate it, or to check which items are already done.
 ---
 
-# Clean up `TODO.md`
+# Tracker hygiene
 
-`TODO.md` is the project's live backlog: numbered `## N.` sections of narrative findings plus the
-feature-table groups. Entries accumulate, get fixed by changes that never come back to delete them,
-lose their metadata, or end up in a pile that nobody can triage. This skill prunes what is provably
-done, keeps the structure other tools depend on, and gives every entry the metadata triage needs.
+The tracker is the project's live backlog: one GitHub issue per item, each carrying exactly one
+`class/*`, one `category/*`, one `status/*` and one `source/*` label. Items accumulate — a change fixes
+one and never comes back to close it, a label is set by hand outside the vocabulary, the same finding is
+filed twice, an id collides. This skill repairs what is provably wrong and closes what is provably done.
 
-It changes a **tracked** file, so it never deletes on a hunch: every removal carries evidence, and the
-plan is approved before the first edit.
+The tracker is **not** a file, and the tooling has no delete path by design: an item is the only record of
+a finding, and closure is reversible. So this pass **never deletes on a hunch**: every closure carries
+evidence, and the plan is approved before the first write.
 
 ## When to use
 
-- "Clean up `TODO.md`" / "prune the backlog" / "which TODO entries are already done?"
-- After archiving one or more OpenSpec changes (their entries say "removed when the change is archived")
-- A `TODO.md` session start where the file has grown past what a human will read
-- Entries lack a category/class, or the same root cause appears as several sections
+- "Clean up the backlog" / "prune the tracker" / "which items are already done?"
+- After archiving one or more OpenSpec changes (their items say "removed when the change is archived")
+- A session start where the backlog has grown past what anyone reads item by item
+- Items are missing a label, carry two of the same namespace, or two items describe one root cause
 
 ## When NOT to use
 
-- Ranking or picking the next item → `triage-todo` (read-only; it never edits)
+- Ranking or picking the next item → `triage-todo` (read-only; it never writes)
+- Recomputing a priority band or a score → `issue-metadata-loop`
 - Processing `ki_processing_failures.log` → `process-failure-log`
 - Auditing whether the *changes* prove their requirements → `openspec-proof-gap-audit`
-- The user wants one specific entry removed: do that, and say so — do not run a whole pass
+- The user wants one specific item closed: do that, and say so — do not run a whole pass
 
-## The structure contract (never break these)
+## The contract (never break these)
 
 | Element | Rule |
 |---|---|
-| Title + legend | Keep line 1 (`# NaviVeylin TODO`) and the legend line; **extend** the legend, never replace it |
-| Id | The section number **is** the id. Never renumber to tidy up: change artifacts, task files and sessions reference `§N` in prose. Report a collision (`§79` occurs twice as of 2026-10-03); resolve it by giving the *duplicate* a fresh id and a note, never by shifting its neighbours |
-| Order | Keep the existing order. Sorting is a restructure, so it needs explicit approval |
-| Separator | Keep the `---` line between sections |
-| Body | Keep the labelled bullets (`- **Observed** ℹ:`, `- **Consequence** ⏳:`, `- **Fix candidate**:`, `- **Fixed** ✅ by …`). This skill adds metadata and deletes proven-done entries; it does not rewrite findings |
-| Feature tables | The `## N.` table groups keep their heading; each row is a `feature` unless its Notes cell starts with `[improvement]` or `[bug]` |
-
-## Entry metadata (what a clean entry looks like)
-
-One metadata line directly under the heading, every entry, no exceptions:
-
-```markdown
-## 28. Whole-level rounding in `computeAreaZoom` over-fits area favorites and POI search
-**id:** 28 · **category:** map-rendering · **class:** bug · **status:** fixed-by `fix-area-fit-zoom-rounding`
-```
-
-- **id** — the section number (for table groups: the group id, with rows inheriting it), unique
-- **category** — one value from the vocabulary below; add a value only with the user's agreement, and add
-  it to the legend in the same pass
-- **class** — exactly one of `bug` | `improvement` | `feature`
-  - `bug` — current behaviour contradicts a spec, crashes, loses data, or silently fails a user action
-  - `improvement` — behaviour is correct but a quality attribute or the process is poor (perf, memory,
-    noise, testability, harness, docs, specs/process)
-  - `feature` — capability absent entirely; nothing is broken because nothing exists
-- **status** — `open` | `in-flight <change>` | `fixed-by <change|commit>` | `on-hold <decision>` |
-  `open (device)` for an entry whose only remaining evidence needs hardware
-- **cluster** (optional, only in cluster mode) — the grouping key, defaulting to the category
-
-Category vocabulary (extend deliberately; keep it kebab-case):
-
-```
-map-rendering · stylesheets · route-and-navigation · search · favorites · location · car ·
-persistence · ui · i18n · native-jni · data-and-maps · build-and-harness · verification ·
-specs-and-process · licensing
-```
-
-Legend extension to add once (keep the existing `✗ / ⏳ / ✅` line and append):
-
-```markdown
-**Entry metadata:** every `##` section carries `**id:** … · **category:** … · **class:** bug|improvement|feature · **status:** …`
-```
+| The identity | `nvid` in the body for an imported item, the issue number for a newer one. **Never** edit, move or reuse it — a `§N` citation resolves through it |
+| The fingerprint | the `<!-- fingerprint: … -->` marker, written by `create.sh`; it is how a duplicate is found, so never hand-write or edit one |
+| The priority marker | the `<!-- prio: … -->` marker belongs to `issue-metadata-loop`; read it, never rewrite it |
+| One label per namespace | exactly one `class/*`, one `category/*`, one `status/*`, one `source/*` |
+| The vocabularies are closed | the values in `tools/tooling.json` (44 values across `class`, `category`, `status`, `source`, `agent`, `prio`). A value outside them is repaired or reported, never invented |
+| `agent/eligible` | reserved for a human: no pass of this skill may grant it, and `update.sh`/`create.sh` refuse it |
+| Closure, not deletion | there is no delete path. An item that must stop being work is **closed** with a reason and its evidence |
+| The body's prose | this skill repairs labels, markers it must not touch, and closures. It does not rewrite an item's findings |
 
 ## Procedure
 
 ### 1. Inventory (read-only)
 
 ```bash
-grep -c '^## ' TODO.md                       # sections
-grep -n '^## ' TODO.md                       # ids + titles
-grep -o '^## [0-9]*' TODO.md | sort | uniq -d   # id collisions
-grep -c '^\*\*id:\*\*' TODO.md               # entries that already carry metadata
-wc -l TODO.md
+tools/issues/labels.sh --json                        # the taxonomy vs what the tracker holds (a dry-run diff)
+tools/issues/list.sh --json > /tmp/tracker.json      # every issue: number, title, labels, author
+
+jq -r '[.[].labels[].name] | group_by(.) | map({l: .[0], n: length}) | .[] | "\(.n)\t\(.l)"' /tmp/tracker.json | sort -rn
+jq '[.[] | select(([.labels[].name | select(startswith("class/"))] | length) != 1) | .number]' /tmp/tracker.json
+jq '[.[] | select(([.labels[].name | select(startswith("category/"))] | length) != 1) | .number]' /tmp/tracker.json
+jq '[.[] | select(([.labels[].name | select(startswith("status/"))] | length) != 1) | .number]' /tmp/tracker.json
+jq '[.[] | select(([.labels[].name | select(startswith("source/"))] | length) != 1) | .number]' /tmp/tracker.json
+jq -r '[.[] | select(.body | test("agent/eligible")) | .number]' /tmp/tracker.json   # must be empty
 ```
 
-Report: sections, id collisions, entries without metadata, and the class distribution
-(`grep -o '\*\*class:\*\* [a-z]*' TODO.md | sort | uniq -c`).
+Report: item count, the label histogram, the items violating the one-label rule, the count per `status/*`,
+and the duplicates below.
+
+**Duplicates by fingerprint** — two issues whose marker is equal describe the same finding:
+
+```bash
+jq -r '.[] | [.number, ((.body | capture("<!-- fingerprint: (?<f>[0-9a-f]+) -->")? // {f:""}).f)] | @tsv' /tmp/tracker.json |
+  awk -F'\t' '$2!="" {print $2}' | sort | uniq -d
+```
+
+**`nvid` collisions** — two issues carrying one imported id (only possible if one was hand-created):
+
+```bash
+jq -r '.[] | [.number, ((.body | capture("<!-- nvid: (?<id>[0-9]+) -->")? // {id:""}).id)] | @tsv' /tmp/tracker.json |
+  awk -F'\t' '$2!="" {print $2}' | sort | uniq -d
+```
+
+Report a collision; do not resolve it by rewriting a marker. The id belongs to the item that was imported
+with it, and the other item is the one to repair (an issue number is already an identity).
 
 ### 2. Build the verification sources
 
 | Source | Command | Meaning here |
 |---|---|---|
-| Landed on master | `git log --oneline -30`, `git log -S'<symbol>' --oneline -- <path>` | fixed, entry removable |
-| Commit messages that name the entry | `git log --oneline --grep='TODO <id>'`, `--grep='§<id>'` | strongest signal — this repo commits "(TODO 89, 117)" |
-| In-flight changes | `openspec list --json` | `status: in-flight <change>`, **never removed** |
-| Archived changes | `ls openspec/changes/archive | sort | tail -20`, `openspec list --json --archived` if available | landed; an entry saying "removed when X is archived" becomes removable |
+| Landed on master | `git log --oneline -30`, `git log -S'<symbol>' --oneline -- <path>` | fixed; a closure candidate |
+| Commit messages that name the item | `git log --oneline --grep='TODO <id>'`, `--grep='§<id>'`, `--grep='#<number>'` | the strongest signal — this repo commits "(TODO 89, 117)" |
+| In-flight changes | `openspec list --json` | `status/in-flight`, **never closed** |
+| Archived changes | `ls openspec/changes/archive | sort | tail -20` | landed; an item saying "removed when X is archived" becomes closable |
 | Main-repo PRs | `gh pr list --state all --limit 30` | none exist today, so this is usually empty — check anyway |
-| Submodule PRs | `gh pr list -R Framstag/libosmscout --state all --limit 30`, `gh pr view <n> -R Framstag/libosmscout` | several entries are libosmscout follow-ups (`§81` PR #1849, `§82` PR #1773); merged ⇒ removable |
-| A merged PR by number in prose | `git log --oneline --grep='#<n>'` | merges are referenced by number in the entries |
-| The named code is gone | `git grep -n '<symbol or path>'` (empty) | the entry's premise no longer exists |
+| Submodule PRs | `gh pr list -R Framstag/libosmscout --state all --limit 30`, `gh pr view <n> -R Framstag/libosmscout` | several imported items are libosmscout follow-ups (`§81` PR #1849, `§82` PR #1773); merged ⇒ closable |
+| The named code is gone | `git grep -n '<symbol or path>'` (empty) | the item's premise no longer exists |
 
-`gh` is authenticated for this machine (`gh auth status`); if it is not, say so and treat the PR
-columns as unverified rather than assuming "open" or "merged".
+`gh` is authenticated for this machine (`gh auth status`); if it is not, say so and treat the PR columns
+as unverified rather than assuming "open" or "merged".
 
-### 3. Decide per entry (evidence, not vibes)
+The item's own text is read per candidate (`tools/issues/list.sh --id N --json`), never in bulk.
 
-Removal requires **one** of:
+### 3. Decide per item (evidence, not vibes)
 
-1. an archived change that the entry itself names ("removed when `<change>` is archived" → the archive
+A **closure** requires **one** of:
+
+1. an archived change that the item itself names ("removed when `<change>` is archived" → the archive
    directory exists), or
-2. a commit/PR on `main` that touches the named file/symbol **and** the behaviour the entry describes
-   is now in the tree (open the file — the entry is a memory, not a fact), or
+2. a commit/PR on `main` that touches the named file/symbol **and** the behaviour the item describes is
+   now in the tree (open the file — the item is a memory, not a fact), or
 3. the named code/spec no longer exists at all.
 
-Never removal:
+Never a closure:
 
 - **tasks are checked but the change is still in `openspec/changes/`** — that is in-flight, not landed;
-  mark `status: in-flight <change>` and leave the entry
-- **a device-gated verification** whose code landed (`§83`, `§84` did exactly this) — `open (device)`
-- **an entry whose premise you cannot read** (file moved, symbol renamed) — mark `verification: stale`
-  and ask, rather than deleting the only record of it
+  set `status/in-flight` and leave it open
+- **a device-gated verification whose code landed** (`§83`, `§84` did exactly this) — `status/open-device`
+- **an item whose premise you cannot read** (file moved, symbol renamed) — report it as *stale* and ask,
+  rather than closing the only record of it
+- **a `status/retired` tombstone** — it exists so that a citation resolves; it is not work and not a
+  closure candidate
 
-Also classify in the same pass — for each surviving entry set/repair `category`, `class`, `status`.
-An entry that is really a guardrail belonging in `guidelines/*` or CI is still an `improvement`, but
-note the routing in its `Fix candidate` line instead of inventing a `process` class.
+A **repair** in the same pass, per surviving item:
 
-### 4. Plan, then ask (before the first edit)
+| finding | repair |
+|---|---|
+| no `class/*`, or two of them | set the one the evidence supports (`update.sh --class …`); say which and why |
+| a `category/*` outside the vocabulary | map it to the vocabulary's nearest value and report the mapping (the migration's own renames were `rendering → map-rendering`, `build → build-and-harness`) |
+| no `status/*`, or a status the item's own text contradicts | set the status the evidence supports |
+| `status/open-device` whose code has not landed | leave it; the device pass owns it |
+| an item that is really a guardrail for `guidelines/*` or CI | still `class/improvement`; note the routing, do not invent a category |
+
+### 4. Plan, then ask (before the first write)
 
 ```
-## Cleanup plan — <date>  (N sections scanned)
+## Tracker hygiene plan — <date>  (N items scanned)
 
-Removals (evidence-backed):  <id> — <one-line reason + citation (commit/PR/archive dir)>
-Reclassifications:           <id> — class bug → improvement; category — → car
-Metadata added:              <count> entries, <count> table groups
-Id collisions:               <id> — proposed fresh id for the duplicate
-In-flight (kept):            <id> — in-flight <change>
-Device-gated (kept):         <id> — open (device)
-Stale/unknown (kept):        <id> — <what could not be verified>
-Cluster proposal:            <mode + resulting groups>
+Closures (evidence-backed):  #<n> — <one-line reason + citation (commit/PR/archive dir)>
+Label repairs:               #<n> — class improvement → bug; category → car
+Status repairs:              #<n> — open → fixed-by <change>
+Duplicates by fingerprint:   #<a> and #<b> — one finding
+nvid collisions:             #<a> and #<b> — <id> occurs twice
+Vocabulary gaps:             labels.sh --json → <n> to create, <n> to remove
+Stale/unknown (kept):        #<n> — <what could not be verified>
+Retired (kept):              <count> tombstones — not work, never closed here
 ```
 
-Ask for approval of this scope. Removal is irreversible for the reader (the entry may be the only
-record of the finding) — do not remove anything the plan did not name.
+Ask for approval of this scope. A closure is reversible, but it is the wrong answer if the evidence is
+thin — and the plan is what the report quotes afterwards.
 
 ### 5. Apply
 
-- Add the metadata line under every heading; extend the legend; keep order, ids, separators and prose
-- Delete only the approved entries (with their separator, leaving no double `---`)
-- Keep each edit self-contained; one file, and verify the file still ends with its last section
+```bash
+tools/issues/labels.sh --apply                                  # vocabulary drift only
+tools/issues/update.sh --issue <n> --class bug --category car    # a label or a status repair
+tools/issues/update.sh --issue <n> --status fixed-by --value '<change>'
+tools/issues/close.sh --issue <n> --reason finished --evidence '<archived change | commit | report>'
+```
+
+`update.sh` refuses a reserved label and a value outside the vocabulary, and `close.sh` refuses a closure
+without both a reason and its evidence — if either refuses, that is the answer, not an obstacle to work
+around. One item per call, and re-read the item afterwards (`list.sh --id N`) to confirm the state.
 
 ### 6. Structure self-check (must pass, then report)
 
-A backlog-only pass edits no compiled file, so its gate is this self-check, not a build (`guidelines/Build.md`
-§2, the scope block).
+A tracker pass edits no compiled file, so its gate is this self-check, not a build
+(`guidelines/Build.md` §2, the scope block).
 
 ```bash
-grep -c '^## ' TODO.md                                  # unchanged minus removals
-grep -o '^## [0-9]*' TODO.md | sort | uniq -d            # no collisions
-awk '/^## /{ if (getline nxt > 0 && nxt !~ /^\*\*id:\*\*/) print "VIOLATION line "NR": "nxt }' TODO.md
-# no output = every section is followed by its metadata line. Do NOT use `BEGIN{ok=1} … END{exit ok}`:
-# `exit ok` inverts the verdict, so a healthy file exits non-zero and the check reports FAIL on it.
-grep -c '^\*\*id:\*\*' TODO.md                          # == section count
-grep '^\*\*id:\*\*' TODO.md | grep -o '\*\*class:\*\* [a-z]*' | sed 's/.*: //' | sort -u   # ⊆ {bug, feature, improvement}
-# Vocabulary membership needs the explicit list, scoped to the metadata lines: the legend line itself
-# carries a bare `**category:** …`, and a file-wide `grep -q "$c"` is vacuously true because the entry
-# being checked contains the string — both make the check silently unfailable.
-VOCAB="map-rendering stylesheets route-and-navigation search favorites location car persistence ui i18n native-jni data-and-maps build-and-harness verification specs-and-process licensing"
-for c in $(grep '^\*\*id:\*\*' TODO.md | grep -o '\*\*category:\*\* [a-z-]*' | sed 's/\*\*category:\*\* //' | sort -u); do
-  case " $VOCAB " in *" $c "*) ;; *) echo "category outside the vocabulary: $c";; esac; done
-grep -n 'removed when' TODO.md                          # each one: does its archive exist?
-# status histogram — compare against the approved plan, not just the class counts
-grep '^\*\*id:\*\*' TODO.md | sed 's/.*\*\*status:\*\* //' | sort | uniq -c | sort -rn
-git diff --stat TODO.md                                  # insertions ≈ sections; deletions only for approved removals
+bash tools/issue-tooling-selftest.sh                 # the tooling's own surface, offline
+bash tools/check-todo-references.sh                  # every §N citation still resolves
 
-# the cluster index must agree with the per-entry metadata (every removal invalidates it)
-sed -n '/^\*\*Clusters/,/^---$/p' TODO.md | grep '^- \*\*' > /tmp/cl.txt
-awk '{ s=$0; sub(/^- \*\*/,"",s); cat=s; sub(/\*\*.*/,"",cat); rest=s; sub(/^.*— /,"",rest);
-       cls=rest; sub(/:.*/,"",cls); ids=rest; sub(/^[a-z]*: /,"",ids); n=split(ids,a," ");
-       for(i=1;i<=n;i++){ id=a[i]; gsub(/§/,"",id); if(id!="") print id"\t"cat"\t"cls } }' /tmp/cl.txt > /tmp/idx.tsv
-awk -F'\t' 'FNR==NR{idx[$1]=$2"|"$3; next} /^\*\*id:\*\*/{ l=$0; id=l; sub(/^\*\*id:\*\* /,"",id); sub(/ ·.*/,"",id);
-       c=l; sub(/^.*\*\*category:\*\* /,"",c); sub(/ ·.*/,"",c); k=l; sub(/^.*\*\*class:\*\* /,"",k); sub(/ ·.*/,"",k);
-       nm++; if (idx[id]=="") { print "NOT IN INDEX §"id; miss++ } else if (idx[id]!=c"|"k) { print "MISMATCH §"id; bad++ } else ok++ }
-     END{ printf "metadata=%d matching=%d not-in-index=%d mismatches=%d\n", nm, ok, miss+0, bad+0 }' /tmp/idx.tsv TODO.md
+gh issue list --state all --limit 400 --json number,title,labels,body,state > /tmp/tracker.json
+jq '[.[] | select(([.labels[].name | select(startswith("class/"))] | length) != 1)] | length' /tmp/tracker.json
+jq '[.[] | select(([.labels[].name | select(startswith("category/"))] | length) != 1)] | length' /tmp/tracker.json
+jq '[.[] | select(([.labels[].name | select(startswith("status/"))] | length) != 1)] | length' /tmp/tracker.json
+jq '[.[] | select(([.labels[].name | select(startswith("source/"))] | length) != 1)] | length' /tmp/tracker.json
+jq '[.[] | select([.labels[].name] | index("agent/eligible") != null)] | length' /tmp/tracker.json   # 0
+jq -r '.[] | [.number, ((.body | capture("<!-- nvid: (?<id>[0-9]+) -->")? // {id:""}).id)] | @tsv' /tmp/tracker.json |
+  awk -F'\t' '$2!="" {print $2}' | sort | uniq -c | awk '$1>1'            # no nvid collision
+gh issue list --state closed --limit 400 --json number,title | jq 'length' # == the closures this pass made
 ```
 
-`matching` must equal the metadata count, with `not-in-index` and `mismatches` at 0 — that check is what
-proves the index was regenerated after the removals, not just left in place.
+Every `jq` above must print `0` (except the last, which must equal the plan's closure count). Quote the
+numbers in the report, and name every item whose condition is still unmet.
 
-Quote the counts in the report, and name every entry whose condition is still unmet.
+## Selection, not an index
 
-## Cluster mode (optional restructure)
+The backlog is selected by query, so no index is maintained by hand and nothing regenerates one:
 
-Two modes; the default is safe, the other is a restructure that needs explicit approval:
+```bash
+tools/issues/list.sh --class bug --status open          # the open bugs
+tools/issues/list.sh --class improvement --status open  # the open improvements
+tools/issues/list.sh --category car --status open       # one area
+```
 
-- **Index mode (default)** — leave the `## N.` sections in place and insert one generated index after
-  the legend, grouped by `category` (then by `class`), each row `- <class> · §<id> <title>`. Nothing
-  else moves, so every `grep '^## '` and every `§N` reference keeps working. This is what "build
-  clusters" usually needs: a triage-shaped view over a flat file.
-- **Section mode (ask first)** — regroup the entries under `## Cluster: <category>` blocks with the
-  entries demoted to `### N.`. It reads better and **breaks the flat `##` convention** that
-  `triage-todo`, the inventory commands above and any `grep '^## '` consumer rely on. If the user wants
-  it, update those consumers in the same pass (`triage-todo` skill, this skill's commands, and any
-  script that greps headings) and say which ones changed.
-
-Never renumber while clustering: cluster membership is derived, ids are identity.
+Those two first queries are the tracker's two saved searches. A hand-maintained index is what drifted
+before, and a generated one drifts again the moment an item is filed by hand — so when a reader asks for a
+view, name the query rather than building a list.
 
 ## Pitfalls
 
 1. **A checked task is not a landed change.** `openspec list` shows 25/25 complete for a change that is
-   still unarchived — its entries stay, marked `in-flight`.
-2. **"FIXED by <change>" is not "delete now"** when the entry says the removal happens at archive time.
-   Check `openspec/changes/archive/` for the directory.
-3. **The entry is a memory, not a fact.** Open the file it names. Entries move, line numbers drift
-   (`§49`'s citation pointed at the GPS-marker drawing after a refactor), and a stale premise is a
-   stale entry — but that is a *report*, not a silent delete.
-4. **Renumbering breaks prose.** `TODO.md` ids are quoted in commit messages, change tasks and
-   guidelines. Fix a collision by renumbering the duplicate only.
-5. **Do not fold several entries into one** while cleaning: one root cause with three sections is
-   reported as a cluster and merged only with approval, because the ids are referenced.
-6. **Keep the feature tables.** §1–§10's rows are the `feature` backlog; they are not "stale sections"
-   to delete, and their `✗` is a missing capability, not a bug.
+   still unarchived — its items stay open, marked `in-flight`.
+2. **"FIXED by `<change>`" is not "close now"** when the item says the work lands at archive time. Check
+   `openspec/changes/archive/` for the directory.
+3. **The item is a memory, not a fact.** Open the file it names. Items move, line numbers drift (`§49`'s
+   citation pointed at the GPS-marker drawing after a refactor), and a stale premise is a stale item — but
+   that is a *report*, not a silent closure.
+4. **Never edit a marker.** The `nvid` is identity, the fingerprint is how duplicates are found, the `prio`
+   marker is the metadata pass's. Repairing a label never touches a body.
+5. **Do not fold several items into one.** One root cause with three items is reported as a cluster and
+   closed together only with approval, because each number is referenced from somewhere.
+6. **A tombstone is not work.** `status/retired` items exist so that an old citation resolves; ranking them
+   or closing them destroys the guarantee the migration paid for.
 7. **Never edit `ki_processing_failures.log` or the archived change artifacts** in the same pass.
-8. **Shell tools, not a blocked allowlist**: `grep`/`sed`/`awk`/`jq` are the house style for the commands
-   above (and `openspec/config.yaml` forbids `python3` for OpenSpec interaction). The old claim that
-   `python3`/`perl`/`tesseract` are allowlist-blocked is **false** — verified 2026-10-03: `python3` 3.14.7,
-   `perl` and `tesseract` 5.5.3 all run in this shell. Keep the shell tools anyway: the checks stay
+8. **Never grant `agent/eligible`.** It is the human's authorisation; a hygiene pass that could set it
+   would let the backlog authorise its own automation.
+9. **Shell tools, not a blocked allowlist**: `grep`/`sed`/`awk`/`jq` are the house style for the commands
+   above (and `openspec/config.yaml` forbids `python3` for OpenSpec interaction). `python3`, `perl` and
+   `tesseract` do run in this shell (verified 2026-10-03) — keep the shell tools anyway: the checks stay
    copy-pasteable and cheap.
-9. **Do not "clean" by deleting the sections whose owner is unknown.** An unverifiable entry is the most
-   valuable thing in the file.
-10. **A scripted metadata pass must be tab-driven.** Driving the insertion from a map file with `awk`'s
-    default whitespace splitting silently truncates multi-word values — on the first run of this pass
-    `open (device)` became `open` and `fixed-by <change> (in-flight)` lost the change entirely, while the
-    section/metadata counts still looked perfect. Use `-F'\t'`, then spot-check one `open (device)` and one
-    `fixed-by …` entry, and read the status histogram from step 6. Keep a backup of the pre-pass file: the
-    restore is one `mv` away, and a "successful" count is not a correctness check.
-11. **A removal invalidates the cluster index** — and a stale index is invisible (`grep '^## '` and the
-    counts stay green). Regenerate the affected cluster line in the same pass and run the
-    index-vs-metadata check from step 6; also reword the *in-file* citations of a removed id (a
-    `(§100)` inside another entry's body, a "removed when …" sentence) and any committed reference to it
-    (`guidelines/*.md`) — change artifacts keep their historical citations, since editing an archived one
-    is forbidden.
-12. **A self-check that cannot fail — or cannot pass — is worse than none.** Two of this skill's own
-    step-6 checks were broken: `awk 'BEGIN{ok=1} … END{exit ok}'` inverts the verdict (a healthy file
-    exits non-zero, so it reported FAIL), and the category loop's file-wide `grep -q "$c"` was vacuously
-    true because the entry under check contains the string, with the legend's bare `**category:** …`
-    matching as an empty category. Both are fixed in step 6: scope a check to the metadata lines, compare
-    against the explicit vocabulary list, and perturb one entry once to confirm the check can go red.
-    Also remember **a class change is an index change** — reclassifying `§46` from `bug` to `improvement`
-    left the cluster index stale until it was regenerated, which is exactly what the index check catches.
-
-## References
-
-- `.pi/skills/triage-todo/SKILL.md` — the read-only ranking this skill feeds (it never edits `TODO.md`;
-  this skill is the cleanup its "When NOT to use" points at)
-- `.pi/skills/process-failure-log/SKILL.md` — the guardrail entries' home
-- `openspec/changes/archive/` — the archive whose existence releases the "removed when archived" entries
-- `guidelines/Build.md` §4, `.pi/skills/run-tests/SKILL.md` — the evidence discipline (`TODO.md` §17: a
-  cached run is not a verdict) applies to a removal proof too
+10. **Do not "clean" by closing the items whose owner is unknown.** An unverifiable item is the most
+    valuable thing in the backlog.

@@ -1,0 +1,38 @@
+[
+  {
+    "number": 11,
+    "title": "§11 A car entry resolved through its marker",
+    "body": "<!-- nvid: 11 -->\n<!-- fingerprint: 1111111111111111111111111111111111111111111111111111111111111111 -->\n\n- **Observed** ✗: the car surface shows nothing.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "source/todo-import" }
+    ]
+  },
+  {
+    "number": 129,
+    "title": "§129 A route entry whose number contains a shorter entry's number",
+    "body": "<!-- nvid: 129 -->\n<!-- fingerprint: 2222222222222222222222222222222222222222222222222222222222222222 -->\n\n- **Observed** ✗: the two totals disagree on one route.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/route-and-navigation" },
+      { "name": "status/fixed-by" },
+      { "name": "source/todo-import" }
+    ]
+  },
+  {
+    "number": 12,
+    "title": "§12 A ui entry whose number is a prefix of another entry's number",
+    "body": "<!-- nvid: 12 -->\n<!-- fingerprint: 3333333333333333333333333333333333333333333333333333333333333333 -->\n\n- **Observed** ✗: the phone card is wrong.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "source/todo-import" }
+    ]
+  }
+]

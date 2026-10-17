@@ -17,7 +17,7 @@ data class HardcodedStringFinding(
  * translatable): a user-facing string is a resource, never a Kotlin literal.
  *
  * The two gates this replaces were blind in three ways, and each blind spot is a
- * defect the rule exists for (`TODO.md` §80a/§104/§105, change
+ * defect the rule exists for (`TODO.md` §80/§104/§105, change
  * `fix-remaining-untranslated-strings`):
  *
  * 1. **Wrong module.** The inline tasks scanned `app/src/main/java` and

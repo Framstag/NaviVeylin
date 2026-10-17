@@ -1,0 +1,21 @@
+# The classification gate
+# run: 2026-10-17T08:16:02Z
+
+## as shipped
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  issue-backlog
+specs read: 168
+classified: 169
+unclassified: 0
+stale: 1
+car-only areas: 1
+highlights: 19
+exit=0
+
+## falsification: this change's delta installed in a throwaway root, the line removed
+gen-feature-list: unclassified shipped spec id(s):
+  issue-backlog
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  about-dialog
+  adaptive-zoom
+exit=1 (non-zero and naming issue-backlog means the line is load-bearing)

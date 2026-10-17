@@ -333,7 +333,7 @@ class NavigationEngineTest {
     @Test
     fun routeTotalDistance_usesTheRouteOwnLengthNotASecondPolylineSum() {
         // Legs 48 000 + 49 416 against a native total of 72 771: the route's own length wins, so the
-        // progress denominator is the number the card and the step list show (TODO.md 129/139).
+        // progress denominator is the number the card and the step list show (TODO.md §129/§139).
         val route = RouteEntry().apply {
             distance = 72_771.0
             instructionDistances = doubleArrayOf(48_000.0, 49_416.0)

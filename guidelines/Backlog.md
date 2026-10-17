@@ -8,15 +8,22 @@ it, who may write what, how it becomes work, and where an agent runs when it doe
 
 ## 1. Status, and what this document owns
 
-**Status.** This document describes an **agreed target**, not the tree as it stands. Today the backlog is
-`TODO.md` and the automation over it is a prose-driven loop. The target is reached by seven changes, in
-order; each change's tasks include keeping this document true for its own sections, so the document
-becomes a description of the tree exactly as fast as the tree moves.
+**Status.** This document describes an **agreed target**, not the tree as it stands. The backlog is the issue
+tracker, and the automation over it is the tooling under `tools/issues/**` plus eight skills. The target is
+reached by seven changes, in order; each change's tasks include keeping this document true for its own
+sections, so the document becomes a description of the tree exactly as fast as the tree moves.
+
+The first two changes have landed and the rest have not. Concretely, on the tracker today: the label taxonomy
+exists (`class/` · `category/` · `status/` · `source/` · `agent/` · `prio/` · `sensor/`, plus GitHub's nine
+defaults), the imported backlog carries it — **137** items, every one open and none carrying `agent/eligible`,
+plus **21** `status/retired` tombstones for the ids whose entry had already been removed before the migration,
+so that a `§N` a live file cites still resolves — and `tools/check-todo-references.sh`, one CI step with no
+token, proves exactly that on every push.
 
 | # | change | what it lands | state |
 |---|---|---|---|
-| 1 | `github-issue-tooling` | the tracker surface: taxonomy, gate, identity, closure, the project profile | planned, not applied |
-| 2 | `migrate-todo-to-github-issues` | the live import, `TODO.md` deleted, every instruction rewired | planned |
+| 1 | `github-issue-tooling` | the tracker surface: taxonomy, gate, identity, closure, the project profile | **applied 2026-10-17** — `tools/issues/**`, the project profile `tools/tooling.json`, four skills, an offline self-test and one CI step; the dry run over the prose backlog is recorded under the change's `evidence/`, and the tracker holds the 36 taxonomy labels and no issue |
+| 2 | `migrate-todo-to-github-issues` | the live import, the prose file deleted, every instruction rewired | **applied 2026-10-17** — 137 items imported (open, none authorised) and 21 retired tombstones, `list.sh --id N` resolving a citation, `tools/check-todo-references.sh` and its CI step, every instruction rewired, the prose file deleted; the run's record is `import-evidence.md` |
 | 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | planned |
 | 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | planned |
 | 5 | `issue-metadata-loop` | persisted priority and classification | planned |
@@ -88,7 +95,10 @@ One item is one issue. Everything a reader selects on is a label, so selection i
 | authorisation | whether automated work is permitted | the one label whose absence is a refusal (§5) |
 
 The **names of the namespaces and the shape of the item are the contract**; the values inside them are the
-project's, held in one profile (§10). An item also carries, in its own body, the facts a machine needs and
+project's, held in one profile (§10). As landed by change 1, the namespaces are `class/` (kind),
+`category/` (area), `status/` (state), `source/` (provenance), `prio/` (priority band), `sensor/`
+(ownership, its values declared by the check registry) and `agent/` (authorisation) — and GitHub's own
+defaults are never used for logic. An item also carries, in its own body, the facts a machine needs and
 a reader should not have to: the identifier it came from, the fingerprint that says what it is, how many
 times it has recurred, and the basis its priority was computed over.
 
@@ -144,7 +154,11 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   process receives a prepared package instead. That is what lets an agent run in an isolated environment
   later without a new security design (§11).
 - **The authorisation label is the only key to unattended work.** Everything else about an item may be
-  machine-set; that one may not. Filing is not authorising.
+  machine-set; that one may not. Filing is not authorising. Change 1 landed this as a **reservation** rather
+  than a convention: the label is listed in the profile's `reservedLabels`, every write path refuses it in
+  any input (exit 3, `label-reserved`), the tooling ships no authorise command, and the self-test drives all
+  three write paths plus the other label flags to prove no route sets it. The import is also asserted to
+  arrive with 0 eligible items.
 
 ## 6. How an item becomes work
 
@@ -320,9 +334,11 @@ is in the change's `design.md`; this is the map, so a reader can find it and so 
 | the gate is an allowlist **and** a reserved authorisation label | the two terms share an actor, so the label alone would be self-served | 1 |
 | closure only; no deletion anywhere | an item is the only record of a finding, and closure is reversible | 1 |
 | fingerprint dedup checked live, never a committed ledger | a second source of truth would disagree with the tracker | 1 |
-| the record format behind a source adapter | the format is one project's; the reconciler is everyone's | 2 |
+| the record format behind a source adapter | the format is one project's; the reconciler is everyone's — the reconciler and the adapter both landed in change 1, the live run in change 2 | 1, 2 |
 | the removal of the prose file happens **last** | between import and rewiring, twelve skills would point at a deleted file | 2 |
-| citations preserved, instructions rewired | 300+ citations are history; ~20 instructions are routing | 2 |
+| citations preserved, instructions rewired | 300+ citations are history; the rewiring is 107 lines in 23 files, and no compiled file's *behaviour* changes | 2 |
+| a citation of an already-removed entry gets a tombstone rather than a rewrite | 87 citations name 23 ids whose section an earlier cleanup had removed; rewriting them would touch 64 sites inside compiled sources and lose which entry proved the rule, so each id keeps its citations and gains one `status/retired` issue carrying its text from git | 2 |
+| the reference check is one script, and its exclusions are printed | a proof that nothing points at a deleted file must be mechanical and must not hide an exclusion: a citation that resolves to nothing fails it, and every allowlisted path is named with its reason on every run | 2 |
 | a budget as arguments, not a dialogue | a script cannot ask, and an unrecorded budget cannot be audited | 3 |
 | one fresh process per item, and a separate reviewer | isolation becomes structural instead of a discipline | 3 |
 | git owned by the script | the landing step is this repository's most fragile, and it is mechanical | 3 |
@@ -335,7 +351,7 @@ is in the change's `design.md`; this is the map, so a reader can find it and so 
 | priority persisted with a recorded basis | recomputation proportional to the backlog is the cost being removed | 5 |
 | only the changed subset interpreted, bounded per run | a vocabulary change must not become a sweep | 5 |
 | priority is not authorisation | else a threshold or a check could promote work into the loop | 5 |
-| a correctness check over a value set read from the profile | a hand-written ban list fails open | 6 |
+| a correctness check over a value set read from the profile | a hand-written ban list fails open — change 1 landed the check over the tooling's own vocabulary, change 6 adds the synthetic project that proves it in a project that differs | 6 |
 | a synthetic project as the proof | only a project that differs tests the profile | 6 |
 | one indirection for the agent command | running agents elsewhere must be configuration | 3 |
 

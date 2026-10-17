@@ -1,0 +1,15 @@
+[
+  {
+    "number": 21,
+    "title": "§21 An eligible bug whose cited path still exists",
+    "body": "<!-- nvid: 21 -->\n\n- **Observed** ✗: the surface shows nothing.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

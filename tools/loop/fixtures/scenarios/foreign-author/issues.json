@@ -1,0 +1,24 @@
+[
+  {
+    "number": 51,
+    "title": "§51 A bug carrying the opt-in but authored elsewhere",
+    "body": "no citation at all",
+    "author": {
+      "login": "someone-else"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

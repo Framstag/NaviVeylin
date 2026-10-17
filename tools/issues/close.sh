@@ -6,12 +6,18 @@
 # auditable and reversible, and `state_reason` records whether it was a completed fix or a person's decision
 # not to act (design D6).
 #
+# `--comment-only` posts that same reason-and-evidence comment and leaves the issue open: it is the
+# "closure left to a person" path (`agent-issue-loop`, D8), where the run has finished its work and the
+# decision to close is not the run's. The comment is the deliverable either way, which is why it lives here
+# rather than in a second writer beside the close.
+#
 # There is no delete path in this tooling, and this script adds none: the issue is the only record of a
 # finding.
 #
-# Exit: 0 closed, 2 usage, 3 policy.
+# Exit: 0 closed (or commented), 2 usage, 3 policy.
 #
-# Usage: close.sh <issue-number> --reason <text> --evidence <text> [--not-planned] [--json] [--profile <path>]
+# Usage: close.sh <issue-number> --reason <text> --evidence <text> [--not-planned] [--comment-only]
+#                  [--json] [--profile <path>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -31,14 +37,16 @@ json=0
 reason=""
 evidence=""
 state_reason="completed"
+comment_only=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) profile_arg="${2:-}"; shift 2 ;;
     --reason) reason="${2:-}"; shift 2 ;;
     --evidence) evidence="${2:-}"; shift 2 ;;
     --not-planned) state_reason="not_planned"; shift ;;
+    --comment-only) comment_only=1; shift ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) issues_die "close: unknown argument $1" ;;
   esac
 done
@@ -80,6 +88,17 @@ fi
 
 comment=$(printf '%s\n\nEvidence: %s\n' "$reason" "$evidence")
 gh issue comment "$number" --body "$comment" >/dev/null || issues_die "close: gh could not comment on #$number"
+if [ "$comment_only" -eq 1 ]; then
+  # The run finished its work; whether the item is done is a person's decision, and the comment is what
+  # carries the reason and the evidence either way (D8).
+  if [ "$json" -eq 1 ]; then
+    jq -n --argjson issue "$number" --arg reason "$reason" \
+      '{closed: false, outcome: "commented", issue: $issue, reason: $reason}'
+  else
+    printf 'commented on #%s (left open)\n' "$number"
+  fi
+  exit "$ISSUES_EXIT_OK"
+fi
 gh issue close "$number" --reason "$state_reason" >/dev/null || issues_die "close: gh could not close #$number"
 
 if [ "$json" -eq 1 ]; then

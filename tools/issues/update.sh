@@ -3,11 +3,15 @@
 #
 # A label outside the profile's closed vocabulary is refused with exit 3 and reason `label-opaque`, and a
 # reserved label with `label-reserved` — before any `gh issue edit` is issued, so a typo can neither create
-# a label nor authorise work (design D2, D5).
+# a label nor authorise work (design D2, D5). `--remove-label` runs through the same gate: taking the
+# authorisation label off an issue is as much an authorisation decision as putting it on, so a removal is
+# refused for the same reasons an addition is (`agent-issue-loop`, D7 — the loop removes `agent/in-progress`
+# on every exit path, including a signal, and that write belongs in this gate rather than beside it).
 #
 # Exit: 0 updated, 2 usage, 3 policy.
 #
-# Usage: update.sh <issue-number> [--label <label>]… [--status <value>] [--body <file>] [--json] [--profile <path>]
+# Usage: update.sh <issue-number> [--label <label>]… [--remove-label <label>]… [--status <value>]
+#                  [--body <file>] [--json] [--profile <path>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -25,16 +29,18 @@ esac
 profile_arg=""
 json=0
 labels=()
+remove_labels=()
 status_value=""
 body_file=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) profile_arg="${2:-}"; shift 2 ;;
     --label) labels+=("${2:-}"); shift 2 ;;
+    --remove-label) remove_labels+=("${2:-}"); shift 2 ;;
     --status) status_value="${2:-}"; shift 2 ;;
     --body) body_file="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) issues_die "update: unknown argument $1" ;;
   esac
 done
@@ -51,17 +57,23 @@ fi
 if [ -n "$body_file" ]; then
   [ -f "$body_file" ] || issues_die "update: no such body file: $body_file"
 fi
-if [ "${#labels[@]}" -eq 0 ] && [ -z "$body_file" ]; then
-  issues_die "update: nothing to change — pass --label, --status or --body"
+if [ "${#labels[@]}" -eq 0 ] && [ "${#remove_labels[@]}" -eq 0 ] && [ -z "$body_file" ]; then
+  issues_die "update: nothing to change — pass --label, --remove-label, --status or --body"
 fi
 
 if [ "${#labels[@]}" -gt 0 ]; then
   issues_check_labels "$profile" "${labels[@]}"
 fi
+if [ "${#remove_labels[@]}" -gt 0 ]; then
+  issues_check_labels "$profile" "${remove_labels[@]}"
+fi
 
 args=(issue edit "$number")
 for label in "${labels[@]}"; do
   args+=(--add-label "$label")
+done
+for label in "${remove_labels[@]}"; do
+  args+=(--remove-label "$label")
 done
 if [ -n "$body_file" ]; then
   args+=(--body-file "$body_file")
@@ -69,9 +81,11 @@ fi
 
 if [ "$json" -eq 1 ]; then
   label_json=$(if [ "${#labels[@]}" -gt 0 ]; then printf '%s\n' "${labels[@]}"; fi | jq -R . | jq -s .)
-  jq -n --argjson issue "$number" --argjson labels "$label_json" \
+  removed_json=$(if [ "${#remove_labels[@]}" -gt 0 ]; then printf '%s\n' "${remove_labels[@]}"; fi | jq -R . | jq -s .)
+  jq -n --argjson issue "$number" --argjson labels "$label_json" --argjson removed "$removed_json" \
         --arg body "${body_file:-}" \
-        '{updated: true, issue: $issue, labels: $labels, body: (if $body == "" then null else $body end)}'
+        '{updated: true, issue: $issue, labels: $labels, removedLabels: $removed,
+          body: (if $body == "" then null else $body end)}'
   gh "${args[@]}" >/dev/null
 else
   gh "${args[@]}"

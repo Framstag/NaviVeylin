@@ -1,0 +1,47 @@
+[
+  {
+    "number": 91,
+    "title": "§91 An authorised bug already fixed",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/fixed-by"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 92,
+    "title": "§92 An authorised bug on a closed issue",
+    "body": "no citation at all",
+    "state": "CLOSED",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

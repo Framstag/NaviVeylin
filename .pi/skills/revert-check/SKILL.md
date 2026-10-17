@@ -41,6 +41,34 @@ handed its own inputs in stayed green while the production call site passed the 
 | Green re-run | **forced** (`--rerun-tasks` / `--rerun`), and the XML `timestamp` must be *after* the restore |
 | Record | mutation, failing case + message, both runs' counts and executed-task count, in the task |
 
+## When the gate is a shell self-test, not Gradle
+
+Some invariants live in shell — the issue tooling (`tools/issues/**`), the agent loop (`tools/loop/**`) —
+and their gate is a self-test script rather than a suite (`tools/issue-tooling-selftest.sh`,
+`tools/loop-selftest.sh`). The rule is unchanged (**one mutation per invariant, the named case must fail for
+the right reason, restore, it must pass again**); three mechanics differ:
+
+* there is no build cache to defeat — a shell case always executes, so the "forced re-run" step is the same
+  command as the red run, and the evidence is the script's `PASS`/`FAIL <case>` line plus its exit code
+  (0 pass, 1 fail), not a JUnit XML;
+* the mutation is a `sed` on one line of the script or the skeleton (a lock, a refusal, an ordering, a
+  configured value) — and the two ways such a mutation silently lies are **the pattern no longer matches the
+  line** and **the case does not assert the invariant**;
+* the case names are the self-test's case ids (`state#secondRunRefusesWithExit5`), so the task item quotes
+  one id rather than an `--tests` filter.
+
+The mechanical form for the loop is **`tools/loop-mutations.sh`**: one command per mutation, red asserted,
+restore asserted, a `MUTATION-DID-NOT-APPLY` guard, and an EXIT trap that restores what it touched if the run
+is killed. `--list` prints the set; `--only <labels>` runs one; `--engine <copy>` runs against a copy (which
+is what its own self-test, `tools/loop-mutations-selftest.sh`, does to prove both guards and the restore).
+Quote its transcript in the task item, exactly as the Gradle form quotes a tally.
+
+```bash
+tools/loop-mutations.sh --list            # what the invariants are, and which case owns each
+tools/loop-mutations.sh --only 9.1        # one mutation, while iterating
+tools/loop-mutations.sh --out <file>      # the whole set, with the transcript recorded
+```
+
 ## Procedure
 
 1. **Name the triple before touching code** and write it into the task item: the invariant, the single
@@ -115,6 +143,9 @@ handed its own inputs in stayed green while the production call site passed the 
 - `guidelines/Build.md` §4 — result evaluation: tallies from the XML, "a cached run is not a run",
   attribution ritual
 - `.pi/skills/run-tests/SKILL.md` — how to run the cases (and how to force a real execution)
+- `tools/loop-mutations.sh`, `tools/loop-mutations-selftest.sh` — the mechanical form when the gate is a
+  shell self-test (`tools/loop-selftest.sh`); `openspec/changes/agent-issue-loop/evidence/revert-checks.md`
+  is a worked example (11 mutations, 11 red, 11 restores green)
 - `.pi/skills/openspec-apply-change/SKILL.md` — the apply loop this skill plugs into
 - `TODO.md` §113 (origin changes without falsification), §111 (a case that proved nothing about the call
   site), §40.12 (one mutation per check), §17 (cache-masked verdicts)

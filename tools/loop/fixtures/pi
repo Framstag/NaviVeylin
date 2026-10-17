@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Stub `pi` for the loop's offline self-test.
+#
+# It is a stand-in for one thing only — the child process — so a case can assert *what the wrapper passed*
+# and *when*, without spending a model, a token or a minute (design D13). Everything the wrapper must own
+# (git, branches, worktrees, labels, state) stays real in the self-test, because that is the part under
+# test; stubbing it would prove nothing.
+#
+# It records, for every invocation, one block: the argv, the cwd, and the run state's digest before and
+# after it ran. The last two are how `labels#writesOnlyBetweenChildren` proves the wrapper wrote no state
+# while a child was running (SKILL.md invariant 2).
+#
+# Env:
+#   PI_STUB_LOG        append-only log of invocations (required for the assertions)
+#   PI_STUB_REPORT     a file whose contents are printed on stdout (the child's "report");
+#   PI_STUB_REPORT_WORKER / PI_STUB_REPORT_REVIEWER override it per role
+#   PI_STUB_ACTION     a shell script run in the cwd first (with the prompt's basename as $1), to stand
+#                      in for a worker's edits
+#   PI_STUB_WAIT       a fifo: the stub blocks until one line is written to it (signal cases)
+#   PI_STUB_EXIT       the exit status to end with (default 0)
+set -uo pipefail
+
+log="${PI_STUB_LOG:-}"
+state="${LOOP_STATE_FILE:-}"
+
+state_digest() {
+  if [ -n "$state" ] && [ -f "$state" ]; then
+    if command -v sha256sum >/dev/null 2>&1; then
+      jq -cS . "$state" | sha256sum | cut -c1-16
+    else
+      jq -cS . "$state" | cksum | tr -d ' ' | cut -c1-16
+    fi
+  else
+    printf 'no-state'
+  fi
+}
+
+state_mtime() {
+  if [ -n "$state" ] && [ -f "$state" ]; then stat -c %Y "$state"; else printf '0'; fi
+}
+
+prompt=""
+for a in "$@"; do
+  case "$a" in
+    -*) ;;
+    *) prompt="$a" ;;
+  esac
+done
+
+if [ -n "$log" ]; then
+  {
+    printf 'invocation\n'
+    printf 'argv:'
+    for a in "$@"; do printf ' %q' "$a"; done
+    printf '\n'
+    printf 'cwd: %s\n' "$PWD"
+    printf 'prompt: %s\n' "${prompt##*/}"
+    printf 'state-before: %s %s\n' "$(state_digest)" "$(state_mtime)"
+  } >> "$log"
+fi
+
+if [ -n "${PI_STUB_ACTION:-}" ] && [ -f "$PI_STUB_ACTION" ]; then
+  # The child's own work inside its tree: real files, so the wrapper's commit and verification run for
+  # real. It is not a stub of git — the wrapper's git is under test. The action is told which prompt it
+  # was given (`worker-prompt.md`, `reviewer-prompt-1.md`), so a case can make the worker and the
+  # reviewer behave differently.
+  bash "$PI_STUB_ACTION" "${prompt##*/}" >&2 || true
+fi
+
+if [ -n "${PI_STUB_WAIT:-}" ]; then
+  : > "${PI_STUB_WAIT}.ready"
+  read -r _ < "$PI_STUB_WAIT" || true
+fi
+
+# The report may differ by role, because the two children answer in different shapes.
+report="${PI_STUB_REPORT:-}"
+case "${prompt##*/}" in
+  worker*) [ -n "${PI_STUB_REPORT_WORKER:-}" ] && report="$PI_STUB_REPORT_WORKER" ;;
+  reviewer*) [ -n "${PI_STUB_REPORT_REVIEWER:-}" ] && report="$PI_STUB_REPORT_REVIEWER" ;;
+esac
+if [ -n "$report" ] && [ -f "$report" ]; then
+  cat "$report"
+fi
+
+if [ -n "$log" ]; then
+  printf 'state-after: %s\n' "$(state_digest)" >> "$log"
+fi
+
+exit "${PI_STUB_EXIT:-0}"

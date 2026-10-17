@@ -152,6 +152,18 @@ jobs:
       - name: Check issue tooling
         run: bash tools/issue-tooling-selftest.sh
 
+      # ── agent issue loop ───────────────────────────────────────
+      # The gate for `tools/loop/**`: every case drives the real wrapper, worktree, branches, commits,
+      # labels and closure in a throwaway git repository, against the stub `gh` (the step above) and a
+      # stub `pi`. Offline, no token, no model, no device and no sandbox tool — and it needs nothing
+      # the build does not already have (git, jq, JDK 17). Spec `agent-issue-loop`.
+      - name: Check agent issue loop
+        run: |
+          bash tools/loop-selftest.sh
+          # The mutation harness's own guards, on a throwaway copy of the engine. The mutations themselves
+          # are not run here: they mutate the tree (the loop's falsification run is a change-time step).
+          bash tools/loop-mutations-selftest.sh
+
       # ── backlog references ─────────────────────────────────────
       # Every `§N` a live file cites must still find its entry after `TODO.md` was deleted, and no live
       # line may name that file without citing one — that is the migration's whole justification

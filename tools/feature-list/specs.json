@@ -5,6 +5,7 @@
     "adaptive-zoom": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
     "address-book-permission": { "area": "search", "userVisible": true, "surfaces": ["phone"] },
     "address-book-search": { "area": "search", "userVisible": true, "surfaces": ["phone", "car"] },
+    "agent-issue-loop": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "always-on-display": { "area": "device-fit", "userVisible": true, "surfaces": ["phone"] },
     "android-automotive-os": { "area": "car-only", "userVisible": true, "surfaces": ["car"] },
     "app": { "area": "build-tooling", "userVisible": false, "surfaces": [] },

@@ -1,0 +1,24 @@
+[
+  {
+    "number": 81,
+    "title": "§81 A bug whose remaining evidence needs a phone",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open-device"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

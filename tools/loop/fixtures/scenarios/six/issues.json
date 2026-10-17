@@ -1,0 +1,74 @@
+[
+  {
+    "number": 21,
+    "title": "§21 A bug, rank 1",
+    "body": "- **Anchor** ℹ: `tools/tooling.json`.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 22,
+    "title": "§22 A bug, rank 2",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 23,
+    "title": "§23 A bug, rank 3",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/search" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 24,
+    "title": "§24 An improvement, ranked after every bug",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 25,
+    "title": "§25 A feature — not work this loop does",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/feature" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 26,
+    "title": "§26 A bug another change already holds",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/ui" },
+      { "name": "status/in-flight" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

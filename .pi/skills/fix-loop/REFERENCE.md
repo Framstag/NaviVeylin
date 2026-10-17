@@ -3,30 +3,28 @@
 Reference material for the `fix-loop` skill. **The rules live in `SKILL.md`**; nothing here is a rule, and a
 child running one iteration never needs this file. `SKILL.md` names the section below where a run needs it.
 
-## Running the loop in a worktree (recipe)
+## Running the loop in a worktree (the wrapper owns it)
 
-Run the loop in its own worktree whenever the main tree carries another change's WIP; otherwise the loop's
-`git add -A` and the OpenSpec archive mix with it.
+The loop runs in its own worktree, so the run's commits and the OpenSpec archive never mix with another
+change's work in progress. **`tools/loop/worktree.sh create` does all five steps below** — they are recorded
+here because the facts they produce shape verification, not because anyone runs them by hand:
 
 ```bash
-# 1. policy: a sibling path outside the repo is refused, so put the worktree inside the gitignored .pi/
-cd <repo> && mkdir -p .pi/worktrees
-git worktree add .pi/worktrees/loop -b fix-loop-<date>
-W=.pi/worktrees/loop
-
-# 2. the submodule must be checked out (its objects are already in .git/modules, so this is offline)
-git -C $W submodule update --init app/src/main/cpp/libosmscout
-
-# 3. machine-local inputs the worktree does not inherit
-cp local.prop* $W/                      # SDK/NDK/Java paths; `local.prop*` also dodges the path-read policy
-export VCPKG_ROOT=<repo>/vcpkg          # do NOT symlink it: a symlink named vcpkg is untracked and pollutes status
-
-# 4. the gitignored skills the worktree does not have (open changes and the openspec-* skills are local WIP)
-cp -a .pi/skills/openspec-* $W/.pi/skills/
-mkdir -p $W/.pi/skills && cp -a .pi/skills/fix-loop $W/.pi/skills/
-
-# 5. give the children cwd=$W; the state file then resolves to $W/.pi/bugfix-loop/run.json automatically
+# the wrapper's own recipe, one command from the repository root — it creates and seeds the worktree itself
+tools/loop/run.sh --items N --minutes M
+#
+# what it does, in order (worktree.sh, `cmd_create`):
+# 1. git worktree add .pi/worktrees/loop -b loop-<date> <base>   inside the gitignored .pi/
+# 2. git submodule update --init app/src/main/cpp/libosmscout    offline; objects already in .git/modules
+# 3. cp local.prop* (SDK/NDK/Java paths) and write .pi/loop-env.sh exporting VCPKG_ROOT
+#    (never a symlink: a symlink named `vcpkg` is untracked and pollutes `git status`)
+# 4. cp the gitignored skills (openspec-* and this one) into $W/.pi/skills/
+# 5. the children are started with cwd=$W, and their state is $W/.pi/issue-loop/run.json
 ```
+
+The worktree is **kept** at the end of a run — it is the next run's warm build — and removed only by
+`--clean-worktree`. One branch per item is created from the run's recorded base
+(`fix/issue-<N>-<slug>`), and the wrapper refuses the next item when `main` has advanced past that base.
 
 Four facts shape verification in a worktree:
 
@@ -37,11 +35,11 @@ Four facts shape verification in a worktree:
   `tools/issues/*.sh` against the **one** repository, so two trees cannot allocate the same identity — the
   §id collision that `cleanup-todo` had to renumber five entries for (measured: §154–§158 against
   §155–§164) is gone, because a filed issue's number is the tracker's.
-- The loop owns the branch; the orchestrator owns the skill in the **repo** copy. Edit the repo copy, copy it
-  into the worktree (step 4), and commit it with the next iteration commit — otherwise the branch's children
-  read stale rules.
-- Keep the worktree after the run for the next loop. Remove it with `git worktree remove`, and delete the
-  branch only when the run's commits are merged.
+- The loop owns the branch; the wrapper owns the worktree, and the seed step copies the skill in at the start
+  of every run — so an edit to the skill takes effect on the next run, never mid-run (`SKILL.md`, invariant 2).
+- The worktree stays after the run **by design** (it is the next run's warm build), and the branches stay
+  until the run's commits are merged. Delete a branch then, not before: the run's report names the branches
+  it created.
 
 ## Measured costs (plan with these numbers)
 

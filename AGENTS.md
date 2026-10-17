@@ -173,7 +173,7 @@ the tracker:
 | `triage-todo` | read-only — rank what is open and name the next change |
 | `cleanup-todo` | tracker hygiene: label/status repair, duplicates by fingerprint, `nvid` collisions, evidence before a closure |
 | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
-| `fix-loop` | run the user-budgeted loop that closes defect-shaped items — bugs, and improvements that clear the same bar — triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → next item; strict eligibility (one root cause, one fix, host-decidable), one fresh child per item so the context window survives, and `.pi/skills/fix-loop/scripts/loop-state.sh` as the mechanical item/time cap |
+| `fix-loop` | run the user-budgeted loop that closes defect-shaped items — bugs, and improvements that clear the same bar — one command (`tools/loop/run.sh --items N --minutes M`) → per item: pre-screen, a fresh agent process on a prepared package, an independent review, archive, labels and closure; strict eligibility (one root cause, one fix, host-decidable), one fresh child per item so the context window survives, and the run's script as the mechanical item/time cap |
 
 ## Agent iteration loop (measure first)
 
@@ -190,7 +190,8 @@ What this file owns about the loop is only where its parts live:
 - the iteration levers and the measurements behind them: `guidelines/Build.md` §4, §6, §7;
 - a defect fix inside the loop owes a test that fails on HEAD *before* the fix, and an independent read-only
   reviewer before archive — that includes a defect-shaped improvement, whose red case asserts the bound it is
-  missing; the loop, its budget and its eligibility gate are `.pi/skills/fix-loop`;
+  missing; the loop, its budget and its eligibility gate are `.pi/skills/fix-loop`, whose entry is
+  `tools/loop/run.sh` (the gate for `tools/loop/**` is `tools/loop-selftest.sh`, offline);
 - the device loop, an emulator with maps, and a Compose geometry assertion: the `device-check`,
   `provision-phone-emulator` and `compose-geometry` skills;
 - the build, test and falsification skills: `build-app`, `run-tests`, `revert-check`, and the wrapper and

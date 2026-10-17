@@ -1,0 +1,21 @@
+[
+  {
+    "number": 71,
+    "title": "§71 A defect-shaped bug nobody authorised",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      }
+    ]
+  }
+]

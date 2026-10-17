@@ -1,0 +1,14 @@
+[
+  {
+    "number": 31,
+    "title": "§31 A bug citing a file that no longer exists",
+    "body": "- **Observed** ✗: `app/src/main/kotlin/DoesNotExist.kt:Header` still shows the old value.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

@@ -1,230 +1,112 @@
 #!/usr/bin/env bash
-# loop-state.sh — budget and progress bookkeeping for the fix-loop skill.
+# loop-state.sh — a **forwarder**, kept so a reference written before `agent-issue-loop` still works.
 #
-# The loop's limits (item cap, wall-clock deadline) and its progress have to be mechanical, not remembered:
-# this script is the only writer of the run state and exits 3 whenever the run has nothing left to spend,
-# so a caller stops on an exit code instead of on its own arithmetic.
+# The loop's state, its budget, its queue and its lock are `tools/loop/state.sh`'s now, and that script is
+# their only writer. This file translates the old command names and hands over, so an old invocation —
+# `scripts/loop-state.sh next`, from a session, a skill or a note — still exits 3 on a spent budget instead
+# of dying on an unknown script (design D14).
 #
-# State lives in .pi/bugfix-loop/run.json — machine-local, gitignored (.pi/*), never committed. The
-# directory keeps its original name deliberately: renaming it would orphan an open run, and the state is
-# machine-local, so the path and the skill name are allowed to differ.
-# Override with LOOP_STATE for the self-test.
+# Two deliberate non-changes:
 #
-# Usage:
-#   loop-state.sh init --items N --minutes M [--review on|off] [--allow-closure yes|no]
-#                                    # N counts every defect-shaped item, bug or improvement
-#   loop-state.sh show               # which issue, which phase, the result of every step so far
-#   loop-state.sh remaining          # exit 3 when items == 0 or the deadline has passed
-#   loop-state.sh triage <§id> ...   # store the pre-screened survivor queue (§ optional in the argument)
-#   loop-state.sh next               # print the next candidate; exit 3 when the queue or the budget is spent
-#   loop-state.sh start <change> [--id §N]
-#                                    # begin one iteration (phase A) on the named change and TODO id
-#   loop-state.sh step <phase> --name <step> --status running|ok|fail|skip [--note TEXT]
-#                                    # record one phase boundary of the current iteration
-#   loop-state.sh done [<change>] [--id §N] --result done|skipped|blocked
-#                     [--verdict <class>] [--note TEXT]
-#                                    # a pre-change skip has no change name: use --id
-#   loop-state.sh report             # per-iteration table plus every iteration's recorded steps
-#   loop-state.sh verdicts           # histogram of skip verdicts (what the backlog turned out to be)
+#   * the old state path `.pi/bugfix-loop/run.json` is left where it is: an open run there must not be
+#     orphaned by a port. The new state is `.pi/issue-loop/run.json`, and `LOOP_STATE_FILE` overrides both.
+#   * an id is written `§N` in the prose era and is an *issue number* now. The forwarder strips the `§` and
+#     treats the rest as the issue number; a citation that no longer resolves is `tools/issues/list.sh --id N`'s
+#     answer, not this file's.
 #
-# <phase> is one of: prescreen A B C D E F
-# --verdict class (free text, these are the ones the gate produces):
-#   closed · stale · needs-diagnosis · needs-decision · unspecifiable · too-wide · needs-device · refuted · blocked
-#   not-spec-shaped · needs-target   (the two verdicts only an improvement can earn)
-set -euo pipefail
+# Exit: whatever `tools/loop/state.sh` exits with (0 ok, 2 usage, 3 stop, 5 refuse).
+set -uo pipefail
 
-STATE="${LOOP_STATE:-$(git rev-parse --show-toplevel)/.pi/bugfix-loop/run.json}"
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+root=$(cd "$here/../../../.." && pwd)
+state="$root/tools/loop/state.sh"
 
-need_jq() { command -v jq >/dev/null || { echo "loop-state: jq not found" >&2; exit 2; }; }
-now() { date +%s; }
-iso() { date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ; }
-norm_id() { printf '%s' "${1#§}"; }
-dash_if_empty() { [ -n "$1" ] && printf '%s' "$1" || printf '%s' "-"; }
+if [ ! -f "$state" ]; then
+  printf 'loop-state: %s is missing — the loop state now lives in tools/loop/state.sh\n' "$state" >&2
+  exit 2
+fi
 
-write() { # write <json-on-stdin>
-  mkdir -p "$(dirname "$STATE")"
-  local tmp; tmp="$(mktemp)"
-  cat > "$tmp"
-  mv "$tmp" "$STATE"
-}
+normalize_id() { printf '%s' "${1#§}"; }
 
-cmd_init() {
-  local items="" minutes="" review="on" closure="no"
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --items) items="${2:?}"; shift 2;;
-      --minutes) minutes="${2:?}"; shift 2;;
-      --review) review="${2:?}"; shift 2;;
-      --allow-closure) closure="${2:?}"; shift 2;;
-      *) echo "init: unknown arg $1" >&2; exit 2;;
-    esac
-  done
-  [ -n "$items" ] && [ -n "$minutes" ] || { echo "init: --items and --minutes are mandatory" >&2; exit 2; }
-  case "$items" in ''|*[!0-9]*) echo "init: --items must be a positive integer" >&2; exit 2;; esac
-  case "$minutes" in ''|*[!0-9]*) echo "init: --minutes must be a positive integer" >&2; exit 2;; esac
-  [ "$items" -gt 0 ] && [ "$minutes" -gt 0 ] || { echo "init: budget must be > 0" >&2; exit 2; }
+# The old script's override was `LOOP_STATE`; the new one's is `LOOP_STATE_FILE`. A caller that still sets
+# the old name must reach the same file rather than silently writing the default.
+if [ -z "${LOOP_STATE_FILE:-}" ] && [ -n "${LOOP_STATE:-}" ]; then
+  export LOOP_STATE_FILE="$LOOP_STATE"
+fi
 
-  local started deadline
-  started="$(now)"
-  deadline=$(( started + minutes * 60 ))
-  jq -n --arg iso "$(iso "$started")" --arg dl "$(iso "$deadline")" \
-        --argjson started "$started" --argjson deadline "$deadline" \
-        --argjson items "$items" --argjson minutes "$minutes" \
-        --arg review "$review" --arg closure "$closure" \
-        '{startedAt:$iso, startedEpoch:$started, deadlineAt:$dl, deadlineEpoch:$deadline,
-          itemLimit:$items, minutesBudget:$minutes, review:$review, allowClosure:$closure,
-          completed:[], skipped:[], blocked:[], queue:[], current:null, currentId:null,
-          currentPhase:null, steps:[]}' | write
-  echo "fix-loop: budget ${items} items / ${minutes} min, deadline $(iso "$deadline")"
-}
+cmd="${1:-}"
+shift || true
 
-require_state() { [ -f "$STATE" ] || { echo "loop-state: no run state at $STATE — run 'init' first" >&2; exit 2; }; }
-
-cmd_show() { require_state; jq -r '
-  ((.deadlineEpoch - now) / 60 | floor) as $minLeft
-  | ((.itemLimit // .bugLimit)) as $cap
-  | "fix-loop — " + (if .current == null
-                      then "no iteration in progress"
-                           + ((.completed[-1] // .blocked[-1]) as $l
-                              | if $l then " · last: §\($l.id) \($l.change) (\($l.verdict))" else "" end)
-                      else "§\(.currentId // "?") \(.current) · phase \(.currentPhase)" end),
-  "budget   \($cap) items / \(.minutesBudget) min · \($cap - (.completed | length)) left · deadline \(.deadlineAt) · \((if .deadlineEpoch > now then "" else "EXPIRED · " end))\($minLeft) min left",
-  "review   \(.review) · closure \(.allowClosure)",
-  "progress closed \(.completed | length) · skipped \(.skipped | length) · blocked \(.blocked | length) of \($cap)",
-  "queue    \(.queue | length): \([.queue[]?.id] | join(" "))",
-  "",
-  "steps",
-  ( [ .steps[] | select(.change == ($c // "") and .id == ($i // "")) ]
-    | if length == 0 then "  (none yet)"
-      else .[] | "  \(.phase)  \(.name) · \(.status) · \(if .note == "" then "-" else .note end)" end )
-' --arg c "$(jq -r 'if .current != null then .current else (.completed[-1].change // .blocked[-1].change // "") end' "$STATE")" \
-  --arg i "$(jq -r 'if .current != null then (.currentId // "") else (.completed[-1].id // .blocked[-1].id // "") end' "$STATE")" "$STATE"; }
-
-cmd_remaining() {
-  require_state
-  local left deadline
-  left=$(jq -r '(.itemLimit // .bugLimit) - (.completed | length)' "$STATE")
-  deadline=$(jq -r '.deadlineEpoch' "$STATE")
-  if [ "$left" -le 0 ]; then echo "0 items left (cap reached)"; exit 3; fi
-  if [ "$(now)" -ge "$deadline" ]; then echo "deadline passed at $(iso "$deadline")"; exit 3; fi
-  echo "$left items left, $(( (deadline - $(now)) / 60 )) min left (deadline $(iso "$deadline"))"
-}
-
-cmd_triage() { require_state; [ $# -gt 0 ] || { echo "triage: need at least one id" >&2; exit 2; }
-  local json='[]'
-  for id in "$@"; do json=$(jq --arg id "$(norm_id "$id")" '. + [{id:$id}]' <<<"$json"); done
-  jq --argjson q "$json" '.queue = $q' "$STATE" | write
-  echo "queue: $(jq -r '[.queue[].id] | join(" ")' "$STATE")"
-}
-
-cmd_next() {
-  require_state
-  local left; left=$(jq -r '(.itemLimit // .bugLimit) - (.completed | length)' "$STATE")
-  [ "$left" -gt 0 ] || { echo "cap reached"; exit 3; }
-  [ "$(now)" -lt "$(jq -r '.deadlineEpoch' "$STATE")" ] || { echo "deadline passed"; exit 3; }
-  local id; id=$(jq -r '.queue[0].id // empty' "$STATE")
-  [ -n "$id" ] || { echo "queue empty"; exit 3; }
-  echo "$id"
-}
-
-cmd_start() {
-  require_state
-  local c="" id=""
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --id) id="$(norm_id "${2:?}")"; shift 2;;
-      --*) echo "start: unknown flag $1" >&2; exit 2;;
-      *) [ -z "$c" ] || { echo "start: change given twice" >&2; exit 2; }; c="$1"; shift;;
-    esac
-  done
-  [ -n "$c" ] || { echo "start: usage: start <change> [--id §N]" >&2; exit 2; }
-  jq --arg c "$c" --arg i "$id" --arg at "$(iso "$(now)")" '
-    .current = $c | .currentId = ($i | select(. != "") // null) | .currentPhase = "A"
-    | .steps += [ {id:$i, change:$c, phase:"A", name:"start", status:"ok", note:"", at:$at} ]
-  ' "$STATE" | write
-  echo "started §${id:-?} $c — phase A"
-}
-
-cmd_step() {
-  require_state
-  [ $# -gt 0 ] || { echo "step: usage: step <phase> --name <step> --status running|ok|fail|skip [--note TEXT]" >&2; exit 2; }
-  local phase="$1"; shift
-  local name="" status="ok" note=""
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --name) name="${2:?}"; shift 2;;
-      --status) status="${2:?}"; shift 2;;
-      --note) note="${2:?}"; shift 2;;
-      *) echo "step: unknown arg $1" >&2; exit 2;;
-    esac
-  done
-  case "$phase" in prescreen|A|B|C|D|E|F) ;; *) echo "step: phase must be prescreen|A|B|C|D|E|F" >&2; exit 2;; esac
-  [ -n "$name" ] || { echo "step: --name is mandatory" >&2; exit 2; }
-  case "$status" in running|ok|fail|skip) ;; *) echo "step: --status must be running|ok|fail|skip" >&2; exit 2;; esac
-  jq --arg p "$phase" --arg n "$name" --arg s "$status" --arg note "$note" --arg at "$(iso "$(now)")" '
-    .currentPhase = $p
-    | .steps += [ {id:(.currentId // ""), change:(.current // ""), phase:$p, name:$n,
-                    status:$s, note:$note, at:$at} ]
-  ' "$STATE" | write
-  echo "§$(dash_if_empty "$(jq -r '.currentId // ""' "$STATE")") $phase/$name: $status — $(dash_if_empty "$note")"
-}
-
-cmd_done() {
-  require_state
-  local change="" id="" result="" verdict="" note=""
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --id) id="$(norm_id "${2:?}")"; shift 2;;
-      --result) result="${2:?}"; shift 2;;
-      --verdict) verdict="${2:?}"; shift 2;;
-      --note) note="${2:?}"; shift 2;;
-      --*) echo "done: unknown flag $1" >&2; exit 2;;
-      *) [ -z "$change" ] || { echo "done: change given twice" >&2; exit 2; }; change="$1"; shift;;
-    esac
-  done
-  [ -n "$change$id" ] || { echo "done: need a change name or --id §N" >&2; exit 2; }
-  case "$result" in done|skipped|blocked) ;; *) echo "done: --result must be done|skipped|blocked" >&2; exit 2;; esac
-  if [ -z "$verdict" ]; then
-    case "$result" in done) verdict="closed";; *) verdict="unspecified";; esac
-  fi
-  local entry
-  entry=$(jq -n --arg c "$change" --arg i "$id" --arg v "$verdict" --arg n "$note" --arg at "$(iso "$(now)")" \
-                '{change:$c, id:$i, verdict:$v, note:$n, at:$at}')
-  jq --argjson e "$entry" --arg r "$result" --arg c "$change" --arg i "$id" '
-    (if $c != "" and .current == $c
-       then .current = null | .currentId = null | .currentPhase = null
-       else . end)
-    | (if $r == "done" then .completed += [$e] elif $r == "skipped" then .skipped += [$e] else .blocked += [$e] end)
-    | (if $e.id != "" then .queue = [ .queue[] | select(.id != $e.id) ] else . end)
-  ' "$STATE" | write
-  echo "recorded $result ($verdict): ${change:-§$id}"
-  # Do not call cmd_remaining here: its `exit 3` would exit this shell, not return a status.
-  echo "budget: $(jq -r '(.itemLimit // .bugLimit) - (.completed | length)' "$STATE") items left"
-}
-
-cmd_report() {
-  require_state
-  jq -r '
-    "closed \(.completed | length) · skipped \(.skipped | length) · blocked \(.blocked | length) of \((.itemLimit // .bugLimit)) items · budget \(.minutesBudget) min · deadline \(.deadlineAt)",
-    "",
-    ( .completed[] as $e
-      | ("closed   §\($e.id)\t\($e.change)\t\($e.at)"),
-        (.steps | map(select(.change == $e.change)) | .[]?
-          | "    \(.phase)/\(.name) · \(.status) · \(if .note == "" then "-" else .note end)") ),
-    ( .skipped[]   | "skipped  §\(.id)\t\(.verdict)\t\(.note)\t\(.at)" ),
-    ( .blocked[]   | "blocked  §\(.id)\t\(.change)\t\(.verdict)\t\(.note)\t\(.at)" )
-  ' "$STATE"
-}
-
-cmd_verdicts() {
-  require_state
-  jq -r '[.skipped[]?.verdict, .blocked[]?.verdict] | map(select(. != "" and . != null)) | group_by(.) | map("\(length)\t\(.[0])") | .[]' "$STATE" | sort -rn
-}
-
-need_jq
-cmd="${1:-}"; shift || true
 case "$cmd" in
-  init|show|status|remaining|start|step|done|triage|next|report|verdicts) "cmd_${cmd/status/show}" "$@";;
-  ""|-h|--help|help) awk 'NR>1 && /^set -euo/ {exit} NR>1 {sub(/^# ?/,""); print}' "$0";;
-  *) echo "loop-state: unknown command '$cmd'" >&2; exit 2;;
+  init)
+    # `--allow-closure` was the old name of `--may-close`.
+    args=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --allow-closure) args+=(--may-close "${2:-}"); shift 2 ;;
+        *) args+=("$1"); shift ;;
+      esac
+    done
+    exec bash "$state" init "${args[@]}"
+    ;;
+  show|status) exec bash "$state" show "$@" ;;
+  remaining|next) exec bash "$state" next "$@" ;;
+  step) exec bash "$state" step "$@" ;;
+  report) exec bash "$state" report "$@" ;;
+  triage)
+    # The old queue was a list of ids; the new one is a JSON array the pre-screen writes.
+    [ $# -gt 0 ] || { printf 'loop-state: triage needs at least one id\n' >&2; exit 2; }
+    json='['
+    rank=0
+    for id in "$@"; do
+      rank=$((rank + 1))
+      [ "$rank" -eq 1 ] || json+=','
+      json+="{\"issue\":$(normalize_id "$id"),\"class\":\"\",\"verdict\":\"eligible\",\"rank\":$rank}"
+    done
+    json+=']'
+    printf "%s" "$json" | bash "$state" queue
+    ;;
+  start)
+    change=""
+    issue=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --id) issue=$(normalize_id "${2:-}"); shift 2 ;;
+        --*) printf 'loop-state: start: unknown flag %s\n' "$1" >&2; exit 2 ;;
+        *) change="$1"; shift ;;
+      esac
+    done
+    [ -n "$issue" ] || { printf 'loop-state: start needs --id <issue> (the id is an issue number now)\n' >&2; exit 2; }
+    [ -n "$change" ] || { printf 'loop-state: start needs the change name\n' >&2; exit 2; }
+    exec bash "$state" start "$issue" --change "$change"
+    ;;
+  done)
+    change=""
+    issue=""
+    rest=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --id) issue=$(normalize_id "${2:-}"); shift 2 ;;
+        --) shift; rest+=("$@"); break ;;
+        --*) rest+=("$1" "${2:-}"); shift 2 ;;
+        *) change="$1"; shift ;;
+      esac
+    done
+    [ -n "$issue" ] || { printf 'loop-state: done needs --id <issue> (the id is an issue number now)\n' >&2; exit 2; }
+    args=("$issue")
+    [ -n "$change" ] && args+=(--change "$change")
+    args+=("${rest[@]}")
+    exec bash "$state" done "${args[@]}"
+    ;;
+  verdicts)
+    # The old histogram, read from the new state.
+    file="${LOOP_STATE_FILE:-$root/.pi/issue-loop/run.json}"
+    [ -f "$file" ] || { printf 'loop-state: no run state at %s\n' "$file" >&2; exit 2; }
+    jq -r '[.excluded[]?.verdict, .items[]?.verdict] | map(select(. != "" and . != null)) | group_by(.) | map("\(length)\t\(.[0])") | .[]' "$file" | sort -rn
+    ;;
+  ""|-h|--help|help)
+    sed -n '2,19p' "$0"
+    printf '\nthe loop itself: %s/run.sh --items N --minutes M [--review on|off] [--may-close yes|no]\n' "$root/tools/loop"
+    ;;
+  *) printf 'loop-state: unknown command %s\n' "$cmd" >&2; exit 2 ;;
 esac

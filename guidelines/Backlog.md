@@ -13,7 +13,7 @@ tracker, and the automation over it is the tooling under `tools/issues/**` plus 
 reached by seven changes, in order; each change's tasks include keeping this document true for its own
 sections, so the document becomes a description of the tree exactly as fast as the tree moves.
 
-The first two changes have landed and the rest have not. Concretely, on the tracker today: the label taxonomy
+The first three changes have landed and the rest have not. Concretely, on the tracker today: the label taxonomy
 exists (`class/` · `category/` · `status/` · `source/` · `agent/` · `prio/` · `sensor/`, plus GitHub's nine
 defaults), the imported backlog carries it — **137** items, every one open and none carrying `agent/eligible`,
 plus **21** `status/retired` tombstones for the ids whose entry had already been removed before the migration,
@@ -24,7 +24,7 @@ token, proves exactly that on every push.
 |---|---|---|---|
 | 1 | `github-issue-tooling` | the tracker surface: taxonomy, gate, identity, closure, the project profile | **applied 2026-10-17** — `tools/issues/**`, the project profile `tools/tooling.json`, four skills, an offline self-test and one CI step; the dry run over the prose backlog is recorded under the change's `evidence/`, and the tracker holds the 36 taxonomy labels and no issue |
 | 2 | `migrate-todo-to-github-issues` | the live import, the prose file deleted, every instruction rewired | **applied 2026-10-17** — 137 items imported (open, none authorised) and 21 retired tombstones, `list.sh --id N` resolving a citation, `tools/check-todo-references.sh` and its CI step, every instruction rewired, the prose file deleted; the run's record is `import-evidence.md` |
-| 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | planned |
+| 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | **applied 2026-10-17** — `tools/loop/**` (the entry `run.sh`, the pre-screen, the state and its lock, the worktree and the branches, the label transitions, the report), two prompt skeletons filled from `loop.conf`, a stub `pi` and an offline self-test with one CI step; the two write paths the loop needed landed in the tooling (`update.sh --remove-label`, `close.sh --comment-only`); §7 and §11 of this document and the `fix-loop` skill describe it |
 | 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | planned |
 | 5 | `issue-metadata-loop` | persisted priority and classification | planned |
 | 6 | `tooling-portability` | the proof that another project can use all of it | planned |
@@ -340,6 +340,7 @@ is in the change's `design.md`; this is the map, so a reader can find it and so 
 | a citation of an already-removed entry gets a tombstone rather than a rewrite | 87 citations name 23 ids whose section an earlier cleanup had removed; rewriting them would touch 64 sites inside compiled sources and lose which entry proved the rule, so each id keeps its citations and gains one `status/retired` issue carrying its text from git | 2 |
 | the reference check is one script, and its exclusions are printed | a proof that nothing points at a deleted file must be mechanical and must not hide an exclusion: a citation that resolves to nothing fails it, and every allowlisted path is named with its reason on every run | 2 |
 | a budget as arguments, not a dialogue | a script cannot ask, and an unrecorded budget cannot be audited | 3 |
+| the loop writes only through the tooling's own write paths, so the two it was missing were added there | taking a label off and commenting without closing are authorisation decisions, and a raw tracker write inside the loop would have skipped the reserved-label refusal and the evidence-before-closure rule | 3 |
 | one fresh process per item, and a separate reviewer | isolation becomes structural instead of a discipline | 3 |
 | git owned by the script | the landing step is this repository's most fragile, and it is mechanical | 3 |
 | the run verifies rather than trusts | a claim of success is not evidence | 3 |

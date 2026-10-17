@@ -33,6 +33,8 @@ ISSUES_SHELL_CASES=(
   'import#dryRunEmitsOnePreviewPerFinding'
   'import#secondRunIsANoOp'
   'adapter#emitsOneFindingPerFixtureSection'
+  'update#removeLabelRunsThroughTheSameGate'
+  'close#commentOnlyLeavesTheIssueOpen'
 )
 
 issues_shell_cases() {
@@ -63,6 +65,8 @@ issues_run_shell_case() {
     'import#dryRunEmitsOnePreviewPerFinding') case_import_dryRunEmitsOnePreviewPerFinding ;;
     'import#secondRunIsANoOp') case_import_secondRunIsANoOp ;;
     'adapter#emitsOneFindingPerFixtureSection') case_adapter_emitsOneFindingPerFixtureSection ;;
+    'update#removeLabelRunsThroughTheSameGate') case_update_removeLabelRunsThroughTheSameGate ;;
+    'close#commentOnlyLeavesTheIssueOpen') case_close_commentOnlyLeavesTheIssueOpen ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -541,4 +545,59 @@ case_adapter_emitsOneFindingPerFixtureSection() {
 
   rename_doc=$(run_tool import/todo-md.sh --todo "$ISSUES_FIXTURES/todo-renames.md") || fail "the adapter failed on the rename fixture"
   assert_eq "2" "$(jq -r '.renames | length' <<< "$rename_doc")" "the adapter reports the two renames"
+}
+
+# ----------------------------------------------------------------------------- removal and comment-only
+#
+# `agent-issue-loop` (D7, D8) added the two write paths the loop needs: taking a label off through the same
+# gate that puts one on, and posting the reason-and-evidence comment while leaving the issue open for a
+# person. Both are cases here rather than there, because the gate they run through is this tooling's.
+
+case_update_removeLabelRunsThroughTheSameGate() {
+  export GH_STUB_DIR="$ISSUES_FIXTURES"
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 11 --remove-label status/on-hold 2>&1); status=$?
+  assert_eq "0" "$status" "removing a vocabulary label succeeds: $out"
+  assert_contains "$(cat "$log")" "--remove-label status/on-hold" "the removal is what was asked for"
+
+  : > "$log"
+  out=$(run_tool update.sh 11 --remove-label category/wibble 2>&1); status=$?
+  assert_eq "3" "$status" "an unknown label is refused"
+  assert_contains "$out" "label-opaque" "with the vocabulary reason"
+  [ ! -s "$log" ] || fail "a refused removal still called gh: $(cat "$log")"
+
+  out=$(run_tool update.sh 11 --remove-label "$(reserved_label)" 2>&1); status=$?
+  assert_eq "3" "$status" "the reserved label cannot be removed either"
+  assert_contains "$out" "label-reserved" "with the reserved-label reason"
+  [ ! -s "$log" ] || fail "a reserved removal still called gh: $(cat "$log")"
+
+  out=$(run_tool update.sh 11 2>&1); status=$?
+  assert_eq "2" "$status" "nothing to change is a usage error"
+  return 0
+}
+
+case_close_commentOnlyLeavesTheIssueOpen() {
+  export GH_STUB_DIR="$(scenario eligible)"
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+
+  out=$(run_tool close.sh 21 --reason "fixed, closure is the owner's" --evidence "the case is green" --comment-only 2>&1)
+  status=$?
+  assert_eq "0" "$status" "comment-only succeeds: $out"
+  assert_eq "1" "$(grep -c 'issue comment' "$log")" "exactly one comment is posted"
+  assert_eq "0" "$(grep -c 'issue close' "$log" || true)" "and the issue stays open"
+
+  : > "$log"
+  out=$(run_tool close.sh 21 --reason "fixed" --evidence "the case is green" --comment-only --json)
+  assert_eq "commented" "$(jq -r '.outcome' <<< "$out")" "the JSON outcome names the comment"
+  assert_eq "false" "$(jq -r '.closed' <<< "$out")" "and says the issue was not closed"
+
+  # the same reasons and evidence rules apply on this path
+  out=$(run_tool close.sh 21 --comment-only 2>&1); status=$?
+  assert_eq "2" "$status" "a comment-only run still owes its reason and evidence"
+  return 0
 }

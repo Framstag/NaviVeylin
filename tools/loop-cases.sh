@@ -1,0 +1,1084 @@
+#!/usr/bin/env bash
+# The loop's shell cases: every case drives the real scripts against the stub `gh` (change 1) and the stub
+# `pi`, inside a throwaway git repository created per case, so the queue, the branches, the worktree, the
+# commits, the label transitions, the closure, the stop conditions and the refusals are exercised for real
+# with no token, no network, no model and no device (design D13).
+#
+# Sourced by `tools/loop-selftest.sh`, which provides the environment:
+#   LOOP_ENGINE          the loop's own directory (`tools/loop`)
+#   LOOP_FIXTURES        `tools/loop/fixtures` (the stub `pi` and the scenario issues)
+#   LOOP_ISSUE_FIXTURES  `tools/issues/fixtures` (the stub `gh`, the profile)
+#   LOOP_PROJECT_ROOT    the real repository (for the profile and the structural checks)
+#   ISSUES_CORE_CLASSES  the Java core, already compiled by the driver
+#   LOOP_TMP             a scratch directory under the gitignored `.pi/tmp/`
+# and puts the stub `pi` and the stub `gh` first on PATH.
+#
+# A case runs in a subshell; it prints nothing on success and a reason on failure, exiting non-zero.
+set -uo pipefail
+
+LOOP_SHELL_CASES=(
+  'state#initAndShowRoundTrips'
+  'state#nextHonoursEveryStopCondition'
+  'state#secondRunRefusesWithExit5'
+  'state#defaultsComeFromLoopConf'
+  'state#projectKeysAreReadFromLoopConf'
+  'state#agentCommandIsTheOnlyIndirection'
+  'state#agentCommandRefusesAnEmptyValue'
+  'prescreen#ranksBugsFirstAndDropsFeatures'
+  'prescreen#missingPathYieldsStale'
+  'prescreen#doesNotClaimJudgementGates'
+  'prescreen#refusesReservedLabelInSelection'
+  'prescreen#withoutTheOptInIsNeverQueued'
+  'prescreen#settledItemIsDropped'
+  'prescreen#deviceItemIsAVerdictNotWork'
+  'worktree#seedsAllFourInputs'
+  'worktree#oneBranchPerItemOffTheBase'
+  'worktree#refusesWhenMainAdvanced'
+  'worktree#keepsByDefaultAndRemovesOnRequest'
+  'worktree#noPushWithoutTheFlag'
+  'labels#verdictToLabelMatrix'
+  'labels#trapRemovesInProgressOnSignal'
+  'labels#neverWritesReservedLabel'
+  'labels#writesOnlyBetweenChildren'
+  'prompt#workerNamesEveryPhaseAndSkill'
+  'prompt#reviewerCarriesTheEightItems'
+  'prompt#packageIsAFileAndNotInlined'
+  'prompt#inlineInjectionCannotReachTheInstructionPosition'
+  'run#preflightRefusalStopsBeforeAnyWork'
+  'run#decisionCapRefusesToStart'
+  'run#oneItemOrderIsFixed'
+  'run#childClaimWithoutCommitIsBlocked'
+  'run#claimedGateWithoutEvidenceIsBlocked'
+  'run#citedEvidenceMustTravelWithTheChange'
+  'run#needsDecisionIsEscalatedWithTheWork'
+  'run#noGateStillRuns'
+  'run#dryRunTouchesNothing'
+  'run#reviewRoundsCapAtTwo'
+  'run#mayCloseNoLeavesTheIssueOpen'
+  'run#metricsRecordedPerItem'
+  'run#emptyQueueIsNotAFailure'
+  'run#reviewerWriteInvalidatesTheRound'
+  'run#reviewReadOnlyOffOnlyForDiagnosis'
+  'run#engineNamesNoProjectFact'
+  'report#headerAndTableShape'
+  'report#yieldIsCountedFromState'
+)
+
+loop_shell_cases() {
+  printf '%s\n' "${LOOP_SHELL_CASES[@]}"
+}
+
+# The dispatcher resolves a name to a function and then returns 0 unconditionally: a case signals failure
+# by calling `fail` (which exits the case's subshell), never by the status of its last statement.
+loop_run_shell_case() {
+  local fn
+  case "$1" in
+    'state#initAndShowRoundTrips') fn=case_state_initAndShowRoundTrips ;;
+    'state#nextHonoursEveryStopCondition') fn=case_state_nextHonoursEveryStopCondition ;;
+    'state#secondRunRefusesWithExit5') fn=case_state_secondRunRefusesWithExit5 ;;
+    'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
+    'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
+    'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
+    'state#agentCommandRefusesAnEmptyValue') fn=case_state_agentCommandRefusesAnEmptyValue ;;
+    'prescreen#ranksBugsFirstAndDropsFeatures') fn=case_prescreen_ranksBugsFirstAndDropsFeatures ;;
+    'prescreen#missingPathYieldsStale') fn=case_prescreen_missingPathYieldsStale ;;
+    'prescreen#doesNotClaimJudgementGates') fn=case_prescreen_doesNotClaimJudgementGates ;;
+    'prescreen#refusesReservedLabelInSelection') fn=case_prescreen_refusesReservedLabelInSelection ;;
+    'prescreen#withoutTheOptInIsNeverQueued') fn=case_prescreen_withoutTheOptInIsNeverQueued ;;
+    'prescreen#settledItemIsDropped') fn=case_prescreen_settledItemIsDropped ;;
+    'prescreen#deviceItemIsAVerdictNotWork') fn=case_prescreen_deviceItemIsAVerdictNotWork ;;
+    'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
+    'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
+    'worktree#refusesWhenMainAdvanced') fn=case_worktree_refusesWhenMainAdvanced ;;
+    'worktree#keepsByDefaultAndRemovesOnRequest') fn=case_worktree_keepsByDefaultAndRemovesOnRequest ;;
+    'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
+    'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
+    'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
+    'labels#neverWritesReservedLabel') fn=case_labels_neverWritesReservedLabel ;;
+    'labels#writesOnlyBetweenChildren') fn=case_labels_writesOnlyBetweenChildren ;;
+    'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
+    'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
+    'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
+    'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
+    'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
+    'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
+    'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
+    'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
+    'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
+    'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
+    'run#needsDecisionIsEscalatedWithTheWork') fn=case_run_needsDecisionIsEscalatedWithTheWork ;;
+    'run#noGateStillRuns') fn=case_run_noGateStillRuns ;;
+    'run#dryRunTouchesNothing') fn=case_run_dryRunTouchesNothing ;;
+    'run#reviewRoundsCapAtTwo') fn=case_run_reviewRoundsCapAtTwo ;;
+    'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
+    'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
+    'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
+    'run#reviewerWriteInvalidatesTheRound') fn=case_run_reviewerWriteInvalidatesTheRound ;;
+    'run#reviewReadOnlyOffOnlyForDiagnosis') fn=case_run_reviewReadOnlyOffOnlyForDiagnosis ;;
+    'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
+    'report#headerAndTableShape') fn=case_report_headerAndTableShape ;;
+    'report#yieldIsCountedFromState') fn=case_report_yieldIsCountedFromState ;;
+    *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
+  esac
+  "$fn"
+  return 0
+}
+
+# --------------------------------------------------------------------------- helpers
+
+fail() {
+  printf '  %s\n' "$*" >&2
+  exit 1
+}
+
+assert_eq() {
+  [ "$1" = "$2" ] || fail "$3: expected '$1', got '$2'"
+}
+
+assert_contains() {
+  case "$1" in
+    *"$2"*) ;;
+    *) fail "$3: '$2' not found in: $1" ;;
+  esac
+}
+
+assert_not_contains() {
+  case "$1" in
+    *"$2"*) fail "$3: '$2' should not appear in: $1" ;;
+  esac
+}
+
+scratch() { mktemp -d "$LOOP_TMP/case.XXXXXX"; }
+
+# A throwaway project: enough of this repository's shape that the loop's own scripts run unchanged — the
+# profile the issue tooling discovers, a directory standing in for the submodule, a `local.prop*` the
+# worktree does not inherit, and the gitignored skills it does not inherit either.
+new_project() {
+  local dir repo
+  dir=$(scratch); repo="$dir/repo"
+  mkdir -p "$repo/tools" "$repo/app/src/main/cpp/libosmscout" \
+           "$repo/.pi/skills/fix-loop" "$repo/.pi/skills/openspec-apply-change" \
+           "$repo/openspec/changes/archive"
+  cp "$LOOP_PROJECT_ROOT/tools/tooling.json" "$repo/tools/tooling.json"
+  printf '.pi/\napp/build/\nbuild/\nlocal.prop*\n' > "$repo/.gitignore"
+  printf 'cmake_minimum_required(VERSION 3.22)\n' > "$repo/app/src/main/cpp/libosmscout/CMakeLists.txt"
+  printf '# machine-local SDK/NDK/Java paths\n' > "$repo/local.properties"
+  printf -- '---\nname: fix-loop\n---\nfixture skill\n' > "$repo/.pi/skills/fix-loop/SKILL.md"
+  printf 'fixture skill\n' > "$repo/.pi/skills/openspec-apply-change/SKILL.md"
+  git -C "$repo" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway repository"
+  git -C "$repo" config user.email selftest@example.invalid
+  git -C "$repo" config user.name selftest
+  git -C "$repo" add -A >/dev/null 2>&1
+  git -C "$repo" commit -qm init >/dev/null 2>&1 || fail "could not commit in the throwaway repository"
+  printf '%s\n' "$repo"
+}
+
+state_file() { printf '%s\n' "$1/.pi/issue-loop/run.json"; }
+
+run_state() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/state.sh" "$@" ); }
+run_prescreen() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/prescreen.sh" "$@" ); }
+run_worktree() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/worktree.sh" "$@" ); }
+run_labels() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/labels.sh" "$@" ); }
+run_report() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/report.sh" "$@" ); }
+run_loop() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/run.sh" "$@" ); }
+
+scenario() { printf '%s\n' "$LOOP_FIXTURES/scenarios/$1"; }
+
+init_state() { # a run state the pre-screen needs before it can write its queue
+  run_state "$1" init --items "${2:-1}" --minutes "${3:-90}" >/dev/null || fail "state init failed"
+}
+
+gh_log() { printf '%s\n' "$GH_STUB_RECORD"; }
+pi_log() { printf '%s\n' "$PI_STUB_LOG"; }
+
+# The stub child's fixtures. `worker` is the report the worker prints, `reviewer` the reviewer's, and the
+# action leaves a real change in the tree so the wrapper's own commit and verification run for real.
+stub_write() { # stub_write <dir> <worker-report> <reviewer-report> [extra-action]
+  local dir="$1" worker="$2" reviewer="$3" extra="${4:-}"
+  printf '%s\n' "$worker" > "$dir/worker-report.txt"
+  printf '%s\n' "$reviewer" > "$dir/reviewer-report.txt"
+  {
+    printf 'case "$1" in\n'
+    printf '  worker*)\n'
+    printf '    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence\n'
+    printf '    printf "archived\\n" > openspec/changes/archive/2026-01-01-fix-demo/proposal.md\n'
+    printf '    mkdir -p app/build/test-results/test\n'
+    printf '    printf "<testsuite tests=\\"1\\" failures=\\"0\\"></testsuite>\\n" > app/build/test-results/test/TEST-demo.xml\n'
+    printf '    cp app/build/test-results/test/TEST-demo.xml openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml\n'
+    printf '    printf "the fix\\n" > demo-fix.txt\n'
+    printf '    ;;\n'
+    printf 'esac\n'
+    [ -z "$extra" ] || printf '%s\n' "$extra"
+  } > "$dir/worker-action.sh"
+  export PI_STUB_REPORT_WORKER="$dir/worker-report.txt"
+  export PI_STUB_REPORT_REVIEWER="$dir/reviewer-report.txt"
+  export PI_STUB_ACTION="$dir/worker-action.sh"
+  export PI_STUB_LOG="$dir/pi.log"; : > "$PI_STUB_LOG"
+  export GH_STUB_RECORD="$dir/gh.log"; : > "$GH_STUB_RECORD"
+}
+
+STUB_WORKER_REPORT='LOOP-VERDICT: closed
+LOOP-CHANGE: fix-demo
+LOOP-ROOT-CAUSE: the fixture has exactly one cause
+LOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)
+LOOP-GATE: tests=1 failures=0 (fixture)'
+
+stub_success() { # stub_success <dir> — a run that produces a change and a passing review
+  stub_write "$1" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+}
+
+run_one_item() { # run_one_item <project> <dir> [run.sh args…]
+  local p="$1" d="$2"; shift 2
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 "$@"
+}
+
+# ----------------------------------------------------------------------------- cases: state
+
+case_state_initAndShowRoundTrips() {
+  local p base out sf
+  p=$(new_project)
+  base=$(git -C "$p" rev-parse HEAD)
+  run_state "$p" init --items 2 --minutes 90 --review off --may-close no --max-decisions 5 \
+    --base "$base" >/dev/null || fail "init failed"
+
+  assert_eq "2" "$(run_state "$p" get run.items)" "items"
+  assert_eq "90" "$(run_state "$p" get run.minutes)" "minutes"
+  assert_eq "off" "$(run_state "$p" get run.review)" "review"
+  assert_eq "no" "$(run_state "$p" get run.mayClose)" "may-close survives"
+  assert_eq "5" "$(run_state "$p" get run.maxDecisions)" "max-decisions"
+  assert_eq "$base" "$(run_state "$p" get run.base)" "base survives"
+
+  out=$(run_state "$p" show) || fail "show failed"
+  assert_contains "$out" "may-close no" "show re-reads may-close"
+  assert_contains "$out" "base $base" "show re-reads the base commit"
+  assert_contains "$out" "2 items / 90 min" "show re-reads the budget"
+  # the state is machine-local: it must not be part of the repository's history (D5)
+  assert_eq "" "$(git -C "$p" status --porcelain)" "the state file is not tracked or reported"
+  git -C "$p" check-ignore -q "$(state_file "$p")" || fail "the state file is not gitignored"
+
+  # A field edited outside the script is reported as drift rather than obeyed (D5).
+  sf=$(state_file "$p")
+  jq '.run.items = 9' "$sf" > "$sf.tmp" && mv "$sf.tmp" "$sf"
+  out=$(run_state "$p" show 2>&1)
+  assert_contains "$out" "drift" "a hand-edited field is reported as drift"
+  assert_contains "$out" "9 items" "the drifted value is what the state now says"
+}
+
+case_state_nextHonoursEveryStopCondition() {
+  local p sf out status
+
+  p=$(new_project); sf=$(state_file "$p")
+  # the only condition under which the run may continue
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "no stop condition holds"
+  assert_eq "21" "$out" "the next candidate"
+
+  # 1. the item cap: one item finished of a budget of one
+  p=$(new_project)
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed >/dev/null
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "the cap stops the run"
+  assert_contains "$out" "cap" "the cap is named"
+
+  # 2. the deadline
+  p=$(new_project)
+  init_state "$p" 3 0
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "the deadline stops the run"
+  assert_contains "$out" "deadline" "the deadline is named"
+
+  # 3. the queue is empty
+  p=$(new_project)
+  init_state "$p" 3 90
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "an empty queue stops the run"
+  assert_contains "$out" "queue empty" "the empty queue is named"
+
+  # 4. two consecutive blocked items
+  p=$(new_project)
+  init_state "$p" 5 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked >/dev/null
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "one blocked item does not stop the run"
+  run_state "$p" done 22 --result blocked --verdict blocked >/dev/null
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "two consecutive blocked items stop the run"
+  assert_contains "$out" "two consecutive" "the reason is named"
+
+  # 5. less time left than the next item's floor
+  p=$(new_project)
+  init_state "$p" 3 30
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "a remaining time below the floor stops the run"
+  assert_contains "$out" "floor" "the floor is named"
+}
+
+case_state_secondRunRefusesWithExit5() {
+  local d p block first second status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  block="$d/fifo"; mkfifo "$block"
+  export PI_STUB_WAIT="$block"
+
+  # `--review off`, because PI_STUB_WAIT blocks every child that is started while it is set and this
+  # case needs exactly one blocked child (the second run's lock refusal is what is under test).
+  ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/first.log" 2>&1 &
+  first=$!
+  local waited=0
+  while [ ! -f "$block.ready" ] && [ "$waited" -lt 300 ]; do sleep 0.1; waited=$((waited + 1)); done
+  [ -f "$block.ready" ] || { printf '\n' > "$block"; wait "$first"; fail "the first run never reached its child"; }
+
+  gh_log_content=$(cat "$GH_STUB_RECORD")
+  second=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  assert_eq "5" "$status" "a second run refuses while the first holds the lock"
+  assert_contains "$second" "another run holds" "the refusal names the lock"
+
+  # Nothing was written by the second run: the first run's label bookkeeping is all that is in the log.
+  assert_eq "$gh_log_content" "$(cat "$GH_STUB_RECORD")" "the refused run wrote no label"
+
+  printf '\n' > "$block"
+  wait "$first"
+  unset PI_STUB_WAIT
+}
+
+case_state_defaultsComeFromLoopConf() {
+  local p conf_items conf_minutes conf_review conf_may_close conf_max_decisions
+  p=$(new_project)
+  # read the recorded defaults from the same file the loop reads them from, so the case fails when a
+  # default moves rather than following it
+  conf_items=$(sed -n 's/^LOOP_ITEMS_DEFAULT=//p' "$LOOP_CONF")
+  conf_minutes=$(sed -n 's/^LOOP_MINUTES_DEFAULT=//p' "$LOOP_CONF")
+  conf_review=$(sed -n 's/^LOOP_REVIEW_DEFAULT=//p' "$LOOP_CONF")
+  conf_may_close=$(sed -n 's/^LOOP_MAY_CLOSE_DEFAULT=//p' "$LOOP_CONF")
+  conf_max_decisions=$(sed -n 's/^LOOP_MAX_DECISIONS_DEFAULT=//p' "$LOOP_CONF")
+  [ -n "$conf_items" ] || fail "the configuration records no default for --items"
+  run_state "$p" init >/dev/null || fail "init with no flags failed"
+  assert_eq "$conf_items" "$(run_state "$p" get run.items)" "--items defaults to loop.conf"
+  assert_eq "$conf_minutes" "$(run_state "$p" get run.minutes)" "--minutes defaults to loop.conf"
+  assert_eq "$conf_review" "$(run_state "$p" get run.review)" "--review defaults to loop.conf"
+  assert_eq "$conf_may_close" "$(run_state "$p" get run.mayClose)" "--may-close defaults to loop.conf"
+  assert_eq "$conf_max_decisions" "$(run_state "$p" get run.maxDecisions)" "--max-decisions defaults to loop.conf"
+}
+
+case_state_projectKeysAreReadFromLoopConf() {
+  local d p conf prompt
+  d=$(scratch); p=$(new_project)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_AGENT_CMD=.*/LOOP_AGENT_CMD="pi --print"/' \
+      -e 's/^LOOP_WORKER_SKILLS=.*/LOOP_WORKER_SKILLS="alpha-skill beta-skill"/' \
+      -e 's|^LOOP_GATE_CMD=.*|LOOP_GATE_CMD="my-gate --now"|' "$LOOP_CONF" > "$conf"
+  export LOOP_CONF="$conf"
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed with a substituted configuration"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  assert_contains "$(cat "$prompt")" "alpha-skill beta-skill" "the skill list comes from loop.conf"
+  assert_contains "$(cat "$prompt")" "my-gate --now" "the gate command comes from loop.conf"
+  assert_not_contains "$(cat "$prompt")" "{{WORKER_SKILLS}}" "every placeholder is substituted"
+}
+
+case_state_agentCommandIsTheOnlyIndirection() {
+  local d p wrapper
+  d=$(scratch); p=$(new_project)
+  wrapper="$d/my-agent.sh"
+  cat > "$wrapper" <<EOF
+#!/usr/bin/env bash
+printf 'AGENT-CMD\\n' >> "$d/agent.log"
+exec "$LOOP_FIXTURES/pi" "\$@"
+EOF
+  chmod +x "$wrapper"
+  : > "$d/agent.log"
+  # the seam is a configuration key, so the case sets it where the loop reads it
+  local conf
+  conf="$d/loop.conf"
+  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$wrapper --print\"|" "$LOOP_CONF" > "$conf"
+  export LOOP_CONF="$conf"
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed with a substituted agent command"
+  # both children — the worker and the reviewer — went through the configured value
+  assert_eq "2" "$(grep -c 'AGENT-CMD' "$d/agent.log")" "both child invocations expand the configured command"
+  assert_eq "2" "$(grep -c '^invocation' "$PI_STUB_LOG")" "and both arrived at the child"
+}
+
+case_state_agentCommandRefusesAnEmptyValue() {
+  local d p conf out status
+  d=$(scratch); p=$(new_project)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_AGENT_CMD=.*/LOOP_AGENT_CMD=""/' "$LOOP_CONF" > "$conf"
+  export LOOP_CONF="$conf"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  assert_eq "2" "$status" "an empty agent command is a usage error"
+  assert_contains "$out" "LOOP_AGENT_CMD is empty" "the refusal names the configuration key"
+  [ ! -f "$PI_STUB_LOG" ] || [ ! -s "$PI_STUB_LOG" ] || fail "an agent process was started anyway"
+}
+
+# ----------------------------------------------------------------------------- cases: prescreen
+
+case_prescreen_ranksBugsFirstAndDropsFeatures() {
+  local p out
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "21 22 23 24" "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
+    "three bugs before the improvement"
+  assert_eq "4" "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")][-1].rank')" "the improvement is ranked last"
+  assert_eq "class-feature" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" "a feature is dropped"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .reason')" "class/feature" "the feature's reason"
+  assert_eq "in-flight" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 26) | .verdict')" "an in-flight item is dropped"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 26) | .reason')" "in-flight" "the in-flight reason"
+  assert_eq "4" "$(jq -r '.queue | length' "$(state_file "$p")")" "the queue holds the survivors only"
+}
+
+case_prescreen_missingPathYieldsStale() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario stale)
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "3" "$status" "nothing eligible is a stop, not a failure"
+  assert_eq "stale" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .verdict')" "a missing cited path yields stale"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .reason')" \
+    "app/src/main/kotlin/DoesNotExist.kt" "the verdict quotes the path that no longer exists"
+}
+
+case_prescreen_doesNotClaimJudgementGates() {
+  local p out
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  # gates 2-5 are the worker's: the queue carries them as pending, and no verdict decides one
+  assert_eq "pending pending pending pending" \
+    "$(printf '%s' "$out" | jq -r '.[0].gates | [.oneRootCause, .oneFix, .falsifiable, .oneCapability] | join(" ")')" \
+    "the judgement gates are pending"
+  assert_eq "0" "$(printf '%s' "$out" | jq '[.[] | select(.verdict == "needs-diagnosis" or .verdict == "needs-decision" or .verdict == "unspecifiable" or .verdict == "too-wide")] | length')" \
+    "no candidate is judged"
+  assert_eq "eligible" "$(jq -r '.queue[0].verdict // "eligible"' "$(state_file "$p")")" "the queue holds undecided survivors"
+}
+
+case_prescreen_refusesReservedLabelInSelection() {
+  local p out
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario foreign-author)
+  out=$(run_prescreen "$p" --json 2>&1) || true
+  assert_eq "author-not-allowlisted" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 51) | .verdict')" \
+    "the opt-in label alone does not authorise an item"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 51) | .reason')" "allowlist" "the reason"
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "nothing unauthorised reaches the queue"
+}
+
+case_prescreen_withoutTheOptInIsNeverQueued() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario no-optin)
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "3" "$status" "an item without the opt-in leaves nothing to work"
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "it never reaches the queue"
+  assert_eq "0" "$(jq -r '.excluded | length' "$(state_file "$p")")" "and it is not even a candidate: selection reads the label"
+  # the same defect-shaped item, with the opt-in, would be worked — so the case is about the opt-in
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  out=$(run_prescreen "$p" --json 2>&1) || fail "the same fixture with the opt-in did not select"
+  assert_contains "$out" '"issue":21' "an item carrying the opt-in is selected"
+}
+
+case_prescreen_settledItemIsDropped() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario settled)
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "3" "$status" "nothing settled is worked"
+  assert_eq "settled" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .verdict')" \
+    "an item the tracker has already settled is dropped"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .reason')" "fixed-by" "the reason names the state"
+  assert_eq "settled" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 92) | .verdict')" \
+    "so is a closed issue whose labels were never moved on"
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "neither reaches the queue"
+}
+
+case_prescreen_deviceItemIsAVerdictNotWork() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario device)
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "3" "$status" "a device-gated item is not host work"
+  assert_eq "needs-device" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 81) | .verdict')" \
+    "its verdict is the device, decided by a script"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 81) | .reason')" "device" "the reason names it"
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "no agent process is spent on it"
+}
+
+# ----------------------------------------------------------------------------- cases: worktree
+
+# The throwaway repository has no submodule and no vendored dependency, so the seed's submodule step is a
+# no-op there (it is exercised only against this repository); what the case asserts is the state after
+# seeding — the directory populated, the local properties and the gitignored skills present, none of
+# which a fresh worktree inherits.
+case_worktree_seedsAllFourInputs() {
+  local p w
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  [ -d "$w" ] || fail "the worktree does not exist"
+  [ -s "$w/app/src/main/cpp/libosmscout/CMakeLists.txt" ] || fail "the submodule directory is not populated in the worktree"
+  [ -f "$w/local.properties" ] || fail "local.prop* was not copied into the worktree"
+  [ -f "$w/.pi/skills/fix-loop/SKILL.md" ] || fail "the gitignored loop skill was not copied into the worktree"
+  assert_contains "$(cat "$w/.pi/loop-env.sh")" "VCPKG_ROOT" "the dependency root is exported from a file, not a symlink"
+}
+
+case_worktree_oneBranchPerItemOffTheBase() {
+  local p w base out status
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  base=$(git -C "$p" rev-parse HEAD)
+  init_state "$p" 2 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  out=$(run_worktree "$p" start-item 21 demo 2>&1) || fail "the first item did not start: $out"
+  assert_eq "fix/issue-21-demo" "$(git -C "$w" branch --show-current)" "the item's branch"
+
+  # one writer per tree: the next item refuses while the first item's tree is dirty
+  printf 'wip\n' > "$w/wip.txt"
+  out=$(run_worktree "$p" start-item 22 other 2>&1); status=$?
+  assert_eq "5" "$status" "a dirty tree refuses the next item"
+  assert_contains "$out" "not clean" "the refusal says why"
+  rm -f "$w/wip.txt"
+
+  run_worktree "$p" start-item 22 other >/dev/null || fail "the second item did not start"
+  [ -n "$(git -C "$p" branch --list 'fix/issue-22-other')" ] || fail "the second branch was not created"
+  git -C "$p" merge-base --is-ancestor "$base" fix/issue-21-demo || fail "item 21 does not descend from the run's base"
+  git -C "$p" merge-base --is-ancestor "$base" fix/issue-22-other || fail "item 22 does not descend from the run's base"
+  return 0
+}
+
+case_worktree_refusesWhenMainAdvanced() {
+  local p w base out status tip
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 2 90
+  base=$(run_state "$p" get run.base)
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the first item did not start"
+
+  git -C "$p" commit --allow-empty -qm "a change landed on main while the run was open"
+  tip=$(git -C "$p" rev-parse --short main)
+  out=$(run_worktree "$p" start-item 22 other 2>&1); status=$?
+  assert_eq "5" "$status" "a stale base refuses the next item"
+  assert_contains "$out" "base moved" "the refusal names the condition"
+  assert_contains "$out" "${base:0:12}" "it names the run's base commit"
+  assert_contains "$out" "$tip" "it names the commit main has advanced to"
+  return 0
+}
+
+case_worktree_keepsByDefaultAndRemovesOnRequest() {
+  local d p
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  [ -d "$p/.pi/worktrees/loop" ] || fail "the worktree was removed although nothing asked for it"
+  run_one_item "$p" "$d" --clean-worktree >/dev/null || fail "the second run failed"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "the worktree survived --clean-worktree"
+  if git -C "$p" worktree list | grep -q 'worktrees/loop'; then
+    fail "git still lists the worktree that was removed"
+  fi
+  return 0
+}
+
+case_worktree_noPushWithoutTheFlag() {
+  local d p trace hits
+  hits=$(grep -rn 'gh pr create' "$LOOP_PROJECT_ROOT/tools/loop/" || true)
+  [ -z "$hits" ] || fail "the loop opens a change request: $hits"
+  assert_eq "1" "$(grep -c 'push_branch()' "$LOOP_ENGINE/run.sh")" "the push is one named call"
+  assert_eq "1" "$(grep -c 'push_branch "' "$LOOP_ENGINE/run.sh")" "and it has exactly one call site"
+  assert_contains "$(grep -B1 'push_branch "' "$LOOP_ENGINE/run.sh")" 'push" = yes' "the call site is guarded by the flag"
+
+  # A default run does not push: git's own trace is the log (git is never stubbed — D13).
+  d=$(scratch); p=$(new_project)
+  trace="$d/git.trace"
+  export GIT_TRACE="$trace"
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  [ -s "$trace" ] || fail "git was not traced, so the case would prove nothing"
+  assert_eq "0" "$(grep -c 'git push' "$trace" || true)" "a run that was not asked to publish does not push"
+}
+
+# ----------------------------------------------------------------------------- cases: labels
+
+case_labels_verdictToLabelMatrix() {
+  local d p log out status
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+
+  check_labels() { # check_labels <verdict> <expected added> <expected removed>
+    local verdict="$1" want_add="$2" want_remove="$3" log="$d/gh-$1.log"
+    : > "$log"; export GH_STUB_RECORD="$log"
+    out=$(run_labels "$p" "$verdict" 21 --reason "the fixture cause" --evidence "the fixture evidence" 2>&1)
+    status=$?
+    [ "$status" -eq 0 ] || fail "$verdict: labels.sh exited $status: $out"
+    local got_add got_remove
+    got_add=$(grep 'issue edit' "$log" | grep -o -- '--add-label [a-z/-]*' | sed 's/--add-label //' | sort | paste -sd' ' -)
+    got_remove=$(grep 'issue edit' "$log" | grep -o -- '--remove-label [a-z/-]*' | sed 's/--remove-label //' | sort | paste -sd' ' -)
+    assert_eq "$want_add" "$got_add" "$verdict: the labels it adds"
+    assert_eq "$want_remove" "$got_remove" "$verdict: the labels it removes"
+  }
+
+  check_labels pick "agent/in-progress" ""
+  check_labels unpick "" "agent/in-progress"
+  check_labels stale "status/on-hold" ""
+  check_labels unspecifiable "status/on-hold" ""
+  check_labels too-wide "status/on-hold" ""
+  check_labels needs-device "agent/needs-device status/on-hold" ""
+  check_labels needs-decision "agent/needs-decision status/on-hold" ""
+  check_labels needs-diagnosis "agent/needs-decision status/on-hold" ""
+
+  log="$d/gh-close.log"; : > "$log"; export GH_STUB_RECORD="$log"
+  run_labels "$p" close 21 --reason "the fixture cause" --evidence "the fixture evidence" >/dev/null 2>&1 ||
+    fail "close failed"
+  out=$(cat "$log")
+  assert_contains "$out" "--remove-label agent/in-progress" "close takes the in-progress label off"
+  assert_contains "$out" "--add-label status/fixed-by" "close marks the item as fixed"
+  assert_eq "1" "$(grep -c 'issue comment' "$log")" "exactly one evidence comment"
+  assert_eq "1" "$(grep -c 'issue close' "$log")" "the item is closed"
+}
+
+case_labels_trapRemovesInProgressOnSignal() {
+  local d p block first waited
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # The case sends SIGTERM, not SIGINT: a non-interactive shell starts background jobs with SIGINT and
+  # SIGQUIT ignored (POSIX), so a SIGINT to this job would be silently dropped and the case would prove
+  # nothing. The run traps both signals identically, and the structural half of this case asserts the
+  # SIGINT trap exists.
+  assert_contains "$(grep -n 'INT' "$LOOP_ENGINE/run.sh" | grep -c 'on_signal')" "1" "the run traps SIGINT as well"
+  block="$d/fifo"; mkfifo "$block"; export PI_STUB_WAIT="$block"
+  # `--review off`: PI_STUB_WAIT blocks every child started while it is set, and this case needs one.
+  ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/run.log" 2>&1 &
+  first=$!
+  waited=0
+  while [ ! -f "$block.ready" ] && [ "$waited" -lt 300 ]; do sleep 0.1; waited=$((waited + 1)); done
+  [ -f "$block.ready" ] || { printf '\n' > "$block"; wait "$first"; fail "the run never reached its child"; }
+
+  kill -TERM "$first"
+  sleep 0.2
+  printf '\n' > "$block"
+  wait "$first"
+  unset PI_STUB_WAIT
+
+  assert_eq "1" "$(grep -c 'remove-label agent/in-progress' "$GH_STUB_RECORD" || true)" \
+    "the interrupted item's in-progress label is removed exactly once"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the interrupted item is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "interrupted" "the reason is recorded"
+  [ ! -d "$p/.pi/issue-loop/lock" ] || fail "the lock was left behind by the interrupted run"
+  return 0
+}
+
+case_labels_neverWritesReservedLabel() {
+  local hits count p out status
+  # The engine's scripts, not the fixtures: a fixture issue carries the label because that is what a
+  # fixture *is* (an expectation). No code path of the loop can write it.
+  hits=$(grep -rn 'agent/eligible' "$LOOP_PROJECT_ROOT/tools/loop/" --exclude-dir=fixtures --exclude='*.md' || true)
+  count=$(printf '%s\n' "$hits" | grep -c . || true)
+  assert_eq "1" "$count" "the authorisation label appears exactly once in the loop's scripts"
+  assert_contains "$hits" 'LOOP_AUTHORISATION_LABEL' "and it is the read-side constant, not a write"
+  assert_eq "0" "$(grep -rn 'eligible' "$LOOP_ENGINE/labels.sh" | grep -c 'add_labels=\|remove_labels=' || true)" \
+    "no transition can produce the authorisation label"
+
+  # and the tooling refuses it on every path, including the removal path the loop now uses
+  p=$(new_project)
+  out=$( cd "$p" && bash "$LOOP_ISSUES_ENGINE/update.sh" 21 --remove-label agent/eligible 2>&1 ); status=$?
+  assert_eq "3" "$status" "the tooling refuses to remove the reserved label"
+  assert_contains "$out" "label-reserved" "with the reserved-label reason"
+}
+
+case_labels_writesOnlyBetweenChildren() {
+  local d p before after n i b a
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  before=$(grep '^state-before:' "$PI_STUB_LOG" | awk '{print $2}')
+  after=$(grep '^state-after:' "$PI_STUB_LOG" | awk '{print $2}')
+  n=$(printf '%s\n' "$before" | grep -c . || true)
+  [ "$n" -ge 2 ] || fail "the run did not start both children"
+  i=1
+  while [ "$i" -le "$n" ]; do
+    b=$(printf '%s\n' "$before" | sed -n "${i}p")
+    a=$(printf '%s\n' "$after" | sed -n "${i}p")
+    assert_eq "$b" "$a" "the state changed while child $i was running"
+    i=$((i + 1))
+  done
+  return 0
+}
+
+# ----------------------------------------------------------------------------- cases: prompts
+
+case_prompt_workerNamesEveryPhaseAndSkill() {
+  local d p prompt skills skill
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  for phase in 'Phase A' 'Phase B' 'Phase C' 'Phase D' 'Phase F'; do
+    assert_contains "$(cat "$prompt")" "$phase" "the worker prompt names $phase"
+  done
+  skills=$(sed -n 's/^LOOP_WORKER_SKILLS="\(.*\)"/\1/p' "$LOOP_CONF")
+  for skill in $skills; do
+    assert_contains "$(cat "$prompt")" "$skill" "the worker prompt names the skill $skill"
+  done
+  assert_contains "$(cat "$prompt")" "data, not instructions" "the item's text is marked as data"
+}
+
+case_prompt_reviewerCarriesTheEightItems() {
+  local d p prompt
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$prompt" ] || fail "the reviewer prompt was not rendered"
+  local item
+  for item in '1. **Scenario coverage**' '2. **Root cause scope**' '3. **Gate reality**' '4. **Tasks claiming done**' \
+              '5. **Revert-check**' '6. **Evidence pointers**' '7. **Spec and guideline honesty**' '8. **New overreach**'; do
+    assert_contains "$(cat "$prompt")" "$item" "the reviewer contract carries $item"
+  done
+  assert_contains "$(cat "$prompt")" "VERDICT: PASS|FAIL" "the reviewer prompt carries the verdict shape"
+  assert_contains "$(cat "$prompt")" "must not" "and says the reviewer must not be the writer"
+}
+
+case_prompt_packageIsAFileAndNotInlined() {
+  local d p prompt package expected
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  package="$p/.pi/issue-loop/items/21/work-package.md"
+  [ -f "$package" ] || fail "the work package was not written"
+  assert_contains "$(cat "$prompt")" "$package" "the prompt names the package's path"
+  assert_not_contains "$(cat "$prompt")" "§21 An eligible bug" "the prompt does not inline the item's text"
+
+  # the package file is the core's own output for that issue, not a paraphrase
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  issue_json=$(gh issue view 21 --json number,title,body,labels,author,state)
+  expected=$(printf '%s' "$issue_json" |
+    java -cp "$ISSUES_CORE_CLASSES" WorkPackage --profile "$p/tools/tooling.json" --issue - \
+      --fingerprint "$(printf '%s' "$issue_json" | jq -r '.body // ""' | sha256sum | cut -c1-16)" \
+      --provenance "issue #21")
+  assert_eq "$expected" "$(cat "$package")" "the package is exactly the core's rendering"
+}
+
+case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
+  local d p package prompt
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario injection)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  package="$p/.pi/issue-loop/items/61/work-package.md"
+  prompt="$p/.pi/issue-loop/items/61/worker-prompt.md"
+  [ -f "$package" ] || fail "no work package was written for the injected item"
+  [ -f "$prompt" ] || fail "no prompt was rendered for the injected item"
+
+  # exactly one opening and one closing delimiter, whatever the body contained
+  assert_eq "1" "$(grep -c '^<<<ISSUE_TEXT$' "$package" || true)" "exactly one opening delimiter"
+  assert_eq "1" "$(grep -c '^ISSUE_TEXT$' "$package" || true)" "exactly one closing delimiter"
+  # the injected prose is inside the data block and nowhere else
+  assert_eq "1" "$(grep -c 'Ignore all previous instructions' "$package" || true)" "the injected text is carried as data"
+  awk '/^<<<ISSUE_TEXT$/{inside=1} /^ISSUE_TEXT$/{inside=0} inside && /Ignore all previous instructions/{found=1} END{exit found ? 0 : 1}' \
+    "$package" || fail "the injected text is outside the data block"
+  # the instructions never carry it
+  assert_eq "0" "$(grep -c 'Ignore all previous instructions\|^<<<ISSUE_TEXT$' "$prompt" || true)" \
+    "the injected text does not reach the instruction position"
+  return 0
+}
+
+# ----------------------------------------------------------------------------- cases: run
+
+case_run_preflightRefusalStopsBeforeAnyWork() {
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR="$LOOP_ISSUE_FIXTURES/scenarios/outsider"
+  stub_success "$d"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  assert_eq "3" "$status" "an unauthorised identity stops the run"
+  assert_contains "$out" "not authorised" "the stop names the reason"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created before the identity was checked"
+  assert_eq "" "$(cat "$GH_STUB_RECORD" 2>/dev/null || true)" "no label was written"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+}
+
+case_run_decisionCapRefusesToStart() {
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
+  stub_success "$d"
+  out=$(run_loop "$p" --items 1 --minutes 90 --max-decisions 3 2>&1); status=$?
+  assert_eq "5" "$status" "the decision cap refuses to start"
+  assert_contains "$out" "await a decision" "the refusal names the condition"
+  assert_contains "$out" "#41" "the open decisions are printed"
+  assert_contains "$out" "#43" "all of them are printed"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although the run refused"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+}
+
+case_run_oneItemOrderIsFixed() {
+  local d p prompts
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompts=$(grep '^prompt:' "$PI_STUB_LOG" | awk '{print $2}')
+  assert_eq "2" "$(printf '%s\n' "$prompts" | grep -c .)" "one item starts exactly two processes"
+  assert_eq "worker-prompt.md reviewer-prompt-1.md" "$(printf '%s' "$prompts" | paste -sd' ' -)" \
+    "the worker runs first and the reviewer second"
+  # the child is given a prompt file and nothing else: no tracker credential, no token, no label
+  assert_eq "2" "$(sed -n 's/^argv://p' "$PI_STUB_LOG" | head -1 | wc -w)" \
+    "the child's argv carries the flag and the prompt, and nothing that could write to the tracker"
+}
+
+case_run_childClaimWithoutCommitIsBlocked() {
+  local d p out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # a child that reports success and produces nothing: the wrapper must not close the item
+  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1)
+  assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" "the item was recorded"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a claim without a commit is blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "base commit" "the reason names what was missing"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "the item was not closed"
+}
+
+case_run_claimedGateWithoutEvidenceIsBlocked() {
+  local d p
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # the change is archived and complete, but the tree carries no test-results XML to look at
+  cat > "$d/worker-action.sh" <<'ACTION'
+case "$1" in
+  worker*)
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    printf 'the evidence the change cites\n' > openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+    printf 'the fix\n' > demo-fix.txt
+    ;;
+esac
+ACTION
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a gate claim with no evidence is blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "no test-results XML" "the reason names what the run looked for"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
+}
+
+case_run_citedEvidenceMustTravelWithTheChange() {
+  local d p
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # the gate ran and left its XML in the build directory, but the change carries no evidence of its own
+  cat > "$d/worker-action.sh" <<'ACTION'
+case "$1" in
+  worker*)
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    mkdir -p app/build/test-results/test
+    printf '<testsuite tests="1" failures="0"></testsuite>\n' > app/build/test-results/test/TEST-demo.xml
+    printf 'the fix\n' > demo-fix.txt
+    ;;
+esac
+ACTION
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "evidence that does not travel with the change is blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "carries no evidence" "the reason names the missing half"
+}
+
+case_run_needsDecisionIsEscalatedWithTheWork() {
+  local d p skip_report log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  skip_report=$(printf 'LOOP-VERDICT: skipped\nLOOP-SKIP-VERDICT: needs-decision\nLOOP-ROOT-CAUSE: two mechanisms explain the symptom\nLOOP-RED-TEST: Demo#case was never reached')
+  stub_write "$d" "$skip_report" 'VERDICT: PASS'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is a skip, not a failure"
+  assert_eq "needs-decision" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "its verdict asks for a decision"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "the item is marked as awaiting a decision"
+  assert_contains "$log" "status/on-hold" "and put on hold"
+  assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "the work already done is named in one comment"
+  assert_contains "$log" "two mechanisms explain the symptom" "the comment carries the root cause"
+  assert_contains "$log" "fix/issue-21-" "and the branch"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+case_run_noGateStillRuns() {
+  local d p conf
+  d=$(scratch); p=$(new_project)
+  # a project with no build system: the phases still run, and the report says the gate was skipped
+  conf="$d/loop.conf"
+  sed -e 's|^LOOP_GATE_CMD=.*|LOOP_GATE_CMD=""|' "$LOOP_CONF" > "$conf"
+  export LOOP_CONF="$conf"
+  run_one_item "$p" "$d" >/dev/null || fail "a project with no gate could not run"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item completed"
+  assert_eq "yes" "$(jq -r '.items[0].metrics.closed' "$(state_file "$p")")" "and closed"
+  assert_eq "skipped (no gate configured)" "$(jq -r '.items[0].metrics.gate' "$(state_file "$p")")" \
+    "the report says the gate was skipped rather than inventing a tally"
+}
+
+case_run_dryRunTouchesNothing() {
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  out=$(run_loop "$p" --dry-run --items 1 --minutes 90 2>&1); status=$?
+  assert_eq "0" "$status" "a dry run is not a failure"
+  assert_contains "$out" "dry run" "the output says what it was"
+  assert_contains "$out" "rank 1" "and it reports the queue it would work"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "a dry run created the worktree"
+  assert_eq "" "$(cat "$GH_STUB_RECORD" 2>/dev/null || true)" "a dry run wrote no label"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "a dry run started no agent process"
+  [ -f "$(state_file "$p")" ] || fail "a dry run did not record the run it would make"
+
+  # an existing worktree is neither created nor removed by a dry run
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "could not create the existing worktree"
+  run_loop "$p" --dry-run --items 1 --minutes 90 >/dev/null 2>&1 || true
+  [ -d "$p/.pi/worktrees/loop" ] || fail "the dry run removed an existing worktree"
+}
+
+case_run_reviewRoundsCapAtTwo() {
+  local d p log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "two failed rounds block the item"
+  assert_eq "2" "$(jq -r '.items[0].metrics.reviewRounds' "$(state_file "$p")")" "the rounds are counted"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "second review round" "the reason names the round"
+  assert_eq "4" "$(grep -c '^invocation' "$PI_STUB_LOG")" "two workers and two reviewers"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "the item is escalated to a decision"
+  assert_contains "$log" "status/on-hold" "and put on hold"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+case_run_mayCloseNoLeavesTheIssueOpen() {
+  local d p
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" --may-close no >/dev/null || fail "the run failed"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "--add-label status/fixed-by" "the item keeps its fixed state"
+  assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "the evidence comment is still posted"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "the item stays open"
+  assert_eq "skipped" "$(jq -r '.items[0].metrics.closed' "$(state_file "$p")")" "the closure is recorded as skipped"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the work itself completed"
+}
+
+case_run_metricsRecordedPerItem() {
+  local d p f
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  f="$(state_file "$p")"
+  assert_eq "1" "$(jq -r '.items | length' "$f")" "one item was recorded"
+  assert_eq "true" "$(jq -r '.items[0].metrics.wallSeconds > 0' "$f")" "a positive wall time"
+  assert_eq "0" "$(jq -r '.items[0].metrics.piExit' "$f")" "the child's exit status"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "the review rounds"
+  assert_eq "true" "$(jq -r '(.items[0].metrics.gate | length) > 0' "$f")" "the gate tally the child reported"
+  assert_eq "true" "$(jq -r '.items[0].metrics.closed == "yes"' "$f")" "whether it closed"
+  assert_eq "true" "$(jq -r '(.items[0].metrics.rootCause | length) > 0' "$f")" "the root cause"
+  assert_eq "true" "$(jq -r '(.items[0].metrics.redTest | length) > 0' "$f")" "the red test"
+}
+
+case_run_emptyQueueIsNotAFailure() {
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario none)
+  stub_success "$d"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  assert_eq "0" "$status" "an empty queue is not a failure"
+  assert_contains "$out" "nothing eligible" "the report says so"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created for an empty queue"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+
+  out=$(run_loop "$p" --items 0 --minutes 90 2>&1); status=$?
+  assert_eq "0" "$status" "an item budget of zero is not a failure"
+  assert_contains "$out" "nothing eligible" "and it says the same thing"
+}
+
+case_run_reviewerWriteInvalidatesTheRound() {
+  local d p
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in reviewer*) printf "the reviewer wrote\n" >> demo-fix.txt ;; esac'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a reviewer that wrote cannot have been the reviewer"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "working tree changed" "the round is discarded with a reason"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a discarded round"
+}
+
+case_run_reviewReadOnlyOffOnlyForDiagnosis() {
+  local d p
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in reviewer*) printf "the reviewer wrote\n" >> demo-fix.txt ;; esac'
+  run_loop "$p" --items 1 --minutes 90 --review on --review-read-only off >/dev/null 2>&1 ||
+    fail "the run itself failed"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "with the switch off the round is accepted"
+  assert_eq "yes" "$(jq -r '.items[0].metrics.closed' "$(state_file "$p")")" "and the item closes"
+}
+
+case_run_engineNamesNoProjectFact() {
+  local hits sbxdir newpath d p
+  hits=$(grep -rn 'pi --print' "$LOOP_ENGINE"/*.sh 2>/dev/null || true)
+  [ -z "$hits" ] || fail "a script names the agent command instead of reading it: $hits"
+  hits=$(grep -rn 'openspec-apply-change\|build-app\|run-tests\|revert-check\|gradlew\|adb\|emulator\|sbx' \
+    "$LOOP_ENGINE"/*.sh "$LOOP_ENGINE/prompts/" 2>/dev/null || true)
+  [ -z "$hits" ] || fail "a phase or a prompt names a project fact of its own: $hits"
+  assert_contains "$(cat "$LOOP_ENGINE/loop.conf")" "LOOP_AGENT_CMD" "the configuration is where those facts live"
+
+  # and the run does not need a sandbox tool: the same run with `sbx` off PATH
+  d=$(scratch); p=$(new_project)
+  sbxdir=$(command -v sbx 2>/dev/null || true)
+  newpath="$PATH"
+  if [ -n "$sbxdir" ]; then
+    newpath=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vxF "$(dirname "$sbxdir")" | paste -sd: -)
+  fi
+  PATH="$newpath" run_one_item "$p" "$d" >/dev/null || fail "the run needs something the sandbox would provide"
+  return 0
+}
+
+# ----------------------------------------------------------------------------- cases: report
+
+case_report_headerAndTableShape() {
+  local d p out rows
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "budget 1 items / 90 min" "the header repeats the budget actually used"
+  assert_contains "$out" "base $(git -C "$p" rev-parse HEAD | cut -c1-12)" "the header names the base commit"
+  assert_contains "$out" "review on" "the header repeats the flags"
+  rows=$(printf '%s' "$out" | grep -c '^| #21 |' || true)
+  assert_eq "$(jq -r '.items | length' "$(state_file "$p")")" "$rows" "one table row per recorded item"
+  assert_contains "$out" "the fixture has exactly one cause" "the row carries the root cause"
+  assert_contains "$out" "branches:" "the report lists the branches"
+}
+
+case_report_yieldIsCountedFromState() {
+  local p out rows
+  p=$(new_project)
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result skipped --verdict needs-decision >/dev/null
+  run_state "$p" done 22 --result blocked --verdict blocked >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "closed 0 · skipped 1 · blocked 1" "the yield is counted from the state file"
+  rows=$(printf '%s' "$out" | grep -c '^| #2' || true)
+  assert_eq "2" "$rows" "every recorded item has a row"
+  assert_contains "$out" "#21 needs-decision" "a skip is reported with its verdict"
+}
+

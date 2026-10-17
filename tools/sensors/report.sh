@@ -41,17 +41,25 @@ entries="[]"
 while IFS= read -r row; do
   id=$(sensors_row_field "$row" id)
   issues=$(sensors_issues_of_row "$id")
+  # The marker's fields are read with `scan`, never with a named capture: a report must not be able to lose
+  # a whole row because one comment's marker lacks a field (`match(...).captures[0]` is an error there, and
+  # the error is indistinguishable from "this row has no measurement" once it is captured).
   entry=$(jq -c --arg id "$id" '
     [.[]? | . as $issue | (.comments // [])[] | select((.body // "") | contains("verdict="))
       | {createdAt: (.createdAt // ""), marker: (.body // ""), number: $issue.number,
          body: ($issue.body // ""), state: ($issue.state // "OPEN"),
-         fingerprint: ((.body // "") | match("fingerprint=(?<fp>[^ ]+)") | .captures[0].string) // ""}]
+         fingerprint: ((((.body // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; ""))}]
     | sort_by(.createdAt) as $m
     | ($m | last) as $last
     | {row: $id, measurements: ($m | length),
        last: $last,
        previous: ([$m[] | select($last != null and .fingerprint == $last.fingerprint)] | .[-2] // null)}
   ' <<< "$issues")
+  if [ -z "$entry" ] || ! jq -e . >/dev/null 2>&1 <<< "$entry"; then
+    # Never silently drop a row: the reason goes to the log and the row is still counted.
+    sensors_note "report: could not read $id's own record — reporting the row as unreadable"
+    entry=$(jq -nc --arg id "$id" '{row: $id, measurements: 0, last: null, previous: null, unreadable: true}')
+  fi
   entries=$(jq -c --argjson e "$entry" '. + [$e]' <<< "$entries")
 done < <(sensors_rows)
 

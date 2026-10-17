@@ -531,7 +531,7 @@ case_report_printsACountingLinePerRow() {
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
     sensor_engine report.sh --registry "$(fixture registry.json)" --now 2026-10-17T04:00:00Z 2>&1)
   lines=$(printf '%s\n' "$out" | grep -c '^row=')
-  assert_eq "2" "$lines" "one counting line per registry row"
+  [ "$lines" = "2" ] || fail "one counting line per registry row: got $lines from: $out"
   assert_contains "$out" "row=fixture-emit last=2026-10-17T03:00:00Z verdict=violation measurement=12 issue=#31 clear=0 violation=0 occurrences=1 trend=worse" \
     "the seven fields, with the trend against the issue's own previous number"
   assert_contains "$out" "row=fixture-error last=never" "a row with no measurement says so"

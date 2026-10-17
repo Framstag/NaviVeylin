@@ -380,12 +380,14 @@ sensors_marker_field() { # <marker> <name>
 # needs this to report a *cleared* condition at all — the clearing finding has to carry the identity of
 # the condition it clears, and the sensor is the only thing that can decide that.
 sensors_conditions_json() { # <issues-json> → a JSON array
+  # Read with `scan`, never with a named capture: a marker missing one field must degrade to an empty value
+  # rather than error, because an error here would silently empty the whole conditions list.
   jq -c '[.[]? | . as $issue | {
       number: $issue.number,
       state: ($issue.state // "OPEN"),
-      fingerprint: (($issue.body // "") | match("<!-- fingerprint:[ ]*(?<fp>[^ ]+) -->") | .captures[0].string) // "",
-      condition: ((($issue.body // "") | match("<!-- condition:[ ]*(?<c>[^>]*?)[ ]*-->") | .captures[0].string) // "{}") | fromjson?,
-      measurement: (($issue.body // "") | match("<!-- sensor:[ ]*[^ ]+ fingerprint=[^ ]+ verdict=[^ ]+ measurement=(?<m>[^ ]+)") | .captures[0].string) // ""
+      fingerprint: (((($issue.body // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; "")),
+      condition: ((((($issue.body // "") | [scan("condition:[ ]*[^>]*")] | .[0]) // "") | sub("^condition:[ ]*"; "") | fromjson?) // {}),
+      measurement: (((($issue.body // "") | [scan("measurement=[^ ]+")] | .[0]) // "") | sub("^measurement="; ""))
     }]' <<< "$1"
 }
 

@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.Lifecycle
+import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -22,6 +23,9 @@ import org.robolectric.RobolectricTestRunner
  */
 @RunWith(RobolectricTestRunner::class)
 class KeepScreenOnEffectTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()

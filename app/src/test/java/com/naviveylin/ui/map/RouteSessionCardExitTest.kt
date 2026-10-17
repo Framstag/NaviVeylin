@@ -21,6 +21,7 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.test.ComposeSandboxRule
 import com.naviveylin.test.MainDispatcherRule
 import com.naviveylin.ui.route.RouteOverlayAnchor
 import com.naviveylin.ui.route.RoutePanel
@@ -73,6 +74,9 @@ class RouteSessionCardExitTest {
     // Compose needs a real rule instance; the window size is set per class so the card's
     // pinned action band is on screen (runtime, not @Config — the JNI stub's classloader
     // rule forbids a sandbox change on a class that loads the stub).
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
+
     @get:Rule
     val composeRule = createComposeRule()
 

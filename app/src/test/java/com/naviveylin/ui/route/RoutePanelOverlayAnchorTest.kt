@@ -26,6 +26,7 @@ import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
+import com.naviveylin.test.ComposeSandboxRule
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -49,6 +50,9 @@ import org.robolectric.Shadows.shadowOf
  */
 @RunWith(RobolectricTestRunner::class)
 class RoutePanelOverlayAnchorTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

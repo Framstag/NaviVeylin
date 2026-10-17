@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import com.naviveylin.R
+import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -17,6 +18,9 @@ import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 class PluralFormatTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

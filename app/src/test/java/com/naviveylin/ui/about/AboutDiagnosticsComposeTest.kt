@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.test.ComposeSandboxRule
 import java.io.File
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -33,6 +34,9 @@ import org.robolectric.Shadows.shadowOf
  */
 @RunWith(RobolectricTestRunner::class)
 class AboutDiagnosticsComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.test.ComposeSandboxRule
 import com.naviveylin.ui.favorites.FavoritesSheet
 import com.naviveylin.ui.favorites.FavoritesViewModel
 import com.naviveylin.core.search.SearchReference
@@ -27,6 +28,9 @@ import org.robolectric.shadows.ShadowDialog
  */
 @RunWith(RobolectricTestRunner::class)
 class BackGestureComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     // createAndroidComposeRule (not createComposeRule) so the test can reach the

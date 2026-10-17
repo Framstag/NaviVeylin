@@ -16,6 +16,7 @@ import com.naviveylin.data.BasemapRegistrar
 import com.naviveylin.data.HttpUrlFetcher
 import com.naviveylin.data.MapSourceRegistry
 import com.naviveylin.data.SettingsStorage
+import com.naviveylin.test.ComposeSandboxRule
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,9 @@ import java.nio.file.Files
  */
 @RunWith(RobolectricTestRunner::class)
 class BasemapSectionComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

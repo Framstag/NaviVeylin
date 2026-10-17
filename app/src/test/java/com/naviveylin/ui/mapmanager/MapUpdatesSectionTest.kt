@@ -10,6 +10,7 @@ import com.naviveylin.core.mapsource.MapUpdateKind
 import com.naviveylin.core.mapsource.UpdateState
 import com.naviveylin.data.MapCheckReport
 import com.naviveylin.data.MapUpdatesState
+import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -28,6 +29,9 @@ import org.robolectric.RobolectricTestRunner
  */
 @RunWith(RobolectricTestRunner::class)
 class MapUpdatesSectionTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

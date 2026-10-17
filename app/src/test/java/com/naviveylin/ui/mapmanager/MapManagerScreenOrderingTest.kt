@@ -22,6 +22,7 @@ import com.naviveylin.core.mapsource.MapUpdateKind
 import com.naviveylin.core.mapsource.UpdateState
 import com.naviveylin.data.MapCheckReport
 import com.naviveylin.data.MapUpdatesState
+import com.naviveylin.test.ComposeSandboxRule
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -46,6 +47,9 @@ import org.robolectric.RuntimeEnvironment
  */
 @RunWith(RobolectricTestRunner::class)
 class MapManagerScreenOrderingTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

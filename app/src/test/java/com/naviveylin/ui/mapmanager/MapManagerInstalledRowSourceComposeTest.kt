@@ -19,6 +19,7 @@ import com.naviveylin.data.HttpUrlFetcher
 import com.naviveylin.data.MapSourceRegistry
 import com.naviveylin.data.MapStorageManager
 import com.naviveylin.data.SettingsStorage
+import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -38,6 +39,9 @@ import java.nio.file.Files
  */
 @RunWith(RobolectricTestRunner::class)
 class MapManagerInstalledRowSourceComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

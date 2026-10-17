@@ -15,6 +15,7 @@ import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
+import com.naviveylin.test.ComposeSandboxRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -40,6 +41,9 @@ import org.robolectric.RobolectricTestRunner
  */
 @RunWith(RobolectricTestRunner::class)
 class FavoritesSheetStarredReorderComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

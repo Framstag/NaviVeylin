@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.naviveylin.BuildConfig
+import com.naviveylin.test.ComposeSandboxRule
 import com.naviveylin.ui.about.AboutDialog
 import org.junit.Rule
 import org.junit.Test
@@ -19,6 +20,9 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "de")
 class GermanRenderingTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

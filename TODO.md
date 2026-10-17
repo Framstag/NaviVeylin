@@ -3280,6 +3280,102 @@ answer stale. Carried by `guidelines/Regulatory.md` §9.
   list both `:app:testMobileDebugUnitTest` and `:app:testAutomotiveDebugUnitTest`, so this needs explaining
   before any per-variant tally is quoted as the gate's.
 
+- **Root cause #1 found, measured and fixed, 2026-10-16** ✓ (change `fix-compose-sandbox-idle`):
+  `AndroidUiDispatcher.Main` is a **per-sandbox static** (`by lazy` on the class) and `dispatch()` guards itself with
+  `scheduledTrampolineDispatch`/`scheduledFrameDispatch` while posting the two callbacks that drain it — a main-`Handler`
+  message and a `Choreographer` frame callback. Robolectric's per-test reset drops both (the main looper's queue is cleared,
+  `ShadowPausedChoreographer.resetState()` clears the frame callback queues), so a case that writes a Compose snapshot state
+  and never drains the paused looper leaves both flags set forever, and every later Compose case in that JVM can never idle:
+  `ComposeIdlingResource.isIdleNow` stays false until Espresso's 60 s master policy expires.
+- **Reproduction: 70 s instead of 20 minutes** ℹ: a three-case `@RunWith(Suite)` probe in one sandbox — Compose case → plain
+  case that writes a Compose snapshot state → Compose case (one Gradle class = one fork = fixed order). On HEAD the third case
+  fails at `setContent` with `AppNotIdleException … after 809987 attempts in 60 SECONDS`, and the dump reads
+  `trampolineScheduled=true frameScheduled=true trampolinedQueue=1` from the write onward; the dispatcher, its `Choreographer`
+  and the `Looper` are the *same* objects in all three cases, which also excludes the stale-`Choreographer` variant known
+  upstream (robolectric#9043). The trigger is any Compose snapshot write that reaches the global apply observer — every
+  ViewModel state write in the ~150 non-Compose `:app` test classes.
+- **Fix** ✓: `ComposeSandboxDispatcher` (`app/src/test/java/com/naviveylin/test/`) drops the stranded queues and clears both
+  flags; `ComposeSandboxRule` runs it as `@get:Rule(order = 0)` in all 68 Compose test classes;
+  `ComposeSandboxIsolationTest` is the guard (red without the rule, green with it); `tools/check-compose-sandbox-rule.sh`
+  (+ selftest, + a CI step) fails a run that adds a Compose test class without the rule; `guidelines/Build.md` §6 states the
+  rule and its residue. Running the dispatcher's own `dispatchCallback` instead of dropping the work was measured to fail the
+  *next* case (`Detected multithreaded access to SnapshotStateObserver: previousThreadId=49, currentThread={id=36, …}`), so the
+  repair drops it. **Measured after the fix:** the previously hanging classes (`ui.mapmanager.*`, `NextTurnOverlayTest`,
+  `NavigationStateOverlayComposeTest`, `RouteSummaryStepSelectionTest` — 134 cases) run **green in 24 s** where the recorded
+  runs spent ~20 minutes in 60 s timeouts. `openspec/changes/fix-memory-responder-poll-leak/` (the 30 s-poll premise this entry
+  had already falsified) is retired.
+- **Residue after root cause #1** ✗: the cascade is not *only* that cause. The slice `--tests 'com.naviveylin.ui.map.*'
+  --tests 'com.naviveylin.ui.mapmanager.*'` (937 tests, ~2 min) still reproduces it — 24 cases × 60 s in three runs, 1 case in
+  three others, the *same* classes (`BasemapSectionComposeTest`, `MapManagerSourceSelectorComposeTest`, `MapUpdatesSectionTest`)
+  and the same exception. Every input reachable from test sources was measured at the failure and is **clean or excluded**:
+
+  | input of `ComposeIdlingResource.isIdleNow` | measured at the failure | verdict |
+  |---|---|---|
+  | dispatcher flags / queues (`trampolineScheduled`, `frameScheduled`, `toRunTrampolined`, `toRunOnFrame`) | `false false 0 0`, `choreographerIsCurrent=true` | clean |
+  | `Snapshot.current.hasPendingChanges()` right after the check's own `sendApplyNotifications()` | `false` | clean |
+  | a live writer: pending change after `sendApplyNotifications()` **plus** `shadowMainLooper.idleFor(50 ms)` (frames) | `false` at every start and every failure | no writer — a per-frame leak is falsified |
+  | the test's own root: `ViewRootForTest.hasPendingMeasureOrLayout`, `isAttachedToWindow`, `rootView.parent != null` | `AndroidComposeView attached=true hasParent=true pendingLayout=false busyAttaching=false` | layout side clean |
+  | `clock.hasAwaiters` / `mainRecomposer.hasPendingWork` (per-test objects, not reachable from test sources) | not yet measured | **the surviving candidates** |
+
+  The arithmetic agrees with those two: ~2.4 M idling iterations in 60 s is ~25 µs each, i.e. `shouldPumpTime()` is true and
+  each iteration pumps its 100 frames without the composition ever settling — a per-test *frame awaiter or recomposer work that
+  the pump cannot resume*, not a sandbox-wide leak and not layout. Next instrument: dump the recomposer's `hasPendingWork` and
+  the frame clock's awaiter count at the failure (reflection from the root view: `AndroidComposeView` holds the recomposer;
+  `AndroidComposeUiTestEnvironment` creates both per test — `frameClock: TestMonotonicFrameClock`, `recomposer`), then decide
+  whether the trigger is a preceding class in the fork or the loaded host. Until then a red `:app` suite is read with this
+  cause excluded rather than as a regression.
+
+- **Cause #2 measured, 2026-10-17** ✓ (the repair for it falsified): the deciding input is **`hadSnapshotChanges`**
+  — `ComposeIdlingResource`'s own recorded flags at the failure read `hadSnapshotChanges=true hadRecomposerChanges=false
+  hadAwaitersOnMainClock=false hadPendingSetContent=false hadPendingMeasureLayout=false`, with the recomposer `Idle`
+  (`changeCount=0`), `frameAwaiters=0`, the root attached and `pendingLayout=false`. So the global snapshot holds **one state
+  that stays modified** (`modified=1`, `hasPendingChanges()` true at the check) while the sandbox's `GlobalSnapshotManager`
+  never consumes its notification (`started=true sent=true`, channel holds the send). `shouldPumpTime()` is therefore true in
+  every idling iteration: it pumps its 100 frames (~25 µs) and never converges — ~3 M iterations per 60 s.
+- **Clearing the manager's `started`/`sent` flags so the next Compose view re-arms the consumer is falsified** ✗: implemented in
+  `ComposeSandboxDispatcher.repair()` (2026-10-17), re-ran the slice (`937 tests`, same command) → **24 cases × 60 s again**, and
+  the probe reads `snapshotManager: started=true sent=true` at the failure again. The flag clearing did take effect (277 probe
+  entries read `started=false sent=false` at case start), so the pipeline's death is not the whole cause of that stuck record;
+  the repair was reverted rather than shipped unproven. Next instrument: identify the stuck record (the child probe's
+  `ComposeResidueProbe` printed `modified=1[]` without names — resolve the state instance and the snapshot that owns it, and
+  whether a mutable snapshot is pinned/never applied), then look for the class that writes it. The probes and the probe pack are
+  in `.pi/tmp/195-residue/` (`README.md`), and the slice reproducer is the command above.
+
+- **Cause #2 named and fixed, 2026-10-17** ✓: the stuck record is a `ParcelableSnapshotMutableState` written through the
+  **current global snapshot** during the failing case's own `setContent` view attach (`BasemapSectionComposeTest.
+  downloadingShowsCompactStatus`, `PhoneWindow.setContentView`) — no pinned or never-applied mutable snapshot owns it, the
+  thread-local snapshot is `null`, the dispatcher flags are clean and the main looper is idle at the failure. The sandbox was
+  already wedged when that case started (`started=true sent=true`, 8 478 writes of history; the JVM's other sandbox reads
+  `sent=false`, so the wedge is per sandbox). The mechanism is cause #1's reset wearing a different hat: `GlobalSnapshotManager`
+  starts **once per sandbox** the coroutine that is the only main-thread caller of `Snapshot.sendApplyNotifications()`, on that
+  same `AndroidUiDispatcher.Main`; when its dispatch is dropped, `sent` stays `true` forever and the manager never sends again —
+  and `Recomposer` learns about snapshot changes **only** from apply notifications, so nothing applies the write and
+  `hadSnapshotChanges=true` in every idling iteration (~3 M pumped frames in the 60 s budget). Clearing the manager's flags is
+  falsified for the reason the earlier block gives: the failing case arms a *fresh* pipeline in its own `setContent` and that
+  consumer's dispatch is lost the same way.
+- **Fix** ✓ (test side, `ComposeSandboxDispatcher.repair()`): apply what is pending (`Snapshot.sendApplyNotifications()`), then
+  replace the manager's notification with a latch-free kick — every global write posts one main-looper message (coalesced
+  through `hasCallbacks`) that runs `sendApplyNotifications()`, so a kick the per-test reset drops is re-posted by the next
+  write, and no sandbox can wedge twice. Guard: `ComposeSandboxSnapshotPipelineTest` builds the measured `sent=true` wedge and
+  its single case fails without the repair with `AppNotIdleException … 2490270 attempts in 60 SECONDS` while passing with it in
+  seconds. **Measured on the slice** (941 tests): red 2 of 2 runs without the kick (same case, 60 s each), green twice with it
+  (1m 24s, 1m 21s, 0 `AppNotIdleException`). `guidelines/Build.md` §6 states both halves; the change's `design.md` §D6,
+  `proposal.md`, `tasks.md` 5.1/5.3 and `specs/unit-test-suite-runtime/spec.md` carry the mechanism and the evidence. The entry
+  stays open for that change's task 5.2 (a green **both-flavor** `:app` gate on HEAD) and for §194, which is independent.
+
+- **Cause #2 fixed and verified on both flavours, 2026-10-17** ✓: the same per-test reset that strands the dispatcher also
+  kills the sandbox's `GlobalSnapshotManager` consumer — the only main-thread caller of `Snapshot.sendApplyNotifications()` —
+  so a global write reaches no composition, `hasPendingChanges()` stays true and `ComposeIdlingResource` reports
+  `hadSnapshotChanges=true` in every later case. `ComposeSandboxDispatcher.repair()` now applies what is pending and installs a
+  **latch-free, coalesced kick** (one posted main-looper message per global write, re-posted if the reset drops it) in place of
+  the dead consumer. Guard: `ComposeSandboxSnapshotPipelineTest` (red without the repair — `AppNotIdleException … after 2490270
+  attempts in 60 SECONDS` — green with it).
+- **Independent gate record, both flavours, 2026-10-17** ✓: `./gradlew :app:testMobileDebugUnitTest :app:testAutomotiveDebugUnitTest
+  -PforceTests --no-build-cache` → **BUILD SUCCESSFUL in 4m 34s, 0 `AppNotIdleException`**, mobile **275 classes / 2059 tests /
+  0 failures / 0 errors** and automotive the same. The recorded runs of the same two tasks were ~40 minutes and red with 31
+  (mobile) / 38 (automotive) `AppNotIdleException`. The cascade of this entry is therefore closed; what remains open here is
+  §194 (the unclassified `routing-max-speed` spec, an independent red cause).
+
 ## 196. The phone device suites are bound to a map dataset the reference AVD does not have — Found 2026-10-13 running them while implementing `distinguish-routing-failures` (task 6.1)
 **id:** 196 · **category:** verification · **class:** bug · **status:** open
 

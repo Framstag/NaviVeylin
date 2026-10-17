@@ -51,6 +51,7 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.test.ComposeSandboxRule
 import com.naviveylin.test.MainDispatcherRule
 import com.naviveylin.test.engineUnderTest
 import com.naviveylin.ui.route.ROUTE_PANEL_CARD_TAG
@@ -97,6 +98,9 @@ class MapLayerStackComposeTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

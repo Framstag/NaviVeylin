@@ -589,6 +589,41 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   .activeBackgroundJobCount()`; `Job.isActive` is false immediately after
   `cancel()`, so nothing needs waiting for). A leak must fail its own class, not
   starve the suite's heap later.
+- **A Compose test class repairs the Robolectric sandbox's Compose plumbing first: the dispatcher and
+  the snapshot-apply notifications.**
+  `AndroidUiDispatcher.Main` is a *per-sandbox* static (a `by lazy` on the class, so it outlives
+  Robolectric's per-test reset) while the two callbacks that drain it do **not** survive that reset:
+  the main `Handler` message and the `Choreographer` frame callback `dispatch()` posted are both
+  dropped. A non-Compose test that writes a Compose snapshot state — every ViewModel state write
+  does — therefore leaves the dispatcher believing a dispatch is in flight, and no later Compose case
+  in that JVM can idle: each burns Espresso's 60 s budget and fails with `AppNotIdleException`
+  (measured 2026-10-16: 24 cases / 24 minutes in one `:app` mobile slice; 31 cases / ~40 minutes in
+  the gate — change `fix-compose-sandbox-idle`, spec `unit-test-suite-runtime`). The same reset also
+  strands the sandbox's snapshot-apply notifications: `GlobalSnapshotManager` starts **once per
+  sandbox** the only main-thread caller of `Snapshot.sendApplyNotifications()`, a coroutine on that
+  dispatcher, and when its dispatch is dropped its `sent` latch stays `true`, so it never sends again
+  — while `Recomposer` learns about snapshot changes *only* from apply notifications. A case that
+  then writes a state never idles either: `hadSnapshotChanges=true` in every iteration and ~3 M
+  pumped frames in the 60 s budget (measured 2026-10-17 on the `ui.map.*` + `ui.mapmanager.*` slice;
+  clearing the manager's flags instead of replacing the notification was falsified — same 24 cases).
+  Every Compose test class therefore declares
+
+  ```kotlin
+      @get:Rule(order = 0)
+      val composeSandbox = ComposeSandboxRule()
+  ```
+
+  **before** its Compose rule (`app/src/test/java/com/naviveylin/test/ComposeSandboxRule.kt` holds the
+  entry point, `ComposeSandboxDispatcher.kt` both defects and both repairs);
+  `ComposeSandboxIsolationTest` and `ComposeSandboxSnapshotPipelineTest` are the guards — each fails on
+  a tree without its half and passes with it —
+  and `tools/check-compose-sandbox-rule.sh` (CI, text only) fails the run when a Compose test class is
+  added without the rule. The dispatcher repair **drops** the stranded work instead of running it:
+  resuming a finished test's continuation touches that test's half-torn-down objects and fails the next
+  case with `Detected multithreaded access to SnapshotStateObserver: previousThreadId=…` (measured).
+  The notification repair applies whatever is pending and then replaces the manager's once-per-sandbox
+  notification with a latch-free kick per global write — one main-looper message at a time, so a kick
+  the reset drops is re-posted by the next write and the sandbox cannot wedge twice.
 - **Geometry claims are asserted as Dp bounds, not as existence** (change `fix-nav-overlay-stop-tap`, spec
   `navigation-status-details`; the `compose-geometry` skill). A Compose case for a
   control's size, its tap target, its disjointness from a container's tap area, or a node's visibility

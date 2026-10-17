@@ -14,6 +14,7 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.ObjectDescription
 import com.naviveylin.R
+import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -32,6 +33,9 @@ import java.util.Locale
  */
 @RunWith(RobolectricTestRunner::class)
 class LocationDetailsDialogComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     // createAndroidComposeRule so the test can dispatch system back via the

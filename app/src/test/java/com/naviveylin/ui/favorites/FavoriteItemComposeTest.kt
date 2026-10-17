@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.framstag.libosmscout.client.FavoriteLocation
+import com.naviveylin.test.ComposeSandboxRule
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -21,6 +22,9 @@ import java.util.Locale
  */
 @RunWith(RobolectricTestRunner::class)
 class FavoriteItemComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

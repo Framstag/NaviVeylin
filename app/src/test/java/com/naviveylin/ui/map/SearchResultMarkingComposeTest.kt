@@ -8,6 +8,7 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.data.SearchHistoryEntry
+import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -23,6 +24,9 @@ import org.robolectric.RobolectricTestRunner
  */
 @RunWith(RobolectricTestRunner::class)
 class SearchResultMarkingComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

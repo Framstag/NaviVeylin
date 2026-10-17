@@ -10,6 +10,7 @@ import com.naviveylin.core.addressbook.AddressBookContactsProvider
 import com.naviveylin.core.addressbook.AddressBookSearchProvider
 import com.naviveylin.core.addressbook.ContactAddressBookEntry
 import com.naviveylin.core.addressbook.ContactPostalAddress
+import com.naviveylin.test.ComposeSandboxRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -34,6 +35,9 @@ import org.robolectric.RobolectricTestRunner
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class AddressBookSheetComposeTest {
+
+    @get:Rule(order = 0)
+    val composeSandbox = ComposeSandboxRule()
 
     @get:Rule
     val composeRule = createComposeRule()

@@ -197,6 +197,24 @@ jobs:
           bash tools/sensor-selftest.sh
           bash tools/sensor-mutations.sh --list
 
+      # ── portability ────────────────────────────────────────────
+      # The gate for `tooling-portability`: no engine under `tools/issues`, `tools/sensors` or `tools/loop`
+      # names a project value (the repository, an allowlisted author, a vocabulary value, a path the
+      # registry declares, the gate command), and the whole toolchain runs in a synthetic project whose
+      # repository, allowlist, vocabulary and bands all differ. Offline, no token, no network, no Gradle:
+      # it reads repository files and runs throwaway git repositories, so it needs nothing beyond the
+      # `contents: read` the workflow already has. Its check reads the value set from the project's own
+      # profile at run time, so the leak is caught on the commit that introduces it.
+      - name: Check portability
+        run: |
+          bash tools/check-portability.sh
+          bash tools/check-portability-selftest.sh
+          # The mutation runner's own four guards, proven on a toy tree, and the set's list: a mutation set
+          # that no longer parses fails this step instead of rotting. The mutations themselves are not run
+          # here — they mutate the tree (`tools/mutate.sh`, change-time, `.pi/skills/mutation-runner`).
+          bash tools/mutate-selftest.sh
+          bash tools/mutate.sh --mutations tools/portability-mutations.json --list
+
       # ── Compose sandbox rule ───────────────────────────────────
       # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
       # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has

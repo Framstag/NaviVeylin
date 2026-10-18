@@ -1,0 +1,28 @@
+{
+  "profile": 1,
+  "comment": "THE FOREIGN SENSOR REGISTRY — one row, whose command is this fixture's own script and whose bound is 1. The row's class and category are the foreign vocabulary's, so the runner exercises the registry indirection against values no engine knows.",
+  "namespace": "sensor",
+  "labels": {
+    "status": "open",
+    "source": "ci"
+  },
+  "escalation": {
+    "comment": "Two reopenings, then a person. Different from the upstream project's three, so the escalation shape is a fixture fact rather than a copy.",
+    "maxRecurrences": 2,
+    "labels": ["agent/needs-decision", "status/on-hold"]
+  },
+  "rows": [
+    {
+      "id": "foreign-row",
+      "cmd": "tools/sensors/fixtures/foreign-emit.sh",
+      "cron": "0 1 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "improvement",
+      "category": "core",
+      "lifecycle": "file+close",
+      "fingerprint": { "fields": ["case"] }
+    }
+  ]
+}

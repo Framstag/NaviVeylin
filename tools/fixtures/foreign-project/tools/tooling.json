@@ -1,0 +1,53 @@
+{
+  "profile": 1,
+  "comment": "THE FOREIGN PROFILE — the fixture's own, deliberately different from the upstream project's: another repository, another allowlist, another category vocabulary, another band set and another TTL. A passing fixture cannot be passing by accidental similarity (tooling-portability, D2).",
+  "repo": "acme/widget",
+  "allowedAuthors": ["ada"],
+  "requiredLabels": ["agent/eligible"],
+  "reservedLabels": ["agent/eligible"],
+  "namespaceSeparator": "/",
+  "namespaces": {
+    "class": ["bug", "improvement", "feature"],
+    "category": ["core", "docs", "infra"],
+    "status": ["open", "in-flight", "fixed-by", "on-hold", "unverified", "retired"],
+    "source": ["agent", "human", "ci"],
+    "agent": ["eligible", "in-progress", "needs-decision"],
+    "prio": ["p0", "p1", "p2"],
+    "sensor": []
+  },
+  "bands": {
+    "comment": "Three bands, TTL 30: the same scoring model as the upstream project, a different partition of it. The range is derived from `scoring` (2..18) and the edges cover it exactly once.",
+    "namespace": "prio",
+    "ttlDays": 30,
+    "basisNamespaces": ["class", "category", "status"],
+    "edges": [
+      { "id": "p0", "min": 15, "max": 18 },
+      { "id": "p1", "min": 11, "max": 14 },
+      { "id": "p2", "min": 2, "max": 10 }
+    ],
+    "scoring": {
+      "severity": { "min": 1, "max": 5 },
+      "reach": { "min": 1, "max": 3 },
+      "confidence": { "min": 1, "max": 3 },
+      "statusCaps": { "unverified": { "confidence": 1 } }
+    }
+  },
+  "sourceRenames": {
+    "category": {
+      "documentation": "docs"
+    }
+  },
+  "statusLabels": [
+    { "match": "^open \\(unproven\\)", "label": "unverified" },
+    { "match": "^open(\\s|$)", "label": "open" },
+    { "match": "^in-flight(\\s|$)", "label": "in-flight" },
+    { "match": "^fixed-by(\\s|$)", "label": "fixed-by" },
+    { "match": "^on-hold(\\s|$)", "label": "on-hold" },
+    { "match": "^retired(\\s|$)", "label": "retired" }
+  ],
+  "bounds": {
+    "maxBodyBytes": 32768,
+    "maxLines": 2000,
+    "forbidNul": true
+  }
+}

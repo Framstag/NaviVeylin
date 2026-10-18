@@ -96,6 +96,19 @@ loop_issue_tool() { # run one of the tooling's scripts
   bash "$LOOP_ISSUES_DIR/$script" "$@"
 }
 
+# The identity a commit is attributed to: the login this run already acts as, resolved by the same gate
+# preflight that authorises it before any work starts. Git refuses a commit with no ambient
+# `user.name`/`user.email`, and a fresh container or CI runner has neither — the run then blocked on its own
+# commit (measured 2026-10-18, issue #167). Naming the run's own identity keeps the commit and the tracker's
+# labels attributable to the same actor, and a login that cannot be resolved stops the run instead of
+# inventing one. Output: `name<TAB>email`, so the caller can pass both options to `git -c`.
+loop_commit_identity() {
+  local login
+  login=$(loop_issue_tool policy.sh preflight --json 2>/dev/null | jq -r '.login // empty' 2>/dev/null)
+  [ -n "$login" ] || loop_die "worktree: no acting login could be resolved — a commit could not be attributed"
+  printf '%s\t%s@users.noreply.github.com\n' "$login" "$login"
+}
+
 # The authorisation label, read from the profile — the loop never spells it out.
 loop_required_labels() {
   loop_compat_profile_value requiredLabels

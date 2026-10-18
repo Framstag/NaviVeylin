@@ -86,7 +86,7 @@ fi
 
 # 4. the set is listed, so a change can see what it owes
 out=$(bash "$harness" --list 2>&1)
-check "the mutation set lists eleven entries" "11" "$(printf '%s\n' "$out" | grep -c .)"
+check "the mutation set lists twelve entries" "12" "$(printf '%s\n' "$out" | grep -c .)"
 
 if [ "$fail" -ne 0 ]; then
   echo "loop-mutations-selftest: the mutation harness does not hold its own guards"

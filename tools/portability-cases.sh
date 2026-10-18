@@ -181,9 +181,16 @@ foreign_issue() { # <number> <state> <state-reason> <body> [extra-labels-json] �
       comments: []}]'
 }
 
-foreign_env() { # <tree> — put the foreign stub `gh` and the stub `pi` first on PATH
+foreign_env() { # <tree> — the foreign stub `gh` and the stub `pi` on PATH, and no ambient git identity
   export GH_STUB_DIR="$1/gh"
   export PATH="$1/tools/loop/fixtures:$1/tools/issues/fixtures:$PATH"
+  # A fresh machine — a container, a CI runner — has no `user.name`/`user.email` anywhere. The fixture
+  # therefore runs with a synthetic global config that keeps the neutral defaults and carries no identity,
+  # so a loop that depends on one fails here instead of on the runner (measured 2026-10-18, issue #167: this
+  # case was green on the author's host and red in CI, and the only difference was `~/.gitconfig`).
+  printf '[init]\n\tdefaultBranch = main\n' > "$1/nohome.gitconfig"
+  mkdir -p "$1/nohome"
+  export GIT_CONFIG_GLOBAL="$1/nohome.gitconfig" GIT_CONFIG_SYSTEM=/dev/null HOME="$1/nohome"
 }
 
 # --------------------------------------------------------------------------- the value-set cases

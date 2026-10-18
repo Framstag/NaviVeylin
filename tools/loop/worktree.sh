@@ -134,14 +134,20 @@ cmd_end_item() {
   # The archive travels with the fix, but it is not the fix — a later revert of the fix must not have to
   # revert the record of why it was made.
   gitw add -A -- . ':(exclude)openspec/changes/archive' >&2
+  # The identity is the run's own (design D1): git refuses a commit with nothing configured, and a fresh
+  # runner or container has nothing, so relying on the machine would block the item on its own commit.
+  local who_name who_email
+  IFS=$'\t' read -r who_name who_email <<< "$(loop_commit_identity)"
   local committed=""
   if ! gitw diff --cached --quiet; then
-    gitw commit -q -m "fix: $slug (#$issue)" >&2 || loop_die "end-item: could not commit the fix"
+    gitw -c user.name="$who_name" -c user.email="$who_email" commit -q -m "fix: $slug (#$issue)" >&2 ||
+      loop_die "end-item: could not commit the fix"
     committed="fix"
   fi
   gitw add -A >&2
   if ! gitw diff --cached --quiet; then
-    gitw commit -q -m "fix: $slug (#$issue) — archive with its evidence" >&2 ||
+    gitw -c user.name="$who_name" -c user.email="$who_email" commit -q \
+      -m "fix: $slug (#$issue) — archive with its evidence" >&2 ||
       loop_die "end-item: could not commit the archive"
     committed="$committed archive"
   fi

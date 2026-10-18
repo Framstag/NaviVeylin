@@ -48,6 +48,8 @@ LOOP_SHELL_CASES=(
   'run#decisionCapRefusesToStart'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
+  'run#childStartsInTheProjectRoot'
+  'run#childWriteOutsideTheWorktreeIsBlocked'
   'run#claimedGateWithoutEvidenceIsBlocked'
   'run#citedEvidenceMustTravelWithTheChange'
   'run#needsDecisionIsEscalatedWithTheWork'
@@ -57,6 +59,7 @@ LOOP_SHELL_CASES=(
   'run#mayCloseNoLeavesTheIssueOpen'
   'run#metricsRecordedPerItem'
   'run#emptyQueueIsNotAFailure'
+  'run#commitsWithoutAnAmbientIdentity'
   'run#reviewerWriteInvalidatesTheRound'
   'run#reviewReadOnlyOffOnlyForDiagnosis'
   'run#engineNamesNoProjectFact'
@@ -104,6 +107,8 @@ loop_run_shell_case() {
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
+    'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
+    'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
     'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
     'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
     'run#needsDecisionIsEscalatedWithTheWork') fn=case_run_needsDecisionIsEscalatedWithTheWork ;;
@@ -113,6 +118,7 @@ loop_run_shell_case() {
     'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
+    'run#commitsWithoutAnAmbientIdentity') fn=case_run_commitsWithoutAnAmbientIdentity ;;
     'run#reviewerWriteInvalidatesTheRound') fn=case_run_reviewerWriteInvalidatesTheRound ;;
     'run#reviewReadOnlyOffOnlyForDiagnosis') fn=case_run_reviewReadOnlyOffOnlyForDiagnosis ;;
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
@@ -852,6 +858,41 @@ case_run_childClaimWithoutCommitIsBlocked() {
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "the item was not closed"
 }
 
+case_run_childStartsInTheProjectRoot() {
+  local d p logs prompt
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  logs=$(grep '^cwd:' "$PI_STUB_LOG" || true)
+  [ -n "$logs" ] || fail "no child invocation was recorded"
+  # Both children were started in the project, not in the worktree: a fresh process resolves the project's
+  # own policy at the directory it is started in, and the worktree lies inside that directory.
+  assert_eq "" "$(printf '%s\n' "$logs" | grep -vxF "cwd: $p" || true)" \
+    "every child was started in the project root"
+  # …and the tree it is told to change is the worktree, by path, which is what keeps the work off the
+  # project's own tree.
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  assert_contains "$(cat "$prompt")" "$p/.pi/worktrees/loop" "the worker prompt names its change root"
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  assert_contains "$(cat "$prompt")" "$p/.pi/worktrees/loop" "the reviewer prompt names its change root"
+}
+
+case_run_childWriteOutsideTheWorktreeIsBlocked() {
+  local d p
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # a child that does its work in the worktree and also writes in the project's own tree: only the
+  # worktree is a phase's to write, so the run catches this rather than committing it into the project
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in worker*) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a write outside the worktree blocks the item"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "outside the worktree" \
+    "the reason names the tree that changed"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
+}
+
 case_run_claimedGateWithoutEvidenceIsBlocked() {
   local d p
   d=$(scratch); p=$(new_project)
@@ -989,6 +1030,32 @@ case_run_metricsRecordedPerItem() {
   assert_eq "true" "$(jq -r '.items[0].metrics.closed == "yes"' "$f")" "whether it closed"
   assert_eq "true" "$(jq -r '(.items[0].metrics.rootCause | length) > 0' "$f")" "the root cause"
   assert_eq "true" "$(jq -r '(.items[0].metrics.redTest | length) > 0' "$f")" "the red test"
+}
+
+case_run_commitsWithoutAnAmbientIdentity() {
+  # A container or a CI runner has no `user.name`/`user.email` anywhere: git then refuses every commit, and
+  # the run would block on its own commit (measured 2026-10-18, issue #167). The throwaway repository's local
+  # identity is removed as well, so the case is the runner's environment and not the developer's.
+  local d p login branch count author
+  d=$(scratch); p=$(new_project)
+  git -C "$p" config --unset user.name >/dev/null 2>&1 || true
+  git -C "$p" config --unset user.email >/dev/null 2>&1 || true
+  printf '[init]\n\tdefaultBranch = main\n' > "$d/nohome.gitconfig"
+  mkdir -p "$d/nohome"
+  export GIT_CONFIG_GLOBAL="$d/nohome.gitconfig" GIT_CONFIG_SYSTEM=/dev/null HOME="$d/nohome"
+
+  run_one_item "$p" "$d" >/dev/null || fail "a machine without an ambient git identity could not run an item"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item completed"
+
+  # Both commits carry the run's own identity: the login the gate preflight resolved (the stub `gh` answers
+  # it), as that login's noreply address.
+  login=$(tr -d '\n' < "$LOOP_ISSUE_FIXTURES/login.txt")
+  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/*' | head -n 1)
+  [ -n "$branch" ] || fail "the item's branch does not exist"
+  count=$(git -C "$p" rev-list --count "$branch" "^$(git -C "$p" rev-parse main)" 2>/dev/null || printf '0')
+  [ "$count" -eq 2 ] || fail "the run did not commit twice on $branch (commits since main: $count)"
+  author=$(git -C "$p" log -n 2 --format='%an <%ae>' "$branch" | sort -u)
+  assert_eq "$login <$login@users.noreply.github.com>" "$author" "both commits are attributed to the run's identity"
 }
 
 case_run_emptyQueueIsNotAFailure() {

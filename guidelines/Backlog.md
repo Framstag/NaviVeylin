@@ -221,6 +221,11 @@ outcome from what it reads itself (I10).
 What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
 is the script's (I8); and the tracker credential is not in the agent's environment (§5).
 
+The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
+identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never
+an invented one, because a fresh container or CI runner has neither and the item would block on its own
+commit (`fix-loop-git-identity`, issue #167).
+
 What it does when it cannot proceed: an item that needs a decision is **escalated** — the work already done
 is named on the item, the item is marked as awaiting a decision, and the run takes the next candidate. The
 work is preserved rather than abandoned (I11), which is the part the prose-era loop got wrong by treating a

@@ -72,6 +72,7 @@ MUTATIONS=(
   '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|  ( cd "$worktree" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1|  ( cd "$worktree" \&\& pi --print "$1" ) > "$2" 2>\&1|'
   '9.10@-@tools/loop/run.sh@run#reviewerWriteInvalidatesTheRound@the reviewer read-only comparison@s|^      if \[ "$read_only" = "on" \] && \[ "$before" != "$after" \]; then|      if false; then|'
   '9.11@-@tools/loop/prompts/worker.md@state#projectKeysAreReadFromLoopConf@the project facts living in loop.conf@s|{{WORKER_SKILLS}}|openspec-apply-change build-app run-tests revert-check|'
+  '12.1@-@tools/loop/worktree.sh@run#commitsWithoutAnAmbientIdentity@the commit is attributed to the run'"'"'s own identity@s|-c user.name="\$who_name" -c user.email="\$who_email" ||'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

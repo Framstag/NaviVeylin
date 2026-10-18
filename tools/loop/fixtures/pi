@@ -14,8 +14,9 @@
 #   PI_STUB_LOG        append-only log of invocations (required for the assertions)
 #   PI_STUB_REPORT     a file whose contents are printed on stdout (the child's "report");
 #   PI_STUB_REPORT_WORKER / PI_STUB_REPORT_REVIEWER override it per role
-#   PI_STUB_ACTION     a shell script run in the cwd first (with the prompt's basename as $1), to stand
-#                      in for a worker's edits
+#   PI_STUB_ACTION     a shell script run first (with the prompt's basename as $1), to stand in for a
+#                      worker's edits — the stub runs it in the tree the wrapper exported as
+#                      LOOP_WORKTREE, which is the tree the prompt names as its change root
 #   PI_STUB_WAIT       a fifo: the stub blocks until one line is written to it (signal cases)
 #   PI_STUB_EXIT       the exit status to end with (default 0)
 set -uo pipefail
@@ -59,11 +60,23 @@ if [ -n "$log" ]; then
   } >> "$log"
 fi
 
+# The directory the wrapper started this child in: the project, whose tree a child may not write.
+LOOP_CHILD_ROOT="$PWD"
+export LOOP_CHILD_ROOT
+
 if [ -n "${PI_STUB_ACTION:-}" ] && [ -f "$PI_STUB_ACTION" ]; then
   # The child's own work inside its tree: real files, so the wrapper's commit and verification run for
   # real. It is not a stub of git — the wrapper's git is under test. The action is told which prompt it
   # was given (`worker-prompt.md`, `reviewer-prompt-1.md`), so a case can make the worker and the
   # reviewer behave differently.
+  #
+  # A real child reads its change root out of the prompt; the action cannot read a prompt, so it takes the
+  # tree from the environment the wrapper exported, exactly as the child would take the path from its
+  # prompt. `LOOP_CHILD_ROOT` above stays the directory the child was started in, so a case can write
+  # outside the worktree deliberately and expect the run to catch it.
+  if [ -n "${LOOP_WORKTREE:-}" ] && [ -d "$LOOP_WORKTREE" ]; then
+    cd "$LOOP_WORKTREE" || exit 1
+  fi
   bash "$PI_STUB_ACTION" "${prompt##*/}" >&2 || true
 fi
 

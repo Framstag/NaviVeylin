@@ -36,6 +36,8 @@ LOOP_SHELL_CASES=(
   'worktree#refusesWhenMainAdvanced'
   'worktree#keepsByDefaultAndRemovesOnRequest'
   'worktree#noPushWithoutTheFlag'
+  'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
+  'worktree#refusesABranchCarryingAPreviousAttempt'
   'labels#verdictToLabelMatrix'
   'labels#trapRemovesInProgressOnSignal'
   'labels#neverWritesReservedLabel'
@@ -50,6 +52,9 @@ LOOP_SHELL_CASES=(
   'run#childClaimWithoutCommitIsBlocked'
   'run#childStartsInTheProjectRoot'
   'run#childWriteOutsideTheWorktreeIsBlocked'
+  'run#reviewerWriteInTheProjectIsDiscarded'
+  'run#leftoverBranchIsRecordedNotDropped'
+  'run#aSkipClearsTheInProgressMark'
   'run#claimedGateWithoutEvidenceIsBlocked'
   'run#citedEvidenceMustTravelWithTheChange'
   'run#needsDecisionIsEscalatedWithTheWork'
@@ -95,6 +100,8 @@ loop_run_shell_case() {
     'worktree#refusesWhenMainAdvanced') fn=case_worktree_refusesWhenMainAdvanced ;;
     'worktree#keepsByDefaultAndRemovesOnRequest') fn=case_worktree_keepsByDefaultAndRemovesOnRequest ;;
     'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
+    'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
+    'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
     'labels#neverWritesReservedLabel') fn=case_labels_neverWritesReservedLabel ;;
@@ -109,6 +116,9 @@ loop_run_shell_case() {
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
     'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
+    'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
+    'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
+    'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
     'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
     'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
     'run#needsDecisionIsEscalatedWithTheWork') fn=case_run_needsDecisionIsEscalatedWithTheWork ;;
@@ -570,6 +580,44 @@ case_worktree_oneBranchPerItemOffTheBase() {
   return 0
 }
 
+case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn() {
+  local p w base out
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the first item did not start"
+  # the previous run left the branch behind with nothing committed on it, and the base has moved on: the
+  # item must be workable again, or a blocked item could never be retried (issue #170)
+  printf 'the next commit\n' > "$p/advanced.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm advanced >/dev/null 2>&1 || fail "could not advance the base"
+  base=$(git -C "$p" rev-parse HEAD)
+  run_state "$p" init --items 1 --minutes 90 --base "$base" >/dev/null || fail "init failed"
+  out=$(run_worktree "$p" start-item 21 demo 2>&1) || fail "a branch carrying no work was refused: $out"
+  assert_contains "$out" "reused" "the run says the branch was reused"
+  assert_eq "$base" "$(git -C "$w" rev-parse HEAD)" "the item starts exactly at the new base"
+}
+
+case_worktree_refusesABranchCarryingAPreviousAttempt() {
+  local p w out status
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the first item did not start"
+  # the previous attempt committed before it was blocked: that commit is the run's only record of the
+  # work, so starting over would throw it away and the item is refused instead
+  printf 'the previous attempt\n' > "$w/attempt.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt" >/dev/null 2>&1 ||
+    fail "could not commit the previous attempt"
+  out=$(run_worktree "$p" start-item 21 demo 2>&1); status=$?
+  assert_eq "5" "$status" "a branch that carries work refuses the item"
+  assert_contains "$out" "carries commits the base does not" "the refusal says why"
+  assert_contains "$out" "the previous attempt" "and names the commit it would throw away"
+  assert_eq "$(git -C "$w" rev-parse fix/issue-21-demo)" "$(git -C "$p" rev-parse fix/issue-21-demo)" \
+    "the branch is left where it was"
+}
+
 case_worktree_refusesWhenMainAdvanced() {
   local p w base out status tip
   p=$(new_project); w="$p/.pi/worktrees/loop"
@@ -891,6 +939,73 @@ case_run_childWriteOutsideTheWorktreeIsBlocked() {
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "outside the worktree" \
     "the reason names the tree that changed"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
+}
+
+case_run_reviewerWriteInTheProjectIsDiscarded() {
+  local d p
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # a reviewer that stays inside the worktree is caught by its own round; this one writes in the project's
+  # tree, which the round reads as well — a process that wrote cannot have been the reviewer either way
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in reviewer*) printf "the reviewer wrote\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a reviewer that wrote in the project cannot have been the reviewer"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "working tree changed" \
+    "the round is discarded with a reason"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a discarded round"
+}
+
+case_run_leftoverBranchIsRecordedNotDropped() {
+  local d p log branch
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # the first attempt archives a change but leaves no test-results XML, so the run blocks it — and the
+  # branch it committed on stays behind (issue #170)
+  cat > "$d/worker-action.sh" <<'ACTION'
+case "$1" in
+  worker*)
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    printf 'the evidence the change cites\n' > openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+    printf 'the first attempt\n' > demo-fix.txt
+    ;;
+esac
+ACTION
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the first run failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the first attempt is blocked"
+  branch=$(git -C "$p" branch --list 'fix/issue-21-*' --format='%(refname:short)')
+  [ -n "$branch" ] || fail "the first attempt left no branch behind"
+  git -C "$p" merge-base --is-ancestor "$(git -C "$p" rev-parse main)" "$branch" ||
+    fail "the leftover branch carries no work, so this case is not exercising the refusal"
+
+  # the next run must record the item and escalate it, not end with "nothing processed"
+  : > "$GH_STUB_RECORD"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the second run failed"
+  assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" \
+    "the leftover branch is recorded as an item rather than dropped"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "and it is blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "carries commits the base does not" \
+    "the reason names the branch"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "the previous attempt's work is escalated, not thrown away"
+  assert_contains "$log" "fix/issue-21-" "and the comment names the branch"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+case_run_aSkipClearsTheInProgressMark() {
+  local d p skip_report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  skip_report=$(printf 'LOOP-VERDICT: skipped\nLOOP-SKIP-VERDICT: stale\nLOOP-ROOT-CAUSE: the fixture condition no longer holds\nLOOP-RED-TEST: none — no case can fail on HEAD')
+  stub_write "$d" "$skip_report" 'VERDICT: PASS'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is a skip"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "--remove-label agent/in-progress" \
+    "a skipped item does not keep the in-progress mark"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "status/on-hold" "and the verdict's own status is applied"
 }
 
 case_run_claimedGateWithoutEvidenceIsBlocked() {

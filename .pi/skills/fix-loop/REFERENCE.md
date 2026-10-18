@@ -19,14 +19,15 @@ tools/loop/run.sh --items N --minutes M
 # 3. cp local.prop* (SDK/NDK/Java paths) and write .pi/loop-env.sh exporting VCPKG_ROOT
 #    (never a symlink: a symlink named `vcpkg` is untracked and pollutes `git status`)
 # 4. cp the gitignored skills (openspec-* and this one) into $W/.pi/skills/
-# 5. the children are started with cwd=$W, and their state is $W/.pi/issue-loop/run.json
+# 5. the children are started with cwd=<the project> and told $W as their change root, and their state is
+#    the project's .pi/issue-loop/run.json
 ```
 
 The worktree is **kept** at the end of a run — it is the next run's warm build — and removed only by
 `--clean-worktree`. One branch per item is created from the run's recorded base
 (`fix/issue-<N>-<slug>`), and the wrapper refuses the next item when `main` has advanced past that base.
 
-Four facts shape verification in a worktree:
+Five facts shape verification in a worktree:
 
 - `openspec/changes/*/` is **gitignored** (only `archive/` is versioned), so the worktree sees **no** in-flight
   changes. Verify an `in-flight` claim against the **main tree's** `openspec list --json`. Archiving is what
@@ -37,6 +38,12 @@ Four facts shape verification in a worktree:
   §155–§164) is gone, because a filed issue's number is the tracker's.
 - The loop owns the branch; the wrapper owns the worktree, and the seed step copies the skill in at the start
   of every run — so an edit to the skill takes effect on the next run, never mid-run (`SKILL.md`, invariant 2).
+- A child process is started **in the project, not in the worktree** (issue #169, measured 2026-10-18): a
+  fresh process resolves the project's own tool policy at the directory it starts in, and the worktree,
+  the work packages and the run's staging directory all lie inside that directory — a child started in the
+  worktree could reach none of them. The tree it changes is the worktree, and its prompt names it. The run
+  reads the project's own tracked tree around every child, so a write left outside the worktree blocks the
+  item instead of being committed.
 - The worktree stays after the run **by design** (it is the next run's warm build), and the branches stay
   until the run's commits are merged. Delete a branch then, not before: the run's report names the branches
   it created.

@@ -9,7 +9,8 @@ Read-only. Do not edit a file, do not commit, do not run version control, do not
 Your whole output is the review below.
 
 - item: **#{{ISSUE}}**
-- change root: `{{CHANGE_ROOT}}`
+- change root: `{{CHANGE_ROOT}}` — the tree under review. Your working directory is the project, so read
+  there and never write anywhere.
 - the diff under review: `{{DIFF_PATH}}`
 - the evidence directory the change cites: `{{EVIDENCE_DIR}}`
 

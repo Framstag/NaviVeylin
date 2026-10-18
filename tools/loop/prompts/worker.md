@@ -9,7 +9,8 @@ Placeholders below are filled by the run's script before you are started. They a
 you get: everything else you need is in the tree.
 
 - item: **#{{ISSUE}}**
-- change root: `{{CHANGE_ROOT}}`
+- change root: `{{CHANGE_ROOT}}` — the tree this item changes. Your working directory is the project, so
+  `cd` into the change root and run every command there; the project's own tree is not yours to write.
 - prepared work package: `{{WORK_PACKAGE}}`
 - evidence directory (write your evidence here): `{{EVIDENCE_DIR}}`
 - the run's base commit: `{{BASE}}`

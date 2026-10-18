@@ -84,9 +84,15 @@ else
   fail=1
 fi
 
-# 4. the set is listed, so a change can see what it owes
+# 4. the set is listed, so a change can see what it owes — and the listing is checked against the set the
+# harness *declares*, not against a number spelled here. A hard number goes stale on every change that adds
+# a mutation (it was bumped twice: to twelve by the identity change, to nineteen by the loop-start change),
+# and a stale guard reports the change rather than the harness. What this catches is the real fault: a
+# record the parser drops from the listing.
+declared=$(sed -n '/^MUTATIONS=(/,/^)/p' "$root/tools/loop-mutations.sh" | grep -c "^  '")
+[ "$declared" -gt 0 ] || { echo "FAIL could not read the declared set out of $root/tools/loop-mutations.sh"; fail=1; }
 out=$(bash "$harness" --list 2>&1)
-check "the mutation set lists twelve entries" "12" "$(printf '%s\n' "$out" | grep -c .)"
+check "the mutation set lists what it declares" "$declared" "$(printf '%s\n' "$out" | grep -c .)"
 
 if [ "$fail" -ne 0 ]; then
   echo "loop-mutations-selftest: the mutation harness does not hold its own guards"

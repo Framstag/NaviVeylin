@@ -201,8 +201,8 @@ report, and the rule that an item that needs a decision is escalated rather than
 
 `REFERENCE.md`, beside this file, carries what a run needs but no rule of its own:
 
-- **Running the loop in a worktree** — the four facts that shape verification inside one (the wrapper now
-  performs the recipe).
+- **Running the loop in a worktree** — the five facts that shape verification inside one, including where
+  a child process is started (the wrapper now performs the recipe).
 - **Measured costs** — the minute budget of a change, a skip and the gate, and the measurements behind the
   rules above; read it before planning a run's clock.
 - **Field notes** — ten failure modes, each naming the section above that owns its rule.

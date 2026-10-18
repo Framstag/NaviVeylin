@@ -200,8 +200,26 @@ slugify() { # a change name out of an item's title: lowercase, dashes, bounded
     sed -e 's/-$//'
 }
 
+# The project's own tracked state, read around every child. A child is started in the project (a fresh
+# process resolves the project's own tool policy at the directory it is started in), and the worktree is
+# the only tree a phase may write — so a write the child left in the project's tree is caught here and
+# never carried into the item's commit (D4, "one writer per tree").
+project_state() { git -C "$LOOP_ROOT" status --porcelain 2>/dev/null; }
+
 run_child() { # run_child <prompt-file> <report-file> — every child goes through LOOP_AGENT_CMD (D3)
-  ( cd "$worktree" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1
+  # The working directory is the project and not the worktree on purpose: the project's own tool policy is
+  # resolved at the directory the process starts in, and every path the child is handed — the work package,
+  # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
+  # to change is still the worktree, by the path in its prompt.
+  local before after rc
+  before=$(project_state)
+  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1
+  rc=$?
+  after=$(project_state)
+  if [ "$before" != "$after" ]; then
+    printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran\n' >> "$2"
+  fi
+  return "$rc"
 }
 
 render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
@@ -231,6 +249,16 @@ while true; do
     printf '%s\n' "$start_out"
     case "$start_out" in
       *"base moved"*) exit "$LOOP_REFUSE" ;;
+      *"carries commits the base does not"*)
+        # A previous attempt left work on the item's branch. That work is the evidence for a decision, so
+        # the item is recorded and escalated rather than dropped — an unrecorded refusal is how a run ends
+        # with "nothing processed" and no reason (D7, D9). The run then takes the next candidate.
+        loop_labels escalate "$issue" --reason "a previous attempt's branch carries work the base does not" \
+          --evidence "branch fix/issue-$issue-$slug" >&2 || true
+        loop_state done "$issue" --result blocked --verdict blocked --note "$start_out" >/dev/null
+        in_progress=""
+        continue
+        ;;
       *) break ;;
     esac
   fi
@@ -264,6 +292,7 @@ while true; do
   root_cause=$(report_field "$item_dir/worker-report.md" LOOP-ROOT-CAUSE)
   red_test=$(report_field "$item_dir/worker-report.md" LOOP-RED-TEST)
   gate_claim=$(report_field "$item_dir/worker-report.md" LOOP-GATE)
+  outside_write=$(report_field "$item_dir/worker-report.md" LOOP-OUTSIDE-WRITE)
 
   # The run verifies rather than trusts: it commits the child's work itself and then reads the tree, the
   # archive and the gate's evidence, instead of repeating the child's claims (D3, D8).
@@ -295,6 +324,8 @@ while true; do
   blocked_reason=""
   if [ "$worker_exit" -ne 0 ]; then
     outcome="blocked"; blocked_reason="the worker process exited $worker_exit"
+  elif [ -n "$outside_write" ]; then
+    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran"
   elif [ "$verdict_claim" = "skipped" ]; then
     outcome="skipped"
   elif [ "$head_now" = "$base" ]; then
@@ -316,12 +347,12 @@ while true; do
       review_rounds=$round
       diff_file="$item_dir/review-$round.diff"
       git -C "$worktree" diff "$base"..HEAD > "$diff_file"
-      before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
+      before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       render_prompt "$LOOP_DIR/prompts/reviewer.md" "$item_dir/reviewer-prompt-$round.md" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir"
       run_child "$item_dir/reviewer-prompt-$round.md" "$item_dir/reviewer-report-$round.md"
-      after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
+      after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       if [ "$read_only" = "on" ] && [ "$before" != "$after" ]; then
         # The reviewer wrote, so it cannot have been the reviewer: the round is discarded (D3).
@@ -342,6 +373,14 @@ while true; do
       printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \
         >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"
+      outside_write=$(report_field "$item_dir/worker-report-round2.md" LOOP-OUTSIDE-WRITE)
+      if [ -n "$outside_write" ]; then
+        # Named for what it is: a write outside the worktree, not a second failed review round.
+        review_verdict="outside-write"
+        outcome="blocked"
+        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran"
+        break
+      fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
       git -C "$worktree" diff "$base"..HEAD > "$item_dir/review-$((round + 1)).diff"
       round=$((round + 1))
@@ -368,6 +407,10 @@ while true; do
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" >/dev/null
       ;;
     skipped)
+      # The in-progress mark comes off on every exit path (labels.sh, header): an item a run skipped is no
+      # more in progress than one it blocked, and an item that carries `agent/in-progress` while nothing is
+      # running misreports the tracker to whoever reads it next.
+      loop_labels unpick "$issue" >&2 || true   # the exit path clears the mark
       if [ "$skip_verdict" = "needs-decision" ] || [ "$skip_verdict" = "needs-diagnosis" ]; then
         # Escalation, not abandonment: the work already done is named on the item (spec, D9).
         loop_labels escalate "$issue" --reason "${root_cause:-$skip_verdict}" \

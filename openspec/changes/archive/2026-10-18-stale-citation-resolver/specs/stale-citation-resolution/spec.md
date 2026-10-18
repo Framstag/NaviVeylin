@@ -1,0 +1,150 @@
+# Spec Delta
+
+## Purpose
+
+An issue's citation is checked and, where it can be, repaired automatically: one definition of what a citation
+is, a mechanical ladder that rewrites a citation whose target moved, a quarantine for the ones that cannot be
+repaired, and a bounded scheduled run — so that an authorised item is excluded only when its citation really is
+gone, and the residue that needs a person is small, visible and ranked rather than silent.
+
+## ADDED Requirements
+
+### Requirement: One definition of what a citation is
+
+The tooling SHALL decide what counts as a citation in exactly one place, used by every consumer, and that
+decision SHALL distinguish a path from a mention: a token is a citation only when it respects token
+boundaries, carries a source-file extension the project recognises, and denotes a path the project can hold.
+Each citation SHALL resolve to exactly one class: `exact` (the path resolves from the repository root),
+`suffix` (exactly one tracked file path ends with it), `submodule` (it resolves inside a submodule),
+`generated` (it names an artefact the project produces rather than tracks), `not-a-path` (a token that is not a
+citation at all), or `absent` (no file of that name exists anywhere in the repository or its submodules).
+
+#### Scenario: A fragment is not a citation
+
+- **WHEN** a body contains a longer token such as `-Dorg.gradle.java.home` or a sentence fragment such as
+  `it.sh`
+- **THEN** no citation is extracted from it, and no staleness verdict follows
+
+#### Scenario: A header name without a path separator is not a citation
+
+- **WHEN** a body names a system header such as `jni.h` or `dagger.h`
+- **THEN** no citation is extracted — a header is only a citation when it is written as a path — and the item is
+  not stale
+
+#### Scenario: A path written without its prefix resolves
+
+- **WHEN** a body cites `SearchScreen.kt`, `guidelines/UI.md` by name only, or `app/src/test/.../XTest.kt`
+  with the middle abbreviated
+- **THEN** the citation classifies as `suffix` or `exact`, and the item is not stale
+
+#### Scenario: A submodule path resolves inside the submodule
+
+- **WHEN** a body cites `Tests/src/SearchScopeTest.cpp`
+- **THEN** the citation classifies as `submodule`, and the item is not stale
+
+#### Scenario: A generated artefact is not a missing file
+
+- **WHEN** a body cites an artefact the project produces rather than tracks, such as `RELEASE-NOTES.md`
+- **THEN** the citation classifies as `generated`, and the item is not stale
+
+#### Scenario: Only an absent citation is stale
+
+- **WHEN** no file of that name exists in the repository or in any submodule, and it is not generated
+- **THEN** the citation classifies as `absent`, and only then is the item's staleness verdict true
+
+### Requirement: The staleness verdict is visible in the tracker
+
+An item the pre-screen refuses for a citation SHALL carry that state where a person can read it, and not only
+in the run's machine-local state.
+
+#### Scenario: A refused item is marked
+
+- **WHEN** the pre-screen refuses an item because a citation is absent
+- **THEN** the item leaves the eligible queue through a label a person can query, and a comment names the
+  citation it is refused for
+
+#### Scenario: A repair does not need a second decision
+
+- **WHEN** the resolver has repaired an item's citation
+- **THEN** the item is eligible again without a person editing its body, and the next pre-screen queues it
+
+### Requirement: A citation is repaired when the repair is mechanical
+
+The resolver SHALL repair a citation whose target can be established as a fact, in this order: a unique suffix
+of a tracked path (canonicalised to that path), a rename recorded in the repository's history, or a single
+surviving file that declares the cited symbol. A repair SHALL rewrite the citation token and nothing else, and
+SHALL preserve every body marker verbatim.
+
+#### Scenario: A suffixed path is canonicalised
+
+- **WHEN** a body cites a class-file name that ends exactly one tracked path
+- **THEN** the citation is rewritten to that full path
+
+#### Scenario: A renamed file is followed
+
+- **WHEN** the cited path no longer exists and the repository's history records a rename or a move of it
+- **THEN** the citation is rewritten to its successor
+
+#### Scenario: A removed symbol is re-anchored
+
+- **WHEN** the cited file is gone and exactly one surviving file declares the cited symbol
+- **THEN** the citation is rewritten to that file
+
+#### Scenario: The item's record survives the repair
+
+- **WHEN** a citation is rewritten
+- **THEN** the body's `fingerprint` and `nvid` markers are byte-identical to what they were, and no prose around
+  the citation is changed
+
+#### Scenario: A repair is recorded
+
+- **WHEN** a citation is rewritten
+- **THEN** one comment on the item names the citation before and after the repair, and the evidence for it
+
+### Requirement: What cannot be repaired is parked, never guessed
+
+When a citation is `absent` and no mechanical successor exists, the resolver SHALL park the item and record what
+it tried; it SHALL never invent a target, never close an item, never write the authorisation label, and never
+change an item's kind, area or priority.
+
+#### Scenario: An unrepairable citation parks the item
+
+- **WHEN** the ladder finds no successor for an absent citation
+- **THEN** the item carries a parked state and a comment listing the attempts, so one person's decision can
+  cover it without reading every item
+
+#### Scenario: An ambiguous match is reported, not repaired
+
+- **WHEN** more than one tracked path could be the citation's target
+- **THEN** nothing is rewritten, and the ambiguity is reported with the candidates
+
+#### Scenario: The resolver cannot authorise or close
+
+- **WHEN** the resolver runs
+- **THEN** it writes no `agent/*` label and closes no item, whatever it finds
+
+### Requirement: The resolver runs on its own, bounded and idempotent
+
+The resolver SHALL run without a person, in the checks' own pipeline under that pipeline's least privilege,
+SHALL be bounded per run, SHALL default to a dry run, and SHALL be idempotent. The count of unresolved
+citations SHALL be a declared check row, so a growing residue is a measurement.
+
+#### Scenario: A scheduled run repairs without a person
+
+- **WHEN** the pipeline runs on its schedule
+- **THEN** the citations it can repair are repaired, and the items are eligible again
+
+#### Scenario: The bound holds
+
+- **WHEN** more items are due than the run's bound allows
+- **THEN** the run repairs the first ones, reports how many wait, and the next run continues
+
+#### Scenario: A second run changes nothing
+
+- **WHEN** the resolver runs again over items it already processed
+- **THEN** no citation is rewritten, no comment is posted, and the run reports an empty working set
+
+#### Scenario: The residue is a declared check
+
+- **WHEN** citations remain unresolved
+- **THEN** a registry row reports their count as its measurement, so the pile cannot grow unobserved

@@ -215,6 +215,16 @@ jobs:
           bash tools/mutate-selftest.sh
           bash tools/mutate.sh --mutations tools/portability-mutations.json --list
 
+      # ── stale citations ────────────────────────────────────────
+      # The gate for `stale-citation-resolution`: one definition of what a citation is (asked by the loop's
+      # pre-screen and by the resolver), the repair ladder, the quarantine, the bounds and the idempotence —
+      # every case offline in a throwaway repository and against a stub `gh`. The check itself reads the
+      # tracker and writes to it, which is why it runs in the sensors pipeline and never here.
+      - name: Check stale citation resolver
+        run: |
+          bash tools/resolve-stale-selftest.sh
+          bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list
+
       # ── Compose sandbox rule ───────────────────────────────────
       # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
       # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has

@@ -63,6 +63,19 @@ jobs:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
         run: bash tools/issues/labels.sh --apply
 
+      # The repair, before the rows: it makes an authorised item workable again by writing the full tracked
+      # path of a citation whose target the tree does hold, and parking what nothing accounts for — with the
+      # attempts recorded, so the item leaves the eligible queue visibly instead of being re-excluded every run
+      # (`stale-citation-resolution` D4/D5/D6). Bounded, and idempotent: a canonical citation is `exact`, a
+      # parked item is skipped, so a second run posts nothing.
+      - name: Repair the stale citations
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: |
+          mode="--dry-run"
+          if [ "${{ inputs.apply }}" = "true" ]; then mode="--apply"; fi
+          bash tools/issues/resolve-stale.sh "$mode" --max-items 25
+
       # The identity is a repository-scoped token, never the workflow's own: the tracker's gate requires
       # an allowlisted author, and the token can do nothing but file, comment and close issues here.
       - name: Run the sensors

@@ -87,6 +87,18 @@
       "category": "specs-and-process",
       "lifecycle": "file",
       "fingerprint": { "fields": ["pr"] }
+    },
+    {
+      "id": "stale-citations",
+      "cmd": "tools/sensors/metrics/stale-citations.sh",
+      "cron": "0 7 * * *",
+      "threshold": 5,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "specs-and-process",
+      "lifecycle": "file+close",
+      "fingerprint": { "fields": ["kind"] }
     }
   ]
 }

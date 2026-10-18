@@ -15,6 +15,20 @@
     "prio": ["p0", "p1", "p2"],
     "sensor": []
   },
+  "roles": {
+    "comment": "The foreign project's reading of its own vocabulary, in its own words: the loop's decisions are named after values of the namespaces above, and one of them (`deviceStatus`) is empty because this project has no device-gated state — declared empty, never omitted.",
+    "queuedVerdict": "eligible",
+    "workedClasses": ["bug", "improvement"],
+    "refusedClasses": ["feature"],
+    "inFlightStatus": "in-flight",
+    "deviceStatus": "",
+    "holdStatus": "on-hold",
+    "closeStatus": "fixed-by",
+    "settledStatuses": ["fixed-by", "retired"],
+    "inProgressAgent": "in-progress",
+    "deviceAgent": "",
+    "decisionAgent": "needs-decision"
+  },
   "bands": {
     "comment": "Three bands, TTL 30: the same scoring model as the upstream project, a different partition of it. The range is derived from `scoring` (2..18) and the edges cover it exactly once.",
     "namespace": "prio",

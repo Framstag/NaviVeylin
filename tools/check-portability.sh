@@ -18,17 +18,24 @@
 #   * **literal** — a fixed substring, searched on every line. A repository name, an allowed author, a
 #     command or path the registry declares, a gate command: a string that is this project's wherever it
 #     appears, a comment included.
-#   * **word** — a word-bounded token that must be *named*: the line counts only when the value sits
-#     inside a quote or is the argument of a flag (`$tmp/name.awk`). A project's category can be an
-#     ordinary word — `core`, `docs`, `infra` — and an engine legitimately uses such a word inside an
-#     identifier (`ISSUES_CORE_DIR`), a path (`$LIB_DIR/core`), a locale-independent message ("the Java
-#     core does not compile") or a case-runner's own vocabulary. A leak is when the engine *names the
-#     value*, not when it happens to use the same letters. Comment lines are skipped for these, exactly
-#     as the repository's own invariant case skips them: a comment that explains a value is not a leak.
+#   * **word** — a word-bounded token that must be *named*: the line counts only when the value sits inside
+#     a quote, is the argument of a flag (a token of its own, not a substring of a flag's name and not the
+#     left half of a `name=value` pair), or is the whole of a `<namespace><separator><value>` label. A value
+#     inside an identifier, a path or a sentence is not named — which is what lets a project's category be
+#     an ordinary word. A bare word standing before another tool's own option (`gh --state open` — GitHub's
+#     word, not this project's) is not evidence of a leak: no scan can tell the two apart, and a rule that
+#     fires on both is a rule nobody keeps. Comment lines are skipped for these, exactly as the repository's
+#     own invariant case skips them: a comment that explains a value is not a leak.
 #
 # What is checked, and what is not, is printed on every run — an exclusion a reader cannot see is a
 # proof that has quietly shrunk:
 #
+#   * the values: every namespace's values and their label forms, the profile's `roles` section (which
+#     namespace value each engine decision means), the repository, the allowlisted authors, the registry's
+#     declared commands, inputs and escalation labels, and the loop's configuration (its gate command and
+#     its submodule path). The reserved labels are the one documented exception: the single read-only
+#     declaration of the label that authorises work is asserted and printed, and any other occurrence is a
+#     leak;
 #   * the engines: the issue tooling's wrappers and the Java core, the sensors' runner, guards, report,
 #     measurements and conditions, and the loop's scripts;
 #   * the templates: the loop's prompt skeletons, where the value's placeholders are substituted at
@@ -51,7 +58,7 @@ while [ $# -gt 0 ]; do
     --root) root="${2:-}"; shift 2 ;;
     --values) show_values=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,43p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,50p' "$0"; exit 0 ;;
     *) printf 'check-portability: unknown argument %s\n' "$1" >&2; exit 2 ;;
   esac
 done
@@ -110,7 +117,12 @@ function pathish(c) { return (c == "/" || c == "-" || c == ".") }
       ll = (i <= 2) ? "" : substr(text, i - 2, 1)
       if ((l == "\"" || l == "'") && !pathish(ll)) { leak = 1 }
       else if ((r == "\"" || r == "'") && !pathish(l)) { leak = 1 }
-      else {
+      else if ((l == " " || l == "\t" || l == "=") && r != "=") {
+        # …as the argument of a flag: `--status on-hold`. The value must be a token of its own, so a value
+        # glued into a flag's name (`--eligible-only`) or into a `name=value` pair (`-v open=…`) is not an
+        # argument at all — and a bare word standing before another tool's own option (`gh --state open`,
+        # GitHub's vocabulary, not this project's) is where the rule stops, because no scan can tell the
+        # two apart and a rule that fires on both is a rule nobody keeps.
         pre = substr(text, 1, i - 1); sub(/[ \t]+$/, "", pre)
         m = split(pre, a, /[ \t]+/)
         if (m > 0 && a[m] ~ /^-/) leak = 1
@@ -134,15 +146,31 @@ add "$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')" "tools/tooling.json re
 
 while IFS= read -r author; do add "$author" "tools/tooling.json allowedAuthors" token; done < <(jq -r '.allowedAuthors[]?' "$profile")
 
-# the vocabulary: every category value, and every way a namespace would spell it as a label — the
-# namespace *names* stay the contract, so they are read and not forbidden
+# the vocabulary: EVERY namespace's values and each one's label form — not the category namespace alone.
+# the reserved labels are the one documented exception: an engine must be able to READ the label that
+# authorises work. Added before the namespaces, so the exception wins when a namespace's label form is the
+# same string; asserted below and printed in the header, never silently tolerated.
+while IFS= read -r label; do add "$label" "tools/tooling.json reservedLabels" exception; done < <(jq -r '.reservedLabels[]?' "$profile")
+
+# The namespace *names* stay the contract, so they are read and never forbidden on their own: a value that
+# is also a namespace name (`agent` is one of the `source` values) cannot be told from the name, while the
+# label form `<namespace><separator><value>` can.
 separator=$(jq -r '.namespaceSeparator // "/"' "$profile")
-while IFS= read -r value; do add "$value" "tools/tooling.json namespaces.category" word; done < <(jq -r '.namespaces.category[]?' "$profile")
+namespace_names=$(jq -r '.namespaces | keys[]?' "$profile")
 while IFS= read -r namespace; do
   while IFS= read -r value; do
-    add "${namespace}${separator}${value}" "tools/tooling.json category label" 
-  done < <(jq -r '.namespaces.category[]?' "$profile")
-done < <(jq -r '.namespaces | keys[]?' "$profile")
+    [ -n "$value" ] || continue
+    if ! printf '%s\n' "$namespace_names" | grep -qxF "$value"; then
+      add "$value" "tools/tooling.json namespaces.${namespace}" word
+    fi
+    add "${namespace}${separator}${value}" "tools/tooling.json namespaces.${namespace} label"
+  done < <(jq -r --arg ns "$namespace" '.namespaces[$ns][]?' "$profile")
+done < <(printf '%s\n' "$namespace_names")
+
+# the profile's `roles` section: which namespace value each of the engines' decisions means, so its values
+# are project values exactly as the namespaces' are
+while IFS= read -r value; do add "$value" "tools/tooling.json roles" word; done < <(
+  jq -r '.roles | to_entries[] | select(.key != "comment") | .value | if type == "array" then .[] else . end' "$profile" 2>/dev/null)
 
 # the registry's declared commands, inputs and escalation labels: paths this project declared belong in
 # the registry, and a label the registry writes belongs there too
@@ -155,8 +183,15 @@ conf_value() { # <KEY> → the double-quoted value, or nothing
   sed -n "s/^${1}=\"\\(.*\\)\"\$/\1/p" "$loopconf" | head -1
 }
 add "$(conf_value LOOP_GATE_CMD)" "tools/loop/loop.conf LOOP_GATE_CMD"
+# the submodule path is a project path: it belongs in the loop's configuration, not in its worktree
+add "$(conf_value LOOP_SUBMODULE_PATH)" "tools/loop/loop.conf LOOP_SUBMODULE_PATH"
 while IFS= read -r skill; do add "$skill" "tools/loop/loop.conf LOOP_WORKER_SKILLS" word; done \
   < <(printf '%s' "$(conf_value LOOP_WORKER_SKILLS)" | tr ' ' '\n')
+
+# One occurrence per value: a value the profile declares twice (a namespace value, and the role or label
+# that names it) is one fact, and the source reported is the one it was read from first.
+awk -F'\t' '!seen[$1]++' "$tmp/values" > "$tmp/values.unique"
+mv "$tmp/values.unique" "$tmp/values"
 
 # --------------------------------------------------------------------------- the engine set (D1)
 
@@ -165,7 +200,7 @@ list_engines() { # the code engines, relative to the root
     cd "$root" || exit 1
     ls tools/issues/*.sh tools/issues/*.awk tools/issues/core/*.java tools/sensors/*.sh \
        tools/sensors/conditions/*.sh tools/sensors/metrics/*.sh tools/loop/*.sh 2>/dev/null
-  ) | sort -u | grep -vE '/(Cases\.java|metadata-mutations\.sh|[a-z0-9-]+-selftest\.sh|[a-z0-9-]+-cases\.sh|[a-z0-9-]+-mutations\.sh)$'
+  ) | sort -u | grep -vE '/(Cases\.java|TodoAdapter\.java|TodoSections\.java|metadata-mutations\.sh|[a-z0-9-]+-selftest\.sh|[a-z0-9-]+-cases\.sh|[a-z0-9-]+-mutations\.sh)$'
 }
 
 list_templates() { # the loop's prompt skeletons
@@ -178,6 +213,8 @@ list_templates() { # the loop's prompt skeletons
 list_excluded() {
   cat <<'EOF'
 tools/issues/import/todo-md.sh	the source adapter — reads the one-time prose record's format, and is allowed to
+tools/issues/core/TodoAdapter.java	the same adapter: it names the record format and the provenance value it
+tools/issues/core/TodoSections.java	the adapter's grammar — the headings and the metadata line of that format
 tools/issues/core/Cases.java	the case runner
 tools/issues/metadata-mutations.sh	the falsification harness
 tools/issues/check-metadata-selftest.sh	the self-test
@@ -225,6 +262,7 @@ template_paths=()
 while IFS= read -r f; do [ -n "$f" ] && template_paths+=("$root/$f"); done <<< "$templates"
 
 leaks=0
+exception_note=""
 report_hits() { # <hits> <comment-filter 0|1> — one line at a time, the absolute prefix stripped
   local hits="$1" filtered
   filtered="$hits"
@@ -247,6 +285,38 @@ scan() { # <mode> <comment-filter 0|1> <paths…> — the current $value over on
   # without the prompt skeletons must still be checkable
   [ "$#" -gt 0 ] || return 0
   local hits=""
+  if [ "$match_mode" = "exception" ]; then
+    # The reserved label is the ONE documented exception, and it is ASSERTED rather than tolerated: the
+    # only accepted occurrence is a single read-only declaration (`NAME="<label>"`, nothing else on the
+    # line), printed with its file and line. A second declaration, or any other occurrence — which is what
+    # a write path spelling the label looks like — is a leak.
+    local hit text declared="" count=0
+    hits=$(grep -n -F -- "$value" "$@" 2>/dev/null | grep -vE ':[[:space:]]*(#|//|\*|/\*)' || true)
+    while IFS= read -r hit; do
+      [ -n "$hit" ] || continue
+      text=$(printf '%s' "$hit" | cut -d: -f3-)
+      if [[ "$text" =~ ^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=\"$value\"[[:space:]]*$ ]]; then
+        declared="${declared}${hit}
+"; count=$((count + 1))
+      fi
+    done <<< "$hits"
+    if [ "$count" -gt 1 ]; then
+      printf 'check-portability: FAIL %s read-only declarations of the reserved label '\''%s'\'' — one is the documented exception\n' \
+        "$count" "$value"
+      while IFS= read -r hit; do
+        [ -n "$hit" ] || continue
+        printf '  %s\n' "${hit#"$root"/}"
+      done <<< "$declared"
+      leaks=$((leaks + 1))
+      return 0
+    fi
+    if [ "$count" -eq 1 ]; then
+      exception_note="${exception_note}${declared}"
+      hits=$(printf '%s\n' "$hits" | grep -vxF "$(printf '%s' "$declared" | head -1)" || true)
+    fi
+    report_hits "$hits" "$filter"
+    return 0
+  fi
   case "$match_mode" in
     word)
       hits=$(grep -n -w -F -- "$value" "$@" 2>/dev/null | awk -v val="$value" -f "$tmp/name.awk" || true)
@@ -273,6 +343,16 @@ while IFS=$'\t' read -r value source mode; do
   scan "$mode" "$filter" "${engine_paths[@]}"
   scan "$mode" 0 "${template_paths[@]}"
 done < "$tmp/values"
+
+# the one documented exception, asserted above and printed here, so a reader can see what the check does
+# NOT report and why
+if [ "$quiet" -eq 0 ] && [ -n "$exception_note" ]; then
+  printf 'check-portability: the documented exception — the label that authorises work is declared read-only, once:\n'
+  while IFS= read -r hit; do
+    [ -n "$hit" ] || continue
+    printf '  %s\n' "${hit#"$root"/}"
+  done <<< "$exception_note"
+fi
 
 if [ "$leaks" -gt 0 ]; then
   printf 'check-portability: %s leak(s) — a project value belongs in a config, never in an engine\n' "$leaks"

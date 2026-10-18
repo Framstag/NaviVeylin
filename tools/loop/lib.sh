@@ -114,6 +114,27 @@ loop_required_labels() {
   loop_compat_profile_value requiredLabels
 }
 
+# The profile's `roles` section: which value of the profile's namespaces each of the loop's decisions
+# means. Every script that decides something about a value asks here, so no script under `tools/loop/`
+# spells a vocabulary value (D16); `tools/check-portability.sh` enforces it. The keys are the contract
+# (like the namespace names); a value another project does not need is declared empty, never omitted.
+LOOP_ROLES=""
+LOOP_ROLE_KEYS="queuedVerdict workedClasses refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
+loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
+  [ -n "$LOOP_ROLES" ] && return 0
+  LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""
+  [ -n "$LOOP_ROLES" ] || loop_die "no roles section in $(loop_profile) — the loop reads which vocabulary value each decision means there"
+  local key
+  for key in $LOOP_ROLE_KEYS; do
+    printf '%s\n' "$LOOP_ROLES" | jq -e --arg k "$key" 'has($k)' >/dev/null ||
+      loop_die "the roles section in $(loop_profile) does not declare $key — declare it empty when this project has no such value"
+  done
+}
+
+loop_role() { # <role> → the value, or one value per line when the role is a list
+  printf '%s\n' "$LOOP_ROLES" | jq -r --arg k "$1" '.[$k] // empty | if type == "array" then .[] else . end'
+}
+
 loop_compat_profile_value() { # the profile's value for a section, via the tooling's own reader
   ISSUES_PROFILE=$(loop_profile) issues_profile_value "$1"
 }

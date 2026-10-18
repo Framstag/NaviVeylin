@@ -43,16 +43,18 @@ deliberately not a submodule, a package or a published binary (see *What an upda
 ## The three files to edit
 
 1. **`tools/tooling.json`** — the project profile: `repo`, `allowedAuthors`, `requiredLabels`,
-   `reservedLabels`, every namespace's values, the `bands` section (namespace, `ttlDays`, edges,
-   scoring table), the source renames and the input bounds. This is the only file that names the
-   project's repository and vocabulary.
+   `reservedLabels`, every namespace's values, the `roles` section (which value of a namespace each
+   engine decision means: the loop's pre-screen verdicts, its label transitions, the band the metadata
+   pass writes), the `bands` section (namespace, `ttlDays`, edges, scoring table), the source renames and
+   the input bounds. This is the only file that names the project's repository and vocabulary.
 2. **`tools/sensors/sensors.json`** — the declared checks: one row per check, each with its command,
    cadence, bound, consecutive count, the kind and area it files, and the fields its fingerprint is
    derived from.
 3. **`tools/loop/loop.conf`** — how a child agent is started (`LOOP_AGENT_CMD`), which of the
-   project's skills the worker is told to use (`LOOP_WORKER_SKILLS`), and **how the project's gate is
-   run** (`LOOP_GATE_CMD`). The gate command is the project's: leave it empty for a project with no
-   build, and the phases still run while the report says the gate was skipped.
+   project's skills the worker is told to use (`LOOP_WORKER_SKILLS`), **how the project's gate is
+   run** (`LOOP_GATE_CMD`) and the submodule a fresh worktree has to check out (`LOOP_SUBMODULE_PATH`,
+   empty for a project without one). The gate command is the project's: leave it empty for a project
+   with no build, and the phases still run while the report says the gate was skipped.
 
 ## What to delete
 
@@ -84,8 +86,11 @@ tree that is already a copy.
 bash tools/check-portability.sh --quiet
 ```
 
-The check must pass: no engine names one of your values. If it fails, the value belongs in your profile
-or in one of the two per-tool configs — the failing line and the value's source are printed.
+The check must pass: no engine names one of your values — every namespace's values, the values the
+`roles` section declares, the loop's gate command and submodule path, and the registry's declared paths
+and labels. The only value an engine may name is the read-only constant for the label that authorises
+work (`LOOP_AUTHORISATION_LABEL`), which the check asserts and prints. If it fails, the value belongs in
+your profile or in one of the two per-tool configs — the failing line and the value's source are printed.
 
 ```sh porting-step
 bash tools/issues/labels.sh --json >/dev/null

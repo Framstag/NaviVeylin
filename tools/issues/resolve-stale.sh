@@ -79,7 +79,7 @@ if [ -n "$issues_file" ]; then
   issues=$(cat "$issues_file")
 else
   gh_err="$scratch/gh.err"
-  issues=$(gh issue list --state open --limit 400 --json number,title,body,labels,author 2>"$gh_err") ||
+  issues=$(gh issue list --limit 400 --json number,title,body,labels,author 2>"$gh_err") ||
     issues_die "resolve-stale: gh could not read the tracker: $(cat "$gh_err" 2>/dev/null)"
 fi
 printf '%s' "$issues" | jq -e 'type == "array"' >/dev/null 2>&1 ||
@@ -95,9 +95,14 @@ writes=0
 report="$scratch/report.jsonl"
 : > "$report"
 
+# The status an unresolved item is parked under is a value of the project's vocabulary, so it is read
+# from the profile's `roles` section — `update.sh` composes the label from the namespace and this value.
+hold_status=$(jq -r '.roles.holdStatus // empty' "$profile")
+[ -n "$hold_status" ] || issues_die "resolve-stale: the profile's roles section declares no holdStatus"
+
 # Parked already: the parking state is the marker, so a second run does not re-comment or re-park.
 is_parked() { # <labels-json>
-  printf '%s' "$1" | jq -e --arg l "status${separator}on-hold" 'any(.[]; .name == $l)' >/dev/null 2>&1
+  printf '%s' "$1" | jq -e --arg l "status${separator}${hold_status}" 'any(.[]; .name == $l)' >/dev/null 2>&1
 }
 
 # A list built line by line: `add_line <current> <line>`, without a stray leading newline.
@@ -227,7 +232,7 @@ $repairs" >/dev/null || issues_die "resolve-stale: could not rewrite the body of
     repaired=$((repaired + 1))
   elif [ -n "$unresolved" ]; then
     if [ "$apply" -eq 1 ]; then
-      bash "$here/update.sh" "$number" --status on-hold \
+      bash "$here/update.sh" "$number" --status "$hold_status" \
         --comment "unresolved citation — parked so the pre-screen stops re-deciding this item:
 
 $unresolved${repairs:+

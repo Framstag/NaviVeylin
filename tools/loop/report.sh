@@ -24,6 +24,7 @@ while [ $# -gt 0 ]; do
 done
 
 loop_resolve
+loop_roles_load
 [ -f "$LOOP_STATE_FILE" ] || loop_die "report: no run state at $LOOP_STATE_FILE"
 
 if [ "$json" -eq 1 ]; then
@@ -52,7 +53,7 @@ bash "$LOOP_DIR/state.sh" report
 
 printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#\(.issue) \(.verdict)\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"
 printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)"] | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"
-printf 'decisions the owner owes: %s\n' "$(jq -r '[.excluded[] | select(.verdict == "needs-decision") | "#\(.issue)"] + [.items[] | select(.verdict == "needs-decision") | "#\(.issue)"] | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"
+printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAgent)" '[.excluded[] | select(.verdict == $d) | "#\(.issue)"] + [.items[] | select(.verdict == $d) | "#\(.issue)"] | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"
 
 # The branches are read from git, not from a child's report: the run's own script created them.
 branches=$(git -C "$LOOP_ROOT" branch --list 'loop-*' 'fix/issue-*' --format='%(refname:short)')

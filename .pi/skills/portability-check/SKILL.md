@@ -1,6 +1,6 @@
 ---
 name: portability-check
-description: Proves the tooling under tools/ still names no project value — runs the leak check, its 21-case self-test and the synthetic foreign project end to end. Use when a change touches tools/issues, tools/sensors, tools/loop or tools/check-portability.sh, when a task says "portability", "no project value in an engine", "the foreign project" or "the porting recipe", when CI's Check portability step fails, or before copying this tooling into another project.
+description: Proves the tooling under tools/ still names no project value — runs the leak check, its 26-case self-test and the synthetic foreign project end to end. Use when a change touches tools/issues, tools/sensors, tools/loop or tools/check-portability.sh, when a task says "portability", "no project value in an engine", "the foreign project" or "the porting recipe", when CI's Check portability step fails, or before copying this tooling into another project.
 ---
 
 # Portability check
@@ -20,8 +20,8 @@ the recipe for keeping it true when an engine or a config changes.
 |---|---|
 | `bash tools/check-portability.sh` | does any engine name a project value? Prints the engine set, the excluded set and the value set it read |
 | `bash tools/check-portability.sh --values` | …and prints every forbidden value with the file it was read from (for debugging a verdict) |
-| `bash tools/check-portability-selftest.sh` | 21 cases: the value-set cases, the four discovery cases, the foreign project end to end, and the recipe's commands |
-| `bash tools/mutate.sh --mutations tools/portability-mutations.json` | the seven revert-checks of tasks 5.1–5.7 as a versioned set (eight records — 5.3 names two cases); the recipe is `.pi/skills/mutation-runner` |
+| `bash tools/check-portability-selftest.sh` | 26 cases: the suite's two preconditions, the value-set cases, the four discovery cases, the foreign project end to end, and the recipe's commands |
+| `bash tools/mutate.sh --mutations tools/portability-mutations.json` | the portability revert-checks as a versioned set (13 records: 5.1–5.7, 5.3 naming two cases, and 6.1–6.5 for the value set, the exception and the suite's preconditions); the recipe is `.pi/skills/mutation-runner` |
 
 `--quiet` gives the verdict without the sets; `--root <dir>` checks another tree (the self-test's
 mechanism); `--case <group#name>` runs one case; `--list` lists the cases (the mutation runner has a `--list`
@@ -35,13 +35,29 @@ An engine may not name a project value. "Name" is deliberately not "contain the 
 |---|---|---|
 | `token` | the whole word, comments included | the repository, its name, the allowlisted authors — `acme` in `metadata` is not a name |
 | `literal` | a fixed substring, comments skipped | a label spelling, a declared command or path, an escalation label, the gate command |
-| `word` | the value is **named**: inside a quote, as `namespace/value`, or as a flag's argument — comments skipped | the category vocabulary, the worker skills |
+| `word` | the value is **named**: inside a quote, as `namespace/value`, or as a flag's argument (a token of its own — not a substring of a flag's name, not the left half of `name=value`) — comments skipped | every namespace's values, the profile's `roles` values, the worker skills |
 
 The third mode is load-bearing: a project's category can be an ordinary word (`core`, `docs`, `infra` — the
 fixture's), and the engine legitimately uses `core` inside `ISSUES_CORE_DIR`, `$LIB_DIR/core` and the
 sentence "the Java core does not compile". A plain word-boundary scan reported 3 false positives on the
 fixture and 14 over this tree (measured 2026-10-18, `tooling-portability` D1); a rule like that gets switched
-off, which is the failure it was written to prevent.
+off, which is the failure it was written to prevent. For the same reason a bare word before another tool's
+own option is not a name: `gh --state open` is GitHub's word, and the wide rule that fired on it also fired
+on `list.sh --eligible-only` and `awk -v open=…`.
+
+The one exception the rule has is asserted, never tolerated: the label that authorises work
+(`reservedLabels`) may appear exactly once, as a read-only assignment (`LOOP_AUTHORISATION_LABEL="…"`).
+The check prints that line as the documented exception and fails on a second declaration or on any other
+occurrence — which is what a write path spelling the label would look like.
+
+## Two preconditions
+
+The suite reads the real tree's check and the fixture's versioned path, so it needs a **checkout**: run it
+from a copy outside a git working tree, or from a path under `.pi/` (machine-local state), and it refuses
+with a named reason and exit 2 instead of reporting a case red. That red was read as a regression of the
+code under test twice (issue #172); the check itself (`tools/check-portability.sh --root <dir>`) runs
+anywhere. The header of `tools/check-portability-selftest.sh` states both, and
+`preconditions#refusesOutsideAGitTree` / `preconditions#refusesUnderMachineLocalState` hold it to them.
 
 ## Adding a value to the check
 
@@ -137,7 +153,7 @@ a change that owns those engines (issue #162, `openspec/changes/archive/2026-10-
 
 - `PORTING.md` — what to copy, the three files to edit, the adapter to delete, what an update costs
 - `guidelines/Backlog.md` §10 "Portability" — the concept and the boundary
-- `.pi/skills/mutation-runner/SKILL.md` — the runner behind the seven revert-checks
+- `.pi/skills/mutation-runner/SKILL.md` — the runner behind the revert-checks
 - `.pi/skills/revert-check/SKILL.md` — the rule the mutations serve (one mutation per invariant)
 - `openspec/changes/archive/2026-10-18-tooling-portability/{report.md,evidence/}` — the change that landed it, with the gate
   transcript and the traceability table

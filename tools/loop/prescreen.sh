@@ -39,6 +39,7 @@ while [ $# -gt 0 ]; do
 done
 
 loop_resolve
+loop_roles_load
 profile=$(loop_profile)
 separator=$(loop_compat_profile_value namespaceSeparator)
 separator="${separator:-/}"
@@ -54,17 +55,18 @@ if [ -n "$ISSUES_CITATION_INDEX" ]; then
   trap 'rm -f "$ISSUES_CITATION_INDEX"' EXIT
 fi
 
-# The loop's rules are stated over the tracker's vocabulary, and the values are read from the project
-# profile — a second project changes its profile, not this script (D16).
+# The loop's rules are stated over the tracker's vocabulary, and every value is read from the profile's
+# `roles` section — a second project renames its vocabulary in the profile, not in this script (D16).
 vocabulary() { loop_compat_profile_value "$1"; }
-feature_class=$(vocabulary namespaces.class | grep -x feature || true)
-bug_class=$(vocabulary namespaces.class | grep -x bug || true)
-improvement_class=$(vocabulary namespaces.class | grep -x improvement || true)
-inflight_status=$(vocabulary namespaces.status | grep -x in-flight || true)
-device_status=$(vocabulary namespaces.status | grep -x open-device || true)
-# An item the tracker has already settled must not be worked a second time — by this run or the next.
-fixed_status=$(vocabulary namespaces.status | grep -x fixed-by || true)
-retired_status=$(vocabulary namespaces.status | grep -x retired || true)
+queued_verdict=$(loop_role queuedVerdict)
+worked_classes="$(loop_role workedClasses)"
+refused_classes="$(loop_role refusedClasses)"
+inflight_status=$(loop_role inFlightStatus)
+device_status=$(loop_role deviceStatus)
+device_agent=$(loop_role deviceAgent)
+settled_statuses="$(loop_role settledStatuses)"
+is_refused_class() { [ -n "$refused_classes" ] && printf '%s\n' "$refused_classes" | grep -qxF "$1"; }
+is_settled_status() { [ -n "$settled_statuses" ] && printf '%s\n' "$settled_statuses" | grep -qxF "$1"; }
 allowed_authors=$(vocabulary allowedAuthors)
 
 label_value() { # label_value <labels-json> <namespace> -> the value, or empty
@@ -113,29 +115,27 @@ while [ "$i" -lt "$count" ]; do
   status=$(label_value "$labels" status)
   gh_state=$(printf '%s' "$issue" | jq -r '.state // "OPEN"')
 
-  verdict="eligible"
+  verdict="$queued_verdict"
   reason=""
   evidence=""
   if ! printf '%s\n' "$allowed_authors" | grep -qxF "$author"; then
     # The label alone would be self-served: the author term of the gate is the other half (change 1, D2).
     verdict="author-not-allowlisted"
     reason="author '$author' is not on the profile's allowlist"
-  elif [ "$class" = "$feature_class" ] && [ -n "$feature_class" ]; then
+  elif is_refused_class "$class"; then
     verdict="class-feature"
     reason="class${separator}${class} is not worked by this loop"
   elif [ "$status" = "$inflight_status" ] && [ -n "$inflight_status" ]; then
-    verdict="in-flight"
+    verdict="$inflight_status"
     reason="status${separator}${status} — another change already holds it"
-  elif [ "$gh_state" = "CLOSED" ] ||
-       { [ -n "$fixed_status" ] && [ "$status" = "$fixed_status" ]; } ||
-       { [ -n "$retired_status" ] && [ "$status" = "$retired_status" ]; }; then
+  elif [ "$gh_state" = "CLOSED" ] || is_settled_status "$status"; then
     condition="${status:-closed}"
     verdict="settled"
     reason="the item is already ${condition} — nothing is left for this loop to work"
   elif [ "$status" = "$device_status" ] && [ -n "$device_status" ]; then
     # A device is a fact, not a judgement: the run records the verdict and produces no host work
     # (design D15 property 4).
-    verdict="needs-device"
+    verdict="$device_agent"
     reason="status${separator}${status} — the remaining evidence needs a device attached to the host"
   fi
 
@@ -145,7 +145,7 @@ while [ "$i" -lt "$count" ]; do
   # drops an unauthorised item, so it cannot fire — and it stays because the loop must not depend on the
   # tooling's filter for its own invariant that it never works what nobody authorised. If that filter ever
   # widens, this is where the loop refuses instead of working an item.
-  if [ "$verdict" = "eligible" ] &&
+  if [ "$verdict" = "$queued_verdict" ] &&
      ! printf '%s' "$labels" | jq -e --arg l "$LOOP_AUTHORISATION_LABEL" 'any(.[]; .name == $l)' >/dev/null; then
     verdict="missing-authorisation"
     reason="the item does not carry ${LOOP_AUTHORISATION_LABEL} — the opt-in is the author's, not the run's"
@@ -153,14 +153,14 @@ while [ "$i" -lt "$count" ]; do
 
   # The sensor runs on every candidate, before any judgement: it is the cheap refutation, and `stale` is the
   # classifier's verdict — a citation no file, no submodule and no generated artefact accounts for.
-  if [ "$verdict" = "eligible" ] && [ "$sensor" -eq 1 ]; then
+  if [ "$verdict" = "$queued_verdict" ] && [ "$sensor" -eq 1 ]; then
     stale_path=$(stale_citations_of "$title" "$body" | head -1)
     if [ -n "$stale_path" ]; then
       verdict="stale"
       reason="cited path '$stale_path' resolves to no file in the repository or its submodules"
       evidence="$stale_path"
     fi
-    if [ "$verdict" = "eligible" ]; then
+    if [ "$verdict" = "$queued_verdict" ]; then
       for symbol in $(cited_symbols_of "$title" "$body"); do
         p="${symbol%%:*}"
         s="${symbol#*:}"
@@ -183,19 +183,18 @@ while [ "$i" -lt "$count" ]; do
   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
 done
 
-ranked=$(printf '%s' "$records" | jq -c --arg bug "$bug_class" --arg imp "$improvement_class" '
-  (map(. + {_rank: (if ($bug != "" and .class == $bug) then 0
-                    elif ($imp != "" and .class == $imp) then 1 else 2 end)})
+ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$worked_classes" | jq -R . | jq -sc .)" '
+  (map(. + {_rank: (. as $r | (($worked | index($r.class)) // ($worked | length)))})
    | sort_by([._rank, .issue]) | map(del(._rank))) as $sorted
-  | ($sorted | map(select(.verdict == "eligible"))) as $q
+  | ($sorted | map(select(.verdict == $queued))) as $q
   | reduce range(0; ($q | length)) as $i ($sorted;
       . as $all | ($q[$i].issue) as $id
       | map(if .issue == $id then .rank = ($i + 1) else . end))
-') || loop_die "prescreen: could not rank the candidates"
+' --arg queued "$queued_verdict") || loop_die "prescreen: could not rank the candidates"
 records="$ranked"
 
-eligible_count=$(printf '%s' "$records" | jq '[.[] | select(.verdict == "eligible")] | length')
-excluded_count=$(printf '%s' "$records" | jq '[.[] | select(.verdict != "eligible")] | length')
+eligible_count=$(printf '%s' "$records" | jq --arg queued "$queued_verdict" '[.[] | select(.verdict == $queued)] | length')
+excluded_count=$(printf '%s' "$records" | jq --arg queued "$queued_verdict" '[.[] | select(.verdict != $queued)] | length')
 
 # The queue, the exclusions and the per-item gate fields are one write, because they are one answer.
 printf '%s' "$records" | loop_state queue >/dev/null
@@ -204,8 +203,8 @@ if [ "$json" -eq 1 ]; then
   printf '%s\n' "$records"
 else
   printf 'pre-screen: %s eligible, %s excluded — gates 2-5 stay the worker'"'"'s (design D6)\n' "$eligible_count" "$excluded_count"
-  printf '%s' "$records" | jq -r '.[] |
-    if .verdict == "eligible"
+  printf '%s' "$records" | jq -r --arg queued "$queued_verdict" '.[] |
+    if .verdict == $queued
     then "  #\(.issue) [\(.class)/\(.category)] rank \(.rank) — \(.title | .[0:80])"
     else "  excluded #\(.issue) \(.verdict): \(.reason)" end'
 fi

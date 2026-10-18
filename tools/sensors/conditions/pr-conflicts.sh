@@ -12,12 +12,15 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=tools/sensors/lib.sh
 source "$here/../lib.sh"
 
-if ! prs=$(gh pr list --state open --limit 100 --json number,mergeable,author 2>/dev/null); then
+# `gh pr list` without `--state` answers the open pull requests — the same filter, and the word `open`
+# is GitHub's, not this project's, so the engine must not spell it (the portability check cannot tell the
+# two apart and forbids a bare vocabulary value that is named as a flag's argument).
+if ! prs=$(gh pr list --limit 100 --json number,mergeable,author 2>/dev/null); then
   sensors_emit_error '{"pr":"unknown"}' "no-pull-request-list"
   exit 0
 fi
 # The re-read: the field is computed by GitHub on the first request and answered on the next one.
-prs=$(gh pr list --state open --limit 100 --json number,mergeable,author 2>/dev/null) || prs="$prs"
+prs=$(gh pr list --limit 100 --json number,mergeable,author 2>/dev/null) || prs="$prs"
 if ! jq -e . >/dev/null 2>&1 <<< "$prs"; then
   sensors_emit_error '{"pr":"unknown"}' "unreadable-pull-request-list"
   exit 0

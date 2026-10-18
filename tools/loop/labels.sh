@@ -30,6 +30,7 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$here/lib.sh"
 
 loop_resolve
+loop_roles_load
 
 verdict="${1:-}"
 issue="${2:-}"
@@ -52,9 +53,13 @@ case "$issue" in ''|*[!0-9]*) loop_die "labels: usage: labels.sh <verdict> <issu
 
 separator=$(loop_compat_profile_value namespaceSeparator)
 separator="${separator:-/}"
-in_progress="agent${separator}in-progress"
-needs_device="agent${separator}needs-device"
-needs_decision="agent${separator}needs-decision"
+# The verdict → label mapping is data: the values come from the profile's `roles` section, so a project
+# that spells its vocabulary differently writes a different profile, not a different script (D7, D16).
+in_progress="agent${separator}$(loop_role inProgressAgent)"
+needs_device="agent${separator}$(loop_role deviceAgent)"
+needs_decision="agent${separator}$(loop_role decisionAgent)"
+hold_status=$(loop_role holdStatus)
+close_status=$(loop_role closeStatus)
 
 add_labels=()
 remove_labels=()
@@ -72,16 +77,16 @@ case "$verdict" in
   stale|unspecifiable|too-wide|not-spec-shaped|needs-target)
     # The item is not thrown away and no new issue is filed for it: the verdict and its one clause of
     # evidence are what the run produces, and they are attached to the item itself (D6).
-    status_value="on-hold"
+    status_value="$hold_status"
     ;;
   needs-device)
     # A device is a fact, not a judgement: the verdict is recorded and the work stays on the host (D15).
     add_labels=("$needs_device")
-    status_value="on-hold"
+    status_value="$hold_status"
     ;;
   needs-decision|needs-diagnosis)
     add_labels=("$needs_decision")
-    status_value="on-hold"
+    status_value="$hold_status"
     ;;
   escalate)
     # A verdict the worker reached mid-item: the labels mark it as awaiting a decision, and the comment
@@ -89,12 +94,12 @@ case "$verdict" in
     # than abandoned — the run does not throw work away (spec, "An item needing a decision is escalated,
     # not abandoned"; D9).
     add_labels=("$needs_decision")
-    status_value="on-hold"
+    status_value="$hold_status"
     escalate=1
     ;;
   close)
     remove_labels=("$in_progress")
-    status_value="fixed-by"
+    status_value="$close_status"
     close_issue=1
     ;;
   *)

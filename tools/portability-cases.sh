@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The portability check's shell cases: the check's own value-set cases, the four discovery cases, the
-# foreign-project run and the recipe that is executed rather than trusted.
+# The portability check's shell cases: the check's own value-set cases, the suite's own preconditions, the
+# four discovery cases, the foreign-project run and the recipe that is executed rather than trusted.
 #
 # Sourced by `tools/check-portability-selftest.sh`, which provides the environment:
 #   PORTABILITY_ROOT      the repository under test
@@ -16,6 +16,9 @@ set -uo pipefail
 PORTABILITY_CASES=(
   'portability#plantedRepoNameFails'
   'portability#plantedCategoryFails'
+  'portability#plantedValueInEveryNamespaceFails'
+  'portability#plantedSubmodulePathFails'
+  'portability#authorisationLabelIsTheOneException'
   'portability#excludesTheAdapterAndFixtures'
   'portability#valueSetIsReadNotHardCoded'
   'portability#passesOnTheRealTree'
@@ -23,6 +26,8 @@ PORTABILITY_CASES=(
   'discovery#fromAWorktree'
   'discovery#ignoresGithubRepositoryEnv'
   'discovery#outsideAGitTree'
+  'preconditions#refusesOutsideAGitTree'
+  'preconditions#refusesUnderMachineLocalState'
   'foreign#profileDiffersFromOurs'
   'foreign#noProjectNameInTheStub'
   'foreign#toolchainRunsEndToEnd'
@@ -45,6 +50,9 @@ portability_run_case() {
   case "$1" in
     'portability#plantedRepoNameFails') case_portability_plantedRepoNameFails ;;
     'portability#plantedCategoryFails') case_portability_plantedCategoryFails ;;
+    'portability#plantedValueInEveryNamespaceFails') case_portability_plantedValueInEveryNamespaceFails ;;
+    'portability#plantedSubmodulePathFails') case_portability_plantedSubmodulePathFails ;;
+    'portability#authorisationLabelIsTheOneException') case_portability_authorisationLabelIsTheOneException ;;
     'portability#excludesTheAdapterAndFixtures') case_portability_excludesTheAdapterAndFixtures ;;
     'portability#valueSetIsReadNotHardCoded') case_portability_valueSetIsReadNotHardCoded ;;
     'portability#passesOnTheRealTree') case_portability_passesOnTheRealTree ;;
@@ -52,6 +60,8 @@ portability_run_case() {
     'discovery#fromAWorktree') case_discovery_fromAWorktree ;;
     'discovery#ignoresGithubRepositoryEnv') case_discovery_ignoresGithubRepositoryEnv ;;
     'discovery#outsideAGitTree') case_discovery_outsideAGitTree ;;
+    'preconditions#refusesOutsideAGitTree') case_preconditions_refusesOutsideAGitTree ;;
+    'preconditions#refusesUnderMachineLocalState') case_preconditions_refusesUnderMachineLocalState ;;
     'foreign#profileDiffersFromOurs') case_foreign_profileDiffersFromOurs ;;
     'foreign#noProjectNameInTheStub') case_foreign_noProjectNameInTheStub ;;
     'foreign#toolchainRunsEndToEnd') case_foreign_toolchainRunsEndToEnd ;;
@@ -122,6 +132,14 @@ copy_engines() { # <tree> — the engines, exactly as a copying project would ta
   cp -a "$PORTABILITY_ROOT/tools/loop" "$1/tools/" || fail "could not copy tools/loop"
   cp "$PORTABILITY_ROOT/tools/check-portability.sh" "$1/tools/" || fail "could not copy the check"
   chmod +x "$1/tools/issues/fixtures/gh" "$1/tools/loop/fixtures/pi" 2>/dev/null || true
+}
+
+# The suite itself, copied the way someone verifying a commit from an export takes it: the engines it
+# drives, its cases, and the driver — so a precondition can be exercised on a copy of the real thing.
+copy_suite() { # <tree>
+  copy_engines "$1"
+  cp "$PORTABILITY_ROOT/tools/check-portability-selftest.sh" "$1/tools/" || fail "could not copy the suite"
+  cp "$PORTABILITY_ROOT/tools/portability-cases.sh" "$1/tools/" || fail "could not copy the suite's cases"
 }
 
 local_tree() { # engines + THIS project's configs — the tree the value-set cases plant into
@@ -219,6 +237,14 @@ case_portability_plantedCategoryFails() {
   assert_contains "$out" "namespaces.category" "the value set it came from is named"
 }
 
+# `plantable_value <tree> <namespace>` — a value of that namespace a case can plant, or nothing when the
+# namespace declares none. A value that is also a namespace *name* (`agent` is one of the `source` values)
+# is left out on purpose: the namespace names are the contract, and the check does not forbid them alone.
+plantable_value() {
+  jq -r --arg ns "$2" --argjson names "$(jq -r '.namespaces | keys[]' "$1/tools/tooling.json" | jq -R . | jq -sc .)" \
+    '[.namespaces[$ns][] | select(. as $v | $names | index($v) | not)] | .[0] // empty' "$1/tools/tooling.json"
+}
+
 case_portability_excludesTheAdapterAndFixtures() {
   local p out status
   p=$(local_tree)
@@ -231,6 +257,68 @@ case_portability_excludesTheAdapterAndFixtures() {
   assert_contains "$out" "todo-md.sh" "the adapter is named in the printed exclusions"
   assert_contains "$out" "fixtures" "the fixtures are named in the printed exclusions"
   assert_contains "$out" "the source adapter" "the adapter's reason is printed, not silent"
+}
+
+# Every namespace's value set is forbidden, not the category's alone (issue #162): the check reads the
+# profile's `namespaces` section whole, so one planted value per namespace must be reported with the
+# namespace it was read from.
+case_portability_plantedValueInEveryNamespaceFails() {
+  local p ns value out status checked=0
+  p=$(local_tree)
+  while IFS= read -r ns; do
+    value=$(plantable_value "$p" "$ns")
+    [ -n "$value" ] || continue
+    printf '\nPROBE_%s="%s"\n' "$ns" "$value" >> "$p/tools/issues/list.sh"
+    checked=$((checked + 1))
+  done < <(jq -r '.namespaces | keys[]' "$p/tools/tooling.json")
+  [ "$checked" -ge 5 ] || fail "the profile declares fewer than five namespaces with a value ($checked)"
+
+  out=$(run_check "$p" --quiet 2>&1); status=$?
+  assert_eq "1" "$status" "a planted value in every namespace fails the check: $out"
+  while IFS= read -r ns; do
+    value=$(plantable_value "$p" "$ns")
+    [ -n "$value" ] || continue
+    assert_contains "$out" "'$value'" "the planted $ns value is named"
+    assert_contains "$out" "namespaces.$ns" "the value's source names the $ns namespace"
+  done < <(jq -r '.namespaces | keys[]' "$p/tools/tooling.json")
+}
+
+# The submodule path is a project path, so it lives in the loop's own configuration (issue #162): the
+# check forbids it because it reads loop.conf, and the loop's worktree reads it instead of naming it.
+case_portability_plantedSubmodulePathFails() {
+  local p path out status
+  p=$(local_tree)
+  path=$(sed -n 's/^LOOP_SUBMODULE_PATH="\(.*\)"$/\1/p' "$p/tools/loop/loop.conf")
+  [ -n "$path" ] || fail "loop.conf declares no LOOP_SUBMODULE_PATH — the submodule path has no home"
+  assert_empty "$(grep -F -- "$path" "$PORTABILITY_ROOT/tools/loop/worktree.sh" 2>/dev/null || true)" \
+    "the loop's worktree names the submodule path instead of reading it from loop.conf"
+
+  printf '\nSUBMODULE_PATH="%s"\n' "$path" >> "$p/tools/issues/create.sh"
+  out=$(run_check "$p" --quiet 2>&1); status=$?
+  assert_eq "1" "$status" "a planted submodule path fails the check: $out"
+  assert_contains "$out" "$path" "the path is named"
+  assert_contains "$out" "LOOP_SUBMODULE_PATH" "the value's source is the loop's configuration"
+}
+
+# The reserved label is the ONE documented exception: an engine must be able to read the label that
+# authorises work. It is asserted, not tolerated — one read-only declaration, printed by the check; a
+# second occurrence is a leak, because a write path that spells the label is what the invariant forbids.
+case_portability_authorisationLabelIsTheOneException() {
+  local p label out status
+  label=$(jq -r '.reservedLabels[0] // empty' "$PORTABILITY_ROOT/tools/tooling.json")
+  [ -n "$label" ] || fail "the profile declares no reserved label — there is no exception to assert"
+
+  out=$(bash "$PORTABILITY_ROOT/tools/check-portability.sh" 2>&1); status=$?
+  assert_eq "0" "$status" "the real tree passes with the reserved label declared once: $out"
+  assert_contains "$out" "documented exception" "the check names the exception it accepts"
+  assert_contains "$out" "$label" "the exception names the label"
+  assert_contains "$out" "tools/loop/lib.sh" "the exception names the file that declares it read-only"
+
+  p=$(local_tree)
+  printf '\nAUTHORISATION="%s"\n' "$label" >> "$p/tools/issues/list.sh"
+  out=$(run_check "$p" --quiet 2>&1); status=$?
+  assert_eq "1" "$status" "a second declaration of the reserved label fails the check: $out"
+  assert_contains "$out" "tools/issues/list.sh" "the extra occurrence is named"
 }
 
 case_portability_valueSetIsReadNotHardCoded() {
@@ -330,6 +418,44 @@ case_discovery_outsideAGitTree() {
   assert_eq "2" "$status" "discovery outside a project exits 2"
   assert_contains "$out" "not inside a git working tree" "the message names the reason"
   assert_not_contains "$out" "root=" "no project is invented"
+}
+
+# --------------------------------------------------------------------------- preconditions
+
+# The suite reads two things a copy cannot provide: the real tree's check (its case `passesOnTheRealTree`
+# drives it) and the fixture's versioned path (its case `fixtureIsVersioned` asserts it). Run it from a copy
+# outside a git working tree, or from a path under `.pi/`, and it refuses with a named reason instead of
+# reporting a case as failed — two sessions read that red as a regression of the code under test (issue
+# #172). The header states both preconditions, so a reader knows before running it.
+case_preconditions_refusesOutsideAGitTree() {
+  local d out status
+  d=$(scratch_outside)
+  mkdir -p "$d/snapshot"
+  copy_suite "$d/snapshot"
+
+  out=$(cd "$d/snapshot" && bash tools/check-portability-selftest.sh -h 2>&1)
+  assert_contains "$out" "outside a git working tree" "the header names the first precondition"
+  assert_contains "$out" ".pi/" "the header names the second precondition"
+
+  out=$(cd "$d/snapshot" && bash tools/check-portability-selftest.sh --list 2>&1); status=$?
+  assert_eq "2" "$status" "the suite refuses outside a git working tree: $out"
+  assert_contains "$out" "not inside a git working tree" "the refusal names the reason"
+  assert_not_contains "$out" "FAIL " "no case is reported failed by where the suite was run"
+}
+
+case_preconditions_refusesUnderMachineLocalState() {
+  local d out status
+  d=$(scratch_outside)
+  # a checkout whose machine-local state holds a copy of the suite: the root IS inside a git working tree,
+  # so only the `.pi/` precondition can refuse — which is the second reading the issue measured
+  git -C "$d" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway repository"
+  mkdir -p "$d/.pi/snapshot"
+  copy_suite "$d/.pi/snapshot"
+
+  out=$(cd "$d/.pi/snapshot" && bash tools/check-portability-selftest.sh --list 2>&1); status=$?
+  assert_eq "2" "$status" "the suite refuses from a copy under a machine-local path: $out"
+  assert_contains "$out" "/.pi/" "the refusal names the machine-local path"
+  assert_not_contains "$out" "FAIL " "no case is reported failed by where the suite was run"
 }
 
 # --------------------------------------------------------------------------- the foreign project (D2)

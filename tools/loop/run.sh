@@ -52,6 +52,7 @@ while [ $# -gt 0 ]; do
 done
 
 loop_resolve
+loop_roles_load
 # The resolved paths and the configuration go to every child, so all of them agree on which run and which
 # project they belong to.
 export LOOP_STATE_FILE="$LOOP_STATE_FILE" LOOP_WORKTREE="$LOOP_WORKTREE"
@@ -88,6 +89,10 @@ base=$(loop_state get run.base)
 
 separator=$(loop_compat_profile_value namespaceSeparator)
 separator="${separator:-/}"
+# The label an item awaiting a decision carries, and the verdict that means it: both are values of the
+# profile's vocabulary, read from the profile's `roles` section (D9, D16).
+decision_agent=$(loop_role decisionAgent)
+decision_label="agent${separator}${decision_agent}"
 
 # ── the refusals that must happen before anything exists ────────────────────────────────────────
 
@@ -107,11 +112,11 @@ fi
 
 # 2. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 open_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
-  jq -r --arg label "agent${separator}needs-decision" '[.[] | select([.labels[].name] | index($label))] | length')
+  jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
 if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   printf 'refusing to start: %s item(s) already await a decision and the cap is %s\n' "$open_decisions" "$max_decisions"
   loop_issue_tool list.sh --json --limit 400 2>/dev/null |
-    jq -r --arg label "agent${separator}needs-decision" \
+    jq -r --arg label "$decision_label" \
       '.[] | select([.labels[].name] | index($label)) | "  #\(.number) \(.title)"'
   printf 'nothing new is produced while decisions accumulate — decide these first\n'
   exit "$LOOP_REFUSE"
@@ -411,7 +416,7 @@ while true; do
       # more in progress than one it blocked, and an item that carries `agent/in-progress` while nothing is
       # running misreports the tracker to whoever reads it next.
       loop_labels unpick "$issue" >&2 || true   # the exit path clears the mark
-      if [ "$skip_verdict" = "needs-decision" ] || [ "$skip_verdict" = "needs-diagnosis" ]; then
+      if [ "$skip_verdict" = "$decision_agent" ] || [ "$skip_verdict" = "needs-diagnosis" ]; then
         # Escalation, not abandonment: the work already done is named on the item (spec, D9).
         loop_labels escalate "$issue" --reason "${root_cause:-$skip_verdict}" \
           --evidence "$item_dir, branch fix/issue-$issue-$slug, red test: ${red_test:-not reached}" >&2 || true

@@ -104,6 +104,6 @@ search before adding the record tells you whether it is unique.
 
 - `.pi/skills/revert-check/SKILL.md` — the rule this runner implements, including the Gradle form
 - `tools/mutate.sh`, `tools/mutate-selftest.sh`, `tools/fixtures/mutate/` — the runner and its own guards
-- `tools/portability-mutations.json` — a worked set (eight records: the seven invariants of that change, one of them naming two cases)
+- `tools/portability-mutations.json` — a worked set (13 records: the portability invariants, one of them naming two cases, plus the value-set, exception and precondition ones)
 - `openspec/changes/archive/2026-10-18-tooling-portability/evidence/revert-checks.md` — the transcript and the reasoning
 - `guidelines/Build.md` §4 — result evaluation; "a cached run is not a run"

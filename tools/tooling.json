@@ -34,6 +34,20 @@
     "sensor": "Declared here, populated by the check registry (`sensor-registry-and-metric-issues`): one value per declared check, so the vocabulary keeps one owner. Empty until that registry lands.",
     "prio": "The four bands. The band EDGES, the scoring table and the TTL are the `bands` section below — one home, so a re-tuned model is one committed file."
   },
+  "roles": {
+    "comment": "THE VOCABULARY'S ROLES — for each decision an engine makes about a value of the namespaces above, which value it means. `tools/loop/prescreen.sh` reads `queuedVerdict`, `workedClasses` (rank order), `refusedClasses`, `inFlightStatus`, `deviceStatus` and `settledStatuses`; `tools/loop/labels.sh` reads `holdStatus`, `closeStatus`, `inProgressAgent`, `deviceAgent` and `decisionAgent`; `tools/loop/run.sh`, `report.sh` and `state.sh` read the verdicts the pre-screen writes; `tools/issues/resolve-stale.sh` reads `holdStatus` to park an item. A key another project does not need is declared empty (`\"\"`, `[]`), never omitted: an absent key is a half-adapted profile, and `tools/check-portability.sh` forbids every value declared here in an engine exactly as it forbids the namespaces' values.",
+    "queuedVerdict": "eligible",
+    "workedClasses": ["bug", "improvement"],
+    "refusedClasses": ["feature"],
+    "inFlightStatus": "in-flight",
+    "deviceStatus": "open-device",
+    "holdStatus": "on-hold",
+    "closeStatus": "fixed-by",
+    "settledStatuses": ["fixed-by", "retired"],
+    "inProgressAgent": "in-progress",
+    "deviceAgent": "needs-device",
+    "decisionAgent": "needs-decision"
+  },
   "bands": {
     "comment": "THE BAND MAPPING — score → band, owned by `issue-metadata-loop` (design D2). `Bands.java` reads this section and nothing here is repeated in code: the range is derived from `scoring` (severity·reach + confidence → 2..18), the totality of the edges is a case (`Bands#coversTheWholeRange`) and a profile problem, and the label spelling comes from `namespace` plus the edge id. P3 reaches down to 2 because that is the model's own minimum: severity 1 × reach 1 + confidence 1.",
     "namespace": "prio",

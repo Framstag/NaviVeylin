@@ -1,0 +1,23 @@
+$ bash tools/resolve-stale-selftest.sh
+PASS classifier#fragmentIsNotACitation
+PASS classifier#bareHeaderIsNotAPath
+PASS classifier#externalLibraryPathIsNotAPath
+PASS classifier#bareSourceNameResolvesBySuffix
+PASS classifier#submodulePathResolves
+PASS classifier#generatedArtefactIsNotMissing
+PASS classifier#absentIsTheOnlyStale
+PASS prescreen#refusalIsVisibleInTheTracker
+PASS resolver#suffixedCitationIsCanonicalised
+PASS resolver#renamedFileIsFollowed
+PASS resolver#removedSymbolIsReAnchored
+PASS resolver#markersSurviveTheRepair
+PASS resolver#repairPostsOneComment
+PASS resolver#unrepairableCitationIsParked
+PASS resolver#ambiguityIsReportedNotRepaired
+PASS resolver#neverWritesTheAuthorisation
+PASS resolver#boundHoldsAndReportsTheRest
+PASS resolver#secondRunChangesNothing
+PASS pipeline#scheduledRunRepairs
+PASS pipeline#residueIsADeclaredRow
+resolve-stale-selftest: all 20 cases passed (JDK 27, offline, no token, no Gradle)
+exit=0

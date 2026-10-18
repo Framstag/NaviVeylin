@@ -31,7 +31,9 @@ LOOP_SHELL_CASES=(
   'prescreen#withoutTheOptInIsNeverQueued'
   'prescreen#settledItemIsDropped'
   'prescreen#deviceItemIsAVerdictNotWork'
+  'prescreen#readsTheVerdictsFromTheProfile'
   'worktree#seedsAllFourInputs'
+  'worktree#checksOutTheSubmoduleTheLoopConfigNames'
   'worktree#oneBranchPerItemOffTheBase'
   'worktree#refusesWhenMainAdvanced'
   'worktree#keepsByDefaultAndRemovesOnRequest'
@@ -95,7 +97,9 @@ loop_run_shell_case() {
     'prescreen#withoutTheOptInIsNeverQueued') fn=case_prescreen_withoutTheOptInIsNeverQueued ;;
     'prescreen#settledItemIsDropped') fn=case_prescreen_settledItemIsDropped ;;
     'prescreen#deviceItemIsAVerdictNotWork') fn=case_prescreen_deviceItemIsAVerdictNotWork ;;
+    'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
+    'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
     'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
     'worktree#refusesWhenMainAdvanced') fn=case_worktree_refusesWhenMainAdvanced ;;
     'worktree#keepsByDefaultAndRemovesOnRequest') fn=case_worktree_keepsByDefaultAndRemovesOnRequest ;;
@@ -539,6 +543,22 @@ case_prescreen_deviceItemIsAVerdictNotWork() {
   assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "no agent process is spent on it"
 }
 
+# The pre-screen's verdicts ARE values of the profile's vocabulary, so the profile's `roles` section is
+# where they are read: rename the device verdict there and the pre-screen's verdict for a device-gated item
+# changes with it, which is what tells a literal from a value read at run time (issue #162, D16).
+case_prescreen_readsTheVerdictsFromTheProfile() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  jq '.roles.deviceAgent = "needs-a-device"' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not rename the device verdict"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario device)
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "3" "$status" "a device-gated item is still not host work"
+  assert_eq "needs-a-device" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 81) | .verdict')" \
+    "the device verdict is the value the profile's roles section declares"
+}
+
 # ----------------------------------------------------------------------------- cases: worktree
 
 # The throwaway repository has no submodule and no vendored dependency, so the seed's submodule step is a
@@ -555,6 +575,34 @@ case_worktree_seedsAllFourInputs() {
   [ -f "$w/local.properties" ] || fail "local.prop* was not copied into the worktree"
   [ -f "$w/.pi/skills/fix-loop/SKILL.md" ] || fail "the gitignored loop skill was not copied into the worktree"
   assert_contains "$(cat "$w/.pi/loop-env.sh")" "VCPKG_ROOT" "the dependency root is exported from a file, not a symlink"
+}
+
+case_worktree_checksOutTheSubmoduleTheLoopConfigNames() {
+  local p d nested conf out
+  p=$(new_project); d=$(scratch)
+  nested="$d/nested"; mkdir -p "$nested"
+  printf 'the vendored source\n' > "$nested/vendored.txt"
+  git -C "$nested" init -q -b main >/dev/null 2>&1 || fail "could not create the nested repository"
+  git -C "$nested" add -A >/dev/null 2>&1
+  git -C "$nested" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm init >/dev/null 2>&1 ||
+    fail "could not commit in the nested repository"
+  git -C "$p" -c user.email=selftest@example.invalid -c user.name=selftest -c protocol.file.allow=always \
+    submodule add -q "$nested" vendor/lib >/dev/null 2>&1 || fail "could not add the submodule"
+  git -C "$p" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm "the submodule" >/dev/null 2>&1 ||
+    fail "could not commit the submodule"
+  # the loop's configuration decides which path is checked out: the copy names a path of its own, and the
+  # test repository's `.gitmodules` declares exactly that path
+  conf="$d/loop.conf"
+  sed -e 's|^LOOP_SUBMODULE_PATH=.*|LOOP_SUBMODULE_PATH="vendor/lib"|' "$LOOP_CONF" > "$conf" ||
+    fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  # the fixture's submodule is a local path, which git refuses to clone without allowing the file protocol
+  export GIT_ALLOW_PROTOCOL=file
+
+  init_state "$p" 1 90
+  out=$(run_worktree "$p" create --branch loop-test 2>&1) || fail "worktree create failed: $out"
+  [ -s "$p/.pi/worktrees/loop/vendor/lib/vendored.txt" ] ||
+    fail "the submodule the configuration names was not checked out: $out"
 }
 
 case_worktree_oneBranchPerItemOffTheBase() {

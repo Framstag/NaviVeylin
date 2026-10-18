@@ -7,8 +7,17 @@
 # token, a network, a Gradle build, a device or a screen: the stub `gh` and the stub `pi` answer from
 # fixtures (design D1–D6; guidelines/Build.md §2, the scope block).
 #
+# TWO PRECONDITIONS, refused rather than reported red (issue #172): the suite reads the real tree's check
+# (its case `passesOnTheRealTree` drives it) and the fixture's versioned path (its case
+# `fixtureIsVersioned` asserts it lives in the tracked tree). Run it from a copy outside a git working tree,
+# or from a path under `.pi/` — machine-local state, not a checkout — and it stops with a named reason and
+# exit 2: a red case there reads as a failure of the code under test, and cost two sessions a ten-minute hunt
+# for a defect that was not theirs. Use the check itself (`tools/check-portability.sh`) from such a copy;
+# only this suite needs a checkout.
+#
 # Usage: bash tools/check-portability-selftest.sh [--list] [--case <group#name>]
-# Exit:  0 every case passed (or there are no cases), 1 a case failed, 2 the environment is unusable.
+# Exit:  0 every case passed (or there are no cases), 1 a case failed, 2 the environment is unusable —
+#        the root is not inside a git working tree, or the root path is machine-local state (`.pi/`).
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -17,8 +26,20 @@ case "${1:-}" in
   --list) list_only=1; only_case="" ;;
   --case) list_only=0; only_case="${2:-}" ;;
   "") list_only=0; only_case="" ;;
-  -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
   *) echo "check-portability-selftest: unknown argument $1" >&2; exit 2 ;;
+esac
+
+# The two preconditions, before anything is read or created — see the header.
+if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "check-portability-selftest: not inside a git working tree — the suite reads the real tree's check and the fixture's versioned path; run it from a checkout of the project, not from a copy" >&2
+  exit 2
+fi
+case "$root" in
+  *"/.pi/"*)
+    echo "check-portability-selftest: the suite's root $root is a /.pi/ path — machine-local state is not a checkout; run it from the project's working tree, or use tools/check-portability.sh from here" >&2
+    exit 2
+    ;;
 esac
 
 for tool in bash git jq java javac grep sed awk sort; do

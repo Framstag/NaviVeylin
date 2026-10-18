@@ -46,6 +46,7 @@ state_resolve() {
   # second read of the configuration that produced the first answer.
   [ -n "$LOOP_ROOT" ] && return 0
   loop_resolve
+  loop_roles_load
   STATE_FILE="$LOOP_STATE_FILE"
   FLOOR_MINUTES=$(loop_conf_value LOOP_ITEM_FLOOR_MINUTES)
   FLOOR_MINUTES="${FLOOR_MINUTES:-45}"
@@ -213,8 +214,8 @@ cmd_queue() {
   # The queue, the exclusions and the per-item records arrive together: the pre-screen that produced
   # them is the run's own output, and an exclusion reported only to a console would be lost (D6).
   local queue excluded
-  queue=$(printf '%s' "$json" | jq -c '[.[] | select((.verdict // "eligible") == "eligible") | {issue, class, category, verdict, reason, rank, gates}]')
-  excluded=$(printf '%s' "$json" | jq -c '[.[] | select((.verdict // "eligible") != "eligible") | {issue, class, verdict, reason}]')
+  queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates}]')
+  excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) != $queued) | {issue, class, verdict, reason}]')
   # An item this run has already recorded is never queued again: the pre-screen reads the tracker, and a
   # second pass over the same tracker would hand back the item the run has just finished with.
   patch_state '

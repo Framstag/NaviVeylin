@@ -328,20 +328,26 @@ project** is a decision rather than a later refactor.
 ```
 engine, copied unchanged            the project, adapted
   the gate, the taxonomy reader       tools/tooling.json      repo · allowlist · reserved labels ·
-  identity and dedup                    · vocabulary values · bounds · band edges
-  the verbs, the closure rules        sensors.json            commands · cadence · bounds · counts
-  the loop's phases and refusals      loop.conf               the agent command · the skills the
-  the metadata pass                     · worker uses · the project's gate command
-  the checks' runner and guards       the source adapter      the one-time record format of THIS project
+  identity and dedup                    · vocabulary values · the engines' roles ·
+  the verbs, the closure rules          · bounds · band edges
+  the loop's phases and refusals      sensors.json            commands · cadence · bounds · counts
+  the metadata pass                   loop.conf               the agent command · the skills the
+  the checks' runner and guards         · worker uses · the gate command ·
+                                        · the submodule a worktree checks out
+                                      the source adapter      the one-time record format of THIS project
 ```
 
 Every command answers "which project am I in?" from its own working tree, so the copy needs no arguments
 and no configuration pointing at itself. **An engine names no project value** — not a repository, not an
 author, not a vocabulary value, not a path — and `tools/check-portability.sh` fails when one appears,
 reading the values it forbids from the profile and the per-tool configs so that it cannot become a stale
-list. A value is a leak when an engine **names** it (inside a quote, as a label, or as a flag's argument):
-a project whose category is an ordinary word (`core`, `docs`) must not trip a check that fires on every
-identifier and every sentence, or the check becomes a rule nobody keeps.
+list. A value is a leak when an engine **names** it: inside a quote, as a `<namespace>/<value>` label, or
+as the argument of a flag. A bare word that happens to be a value and stands before another tool's own
+option — GitHub's `--state open`, `awk -v` — is not a name: no scan can tell the two apart, and a rule
+that fires on both is a rule nobody keeps (measured: the whole status, class, agent, source and prio
+vocabulary, 91 values, over 40 engines). The values the profile's `roles` section declares — which value
+of a namespace each engine decision means — are forbidden exactly as the namespaces' are, and the one
+read-only constant for the authorisation label is asserted as the single exception and printed.
 
 The rows' file inputs are the one thing a second project adapts beside its configuration: the *producer*
 (`tools/build-inputs.sh`) knows which paths this project's rows declare and how to derive them from its

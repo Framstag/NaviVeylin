@@ -1,21 +1,21 @@
 {
-  "comment": "The seven revert-checks of `tooling-portability` (tasks 5.1–5.7) as a runnable set: one mutation each, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/portability-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. The evidence recorded in the change's `evidence/revert-checks.md` came from exactly these mutations.",
+  "comment": "The revert-checks of `tooling-portability` (labels 5.1–5.7) and of `fix-portability-value-set-and-preconditions` (labels 6.1–6.5) as a runnable set: one mutation each, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/portability-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. The evidence recorded in the change's `evidence/revert-checks.md` came from exactly these mutations.",
   "case-cmd": "bash tools/check-portability-selftest.sh --case {case}",
   "mutations": [
     {
       "label": "5.1",
       "case": "portability#valueSetIsReadNotHardCoded",
       "file": "tools/check-portability.sh",
-      "search": "add \"$value\" \"tools/tooling.json namespaces.category\" word; done < <(jq -r '.namespaces.category[]?' \"$profile\")",
-      "replace": "add \"$value\" \"tools/tooling.json namespaces.category\" word; done < <(printf '%s\\n' build-and-harness ui verification)",
+      "search": "  done < <(jq -r --arg ns \"$namespace\" '.namespaces[$ns][]?' \"$profile\")",
+      "replace": "  done < <(printf '%s\\n' build-and-harness ui verification)",
       "why": "the value set is read from the profile, not hard-coded"
     },
     {
       "label": "5.2",
       "case": "portability#excludesTheAdapterAndFixtures",
       "file": "tools/check-portability.sh",
-      "search": "ls tools/issues/*.sh tools/issues/core/*.java",
-      "replace": "ls tools/issues/*.sh tools/issues/import/*.sh tools/issues/core/*.java",
+      "search": "ls tools/issues/*.sh tools/issues/*.awk tools/issues/core/*.java",
+      "replace": "ls tools/issues/*.sh tools/issues/*.awk tools/issues/core/*.java tools/issues/import/*.sh",
       "why": "the source adapter is excluded from the engine set"
     },
     {
@@ -65,6 +65,46 @@
       "search": "bash tools/check-portability.sh --quiet",
       "replace": "bash tools/check-portability.sh --nope",
       "why": "every command in the porting recipe runs"
+    },
+    {
+      "label": "6.1",
+      "case": "portability#plantedValueInEveryNamespaceFails",
+      "file": "tools/check-portability.sh",
+      "search": "done < <(printf '%s\\n' \"$namespace_names\")",
+      "replace": "done < <(printf '%s\\n' \"$namespace_names\" | grep -x category)",
+      "why": "every namespace's value set is read and forbidden, not the category's alone"
+    },
+    {
+      "label": "6.2",
+      "case": "portability#plantedSubmodulePathFails",
+      "file": "tools/check-portability.sh",
+      "search": "add \"$(conf_value LOOP_SUBMODULE_PATH)\" \"tools/loop/loop.conf LOOP_SUBMODULE_PATH\"",
+      "replace": ": # the submodule path is not read from the loop's configuration",
+      "why": "the submodule path is read from loop.conf, not named in the engine"
+    },
+    {
+      "label": "6.3",
+      "case": "portability#authorisationLabelIsTheOneException",
+      "file": "tools/check-portability.sh",
+      "search": "    if [ \"$count\" -eq 1 ]; then",
+      "replace": "    if false; then",
+      "why": "the reserved label is asserted as the one read-only exception, not tolerated"
+    },
+    {
+      "label": "6.4",
+      "case": "preconditions#refusesOutsideAGitTree",
+      "file": "tools/check-portability-selftest.sh",
+      "search": "if ! git -C \"$root\" rev-parse --is-inside-work-tree >/dev/null 2>&1; then",
+      "replace": "if false; then",
+      "why": "the suite refuses when its root is not a git working tree"
+    },
+    {
+      "label": "6.5",
+      "case": "preconditions#refusesUnderMachineLocalState",
+      "file": "tools/check-portability-selftest.sh",
+      "search": "  *\"/.pi/\"*)",
+      "replace": "  *\"/.pi-x/\"*)",
+      "why": "the suite refuses when its root is machine-local state"
     }
   ]
 }

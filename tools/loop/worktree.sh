@@ -67,8 +67,12 @@ $dirty"
   # Four inputs a fresh worktree does not inherit (REFERENCE.md, "Running the loop in a worktree").
   # Each is best-effort with a note, because a project with no submodule, no local properties or no
   # vendored dependency is a project the loop still has to serve (D16).
-  if [ -f "$LOOP_ROOT/.gitmodules" ]; then
-    gitw submodule update --init app/src/main/cpp/libosmscout >&2 ||
+  # The one submodule path a fresh worktree does not inherit, read from the loop's configuration (D4):
+  # the path is the project's, so the loop never names one.
+  local submodule_path
+  submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
+  if [ -n "$submodule_path" ] && [ -f "$LOOP_ROOT/.gitmodules" ]; then
+    gitw submodule update --init "$submodule_path" >&2 ||
       loop_note "worktree: the submodule could not be checked out — the build may not be able to run"
   fi
   local local_props=0

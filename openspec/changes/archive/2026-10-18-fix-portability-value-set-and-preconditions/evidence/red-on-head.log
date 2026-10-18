@@ -1,0 +1,120 @@
+# Red on HEAD — fix-portability-value-set-and-preconditions
+
+HEAD at the time of these runs: `d1f930e03ea6d5f87d262c44c12f3b55debb2619`
+(`fix: fix-issue-filing-state-namespace (#179)`). Every run is offline: no token, no Gradle, no device.
+The two readings below are reproduced from `git archive HEAD`, so nothing here depends on an uncommitted
+edit.
+
+## Issue #172 — the two readings a wrong root produced (pristine HEAD, 21 cases)
+
+### Reading A — a git-archive export outside a git working tree (`/tmp/ci-verify`)
+
+```
+$ bash tools/check-portability.sh
+check-portability: not inside a git working tree — pass --root <dir>
+exit=2
+$ bash tools/check-portability-selftest.sh
+PASS portability#plantedRepoNameFails
+PASS portability#plantedCategoryFails
+PASS portability#excludesTheAdapterAndFixtures
+PASS portability#valueSetIsReadNotHardCoded
+  the check passes on the real tree: check-portability: not inside a git working tree — pass --root <dir>: expected '0', got '2'
+FAIL portability#passesOnTheRealTree
+...
+check-portability-selftest: 1 of 21 cases failed
+exit=1
+```
+
+The check refuses (`exit 2`), but the **suite reports the refusal as a failed case**.
+
+### Reading B — a copy under a machine-local path (`<repo>/.pi/snapshot-172`)
+
+```
+$ cd .pi/snapshot-172 && bash tools/check-portability.sh
+check-portability: OK — 42 engines and 2 templates name no project value (133 value(s) read from the project)
+exit=0
+$ bash tools/check-portability-selftest.sh
+  the fixture lives in the machine-local state
+FAIL foreign#fixtureIsVersioned
+check-portability-selftest: 1 of 21 cases failed
+exit=1
+```
+
+The check passes; the suite's own fixture case fails **by design**, because the fixture's versioned-path
+assertion sees `/.pi/` in the root it was copied to.
+
+## The cases written for this change, red on HEAD
+
+### `tools/check-portability-selftest.sh` — `5 of 26 cases failed`
+
+```
+$ bash tools/check-portability-selftest.sh
+FAIL portability#plantedValueInEveryNamespaceFails
+FAIL portability#plantedSubmodulePathFails
+FAIL portability#authorisationLabelIsTheOneException
+FAIL preconditions#refusesOutsideAGitTree
+FAIL preconditions#refusesUnderMachineLocalState
+check-portability-selftest: 5 of 26 cases failed
+```
+
+Each case, with the reason HEAD gives:
+
+```
+$ bash tools/check-portability-selftest.sh --case 'portability#plantedValueInEveryNamespaceFails'
+  the planted agent value is named: ''eligible'' not found in: check-portability: FAIL tools/issues/list.sh:164:PROBE_category="build-and-harness": names the project value 'build-and-harness' (tools/tooling.json namespaces.category)
+check-portability: 1 leak(s) — a project value belongs in a config, never in an engine
+FAIL portability#plantedValueInEveryNamespaceFails
+
+$ bash tools/check-portability-selftest.sh --case 'portability#plantedSubmodulePathFails'
+  loop.conf declares no LOOP_SUBMODULE_PATH — the submodule path has no home
+FAIL portability#plantedSubmodulePathFails
+
+$ bash tools/check-portability-selftest.sh --case 'portability#authorisationLabelIsTheOneException'
+check-portability: OK — 42 engines and 2 templates name no project value (133 value(s) read from the project)
+FAIL portability#authorisationLabelIsTheOneException
+
+$ bash tools/check-portability-selftest.sh --case 'preconditions#refusesOutsideAGitTree'
+FAIL preconditions#refusesOutsideAGitTree
+
+$ bash tools/check-portability-selftest.sh --case 'preconditions#refusesUnderMachineLocalState'
+  …: expected '2', got '0'
+FAIL preconditions#refusesUnderMachineLocalState
+```
+
+`portability#plantedValueInEveryNamespaceFails` is the defect in one line: only the **category** value is
+reported. `portability#plantedSubmodulePathFails` fails because the submodule path has no home in
+`loop.conf`. `portability#authorisationLabelIsTheOneException` fails because the reserved label is read
+from nowhere and asserted as nothing. The two `preconditions#…` cases fail because the suite runs its
+cases (and reports red) instead of refusing.
+
+### `tools/loop-selftest.sh` — `2 of 55 cases failed`
+
+```
+$ bash tools/loop-selftest.sh
+  the device verdict is the value the profile's roles section declares: expected 'needs-a-device', got 'needs-device'
+FAIL prescreen#readsTheVerdictsFromTheProfile
+  the submodule the configuration names was not checked out: …
+FAIL worktree#checksOutTheSubmoduleTheLoopConfigNames
+loop-selftest: 2 of 55 cases failed
+```
+
+`prescreen#readsTheVerdictsFromTheProfile` renames `roles.deviceAgent` in the throwaway project's profile
+and HEAD's pre-screen still says `needs-device` — the value is a literal in the engine, not a value read
+at run time. `worktree#checksOutTheSubmoduleTheLoopConfigNames` declares the submodule at a path the loop's
+configuration names, and HEAD's worktree names `app/src/main/cpp/libosmscout` instead, so the submodule is
+not checked out.
+
+## What the check reports on the real tree once the value set is widened (measured on the widened check, before the engine fixes)
+
+```
+check-portability: FAIL tools/loop/prescreen.sh:116:  verdict="eligible": names the project value 'eligible' (tools/tooling.json namespaces.agent)
+check-portability: FAIL tools/loop/labels.sh:55:in_progress="agent${separator}in-progress": names the project value 'in-progress' (tools/tooling.json namespaces.agent)
+check-portability: FAIL tools/loop/labels.sh:97:    status_value="fixed-by": names the project value 'fixed-by' (tools/tooling.json namespaces.status)
+check-portability: FAIL tools/loop/worktree.sh:71:    gitw submodule update --init app/src/main/cpp/libosmscout >&2 ||: names the project value 'app/src/main/cpp/libosmscout' (tools/loop/loop.conf LOOP_SUBMODULE_PATH)
+check-portability: FAIL tools/issues/resolve-stale.sh:230:      bash "$here/update.sh" "$number" --status on-hold \: names the project value 'on-hold' (tools/tooling.json namespaces.status)
+check-portability: FAIL tools/issues/core/TodoAdapter.java:25:        labels.add(profile.label("source", "todo-import"));: names the project value 'todo-import' (tools/tooling.json namespaces.source)
+check-portability: 78 leak(s) — a project value belongs in a config, never in an engine
+```
+
+78 lines, in 9 engine files, on a tree that the category-only check calls clean — the measured size of the
+gap the value set had.

@@ -163,7 +163,7 @@ while IFS= read -r skill; do add "$skill" "tools/loop/loop.conf LOOP_WORKER_SKIL
 list_engines() { # the code engines, relative to the root
   (
     cd "$root" || exit 1
-    ls tools/issues/*.sh tools/issues/core/*.java tools/sensors/*.sh \
+    ls tools/issues/*.sh tools/issues/*.awk tools/issues/core/*.java tools/sensors/*.sh \
        tools/sensors/conditions/*.sh tools/sensors/metrics/*.sh tools/loop/*.sh 2>/dev/null
   ) | sort -u | grep -vE '/(Cases\.java|metadata-mutations\.sh|[a-z0-9-]+-selftest\.sh|[a-z0-9-]+-cases\.sh|[a-z0-9-]+-mutations\.sh)$'
 }

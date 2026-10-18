@@ -164,6 +164,7 @@
     "smooth-follow": { "area": "positioning", "userVisible": true, "surfaces": ["phone"] },
     "smooth-zoom": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
     "spec-feature-index": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
+    "stale-citation-resolution": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "speed-spike-filtering": { "area": "positioning", "userVisible": false, "surfaces": ["phone"] },
     "starred-ordering": { "area": "favorites", "userVisible": true, "surfaces": ["phone"] },
     "style-load-diagnostics": { "area": "map-appearance", "userVisible": false, "surfaces": ["phone", "car"] },

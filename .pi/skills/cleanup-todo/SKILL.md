@@ -217,3 +217,23 @@ view, name the query rather than building a list.
    copy-pasteable and cheap.
 10. **Do not "clean" by closing the items whose owner is unknown.** An unverifiable item is the most
     valuable thing in the backlog.
+
+## A stale citation in an item's body
+
+An item whose prose cites a path that no longer resolves is refused by the loop's pre-screen (`stale`) and
+never worked. Two commands own that:
+
+```bash
+tools/issues/resolve-stale.sh                 # dry run: what it would repair or park, and why not
+tools/issues/resolve-stale.sh --apply --max-items 25
+```
+
+What it may and may not do (`stale-citation-resolution`, `Backlog.md` §5): it rewrites **the citation token**
+to the full tracked path when the repository states it (a suffix of a tracked path, a rename in the history, a
+single surviving declaration, or the new directory of an archived change), it parks an item nothing accounts
+for (`status/on-hold`, with the attempts in one comment), and it posts at most one comment per item per run.
+It never writes `agent/*`, never classifies, never closes and never files.
+
+Read a quarantine as a queue item for a person, not a defect: `status/on-hold` plus the comment says what was
+tried. The residue is also a declared check (`stale-citations`) — the pipeline reports the count, so a pile
+that grows is the alarm that the repair stopped reaching something, and the row's issue is where that shows up.

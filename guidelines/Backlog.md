@@ -137,18 +137,19 @@ carry preferences.
 The single table that answers most of the questions about this mechanism. **A writer that does not appear
 in a row does not write that thing.**
 
-| | a person | a declared check | the metadata pass | the agent loop | an agent process |
-|---|---|---|---|---|---|
-| file an item | yes | yes | no | no | no |
-| classify (kind, area) | yes | its row declares them | yes | no | proposes only |
-| set priority | yes | no | yes | no | proposes only |
-| authorise automated work | **yes, and only here** | **no** | **no** | **no** | **no** |
-| comment a measurement | yes | yes | yes | yes | no |
-| close | yes | only its own items, only when cleared | no | after a passing review, with evidence | no |
-| reopen | yes | only its own items | no | no | no |
-| commit, branch, push | yes | never | never | the wrapper | never |
-| decide a design question | **yes, and only here** | no | no | no | proposes only |
-| write the run's state | no | no | no | the wrapper, between processes | no |
+| | a person | a declared check | the metadata pass | the agent loop | the resolver | an agent process |
+|---|---|---|---|---|---|---|
+| file an item | yes | yes | no | no | no | no |
+| classify (kind, area) | yes | its row declares them | yes | no | no | proposes only |
+| set priority | yes | no | yes | no | no | proposes only |
+| authorise automated work | **yes, and only here** | **no** | **no** | **no** | **no** | **no** |
+| repair a citation in an item's body | yes | no | no | no | **yes** — the citation token only, and `status/on-hold` to park an item nothing accounts for | no |
+| comment a measurement | yes | yes | yes | yes | yes (one per item per run) | no |
+| close | yes | only its own items, only when cleared | no | after a passing review, with evidence | **no** | no |
+| reopen | yes | only its own items | no | no | no | no |
+| commit, branch, push | yes | never | never | the wrapper | never | never |
+| decide a design question | **yes, and only here** | no | no | no | no | proposes only |
+| write the run's state | no | no | no | the wrapper, between processes | no | no |
 
 Two consequences worth stating plainly, because both were load-bearing decisions:
 
@@ -177,6 +178,13 @@ The split matters: **a script decides what can be decided cheaply** (kind, state
 an item cites still exists, whether a device is needed) and **interpretation is spent only where it is
 unavoidable** — grouping an item, scoring it, judging whether one cause explains a symptom. The prose
 backlog had no such split: every reading interpreted everything.
+
+The last of those cheap decisions has a home of its own: **what counts as a citation** is defined once, in
+`tools/issues/lib.sh` (`stale-citation-resolution`), and asked by the loop's pre-screen and by
+`tools/issues/resolve-stale.sh` — so detection and repair cannot disagree about a body. A citation that
+resolves by a suffix of a tracked path, inside a submodule, or as an artefact the project generates is not
+staleness; only a name nothing accounts for is. Measured 2026-10-18: the extraction before that shared rule
+was wrong about 48 of 49 verdicts, and two thirds of an authorised set was excluded over prose.
 
 Three consequences the design takes as decisions, not accidents:
 
@@ -216,6 +224,12 @@ What it does when it cannot proceed: an item that needs a decision is **escalate
 is named on the item, the item is marked as awaiting a decision, and the run takes the next candidate. The
 work is preserved rather than abandoned (I11), which is the part the prose-era loop got wrong by treating a
 mid-item decision as a failure.
+
+An item whose citation nothing accounts for is *not* worked, and it must not be re-decided in silence either:
+`tools/issues/resolve-stale.sh` repairs what the repository's own records state (the full tracked path, a
+rename, a single surviving declaration, an archived change's new directory) and parks the rest with the
+attempts recorded — so the refusal is a state a person can query instead of a line in a machine-local file
+(`stale-citation-resolution`, D4/D5).
 
 ## 8. The human lane
 
@@ -274,6 +288,12 @@ The checks run in a pipeline of their own, off the change-validation path, trigg
 an explicit dispatch, pinned to the main branch by a check at run time, holding issue-write and nothing
 else, guarded against overlapping runs, and reviewed like code. The identity that files an item is a
 **concrete allowlisted person**, because the gate's author condition is the only attributable one (§5, I2).
+
+One row exists to watch the mechanism rather than the project: `stale-citations` reports the **count of
+citations nothing accounts for**, measured by the resolver's own dry run, so a residue that grows — a repair
+that stopped reaching something, a scheduled run that stopped happening — becomes a check's verdict instead
+of a surprise (`stale-citation-resolution`, D6). The repair itself is a pipeline step, not a row: a row files,
+comments on or closes *the issue it owns*, and a citation repair edits other items.
 
 ## 10. Portability
 

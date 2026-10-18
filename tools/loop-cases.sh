@@ -33,6 +33,7 @@ LOOP_SHELL_CASES=(
   'prescreen#deviceItemIsAVerdictNotWork'
   'prescreen#readsTheVerdictsFromTheProfile'
   'prescreen#previousAttemptBranchIsADecision'
+  'prescreen#refusalLeavesATraceInTheTracker'
   'worktree#seedsAllFourInputs'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
   'worktree#oneBranchPerItemOffTheBase'
@@ -107,6 +108,7 @@ loop_run_shell_case() {
     'prescreen#deviceItemIsAVerdictNotWork') fn=case_prescreen_deviceItemIsAVerdictNotWork ;;
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
     'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
+    'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
     'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
@@ -212,7 +214,10 @@ new_project() {
 state_file() { printf '%s\n' "$1/.pi/issue-loop/run.json"; }
 
 run_state() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/state.sh" "$@" ); }
-run_prescreen() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/prescreen.sh" "$@" ); }
+run_prescreen() {
+  local p="$1"; shift
+  ( cd "$p" && GH_STUB_RECORD="${GH_STUB_RECORD:-$p/gh.log}" bash "$LOOP_ENGINE/prescreen.sh" "$@" )
+}
 run_worktree() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/worktree.sh" "$@" ); }
 run_labels() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/labels.sh" "$@" ); }
 run_report() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/report.sh" "$@" ); }
@@ -482,11 +487,36 @@ case_prescreen_missingPathYieldsStale() {
   p=$(new_project)
   init_state "$p" 3 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario stale)
-  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
   assert_eq "3" "$status" "nothing eligible is a stop, not a failure"
   assert_eq "stale" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .verdict')" "a missing cited path yields stale"
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .reason')" \
     "app/src/main/kotlin/DoesNotExist.kt" "the verdict quotes the path that no longer exists"
+}
+
+# The refusal is not a line in a machine-local file (issue #163): the verdict an item cannot escape by
+# itself is written to the tracker by the run's own script, the authorisation label is left as the owner
+# put it, and a dry run writes nothing.
+case_prescreen_refusalLeavesATraceInTheTracker() {
+  local p out log
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario stale)
+  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || true
+  assert_eq "stale" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .verdict')" \
+    "the fixture is still the stale one (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/excluded-stale" "the refusal is written to the tracker (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
+  assert_contains "$log" "issue edit 31" "the write names the item the verdict rejected"
+  assert_eq "0" "$(printf '%s' "$log" | grep -c 'agent/eligible' || true)" \
+    "the authorisation label is neither written nor withdrawn"
+  assert_eq "0" "$(printf '%s' "$log" | grep -c 'status/' || true)" \
+    "the refusal is a label of its own, not a silent status edit"
+
+  : > "$GH_STUB_RECORD"
+  run_prescreen "$p" --json --dry-run >/dev/null 2>&1 || true
+  assert_eq "" "$(cat "$GH_STUB_RECORD")" "a dry run writes no label"
 }
 
 case_prescreen_doesNotClaimJudgementGates() {
@@ -509,7 +539,7 @@ case_prescreen_refusesReservedLabelInSelection() {
   p=$(new_project)
   init_state "$p" 3 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario foreign-author)
-  out=$(run_prescreen "$p" --json 2>&1) || true
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || true
   assert_eq "author-not-allowlisted" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 51) | .verdict')" \
     "the opt-in label alone does not authorise an item"
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 51) | .reason')" "allowlist" "the reason"
@@ -521,13 +551,13 @@ case_prescreen_withoutTheOptInIsNeverQueued() {
   p=$(new_project)
   init_state "$p" 3 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario no-optin)
-  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
   assert_eq "3" "$status" "an item without the opt-in leaves nothing to work"
   assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "it never reaches the queue"
   assert_eq "0" "$(jq -r '.excluded | length' "$(state_file "$p")")" "and it is not even a candidate: selection reads the label"
   # the same defect-shaped item, with the opt-in, would be worked — so the case is about the opt-in
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  out=$(run_prescreen "$p" --json 2>&1) || fail "the same fixture with the opt-in did not select"
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || fail "the same fixture with the opt-in did not select"
   assert_contains "$out" '"issue":21' "an item carrying the opt-in is selected"
 }
 
@@ -536,7 +566,7 @@ case_prescreen_settledItemIsDropped() {
   p=$(new_project)
   init_state "$p" 3 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario settled)
-  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
   assert_eq "3" "$status" "nothing settled is worked"
   assert_eq "settled" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .verdict')" \
     "an item the tracker has already settled is dropped"
@@ -551,7 +581,7 @@ case_prescreen_deviceItemIsAVerdictNotWork() {
   p=$(new_project)
   init_state "$p" 3 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario device)
-  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
   assert_eq "3" "$status" "a device-gated item is not host work"
   assert_eq "needs-device" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 81) | .verdict')" \
     "its verdict is the device, decided by a script"
@@ -569,7 +599,7 @@ case_prescreen_readsTheVerdictsFromTheProfile() {
   jq '.roles.deviceAgent = "needs-a-device"' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
     mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not rename the device verdict"
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario device)
-  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
   assert_eq "3" "$status" "a device-gated item is still not host work"
   assert_eq "needs-a-device" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 81) | .verdict')" \
     "the device verdict is the value the profile's roles section declares"

@@ -219,7 +219,11 @@ if [ "$items" -eq 0 ]; then
   exit "$LOOP_OK"
 fi
 
-prescreen_out=$(bash "$LOOP_DIR/prescreen.sh" 2>&1)
+# A dry run writes no label (D6): the pre-screen's refusal labels are skipped on it, so "what would
+# happen" stays a statement about the run and not about the tracker.
+prescreen_args=()
+[ "$dry_run" -eq 0 ] || prescreen_args+=(--dry-run)
+prescreen_out=$(bash "$LOOP_DIR/prescreen.sh" "${prescreen_args[@]}" 2>&1)
 prescreen_status=$?
 printf '%s\n' "$prescreen_out"
 # The pre-screen's own decision verdicts (a previous attempt's branch) reach the tracker here, so the

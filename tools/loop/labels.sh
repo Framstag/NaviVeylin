@@ -15,6 +15,9 @@
 #   … and the improvement verdicts
 #   needs-device                            + agent/needs-device + status/on-hold
 #   needs-decision · needs-diagnosis        + agent/needs-decision + status/on-hold
+#   exclude-stale · exclude-feature ·
+#   exclude-settled                         + agent/<verdict>, status and the opt-in untouched — the
+#                                           pre-screen's own refusal, which a person clears
 #   close                                   − agent/in-progress, + status/fixed-by, then the closure
 #   escalate                                + agent/needs-decision + status/on-hold, and a comment that
 #                                           names the root cause, the failing case and the branch
@@ -79,6 +82,17 @@ case "$verdict" in
     # evidence are what the run produces, and they are attached to the item itself (D6).
     status_value="$hold_status"
     ;;
+  exclude-stale) add_labels=("agent${separator}$(loop_role excludedStaleAgent)") ;;
+  exclude-feature) add_labels=("agent${separator}$(loop_role excludedFeatureAgent)") ;;
+  exclude-settled) add_labels=("agent${separator}$(loop_role excludedSettledAgent)") ;;
+  # The pre-screen's refusals the item cannot escape by itself (#163): the label is a refusal, so the
+  # authorisation and the status stay as the owner left them — withdrawing the opt-in would make "nobody
+  # authorised this" and "the loop refused it" the same state, which is the defect rather than the fix.
+  clear-stale) remove_labels=("agent${separator}$(loop_role excludedStaleAgent)") ;;
+  clear-feature) remove_labels=("agent${separator}$(loop_role excludedFeatureAgent)") ;;
+  clear-settled) remove_labels=("agent${separator}$(loop_role excludedSettledAgent)") ;;
+  # A verdict that is no longer a refusal (the citation was repaired, the class changed) takes the label
+  # the previous run wrote off, so a repair is not silently frozen.
   needs-device)
     # A device is a fact, not a judgement: the verdict is recorded and the work stays on the host (D15).
     add_labels=("$needs_device")
@@ -103,7 +117,7 @@ case "$verdict" in
     close_issue=1
     ;;
   *)
-    loop_die "labels: unknown verdict '$verdict' — pick, unpick, escalate, close, stale, unspecifiable, too-wide, not-spec-shaped, needs-target, needs-device, needs-decision, needs-diagnosis"
+    loop_die "labels: unknown verdict '$verdict' — pick, unpick, escalate, close, stale, unspecifiable, too-wide, not-spec-shaped, needs-target, exclude-stale, exclude-feature, exclude-settled, clear-stale, clear-feature, clear-settled, needs-device, needs-decision, needs-diagnosis"
     ;;
 esac
 

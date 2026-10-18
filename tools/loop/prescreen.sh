@@ -16,9 +16,15 @@
 # exclusions are the run's own output, so a rejected candidate is reported with the clause that
 # rejected it rather than dropped silently.
 #
+# The refusals an item cannot escape by itself leave a trace in the tracker, not only in this run's
+# state: the state is machine-local and the next `init` replaces it wholesale, so an authorised item the
+# loop will never work was indistinguishable from one it has not reached yet (#163). The verdict label is
+# a refusal — it states why the pre-screen declined and leaves the authorisation label untouched — and it
+# is cleared on the first run whose verdict is no longer a refusal, so a repair is not silently frozen.
+#
 # Exit: 0 ok, 2 usage, 3 stop (nothing eligible), 5 refuse.
 #
-# Usage: prescreen.sh [--json] [--no-sensor] [--limit N]
+# Usage: prescreen.sh [--json] [--no-sensor] [--limit N] [--dry-run]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -27,13 +33,15 @@ source "$here/lib.sh"
 
 json=0
 sensor=1
+write=1
 limit=400
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
     --no-sensor) sensor=0; shift ;;
+    --dry-run) write=0; shift ;;
     --limit) limit="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,31p' "$0"; exit 0 ;;
     *) loop_die "prescreen: unknown argument $1" ;;
   esac
 done
@@ -69,6 +77,15 @@ settled_statuses="$(loop_role settledStatuses)"
 is_refused_class() { [ -n "$refused_classes" ] && printf '%s\n' "$refused_classes" | grep -qxF "$1"; }
 is_settled_status() { [ -n "$settled_statuses" ] && printf '%s\n' "$settled_statuses" | grep -qxF "$1"; }
 allowed_authors=$(vocabulary allowedAuthors)
+# The refusal labels: the verdicts an item cannot escape by itself, and therefore the ones that must be
+# readable from the tracker rather than from the run. A project renames them here, not in this script (D16).
+refusal_stale=$(loop_role excludedStaleAgent)
+refusal_feature=$(loop_role excludedFeatureAgent)
+refusal_settled=$(loop_role excludedSettledAgent)
+for refusal in "$refusal_stale" "$refusal_feature" "$refusal_settled"; do
+  [ -z "$refusal" ] || refusal_labels="${refusal_labels:-}agent${separator}${refusal} "
+done
+refusal_labels="${refusal_labels:-}"
 
 label_value() { # label_value <labels-json> <namespace> -> the value, or empty
   printf '%s' "$1" | jq -r --arg n "$2" --arg s "$separator" \
@@ -121,6 +138,11 @@ previous_attempt_branch_of() { # <issue> → the branch that carries work the ru
 candidates_json=$(loop_issue_tool list.sh --eligible-only --json --limit "$limit" 2>/dev/null) ||
   loop_die "prescreen: the issue tooling could not list eligible items"
 [ -n "$candidates_json" ] || candidates_json='[]'
+
+# The tracker writes the refusals need are collected here and applied once, after the queue is written, so
+# a pre-screen that dies mid-selection changes no item (the labels are the run script's, never a child's).
+label_writes=$(mktemp) || loop_die "prescreen: could not create the label write list"
+trap 'rm -f "$label_writes"' EXIT
 
 records='[]'
 count=$(printf '%s' "$candidates_json" | jq 'length')
@@ -208,6 +230,30 @@ while [ "$i" -lt "$count" ]; do
     fi
   fi
 
+  # The refusal leaves its trace in the tracker (expectation of #163). Only the verdicts the item cannot
+  # escape by itself are written: `in-flight` clears when the other change closes, `needs-device` and
+  # `needs-decision` already have a label write of their own (`labels.sh`), and the author's own label is
+  # read and never written, so an item excluded for it is already visible as un-authorised.
+  if [ "$write" -eq 1 ] && [ -n "$refusal_labels" ]; then
+    refusal_label=""
+    case "$verdict" in
+      stale) refusal_label="agent${separator}${refusal_stale}" ;;
+      class-feature) refusal_label="agent${separator}${refusal_feature}" ;;
+      settled) refusal_label="agent${separator}${refusal_settled}" ;;
+    esac
+    if [ "$verdict" = "$queued_verdict" ]; then
+      # The verdict changed: the refusal labels a previous run wrote are no longer true of this item.
+      for stale_label in $refusal_labels; do
+        if printf '%s' "$labels" | jq -e --arg l "$stale_label" 'any(.[]; .name == $l)' >/dev/null; then
+          printf '%s\t%s\n' "$number" "clear-${stale_label##*${separator}excluded-}" >> "$label_writes"
+        fi
+      done
+    elif [ -n "$refusal_label" ] &&
+         ! printf '%s' "$labels" | jq -e --arg l "$refusal_label" 'any(.[]; .name == $l)' >/dev/null; then
+      printf '%s\t%s\n' "$number" "exclude-${refusal_label##*${separator}excluded-}" >> "$label_writes"
+    fi
+  fi
+
   # The gate's judgement half is NOT decided here, and saying so is part of the output (D6).
   record=$(jq -n --argjson issue "$number" --arg title "$title" --arg class "$class" \
     --arg category "$category" --arg status "$status" --arg author "$author" \
@@ -233,6 +279,15 @@ excluded_count=$(printf '%s' "$records" | jq --arg queued "$queued_verdict" '[.[
 
 # The queue, the exclusions and the per-item gate fields are one write, because they are one answer.
 printf '%s' "$records" | loop_state queue >/dev/null
+
+# The refusal labels, applied after the queue: a tracker write that fails is reported and does not stop a
+# run, because the verdict, its reason and its evidence are already in the run's own state and report.
+while IFS=$'\t' read -r write_issue write_label; do
+  [ -n "$write_issue" ] && [ -n "$write_label" ] || continue
+  loop_labels "$write_label" "$write_issue" >&2 ||
+    printf 'pre-screen: could not write %s on #%s — the refusal is in the report and the run continues\n' \
+      "$write_label" "$write_issue" >&2
+done < "$label_writes"
 
 if [ "$json" -eq 1 ]; then
   printf '%s\n' "$records"

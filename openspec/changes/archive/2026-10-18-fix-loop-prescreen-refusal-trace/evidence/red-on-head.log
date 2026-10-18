@@ -1,0 +1,2 @@
+  the refusal is written to the tracker (stderr: ): 'agent/excluded-stale' not found in: 
+FAIL prescreen#refusalLeavesATraceInTheTracker

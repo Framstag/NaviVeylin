@@ -53,7 +53,14 @@ bash "$LOOP_DIR/state.sh" report
 
 printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#\(.issue) \(.verdict)\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"
 printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)"] | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"
-printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAgent)" '[.excluded[] | select(.verdict == $d) | "#\(.issue)"] + [.items[] | select(.verdict == $d) | "#\(.issue)"] | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"
+# The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
+# an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
+# pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the
+# verdict instead said `none` while `agent/needs-decision` had just been written (issue #177).
+printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAgent)" '
+  [.items[] | select((.escalatedLabel // "") != "") | "#\(.issue)"]
+  + [.excluded[] | select(.verdict == $d) | "#\(.issue)"]
+  | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"
 
 # The branches are read from git, not from a child's report: the run's own script created them.
 branches=$(git -C "$LOOP_ROOT" branch --list 'loop-*' 'fix/issue-*' --format='%(refname:short)')

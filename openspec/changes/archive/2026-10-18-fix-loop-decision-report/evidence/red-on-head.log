@@ -1,0 +1,19 @@
+# fix-loop-decision-report — red on HEAD (2026-10-18T19:36:29Z)
+
+## The issue's own claim, reproduced: the tracker is labelled, the report says none
+
+command: LOOP_ENGINE=<HEAD copy of tools/loop> bash tools/loop-selftest.sh --case report#escalatedSkipNamesTheLabelWritten
+engine: $(git archive HEAD tools/loop tools/issues) in .pi/tmp/head177 — the engine as committed
+
+--- report#escalatedSkipNamesTheLabelWritten
+  the report names the item the run escalated, not the verdict it chose: expected '#21', got 'none'
+FAIL report#escalatedSkipNamesTheLabelWritten
+--- report#failedReviewEscalationIsNamed
+  the report names the blocked item as a decision owed: expected '#21', got 'none'
+FAIL report#failedReviewEscalationIsNamed
+--- report#aVerdictAloneIsNoEscalation
+loop: done: unknown argument --decision-label
+  only the item whose escalation recorded the label is listed: expected '#22', got 'none'
+FAIL report#aVerdictAloneIsNoEscalation
+
+tally: 3 of 3 red on HEAD

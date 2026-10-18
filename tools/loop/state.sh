@@ -26,6 +26,7 @@
 #   state.sh done <issue> --result done|skipped|blocked [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
+#                         [--decision-label LABEL]
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -270,7 +271,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) result="${2:-}"; shift 2 ;;
@@ -284,6 +285,7 @@ cmd_done() {
       --closed) closed="${2:-}"; shift 2 ;;
       --root-cause) root_cause="${2:-}"; shift 2 ;;
       --red-test) red_test="${2:-}"; shift 2 ;;
+      --decision-label) decision_label="${2:-}"; shift 2 ;;
       --*) loop_die "done: unknown argument $1" ;;
       *) [ -z "$issue" ] || loop_die "done: issue given twice"; issue="$1"; shift ;;
     esac
@@ -293,16 +295,20 @@ cmd_done() {
   [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading
   # the tracker; an item with no queue entry (a resumed run) falls back to the empty string.
+  # `--decision-label` is the label the run's escalation *wrote* on the item — not the verdict the worker
+  # chose, which is a different fact: a skip verdict of `needs-diagnosis` and a blocked item both end as
+  # the decision label. The report names the decisions an item was left with from this field (issue #177).
   local class
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
   patch_state '
     .items += [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
+                escalatedLabel:$dl,
                 metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
                          closed:$closed, rootCause:$rc, redTest:$rt}}]
     | .queue = [.queue[] | select(.issue != $i)]
     | (if .current != null and .current.issue == $i then .current = null else . end)
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
-    --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" \
+    --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test"
   printf 'recorded %s (#%s %s)\n' "$result" "$issue" "$verdict"

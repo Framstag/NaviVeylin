@@ -1,0 +1,10 @@
+RED    14.1  report#escalatedSkipNamesTheLabelWritten   (the decision list read from the label the escalation recorded, not the verdict)
+restore 14.1 report#escalatedSkipNamesTheLabelWritten green again
+RED    14.2  report#escalatedSkipNamesTheLabelWritten   (the skip escalation recording the label it wrote)
+restore 14.2 report#escalatedSkipNamesTheLabelWritten green again
+RED    14.3  report#failedReviewEscalationIsNamed   (the failed second review round recording the label it wrote)
+restore 14.3 report#failedReviewEscalationIsNamed green again
+RED    14.4  report#aVerdictAloneIsNoEscalation   (the list naming only the items this run escalated)
+restore 14.4 report#aVerdictAloneIsNoEscalation green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

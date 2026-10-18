@@ -76,6 +76,9 @@ LOOP_SHELL_CASES=(
   'run#engineNamesNoProjectFact'
   'report#headerAndTableShape'
   'report#yieldIsCountedFromState'
+  'report#escalatedSkipNamesTheLabelWritten'
+  'report#failedReviewEscalationIsNamed'
+  'report#aVerdictAloneIsNoEscalation'
 )
 
 loop_shell_cases() {
@@ -146,6 +149,9 @@ loop_run_shell_case() {
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'report#headerAndTableShape') fn=case_report_headerAndTableShape ;;
     'report#yieldIsCountedFromState') fn=case_report_yieldIsCountedFromState ;;
+    'report#escalatedSkipNamesTheLabelWritten') fn=case_report_escalatedSkipNamesTheLabelWritten ;;
+    'report#failedReviewEscalationIsNamed') fn=case_report_failedReviewEscalationIsNamed ;;
+    'report#aVerdictAloneIsNoEscalation') fn=case_report_aVerdictAloneIsNoEscalation ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -1446,5 +1452,61 @@ case_report_yieldIsCountedFromState() {
   rows=$(printf '%s' "$out" | grep -c '^| #2' || true)
   assert_eq "2" "$rows" "every recorded item has a row"
   assert_contains "$out" "#21 needs-decision" "a skip is reported with its verdict"
+}
+
+# The decision list is what the run *wrote*, not the verdict a worker chose (issue #177): a skip whose
+# verdict means a decision ends on `agent/needs-decision` while the state records `needs-diagnosis`, and
+# the run that fills the cap has to show the cap coming in its own report.
+decisions_line() { printf '%s\n' "$1" | sed -n 's/^decisions the owner owes: //p'; }
+
+case_report_escalatedSkipNamesTheLabelWritten() {
+  local d p out line log named escalated
+  d=$(scratch); p=$(new_project)
+  # Two candidates, one budget slot: the queue never empties, so the run's own second pre-screen pass —
+  # which would re-exclude the worked item on its branch — cannot supply the report's list by accident.
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  stub_write "$d" 'LOOP-VERDICT: skipped
+LOOP-SKIP-VERDICT: needs-diagnosis
+LOOP-ROOT-CAUSE: two mechanisms explain the symptom
+LOOP-RED-TEST: Demo#case was never reached' 'VERDICT: PASS'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_eq "needs-diagnosis" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "the verdict the worker chose is not the decision label"
+  assert_contains "$log" "agent/needs-decision" "the escalation wrote the decision label on #21"
+  line=$(decisions_line "$out")
+  assert_eq "#21" "$line" "the report names the item the run escalated, not the verdict it chose"
+  # …and the two agree by construction: one item awaiting a decision in the report, one item escalated in
+  # the tracker. On HEAD the report said `none` while the label had just been written.
+  named=$(printf '%s' "$line" | tr ' ' '\n' | grep -c '^#' || true)
+  escalated=$(printf '%s' "$log" | grep -c 'agent/needs-decision' || true)
+  assert_eq "$escalated" "$named" "the report names as many decisions as the run escalated"
+}
+
+case_report_failedReviewEscalationIsNamed() {
+  local d p out line
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  # Two failed review rounds end the item blocked — its verdict is `blocked`, and the label written is the
+  # decision label (the state verdict names neither).
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the recorded verdict is blocked"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-decision" "the run escalated the item"
+  assert_eq "#21" "$(decisions_line "$out")" "the report names the blocked item as a decision owed"
+}
+
+case_report_aVerdictAloneIsNoEscalation() {
+  local p out line
+  p=$(new_project)
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked >/dev/null
+  run_state "$p" done 22 --result skipped --verdict needs-diagnosis --decision-label agent/needs-decision >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  line=$(decisions_line "$out")
+  assert_eq "#22" "$line" "only the item whose escalation recorded the label is listed"
+  assert_not_contains "$line" "#21" "a verdict alone names no decision"
 }
 

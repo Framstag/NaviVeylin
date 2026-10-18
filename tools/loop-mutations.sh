@@ -87,6 +87,10 @@ MUTATIONS=(
   '13.6@-@tools/loop/run.sh@state#secondRunRefusesWithExit5@the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers@s|^if \[ -d "$worktree" \] && \[ ! -e "$run_lock" \] && worktree_is_dirty; then$|if [ -d "$worktree" ] \&\& worktree_is_dirty; then|'
   '13.7@-@tools/loop/run.sh@worktree#keepsByDefaultAndRemovesOnRequest@the end-of-run form honoured wherever the run ends@s|^  if \[ "$clean_worktree" -eq 1 \]; then$|  if false; then|'
   '12.8@-@tools/loop/run.sh@run#aSkipClearsTheInProgressMark@the skip exit path clearing the in-progress mark@s|^      loop_labels unpick "$issue" >&2 \|\| true   # the exit path clears the mark$|      : # the mutation keeps the mark|'
+  '14.1@-@tools/loop/report.sh@report#escalatedSkipNamesTheLabelWritten@the decision list read from the label the escalation recorded, not the verdict@s|(\.escalatedLabel // "") != ""|(.verdict == $d)|'
+  '14.2@-@tools/loop/run.sh@report#escalatedSkipNamesTheLabelWritten@the skip escalation recording the label it wrote@s|^          escalated_label="\$decision_label"   # the skip.s own escalation$|          : # the mutation records no escalation|'
+  '14.3@-@tools/loop/run.sh@report#failedReviewEscalationIsNamed@the failed second review round recording the label it wrote@s|^          escalated_label="\$decision_label"   # the failed second round.s escalation$|          : # the mutation records no escalation|'
+  '14.4@-@tools/loop/report.sh@report#aVerdictAloneIsNoEscalation@the list naming only the items this run escalated@s|\.escalatedLabel // ""|.issue|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

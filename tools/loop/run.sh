@@ -183,11 +183,17 @@ if [ -d "$worktree" ] && [ ! -e "$run_lock" ] && worktree_is_dirty; then
     fi
     printf 'repair: run.sh --reset-worktree discards them, and names them before it does; nothing is committed or discarded without that flag\n'
     if [ "$dry_run" -eq 0 ] && [ -n "$owner_item" ]; then
-      loop_labels escalate "$owner_item" \
+      # The label is recorded with the item only if the escalation actually wrote it, so the report and the
+      # tracker cannot disagree (issue #177).
+      escalated_label=""
+      if loop_labels escalate "$owner_item" \
         --reason "a previous run left work behind in the kept worktree" \
-        --evidence "branch ${marker:-unknown}, worktree $worktree" >&2 || true
+        --evidence "branch ${marker:-unknown}, worktree $worktree" >&2; then
+        escalated_label="$decision_label"
+      fi
       loop_state done "$owner_item" --result blocked --verdict blocked \
-        --note "the kept worktree was not clean — a previous run left work behind" >/dev/null
+        --note "the kept worktree was not clean — a previous run left work behind" \
+        --decision-label "$escalated_label" >/dev/null
     fi
     bash "$LOOP_DIR/report.sh"
     exit "$LOOP_REFUSE"
@@ -346,9 +352,13 @@ while true; do
         # A previous attempt left work on the item's branch. That work is the evidence for a decision, so
         # the item is recorded and escalated rather than dropped — an unrecorded refusal is how a run ends
         # with "nothing processed" and no reason (D7, D9). The run then takes the next candidate.
-        loop_labels escalate "$issue" --reason "a previous attempt's branch carries work the base does not" \
-          --evidence "branch fix/issue-$issue-$slug" >&2 || true
-        loop_state done "$issue" --result blocked --verdict blocked --note "$start_out" >/dev/null
+        escalated_label=""
+        if loop_labels escalate "$issue" --reason "a previous attempt's branch carries work the base does not" \
+          --evidence "branch fix/issue-$issue-$slug" >&2; then
+          escalated_label="$decision_label"
+        fi
+        loop_state done "$issue" --result blocked --verdict blocked --note "$start_out" \
+          --decision-label "$escalated_label" >/dev/null
         in_progress=""
         continue
         ;;
@@ -504,25 +514,37 @@ while true; do
       # more in progress than one it blocked, and an item that carries `agent/in-progress` while nothing is
       # running misreports the tracker to whoever reads it next.
       loop_labels unpick "$issue" >&2 || true   # the exit path clears the mark
+      escalated_label=""
       if [ "$skip_verdict" = "$decision_agent" ] || [ "$skip_verdict" = "needs-diagnosis" ]; then
-        # Escalation, not abandonment: the work already done is named on the item (spec, D9).
-        loop_labels escalate "$issue" --reason "${root_cause:-$skip_verdict}" \
-          --evidence "$item_dir, branch fix/issue-$issue-$slug, red test: ${red_test:-not reached}" >&2 || true
+        # Escalation, not abandonment: the work already done is named on the item (spec, D9). The worker's
+        # verdict is not the label written — a skip on `needs-diagnosis` writes the decision label — so the
+        # label is recorded with the item, which is what the report reads (issue #177).
+        if loop_labels escalate "$issue" --reason "${root_cause:-$skip_verdict}" \
+          --evidence "$item_dir, branch fix/issue-$issue-$slug, red test: ${red_test:-not reached}" >&2; then
+          escalated_label="$decision_label"   # the skip's own escalation
+        fi
       else
         loop_labels "${skip_verdict:-unspecifiable}" "$issue" >&2 || true
       fi
       loop_state done "$issue" --result skipped --verdict "${skip_verdict:-unspecified}" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
-        --root-cause "$root_cause" --red-test "$red_test" --note "skipped by the worker" >/dev/null
+        --root-cause "$root_cause" --red-test "$red_test" --note "skipped by the worker" \
+        --decision-label "$escalated_label" >/dev/null
       ;;
     *)
       loop_labels unpick "$issue" >&2 || true
+      # A second failed review round is a decision, not a third attempt: the label is written first and
+      # recorded with the item, so the report names it as the run's own escalation (issue #177).
+      escalated_label=""
+      if [ "${review_verdict}" = "FAIL" ]; then
+        if loop_labels needs-decision "$issue" >&2; then
+          escalated_label="$decision_label"   # the failed second round's escalation
+        fi
+      fi
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
-        --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_reason" >/dev/null
-      if [ "${review_verdict}" = "FAIL" ]; then
-        loop_labels needs-decision "$issue" >&2 || true
-      fi
+        --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_reason" \
+        --decision-label "$escalated_label" >/dev/null
       ;;
   esac
   detail="${change:-$blocked_reason}"

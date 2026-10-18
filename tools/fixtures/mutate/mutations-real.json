@@ -1,0 +1,14 @@
+{
+  "comment": "One mutation that removes the toy invariant: the named case must go red, the file must come back byte-identical, and the case must pass again.",
+  "case-cmd": "bash case.sh",
+  "mutations": [
+    {
+      "label": "real",
+      "case": "toy#guardIsPresent",
+      "file": "engine.sh",
+      "search": "GUARD=on",
+      "replace": "GUARD=off",
+      "why": "the toy guard"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "comment": "The seven revert-checks of `tooling-portability` (tasks 5.1–5.7) as a runnable set: one mutation each, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/portability-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. The evidence recorded in the change's `evidence/revert-checks.md` came from exactly these mutations.",
+  "case-cmd": "bash tools/check-portability-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "5.1",
+      "case": "portability#valueSetIsReadNotHardCoded",
+      "file": "tools/check-portability.sh",
+      "search": "add \"$value\" \"tools/tooling.json namespaces.category\" word; done < <(jq -r '.namespaces.category[]?' \"$profile\")",
+      "replace": "add \"$value\" \"tools/tooling.json namespaces.category\" word; done < <(printf '%s\\n' build-and-harness ui verification)",
+      "why": "the value set is read from the profile, not hard-coded"
+    },
+    {
+      "label": "5.2",
+      "case": "portability#excludesTheAdapterAndFixtures",
+      "file": "tools/check-portability.sh",
+      "search": "ls tools/issues/*.sh tools/issues/core/*.java",
+      "replace": "ls tools/issues/*.sh tools/issues/import/*.sh tools/issues/core/*.java",
+      "why": "the source adapter is excluded from the engine set"
+    },
+    {
+      "label": "5.3",
+      "case": "discovery#fromASubdirectory",
+      "file": "tools/issues/lib.sh",
+      "search": "root=$(git rev-parse --show-toplevel 2>/dev/null) || {",
+      "replace": "root=\"${HOME:-/nonexistent}\"; true || {",
+      "why": "the profile is resolved from the working tree, not from $HOME"
+    },
+    {
+      "label": "5.3b",
+      "case": "discovery#fromAWorktree",
+      "file": "tools/issues/lib.sh",
+      "search": "root=$(git rev-parse --show-toplevel 2>/dev/null) || {",
+      "replace": "root=\"${HOME:-/nonexistent}\"; true || {",
+      "why": "…and a linked worktree resolves its own profile, not one read from $HOME (the same mutation, the task's second case)"
+    },
+    {
+      "label": "5.4",
+      "case": "discovery#ignoresGithubRepositoryEnv",
+      "file": "tools/issues/lib.sh",
+      "search": "  ISSUES_REPO=$(issues_repo_of)",
+      "replace": "  ISSUES_REPO=\"${GITHUB_REPOSITORY:-$(issues_repo_of)}\"",
+      "why": "GITHUB_REPOSITORY does not override the working tree"
+    },
+    {
+      "label": "5.5",
+      "case": "foreign#profileDiffersFromOurs",
+      "file": "tools/fixtures/foreign-project/tools/tooling.json",
+      "search": "\"repo\": \"acme/widget\"",
+      "replace": "\"repo\": \"Framstag/NaviVeylin\"",
+      "why": "the synthetic project's repository differs from this one"
+    },
+    {
+      "label": "5.6",
+      "case": "foreign#emptyGateCommandStillRunsThePhases",
+      "file": "tools/loop/prompts/worker.md",
+      "search": "{{GATE_CMD}}",
+      "replace": "./gradlew test",
+      "why": "the prompt substitutes the project's gate command instead of owning one"
+    },
+    {
+      "label": "5.7",
+      "case": "porting#everyCommandInTheRecipeRuns",
+      "file": "PORTING.md",
+      "search": "bash tools/check-portability.sh --quiet",
+      "replace": "bash tools/check-portability.sh --nope",
+      "why": "every command in the porting recipe runs"
+    }
+  ]
+}

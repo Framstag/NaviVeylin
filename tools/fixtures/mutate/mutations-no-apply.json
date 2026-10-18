@@ -1,0 +1,14 @@
+{
+  "comment": "A probe: the search matches no line, which is the first silent lie — the mutation never landed, so a green case would read as a falsification while nothing was mutated. The runner must report MUTATION-DID-NOT-APPLY and must not touch the file.",
+  "case-cmd": "bash case.sh",
+  "mutations": [
+    {
+      "label": "probe-no-apply",
+      "case": "toy#guardIsPresent",
+      "file": "engine.sh",
+      "search": "GUARD=present",
+      "replace": "GUARD=off",
+      "why": "a pattern that matches nothing"
+    }
+  ]
+}

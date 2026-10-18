@@ -1,0 +1,14 @@
+{
+  "comment": "A probe: the record names a file that does not exist in the tree. The runner must report MUTATION-FILE-MISSING rather than running the case and calling the result a falsification.",
+  "case-cmd": "bash case.sh",
+  "mutations": [
+    {
+      "label": "probe-missing-file",
+      "case": "toy#guardIsPresent",
+      "file": "nope.sh",
+      "search": "GUARD=on",
+      "replace": "GUARD=off",
+      "why": "a file the tree does not have"
+    }
+  ]
+}

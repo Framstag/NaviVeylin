@@ -1,0 +1,14 @@
+{
+  "comment": "A probe: the mutation lands but removes nothing the case asserts — the second silent lie. The runner must report STAYS-GREEN and must still restore the file.",
+  "case-cmd": "bash case.sh",
+  "mutations": [
+    {
+      "label": "probe-stays-green",
+      "case": "toy#guardIsPresent",
+      "file": "engine.sh",
+      "search": "printf 'engine: %s\\n' \"$GUARD\"",
+      "replace": "printf 'engine mutated: %s\\n' \"$GUARD\"",
+      "why": "a real edit the toy case does not assert"
+    }
+  ]
+}

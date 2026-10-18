@@ -14,6 +14,13 @@
 #   gh issue view <n> --json …                    -> issue <n> of $GH_STUB_DIR/issues.json
 #   gh pr list [--state …] --json …               -> $GH_STUB_DIR/prs.json (the sensor tooling's open
 #                                                    pull requests; a scenario may carry its own)
+#   gh run list --workflow … --commit … --status … --json …
+#                                                -> $GH_STUB_DIR/runs.json, filtered by the flags the
+#                                                    caller passed (workflow file/name, headSha, status)
+#   gh api repos/<owner>/<name>/actions/runs/<id>/artifacts [--paginate] [--jq …]
+#                                                -> $GH_STUB_DIR/artifacts.json (the run's artifact names)
+#   gh run download <id> --name … --dir …         -> copies $GH_STUB_DIR/artifact/<id>/ into --dir, so a
+#                                                    scenario decides what an artifact contains
 #
 # Writes (refused unless GH_STUB_RECORD is set):
 #   gh issue create|edit|close|comment …, gh label create|edit|delete …
@@ -75,7 +82,28 @@ group="$1"; shift
 
 case "$group" in
   api)
-    [ "${1:-}" = "user" ] || refuse "api $*"
+    if [ "${1:-}" != "user" ]; then
+      path="${1:-}"; shift || true
+      case "$path" in
+        repos/*/actions/runs/*/artifacts) ;;
+        *) refuse "api $path" ;;
+      esac
+      jq_filter=""
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --paginate) shift ;;
+          --jq) jq_filter="${2:-}"; shift 2 ;;
+          *) refuse "api $path $*" ;;
+        esac
+      done
+      need_file artifacts.json
+      if [ -n "$jq_filter" ]; then
+        jq -r "$jq_filter" "$(fixture_path artifacts.json)"
+      else
+        cat "$(fixture_path artifacts.json)"
+      fi
+      exit 0
+    fi
     shift
     jq_filter=""
     while [ $# -gt 0 ]; do
@@ -165,6 +193,47 @@ case "$group" in
         esac
         ;;
       *) refuse "issue $sub" ;;
+    esac
+    ;;
+
+  run)
+    sub="${1:-}"; shift || true
+    case "$sub" in
+      list)
+        workflow=""; commit=""; status=""
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --repo|--limit|--json) shift 2 ;;
+            --workflow) workflow="${2:-}"; shift 2 ;;
+            --commit) commit="${2:-}"; shift 2 ;;
+            --status) status="${2:-}"; shift 2 ;;
+            *) refuse "run list $*" ;;
+          esac
+        done
+        need_file runs.json
+        jq --arg workflow "$workflow" --arg commit "$commit" --arg status "$status" '
+          [.[] | select(($workflow == "") or (.workflowName == $workflow) or (.workflowFile == $workflow))
+               | select(($commit == "") or (.headSha == $commit))
+               | select(($status == "") or (.status == $status))]' "$(fixture_path runs.json)"
+        ;;
+      download)
+        id="${1:-}"; shift || true
+        case "$id" in ''|*[!0-9]*) refuse "run download $id" ;; esac
+        dir=""
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --repo|--name) shift 2 ;;
+            --dir) dir="${2:-}"; shift 2 ;;
+            *) refuse "run download $*" ;;
+          esac
+        done
+        [ -n "$dir" ] || refuse "run download $id (no --dir)"
+        src="$stub/artifact/$id"
+        [ -d "$src" ] || { printf 'stub gh: no artifact fixture at %s\n' "$src" >&2; exit 1; }
+        mkdir -p "$dir"
+        cp -R "$src"/. "$dir"/
+        ;;
+      *) refuse "run $sub" ;;
     esac
     ;;
 

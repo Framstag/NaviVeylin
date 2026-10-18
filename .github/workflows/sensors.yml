@@ -5,18 +5,22 @@ name: Sensors
 # capped at two kinds — a schedule and an explicit dispatch — and it has no path that runs near a change
 # under review.
 #
-# The schedule is **off while the rows' inputs are not yet materialised in this pipeline** (the metric rows
-# consume an artifact the build pipeline produces, and `broken-main` consumes a result record no workflow
-# produces yet; see the tracker item filed for that wiring). Until then a scheduled run would report four
-# `error` rows and exit 8 every hour, so the pipeline is dispatched by hand.
+# The schedule is on. The rows' inputs are published by the build pipeline as the artifact
+# `sensor-inputs` (`tools/build-inputs.sh`), and this pipeline fetches the record for the commit it examines
+# before it selects a row (`tools/fetch-build-inputs.sh`) — a commit whose build has not finished yet is a
+# skipped run, not four failed checks. The tick's minutes must cover every minute the registry's rows
+# declare, which `workflow#tickMinutesCoverTheRegistryCrons` asserts.
 #
 # `schedule` only fires from the default branch; a dispatch can select any ref, so the first step is a
 # runtime guard rather than a line of YAML to be trusted (design D1, D3).
 on:
+  schedule:
+    # Matches the registry's declared minutes (0 and 30), so every row's cadence is hit by some tick.
+    - cron: '0,30 * * * *'
   workflow_dispatch:
     inputs:
       apply:
-        description: "Write to the tracker (default: decide only)"
+        description: "Write to the tracker (default: decide only; a scheduled run always writes)"
         type: boolean
         default: false
 
@@ -35,7 +39,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # The record itself is read from the build pipeline's artifact of this commit — the workflow's own
+      # ephemeral token, never the tracker token, and read-only. The write scope stays issues-only.
+      actions: read
       issues: write
+    # A scheduled run writes: nobody dispatches it, so a dry run would measure for nobody. A dispatch keeps
+    # its explicit choice and still defaults to a dry run. `inputs.apply` is compared as the boolean it is
+    # declared to be — `== 'true'` is never true for a `type: boolean` input (GitHub coerces the boolean to a
+    # number and the string to NaN), which would silently turn every dispatch into a dry run.
+    env:
+      SENSORS_MODE: ${{ (github.event_name == 'schedule' || inputs.apply == true) && '--apply' || '--dry-run' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,10 +68,31 @@ jobs:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
         run: bash tools/sensors/guard.sh --ref "$GITHUB_REF"
 
+      # The record the rows read: of the commit this run examines, downloaded by the workflow's own token
+      # from the build pipeline's artifact. `ready=false` (exit 3) means the build has not finished yet — a
+      # skipped run that writes nothing and reports no failed check, rather than four `error` rows.
+      - name: Fetch this commit's build record
+        id: record
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest .; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -eq 3 ]; then
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+            else
+              exit "$status"
+            fi
+          fi
+
       # The labels the checks file under are declared by the registry (`sensor/<id>`) and by the profile,
       # so they are created from that declaration before anything files: a filing under a label the tracker
-      # does not carry would fail. Re-running is a no-op.
+      # does not carry would fail. Re-running is a no-op. Gated on the record like the rows: a run with
+      # nothing to measure writes nothing at all (spec `backlog-sensors`, "no record yet … nothing is written").
       - name: Create the declared labels
+        if: steps.record.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
         run: bash tools/issues/labels.sh --apply
@@ -69,22 +103,19 @@ jobs:
       # (`stale-citation-resolution` D4/D5/D6). Bounded, and idempotent: a canonical citation is `exact`, a
       # parked item is skipped, so a second run posts nothing.
       - name: Repair the stale citations
+        if: steps.record.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: |
-          mode="--dry-run"
-          if [ "${{ inputs.apply }}" = "true" ]; then mode="--apply"; fi
-          bash tools/issues/resolve-stale.sh "$mode" --max-items 25
+        run: bash tools/issues/resolve-stale.sh "$SENSORS_MODE" --max-items 25
 
       # The identity is a repository-scoped token, never the workflow's own: the tracker's gate requires
-      # an allowlisted author, and the token can do nothing but file, comment and close issues here.
+      # an allowlisted author, and the token can do nothing but file, comment and close issues here. Skipped
+      # while this commit has no build record: an absent record is not a failed check (design D5).
       - name: Run the sensors
+        if: steps.record.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: |
-          mode="--dry-run"
-          if [ "${{ inputs.apply }}" = "true" ]; then mode="--apply"; fi
-          bash tools/sensors/run.sh --due "$mode"
+        run: bash tools/sensors/run.sh --due "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

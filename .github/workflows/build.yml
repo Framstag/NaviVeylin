@@ -197,6 +197,19 @@ jobs:
           bash tools/sensor-selftest.sh
           bash tools/sensor-mutations.sh --list
 
+      # The gate for the files the sensor rows declare as their inputs (`tools/build-inputs.sh`,
+      # `tools/fetch-build-inputs.sh`): every case drives the real scripts against a throwaway tree with the
+      # shared stub `gh` on PATH. Offline, no token, no network, no Gradle. The `--check` line is the bound
+      # that keeps a row from declaring a path no pipeline publishes (spec `backlog-sensors`, issue #161):
+      # the producer's own manifest is compared with the registry here, before a scheduled run could report
+      # four failed checks. The mutation harness's list is printed for the same reason as above — a harness
+      # that no longer parses fails here instead of rotting; the mutations themselves are change-time.
+      - name: Check the build inputs
+        run: |
+          bash tools/build-inputs-selftest.sh
+          bash tools/build-inputs.sh --check
+          bash tools/build-inputs-mutations.sh --list
+
       # ── portability ────────────────────────────────────────────
       # The gate for `tooling-portability`: no engine under `tools/issues`, `tools/sensors` or `tools/loop`
       # names a project value (the repository, an allowlisted author, a vocabulary value, a path the
@@ -416,9 +429,11 @@ jobs:
       # Same task set and same forcing rule as the documented full gate
       # (guidelines/Build.md §3, change `speed-up-build-test-gate`): `-PforceTests`
       # makes the test tasks execute, `--no-build-cache` keeps a warm cache from
-      # answering with a previous run's outputs.
+      # answering with a previous run's outputs. The timing init script is what
+      # `build-duration` watches: it records this invocation's wall time at
+      # `build/gate-timings.json`, the path the row declares (issue #161).
       - name: Run unit tests
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests --no-build-cache
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" -I tools/gate-timings.init.gradle.kts test -PforceTests --no-build-cache
 
       # A green verdict says nothing about what ran: name the suites and their
       # tallies in the log, per module and per `:app` flavor.
@@ -434,9 +449,12 @@ jobs:
       # Code coverage (report-only, no gate): root Kover tasks merge
       # app/auto/core unit-test coverage into one HTML+XML report; the
       # pure-Java osmscout-client-java module is measured by its own JaCoCo
-      # report. See guidelines/Build.md → Code coverage.
+      # report. The per-module Kover XML reports are named as well, because the
+      # sensor registry measures one percentage per module and the merged
+      # report cannot be split back into its modules (`tools/build-inputs.sh`).
+      # One invocation, so the test tasks behind all of them run once.
       - name: Generate coverage reports
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverHtmlReport :koverXmlReport :osmscout-client-java:jacocoTestReport
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverHtmlReport :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v5
@@ -445,6 +463,31 @@ jobs:
           path: |
             build/reports/kover/**
             osmscout-client-java/build/reports/jacoco/test/**
+          if-no-files-found: error
+
+      # ── the sensor rows' inputs ────────────────────────────────
+      # The one step that publishes the files the sensor rows declare (spec `backlog-sensors`,
+      # `tools/build-inputs.sh`, issue #161). `if: always()`: a red build is exactly when the checks'
+      # pipeline needs the result record, and the publisher writes that first, then names whatever else it
+      # cannot produce. A red test run explains the missing coverage summary — Kover's report task is
+      # skipped once the tests failed — and the step fails visibly instead of uploading a quiet hole.
+      - name: Publish the sensor inputs
+        if: always()
+        run: bash tools/build-inputs.sh --write
+
+      # The record, as one artifact carrying exactly the declared paths, so the checks' pipeline restores
+      # them where the rows look for them. `if: always()` for the same reason: the partial record of a red
+      # build still carries the result record `broken-main` reads.
+      - name: Upload the sensor inputs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: sensor-inputs
+          path: |
+            build/gate-timings.json
+            app/build/reports/jacoco/coverage.json
+            app/build/gate-result.json
+            app/build/outputs/apk/mobile/debug/app-mobile-debug.apk
           if-no-files-found: error
 
       - name: Upload debug APK

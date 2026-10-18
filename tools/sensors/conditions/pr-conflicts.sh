@@ -26,6 +26,7 @@ fi
 allowed=$(jq -r '.allowedAuthors[]? // empty' "$SENSORS_PROFILE" 2>/dev/null || true)
 
 conflicting=""
+findings=0
 while IFS=$'\t' read -r number mergeable author; do
   [ -n "$number" ] || continue
   [ "$mergeable" = "CONFLICTING" ] || continue
@@ -36,6 +37,7 @@ while IFS=$'\t' read -r number mergeable author; do
     sensors_emit "$fingerprint" "conflicting" "violation" "$fields" "" \
       "a change of the owner's is in conflict" \
       "pull request #${number} ($author) is CONFLICTING with its base"
+    findings=$((findings + 1))
   else
     # Reported, never filed: an outside contributor's conflict is not this project's backlog item.
     printf 'pr-conflicts: reported, not filed — pull request #%s by %s is CONFLICTING\n' "$number" "${author:-unknown}" >&2
@@ -49,4 +51,16 @@ while IFS= read -r number; do
   fingerprint=$(sensors_fingerprint "$fields" "pr")
   sensors_emit "$fingerprint" "mergeable" clear "$fields" "" \
     "the change is no longer in conflict" "pull request #${number} no longer reports a conflict"
+  findings=$((findings + 1))
 done < <(jq -r '.[]? | select(.state == "OPEN") | .condition.pr // empty' <<< "${SENSORS_CONDITIONS:-[]}")
+
+# A row that found nothing must say so: the runner reads a row that printed nothing as a failed check, and
+# "no change of the owner's is in conflict" is a verdict, not silence (`backlog-sensors`, three outcomes).
+# The identity is the row's own, so the finding lands on no issue and closes nothing.
+if [ "$findings" -eq 0 ]; then
+  fields='{"pr":"none"}'
+  fingerprint=$(sensors_fingerprint "$fields" "pr")
+  sensors_emit "$fingerprint" "none" "clear" "$fields" "" \
+    "no change of the owner's is in conflict" \
+    "no open pull request of the owner's reports a conflict, and no conflict is recorded"
+fi

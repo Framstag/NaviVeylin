@@ -30,6 +30,7 @@ token, proves exactly that on every push.
 | 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | **applied 2026-10-17** — `tools/sensors/**` (the registry `sensors.json`, the runner, the guards, the report, the hotspot measurement, the four metric rows and the two condition sensors), a fixture harness offline against the stub `gh` with one CI step, the three verbs the runner writes through extended (`create.sh --sensor`, `close.sh --sensor`, the new `reopen.sh`), the isolated pipeline `.github/workflows/sensors.yml` with its CODEOWNERS entry, and `labels.sh` learning the registry's labels; the host dry runs, the falsification run and the not-reproducible CI steps are recorded under the change's `report.md` |
 | 5 | `issue-metadata-loop` | persisted priority and classification | **applied 2026-10-17** — `tools/issues/prioritise.sh` (the basis, the partition over every issue, the bounded run, the label+marker writer, the transition comment) and `classify.sh` (the queue of items with no kind), `check-metadata.sh` and its falsification, the `bands` section in `tools/tooling.json`, `list.sh --prio/--unranked`, the `issue-metadata` skill and the `triage-todo` rewrite; the run over the live tracker is recorded under the change's `evidence/` |
 | 6 | `tooling-portability` | the proof that another project can use all of it | **applied 2026-10-18** — `tools/check-portability.sh` (the leak check, its value set read from the profile and the per-tool configs at run time) with `tools/check-portability-selftest.sh` and its 21 cases, `tools/mutate.sh` with the seven revert-checks as a versioned mutation set, the two skills `portability-check` and `mutation-runner`, the synthetic project `tools/fixtures/foreign-project/` on which the whole toolchain runs without an engine edit, `PORTING.md` (the recipe, its commands executed by the self-test), one `Check portability` CI step and the check's own classification line; no engine file was changed — the check is the proof, not a fix |
+| 7 | `wire-sensor-inputs` | the rows' declared inputs, materialised — and the checks' schedule back on | **applied 2026-10-18** — `tools/build-inputs.sh` (the manifest, `--check` against the registry, the per-module coverage conversion, the result record that survives a red build) and `tools/fetch-build-inputs.sh` (a commit's record, exit 3 = not built yet) with their cases, selftest, eight mutations and one `Check the build inputs` CI step; `build.yml` publishes the record as one artifact, `sensors.yml` fetches it with the workflow's own read-only token and its `schedule` is restored; the host dry run is the change's `report.md` |
 | 7 | `decision-queue` | the human lane — the queue, the answer path, the mid-item handover | **named, not written** |
 
 **What this document owns.** The concept: the participants and the flow, what the tracker holds, the
@@ -289,6 +290,16 @@ an explicit dispatch, pinned to the main branch by a check at run time, holding 
 else, guarded against overlapping runs, and reviewed like code. The identity that files an item is a
 **concrete allowlisted person**, because the gate's author condition is the only attributable one (§5, I2).
 
+A row that measures a build reads a file, so **the pipeline that made the build publishes it**: `build.yml`
+writes the gate's wall time, the per-module coverage summary, the build result and the package as one
+artifact (`tools/build-inputs.sh`, the same script that refuses a registry naming an input nothing
+publishes), and the checks' pipeline restores that record for the commit it examines before it selects a row
+(`tools/fetch-build-inputs.sh`, exit 3 = the build has not finished, so a pending build reads as a skipped
+run rather than four failed checks). The record is fetched with the workflow's own read-only token; every
+write to the tracker is still the repository-scoped one. A red build cannot produce a coverage report —
+Kover's report task is skipped once its tests fail — so that record is partial by construction, its result
+record still reaches `broken-main`, and the coverage row reports a failed check rather than a healthy one.
+
 One row exists to watch the mechanism rather than the project: `stale-citations` reports the **count of
 citations nothing accounts for**, measured by the resolver's own dry run, so a residue that grows — a repair
 that stopped reaching something, a scheduled run that stopped happening — becomes a check's verdict instead
@@ -317,6 +328,13 @@ reading the values it forbids from the profile and the per-tool configs so that 
 list. A value is a leak when an engine **names** it (inside a quote, as a label, or as a flag's argument):
 a project whose category is an ordinary word (`core`, `docs`) must not trip a check that fires on every
 identifier and every sentence, or the check becomes a rule nobody keeps.
+
+The rows' file inputs are the one thing a second project adapts beside its configuration: the *producer*
+(`tools/build-inputs.sh`) knows which paths this project's rows declare and how to derive them from its
+own build outputs, and the *fetcher* (`tools/fetch-build-inputs.sh`) knows the name of its build workflow.
+The checks' runner, the guards and the registry's `input` fields are unchanged — a row declares the path,
+the producer's manifest is what proves that path exists, and the artifact carries the declared tree as it is
+declared.
 
 The proof is a **synthetic project** in the repository's fixtures (`tools/fixtures/foreign-project/`) — a
 different repository, a different allowlist, a different vocabulary — on which the whole toolchain runs,

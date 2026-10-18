@@ -22,7 +22,7 @@
       "class": "improvement",
       "category": "build-and-harness",
       "lifecycle": "file+close",
-      "input": "app/build/gate-timings.json",
+      "input": "build/gate-timings.json",
       "fingerprint": { "fields": ["job"] }
     },
     {
@@ -35,7 +35,7 @@
       "class": "improvement",
       "category": "build-and-harness",
       "lifecycle": "file+close",
-      "input": "app/build/outputs/apk/mobileRelease/app-mobile-release.apk",
+      "input": "app/build/outputs/apk/mobile/debug/app-mobile-debug.apk",
       "fingerprint": { "fields": ["artifact"] }
     },
     {

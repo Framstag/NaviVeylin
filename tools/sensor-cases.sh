@@ -45,6 +45,8 @@ SENSOR_CASES=(
   'sensors#coverageRow'
   'sensors#brokenMainFingerprintDistinguishesCauses'
   'sensors#prConflictsOnlyOwnPRs'
+  'sensors#brokenMainGreenReportsClear'
+  'sensors#prConflictsNothingReportsClear'
   'workflow#onlyTwoTriggers'
   'sensors#engineNamesNoProjectValue'
 )
@@ -87,6 +89,8 @@ sensor_run_case() {
     'sensors#coverageRow') case_sensors_coverageRow ;;
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
     'sensors#prConflictsOnlyOwnPRs') case_sensors_prConflictsOnlyOwnPRs ;;
+    'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
+    'sensors#prConflictsNothingReportsClear') case_sensors_prConflictsNothingReportsClear ;;
     'workflow#onlyTwoTriggers') case_workflow_onlyTwoTriggers ;;
     'sensors#engineNamesNoProjectValue') case_sensors_engineNamesNoProjectValue ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
@@ -1003,6 +1007,35 @@ case_sensors_coverageRow() {
   assert_contains "$(cat "$log")" "issue comment 111" "the measurement is recorded on the existing issue"
 }
 
+case_sensors_brokenMainGreenReportsClear() {
+  # A green build with no condition recorded is a verdict, not silence: the runner reads a row that printed
+  # nothing as a failed check, so the row has to say which of the three outcomes it reached.
+  local dir log artifact out
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  artifact="$dir/gate-result.json"
+  jq -n '{result: "success", job: "gate", case: "the-build"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-main --apply --input "$artifact" --json 2>&1)
+  assert_contains "$out" '"verdict":"clear"' "a green build reports a clear"
+  assert_contains "$out" '"row":"broken-main"' "the finding is the row's own"
+  assert_eq "0" "$(recorded "$log" 'issue create')" "a green build files nothing"
+  assert_eq "0" "$(recorded "$log" 'issue close')" "and closes nothing, because no condition is recorded"
+}
+
+case_sensors_prConflictsNothingReportsClear() {
+  # The same duty on the other condition row: no conflict of the owner's is a clear, and an empty report is
+  # not.
+  local dir log out
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  jq -n '[{number: 301, mergeable: "MERGEABLE", author: {login: "Framstag"}}]' > "$dir/prs.json"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only pr-conflicts --apply --json 2>&1)
+  assert_contains "$out" '"verdict":"clear"' "no conflicting change reports a clear"
+  assert_eq "0" "$(recorded "$log" 'issue create')" "a project with no conflict files nothing"
+}
+
 case_sensors_brokenMainFingerprintDistinguishesCauses() {
   local dir log out status first second
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
@@ -1070,8 +1103,9 @@ case_workflow_onlyTwoTriggers() {
   assert_empty "$out" "neither trigger is named anywhere in the file"
 
   # the trigger block's own keys: only the two the design permits, and a dispatch among them so the pipeline
-  # can be run at all. The cap is the invariant — never a trigger that runs near a change under review — and
-  # the schedule is currently off while the rows' inputs are not yet materialised.
+  # can be run at all. The cap is the invariant — never a trigger that runs near a change under review. The
+  # schedule is what makes a declared cadence run without a person; that its minutes cover the rows' own
+  # crons is `workflow#tickMinutesCoverTheRegistryCrons` in the build inputs' cases.
   out=$(awk '/^on:/ { inside = 1; next } /^[^[:space:]]/ { inside = 0 } inside && /^[[:space:]][[:space:]]?[a-z_]+:/ { print $1 }' "$file" | sort -u | tr '\n' ' ')
   case "$out" in
     'schedule: '|'workflow_dispatch: '|'schedule: workflow_dispatch: ') ;;
@@ -1087,7 +1121,34 @@ case_workflow_onlyTwoTriggers() {
   [ -n "$out" ] || fail "the workflow does not default to read-only contents"
   out=$(grep -n 'issues: write' "$file" || true)
   [ -n "$out" ] || fail "the job does not raise issues: write for itself"
-  assert_eq "0" "$(grep -c 'github.token' "$file" || true)" "the workflow never uses the workflow's own token"
+
+  # The workflow's own token is read-only and used for exactly one thing: fetching the build pipeline's
+  # record of this commit (`actions: read`). Every tracker write is still the repository-scoped
+  # `SENSORS_TOKEN`, so the identity that files, comments and closes is never the ephemeral one — the rule
+  # the case has always asserted, now narrowed to what the token is used *for*.
+  assert_eq "1" "$(grep -c 'github.token' "$file" || true)" "the workflow's own token is used exactly once"
+  out=$(grep -n 'actions: read' "$file" || true)
+  [ -n "$out" ] || fail "the record fetch has no actions: read"
+  fetch_line=$(grep -n "name: Fetch this commit's build record" "$file" | cut -d: -f1)
+  token_line=$(grep -n 'github.token' "$file" | cut -d: -f1)
+  tracker_line=$(grep -n 'name: Create the declared labels' "$file" | cut -d: -f1)
+  [ -n "$fetch_line" ] && [ -n "$token_line" ] && [ -n "$tracker_line" ] ||
+    fail "the record fetch step, the tracker's first step and the token are not all present"
+  { [ "$fetch_line" -lt "$token_line" ] && [ "$token_line" -lt "$tracker_line" ]; } ||
+    fail "the workflow's own token is used outside the record fetch"
+
+  # Everything that writes to the tracker — the labels, the citation repair and the rows — waits for the
+  # record, so a scheduled run whose build has not finished writes nothing at all rather than creating labels
+  # and repairing citations for a measurement it cannot make (spec `backlog-sensors`).
+  assert_eq "3" "$(grep -cF -- "if: steps.record.outputs.ready == 'true'" "$file" || true)" \
+    "the labels, the repair and the rows are all gated on the record"
+
+  # The dispatch's `apply` is a boolean input, and a boolean is not a string: `inputs.apply == 'true'` is
+  # false for every value (the runner coerces the boolean to a number and the string to NaN), so a dispatch
+  # could never write. The schedule term is what makes an unattended run write.
+  assert_contains "$(cat "$file")" 'inputs.apply == true' "the apply input is compared as the boolean it is"
+  assert_not_contains "$(cat "$file")" "inputs.apply == 'true'" "the apply input is not compared as a string"
+  assert_contains "$(cat "$file")" "github.event_name == 'schedule'" "a scheduled run writes"
 
   out=$(grep -n 'guard.sh\|run.sh --due' "$file")
   assert_contains "$out" "guard.sh" "the guard runs"

@@ -22,8 +22,8 @@ full gate runs the owners could not attribute (2026-10-10 `car-favorites-group-l
 | 5 | A foreign line is not a fault record | `EngineFaultHandlerTest.aConfinedFaultIsRecordedWithOriginAndStackTraceAndPublishedOnce` | red 4/3 · green 4/0 |
 | 6 | A foreign line is not a second fault record | `EngineFaultHandlerTest.aThrowingPublishCannotEscapeTheHandlerAndTheRecordStillLands` | red 4/3 · mutation `engine-fault-whole-sink.xml` 4/1 · green 4/0 |
 | 7 | A foreign line is not a fault record for the file assertion | `EngineFaultHandlerTest.theHandlerMirrorsToLogcatAndTheRecordReachesTheFile` | red 4/3 · green 4/0 |
-| 8 | A foreign line is not the calculation record | `NavigationEngineCalculationStateTest.theEndOfACalculationIsRecordedWithoutCoordinates` | no red possible (presence check) · mutation `calculation-record-whole-sink.xml` 6/1 · green 6/0 |
-| 9 | A foreign line is not a surface entry | `SessionCarSurfaceHostTest.surfaceLifetimeIsRecordedForDiagnosis` | red 27/1 · mutation `auto-surface-whole-sink.xml` 27/1 · green 27/0 |
+| 8 | A foreign line is not a surface entry | `SessionCarSurfaceHostTest.surfaceLifetimeIsRecordedForDiagnosis` | red 27/1 · mutation `auto-surface-whole-sink.xml` 27/1 · green 27/0 |
+| 9 | A foreign line is not the calculation record | `NavigationEngineCalculationStateTest.theEndOfACalculationIsRecordedWithoutCoordinates` | no red possible (presence check) · mutation `calculation-record-whole-sink.xml` 6/1 · green 6/0 |
 
 ## Red on HEAD (base `184ba56`, HEAD assertions untouched, the foreign line injected)
 
@@ -43,21 +43,30 @@ Messages, verbatim: `the diagnostics line carries no coordinate`; `expected:<1> 
 
 ## Green after the fix
 
-Focused, forced, `evidence/green/` holds that run's own XML, `2026-10-18T15:22:20Z`–`:15:22:30Z`:
-`SettingsStorageSourceTest` 6/0, `NotificationHostSendLoggingTest` 2/0, `EngineFaultHandlerTest` 4/0,
-`NavigationEngineCalculationStateTest` 6/0, `SessionCarSurfaceHostTest` 27/0 — 45 tests, 0 failures. The
-`:auto` file in `evidence/green/` was refreshed after review 5's cosmetic edit (XML `2026-10-18T15:33:31Z`);
-the other four are the focused run's files (`2026-10-18T15:22:20Z`–`:15:22:26Z`).
+Focused, forced, `evidence/green/` holds each run's own XML — **two runs, not one**: `SettingsStorageSourceTest`
+6/0, `NotificationHostSendLoggingTest` 2/0, `EngineFaultHandlerTest` 4/0 and
+`NavigationEngineCalculationStateTest` 6/0 in the `:app` run, XML `2026-10-18T15:22:20Z`–`:15:22:26Z`; the
+`:auto` case re-run on its own after review 5's cosmetic edit, `SessionCarSurfaceHostTest` 27/0, XML
+`2026-10-18T15:33:31Z`. The headline 45 tests / 0 failures is the composite of the two.
 
-Neighbours — the aggregate that produced both flakes (`evidence/suites.txt`, numbers derived by awk over that
-run's own JUnit XML; the per-class XML of the five changed classes is stored from the focused run instead):
+Neighbours — the aggregate that produced both flakes, `evidence/suites.txt`:
 
 ```
 ./gradlew :app:testMobileDebugUnitTest :auto:testDebugUnitTest -PforceTests --no-build-cache
 BUILD SUCCESSFUL in 1m 59s          (15:22:47Z – 15:24:41Z)
 :app mobile  275 classes / 2059 tests / 0 failures / 0 errors
-auto         85 classes /  864 tests / 0 failures / 0 errors
+:auto         85 classes /  864 tests / 0 failures / 0 errors
 ```
+
+Provenance of those two numbers, stated because they are not equally durable. The `:app` tally reproduces
+from the tree: `app/build/test-results/testMobileDebugUnitTest` is still that run's directory (2059 tests over
+275 classes). The `:auto` tally did **not**: the `15:33:31Z` focused re-run overwrote
+`auto/build/test-results/testDebugUnitTest`, leaving 1 class / 27 tests there. The `:auto` aggregate was
+re-measured — `./gradlew :auto:testDebugUnitTest -PforceTests --rerun-tasks`, `BUILD SUCCESSFUL in 36s`,
+XML `2026-10-18T15:37:16Z`–`:15:37:38Z` — and is stored: `evidence/auto-aggregate/TEST-*.xml` (85 files, that
+run's own JUnit XML) and `evidence/auto-aggregate/per-class.tsv` (name / tests / failures / errors / skipped /
+timestamp per class, derived from that XML). 85 classes / 864 tests / 0 failures / 0 errors — the same tally,
+now carried by an artifact instead of by this paragraph.
 
 Excluded and why: `:app` automotive (the change touches only sources both flavours share, no flavour input —
 `guidelines/Build.md` §4 "Which flavors a run must cover"), and every native task (no compiled production
@@ -79,8 +88,14 @@ prove.
 
 ## Structural checks
 
-`openspec validate fix-diagnostics-sink-attribution --strict` → *valid*. `bash tools/check-doc-routes.sh` →
-all 89 section references resolve. `bash tools/declared-cases-selftest.sh` → 12 passed, 0 failed.
+While the change was open, `openspec validate fix-diagnostics-sink-attribution --strict` → *valid*; an archived
+change name no longer resolves, so round 2 re-checks the merged capability instead:
+`openspec validate unit-test-suite-runtime --strict --type spec` → one warning, at `requirements[7]` ("A Compose
+case starts from a repaired sandbox"), which this change does not touch; the added requirement is no longer
+among the warnings, its prose is under the 500-character threshold, and its residual block does not count as
+requirement text. `diff` of the merged requirement against the archive delta's → identical.
+`bash tools/check-doc-routes.sh` → all 89 section references resolve.
+`bash tools/declared-cases-selftest.sh` → 12 passed, 0 failed.
 
 ## Independent review
 
@@ -93,7 +108,7 @@ review has been given.
 
 | finding | disposition |
 |---|---|
-| CRITICAL: the claim "closes the shape" was false — `SettingsStorageSourceTest.kt:120` and `NavigationEngineCalculationStateTest.kt:229` still decided from the whole file | fixed: both now filter to their own marker/`ROUTE_TAG` and count; scenarios 4 and 8 added, two mutations recorded |
+| CRITICAL: the claim "closes the shape" was false — `SettingsStorageSourceTest.kt:120` and `NavigationEngineCalculationStateTest.kt:229` still decided from the whole file | fixed: both now filter to their own marker/`ROUTE_TAG` and count; scenarios 4 and 9 added, two mutations recorded |
 | MAJOR: `tasks.md` 5.2 was marked done for an archive that had not happened | fixed: the archive task is unchecked until the archive step runs, and is checked afterwards |
 | MAJOR: the aggregate neighbour tally had no stored evidence | fixed: `evidence/suites.txt` now states how the numbers were derived (awk over the run's own XML in the two result directories) |
 | MINOR: the sink's own test classes were not named as an exemption | fixed in the §11 bullet and here: `DiagnosticsLogTest`, `DiagnosticsLogRetentionTest`, `DiagnosticsLogWritePathTest` assert on the sink itself, so the file is their subject |
@@ -103,16 +118,16 @@ review has been given.
 | MINOR: the §11 bullet omitted the fallback marker | added |
 | MINOR: `contains("52.")` is a weak predicate | tightened to the coordinate-shaped regex the privacy class uses |
 
-**Review 2 — FAIL** (`review-2.md`). Seven scenarios PASS, scenario 8 FAIL, two MAJOR:
+**Review 2 — FAIL** (`review-2.md`). Seven scenarios PASS, scenario 9 FAIL, two MAJOR:
 
 | finding | disposition |
 |---|---|
-| MAJOR: scenario 8 filtered on the shared `ROUTE` tag, so a foreign `ROUTE` line could still redden it, and its THEN (`outcome=ok`) was not what the assertion implemented | fixed: both the entry selection and the file assertion use the calculation record's own marker `ROUTE calc done:`; THEN aligned; mutation re-recorded (`2026-10-18T15:22:06Z`, 6/1) |
+| MAJOR: scenario 9 filtered on the shared `ROUTE` tag, so a foreign `ROUTE` line could still redden it, and its THEN (`outcome=ok`) was not what the assertion implemented | fixed: both the entry selection and the file assertion use the calculation record's own marker `ROUTE calc done:`; THEN aligned; mutation re-recorded (`2026-10-18T15:22:06Z`, 6/1) |
 | MAJOR: the report pre-recorded a review-2 PASS that had not happened | fixed: `review-2.md` is the real record, and this section states the FAIL |
 | MINOR: the stored green XMLs were the aggregate run's files while the report cited a focused run | fixed: `evidence/green/` holds the focused run's own files (`15:22:20Z`–`:22:30Z`) and `evidence/suites.txt` says which run produced which number |
 | MINOR: `NavigationEngineCalculationStateTest` was recorded as 9/0 | fixed: 6/0, 45 in total |
 | MINOR: an unused `val file = initDiagnostics()` remained | fixed |
-| MINOR: scenarios 5–8 filter at tag level, so a foreign record under the same tag would still count | accepted, disclosed below |
+| MINOR: scenarios 5–7 filter at tag level (and the calculation case did, while it still used the shared `ROUTE` tag), so a foreign record under the same tag would still count | accepted, disclosed below and now also in the requirement itself |
 | MINOR: the §11 bullet listed four markers and did not spell out the sink-own exemption | fixed |
 | MINOR: `RouteGeometryTest.kt:110` and `SessionLogTest.kt:70` carry the same shapes outside this diff (`ui/route/RouteGeometryTest.kt` for the first) | disclosed below; not caused by this change |
 
@@ -146,13 +161,33 @@ the assertions and their scenarios are unchanged by them, and the `:auto` class 
   a device and no device measurement applies.
 - **Disclosed residuals.** Scenarios 5–7 attribute by tag (`ENGINE_FAULT_TAG`), which is the closest stable
   identity for a fault record a case provokes itself through a coroutine name; a foreign record under that
-  tag would still count. Four shapes outside this diff carry the same weakness and were left alone:
-  `app/src/test/java/com/naviveylin/ui/route/RouteGeometryTest.kt:110` (`ROUTE` tag with `.last { }`),
-  `NavigationEngineRerouteTest.kt:486`
-  (`single { }` on the shared `REROUTE` tag), `CarHostGuardsTest.kt:69` (a whole-sink negative,
-  `entries().none { it.contains("rejected") }`) and `SessionLogTest.kt:70` (the same, on
-  `geo:1.0,2.0` — only a line carrying that exact string could redden it).
+  tag would still count. Four shapes outside this diff keep the same weakness and were left alone (no code
+  change owed — they are not this change's cases): `app/src/test/java/com/naviveylin/ui/route/RouteGeometryTest.kt:110`
+  (`ROUTE` tag with `.last { }`), `app/src/test/java/com/naviveylin/navigation/NavigationEngineRerouteTest.kt:486`
+  (`single { }` on the shared `REROUTE` tag), `auto/src/test/java/com/naviveylin/auto/CarHostGuardsTest.kt:69` (a
+  whole-sink negative, `entries().none { it.contains("rejected") }`) and
+  `auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt:70` (the same, on `geo:1.0,2.0` — only a line
+  carrying that exact string could redden it). These paths are named **in the requirement itself**, so the
+  contract a future agent reads does not claim more than the tree holds; this section is not their only
+  record.
 - The sink's own test classes (`DiagnosticsLogTest`, `DiagnosticsLogRetentionTest`,
   `DiagnosticsLogWritePathTest`) are the exemption the §11 bullet names: the file *is* their subject.
 - Each converted case keeps a line logged under the tag `OTHER` as the standing reproduction: the next
   regression to a whole-sink assertion is red in an idle focused run, not only in a loaded gate.
+
+## Round 2 — the review of the archived change
+
+The archived change was reviewed again, read-only, against `review-1.diff`. Verdict FAIL, on five findings;
+all five are closed here, and none of them changes an assertion or a test source.
+
+| finding | disposition |
+|---|---|
+| F1 (MAJOR): the ADDED requirement is universal while four in-tree cases still decide from the whole file; their paths were disclosed only in this report | fixed: the requirement (merged and archive delta, identical text) now states its binding scope and names the four paths, and `guidelines/Design.md` §11 points at it. No case converted — the four are outside this change's diff, and converting them would be a second change |
+| F2 (MAJOR): the `:auto` aggregate `85 / 864 / 0` was carried by prose only — the `15:33:31Z` focused re-run overwrote `auto/build/test-results/testDebugUnitTest`, so the stated derivation no longer reproduced | fixed: the aggregate was re-measured (`15:37:16Z`–`:15:37:38Z`, 85 / 864 / 0) and stored as `evidence/auto-aggregate/TEST-*.xml` (85 files) plus `evidence/auto-aggregate/per-class.tsv`; `evidence/suites.txt` and the neighbour section above state which directory each tally reproduces from and that one of them was overwritten |
+| F3 (MINOR): the §11 bullet listed `ENGINE_FAULT_TAG` among markers "only the subject's own message carries", while it is a shared tag | fixed: the bullet now separates markers from tag-level attribution and says a foreign record under the tag still counts |
+| F5 (MINOR): `tasks.md` 2.6 gave one green range while `SessionCarSurfaceHostTest`'s stored XML is `15:33:31Z` | fixed: 2.6 states the two runs, their separate ranges and that 45/0 is a composite |
+| minor: this report's scenario numbers disagreed with the delta's order (calculation 8th vs 9th), and `SUMMARY.txt` still described a `git status` file list | fixed: the traceability table and the prose follow the delta's order (surface 8, calculation 9); `SUMMARY.txt` describes the archived 23-file change plus this round's additions |
+
+Unchanged by the round: no compiled file, no test source, no assertion. The gate therefore does not re-run
+(`AGENTS.md`, "Verification follows the changed files": a delta that touches no compiled file runs no build);
+the `:auto` suite above was run because an artifact had to be re-measured, not to refresh a green one.

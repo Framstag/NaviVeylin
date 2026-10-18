@@ -1,17 +1,35 @@
-Focused green (evidence/green/):
-  command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.data.SettingsStorageSourceTest" --tests "com.naviveylin.service.NotificationHostSendLoggingTest" --tests "com.naviveylin.navigation.EngineFaultHandlerTest" --tests "com.naviveylin.navigation.NavigationEngineCalculationStateTest" -PforceTests --no-build-cache
-           ./gradlew :auto:testDebugUnitTest --tests "com.naviveylin.auto.SessionCarSurfaceHostTest" -PforceTests --no-build-cache
-  run: 2026-10-18T15:22:20Z-15:22:30Z, BUILD SUCCESSFUL
-  tallies: SettingsStorageSourceTest 6/0, NotificationHostSendLoggingTest 2/0, EngineFaultHandlerTest 4/0,
-           NavigationEngineCalculationStateTest 6/0, SessionCarSurfaceHostTest 27/0 = 45 tests, 0 failures
-  the five XMLs stored in evidence/green/ are that run's files
+Focused green (evidence/green/) — two runs, not one:
 
-Neighbour aggregate (no per-class XML stored; the numbers below were derived by awk over that run's own
-JUnit XML in app/build/test-results/testMobileDebugUnitTest and auto/build/test-results/testDebugUnitTest,
-which this run wrote; the focused run stored in evidence/green/ predates it):
-  command: ./gradlew :app:testMobileDebugUnitTest :auto:testDebugUnitTest -PforceTests --no-build-cache
+  :app run
+  command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.data.SettingsStorageSourceTest" --tests "com.naviveylin.service.NotificationHostSendLoggingTest" --tests "com.naviveylin.navigation.EngineFaultHandlerTest" --tests "com.naviveylin.navigation.NavigationEngineCalculationStateTest" -PforceTests --no-build-cache
+  run: 2026-10-18T15:22:20Z-15:22:26Z, BUILD SUCCESSFUL
+  tallies: SettingsStorageSourceTest 6/0, NotificationHostSendLoggingTest 2/0, EngineFaultHandlerTest 4/0,
+           NavigationEngineCalculationStateTest 6/0 = 18 tests, 0 failures
+  the four :app XMLs stored in evidence/green/ are that run's files
+
+  :auto run (forced re-run after review 5's cosmetic edit to that test file)
+  command: ./gradlew :auto:testDebugUnitTest --tests "com.naviveylin.auto.SessionCarSurfaceHostTest" -PforceTests --no-build-cache
+  run: 2026-10-18T15:33:31Z
+  tally: SessionCarSurfaceHostTest 27/0
+  evidence/green/TEST-com.naviveylin.auto.SessionCarSurfaceHostTest.xml
+  -> the 45 tests / 0 failures headline is the composite of these two runs
+
+Neighbour aggregate:
+
+  :app mobile — reproduces from the tree, rerun over app/build/test-results/testMobileDebugUnitTest, which is
+  still that run's own directory:
+  command: ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
   run: 2026-10-18T15:22:47Z-15:24:41Z, BUILD SUCCESSFUL in 1m 59s
-  app mobile: 275 classes / 2059 tests / 0 failures / 0 errors
-  auto: 85 classes / 864 tests / 0 failures / 0 errors
+  275 classes / 2059 tests / 0 failures / 0 errors
+
+  :auto — does NOT reproduce from the build tree: the 15:33:31Z focused re-run overwrote
+  auto/build/test-results/testDebugUnitTest, which then held 1 class / 27 tests instead of the aggregate.
+  The aggregate was therefore re-measured and is stored:
+  command: ./gradlew :auto:testDebugUnitTest -PforceTests --rerun-tasks
+  run: 2026-10-18T15:37:16Z-15:37:38Z, BUILD SUCCESSFUL in 36s
+  85 classes / 864 tests / 0 failures / 0 errors
+  evidence/auto-aggregate/TEST-*.xml       85 files, that run's own JUnit XML
+  evidence/auto-aggregate/per-class.tsv    name / tests / failures / errors / skipped / timestamp per class,
+                                           derived from that same XML
 
 Excluded: :app automotive (no flavour input changed), all native tasks (no compiled production file).

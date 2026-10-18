@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.PreferencesScreenMapperTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:34.448Z" hostname="dingens" time="0.003">
+  <properties/>
+  <testcase name="rows_showsConfiguredAnchorLabels" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.003"/>
+  <testcase name="toggle_cyclesDarkMode" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="toggle_cyclesRenderMode" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="toggle_flipsBooleanPreference" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="rows_containsAllCarRelevantSettings" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="toggle_mapStyleKeepsCurrentWhenListEmpty" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="toggle_unknownKeyReturnsUnchanged" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="toggle_cyclesMapStyle" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="rows_showsCurrentValues" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="toggle_mapStyleWrapsToFirstForUnknownCurrent" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <testcase name="rows_doesNotIncludeKeepScreenOn" classname="com.naviveylin.auto.PreferencesScreenMapperTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

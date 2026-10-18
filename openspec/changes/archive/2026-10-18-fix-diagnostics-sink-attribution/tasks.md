@@ -37,10 +37,13 @@ closes (§181).
       evidence. Verifies *a foreign line is not a fallback line* and *a foreign line is not the calculation
       record*. (A foreign line cannot redden a presence check, so these two are converted for the rule's sake
       rather than from a red run; their guard is the count.)
-- [x] 2.6 Focused green, forced: `SettingsStorageSourceTest` 6/0, `NotificationHostSendLoggingTest` 2/0,
-      `EngineFaultHandlerTest` 4/0, `SessionCarSurfaceHostTest` 27/0, `NavigationEngineCalculationStateTest`
-      6/0 — 45 tests, 0 failures, XML `2026-10-18T15:22:20Z`–`:22:30Z`. Evidence in `evidence/green/`.
-- [x] 2.7 Scenario 8 filters on the calculation record's own marker (`ROUTE calc done:`), not the shared
+- [x] 2.6 Focused green, forced, two runs: the `:app` run `SettingsStorageSourceTest` 6/0,
+      `NotificationHostSendLoggingTest` 2/0, `EngineFaultHandlerTest` 4/0,
+      `NavigationEngineCalculationStateTest` 6/0, XML `2026-10-18T15:22:20Z`–`:15:22:26Z`; the `:auto` case was
+      re-run on its own after review 5's cosmetic edit — `SessionCarSurfaceHostTest` 27/0, XML
+      `2026-10-18T15:33:31Z`. The 45/0 tally is the composite of both runs, not one run's XML. Evidence in
+      `evidence/green/`.
+- [x] 2.7 Scenario 9 filters on the calculation record's own marker (`ROUTE calc done:`), not the shared
       `ROUTE` tag which the geometry, panel and reroute paths also log. Verifies *a foreign line is not the
       calculation record* with a marker only this case's subject writes.
 
@@ -65,16 +68,18 @@ closes (§181).
       `car-favorites-group-level` 4.2, 2026-10-11 `fix-browse-recenter-dwell` 5.7) and the sink-own-tests
       exemption. Its own check is the scenario-to-case table above, since a guideline edit runs no build.
 - [x] 4.2 Neighbours: the `:app` mobile and `:auto` suites forced (`-PforceTests --no-build-cache`), so the
-      converted classes are judged inside the aggregate that produced both flakes. Tallies and the derived
-      per-directory counts in `evidence/suites.txt`. Excluded: `:app` automotive (no flavour input changed) and
-      every native task (no compiled production file).
+      converted classes are judged inside the aggregate that produced both flakes. Tallies in
+      `evidence/suites.txt`; the `:app` tally reproduces from `app/build/test-results/testMobileDebugUnitTest`,
+      and the `:auto` aggregate's own XML is stored in `evidence/auto-aggregate/` (its build directory was
+      overwritten by the later focused re-run — see 2.6). Excluded: `:app` automotive (no flavour input
+      changed) and every native task (no compiled production file).
 
 ## 5. Review and closure
 
 - [x] 5.1 Independent read-only review of the change against its scenarios and XMLs; its findings are fixed
       (the two remaining whole-file checks, the unverified archive task, the unrecorded aggregate tally, the
       date and citation slips) and the fix re-reviewed by a second fresh reviewer, whose own findings — the
-      shared `ROUTE` tag as scenario 8's filter, the pre-recorded PASS line, the green provenance, the class
+      shared `ROUTE` tag as scenario 9's filter, the pre-recorded PASS line, the green provenance, the class
       tally — are fixed in turn. Verdicts in `review-2.md`, `review-3.md` and `review-4.md`.
 - [x] 5.2 `openspec validate fix-diagnostics-sink-attribution --strict` → valid; structural checks:
       `tools/check-doc-routes.sh` (all 89 references resolve), `tools/declared-cases-selftest.sh` (12 passed).
@@ -82,3 +87,27 @@ closes (§181).
       suite tallies.
 - [x] 5.4 The change is archived under `openspec/changes/archive/` and the ADDED requirement merged into
       `openspec/specs/unit-test-suite-runtime/spec.md`; confirmed after the archive step.
+
+## 6. Round 2 — the review of the archived change
+
+No compiled file, no test source and no assertion changes in this round; the four items below are spec,
+guideline and evidence corrections, so no build is owed (the `:auto` suite in 6.2 was run to re-measure a
+lost artifact, not to refresh a green one).
+
+- [x] 6.1 The ADDED requirement now states its binding scope and names the four cases that still decide from
+      the whole file (`RouteGeometryTest.kt:110`, `NavigationEngineRerouteTest.kt:486`,
+      `CarHostGuardsTest.kt:69`, `SessionLogTest.kt:70`) in a "Residual paths outside this change" block, in
+      both the merged spec and the archive delta (identical text, verified by `diff`). Its prose stays under
+      openspec's 500-character requirement-text warning: `openspec validate unit-test-suite-runtime --strict
+      --type spec` now reports one warning, at `requirements[7]` ("A Compose case starts from a repaired
+      sandbox"), which this change does not touch. `guidelines/Design.md` §11 points at the requirement.
+- [x] 6.2 The `:auto` aggregate is stored: `./gradlew :auto:testDebugUnitTest -PforceTests --rerun-tasks` →
+      85 classes / 864 tests / 0 failures, XML `2026-10-18T15:37:16Z`–`:15:37:38Z`;
+      `evidence/auto-aggregate/TEST-*.xml` (85 files) plus `evidence/auto-aggregate/per-class.tsv`.
+      `evidence/suites.txt` states that the earlier `:auto` directory was overwritten by the `15:33:31Z`
+      focused re-run. Verifies *the neighbour aggregate is carried by an artifact*.
+- [x] 6.3 `guidelines/Design.md` §11 separates the markers from tag-level attribution (`ENGINE_FAULT_TAG`:
+      a foreign record under that tag still counts).
+- [x] 6.4 `tasks.md` 2.6, `report.md`, `design.md` and `SUMMARY.txt` corrected: the green tally is a composite
+      of two runs, the report's scenario numbers follow the delta's order, and `design.md` no longer claims
+      the change converted every diagnostics assertion.

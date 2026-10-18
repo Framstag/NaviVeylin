@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:24.591Z" hostname="dingens" time="0.132">
+  <properties/>
+  <testcase name="detachSurfaceStopsDrawingWithoutReleasing" classname="com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest" time="0.028"/>
+  <testcase name="aReplacedSurfaceIsNoLongerDrawable" classname="com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest" time="0.015"/>
+  <testcase name="detachingClearsASurfaceFailure" classname="com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest" time="0.019"/>
+  <testcase name="replacingASurfaceDoesNotReleaseThePreviousOne" classname="com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest" time="0.015"/>
+  <testcase name="aDetachedRendererLocksNoSurface" classname="com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest" time="0.023"/>
+  <testcase name="rendererNeverReleasesASurfaceItDrawsOn" classname="com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest" time="0.016"/>
+  <testcase name="aStoppedRendererIsNotDrawableThroughItsOldSurface" classname="com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

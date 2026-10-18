@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.CarStyleApplierTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:27.287Z" hostname="dingens" time="0.011">
+  <properties/>
+  <testcase name="styleChangeReloads" classname="com.naviveylin.auto.CarStyleApplierTest" time="0.01"/>
+  <testcase name="successfulLoadDoesNotReportAFailure" classname="com.naviveylin.auto.CarStyleApplierTest" time="0.0"/>
+  <testcase name="failedLoadRetriesOnNextApply" classname="com.naviveylin.auto.CarStyleApplierTest" time="0.0"/>
+  <testcase name="repeatedApplyOfSameStyleIsDeduped" classname="com.naviveylin.auto.CarStyleApplierTest" time="0.0"/>
+  <testcase name="firstApplyLoadsPersistedStyle" classname="com.naviveylin.auto.CarStyleApplierTest" time="0.0"/>
+  <testcase name="failedLoadIsSurfacedOncePerAttempt" classname="com.naviveylin.auto.CarStyleApplierTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

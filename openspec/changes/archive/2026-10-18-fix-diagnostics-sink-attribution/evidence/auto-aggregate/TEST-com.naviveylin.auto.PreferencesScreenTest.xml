@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.PreferencesScreenTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:34.456Z" hostname="dingens" time="0.155">
+  <properties/>
+  <testcase name="retryAfterFailureLoadsContent" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.017"/>
+  <testcase name="nonDarkModeToggleDoesNotReport" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.016"/>
+  <testcase name="loadFailureShowsErrorRowWithRetry" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.014"/>
+  <testcase name="darkModeToggleReportsNewValueViaCallback" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.016"/>
+  <testcase name="placeholderUntilLoadCompletes" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.014"/>
+  <testcase name="onGetTemplateBuildsWithoutThrowing" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.014"/>
+  <testcase name="onToggleSavesFlippedValue" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.016"/>
+  <testcase name="onToggleStyleSheetCyclesAndSaves" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.016"/>
+  <testcase name="stalledLoadEndsInErrorThenLateContentRecovers" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.016"/>
+  <testcase name="reVisibilityReReadsSettingsAndShowsNewAnchor" classname="com.naviveylin.auto.PreferencesScreenTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

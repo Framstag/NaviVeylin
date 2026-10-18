@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.ShowOnMapSwapTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:37.294Z" hostname="dingens" time="0.08">
+  <properties/>
+  <testcase name="theCallbackPathBuildsNothingAndPushesNothing" classname="com.naviveylin.auto.ShowOnMapSwapTest" time="0.014"/>
+  <testcase name="aFailingBuildPushesNothingAndDoesNotPropagate" classname="com.naviveylin.auto.ShowOnMapSwapTest" time="0.012"/>
+  <testcase name="aRejectedPushIsConfinedAndReported" classname="com.naviveylin.auto.ShowOnMapSwapTest" time="0.014"/>
+  <testcase name="aRejectedPopStillPushesAndIsReported" classname="com.naviveylin.auto.ShowOnMapSwapTest" time="0.014"/>
+  <testcase name="theScreenIsBuiltAndPushedAfterwards" classname="com.naviveylin.auto.ShowOnMapSwapTest" time="0.013"/>
+  <testcase name="theSwapPopsToTheRootBeforeItPushes" classname="com.naviveylin.auto.ShowOnMapSwapTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

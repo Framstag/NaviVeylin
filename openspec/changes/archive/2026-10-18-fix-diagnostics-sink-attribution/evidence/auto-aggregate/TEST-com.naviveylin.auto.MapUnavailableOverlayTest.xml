@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.MapUnavailableOverlayTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:31.633Z" hostname="dingens" time="0.066">
+  <properties/>
+  <testcase name="anEmptyTextOrAnEmptySurfaceDrawsNothing" classname="com.naviveylin.auto.MapUnavailableOverlayTest" time="0.011"/>
+  <testcase name="theNoticeTextIsDrawnCenteredOnTheSurface" classname="com.naviveylin.auto.MapUnavailableOverlayTest" time="0.029"/>
+  <testcase name="theTextPaintIsReusedAcrossFrames" classname="com.naviveylin.auto.MapUnavailableOverlayTest" time="0.014"/>
+  <testcase name="aDensityChangeRebuildsTheTextPaint" classname="com.naviveylin.auto.MapUnavailableOverlayTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

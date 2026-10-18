@@ -6,9 +6,9 @@
 
 A case that asserts on the diagnostics log SHALL decide its result from the lines its own subject wrote, and
 SHALL NOT decide it from the whole contents of the configured file: the target `DiagnosticsLog.initForTest`
-installs is process-wide, so work another class left running logs into it while a case holds it, and a count,
+installs is process-wide, so work another class left running logs into it while the case holds it, and a count,
 a `single()` or a whole-file substring measures those lines too. A case identifies its own lines by the tag or
-marker its subject's message carries.
+marker only its subject's message carries.
 
 #### Scenario: A foreign line does not decide the fallback case
 
@@ -73,3 +73,18 @@ marker its subject's message carries.
   reached the file
 - **THEN** exactly the one `ROUTE calc done:` entry is counted in the file
 - **Case**: `NavigationEngineCalculationStateTest.theEndOfACalculationIsRecordedWithoutCoordinates`
+
+#### Residual paths outside this change
+
+The rule binds the scenarios above and every case added or converted after them. Four shapes that predate the
+change still decide from the whole file and keep their shape here; naming them keeps the rule's scope honest:
+
+- `app/src/test/java/com/naviveylin/ui/route/RouteGeometryTest.kt:110` — `.last { }` on the shared `ROUTE` tag
+- `app/src/test/java/com/naviveylin/navigation/NavigationEngineRerouteTest.kt:486` — `single { }` on the shared
+  `REROUTE` tag, which a foreign line makes throw
+- `auto/src/test/java/com/naviveylin/auto/CarHostGuardsTest.kt:69` — a whole-sink negative,
+  `entries().none { it.contains("rejected") }`
+- `auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt:70` — the same negative shape on `geo:1.0,2.0`
+
+Scenarios 5–7 attribute at tag level (`ENGINE_FAULT_TAG`), the weakest form the rule allows: a foreign record
+carrying that tag would still be counted.

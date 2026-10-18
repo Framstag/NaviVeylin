@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.MapScreenTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:31.333Z" hostname="dingens" time="0.153">
+  <properties/>
+  <testcase name="theCarSurfaceNeverPushesTheSymbolIconPreference" classname="com.naviveylin.auto.MapScreenTest" time="0.085"/>
+  <testcase name="aTapAfterTheScreenIsDestroyedStartsNoWork" classname="com.naviveylin.auto.MapScreenTest" time="0.017"/>
+  <testcase name="theSurfaceDeliveryPushesNoNativeStylesheetFlagOnTheHostThread" classname="com.naviveylin.auto.MapScreenTest" time="0.016"/>
+  <testcase name="theTapPathDoesNotResolveTheNativeClientOnTheHostThread" classname="com.naviveylin.auto.MapScreenTest" time="0.018"/>
+  <testcase name="theProductionDefaultResolvesTheNativeClientOnABackgroundThread" classname="com.naviveylin.auto.MapScreenTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

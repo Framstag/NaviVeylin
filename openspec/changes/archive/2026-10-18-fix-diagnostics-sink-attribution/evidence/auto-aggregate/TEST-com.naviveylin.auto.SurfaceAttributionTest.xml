@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SurfaceAttributionTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:37.741Z" hostname="dingens" time="0.043">
+  <properties/>
+  <testcase name="geometryScalesWithDensity" classname="com.naviveylin.auto.SurfaceAttributionTest" time="0.012"/>
+  <testcase name="geometryAnchorsToStableBoundsBottom" classname="com.naviveylin.auto.SurfaceAttributionTest" time="0.01"/>
+  <testcase name="geometryNullWhenSurfaceTooSmall" classname="com.naviveylin.auto.SurfaceAttributionTest" time="0.01"/>
+  <testcase name="geometrySitsInBottomRightCorner" classname="com.naviveylin.auto.SurfaceAttributionTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

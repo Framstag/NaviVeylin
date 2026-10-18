@@ -15,9 +15,11 @@ diagnostics stream, and one shared stream is what the app wants.
 
 ## The single fix
 
-**Every assertion on the diagnostics stream narrows to the lines its own subject wrote**, using the tag or
+**Every assertion this change converts narrows to the lines its own subject wrote**, using the tag or
 message marker that only its subject's entries carry, and keeps its count, order and content assertions on
-that filtered list:
+that filtered list. That is nine of the suite's diagnostics assertions, not all of them: four other cases
+still decide from the whole file and keep their shape here (the requirement names their paths, so the
+contract does not claim more than the tree holds).
 
 | case | marker |
 |---|---|
@@ -27,6 +29,10 @@ that filtered list:
 | `EngineFaultHandlerTest.aConfinedFaultIsRecordedWithOriginAndStackTraceAndPublishedOnce`, `aThrowingPublishCannotEscapeTheHandlerAndTheRecordStillLands`, `theHandlerMirrorsToLogcatAndTheRecordReachesTheFile` | `ENGINE_FAULT_TAG` |
 | `NavigationEngineCalculationStateTest.theEndOfACalculationIsRecordedWithoutCoordinates` | `ROUTE calc done:` (`RouteCalculationDiagnostics.kt:29-40`) |
 | `SessionCarSurfaceHostTest.surfaceLifetimeIsRecordedForDiagnosis` | `HOST surface` |
+
+The `ENGINE_FAULT_TAG` rows are tag-level attribution — the weakest form — because a fault record a case
+provokes itself through a coroutine name has no marker of its own; a foreign record carrying that tag would
+still be counted. The other five markers are strings only the subject's own message writes.
 
 Each converted case keeps one line logged under the tag `OTHER` (a coordinate-shaped number in it) as the
 reproduction the red run used: the line is what another class would have written, and the case now proves it

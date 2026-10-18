@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.MapPanHandlerTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:31.133Z" hostname="dingens" time="0.154">
+  <properties/>
+  <testcase name="subDeadbandHeadingChangeDoesNotCommitRotation" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.014"/>
+  <testcase name="jitterIgnored" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.011"/>
+  <testcase name="pinchZoomsAroundFocus" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.01"/>
+  <testcase name="panModeExitReengagesFollow" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.011"/>
+  <testcase name="scrollMovesViewportCenter" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.011"/>
+  <testcase name="scrollIgnoredWhenNotPanning" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.01"/>
+  <testcase name="scaleIgnoredWhenNotPanning" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.011"/>
+  <testcase name="headingRampLagStaysInsideTheDeadband" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.021"/>
+  <testcase name="notPanningCommitsOnHeadingOrZoomChange" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.01"/>
+  <testcase name="subDeadbandFixIsServedByABlitInsteadOfAFullRender" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.011"/>
+  <testcase name="panModeEnterDisengagesFollowAndSuspendsAutoZoom" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.01"/>
+  <testcase name="panningSuppressesViewportCommit" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.012"/>
+  <testcase name="headingChangeBeyondTheDeadbandCommitsRotation" classname="com.naviveylin.auto.MapPanHandlerTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

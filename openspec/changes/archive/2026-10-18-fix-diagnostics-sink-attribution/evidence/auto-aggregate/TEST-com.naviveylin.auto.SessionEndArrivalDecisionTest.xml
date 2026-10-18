@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionEndArrivalDecisionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:36.847Z" hostname="dingens" time="0.068">
+  <properties/>
+  <testcase name="sessionEndAfterArrivalEndsNavigation" classname="com.naviveylin.auto.SessionEndArrivalDecisionTest" time="0.011"/>
+  <testcase name="stopIsCalledAtMostOnce" classname="com.naviveylin.auto.SessionEndArrivalDecisionTest" time="0.01"/>
+  <testcase name="sessionEndWithNoNavigationIsANoOp" classname="com.naviveylin.auto.SessionEndArrivalDecisionTest" time="0.01"/>
+  <testcase name="aThrowingStopDoesNotEscapeTheLifecycleCallback" classname="com.naviveylin.auto.SessionEndArrivalDecisionTest" time="0.012"/>
+  <testcase name="theDecisionLineNamesTheOutcomeWithoutACoordinate" classname="com.naviveylin.auto.SessionEndArrivalDecisionTest" time="0.015"/>
+  <testcase name="sessionEndWithoutArrivalKeepsNavigation" classname="com.naviveylin.auto.SessionEndArrivalDecisionTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

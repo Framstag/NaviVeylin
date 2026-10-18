@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SearchScreenTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:35.684Z" hostname="dingens" time="0.252">
+  <properties/>
+  <testcase name="contactsRowHiddenWithoutPermission" classname="com.naviveylin.auto.SearchScreenTest" time="0.02"/>
+  <testcase name="historyTapPushesScreenWithQuery" classname="com.naviveylin.auto.SearchScreenTest" time="0.03"/>
+  <testcase name="oneCharacterQueryRunsNothingOnTheCar" classname="com.naviveylin.auto.SearchScreenTest" time="0.016"/>
+  <testcase name="leavingTheSearchScreenAbandonsItsSearch" classname="com.naviveylin.auto.SearchScreenTest" time="0.018"/>
+  <testcase name="favoriteHitListedAboveNativeResults" classname="com.naviveylin.auto.SearchScreenTest" time="0.016"/>
+  <testcase name="emptyQueryShowsModeRowsAndHistory" classname="com.naviveylin.auto.SearchScreenTest" time="0.014"/>
+  <testcase name="contactsRowShownWithPermission" classname="com.naviveylin.auto.SearchScreenTest" time="0.015"/>
+  <testcase name="poiModeRowPushesPoiSearchScreen" classname="com.naviveylin.auto.SearchScreenTest" time="0.015"/>
+  <testcase name="typingReplacesSuggestionsWithResults" classname="com.naviveylin.auto.SearchScreenTest" time="0.015"/>
+  <testcase name="contactsModeRowPushesAddressBookScreen" classname="com.naviveylin.auto.SearchScreenTest" time="0.016"/>
+  <testcase name="noResultsShowsNoResultsRowThenModeRows" classname="com.naviveylin.auto.SearchScreenTest" time="0.015"/>
+  <testcase name="typedSearchPassesTheGpsFixAsTheDistanceReference" classname="com.naviveylin.auto.SearchScreenTest" time="0.016"/>
+  <testcase name="withoutAFixTheCarViewportCenterIsTheReference" classname="com.naviveylin.auto.SearchScreenTest" time="0.015"/>
+  <testcase name="aResultOfAStoppedScreenMakesNoHostCall" classname="com.naviveylin.auto.SearchScreenTest" time="0.015"/>
+  <testcase name="clearingRestoresSuggestions" classname="com.naviveylin.auto.SearchScreenTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

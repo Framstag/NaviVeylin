@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.HostInsetsTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:30.920Z" hostname="dingens" time="0.058">
+  <properties/>
+  <testcase name="emptyStableAreaMeansNoInsets" classname="com.naviveylin.auto.HostInsetsTest" time="0.012"/>
+  <testcase name="topInsetPrefersTheVisibleTopOverTheStableTop" classname="com.naviveylin.auto.HostInsetsTest" time="0.012"/>
+  <testcase name="stableAreaTouchingTheTopEdgeYieldsNoTopInset" classname="com.naviveylin.auto.HostInsetsTest" time="0.012"/>
+  <testcase name="fullSurfaceStableAreaMeansNoInsets" classname="com.naviveylin.auto.HostInsetsTest" time="0.011"/>
+  <testcase name="chromeBandsDeriveFromTheStableAreaEdges" classname="com.naviveylin.auto.HostInsetsTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

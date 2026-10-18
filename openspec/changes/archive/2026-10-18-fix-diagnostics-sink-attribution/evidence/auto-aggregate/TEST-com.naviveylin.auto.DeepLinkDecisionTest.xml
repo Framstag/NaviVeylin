@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DeepLinkDecisionTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:37:28.484Z" hostname="dingens" time="0.005">
+  <properties/>
+  <testcase name="noDestinationDoesNothing" classname="com.naviveylin.auto.DeepLinkDecisionTest" time="0.003"/>
+  <testcase name="resolvedShortLinkNavigates" classname="com.naviveylin.auto.DeepLinkDecisionTest" time="0.001"/>
+  <testcase name="placeLinkWithDataCoordinatesNavigates" classname="com.naviveylin.auto.DeepLinkDecisionTest" time="0.0"/>
+  <testcase name="queryWithoutCoordinatesIsGeocoded" classname="com.naviveylin.auto.DeepLinkDecisionTest" time="0.001"/>
+  <testcase name="unusableLinkReportsError" classname="com.naviveylin.auto.DeepLinkDecisionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

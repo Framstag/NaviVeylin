@@ -43,6 +43,17 @@ profile=$(loop_profile)
 separator=$(loop_compat_profile_value namespaceSeparator)
 separator="${separator:-/}"
 
+# One citation index for the whole pre-screen (`stale-citation-resolution` D1): the classifier's suffix test
+# needs the file list, and a `git ls-files` per citation would fork per token.
+ISSUES_CITATION_ROOT="$LOOP_ROOT"
+export ISSUES_CITATION_ROOT
+ISSUES_CITATION_INDEX=$(mktemp) || ISSUES_CITATION_INDEX=""
+export ISSUES_CITATION_INDEX
+if [ -n "$ISSUES_CITATION_INDEX" ]; then
+  issues_citation_index_build "$LOOP_ROOT" "$ISSUES_CITATION_INDEX" || true
+  trap 'rm -f "$ISSUES_CITATION_INDEX"' EXIT
+fi
+
 # The loop's rules are stated over the tracker's vocabulary, and the values are read from the project
 # profile — a second project changes its profile, not this script (D16).
 vocabulary() { loop_compat_profile_value "$1"; }
@@ -64,10 +75,14 @@ label_value() { # label_value <labels-json> <namespace> -> the value, or empty
 # The filesystem sensor: does the item still cite something that exists? A memory is not a fact, and a
 # path that no longer resolves is the one thing a script can refute without reading the code (Phase A
 # step 1 / Phase B condition 1, decided cheaply here — design D6).
-cited_paths_of() {
-  printf '%s\n%s\n' "$1" "$2" |
-    grep -oE '[A-Za-z0-9_][A-Za-z0-9_./-]*\.(kt|kts|java|cpp|cc|h|hpp|md|sh|xml|json|ya?ml|gradle|py|toml|properties|pro)' |
-    sort -u || true
+# The citation rule is `tools/issues/lib.sh`'s (`stale-citation-resolution` D1): **one** definition of what a
+# citation is — asked here and by `tools/issues/resolve-stale.sh`, so the two cannot disagree about a body —
+# and `stale` means the classifier's verdict (a citation no file, no submodule and no generated artefact
+# accounts for) rather than "this token is not at the repository root". That crude extraction was wrong about
+# 48 of 49 verdicts on 2026-10-18 (#164).
+stale_citations_of() {
+  issues_stale_citations_of "$1
+$2"
 }
 
 cited_symbols_of() {
@@ -136,16 +151,15 @@ while [ "$i" -lt "$count" ]; do
     reason="the item does not carry ${LOOP_AUTHORISATION_LABEL} — the opt-in is the author's, not the run's"
   fi
 
-  # The sensor runs on every candidate, before any judgement: it is the cheap refutation.
+  # The sensor runs on every candidate, before any judgement: it is the cheap refutation, and `stale` is the
+  # classifier's verdict — a citation no file, no submodule and no generated artefact accounts for.
   if [ "$verdict" = "eligible" ] && [ "$sensor" -eq 1 ]; then
-    for path in $(cited_paths_of "$title" "$body"); do
-      if [ ! -e "$LOOP_ROOT/$path" ]; then
-        verdict="stale"
-        reason="cited path '$path' no longer exists"
-        evidence="$path"
-        break
-      fi
-    done
+    stale_path=$(stale_citations_of "$title" "$body" | head -1)
+    if [ -n "$stale_path" ]; then
+      verdict="stale"
+      reason="cited path '$stale_path' resolves to no file in the repository or its submodules"
+      evidence="$stale_path"
+    fi
     if [ "$verdict" = "eligible" ]; then
       for symbol in $(cited_symbols_of "$title" "$body"); do
         p="${symbol%%:*}"

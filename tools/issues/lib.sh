@@ -517,6 +517,167 @@ issues_plan_refuses() { # <body> → 0 when the body cannot be placed in a fence
   esac
 }
 
+# --------------------------------------------------------------------------- citations
+#
+# **What a citation is, in one home** (`stale-citation-resolution`, D1–D3). The loop's pre-screen and
+# `tools/issues/resolve-stale.sh` both ask these functions, so the two cannot disagree about the same body —
+# which is exactly what went wrong when each extracted tokens for itself (#164: 44 of 49 staleness verdicts
+# were prose, and the extraction cut `Dorg.gradle.java.h` out of `-Dorg.gradle.java.home`).
+#
+# The rules are data (`tools/issues/citations.json`): the extensions that make a token look like a source file,
+# the header extensions that only count when the token is written as a path, and the artefacts the project
+# *generates* rather than tracks. The classes:
+#
+#   exact       <root>/<token> exists
+#   suffix      exactly one tracked path ends with the token (a bare class-file name is a citation, not a bug)
+#   submodule   it resolves inside a submodule, whose contents the superproject does not track
+#   generated   it names an artefact the project produces, so its absence from the tree is not staleness
+#   not-a-path  the token is not a citation at all (a bare header name)
+#   absent      no file of that name anywhere — the only class that is staleness
+#
+# The index is built once per run by the caller (`issues_citation_index_build`), because the suffix test needs
+# the tracked file list and a per-token `git ls-files` would fork per citation.
+ISSUES_CITATIONS_FILE="$ISSUES_LIB_DIR/citations.json"
+ISSUES_CITATIONS_AWK="$ISSUES_LIB_DIR/citations.awk"
+
+issues_citations_rules() { # <jq path> → one value per line; fails loudly, because the rules are data
+  [ -f "$ISSUES_CITATIONS_FILE" ] ||
+    issues_die "issues: no $ISSUES_CITATIONS_FILE — the citation rules are data and the file ships with the engine"
+  jq -r "$1" "$ISSUES_CITATIONS_FILE" 2>/dev/null ||
+    issues_die "issues: $ISSUES_CITATIONS_FILE does not parse — expected a JSON object with the citation rules"
+}
+
+issues_citation_extensions() { issues_citations_rules '.extensions[]?'; }
+issues_citation_header_extensions() { issues_citations_rules '.headerExtensions[]?'; }
+issues_citation_mention_only_extensions() { issues_citations_rules '.mentionOnlyExtensions[]?'; }
+issues_citation_external_prefixes() { issues_citations_rules '.externalPrefixes[]?'; }
+issues_citation_generated() { issues_citations_rules '.generated[]?'; }
+
+# The candidate tokens of a text: boundary-checked, still including the ones that turn out not to be paths.
+issues_citation_candidates() { # <text> → one token per line
+  local exts pattern
+  exts=$(issues_citation_extensions | paste -sd '|' -)
+  [ -n "$exts" ] || return 0
+  pattern="[A-Za-z0-9_][A-Za-z0-9_./-]*[.]($exts)"
+  awk -v pattern="$pattern" -f "$ISSUES_CITATIONS_AWK" | sort -u
+}
+
+issues_citation_is_path() { # <token> → 0 when it is a path rather than a mention
+  local tok="$1" ext
+  [ -n "$tok" ] || return 1
+  # An abbreviated mention is not a path: `app/src/test/.../XTest.kt` names no file, and nor does a token
+  # that ends in a separator.
+  case "$tok" in *..*) return 1 ;; esac
+  case "$tok" in */|*//*) return 1 ;; esac
+  case "$tok" in *.*) ext="${tok##*.}" ;; *) return 1 ;; esac
+  issues_citation_extensions | grep -qxF -- "$ext" || return 1
+  if issues_citation_header_extensions | grep -qxF -- "$ext"; then
+    case "$tok" in */*) return 0 ;; *) return 1 ;; esac
+  fi
+  return 0
+}
+
+issues_citation_matrix_of() { # <text> → `<class>\t<token>` per citation-shaped token, in text order
+  local tok
+  while IFS= read -r tok; do
+    [ -n "$tok" ] || continue
+    printf '%s\t%s\n' "$(issues_citation_class "$tok")" "$tok"
+  done < <(printf '%s\n' "$1" | issues_citation_candidates)
+}
+
+# The path-shaped tokens: what a consumer asks about. `not-a-path` tokens are dropped here and are still
+# *reported* by `issues_citation_matrix_of`, so a reader can see why a name was ignored.
+issues_citations_of() { # <text> → one path-shaped token per line
+  local text="$1" tok
+  while IFS= read -r tok; do
+    [ -n "$tok" ] || continue
+    issues_citation_is_path "$tok" && printf '%s\n' "$tok"
+  done < <(printf '%s\n' "$text" | issues_citation_candidates)
+  return 0
+}
+
+issues_citation_index_build() { # <root> <file> — the tracked paths, once per run; prints nothing
+  local root="$1" file="$2" r sub
+  ( cd "$root" && git ls-files --cached --others --exclude-standard ) | sort > "$file" || return 1
+  # A submodule's files are not in the superproject's index, and a citation of one is perfectly good: a
+  # `OSMScoutClient.cpp` inside `libosmscout-client` resolves. They join the same index, prefixed by their
+  # gitlink root, so one suffix test covers both and the class tells them apart.
+  while IFS= read -r r; do
+    [ -n "$r" ] || continue
+    sub="$root/$r"
+    [ -d "$sub" ] || continue
+    ( cd "$sub" && git ls-files ) 2>/dev/null | sed "s|^|$r/|" >> "$file" || true
+  done < <(issues_citation_submodule_roots "$root")
+  sort -u "$file" -o "$file"
+}
+
+issues_citation_submodule_roots() { # <root> → the gitlink roots, one per line
+  ( cd "$1" && git ls-files --stage ) 2>/dev/null | awk '$1 == "160000" { print $4 }'
+}
+
+# The canonical path a citation denotes, when the repository states it uniquely: the tracked path itself, or a
+# path inside a submodule. Nothing here guesses — an ambiguous suffix prints nothing and is reported.
+issues_citation_resolve() { # <token> → the path, or nothing
+  local tok="$1" root="${ISSUES_CITATION_ROOT:-$ISSUES_ROOT}" idx="${ISSUES_CITATION_INDEX:-}" roots r found="" n=0
+  issues_citation_is_path "$tok" || return 0
+  [ -e "$root/$tok" ] && { printf '%s\n' "$tok"; return 0; }
+  roots=$(issues_citation_submodule_roots "$root")
+  while IFS= read -r r; do
+    [ -n "$r" ] || continue
+    if [ -e "$root/$r/$tok" ]; then printf '%s\n' "$r/$tok"; return 0; fi
+  done <<< "$roots"
+  if [ -n "$idx" ] && [ -f "$idx" ]; then
+    while IFS= read -r found; do n=$((n + 1)); [ "$n" -eq 1 ] && first="$found"; done \
+      < <(awk -v t="$tok" -v s="/$tok" '$0 == t || substr($0, length($0) - length(s) + 1) == s' "$idx")
+    [ "$n" -eq 1 ] && printf '%s\n' "$first"
+  fi
+  return 0
+}
+
+issues_citation_class() { # <token> → exact|suffix|submodule|generated|not-a-path|absent
+  local tok="$1" root="${ISSUES_CITATION_ROOT:-$ISSUES_ROOT}" idx="${ISSUES_CITATION_INDEX:-}" ext="${1##*.}" prefix r roots n=0 hits=0 first="" match=""
+  issues_citation_is_path "$tok" || { printf 'not-a-path\n'; return 0; }
+  while IFS= read -r prefix; do
+    [ -n "$prefix" ] || continue
+    case "$tok" in "$prefix"*) printf 'not-a-path\n'; return 0 ;; esac
+  done < <(issues_citation_external_prefixes)
+  if [ -n "$idx" ] && [ -f "$idx" ]; then
+    while IFS= read -r match; do n=$((n + 1)); [ "$n" -eq 1 ] && first="$match"; done \
+      < <(awk -v t="$tok" -v s="/$tok" '$0 == t || substr($0, length($0) - length(s) + 1) == s' "$idx")
+    if [ "$n" -gt 0 ]; then
+      roots=$(issues_citation_submodule_roots "$root")
+      while IFS= read -r r; do
+        [ -n "$r" ] || continue
+        case "$first" in "$r"/*) printf 'submodule\n'; return 0 ;; esac
+      done <<< "$roots"
+      [ "$tok" = "$first" ] && { printf 'exact\n'; return 0; }
+      printf 'suffix\n'
+      return 0
+    fi
+  fi
+  [ -e "$root/$tok" ] && { printf 'exact\n'; return 0; }
+  if issues_citation_generated | grep -qxF -- "$tok" || issues_citation_generated | grep -qxF -- "${tok##*/}"; then
+    printf 'generated\n'
+    return 0
+  fi
+  # An unresolvable token with a data or a property extension is a runtime path or a property name —
+  # `db.json`, `files/favorites.json`, `org.gradle.java.home` — not a source citation.
+  if issues_citation_mention_only_extensions | grep -qxF -- "$ext"; then
+    printf 'not-a-path\n'
+    return 0
+  fi
+  printf 'absent\n'
+}
+
+issues_stale_citations_of() { # <text> → the tokens whose class is absent, one per line
+  local tok
+  while IFS= read -r tok; do
+    [ -n "$tok" ] || continue
+    [ "$(issues_citation_class "$tok")" = "absent" ] && printf '%s\n' "$tok"
+  done < <(issues_citations_of "$1")
+  return 0
+}
+
 # --------------------------------------------------------------------------- discovery, for the self-test
 
 issues_discover() {

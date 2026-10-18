@@ -1,0 +1,7 @@
+# Red on HEAD (8ab6f6b) — the skip path does not clear the in-progress mark
+
+$ LOOP_ENGINE=<copy of tools/loop as committed> bash tools/loop-selftest.sh --case run#aSkipClearsTheInProgressMark
+
+  a skipped item does not keep the in-progress mark: '--remove-label agent/in-progress' not found in: gh issue edit 21 --add-label agent/in-progress
+gh issue edit 21 --add-label status/on-hold
+FAIL run#aSkipClearsTheInProgressMark

@@ -80,6 +80,19 @@ item SHALL be able to invoke version control on its own behalf.
   resolved, as that login's noreply address — so the run never depends on an ambient git identity and never
   invents one, and a login that cannot be resolved stops the run with a named reason
 
+#### Scenario: A branch that carries no work of its own is reused
+
+- **WHEN** an item starts and a branch of that item's name already exists, and every commit on it is
+  already in the run's base history
+- **THEN** the item is worked on that branch, started from the run's base, so an item a previous run left
+  blocked can be taken up again
+
+#### Scenario: A branch that carries a previous attempt is refused, named and recorded
+
+- **WHEN** an item starts and a branch of that item's name carries a commit the run's base does not have
+- **THEN** the item is refused with the branch and the commits it carries named, and it is recorded as
+  awaiting a decision — a previous attempt's work is never thrown away, and a refusal is never silent
+
 #### Scenario: A stale base stops the next item
 
 - **WHEN** the main branch has advanced past the run's base commit
@@ -102,6 +115,19 @@ change.
 - **WHEN** an agent process is started for an item
 - **THEN** it receives a prepared package — the item's claim and evidence, the specification passage and
   the acceptance condition — and the item's own text is passed only inside a delimited data field
+
+#### Scenario: A process runs where the project's own policy applies
+
+- **WHEN** an agent process is started for an item
+- **THEN** it is started in the project and told by path which tree it changes, so the project's own
+  policy governs the process, and the package it is handed, the evidence directory it writes and the tree
+  it changes all lie inside the boundary the process may reach
+
+#### Scenario: A process that writes outside its tree is caught
+
+- **WHEN** an agent process changes the project's own tree while an item is in flight
+- **THEN** the item is recorded as blocked with that reason and none of that write is committed into the
+  item's change, because the worktree is the only tree a phase may write
 
 #### Scenario: The reviewer is not the writer
 
@@ -176,6 +202,12 @@ sufficient to continue after an interrupt without repeating work already done.
 - **WHEN** the run is interrupted while an item is in flight
 - **THEN** the in-progress marking is removed, the item is recorded as blocked, and the next run can take
   it up again
+
+#### Scenario: A skipped item leaves no item looking in progress
+
+- **WHEN** an item ends with a skip verdict
+- **THEN** the in-progress marking is removed with it, so the tracker never shows an item as being worked
+  while no run holds it
 
 #### Scenario: State is not committed
 

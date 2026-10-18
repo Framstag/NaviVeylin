@@ -1,0 +1,14 @@
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261018-093947')
+HEAD ist jetzt bei da59396 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  every child was started in the project root: expected '', got 'cwd: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.any7zv/case.W3NOTa/repo/.pi/worktrees/loop
+cwd: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.any7zv/case.W3NOTa/repo/.pi/worktrees/loop'
+FAIL run#childStartsInTheProjectRoot
+exit=0
+  a write outside the worktree blocks the item: expected 'blocked', got 'done'
+FAIL run#childWriteOutsideTheWorktreeIsBlocked
+exit=0

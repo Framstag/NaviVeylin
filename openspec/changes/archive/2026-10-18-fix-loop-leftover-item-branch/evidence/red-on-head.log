@@ -1,0 +1,42 @@
+# Red on HEAD (8ab6f6b) — the three new cases, against a copy of `tools/loop` as committed
+
+`LOOP_ENGINE=<copy of tools/loop at HEAD> bash tools/loop-selftest.sh --case <name>`, cases from the working
+tree (only the engine under test is the committed one):
+
+```
+### worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+  a branch carrying no work was refused: Schwerwiegend: Branch 'fix/issue-21-demo' existiert bereits
+FAIL worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+
+### worktree#refusesABranchCarryingAPreviousAttempt
+  a branch that carries work refuses the item: expected '5', got '2'
+FAIL worktree#refusesABranchCarryingAPreviousAttempt
+
+### run#leftoverBranchIsRecordedNotDropped
+  the leftover branch is recorded as an item rather than dropped: expected '1', got '0'
+FAIL run#leftoverBranchIsRecordedNotDropped
+```
+
+Two symptoms, one cause: `start-item` creates the branch unconditionally, so a branch a previous run left
+behind makes it fail; and the run's only handling of that failure is `break`, so the item is never recorded.
+The second case shows the missing refusal (the failure is `loop_die`'s exit 2, not `loop_refuse`'s exit 5);
+the third shows the silent drop (`0` items recorded — the report's "nothing processed").
+
+## The real run that produced it (`.pi/issue-loop/run.json`, 2026-10-18T09:53:52Z)
+
+```
+Schwerwiegend: Branch 'fix/issue-109-a-car-screen-s-observation-body-is-still' existiert bereits
+loop: start-item: git switch failed
+**agent-issue-loop — 2026-10-18T09:53:52Z** (budget 1 items / 90 min · … · base 8ab6f6bf0880)
+
+closed 0 · skipped 0 · blocked 0 · budget left 1 items / 90 min · spent 0 min
+| issue | class | verdict | change | root cause | red test | gate | review | outcome |
+|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | nothing processed |
+```
+
+The branch was left by the run before it (#169's blocked item, whose fix had not landed yet): `run.sh`
+records a blocked item, `worktree.sh end-item` commits whatever is in the tree ("committed: nothing"), and
+the branch stays — that part is by design (D4: the branches stay until merged, and a blocked item names its
+branch as evidence). What was not designed is that the next run cannot start the item again and says nothing
+about it.

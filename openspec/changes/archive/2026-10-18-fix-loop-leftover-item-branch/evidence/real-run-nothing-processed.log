@@ -1,0 +1,102 @@
+agent-issue-loop: items=1 minutes=90 review=on may-close=yes push=no max-decisions=3 review-read-only=on dry-run=0
+state: budget 1 items / 90 min · review on · may-close yes · max-decisions 3 · base 8ab6f6bf0880
+state: deadline 2026-10-18T11:23:07Z
+pre-screen: 68 eligible, 5 excluded — gates 2-5 stay the worker's (design D6)
+  #109 [bug/car] rank 1 — §175 A car screen's observation body is still a main-thread provider call site o
+  #110 [bug/car] rank 2 — §176 The first favourites template can take seconds on a cold session while the 
+  #114 [bug/car] rank 3 — §180 The car diagnostics screen caps at 20 rows with the same fixed-constant gap
+  #115 [bug/verification] rank 4 — §181 `SettingsStorageSourceTest.unknownStoredSourceFallsBackToBuiltIn` asserts "
+  #117 [bug/verification] rank 5 — §183 The aggregate gate run logs a `StackOverflowError` from a leaked `map-downl
+  #118 [bug/specs-and-process] rank 6 — §184 The feature-list prose gate fails on four over-long entry paragraphs, so th
+  #119 [bug/data-and-maps] rank 7 — §185 A map installed from a repository cannot be deleted — the native `DeleteDat
+  #125 [bug/native-jni] rank 8 — §191 The legacy route entry logs raw coordinates, and no gate looks at native co
+  #126 [bug/build-and-harness] rank 9 — §192 `HardcodedStringScanner` misses a user-facing literal assigned to a state f
+  #128 [bug/specs-and-process] rank 10 — §194 The full gate is red on HEAD: the shipped `routing-max-speed` spec is uncla
+  #129 [bug/verification] rank 11 — §195 Every Compose suite times out in the full forced gate, while each passes in
+  #130 [bug/verification] rank 12 — §196 The phone device suites are bound to a map dataset the reference AVD does n
+  #131 [bug/route-and-navigation] rank 13 — §197 The first route calculation after opening the databases can see an empty da
+  #133 [bug/specs-and-process] rank 14 — §199 `guidelines/FeatureList.md`'s coverage gate row refuses `a user-visible spe
+  #136 [bug/build-and-harness] rank 15 — §202 A Pango-less host build in this working tree compiles against the Android-g
+  #162 [bug/specs-and-process] rank 16 — The loop engine still names a project path and project vocabulary values, so the
+  excluded #164 settled: the item is already open — nothing is left for this loop to work
+  #7 [improvement/ui] rank 17 — §166 The stop control's own accessibility target is asserted by geometry only, n
+  #10 [improvement/verification] rank 18 — §170 The new navigation-column case asserts the raw preset fraction, not the col
+  #11 [improvement/specs-and-process] rank 19 — §171 Two archived capabilities still carry the archive's placeholder `## Purpose
+  #13 [improvement/specs-and-process] rank 20 — §172 A skill document may state the same rule in more than one place — nothing o
+  #14 [improvement/data-and-maps] rank 21 — §163 A cleartext repository download has no integrity protection — the declared 
+  #16 [improvement/car] rank 22 — §120 The car re-applies the `daylight` flag after every style switch, so a switc
+  #17 [improvement/specs-and-process] rank 23 — §113 Origin changes ship without a falsification step — every later fix change t
+  #18 [improvement/verification] rank 24 — §111 The follow blit anchor is proven only as pure geometry — no test drives the
+  #20 [improvement/search] rank 25 — §109 The cross-database scope filter is host-tested only as a pure helper — the 
+  #21 [improvement/favorites] rank 26 — §102 Four scenarios added by `reorder-favorite-groups` have no automated test — 
+  #29 [improvement/native-jni] rank 27 — §82 The native search-scope diagnostics were dropped with the branch's last diff
+  #30 [improvement/native-jni] rank 28 — §81 The word-matching allocation-cost case did not travel upstream with the matc
+  #31 [improvement/search] rank 29 — §77 Words joined without a separator stay unmatched (`Bahnhof Straße` vs `Bahnho
+  #32 [improvement/search] rank 30 — §76 The free-text index keys whole names, so a mid-name word is unreachable with
+  #38 [improvement/build-and-harness] rank 31 — §66 `hostbuild`'s JNI target is configured against a JDK that is not installed —
+  #42 [improvement/car] rank 32 — §34 Car search opened from the root/history screens has no distance reference
+  excluded #45 stale: cited path 'fix-address-lookup-accuracy/tasks.md' resolves to no file in the repository or its submodules
+  #55 [improvement/build-and-harness] rank 33 — §14 Kover deprecation on the Gradle 10 path
+  #56 [improvement/build-and-harness] rank 34 — §22 Gradle 10 deprecation sweep (build-level, pre-upgrade audit)
+  #58 [improvement/verification] rank 35 — §15 Kover coverage attribution for Robolectric-tested classes
+  #60 [improvement/search] rank 36 — §24 Sharp-s uppercase form (ẞ U+1E9E) is not folded
+  #64 [improvement/build-and-harness] rank 37 — §37 Pre-existing Kotlin deprecation warning in the marker overlay
+  #65 [improvement/build-and-harness] rank 38 — §44 Pre-existing Kotlin build warnings beyond the marker overlay
+  #68 [improvement/specs-and-process] rank 39 — §40 Guardrails extracted from `ki_processing_failures.log` (2026-09-19)
+  #69 [improvement/specs-and-process] rank 40 — §134 Guardrails extracted from `ki_processing_failures.log` (2026-10-05)
+  excluded #73 stale: cited path 'core/OverrunWindow.kt' resolves to no file in the repository or its submodules
+  #78 [improvement/build-and-harness] rank 41 — §123 Test harness: `SearchHistoryRepository` is usually built without the test d
+  #80 [improvement/car] rank 42 — §127 `LoadingScreen` is production-dead and now has a sibling wait notice — Foun
+  #81 [improvement/build-and-harness] rank 43 — §128 `NavigationEngineAcquisitionTest` pins `@Config(sdk = [34])` although the p
+  #83 [improvement/build-and-harness] rank 44 — §132 The declared fork counts are tuned for a single-suite run, but the full gat
+  #84 [improvement/car] rank 45 — §133 A route that finishes just after the notice delay flashes the car notice fo
+  #85 [improvement/ui] rank 46 — §136 The docked wide panel shows the anchor toggle, which cannot change its size
+  #87 [improvement/verification] rank 47 — §141 `MapCanvasViewModelFixQualityTest.aTickDoesNotDispatchOnTheMainDispatcher` 
+  #88 [improvement/build-and-harness] rank 48 — §142 A viewport-restore case costs 6.2 s although it contains no wait — the clas
+  #89 [improvement/build-and-harness] rank 49 — §143 Cases that await a real route calculation cost 5-9 s today, though the same
+  #91 [improvement/build-and-harness] rank 50 — §145 `gradle.properties` commits a machine-local JDK path that every other machi
+  #97 [improvement/ui] rank 51 — §152 The follow-anchor insets during a navigating session panel follow the chrom
+  #98 [improvement/specs-and-process] rank 52 — §154 `guidelines/MapRendering.md` numbers two sections `## 14.`, so a `§14` refe
+  #99 [improvement/build-and-harness] rank 53 — §155 Regenerating the feature documents is a manual command; nothing runs it at 
+  #100 [improvement/specs-and-process] rank 54 — §156 The release note has no length limit, so it cannot be pasted into a store l
+  #101 [improvement/specs-and-process] rank 55 — §157 Nothing forces a change to classify the capability specs it archives — the 
+  #102 [improvement/specs-and-process] rank 56 — §158 Two specs still carry a `TBD` purpose placeholder, so their capabilities ca
+  #103 [improvement/specs-and-process] rank 57 — §159 The feature catalogue's word report is unbounded, so its signal is buried —
+  #106 [improvement/specs-and-process] rank 58 — §162 `guidelines/FeatureList.md` names three behaviour contracts that exist nowh
+  #108 [improvement/native-jni] rank 59 — §174 Nothing guards the override/submodule native parity, and a blanket subset c
+  #116 [improvement/data-and-maps] rank 60 — §182 A leftover staging directory of an update is discoverable as an installed m
+  #122 [improvement/native-jni] rank 61 — §188 The routing profile's per-vehicle maximum-speed semantics have no test anyw
+  excluded #124 stale: cited path 'shift.py' resolves to no file in the repository or its submodules
+  #127 [improvement/native-jni] rank 62 — §193 `avoidTolls` and `avoidUnpaved` are accepted and do nothing but log — Found
+  #132 [improvement/verification] rank 63 — §198 The archived `distinguish-routing-failures` left four verification tasks op
+  #134 [improvement/specs-and-process] rank 64 — §200 `guidelines/UI.md`'s "Keeping this document honest" rule names only the §1 
+  #137 [improvement/build-and-harness] rank 65 — §203 An image carried by a tool result can kill the session that holds the work,
+  #159 [improvement/specs-and-process] rank 66 — `fix-navigation-engine-fault-isolation` would drop five existing scenarios at ar
+  #160 [improvement/build-and-harness] rank 67 — The sensor pipeline's documented token scope omits Pull requests: Read, which th
+  #161 [improvement/build-and-harness] rank 68 — The sensor pipeline never materialises its rows' inputs, so every scheduled run 
+  excluded #163 settled: the item is already open — nothing is left for this loop to work
+lock held: /home/tim/projects/NaviVeylin/.pi/issue-loop/lock (owner 574650)
+Zu neuem Branch 'loop-20261018-095351' gewechselt
+worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop reused (branch loop-20261018-095351 from 8ab6f6bf0880)
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop on loop-20261018-095351 from 8ab6f6bf0880
+Schwerwiegend: Branch 'fix/issue-109-a-car-screen-s-observation-body-is-still' existiert bereits
+loop: start-item: git switch failed
+**agent-issue-loop — 2026-10-18T09:53:52Z** (budget 1 items / 90 min · review on · may-close yes · max-decisions 3 · base 8ab6f6bf0880)
+
+closed 0 · skipped 0 · blocked 0 · budget left 1 items / 90 min · spent 0 min
+
+closed 0 · skipped 0 · blocked 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | outcome |
+|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | nothing processed |
+
+excluded: #164 settled · #45 stale · #73 stale · #124 stale · #163 settled
+
+skipped: none
+excluded before any work: #164 settled · #45 stale · #73 stale · #124 stale · #163 settled
+decisions the owner owes: none
+branches: fix/issue-109-a-car-screen-s-observation-body-is-still loop-20261018-092659 loop-20261018-095351
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop (kept for the next run)
+state: /home/tim/projects/NaviVeylin/.pi/issue-loop/run.json
+worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/loop

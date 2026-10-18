@@ -1,0 +1,32 @@
+RED    9.1  state#secondRunRefusesWithExit5   (the lock that keeps one run per repository)
+restore 9.1 state#secondRunRefusesWithExit5 green again
+RED    9.2  worktree#refusesWhenMainAdvanced   (the stale-base refusal)
+restore 9.2 worktree#refusesWhenMainAdvanced green again
+RED    9.3  labels#writesOnlyBetweenChildren   (one writer per tree: the child runs while the wrapper writes state)
+restore 9.3 labels#writesOnlyBetweenChildren green again
+RED    9.4  labels#trapRemovesInProgressOnSignal   (the signal trap that removes the in-progress label)
+restore 9.4 labels#trapRemovesInProgressOnSignal green again
+RED    9.5  run#childClaimWithoutCommitIsBlocked   (the run verifying instead of trusting the child)
+restore 9.5 run#childClaimWithoutCommitIsBlocked green again
+RED    9.6  run#decisionCapRefusesToStart   (the decision cap that stops a run)
+restore 9.6 run#decisionCapRefusesToStart green again
+RED    9.7  run#mayCloseNoLeavesTheIssueOpen   (the closure opt-out)
+restore 9.7 run#mayCloseNoLeavesTheIssueOpen green again
+RED    9.8  worktree#oneBranchPerItemOffTheBase   (one branch per item)
+restore 9.8 worktree#oneBranchPerItemOffTheBase green again
+RED    9.9  state#agentCommandIsTheOnlyIndirection   (the single agent-command indirection)
+restore 9.9 state#agentCommandIsTheOnlyIndirection green again
+RED    9.10  run#reviewerWriteInvalidatesTheRound   (the reviewer read-only comparison)
+restore 9.10 run#reviewerWriteInvalidatesTheRound green again
+RED    9.11  state#projectKeysAreReadFromLoopConf   (the project facts living in loop.conf)
+restore 9.11 state#projectKeysAreReadFromLoopConf green again
+RED    12.1  run#commitsWithoutAnAmbientIdentity   (the commit is attributed to the run's own identity)
+restore 12.1 run#commitsWithoutAnAmbientIdentity green again
+RED    12.2  run#childStartsInTheProjectRoot   (the child started in the project, where the project's own policy is resolved)
+restore 12.2 run#childStartsInTheProjectRoot green again
+RED    12.3  run#childWriteOutsideTheWorktreeIsBlocked   (the run catching a child write left outside the worktree)
+restore 12.3 run#childWriteOutsideTheWorktreeIsBlocked green again
+RED    12.4  run#reviewerWriteInTheProjectIsDiscarded   (the reviewer comparison reading the project tree as well)
+restore 12.4 run#reviewerWriteInTheProjectIsDiscarded green again
+
+red-when-mutated: 15 · not-noticed: 0 · restore-failures: 0

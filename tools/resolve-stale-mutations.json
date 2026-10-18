@@ -1,0 +1,78 @@
+{
+  "comment": "The nine revert-checks of `stale-citation-resolution` (tasks 5.1–5.9) as a runnable set: one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. Every search is a single line, because the runner's replacement is literal and line-based. The transcript is this change's `evidence/revert-checks.md`.",
+  "case-cmd": "bash tools/resolve-stale-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "5.1",
+      "case": "classifier#fragmentIsNotACitation",
+      "file": "tools/issues/citations.awk",
+      "search": "    if (r ~ /[A-Za-z0-9_]/) continue",
+      "replace": "    if (0) continue",
+      "why": "the trailing-boundary check that keeps a token cut out of a longer one out of the citation set"
+    },
+    {
+      "label": "5.2",
+      "case": "classifier#bareHeaderIsNotAPath",
+      "file": "tools/issues/lib.sh",
+      "search": "    case \"$tok\" in */*) return 0 ;; *) return 1 ;; esac",
+      "replace": "    return 0",
+      "why": "the rule that a header is only a citation when it is written as a path"
+    },
+    {
+      "label": "5.3",
+      "case": "classifier#bareSourceNameResolvesBySuffix",
+      "file": "tools/issues/lib.sh",
+      "search": "      < <(awk -v t=\"$tok\" -v s=\"/$tok\" '$0 == t || substr($0, length($0) - length(s) + 1) == s' \"$idx\")",
+      "replace": "      < <(awk -v t=\"$tok\" '$0 == t' \"$idx\")",
+      "why": "the suffix test — a bare class-file name is a citation, not a bug"
+    },
+    {
+      "label": "5.4",
+      "case": "classifier#submodulePathResolves",
+      "file": "tools/issues/lib.sh",
+      "search": "    [ -d \"$sub\" ] || continue",
+      "replace": "    continue",
+      "why": "the submodule files joining the index, so a citation inside one resolves"
+    },
+    {
+      "label": "5.5",
+      "case": "resolver#markersSurviveTheRepair",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "    new_body=$(printf '%s\\n' \"$new_body\" | awk -v old=\"$tok\" -v new=\"$canon\" -f \"$here/rewrite.awk\")",
+      "replace": "    new_body=$(printf '%s\\n' \"$new_body\" | grep -v '^<!-- fingerprint:' | sed \"s|$tok|$canon|\")",
+      "why": "the repair editing the citation token in place, so the body's markers survive"
+    },
+    {
+      "label": "5.6",
+      "case": "resolver#ambiguityIsReportedNotRepaired",
+      "file": "tools/issues/lib.sh",
+      "search": "    [ \"$n\" -eq 1 ] && printf '%s\\n' \"$first\"",
+      "replace": "    [ \"$n\" -ge 1 ] && printf '%s\\n' \"$first\"",
+      "why": "an ambiguous citation being reported rather than resolved to the first candidate"
+    },
+    {
+      "label": "5.7",
+      "case": "resolver#unrepairableCitationIsParked",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "      bash \"$here/update.sh\" \"$number\" --status on-hold \\",
+      "replace": "      bash \"$here/update.sh\" \"$number\" \\",
+      "why": "an unresolvable citation parking the item, so it leaves the eligible queue visibly"
+    },
+    {
+      "label": "5.8",
+      "case": "resolver#secondRunChangesNothing",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "  if is_parked \"$labels\"; then",
+      "replace": "  if false; then",
+      "why": "the idempotence guard — a parked item is not re-decided, so a second run posts nothing"
+    },
+    {
+      "label": "5.9",
+      "case": "prescreen#refusalIsVisibleInTheTracker",
+      "file": "tools/loop/prescreen.sh",
+      "search": "    stale_path=$(stale_citations_of \"$title\" \"$body\" | head -1)",
+      "replace": "    stale_path=$(printf '%s\\n%s\\n' \"$title\" \"$body\" | grep -oE '[A-Za-z0-9_][A-Za-z0-9_./-]*\\.(kt|md|sh)' | sort -u | while IFS= read -r p; do [ -e \"$LOOP_ROOT/$p\" ] || { printf '%s\\n' \"$p\"; break; }; done)",
+      "why": "the pre-screen asking the shared classifier instead of extracting tokens for itself"
+    }
+  ]
+}

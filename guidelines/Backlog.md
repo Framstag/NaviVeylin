@@ -13,8 +13,9 @@ tracker, and the automation over it is the tooling under `tools/issues/**` plus 
 reached by seven changes, in order; each change's tasks include keeping this document true for its own
 sections, so the document becomes a description of the tree exactly as fast as the tree moves.
 
-The first two changes landed the tracker and the import, the third the loop and the fifth the metadata pass;
-this document's fourth change, the check registry, has landed too, and the last two have not. Concretely, on the tracker today: the label
+The first two changes landed the tracker and the import, the third the loop and the fifth the metadata pass; this
+document's fourth change, the check registry, has landed too, and so has the sixth — the portability proof.
+Only the seventh, the human lane, has not. Concretely, on the tracker today: the label
 taxonomy exists (`class/` · `category/` · `status/` · `source/` · `agent/` · `prio/` · `sensor/`, plus GitHub's nine
 defaults), the imported backlog carries it — **137** items, every one open and none carrying `agent/eligible`,
 plus **21** `status/retired` tombstones for the ids whose entry had already been removed before the migration,
@@ -28,7 +29,7 @@ token, proves exactly that on every push.
 | 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | **applied 2026-10-17** — `tools/loop/**` (the entry `run.sh`, the pre-screen, the state and its lock, the worktree and the branches, the label transitions, the report), two prompt skeletons filled from `loop.conf`, a stub `pi` and an offline self-test with one CI step; the two write paths the loop needed landed in the tooling (`update.sh --remove-label`, `close.sh --comment-only`); §7 and §11 of this document and the `fix-loop` skill describe it |
 | 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | **applied 2026-10-17** — `tools/sensors/**` (the registry `sensors.json`, the runner, the guards, the report, the hotspot measurement, the four metric rows and the two condition sensors), a fixture harness offline against the stub `gh` with one CI step, the three verbs the runner writes through extended (`create.sh --sensor`, `close.sh --sensor`, the new `reopen.sh`), the isolated pipeline `.github/workflows/sensors.yml` with its CODEOWNERS entry, and `labels.sh` learning the registry's labels; the host dry runs, the falsification run and the not-reproducible CI steps are recorded under the change's `report.md` |
 | 5 | `issue-metadata-loop` | persisted priority and classification | **applied 2026-10-17** — `tools/issues/prioritise.sh` (the basis, the partition over every issue, the bounded run, the label+marker writer, the transition comment) and `classify.sh` (the queue of items with no kind), `check-metadata.sh` and its falsification, the `bands` section in `tools/tooling.json`, `list.sh --prio/--unranked`, the `issue-metadata` skill and the `triage-todo` rewrite; the run over the live tracker is recorded under the change's `evidence/` |
-| 6 | `tooling-portability` | the proof that another project can use all of it | planned |
+| 6 | `tooling-portability` | the proof that another project can use all of it | **applied 2026-10-18** — `tools/check-portability.sh` (the leak check, its value set read from the profile and the per-tool configs at run time) with `tools/check-portability-selftest.sh` and its 21 cases, `tools/mutate.sh` with the seven revert-checks as a versioned mutation set, the two skills `portability-check` and `mutation-runner`, the synthetic project `tools/fixtures/foreign-project/` on which the whole toolchain runs without an engine edit, `PORTING.md` (the recipe, its commands executed by the self-test), one `Check portability` CI step and the check's own classification line; no engine file was changed — the check is the proof, not a fix |
 | 7 | `decision-queue` | the human lane — the queue, the answer path, the mid-item handover | **named, not written** |
 
 **What this document owns.** The concept: the participants and the flow, what the tracker holds, the
@@ -291,13 +292,17 @@ engine, copied unchanged            the project, adapted
 
 Every command answers "which project am I in?" from its own working tree, so the copy needs no arguments
 and no configuration pointing at itself. **An engine names no project value** — not a repository, not an
-author, not a vocabulary value, not a path — and a check fails when one appears, reading the values it
-forbids from the profile so that it cannot become a stale list.
+author, not a vocabulary value, not a path — and `tools/check-portability.sh` fails when one appears,
+reading the values it forbids from the profile and the per-tool configs so that it cannot become a stale
+list. A value is a leak when an engine **names** it (inside a quote, as a label, or as a flag's argument):
+a project whose category is an ordinary word (`core`, `docs`) must not trip a check that fires on every
+identifier and every sentence, or the check becomes a rule nobody keeps.
 
-The proof is a **synthetic project** in the repository's fixtures — a different repository, a different
-allowlist, a different vocabulary — on which the whole toolchain runs, and a porting recipe whose every
-command is executed by that same check. Distribution is a copy per project; sharing the engines from one
-place stays deferred, and it stays cheap precisely because the profile boundary already exists.
+The proof is a **synthetic project** in the repository's fixtures (`tools/fixtures/foreign-project/`) — a
+different repository, a different allowlist, a different vocabulary — on which the whole toolchain runs,
+and a porting recipe (`PORTING.md`) whose every command is executed by that same check. Distribution is a
+copy per project; sharing the engines from one place stays deferred, and it stays cheap precisely because
+the profile boundary already exists.
 
 ## 11. Where an agent runs
 
@@ -356,7 +361,9 @@ is in the change's `design.md`; this is the map, so a reader can find it and so 
 | only the changed subset interpreted, bounded per run | a vocabulary change must not become a sweep | 5 |
 | priority is not authorisation | else a threshold or a check could promote work into the loop | 5 |
 | a correctness check over a value set read from the profile | a hand-written ban list fails open — change 1 landed the check over the tooling's own vocabulary, change 6 adds the synthetic project that proves it in a project that differs | 6 |
+| a leak is a **named** value, not a word that appears | a category can be an ordinary word (`core`), so the check matches only values that are quoted, labelled or a flag's argument — a rule that fires on identifiers and prose is a rule that gets switched off (measured: a plain word-boundary scan reported 3 false positives on the foreign fixture, 14 over this tree) | 6 |
 | a synthetic project as the proof | only a project that differs tests the profile | 6 |
+| a recipe whose commands the self-test executes | a recipe that is never run drifts away from the tooling it describes; the copy itself stays prose because it runs in the source project | 6 |
 | one indirection for the agent command | running agents elsewhere must be configuration | 3 |
 
 ## 13. Deferred, and why
@@ -366,7 +373,7 @@ Named so a reader can tell a decision from an omission:
 | deferred | why it is deferred |
 |---|---|
 | the human lane's queue and answer path (change 7) | it depends on a working loop, and the prepared-options format needs the loop's experience to design |
-| a shared home for the engines, or a published tool | premature with one consumer; the profile boundary keeps it cheap |
+| a shared home for the engines, or a published tool | premature with one consumer; the profile boundary keeps it cheap, and the copy's own cost is stated in `PORTING.md` |
 | scheduled unattended runs, budgets read from a file | it would put a model provider's key in a pipeline, which is the one place a credential is hardest to bound |
 | parallel runs and a landing queue | serialising runs is the one-writer rule at run scale; parallelism needs a merge queue |
 | the size/frequency loop and a ratified threshold in CI | the measurement and its row have landed (`sensor-registry-and-metric-issues`); what is still deferred is *ratifying* the bound from recorded baselines, which needs the check to have run for a while first |

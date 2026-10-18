@@ -169,6 +169,7 @@
     "style-load-diagnostics": { "area": "map-appearance", "userVisible": false, "surfaces": ["phone", "car"] },
     "test-coverage": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "tile-cache": { "area": "map-appearance", "userVisible": false, "surfaces": ["phone", "car"] },
+    "tooling-portability": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "turn-instruction-localization": { "area": "device-fit", "userVisible": true, "surfaces": ["phone", "car"] },
     "unit-test-suite-runtime": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "viewport-persist": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },

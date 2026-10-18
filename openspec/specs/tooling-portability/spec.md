@@ -1,0 +1,158 @@
+# tooling-portability Specification
+
+## Purpose
+
+The backlog tooling can be used by another project: every project-specific fact lives in one committed
+profile, every command determines the project it is running on from its own working tree, no engine names
+a project value, and a synthetic project with a different repository, allowlist and vocabulary runs the
+whole toolchain — so a second project is a copy and a profile, not a code review.
+
+## Requirements
+
+### Requirement: An engine names no project value
+
+The tooling's engines SHALL contain no project value — not the repository, not an allowlisted author, not
+a value of the project's vocabulary, not a project path, not the project's name — and a check SHALL fail
+when one appears.
+
+#### Scenario: A project value in an engine fails the check
+
+- **WHEN** the repository name, an allowlisted author, a vocabulary value or the project's name appears in
+  an engine
+- **THEN** the check fails and names the value, the file and the line
+
+#### Scenario: The check passes on the project it guards
+
+- **WHEN** the check runs over the real tree
+- **THEN** it passes and prints which engines it examined and which files it excluded
+
+#### Scenario: The exclusions are deliberate and visible
+
+- **WHEN** the check prints its exclusions
+- **THEN** they are the source adapter that reads this project's own record format, the test fixtures and
+  the project's documents, and no engine
+
+#### Scenario: A change that leaks portability is caught where it is introduced
+
+- **WHEN** a change introduces a project value into an engine
+- **THEN** the check fails on that change, so the leak is found by the pipeline rather than by the second
+  project
+
+### Requirement: The check's value set is the project's own
+
+The check SHALL read the values it forbids from the project's profile rather than carrying a list of its
+own, so that a value added to the profile is immediately forbidden in an engine and the check cannot
+become a stale list that fails open.
+
+#### Scenario: A newly declared value is forbidden in engines
+
+- **WHEN** a value is added to the profile and then used literally in an engine
+- **THEN** the check reports it
+
+#### Scenario: A value removed from the profile is no longer forbidden
+
+- **WHEN** a value is removed from the profile
+- **THEN** the literal is no longer reported, which is what distinguishes a read value set from a stale
+  one
+
+### Requirement: Discovery is exercised where it breaks
+
+The tools SHALL determine the project from their working tree in every situation a project actually occurs
+in, and the situations that break a naive resolution SHALL be covered by the check's own cases.
+
+#### Scenario: Invoked from a nested directory
+
+- **WHEN** a tool is invoked from a directory below the project's root
+- **THEN** the project's root, repository and profile are resolved from the tree
+
+#### Scenario: Invoked in a linked working tree
+
+- **WHEN** a tool is invoked inside a linked working tree of the project
+- **THEN** that working tree's own profile and repository are used and no path of the main checkout is read
+
+#### Scenario: The environment contradicts the tree
+
+- **WHEN** an environment variable names a different repository
+- **THEN** the working tree's repository is used and only an explicit argument overrides it
+
+#### Scenario: Invoked outside a project
+
+- **WHEN** a tool is invoked where there is no project
+- **THEN** it reports that and stops, and no default project is invented
+
+### Requirement: A project with a different vocabulary runs the toolchain
+
+A project whose repository, allowlisted authors, vocabulary and bands all differ from this project's SHALL
+be able to run the whole toolchain — filing, selecting, updating, closing, reopening, a declared check, a
+prioritisation pass and a loop run — without an edit to an engine.
+
+#### Scenario: The whole toolchain runs in the foreign project
+
+- **WHEN** the toolchain is run against a project with different repository, allowlist and vocabulary
+- **THEN** every command succeeds and the issues it produced carry that project's vocabulary
+
+#### Scenario: Identity is refused in the foreign project too
+
+- **WHEN** the tooling runs in the foreign project as an identity that project does not allowlist
+- **THEN** it refuses, because the gate is a behaviour and not a local configuration
+
+#### Scenario: A project with no gate command still runs
+
+- **WHEN** the foreign project declares no gate command
+- **THEN** the loop's phases complete and its report says the gate was skipped
+
+#### Scenario: A duplicate is refused in the foreign project
+
+- **WHEN** the foreign project's fixture contains two findings with the same fingerprint
+- **THEN** one issue is created and the second is reported as a duplicate, as in this project
+
+### Requirement: The porting recipe is executable documentation
+
+The document describing how to use the tooling in another project SHALL be verified: every command it
+contains SHALL be executed by the check against the synthetic project, so the recipe cannot drift away from
+the tooling.
+
+#### Scenario: Every command in the recipe runs
+
+- **WHEN** the recipe's commands are executed against the synthetic project
+- **THEN** each succeeds, and the first failure fails the check
+
+#### Scenario: The recipe assumes no build of this project
+
+- **WHEN** the recipe is inspected
+- **THEN** it names no build command of this project and no path outside the copied tree, so a project
+  without that build can follow it unchanged
+
+#### Scenario: The adaptation point is named
+
+- **WHEN** a reader follows the recipe
+- **THEN** it names the profile and the per-tool configuration as the files to edit and the source adapter
+  as the file to replace or delete
+
+#### Scenario: The cost of a copy is stated
+
+- **WHEN** a reader considers adopting the tooling
+- **THEN** the recipe states that an engine fix upstream means re-copying the engines, that a local engine
+  edit means owning the merge, and that sharing the engines from one place remains an option the profile
+  boundary keeps cheap
+
+### Requirement: The synthetic project is a fixture, not a second project
+
+The project used to prove portability SHALL live in the repository's fixtures, SHALL be built from a
+throwaway working tree at test time, and SHALL be documented as modelling neither a second tracker, nor
+another shell, nor another forge client.
+
+#### Scenario: The fixture is versioned, not local
+
+- **WHEN** the fixture is inspected
+- **THEN** it is part of the repository's tracked content, so a fresh clone can run the proof
+
+#### Scenario: The fixture's copy of the engines cannot drift
+
+- **WHEN** the fixture runs the toolchain
+- **THEN** it uses the engines in the repository rather than a copy of its own
+
+#### Scenario: What the fixture does not model is written down
+
+- **WHEN** a reader of the fixture asks whether their project is covered
+- **THEN** the fixture states the assumptions it does not exercise

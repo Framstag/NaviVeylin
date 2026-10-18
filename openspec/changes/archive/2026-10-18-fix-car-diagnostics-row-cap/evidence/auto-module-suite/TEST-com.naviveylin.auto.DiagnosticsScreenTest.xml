@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DiagnosticsScreenTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:50.437Z" hostname="dingens" time="0.512">
+  <properties/>
+  <testcase name="loadedEntriesReachTheTemplate" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.071"/>
+  <testcase name="thePageRowOpensTheNextSliceOfTheWindow" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.307"/>
+  <testcase name="theDiagnosticsListFitsTheHostsCapacity" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.047"/>
+  <testcase name="onGetTemplateDoesNotReadTheFile" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.046"/>
+  <testcase name="theTemplateOpensWithTheDisclosure" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.04"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

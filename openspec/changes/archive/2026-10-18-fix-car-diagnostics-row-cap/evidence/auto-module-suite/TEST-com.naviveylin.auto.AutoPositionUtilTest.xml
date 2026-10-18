@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoPositionUtilTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:42.559Z" hostname="dingens" time="0.549">
+  <properties/>
+  <testcase name="gpsSpeedUsedWhenValid" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.065"/>
+  <testcase name="movementSpeedNullWhenMovedTooLittle" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.033"/>
+  <testcase name="movementBearingSouthIsHundredEighty" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.037"/>
+  <testcase name="movementSpeedDerivedFromDistanceAndTime" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.037"/>
+  <testcase name="movementBearingNorthIsZero" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.042"/>
+  <testcase name="movementSpeedNullWhenTimeTooShort" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.034"/>
+  <testcase name="bearingDerivedWhenGpsBearingMissing" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.032"/>
+  <testcase name="speedDerivedWhenGpsSpeedMissing" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.037"/>
+  <testcase name="lastEffectiveValuesKeptWhenFixMovedTooLittle" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.111"/>
+  <testcase name="tinyMovementReturnsNull" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.054"/>
+  <testcase name="movementBearingEastIsNinety" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.031"/>
+  <testcase name="unknownSpeedStaysUnknownWithoutMovement" classname="com.naviveylin.auto.AutoPositionUtilTest" time="0.033"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

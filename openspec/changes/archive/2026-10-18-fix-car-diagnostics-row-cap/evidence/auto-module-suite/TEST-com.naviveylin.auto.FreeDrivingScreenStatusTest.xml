@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FreeDrivingScreenStatusTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:53.785Z" hostname="dingens" time="0.098">
+  <properties/>
+  <testcase name="carPublishesNoRoadAsARealStatus" classname="com.naviveylin.auto.FreeDrivingScreenStatusTest" time="0.043"/>
+  <testcase name="carFreeDrivingPublishesItsRoad" classname="com.naviveylin.auto.FreeDrivingScreenStatusTest" time="0.029"/>
+  <testcase name="clearOnScreenDestroyLeavesNoStaleRoad" classname="com.naviveylin.auto.FreeDrivingScreenStatusTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

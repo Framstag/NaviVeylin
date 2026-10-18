@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.CarScreenObservationsTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:43.875Z" hostname="dingens" time="0.584">
+  <properties/>
+  <testcase name="siblingsKeepRunningAfterAFault" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.062"/>
+  <testcase name="aStoppedObservationSeesNoFurtherEmissions" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.055"/>
+  <testcase name="restartingAppliesTheCurrentValueOnce" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.045"/>
+  <testcase name="anObservationBodyThatThrowsEndsOnlyThatObservation" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.042"/>
+  <testcase name="tenStartStopCyclesLeaveExactlyOneInstancePerObservation" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.08"/>
+  <testcase name="observeBeforeStartDoesNothing" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.044"/>
+  <testcase name="stopBeforeStartIsANoOp" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.042"/>
+  <testcase name="startIsIdempotent" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.058"/>
+  <testcase name="guidanceKeepsRunningAfterAFault" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.042"/>
+  <testcase name="theSameKeyIsObservedAtMostOncePerStartedPeriod" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.059"/>
+  <testcase name="aFaultDoesNotConsumeTheStartedPeriod" classname="com.naviveylin.auto.CarScreenObservationsTest" time="0.053"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionHostGateTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:07.039Z" hostname="dingens" time="0.001">
+  <properties/>
+  <testcase name="aStoppedSessionDefersAndOwesExactlyOneSync" classname="com.naviveylin.auto.SessionHostGateTest" time="0.0"/>
+  <testcase name="aStartWithoutDeferredWorkOwsNothing" classname="com.naviveylin.auto.SessionHostGateTest" time="0.0"/>
+  <testcase name="aStartedSessionAllowsHostMutations" classname="com.naviveylin.auto.SessionHostGateTest" time="0.0"/>
+  <testcase name="aStoppedSessionThatNeverMutatedAStartOwsNothing" classname="com.naviveylin.auto.SessionHostGateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoZoomControllerTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:43.119Z" hostname="dingens" time="0.291">
+  <properties/>
+  <testcase name="movementBearingSouthIsHundredEighty" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.034"/>
+  <testcase name="invalidSpeedUsesTheSeededDefault" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.032"/>
+  <testcase name="movementBearingNorthIsZero" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.032"/>
+  <testcase name="manualZoomSuspendsUntilBandChange" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.03"/>
+  <testcase name="fractionalConvergenceIsDistanceProportional" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.03"/>
+  <testcase name="tinyMovementReturnsNull" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.03"/>
+  <testcase name="movementBearingEastIsNinety" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.032"/>
+  <testcase name="firstSpeedCommitJumpsDirectlyToTarget" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.035"/>
+  <testcase name="zoomInDirectionAlsoConvergesFractionally" classname="com.naviveylin.auto.AutoZoomControllerTest" time="0.033"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

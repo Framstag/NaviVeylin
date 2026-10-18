@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationScreenTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:59.479Z" hostname="dingens" time="0.698">
+  <properties/>
+  <testcase name="effectiveFixArgsDerivesBearingWhenGpsBearingMissing" classname="com.naviveylin.auto.NavigationScreenTest" time="0.046"/>
+  <testcase name="settingsDifferIsFalseWhenNothingChanged" classname="com.naviveylin.auto.NavigationScreenTest" time="0.024"/>
+  <testcase name="effectiveFixArgsDerivesSpeedWhenGpsSpeedMissing" classname="com.naviveylin.auto.NavigationScreenTest" time="0.029"/>
+  <testcase name="etaCardTextNullWhenNoStreetName" classname="com.naviveylin.auto.NavigationScreenTest" time="0.047"/>
+  <testcase name="settingsDifferDetectsNewRoutingAnchorWithoutStateChange" classname="com.naviveylin.auto.NavigationScreenTest" time="0.024"/>
+  <testcase name="streetNameChangeAlwaysRebuildsTemplate" classname="com.naviveylin.auto.NavigationScreenTest" time="0.024"/>
+  <testcase name="streetNameFromState_refOnly" classname="com.naviveylin.auto.NavigationScreenTest" time="0.025"/>
+  <testcase name="notPanningDelegatesToOnSpeed" classname="com.naviveylin.auto.NavigationScreenTest" time="0.036"/>
+  <testcase name="northUpOrUnknownBearingDoNotRotate" classname="com.naviveylin.auto.NavigationScreenTest" time="0.044"/>
+  <testcase name="streetNameFromState_usesRoadInfoRefAndName" classname="com.naviveylin.auto.NavigationScreenTest" time="0.051"/>
+  <testcase name="panningFreezesHeadingUpRotation" classname="com.naviveylin.auto.NavigationScreenTest" time="0.035"/>
+  <testcase name="streetNameFromState_nullWhenNoRoadInfo" classname="com.naviveylin.auto.NavigationScreenTest" time="0.03"/>
+  <testcase name="effectiveFixArgsPassesGpsSpeedToRenderer" classname="com.naviveylin.auto.NavigationScreenTest" time="0.032"/>
+  <testcase name="backWhenNotNavigatingLeavesView" classname="com.naviveylin.auto.NavigationScreenTest" time="0.027"/>
+  <testcase name="unknownSpeedFallsBackToTheSeededDefault" classname="com.naviveylin.auto.NavigationScreenTest" time="0.034"/>
+  <testcase name="backCallbackEnabledByDefault" classname="com.naviveylin.auto.NavigationScreenTest" time="0.029"/>
+  <testcase name="backCallbackInvokesHandler" classname="com.naviveylin.auto.NavigationScreenTest" time="0.026"/>
+  <testcase name="backDuringNavigationStopsNavigation" classname="com.naviveylin.auto.NavigationScreenTest" time="0.028"/>
+  <testcase name="disabledAutoZoomReturnsNull" classname="com.naviveylin.auto.NavigationScreenTest" time="0.027"/>
+  <testcase name="panningSuppressesAutoZoomFeed" classname="com.naviveylin.auto.NavigationScreenTest" time="0.026"/>
+  <testcase name="headingUpRotatesWhenNotPanning" classname="com.naviveylin.auto.NavigationScreenTest" time="0.027"/>
+  <testcase name="etaCardTextAlwaysCarriesStreetName" classname="com.naviveylin.auto.NavigationScreenTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

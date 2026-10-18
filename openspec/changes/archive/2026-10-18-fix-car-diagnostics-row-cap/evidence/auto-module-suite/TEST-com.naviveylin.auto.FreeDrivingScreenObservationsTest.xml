@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FreeDrivingScreenObservationsTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:53.466Z" hostname="dingens" time="0.315">
+  <properties/>
+  <testcase name="aNullFixIsNotApplied" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.048"/>
+  <testcase name="aThrowingFixDoesNotKillTheObservation" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.034"/>
+  <testcase name="everyObservedSourceReachesItsEffect" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.037"/>
+  <testcase name="aDarkChangeWhileStoppedIsAppliedOnceOnStart" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.032"/>
+  <testcase name="theInitialBasemapRevisionIsNotApplied" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.031"/>
+  <testcase name="threeStartStopCyclesLeaveOneInstancePerSource" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.034"/>
+  <testcase name="aStoppedScreenObservesNothing" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.037"/>
+  <testcase name="aDarkPreferenceChangeReachesTheScreen" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.032"/>
+  <testcase name="aChangeWhileStoppedIsAppliedOnceOnStart" classname="com.naviveylin.auto.FreeDrivingScreenObservationsTest" time="0.029"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

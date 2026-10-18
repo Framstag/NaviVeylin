@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FavoritesScreenObservationsTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:51.258Z" hostname="dingens" time="0.229">
+  <properties/>
+  <testcase name="everyObservedSourceReachesTheEffect" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.061"/>
+  <testcase name="tenStartStopCyclesLeaveOneInstance" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.051"/>
+  <testcase name="favoriteSourcesResolveOffTheHostThread" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.041"/>
+  <testcase name="aGroupReorderWhileStoppedIsAppliedOnceOnTheNextStart" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.035"/>
+  <testcase name="aStoppedScreenObservesNothing" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

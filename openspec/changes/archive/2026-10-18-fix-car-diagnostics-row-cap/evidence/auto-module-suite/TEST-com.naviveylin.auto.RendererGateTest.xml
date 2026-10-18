@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.RendererGateTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:03.882Z" hostname="dingens" time="0.484">
+  <properties/>
+  <testcase name="daylightRequestsArePublishedForTheBackgroundCollector" classname="com.naviveylin.auto.RendererGateTest" time="0.019"/>
+  <testcase name="aStartAfterAStopReacquiresTheSurfaceAndRendersAFullFrame" classname="com.naviveylin.auto.RendererGateTest" time="0.035"/>
+  <testcase name="aSecondPublishReplaysTheStateSlotsAndNotTheOneShotIntents" classname="com.naviveylin.auto.RendererGateTest" time="0.031"/>
+  <testcase name="destroyShutsDownPublishedRenderer" classname="com.naviveylin.auto.RendererGateTest" time="0.019"/>
+  <testcase name="viewportCommitWithoutTheWalkFlagStaysDirect" classname="com.naviveylin.auto.RendererGateTest" time="0.025"/>
+  <testcase name="settersApplyImmediatelyOncePublished" classname="com.naviveylin.auto.RendererGateTest" time="0.021"/>
+  <testcase name="destroyDropsPendingAndShutsDownLatePublish" classname="com.naviveylin.auto.RendererGateTest" time="0.015"/>
+  <testcase name="aDeliveredSurfaceDpiIsTheDpiOfTheCarFrames" classname="com.naviveylin.auto.RendererGateTest" time="0.032"/>
+  <testcase name="aStopClearsASurfaceFailureSoTheNextStartIsNotReportedAsFailed" classname="com.naviveylin.auto.RendererGateTest" time="0.033"/>
+  <testcase name="walkZoomFlagSurvivesTheBufferedViewportPath" classname="com.naviveylin.auto.RendererGateTest" time="0.019"/>
+  <testcase name="aRecoveryReplacesTheRendererAndReattachesOnce" classname="com.naviveylin.auto.RendererGateTest" time="0.014"/>
+  <testcase name="theFaultLadderRecoversTwiceThenDegradesAndStaysThere" classname="com.naviveylin.auto.RendererGateTest" time="0.014"/>
+  <testcase name="publishAppliesObservableState" classname="com.naviveylin.auto.RendererGateTest" time="0.017"/>
+  <testcase name="bufferedSlotsReplayOnPublishInDefinedOrder" classname="com.naviveylin.auto.RendererGateTest" time="0.038"/>
+  <testcase name="theStopPathDetachesTheRendererAndReleasesItsFrameBuffer" classname="com.naviveylin.auto.RendererGateTest" time="0.028"/>
+  <testcase name="anIdenticalDaylightRequestStaysRetryable" classname="com.naviveylin.auto.RendererGateTest" time="0.017"/>
+  <testcase name="noopLifecycleCallsAreSafeBeforeReady" classname="com.naviveylin.auto.RendererGateTest" time="0.025"/>
+  <testcase name="lastValueWinsDuringBuffering" classname="com.naviveylin.auto.RendererGateTest" time="0.019"/>
+  <testcase name="aFreshPeriodReArmsTheRecoveryBudgetAndClearsTheDegradedState" classname="com.naviveylin.auto.RendererGateTest" time="0.015"/>
+  <testcase name="aProjectionDpiChangeReRendersAtTheNewDpi" classname="com.naviveylin.auto.RendererGateTest" time="0.016"/>
+  <testcase name="surfaceDpiIsPublishedForTheGateConsumers" classname="com.naviveylin.auto.RendererGateTest" time="0.016"/>
+  <testcase name="destroyDropsAPendingDaylightRequest" classname="com.naviveylin.auto.RendererGateTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

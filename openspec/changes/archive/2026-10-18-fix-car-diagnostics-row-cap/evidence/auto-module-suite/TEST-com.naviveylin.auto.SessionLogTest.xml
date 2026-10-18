@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionLogTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:07.045Z" hostname="dingens" time="0.32">
+  <properties/>
+  <testcase name="failuresAreLoggedWithThrowable" classname="com.naviveylin.auto.SessionLogTest" time="0.02"/>
+  <testcase name="nullIntentIsLoggedSafely" classname="com.naviveylin.auto.SessionLogTest" time="0.017"/>
+  <testcase name="warmupStepsLogFavoritesBeforeMapDatabases" classname="com.naviveylin.auto.SessionLogTest" time="0.017"/>
+  <testcase name="lifecycleEventsAreLogged" classname="com.naviveylin.auto.SessionLogTest" time="0.266"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

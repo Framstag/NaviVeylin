@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DetailsScreenTest" tests="31" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:48.660Z" hostname="dingens" time="1.765">
+  <properties/>
+  <testcase name="coordinatesRowIsLocaleStableOnAGermanDevice" classname="com.naviveylin.auto.DetailsScreenTest" time="0.144"/>
+  <testcase name="showRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.05"/>
+  <testcase name="titleFallsBackToLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.046"/>
+  <testcase name="saveFavoriteRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.09"/>
+  <testcase name="titleFallsBackToGenericWhenNoCallerNameAndNoAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.051"/>
+  <testcase name="descriptionEntriesKeepNativeOrder" classname="com.naviveylin.auto.DetailsScreenTest" time="0.068"/>
+  <testcase name="noAreaRowWithoutAreaData" classname="com.naviveylin.auto.DetailsScreenTest" time="0.056"/>
+  <testcase name="removeFavoriteRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.074"/>
+  <testcase name="openingHoursShownOnDetailsScreen" classname="com.naviveylin.auto.DetailsScreenTest" time="0.06"/>
+  <testcase name="noRowCapForLongDescriptions" classname="com.naviveylin.auto.DetailsScreenTest" time="0.047"/>
+  <testcase name="titleFallsBackToLabelWhenNoAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.048"/>
+  <testcase name="blankDescriptionEntriesSkipped" classname="com.naviveylin.auto.DetailsScreenTest" time="0.072"/>
+  <testcase name="descriptionEntriesShownAsLabeledRows" classname="com.naviveylin.auto.DetailsScreenTest" time="0.05"/>
+  <testcase name="coordinatesRowAlwaysPresentWithLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.049"/>
+  <testcase name="allDescriptionAttributesShown" classname="com.naviveylin.auto.DetailsScreenTest" time="0.051"/>
+  <testcase name="oneObservationSetPerStartedPeriodAcrossStopAndStart" classname="com.naviveylin.auto.DetailsScreenTest" time="0.124"/>
+  <testcase name="addressShownAsLabeledRow" classname="com.naviveylin.auto.DetailsScreenTest" time="0.044"/>
+  <testcase name="titleShowsObjectName" classname="com.naviveylin.auto.DetailsScreenTest" time="0.038"/>
+  <testcase name="areaFallsBackToPostalArea" classname="com.naviveylin.auto.DetailsScreenTest" time="0.042"/>
+  <testcase name="destinationNameFallsBackToNull" classname="com.naviveylin.auto.DetailsScreenTest" time="0.039"/>
+  <testcase name="areaFallsBackToDescriptionIsIn" classname="com.naviveylin.auto.DetailsScreenTest" time="0.04"/>
+  <testcase name="titleShowsCallerNameBeforeAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.038"/>
+  <testcase name="titleFallsBackToAddressLikeLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.036"/>
+  <testcase name="titleFallsBackToAddressWithoutCallerName" classname="com.naviveylin.auto.DetailsScreenTest" time="0.036"/>
+  <testcase name="streetAndAddressEntriesNotDuplicated" classname="com.naviveylin.auto.DetailsScreenTest" time="0.048"/>
+  <testcase name="attributeRowsAreNotClickable" classname="com.naviveylin.auto.DetailsScreenTest" time="0.056"/>
+  <testcase name="aStoppedScreenAppliesNothingAndTheStateArrivesOnStart" classname="com.naviveylin.auto.DetailsScreenTest" time="0.076"/>
+  <testcase name="titleFallsBackToGeneric" classname="com.naviveylin.auto.DetailsScreenTest" time="0.043"/>
+  <testcase name="coordinatesRowMatchesTheNavigationDestinationText" classname="com.naviveylin.auto.DetailsScreenTest" time="0.048"/>
+  <testcase name="navigateRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.04"/>
+  <testcase name="theDegradedMapIsStatedAndAFreshStartClearsIt" classname="com.naviveylin.auto.DetailsScreenTest" time="0.056"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

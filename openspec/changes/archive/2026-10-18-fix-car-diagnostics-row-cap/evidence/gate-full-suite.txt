@@ -1,0 +1,9 @@
+Gate: ./gradlew test -PforceTests --rerun-tasks  — BUILD SUCCESSFUL in 9m 26s (2026-10-18, /tmp/gate-114.log)
+
+app/build/test-results/testMobileDebugUnitTest       tests=2059 skipped=0 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest   tests=2059 skipped=0 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest            tests=866 skipped=0 failures=0 errors=0
+core/build/test-results/testDebugUnitTest            tests=642 skipped=0 failures=0 errors=0
+osmscout-client-java/build/test-results/test         tests=46 skipped=0 failures=0 errors=0
+
+DiagnosticsScreenTest tests=5 failures=0 errors=0 timestamp=2026-10-18T14:52:50.437Z

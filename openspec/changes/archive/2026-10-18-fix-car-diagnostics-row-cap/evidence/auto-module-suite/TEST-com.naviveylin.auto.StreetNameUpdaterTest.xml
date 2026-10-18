@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.StreetNameUpdaterTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:08.062Z" hostname="dingens" time="0.192">
+  <properties/>
+  <testcase name="intervalElapsedTriggersGeocodeEvenStationary" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.021"/>
+  <testcase name="firstFixAlwaysGeocodes" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.017"/>
+  <testcase name="streetNameExtractedFromAddressIndexZero" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.017"/>
+  <testcase name="roadDisplayText_refAndName" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.017"/>
+  <testcase name="tinyMovementWithinIntervalSkipsGeocode" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.018"/>
+  <testcase name="blankOrMissingStreetReturnsNull" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.017"/>
+  <testcase name="roadDisplayText_refOnly" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.016"/>
+  <testcase name="roadDisplayText_nameOnly" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.016"/>
+  <testcase name="roadDisplayText_blankWhenNeitherPresent" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.017"/>
+  <testcase name="stationaryWithinIntervalSkipsGeocode" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.017"/>
+  <testcase name="movementBeyondThresholdTriggersGeocode" classname="com.naviveylin.auto.StreetNameUpdaterTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

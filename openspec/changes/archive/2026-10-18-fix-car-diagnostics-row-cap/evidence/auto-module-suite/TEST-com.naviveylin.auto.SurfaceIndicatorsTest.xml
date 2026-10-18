@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SurfaceIndicatorsTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:08.337Z" hostname="dingens" time="0.275">
+  <properties/>
+  <testcase name="speedBadgeShowsCurrentSpeedWhenNoLimit" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.02"/>
+  <testcase name="drawIgnoresUnknownNegativeSpeeds" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.024"/>
+  <testcase name="speedLimitSignBelowBadge" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.016"/>
+  <testcase name="noSpeedLimitSignWhenHidden" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.016"/>
+  <testcase name="roseRotationPointsAtRenderedNorth" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.02"/>
+  <testcase name="stationaryZeroShowsBadgeWithZeroKmh" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.017"/>
+  <testcase name="noBadgeWhenNoSpeed" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.016"/>
+  <testcase name="dayPaletteKeepsTheOriginalRoseColors" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.017"/>
+  <testcase name="drawSpeedLimitSignDoesNotFail" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.02"/>
+  <testcase name="drawDoesNotFail" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.021"/>
+  <testcase name="nightRimStaysInsideTheChip" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.02"/>
+  <testcase name="roseCenteredAboveSpeedBadge" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.019"/>
+  <testcase name="nightPaletteAddsABodyRimAndKeepsTheChartColors" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.018"/>
+  <testcase name="speedLimitSignAtLeast56dp" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.015"/>
+  <testcase name="roseAtLeast56dp" classname="com.naviveylin.auto.SurfaceIndicatorsTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

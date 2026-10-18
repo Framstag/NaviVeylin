@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FavoritesScreenTest" tests="37" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:51.520Z" hostname="dingens" time="1.934">
+  <properties/>
+  <testcase name="starredModeRendersTheStoredStarredOrderAsOneList" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.092"/>
+  <testcase name="theAllFavoritesModeStartsAtTheGroupLevel" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.046"/>
+  <testcase name="aGroupReorderUpdatesTheRowsInPlace" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.047"/>
+  <testcase name="starredModeWithNothingStarredShowsTheHint" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.045"/>
+  <testcase name="unnamedFavoriteRowUsesTheResource" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.049"/>
+  <testcase name="listFollowsTheStoredFavoriteOrder" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.044"/>
+  <testcase name="aReorderedStoreUpdatesTheListInPlace" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.047"/>
+  <testcase name="aReadyStoresPublishedStateIsShown" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.047"/>
+  <testcase name="groupRowsShowTheNameAndCount" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.053"/>
+  <testcase name="aGroupTheOrderDoesNotNameStillAppears" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.044"/>
+  <testcase name="aFavoriteMovedOnThePhoneAppearsInTheDestinationGroup" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.042"/>
+  <testcase name="theGroupLevelOffersNoManagementAction" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.062"/>
+  <testcase name="showsLoadingBeforeFirstEmission" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.04"/>
+  <testcase name="rowsOfferNoReorderAffordanceAndSelectionStillNavigates" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.046"/>
+  <testcase name="groupScreenTitleIsTheGroupsName" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.04"/>
+  <testcase name="emptyStoreShowsNoFavoritesSaved" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.042"/>
+  <testcase name="unreadyStoreShowsTheLoadingRowOnly" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.081"/>
+  <testcase name="thePageRowOpensTheNextSlice" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.082"/>
+  <testcase name="aNameTheStoreNoLongerHoldsIsSkipped" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.063"/>
+  <testcase name="starredScreenTitleIsTheStarredFavoritesResource" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.042"/>
+  <testcase name="aGroupRowOpensTheGroupsFavorites" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.051"/>
+  <testcase name="anUnanswerableHostFallsBackToTheLibraryDefault" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.065"/>
+  <testcase name="readinessCompletesWhileOpenUpdatesInPlace" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.057"/>
+  <testcase name="anEmptyGroupIsNotListedOnTheCar" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.051"/>
+  <testcase name="eachScreenReadsTheCapacityForItself" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.045"/>
+  <testcase name="starredOrderBeyondTheCapacityPagesThroughTheRest" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.052"/>
+  <testcase name="starredModeOffersNoReorderAffordanceAndSelectionStillNavigates" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.047"/>
+  <testcase name="readyEmptyStoreShowsTheEmptyState" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.048"/>
+  <testcase name="scopeCancelledOnDestroy" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.062"/>
+  <testcase name="theTemplateBuildPerformsNoHostQuery" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.046"/>
+  <testcase name="lateEmissionUpdatesListWithoutReentering" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.043"/>
+  <testcase name="aStoppedScreenAppliesNothingAndTheStateArrivesOnStart" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.043"/>
+  <testcase name="screenTitleIsTheFavoritesResource" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.041"/>
+  <testcase name="aStarredReorderUpdatesTheListInPlace" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.043"/>
+  <testcase name="theProductionDefaultResolvesTheFavoritesProviderOnABackgroundThread" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.057"/>
+  <testcase name="aLargerHostCapacityShowsMoreRows" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.073"/>
+  <testcase name="groupRowsFollowTheStoredGroupOrder" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.046"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

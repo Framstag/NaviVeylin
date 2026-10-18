@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionScreenStackTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:07.367Z" hostname="dingens" time="0.001">
+  <properties/>
+  <testcase name="anErrorWhileNavigatingLeavesTheNavigationViewOnTheStack" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.001"/>
+  <testcase name="theFirstErrorNeedsANewNoticeAndTheSecondDoesNot" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="dismissingAStaleNoticeChangesNothing" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="poppingBackToTheRootForgetsTheNavigationViewAndTheNotice" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="aRejectedNavigationPushIsNotRecordedAndIsRetried" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="aCalculationNoticesRemovalIsIdentityGuarded" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="aCalculationNoticesRemovalSkippedWhileStoppedIsOwedToTheNextStart" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="aDismissedNoticeMayBeShownAgain" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="poppingToTheRootForgetsTheCalculationNoticeAndItsOwedRemoval" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="poppingToTheRootForgetsADeferredDismissal" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="repeatedErrorsNeverStackASecondNotice" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="aDeferredDismissalIsOwedAndTakenOnce" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="nothingIsOwedForACalculationNoticeThatWasNeverUp" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="aCalculationNoticeIsRecordedAndNeverStackedTwice" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="aLandedNavigationPushIsRecorded" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <testcase name="nothingIsOwedWhenNoNoticeWasUp" classname="com.naviveylin.auto.SessionScreenStackTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

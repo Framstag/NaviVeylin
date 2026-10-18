@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationTemplateMapperTest" tests="66" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:00.834Z" hostname="dingens" time="1.577">
+  <properties/>
+  <testcase name="stepForInstruction_cueIsGermanOnGermanLocale" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.031"/>
+  <testcase name="laneShape_mergeRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.024"/>
+  <testcase name="laneShape_sharpLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.024"/>
+  <testcase name="routingInfoFromState_prefersLiveNextInstructionDistance" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.027"/>
+  <testcase name="the host-numbered roundabout keeps the shared cue text" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.034"/>
+  <testcase name="routingInfoFromState_attachesLanesWhenEnabled" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.048"/>
+  <testcase name="current and next steps carry different exit numbers" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.032"/>
+  <testcase name="hasStateChanged_detectsLaneCountChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.022"/>
+  <testcase name="laneShape_right" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.03"/>
+  <testcase name="laneShape_slightLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.023"/>
+  <testcase name="hasStateChanged_detectsAStepDistanceChangeAcrossTheDisplayedBucket" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.026"/>
+  <testcase name="maneuverType_roundaboutEnter" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.025"/>
+  <testcase name="maneuverType_roundaboutLeave" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.028"/>
+  <testcase name="stepForInstruction_setsManeuverRoadAndCue" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.026"/>
+  <testcase name="maneuverType_sharpRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.023"/>
+  <testcase name="maneuverType_straight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.02"/>
+  <testcase name="roundDistanceMeters_showsActualValueUpTo50" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.019"/>
+  <testcase name="hasStateChanged_detectsRemainingDistanceAcrossTheDisplayedBucket" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="laneShape_unknownDefaultsToUnknown" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="hasStateChanged_ignoresASubBucketChangeOverOneKilometre" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="laneShape_straight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.02"/>
+  <testcase name="maneuverType_unknownDefaultsToStraight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.016"/>
+  <testcase name="hasStateChanged_detectsEtaChangeAcrossSecond" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="routingInfoFromState_noNextStepWhenLast" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.019"/>
+  <testcase name="maneuverType_depart" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.017"/>
+  <testcase name="distanceForDisplay_usesMetersBelow1kmAndKmAbove" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="laneShape_nullDefaultsToUnknown" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.021"/>
+  <testcase name="displayedDistanceBucket_clampsNegativeDistances" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.022"/>
+  <testcase name="hasStateChanged_ignoresAStepDistanceChangeInsideTheDisplayedBucket" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.019"/>
+  <testcase name="routingInfoFromState_rendersArrivalAsDestinationStep" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.027"/>
+  <testcase name="maneuverType_sharpLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.021"/>
+  <testcase name="hasStateChanged_detectsNextInstructionDescriptionChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="a roundabout exit maneuver carries the exit number" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.021"/>
+  <testcase name="hasStateChanged_ignoresASubBucketRemainingDistanceChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="maneuverType_slightLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="roundDistanceMeters_oneDecimalAbove1km" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.018"/>
+  <testcase name="hasStateChanged_returnsTrueForNullOldState" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.022"/>
+  <testcase name="routeDescriptionRows_fallsBackToShortDescription" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.03"/>
+  <testcase name="a counter-clockwise roundabout uses the counter-clockwise type" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.026"/>
+  <testcase name="routingInfoFromState_setsCurrentAndNextStep" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.026"/>
+  <testcase name="a roundabout exit asks the host for the number as well as our icon" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.027"/>
+  <testcase name="maneuverType_left" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.025"/>
+  <testcase name="roundDistanceMeters_multiplesOf50Between50And1km" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.041"/>
+  <testcase name="hasStateChanged_detectsNextInstructionBecomingNull" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.024"/>
+  <testcase name="stepForInstruction_hidesBlankStreet" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.025"/>
+  <testcase name="displayedDistanceBucket_followsTheDisplayedRounding" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.071"/>
+  <testcase name="maneuverType_destination" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.074"/>
+  <testcase name="hasStateChanged_ignoresSameEtaWithinSecond" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.029"/>
+  <testcase name="displayedDistanceBucket_isAbsentWithoutACurrentStep" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.024"/>
+  <testcase name="laneShape_mergeLeft" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.021"/>
+  <testcase name="instructionsFromCurrentStep_dropsStepsBeforeCurrent" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.023"/>
+  <testcase name="routingInfoFromState_nullWhenNotNavigating" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.025"/>
+  <testcase name="laneShape_left" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.02"/>
+  <testcase name="a known exit ordinal selects a number-bearing maneuver type" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.022"/>
+  <testcase name="maneuverType_right" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.02"/>
+  <testcase name="hasStateChanged_detectsNextInstructionAppearing" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.021"/>
+  <testcase name="laneFromTurn_marksRecommended" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.019"/>
+  <testcase name="maneuverType_slightRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.015"/>
+  <testcase name="hasStateChanged_detectsDistanceChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="laneShape_sharpRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="laneShape_slightRight" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="routeDescriptionRows_orderTitleAndCurrentMark" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.015"/>
+  <testcase name="an unknown exit ordinal builds a step instead of throwing" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="hasStateChanged_detectsReroutingChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="hasStateChanged_returnsFalseForIdenticalState" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.014"/>
+  <testcase name="hasStateChanged_detectsNavigatingChange" classname="com.naviveylin.auto.NavigationTemplateMapperTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

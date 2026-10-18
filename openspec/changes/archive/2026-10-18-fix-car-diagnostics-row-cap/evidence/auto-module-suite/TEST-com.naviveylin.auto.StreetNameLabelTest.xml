@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.StreetNameLabelTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:07.753Z" hostname="dingens" time="0.301">
+  <properties/>
+  <testcase name="placementIsTopForWholeBottomRowElseBottom" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.017"/>
+  <testcase name="topInsetPushesTopPlacementBelowTheBand" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.02"/>
+  <testcase name="longNameIsEllipsizedToPillWidth" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.019"/>
+  <testcase name="drawDoesNotFailWithAndWithoutName" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.046"/>
+  <testcase name="topPlacementSitsAtRealSurfaceTopEdge" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.029"/>
+  <testcase name="blankNameDrawsNothing" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.021"/>
+  <testcase name="widthFitsTextAndIsCapped" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.042"/>
+  <testcase name="bothInsetsKeepThePillInsideTheVisibleBand" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.024"/>
+  <testcase name="bottomPlacementSitsAtRealSurfaceBottomEdge" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.025"/>
+  <testcase name="shortNameNotEllipsized" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.02"/>
+  <testcase name="zeroInsetsMatchTheRawEdgeGeometry" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.018"/>
+  <testcase name="bottomInsetPushesBottomPlacementAboveTheBand" classname="com.naviveylin.auto.StreetNameLabelTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

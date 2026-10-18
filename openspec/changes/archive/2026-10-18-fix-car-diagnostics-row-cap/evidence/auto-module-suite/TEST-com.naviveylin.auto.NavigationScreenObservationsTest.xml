@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationScreenObservationsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:52:58.957Z" hostname="dingens" time="0.509">
+  <properties/>
+  <testcase name="aNullFixIsNotApplied" classname="com.naviveylin.auto.NavigationScreenObservationsTest" time="0.471"/>
+  <testcase name="everyObservedSourceReachesItsEffect" classname="com.naviveylin.auto.NavigationScreenObservationsTest" time="0.005"/>
+  <testcase name="theInitialBasemapRevisionIsNotApplied" classname="com.naviveylin.auto.NavigationScreenObservationsTest" time="0.004"/>
+  <testcase name="threeStartStopCyclesLeaveOneInstancePerSource" classname="com.naviveylin.auto.NavigationScreenObservationsTest" time="0.013"/>
+  <testcase name="aStoppedScreenObservesNothing" classname="com.naviveylin.auto.NavigationScreenObservationsTest" time="0.007"/>
+  <testcase name="aChangeWhileStoppedIsAppliedOnceOnStart" classname="com.naviveylin.auto.NavigationScreenObservationsTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

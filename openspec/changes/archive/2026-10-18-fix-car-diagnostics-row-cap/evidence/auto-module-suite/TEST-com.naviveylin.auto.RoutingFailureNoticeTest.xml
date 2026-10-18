@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.RoutingFailureNoticeTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:04.668Z" hostname="dingens" time="0.08">
+  <properties/>
+  <testcase name="aReasonWithNoActionStatesNoDestinationForIt" classname="com.naviveylin.auto.RoutingFailureNoticeTest" time="0.018"/>
+  <testcase name="unusableRoutingDataNamesThePhoneAndLaunchesNothing" classname="com.naviveylin.auto.RoutingFailureNoticeTest" time="0.016"/>
+  <testcase name="aFailureWithNoReasonLeavesTheNoticeWithTheCauseAlone" classname="com.naviveylin.auto.RoutingFailureNoticeTest" time="0.015"/>
+  <testcase name="theCarLabelEqualsThePhoneLabelForEveryReason" classname="com.naviveylin.auto.RoutingFailureNoticeTest" time="0.015"/>
+  <testcase name="theDistanceIsWordedIdenticallyOnBothSurfaces" classname="com.naviveylin.auto.RoutingFailureNoticeTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

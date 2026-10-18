@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.RendererTestRuleTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:04.369Z" hostname="dingens" time="0.087">
+  <properties/>
+  <testcase name="teardownStopsEveryTrackedRenderer" classname="com.naviveylin.auto.RendererTestRuleTest" time="0.016"/>
+  <testcase name="testFailureIsPropagatedIncludingTheTeardownFailure" classname="com.naviveylin.auto.RendererTestRuleTest" time="0.015"/>
+  <testcase name="teardownReleasesTheRetainedRenderBuffer" classname="com.naviveylin.auto.RendererTestRuleTest" time="0.014"/>
+  <testcase name="anInTestShutdownSurvivesTheTeardown" classname="com.naviveylin.auto.RendererTestRuleTest" time="0.014"/>
+  <testcase name="teardownFailsWhenARendererKeepsRunningBackgroundWork" classname="com.naviveylin.auto.RendererTestRuleTest" time="0.015"/>
+  <testcase name="teardownRunsAndReportsAPassingTest" classname="com.naviveylin.auto.RendererTestRuleTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

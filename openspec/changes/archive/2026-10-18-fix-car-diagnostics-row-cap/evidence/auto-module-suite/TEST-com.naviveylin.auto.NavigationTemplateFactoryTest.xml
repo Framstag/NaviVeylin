@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationTemplateFactoryTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-18T14:53:00.585Z" hostname="dingens" time="0.226">
+  <properties/>
+  <testcase name="notNavigatingHasNoStrips" classname="com.naviveylin.auto.NavigationTemplateFactoryTest" time="0.051"/>
+  <testcase name="zoomActionsAreNotParkedOnly" classname="com.naviveylin.auto.NavigationTemplateFactoryTest" time="0.023"/>
+  <testcase name="navigatingSetsBothStrips" classname="com.naviveylin.auto.NavigationTemplateFactoryTest" time="0.023"/>
+  <testcase name="panModeListenerNullByDefault" classname="com.naviveylin.auto.NavigationTemplateFactoryTest" time="0.024"/>
+  <testcase name="navigatingSetsHostRoutingInfo" classname="com.naviveylin.auto.NavigationTemplateFactoryTest" time="0.036"/>
+  <testcase name="navigatingKeepsTravelEstimate" classname="com.naviveylin.auto.NavigationTemplateFactoryTest" time="0.02"/>
+  <testcase name="noHostInstructionPanel" classname="com.naviveylin.auto.NavigationTemplateFactoryTest" time="0.019"/>
+  <testcase name="panModeListenerForwarded" classname="com.naviveylin.auto.NavigationTemplateFactoryTest" time="0.029"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

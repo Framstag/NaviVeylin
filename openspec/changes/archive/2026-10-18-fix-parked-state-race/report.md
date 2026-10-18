@@ -95,5 +95,18 @@ tools/check-compose-sandbox-rule.sh                69 Compose test classes carry
 
 ## CI (end-to-end)
 
-The push's `Run unit tests` step is the aggregate confirmation in the environment where the flake lived —
-recorded here once the run completes: `641 + 1 = 642` tests in `:core`, `0 failed`.
+Run `39134747662` (`d394b0f`, `Run unit tests` → **success**, `BUILD SUCCESSFUL in 6m 10s`) — the loaded
+environment where the case failed twice:
+
+```
+app/build/test-results/testMobileDebugUnitTest:        275 classes, 2059 tests, 0 failures, 0 errors
+app/build/test-results/testAutomotiveDebugUnitTest:    275 classes, 2059 tests, 0 failures, 0 errors
+auto/build/test-results/testDebugUnitTest:              85 classes,  864 tests, 0 failures, 0 errors
+core/build/test-results/testDebugUnitTest:              60 classes,  642 tests, 0 failures, 0 errors
+osmscout-client-java/build/test-results/test:            7 classes,   46 tests, 0 failures, 0 errors
+```
+
+5670 tests, 0 failures, 0 errors. The two `main` runs this closes: `39072831441` (`5c994a0`) and
+`39130502425` (`134fde9`), both `641 tests completed, 1 failed`. The run's `Publish the sensor inputs` step is
+also green, so the commit under test produced a complete record — the precondition the sensors' rows needed
+(the owed verification of #161).

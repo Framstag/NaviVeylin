@@ -37,8 +37,9 @@ requirement, three scenarios). `[#93]` marks the tracker item this closes (case 
       a local JDK artifact, `NoClassDefFoundError: sun.security.ssl.NamedGroup$SupportedGroups`, which did not
       recur; the JDK situation and the daemon-JVM workaround are in `report.md`). The second confirmation is
       the CI run of the push.
-- [ ] 3.4 `[#93]` After the push, the CI run's `Run unit tests` step must be green; recorded in `report.md`
-      and commented on the item. (Open until that run completes.)
+- [x] 3.4 `[#93]` After the push, the CI run's `Run unit tests` step must be green; recorded in `report.md`
+      and commented on the item. Done: run `39134747662`, `success`, `BUILD SUCCESSFUL in 6m 10s`, `:core` at
+      642 tests / 0 failures, 5670 tests across the gate with no failures.
 
 ## 4. Closure
 

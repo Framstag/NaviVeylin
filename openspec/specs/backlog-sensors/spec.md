@@ -46,6 +46,13 @@ demonstrably cleared.
 - **THEN** the measurement is recorded on the issue and the issue is closed, naming the clearing
   measurement as its evidence
 
+#### Scenario: A row whose condition is simply absent says so
+
+- **WHEN** a row's command finds no condition to report — the build is green, no change of the owner's is in
+  conflict
+- **THEN** it reports a clear naming its own identity, so "the condition is absent" reaches the tracker's
+  history as a verdict rather than as the row's silence
+
 #### Scenario: The check itself failed
 
 - **WHEN** a check crashes, cannot reach its input, or produces an unreadable result
@@ -143,7 +150,7 @@ to act on any other issue SHALL be refused with a reason and change nothing.
 ### Requirement: The checks run in a pipeline of their own, pinned and least-privileged
 
 The checks SHALL run in a pipeline separate from the one that validates changes, triggered only by a
-schedule or an explicit dispatch, restricted to the project's main branch by a check at run time, given
+schedule and an explicit dispatch, restricted to the project's main branch by a check at run time, given
 write access to issues only, and guarded so that two runs cannot act at once.
 
 #### Scenario: Change validation is unaffected
@@ -156,6 +163,12 @@ write access to issues only, and guarded so that two runs cannot act at once.
 
 - **WHEN** the pipeline is dispatched against a branch other than the project's main branch
 - **THEN** the run refuses before writing anything, because a dispatch can choose its ref
+
+#### Scenario: The schedule fires without a person
+
+- **WHEN** the schedule's tick arrives and no dispatch was made
+- **THEN** the rows whose declared cadence is due to run are selected and measured, so a check keeps
+  running while nobody is looking
 
 #### Scenario: The identity is a concrete person
 
@@ -210,3 +223,41 @@ automation opt-in.
 - **WHEN** a check files an issue
 - **THEN** the issue is not eligible for automated work until a person applies the opt-in, however clearly
   defect-shaped it is
+
+### Requirement: A row's declared input is published, checked against its producer, and read for the commit under test
+
+Every `input` a row declares SHALL be published at that path by the pipeline that measures it, the
+publisher SHALL refuse a registry whose row declares an input it does not publish, and the checks' run
+SHALL obtain the record published for the commit it is examining — selecting no row, and reporting no
+failed check, while that record does not exist yet.
+
+#### Scenario: The producer's own manifest is the bound
+
+- **WHEN** the publisher is asked to check the registry
+- **THEN** it compares every declared input against the set of paths it publishes and passes only when each
+  one is in that set
+
+#### Scenario: An input no pipeline publishes is refused
+
+- **WHEN** a row declares an input the publisher does not write
+- **THEN** the check fails and names that row and that path, so the declaration is repaired before a
+  scheduled run reports a failed check an hour later
+
+#### Scenario: A run reads the record of the commit it examines
+
+- **WHEN** the checks' run starts on the main branch
+- **THEN** every row that declares an input finds the file published for that commit, so its verdict is the
+  measurement rather than a failed check
+
+#### Scenario: No record yet is not a failed check
+
+- **WHEN** the record for the commit under test does not exist yet, because the build that produces it has
+  not finished
+- **THEN** no row is selected, nothing is written to the tracker, and the run does not report a failed
+  check
+
+#### Scenario: The record is one artifact, not a download per row
+
+- **WHEN** the record is transferred to the checks' run
+- **THEN** the rows' declared paths are restored as they are declared, so no row's command learns where its
+  input came from

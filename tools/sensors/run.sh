@@ -2,13 +2,20 @@
 # run.sh — the runner: select the rows whose cadence is due, run each, interpret its verdict, and
 # dispatch to the three verbs.
 #
-#   run.sh [--due] [--rows <id,id>] [--only <id>] [--apply] [--json] [--input <file>] [--now <time>]
+#   run.sh [--due] [--within <minutes>] [--rows <id,id>] [--only <id>] [--apply] [--json] [--input <file>] [--now <time>]
 #          [--registry <file>] [--profile <file>]
 #
 # `--rows <id,id>` (repeatable) restricts the candidates to the rows it names — a pipeline step runs one
 # family of rows this way; each row's own cadence still decides whether it runs, so the flag is combined
 # with `--due`. An id the registry does not declare is refused before any row runs. `--only <id>` is the
 # same restriction for one id, and `--only` alone runs it whatever its cadence says.
+#
+# `--within <minutes>` is the width of the window `--due` selects over, in minutes, ending at this tick's
+# own minute: a row is due when its cron matches any minute in it, so a tick GitHub fires late still
+# selects the rows it was scheduled for. Omitted, the window is that minute alone, which is all a punctual
+# tick needs; the pipeline declares a window as wide as its own cadence. A value that is not a count of
+# minutes is refused rather than narrowed, because a silently narrowed window is the defect this flag
+# exists to fix (issue #166).
 #
 # `--dry-run` is the default, as everywhere else in this tooling: without `--apply` nothing is written to
 # the tracker and every intended write is printed instead (design D9).
@@ -33,11 +40,12 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=tools/sensors/lib.sh
 source "$here/lib.sh"
 
-usage() { sed -n '2,27p' "$0"; }
+usage() { sed -n '2,36p' "$0"; }
 
 due=0
 only_id=""
 rows_ids=""
+within=1
 json=0
 input=""
 now=""
@@ -46,6 +54,7 @@ registry_arg=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --due) due=1; shift ;;
+    --within) within="${2:-}"; shift 2 ;;
     --only) only_id="${2:-}"; shift 2 ;;
     --rows) rows_ids="${rows_ids:+$rows_ids,}${2:-}"; shift 2 ;;
     --dry-run) SENSORS_DRY_RUN=1; shift ;;
@@ -61,6 +70,12 @@ while [ $# -gt 0 ]; do
 done
 # A dry run is the default; only `--apply` writes to the tracker.
 SENSORS_DRY_RUN="${SENSORS_DRY_RUN:-1}"
+# The window above is a count of minutes and it is the caller's to declare, so a value that is not one is
+# refused before anything is read: narrowing it silently to the tick's own minute is what made a late tick a
+# no-op (issue #166).
+case "$within" in
+  ''|*[!0-9]*|0) sensors_die "run: --within '$within' is not a count of minutes (a whole number, at least 1)" ;;
+esac
 SENSORS_INPUT="$input"
 SENSORS_FAILED=0
 SENSORS_CURRENT_ID=""
@@ -97,7 +112,7 @@ while IFS= read -r row; do
   if [ -n "$only_id" ]; then
     [ "$id" = "$only_id" ] || continue
   elif [ "$due" -eq 1 ]; then
-    sensors_cron_due "$(sensors_row_field "$row" cron)" "$epoch" || continue
+    sensors_cron_due "$(sensors_row_field "$row" cron)" "$epoch" "$within" || continue
   fi
   selected+=("$id")
 done < <(sensors_rows)

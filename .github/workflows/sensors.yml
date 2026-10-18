@@ -11,6 +11,11 @@ name: Sensors
 # skipped run, not four failed checks. The tick's minutes must cover every minute the registry's rows
 # declare, which `workflow#tickMinutesCoverTheRegistryCrons` asserts.
 #
+# Each scheduled step passes `--within 30`: the window a tick selects over, as wide as the tick's own
+# cadence, so a run GitHub fires minutes late still measures the rows it was scheduled for, while two
+# consecutive ticks' windows tile the hour and select no row twice
+# (`workflow#theTickDeclaresItsWindow`).
+#
 # `schedule` only fires from the default branch; a dispatch can select any ref, so the first step is a
 # runtime guard rather than a line of YAML to be trusted (design D1, D3).
 on:
@@ -125,7 +130,7 @@ jobs:
         if: steps.record.outputs.ready == 'true' && steps.record.outputs.conclusion == 'success'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: bash tools/sensors/run.sh --due --rows build-duration,package-size,coverage "$SENSORS_MODE"
+        run: bash tools/sensors/run.sh --due --within 30 --rows build-duration,package-size,coverage "$SENSORS_MODE"
 
       # Every other row runs for any record, none of them reading an output a red build cannot produce:
       # `broken-main` reads the result record the publisher always writes, `pr-conflicts` the API, `hotspot`
@@ -135,7 +140,7 @@ jobs:
         if: steps.record.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: bash tools/sensors/run.sh --due --rows broken-main,pr-conflicts,hotspot,stale-citations "$SENSORS_MODE"
+        run: bash tools/sensors/run.sh --due --within 30 --rows broken-main,pr-conflicts,hotspot,stale-citations "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

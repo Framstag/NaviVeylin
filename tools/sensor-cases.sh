@@ -21,6 +21,8 @@ SENSOR_CASES=(
   'Registry#everyRowIsComplete'
   'lib#rejectsAMalformedFinding'
   'run#selectsOnlyDueRows'
+  'run#aDelayedTickSelectsTheRowsItWasScheduledFor'
+  'run#theWindowDoesNotSelectThePreviousTicksRow'
   'run#rowsSelectsSeveralRows'
   'run#rowsRefusesAnUndeclaredId'
   'run#dryRunTouchesNothing'
@@ -51,6 +53,7 @@ SENSOR_CASES=(
   'sensors#prConflictsNothingReportsClear'
   'workflow#onlyTwoTriggers'
   'workflow#aRedRecordRunsNoRecordRow'
+  'workflow#theTickDeclaresItsWindow'
   'sensors#engineNamesNoProjectValue'
   'sensors#theDocumentedCredentialCoversEveryDeclaredRow'
 )
@@ -69,6 +72,8 @@ sensor_run_case() {
     'Registry#everyRowIsComplete') case_registry_everyRowIsComplete ;;
     'lib#rejectsAMalformedFinding') case_lib_rejectsAMalformedFinding ;;
     'run#selectsOnlyDueRows') case_run_selectsOnlyDueRows ;;
+    'run#aDelayedTickSelectsTheRowsItWasScheduledFor') case_run_aDelayedTickSelectsTheRowsItWasScheduledFor ;;
+    'run#theWindowDoesNotSelectThePreviousTicksRow') case_run_theWindowDoesNotSelectThePreviousTicksRow ;;
     'run#rowsSelectsSeveralRows') case_run_rowsSelectsSeveralRows ;;
     'run#rowsRefusesAnUndeclaredId') case_run_rowsRefusesAnUndeclaredId ;;
     'run#dryRunTouchesNothing') case_run_dryRunTouchesNothing ;;
@@ -99,6 +104,7 @@ sensor_run_case() {
     'sensors#prConflictsNothingReportsClear') case_sensors_prConflictsNothingReportsClear ;;
     'workflow#onlyTwoTriggers') case_workflow_onlyTwoTriggers ;;
     'workflow#aRedRecordRunsNoRecordRow') case_workflow_aRedRecordRunsNoRecordRow ;;
+    'workflow#theTickDeclaresItsWindow') case_workflow_theTickDeclaresItsWindow ;;
     'sensors#engineNamesNoProjectValue') case_sensors_engineNamesNoProjectValue ;;
     'sensors#theDocumentedCredentialCoversEveryDeclaredRow') case_sensors_theDocumentedCredentialCoversEveryDeclaredRow ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
@@ -470,6 +476,81 @@ case_run_selectsOnlyDueRows() {
     --registry "$(fixture registry.json)" 2>&1)
   assert_contains "$out" "fixture-error" "the second clock selects the second row"
   assert_not_contains "$out" "fixture-emit" "the first row is not selected by the second clock"
+}
+
+# The schedule's tick is a minute, and GitHub may fire it minutes after that minute: the window a tick
+# declares is what makes a late run the same tick rather than a silent no-op (issue #166).
+case_run_aDelayedTickSelectsTheRowsItWasScheduledFor() {
+  local dir findings out status
+  dir=$(scratch); issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 1 case alpha)")
+
+  # Seven minutes late, the 03:00 row is still the row this tick was scheduled for.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --within 30 --now 2026-10-17T03:07:00Z --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the delayed tick's run is green: $out"
+  assert_contains "$out" "fixture-emit" "the row whose minute the tick missed is still selected"
+  assert_not_contains "$out" "fixture-error" "a row whose minute is outside the window is not selected"
+
+  # The punctual tick is unchanged whether or not it declares a window.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --within 30 --now 2026-10-17T03:00:00Z --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the punctual tick's run is green: $out"
+  assert_contains "$out" "fixture-emit" "the punctual tick selects the row whose minute it is"
+
+  # And the defect, kept as the reason the window exists: a caller that asks about one minute alone gets
+  # the same green run and nothing measured when the tick is late.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --now 2026-10-17T03:07:00Z --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "an unwindowed late tick is green: $out"
+  assert_contains "$out" "no rows selected" \
+    "without a declared window a late tick measures nothing and says nothing was due"
+}
+
+# The window's bound is what keeps a late tick from measuring a row the previous tick already measured.
+case_run_theWindowDoesNotSelectThePreviousTicksRow() {
+  local dir findings out status
+  dir=$(scratch); issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 1 case alpha)")
+
+  # Thirty minutes wide and ending at the tick's own minute: 03:29 reaches back over the 03:00 row at the
+  # window's far edge...
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --within 30 --now 2026-10-17T03:29:00Z --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the far edge of the window is green: $out"
+  assert_contains "$out" "fixture-emit" "the window reaches the row whose minute is 29 minutes back"
+
+  # ...and 03:30 — the next tick — does not, so a row's minute belongs to one tick's window, and a row
+  # measured in the previous tick's run is not measured again by the next.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --within 30 --now 2026-10-17T03:30:00Z --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the next tick's run is green: $out"
+  assert_contains "$out" "no rows selected" \
+    "the next tick does not select the row the previous tick's window covered"
+
+  # A window that is not a count of minutes is a declared bound that cannot be used, so it is refused
+  # rather than silently narrowed to one minute — the silence that made a late tick a no-op.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --within 0 --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "2" "$status" "a window of no minutes is a usage refusal: $out"
+  assert_contains "$out" "--within" "the refusal names the flag it cannot read"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --within half --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "2" "$status" "a window that is not a number is a usage refusal: $out"
 }
 
 case_run_rowsSelectsSeveralRows() {
@@ -1231,6 +1312,50 @@ case_workflow_onlyTwoTriggers() {
     fail "CODEOWNERS does not cover the workflow directory"
 }
 
+# The window is not a constant the engine assumes: it is the tick's own cadence, so a tick's window ends
+# where its successor's begins and a delayed tick still covers the minute it was scheduled for (#166).
+case_workflow_theTickDeclaresItsWindow() {
+  local workflow cron cadence total declared
+  workflow="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
+  [ -f "$workflow" ] || fail "no sensor pipeline file"
+
+  cron=$(awk '/^on:/ { inside = 1; next } /^[^[:space:]]/ { inside = 0 }
+              inside && /^[[:space:]]*-[[:space:]]*cron:/ { sub(/^[^:]*:[[:space:]]*/, ""); gsub(/["'"'"']/, ""); print; exit }' \
+    "$workflow")
+  [ -n "$cron" ] || fail "the pipeline declares no schedule tick, so no row can ever be due"
+
+  # The cadence, read from the schedule's own cron: the minutes its minute field names, and the shortest
+  # distance between two of them, an hour wrapping. `0,30` is 30; a single minute is 60.
+  cadence=$(printf '%s\n' "$cron" | awk '{
+    n = split($1, parts, ","); m = 0
+    for (i = 1; i <= n; i++) {
+      part = parts[i]; step = 1
+      if (index(part, "/") > 0) { split(part, sp, "/"); part = sp[1]; step = sp[2] + 0 }
+      if (part == "*") { lo = 0; hi = 59 }
+      else if (index(part, "-") > 0) { split(part, range, "-"); lo = range[1] + 0; hi = range[2] + 0 }
+      else { lo = part + 0; hi = lo }
+      if (step < 1) step = 1
+      for (v = lo; v <= hi; v += step) { m++; minutes[m] = v }
+    }
+    if (m == 0) exit 1
+    for (i = 1; i <= m; i++) for (j = 1; j <= m; j++) {
+      gap = minutes[j] - minutes[i]; if (gap <= 0) gap += 60
+      if (smallest == 0 || gap < smallest) smallest = gap
+    }
+    print smallest
+  }')
+  [ -n "$cadence" ] && [ "$cadence" -ge 1 ] || fail "the cadence could not be read from the tick '$cron'"
+
+  # Every scheduled invocation of the runner names its window, and the window is the cadence: a step that
+  # goes back to asking about one minute alone is the defect this case exists for (issue #166).
+  steps=$(grep '^[[:space:]]*run: .*run\.sh --due' "$workflow" || true)
+  total=$(printf '%s\n' "$steps" | grep -c . || true)
+  [ "$total" -ge 1 ] || fail "no scheduled tick runs the runner"
+  declared=$(printf '%s\n' "$steps" | grep -c -- "--within $cadence" || true)
+  assert_eq "$total" "$declared" \
+    "every scheduled tick passes --within $cadence, the window its cadence ($cron) declares"
+}
+
 # ----------------------------------------------------------------------------- 7. the engine's portability
 
 case_sensors_engineNamesNoProjectValue() {
@@ -1274,7 +1399,7 @@ case_workflow_aRedRecordRunsNoRecordRow() {
   steps=$(awk '
     /^ +- name: / { gate = "" }
     /^ +if: / { gate = $0 }
-    /run: bash tools\/sensors\/run\.sh --due --rows / { printf "%s\t%s\n", gate, $0 }
+    /run: bash tools\/sensors\/run\.sh --due .*--rows / { printf "%s\t%s\n", gate, $0 }
   ' "$file")
   assert_eq "2" "$(printf '%s\n' "$steps" | grep -c .)" "the pipeline has one row step per family of rows"
 

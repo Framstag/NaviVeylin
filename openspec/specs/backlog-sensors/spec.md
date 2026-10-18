@@ -175,9 +175,26 @@ the row that lists them — and guarded so that two runs cannot act at once.
 
 #### Scenario: The schedule fires without a person
 
-- **WHEN** the schedule's tick arrives and no dispatch was made
-- **THEN** the rows whose declared cadence is due to run are selected and measured, so a check keeps
-  running while nobody is looking
+- **WHEN** the schedule's tick arrives — in its own minute when it is punctual, and in a later one when
+  GitHub fires it late — and no dispatch was made
+- **THEN** the rows whose declared cadence falls in the window the tick selects over are selected and
+  measured, so a late tick still measures the rows it was scheduled for and a check keeps running while
+  nobody is looking
+- **Case**: `run#aDelayedTickSelectsTheRowsItWasScheduledFor`
+
+#### Scenario: The window measures a row once
+
+- **WHEN** a tick's window reaches back over the minutes since the previous tick
+- **THEN** a row whose minute that previous tick selected is outside this tick's window, so no row is
+  measured twice for one of its cadence's minutes and its `consecutive` count is not spent on a repeat
+- **Case**: `run#theWindowDoesNotSelectThePreviousTicksRow`
+
+#### Scenario: The pipeline declares the window its ticks select over
+
+- **WHEN** the pipeline's scheduled invocations of the runner are inspected
+- **THEN** each one passes a window as wide as the tick's own cadence, so the bound is declared rather than
+  assumed and two consecutive ticks' windows tile the hour
+- **Case**: `workflow#theTickDeclaresItsWindow`
 
 #### Scenario: The identity is a concrete person
 

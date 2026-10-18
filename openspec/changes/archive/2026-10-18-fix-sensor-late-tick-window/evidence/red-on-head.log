@@ -1,0 +1,46 @@
+# red on HEAD — fix-sensor-late-tick-window
+
+HEAD `4bd0504`, 2026-10-18T17:47Z. Issue #166. No compiled file is touched, so no Gradle run is owed
+(guidelines/Build.md §2, scope block); the evidence is the sensor tooling's own offline suite and the two
+invocations the issue measured.
+
+## 1. Issue #166's two measured invocations (the defect)
+
+The schedule is `0,30 * * * *` and the registry's rows sit on minutes 0 and 30
+(`tools/sensors/sensors.json`). A tick GitHub fires late starts in a minute no row declares:
+
+```
+$ bash tools/sensors/run.sh --due --dry-run --now 2026-10-18T00:00:00Z --json
+{"row":"broken-main","fingerprint":"83bb457d6f2996fec5413363404d41f47fad1ca7ce10db5c43de4664d2fa2207","verdict":"clear","measurement":"success","issue":null,"action":"nothing filed, nothing to clear"}
+exit=0
+
+$ bash tools/sensors/run.sh --due --dry-run --now 2026-10-18T00:07:00Z --json
+no rows selected at 2026-10-18T00:07:00Z
+exit=0
+```
+
+The same run, green, with nothing measured: `tools/sensors/lib.sh`'s `sensors_cron_due`
+(`tools/sensors/lib.sh:241`) asks about the tick's own minute alone, and 00:07 is not a minute any row
+declares.
+
+## 2. The change's own cases on HEAD, before the fix
+
+```
+$ bash tools/sensor-selftest.sh
+PASS run#selectsOnlyDueRows
+  the delayed tick's run is green: sensors: run: unknown argument --within: expected '0', got '2'
+FAIL run#aDelayedTickSelectsTheRowsItWasScheduledFor
+  the far edge of the window is green: sensors: run: unknown argument --within: expected '0', got '2'
+FAIL run#theWindowDoesNotSelectThePreviousTicksRow
+PASS workflow#onlyTwoTriggers
+PASS workflow#aRedRecordRunsNoRecordRow
+  every scheduled tick passes --within 30, the window its cadence (0,30 * * * *) declares: expected '2', got '0'
+FAIL workflow#theTickDeclaresItsWindow
+PASS sensors#engineNamesNoProjectValue
+PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
+sensor-selftest: 3 of 43 cases failed
+```
+
+TALLY: 3 new cases red (`run#aDelayedTickSelectsTheRowsItWasScheduledFor`,
+`run#theWindowDoesNotSelectThePreviousTicksRow`, `workflow#theTickDeclaresItsWindow`), 0 of the 40
+pre-existing cases red. Each of the three debug lines is the case's own reason, in the same run.

@@ -220,7 +220,8 @@ sensors_registry_problems() {
 
 # A five-field cron expression against one instant, in UTC: `*`, `n`, `a-b`, `a,b,c` and `*/n`. The
 # engine reads the clock the caller gives it (`SENSORS_NOW`), so a fixture clock decides a selection and
-# no case has to wait for an hour.
+# no case has to wait for an hour. A tick is a *window* of minutes rather than one minute: GitHub fires a
+# scheduled tick late, and a tick that asks about its own minute alone measures nothing when it is late.
 sensors_epoch() { # <ISO-8601 UTC | epoch seconds> → epoch seconds
   local spec="$1"
   case "$spec" in
@@ -238,7 +239,7 @@ sensors_time_fields() { # <epoch> → "minute hour day-of-month month day-of-wee
   return 1
 }
 
-sensors_cron_due() { # <cron> <epoch> → 0 when the expression matches that minute
+sensors_cron_minute() { # <cron> <epoch> → 0 when the expression matches exactly that minute
   local cron="$1" epoch="$2" fields
   fields=$(sensors_time_fields "$epoch") || return 2
   awk -v cron="$cron" -v now="$fields" '
@@ -266,6 +267,25 @@ sensors_cron_due() { # <cron> <epoch> → 0 when the expression matches that min
       if (f[5] != "*" && !field_match(f[5], t[5] + 0)) exit 1
       exit 0
     }'
+}
+
+sensors_cron_due() { # <cron> <epoch> [<minutes>] → 0 when the expression matches a minute in the window
+  # The window is <minutes> wide and ends at <epoch>'s own minute: the tick's minute and the <minutes> - 1
+  # minutes before it. A window as wide as the tick's cadence therefore covers every minute since the
+  # previous tick, which is what a tick GitHub fired late selects over, while the default of one minute is
+  # the punctual single-minute question this call has always asked. 2 = cannot tell: a malformed expression,
+  # or a window that is not a count of minutes.
+  local cron="$1" epoch="$2" minutes="${3:-1}" back=0
+  case "$minutes" in ''|*[!0-9]*|0) return 2 ;; esac
+  while [ "$back" -lt "$minutes" ]; do
+    sensors_cron_minute "$cron" "$((epoch - back * 60))"
+    case $? in
+      0) return 0 ;;
+      2) return 2 ;;
+    esac
+    back=$((back + 1))
+  done
+  return 1
 }
 
 # --------------------------------------------------------------------------- a finding

@@ -1,0 +1,60 @@
+# green — fix-sensor-late-tick-window
+
+2026-10-18, HEAD `4bd0504` + this change's working tree. No compiled file is touched, so no Gradle run is
+owed (guidelines/Build.md §2, scope block); the checks below are the sensor tooling's own offline suites, its
+mutation harness and the structural checks of the files it edits.
+
+## 1. The defect's own invocation, fixed
+
+The late tick measures the rows it was scheduled for (the punchline of `red-on-head.log` §1):
+
+```
+$ bash tools/sensors/run.sh --due --dry-run --within 30 --now 2026-10-18T00:07:00Z --json
+{"row":"broken-main","fingerprint":"83bb457d…","verdict":"clear","measurement":"success",…}
+exit=0
+```
+
+The punctual tick is unchanged (`--now 2026-10-18T00:00:00Z`, with and without `--within 30`) and the
+unwindowed late tick still prints `no rows selected` — that last one is asserted by
+`run#aDelayedTickSelectsTheRowsItWasScheduledFor`, kept as the reason the window exists.
+
+## 2. The suites
+
+```
+$ bash tools/sensor-selftest.sh
+sensor-selftest: all 43 cases passed (JDK 27, offline, no token)        # was 3 of 43 red on HEAD
+
+$ bash tools/sensor-mutations.sh
+MUTATION 8.12: run#aDelayedTickSelectsTheRowsItWasScheduledFor red under the mutation, green after the restore — the window reaches back over the minutes since the previous tick
+MUTATION 8.13: workflow#theTickDeclaresItsWindow red under the mutation, green after the restore — every scheduled tick declares the window it selects over
+MUTATION 8.14: run#theWindowDoesNotSelectThePreviousTicksRow red under the mutation, green after the restore — a window that is not a count of minutes is refused
+sensor-mutations: 14 behaved, 0 did not
+```
+
+## 3. The structural checks
+
+```
+$ bash tools/build-inputs-selftest.sh
+11 cases, 0 failed
+$ bash tools/check-portability.sh
+check-portability: OK — 42 engines and 2 templates name no project value (133 value(s) read from the project)
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 89 section references resolve
+$ bash tools/build-inputs.sh --check
+build-inputs: every declared input has a producer (4 rows checked)
+$ bash tools/declared-cases-selftest.sh
+12 passed, 0 failed
+$ yq -e '.' .github/workflows/sensors.yml
+workflow parses
+$ (the CI hygiene step's replication over openspec/changes/*/tasks.md and openspec/config.yaml)
+OpenSpec artifacts are consistent.
+
+$ openspec validate fix-sensor-late-tick-window --type change
+Change 'fix-sensor-late-tick-window' is valid
+exit=0
+```
+
+Not run, deliberately: no Gradle build or test suite (no compiled file — no Kotlin, no C++, no Gradle logic,
+no resource), and no live `workflow_dispatch` of `sensors.yml` (its guard refuses every ref but `main`, so the
+end-to-end record of a late tick is the first scheduled run on `main` after this lands);
+`guidelines/Build.md` §2, scope block.

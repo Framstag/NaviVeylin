@@ -15,7 +15,9 @@ quoted only where its run is dated (§2, §6).
 
 ## 1. Skills
 
-Five skills wrap the existing Gradle calls and the verification discipline around them. They are named
+Five skills wrap the existing Gradle calls and the verification discipline around them, and two more wrap
+the tooling's own shell gates (`tools/issues/**`, `tools/sensors/**`, `tools/loop/**`,
+`tools/check-portability.sh`). They are named
 and discoverable by LLM agents (loaded on demand from `.pi/skills/`); use them whenever build, test,
 verification, or release work is requested or required by the OpenSpec apply/archive guidance. The loop
 they serve — when to look, when to measure, when to run which suite — is §2's *Agent iteration protocol*;
@@ -26,6 +28,8 @@ the skills are its hands, not its rule.
 | `build-app` | Compile the app — debug APKs, flavors, ABIs | User asks to build/compile; verify code compiles; after Kotlin/native changes |
 | `run-tests` | Execute unit + instrumented tests | User asks to run tests; verify tests pass; before marking a task complete |
 | `revert-check` | Falsify a new guard: one mutation → the named case must fail → restore → forced green, with the evidence recorded | A task says "revert-check"/"one mutation"/"the case that must fail"; a change adds a test for an invariant; before claiming a test covers new behaviour |
+| `mutation-runner` | Run a *versioned set* of shell-gate mutations in one command (`tools/mutate.sh`), with a guard against a mutation that never landed and one against a case that does not notice | The gate is a self-test, not Gradle; a change's falsification pass is owed for `tools/**`; a mutation set has to be run, listed or repaired |
+| `portability-check` | Prove the tooling names no project value and still runs in another project (`tools/check-portability.sh` + its 21 cases + the synthetic foreign project) | A change touches `tools/issues`, `tools/sensors`, `tools/loop` or the check; a task says "portability"/"no project value"/"the foreign project"; CI's `Check portability` step fails |
 | `compose-geometry` | Assert a UI geometry invariant (size, tap target, disjointness, visibility inside a parent) in a Compose case instead of `assertExists()` | A phone control or tap area is added/moved; a task asks for a bounds/48 dp/disjointness/visibility case; a device run shows a tap landing on the wrong action or an action that is unreachable |
 | `release-build` | Produce Play-ready release AABs (mobile + automotive) | User asks for a release build or version bump; Play upload / sideload artifacts |
 

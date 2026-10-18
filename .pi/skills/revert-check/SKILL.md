@@ -63,6 +63,23 @@ is killed. `--list` prints the set; `--only <labels>` runs one; `--engine <copy>
 is what its own self-test, `tools/loop-mutations-selftest.sh`, does to prove both guards and the restore).
 Quote its transcript in the task item, exactly as the Gradle form quotes a tally.
 
+**The generic form for any shell gate is `tools/mutate.sh`** (`.pi/skills/mutation-runner`): the mutations
+live in a versioned JSON set (`tools/portability-mutations.json` is a worked one), so the pass is
+reproducible years later instead of living in a session's scratch directory, and the restore is verified
+byte-for-byte *and* by permission bit:
+
+```bash
+tools/mutate.sh --mutations tools/portability-mutations.json --list              # labels, cases, reasons
+tools/mutate.sh --mutations tools/portability-mutations.json --only 5.1          # one, while iterating
+tools/mutate.sh --mutations tools/portability-mutations.json --out evidence/revert-checks.log
+tools/mutate-selftest.sh                                                          # the runner's own guards
+```
+
+It reports the two silent lies as failures — `MUTATION-DID-NOT-APPLY` (the search no longer matches the line
+the change wrote: a stale pattern, not a strong test) and `STAYS-GREEN` (the mutation landed and the case did
+not notice) — alongside `RESTORE-FAILED` and `RESTORE-STAYS-RED`. A set's `--list` belongs in the CI step
+that owns the engine, so a set that no longer parses fails the pipeline instead of rotting.
+
 ```bash
 tools/loop-mutations.sh --list            # what the invariants are, and which case owns each
 tools/loop-mutations.sh --only 9.1        # one mutation, while iterating
@@ -146,6 +163,10 @@ tools/loop-mutations.sh --out <file>      # the whole set, with the transcript r
 - `tools/loop-mutations.sh`, `tools/loop-mutations-selftest.sh` — the mechanical form when the gate is a
   shell self-test (`tools/loop-selftest.sh`); `openspec/changes/agent-issue-loop/evidence/revert-checks.md`
   is a worked example (11 mutations, 11 red, 11 restores green)
+- `tools/mutate.sh`, `tools/mutate-selftest.sh`, `tools/portability-mutations.json` and
+  `.pi/skills/mutation-runner/SKILL.md` — the generic form for any shell gate, with the mutations versioned
+  in a JSON set; `openspec/changes/archive/2026-10-18-tooling-portability/evidence/revert-checks.md` is the
+  worked example
 - `.pi/skills/openspec-apply-change/SKILL.md` — the apply loop this skill plugs into
 - `TODO.md` §113 (origin changes without falsification), §111 (a case that proved nothing about the call
   site), §40.12 (one mutation per check), §17 (cache-masked verdicts)

@@ -48,6 +48,13 @@ A car list screen SHALL present at most as many rows as the connected host displ
 - **AND** the remaining searches SHALL be reachable through its page row
 - **Case**: `auto: SearchHistoryScreenTest.theSearchHistoryListFitsTheHostsCapacity`
 
+#### Scenario: The diagnostics list fits the host's capacity
+
+- **WHEN** the car diagnostics screen's recent-entries window holds more entries than the host's reported capacity
+- **THEN** its template SHALL present at most that many window entries — the capacity is the host's answer, not the screen's own window bound and not the Car App Library's default — with the disclosure row opening the list and the entries the page does not show counted in its page row
+- **AND** it SHALL be a car list rather than a pane, because a pane's rows are not actionable and cannot offer the rest of the window
+- **Case**: `auto: DiagnosticsScreenTest.theDiagnosticsListFitsTheHostsCapacity`
+
 ### Requirement: Items beyond the capacity stay reachable
 
 A car list whose items exceed the host's capacity SHALL offer the remaining items through a clickable final row that opens the next page in the same order, so every item can be reached while driving, and the way back to the previous page SHALL exist.
@@ -87,3 +94,9 @@ A car list whose items exceed the host's capacity SHALL offer the remaining item
 - **WHEN** the driver taps the car search history's page row
 - **THEN** the page it opens SHALL carry the next stored searches in the same order, beginning with the first entry the previous page did not show and reaching the oldest one
 - **Case**: `auto: SearchHistoryScreenTest.thePageRowOpensTheNextSliceOfTheHistory`
+
+#### Scenario: The diagnostics page continues the recent-entries window
+
+- **WHEN** the driver taps the car diagnostics screen's page row
+- **THEN** the page it opens SHALL present the next capacity-many entries of the same newest-first window, and its own page row SHALL count what remains after them rather than dropping it
+- **Case**: `auto: DiagnosticsScreenTest.thePageRowOpensTheNextSliceOfTheWindow`

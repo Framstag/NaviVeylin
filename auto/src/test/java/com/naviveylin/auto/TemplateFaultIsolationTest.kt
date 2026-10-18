@@ -131,7 +131,7 @@ class TemplateFaultIsolationTest {
 
     @Test
     fun diagnosticsScreenServesTheErrorTemplateWhenTheBuildFails() {
-        assertErrorPane(DiagnosticsScreen(carContext).onGetTemplate())
+        assertErrorList(DiagnosticsScreen(carContext).onGetTemplate())
     }
 
     @Test

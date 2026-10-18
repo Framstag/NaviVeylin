@@ -1,6 +1,8 @@
 package com.naviveylin.auto
 
+import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.PaneTemplate
+import androidx.car.app.model.Row
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -33,7 +35,9 @@ class GermanRenderingTest {
     @Test
     fun diagnosticsScreenRendersTheGermanDisclosure() {
         val screen = DiagnosticsScreen(testCarContext())
-        val template = screen.onGetTemplate() as PaneTemplate
+        // The diagnostics screen is a car list (spec: car-list-row-limit), so the disclosure is its
+        // first item; the entries follow inside the host's row capacity.
+        val template = screen.onGetTemplate() as ListTemplate
         val disclosure = testCarContext().getString(
             com.naviveylin.core.R.string.diagnostics_disclosure
         )
@@ -41,7 +45,7 @@ class GermanRenderingTest {
         assertEquals(
             "the car disclosure is German too (spec: auto-diagnostics — Disclosure is localized)",
             disclosure,
-            template.pane.rows.first().title.toString()
+            template.singleList!!.items.filterIsInstance<Row>().first().title.toString()
         )
     }
 

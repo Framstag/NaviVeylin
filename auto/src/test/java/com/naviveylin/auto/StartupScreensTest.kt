@@ -2,7 +2,9 @@ package com.naviveylin.auto
 
 import android.os.Looper
 import androidx.car.app.CarContext
+import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.PaneTemplate
+import androidx.car.app.model.Row
 import com.naviveylin.core.DiagnosticsLog
 import io.mockk.every
 import io.mockk.mockk
@@ -99,7 +101,8 @@ class StartupScreensTest {
             val titles = awaitRows(screen) { it.size == 4 }
 
             // Row 0 is the disclosure (spec: auto-diagnostics — Export and viewers
-            // disclose the log contents); the entries follow newest first.
+            // disclose the log contents); the entries follow newest first, inside the
+            // host's row capacity (spec: car-list-row-limit).
             assertTrue(titles.size <= 21)
             assertEquals(4, titles.size)
             assertTrue("newest first: ${titles[1]}", titles[1].contains("third"))
@@ -124,7 +127,8 @@ class StartupScreensTest {
                 var done = false
                 while (!done) {
                     shadowOf(Looper.getMainLooper()).idle()
-                    titles = (screen.onGetTemplate() as PaneTemplate).pane.rows.map { it.title.toString() }
+                    titles = (screen.onGetTemplate() as ListTemplate).singleList!!.items
+                        .filterIsInstance<Row>().map { it.title.toString() }
                     done = ready(titles)
                     if (!done) yield()
                 }

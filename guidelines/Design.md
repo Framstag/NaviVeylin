@@ -645,11 +645,15 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 - **Attribute a diagnostics assertion to the lines its own case wrote.** The file `DiagnosticsLog.initForTest`
   installs is the process-wide sink, so work another class left running logs into it while a case holds it: a
   whole-file `contains("52.")`, an `entries.size` or an `entries.single()` measures those lines too and reddens
-  the case for reasons its author cannot see. Filter to the tag or marker only the subject's own message
-  carries (`map source unknown value=`, `repository source without a base URL`, `HOST NOTIF post`,
-  `ENGINE_FAULT_TAG`, `ROUTE calc done:`, `HOST surface`) and keep the count on that list, so a duplicated or
-  missing own line still fails. The sink's own classes (`DiagnosticsLogTest`, `DiagnosticsLogRetentionTest`,
-  `DiagnosticsLogWritePathTest`) are the exemption — the file is their subject. Measured twice — `SettingsStorageSourceTest`
+  the case for reasons its author cannot see. Filter to the marker only the subject's own message carries
+  (`map source unknown value=`, `repository source without a base URL`, `HOST NOTIF post`, `ROUTE calc done:`,
+  `HOST surface`) and keep the count on that list, so a duplicated or missing own line still fails. Filtering at
+  *tag* level (`ENGINE_FAULT_TAG`) is the weaker form — a foreign record carrying that tag still counts — and is
+  only for a record whose message has no marker of its own. The sink's own classes (`DiagnosticsLogTest`,
+  `DiagnosticsLogRetentionTest`, `DiagnosticsLogWritePathTest`) are the exemption — the file is their subject;
+  four cases that predate the rule still decide from the whole file and the requirement
+  `unit-test-suite-runtime`, "A diagnostics assertion is attributed to the lines its own case wrote", names
+  their paths. Measured twice — `SettingsStorageSourceTest`
   (2026-10-10, `car-favorites-group-level` task 4.2) and `NotificationHostSendLoggingTest` (2026-10-11,
   `fix-browse-recenter-dwell` task 5.7), issue #115, change `fix-diagnostics-sink-attribution`.
 

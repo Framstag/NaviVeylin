@@ -73,6 +73,13 @@ item SHALL be able to invoke version control on its own behalf.
 - **WHEN** an item starts
 - **THEN** it is worked on its own branch from the base commit the run recorded
 
+#### Scenario: A commit carries the run's own identity
+
+- **WHEN** the run commits an item's work on a machine with no `user.name` or `user.email` configured
+- **THEN** both commits carry the identity the run already acts as — the login its own gate preflight
+  resolved, as that login's noreply address — so the run never depends on an ambient git identity and never
+  invents one, and a login that cannot be resolved stops the run with a named reason
+
 #### Scenario: A stale base stops the next item
 
 - **WHEN** the main branch has advanced past the run's base commit

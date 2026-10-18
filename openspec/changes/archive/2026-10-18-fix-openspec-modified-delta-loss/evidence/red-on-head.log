@@ -1,0 +1,23 @@
+# red-on-HEAD — case: `openspec validate fix-navigation-engine-fault-isolation --type change` (the change-artifact validation of the delta the defect lives in)
+# run: 2026-10-18T19:18:16+02:00 on HEAD b83e857, tree clean apart from the untracked Agentisches-Coding-NaviVeylin.md
+
+$ openspec validate fix-navigation-engine-fault-isolation --type change
+Change 'fix-navigation-engine-fault-isolation' has issues
+⚠ [WARNING] auto-diagnostics/spec.md: ADDED "A confined fault is recorded like a fatal one": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✗ [ERROR] car-host-fault-isolation/spec.md: MODIFIED "No fault escapes into the host path" omits scenario(s) the current spec still has: "A fault in one frame keeps the frames coming", "A fault in a display tick keeps the follow pipeline running". The modified block has 10 scenarios; the current spec has 11 scenarios. It adds 1 scenario not in the current spec: "Engine fault while a car session is live". Copy the omitted scenarios into the MODIFIED block (a MODIFIED requirement replaces the whole block, so archive refuses to drop them).
+✗ [ERROR] navigation-engine/spec.md: MODIFIED "Engine lifecycle and threading" omits scenario(s) the current spec still has: "A background writer cannot revert a concurrent publication", "The staleness tick reads the injected time source", "A native lookup result is published on the main thread". The modified block has 5 scenarios; the current spec has 6 scenarios. It adds 2 scenarios not in the current spec: "Engine coroutine fault is confined", "Native failure is confined, not fatal". Copy the omitted scenarios into the MODIFIED block (a MODIFIED requirement replaces the whole block, so archive refuses to drop them).
+Next steps:
+  - Ensure change has deltas in specs/: use headers ## ADDED/MODIFIED/REMOVED/RENAMED Requirements
+  - Each requirement MUST include at least one #### Scenario: block
+  - Debug parsed deltas: openspec show fix-navigation-engine-fault-isolation --json --deltas-only
+exit=1
+
+
+$ openspec validate --changes
+# HEAD run, 2026-10-18T19:17 before this change was scaffolded (the whole open change set):
+exit=1
+Totals: 14 passed, 1 failed (15 items)
+Details: openspec validate fix-navigation-engine-fault-isolation --type change
+TALLY: 15 items - 14 passed, 1 failed (the defect is the only failure); errors 2; scenarios the MODIFIED blocks drop 5
+# The re-run recorded later in green.log reads 16 items, because this change adds a 16th entry to
+the set (its own scaffold, before its artifacts existed).

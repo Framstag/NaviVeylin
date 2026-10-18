@@ -1,0 +1,85 @@
+# green — fix-openspec-modified-delta-loss
+# run: 2026-10-18 19:23 on HEAD b83e857 (+ the working-tree edits of this change), before the commit
+
+# ── 1. the repaired MODIFIED blocks against their shipped requirements ─────────────────────────
+# (word-diff, so a re-wrapped line is not mistaken for a dropped sentence)
+$ awk '/^### Requirement: No fault escapes into the host path/,/^### Requirement: Template invalidation/' \
+    openspec/specs/car-host-fault-isolation/spec.md | grep -v '^### Requirement: Template invalidation' | grep -v '^$' > /tmp/cur-car.txt
+$ awk '/^### Requirement: No fault escapes into the host path/,0' \
+    openspec/changes/fix-navigation-engine-fault-isolation/specs/car-host-fault-isolation/spec.md | grep -v '^$' > /tmp/new-car.txt
+$ awk '/^### Requirement: Engine lifecycle and threading/,/^### Requirement: A failed route attempt/' \
+    openspec/specs/navigation-engine/spec.md | grep -v '^### Requirement: A failed route attempt' | grep -v '^$' > /tmp/cur-ne.txt
+$ awk '/^### Requirement: Engine lifecycle and threading/,0' \
+    openspec/changes/fix-navigation-engine-fault-isolation/specs/navigation-engine/spec.md | grep -v '^$' > /tmp/new-ne.txt
+$ git diff --no-index --word-diff=plain --word-diff-regex='[^[:space:]]+' /tmp/cur-car.txt /tmp/new-car.txt | grep -o '\[-[^]]*-\]'
+(no output: 0 removed word-groups)
+$ git diff --no-index --word-diff=plain --word-diff-regex='[^[:space:]]+' /tmp/cur-ne.txt /tmp/new-ne.txt | grep -o '\[-[^]]*-\]'
+(no output: 0 removed word-groups)
+$ grep -c '^#### Scenario:' /tmp/cur-car.txt /tmp/new-car.txt /tmp/cur-ne.txt /tmp/new-ne.txt
+11 (shipped car-host-fault-isolation) -> 12 (repaired block: + "Engine fault while a car session is live",
+                                                 re-joined by "A fault in one frame keeps the frames coming"
+                                                 and "A fault in a display tick keeps the follow pipeline running")
+ 6 (shipped navigation-engine)          ->  8 (repaired block: + "Engine coroutine fault is confined",
+                                                 "Native failure is confined, not fatal", re-joined by
+                                                 "A background writer cannot revert a concurrent publication",
+                                                 "The staleness tick reads the injected time source",
+                                                 "A native lookup result is published on the main thread")
+
+# ── 2. the red-on-HEAD case turns green ────────────────────────────────────────────────────────
+$ openspec validate fix-navigation-engine-fault-isolation --type change
+Change 'fix-navigation-engine-fault-isolation' is valid
+exit=0
+# (only output beside the verdict: the pre-existing ">500 characters" warning on the auto-diagnostics
+#  ADDED requirement — it warns on HEAD too, `openspec validate --specs`-style; no error)
+
+# ── 3. the whole open change set ──────────────────────────────────────────────────────────────
+$ openspec validate --changes
+exit=0
+Totals: 16 passed, 0 failed (16 items)
+# was: Totals: 14 passed, 1 failed (15 items) at HEAD (evidence/red-on-head.log)
+# the 16 = the 15 changes open before this one + this change; the fourteen that were already clean
+# (dedupe-stylesheet-loads, fix-aggregate-run-test-flakes, fix-car-follow-reengage-render,
+#  fix-car-rail-widget-tap, fix-car-render-coordinate-redaction, fix-compound-name-matching,
+#  fix-cross-database-search-scope, fix-details-screen-observation-scope,
+#  fix-open-database-path-validation, fix-phone-map-layer-stack, fix-poi-symbol-icons,
+#  fix-start-map-selection, publish-requested-route-start, search-result-row-content) are untouched,
+# and fix-navigation-engine-fault-isolation is the one this change repaired.
+
+# ── 4. the structural checks CI runs for an openspec/** delta (no build, no suite, no device) ──
+$ (replication of build.yml "Check OpenSpec artifact hygiene": task markers + unquoted config guidance)
+hygiene fail=0
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 89 section references resolve
+exit=0
+$ bash tools/declared-cases-selftest.sh | tail -1
+12 passed, 0 failed
+$ bash tools/declared-cases.sh fix-openspec-modified-delta-loss
+declared-cases: change 'fix-openspec-modified-delta-loss'
+  diff      working tree of /home/tim/projects/NaviVeylin — 1 path(s), 0 production file(s), 0 test file(s)
+  rules     declared 0 · touched 0 · mention 0 · union of declared,touched,mention
+Nothing selected. Reasons, rule by rule: declared the change's artifacts name no '*Test' token at all;
+touched the diff touches no test source; mention the diff changes no production file — exit 0
+# Excluded, named: every `./gradlew` form, `adb` and the emulators — this delta compiles nothing
+# (guidelines/Build.md §2, scope block: a delta that touches no compiled file runs no build and no suite).
+
+# ── 5. final evidence, after the sync of `documentation-ownership` and after this change archived ─
+$ openspec validate fix-navigation-engine-fault-isolation --type change
+Change 'fix-navigation-engine-fault-isolation' is valid
+exit=0
+# (its only other output is the pre-existing >500-character warning on the auto-diagnostics ADDED requirement)
+
+$ openspec validate --changes
+exit=0
+Totals: 15 passed, 0 failed (15 items)
+# the 15 open changes, i.e. the set of the red-on-HEAD run with the defect repaired and this change archived;
+every one of them validates clean, and none of them was touched by this change.
+
+$ openspec validate --specs
+exit=0
+Totals: 175 passed, 0 failed (175 items)
+
+$ openspec validate documentation-ownership --type spec
+Specification 'documentation-ownership' is valid
+exit=0
+# the synced main spec: no `## ADDED/MODIFIED Requirements` header left in it, and the merged requirement
+# block is byte-identical to this change's delta block (diff of the two extracted blocks: empty, 2 scenarios).

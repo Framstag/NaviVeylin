@@ -36,6 +36,15 @@ tools/issues/update.sh 42 --status open-device --json            # one JSON docu
 At least one of `--label`, `--status`, `--body` is required. `--status` is a **value** (`open`,
 `open-device`, `unverified`, …), not a label; the script composes the namespaced label from the profile.
 
+`--status` **replaces** the item's state: the script reads the item, removes every other value of the status
+namespace in the same `gh issue edit` that adds the new one, and adds nothing when the item already carries the
+value asked for (then it writes no label at all and says so on stderr). So one call can never leave two
+`status/*` labels on an item, and a caller does not have to remember which state to remove. `--json` reports
+the displaced values under `removedLabels` beside the ones the caller named. Naming two states in one call —
+a `status/*` `--label` beside `--status`, or a `--remove-label` cancelling the value it sets — is refused with
+exit 2 before anything is read or written, because which state the item would carry is a decision.
+(`fix-status-label-replacement`; the invariant is I16 in `guidelines/Backlog.md` §4.)
+
 ## The closed vocabulary
 
 Every label is checked against the profile (`tools/tooling.json`) before any `gh issue edit` is issued:
@@ -46,8 +55,8 @@ Every label is checked against the profile (`tools/tooling.json`) before any `gh
 
 ## Which change owns the status transition
 
-`update.sh` writes the label; it does not decide the transition. The lifecycle is owned by the capability that
-moves an item:
+`update.sh` writes the label and completes the replacement; it does not decide the transition. The lifecycle is
+owned by the capability that moves an item:
 
 | transition | owner |
 |---|---|
@@ -64,6 +73,6 @@ the change name in the body, because a label cannot carry it.
 | code | meaning |
 |---|---|
 | 0 | updated |
-| 2 | usage, or nothing to change |
+| 2 | usage, nothing to change, or two states named in one call |
 | 3 | policy refusal (`label-opaque`, `label-reserved`, `author-not-allowlisted`) — nothing was written |
 | 1 | `gh` itself refused the edit — read its message |

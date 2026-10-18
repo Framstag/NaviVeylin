@@ -177,6 +177,41 @@ issues_issue_list() {
   gh issue list --state all --limit 400 --json number,title,labels,body,author
 }
 
+# --------------------------------------------------------------------------- the state namespace
+#
+# A state write replaces the namespace's value: two `status/*` labels on one issue make every status query
+# answer twice, so the write that sets a state is also the write that removes the value it displaces. The scan
+# lives here because it has two writers — `update.sh` and `reopen.sh` — and two copies of it would drift; the
+# namespace *name* is the contract, which is why the portability check reads the names and forbids only the
+# project's values (`check-portability.sh`, "the vocabulary").
+ISSUES_STATUS_NAMESPACE="status"
+
+# issues_status_prefix → the status namespace as a label prefix, e.g. `status/`. Reading the profile starts a
+# JVM, so a writer resolves it once into a variable and passes it on; the function refuses to answer before
+# `issues_resolve`, because a prefix without its separator (`status` instead of `status/`) would silently make
+# the scan match nothing at all.
+issues_status_prefix() {
+  [ -n "${ISSUES_PROFILE:-}" ] ||
+    issues_die "issues: the profile is not resolved — call issues_resolve before issues_status_prefix"
+  printf '%s%s\n' "$ISSUES_STATUS_NAMESPACE" "$(issues_profile_value namespaceSeparator)"
+}
+
+# issues_labels_of <issue-json> → the issue's labels, one per line. Both spellings are accepted: the API
+# returns objects with a `name`, and a fixture may carry the bare string.
+issues_labels_of() {
+  jq -r '[.labels[]? | if type == "string" then . else .name end] | .[]' <<< "${1:-}"
+}
+
+# issues_status_displaced <issue-json> <target-label> <prefix> → one label per line: every value of the
+# status namespace the issue carries other than the target. The prefix is the caller's, so this stays a pure
+# filter: it reads the issue the caller already has and makes no `gh` call and no profile read of its own.
+issues_status_displaced() {
+  local issue="$1" target="$2" prefix="$3"
+  jq -r --arg prefix "$prefix" --arg target "$target" \
+    '[.labels[]? | if type == "string" then . else .name end]
+     | .[] | select(startswith($prefix)) | select(. != $target)' <<< "$issue"
+}
+
 # --------------------------------------------------------------------------- the priority marker
 #
 # The marker is written by `prioritise.sh`, read by `check-metadata.sh` and by `list.sh`/`triage-todo`, and

@@ -16,6 +16,7 @@ ISSUES_SHELL_CASES=(
   'lib#refusesOutsideAGitTree'
   'lib#noProjectValueInTheEngine'
   'lib#exitCodeConstants'
+  'lib#statusPrefixNeedsTheProfile'
   'lib#coreIsCompiledNotLaunched'
   'policy#preflightRefusesUnknownLogin'
   'create#duplicateRefusesAndNamesTheIssue'
@@ -34,6 +35,12 @@ ISSUES_SHELL_CASES=(
   'import#secondRunIsANoOp'
   'adapter#emitsOneFindingPerFixtureSection'
   'update#removeLabelRunsThroughTheSameGate'
+  'update#statusReplacesTheOldStatus'
+  'update#statusReplacementIsIdempotent'
+  'update#statusRejectsTwoStatesInOneCall'
+  'update#statusReportNamesImpliedRemoval'
+  'update#statusWriteReportsAnEmptyTransition'
+  'update#stateNamedAsALabelReplacesTheOldState'
   'close#commentOnlyLeavesTheIssueOpen'
   'basis#stableAcrossWhitespaceOnlyBodyEdit'
   'basis#changesWhenAClassLabelChanges'
@@ -78,6 +85,7 @@ issues_run_shell_case() {
     'lib#refusesOutsideAGitTree') case_lib_refusesOutsideAGitTree ;;
     'lib#noProjectValueInTheEngine') case_lib_noProjectValueInTheEngine ;;
     'lib#exitCodeConstants') case_lib_exitCodeConstants ;;
+    'lib#statusPrefixNeedsTheProfile') case_lib_statusPrefixNeedsTheProfile ;;
     'lib#coreIsCompiledNotLaunched') case_lib_coreIsCompiledNotLaunched ;;
     'policy#preflightRefusesUnknownLogin') case_policy_preflightRefusesUnknownLogin ;;
     'create#duplicateRefusesAndNamesTheIssue') case_create_duplicateRefusesAndNamesTheIssue ;;
@@ -96,6 +104,12 @@ issues_run_shell_case() {
     'import#secondRunIsANoOp') case_import_secondRunIsANoOp ;;
     'adapter#emitsOneFindingPerFixtureSection') case_adapter_emitsOneFindingPerFixtureSection ;;
     'update#removeLabelRunsThroughTheSameGate') case_update_removeLabelRunsThroughTheSameGate ;;
+    'update#statusReplacesTheOldStatus') case_update_statusReplacesTheOldStatus ;;
+    'update#statusReplacementIsIdempotent') case_update_statusReplacementIsIdempotent ;;
+    'update#statusRejectsTwoStatesInOneCall') case_update_statusRejectsTwoStatesInOneCall ;;
+    'update#statusReportNamesImpliedRemoval') case_update_statusReportNamesImpliedRemoval ;;
+    'update#statusWriteReportsAnEmptyTransition') case_update_statusWriteReportsAnEmptyTransition ;;
+    'update#stateNamedAsALabelReplacesTheOldState') case_update_stateNamedAsALabelReplacesTheOldState ;;
     'close#commentOnlyLeavesTheIssueOpen') case_close_commentOnlyLeavesTheIssueOpen ;;
     'basis#stableAcrossWhitespaceOnlyBodyEdit') case_basis_stableAcrossWhitespaceOnlyBodyEdit ;;
     'basis#changesWhenAClassLabelChanges') case_basis_changesWhenAClassLabelChanges ;;
@@ -173,6 +187,20 @@ reserved_label() {
 
 login() {
   cat "$ISSUES_FIXTURES/login.txt"
+}
+
+# A tracker holding exactly the issues a state-transition case needs.
+#
+# The base fixture's `issues.json` is empty, so a case that makes `update.sh` read the item has to supply the
+# item: `status_tracker <dir> <number> <label>…` writes one issue carrying those labels, and the stub's
+# `gh issue view` answers from it.
+status_tracker() { # <dir> <number> <label>…
+  local dir="$1" number="$2"; shift 2
+  jq -n --argjson n "$number" \
+        --argjson labels "$(printf '%s\n' "$@" | jq -R . | jq -s .)" \
+    '[{number: $n, title: "a fixture item", state: "OPEN", stateReason: "", body: "", comments: [],
+       author: {login: "Framstag"},
+       labels: [ $labels[] | {name: .} ]}]' > "$dir/issues.json"
 }
 
 # The finding every write-path case files.
@@ -292,6 +320,23 @@ case_lib_exitCodeConstants() {
     printf '%s %s %s %s\n' "$ISSUES_EXIT_OK" "$ISSUES_EXIT_USAGE" "$ISSUES_EXIT_POLICY" "$ISSUES_EXIT_DUPLICATE"
   )
   assert_eq "0 2 3 4" "$values" "the exit-code contract"
+}
+
+# The status prefix is the state namespace *with* its separator, and it is only answerable once the profile is
+# resolved. A prefix that silently lost its separator would make the displacement scan match nothing at all, and
+# the write would look correct while leaving the old state behind — so the refusal is part of the fix, not
+# hardening beside it.
+case_lib_statusPrefixNeedsTheProfile() {
+  local out status
+  out=$(env -u ISSUES_PROFILE bash -c '
+    source "$1/lib.sh"
+    issues_status_prefix' _ "$ISSUES_ENGINE" 2>&1); status=$?
+  assert_eq "2" "$status" "the prefix is not answered before the profile is resolved: $out"
+  assert_contains "$out" "issues_resolve" "and the refusal names what is missing"
+  case "$out" in
+    *"status/"*) fail "an unresolved prefix must not answer with a separator-less namespace: $out" ;;
+  esac
+  return 0
 }
 
 case_policy_preflightRefusesUnknownLogin() {
@@ -638,6 +683,135 @@ case_update_removeLabelRunsThroughTheSameGate() {
 
   out=$(run_tool update.sh 11 2>&1); status=$?
   assert_eq "2" "$status" "nothing to change is a usage error"
+  return 0
+}
+
+# --------------------------------------------------------------------------- the state transition
+#
+# A state write replaces the state: `gh issue edit` carries the add and every other value of the namespace as
+# a removal, so one call cannot leave two states. The model is `reopen.sh`, which has done this since it was
+# written; `update.sh` did not, and every loop transition and repair path goes through it.
+
+case_update_statusReplacesTheOldStatus() {
+  local dir log out status edit
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 11 status/open class/bug category/ui
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 11 --status fixed-by 2>&1); status=$?
+  assert_eq "0" "$status" "the state write succeeds: $out"
+  assert_eq "1" "$(grep -c 'issue edit' "$log")" "exactly one issue edit is issued"
+  edit=$(grep 'issue edit' "$log")
+  assert_contains "$edit" "--add-label status/fixed-by" "the new state is added"
+  assert_contains "$edit" "--remove-label status/open" "the displaced state is removed in the same write"
+  assert_eq "0" "$(grep -c -- '--remove-label status/fixed-by' <<< "$edit")" \
+    "and the edit never removes the label it adds"
+  assert_eq "0" "$(grep -c 'issue view' "$log")" "the read is not a recorded write"
+  return 0
+}
+
+case_update_statusReplacementIsIdempotent() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 11 status/open
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  # The item already carries the state the call asks for: nothing is added, and one edit may not both add and
+  # remove the same label — the state is still unique afterwards.
+  out=$(run_tool update.sh 11 --status open 2>&1); status=$?
+  assert_eq "0" "$status" "a state write on the state it already has succeeds: $out"
+  assert_eq "0" "$(grep -c -- '--add-label' "$log" || true)" "no label is added again"
+  assert_eq "0" "$(grep -c -- '--remove-label status/open' "$log" || true)" "and the state is not removed either"
+
+  # Carrying another label or a body still writes that, without touching the state.
+  : > "$log"
+  out=$(run_tool update.sh 11 --status open --label category/car 2>&1); status=$?
+  assert_eq "0" "$status" "a state write beside another label succeeds: $out"
+  assert_eq "1" "$(grep -c -- '--add-label category/car' "$log")" "the other label is added"
+  assert_eq "0" "$(grep -c -- '--add-label status/open' "$log" || true)" "the state already in place is not"
+  return 0
+}
+
+case_update_statusRejectsTwoStatesInOneCall() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  # A tracker with no issue 11 at all: a refusal that names the two values proves it happened before the read,
+  # because a read would have failed first and said so.
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 11 --status open-device --label status/on-hold 2>&1); status=$?
+  assert_eq "2" "$status" "a status-namespace label beside --status is a usage error"
+  assert_contains "$out" "two states" "the refusal names the contradiction"
+  assert_contains "$out" "status/on-hold" "naming the label it was given"
+
+  out=$(run_tool update.sh 11 --status open-device --label status/open-device 2>&1); status=$?
+  assert_eq "2" "$status" "the same state twice is refused as well"
+  assert_contains "$out" "same state twice" "with its own reason"
+
+  out=$(run_tool update.sh 11 --status on-hold --remove-label status/on-hold 2>&1); status=$?
+  assert_eq "2" "$status" "a removal that cancels the state it sets is refused"
+  assert_contains "$out" "removes the state it sets" "with its own reason"
+
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "and no contradiction reached the tracker"
+  return 0
+}
+
+# The state named as a label is the same act as the state named as a value: a check's escalation writes
+# `--label status/on-hold` (the registry's `escalation.labels`), and that write must replace the item's state
+# exactly as `--status on-hold` does — otherwise the escalation leaves the closed sensor item's `status/open`
+# behind and the item carries two states.
+case_update_stateNamedAsALabelReplacesTheOldState() {
+  local dir log edit out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 11 status/open class/bug
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 11 --label agent/needs-decision --label status/on-hold 2>&1); status=$?
+  assert_eq "0" "$status" "a state written as a label succeeds: $out"
+  assert_eq "1" "$(grep -c 'issue edit' "$log")" "exactly one issue edit is issued"
+  edit=$(grep 'issue edit' "$log")
+  assert_contains "$edit" "--add-label agent/needs-decision" "the other label of the write is kept"
+  assert_contains "$edit" "--add-label status/on-hold" "the state is set"
+  assert_contains "$edit" "--remove-label status/open" "and the displaced state is removed in the same write"
+
+  # Two states in one call are refused on this spelling as well, and nothing is read or written.
+  : > "$log"
+  out=$(run_tool update.sh 11 --label status/on-hold --label status/open 2>&1); status=$?
+  assert_eq "2" "$status" "two states passed as labels are a usage error"
+  assert_contains "$out" "two states" "the refusal names the contradiction"
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "and nothing reached the tracker"
+  return 0
+}
+
+case_update_statusWriteReportsAnEmptyTransition() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 11 status/open
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  # A state write that displaces nothing and adds nothing is a legitimate outcome, and the report has to be a
+  # document either way: an empty array, not an empty string handed to `jq --argjson`. The note that says so is
+  # on stderr, so the document on stdout stays a document a caller can pipe.
+  out=$(run_tool update.sh 11 --status open --json 2>"$dir/stderr"); status=$?
+  assert_eq "0" "$status" "the no-op state write succeeds: $(cat "$dir/stderr")"
+  assert_eq "[]" "$(jq -c '.labels' <<< "$out")" "the report is a document, with no labels added"
+  assert_eq "[]" "$(jq -c '.removedLabels' <<< "$out")" "and none removed"
+  assert_contains "$(cat "$dir/stderr")" "already carries status/open" "and the no-op is reported, not silent"
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "and nothing reached the tracker"
+  return 0
+}
+
+case_update_statusReportNamesImpliedRemoval() {
+  local dir log out
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 11 status/open
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 11 --status fixed-by --json) || fail "the state write failed: $out"
+  assert_contains "$(jq -rc '.labels' <<< "$out")" "status/fixed-by" "the report names the state it set"
+  assert_contains "$(jq -rc '.removedLabels' <<< "$out")" "status/open" \
+    "and the state it displaced, which the caller never named"
   return 0
 }
 

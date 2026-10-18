@@ -1,0 +1,46 @@
+{
+  "comment": "The four revert-checks of `fix-status-label-replacement` (tasks 5.1-5.4) as a runnable set: one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/status-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. Every search is a single line and unique in its file (the runner's replacement is literal and line-based), which is what the transcript in `openspec/changes/archive/*-fix-status-label-replacement/evidence/revert-check.md` records.",
+  "case-cmd": "bash tools/issue-tooling-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "5.1",
+      "case": "update#statusReplacesTheOldStatus",
+      "file": "tools/issues/update.sh",
+      "search": "  done < <(issues_status_displaced \"$issue\" \"$status_label\" \"$status_prefix\")",
+      "replace": "  done < <(printf '')",
+      "why": "the displaced state labels being read from the item, so the add and the removals ride one edit"
+    },
+    {
+      "label": "5.2",
+      "case": "update#statusReplacementIsIdempotent",
+      "file": "tools/issues/update.sh",
+      "search": "  if grep -Fxq -- \"$status_label\" <<< \"$labels_now\"; then",
+      "replace": "  if false; then",
+      "why": "the difference-only rule — a state write does not add the label the item already carries"
+    },
+    {
+      "label": "5.3",
+      "case": "update#statusRejectsTwoStatesInOneCall",
+      "file": "tools/issues/update.sh",
+      "search": "        issues_die \"update: $status_named_as and --label $label name two states — a state write sets one\" ;;",
+      "replace": "        : ;;",
+      "why": "a call naming two states being refused instead of silently resolved"
+    },
+    {
+      "label": "5.4",
+      "case": "update#statusReportNamesImpliedRemoval",
+      "file": "tools/issues/update.sh",
+      "search": "      [ \"${#implied_removals[@]}\" -eq 0 ] || printf '%s\\n' \"${implied_removals[@]}\"; } | jq -R . | jq -s .",
+      "replace": "      : ; } | jq -R . | jq -s .",
+      "why": "the report carrying the displaced labels the caller never named"
+    },
+    {
+      "label": "7.1",
+      "case": "update#stateNamedAsALabelReplacesTheOldState",
+      "file": "tools/issues/update.sh",
+      "search": "        status_label=\"$label\"",
+      "replace": "        status_label=\"\"",
+      "why": "a state named as the namespaced label being the same act as one named through the state flag"
+    }
+  ]
+}

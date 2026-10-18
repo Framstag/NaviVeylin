@@ -150,7 +150,14 @@ jobs:
       # `gh` on PATH. Offline, no token, no Gradle — and it refuses below JDK 17 with a named message. The
       # surface it protects is the one a later loop trusts (spec `issue-backlog`).
       - name: Check issue tooling
-        run: bash tools/issue-tooling-selftest.sh
+        run: |
+          bash tools/issue-tooling-selftest.sh
+          # A state transition replaces the item's state, so no call can leave two `status/*` labels on one
+          # item (`fix-status-label-replacement`, invariant I16 in `guidelines/Backlog.md` §4). The mutation
+          # set's list is printed, as for the other sets: one that no longer parses fails this step instead
+          # of rotting. The mutations themselves are not run here — they mutate the tree (`tools/mutate.sh`,
+          # change-time, `.pi/skills/mutation-runner`).
+          bash tools/mutate.sh --mutations tools/status-mutations.json --list
 
       # ── priority metadata ──────────────────────────────────────
       # The gate for the priority invariant (`issue-metadata-loop`, D7): the profile's bands are total, the

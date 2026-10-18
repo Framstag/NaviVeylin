@@ -60,9 +60,6 @@ fi
 
 issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
-separator=$(issues_profile_value namespaceSeparator)
-separator="${separator:-/}"
-
 login=$(issues_login)
 issues_preflight "$profile" "$login"
 
@@ -71,7 +68,8 @@ issue=$(gh issue view "$number" --json number,title,labels,body,author,state,sta
 
 state=$(jq -r '.state // ""' <<< "$issue")
 state_reason=$(jq -r '(.stateReason // "") | ascii_downcase' <<< "$issue")
-status_label="status${separator}${status_value}"
+status_prefix=$(issues_status_prefix)
+status_label="${status_prefix}${status_value}"
 
 # A closure this path may not reverse: the measurement is recorded, and the owner's decision stands.
 if [ "$state" != "CLOSED" ] || [ "$state_reason" != "completed" ]; then
@@ -97,12 +95,13 @@ occurrence=$(( $(issues_occurrence "$body") + 1 ))
 new_body=$(issues_body_set "$body" occurrence "$occurrence")
 
 # The status labels the issue already carries are replaced, not accumulated: two status labels on one
-# issue make every status query answer twice.
+# issue make every status query answer twice. The scan is shared with `update.sh`, which performs the same
+# replacement (`lib.sh`, "the state namespace").
 remove_labels=()
 while IFS= read -r label; do
-  [ "$label" = "$status_label" ] && continue
+  [ -n "$label" ] || continue
   remove_labels+=("$label")
-done < <(jq -r --arg prefix "status${separator}" '[.labels[]? | if type == "string" then . else .name end] | .[] | select(startswith($prefix))' <<< "$issue")
+done < <(issues_status_displaced "$issue" "$status_label" "$status_prefix")
 
 body_tmp=$(mktemp) || issues_die "reopen: cannot create a temporary file"
 trap 'rm -f "$body_tmp"' EXIT

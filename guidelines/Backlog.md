@@ -132,6 +132,7 @@ carry preferences.
 | I13 | A project fact exists in one file | the project profile; a check that forbids it in an engine | a repository name, an author, a vocabulary value or a path appears in an engine |
 | I14 | Every historical reference still resolves | identifiers in item bodies; a check over the tree | a document cites an item identifier that finds nothing |
 | I15 | The mechanism can run somewhere else without a rewrite | one indirection for the agent command; the project's own gate and skills in configuration | a phase names a skill, a command or a path of its own |
+| I16 | A state transition replaces the item's state: one item carries exactly one value of the state namespace | the write path reads the item and removes every displaced value in the same edit; one shared scan (`tools/issues/lib.sh`), and the case `update#statusReplacesTheOldStatus` | an item carries two `status/*` labels, or a transition leaves the old value behind — the loop's own matrix case names the displaced label, so a verdict that only adds one fails there |
 
 ## 5. Who may write what
 

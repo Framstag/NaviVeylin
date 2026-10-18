@@ -686,14 +686,16 @@ case_labels_verdictToLabelMatrix() {
     assert_eq "$want_remove" "$got_remove" "$verdict: the labels it removes"
   }
 
+  # The fixture item carries `status/open`, and a verdict that sets a state replaces it: the matrix names the
+  # displaced label, so a verdict that only ever added one would leave two states on the item and fail here.
   check_labels pick "agent/in-progress" ""
   check_labels unpick "" "agent/in-progress"
-  check_labels stale "status/on-hold" ""
-  check_labels unspecifiable "status/on-hold" ""
-  check_labels too-wide "status/on-hold" ""
-  check_labels needs-device "agent/needs-device status/on-hold" ""
-  check_labels needs-decision "agent/needs-decision status/on-hold" ""
-  check_labels needs-diagnosis "agent/needs-decision status/on-hold" ""
+  check_labels stale "status/on-hold" "status/open"
+  check_labels unspecifiable "status/on-hold" "status/open"
+  check_labels too-wide "status/on-hold" "status/open"
+  check_labels needs-device "agent/needs-device status/on-hold" "status/open"
+  check_labels needs-decision "agent/needs-decision status/on-hold" "status/open"
+  check_labels needs-diagnosis "agent/needs-decision status/on-hold" "status/open"
 
   log="$d/gh-close.log"; : > "$log"; export GH_STUB_RECORD="$log"
   run_labels "$p" close 21 --reason "the fixture cause" --evidence "the fixture evidence" >/dev/null 2>&1 ||
@@ -701,6 +703,7 @@ case_labels_verdictToLabelMatrix() {
   out=$(cat "$log")
   assert_contains "$out" "--remove-label agent/in-progress" "close takes the in-progress label off"
   assert_contains "$out" "--add-label status/fixed-by" "close marks the item as fixed"
+  assert_contains "$out" "--remove-label status/open" "and replaces the state the item carried"
   assert_eq "1" "$(grep -c 'issue comment' "$log")" "exactly one evidence comment"
   assert_eq "1" "$(grep -c 'issue close' "$log")" "the item is closed"
 }

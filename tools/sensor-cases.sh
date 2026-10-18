@@ -889,6 +889,11 @@ case_run_escalationNeverSetsEligibility() {
   fp=$(fingerprint_of case alpha)
   issues_fixture "$dir" "[$(issue_record 96 CLOSED COMPLETED fixture-emit \
     "$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->' "$fp")")]"
+  # A filed item carries the registry's `.labels.status` (`sensors.json`), and `issue_record` writes none, so
+  # the state is added here the way a real item has it — otherwise the state half of this write is invisible to
+  # the case, which is exactly how an add-only escalation stayed green.
+  jq '.[0].labels += [{name: "status/open"}]' "$dir/issues.json" > "$dir/with-state.json" &&
+    mv "$dir/with-state.json" "$dir/issues.json"
   local findings
   findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 5 case alpha)")
 
@@ -897,8 +902,11 @@ case_run_escalationNeverSetsEligibility() {
   assert_eq "0" "$(recorded "$log" 'agent/eligible')" "an escalation authorises no work"
   local labels
   labels=$(grep -oE -- '--(add|remove)-label [^ ]*' "$log" | sort -u)
-  assert_eq "$(printf '%s\n' "--add-label agent/needs-decision" "--add-label status/on-hold")" "$labels" \
-    "the escalation's label write is exactly the two the registry declares"
+  # The escalation sets the state the registry declares *and* takes the item's own state off in the same edit,
+  # so the escalated item carries one `status/*` label and not two (`fix-status-label-replacement`, I16).
+  assert_eq "$(printf '%s\n' "--add-label agent/needs-decision" "--add-label status/on-hold" \
+    "--remove-label status/open")" "$labels" \
+    "the escalation's label write is the two the registry declares, and it replaces the state the item had"
 }
 
 # ----------------------------------------------------------------------------- 5. the metric rows

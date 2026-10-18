@@ -1,0 +1,6 @@
+$ bash tools/issue-tooling-selftest.sh --case create#refusesTwoValuesOfOneNamespace
+
+  a filing naming two states is a usage error: https://example.invalid/Framstag/NaviVeylin/issues/1: expected '2', got '0'
+FAIL create#refusesTwoValuesOfOneNamespace
+
+exit: non-zero (red on HEAD)

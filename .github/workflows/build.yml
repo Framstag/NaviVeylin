@@ -158,6 +158,10 @@ jobs:
           # of rotting. The mutations themselves are not run here — they mutate the tree (`tools/mutate.sh`,
           # change-time, `.pi/skills/mutation-runner`).
           bash tools/mutate.sh --mutations tools/status-mutations.json --list
+          # The filing path refuses a merged label set that names two values of one namespace, before any
+          # `gh issue create` (`fix-issue-filing-state-namespace`, issue #179). Listed for the same reason as
+          # the set above: a mutation set that no longer parses fails this step instead of rotting.
+          bash tools/mutate.sh --mutations tools/create-mutations.json --list
 
       # ── priority metadata ──────────────────────────────────────
       # The gate for the priority invariant (`issue-metadata-loop`, D7): the profile's bands are total, the

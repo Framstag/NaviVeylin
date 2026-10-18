@@ -21,6 +21,7 @@ ISSUES_SHELL_CASES=(
   'policy#preflightRefusesUnknownLogin'
   'create#duplicateRefusesAndNamesTheIssue'
   'create#writesMarkerAndLabels'
+  'create#refusesTwoValuesOfOneNamespace'
   'update#refusesUnknownLabel'
   'close#requiresReasonAndEvidence'
   'close#recordsStateReason'
@@ -90,6 +91,7 @@ issues_run_shell_case() {
     'policy#preflightRefusesUnknownLogin') case_policy_preflightRefusesUnknownLogin ;;
     'create#duplicateRefusesAndNamesTheIssue') case_create_duplicateRefusesAndNamesTheIssue ;;
     'create#writesMarkerAndLabels') case_create_writesMarkerAndLabels ;;
+    'create#refusesTwoValuesOfOneNamespace') case_create_refusesTwoValuesOfOneNamespace ;;
     'update#refusesUnknownLabel') case_update_refusesUnknownLabel ;;
     'close#requiresReasonAndEvidence') case_close_requiresReasonAndEvidence ;;
     'close#recordsStateReason') case_close_recordsStateReason ;;
@@ -401,6 +403,46 @@ case_create_writesMarkerAndLabels() {
     assert_contains "$line" "--label $label" "the label set must carry $label"
   done
   assert_eq "1" "$(grep -c 'issue create' "$log")" "exactly one issue is created"
+}
+
+# The filing path has nothing to displace, so a merged label set that names two values of one namespace is
+# a refusal, not a replacement: it would create an item no state selector reads correctly. The reproduction
+# from #179 — a finding whose own labels carry `status/fixed-by`, filed with `--status open` — and the same
+# contradiction through any other namespace.
+case_create_refusesTwoValuesOfOneNamespace() {
+  local dir log finding out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  finding=$(jq -n '{sourceId: "903", title: "a contradictory finding", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b",
+                    labels: ["class/bug", "category/ui", "status/fixed-by"]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --status open 2>&1); status=$?
+  assert_eq "2" "$status" "a filing naming two states is a usage error: $out"
+  assert_contains "$out" "status/fixed-by" "the refusal names the value the labels carried"
+  assert_contains "$out" "status/open" "and the value --status added"
+  [ ! -s "$log" ] || fail "a gh issue create call was made: $(cat "$log")"
+
+  # A second namespace is refused the same way, so the rule is per namespace and not status-only.
+  finding=$(jq -n '{sourceId: "904", title: "another contradictory finding", class: "bug", category: "ui",
+                    claim: "c2", anchor: "a", body: "b", labels: ["class/bug", "category/ui"]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --label class/feature 2>&1); status=$?
+  assert_eq "2" "$status" "a second value of any namespace is a usage error: $out"
+  assert_contains "$out" "class/bug" "the refusal names the first value"
+  assert_contains "$out" "class/feature" "and the second"
+  [ ! -s "$log" ] || fail "a gh issue create call was made: $(cat "$log")"
+
+  # The state named only through --status, or only through the labels, still files.
+  finding=$(jq -n '{sourceId: "905", title: "a clean finding", class: "bug", category: "ui",
+                    claim: "c3", anchor: "a", body: "b", labels: ["class/bug", "category/ui"]}')
+  printf '%s' "$finding" | run_tool create.sh --status open >/dev/null 2>&1 || fail "--status alone must file"
+  finding=$(jq -n '{sourceId: "906", title: "another clean finding", class: "bug", category: "ui",
+                    claim: "c4", anchor: "a", body: "b",
+                    labels: ["class/bug", "category/ui", "status/open"]}')
+  printf '%s' "$finding" | run_tool create.sh >/dev/null 2>&1 || fail "a state named only by labels must file"
+  assert_eq "2" "$(grep -c 'issue create' "$log" || true)" "both single-route filings reach the tracker"
+  return 0
 }
 
 case_update_refusesUnknownLabel() {

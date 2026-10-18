@@ -116,6 +116,22 @@ if [ "${#labels[@]}" -gt 0 ]; then
   fi
 fi
 
+# One namespace, one value. A merged set names two values of one namespace exactly when two labels share the
+# prefix before the separator — and every label here has passed the vocabulary gate, so that prefix is a
+# declared namespace. At filing time there is nothing to displace, so the rule is a refusal, not the
+# replacement `update.sh` performs for the state namespace; naming two values is a contradictory request and
+# exits 2 with a reason naming both, before any `gh issue create` (`issue-backlog`, "Labels carry the item's
+# kind, area, state and provenance").
+declare -A seen_namespace=()
+for label in "${labels[@]}"; do
+  namespace="${label%%${separator}*}"
+  previous="${seen_namespace[$namespace]:-}"
+  if [ -n "$previous" ] && [ "$previous" != "$label" ]; then
+    issues_die "create: $previous and $label name two values of one namespace — an item carries one value per namespace"
+  fi
+  seen_namespace[$namespace]="$label"
+done
+
 # The dedup anchor: a sensor's condition fingerprint when the finding carries one, and the digest of the
 # structured fields otherwise (`sensor-registry-and-metric-issues`, D4).
 fingerprint=$(jq -r '.fingerprint // empty' <<< "$finding")

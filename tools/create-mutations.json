@@ -1,0 +1,14 @@
+{
+  "comment": "The filing path's one-value-per-namespace refusal (`fix-issue-filing-state-namespace`, issue #179). At filing time there is nothing to displace, so a merged label set naming two values of one namespace is a refusal, not the replacement `update.sh` performs for the state namespace. Run it with `bash tools/mutate.sh --mutations tools/create-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. The search is a single line and unique in its file (the runner's replacement is literal and line-based).",
+  "case-cmd": "bash tools/issue-tooling-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "1.1",
+      "case": "create#refusesTwoValuesOfOneNamespace",
+      "file": "tools/issues/create.sh",
+      "search": "  if [ -n \"$previous\" ] && [ \"$previous\" != \"$label\" ]; then",
+      "replace": "  if false; then",
+      "why": "a filing whose merged label set names two values of one namespace being refused before any gh issue create"
+    }
+  ]
+}

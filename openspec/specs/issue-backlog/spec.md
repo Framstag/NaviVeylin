@@ -33,7 +33,9 @@ issue for a finding whose computed fingerprint already matches one, naming the i
 
 The tooling SHALL express an item's kind, area, lifecycle state and provenance as labels in separate
 namespaces, with exactly one value per namespace where the item has that fact, and SHALL draw every value
-from a closed vocabulary held by the project.
+from a closed vocabulary held by the project. On the filing path — where the item is born and there is nothing
+to displace — a label set that names two values of one namespace SHALL be refused before any write, with a
+reason naming both values.
 
 #### Scenario: Each fact has its own namespace
 
@@ -57,6 +59,13 @@ from a closed vocabulary held by the project.
 
 - **WHEN** an issue was imported, filed by an automated check, or filed by a person
 - **THEN** its provenance label says which, so a reader can tell an imported item from a filed one
+
+#### Scenario: create#refusesTwoValuesOfOneNamespace
+
+- **WHEN** a filing's merged label set names two values of one namespace — the finding's own labels carrying
+  one state and `--status` naming another, or a `--label` adding a second value of any other namespace
+- **THEN** the filing is refused before any issue write, with exit 2 and a reason naming both values, and an
+  item whose state is named only through `--status` or only through the labels still files
 
 ### Requirement: Only an authorised actor's item may be acted on
 

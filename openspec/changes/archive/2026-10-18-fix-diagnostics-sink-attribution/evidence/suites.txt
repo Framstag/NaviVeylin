@@ -1,0 +1,17 @@
+Focused green (evidence/green/):
+  command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.data.SettingsStorageSourceTest" --tests "com.naviveylin.service.NotificationHostSendLoggingTest" --tests "com.naviveylin.navigation.EngineFaultHandlerTest" --tests "com.naviveylin.navigation.NavigationEngineCalculationStateTest" -PforceTests --no-build-cache
+           ./gradlew :auto:testDebugUnitTest --tests "com.naviveylin.auto.SessionCarSurfaceHostTest" -PforceTests --no-build-cache
+  run: 2026-10-18T15:22:20Z-15:22:30Z, BUILD SUCCESSFUL
+  tallies: SettingsStorageSourceTest 6/0, NotificationHostSendLoggingTest 2/0, EngineFaultHandlerTest 4/0,
+           NavigationEngineCalculationStateTest 6/0, SessionCarSurfaceHostTest 27/0 = 45 tests, 0 failures
+  the five XMLs stored in evidence/green/ are that run's files
+
+Neighbour aggregate (no per-class XML stored; the numbers below were derived by awk over that run's own
+JUnit XML in app/build/test-results/testMobileDebugUnitTest and auto/build/test-results/testDebugUnitTest,
+which this run wrote; the focused run stored in evidence/green/ predates it):
+  command: ./gradlew :app:testMobileDebugUnitTest :auto:testDebugUnitTest -PforceTests --no-build-cache
+  run: 2026-10-18T15:22:47Z-15:24:41Z, BUILD SUCCESSFUL in 1m 59s
+  app mobile: 275 classes / 2059 tests / 0 failures / 0 errors
+  auto: 85 classes / 864 tests / 0 failures / 0 errors
+
+Excluded: :app automotive (no flavour input changed), all native tasks (no compiled production file).

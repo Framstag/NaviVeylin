@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.NavigationEngineCalculationStateTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:22:20.207Z" hostname="dingens" time="6.519">
+  <properties/>
+  <testcase name="startingNavigationOnASurfaceRouteEndsTheWait" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="5.528"/>
+  <testcase name="aFailingCalculationClearsTheWaitAndPublishesTheError" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.064"/>
+  <testcase name="acquisitionPublishesTheCalculationInFlightWithAGrowingToken" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.049"/>
+  <testcase name="aSupersededCalculationNeverTouchesTheLiveOne" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.051"/>
+  <testcase name="theEndOfACalculationIsRecordedWithoutCoordinates" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.292"/>
+  <testcase name="progressIsPublishedCappedAndClearedWithTheCalculation" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

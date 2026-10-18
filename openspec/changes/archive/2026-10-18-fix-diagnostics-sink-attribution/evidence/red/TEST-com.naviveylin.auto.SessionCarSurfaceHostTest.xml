@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionCarSurfaceHostTest" tests="27" skipped="0" failures="1" errors="0" timestamp="2026-10-18T15:06:35.596Z" hostname="dingens" time="7.318">
+  <properties/>
+  <testcase name="startSessionRegistersExactlyOnce" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="6.082"/>
+  <testcase name="eventsWithoutOwnerAreDropped" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.125"/>
+  <testcase name="endSessionReleasesAHeldSurface" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.181"/>
+  <testcase name="endSessionClearsRegistrationAndIsIdempotent" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.043"/>
+  <testcase name="reDeliveredSurfaceInstanceIsAdoptedAndReleasedAgain" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.068"/>
+  <testcase name="sessionStartsAfterADroppedConnection" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.05"/>
+  <testcase name="replacedSurfaceReleasesThePreviousOneOnce" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.033"/>
+  <testcase name="repeatedDestroyOfASupersededSurfaceReleasesItOnce" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.047"/>
+  <testcase name="stoppedScreenDoesNotReleaseTheSurface" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.027"/>
+  <testcase name="aThrowingScreenFaultIsConfinedToItsCallback" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.039"/>
+  <testcase name="endSessionWithoutSurfaceReleasesNothing" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.027"/>
+  <testcase name="sessionRestartRegistersAgain" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.03"/>
+  <testcase name="liveSurfaceSurvivesASupersededDestroyAndIsStillUsable" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.024"/>
+  <testcase name="hostDestroyReleasesOnceAndTellsTheOwnerToStopDrawing" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.023"/>
+  <testcase name="registrationIsNotDuplicatedWithinOneSession" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.02"/>
+  <testcase name="surfaceDeliveredWhileNoScreenOwnsItIsAdoptedByTheNextOwner" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.018"/>
+  <testcase name="destroyOfANeverAdoptedSurfaceKeepsTheLiveSurface" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.019"/>
+  <testcase name="reAttachingTheSameOwnerDoesNotRevokeIt" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.017"/>
+  <testcase name="backgroundRoundTripKeepsTheSameSurfaceUsable" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.016"/>
+  <testcase name="reDeliveryIsRecordedForDiagnosis" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.037"/>
+  <testcase name="detachOfASupersededOwnerDoesNotClearTheNewOwner" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.028"/>
+  <testcase name="sessionEndClearsTheRegistrationForTheNextSession" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.02"/>
+  <testcase name="incomingScreenStartsBeforeTheOutgoingOneStops" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.018"/>
+  <testcase name="eventsGoToTheCurrentOwner" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.017"/>
+  <testcase name="surfaceLifetimeIsRecordedForDiagnosis" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.27">
+    <failure message="java.lang.AssertionError: one adopt, one release expected:&lt;2&gt; but was:&lt;3&gt;" type="java.lang.AssertionError">java.lang.AssertionError: one adopt, one release expected:&lt;2&gt; but was:&lt;3&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.naviveylin.auto.SessionCarSurfaceHostTest.surfaceLifetimeIsRecordedForDiagnosis(SessionCarSurfaceHostTest.kt:238)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)
+	at java.base/java.lang.reflect.Method.invoke(Unknown Source)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.base/java.lang.Thread.run(Unknown Source)
+</failure>
+  </testcase>
+  <testcase name="destroyOfAnUnadoptedSurfaceStillReleasesIt" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.016"/>
+  <testcase name="destroyOfASupersededSurfaceKeepsTheLiveSurface" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/home/tim/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.6/46e2545d7a97b6ccb195621650c5957279eb4812/byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

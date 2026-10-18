@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.NavigationEngineCalculationStateTest" tests="6" skipped="0" failures="1" errors="0" timestamp="2026-10-18T15:22:06.849Z" hostname="dingens" time="5.669">
+  <properties/>
+  <testcase name="startingNavigationOnASurfaceRouteEndsTheWait" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="4.596"/>
+  <testcase name="aFailingCalculationClearsTheWaitAndPublishesTheError" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.043"/>
+  <testcase name="acquisitionPublishesTheCalculationInFlightWithAGrowingToken" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.036"/>
+  <testcase name="aSupersededCalculationNeverTouchesTheLiveOne" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.036"/>
+  <testcase name="theEndOfACalculationIsRecordedWithoutCoordinates" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.541">
+    <failure message="java.lang.AssertionError: the configured file holds this case's calculation entry and nothing else under the marker: [[2026-10-18 17:22:11.980] ROUTE calc done: source=acquisition duration=1ms percents=2 outcome=ok reachedPct=40 reason=- nearestRoadM=-1, [2026-10-18 17:22:11.980] LocationService location lease acquire: nav-engine (held=1), [2026-10-18 17:22:12.241] OTHER a line another class logged into this file: lat=52.520008 lon=13.404954] expected:&lt;[[2026-10-18 17:22:11.980] ROUTE calc done: source=acquisition duration=1ms percents=2 outcome=ok reachedPct=40 reason=- nearestRoadM=-1]&gt; but was:&lt;[[2026-10-18 17:22:11.980] ROUTE calc done: source=acquisition duration=1ms percents=2 outcome=ok reachedPct=40 reason=- nearestRoadM=-1, [2026-10-18 17:22:11.980] LocationService location lease acquire: nav-engine (held=1), [2026-10-18 17:22:12.241] OTHER a line another class logged into this file: lat=52.520008 lon=13.404954]&gt;" type="java.lang.AssertionError">java.lang.AssertionError: the configured file holds this case's calculation entry and nothing else under the marker: [[2026-10-18 17:22:11.980] ROUTE calc done: source=acquisition duration=1ms percents=2 outcome=ok reachedPct=40 reason=- nearestRoadM=-1, [2026-10-18 17:22:11.980] LocationService location lease acquire: nav-engine (held=1), [2026-10-18 17:22:12.241] OTHER a line another class logged into this file: lat=52.520008 lon=13.404954] expected:&lt;[[2026-10-18 17:22:11.980] ROUTE calc done: source=acquisition duration=1ms percents=2 outcome=ok reachedPct=40 reason=- nearestRoadM=-1]&gt; but was:&lt;[[2026-10-18 17:22:11.980] ROUTE calc done: source=acquisition duration=1ms percents=2 outcome=ok reachedPct=40 reason=- nearestRoadM=-1, [2026-10-18 17:22:11.980] LocationService location lease acquire: nav-engine (held=1), [2026-10-18 17:22:12.241] OTHER a line another class logged into this file: lat=52.520008 lon=13.404954]&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.naviveylin.navigation.NavigationEngineCalculationStateTest.theEndOfACalculationIsRecordedWithoutCoordinates(NavigationEngineCalculationStateTest.kt:236)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)
+	at java.base/java.lang.reflect.Method.invoke(Unknown Source)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.base/java.lang.Thread.run(Unknown Source)
+</failure>
+  </testcase>
+  <testcase name="progressIsPublishedCappedAndClearedWithTheCalculation" classname="com.naviveylin.navigation.NavigationEngineCalculationStateTest" time="0.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

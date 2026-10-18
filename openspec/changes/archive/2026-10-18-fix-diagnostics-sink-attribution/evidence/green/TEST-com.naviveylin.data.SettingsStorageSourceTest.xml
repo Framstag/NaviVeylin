@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.data.SettingsStorageSourceTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:22:20.098Z" hostname="dingens" time="6.689">
+  <properties/>
+  <testcase name="roundTripsSelectedSourceAndUrl" classname="com.naviveylin.data.SettingsStorageSourceTest" time="5.721"/>
+  <testcase name="switchingBackKeepsTheEnteredUrl" classname="com.naviveylin.data.SettingsStorageSourceTest" time="0.044"/>
+  <testcase name="defaultsToBuiltInProvider" classname="com.naviveylin.data.SettingsStorageSourceTest" time="0.055"/>
+  <testcase name="aStoredRepositorySelectionSurvivesAReadOfTheWholeDocument" classname="com.naviveylin.data.SettingsStorageSourceTest" time="0.039"/>
+  <testcase name="unknownStoredSourceFallsBackToBuiltIn" classname="com.naviveylin.data.SettingsStorageSourceTest" time="0.039"/>
+  <testcase name="repositorySourceWithoutAUrlFallsBackToBuiltIn" classname="com.naviveylin.data.SettingsStorageSourceTest" time="0.304"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

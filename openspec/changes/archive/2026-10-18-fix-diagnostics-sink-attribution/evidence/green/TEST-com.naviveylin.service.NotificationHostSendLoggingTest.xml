@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.service.NotificationHostSendLoggingTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:22:26.794Z" hostname="dingens" time="0.56">
+  <properties/>
+  <testcase name="everyPostAddsExactlyOneEntry" classname="com.naviveylin.service.NotificationHostSendLoggingTest" time="0.279"/>
+  <testcase name="aPostIsRecordedWithItsContentAndTimestamp" classname="com.naviveylin.service.NotificationHostSendLoggingTest" time="0.277"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

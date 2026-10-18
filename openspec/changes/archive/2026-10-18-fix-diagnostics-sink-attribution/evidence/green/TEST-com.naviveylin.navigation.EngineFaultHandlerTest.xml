@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.EngineFaultHandlerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-18T15:22:26.733Z" hostname="dingens" time="0.841">
+  <properties/>
+  <testcase name="aConfinedFaultIsRecordedWithOriginAndStackTraceAndPublishedOnce" classname="com.naviveylin.navigation.EngineFaultHandlerTest" time="0.275"/>
+  <testcase name="theFaultSummaryNamesOriginAndClassWithoutEchoingTheThrowableMessage" classname="com.naviveylin.navigation.EngineFaultHandlerTest" time="0.021"/>
+  <testcase name="aThrowingPublishCannotEscapeTheHandlerAndTheRecordStillLands" classname="com.naviveylin.navigation.EngineFaultHandlerTest" time="0.272"/>
+  <testcase name="theHandlerMirrorsToLogcatAndTheRecordReachesTheFile" classname="com.naviveylin.navigation.EngineFaultHandlerTest" time="0.27"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

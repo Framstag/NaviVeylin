@@ -227,9 +227,17 @@ class SessionCarSurfaceHostTest {
             host.onSurfaceDestroyed(container(s))
             // A duplicate destroy must not add a second release entry either.
             host.onSurfaceDestroyed(container(s))
+            // The file a case installs is the process-wide sink: work another class left running logs into
+            // it while this case holds it (issue #115).
+            DiagnosticsLog.log(
+                "OTHER",
+                "a line another class logged into this file: lat=52.520008 lon=13.404954"
+            )
 
-            val entries = DiagnosticsLog.readEntries()
-            assertEquals("one adopt, one release", 2, entries.size)
+            // Only the surface entries this case's own subject wrote are its evidence (issue #115): the file
+            // is the process-wide sink, so a line another class logs while this case holds it is not one.
+            val entries = DiagnosticsLog.readEntries().filter { it.contains("HOST surface") }
+            assertEquals("one adopt, one release: $entries", 2, entries.size)
             assertTrue(entries[0].contains("HOST surface adopt"))
             assertTrue(entries[1].contains("HOST surface release"))
         } finally {

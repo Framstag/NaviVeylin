@@ -209,7 +209,7 @@ class NavigationEngineCalculationStateTest {
 
     @Test
     fun theEndOfACalculationIsRecordedWithoutCoordinates() {
-        val file = initDiagnostics()
+        initDiagnostics()
         val client = FakeOSMScoutClient().apply {
             routeToDeliver = routeEntry()
             progressToReport = listOf(5, 40)
@@ -219,13 +219,24 @@ class NavigationEngineCalculationStateTest {
         engine.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
         awaitState { engine.state.value.isNavigating }
 
-        val entry = DiagnosticsLog.readEntries().last { it.contains(NavigationEngine.ROUTE_TAG) }
+        // The subject's own marker, not the shared tag: `ROUTE` is logged by the geometry, panel and reroute
+        // paths too, so only `calc done:` lines are this case's evidence (issue #115).
+        val calcDone = "${NavigationEngine.ROUTE_TAG} calc done:"
+        val entry = DiagnosticsLog.readEntries().last { it.contains(calcDone) }
         assertTrue(entry, entry.contains("source=acquisition"))
         assertTrue(entry, entry.contains("outcome=ok"))
         assertTrue(entry, entry.contains("duration="))
         assertTrue("the reported progress count reaches the entry", entry.contains("percents=2"))
         assertFalse("no coordinate precision in the entry", entry.contains("52.5"))
         assertFalse("no coordinate precision in the entry", entry.contains("13.4"))
-        assertTrue("the entry is in the configured file", file.readText().contains("outcome=ok"))
+        // Only the line this case's own subject wrote decides it (issue #115): the file is the process-wide
+        // sink, so a line another class logs while this case holds it is not the calculation's record.
+        DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")
+        val fileEntries = DiagnosticsLog.readEntries().filter { it.contains(calcDone) }
+        assertEquals(
+            "the configured file holds this case's calculation entry and nothing else under the marker: $fileEntries",
+            listOf(entry),
+            fileEntries
+        )
     }
 }

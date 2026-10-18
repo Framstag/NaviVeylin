@@ -44,8 +44,13 @@ class EngineFaultHandlerTest {
             CoroutineName("stale-speed-ticker"),
             UnsatisfiedLinkError("mock symbol")
         )
+        // The file a case installs is the process-wide sink: work another class left running logs into it
+        // while this case holds it (issue #115).
+        DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")
 
-        val entries = DiagnosticsLog.readEntries()
+        // Only the records this case's own subject wrote are its evidence (issue #115): the file is the
+        // process-wide sink, so a line another class logs while this case holds it is not a record.
+        val entries = DiagnosticsLog.readEntries().filter { it.contains(ENGINE_FAULT_TAG) }
         assertEquals(1, entries.size)
         assertTrue("the record carries the engine fault tag", entries[0].contains(ENGINE_FAULT_TAG))
         assertTrue("the record names the faulting coroutine", entries[0].contains("stale-speed-ticker"))
@@ -71,8 +76,9 @@ class EngineFaultHandlerTest {
         // The handler is the last line of defence: it must swallow its own failure
         // instead of reaching the thread's uncaught-exception handler.
         handler.handleException(CoroutineName("ticker"), RuntimeException("outer"))
+        DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")
 
-        val entries = DiagnosticsLog.readEntries()
+        val entries = DiagnosticsLog.readEntries().filter { it.contains(ENGINE_FAULT_TAG) }
         assertEquals("the record is written before the publish step", 1, entries.size)
         assertTrue(entries[0].contains(ENGINE_FAULT_TAG))
     }
@@ -102,6 +108,7 @@ class EngineFaultHandlerTest {
         DiagnosticsLog.initForTest(logFile())
 
         engineFaultHandler { }.handleException(CoroutineName("ticker"), RuntimeException("boom"))
+        DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")
 
         // The logcat line is the synchronous, caller-side part of a record; the file
         // entry goes through the log's worker, which owns the file (spec:
@@ -109,6 +116,6 @@ class EngineFaultHandlerTest {
         val mirrored = ShadowLog.getLogs().filter { it.tag == "Diag/$ENGINE_FAULT_TAG" }
         assertEquals(1, mirrored.size)
         assertTrue(mirrored[0].msg.contains("ticker"))
-        assertEquals(1, DiagnosticsLog.readEntries().size)
+        assertEquals(1, DiagnosticsLog.readEntries().count { it.contains(ENGINE_FAULT_TAG) })
     }
 }

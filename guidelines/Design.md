@@ -642,6 +642,16 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   kills the collector *outside* the guard under test (run it under Robolectric). Never re-init a buffered
   logger between act and assert: `DiagnosticsLog.initForTest` clears the ring silently, and the failure reads
   as "the code logged nothing".
+- **Attribute a diagnostics assertion to the lines its own case wrote.** The file `DiagnosticsLog.initForTest`
+  installs is the process-wide sink, so work another class left running logs into it while a case holds it: a
+  whole-file `contains("52.")`, an `entries.size` or an `entries.single()` measures those lines too and reddens
+  the case for reasons its author cannot see. Filter to the tag or marker only the subject's own message
+  carries (`map source unknown value=`, `repository source without a base URL`, `HOST NOTIF post`,
+  `ENGINE_FAULT_TAG`, `ROUTE calc done:`, `HOST surface`) and keep the count on that list, so a duplicated or
+  missing own line still fails. The sink's own classes (`DiagnosticsLogTest`, `DiagnosticsLogRetentionTest`,
+  `DiagnosticsLogWritePathTest`) are the exemption — the file is their subject. Measured twice — `SettingsStorageSourceTest`
+  (2026-10-10, `car-favorites-group-level` task 4.2) and `NotificationHostSendLoggingTest` (2026-10-11,
+  `fix-browse-recenter-dwell` task 5.7), issue #115, change `fix-diagnostics-sink-attribution`.
 
 ### Kotlin / Compose / Robolectric traps (§40.13–§40.21, §40.28, §40.31, §40.33)
 

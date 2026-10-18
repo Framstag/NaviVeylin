@@ -40,8 +40,13 @@ class NotificationHostSendLoggingTest {
         DiagnosticsLog.initForTest(logFile())
         try {
             recordNotificationPost(post("Home", "Turn left into Hauptstrasse"))
+            // The file a case installs is the process-wide sink: work another class left running logs into
+            // it while this case holds it (measured 2026-10-11, `fix-browse-recenter-dwell`, issue #115).
+            DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")
 
-            val entries = DiagnosticsLog.readEntries()
+            // Only the entries this case's own subject wrote are its evidence (issue #115): the file is the
+            // process-wide sink, so a line another class logs while this case holds it is not a post.
+            val entries = DiagnosticsLog.readEntries().filter { it.contains("HOST NOTIF post") }
             assertEquals(1, entries.size)
             assertTrue("timestamped", entries.single().startsWith("["))
             assertTrue("tagged", entries.single().contains("HOST NOTIF post"))
@@ -58,8 +63,9 @@ class NotificationHostSendLoggingTest {
         try {
             recordNotificationPost(post("Home", "Turn left"))
             recordNotificationPost(post("Home", "Turn right"))
+            DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")
 
-            assertEquals(2, DiagnosticsLog.readEntries().size)
+            assertEquals(2, DiagnosticsLog.readEntries().count { it.contains("HOST NOTIF post") })
         } finally {
             DiagnosticsLog.reset()
         }

@@ -27,6 +27,9 @@ class SettingsStorageSourceTest {
 
     private lateinit var logFile: File
 
+    /** A coordinate-shaped token — a whole-number part and 4+ decimals, as the privacy class defines it. */
+    private val coordinateShape = Regex("""-?\b\d{1,3}\.\d{4,}\b""")
+
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -89,10 +92,18 @@ class SettingsStorageSourceTest {
         val source = storage.load().selectedMapSource()
 
         assertEquals(MapSource.BuiltInProvider, source)
+        // The file a case installs is the process-wide sink: work another class left running logs into it
+        // while this case holds it (measured 2026-10-10, `car-favorites-group-level` task 4.2, issue #115).
+        DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")
         assertTrue("the buffered line reaches the file", DiagnosticsLog.awaitDrained())
         val logged = logFile.takeIf { it.isFile }?.readText().orEmpty()
-        assertTrue("the fallback names the stored value", logged.contains("SOMETHING_ELSE"))
-        assertFalse("the diagnostics line carries no coordinate", logged.contains("52."))
+        // Only the line this case's own subject wrote decides it (issue #115): the file is the process-wide
+        // sink, so a line another class logs while this case holds it is not this class's evidence.
+        val own = logged.lines().filter { it.contains("map source unknown value=") }
+        assertEquals("the fallback logs exactly one line about the stored value: $own", 1, own.size)
+        val line = own.single()
+        assertTrue("the fallback names the stored value", line.contains("SOMETHING_ELSE"))
+        assertFalse("the diagnostics line carries no coordinate", coordinateShape.containsMatchIn(line))
     }
 
     @Test
@@ -109,7 +120,13 @@ class SettingsStorageSourceTest {
 
         assertEquals(MapSource.BuiltInProvider, source)
         assertTrue(DiagnosticsLog.awaitDrained())
-        assertTrue(logFile.takeIf { it.isFile }?.readText().orEmpty().contains("without a base URL"))
+        // Only the line this case's own subject wrote decides it (issue #115): the file is the
+        // process-wide sink, so a line another class logs while this case holds it is not evidence.
+        DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")
+        val own = DiagnosticsLog.readEntries()
+            .filter { it.contains("repository source without a base URL") }
+        assertEquals("the fallback logs exactly one line: $own", 1, own.size)
+        assertTrue(own.single(), own.single().contains("fallback=BUILT_IN_PROVIDER"))
     }
 
     @Test

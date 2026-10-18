@@ -53,6 +53,7 @@ LOOP_SHELL_CASES=(
   'run#decisionCapRefusesToStart'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
+  'run#blockedItemIsEscalatedWithItsReason'
   'run#childStartsInTheProjectRoot'
   'run#childWriteOutsideTheWorktreeIsBlocked'
   'run#reviewerWriteInTheProjectIsDiscarded'
@@ -126,6 +127,7 @@ loop_run_shell_case() {
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
+    'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
     'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
     'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
@@ -1006,6 +1008,28 @@ case_run_childClaimWithoutCommitIsBlocked() {
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a claim without a commit is blocked"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "base commit" "the reason names what was missing"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "the item was not closed"
+}
+
+case_run_blockedItemIsEscalatedWithItsReason() {
+  local d p log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # a child that reports success and commits nothing: the run blocks the item for a reason that is not a
+  # failed review, and the reason must reach the tracker in the same pass — the state that holds it is
+  # rewritten wholesale by the next run (issue #174)
+  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is blocked"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "a blocked item is marked as awaiting a decision"
+  assert_contains "$log" "status/on-hold" "and put on hold"
+  assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "the block's reason is named in one comment"
+  assert_contains "$log" "base commit" "the comment carries the reason the run blocked it"
+  assert_contains "$log" "fix/issue-21-" "and the branch that carries the attempt"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+  assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel // ""' "$(state_file "$p")")" \
+    "the run records the label its own escalation wrote"
 }
 
 case_run_childStartsInTheProjectRoot() {

@@ -195,8 +195,11 @@ left to a person instead.
 
 #### Scenario: A blocked item is never closed
 
-- **WHEN** an item ended blocked
-- **THEN** it is not closed, and the reason is recorded on it
+- **WHEN** an item ended blocked — for any reason the run determined, not only a failed review round
+- **THEN** it is not closed, and the reason is written on the item in the same pass, while the run still holds
+  it — the decision label, the status that holds it, and one comment naming the reason and the work already
+  done, with the evidence directory and the branch as the evidence
+- **Case**: `run#blockedItemIsEscalatedWithItsReason`, `run#childClaimWithoutCommitIsBlocked`
 
 ### Requirement: The run survives interruption
 
@@ -232,6 +235,14 @@ sufficient to continue after an interrupt without repeating work already done.
 - **THEN** the in-progress marking is removed with it, so the tracker never shows an item as being worked
   while no run holds it
 - **Case**: `run#aSkipClearsTheInProgressMark`
+
+#### Scenario: A block's reason is not left to the run's state
+
+- **WHEN** the run blocks an item and writes the reason into its own state
+- **THEN** the reason is also written on the item itself, between agent processes, because the state is
+  replaced wholesale by the next run — so the decision list, the cap that counts it and the next attempt all
+  read a block the state no longer holds
+- **Case**: `run#blockedItemIsEscalatedWithItsReason`
 
 #### Scenario: State is not committed
 

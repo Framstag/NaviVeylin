@@ -1,0 +1,4 @@
+  a blocked item is marked as awaiting a decision: 'agent/needs-decision' not found in: gh issue edit 21 --add-label agent/in-progress
+gh issue edit 21 --remove-label agent/in-progress
+FAIL run#blockedItemIsEscalatedWithItsReason
+tally: 1 of 1 red on HEAD (run#blockedItemIsEscalatedWithItsReason)

@@ -1,0 +1,6 @@
+RED    14.3  report#failedReviewEscalationIsNamed   (the blocked exit path recording the label its escalation wrote)
+restore 14.3 report#failedReviewEscalationIsNamed green again
+RED    14.5  run#blockedItemIsEscalatedWithItsReason   (the blocked exit path escalating the reason the run holds)
+restore 14.5 run#blockedItemIsEscalatedWithItsReason green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

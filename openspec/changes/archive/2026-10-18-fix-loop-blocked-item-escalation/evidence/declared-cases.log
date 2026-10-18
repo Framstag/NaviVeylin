@@ -1,0 +1,15 @@
+declared-cases selftest — fixture /tmp/tmp.tKjw64Yjhl
+  PASS  declared rule selects the artifacts-named class
+  PASS  mention rule selects the mentioning tests (app and auto modules)
+  PASS  touched rule selects the test file the diff touches
+  PASS  unrelated class is never selected
+  PASS  a declared token with no test class selects nothing
+  PASS  per-rule counts are printed
+  PASS  --rules declared,touched excludes the mention-only classes
+  PASS  empty selection explains and exits 0
+  PASS  measured class time is read from the result XML
+  PASS  --command prints one Gradle task per module with --tests filters
+  PASS  missing test root exits 3 instead of reporting an empty selection
+  PASS  --help prints usage and exits 0
+
+12 passed, 0 failed

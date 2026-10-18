@@ -533,13 +533,16 @@ while true; do
       ;;
     *)
       loop_labels unpick "$issue" >&2 || true
-      # A second failed review round is a decision, not a third attempt: the label is written first and
-      # recorded with the item, so the report names it as the run's own escalation (issue #177).
+      # A blocked item is escalated in the same pass, exactly as a skipped one is: the reason is held in the
+      # run state, and the next run replaces that state wholesale, so a block that left the tracker untouched
+      # would vanish — the decision list would not hold it, the decision cap would not count it, and the next
+      # attempt would be told nothing (issue #174). The escalation writes the label, the status and the comment
+      # that names the reason and the work already done, and the label it wrote is recorded with the item, so
+      # the report names it as the run's own escalation (issue #177).
       escalated_label=""
-      if [ "${review_verdict}" = "FAIL" ]; then
-        if loop_labels needs-decision "$issue" >&2; then
-          escalated_label="$decision_label"   # the failed second round's escalation
-        fi
+      if loop_labels escalate "$issue" --reason "${blocked_reason:-the item was blocked}" \
+        --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
+        escalated_label="$decision_label"   # the block's own escalation
       fi
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \

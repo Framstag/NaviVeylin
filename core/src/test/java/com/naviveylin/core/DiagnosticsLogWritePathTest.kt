@@ -104,29 +104,58 @@ class DiagnosticsLogWritePathTest {
         DiagnosticsLog.flushIntervalMs = 60_000
         DiagnosticsLog.maxPendingChars = 2_000
 
-        // Park the worker before the burst (spec `unit-test-suite-runtime` — A case awaits the state it
-        // needs, not a proxy of it): with the ring empty and the worker provably waiting, the burst is the
-        // only thing that can wake it. `awaitDrained` is that proxy here — it returns when the ring is empty,
-        // a state the worker reaches before it waits again, so a burst landing in that window is split and its
-        // tail then waits for the 60 s deadline (TODO.md §148 case 5, red in 3 of 24 aggregate reps).
+        // Park the worker before the burst. With the ring empty and the worker waiting, the burst can be
+        // split: the high-water signal can reach the worker while it is already awake, and the entries that
+        // arrive after the drain it triggers are that drain's tail.
         DiagnosticsLog.log("TEST", "warm-up")
         assertTrue(DiagnosticsLog.flushNow(2_000))
         assertTrue("the worker must be parked before the burst", DiagnosticsLog.awaitParked(2_000))
 
+        val batchesBefore = DiagnosticsLog.flushedBatchCount()
         repeat(20) { DiagnosticsLog.log("TEST", "burst-$it " + "x".repeat(80)) }
 
         // Only the entries present when the ring crossed the high-water mark are flushed by that signal; the
-        // rest may still be buffered, so the state to await is the worker being parked again, not an empty
-        // ring. The bounded 2 s wait against the 60 s deadline makes a line on disk the high-water signal's
-        // work, not the deadline's.
+        // rest may still be buffered and can wait for the deadline, so the state to await is the *flush* the
+        // crossing caused — not the worker being parked (it is not parked while its tail is pending, spec
+        // `unit-test-suite-runtime` — "A published work state is true when it is read") and not an empty ring
+        // (also true before the crossing is taken up). The bounded 2 s wait against the 60 s deadline makes
+        // the flush that arrives the high-water signal's work, not the deadline's.
         assertTrue(
-            "a burst returns the worker to its wait without the deadline",
-            DiagnosticsLog.awaitParked(2_000)
+            "a burst is flushed without waiting for the deadline",
+            DiagnosticsLog.awaitFlushedBatchAbove(batchesBefore, 2_000)
         )
         assertTrue(
             "the line at the high-water crossing must be on disk: ${disk()}",
             disk().contains("TEST burst-5")
         )
+
+        // Drain the tail the crossing left behind, so no case leaves the worker on the 60 s deadline.
+        assertTrue(DiagnosticsLog.flushNow(2_000))
+    }
+
+    @Test
+    fun workPendingIsNotAParkedWorker() {
+        DiagnosticsLog.flushIntervalMs = 60_000
+
+        // Park the worker, then hand it work that does NOT cross the high-water mark: nothing signals it, so
+        // it stays blocked on the deadline and only the published state can say anything. On HEAD that state
+        // was still the "waiting" the worker had declared before this entry arrived, so a case asking now was
+        // told "parked" about a worker that had already been given the entry — and a case that then read the
+        // file read the pre-flush file (TODO §148 case 5, issue #93: red in 3 of 24 loaded aggregate runs and
+        // twice in `main`'s CI). The state a caller awaits has to be true of the moment it reads it (spec
+        // `unit-test-suite-runtime` — A published work state is true when it is read).
+        DiagnosticsLog.log("TEST", "warm-up")
+        assertTrue(DiagnosticsLog.flushNow(2_000))
+        assertTrue("the worker must be parked before the check", DiagnosticsLog.awaitParked(2_000))
+
+        DiagnosticsLog.log("TEST", "queued-below-the-high-water-mark")
+        assertFalse(
+            "the entry the worker has been handed is not a parked worker",
+            DiagnosticsLog.awaitParked(0)
+        )
+
+        // Drain it again: the worker is blocked on the 60 s deadline, and no case may leave it waiting.
+        assertTrue(DiagnosticsLog.flushNow(2_000))
     }
 
     @Test

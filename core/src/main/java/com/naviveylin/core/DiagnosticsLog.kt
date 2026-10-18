@@ -109,10 +109,21 @@ object DiagnosticsLog {
     private var flushing = false
 
     /**
+     * Batches the worker has written to the file. Monotonic, published under [bufferLock], and the state a
+     * case awaits when it needs "a flush has happened": a count is true of the moment it is read and cannot
+     * describe a moment that has passed (spec `unit-test-suite-runtime` — "A published work state is true
+     * when it is read"). The worker being *parked* is not that state: while work is pending it is not
+     * parked at all, and its tail may still wait for the flush deadline.
+     */
+    private var flushedBatches = 0L
+
+    /**
      * True while the worker is waiting for work rather than draining or flushing. Published under
-     * [bufferLock], so a caller can await the state its own reasoning assumes instead of inferring it
-     * from an empty ring (spec `unit-test-suite-runtime` — "A case awaits the state it needs, not a
-     * proxy of it"; `TODO.md` §148 case 2).
+     * [bufferLock], and *true of the moment it is read*: queuing an entry takes the worker out of it, so a
+     * caller cannot be told about a moment that has passed (spec `unit-test-suite-runtime` — "A published
+     * work state is true when it is read"). Clearing it in the worker's own `finally` alone is not enough:
+     * the window between a caller's signal and the worker resuming is a scheduling delay, and a reader
+     * inside it saw the pre-flush file (TODO §148 case 5, issue #93).
      */
     private var workerWaiting = false
 
@@ -368,6 +379,27 @@ object DiagnosticsLog {
         }
     }
 
+    /**
+     * Wait until the worker has finished more than [batches] batches, i.e. until a flush has happened. The
+     * seam for a case that must know a flush is *done* before it reads the file: the worker being parked is
+     * not that state (work may be pending), and an empty ring is also true before the batch is taken up
+     * (spec `unit-test-suite-runtime` — "A published work state is true when it is read").
+     */
+    internal fun awaitFlushedBatchAbove(batches: Long, timeoutMs: Long = READ_DRAIN_TIMEOUT_MS): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        bufferLock.withLock {
+            while (flushedBatches <= batches) {
+                val remaining = deadline - System.currentTimeMillis()
+                if (remaining <= 0) return false
+                bufferChanged.await(remaining, TimeUnit.MILLISECONDS)
+            }
+            return true
+        }
+    }
+
+    /** Batches the worker has finished writing (test seam, see [awaitFlushedBatchAbove]). */
+    internal fun flushedBatchCount(): Long = bufferLock.withLock { flushedBatches }
+
     // ── caller-thread path (memory only) ──
 
     /**
@@ -381,6 +413,12 @@ object DiagnosticsLog {
             ensureWorkerLocked()
             pending.addLast(stamped)
             pendingChars += stamped.length
+            // The worker is no longer waiting the moment it has work: it will either be woken by the signal
+            // below or drain on its deadline. Leaving this set until the worker is scheduled to resume
+            // publishes a state of a past moment — `awaitParked` then answers "parked" for a worker that
+            // already holds this entry, and a caller that reads the file on that answer reads the pre-flush
+            // file (TODO §148 case 5, issue #93: 3 of 24 loaded aggregate runs, twice in `main`'s CI).
+            workerWaiting = false
             var dropped = false
             while (pending.size > maxPendingEntries || pendingChars > maxPendingChars) {
                 val removed = pending.removeFirst()
@@ -460,6 +498,7 @@ object DiagnosticsLog {
                 return
             }
             val batch = drained ?: continue
+            var wrote = false
             try {
                 fileLock.withLock {
                     // A batch belongs to the target it was drained for: if the target
@@ -468,11 +507,13 @@ object DiagnosticsLog {
                     val target = batchTarget
                     if (target != null && target === currentFile()) {
                         batch.forEach { line -> appendLineLocked(target, line) }
+                        wrote = true
                     }
                 }
             } finally {
                 bufferLock.withLock {
                     flushing = false
+                    if (wrote) flushedBatches++
                     bufferChanged.signalAll()
                 }
             }

@@ -177,7 +177,7 @@ list_templates() { # the loop's prompt skeletons
 
 list_excluded() {
   cat <<'EOF'
-tools/issues/import/todo-md.sh	the source adapter — reads this project's own record format, and is allowed to
+tools/issues/import/todo-md.sh	the source adapter — reads the one-time prose record's format, and is allowed to
 tools/issues/core/Cases.java	the case runner
 tools/issues/metadata-mutations.sh	the falsification harness
 tools/issues/check-metadata-selftest.sh	the self-test
@@ -189,7 +189,6 @@ tools/*-mutations*.json	the mutation sets — they plant the very values the che
 .pi/**	machine-local state: worktrees, captures, session logs
 openspec/**	the project's documents
 guidelines/**	the project's documents
-TODO.md	the project's document — the adapter reads it, nothing else does
 EOF
 }
 

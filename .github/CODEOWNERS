@@ -1,5 +1,7 @@
 # Review ownership: a change to a pipeline definition needs the owner's approval.
 #
-# The sensor pipeline holds a token that can write to the tracker (`gitignore`d secret, `Issues: write`
-# only), so its file is not a place for an unreviewed edit — and neither is the validating pipeline.
+# The sensor pipeline holds a token that can write to the tracker (`gitignore`d secret, created with
+# `Issues: Read and write` and `Pull requests: Read`, this repository only, owned by an allowlisted author —
+# `guidelines/Backlog.md` §9), so its file is not a place for an unreviewed edit — and neither is the
+# validating pipeline.
 /.github/workflows/ @Framstag

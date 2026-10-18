@@ -1,0 +1,97 @@
+# green — fix-sensor-credential-and-red-build-rows
+
+HEAD ' plus this change' working tree, 2026-10-18T17:38:40Z. No compiled file is touched, so no Gradle build or test
+suite is owed (guidelines/Build.md §2, scope block); the gate is the two owning shell suites, their mutation
+harnesses and the structural checks below.
+
+## 1. The two owning suites (offline, no token, no network)
+
+```
+$ bash tools/build-inputs-selftest.sh
+PASS workflow#tickMinutesCoverTheRegistryCrons
+PASS inputs#manifestIsTheProducerSet
+PASS inputs#refusesADeclaredInputWithNoProducer
+PASS inputs#writesTheGateTimingRecord
+PASS inputs#convertsPerModuleCoverage
+PASS inputs#resultRecordShapes
+PASS inputs#aRedBuildStillCarriesTheResultRecord
+PASS inputs#fetchRestoresTheDeclaredPaths
+PASS inputs#reportsTheRunsConclusion
+PASS inputs#refusesAnotherCommitsRecord
+PASS inputs#noRecordExitsThree
+11 cases, 0 failed
+
+$ bash tools/sensor-selftest.sh
+PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
+sensor-selftest: all 40 cases passed (JDK 27, offline, no token)
+```
+
+## 2. The mutation harnesses (change-time falsification, restoring after each)
+
+```
+$ bash tools/sensor-mutations.sh
+MUTATION 8.1: guard#refusesOffMain red under the mutation, green after the restore — HEAD is the remote main branch
+MUTATION 8.2: workflow#onlyTwoTriggers red under the mutation, green after the restore — the trigger cap — schedule and dispatch only
+MUTATION 8.3: close#sensorScopeRefusesAForeignIssue red under the mutation, green after the restore — a check closes only what carries its own label
+MUTATION 8.4: run#errorIsNeverTreatedAsClear red under the mutation, green after the restore — a failed check posts nothing and fails the run
+MUTATION 8.5: run#hysteresisBothDirections red under the mutation, green after the restore — a close needs N consecutive clear runs
+MUTATION 8.6: run#escalatesPastKRecurrences red under the mutation, green after the restore — past K recurrences a check stops reopening
+MUTATION 8.7: reopen#refusesANotPlannedClosure red under the mutation, green after the restore — only a completed closure is reopened
+MUTATION 8.8: sensors#brokenMainFingerprintDistinguishesCauses red under the mutation, green after the restore — the condition fingerprint, not the check id, is the anchor
+MUTATION 8.9: sensors#engineNamesNoProjectValue red under the mutation, green after the restore — every row's command comes from the registry
+MUTATION 8.10: run#rowsRefusesAnUndeclaredId red under the mutation, green after the restore — a row a step names must be a row the registry declares
+MUTATION 8.11: workflow#aRedRecordRunsNoRecordRow red under the mutation, green after the restore — the record rows wait for a build that succeeded
+
+sensor-mutations: 11 behaved, 0 did not
+
+$ bash tools/build-inputs-mutations.sh
+MUTATION 5.1: inputs#manifestIsTheProducerSet red under the mutation, green after the restore — the manifest is the set of paths the producer writes
+MUTATION 5.2: inputs#refusesADeclaredInputWithNoProducer red under the mutation, green after the restore — a declared input outside the manifest is refused
+MUTATION 5.3: inputs#convertsPerModuleCoverage red under the mutation, green after the restore — the module percentage is the report's own counter, not the first one in the document
+MUTATION 5.4: inputs#resultRecordShapes red under the mutation, green after the restore — the result record is written for every build, green or red
+MUTATION 5.5: inputs#refusesAnotherCommitsRecord red under the mutation, green after the restore — the record is the commit's own
+MUTATION 5.6: inputs#noRecordExitsThree red under the mutation, green after the restore — an absent record is not ready, and not a failed check
+MUTATION 5.7: workflow#tickMinutesCoverTheRegistryCrons red under the mutation, green after the restore — the tick's minutes cover the registry's
+MUTATION 5.8: workflow#onlyTwoTriggers red under the mutation, green after the restore — the workflow's own token never writes to the tracker
+MUTATION 5.9: sensors#brokenMainGreenReportsClear red under the mutation, green after the restore — a condition row with nothing to report still reports its outcome
+MUTATION 5.10: sensors#prConflictsNothingReportsClear red under the mutation, green after the restore — the same duty on the pull-request row
+MUTATION 5.11: workflow#onlyTwoTriggers red under the mutation, green after the restore — every tracker write waits for the record
+MUTATION 5.12: workflow#onlyTwoTriggers red under the mutation, green after the restore — the dispatch apply is compared as the boolean it is declared to be
+MUTATION 5.13: inputs#reportsTheRunsConclusion red under the mutation, green after the restore — the conclusion the caller gates its rows on is the run's own
+
+build-inputs-mutations: 13 behaved, 0 did not
+```
+
+## 3. The structural checks of the touched surface
+
+```
+$ bash tools/check-portability.sh
+check-portability: OK — 42 engines and 2 templates name no project value (133 value(s) read from the project)
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 89 section references resolve
+$ bash tools/build-inputs.sh --check
+build-inputs: every declared input has a producer (4 rows checked)
+$ yq -e . .github/workflows/sensors.yml
+the workflow parses (exit 0)
+$ yq -r ".jobs.sensors.steps[] | select(.run != null) | .name + \" :: \" + (.if // \"-\")" .github/workflows/sensors.yml
+Fetch the main branch the guard compares against :: -
+Guard the run :: -
+Fetch this commit's build record :: -
+Create the declared labels :: steps.record.outputs.ready == 'true'
+Repair the stale citations :: steps.record.outputs.ready == 'true'
+Run the rows that measure the build :: steps.record.outputs.ready == 'true' && steps.record.outputs.conclusion == 'success'
+Run the condition rows and the repository rows :: steps.record.outputs.ready == 'true'
+Report the rows :: always()
+$ awk … openspec/changes/*/tasks.md + openspec/config.yaml   # the CI hygiene step, replicated
+hygiene fail=0
+$ git diff --name-only
+.github/CODEOWNERS
+.github/workflows/sensors.yml
+guidelines/Backlog.md
+tools/build-inputs-cases.sh
+tools/build-inputs-mutations.sh
+tools/fetch-build-inputs.sh
+tools/sensor-cases.sh
+tools/sensor-mutations.sh
+tools/sensors/run.sh
+```

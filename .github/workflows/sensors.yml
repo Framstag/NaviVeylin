@@ -40,7 +40,8 @@ jobs:
     permissions:
       contents: read
       # The record itself is read from the build pipeline's artifact of this commit — the workflow's own
-      # ephemeral token, never the tracker token, and read-only. The write scope stays issues-only.
+      # ephemeral token, never the tracker token, and read-only. The tracker writes are the repository
+      # secret's, whose scope is `guidelines/Backlog.md` §9: Issues read and write, Pull requests read.
       actions: read
       issues: write
     # A scheduled run writes: nobody dispatches it, so a dry run would measure for nobody. A dispatch keeps
@@ -69,15 +70,18 @@ jobs:
         run: bash tools/sensors/guard.sh --ref "$GITHUB_REF"
 
       # The record the rows read: of the commit this run examines, downloaded by the workflow's own token
-      # from the build pipeline's artifact. `ready=false` (exit 3) means the build has not finished yet — a
-      # skipped run that writes nothing and reports no failed check, rather than four `error` rows.
+      # from the build pipeline's artifact, with the conclusion the build's run ended with reported beside it.
+      # `ready=false` (exit 3) means the build has not finished yet — a skipped run that writes nothing and
+      # reports no failed check, rather than four `error` rows.
       - name: Fetch this commit's build record
         id: record
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest .; then
+          if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --conclusion-file "$RUNNER_TEMP/build-conclusion"; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "conclusion=$(cat "$RUNNER_TEMP/build-conclusion")" >> "$GITHUB_OUTPUT"
           else
             status=$?
             if [ "$status" -eq 3 ]; then
@@ -109,13 +113,29 @@ jobs:
         run: bash tools/issues/resolve-stale.sh "$SENSORS_MODE" --max-items 25
 
       # The identity is a repository-scoped token, never the workflow's own: the tracker's gate requires
-      # an allowlisted author, and the token can do nothing but file, comment and close issues here. Skipped
-      # while this commit has no build record: an absent record is not a failed check (design D5).
-      - name: Run the sensors
+      # an allowlisted author, and the token's scope is the one `guidelines/Backlog.md` §9 states — Issues
+      # read and write, plus Pull requests read for the row that lists pull requests.
+      #
+      # The rows are run in two steps, because a red build's record is partial by construction: it cannot
+      # carry the coverage summary, the package or the timing record, so the rows that *measure the build*
+      # are attempted for a record a build completed successfully and for nothing else — otherwise every one
+      # of them would report a failed check and the run would be red four times a day for a reason that says
+      # nothing about the checks (issue #168).
+      - name: Run the rows that measure the build
+        if: steps.record.outputs.ready == 'true' && steps.record.outputs.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: bash tools/sensors/run.sh --due --rows build-duration,package-size,coverage "$SENSORS_MODE"
+
+      # Every other row runs for any record, none of them reading an output a red build cannot produce:
+      # `broken-main` reads the result record the publisher always writes, `pr-conflicts` the API, `hotspot`
+      # the repository's history and `stale-citations` the tracker. This is also the half that keeps a red
+      # build visible as exactly one row's verdict.
+      - name: Run the condition rows and the repository rows
         if: steps.record.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: bash tools/sensors/run.sh --due "$SENSORS_MODE"
+        run: bash tools/sensors/run.sh --due --rows broken-main,pr-conflicts,hotspot,stale-citations "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

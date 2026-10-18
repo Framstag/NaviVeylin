@@ -21,6 +21,8 @@ SENSOR_CASES=(
   'Registry#everyRowIsComplete'
   'lib#rejectsAMalformedFinding'
   'run#selectsOnlyDueRows'
+  'run#rowsSelectsSeveralRows'
+  'run#rowsRefusesAnUndeclaredId'
   'run#dryRunTouchesNothing'
   'run#errorPostsNothingAndFails'
   'run#errorIsNeverTreatedAsClear'
@@ -48,7 +50,9 @@ SENSOR_CASES=(
   'sensors#brokenMainGreenReportsClear'
   'sensors#prConflictsNothingReportsClear'
   'workflow#onlyTwoTriggers'
+  'workflow#aRedRecordRunsNoRecordRow'
   'sensors#engineNamesNoProjectValue'
+  'sensors#theDocumentedCredentialCoversEveryDeclaredRow'
 )
 
 sensor_cases() {
@@ -65,6 +69,8 @@ sensor_run_case() {
     'Registry#everyRowIsComplete') case_registry_everyRowIsComplete ;;
     'lib#rejectsAMalformedFinding') case_lib_rejectsAMalformedFinding ;;
     'run#selectsOnlyDueRows') case_run_selectsOnlyDueRows ;;
+    'run#rowsSelectsSeveralRows') case_run_rowsSelectsSeveralRows ;;
+    'run#rowsRefusesAnUndeclaredId') case_run_rowsRefusesAnUndeclaredId ;;
     'run#dryRunTouchesNothing') case_run_dryRunTouchesNothing ;;
     'run#errorPostsNothingAndFails') case_run_errorPostsNothingAndFails ;;
     'run#errorIsNeverTreatedAsClear') case_run_errorIsNeverTreatedAsClear ;;
@@ -92,7 +98,9 @@ sensor_run_case() {
     'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
     'sensors#prConflictsNothingReportsClear') case_sensors_prConflictsNothingReportsClear ;;
     'workflow#onlyTwoTriggers') case_workflow_onlyTwoTriggers ;;
+    'workflow#aRedRecordRunsNoRecordRow') case_workflow_aRedRecordRunsNoRecordRow ;;
     'sensors#engineNamesNoProjectValue') case_sensors_engineNamesNoProjectValue ;;
+    'sensors#theDocumentedCredentialCoversEveryDeclaredRow') case_sensors_theDocumentedCredentialCoversEveryDeclaredRow ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -462,6 +470,60 @@ case_run_selectsOnlyDueRows() {
     --registry "$(fixture registry.json)" 2>&1)
   assert_contains "$out" "fixture-error" "the second clock selects the second row"
   assert_not_contains "$out" "fixture-emit" "the first row is not selected by the second clock"
+}
+
+case_run_rowsSelectsSeveralRows() {
+  local dir findings out status
+  dir=$(scratch); issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 1 case alpha)")
+
+  # The list selects the candidates; each one's own cadence still decides whether it runs, so at 03:00 the
+  # named row whose cron matches runs and the named row whose cron does not stays out.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --now 2026-10-17T03:00:00Z --input "$findings" \
+    --rows fixture-emit,fixture-error --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the listed row that is due runs: $out"
+  assert_contains "$out" "fixture-emit" "the first named row is selected"
+  assert_not_contains "$out" "fixture-error" "a named row whose cadence is not due is not selected"
+
+  # A row outside the list is not a candidate even when its own cadence is due — 04:00 is the second row's
+  # minute, and nothing at all is selected because the list does not name it.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --now 2026-10-17T04:00:00Z --input "$findings" \
+    --rows fixture-emit --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a list none of whose rows is due selects nothing: $out"
+  assert_contains "$out" "no rows selected" "the run says so instead of measuring a row it was not given"
+  assert_not_contains "$out" "fixture-error" "the due row outside the list is not selected"
+
+  # Repeating the flag builds the same list as the comma-separated form, and without --due every named row
+  # is selected — including the fixture sensor that fails, which is how a case sees that it was attempted.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --now 2026-10-17T09:00:00Z --input "$findings" \
+    --rows fixture-emit --rows fixture-error --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "8" "$status" "the failing fixture sensor's error is the run's: $out"
+  assert_contains "$out" "fixture-emit" "the first repeated --rows row was attempted"
+  assert_contains "$out" "fixture-error" "the second repeated --rows row was attempted"
+}
+
+case_run_rowsRefusesAnUndeclaredId() {
+  local dir findings log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 1 case alpha)")
+
+  # A list is a selection of declared rows: an id the registry does not declare is refused before any row
+  # runs, so a pipeline step cannot ask for a check that does not exist and read the silence as a clear.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --rows fixture-emit,no-such-row --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "2" "$status" "an undeclared row id is a usage refusal: $out"
+  assert_contains "$out" "no-such-row" "the refusal names the id it does not find"
+  assert_contains "$out" "fixture-emit" "the refusal names the ids the registry does declare"
+  assert_empty "$(cat "$log")" "nothing runs and nothing is written for an undeclared id"
 }
 
 case_run_dryRunTouchesNothing() {
@@ -1145,11 +1207,12 @@ case_workflow_onlyTwoTriggers() {
   { [ "$fetch_line" -lt "$token_line" ] && [ "$token_line" -lt "$tracker_line" ]; } ||
     fail "the workflow's own token is used outside the record fetch"
 
-  # Everything that writes to the tracker — the labels, the citation repair and the rows — waits for the
-  # record, so a scheduled run whose build has not finished writes nothing at all rather than creating labels
-  # and repairing citations for a measurement it cannot make (spec `backlog-sensors`).
-  assert_eq "3" "$(grep -cF -- "if: steps.record.outputs.ready == 'true'" "$file" || true)" \
-    "the labels, the repair and the rows are all gated on the record"
+  # Everything that writes to the tracker — the labels, the citation repair and both row steps — waits for
+  # the record, so a scheduled run whose build has not finished writes nothing at all rather than creating
+  # labels and repairing citations for a measurement it cannot make (spec `backlog-sensors`). Which rows each
+  # step then runs is that step's own gate: `workflow#aRedRecordRunsNoRecordRow` holds the red build's half.
+  assert_eq "4" "$(grep -cF -- "if: steps.record.outputs.ready == 'true'" "$file" || true)" \
+    "the labels, the repair and both row steps are all gated on the record"
 
   # The dispatch's `apply` is a boolean input, and a boolean is not a string: `inputs.apply == 'true'` is
   # false for every value (the runner coerces the boolean to a number and the string to NaN), so a dispatch
@@ -1193,4 +1256,107 @@ case_sensors_engineNamesNoProjectValue() {
   # No deletion anywhere: a mistaken or subverted check can close, and cannot destroy.
   hits=$(grep -rn 'issue delete\|graphql' "$SENSORS_ENGINE" "$SENSORS_ISSUES_ENGINE/reopen.sh" 2>/dev/null || true)
   assert_empty "$hits" "no check can delete an issue"
+}
+
+# ----------------------------------------------------------------------------- 8. the red build, and the credential
+
+# The rows a *red* build's record must not reach: the build's own outputs (the timing, the package, the
+# coverage) are the record rows' inputs, and a build that did not succeed cannot produce them. This case
+# holds both halves — the pipeline's own gates, and what the pipeline's own commands then do.
+case_workflow_aRedRecordRunsNoRecordRow() {
+  local file steps record_step other_step record_rows other_rows declared selected
+  local dir out status hits
+  file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
+  [ -f "$file" ] || fail "the sensor pipeline has no file"
+
+  # Each row step with the gate that stands above it: the record rows wait for a conclusion of `success`,
+  # the other rows do not (a red build is exactly what one of them reports).
+  steps=$(awk '
+    /^ +- name: / { gate = "" }
+    /^ +if: / { gate = $0 }
+    /run: bash tools\/sensors\/run\.sh --due --rows / { printf "%s\t%s\n", gate, $0 }
+  ' "$file")
+  assert_eq "2" "$(printf '%s\n' "$steps" | grep -c .)" "the pipeline has one row step per family of rows"
+
+  record_step=$(printf '%s\n' "$steps" | grep "conclusion == 'success'" || true)
+  other_step=$(printf '%s\n' "$steps" | grep -v "conclusion == 'success'" || true)
+  [ -n "$record_step" ] ||
+    fail "the rows that read the build's own outputs are not gated on a record a successful build published"
+  [ -n "$other_step" ] || fail "no row step runs for a record the build did not complete successfully"
+
+  # Every row step names the rows it selects, so what runs for a red record is a decision in the file
+  # rather than "everything whose cadence is due".
+  hits=$(grep -n 'run\.sh --due' "$file" | grep -v -- '--rows' || true)
+  assert_empty "$hits" "a row step selects every due row, so a red build's record reaches a row that reads it"
+
+  # The two lists are the registry's rows: one home for which check exists, and the file's two sets must
+  # cover it exactly once — a row added to the registry and left out of both steps would otherwise never run.
+  record_rows=$(printf '%s' "$record_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
+  other_rows=$(printf '%s' "$other_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
+  [ -n "$record_rows" ] || fail "the record rows' step names no rows"
+  [ -n "$other_rows" ] || fail "the other rows' step names no rows"
+  declared=$(jq -r '.rows[].id' "$SENSORS_ENGINE/sensors.json" | sort)
+  selected=$(printf '%s\n%s\n' "$(printf '%s' "$record_rows" | tr ',' '\n')" \
+    "$(printf '%s' "$other_rows" | tr ',' '\n')" | grep -v '^$' | sort)
+  assert_eq "$declared" "$selected" "the two steps select every declared row"
+  assert_eq "$(printf '%s\n' "$selected" | sort -u)" "$selected" "no row is selected by both steps"
+
+  # The pipeline's own commands, run against the record a red build publishes: the result record alone
+  # (the publisher always writes that one), in a tree that has the tools the pipeline runs.
+  dir=$(scratch)
+  cp -R "$SENSORS_REPO_ROOT/tools" "$dir/tools"
+  mkdir -p "$dir/app/build"
+  printf '{"job":"build","case":"apk","result":"failure"}\n' > "$dir/app/build/gate-result.json"
+  git -C "$dir" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway repository"
+  git -C "$dir" add -A >/dev/null 2>&1 || fail "could not stage the throwaway repository"
+  git -C "$dir" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm init >/dev/null 2>&1 ||
+    fail "could not record the throwaway repository's first state"
+
+  # What the pipeline does issue: the other rows — and the build's redness reaches the tracker as that one
+  # row's verdict, so the run exits 0 with nothing written to the tracker for the failed build.
+  out=$(cd "$dir" && GH_STUB_DIR="$SENSORS_REPO_ROOT/tools/issues/fixtures" \
+    bash tools/sensors/run.sh --due --rows "$other_rows" --now 2026-10-18T00:00:00Z 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the rows a red build does not touch run green: $out"
+  assert_contains "$out" "broken-main" "the failing build is reported as the row whose verdict it is"
+  assert_not_contains "$out" "verdict=error" "no row reports a failed check for the red build"
+
+  # What it does not, and why: the same record through the record rows is the defect this change removes —
+  # a row that cannot read the build's output reports a failed check, so the pipeline must not issue it.
+  out=$(cd "$dir" && GH_STUB_DIR="$SENSORS_REPO_ROOT/tools/issues/fixtures" \
+    bash tools/sensors/run.sh --due --rows "$record_rows" --now 2026-10-18T03:00:00Z 2>&1)
+  status=$?
+  assert_eq "8" "$status" "a record row over a red build's record reports a failed check: $out"
+  assert_contains "$out" "verdict=error" "that row's third outcome is what the gate above keeps off the run"
+}
+
+# The credential the pipeline runs with is a repository secret, so the permissions it must be created with
+# have one live home — and every `gh` verb a declared row's command calls must be inside them.
+case_sensors_theDocumentedCredentialCoversEveryDeclaredRow() {
+  local doc scope registry command verb need
+  doc="$SENSORS_REPO_ROOT/guidelines/Backlog.md"
+  registry="$SENSORS_ENGINE/sensors.json"
+  [ -f "$doc" ] || fail "the checks' doctrine has no file"
+
+  # §9 owns the checks' doctrine, so the scope its credential is created with is stated there: Issues is
+  # what files, annotates and closes an issue, Pull requests is what a row that lists pull requests needs.
+  scope=$(awk '/^## 9\./ { inside = 1 } /^## 10\./ { inside = 0 } inside' "$doc")
+  [ -n "$scope" ] || fail "guidelines/Backlog.md §9 could not be read"
+  assert_contains "$scope" "Issues: Read and write" "the doctrine does not name the tracker's write scope"
+  assert_contains "$scope" "Pull requests: Read" "the doctrine does not name the scope the pull-request row needs"
+
+  while IFS= read -r command; do
+    [ -n "$command" ] || continue
+    [ -f "$SENSORS_REPO_ROOT/$command" ] || fail "the registry names a command that does not exist: $command"
+    while IFS= read -r verb; do
+      [ -n "$verb" ] || continue
+      case "$verb" in
+        pr) need="Pull requests" ;;
+        issue|label) need="Issues" ;;
+        *) continue ;;
+      esac
+      assert_contains "$scope" "$need" \
+        "$command calls 'gh $verb', and the documented scope does not name '$need'"
+    done < <(grep -o 'gh [a-z][a-z-]*' "$SENSORS_REPO_ROOT/$command" 2>/dev/null | awk '{ print $2 }' | sort -u)
+  done <<< "$(jq -r '.rows[].cmd' "$registry")"
 }

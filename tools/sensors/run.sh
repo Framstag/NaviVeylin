@@ -2,8 +2,13 @@
 # run.sh — the runner: select the rows whose cadence is due, run each, interpret its verdict, and
 # dispatch to the three verbs.
 #
-#   run.sh [--due] [--only <id>] [--apply] [--json] [--input <file>] [--now <time>]
+#   run.sh [--due] [--rows <id,id>] [--only <id>] [--apply] [--json] [--input <file>] [--now <time>]
 #          [--registry <file>] [--profile <file>]
+#
+# `--rows <id,id>` (repeatable) restricts the candidates to the rows it names — a pipeline step runs one
+# family of rows this way; each row's own cadence still decides whether it runs, so the flag is combined
+# with `--due`. An id the registry does not declare is refused before any row runs. `--only <id>` is the
+# same restriction for one id, and `--only` alone runs it whatever its cadence says.
 #
 # `--dry-run` is the default, as everywhere else in this tooling: without `--apply` nothing is written to
 # the tracker and every intended write is printed instead (design D9).
@@ -28,10 +33,11 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=tools/sensors/lib.sh
 source "$here/lib.sh"
 
-usage() { sed -n '2,22p' "$0"; }
+usage() { sed -n '2,27p' "$0"; }
 
 due=0
 only_id=""
+rows_ids=""
 json=0
 input=""
 now=""
@@ -41,6 +47,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --due) due=1; shift ;;
     --only) only_id="${2:-}"; shift 2 ;;
+    --rows) rows_ids="${rows_ids:+$rows_ids,}${2:-}"; shift 2 ;;
     --dry-run) SENSORS_DRY_RUN=1; shift ;;
     --apply) SENSORS_DRY_RUN=0; shift ;;
     --json) json=1; shift ;;
@@ -72,9 +79,21 @@ issues_preflight "$SENSORS_PROFILE" "$login"
 
 # --------------------------------------------------------------------------- selection
 
+# The rows this run was given. `--rows` names them (comma-separated, and repeatable), and every one of
+# them has to be a row the registry declares: a step that asks for a check which does not exist must be
+# refused rather than run the rest and report nothing (design D9).
+rows_list=$(printf '%s' "$rows_ids" | tr ',' ' ')
+for id in $rows_list; do
+  sensors_row_ids | grep -Fxq -- "$id" ||
+    sensors_die "run: no row with id '$id' — the registry declares: $(sensors_row_ids | tr '\n' ' ')"
+done
+
 selected=()
 while IFS= read -r row; do
   id=$(sensors_row_field "$row" id)
+  if [ -n "$rows_list" ]; then
+    printf '%s\n' $rows_list | grep -Fxq -- "$id" || continue
+  fi
   if [ -n "$only_id" ]; then
     [ "$id" = "$only_id" ] || continue
   elif [ "$due" -eq 1 ]; then

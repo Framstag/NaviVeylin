@@ -292,19 +292,27 @@ already had:
   are both answerable without a store.
 
 The checks run in a pipeline of their own, off the change-validation path, triggered only by a schedule or
-an explicit dispatch, pinned to the main branch by a check at run time, holding issue-write and nothing
-else, guarded against overlapping runs, and reviewed like code. The identity that files an item is a
-**concrete allowlisted person**, because the gate's author condition is the only attributable one (§5, I2).
+an explicit dispatch, pinned to the main branch by a check at run time, guarded against overlapping runs, and
+reviewed like code. Its credential is one repository secret (`SENSORS_TOKEN`), created with
+**Issues: Read and write** plus **Pull requests: Read**, its repository access limited to this repository and
+its owner an allowlisted person: Issues is what files, annotates and closes an item, and Pull requests is
+what a row listing pull requests needs — a secret without it reports that row as failed on every run. The
+identity that files an item is a **concrete allowlisted person**, because the gate's author condition is the
+only attributable one (§5, I2).
 
 A row that measures a build reads a file, so **the pipeline that made the build publishes it**: `build.yml`
 writes the gate's wall time, the per-module coverage summary, the build result and the package as one
 artifact (`tools/build-inputs.sh`, the same script that refuses a registry naming an input nothing
 publishes), and the checks' pipeline restores that record for the commit it examines before it selects a row
 (`tools/fetch-build-inputs.sh`, exit 3 = the build has not finished, so a pending build reads as a skipped
-run rather than four failed checks). The record is fetched with the workflow's own read-only token; every
-write to the tracker is still the repository-scoped one. A red build cannot produce a coverage report —
-Kover's report task is skipped once its tests fail — so that record is partial by construction, its result
-record still reaches `broken-main`, and the coverage row reports a failed check rather than a healthy one.
+run rather than four failed checks). The record is fetched with the workflow's own read-only token, with the
+conclusion the build's run ended with reported beside it; every write to the tracker is still the
+repository-scoped one. A red build cannot produce a coverage report — Kover's report task is skipped once its
+tests fail — nor, if it fails earlier, the package or the timing record, so that record is partial by
+construction. The rows that read the build's own outputs are therefore attempted only for a run that
+concluded `success`; the rest run for any record, so **"the build is red" is exactly one row's verdict** —
+`broken-main`, which reads the result record the publisher always writes — and no row reports a failure a
+person would have to read as "the build was red, the check was fine".
 
 One row exists to watch the mechanism rather than the project: `stale-citations` reports the **count of
 citations nothing accounts for**, measured by the resolver's own dry run, so a residue that grows — a repair

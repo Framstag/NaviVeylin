@@ -17,6 +17,7 @@ INPUTS_CASES=(
   'inputs#resultRecordShapes'
   'inputs#aRedBuildStillCarriesTheResultRecord'
   'inputs#fetchRestoresTheDeclaredPaths'
+  'inputs#reportsTheRunsConclusion'
   'inputs#refusesAnotherCommitsRecord'
   'inputs#noRecordExitsThree'
 )
@@ -35,6 +36,7 @@ inputs_run_case() {
     'inputs#resultRecordShapes') case_inputs_resultRecordShapes ;;
     'inputs#aRedBuildStillCarriesTheResultRecord') case_inputs_aRedBuildStillCarriesTheResultRecord ;;
     'inputs#fetchRestoresTheDeclaredPaths') case_inputs_fetchRestoresTheDeclaredPaths ;;
+    'inputs#reportsTheRunsConclusion') case_inputs_reportsTheRunsConclusion ;;
     'inputs#refusesAnotherCommitsRecord') case_inputs_refusesAnotherCommitsRecord ;;
     'inputs#noRecordExitsThree') case_inputs_noRecordExitsThree ;;
     *) printf 'no such case: %s\n' "$1" >&2; exit 2 ;;
@@ -312,6 +314,43 @@ case_inputs_fetchRestoresTheDeclaredPaths() {
   [ -f "$dest/app/build/gate-result.json" ] || fail "the declared path was not restored as declared"
   [ -f "$dest/app/build/reports/jacoco/coverage.json" ] || fail "the second declared path was not restored"
   [ ! -e "$dest/other-commits-file.txt" ] || fail "the newest run's record was used, though it belongs to another commit"
+}
+
+case_inputs_reportsTheRunsConclusion() {
+  # The record alone does not say whether the build that published it succeeded, and the checks' pipeline
+  # selects its rows on exactly that: a red build cannot produce the coverage summary, the package or the
+  # timing record, so the rows that read them must not be attempted for it. The fetcher reports the
+  # conclusion beside the record, and its exit contract (0 fetched, 3 not ready, 1 cannot tell) is unchanged.
+  local dir dest out status
+  dir=$(scratch); dest="$dir/tree"
+  stub_runs "$dir" '[{"databaseId":4242,"headSha":"abc1234","status":"completed","conclusion":"failure","workflowFile":"build.yml"}]'
+  stub_artifacts "$dir" '{"artifacts":[{"name":"sensor-inputs"}]}'
+  mkdir -p "$dir/artifact/4242/app/build"
+  printf '{"job":"build","case":"apk","result":"failure"}\n' > "$dir/artifact/4242/app/build/gate-result.json"
+
+  export GH_STUB_DIR="$dir"
+  out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" --conclusion-file "$dir/conclusion" 2>&1); status=$?
+  unset GH_STUB_DIR
+  [ "$status" -eq 0 ] || fail "the fetch of a red build's record exited $status: $out"
+  assert_eq "failure" "$(cat "$dir/conclusion")" "the conclusion the build's run ended with is reported"
+
+  # A successful build's record reports its own conclusion.
+  stub_runs "$dir" '[{"databaseId":4242,"headSha":"abc1234","status":"completed","conclusion":"success","workflowFile":"build.yml"}]'
+  export GH_STUB_DIR="$dir"
+  out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" --conclusion-file "$dir/conclusion" 2>&1); status=$?
+  unset GH_STUB_DIR
+  [ "$status" -eq 0 ] || fail "the fetch exited $status: $out"
+  assert_eq "success" "$(cat "$dir/conclusion")" "a successful build's conclusion is reported"
+
+  # Not ready: no run, so no record and no conclusion — the file is not written, so a caller cannot read a
+  # conclusion for a build whose record does not exist (the same exit 3 that makes the run a skip).
+  stub_runs "$dir" '[]'
+  rm -f "$dir/conclusion"
+  export GH_STUB_DIR="$dir"
+  out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" --conclusion-file "$dir/conclusion" 2>&1); status=$?
+  unset GH_STUB_DIR
+  [ "$status" -eq 3 ] || fail "no run exited $status, expected 3 (not ready): $out"
+  [ ! -e "$dir/conclusion" ] || fail "a conclusion was reported for a record that does not exist"
 }
 
 case_inputs_refusesAnotherCommitsRecord() {

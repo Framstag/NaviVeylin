@@ -36,6 +36,8 @@ MUTATIONS=(
   '8.7@tools/issues/reopen.sh@s/if \[ "$state" != "CLOSED" \] || \[ "$state_reason" != "completed" \]; then/if [ "$state" != "CLOSED" ]; then/@reopen#refusesANotPlannedClosure@only a completed closure is reopened'
   '8.8@tools/issues/create.sh@s|fingerprint=$(jq -r '"'"'.fingerprint // empty'"'"' <<< "$finding")|fingerprint="$sensor_id"|@sensors#brokenMainFingerprintDistinguishesCauses@the condition fingerprint, not the check id, is the anchor'
   '8.9@tools/sensors/run.sh@s|cmd=$(sensors_row_field "$row" cmd)|cmd="tools/sensors/metrics/build-duration.sh"|@sensors#engineNamesNoProjectValue@every row'"'"'s command comes from the registry'
+  '8.10@tools/sensors/run.sh@s/for id in \$rows_list; do/for id in; do/@run#rowsRefusesAnUndeclaredId@a row a step names must be a row the registry declares'
+  '8.11@.github/workflows/sensors.yml@s/conclusion == /conclusion != /@workflow#aRedRecordRunsNoRecordRow@the record rows wait for a build that succeeded'
 )
 
 if [ "$mode" = "list" ]; then

@@ -42,6 +42,7 @@ MUTATIONS=(
   '5.10@tools/sensors/conditions/pr-conflicts.sh@s/if \[ "$findings" -eq 0 \]; then/if false; then/@sensor:sensors#prConflictsNothingReportsClear@the same duty on the pull-request row'
   '5.11@.github/workflows/sensors.yml@s/if: steps.record.outputs.ready == '\''true'\''/if: true/@sensor:workflow#onlyTwoTriggers@every tracker write waits for the record'
   '5.12@.github/workflows/sensors.yml@s/inputs.apply == true/inputs.apply == '\''true'\''/@sensor:workflow#onlyTwoTriggers@the dispatch apply is compared as the boolean it is declared to be'
+  '5.13@tools/fetch-build-inputs.sh@s/^conclusion=.*/conclusion=success/@inputs#reportsTheRunsConclusion@the conclusion the caller gates its rows on is the run'"'"'s own'
 )
 
 if [ "$mode" = "list" ]; then

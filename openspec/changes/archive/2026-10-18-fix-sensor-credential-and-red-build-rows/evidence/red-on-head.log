@@ -1,0 +1,83 @@
+# red on HEAD — fix-sensor-credential-and-red-build-rows
+
+HEAD bf6f5d7, 2026-10-18T17:33:19Z. Issues #160, #168. No compiled file is touched, so no Gradle run is owed
+(guidelines/Build.md §2, scope block); the evidence is the two shell suites and the defect's own
+measurement below.
+
+## 1. Issue #168's measured command (the defect)
+
+A tree whose build record is the partial one a red build publishes: the result record alone.
+
+```
+$ mkdir -p /tmp/repro168/tree && cp -R tools /tmp/repro168/tree/tools && cd /tmp/repro168/tree
+$ git init -q -b main && git add -A && git commit -qm init
+$ mkdir -p app/build && printf  ${PARTIAL} > app/build/gate-result.json   # {"job":"build","case":"apk","result":"failure"}
+$ find app -type f
+app/build/gate-result.json
+$ ls build
+ls: Zugriff auf 'build' nicht moeglich: Datei oder Verzeichnis nicht gefunden
+```
+
+The three hourly ticks the issue names, against that record:
+
+```
+$ bash tools/sensors/run.sh --due --now 2026-10-18T00:00:00Z
+dry-run: would file a new issue for broken-main (fingerprint 4c0fc623bb0a7f23c5e2bceb8261bae03673acacd1ccc3485b191fb59c7bbe6d, measurement failure)
+broken-main: fingerprint=4c0fc623bb0a7f23c5e2bceb8261bae03673acacd1ccc3485b191fb59c7bbe6d verdict=violation measurement=failure issue=- action=filed
+exit=0
+
+$ bash tools/sensors/run.sh --due --now 2026-10-18T03:00:00Z
+build-duration: fingerprint=- verdict=error measurement=error-no-timing-record issue=- action=posted nothing, the run fails
+sensors: 1 finding(s) reported an error — nothing was written for them and the run fails
+exit=8
+
+$ bash tools/sensors/run.sh --due --now 2026-10-18T04:00:00Z
+package-size: fingerprint=- verdict=error measurement=error-no-package-artifact issue=- action=posted nothing, the run fails
+dry-run: would file a new issue for broken-main (fingerprint 4c0fc623bb0a7f23c5e2bceb8261bae03673acacd1ccc3485b191fb59c7bbe6d, measurement failure)
+broken-main: fingerprint=4c0fc623bb0a7f23c5e2bceb8261bae03673acacd1ccc3485b191fb59c7bbe6d verdict=violation measurement=failure issue=- action=filed
+sensors: 1 finding(s) reported an error — nothing was written for them and the run fails
+exit=8
+
+$ bash tools/sensors/run.sh --due --now 2026-10-18T06:00:00Z
+coverage: fingerprint=- verdict=error measurement=error-no-coverage-report issue=- action=posted nothing, the run fails
+dry-run: would file a new issue for broken-main (fingerprint 4c0fc623bb0a7f23c5e2bceb8261bae03673acacd1ccc3485b191fb59c7bbe6d, measurement failure)
+broken-main: fingerprint=4c0fc623bb0a7f23c5e2bceb8261bae03673acacd1ccc3485b191fb59c7bbe6d verdict=violation measurement=failure issue=- action=filed
+sensors: 1 finding(s) reported an error — nothing was written for them and the run fails
+exit=8
+
+```
+
+## 2. The change's own cases on HEAD, before the fix
+
+The debug line under each failing case is the case's own reason (the five failures are the change's new
+cases — four of 40 in the sensor suite, one of 11 in the inputs suite; every pre-existing case stays
+green).
+
+```
+$ bash tools/build-inputs-selftest.sh
+PASS workflow#tickMinutesCoverTheRegistryCrons
+PASS inputs#manifestIsTheProducerSet
+PASS inputs#refusesADeclaredInputWithNoProducer
+PASS inputs#writesTheGateTimingRecord
+PASS inputs#convertsPerModuleCoverage
+PASS inputs#resultRecordShapes
+PASS inputs#aRedBuildStillCarriesTheResultRecord
+PASS inputs#fetchRestoresTheDeclaredPaths
+  the fetch of a red build's record exited 2: fetch-build-inputs: unknown argument --conclusion-file
+FAIL inputs#reportsTheRunsConclusion
+PASS inputs#refusesAnotherCommitsRecord
+PASS inputs#noRecordExitsThree
+11 cases, 1 failed
+
+$ bash tools/sensor-selftest.sh
+  the listed row that is due runs: sensors: run: unknown argument --rows: expected '0', got '2'
+FAIL run#rowsSelectsSeveralRows
+  the refusal names the id it does not find: 'no-such-row' not found in: sensors: run: unknown argument --rows
+FAIL run#rowsRefusesAnUndeclaredId
+PASS workflow#onlyTwoTriggers
+  the pipeline has one row step per family of rows: expected '2', got '0'
+FAIL workflow#aRedRecordRunsNoRecordRow
+  the doctrine does not name the tracker's write scope: 'Issues: Read and write' not found in: ## 9. Checks
+FAIL sensors#theDocumentedCredentialCoversEveryDeclaredRow
+sensor-selftest: 4 of 40 cases failed
+```

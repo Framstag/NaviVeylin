@@ -32,6 +32,7 @@ LOOP_SHELL_CASES=(
   'prescreen#settledItemIsDropped'
   'prescreen#deviceItemIsAVerdictNotWork'
   'prescreen#readsTheVerdictsFromTheProfile'
+  'prescreen#previousAttemptBranchIsADecision'
   'worktree#seedsAllFourInputs'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
   'worktree#oneBranchPerItemOffTheBase'
@@ -56,6 +57,9 @@ LOOP_SHELL_CASES=(
   'run#childWriteOutsideTheWorktreeIsBlocked'
   'run#reviewerWriteInTheProjectIsDiscarded'
   'run#leftoverBranchIsRecordedNotDropped'
+  'run#branchThatAppearsWhileTheRunIsOpenIsRecorded'
+  'run#dirtyKeptWorktreeIsARecordedRefusal'
+  'run#resetWorktreeDiscardsWhatItNames'
   'run#aSkipClearsTheInProgressMark'
   'run#claimedGateWithoutEvidenceIsBlocked'
   'run#citedEvidenceMustTravelWithTheChange'
@@ -98,6 +102,7 @@ loop_run_shell_case() {
     'prescreen#settledItemIsDropped') fn=case_prescreen_settledItemIsDropped ;;
     'prescreen#deviceItemIsAVerdictNotWork') fn=case_prescreen_deviceItemIsAVerdictNotWork ;;
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
+    'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
     'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
@@ -122,6 +127,9 @@ loop_run_shell_case() {
     'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
     'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
+    'run#branchThatAppearsWhileTheRunIsOpenIsRecorded') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded ;;
+    'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
+    'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
     'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
     'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
@@ -557,6 +565,43 @@ case_prescreen_readsTheVerdictsFromTheProfile() {
   assert_eq "3" "$status" "a device-gated item is still not host work"
   assert_eq "needs-a-device" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 81) | .verdict')" \
     "the device verdict is the value the profile's roles section declares"
+}
+
+# Whether an item was already attempted is held by git, not by the tracker, so the pre-screen asks git the
+# same question `worktree.sh start-item` asks — asked on the branch *prefix*, because the slug is not known
+# before the title is read (issue #175). The decision is then recorded where a person reads it, before any
+# item is picked and before a budget slot is spent on it; the start's own check stays the authoritative one.
+case_prescreen_previousAttemptBranchIsADecision() {
+  local p out base
+  p=$(new_project)
+  init_state "$p" 3 90
+  base=$(git -C "$p" rev-parse HEAD)
+  git -C "$p" checkout -q -b fix/issue-21-a-previous-attempt "$base"
+  printf 'the previous attempt\n' > "$p/attempt.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt" >/dev/null 2>&1 ||
+    fail "could not commit the previous attempt"
+  git -C "$p" checkout -q main
+  # …and one whose branch carries nothing of its own: the verdict is about the commits, not about the name
+  git -C "$p" branch fix/issue-22-carried-nothing "$base"
+
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .verdict')" \
+    "a branch that carries a previous attempt is a decision, not a candidate"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .reason')" \
+    "fix/issue-21-a-previous-attempt" "the verdict names the branch that carries the work"
+  assert_eq "fix/issue-21-a-previous-attempt" \
+    "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .evidence')" \
+    "the branch is the verdict's own clause of evidence"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 22) | .verdict')" \
+    "a branch that carries no commit of its own leaves the item eligible"
+  assert_eq "3" "$(jq -r '.queue | length' "$(state_file "$p")")" "the decision is not queued as work"
+  assert_eq "needs-decision" "$(jq -r '.excluded[] | select(.issue == 21) | .verdict' "$(state_file "$p")")" \
+    "the decision is recorded in the run's exclusion list"
+  assert_eq "fix/issue-21-a-previous-attempt" \
+    "$(jq -r '.excluded[] | select(.issue == 21) | .evidence' "$(state_file "$p")")" \
+    "with the branch carried beside it"
 }
 
 # ----------------------------------------------------------------------------- cases: worktree
@@ -1032,18 +1077,106 @@ ACTION
   git -C "$p" merge-base --is-ancestor "$(git -C "$p" rev-parse main)" "$branch" ||
     fail "the leftover branch carries no work, so this case is not exercising the refusal"
 
-  # the next run must record the item and escalate it, not end with "nothing processed"
-  : > "$GH_STUB_RECORD"
-  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the second run failed"
-  assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" \
-    "the leftover branch is recorded as an item rather than dropped"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "and it is blocked"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "carries commits the base does not" \
-    "the reason names the branch"
+  # The next run's pre-screen can see the branch, so the item is a recorded decision before anything is
+  # picked: no budget slot, no worker process, and the branch named on the tracker (issue #175).
+  : > "$GH_STUB_RECORD"; : > "$PI_STUB_LOG"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1); status=$?
+  assert_eq "0" "$status" "nothing eligible is an explicit non-error"
+  assert_contains "$out" "nothing eligible" "the run says why it stopped"
+  assert_eq "0" "$(jq -r '.items | length' "$(state_file "$p")")" "no budget slot was spent on the item"
+  assert_eq "needs-decision" "$(jq -r '.excluded[] | select(.issue == 21) | .verdict' "$(state_file "$p")")" \
+    "the item is recorded as awaiting a decision rather than dropped"
+  assert_contains "$(jq -r '.excluded[] | select(.issue == 21) | .reason' "$(state_file "$p")")" "fix/issue-21-" \
+    "the recorded verdict names the branch"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started for it"
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "agent/needs-decision" "the previous attempt's work is escalated, not thrown away"
-  assert_contains "$log" "fix/issue-21-" "and the comment names the branch"
+  assert_contains "$log" "status/on-hold" "and the item is put on hold"
+  assert_contains "$log" "fix/issue-21-" "the comment names the branch"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# The pre-screen cannot see a branch that did not exist when it ran, so the start's own check stays the
+# authoritative one: a branch that appears while the run is open is still refused, recorded and escalated
+# rather than dropped, and the run takes the next candidate. An item this run has already recorded is not
+# escalated a second time when the queue empties and the pre-screen runs again.
+case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded() {
+  local d p log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  # the first item's worker leaves a previous attempt's branch behind for the second item: the two fixture
+  # titles slug to the same tail on purpose, so the case can name the second item's branch without
+  # duplicating the run's own slugify
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in worker*)
+       current=$(git rev-parse --abbrev-ref HEAD)
+       next=fix/issue-22-${current#fix/issue-21-}
+       attempt=$(git -c user.name=selftest -c user.email=selftest@example.invalid commit-tree HEAD^{tree} -p HEAD -m "fix: the previous attempt")
+       git branch "$next" "$attempt"
+       ;; esac'
+  run_loop "$p" --items 2 --minutes 90 >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "2" "$(jq -r '.items | length' "$(state_file "$p")")" "both items were recorded"
+  assert_eq "blocked" "$(jq -r '.items[] | select(.issue == 22) | .result' "$(state_file "$p")")" \
+    "the item whose branch appeared while the run was open is blocked"
+  assert_contains "$(jq -r '.items[] | select(.issue == 22) | .note' "$(state_file "$p")")" \
+    "carries commits the base does not" "the reason names the branch's work"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "the previous attempt's work is escalated, not thrown away"
+  assert_contains "$log" "fix/issue-22-" "and the comment names the branch"
+  assert_eq "0" "$(grep -c 'issue close 22' "$GH_STUB_RECORD" || true)" "the refused item is not closed"
+  assert_eq "1" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "it is escalated once, not again when the pre-screen runs a second time"
+}
+
+# The kept worktree is deliberate (the next run inherits its warm build) and refusing a previous run's
+# leftovers is the right rule — but the refusal has to name the item the leftovers belong to, be recorded
+# and be reported, and it has to be reached before the run pays for anything else (issue #173): a refusal
+# that ends a run with an exit code and no item is the "nothing processed and no reason" outcome the report
+# exists to prevent, on the path where it is most likely — a killed or crashed run.
+case_run_dirtyKeptWorktreeIsARecordedRefusal() {
+  local d p out status log head_before
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
+  assert_eq "fix/issue-21-" "$(cut -c1-13 "$p/.pi/worktrees/loop/.pi/loop-branch")" \
+    "the kept worktree's branch marker names the item it is on"
+  printf 'the previous run left work behind\n' > "$p/.pi/worktrees/loop/leftover.txt"
+  head_before=$(git -C "$p/.pi/worktrees/loop" rev-parse HEAD)
+  : > "$GH_STUB_RECORD"; : > "$PI_STUB_LOG"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  assert_eq "5" "$status" "a kept worktree that is not clean refuses the run"
+  assert_not_contains "$out" "pre-screen:" "the refusal is reached before the pre-screen is paid for"
+  assert_contains "$out" "leftover.txt" "it names the files it will not carry"
+  assert_contains "$out" "#21" "and the item the leftovers belong to"
+  assert_contains "$out" "agent-issue-loop — " "the run's report is printed"
+  assert_eq "21" "$(jq -r '.items[0].issue' "$(state_file "$p")")" "the refusal is recorded as an item"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "and it is blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not clean" "with the refusal as its reason"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "the leftovers are escalated to a person"
+  assert_contains "$log" "fix/issue-21-" "with the branch as evidence"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+  [ -f "$p/.pi/worktrees/loop/leftover.txt" ] || fail "the leftovers were discarded without --reset-worktree"
+  assert_eq "$head_before" "$(git -C "$p/.pi/worktrees/loop" rev-parse HEAD)" "and nothing was committed"
+}
+
+# `--reset-worktree` is the start-time repair the refusal names: it says what it discards before discarding
+# it, it takes neither the commits on the previous branches nor the tracker with it, and it is never
+# implied — without the flag the leftovers stay and the run refuses (issue #173).
+case_run_resetWorktreeDiscardsWhatItNames() {
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
+  printf 'the previous run left work behind\n' > "$p/.pi/worktrees/loop/leftover.txt"
+  : > "$GH_STUB_RECORD"; : > "$PI_STUB_LOG"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario none)
+  out=$(run_loop "$p" --items 1 --minutes 90 --reset-worktree 2>&1); status=$?
+  assert_eq "0" "$status" "the run starts once the leftovers are discarded"
+  assert_contains "$out" "reset-worktree" "the repair names itself"
+  assert_contains "$out" "leftover.txt" "and names what it discards before discarding it"
+  [ ! -f "$p/.pi/worktrees/loop/leftover.txt" ] || fail "the named leftover survived --reset-worktree"
+  assert_eq "" "$(git -C "$p/.pi/worktrees/loop" status --porcelain)" "the kept worktree is clean again"
+  assert_contains "$out" "nothing eligible" "and the run then answers to the backlog, not to the leftovers"
+  [ -n "$(git -C "$p" branch --list 'fix/issue-21-*')" ] || fail "the repair discarded the branches as well"
 }
 
 case_run_aSkipClearsTheInProgressMark() {

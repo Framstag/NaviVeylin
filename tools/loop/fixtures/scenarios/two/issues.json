@@ -1,0 +1,26 @@
+[
+  {
+    "number": 21,
+    "title": "§21 A bug",
+    "body": "- **Anchor** ℹ: `tools/tooling.json`.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 22,
+    "title": "§22 A bug",
+    "body": "- **Anchor** ℹ: `tools/tooling.json`.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

@@ -1,0 +1,18 @@
+RED    12.7  run#branchThatAppearsWhileTheRunIsOpenIsRecorded   (the refusal on a leftover branch being recorded and escalated)
+restore 12.7 run#branchThatAppearsWhileTheRunIsOpenIsRecorded green again
+RED    13.1  prescreen#previousAttemptBranchIsADecision   (the pre-screen asking git for a previous attempt on the item branch prefix)
+restore 13.1 prescreen#previousAttemptBranchIsADecision green again
+RED    13.2  run#leftoverBranchIsRecordedNotDropped   (the pre-screen verdicts that need a decision being escalated by the run)
+restore 13.2 run#leftoverBranchIsRecordedNotDropped green again
+RED    13.3  run#dirtyKeptWorktreeIsARecordedRefusal   (the start-time pre-flight on a kept worktree a previous run left dirty)
+restore 13.3 run#dirtyKeptWorktreeIsARecordedRefusal green again
+RED    13.4  run#dirtyKeptWorktreeIsARecordedRefusal   (the refusal being recorded under the item its branch marker names)
+restore 13.4 run#dirtyKeptWorktreeIsARecordedRefusal green again
+RED    13.5  run#resetWorktreeDiscardsWhatItNames   (the start-time repair discarding what it named)
+restore 13.5 run#resetWorktreeDiscardsWhatItNames green again
+RED    13.6  state#secondRunRefusesWithExit5   (the lock telling a live run's tree from a previous run's leftovers)
+restore 13.6 state#secondRunRefusesWithExit5 green again
+RED    13.7  worktree#keepsByDefaultAndRemovesOnRequest   (the end-of-run form honoured wherever the run ends)
+restore 13.7 worktree#keepsByDefaultAndRemovesOnRequest green again
+
+red-when-mutated: 8 · not-noticed: 0 · restore-failures: 0

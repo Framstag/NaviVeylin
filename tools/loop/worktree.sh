@@ -51,7 +51,9 @@ cmd_create() {
   if [ -e "$worktree" ]; then
     # The worktree is kept at the end of a run so the next run inherits its warm build (D4): a second
     # run reuses it, on a branch of its own off its own base. A dirty tree is refused rather than
-    # carried, because the previous run's unfinished work is not this run's to commit.
+    # carried, because the previous run's unfinished work is not this run's to commit — the run's own
+    # pre-flight refuses this earlier, under the item the marker names and with the repair flag offered
+    # (issue #173), and this refusal stays for `create` used on its own.
     gitr worktree list --porcelain | grep -qx "worktree $worktree" ||
       loop_refuse "$worktree exists but is not this repository's worktree — remove it and run again"
     dirty=$(git -C "$worktree" status --porcelain)
@@ -145,6 +147,10 @@ $(gitw log --oneline "$base".."$branch" | head -5)"
     gitw switch -c "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
     printf 'item #%s on branch %s\n' "$issue" "$branch"
   fi
+  # The worktree's branch marker names the branch the tree is on, so a tree a killed run left behind still
+  # says which item's work it carries — that is what the run's start-time pre-flight reads to attribute a
+  # refusal (D7, issue #173).
+  printf '%s\n' "$branch" > "$worktree/.pi/loop-branch"
 }
 
 cmd_end_item() {

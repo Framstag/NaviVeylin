@@ -59,6 +59,7 @@ fi
 # `roles` section — a second project renames its vocabulary in the profile, not in this script (D16).
 vocabulary() { loop_compat_profile_value "$1"; }
 queued_verdict=$(loop_role queuedVerdict)
+decision_verdict=$(loop_role decisionAgent)
 worked_classes="$(loop_role workedClasses)"
 refused_classes="$(loop_role refusedClasses)"
 inflight_status=$(loop_role inFlightStatus)
@@ -91,6 +92,28 @@ cited_symbols_of() {
   printf '%s\n%s\n' "$1" "$2" |
     grep -oE '[A-Za-z0-9_][A-Za-z0-9_./-]*\.[A-Za-z0-9]+:[A-Za-z_][A-Za-z0-9_]*' |
     sort -u || true
+}
+
+# The base every item of this run descends from: the branch question below is asked against it, exactly as
+# `worktree.sh start-item`'s own check asks it.
+run_base=$(loop_state get run.base 2>/dev/null || true)
+
+# The repository sensor: does the item already have an attempt behind it? Whether an item was attempted is
+# held by git and not by the tracker — a run that died before it could label anything leaves its branch and
+# nothing else (#175) — so the pre-screen asks the same question the start asks: a commit on the item's
+# branch that the run's base does not have *is* the previous attempt's work. It is asked on the branch name's
+# *prefix*, because the slug is not known before the title is read, and only the start creates the branch, so
+# the start's own check stays the authoritative one.
+previous_attempt_branch_of() { # <issue> → the branch that carries work the run's base does not, or nothing
+  [ -n "$run_base" ] || return 0
+  local branch
+  while IFS= read -r branch; do
+    [ -n "$branch" ] || continue
+    if ! git -C "$LOOP_ROOT" merge-base --is-ancestor "$branch" "$run_base" 2>/dev/null; then
+      printf '%s\n' "$branch"
+      return 0
+    fi
+  done < <(git -C "$LOOP_ROOT" for-each-ref --format='%(refname:short)' "refs/heads/fix/issue-$1-*" 2>/dev/null)
 }
 
 # ── selection ────────────────────────────────────────────────────────────────────────────────────
@@ -149,6 +172,18 @@ while [ "$i" -lt "$count" ]; do
      ! printf '%s' "$labels" | jq -e --arg l "$LOOP_AUTHORISATION_LABEL" 'any(.[]; .name == $l)' >/dev/null; then
     verdict="missing-authorisation"
     reason="the item does not carry ${LOOP_AUTHORISATION_LABEL} — the opt-in is the author's, not the run's"
+  fi
+
+  # A previous attempt's branch is the one rejection the tracker cannot state, so it is asked of git — and
+  # asked before the citation sensor, because it names a decision for a person rather than a repair. The
+  # verdict is a value of the profile's vocabulary, read here as the device verdict is (D16).
+  if [ "$verdict" = "$queued_verdict" ]; then
+    attempt_branch=$(previous_attempt_branch_of "$number")
+    if [ -n "$attempt_branch" ]; then
+      verdict="$decision_verdict"
+      reason="branch $attempt_branch carries a commit the run's base does not — a previous attempt's work is on it"
+      evidence="$attempt_branch"
+    fi
   fi
 
   # The sensor runs on every candidate, before any judgement: it is the cheap refutation, and `stale` is the

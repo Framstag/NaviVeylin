@@ -1,0 +1,108 @@
+# Red on HEAD — the loop's start pre-flight (#173) and the pre-screen's branch verdict (#175)
+
+Engine under test: a copy of `tools/loop` as committed at HEAD (`git archive HEAD tools/loop`);
+the cases are the working tree's. Each case is one command:
+
+```
+LOOP_ENGINE=.pi/tmp/head-engine/tools/loop LOOP_CONF=.pi/tmp/head-engine/tools/loop/loop.conf \
+  bash tools/loop-selftest.sh --case <name>
+```
+
+## prescreen#previousAttemptBranchIsADecision
+
+```
+  a branch that carries a previous attempt is a decision, not a candidate: expected 'needs-decision', got 'eligible'
+FAIL prescreen#previousAttemptBranchIsADecision
+```
+
+## run#leftoverBranchIsRecordedNotDropped
+
+```
+worktree /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.09a49u/case.pfcEsz/repo/.pi/worktrees/loop reused (branch loop-20261018-190229 from 85b64eded5b5)
+worktree: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.09a49u/case.pfcEsz/repo/.pi/worktrees/loop on loop-20261018-190229 from 85b64eded5b5
+loop: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e already exists and carries commits the base does not — a previous attempt's work is on it:
+8e3b57d fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+d8f6a32 fix: an-eligible-bug-whose-cited-path-still-e (#21)
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+escalate #21
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+**agent-issue-loop — 2026-10-18T19:02:30Z** (budget 1 items / 90 min · review on · may-close yes · max-decisions 3 · base 85b64eded5b5)
+closed 0 · skipped 0 · blocked 1 · budget left 0 items / 90 min · spent 0 min
+closed 0 · skipped 0 · blocked 1 of 1 items · budget 90 min
+| issue | class | verdict | change | root cause | red test | gate | review | outcome |
+|---|---|---|---|---|---|---|---|---|
+| #21 | bug | blocked |  |  |  |  | - | blocked |
+no exclusions
+skipped: none
+excluded before any work: none
+decisions the owner owes: none
+branches: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261018-190226 loop-20261018-190229
+worktree: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.09a49u/case.pfcEsz/repo/.pi/worktrees/loop (kept for the next run)
+state: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.09a49u/case.pfcEsz/repo/.pi/issue-loop/run.json
+worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.09a49u/case.pfcEsz/repo/.pi/worktrees/loop
+FAIL run#leftoverBranchIsRecordedNotDropped
+```
+
+## run#dirtyKeptWorktreeIsARecordedRefusal
+
+```
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261018-190232')
+HEAD ist jetzt bei f94ec47 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  the kept worktree's branch marker names the item it is on: expected 'fix/issue-21-', got 'loop-20261018'
+FAIL run#dirtyKeptWorktreeIsARecordedRefusal
+```
+
+## run#resetWorktreeDiscardsWhatItNames
+
+```
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261018-190235')
+HEAD ist jetzt bei 6c0a33c init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  the run starts once the leftovers are discarded: expected '0', got '2'
+FAIL run#resetWorktreeDiscardsWhatItNames
+```
+
+## The two defects' own measured commands, against HEAD's engine
+
+```
+run 1:  run_loop <project> --items 1 --minutes 90            # leaves the kept worktree, exit 0
+        printf 'the previous run left work behind\n' > <worktree>/leftover.txt
+run 2:  run_loop <project> --items 1 --minutes 90            # the defect
+```
+
+```
+### #173 — a kept worktree the previous run left dirty
+run 1 exit=0, the worktree is kept on loop-20261018-190238
+run 2 exit=5
+agent-issue-loop: items=1 minutes=90 review=on may-close=yes push=no max-decisions=3 review-read-only=on dry-run=0
+state: budget 1 items / 90 min · review on · may-close yes · max-decisions 3 · base 2526e4ef218e
+state: deadline 2026-10-18T20:32:40Z
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+lock held: /home/tim/projects/NaviVeylin/.pi/tmp/redlog/scratch/case.vac24I/repo/.pi/issue-loop/lock (owner 2120806)
+loop: the worktree at /home/tim/projects/NaviVeylin/.pi/tmp/redlog/scratch/case.vac24I/repo/.pi/worktrees/loop is not clean — the previous run left work behind:
+?? leftover.txt
+items recorded: 0  excluded: 0  labels written by run 2: 0  worker processes: 0
+the run printed a report: 0
+the item is known from the branch marker: 0 recorded
+
+### #175 — a branch that already carries a previous attempt
+pre-screen exit=0
+  #21 eligible
+queue: 1  excluded: 0  labels the pre-screen wrote: 0
+
+…and what the run's start — the authoritative check — does with the same branch:
+  loop: branch fix/issue-21-a-previous-attempt already exists and carries commits the base does not — a previous attempt's work is on it:
+  cad2d63 fix: the previous attempt
+```

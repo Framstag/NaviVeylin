@@ -13,11 +13,11 @@
 #
 # Exit: 0 the run ended (including "nothing eligible"), 2 usage/malformed input, 3 stop (unauthorised
 #       identity, or nothing eligible), 5 refuse (another run holds the lock, the decision cap is
-#       reached, the base has moved).
+#       reached, the base has moved, the kept worktree carries a previous run's work).
 #
 # Usage: run.sh [--items N] [--minutes M] [--review on|off] [--may-close yes|no] [--push yes|no]
 #               [--max-decisions N] [--review-read-only on|off] [--dry-run] [--clean-worktree]
-#               [--base <sha>]
+#               [--reset-worktree] [--base <sha>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -33,6 +33,7 @@ push="no"
 read_only="on"
 dry_run=0
 clean_worktree=0
+reset_worktree=0
 base=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -46,6 +47,7 @@ while [ $# -gt 0 ]; do
     --base) base="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     --clean-worktree) clean_worktree=1; shift ;;
+    --reset-worktree) reset_worktree=1; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) loop_die "run: unknown argument $1" ;;
   esac
@@ -79,8 +81,8 @@ if [ -z "$(printf '%s' "${LOOP_AGENT_CMD:-}" | tr -d '[:space:]')" ]; then
 fi
 
 # The run header names every effective value, so a run can be repeated and audited (D2).
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s review-read-only=%s dry-run=%s\n' \
-  "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$read_only" "$dry_run"
+printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s review-read-only=%s dry-run=%s reset-worktree=%s\n' \
+  "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$read_only" "$dry_run" "$reset_worktree"
 
 init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" --max-decisions "$max_decisions")
 if [ -n "$base" ]; then init_args+=(--base "$base"); fi
@@ -93,6 +95,39 @@ separator="${separator:-/}"
 # profile's vocabulary, read from the profile's `roles` section (D9, D16).
 decision_agent=$(loop_role decisionAgent)
 decision_label="agent${separator}${decision_agent}"
+
+# The pre-screen writes the run's state and never the tracker — a dry run must write no label — so the
+# verdicts of its own that mean "a person owes this decision" are escalated here, under the item, before
+# anything is picked. An item this run has already recorded was escalated or blocked by the item loop (the
+# pre-screen runs again when the queue empties mid-run), so it is not escalated a second time.
+escalate_prescreen_decisions() {
+  [ "$dry_run" -eq 0 ] || return 0
+  [ -n "$decision_agent" ] || return 0
+  jq -r --arg d "$decision_agent" '
+    ([.items[].issue] | unique) as $handled
+    | .excluded[] | select(.verdict == $d)
+    | select(.issue as $i | ($handled | index($i)) | not)
+    | [(.issue | tostring), .reason, (.evidence // "")] | @tsv
+  ' "$LOOP_STATE_FILE" 2>/dev/null |
+    while IFS=$'\t' read -r decision_issue decision_reason decision_evidence; do
+      [ -n "$decision_issue" ] || continue
+      loop_labels escalate "$decision_issue" \
+        --reason "${decision_reason:-the item awaits a decision}" \
+        --evidence "${decision_evidence:-the run exclusion record}" >&2 || true
+    done
+}
+
+# The run's end: the report, and the worktree the run asked not to keep (D4). The flag is the run's, so it
+# holds wherever the run ends — and the pre-screen can end one earlier than the item loop does, because a
+# decision it records leaves nothing eligible (issue #175).
+end_run() {
+  bash "$LOOP_DIR/report.sh"
+  if [ "$clean_worktree" -eq 1 ]; then
+    bash "$LOOP_DIR/worktree.sh" remove || true
+  elif [ -n "${worktree:-}" ] && [ -d "$worktree" ]; then
+    printf 'worktree kept for the next run: %s\n' "$worktree"
+  fi
+}
 
 # ── the refusals that must happen before anything exists ────────────────────────────────────────
 
@@ -110,7 +145,56 @@ if [ "$preflight_status" -ne 0 ]; then
   loop_die "run: the preflight could not be evaluated (exit $preflight_status)"
 fi
 
-# 2. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
+# 2. the kept worktree. Keeping it is deliberate (the next run inherits its warm build, D4) and refusing a
+#    previous run's leftovers is the right rule — but the refusal may not end a run with an exit code and no
+#    item: it names the item whose branch the kept tree carries, records the refusal under that item,
+#    escalates it and prints the report, so the "a run that ends with nothing processed and no reason"
+#    outcome stays impossible on the path where it is most likely — a killed or crashed run (issue #173).
+#    The check is one `git status` in a directory the run already knows: it needs neither the state nor the
+#    lock, so it happens here, before the decision cap is counted and long before the pre-screen is paid for.
+#    A worktree a *live* run is working in is not leftovers, and the lock in the run's own state directory is
+#    the one signal that tells the two apart — read here, never taken (this run takes it further down, and a
+#    run that holds it refuses there as it always has).
+worktree="$LOOP_WORKTREE"
+run_lock="$(dirname "$LOOP_STATE_FILE")/lock"
+worktree_is_dirty() {
+  git -C "$LOOP_ROOT" worktree list --porcelain 2>/dev/null | grep -qx "worktree $worktree" &&
+    [ -n "$(git -C "$worktree" status --porcelain 2>/dev/null)" ]
+}
+if [ -d "$worktree" ] && [ ! -e "$run_lock" ] && worktree_is_dirty; then
+  leftovers=$(git -C "$worktree" status --porcelain)
+  # The item the leftovers belong to: `start-item` writes the item's branch into the worktree's own branch
+  # marker, so a tree a killed run left behind still names the item it was working on.
+  marker=$(cat "$worktree/.pi/loop-branch" 2>/dev/null || true)
+  owner_item=$(printf '%s\n' "$marker" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1)
+  if [ "$reset_worktree" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
+    printf 'reset-worktree: discarding what a previous run left in %s:\n' "$worktree"
+    printf '%s\n' "$leftovers" | sed 's/^/  /'
+    git -C "$worktree" reset -q --hard || loop_die "run: could not reset the kept worktree"
+    git -C "$worktree" clean -qfd || loop_die "run: could not clean the kept worktree"
+    printf 'reset-worktree: %s is clean again — the commits on its branches are left alone\n' "$worktree"
+  else
+    printf 'refusing to start: the kept worktree %s is not clean — a previous run left work behind\n' "$worktree"
+    printf '%s\n' "$leftovers" | sed 's/^/  /'
+    if [ -n "$owner_item" ]; then
+      printf 'the leftovers belong to #%s (branch %s)\n' "$owner_item" "$marker"
+    else
+      printf 'the worktree is on %s, which names no item — nothing is attributed\n' "${marker:-an unknown branch}"
+    fi
+    printf 'repair: run.sh --reset-worktree discards them, and names them before it does; nothing is committed or discarded without that flag\n'
+    if [ "$dry_run" -eq 0 ] && [ -n "$owner_item" ]; then
+      loop_labels escalate "$owner_item" \
+        --reason "a previous run left work behind in the kept worktree" \
+        --evidence "branch ${marker:-unknown}, worktree $worktree" >&2 || true
+      loop_state done "$owner_item" --result blocked --verdict blocked \
+        --note "the kept worktree was not clean — a previous run left work behind" >/dev/null
+    fi
+    bash "$LOOP_DIR/report.sh"
+    exit "$LOOP_REFUSE"
+  fi
+fi
+
+# 3. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 open_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
   jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
 if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
@@ -122,21 +206,24 @@ if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   exit "$LOOP_REFUSE"
 fi
 
-# 3. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
+# 4. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
 if [ "$items" -eq 0 ]; then
   printf 'nothing eligible: the run was started with --items 0 (an empty budget is not a failure)\n'
-  bash "$LOOP_DIR/report.sh"
+  end_run
   exit "$LOOP_OK"
 fi
 
 prescreen_out=$(bash "$LOOP_DIR/prescreen.sh" 2>&1)
 prescreen_status=$?
 printf '%s\n' "$prescreen_out"
+# The pre-screen's own decision verdicts (a previous attempt's branch) reach the tracker here, so the
+# decision is visible before any item is picked — including when the run then finds nothing else to work.
+escalate_prescreen_decisions
 case "$prescreen_status" in
   0) ;;
   3)
     printf 'nothing eligible: the pre-screen found no candidate this run may work\n'
-    bash "$LOOP_DIR/report.sh"
+    end_run
     exit "$LOOP_OK"
     ;;
   *) exit "$prescreen_status" ;;
@@ -240,6 +327,7 @@ while true; do
     # A queue that emptied mid-run gets one more pass, never a third (SKILL.md, "Pre-screen the backlog").
     queue_passes=$((queue_passes + 1))
     bash "$LOOP_DIR/prescreen.sh" >&2 || true
+    escalate_prescreen_decisions
   fi
   if ! next_out=$(loop_state next); then
     break
@@ -449,10 +537,5 @@ done
 
 # ── the run's end ───────────────────────────────────────────────────────────────────────────────
 
-bash "$LOOP_DIR/report.sh"
-if [ "$clean_worktree" -eq 1 ]; then
-  bash "$LOOP_DIR/worktree.sh" remove || true
-else
-  printf 'worktree kept for the next run: %s\n' "$worktree"
-fi
+end_run
 exit "$LOOP_OK"

@@ -1,0 +1,64 @@
+# Red on HEAD — mechanism files restored to HEAD 8ecaa81 (tools/loop/run.sh, tools/loop/state.sh, tools/loop/worktree.sh)
+# Command: bash tools/loop-selftest.sh --case <each case>
+
+## run#mergesAFinishedAttemptAndClosesTheItem
+  the run names the branch it merged: 'adopted: branch fix/issue-21-previous-attempt' not found in: agent-issue-loop: items=1 minutes=90 review=on may-close=yes push=no max-decisions=3 review-read-only=on dry-run=0 reset-worktree=0
+state: budget 1 items / 90 min · review on · may-close yes · max-decisions 3 · base 35367998d43c
+state: deadline 2026-10-18T23:44:27Z
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-previous-attempt carries a commit the run's base does not — a previous attempt's work is on it
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+escalate #21
+nothing eligible: the pre-screen found no candidate this run may work
+**agent-issue-loop — 2026-10-18T22:14:28Z** (budget 1 items / 90 min · review on · may-close yes · max-decisions 3 · base 35367998d43c)
+
+closed 0 · skipped 0 · blocked 0 · budget left 1 items / 90 min · spent 0 min
+
+closed 0 · skipped 0 · blocked 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | outcome |
+|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | nothing processed |
+
+excluded: #21 needs-decision
+
+skipped: none
+excluded before any work: #21 needs-decision
+decisions the owner owes: #21
+branches: fix/issue-21-previous-attempt
+worktree: not present at run end (/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.ve25GR/case.WAiCiu/repo/.pi/worktrees/loop)
+state: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.ve25GR/case.WAiCiu/repo/.pi/issue-loop/run.json
+FAIL run#mergesAFinishedAttemptAndClosesTheItem
+EXIT1=1
+
+## run#doesNotMergeAnAttemptWithoutAGreenVerification
+  the refusal names what it looked for: 'carries no green verification record' not found in: agent-issue-loop: items=1 minutes=90 review=on may-close=yes push=no max-decisions=3 review-read-only=on dry-run=0 reset-worktree=0
+state: budget 1 items / 90 min · review on · may-close yes · max-decisions 3 · base 1d86c54ee400
+state: deadline 2026-10-18T23:44:29Z
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-previous-attempt carries a commit the run's base does not — a previous attempt's work is on it
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+escalate #21
+nothing eligible: the pre-screen found no candidate this run may work
+**agent-issue-loop — 2026-10-18T22:14:30Z** (budget 1 items / 90 min · review on · may-close yes · max-decisions 3 · base 1d86c54ee400)
+
+closed 0 · skipped 0 · blocked 0 · budget left 1 items / 90 min · spent 0 min
+
+closed 0 · skipped 0 · blocked 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | outcome |
+|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | nothing processed |
+
+excluded: #21 needs-decision
+
+skipped: none
+excluded before any work: #21 needs-decision
+decisions the owner owes: #21
+branches: fix/issue-21-previous-attempt
+worktree: not present at run end (/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.zz86va/case.5i7d2F/repo/.pi/worktrees/loop)
+state: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.zz86va/case.5i7d2F/repo/.pi/issue-loop/run.json
+FAIL run#doesNotMergeAnAttemptWithoutAGreenVerification
+EXIT2=1

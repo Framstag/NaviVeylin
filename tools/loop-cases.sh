@@ -60,6 +60,8 @@ LOOP_SHELL_CASES=(
   'run#reviewerWriteInTheProjectIsDiscarded'
   'run#leftoverBranchIsRecordedNotDropped'
   'run#branchThatAppearsWhileTheRunIsOpenIsRecorded'
+  'run#mergesAFinishedAttemptAndClosesTheItem'
+  'run#doesNotMergeAnAttemptWithoutAGreenVerification'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#aSkipClearsTheInProgressMark'
@@ -135,6 +137,8 @@ loop_run_shell_case() {
     'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
     'run#branchThatAppearsWhileTheRunIsOpenIsRecorded') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded ;;
+    'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
+    'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
@@ -1186,6 +1190,93 @@ case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded() {
   assert_eq "0" "$(grep -c 'issue close 22' "$GH_STUB_RECORD" || true)" "the refused item is not closed"
   assert_eq "1" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
     "it is escalated once, not again when the pre-screen runs a second time"
+}
+
+# An item whose earlier attempt *finished* — its branch carries one archived change the base does not have
+# and a verification record that is green — is an item no later path could take: `start-item` refuses the
+# branch and two such refusals end a run (issue #176). The branch is merged onto the base and the item is
+# closed through the run's own closure path, with the branch, its commits and the evidence it was checked
+# for recorded in the run state and named in the report.
+case_run_mergesAFinishedAttemptAndClosesTheItem() {
+  local d p out status branch base log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # a previous attempt that finished: one archived change, the red-on-HEAD XML beside the green gate XML —
+  # exactly what the two branches #176 was measured on carried
+  branch="fix/issue-21-previous-attempt"
+  git -C "$p" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the previous attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md"
+  printf '<testsuite tests="2" failures="1" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted-red-on-HEAD.xml"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted.xml"
+  printf 'the previous attempt\n' > "$p/adopted-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt" >/dev/null 2>&1 ||
+    fail "could not commit the previous attempt"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
+  base=$(git -C "$p" rev-parse main)
+
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1); status=$?
+  assert_eq "0" "$status" "adopting a finished attempt is an explicit non-error"
+  assert_contains "$out" "adopted: branch $branch" "the run names the branch it merged"
+  [ "$(git -C "$p" rev-parse main)" != "$base" ] || fail "the base did not move onto the merged branch"
+  git -C "$p" merge-base --is-ancestor "$branch" main || fail "the finished attempt's commits are not on the base"
+  [ -f "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md" ] ||
+    fail "the archived change did not travel with the merge"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is recorded as done"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "with the closed verdict"
+  assert_eq "$branch" "$(jq -r '.items[0].merged.branch' "$(state_file "$p")")" "the branch it merged is recorded"
+  assert_contains "$(jq -r '.items[0].merged.evidence' "$(state_file "$p")")" "TEST-adopted.xml" \
+    "and the verification record it was checked for"
+  assert_eq "0" "$(jq -r '.excluded | length' "$(state_file "$p")")" "the adopted item is no longer a decision"
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "and it is not queued as work either"
+  assert_contains "$out" "merged finished attempts: #21" "the report names the merge"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "issue close 21" "the item is closed on the tracker"
+  assert_contains "$log" "status/fixed-by" "with the fixed-by label"
+  assert_not_contains "$log" "agent/needs-decision" "and no decision is left on it"
+}
+
+# The merge is only taken on a verification that is green: a branch whose archived change carries no passing
+# verification record — a blocked attempt carries only the red-on-HEAD XML — keeps its refusal, its escalation
+# and the person who owns the decision, and nothing is merged (issue #176).
+case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
+  local d p out status branch base log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  branch="fix/issue-21-previous-attempt"
+  git -C "$p" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the previous attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md"
+  printf '<testsuite tests="2" failures="2" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted-red-on-HEAD.xml"
+  printf 'the previous attempt\n' > "$p/adopted-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt" >/dev/null 2>&1 ||
+    fail "could not commit the previous attempt"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
+  base=$(git -C "$p" rev-parse main)
+
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1); status=$?
+  assert_eq "0" "$status" "the refusal is an explicit non-error"
+  assert_not_contains "$out" "adopted:" "nothing is merged without a green verification record"
+  assert_contains "$out" "carries no green verification record" "the refusal names what it looked for"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
+  [ ! -f "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md" ] ||
+    fail "the change was merged although its verification is not green"
+  assert_eq "0" "$(jq -r '.items | length' "$(state_file "$p")")" "no item was recorded as merged"
+  assert_eq "needs-decision" "$(jq -r '.excluded[] | select(.issue == 21) | .verdict' "$(state_file "$p")")" \
+    "the branch is still the owner's decision"
+  assert_contains "$(jq -r '.excluded[] | select(.issue == 21) | .reason' "$(state_file "$p")")" "$branch" \
+    "the recorded verdict names the branch"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "the previous attempt's work is escalated, not thrown away"
+  assert_contains "$log" "$branch" "and the escalation names the branch"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
 }
 
 # The kept worktree is deliberate (the next run inherits its warm build) and refusing a previous run's

@@ -77,7 +77,9 @@ tracker, so the item's state says why it is not worked after the run's own state
 ### Requirement: Version control belongs to the run's script, not to the agent
 
 The run SHALL create and manage the working tree and the branch of each item itself, and no phase of an
-item SHALL be able to invoke version control on its own behalf.
+item SHALL be able to invoke version control on its own behalf. A previous attempt's branch SHALL be decided
+by what it carries: a branch whose attempt finished SHALL be merged and its item closed by the run, and only
+a branch that carries no finished change SHALL be refused and escalated as a decision.
 
 #### Scenario: One working tree per run
 
@@ -112,12 +114,31 @@ item SHALL be able to invoke version control on its own behalf.
 
 - **WHEN** an item's branch carries a commit the run's base does not have — whether the run learns it when the
   item starts, or the pre-screen asks git for it before any item is picked, on the item's branch-name prefix
-  because the slug is not known before the title is read
+  because the slug is not known before the title is read — and the branch carries no finished change
 - **THEN** the item is refused with the branch and the commits it carries named, and it is recorded as
   awaiting a decision before a budget slot is spent on it — in the run's own exclusion list and on the item,
   with the branch as the evidence — because a previous attempt's work is never thrown away and a refusal is
   never silent
 - **Case**: `prescreen#previousAttemptBranchIsADecision`, `run#leftoverBranchIsRecordedNotDropped`
+
+#### Scenario: A finished attempt's branch is merged and its item closed
+
+- **WHEN** an item's branch carries a commit the run's base does not have, and that branch adds exactly one
+  archived change of its own whose verification record is green — learned either when the item starts or when
+  the pre-screen records the branch as an exclusion
+- **THEN** the branch's commits are merged onto the base, the base the run recorded advances to the merge, the
+  item is closed with the branch, its commits and the evidence it was checked for named in the run's own record
+  and report, and no budget slot is spent on a fresh attempt — so a finished attempt is not treated as a blocked
+  one
+- **Case**: `run#mergesAFinishedAttemptAndClosesTheItem`
+
+#### Scenario: A branch without a green verification is not merged
+
+- **WHEN** the run learns of a previous attempt's branch that carries a commit the base does not have but whose
+  archived change has no green verification record
+- **THEN** the branch is not touched and the refusal names what it looked for, so a blocked attempt's branch is
+  neither merged nor closed and its decision stays the owner's
+- **Case**: `run#doesNotMergeAnAttemptWithoutAGreenVerification`
 
 #### Scenario: A stale base stops the next item
 

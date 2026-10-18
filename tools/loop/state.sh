@@ -19,6 +19,7 @@
 #                 [--max-decisions N] [--base <sha>]
 #   state.sh show
 #   state.sh get <jq-path>              # e.g. `get run.base`
+#   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
 #   state.sh next                       # the next candidate; exit 3 when the run may not continue
 #   state.sh queue                      # read the queue as JSON on stdin (prescreen writes it)
 #   state.sh start <issue> --change <name>
@@ -247,6 +248,20 @@ cmd_start() {
   printf 'started #%s %s — phase A\n' "$issue" "$change"
 }
 
+# The base the run recorded is the commit every item descends from. A finished attempt merged onto it (issue
+# #176) advances it by that merge's own commits, so the run records the new commit rather than refusing its
+# own action as a stale base the next `start-item` would see.
+cmd_set_base() {
+  require_state
+  [ $# -gt 0 ] || loop_die "set-base: usage: state.sh set-base <commit>"
+  local sha="$1"
+  [ -n "$sha" ] || loop_die "set-base: the commit is empty"
+  git -C "$LOOP_ROOT" rev-parse --verify --quiet "$sha^{commit}" >/dev/null ||
+    loop_die "set-base: $sha is not a commit"
+  patch_state '.run.base = $sha' --arg sha "$sha"
+  printf 'state: base advanced to %s\n' "${sha:0:12}"
+}
+
 cmd_step() {
   require_state
   [ $# -gt 0 ] || loop_die "step: usage: state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]"
@@ -271,7 +286,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" merged_branch="" merged_commits="" merged_evidence=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) result="${2:-}"; shift 2 ;;
@@ -286,6 +301,9 @@ cmd_done() {
       --root-cause) root_cause="${2:-}"; shift 2 ;;
       --red-test) red_test="${2:-}"; shift 2 ;;
       --decision-label) decision_label="${2:-}"; shift 2 ;;
+      --merged-branch) merged_branch="${2:-}"; shift 2 ;;
+      --merged-commits) merged_commits="${2:-}"; shift 2 ;;
+      --merged-evidence) merged_evidence="${2:-}"; shift 2 ;;
       --*) loop_die "done: unknown argument $1" ;;
       *) [ -z "$issue" ] || loop_die "done: issue given twice"; issue="$1"; shift ;;
     esac
@@ -303,14 +321,17 @@ cmd_done() {
   patch_state '
     .items += [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
                 escalatedLabel:$dl,
+                merged:{branch:$mb, commits:$mc, evidence:$me},
                 metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
                          closed:$closed, rootCause:$rc, redTest:$rt}}]
     | .queue = [.queue[] | select(.issue != $i)]
+    | (if $mb == "" then . else .excluded = [.excluded[] | select(.issue != $i)] end)
     | (if .current != null and .current.issue == $i then .current = null else . end)
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
-    --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test"
+    --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
+    --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence"
   printf 'recorded %s (#%s %s)\n' "$result" "$issue" "$verdict"
 }
 
@@ -328,6 +349,10 @@ cmd_report() {
     (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | nothing processed |"
      else (.items[] | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \(.result) |") end),
     "",
+    "merged finished attempts: " + (
+      [.items[] | select((.merged.branch // "") != "")
+        | "#\(.issue) \(.merged.branch) · commits \(.merged.commits) · evidence \(.merged.evidence)"]
+      | if length == 0 then "none" else join(" | ") end),
     (if (.excluded | length) == 0 then "no exclusions" else "excluded: \([.excluded[] | "#\(.issue) \(.verdict)"] | join(" · "))" end)
   ' "$STATE_FILE"
 }
@@ -390,6 +415,7 @@ case "$cmd" in
   start) cmd_start "$@" ;;
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
+  set-base) cmd_set_base "$@" ;;
   report) cmd_report "$@" ;;
   lock) cmd_lock "$@" ;;
   unlock) cmd_unlock "$@" ;;

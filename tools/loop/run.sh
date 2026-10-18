@@ -117,6 +117,63 @@ escalate_prescreen_decisions() {
     done
 }
 
+# An item whose earlier attempt *finished* but was never merged is an item no later path could take: its
+# branch carries commits the base does not, `start-item` refuses it, and two such refusals end a run — the
+# measured 2026-10-18 outcome, where two branches each held a finished change, a green gate and an archived
+# change on the same base and both were left for a person (issue #176). The run therefore decides the branch
+# by what it **carries** and what it can **check**: one archived change of its own and a green verification
+# record inside it. `worktree.sh adopt-item` merges it onto the base, and the item is closed through the same
+# closure path a worker's item goes through, with the branch, its commits and the evidence it was checked for
+# recorded in the run state and named in the report. A branch that does not carry that evidence is not
+# touched: its refusal and its escalation stay exactly as they were.
+adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not adoptable (the reason printed)
+  local issue="$1" branch="$2" out merged_branch merged_commits merged_change merged_evidence
+  out=$(bash "$LOOP_DIR/worktree.sh" adopt-item "$issue" "$branch" 2>&1) || {
+    printf '%s\n' "$out"
+    return "$LOOP_REFUSE"
+  }
+  printf '%s\n' "$out"
+  # The merge moved the base branch itself, so the base the run recorded is the commit every later item must
+  # descend from — without this the next `start-item` would refuse the run's own merge as a stale base.
+  base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${LOOP_BASE_REF:-main}") || base=""
+  [ -z "$base" ] || loop_state set-base "$base" >/dev/null 2>&1 || true
+  merged_branch=$(printf '%s\n' "$out" | sed -n 's/^adopted: branch \([^ ]*\) .*/\1/p')
+  merged_commits=$(printf '%s\n' "$out" | sed -n 's/.* · commits \([^ ·]*\) ·.*/\1/p')
+  merged_change=$(printf '%s\n' "$out" | sed -n 's/.* · change \([^ ·]*\) ·.*/\1/p')
+  merged_evidence=$(printf '%s\n' "$out" | sed -n 's/.* · evidence \(.*\)$/\1/p')
+  local close_args=("$issue" \
+    --reason "a previous attempt finished this item and was merged, not re-run" \
+    --evidence "branch $merged_branch (commits $merged_commits), $worktree/openspec/changes/archive/$merged_change, evidence checked: $merged_evidence")
+  if [ "$may_close" = "no" ]; then close_args+=(--no-close); fi
+  local closure="no"
+  if loop_labels close "${close_args[@]}" >&2; then
+    closure="$(if [ "$may_close" = yes ]; then printf yes; else printf skipped; fi)"
+  fi
+  loop_state done "$issue" --result done --verdict closed --change "$merged_change" \
+    --closed "$closure" --note "$out" \
+    --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-evidence "$merged_evidence" \
+    >/dev/null
+  printf 'item #%s: closed (merged %s — a finished attempt the base did not have) · %s review round(s)\n' \
+    "$issue" "$merged_branch" 0
+}
+
+# The pre-screen asks git for a previous attempt's branch and records it as a decision (#175), and the start's
+# own check refuses one that appears while the run is open (#163). Both are the *same* decision this function
+# makes once, before anything is escalated for them, so an item whose attempt finished is merged and closed
+# instead of being handed to the owner.
+adopt_finished_exclusions() {
+  [ "$dry_run" -eq 0 ] || return 0
+  local issue branch
+  jq -r --arg d "$decision_agent" '
+    .excluded[] | select(.verdict == $d) | select((.evidence // "") | startswith("fix/issue-"))
+    | [(.issue | tostring), .evidence] | @tsv
+  ' "$LOOP_STATE_FILE" 2>/dev/null |
+  while IFS=$'\t' read -r issue branch; do
+    [ -n "$issue" ] || continue
+    adopt_finished_attempt "$issue" "$branch" >&2 || true
+  done
+}
+
 # The run's end: the report, and the worktree the run asked not to keep (D4). The flag is the run's, so it
 # holds wherever the run ends — and the pre-screen can end one earlier than the item loop does, because a
 # decision it records leaves nothing eligible (issue #175).
@@ -226,6 +283,13 @@ prescreen_args=()
 prescreen_out=$(bash "$LOOP_DIR/prescreen.sh" "${prescreen_args[@]}" 2>&1)
 prescreen_status=$?
 printf '%s\n' "$prescreen_out"
+# A previous attempt's branch is decided by what it carries *before* it is escalated as a decision: a finished
+# attempt is merged and its item closed, and only what is left is the owner's.
+adopt_finished_exclusions
+# The adoption ran in the loop above, so the base it recorded in the state file is the *new* one: the run's own
+# base variable is read here again, because a merge that landed before the worktree exists moves the base every
+# later item descends from — a stale base would put the merged change into the next item's diff.
+base=$(loop_state get run.base)
 # The pre-screen's own decision verdicts (a previous attempt's branch) reach the tracker here, so the
 # decision is visible before any item is picked — including when the run then finds nothing else to work.
 escalate_prescreen_decisions
@@ -353,9 +417,14 @@ while true; do
     case "$start_out" in
       *"base moved"*) exit "$LOOP_REFUSE" ;;
       *"carries commits the base does not"*)
-        # A previous attempt left work on the item's branch. That work is the evidence for a decision, so
-        # the item is recorded and escalated rather than dropped — an unrecorded refusal is how a run ends
+        # A previous attempt left work on the item's branch. What it carries decides: a finished change with a
+        # green verification is merged and the item closed, and only a branch without that evidence is the
+        # owner's — recorded and escalated rather than dropped, because an unrecorded refusal is how a run ends
         # with "nothing processed" and no reason (D7, D9). The run then takes the next candidate.
+        if adopt_finished_attempt "$issue" "fix/issue-$issue-$slug"; then
+          in_progress=""
+          continue
+        fi
         escalated_label=""
         if loop_labels escalate "$issue" --reason "a previous attempt's branch carries work the base does not" \
           --evidence "branch fix/issue-$issue-$slug" >&2; then

@@ -1,0 +1,10 @@
+# Green on the fix — mechanism files at HEAD 8ecaa81 + the uncommitted diff
+# Command: bash tools/loop-selftest.sh --case <each case>
+
+## run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#mergesAFinishedAttemptAndClosesTheItem
+EXIT=0
+
+## run#doesNotMergeAnAttemptWithoutAGreenVerification
+PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
+EXIT=0

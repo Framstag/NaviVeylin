@@ -17,6 +17,7 @@
 #   worktree.sh create [--base <sha>] [--branch <name>]
 #   worktree.sh start-item <issue> <slug>
 #   worktree.sh end-item <issue> <slug>
+#   worktree.sh adopt-item <issue> <branch>
 #   worktree.sh head
 #   worktree.sh status
 #   worktree.sh remove
@@ -181,6 +182,85 @@ cmd_end_item() {
   printf 'committed:%s\n' "${committed:- nothing}"
 }
 
+# A previous attempt that finished carries three things the run can *check*, and they are what decides its
+# branch: one archived change the base does not have (one root cause), and a verification record inside that
+# change that is green. A branch a blocked attempt left behind carries neither, so the refusal, its escalation
+# and the person who owns the decision stay exactly where they were (issue #176).
+carried_change() { # <branch> <base> → the one archived change the branch adds, or nothing
+  local branch="$1" base="$2" dirs count
+  dirs=$(gitr diff --name-only --diff-filter=A "$base".."$branch" -- openspec/changes/archive 2>/dev/null |
+    awk -F/ 'NF > 3 {print $4}' | sort -u)
+  count=$(printf '%s' "$dirs" | grep -c . || true)
+  [ "$count" -eq 1 ] || return 0
+  # A change the base archived itself is not this branch's work, and cannot make it adoptable.
+  [ -z "$(gitr ls-tree --name-only "$base" -- "openspec/changes/archive/$dirs")" ] || return 0
+  printf '%s\n' "$dirs"
+}
+
+# A verification record is a JUnit testsuite that ran at least one test and passed all of them. The evidence
+# directory of a *finished* attempt holds the red-on-HEAD XML that reproduced the defect beside the green gate
+# XML — the two real branches issue #176 was measured on carry exactly that — so "green" cannot mean "no XML
+# records a failure": it means "at least one XML records a passing run". A blocked attempt carries no such
+# XML (its only XML is the red one), which is the difference the merge is allowed to act on.
+carried_verification() { # <branch> <base> <change> → the evidence it carries, or nothing when it is not green
+  local branch="$1" change="$3" files name passed=0
+  files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null)
+  printf '%s\n' "$files" | grep -q '\.xml$' || return 0
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    case "$name" in *.xml) ;; *) continue ;; esac
+    gitr show "$branch:$name" 2>/dev/null | grep -Eq 'tests="[1-9]' || continue
+    gitr show "$branch:$name" 2>/dev/null | grep -Eq 'failures="0"' || continue
+    gitr show "$branch:$name" 2>/dev/null | grep -Eq 'errors="[1-9]"' && continue
+    passed=1
+  done <<< "$files"
+  [ "$passed" -eq 1 ] || return 0
+  printf '%s\n' "$files" | sed "s#^openspec/changes/archive/$change/evidence/##" | paste -sd, -
+}
+
+# The branch of a finished attempt is merged onto the run's base and the item is closed by the run's own
+# closure path (run.sh calls this, then `labels.sh close`) — no loop path merged one before, so an item whose
+# earlier attempt finished but was never merged was permanently ineligible (issue #176). The merge is one
+# recorded action: its inputs are printed here and recorded in the run state, and it is never taken on a
+# branch that carries no green verification.
+cmd_adopt_item() {
+  local issue="${1:-}" branch="${2:-}"
+  case "$issue" in ''|*[!0-9]*) loop_die "adopt-item: usage: worktree.sh adopt-item <issue> <branch>" ;; esac
+  [ -n "$branch" ] || loop_die "adopt-item: usage: worktree.sh adopt-item <issue> <branch>"
+  # The merge lands in the project's own tree, where the base branch is checked out — the pre-screen's
+  # adoption happens before the run's worktree exists, so the worktree is not required here.
+  check_base
+  local base change verification dirty commits who_name who_email
+  base=$(state_base)
+  gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
+    loop_refuse "there is no branch $branch to adopt"
+  change=$(carried_change "$branch" "$base")
+  [ -n "$change" ] ||
+    loop_refuse "branch $branch is not adopted — it adds no single archived change of its own"
+  verification=$(carried_verification "$branch" "$base" "$change")
+  [ -n "$verification" ] ||
+    loop_refuse "branch $branch is not adopted — the change $change carries no green verification record"
+  commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
+  [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
+  # The merge lands in the project tree, where the base branch is checked out: over uncommitted work it would
+  # attribute that work to the merge, which is the rule `create` already refuses for.
+  dirty=$(gitr status --porcelain)
+  [ -z "$dirty" ] || loop_refuse "the project tree is not clean — refusing to merge $branch onto the base:
+$dirty"
+  if gitr merge-base --is-ancestor "$base" "$branch"; then
+    gitr merge --ff-only "$branch" >&2 || loop_die "adopt-item: the fast-forward failed"
+  else
+    IFS=$'\t' read -r who_name who_email <<< "$(loop_commit_identity)"
+    # shellcheck disable=SC2086
+    gitr -c user.name="$who_name" -c user.email="$who_email" cherry-pick $commits >&2 || {
+      gitr cherry-pick --abort >&2 2>/dev/null || true
+      loop_die "adopt-item: replaying $branch onto the base failed"
+    }
+  fi
+  printf 'adopted: branch %s -> %s · commits %s · change %s · evidence %s\n' \
+    "$branch" "$(gitr rev-parse --short HEAD)" "$(printf '%s' "$commits" | sed 's/ /,/g')" "$change" "$verification"
+}
+
 cmd_head() { [ -d "$worktree" ] || loop_die "head: no worktree at $worktree"; gitw rev-parse HEAD; }
 cmd_status() { [ -d "$worktree" ] || loop_die "status: no worktree at $worktree"; gitw status --porcelain; }
 
@@ -198,6 +278,7 @@ case "$cmd" in
   create) cmd_create "$@" ;;
   start-item) cmd_start_item "$@" ;;
   end-item) cmd_end_item "$@" ;;
+  adopt-item) cmd_adopt_item "$@" ;;
   head) cmd_head "$@" ;;
   status) cmd_status "$@" ;;
   remove) cmd_remove "$@" ;;

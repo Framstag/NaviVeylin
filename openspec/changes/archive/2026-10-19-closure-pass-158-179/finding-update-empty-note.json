@@ -1,0 +1,10 @@
+{
+  "title": "A comment-only `update.sh` call prints `already carries  — no label write` with an empty status, so the note describes a write that was never requested",
+  "class": "bug",
+  "category": "build-and-harness",
+  "priority": "p3",
+  "source": "agent",
+  "claim": "update.sh computes its no-label-write note from status_label without checking that a status was requested, so a comment-only call prints an empty value",
+  "anchor": "tools/issues/update.sh:186",
+  "body": "Found 2026-10-19 while posting the reason comments of the closure pass over #158-#179.\n\nEvery one of the six comment-only calls printed:\n\n```\n$ bash tools/issues/update.sh 165 --comment '<text>'\nupdate: #165 already carries  — no label write\n```\n\nTwo spaces, no value. The comment itself is posted correctly (line 210, `gh issue comment`), so nothing is lost — the note is wrong.\n\n**Cause**: line 186 is\n\n```sh\n[ \"$edit_needed\" -eq 1 ] || issues_note \"update: #$number already carries $status_label — no label write\"\n```\n\n`edit_needed` is 0 both when a state write found the state already in place *and* when no state write was requested at all, and `status_label` is empty in the second case. The sentence then claims the item already carries something, which is true of the empty string and meaningful to nobody.\n\n**Repair**: make the note conditional on a status having been requested (`[ -z \"$status_label\" ] || …`, or a second message for the comment-only case). It is a one-line change in the tool the tracker's every write goes through, which is why it is filed rather than folded into the closure pass."
+}

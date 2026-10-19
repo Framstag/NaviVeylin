@@ -1,0 +1,37 @@
+# closure pass evidence, 2026-10-19T05:56:54Z, 70b278d
+
+## bash tools/build-inputs-selftest.sh
+PASS inputs#refusesAnotherCommitsRecord
+PASS inputs#noRecordExitsThree
+11 cases, 0 failed
+exit=0
+
+## bash tools/declared-cases-selftest.sh
+  PASS  --help prints usage and exits 0
+
+12 passed, 0 failed
+exit=0
+
+## bash tools/check-portability-selftest.sh
+PASS porting#namesTheAdaptationPoint
+PASS porting#statesTheCopyCost
+check-portability-selftest: all 26 cases passed (JDK 27, offline, no token, no Gradle)
+exit=0
+
+## bash tools/issue-tooling-selftest.sh
+PASS check#unrankedIsNotAViolation
+PASS check#selfCheckIsGreen
+issue-tooling-selftest: all 77 cases passed (JDK 27, offline, no token)
+exit=0
+
+## bash tools/sensor-selftest.sh
+PASS sensors#engineNamesNoProjectValue
+PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
+sensor-selftest: all 43 cases passed (JDK 27, offline, no token)
+exit=0
+
+## bash tools/loop-mutations-selftest.sh
+ok   the mutated copy is byte-identical to the pristine one again
+ok   the mutation set lists what it declares
+loop-mutations-selftest: the harness reports an unapplied mutation, an unnoticed one and a real red, and it restores what it touches
+exit=0

@@ -1,0 +1,10 @@
+{
+  "title": "close.sh closes the item but leaves its old `status/*` label, so a closed item is still selected as open work",
+  "class": "bug",
+  "category": "build-and-harness",
+  "priority": "p3",
+  "source": "agent",
+  "claim": "close.sh runs gh issue close and never settles the status label, so a closed item keeps the status it carried and list.sh --status open keeps offering it",
+  "anchor": "tools/issues/close.sh:138",
+  "body": "Found 2026-10-19 during the closure pass over #158-#179.\n\n`tools/issues/close.sh:138` runs `gh issue close` and never rewrites the `status/*` label. Measured on three items closed during that pass:\n\n```\n$ gh issue view 161 --json state,labels -q '.state + \" \" + ([.labels[].name] | join(\",\"))'\nCLOSED agent/eligible,category/build-and-harness,class/improvement,prio/p3,source/agent,status/open\n```\n\nThe same for #163 and #164. Consequence: `bash tools/issues/list.sh --status open` lists them, so an item that is closed is offered to the next selection as open work — the mirror image of #163 (a state the tracker shows that no run holds).\n\nFive items closed earlier carry `status/fixed-by`, so the surviving label depends on which status the item happened to carry *before* closure, not on the closure itself.\n\n**Repair applied by hand in the tracker** (not by the tooling): `update.sh <n> --status fixed-by` on #161, #163, #164, matching the precedent those five set.\n\n**The defect**: whichever status label the item carried survives its closure, and `close.sh` has no step that settles it."
+}

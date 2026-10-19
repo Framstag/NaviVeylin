@@ -1,0 +1,21 @@
+# Chain probes: N composed Thread.UncaughtExceptionHandler links, each delegating to the previous —
+# the shape DiagnosticsLog.installCrashHandler builds (one install per Robolectric Application).
+# Run: 2026-10-19T06:23:56Z, JDK 27, default -Xss.
+
+## ChainProbe (bare link: one delegating call, no work before it; single run per size)
+  links=500 baseCalls=1 overflow=false
+  links=1000 baseCalls=1 overflow=false
+  links=2000 baseCalls=1 overflow=false
+  links=4000 baseCalls=1 overflow=false
+  links=8000 baseCalls=1 overflow=false
+  links=16000 baseCalls=1 overflow=false
+
+## ChainProbe2 (link does a little work before delegating, as the app handler does; 5 repeats)
+  links=1000 overflows=0/5
+  links=2000 overflows=0/5
+  links=4000 overflows=5/5
+  links=8000 overflows=5/5
+  links=16000 overflows=3/5
+  links=32000 overflows=5/5
+
+# Sources: probe/ChainProbe.java, probe/ChainProbe2.java (outside the change, kept in the run's item dir).

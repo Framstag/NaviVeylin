@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.MapDownloadManagerWorkerFailureTest" tests="2" skipped="0" failures="1" errors="0" timestamp="2026-10-19T06:24:08.877Z" hostname="dingens" time="10.036">
+  <properties/>
+  <testcase name="aWorkerThatDiesOfAnExceptionKeepsItsMessage()" classname="com.framstag.libosmscout.client.MapDownloadManagerWorkerFailureTest" time="0.016"/>
+  <testcase name="aWorkerThatDiesOfAnErrorIsReportedThroughTheListener()" classname="com.framstag.libosmscout.client.MapDownloadManagerWorkerFailureTest" time="10.006">
+    <failure message="org.opentest4j.AssertionFailedError: a worker that dies must report the failure instead of dying silently ==&gt; expected: &lt;true&gt; but was: &lt;false&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: a worker that dies must report the failure instead of dying silently ==&gt; expected: &lt;true&gt; but was: &lt;false&gt;
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+	at com.framstag.libosmscout.client.MapDownloadManagerWorkerFailureTest.aWorkerThatDiesOfAnErrorIsReportedThroughTheListener(MapDownloadManagerWorkerFailureTest.java:50)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Exception in thread "map-download-Berlin" java.lang.UnsatisfiedLinkError: 'boolean com.framstag.libosmscout.client.MapDownloadManager.nativePrepareMapDirectory(com.framstag.libosmscout.client.AvailableMapEntry, java.lang.String)'
+	at com.framstag.libosmscout.client.MapDownloadManager.nativePrepareMapDirectory(Native Method)
+	at com.framstag.libosmscout.client.MapDownloadManager.downloadMapInJava(MapDownloadManager.java:145)
+	at com.framstag.libosmscout.client.MapDownloadManager.lambda$downloadMap$0(MapDownloadManager.java:113)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+]]></system-err>
+</testsuite>

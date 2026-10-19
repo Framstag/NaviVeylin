@@ -9,6 +9,14 @@
       "search": "  if [ -n \"$previous\" ] && [ \"$previous\" != \"$label\" ]; then",
       "replace": "  if false; then",
       "why": "a filing whose merged label set names two values of one namespace being refused before any gh issue create"
+    },
+    {
+      "label": "1.2",
+      "case": "create#refusesADoubledCitation",
+      "file": "tools/issues/create.sh",
+      "search": "    [ \"$(issues_citation_class \"$collapsed\")\" != \"absent\" ] || continue",
+      "replace": "    continue",
+      "why": "the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)"
     }
   ]
 }

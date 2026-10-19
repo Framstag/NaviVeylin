@@ -20,6 +20,7 @@ RESOLVE_CASES=(
   'classifier#absentIsTheOnlyStale'
   'prescreen#refusalIsVisibleInTheTracker'
   'resolver#suffixedCitationIsCanonicalised'
+  'resolver#doubledPrefixIsCollapsed'
   'resolver#renamedFileIsFollowed'
   'resolver#removedSymbolIsReAnchored'
   'resolver#markersSurviveTheRepair'
@@ -46,6 +47,7 @@ resolve_run_case() {
     'classifier#absentIsTheOnlyStale') case_classifier_absentIsTheOnlyStale ;;
     'prescreen#refusalIsVisibleInTheTracker') case_prescreen_refusalIsVisibleInTheTracker ;;
     'resolver#suffixedCitationIsCanonicalised') case_resolver_suffixedCitationIsCanonicalised ;;
+    'resolver#doubledPrefixIsCollapsed') case_resolver_doubledPrefixIsCollapsed ;;
     'resolver#renamedFileIsFollowed') case_resolver_renamedFileIsFollowed ;;
     'resolver#removedSymbolIsReAnchored') case_resolver_removedSymbolIsReAnchored ;;
     'resolver#markersSurviveTheRepair') case_resolver_markersSurviveTheRepair ;;
@@ -182,7 +184,25 @@ recorded_text() { # <log> — the log's lines without the stub's shell quoting
   sed "s/'//g" "$1"
 }
 
-# --------------------------------------------------------------------------- the classifier (D1–D3)
+# A citation whose directory prefix is repeated names its own answer: `app/src/main/app/src/main/java/…` is
+# `app/src/main/java/…` with the first three segments said twice. Nothing on disk resolves the doubled form, so
+# the classifier answers `absent` — correctly — and before this rule the ladder fell through to `otherwise` and
+# the item was excluded on every run without ever being parked (#189).
+case_resolver_doubledPrefixIsCollapsed() {
+  # The tree deliberately holds a file whose name is *not* a symbol in its own content (a shell script), so the
+  # ladder's symbol step cannot answer this one: only the collapse can.
+  local tree d
+  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/tools/alpha"
+  printf '#!/bin/sh\n' > "$tree/tools/alpha/alpha.sh"
+  git_init "$tree"
+  d=$(tracker "$tree/fixture-gh" 7 "an item" 'the write is in `tools/alpha/tools/alpha/alpha.sh`')
+  GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply >/dev/null || fail "the resolver failed"
+  assert_contains "$(recorded_body "$d/writes.log" 1)" '`tools/alpha/alpha.sh`' \
+    "the repeated prefix is collapsed to the tracked path"
+  assert_contains "$(recorded_text "$d/writes.log")" "repeats its own directory" \
+    "and the comment says why the collapsed path is the right one"
+}
+
 
 case_classifier_fragmentIsNotACitation() {
   local tree out candidates

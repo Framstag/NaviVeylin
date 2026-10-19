@@ -78,6 +78,34 @@ source_id=$(jq -r '.sourceId // ""' <<< "$finding")
 [ -n "$clazz" ] || issues_die "create: the finding has no class"
 [ -n "$category" ] || issues_die "create: the finding has no category"
 
+# A body the tooling accepts must cite something that resolves. A finding is written once and read many times,
+# and a citation the pre-screen cannot resolve costs the item every run — it is excluded as `stale` before
+# anyone reads it, which is what happened to #181, #182, #184 and #185 (#189). Only the shape the author can
+# repair mechanically is refused here: a token that names its own directory twice, whose collapsed form is a
+# tracked path. Everything else stays the repair path's business (`tools/issues/resolve-stale.sh`), because a
+# body may legitimately cite something the change itself creates.
+if [ -n "${body:-}" ] || [ -n "$title" ]; then
+  ISSUES_CITATION_ROOT="${ISSUES_CITATION_ROOT:-$ISSUES_ROOT}"
+  export ISSUES_CITATION_ROOT
+  if [ -z "${ISSUES_CITATION_INDEX:-}" ]; then
+    ISSUES_CITATION_INDEX=$(mktemp 2>/dev/null) || ISSUES_CITATION_INDEX=""
+    export ISSUES_CITATION_INDEX
+    if [ -n "$ISSUES_CITATION_INDEX" ]; then
+      trap 'rm -f "$ISSUES_CITATION_INDEX"' EXIT
+      issues_citation_index_build "$ISSUES_CITATION_ROOT" "$ISSUES_CITATION_INDEX" || true
+    fi
+  fi
+  while IFS= read -r cited; do
+    [ -n "$cited" ] || continue
+    [ "$(issues_citation_class "$cited")" = "absent" ] || continue
+    collapsed=$(issues_citation_collapsed "$cited")
+    [ -n "$collapsed" ] || continue
+    [ "$(issues_citation_class "$collapsed")" != "absent" ] || continue
+    issues_die "create: the finding cites '$cited' — the repository's path is '$collapsed' (the citation repeats its own directory); fix the payload and file again, nothing was written"
+  done < <(issues_citations_of "$title
+$body")
+fi
+
 # Every route a label can arrive through — the finding's own array, --label and --status — lands in
 # `labels` before the single guarded check below, so guarding one flag is never the invariant (design D2).
 labels=()

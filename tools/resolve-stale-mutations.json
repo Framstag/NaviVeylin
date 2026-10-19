@@ -73,6 +73,14 @@
       "search": "    stale_path=$(stale_citations_of \"$title\" \"$body\" | head -1)",
       "replace": "    stale_path=$(printf '%s\\n%s\\n' \"$title\" \"$body\" | grep -oE '[A-Za-z0-9_][A-Za-z0-9_./-]*\\.(kt|md|sh)' | sort -u | while IFS= read -r p; do [ -e \"$LOOP_ROOT/$p\" ] || { printf '%s\\n' \"$p\"; break; }; done)",
       "why": "the pre-screen asking the shared classifier instead of extracting tokens for itself"
+    },
+    {
+      "label": "5.10",
+      "case": "resolver#doubledPrefixIsCollapsed",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "      if [ -n \"$collapsed\" ] && [ \"$(issues_citation_class \"$collapsed\")\" != \"absent\" ]; then",
+      "replace": "      if false; then",
+      "why": "the collapse of a citation that repeats its own directory, before the rename and symbol steps (#189)"
     }
   ]
 }

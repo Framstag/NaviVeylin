@@ -22,6 +22,7 @@ ISSUES_SHELL_CASES=(
   'create#duplicateRefusesAndNamesTheIssue'
   'create#writesMarkerAndLabels'
   'create#refusesTwoValuesOfOneNamespace'
+  'create#refusesADoubledCitation'
   'update#refusesUnknownLabel'
   'close#requiresReasonAndEvidence'
   'close#recordsStateReason'
@@ -97,6 +98,7 @@ issues_run_shell_case() {
     'create#duplicateRefusesAndNamesTheIssue') case_create_duplicateRefusesAndNamesTheIssue ;;
     'create#writesMarkerAndLabels') case_create_writesMarkerAndLabels ;;
     'create#refusesTwoValuesOfOneNamespace') case_create_refusesTwoValuesOfOneNamespace ;;
+    'create#refusesADoubledCitation') case_create_refusesADoubledCitation ;;
     'update#refusesUnknownLabel') case_update_refusesUnknownLabel ;;
     'close#requiresReasonAndEvidence') case_close_requiresReasonAndEvidence ;;
     'close#recordsStateReason') case_close_recordsStateReason ;;
@@ -1000,6 +1002,23 @@ case_update_commentOnlyReportsNoStatusWrite() {
     *"already carries"*) fail "the note describes a state write that was never requested: $out" ;;
   esac
   return 0
+}
+
+# A body whose evidence cites a path that cannot resolve costs the item every run: the pre-screen excludes it
+# as `stale` before anyone reads it. The one shape refused at the write is the one the author can repair
+# mechanically — a citation that repeats its own directory (#189).
+case_create_refusesADoubledCitation() {
+  local dir log out status finding
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_RECORD="$log"
+  finding=$(jq -n '{sourceId: "907", title: "§907 a fixture finding", class: "bug", category: "ui",
+                    claim: "c5", anchor: "tools/issues/close.sh",
+                    labels: ["class/bug", "category/ui", "status/open"],
+                    body: "- **Evidence** ⊨: `tools/issues/tools/issues/close.sh` rewrites the status."}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "2" "$status" "a doubled citation is refused as a malformed payload"
+  assert_contains "$out" "the repository's path is 'tools/issues/close.sh'" "the refusal names the tracked path"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
 }
 
 # ------------------------------------------------------------------- the metadata pass (`issue-metadata-loop`)

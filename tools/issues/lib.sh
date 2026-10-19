@@ -650,6 +650,24 @@ issues_citation_submodule_roots() { # <root> → the gitlink roots, one per line
   ( cd "$1" && git ls-files --stage ) 2>/dev/null | awk '$1 == "160000" { print $4 }'
 }
 
+# A citation whose own directory is said twice — `tools/issues/tools/issues/close.sh` — names its answer: the
+# collapsed form is the tracked path. Nothing on disk resolves the doubled form, so the classifier answers
+# `absent` (correctly, and it must: the token does not exist), while the author meant the path inside it (#189).
+issues_citation_collapsed() { # <token> → the token with its repeated leading directory removed, or nothing
+  local tok="$1" segments k prefix rest
+  segments=$(printf '%s' "$tok" | awk -F/ '{print NF}')
+  k=1
+  while [ "$k" -le $((segments / 2)) ]; do
+    prefix=$(printf '%s' "$tok" | cut -d/ -f1-"$k")
+    rest="${tok#"$prefix"/}"
+    case "$rest" in
+      "$prefix"/*) printf '%s\n' "$rest"; return 0 ;;
+    esac
+    k=$((k + 1))
+  done
+  return 0
+}
+
 # The canonical path a citation denotes, when the repository states it uniquely: the tracked path itself, or a
 # path inside a submodule. Nothing here guesses — an ambiguous suffix prints nothing and is reported.
 issues_citation_resolve() { # <token> → the path, or nothing

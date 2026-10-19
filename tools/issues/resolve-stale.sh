@@ -146,8 +146,13 @@ archived_successor() { # <token> → the archive path, or nothing
 
 # The basis a repair records, so the comment says *why* the new path is the right one.
 basis_of() { # <token> <canonical>
-  local tok="$1" canon="$2" line
+  local tok="$1" canon="$2" line collapsed
   case "$canon" in openspec/changes/archive/*) printf 'the change was archived: the directory keeps its name under a date prefix'; return 0 ;; esac
+  collapsed=$(issues_citation_collapsed "$tok")
+  if [ -n "$collapsed" ] && [ "$collapsed" = "$canon" ]; then
+    printf 'the citation repeats its own directory: the collapsed path is the tracked one'
+    return 0
+  fi
   while IFS=$'\t' read -r from to; do
     [ "$to" = "$canon" ] && { printf 'a rename in the history: %s -> %s' "$from" "$to"; return 0; }
   done < "$scratch/renames"
@@ -192,6 +197,14 @@ $body")
     [ -n "$tok" ] || continue
     canon=$(issues_citation_resolve "$tok")
     if [ -z "$canon" ]; then
+      # The cheapest inference first: the token repeated its own directory, and the collapsed form is a
+      # tracked path. No history walk, no symbol search, no guess.
+      collapsed=$(issues_citation_collapsed "$tok")
+      if [ -n "$collapsed" ] && [ "$(issues_citation_class "$collapsed")" != "absent" ]; then
+        canon=$(issues_citation_resolve "$collapsed")
+      fi
+    fi
+    if [ -z "$canon" ]; then
       # Several tracked paths end with it and no suffix names the file: reported, never guessed (D4).
       item_ambiguous=$((item_ambiguous + 1))
       ambiguous=$((ambiguous + 1))
@@ -205,6 +218,14 @@ $body")
   while IFS= read -r tok; do
     [ -n "$tok" ] || continue
     canon=$(successor_of "$tok")
+    if [ -z "$canon" ]; then
+      # Before a rename walk or a symbol search: the token said its own directory twice, and the collapsed form
+      # is a tracked path. This is a fact about the token, not an inference from the tree (#189).
+      collapsed=$(issues_citation_collapsed "$tok")
+      if [ -n "$collapsed" ] && [ "$(issues_citation_class "$collapsed")" != "absent" ]; then
+        canon=$(issues_citation_resolve "$collapsed")
+      fi
+    fi
     if [ -n "$canon" ]; then
       new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -f "$here/rewrite.awk")
       repairs=$(add_line "$repairs" "- \`${tok}\` -> \`${canon}\` — $(basis_of "$tok" "$canon")")

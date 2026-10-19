@@ -73,6 +73,10 @@ refused_classes="$(loop_role refusedClasses)"
 inflight_status=$(loop_role inFlightStatus)
 device_status=$(loop_role deviceStatus)
 device_agent=$(loop_role deviceAgent)
+hold_status=$(loop_role holdStatus)
+# The label an escalation writes, and the state it leaves beside it: an item carrying either has already been
+# decided about, by this loop, and is its owner's until a person answers it (#183).
+decision_label="agent${separator}${decision_verdict}"
 settled_statuses="$(loop_role settledStatuses)"
 is_refused_class() { [ -n "$refused_classes" ] && printf '%s\n' "$refused_classes" | grep -qxF "$1"; }
 is_settled_status() { [ -n "$settled_statuses" ] && printf '%s\n' "$settled_statuses" | grep -qxF "$1"; }
@@ -163,6 +167,21 @@ while [ "$i" -lt "$count" ]; do
   verdict="$queued_verdict"
   reason=""
   evidence=""
+  already_escalated=0
+  # What makes this item its owner's rather than the run's, named as it actually is: the label an earlier
+  # escalation wrote, the hold it left, or both. An item that merely carries a person's hold must not be
+  # described as carrying a loop escalation (#183).
+  awaiting_decision=0
+  awaiting_why=""
+  if [ -n "$decision_verdict" ] &&
+     printf '%s' "$labels" | jq -e --arg l "$decision_label" 'any(.[]; .name == $l)' >/dev/null; then
+    awaiting_decision=1
+    awaiting_why="$decision_label"
+  fi
+  if [ -n "$hold_status" ] && [ "$status" = "$hold_status" ]; then
+    awaiting_decision=1
+    awaiting_why="${awaiting_why:+$awaiting_why / }status${separator}${status}"
+  fi
   if ! printf '%s\n' "$allowed_authors" | grep -qxF "$author"; then
     # The label alone would be self-served: the author term of the gate is the other half (change 1, D2).
     verdict="author-not-allowlisted"
@@ -182,6 +201,14 @@ while [ "$i" -lt "$count" ]; do
     # (design D15 property 4).
     verdict="$device_agent"
     reason="status${separator}${status} — the remaining evidence needs a device attached to the host"
+  elif [ "$awaiting_decision" -eq 1 ]; then
+    # The item already awaits a decision — either one this loop escalated (its label and the hold it left) or a
+    # person's hold. Both are the owner's until it is answered: re-deriving the same conclusion spends the very
+    # budget the decision cap protects, and #110 was escalated three times with one conclusion (#183).
+    verdict="$decision_verdict"
+    reason="the item already awaits a decision (${awaiting_why}) — left to its owner until a person decides it"
+    evidence="${decision_label:-status${separator}${hold_status}}"
+    already_escalated=1
   fi
 
   # The opt-in is the author's, so it is read and never written: a candidate without it is excluded rather
@@ -257,9 +284,10 @@ while [ "$i" -lt "$count" ]; do
   # The gate's judgement half is NOT decided here, and saying so is part of the output (D6).
   record=$(jq -n --argjson issue "$number" --arg title "$title" --arg class "$class" \
     --arg category "$category" --arg status "$status" --arg author "$author" \
-    --arg verdict "$verdict" --arg reason "$reason" --arg evidence "$evidence" '
+    --arg verdict "$verdict" --arg reason "$reason" --arg evidence "$evidence" \
+    --argjson escalated "$([ "$already_escalated" -eq 1 ] && printf true || printf false)" '
     {issue:$issue, title:$title, class:$class, category:$category, status:$status, author:$author,
-     verdict:$verdict, reason:$reason, evidence:$evidence, rank:null,
+     verdict:$verdict, reason:$reason, evidence:$evidence, rank:null, alreadyEscalated:$escalated,
      gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
 done

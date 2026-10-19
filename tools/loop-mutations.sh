@@ -96,6 +96,8 @@ MUTATIONS=(
   '16.1@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the stop condition `next` named@s|^    loop_state stop "$next_out" >/dev/null$|    : # the mutation records no stop|'
   '16.2@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run printing the stop condition it was given@s|^    printf .stop: %s.*$|    : # the mutation prints no stop line|'
   '16.3@-@tools/loop/report.sh@run#stopReasonIsPrintedAndReported@the report repeating the recorded stop reason@s|^stop_reason=.*$|stop_reason=""|'
+  '17.1@-@tools/loop/prescreen.sh@prescreen#itemAwaitingADecisionIsNotQueued@the branch that leaves an item awaiting a decision to its owner@s|^  elif \[ "$awaiting_decision" -eq 1 \]; then$|  elif false; then|'
+  '17.2@-@tools/loop/run.sh@run#awaitingDecisionIsNotEscalatedAgain@the run not re-escalating an item that already carries the escalation label@s|^    \| select(.*alreadyEscalated.*$|    \| select(true)|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

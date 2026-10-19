@@ -106,6 +106,7 @@ escalate_prescreen_decisions() {
   jq -r --arg d "$decision_agent" '
     ([.items[].issue] | unique) as $handled
     | .excluded[] | select(.verdict == $d)
+    | select((.alreadyEscalated // false) != true)
     | select(.issue as $i | ($handled | index($i)) | not)
     | [(.issue | tostring), .reason, (.evidence // "")] | @tsv
   ' "$LOOP_STATE_FILE" 2>/dev/null |

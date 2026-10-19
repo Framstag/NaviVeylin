@@ -33,6 +33,7 @@ LOOP_SHELL_CASES=(
   'prescreen#deviceItemIsAVerdictNotWork'
   'prescreen#readsTheVerdictsFromTheProfile'
   'prescreen#previousAttemptBranchIsADecision'
+  'prescreen#itemAwaitingADecisionIsNotQueued'
   'prescreen#refusalLeavesATraceInTheTracker'
   'worktree#seedsAllFourInputs'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
@@ -75,6 +76,7 @@ LOOP_SHELL_CASES=(
   'run#metricsRecordedPerItem'
   'run#emptyQueueIsNotAFailure'
   'run#stopReasonIsPrintedAndReported'
+  'run#awaitingDecisionIsNotEscalatedAgain'
   'run#commitsWithoutAnAmbientIdentity'
   'run#reviewerWriteInvalidatesTheRound'
   'run#reviewReadOnlyOffOnlyForDiagnosis'
@@ -111,6 +113,7 @@ loop_run_shell_case() {
     'prescreen#deviceItemIsAVerdictNotWork') fn=case_prescreen_deviceItemIsAVerdictNotWork ;;
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
     'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
+    'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
@@ -153,6 +156,7 @@ loop_run_shell_case() {
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
     'run#stopReasonIsPrintedAndReported') fn=case_run_stopReasonIsPrintedAndReported ;;
+    'run#awaitingDecisionIsNotEscalatedAgain') fn=case_run_awaitingDecisionIsNotEscalatedAgain ;;
     'run#commitsWithoutAnAmbientIdentity') fn=case_run_commitsWithoutAnAmbientIdentity ;;
     'run#reviewerWriteInvalidatesTheRound') fn=case_run_reviewerWriteInvalidatesTheRound ;;
     'run#reviewReadOnlyOffOnlyForDiagnosis') fn=case_run_reviewReadOnlyOffOnlyForDiagnosis ;;
@@ -646,6 +650,31 @@ case_prescreen_previousAttemptBranchIsADecision() {
   assert_eq "fix/issue-21-a-previous-attempt" \
     "$(jq -r '.excluded[] | select(.issue == 21) | .evidence' "$(state_file "$p")")" \
     "with the branch carried beside it"
+}
+
+# An item the loop itself escalated is its owner's until a person decides: the run writes
+# `agent/needs-decision` and `status/on-hold`, and the next pre-screen read only the in-flight status, so #110
+# was analysed and escalated three times with one conclusion (comments on 2026-10-18 and 2026-10-19). The
+# verdict is the run's own decision verdict, but marked as already escalated so the run does not post the same
+# comment again.
+case_prescreen_itemAwaitingADecisionIsNotQueued() {
+  local p out issue status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
+  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+
+  out=$(run_prescreen "$p" --json); status=$?
+  assert_eq "3" "$status" "a backlog that awaits decisions is 'nothing eligible', not an error"
+  for issue in 41 42 43; do
+    assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r --argjson i "$issue" '.[] | select(.issue == $i) | .verdict')" \
+      "an item awaiting a decision is not a candidate (#$issue)"
+    assert_eq "true" "$(printf '%s' "$out" | jq -r --argjson i "$issue" '.[] | select(.issue == $i) | .alreadyEscalated')" \
+      "and it is marked as already escalated, so the run does not escalate it again (#$issue)"
+  done
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "none of them is queued as work"
+  assert_eq "3" "$(jq -r '[.excluded[] | select(.verdict == "needs-decision")] | length' "$(state_file "$p")")" \
+    "all three are recorded as decisions in the exclusion list"
 }
 
 # ----------------------------------------------------------------------------- cases: worktree
@@ -1591,6 +1620,26 @@ case_run_stopReasonIsPrintedAndReported() {
   assert_eq "stop: $recorded" "$stop_line" "the printed line and the recorded reason are one condition"
   out=$(run_report "$p")
   assert_contains "$out" "stop: $recorded" "the report repeats it, so its counters and its end agree"
+}
+
+# The pre-screen's decision exclusions reach the tracker through one path (`escalate_prescreen_decisions`), and
+# an item that already carries the escalation label is not a new decision: escalating it again posts a second
+# identical comment, which is what #110 collected three of (#183).
+case_run_awaitingDecisionIsNotEscalatedAgain() {
+  local d p out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
+  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+  stub_success "$d"
+
+  out=$(run_loop "$p" --items 1 --minutes 90 --max-decisions 10 2>&1)
+  assert_contains "$out" "nothing eligible" "a backlog awaiting decisions produces no work"
+  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
+    "and no second escalation comment is posted"
+  assert_eq "0" "$(grep -c 'issue edit' "$GH_STUB_RECORD" || true)" \
+    "nor a label write on an item that already carries its decision"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+  assert_eq "0" "$(jq -r '.items | length' "$(state_file "$p")")" "and nothing is recorded as worked"
 }
 
 # ----------------------------------------------------------------------------- cases: report

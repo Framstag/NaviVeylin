@@ -1,0 +1,20 @@
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm
+> Task :app:testMobileDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:test
+
+[Incubating] Problems report is available at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.6.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 4m 49s
+189 actionable tasks: 189 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

@@ -27,7 +27,10 @@
 #   with GH_STUB_RECORD=<file> the invocation is appended to <file> as one shell-quoted `gh …` line and a
 #   plausible result is printed instead of the call being made.
 #
-# Env: GH_STUB_DIR (fixture directory, default: this file's directory), GH_STUB_RECORD (write log).
+# Env: GH_STUB_DIR (fixture directory, default: this file's directory), GH_STUB_RECORD (write log),
+#      GH_STUB_FAIL (a substring of an invocation the stub must refuse, so a case can watch what a writer does
+#      when `gh` itself fails mid-sequence — matched against the invocation as `gh <group> <sub> …`, so
+#      `issue edit` is precise and `edit` is not).
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -56,6 +59,10 @@ record_write() {
     printf 'stub gh: refusing the write `gh %s` — set GH_STUB_RECORD=<file> to record it\n' "$*" >&2
     exit 1
   }
+  if [ -n "${GH_STUB_FAIL:-}" ] && printf 'gh %s\n' "$*" | grep -qF -- "$GH_STUB_FAIL"; then
+    printf 'stub gh: the write `gh %s` failed (GH_STUB_FAIL=%s)\n' "$*" "$GH_STUB_FAIL" >&2
+    exit 1
+  fi
   # A `--body-file` is read by the real `gh` at call time, so the stub keeps the content it saw beside the
   # log: a case can then read what a writer put in a body after the writer's temporary file is gone. The
   # log's own shape is unchanged, so the log's readers are unaffected.

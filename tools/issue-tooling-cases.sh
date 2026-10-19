@@ -43,6 +43,10 @@ ISSUES_SHELL_CASES=(
   'update#statusWriteReportsAnEmptyTransition'
   'update#stateNamedAsALabelReplacesTheOldState'
   'close#commentOnlyLeavesTheIssueOpen'
+  'close#writesTheSettledStatus'
+  'close#keepsTheItemOpenWhenTheStateCannotBeWritten'
+  'close#writesNothingWhenTheItemAlreadyCarriesTheState'
+  'close#refusesAProfileThatNamesNoSettledState'
   'basis#stableAcrossWhitespaceOnlyBodyEdit'
   'basis#changesWhenAClassLabelChanges'
   'basis#changesWhenTheCitedCodeGoesAway'
@@ -113,6 +117,10 @@ issues_run_shell_case() {
     'update#statusWriteReportsAnEmptyTransition') case_update_statusWriteReportsAnEmptyTransition ;;
     'update#stateNamedAsALabelReplacesTheOldState') case_update_stateNamedAsALabelReplacesTheOldState ;;
     'close#commentOnlyLeavesTheIssueOpen') case_close_commentOnlyLeavesTheIssueOpen ;;
+    'close#writesTheSettledStatus') case_close_writesTheSettledStatus ;;
+    'close#keepsTheItemOpenWhenTheStateCannotBeWritten') case_close_keepsTheItemOpenWhenTheStateCannotBeWritten ;;
+    'close#writesNothingWhenTheItemAlreadyCarriesTheState') case_close_writesNothingWhenTheItemAlreadyCarriesTheState ;;
+    'close#refusesAProfileThatNamesNoSettledState') case_close_refusesAProfileThatNamesNoSettledState ;;
     'basis#stableAcrossWhitespaceOnlyBodyEdit') case_basis_stableAcrossWhitespaceOnlyBodyEdit ;;
     'basis#changesWhenAClassLabelChanges') case_basis_changesWhenAClassLabelChanges ;;
     'basis#changesWhenTheCitedCodeGoesAway') case_basis_changesWhenTheCitedCodeGoesAway ;;
@@ -877,6 +885,99 @@ case_close_commentOnlyLeavesTheIssueOpen() {
   # the same reasons and evidence rules apply on this path
   out=$(run_tool close.sh 21 --comment-only 2>&1); status=$?
   assert_eq "2" "$status" "a comment-only run still owes its reason and evidence"
+  return 0
+}
+
+# A closed item must read settled, whoever closed it: the loop's own path writes the status before it closes
+# (`tools/loop/labels.sh`), so a person's path that does not leaves an item closed and still carrying the
+# state it was escalated with — `status/on-hold`, in the case measured on #117 and #119 (#188). The assertion
+# is the state a *reader* sees, not the call the writer made: the status must be set, the displaced value
+# removed, and the write must land before the closure.
+case_close_writesTheSettledStatus() {
+  local dir log out status edit status_line close_line
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 21 status/on-hold class/bug category/car source/agent agent/eligible
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool close.sh 21 --reason "fixed" --evidence "the case is green" 2>&1); status=$?
+  assert_eq "0" "$status" "the closure succeeds: $out"
+  edit=$(grep 'issue edit' "$log" || true)
+  [ -n "$edit" ] || fail "the closure wrote no status label — the item is closed and still carries status/on-hold"
+  assert_contains "$edit" "--add-label status/fixed-by" "the settled state is set"
+  assert_contains "$edit" "--remove-label status/on-hold" "and the state it displaces is removed in the same write"
+  status_line=$(grep -n 'issue edit' "$log" | cut -d: -f1)
+  close_line=$(grep -n 'issue close' "$log" | cut -d: -f1)
+  [ -n "$close_line" ] || fail "the issue was not closed"
+  [ "$status_line" -lt "$close_line" ] || fail "the status must be written before the closure"
+
+  : > "$log"
+  status_tracker "$dir" 22 status/on-hold class/bug category/car source/agent agent/eligible
+  out=$(run_tool close.sh 22 --reason "not ours to fix" --evidence "the case is green" --not-planned 2>&1); status=$?
+  assert_eq "0" "$status" "the not-planned closure succeeds: $out"
+  edit=$(grep 'issue edit' "$log" || true)
+  assert_contains "$edit" "--add-label status/retired" \
+    "a not-planned closure records the other settled state, not the one a fix carries"
+
+  # An item that stays open keeps the state it carried: the status write belongs to the closure, not to the
+  # comment, or an escalation would silently clear the hold it was raised with.
+  : > "$log"
+  status_tracker "$dir" 23 status/on-hold class/bug category/car source/agent agent/eligible
+  run_tool close.sh 23 --reason "fixed, closure is the owner's" --evidence "the case is green" --comment-only \
+    >/dev/null 2>&1 || fail "the comment-only call failed"
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" \
+    "an item left open keeps the state it carried"
+  return 0
+}
+
+# The write is the closure's precondition, so a `gh` that refuses it must leave the item *open*: the
+# alternative — closing anyway — is #181 with a message claiming otherwise. The comment is already posted by
+# then (it is the reason, and it comes first), which is why the assertion is "no close", not "nothing posted".
+case_close_keepsTheItemOpenWhenTheStateCannotBeWritten() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 21 status/on-hold class/bug category/car source/agent agent/eligible
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" GH_STUB_FAIL="issue edit"
+
+  out=$(run_tool close.sh 21 --reason "fixed" --evidence "the case is green" 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "a closure whose state write failed reported success: $out"
+  assert_contains "$out" "left open" "the report names what state the item is in"
+  assert_eq "0" "$(grep -c 'issue close' "$log" || true)" \
+    "the item is not closed when its state could not be written"
+  return 0
+}
+
+# Every loop closure takes this path: `tools/loop/labels.sh` writes `closeStatus` first and then closes, so
+# `close.sh` finds the state in place. A second write there would be an edit that changes nothing — and, worse,
+# one that a reader would have to reconcile with the loop's own write.
+case_close_writesNothingWhenTheItemAlreadyCarriesTheState() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 21 status/fixed-by class/bug category/car source/agent agent/eligible
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool close.sh 21 --reason "fixed" --evidence "the case is green" 2>&1); status=$?
+  assert_eq "0" "$status" "a closure of an item already in the settled state succeeds: $out"
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "and writes no state label it already carries"
+  assert_eq "1" "$(grep -c 'issue close' "$log" || true)" "while still closing the item"
+  return 0
+}
+
+# A half-adapted profile is the failure `tools/tooling.json`'s roles comment calls out by name: a key another
+# project does not need is declared empty, never omitted. A profile that omits this one would close items that
+# carry whatever state they arrived with, so the refusal comes before the comment — nothing is written at all.
+case_close_refusesAProfileThatNamesNoSettledState() {
+  local dir log profile out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 21 status/on-hold class/bug category/car source/agent agent/eligible
+  profile="$dir/tooling.json"
+  jq 'del(.roles.retiredStatus)' "$(profile_path)" > "$profile"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool close.sh 21 --reason "not ours to fix" --evidence "the case is green" --not-planned \
+    --profile "$profile" 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "a profile without the role closed the item anyway: $out"
+  assert_contains "$out" "retiredStatus" "the refusal names the role the profile lacks"
+  [ ! -s "$log" ] || fail "nothing may be written when the profile cannot say what state to record: $(cat "$log")"
   return 0
 }
 

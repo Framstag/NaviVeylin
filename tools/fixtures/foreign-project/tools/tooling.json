@@ -24,6 +24,7 @@
     "deviceStatus": "",
     "holdStatus": "on-hold",
     "closeStatus": "fixed-by",
+    "retiredStatus": "retired",
     "settledStatuses": ["fixed-by", "retired"],
     "inProgressAgent": "in-progress",
     "deviceAgent": "",

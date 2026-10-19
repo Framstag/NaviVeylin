@@ -1,0 +1,38 @@
+{
+  "comment": "The revert-checks of the closure's settled state (#181, #188): one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/close-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. Every search is a single line and unique in its file (the runner's replacement is literal and line-based). The fourth entry mutates the profile reader into a silent fallback rather than a refusal: a mutation that removes the guard line would leave a bare string as a command, which is a syntax accident rather than the invariant under test.",
+  "case-cmd": "bash tools/issue-tooling-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "A1.1",
+      "case": "close#writesTheSettledStatus",
+      "file": "tools/issues/close.sh",
+      "search": "bash \"$here/update.sh\" \"$number\" --status \"$settled_status\" --profile \"$profile\" >&2 || write_status=$?",
+      "replace": "write_status=0 # the state write removed",
+      "why": "the settled state being written before the closure — without it an item is closed and still reads on-hold"
+    },
+    {
+      "label": "A1.2",
+      "case": "close#writesTheSettledStatus",
+      "file": "tools/issues/close.sh",
+      "search": "[ \"$state_reason\" = \"not_planned\" ] && settled_role=\"retiredStatus\"",
+      "replace": "[ \"$state_reason\" = \"not_planned\" ] && settled_role=\"closeStatus\"",
+      "why": "a person's not-planned decision recording the state a fix records"
+    },
+    {
+      "label": "A1.3",
+      "case": "close#keepsTheItemOpenWhenTheStateCannotBeWritten",
+      "file": "tools/issues/update.sh",
+      "search": "    gh \"${args[@]}\" || issues_die \"update: gh could not write #$number's labels — nothing was recorded\"",
+      "replace": "    gh \"${args[@]}\" || true",
+      "why": "a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry"
+    },
+    {
+      "label": "A1.4",
+      "case": "close#refusesAProfileThatNamesNoSettledState",
+      "file": "tools/issues/close.sh",
+      "search": "settled_status=$(jq -r --arg k \"$settled_role\" '.roles[$k] // empty' \"$profile\")",
+      "replace": "settled_status=$(jq -r --arg k \"$settled_role\" '.roles[$k] // .roles.closeStatus' \"$profile\")",
+      "why": "a half-adapted profile being refused instead of silently recording the fix state"
+    }
+  ]
+}

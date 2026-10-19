@@ -5,8 +5,8 @@ description: Close a tracker issue as the only terminal state — with a reason 
 
 # close-issue
 
-One terminal state, reached in two steps: the reason is posted as a comment, then the issue is closed with a
-`state_reason`. Nothing here deletes anything.
+One terminal state, reached in three steps: the reason is posted as a comment, the settled state is written,
+then the issue is closed with a `state_reason`. Nothing here deletes anything.
 
 **Prerequisites.** `gh` authenticated as an allowlisted author, `jq`, a JDK ≥ 17 on `PATH`
 (`tools/issue-tooling-selftest.sh` runs the same surface offline).
@@ -43,11 +43,18 @@ tools/issues/close.sh 42 --reason "not worth the churn" --evidence "discussion o
 ```
 1. gate        author allowlisted AND the opt-in label present   (exit 3, nothing posted, if not)
 2. comment     the reason, then the evidence
-3. close       --reason completed  (default)  |  --reason not_planned  (--not-planned)
+3. status      the profile's `closeStatus` (`retiredStatus` with `--not-planned`), through `update.sh`
+4. close       --reason completed  (default)  |  --reason not_planned  (--not-planned)
 ```
 
 The comment comes first so a closure can be audited and reversed — the issue carries *why* it was closed
 even after the state changed.
+
+The status write comes before the closure because `status/*` is what every query reads: a closed item that
+still carries the state it was escalated with (`on-hold`, say) reads as open work, and the loop's own path
+(`tools/loop/labels.sh`) writes the status first for exactly that reason. Both paths write it through the same
+`update.sh --status` gate, so the vocabulary and the reserved-label refusal apply unchanged. A status that
+cannot be written leaves the item **open**, with the state it carried, and exits with that write's code.
 
 `state_reason` is not decoration. A declared check may reopen an item it owns, and it may only reopen a
 closure recorded as a **completed fix**; reopening a person's `not_planned` decision would be the tooling

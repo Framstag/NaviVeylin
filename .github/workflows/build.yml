@@ -162,6 +162,10 @@ jobs:
           # `gh issue create` (`fix-issue-filing-state-namespace`, issue #179). Listed for the same reason as
           # the set above: a mutation set that no longer parses fails this step instead of rotting.
           bash tools/mutate.sh --mutations tools/create-mutations.json --list
+          # The closure's settled state (#181, #188): a closed item must read settled whoever closed it, so
+          # the status write, its not-planned sibling and the refusal of a rejected write each have a
+          # mutation. Listed for the same reason as the sets above.
+          bash tools/mutate.sh --mutations tools/close-mutations.json --list
 
       # ── priority metadata ──────────────────────────────────────
       # The gate for the priority invariant (`issue-metadata-loop`, D7): the profile's bands are total, the

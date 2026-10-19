@@ -22,6 +22,10 @@
 # There is no delete path in this tooling, and this script adds none: the issue is the only record of a
 # finding.
 #
+# A closure leaves the item in the settled state the profile names, not in the one it arrived with: the
+# `closeStatus` (`retiredStatus` beside `--not-planned`) is written through `update.sh` before `gh issue
+# close`, so `status/*` states one thing about a closed item whatever closed it (#181, #188).
+#
 # Exit: 0 closed (or commented), 2 usage, 3 policy.
 #
 # Usage: close.sh <issue-number> --reason <text> --evidence <text> [--not-planned] [--comment-only]
@@ -56,7 +60,7 @@ while [ $# -gt 0 ]; do
     --comment-only) comment_only=1; shift ;;
     --sensor) sensor_id="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) issues_die "close: unknown argument $1" ;;
   esac
 done
@@ -122,6 +126,15 @@ if [ -n "$sensor_label" ]; then
   fi
 fi
 
+# The settled state the closure will record (#181, #188). Resolved before the first write, so a profile that
+# names no such state refuses while the item is still untouched — the alternative is a comment explaining a
+# closure that then does not happen.
+settled_role="closeStatus"
+[ "$state_reason" = "not_planned" ] && settled_role="retiredStatus"
+settled_status=$(jq -r --arg k "$settled_role" '.roles[$k] // empty' "$profile")
+[ -n "$settled_status" ] || issues_die \
+  "close: the profile's roles section declares no $settled_role — a closed item would keep the state it carried"
+
 comment=$(printf '%s\n\nEvidence: %s\n' "$reason" "$evidence")
 gh issue comment "$number" --body "$comment" >/dev/null || issues_die "close: gh could not comment on #$number"
 if [ "$comment_only" -eq 1 ]; then
@@ -135,8 +148,23 @@ if [ "$comment_only" -eq 1 ]; then
   fi
   exit "$ISSUES_EXIT_OK"
 fi
-gh issue close "$number" --reason "$state_reason" >/dev/null || issues_die "close: gh could not close #$number"
 
+# The settled state is a label, and a closure that leaves the old one behind makes the item read open to every
+# query that asks the tracker, whatever `gh issue close` recorded (#181). A person's closure and the loop's
+# closure must agree about the state they leave, because a reader cannot tell which path closed an item: the
+# loop's own path writes the status first (`tools/loop/labels.sh`), and this one writes it through the same
+# `update.sh --status` gate, so the closed vocabulary and the reserved-label refusal apply here unchanged and
+# the state the item carried is displaced rather than left beside the new one (#188).
+write_status=0
+bash "$here/update.sh" "$number" --status "$settled_status" --profile "$profile" >&2 || write_status=$?
+if [ "$write_status" -ne 0 ]; then
+  # The closure did not happen: the item is left open with the state it carried, which is the honest outcome —
+  # a half-written item is worse than one a person can still read.
+  printf 'close: the settled state was not written, so #%s was left open\n' "$number" >&2
+  exit "$write_status"
+fi
+gh issue close "$number" --reason "$state_reason" >/dev/null || issues_die \
+  "close: gh could not close #$number — it now carries status/$settled_status, check the tracker"
 if [ "$json" -eq 1 ]; then
   jq -n --argjson issue "$number" --arg stateReason "$state_reason" --arg reason "$reason" \
     '{closed: true, outcome: "closed", issue: $issue, stateReason: $stateReason, reason: $reason}'

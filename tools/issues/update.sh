@@ -185,6 +185,18 @@ if [ "${#add_labels[@]}" -gt 0 ] || [ "${#remove_labels[@]}" -gt 0 ] || \
 fi
 [ "$edit_needed" -eq 1 ] || issues_note "update: #$number already carries $status_label — no label write"
 
+# `gh` rejecting the write is not a state the caller may proceed from: this tool reports `updated: true` and
+# exits 0, and every reader — the loop's labels path, `close.sh`'s status write, a person's repair — treats
+# that as "the tracker now carries this". A token without the scope, a rate limit or a network fault used to
+# exit 0 with the write silently missing (#181). The write therefore lands before the report, not after it.
+if [ "$edit_needed" -eq 1 ]; then
+  if [ "$json" -eq 1 ]; then
+    gh "${args[@]}" >/dev/null || issues_die "update: gh could not write #$number's labels — nothing was recorded"
+  else
+    gh "${args[@]}" || issues_die "update: gh could not write #$number's labels — nothing was recorded"
+  fi
+fi
+
 if [ "$json" -eq 1 ]; then
   # Both arrays default to empty: a legitimate write can add nothing and remove nothing (a state the item
   # already carries), and an empty string would reach `jq --argjson` as invalid JSON and print no document.
@@ -202,9 +214,6 @@ if [ "$json" -eq 1 ]; then
         '{updated: true, issue: $issue, labels: $labels, removedLabels: $removed,
           body: (if $body == "" then null else $body end),
           commented: ($comment != "")}'
-  [ "$edit_needed" -eq 1 ] && gh "${args[@]}" >/dev/null
-else
-  [ "$edit_needed" -eq 1 ] && gh "${args[@]}"
 fi
 if [ -n "$comment" ]; then
   gh issue comment "$number" --body "$comment" >/dev/null || issues_die "update: gh could not comment on #$number"

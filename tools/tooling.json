@@ -35,7 +35,7 @@
     "prio": "The four bands. The band EDGES, the scoring table and the TTL are the `bands` section below — one home, so a re-tuned model is one committed file."
   },
   "roles": {
-    "comment": "THE VOCABULARY'S ROLES — for each decision an engine makes about a value of the namespaces above, which value it means. `tools/loop/prescreen.sh` reads `queuedVerdict`, `workedClasses` (rank order), `refusedClasses`, `inFlightStatus`, `deviceStatus` and `settledStatuses`; `tools/loop/labels.sh` reads `holdStatus`, `closeStatus`, `inProgressAgent`, `deviceAgent` and `decisionAgent`; `tools/loop/run.sh`, `report.sh` and `state.sh` read the verdicts the pre-screen writes; `tools/issues/resolve-stale.sh` reads `holdStatus` to park an item. A key another project does not need is declared empty (`\"\"`, `[]`), never omitted: an absent key is a half-adapted profile, and `tools/check-portability.sh` forbids every value declared here in an engine exactly as it forbids the namespaces' values.",
+    "comment": "THE VOCABULARY'S ROLES — for each decision an engine makes about a value of the namespaces above, which value it means. `tools/loop/prescreen.sh` reads `queuedVerdict`, `workedClasses` (rank order), `refusedClasses`, `inFlightStatus`, `deviceStatus` and `settledStatuses`; `tools/loop/labels.sh` reads `holdStatus`, `closeStatus`, `inProgressAgent`, `deviceAgent` and `decisionAgent`; `tools/loop/run.sh`, `report.sh` and `state.sh` read the verdicts the pre-screen writes; `tools/issues/resolve-stale.sh` reads `holdStatus` to park an item; `tools/issues/close.sh` reads `closeStatus` and `retiredStatus`, the settled state a closure records — a fix and a person's decision not to act, respectively. A key another project does not need is declared empty (`\"\"`, `[]`), never omitted: an absent key is a half-adapted profile, and `tools/check-portability.sh` forbids every value declared here in an engine exactly as it forbids the namespaces' values.",
     "queuedVerdict": "eligible",
     "workedClasses": ["bug", "improvement"],
     "refusedClasses": ["feature"],
@@ -43,6 +43,7 @@
     "deviceStatus": "open-device",
     "holdStatus": "on-hold",
     "closeStatus": "fixed-by",
+    "retiredStatus": "retired",
     "settledStatuses": ["fixed-by", "retired"],
     "inProgressAgent": "in-progress",
     "deviceAgent": "needs-device",

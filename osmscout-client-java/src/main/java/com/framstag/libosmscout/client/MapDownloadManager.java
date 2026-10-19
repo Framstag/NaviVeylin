@@ -96,6 +96,11 @@ public class MapDownloadManager {
     /**
      * Download a map to the specified directory.
      *
+     * The download runs on its own worker thread. Anything that thread terminates with — an
+     * {@link Exception} or an {@link Error}, such as the {@link UnsatisfiedLinkError} a missing native
+     * symbol throws — is reported through {@code listener}, so a worker that dies is a download error the
+     * caller (and a test's listener) sees instead of an uncaught throwable on a thread nobody awaits.
+     *
      * @param entry    the map entry to download
      * @param targetDir local directory to download into
      * @param listener callback for progress and completion events
@@ -114,8 +119,11 @@ public class MapDownloadManager {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 listener.onError(entry.getName(), "Download cancelled");
-            } catch (Exception e) {
-                listener.onError(entry.getName(), e.getMessage());
+            } catch (Throwable e) {
+                // Catch Throwable, not Exception: this is the worker's top-level boundary, and the failures
+                // it must report are Errors too — the first thing the worker does is a native call, and a
+                // linker or class-initialisation failure is an Error (guidelines/Design.md §4).
+                listener.onError(entry.getName(), failureMessage(e));
             } finally {
                 activeDownloads.remove(ad);
             }
@@ -125,6 +133,20 @@ public class MapDownloadManager {
         worker.start();
 
         return handle;
+    }
+
+    /**
+     * The message a failed download reports. An {@link Exception} keeps the message it carried before the
+     * worker caught {@code Throwable} — word for word, because that text reaches the user. An {@link Error}
+     * is never a download outcome, so it is reported as its class plus message rather than as a bare string:
+     * {@code UnsatisfiedLinkError}'s own message is only the native signature, which names no failure.
+     */
+    private static String failureMessage(Throwable failure) {
+        if (failure instanceof Exception) {
+            String message = failure.getMessage();
+            return message != null ? message : failure.toString();
+        }
+        return failure.toString();
     }
 
     /**

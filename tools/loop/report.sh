@@ -40,9 +40,10 @@ closed=$(jq -r '[.items[] | select(.result == "done")] | length' "$LOOP_STATE_FI
 skipped=$(jq -r '[.items[] | select(.result == "skipped")] | length' "$LOOP_STATE_FILE")
 blocked=$(jq -r '[.items[] | select(.result == "blocked")] | length' "$LOOP_STATE_FILE")
 
-printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · may-close %s · max-decisions %s · base %s)\n\n' \
+printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · review rounds %s · may-close %s · max-decisions %s · base %s)\n\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$items" "$minutes" \
-  "$(jq -r '.run.review' "$LOOP_STATE_FILE")" "$(jq -r '.run.mayClose' "$LOOP_STATE_FILE")" \
+  "$(jq -r '.run.review' "$LOOP_STATE_FILE")" "$(jq -r '.run.maxReviewRounds // "?"' "$LOOP_STATE_FILE")" \
+  "$(jq -r '.run.mayClose' "$LOOP_STATE_FILE")" \
   "$(jq -r '.run.maxDecisions' "$LOOP_STATE_FILE")" \
   "$(jq -r '.run.base | .[0:12]' "$LOOP_STATE_FILE")"
 printf 'closed %s · skipped %s · blocked %s · budget left %s items / %s min · spent %s min\n\n' \

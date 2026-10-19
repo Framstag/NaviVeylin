@@ -74,6 +74,9 @@ LOOP_SHELL_CASES=(
   'run#noGateStillRuns'
   'run#dryRunTouchesNothing'
   'run#reviewRoundsCapAtTwo'
+  'run#reviewBudgetIsARecordedValue'
+  'run#aCorrectiveRefusalEarnsOneMoreRound'
+  'run#escalationCarriesTheDecision'
   'run#mayCloseNoLeavesTheIssueOpen'
   'run#metricsRecordedPerItem'
   'run#emptyQueueIsNotAFailure'
@@ -156,6 +159,9 @@ loop_run_shell_case() {
     'run#noGateStillRuns') fn=case_run_noGateStillRuns ;;
     'run#dryRunTouchesNothing') fn=case_run_dryRunTouchesNothing ;;
     'run#reviewRoundsCapAtTwo') fn=case_run_reviewRoundsCapAtTwo ;;
+    'run#reviewBudgetIsARecordedValue') fn=case_run_reviewBudgetIsARecordedValue ;;
+    'run#aCorrectiveRefusalEarnsOneMoreRound') fn=case_run_aCorrectiveRefusalEarnsOneMoreRound ;;
+    'run#escalationCarriesTheDecision') fn=case_run_escalationCarriesTheDecision ;;
     'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
@@ -1013,6 +1019,10 @@ case_prompt_reviewerCarriesTheEightItems() {
   done
   assert_contains "$(cat "$prompt")" "VERDICT: PASS|FAIL" "the reviewer prompt carries the verdict shape"
   assert_contains "$(cat "$prompt")" "must not" "and says the reviewer must not be the writer"
+  # The two fields the run reads back: the decision an escalation carries (#186) and whether the findings are
+  # strictly subtractive, which is what earns the extra round (#187).
+  assert_contains "$(cat "$prompt")" "LOOP-DECISION:" "the decision the escalation will carry"
+  assert_contains "$(cat "$prompt")" "LOOP-CORRECTIONS-ONLY:" "and whether the findings are subtractive"
 }
 
 case_prompt_packageIsAFileAndNotInlined() {
@@ -1538,12 +1548,60 @@ case_run_reviewRoundsCapAtTwo() {
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "two failed rounds block the item"
   assert_eq "2" "$(jq -r '.items[0].metrics.reviewRounds' "$(state_file "$p")")" "the rounds are counted"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "second review round" "the reason names the round"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "last review round" "the reason names the round"
   assert_eq "4" "$(grep -c '^invocation' "$PI_STUB_LOG")" "two workers and two reviewers"
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "agent/needs-decision" "the item is escalated to a decision"
   assert_contains "$log" "status/on-hold" "and put on hold"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# The round budget was the literal `2` in the loop, so a project that reviews harder could not raise it and a
+# reviewer that asked only for corrections still ended the run's work on the item (#187).
+case_run_reviewBudgetIsARecordedValue() {
+  local d p f
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  run_loop "$p" --items 1 --minutes 90 --review on --max-review-rounds 3 >/dev/null 2>&1 ||
+    fail "the run itself failed"
+  f=$(state_file "$p")
+  assert_eq "3" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "the run takes the rounds it was budgeted"
+  assert_eq "3" "$(jq -r '.run.maxReviewRounds' "$f")" "and records the budget it was given"
+  assert_contains "$(run_report "$p")" "review rounds 3" "the report states it beside the other budgets"
+}
+
+# A report whose findings are strictly subtractive needs no new claim, case or assertion — one worker pass can
+# answer it — so a corrective refusal at the cap earns exactly one more round, and a second refusal blocks
+# (#187). The extension is `LOOP-CORRECTIONS-ONLY: yes` in the reviewer's report, which the prompt asks for.
+case_run_aCorrectiveRefusalEarnsOneMoreRound() {
+  local d p f
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL
+LOOP-CORRECTIONS-ONLY: yes
+LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recommended: apply the corrections'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  f=$(state_file "$p")
+  assert_eq "3" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" \
+    "a corrective refusal earns the third round"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "and a third refusal still blocks the item"
+}
+
+# The escalation is what a person reads, so it carries the decision the reviewer already worked out: the
+# question, the options and the recommendation (#186). The reason alone ("a decision is needed") is what the
+# owner had to reconstruct.
+case_run_escalationCarriesTheDecision() {
+  local d p log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL
+LOOP-CORRECTIONS-ONLY: no
+LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recommended: apply the corrections'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "**The decision:**" "the escalation names the decision it asks for"
+  assert_contains "$log" "recommended: apply the corrections" "including the reviewer's recommendation"
 }
 
 case_run_mayCloseNoLeavesTheIssueOpen() {

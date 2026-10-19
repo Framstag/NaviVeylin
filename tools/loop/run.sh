@@ -29,6 +29,7 @@ minutes=""
 review=""
 may_close=""
 max_decisions=""
+max_review_rounds=""
 push="no"
 read_only="on"
 dry_run=0
@@ -43,6 +44,7 @@ while [ $# -gt 0 ]; do
     --may-close) may_close="${2:-}"; shift 2 ;;
     --push) push="${2:-}"; shift 2 ;;
     --max-decisions) max_decisions="${2:-}"; shift 2 ;;
+    --max-review-rounds) max_review_rounds="${2:-}"; shift 2 ;;
     --review-read-only) read_only="${2:-}"; shift 2 ;;
     --base) base="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
@@ -65,8 +67,9 @@ export LOOP_CONF="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
 : "${review:=$(loop_conf_value LOOP_REVIEW_DEFAULT)}"
 : "${may_close:=$(loop_conf_value LOOP_MAY_CLOSE_DEFAULT)}"
 : "${max_decisions:=$(loop_conf_value LOOP_MAX_DECISIONS_DEFAULT)}"
+: "${max_review_rounds:=$(loop_conf_value LOOP_MAX_REVIEW_ROUNDS_DEFAULT)}"
 
-for pair in "items=$items" "minutes=$minutes" "max-decisions=$max_decisions"; do
+for pair in "items=$items" "minutes=$minutes" "max-decisions=$max_decisions" "max-review-rounds=$max_review_rounds"; do
   case "${pair#*=}" in ''|*[!0-9]*) loop_die "run: ${pair%%=*} must be a non-negative integer" ;; esac
 done
 case "$review" in on|off) ;; *) loop_die "run: --review must be on or off" ;; esac
@@ -81,10 +84,12 @@ if [ -z "$(printf '%s' "${LOOP_AGENT_CMD:-}" | tr -d '[:space:]')" ]; then
 fi
 
 # The run header names every effective value, so a run can be repeated and audited (D2).
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s review-read-only=%s dry-run=%s reset-worktree=%s\n' \
-  "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$read_only" "$dry_run" "$reset_worktree"
+printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s dry-run=%s reset-worktree=%s\n' \
+  "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
+  "$read_only" "$dry_run" "$reset_worktree"
 
-init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" --max-decisions "$max_decisions")
+init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" \
+  --max-decisions "$max_decisions" --max-review-rounds "$max_review_rounds")
 if [ -n "$base" ]; then init_args+=(--base "$base"); fi
 loop_state init "${init_args[@]}" || exit $?
 base=$(loop_state get run.base)
@@ -525,7 +530,14 @@ while true; do
   if [ "$outcome" = "closed" ] && [ "$review" = "on" ]; then
     review_verdict="FAIL"
     round=1
-    while [ "$round" -le 2 ]; do
+    # The round budget is the recorded one (`--max-review-rounds`, or the config's default), and one
+    # corrective refusal extends it by a round: a report that asks only for deletions, corrected pointers or
+    # narrower wording is answerable by one worker pass, and blocking it hands a person work the loop could
+    # finish (#187). A second failed report — or a first one that adds a claim, a case or an assertion — still
+    # blocks, which is the line the prompt draws.
+    round_cap="$max_review_rounds"
+    corrective_round_used=0
+    while [ "$round" -le "$round_cap" ]; do
       review_rounds=$round
       diff_file="$item_dir/review-$round.diff"
       git -C "$worktree" diff "$base"..HEAD > "$diff_file"
@@ -546,7 +558,17 @@ while true; do
         review_verdict="PASS"
         break
       fi
-      if [ "$round" -eq 2 ]; then break; fi
+      if [ "$round" -ge "$round_cap" ]; then
+        # A corrective refusal earns one more round, once: a reviewer that says "nothing here adds a claim" has
+        # answered the question its FAIL otherwise leaves open (#186, #187).
+        corrections_only=$(report_field "$item_dir/reviewer-report-$round.md" LOOP-CORRECTIONS-ONLY)
+        if [ "$corrective_round_used" -eq 0 ] && [ "$corrections_only" = "yes" ]; then
+          corrective_round_used=1
+          round_cap=$((round_cap + 1))
+        else
+          break
+        fi
+      fi
       # FAIL: the same change goes back to a new worker process with the reviewer's findings.
       findings=$(cat "$item_dir/reviewer-report-$round.md")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
@@ -569,7 +591,7 @@ while true; do
     done
     if [ "$review_verdict" = "FAIL" ]; then
       outcome="blocked"
-      blocked_reason="the change failed its second review round — a decision is needed, not a third attempt"
+      blocked_reason="the change failed its last review round ($review_rounds of $round_cap) — a decision is needed, not another attempt"
       # The verdict has to outlive this run and travel with the change: the branch is what a later run adopts
       # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185).
       bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$review_rounds" >&2 ||
@@ -623,7 +645,17 @@ while true; do
       # that names the reason and the work already done, and the label it wrote is recorded with the item, so
       # the report names it as the run's own escalation (issue #177).
       escalated_label=""
-      if loop_labels escalate "$issue" --reason "${blocked_reason:-the item was blocked}" \
+      # The block's escalation carries the decision itself, not only the news that one is needed: the reviewer
+      # already answered the question when it wrote its report, so the owner reads the options and the
+      # recommendation instead of re-deriving them (#186).
+      escalation_reason="${blocked_reason:-the item was blocked}"
+      decision_field=$(report_field "$item_dir/reviewer-report-$review_rounds.md" LOOP-DECISION 2>/dev/null || true)
+      if [ -n "$decision_field" ]; then
+        escalation_reason="$escalation_reason
+
+**The decision:** $decision_field"
+      fi
+      if loop_labels escalate "$issue" --reason "$escalation_reason" \
         --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
         escalated_label="$decision_label"   # the block's own escalation
       fi

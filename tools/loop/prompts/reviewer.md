@@ -42,3 +42,18 @@ VERDICT: PASS|FAIL
 On FAIL, name the exact things to change. A round-2 finding that is **strictly subtractive** — delete a
 claim, correct a pointer, remove a wrong quote, narrow a scenario mapping — needs no third review; anything
 that adds a claim, a case or an assertion does.
+
+Two machine-read lines follow the verdict on FAIL, because the run renders them into the escalation a person
+reads and decides how many rounds one item gets:
+
+```
+LOOP-CORRECTIONS-ONLY: yes|no
+LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why>
+```
+
+`LOOP-CORRECTIONS-ONLY: yes` states that every finding is subtractive — a deletion, a corrected pointer, a
+narrower wording — so one worker pass can satisfy it and the change needs no new claim, case or assertion.
+`LOOP-DECISION` is what the item's escalation will carry: name what a person must choose between (merge as it
+stands, apply the corrections, re-run the change, abandon it) and say which you recommend. An escalation that
+says only "a decision is needed" leaves the owner to reconstruct the question from your report, which is the
+defect this line exists to prevent.

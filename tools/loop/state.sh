@@ -16,7 +16,7 @@
 #
 # Usage:
 #   state.sh init --items N --minutes M [--review on|off] [--may-close yes|no]
-#                 [--max-decisions N] [--base <sha>]
+#                 [--max-decisions N] [--max-review-rounds N] [--base <sha>]
 #   state.sh show
 #   state.sh get <jq-path>              # e.g. `get run.base`
 #   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
@@ -109,7 +109,7 @@ require_state() {
 
 cmd_init() {
   state_resolve
-  local items="" minutes="" review="" may_close="" max_decisions="" base=""
+  local items="" minutes="" review="" may_close="" max_decisions="" max_review_rounds="" base=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --items) items="${2:-}"; shift 2 ;;
@@ -117,6 +117,7 @@ cmd_init() {
       --review) review="${2:-}"; shift 2 ;;
       --may-close) may_close="${2:-}"; shift 2 ;;
       --max-decisions) max_decisions="${2:-}"; shift 2 ;;
+      --max-review-rounds) max_review_rounds="${2:-}"; shift 2 ;;
       --base) base="${2:-}"; shift 2 ;;
       *) loop_die "init: unknown argument $1" ;;
     esac
@@ -128,9 +129,11 @@ cmd_init() {
   [ -n "$review" ] || review=$(loop_conf_value LOOP_REVIEW_DEFAULT)
   [ -n "$may_close" ] || may_close=$(loop_conf_value LOOP_MAY_CLOSE_DEFAULT)
   [ -n "$max_decisions" ] || max_decisions=$(loop_conf_value LOOP_MAX_DECISIONS_DEFAULT)
+  [ -n "$max_review_rounds" ] || max_review_rounds=$(loop_conf_value LOOP_MAX_REVIEW_ROUNDS_DEFAULT)
   case "$items" in ''|*[!0-9]*) loop_die "init: --items must be a non-negative integer" ;; esac
   case "$minutes" in ''|*[!0-9]*) loop_die "init: --minutes must be a non-negative integer" ;; esac
   case "$max_decisions" in ''|*[!0-9]*) loop_die "init: --max-decisions must be a non-negative integer" ;; esac
+  case "$max_review_rounds" in ''|*[!0-9]*) loop_die "init: --max-review-rounds must be a positive integer" ;; esac
   case "$review" in on|off) ;; *) loop_die "init: --review must be on or off" ;; esac
   case "$may_close" in yes|no) ;; *) loop_die "init: --may-close must be yes or no" ;; esac
   [ -n "$base" ] || base=$(git -C "$LOOP_ROOT" rev-parse HEAD 2>/dev/null) || loop_die "init: cannot read the current commit"
@@ -140,15 +143,17 @@ cmd_init() {
   deadline=$(( started + minutes * 60 ))
   write_state "$(jq -n \
     --argjson items "$items" --argjson minutes "$minutes" --argjson maxDecisions "$max_decisions" \
+    --argjson maxReviewRounds "$max_review_rounds" \
     --argjson started "$started" --argjson deadline "$deadline" \
     --arg review "$review" --arg mayClose "$may_close" --arg base "$base" \
     --arg startedAt "$(iso_utc "$started")" --arg deadlineAt "$(iso_utc "$deadline")" \
     '{run:{items:$items, minutes:$minutes, review:$review, mayClose:$mayClose,
-           maxDecisions:$maxDecisions, base:$base, startedAt:$startedAt, startedEpoch:$started,
+           maxDecisions:$maxDecisions, maxReviewRounds:$maxReviewRounds, base:$base,
+           startedAt:$startedAt, startedEpoch:$started,
            deadlineAt:$deadlineAt, deadlineEpoch:$deadline},
       queue:[], excluded:[], current:null, items:[], steps:[]}')"
-  printf 'state: budget %s items / %s min · review %s · may-close %s · max-decisions %s · base %s\n' \
-    "$items" "$minutes" "$review" "$may_close" "$max_decisions" "${base:0:12}"
+  printf 'state: budget %s items / %s min · review %s · may-close %s · max-decisions %s · max-review-rounds %s · base %s\n' \
+    "$items" "$minutes" "$review" "$may_close" "$max_decisions" "$max_review_rounds" "${base:0:12}"
   printf 'state: deadline %s\n' "$(iso_utc "$deadline")"
 }
 

@@ -48,13 +48,17 @@ Report every throwable through the listener the worker was started with, at the 
 }
 ```
 
-with `failureMessage(Throwable)` returning `getMessage()` when it is non-null (so an `Exception`'s message is
-byte-identical to today's) and `toString()` otherwise (so an `Error` names its class):
+with `failureMessage(Throwable)` returning an `Exception`'s own `getMessage()` when it has one (so its message
+is byte-identical to today's) and `toString()` for an `Error` and for a message-less `Exception` (so an `Error`
+names its class — `UnsatisfiedLinkError`'s own message is only the native signature):
 
 ```java
 private static String failureMessage(Throwable failure) {
-    String message = failure.getMessage();
-    return message != null ? message : failure.toString();
+    if (failure instanceof Exception) {
+        String message = failure.getMessage();
+        return message != null ? message : failure.toString();
+    }
+    return failure.toString();
 }
 ```
 

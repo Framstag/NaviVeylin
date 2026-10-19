@@ -47,10 +47,11 @@ Additive. Rollback: revert the two files; nothing depends on the new behaviour.
 
 None.
 
-### Modified Capabilities
+### Added Requirements
 
-- `map-download-infrastructure`: "Error handling for download failures" gains one scenario — a worker
-  that dies of an `Error` reports it through the listener. The requirement's text is unchanged.
+- `map-download-infrastructure`: one new requirement, "A download worker that dies reports the failure",
+  with two scenarios — an `Error` from the worker's first native call is reported through the listener, and
+  an `Exception` keeps its own message. No existing requirement's text moves.
 
 ## Impact
 

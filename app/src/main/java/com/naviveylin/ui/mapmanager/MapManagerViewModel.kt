@@ -13,6 +13,7 @@ import com.framstag.libosmscout.client.MapProvider
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.mapsource.DatabaseMetadata
 import com.naviveylin.core.mapsource.DatabaseMetadataResult
+import com.naviveylin.core.mapsource.DatabaseMetadataParser
 import com.naviveylin.core.mapsource.DownloadOutcome
 import com.naviveylin.core.mapsource.IndexRegion
 import com.naviveylin.core.mapsource.MapSource
@@ -49,6 +50,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import javax.inject.Inject
 
@@ -432,6 +435,55 @@ class MapManagerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Delete one installed map directory, finishing what the native delete leaves behind.
+     *
+     * `MapDirectory::DeleteDatabase()` removes the files in its own lists and then needs the directory to be
+     * empty (`MapDirectory.cpp:144-174`). A repository installation always holds files those lists do not
+     * know — the app's `db.json` ([DatabaseMetadataParser.METADATA_FILE_NAME]) and `.source.json`
+     * ([MapSourceMarker.FILE_NAME]), and the mapgen slot's `ptroutes.dat` — so the native call reports
+     * failure and leaves an invalid directory behind that the app can neither use nor download again
+     * (issue #119). The app therefore removes the directory tree itself, the way the basemap's delete
+     * already does, and asks the map manager once more: on an absent directory `DeleteDatabase()` succeeds
+     * (`RemoveFile` treats a missing file as removed, `File.cpp:42-52`), which is what drops the map
+     * manager's registration (spec `map-download-infrastructure` — "Delete removes map manager
+     * registration").
+     *
+     * Only a directory inside the maps root is swept: a path outside it is not this app's to remove
+     * recursively, so a native failure there stays a failure.
+     *
+     * @return whether the directory is gone; an already absent directory counts as deleted
+     */
+    private fun deleteMapDirectory(path: String): Boolean {
+        if (downloadManager.deleteMap(path)) {
+            return true
+        }
+
+        val directory = Paths.get(path)
+        removeDirectoryTree(directory)
+        if (!Files.exists(directory)) {
+            downloadManager.deleteMap(path)
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Remove [directory] and everything below it, when it lies inside the maps root.
+     *
+     * @return whether the directory is gone afterwards
+     */
+    private fun removeDirectoryTree(directory: Path): Boolean {
+        val root = storageManager.mapsRootDir.toAbsolutePath().normalize()
+        if (!directory.toAbsolutePath().normalize().startsWith(root) || !Files.isDirectory(directory)) {
+            return !Files.exists(directory)
+        }
+        Files.walk(directory).use { paths ->
+            paths.sorted(Comparator.reverseOrder()).forEach { runCatching { Files.deleteIfExists(it) } }
+        }
+        return !Files.exists(directory)
+    }
+
     fun refreshInstalledMaps() {
         viewModelScope.launch(ioDispatcher) {
             try {
@@ -690,7 +742,7 @@ class MapManagerViewModel @Inject constructor(
         val path = storageManager.targetDirPath(mapName)
         viewModelScope.launch(ioDispatcher) {
             try {
-                val deleted = downloadManager.deleteMap(path)
+                val deleted = deleteMapDirectory(path)
                 if (deleted) {
                     refreshInstalledMaps()
                 } else {
@@ -905,7 +957,7 @@ class MapManagerViewModel @Inject constructor(
         val failed = MapSourceSwitchUseCase(
             switcher = switcher,
             unregister = { directory ->
-                runCatching { downloadManager.deleteMap(directory.toString()) }
+                runCatching { deleteMapDirectory(directory.toString()) }
                     .onFailure { Log.w(TAG, "could not unregister ${directory.fileName}") }
             },
             persist = { source -> settingsStorage.update { it.withSelectedMapSource(source) } },

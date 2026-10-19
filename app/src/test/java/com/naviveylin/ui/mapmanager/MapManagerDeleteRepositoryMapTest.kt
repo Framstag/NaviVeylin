@@ -1,0 +1,148 @@
+package com.naviveylin.ui.mapmanager
+
+import android.app.Application
+import androidx.test.core.app.ApplicationProvider
+import com.framstag.libosmscout.client.FakeMapDownloadManager
+import com.framstag.libosmscout.client.MapProvider
+import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.mapsource.DatabaseMetadataParser
+import com.naviveylin.core.mapsource.MapSourceKind
+import com.naviveylin.core.mapsource.MapSourceMarker
+import com.naviveylin.core.mapsource.MapSourceRecord
+import com.naviveylin.data.AppSettings
+import com.naviveylin.data.HttpUrlFetcher
+import com.naviveylin.data.MapSourceRegistry
+import com.naviveylin.data.MapStorageManager
+import com.naviveylin.data.SettingsStorage
+import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+/**
+ * Unit tests for deleting an installed map whose directory holds files the native database delete does not
+ * know — the app's own `db.json` and `.source.json` and the slot's `ptroutes.dat`.
+ *
+ * The native delete removes the files in `MapDirectory::MandatoryFiles()`/`OptionalFiles()`/`MetadataFiles()`
+ * and then needs the directory to be empty (`MapDirectory.cpp:144-174`). A repository installation always
+ * holds files outside those lists, so it reports failure and leaves an invalid directory behind — the
+ * defect of issue #119, found on `emulator-5554` while applying `add-map-update-check`.
+ *
+ * Spec: map-download-infrastructure — "Deleting an installation removes the whole directory".
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+class MapManagerDeleteRepositoryMapTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private val provider = MapProvider("test", "http://127.0.0.1:1", "http://127.0.0.1:1/list.php")
+    private val directoryName = "europe-germany-bremen"
+
+    private lateinit var storageManager: MapStorageManager
+    private lateinit var settings: SettingsStorage
+    private lateinit var downloadManager: FakeMapDownloadManager
+
+    @Before
+    fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        storageManager = MapStorageManager(context)
+        storageManager.mapsRootDir.toFile().deleteRecursively()
+        settings = SettingsStorage(context)
+    }
+
+    @Test
+    fun deletingARepositoryInstallationRemovesItsDirectory() = runTest(mainDispatcherRule.dispatcher) {
+        val directory = installRepositoryMapWithLeftovers()
+        val viewModel = viewModel()
+
+        viewModel.deleteMap(directoryName)
+        advanceUntilIdle()
+
+        assertFalse(
+            "the directory the native delete cannot empty must be gone after the app's own removal",
+            Files.exists(directory)
+        )
+        assertNull(
+            "the delete succeeded, so the map manager shows no failure banner",
+            viewModel.uiState.value.error
+        )
+    }
+
+    @Test
+    fun theDeleteIsRepeatedSoTheMapManagerDropsTheRegistration() = runTest(mainDispatcherRule.dispatcher) {
+        val directory = installRepositoryMapWithLeftovers()
+        val viewModel = viewModel()
+
+        viewModel.deleteMap(directoryName)
+        advanceUntilIdle()
+
+        assertEquals(
+            "the map manager is asked again once the directory is gone, which is what drops its registration",
+            listOf(directory.toString(), directory.toString()),
+            downloadManager.deleted
+        )
+        assertFalse(
+            "and the map no longer appears in the installed list",
+            directory.toString() in viewModel.uiState.value.installedMapPaths
+        )
+    }
+
+    private fun viewModel(): MapManagerViewModel {
+        val registry = MapSourceRegistry(settings, provider, HttpUrlFetcher())
+        downloadManager = FakeMapDownloadManager(
+            installedDirs = ::installedMapDirectories,
+            // The native rule, mirrored: `DeleteDatabase()` succeeds only when the directory is gone.
+            deleteSucceeds = { path -> !Files.exists(Paths.get(path)) }
+        )
+        val viewModel = mapManagerViewModelForTest(
+            ApplicationProvider.getApplicationContext<Application>(),
+            downloadManager,
+            storageManager,
+            provider,
+            settings,
+            registry,
+            BasemapReloadNotifier()
+        )
+        viewModel.ioDispatcher = mainDispatcherRule.dispatcher
+        kotlinx.coroutines.runBlocking { settings.save(AppSettings()) }
+        settings.ioDispatcher = mainDispatcherRule.dispatcher
+        return viewModel
+    }
+
+    /** The installed map directories as a scan of the maps root reports them. */
+    private fun installedMapDirectories(): List<String> =
+        storageManager.mapsRootDir.toFile()
+            .listFiles()
+            ?.filter { it.isDirectory }
+            ?.map { it.absolutePath }
+            ?: emptyList()
+
+    /**
+     * The state the device was left in: the map's own files, plus what the native file lists do not know —
+     * the app's `db.json`, the source marker `.source.json` and the mapgen slot's `ptroutes.dat`.
+     */
+    private fun installRepositoryMapWithLeftovers(): Path {
+        val directory = storageManager.mapsRootDir.resolve(directoryName)
+        Files.createDirectories(directory)
+        Files.write(directory.resolve(DatabaseMetadataParser.METADATA_FILE_NAME), ByteArray(2635))
+        Files.write(directory.resolve("ptroutes.dat"), ByteArray(402_761))
+        MapSourceMarker.write(
+            directory,
+            MapSourceRecord(MapSourceKind.REPOSITORY, "https://maps.example.org/repo", 27)
+        )
+        return directory
+    }
+}

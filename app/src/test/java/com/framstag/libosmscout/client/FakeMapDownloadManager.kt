@@ -8,10 +8,16 @@ package com.framstag.libosmscout.client
  * its JNI-backed methods are never called here.
  *
  * @param installedDirs answers [getInstalledMaps]
+ * @param deleteSucceeds answers [deleteMap]; the default accepts every delete. A test that exercises
+ *        what the app does when the native delete reports failure passes the native rule itself —
+ *        `MapDirectory::DeleteDatabase()` succeeds only when the directory is gone afterwards
+ *        (`MapDirectory.cpp:144-174`, and `RemoveFile` treats a missing file as removed,
+ *        `File.cpp:42-52`), so `{ path -> !Files.exists(Path.of(path)) }` mirrors it
  */
 class FakeMapDownloadManager(
     private val installedDirs: () -> List<String>,
-    private val availableMaps: List<AvailableMapEntry> = emptyList()
+    private val availableMaps: List<AvailableMapEntry> = emptyList(),
+    private val deleteSucceeds: (String) -> Boolean = { true }
 ) : MapDownloadManager(null) {
 
     /** Directories this fake was asked to delete, in call order. */
@@ -27,7 +33,7 @@ class FakeMapDownloadManager(
 
     override fun deleteMap(path: String): Boolean {
         deleted += path
-        return true
+        return deleteSucceeds(path)
     }
 
     override fun registerMapDirectory(path: String): Boolean {

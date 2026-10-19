@@ -1,6 +1,7 @@
 package com.naviveylin.ui.mapmanager
 
 import android.app.Application
+import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeMapDownloadManager
 import com.framstag.libosmscout.client.MapProvider
@@ -16,11 +17,13 @@ import com.naviveylin.data.MapStorageManager
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -90,7 +93,7 @@ class MapManagerDeleteRepositoryMapTest {
         advanceUntilIdle()
 
         assertEquals(
-            "the map manager is asked again once the directory is gone, which is what drops its registration",
+            "the native delete is asked twice: once by the action, once after the sweep",
             listOf(directory.toString(), directory.toString()),
             downloadManager.deleted
         )
@@ -100,7 +103,42 @@ class MapManagerDeleteRepositoryMapTest {
         )
     }
 
-    private fun viewModel(): MapManagerViewModel {
+    /**
+     * A refused delete of a directory outside the maps root is not the app's to sweep, so it stays a failure.
+     *
+     * The path comes through the public action: a map name with a parent segment resolves outside the maps
+     * root (`MapStorageManager.targetDirForMap`), which is the only way a path that is not an installation's
+     * directory can reach the delete.
+     */
+    @Test
+    fun aDirectoryOutsideTheMapsRootIsNotSwept() = runTest(mainDispatcherRule.dispatcher) {
+        installRepositoryMapWithLeftovers()
+        val outside = storageManager.mapsRootDir.parent.resolve("outside-the-maps-root")
+        Files.createDirectories(outside)
+        Files.write(outside.resolve("keep.txt"), ByteArray(4))
+        val viewModel = viewModel()
+        val name = "../${outside.fileName}"
+
+        viewModel.deleteMap(name)
+        advanceUntilIdle()
+
+        assertTrue(
+            "a directory outside the maps root must not be swept",
+            Files.exists(outside.resolve("keep.txt"))
+        )
+        assertEquals(
+            "the native delete is asked once: a refusal outside the maps root is not retried",
+            listOf(storageManager.targetDirPath(name)),
+            downloadManager.deleted
+        )
+        assertEquals(
+            "the refusal stands, so the map manager shows the failure banner",
+            "Failed to delete map: $name",
+            viewModel.uiState.value.error
+        )
+    }
+
+    private suspend fun viewModel(): MapManagerViewModel {
         val registry = MapSourceRegistry(settings, provider, HttpUrlFetcher())
         downloadManager = FakeMapDownloadManager(
             installedDirs = ::installedMapDirectories,
@@ -116,6 +154,11 @@ class MapManagerDeleteRepositoryMapTest {
             registry,
             BasemapReloadNotifier()
         )
+        // The constructor's own refresh (`MapManagerViewModel.kt:250`) launches on the default
+        // `Dispatchers.IO` before this test can replace the dispatcher, so `advanceUntilIdle()` cannot see it
+        // and its `installedMapPaths` write could land after the delete's refresh — the one flake the first
+        // post-fix run showed. Joining it here makes the case observe only writes it drove itself.
+        viewModel.viewModelScope.coroutineContext[Job]?.children?.toList()?.forEach { it.join() }
         viewModel.ioDispatcher = mainDispatcherRule.dispatcher
         kotlinx.coroutines.runBlocking { settings.save(AppSettings()) }
         settings.ioDispatcher = mainDispatcherRule.dispatcher

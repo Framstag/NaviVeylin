@@ -1,0 +1,6 @@
+$ bash tools/loop-selftest.sh --case prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+$ bash tools/loop-selftest.sh --case prescreen#escalatedItemKeepsItsBranchAsEvidence
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+$ bash tools/loop-selftest.sh --case run#awaitingDecisionIsNotEscalatedAgain
+PASS run#awaitingDecisionIsNotEscalatedAgain

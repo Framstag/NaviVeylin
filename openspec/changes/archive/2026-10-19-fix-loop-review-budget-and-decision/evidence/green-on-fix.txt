@@ -1,0 +1,8 @@
+$ bash tools/loop-selftest.sh --case run#reviewBudgetIsARecordedValue
+PASS run#reviewBudgetIsARecordedValue
+$ bash tools/loop-selftest.sh --case run#aCorrectiveRefusalEarnsOneMoreRound
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+$ bash tools/loop-selftest.sh --case run#aZeroRoundBudgetIsRefused
+PASS run#aZeroRoundBudgetIsRefused
+$ bash tools/loop-selftest.sh --case run#escalationCarriesTheDecision
+PASS run#escalationCarriesTheDecision

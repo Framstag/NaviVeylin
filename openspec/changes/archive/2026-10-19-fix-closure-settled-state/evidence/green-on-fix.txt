@@ -1,0 +1,11 @@
+$ bash tools/issue-tooling-selftest.sh --case close#writesTheSettledStatus
+PASS close#writesTheSettledStatus
+
+$ bash tools/issue-tooling-selftest.sh --case close#keepsTheItemOpenWhenTheStateCannotBeWritten
+PASS close#keepsTheItemOpenWhenTheStateCannotBeWritten
+
+$ bash tools/issue-tooling-selftest.sh --case close#writesNothingWhenTheItemAlreadyCarriesTheState
+PASS close#writesNothingWhenTheItemAlreadyCarriesTheState
+
+$ bash tools/issue-tooling-selftest.sh --case close#refusesAProfileThatNamesNoSettledState
+PASS close#refusesAProfileThatNamesNoSettledState

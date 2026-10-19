@@ -1,0 +1,16 @@
+$ bash tools/mutate.sh --mutations tools/close-mutations.json --only "A1.1 A1.2 A1.3 A1.4"
+A1.1	close#writesTheSettledStatus	the settled state being written before the closure — without it an item is closed and still reads on-hold
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/close.sh
+  GREEN(exit 0)  restored, and the case passes again
+A1.2	close#writesTheSettledStatus	a person's not-planned decision recording the state a fix records
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/close.sh
+  GREEN(exit 0)  restored, and the case passes again
+A1.3	close#keepsTheItemOpenWhenTheStateCannotBeWritten	a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/update.sh
+  GREEN(exit 0)  restored, and the case passes again
+A1.4	close#refusesAProfileThatNamesNoSettledState	a half-adapted profile being refused instead of silently recording the fix state
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/close.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 4 mutation(s) run, 4 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

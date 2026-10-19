@@ -1,0 +1,7 @@
+$ bash tools/loop-mutations.sh --only "18.1 18.2"
+RED    18.1  worktree#refusesABranchWhoseReviewFailed   (adoption reading the verdict the reviewer left on the branch)
+restore 18.1 worktree#refusesABranchWhoseReviewFailed green again
+RED    18.2  run#recordsAFailedReviewOnTheBranch   (the run committing the reviewer verdict onto the item branch)
+restore 18.2 run#recordsAFailedReviewOnTheBranch green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

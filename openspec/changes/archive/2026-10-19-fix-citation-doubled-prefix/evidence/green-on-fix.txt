@@ -1,0 +1,4 @@
+$ bash tools/resolve-stale-selftest.sh --case resolver#doubledPrefixIsCollapsed
+PASS resolver#doubledPrefixIsCollapsed
+$ bash tools/issue-tooling-selftest.sh --case create#refusesADoubledCitation
+PASS create#refusesADoubledCitation

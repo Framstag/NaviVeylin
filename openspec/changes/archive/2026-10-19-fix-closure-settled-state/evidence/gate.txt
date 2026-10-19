@@ -1,0 +1,8 @@
+$ bash tools/loop-selftest.sh
+loop-selftest: all 76 cases passed (JDK 27, offline, no token, no sandbox)
+$ bash tools/issue-tooling-selftest.sh
+issue-tooling-selftest: all 83 cases passed (JDK 27, offline, no token)
+$ bash tools/resolve-stale-selftest.sh
+resolve-stale-selftest: all 21 cases passed (JDK 27, offline, no token, no Gradle)
+$ bash tools/check-portability.sh
+check-portability: OK — 40 engines and 2 templates name no project value (97 value(s) read from the project)

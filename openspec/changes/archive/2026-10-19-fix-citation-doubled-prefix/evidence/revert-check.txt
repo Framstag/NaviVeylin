@@ -1,0 +1,15 @@
+$ bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --only 5.10
+5.10	resolver#doubledPrefixIsCollapsed	the collapse of a citation that repeats its own directory, before the rename and symbol steps (#189)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+
+$ bash tools/mutate.sh --mutations tools/create-mutations.json --only 1.2
+1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/create.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

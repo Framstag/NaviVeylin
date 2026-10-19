@@ -1,0 +1,11 @@
+$ bash tools/loop-mutations.sh --only "16.1 16.2 16.3 20.3"
+RED    16.1  run#stopReasonIsPrintedAndReported   (the run recording the stop condition `next` named, on every path that leaves the loop)
+restore 16.1 run#stopReasonIsPrintedAndReported green again
+RED    16.2  run#stopReasonIsPrintedAndReported   (the run printing the stop condition it was given)
+restore 16.2 run#stopReasonIsPrintedAndReported green again
+RED    16.3  run#stopReasonIsPrintedAndReported   (the report repeating the recorded stop reason)
+restore 16.3 run#stopReasonIsPrintedAndReported green again
+RED    20.3  run#stopReasonIsPrintedAndReported   (the run recording the reason it stopped on every exit path)
+restore 20.3 run#stopReasonIsPrintedAndReported green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

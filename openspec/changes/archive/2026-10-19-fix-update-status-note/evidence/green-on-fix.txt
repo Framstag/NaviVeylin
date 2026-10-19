@@ -1,0 +1,2 @@
+$ bash tools/issue-tooling-selftest.sh --case update#commentOnlyReportsNoStatusWrite
+PASS update#commentOnlyReportsNoStatusWrite

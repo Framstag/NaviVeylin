@@ -1,0 +1,2 @@
+$ bash tools/loop-selftest.sh --case run#stopReasonIsPrintedAndReported
+PASS run#stopReasonIsPrintedAndReported

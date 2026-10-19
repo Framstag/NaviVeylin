@@ -14,7 +14,7 @@
       "label": "1.2",
       "case": "create#refusesADoubledCitation",
       "file": "tools/issues/create.sh",
-      "search": "    [ \"$(issues_citation_class \"$collapsed\")\" != \"absent\" ] || continue",
+      "search": "  [ \"$(issues_citation_class \"$collapsed\")\" != \"absent\" ] || continue",
       "replace": "    continue",
       "why": "the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)"
     }

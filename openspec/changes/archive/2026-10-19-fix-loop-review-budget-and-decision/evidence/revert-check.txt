@@ -1,0 +1,11 @@
+$ bash tools/loop-mutations.sh --only "19.1 19.2 19.3 20.4"
+RED    19.1  run#reviewBudgetIsARecordedValue   (the round budget coming from the recorded value instead of a literal)
+restore 19.1 run#reviewBudgetIsARecordedValue green again
+RED    19.2  run#aCorrectiveRefusalEarnsOneMoreRound   (the extra round a corrective refusal earns)
+restore 19.2 run#aCorrectiveRefusalEarnsOneMoreRound green again
+RED    19.3  run#escalationCarriesTheDecision   (the escalation carrying the reviewer decision)
+restore 19.3 run#escalationCarriesTheDecision green again
+RED    20.4  run#aZeroRoundBudgetIsRefused   (the refusal of a review budget that never runs)
+restore 20.4 run#aZeroRoundBudgetIsRefused green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

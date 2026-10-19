@@ -1,0 +1,11 @@
+$ bash tools/loop-mutations.sh --only "17.1 17.2 20.1 20.2"
+RED    17.1  prescreen#itemAwaitingADecisionIsNotQueued   (the clause that leaves an item awaiting a decision to its owner)
+restore 17.1 prescreen#itemAwaitingADecisionIsNotQueued green again
+RED    17.2  run#awaitingDecisionIsNotEscalatedAgain   (the run not re-escalating an item that already carries the escalation label)
+restore 17.2 run#awaitingDecisionIsNotEscalatedAgain green again
+RED    20.1  prescreen#itemAwaitingADecisionIsNotQueued   (`alreadyEscalated` following the label rather than the hold)
+restore 20.1 prescreen#itemAwaitingADecisionIsNotQueued green again
+RED    20.2  prescreen#escalatedItemKeepsItsBranchAsEvidence   (the awaiting clause not overwriting the branch the adoption path reads)
+restore 20.2 prescreen#escalatedItemKeepsItsBranchAsEvidence green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

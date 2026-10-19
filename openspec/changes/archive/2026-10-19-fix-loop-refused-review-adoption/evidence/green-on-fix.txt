@@ -1,0 +1,4 @@
+$ bash tools/loop-selftest.sh --case run#recordsAFailedReviewOnTheBranch
+PASS run#recordsAFailedReviewOnTheBranch
+$ bash tools/loop-selftest.sh --case worktree#refusesABranchWhoseReviewFailed
+PASS worktree#refusesABranchWhoseReviewFailed

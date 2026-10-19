@@ -35,6 +35,11 @@ LOOP_SHELL_CASES=(
   'prescreen#previousAttemptBranchIsADecision'
   'prescreen#itemAwaitingADecisionIsNotQueued'
   'prescreen#aHoldWithNoDecisionIsNotADecision'
+  'prescreen#harnessItemsLeadTheQueue'
+  'prescreen#aRenamedLeadingCategoryLeads'
+  'prescreen#priorityCategoriesAreReadFromTheProfile'
+  'prescreen#priorityDoesNotBypassTheGate'
+  'prescreen#anUndeclaredRoleStopsTheScreen'
   'prescreen#escalatedItemKeepsItsBranchAsEvidence'
   'prescreen#refusalLeavesATraceInTheTracker'
   'worktree#seedsAllFourInputs'
@@ -126,6 +131,11 @@ loop_run_shell_case() {
     'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
+    'prescreen#harnessItemsLeadTheQueue') fn=case_prescreen_harnessItemsLeadTheQueue ;;
+    'prescreen#aRenamedLeadingCategoryLeads') fn=case_prescreen_aRenamedLeadingCategoryLeads ;;
+    'prescreen#priorityCategoriesAreReadFromTheProfile') fn=case_prescreen_priorityCategoriesAreReadFromTheProfile ;;
+    'prescreen#priorityDoesNotBypassTheGate') fn=case_prescreen_priorityDoesNotBypassTheGate ;;
+    'prescreen#anUndeclaredRoleStopsTheScreen') fn=case_prescreen_anUndeclaredRoleStopsTheScreen ;;
     'prescreen#escalatedItemKeepsItsBranchAsEvidence') fn=case_prescreen_escalatedItemKeepsItsBranchAsEvidence ;;
     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
@@ -764,6 +774,109 @@ case_prescreen_escalatedItemKeepsItsBranchAsEvidence() {
     "and its branch stays the evidence, which is what the adoption path reads"
   assert_eq "true" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 41) | .alreadyEscalated')" \
     "while still being marked as already escalated, so no second comment is posted"
+}
+
+# A harness defect is paid again by every item after it — a broken `prescreen.sh`, `labels.sh`, `close.sh` or a
+# sensor can make the run's own report false — so the profile's leading categories rank ahead of every other
+# category, and inside one group the class order still decides (harness bug, harness improvement, app bug, app
+# improvement). Before this key the category was read, recorded and printed, and never ranked on.
+case_prescreen_harnessItemsLeadTheQueue() {
+  local p out
+  p=$(new_project)
+  init_state "$p" 5 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "22 26 23 21 24" \
+    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
+    "the leading group (bug, bug, improvement), then the app bug, then the app improvement"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 22) | .rank')" \
+    "the harness bug leads the queue"
+  assert_eq "2" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 26) | .rank')" \
+    "the second harness bug follows by issue number inside the leading group"
+  assert_eq "3" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .rank')" \
+    "the leading improvement follows both leading bugs, so the class order decides inside the group"
+  assert_eq "4" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .rank')" \
+    "the app bug leads the app improvement but follows the whole leading group"
+  assert_eq "5" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .rank')" \
+    "the app improvement stays last"
+}
+
+# A renamed set is ordered on, not merely scanned: the profile declares `ui` as its leading category and the
+# fixture's `category/ui` improvement leads the queue, above a harness bug — the key is the declared value, not a
+# spelling this change happens to ship.
+case_prescreen_aRenamedLeadingCategoryLeads() {
+  local p out
+  p=$(new_project)
+  init_state "$p" 5 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
+  jq '.roles.firstCategories = ["ui"]' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not rename the leading category"
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on a renamed leading set"
+  assert_eq "24 21 22 26 23" \
+    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
+    "the declared value leads, and the class order decides among the rest"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .rank')" \
+    "the ui improvement is rank 1 under the renamed set"
+}
+
+# The leading categories are the profile's values, read through the roles section like every other decision: an
+# empty list is a project that wants no category priority, and an absent key is a half-adapted profile that
+# must stop the script rather than silently rank by class.
+case_prescreen_priorityCategoriesAreReadFromTheProfile() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 5 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
+
+  jq '.roles.firstCategories = []' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not empty the priority list"
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on an empty priority list"
+  assert_eq "21 22 26 23 24" \
+    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
+    "an empty list leaves the class order alone"
+
+  jq 'del(.roles.firstCategories)' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not remove the priority list"
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "2" "$status" "an absent role is a half-adapted profile, not 'no priority'"
+  assert_contains "$out" "firstCategories" "and the refusal names the key the profile does not declare"
+}
+
+# The category key is a rank, not a gate: an item in a leading category that is on hold is excluded exactly as
+# any other held item, writes no label and takes no rank, so the priority can never queue work the gate refused.
+case_prescreen_priorityDoesNotBypassTheGate() {
+  local p out log
+  p=$(new_project)
+  init_state "$p" 5 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
+  log="$p/gh.log"; : > "$log"; export GH_STUB_RECORD="$log"
+
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "held" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" \
+    "a held item in a leading category is still held"
+  assert_eq "null" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .rank')" \
+    "and it takes no rank"
+  assert_eq "author-not-allowlisted" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 27) | .verdict')" \
+    "a leading-category item by an unauthorised author is excluded as unauthorised, not ranked"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 27) | .reason')" "allowlist" \
+    "and the reason names the allowlist"
+  assert_eq "0" "$(wc -c < "$log" | tr -d ' ')" "the category writes no label of its own"
+  assert_eq "5" "$(jq -r '.queue | length' "$(state_file "$p")")" \
+    "the queue holds the five eligible items and not the held one"
+}
+
+# Every role the script reads is required, not merely the one this change added: a half-adapted profile that
+# omits the hold verdict would otherwise report an empty verdict instead of stopping with a named reason.
+case_prescreen_anUndeclaredRoleStopsTheScreen() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 1 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
+  jq 'del(.roles.heldVerdict)' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not remove the hold verdict"
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "2" "$status" "an undeclared role stops the pre-screen"
+  assert_contains "$out" "does not declare heldVerdict" "and the refusal names the key"
 }
 
 # ----------------------------------------------------------------------------- cases: worktree

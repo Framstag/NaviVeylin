@@ -87,7 +87,10 @@ carries them as `pending` rather than guessing.
 
 The pre-screen also drops `class/feature`, `status/in-flight`, an item the tracker has already settled
 (`status/fixed-by`, `status/retired`, a closed issue) and an item whose author is not on the allowlist, and it
-ranks bugs before improvements. Marking a rejection on the issue is `labels.sh <verdict> <issue>`; an item
+ranks by two keys: the profile's `firstCategories` first — the categories of the tooling, the process and the
+proof, whose defects every later item pays for — and then bugs before improvements, oldest issue first inside a
+group. A leading category is a rank and never a gate: a held harness item is excluded like any other. Marking a
+rejection on the issue is `labels.sh <verdict> <issue>`; an item
 that turns out to need a decision mid-item is **escalated** (`labels.sh escalate`), which names the root
 cause, the failing case and the branch on the issue instead of throwing the work away.
 

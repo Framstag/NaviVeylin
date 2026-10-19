@@ -119,7 +119,7 @@ loop_required_labels() {
 # spells a vocabulary value (D16); `tools/check-portability.sh` enforces it. The keys are the contract
 # (like the namespace names); a value another project does not need is declared empty, never omitted.
 LOOP_ROLES=""
-LOOP_ROLE_KEYS="queuedVerdict workedClasses refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
+LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
 loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
   [ -n "$LOOP_ROLES" ] && return 0
   LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""

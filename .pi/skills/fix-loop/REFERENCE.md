@@ -69,7 +69,8 @@ over all 31 `class: bug` entries → `eligible: none`; a later run: 0 closed, 32
   against a ~40 min analysis;
 - skip verdicts of that second pass: `needs-device 8 · needs-decision 7 · in-flight 7 · refuted 4 · too-wide 2
   · stale 2 · unspecifiable 1 · needs-diagnosis 1` — **not one** died on the item's class, which is why the
-  class is a ranking input and not a gate.
+  class is a ranking input and not a gate — and so is the category beside it: the profile's `firstCategories`
+  lead the queue and the class order decides inside a group.
 
 ## Field notes
 

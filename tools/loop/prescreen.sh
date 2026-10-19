@@ -70,6 +70,10 @@ queued_verdict=$(loop_role queuedVerdict)
 held_verdict=$(loop_role heldVerdict)
 decision_verdict=$(loop_role decisionAgent)
 worked_classes="$(loop_role workedClasses)"
+# The categories whose items lead the queue, in the profile's order (this project: the tooling, the process and
+# the proof rather than the shipped app). Empty is a project that wants no category priority, and the queue then
+# keeps the class order alone — an absent key is a half-adapted profile, refused by `loop_roles_load`.
+priority_categories="$(loop_role firstCategories)"
 refused_classes="$(loop_role refusedClasses)"
 inflight_status=$(loop_role inFlightStatus)
 device_status=$(loop_role deviceStatus)
@@ -323,9 +327,11 @@ while [ "$i" -lt "$count" ]; do
   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
 done
 
-ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$worked_classes" | jq -R . | jq -sc .)" '
-  (map(. + {_rank: (. as $r | (($worked | index($r.class)) // ($worked | length)))})
-   | sort_by([._rank, .issue]) | map(del(._rank))) as $sorted
+ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$worked_classes" | jq -R . | jq -sc .)" \
+  --argjson leading "$(printf '%s' "$priority_categories" | jq -R . | jq -sc .)" '
+  (map(. + {_rank: (. as $r | (($worked | index($r.class)) // ($worked | length))),
+             _lead: (. as $r | (($leading | index($r.category)) // ($leading | length)))})
+   | sort_by([._lead, ._rank, .issue]) | map(del(._lead, ._rank))) as $sorted
   | ($sorted | map(select(.verdict == $queued))) as $q
   | reduce range(0; ($q | length)) as $i ($sorted;
       . as $all | ($q[$i].issue) as $id

@@ -18,7 +18,9 @@
   "roles": {
     "comment": "The foreign project's reading of its own vocabulary, in its own words: the loop's decisions are named after values of the namespaces above, and one of them (`deviceStatus`) is empty because this project has no device-gated state — declared empty, never omitted.",
     "queuedVerdict": "eligible",
+    "heldVerdict": "held",
     "workedClasses": ["bug", "improvement"],
+    "firstCategories": ["infra"],
     "refusedClasses": ["feature"],
     "inFlightStatus": "in-flight",
     "deviceStatus": "",

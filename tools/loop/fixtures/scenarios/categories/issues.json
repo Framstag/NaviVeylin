@@ -1,0 +1,87 @@
+[
+  {
+    "number": 21,
+    "title": "§21 An app bug — the queue's head before the category key existed",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 22,
+    "title": "§22 A harness bug — the tooling the loop itself runs",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/build-and-harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 23,
+    "title": "§23 A verification improvement — the proof every later item needs",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/verification" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 24,
+    "title": "§24 An app improvement — after every bug of its own group",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 26,
+    "title": "§26 A second harness bug — the class order still decides inside the leading group",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/build-and-harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 27,
+    "title": "§27 A leading-category bug authored elsewhere — a rank is not an authorisation either",
+    "body": "no citation at all",
+    "author": { "login": "someone-else" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/build-and-harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 25,
+    "title": "§25 A held item in a leading category — a rank is not a gate",
+    "body": "<!-- nvid: 25 -->\n\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/specs-and-process" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

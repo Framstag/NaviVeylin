@@ -37,10 +37,10 @@ tests="2" skipped="0" failures="2" errors="0" timestamp="2026-10-19T06:39:52.013
       expected:<[…/maps/europe-germany-bremen, …/maps/europe-germany-bremen]> but was:<[…/maps/europe-germany-bremen]>
 ```
 
-XML as produced (excerpt: the `expected:`/`was:` line elided to its directory-name tail; the verbatim file is
-`.pi/issue-loop/items/119/red-on-head/`, copied to this change's `evidence/`). The third case in the file —
-`aDirectoryOutsideTheMapsRootIsNotSwept` — is the guard the fix introduces, so it is green on the base commit
-and is not part of the red run.
+XML as produced (excerpt: the `expected:`/`was:` line elided to its directory-name tail; the canonical copy is
+this change's `evidence/red-on-head/`). The third case in the file —
+`aDirectoryOutsideTheMapsRootIsNotSwept` — is the guard the fix introduces, added after the red run, which holds
+two cases and predates it.
 
 **Owning capability**: `map-download-infrastructure` — its requirement *Delete removes map manager
 registration* ("the map's directory is removed from the map manager's lookup directories … AND the map no

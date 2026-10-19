@@ -59,12 +59,12 @@ point the two call sites back at `downloadManager.deleteMap` and drop the two he
 One measurement to keep honest: the first post-fix run of the new class reported one failure in the last
 assertion of the second case. The cause is in the test file, and it is fixed there: `viewModel()` assigns
 `ioDispatcher` **after** the factory returns, while the constructor's own `refreshInstalledMaps()`
-(`MapManagerViewModel.kt:250`) has already launched on the default `Dispatchers.IO` (`:229`), so
+(`MapManagerViewModel.kt:251`) has already launched on the default `Dispatchers.IO` (`:229`), so
 `advanceUntilIdle()` never observes that coroutine and its `_uiState` write (`:518`) could land after the
 delete's own refresh — exactly a last-assertion failure. `viewModel()` now joins the view model's launched
 children before it replaces the dispatcher, so the init refresh has written its state before the case acts and
-no write can follow the delete's refresh. Measured: six consecutive forced runs of the class green after the
-fix (three before the revert-check, three after it), the last three archived in `evidence/green-on-fix/`.
+no write can follow the delete's refresh. Measured: three consecutive forced runs of the class green after the
+revert-check restore (`07:01:17.836Z`, `07:02:19.667Z`, `07:03:18.539Z`), archived in `evidence/green-on-fix/`.
 
 ## Threading, lifecycle, platform
 
@@ -76,8 +76,8 @@ no platform object is touched.
 
 | what | how | evidence |
 |---|---|---|
-| the defect, on the base commit | `./gradlew :app:testMobileDebugUnitTest --tests "…MapManagerDeleteRepositoryMapTest"` → `tests="2" … failures="2"` | `evidence/red-on-head/` |
+| the defect, on the base commit | `./gradlew :app:testMobileDebugUnitTest --tests "…MapManagerDeleteRepositoryMapTest"` → `tests="2" … failures="2"` (the red run predates the guard case, so the file holds three cases today and the archived run two) | `evidence/red-on-head/` |
 | the fix | the same command → `tests="3" … failures="0"`, three consecutive forced runs | `evidence/green-on-fix/` |
 | the guard in `removeDirectoryTree` | revert-check: `startsWith(root)` mutated to `startsWith(root.parent)` → `aDirectoryOutsideTheMapsRootIsNotSwept` fails on `a directory outside the maps root must not be swept`; restored; forced green | `evidence/revert-check/`, then `evidence/green-on-fix/` |
-| the neighbours | `--tests "com.naviveylin.ui.mapmanager.*"` → green before the gate; the gate's own set contains the same suites | `evidence/gate/` |
-| the run's gate | `./gradlew test -PforceTests --rerun-tasks` → 704 suites, tests=5676, failures=0 | `evidence/gate/` |
+| the neighbours | every `ui.mapmanager` suite is green inside the gate's own set; no separate slice run was repeated after the guard case (`tasks.md` 3.2) | `evidence/gate/` |
+| the run's gate | `./gradlew test -PforceTests --rerun-tasks` → 704 suites, tests=5678, failures=0 | `evidence/gate/totals.txt` |

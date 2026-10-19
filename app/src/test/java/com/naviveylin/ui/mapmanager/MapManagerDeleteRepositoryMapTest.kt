@@ -107,8 +107,9 @@ class MapManagerDeleteRepositoryMapTest {
      * A refused delete of a directory outside the maps root is not the app's to sweep, so it stays a failure.
      *
      * The path comes through the public action: a map name with a parent segment resolves outside the maps
-     * root (`MapStorageManager.targetDirForMap`), which is the only way a path that is not an installation's
-     * directory can reach the delete.
+     * root (`MapStorageManager.targetDirForMap`), which is one way a path that is not an installation's
+     * directory can reach the delete — the source switch's `unregister` lambda is the other, and it passes a
+     * stored path.
      */
     @Test
     fun aDirectoryOutsideTheMapsRootIsNotSwept() = runTest(mainDispatcherRule.dispatcher) {

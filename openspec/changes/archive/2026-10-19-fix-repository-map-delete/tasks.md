@@ -31,8 +31,8 @@ removes the whole directory", with one scenario per new case.
 - [x] 2.5 `MapManagerDeleteRepositoryMapTest.aDirectoryOutsideTheMapsRootIsNotSwept`: a delete refused for
       `<filesDir>/maps/../outside-the-maps-root` (through `deleteMap("../outside-the-maps-root")`) → the
       outside file survives, `downloadManager.deleted` holds exactly one entry, and `uiState.error` is
-      `Failed to delete map: ../outside-the-maps-root`. Green on the base commit as well (neither the bound
-      nor the sweep existed), so it is a guard for §2.2, not a red case.
+      `Failed to delete map: ../outside-the-maps-root`. Not a red case: it asserts the bound §2.2 introduces,
+      added after the red run, and no base-commit run of it is archived.
 
 ## 3. The verification
 
@@ -52,7 +52,7 @@ removes the whole directory", with one scenario per new case.
       The new class is in that set in both flavours: `tests=3 failures=0` at `07:06:06.988Z` (automotive) and
       `07:07:54.541Z` (mobile, `suite-rows.txt`).
 - [x] 3.4 The init refresh is joined before the case acts: `viewModel()` sets `ioDispatcher` after the
-      constructor, whose own `refreshInstalledMaps()` (`MapManagerViewModel.kt:250`) runs on the default
+      constructor, whose own `refreshInstalledMaps()` (`MapManagerViewModel.kt:251`) runs on the default
       `Dispatchers.IO` — its `installedMapPaths` write could otherwise land after the delete's refresh (one such
       failure was seen in the first post-fix run). The two-state wait is gone; the case now joins the view
       model's launched children (`viewModelScope.coroutineContext[Job]`) and only then replaces the dispatcher.
@@ -66,5 +66,6 @@ removes the whole directory", with one scenario per new case.
 
 ## 4. Archive
 
-- [x] 4.1 `openspec validate --change fix-repository-map-delete` clean.
+- [x] 4.1 `openspec validate map-download-infrastructure --strict` after the merge → one pre-existing
+      long-requirement warning, no error, `EXIT=0` → `evidence/validate-after-merge.txt`.
 - [x] 4.2 Archived; the delta merged into `openspec/specs/map-download-infrastructure/spec.md`.

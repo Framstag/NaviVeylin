@@ -41,6 +41,7 @@ ISSUES_SHELL_CASES=(
   'update#statusRejectsTwoStatesInOneCall'
   'update#statusReportNamesImpliedRemoval'
   'update#statusWriteReportsAnEmptyTransition'
+  'update#commentOnlyReportsNoStatusWrite'
   'update#stateNamedAsALabelReplacesTheOldState'
   'close#commentOnlyLeavesTheIssueOpen'
   'close#writesTheSettledStatus'
@@ -115,6 +116,7 @@ issues_run_shell_case() {
     'update#statusRejectsTwoStatesInOneCall') case_update_statusRejectsTwoStatesInOneCall ;;
     'update#statusReportNamesImpliedRemoval') case_update_statusReportNamesImpliedRemoval ;;
     'update#statusWriteReportsAnEmptyTransition') case_update_statusWriteReportsAnEmptyTransition ;;
+    'update#commentOnlyReportsNoStatusWrite') case_update_commentOnlyReportsNoStatusWrite ;;
     'update#stateNamedAsALabelReplacesTheOldState') case_update_stateNamedAsALabelReplacesTheOldState ;;
     'close#commentOnlyLeavesTheIssueOpen') case_close_commentOnlyLeavesTheIssueOpen ;;
     'close#writesTheSettledStatus') case_close_writesTheSettledStatus ;;
@@ -978,6 +980,25 @@ case_close_refusesAProfileThatNamesNoSettledState() {
   [ "$status" -ne 0 ] || fail "a profile without the role closed the item anyway: $out"
   assert_contains "$out" "retiredStatus" "the refusal names the role the profile lacks"
   [ ! -s "$log" ] || fail "nothing may be written when the profile cannot say what state to record: $(cat "$log")"
+  return 0
+}
+
+# The "already carries" note exists to explain a *state* write that found its state in place. A call that
+# never named a state has nothing to explain, and the note it used to print described a write the caller had
+# not requested, with the status left empty: `update: #165 already carries  — no label write` (#182).
+case_update_commentOnlyReportsNoStatusWrite() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 21 status/open class/bug category/car
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 21 --comment "a note about the measurement" 2>&1); status=$?
+  assert_eq "0" "$status" "the comment is posted: $out"
+  assert_eq "1" "$(grep -c 'issue comment' "$log")" "exactly one comment reaches the tracker"
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "and no label write is made"
+  case "$out" in
+    *"already carries"*) fail "the note describes a state write that was never requested: $out" ;;
+  esac
   return 0
 }
 

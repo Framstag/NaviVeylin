@@ -183,7 +183,12 @@ if [ "${#add_labels[@]}" -gt 0 ] || [ "${#remove_labels[@]}" -gt 0 ] || \
    [ "${#implied_removals[@]}" -gt 0 ] || [ -n "$body_file" ]; then
   edit_needed=1
 fi
-[ "$edit_needed" -eq 1 ] || issues_note "update: #$number already carries $status_label — no label write"
+# The note explains a state, so only a call that named one can have it: `--status` that finds the value in
+# place, or a `--label` of the state namespace. A comment-only or body-only call has no state to report and
+# used to print `already carries  — no label write`, with the value empty (#182).
+if [ "$edit_needed" -eq 0 ] && [ -n "$status_label" ]; then
+  issues_note "update: #$number already carries $status_label — no label write"
+fi
 
 # `gh` rejecting the write is not a state the caller may proceed from: this tool reports `updated: true` and
 # exits 0, and every reader — the loop's labels path, `close.sh`'s status write, a person's repair — treats

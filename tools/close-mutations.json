@@ -1,5 +1,5 @@
 {
-  "comment": "The revert-checks of the closure's settled state (#181, #188): one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/close-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. Every search is a single line and unique in its file (the runner's replacement is literal and line-based). The fourth entry mutates the profile reader into a silent fallback rather than a refusal: a mutation that removes the guard line would leave a bare string as a command, which is a syntax accident rather than the invariant under test.",
+  "comment": "The revert-checks of the state-write path its callers depend on (#181, #188, #182): one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/close-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. Every search is a single line and unique in its file (the runner's replacement is literal and line-based). The fourth entry mutates the profile reader into a silent fallback rather than a refusal: a mutation that removes the guard line would leave a bare string as a command, which is a syntax accident rather than the invariant under test.",
   "case-cmd": "bash tools/issue-tooling-selftest.sh --case {case}",
   "mutations": [
     {
@@ -33,6 +33,14 @@
       "search": "settled_status=$(jq -r --arg k \"$settled_role\" '.roles[$k] // empty' \"$profile\")",
       "replace": "settled_status=$(jq -r --arg k \"$settled_role\" '.roles[$k] // .roles.closeStatus' \"$profile\")",
       "why": "a half-adapted profile being refused instead of silently recording the fix state"
+    },
+    {
+      "label": "A1.5",
+      "case": "update#commentOnlyReportsNoStatusWrite",
+      "file": "tools/issues/update.sh",
+      "search": "if [ \"$edit_needed\" -eq 0 ] && [ -n \"$status_label\" ]; then",
+      "replace": "if [ \"$edit_needed\" -eq 0 ]; then",
+      "why": "the `already carries` note being printed only by a call that named a state (#182)"
     }
   ]
 }

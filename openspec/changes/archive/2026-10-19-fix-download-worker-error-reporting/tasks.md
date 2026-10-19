@@ -5,7 +5,7 @@
       a real `MapDownloadManager` downloads an entry whose first native call cannot link, and the case asserts the
       listener's `onError` arrives. **Verify**: `./gradlew :osmscout-client-java:test -PforceTests --tests
       "com.framstag.libosmscout.client.MapDownloadManagerWorkerFailureTest"` fails on HEAD, XML
-      `tests=1 failures=1`, `system-err` carrying `map-download-Berlin` —
+      `tests=2 failures=1`, `system-err` carrying `map-download-Berlin` —
       `evidence/red-test-head.xml`.
 - [x] 2. Add the guard case `aWorkerThatDiesOfAnExceptionKeepsItsMessage`: a directory entry makes the worker throw
       an `IllegalArgumentException` with a message. **Verify**: it passes on HEAD (the `Exception` path already

@@ -4,7 +4,7 @@
 
 A provider download runs on its own daemon thread — `MapDownloadManager.downloadMap`, whose worker body
 is `downloadMapInJava` — and that worker's failure handling catches **`Exception` only**
-(`osmscout-client-java/src/main/java/com/framstag/libosmscout/client/MapDownloadManager.java:95`). An
+(`osmscout-client-java/src/main/java/com/framstag/libosmscout/client/MapDownloadManager.java:117`). An
 `Error` therefore leaves the only place that could report it: `nativePrepareMapDirectory` is a native
 call, so a missing symbol (`UnsatisfiedLinkError` — what the host test stub produces, `guidelines/Build.md`
 §6) or a stack overflow dies as an uncaught throwable on a thread nobody awaits. The user's entry stays at
@@ -14,10 +14,10 @@ symptom tracker entry #117 (nvid 183) records.
 
 Red test, measured on HEAD (`7ddf7ab`, `./gradlew :osmscout-client-java:test -PforceTests --tests
 "com.framstag.libosmscout.client.MapDownloadManagerWorkerFailureTest"`,
-`evidence/red-test-head.xml`: `tests=1 skipped=0 failures=1 errors=0`, timestamp `2026-10-19T06:22:24.266Z`):
+`evidence/red-test-head.xml`: `tests=2 skipped=0 failures=1 errors=0`, timestamp `2026-10-19T06:24:08.877Z`):
 
 - case `MapDownloadManagerWorkerFailureTest.aWorkerThatDiesOfAnErrorIsReportedThroughTheListener` fails at
-  `MapDownloadManagerWorkerFailureTest.java:49` — "a worker that dies must report the failure instead of
+  `MapDownloadManagerWorkerFailureTest.java:50` — "a worker that dies must report the failure instead of
   dying silently => expected: <true> but was: <false>" (the listener's `onError` latch never opens);
 - the same XML's `system-err` carries the death itself:
   `Exception in thread "map-download-Berlin" java.lang.UnsatisfiedLinkError: 'boolean
@@ -61,7 +61,7 @@ None.
 - `osmscout-client-java/src/test/java/com/framstag/libosmscout/client/MapDownloadManagerWorkerFailureTest.java`
   — new case.
 - No consumer change: `MapManagerViewModel.downloadMap`'s listener already turns `onError` into the entry's
-  error state and stops the foreground service.
+  error state.
 - Spec `map-download-infrastructure` gains the scenario; no other spec's behaviour moves.
 - `BasemapManager.downloadBasemap` keeps its own catch clauses — this change is bounded to the map
   download worker.

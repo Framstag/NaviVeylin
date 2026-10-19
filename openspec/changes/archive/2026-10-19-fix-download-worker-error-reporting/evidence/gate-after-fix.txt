@@ -1,6 +1,8 @@
 # Gate — ./gradlew test -PforceTests --rerun-tasks (after the fix)
-# Run: 2026-10-19T06:29:34Z; BUILD SUCCESSFUL in 4m37s; exit 0 (log: item dir gate-after-fix.log)
-# HEAD baseline for the same command: BUILD SUCCESSFUL in 5m16s, 5672 cases, 0 failures/errors (item dir gate-baseline.log)
+# Run finished: 2026-10-19T06:29:34Z; BUILD SUCCESSFUL in 4m37s; exit 0 (log: item dir gate-after-fix.log)
+# HEAD baseline for the same command: BUILD SUCCESSFUL in 5m16s, 189 tasks executed, exit 0 (item dir
+# gate-baseline.log). That log carries no case counts and its result XMLs were overwritten by the run
+# below, so no baseline tally is claimed here.
 
 ## Per-module tallies from build/test-results/*.xml
   core/build/test-results/testDebugUnitTest tests=642 failures=0 errors=0
@@ -8,6 +10,9 @@
   app/build/test-results/testAutomotiveDebugUnitTest tests=2059 failures=0 errors=0
   auto/build/test-results/testDebugUnitTest tests=866 failures=0 errors=0
   osmscout-client-java/build/test-results/test tests=48 failures=0 errors=0
+
+## Sum of the five rows (same tallies, summed)
+  tests=5674 failures=0 errors=0
 
 ## Result XMLs carrying an uncaught download-worker line or an overflow
   none

@@ -18,4 +18,7 @@
   links=16000 overflows=3/5
   links=32000 overflows=5/5
 
+# Reading: the ChainProbe2 rows are not monotonic — 16 000 links overflowed 3 of 5 while 4 000 and
+# 8 000 overflowed 5 of 5 — so the probe measures the sizes it ran and no single threshold.
+
 # Sources: probe/ChainProbe.java, probe/ChainProbe2.java (outside the change, kept in the run's item dir).

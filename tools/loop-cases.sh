@@ -67,7 +67,9 @@ LOOP_SHELL_CASES=(
   'run#childClaimWithoutCommitIsBlocked'
   'run#blockedItemIsEscalatedWithItsReason'
   'run#childStartsInTheProjectRoot'
+  'run#childReportsWhileItWaits'
   'run#childWriteOutsideTheWorktreeIsBlocked'
+
   'run#reviewerWriteInTheProjectIsDiscarded'
   'run#leftoverBranchIsRecordedNotDropped'
   'run#branchThatAppearsWhileTheRunIsOpenIsRecorded'
@@ -163,6 +165,7 @@ loop_run_shell_case() {
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
+    'run#childReportsWhileItWaits') fn=case_run_childReportsWhileItWaits ;;
     'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
     'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
@@ -1402,6 +1405,32 @@ case_run_childStartsInTheProjectRoot() {
   assert_contains "$(cat "$prompt")" "$p/.pi/worktrees/loop" "the worker prompt names its change root"
   prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
   assert_contains "$(cat "$prompt")" "$p/.pi/worktrees/loop" "the reviewer prompt names its change root"
+}
+
+case_run_childReportsWhileItWaits() {
+  local d p fifo pid i out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # A child that says nothing while it works is the normal case, not the exception: print mode writes only the
+  # final assistant text, so `pick #N` used to be followed by silence for the whole item and a working child
+  # was indistinguishable from a hung one. The wait itself therefore has to report.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  ( export PI_STUB_WAIT="$fifo" LOOP_PROGRESS_SECONDS=1
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  # The child is blocked on the fifo: whatever the run says now it cannot have learned from the child.
+  for i in $(seq 1 100); do grep -q 'running' "$d/out" 2>/dev/null && break; sleep 0.1; done
+  out=$(cat "$d/out")
+  assert_contains "$out" "loop: worker-prompt started" "the wait is announced when the child starts"
+  assert_contains "$out" "loop: worker-prompt running" "the wait reports while the child cannot"
+  assert_contains "$out" "changed file(s)" "what it reports is read from the worktree"
+  printf 'go\n' > "$fifo"
+  wait "$pid" || fail "the run itself failed"
+  assert_contains "$(cat "$d/out")" "loop: worker-prompt finished in" "and the end is reported"
+  assert_contains "$(cat "$d/out")" "exit 0" "with the child's own exit status"
 }
 
 case_run_childWriteOutsideTheWorktreeIsBlocked() {

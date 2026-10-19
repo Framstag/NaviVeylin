@@ -384,15 +384,52 @@ slugify() { # a change name out of an item's title: lowercase, dashes, bounded
 # never carried into the item's commit (D4, "one writer per tree").
 project_state() { git -C "$LOOP_ROOT" status --porcelain 2>/dev/null; }
 
+# A child's own stream is silent by construction: the configured agent command is print mode, which writes the
+# final assistant text and nothing else (measured 2026-10-19: on a pipe it emits nothing until the process
+# exits), so a run used to print `pick #N` and then nothing for the whole item — a working child and a hung one
+# looked the same. The wait therefore reports itself: one line when the child starts, one every
+# `LOOP_PROGRESS_SECONDS` (default 30), and one when it ends. What those lines carry is read from the tree the
+# child writes — its log's size, the worktree's changed files, its commits since the base — never from the
+# child's own claim, which only exists once it is over.
+fmt_elapsed() { # <seconds> -> `37s`, `4m12s`
+  local s="$1"
+  if [ "$s" -ge 60 ]; then printf '%dm%02ds' "$((s / 60))" "$((s % 60))"; else printf '%ds' "$s"; fi
+}
+
 run_child() { # run_child <prompt-file> <report-file> — every child goes through LOOP_AGENT_CMD (D3)
   # The working directory is the project and not the worktree on purpose: the project's own tool policy is
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc
+  local before after rc phase stop hb started interval
   before=$(project_state)
+  phase=$(basename "$1" .md)
+  interval="${LOOP_PROGRESS_SECONDS:-30}"
+  case "$interval" in ''|*[!0-9]*|0) interval=30 ;; esac
+  stop="$2.progress-stop"
+  rm -f "$stop"
+  : > "$2"
+  started=$(date +%s)
+  printf 'loop: %s started (log %s)\n' "$phase" "$2"
+  ( ticks=0
+    while [ ! -e "$stop" ]; do
+      sleep 1
+      [ -e "$stop" ] && break
+      ticks=$((ticks + 1))
+      [ $((ticks % interval)) -eq 0 ] || continue
+      printf 'loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n' \
+        "$phase" "$(fmt_elapsed "$ticks")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
+        "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \
+        "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
+    done ) >&2 &
+  hb=$!
   ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1
   rc=$?
+  : > "$stop"
+  wait "$hb" 2>/dev/null
+  rm -f "$stop"
+  printf 'loop: %s finished in %s (exit %s, log %s B)\n' "$phase" \
+    "$(fmt_elapsed $(( $(date +%s) - started )))" "$rc" "$(wc -c < "$2" 2>/dev/null || printf 0)"
   after=$(project_state)
   if [ "$before" != "$after" ]; then
     printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran\n' >> "$2"

@@ -167,6 +167,23 @@ a child's prose.
 | the gate needs a device that is absent | the verdict is `needs-device`: the run records it and attempts nothing on the device. An item counts as closed only if **host** evidence proves correctness |
 | the same item keeps coming back | it is not eligible: re-gate it, or record what the decision is — a third attempt is not a plan |
 
+## What a run prints while it works
+
+A child runs in print mode, so its own stream is silent until it exits. The run therefore reports the wait
+itself: one line when a child starts, one every 30 s (`LOOP_PROGRESS_SECONDS` overrides it, which is what the
+case `run#childReportsWhileItWaits` uses), and one when it ends.
+
+```
+loop: worker-prompt started (log .pi/issue-loop/items/126/worker-report.md)
+loop: worker-prompt running 1m30s — log 0 B, worktree 4 changed file(s), 0 commit(s) since the base
+loop: worker-prompt finished in 12m04s (exit 0, log 812 B)
+```
+
+The numbers are read from the tree the child writes and never from the child: `log N B` is the transcript's
+size (0 until the child exits, because print mode writes its answer at the end), `changed file(s)` is
+`git status --porcelain` in the worktree, `commit(s) since the base` is `git rev-list --count <base>..HEAD`.
+Numbers that keep moving are a child thinking; `running` lines that stop appearing are a stopped run.
+
 ## Report (end of run)
 
 `tools/loop/report.sh` prints the header, the per-item table, the skip list, the open decisions, the branches

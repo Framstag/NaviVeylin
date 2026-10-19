@@ -49,6 +49,14 @@ printf 'closed %s · skipped %s · blocked %s · budget left %s items / %s min �
   "$closed" "$skipped" "$blocked" \
   "$((items - closed - skipped - blocked))" "$((minutes - spent_min))" "$spent_min"
 
+# Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
+# two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
+# file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
+# printed while it is still going.
+stop_reason=$(jq -r '.run.stop.reason // ""' "$LOOP_STATE_FILE")
+printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reason";
+  else printf 'not stopped — the run is still going, or it ended without recording a reason'; fi)"
+
 bash "$LOOP_DIR/state.sh" report
 
 printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#\(.issue) \(.verdict)\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$LOOP_STATE_FILE")"

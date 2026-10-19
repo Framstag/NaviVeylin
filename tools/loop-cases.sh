@@ -74,6 +74,7 @@ LOOP_SHELL_CASES=(
   'run#mayCloseNoLeavesTheIssueOpen'
   'run#metricsRecordedPerItem'
   'run#emptyQueueIsNotAFailure'
+  'run#stopReasonIsPrintedAndReported'
   'run#commitsWithoutAnAmbientIdentity'
   'run#reviewerWriteInvalidatesTheRound'
   'run#reviewReadOnlyOffOnlyForDiagnosis'
@@ -151,6 +152,7 @@ loop_run_shell_case() {
     'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
+    'run#stopReasonIsPrintedAndReported') fn=case_run_stopReasonIsPrintedAndReported ;;
     'run#commitsWithoutAnAmbientIdentity') fn=case_run_commitsWithoutAnAmbientIdentity ;;
     'run#reviewerWriteInvalidatesTheRound') fn=case_run_reviewerWriteInvalidatesTheRound ;;
     'run#reviewReadOnlyOffOnlyForDiagnosis') fn=case_run_reviewReadOnlyOffOnlyForDiagnosis ;;
@@ -1566,6 +1568,29 @@ case_run_engineNamesNoProjectFact() {
   fi
   PATH="$newpath" run_one_item "$p" "$d" >/dev/null || fail "the run needs something the sandbox would provide"
   return 0
+}
+
+# The stop conditions are the run's only self-limits (`state.sh next`: item cap, deadline, empty queue, two
+# consecutive blocked items, the remaining-time floor) and `next` names the one that fired on stdout. The run
+# used to capture that line and drop it, so the report's counters were the whole account of a run that ended
+# for a reason nothing recorded (#184). The assertion is that the three readers agree: the run's own output,
+# the state file, and the report printed afterwards.
+case_run_stopReasonIsPrintedAndReported() {
+  local d p out f run_part stop_line recorded
+  d=$(scratch); p=$(new_project)
+  out=$(run_one_item "$p" "$d" 2>&1) || fail "the run itself failed"
+  f=$(state_file "$p")
+  # The run's own line, not the report's: the report is printed by the run's end and carries the same text, so
+  # a case that grepped the whole output would pass with the run saying nothing at all (mutation 16.2 hid
+  # behind exactly that until the two were separated).
+  run_part=$(printf '%s\n' "$out" | sed '/\*\*agent-issue-loop/,$d')
+  stop_line=$(printf '%s\n' "$run_part" | grep '^stop: ' | head -1 || true)
+  [ -n "$stop_line" ] || fail "the run never names the condition that ended it: $run_part"
+  recorded=$(jq -r '.run.stop.reason // ""' "$f")
+  [ -n "$recorded" ] || fail "the state records no stop reason"
+  assert_eq "stop: $recorded" "$stop_line" "the printed line and the recorded reason are one condition"
+  out=$(run_report "$p")
+  assert_contains "$out" "stop: $recorded" "the report repeats it, so its counters and its end agree"
 }
 
 # ----------------------------------------------------------------------------- cases: report

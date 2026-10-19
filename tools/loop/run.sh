@@ -404,6 +404,11 @@ while true; do
     escalate_prescreen_decisions
   fi
   if ! next_out=$(loop_state next); then
+    # `next` names the stop condition on stdout and exits 3: it is the run's own verdict on why it may not
+    # start another item, and the only account of the end besides the counters. Captured and dropped, the
+    # printed report could not say why a run stopped (#184).
+    printf 'stop: %s\n' "$next_out"
+    loop_state stop "$next_out" >/dev/null
     break
   fi
   issue="$next_out"

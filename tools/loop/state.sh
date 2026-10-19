@@ -20,6 +20,7 @@
 #   state.sh show
 #   state.sh get <jq-path>              # e.g. `get run.base`
 #   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
+#   state.sh stop <reason>              # the condition that ended the run, as `next` names it
 #   state.sh next                       # the next candidate; exit 3 when the run may not continue
 #   state.sh queue                      # read the queue as JSON on stdin (prescreen writes it)
 #   state.sh start <issue> --change <name>
@@ -262,6 +263,15 @@ cmd_set_base() {
   printf 'state: base advanced to %s\n' "${sha:0:12}"
 }
 
+cmd_stop() { # the condition that ended the run, as `next` names it
+  require_state
+  [ $# -gt 0 ] || loop_die "stop: usage: state.sh stop <reason>"
+  local reason="$1"
+  [ -n "$reason" ] || loop_die "stop: a stop names the condition that ended the run"
+  patch_state '.run.stop = {reason: $reason, at: (now | todate)}' --arg reason "$reason"
+  printf 'state: stop recorded — %s\n' "$reason"
+}
+
 cmd_step() {
   require_state
   [ $# -gt 0 ] || loop_die "step: usage: state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]"
@@ -416,6 +426,7 @@ case "$cmd" in
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
   set-base) cmd_set_base "$@" ;;
+  stop) cmd_stop "$@" ;;
   report) cmd_report "$@" ;;
   lock) cmd_lock "$@" ;;
   unlock) cmd_unlock "$@" ;;

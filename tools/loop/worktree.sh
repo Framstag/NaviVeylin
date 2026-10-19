@@ -230,15 +230,15 @@ cmd_adopt_item() {
   # The merge lands in the project's own tree, where the base branch is checked out — the pre-screen's
   # adoption happens before the run's worktree exists, so the worktree is not required here.
   check_base
-  local base change verification dirty commits who_name who_email
+  local base change evidence dirty commits who_name who_email
   base=$(state_base)
   gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
     loop_refuse "there is no branch $branch to adopt"
   change=$(carried_change "$branch" "$base")
   [ -n "$change" ] ||
     loop_refuse "branch $branch is not adopted — it adds no single archived change of its own"
-  verification=$(carried_verification "$branch" "$base" "$change")
-  [ -n "$verification" ] ||
+  evidence=$(carried_verification "$branch" "$base" "$change")
+  [ -n "$evidence" ] ||
     loop_refuse "branch $branch is not adopted — the change $change carries no green verification record"
   commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
   [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
@@ -258,7 +258,7 @@ $dirty"
     }
   fi
   printf 'adopted: branch %s -> %s · commits %s · change %s · evidence %s\n' \
-    "$branch" "$(gitr rev-parse --short HEAD)" "$(printf '%s' "$commits" | sed 's/ /,/g')" "$change" "$verification"
+    "$branch" "$(gitr rev-parse --short HEAD)" "$(printf '%s' "$commits" | sed 's/ /,/g')" "$change" "$evidence"
 }
 
 cmd_head() { [ -d "$worktree" ] || loop_die "head: no worktree at $worktree"; gitw rev-parse HEAD; }

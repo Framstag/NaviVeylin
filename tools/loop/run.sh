@@ -570,6 +570,10 @@ while true; do
     if [ "$review_verdict" = "FAIL" ]; then
       outcome="blocked"
       blocked_reason="the change failed its second review round — a decision is needed, not a third attempt"
+      # The verdict has to outlive this run and travel with the change: the branch is what a later run adopts
+      # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185).
+      bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$review_rounds" >&2 ||
+        printf 'run: the failed review could not be recorded on the branch — a later run may adopt it\n' >&2
     fi
   fi
 

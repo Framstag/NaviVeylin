@@ -43,6 +43,7 @@ LOOP_SHELL_CASES=(
   'worktree#noPushWithoutTheFlag'
   'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
   'worktree#refusesABranchCarryingAPreviousAttempt'
+  'worktree#refusesABranchWhoseReviewFailed'
   'labels#verdictToLabelMatrix'
   'labels#trapRemovesInProgressOnSignal'
   'labels#neverWritesReservedLabel'
@@ -63,6 +64,7 @@ LOOP_SHELL_CASES=(
   'run#branchThatAppearsWhileTheRunIsOpenIsRecorded'
   'run#mergesAFinishedAttemptAndClosesTheItem'
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
+  'run#recordsAFailedReviewOnTheBranch'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#aSkipClearsTheInProgressMark'
@@ -123,6 +125,7 @@ loop_run_shell_case() {
     'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
     'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
+    'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
     'labels#neverWritesReservedLabel') fn=case_labels_neverWritesReservedLabel ;;
@@ -143,6 +146,7 @@ loop_run_shell_case() {
     'run#branchThatAppearsWhileTheRunIsOpenIsRecorded') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded ;;
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
+    'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
@@ -832,7 +836,43 @@ case_worktree_noPushWithoutTheFlag() {
   assert_eq "0" "$(grep -c 'git push' "$trace" || true)" "a run that was not asked to publish does not push"
 }
 
-# ----------------------------------------------------------------------------- cases: labels
+case_worktree_refusesABranchWhoseReviewFailed() {
+  # A branch that carries one archived change and a green verification is adoptable by every input the run
+  # checked before #185 — and one the reviewer refused looks exactly the same from the outside. The verdict
+  # therefore travels inside the change's own evidence directory, and adoption reads it there.
+  local p w out status branch
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  branch="fix/issue-21-a-refused-change"
+  git -C "$p" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the refused attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-refused/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-refused/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-refused/evidence/TEST-refused.xml"
+  printf 'the refused change\n' > "$p/refused-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the refused change" >/dev/null 2>&1 ||
+    fail "could not commit the refused change"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
+
+  # The reviewer refused round 2 of exactly this change. What the run writes on the branch is what a later
+  # run reads (`run#recordsAFailedReviewOnTheBranch` covers the writing); here the file is placed on the
+  # branch the way the run's own commit leaves it.
+  git -C "$p" switch -q "$branch" >/dev/null 2>&1 || fail "could not switch to the attempt's branch"
+  printf 'The reviewer refused this change in review round 2.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-refused/evidence/review-failed-round-2.md"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "review: refused in round 2" >/dev/null 2>&1 ||
+    fail "could not commit the verdict"
+  git -C "$p" switch -q main >/dev/null 2>&1 || fail "could not return to the base"
+
+  out=$(run_worktree "$p" adopt-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a branch whose review was refused is not adopted"
+  assert_contains "$out" "the reviewer refused" "the refusal says why"
+  assert_contains "$out" "round 2" "and names the round the verdict came from"
+  [ ! -f "$p/refused-fix.txt" ] || fail "the refused change was merged onto the base anyway"
+}
+
 
 case_labels_verdictToLabelMatrix() {
   local d p log out status
@@ -1228,6 +1268,25 @@ case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded() {
 # branch and two such refusals end a run (issue #176). The branch is merged onto the base and the item is
 # closed through the run's own closure path, with the branch, its commits and the evidence it was checked
 # for recorded in the run state and named in the report.
+# A branch is a later run's only view of an earlier attempt, so the verdict a reviewer reached has to live on
+# it: the run commits the refusal into the change's own evidence directory, on the item's branch (#185).
+case_run_recordsAFailedReviewOnTheBranch() {
+  local d p branch files out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "two failed rounds block the item"
+  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
+  [ -n "$branch" ] || fail "the run left no item branch"
+  files=$(git -C "$p" ls-tree -r --name-only "$branch")
+  printf '%s\n' "$files" | grep -q 'openspec/changes/archive/.*/evidence/review-failed-round-2\.md' ||
+    fail "the reviewer's verdict does not travel with the change: $(printf '%s' "$files" | grep evidence || true)"
+  assert_contains "$(git -C "$p" log --format=%s "$branch" | head -1)" "failed round 2" \
+    "and it is a commit on the branch, not a machine-local file"
+}
+
 case_run_mergesAFinishedAttemptAndClosesTheItem() {
   local d p out status branch base log
   d=$(scratch); p=$(new_project)

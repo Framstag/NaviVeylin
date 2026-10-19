@@ -18,6 +18,7 @@
 #   worktree.sh start-item <issue> <slug>
 #   worktree.sh end-item <issue> <slug>
 #   worktree.sh adopt-item <issue> <branch>
+#   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
 #   worktree.sh remove
@@ -240,6 +241,14 @@ cmd_adopt_item() {
   evidence=$(carried_verification "$branch" "$base" "$change")
   [ -n "$evidence" ] ||
     loop_refuse "branch $branch is not adopted — the change $change carries no green verification record"
+  # The reviewer's refusal is evidence too, and it is the one fact that makes a finished-looking branch the
+  # owner's: a branch whose archived change and green XML are all a later run can see was refused by the
+  # reviewer that read the diff, so adopting it would close the item on a decision a person had just refused
+  # (#185).
+  refused_round=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
+    sed -n 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' | sort -n | tail -1)
+  [ -z "$refused_round" ] ||
+    loop_refuse "branch $branch is not adopted — the reviewer refused $change in round $refused_round (evidence/review-failed-round-$refused_round.md)"
   commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
   [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
   # The merge lands in the project tree, where the base branch is checked out: over uncommitted work it would
@@ -261,6 +270,37 @@ $dirty"
     "$branch" "$(gitr rev-parse --short HEAD)" "$(printf '%s' "$commits" | sed 's/ /,/g')" "$change" "$evidence"
 }
 
+# The reviewer's verdict is evidence, and evidence travels with the change (#185): a branch whose only record of
+# the refusal is this run's machine-local item directory looks finished to the next run, which reads one archived
+# change and a green XML and adopts exactly the change the reviewer refused. Recording it writes one file into
+# the change's own `evidence/` directory and commits it on the item's branch, so the verdict leaves with the run.
+cmd_record_review_failure() { # <issue> <change> <round>
+  local issue="${1:-}" change="${2:-}" round="${3:-}" dir file who_name who_email
+  case "$issue" in ''|*[!0-9]*) loop_die "record-review-failure: usage: worktree.sh record-review-failure <issue> <change> <round>" ;; esac
+  [ -n "$change" ] && [ -n "$round" ] ||
+    loop_die "record-review-failure: usage: worktree.sh record-review-failure <issue> <change> <round>"
+  [ -d "$worktree" ] || loop_die "record-review-failure: no worktree at $worktree"
+  [ -d "$worktree/openspec/changes/archive/$change" ] ||
+    loop_refuse "record-review-failure: $change is not an archived change in the worktree"
+  dir="$worktree/openspec/changes/archive/$change/evidence"
+  file="$dir/review-failed-round-$round.md"
+  mkdir -p "$dir" || loop_die "record-review-failure: could not create $dir"
+  {
+    printf 'The reviewer refused this change in review round %s.\n\n' "$round"
+    printf 'Recorded by the run for issue #%s at %s, on the item branch, because a branch is what a later run\n' \
+      "$issue" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'can see: its archived change and its green verification say nothing about this verdict, and adopting\n'
+    printf 'it would close the item on a decision the reviewer had just refused.\n'
+  } > "$file" || loop_die "record-review-failure: could not write $file"
+  gitw add -- "$file" >&2 || loop_die "record-review-failure: could not stage $file"
+  IFS=$'\t' read -r who_name who_email <<< "$(loop_commit_identity)"
+  gitw -c user.name="$who_name" -c user.email="$who_email" \
+    commit -qm "review: $change failed round $round (#$issue)" >&2 ||
+    loop_die "record-review-failure: could not commit the verdict"
+  printf 'recorded: evidence/review-failed-round-%s.md in %s (%s)\n' "$round" "$change" \
+    "$(gitw rev-parse --short HEAD)"
+}
+
 cmd_head() { [ -d "$worktree" ] || loop_die "head: no worktree at $worktree"; gitw rev-parse HEAD; }
 cmd_status() { [ -d "$worktree" ] || loop_die "status: no worktree at $worktree"; gitw status --porcelain; }
 
@@ -278,6 +318,7 @@ case "$cmd" in
   create) cmd_create "$@" ;;
   start-item) cmd_start_item "$@" ;;
   end-item) cmd_end_item "$@" ;;
+  record-review-failure) cmd_record_review_failure "$@" ;;
   adopt-item) cmd_adopt_item "$@" ;;
   head) cmd_head "$@" ;;
   status) cmd_status "$@" ;;

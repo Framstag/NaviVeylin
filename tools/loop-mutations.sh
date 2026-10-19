@@ -98,6 +98,8 @@ MUTATIONS=(
   '16.3@-@tools/loop/report.sh@run#stopReasonIsPrintedAndReported@the report repeating the recorded stop reason@s|^stop_reason=.*$|stop_reason=""|'
   '17.1@-@tools/loop/prescreen.sh@prescreen#itemAwaitingADecisionIsNotQueued@the branch that leaves an item awaiting a decision to its owner@s|^  elif \[ "$awaiting_decision" -eq 1 \]; then$|  elif false; then|'
   '17.2@-@tools/loop/run.sh@run#awaitingDecisionIsNotEscalatedAgain@the run not re-escalating an item that already carries the escalation label@s|^    \| select(.*alreadyEscalated.*$|    \| select(true)|'
+  '18.1@-@tools/loop/worktree.sh@worktree#refusesABranchWhoseReviewFailed@adoption reading the verdict the reviewer left on the branch@s|^  refused_round=.*$|  refused_round=""|'
+  '18.2@-@tools/loop/run.sh@run#recordsAFailedReviewOnTheBranch@the run committing the reviewer verdict onto the item branch@s|^      bash "$LOOP_DIR/worktree.sh" record-review-failure .*$|      : # the verdict is recorded nowhere but this run|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

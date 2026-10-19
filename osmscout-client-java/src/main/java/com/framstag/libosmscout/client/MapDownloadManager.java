@@ -121,8 +121,8 @@ public class MapDownloadManager {
                 listener.onError(entry.getName(), "Download cancelled");
             } catch (Throwable e) {
                 // Catch Throwable, not Exception: this is the worker's top-level boundary, and the failures
-                // it must report are Errors too — the first thing the worker does is a native call, and a
-                // linker or class-initialisation failure is an Error (guidelines/Design.md §4).
+                // it must report are Errors too — a real map download's first fallible step is a native
+                // call, and a linker or class-initialisation failure is an Error (guidelines/Design.md §4).
                 listener.onError(entry.getName(), failureMessage(e));
             } finally {
                 activeDownloads.remove(ad);

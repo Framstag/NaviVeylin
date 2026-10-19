@@ -1,0 +1,19 @@
+# the change's shell gate — written after the runs, 2026-10-19T19:15:42Z
+
+$ bash tools/loop-selftest.sh          # 2026-10-19T18:56:41Z .. 18:59:44Z, 183 s, exit 0
+loop-selftest: all 85 cases passed (JDK 27, offline, no token, no sandbox)
+  … 85 PASS lines omitted (one per case; reproducible with the command above)
+
+$ bash tools/check-portability.sh       # 2026-10-19T18:59:44Z (same second as the suite exit — measured 0.6 s), exit 0
+check-portability: OK — 42 engines and 2 templates name no project value (98 value(s) read from the project)
+
+$ tools/loop/run.sh --dry-run --items 1 --minutes 1   # 2026-10-19T19:14:16Z .. 19:15:14Z, 58 s, exit 0, real tracker
+pre-screen: 54 eligible, 39 excluded — gates 2-5 stay the worker's (design D6)
+  #126 [bug/build-and-harness] rank 1 — §192 `HardcodedStringScanner` misses a user-facing literal assigned to a state f
+  #189 [bug/build-and-harness] rank 2 — A body whose citation repeats the directory prefix is classified stale, and the 
+  #190 [bug/build-and-harness] rank 3 — A loop flag given without its value hangs the command silently instead of failin
+  #198 [bug/build-and-harness] rank 4 — the main build is red
+  #131 [bug/route-and-navigation] rank 37 — §197 The first route calculation after opening the databases can see an empty da
+  #7 [improvement/ui] rank 38 — §166 The stop control's own accessibility target is asserted by geometry only, n
+dry run: no worktree, no label and no agent process was created or started
+  … 48 of the 54 queue lines, all 39 pre-screen exclusion lines and report.sh's body omitted

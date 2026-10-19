@@ -1,0 +1,17 @@
+# revert-check — mutation 22.1, 2026-10-19T19:14:09Z
+
+$ bash tools/loop-mutations.sh --only 22.1
+RED    22.1  prescreen#harnessItemsLeadTheQueue   (the category key ranking a leading category ahead of every other category)
+restore 22.1 prescreen#harnessItemsLeadTheQueue green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+# the same mutation applied by hand, so that both cases that assert the category key are recorded:
+  mutation applied to tools/loop/prescreen.sh: sort_by([._lead, ._rank, .issue]) -> sort_by([._rank, .issue]) (2026-10-19T19:14:02Z)
+  $ bash tools/loop-selftest.sh --case 'prescreen#harnessItemsLeadTheQueue'
+  the leading group (bug, bug, improvement), then the app bug, then the app improvement: expected '22 26 23 21 24', got '21 22 26 23 24'
+  FAIL prescreen#harnessItemsLeadTheQueue
+  $ bash tools/loop-selftest.sh --case 'prescreen#aRenamedLeadingCategoryLeads'
+  the declared value leads, and the class order decides among the rest: expected '24 21 22 26 23', got '21 22 26 23 24'
+  FAIL prescreen#aRenamedLeadingCategoryLeads
+  restore byte-exact: sha256 da3d9ade8112d592c5c4d1ddbfcb6475fb75d0b07fd3f37d5624e6177e1bc310 before and after

@@ -1,0 +1,20 @@
+# green on the fix — ef2c092 + working tree, 2026-10-19T18:59:49Z
+
+$ bash tools/loop-selftest.sh --case 'prescreen#harnessItemsLeadTheQueue'
+PASS prescreen#harnessItemsLeadTheQueue
+
+$ bash tools/loop-selftest.sh --case 'prescreen#aRenamedLeadingCategoryLeads'
+PASS prescreen#aRenamedLeadingCategoryLeads
+
+$ bash tools/loop-selftest.sh --case 'prescreen#priorityCategoriesAreReadFromTheProfile'
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+
+$ bash tools/loop-selftest.sh --case 'prescreen#priorityDoesNotBypassTheGate'
+PASS prescreen#priorityDoesNotBypassTheGate
+
+$ bash tools/loop-selftest.sh --case 'prescreen#anUndeclaredRoleStopsTheScreen'
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+
+$ bash tools/loop-selftest.sh --case 'prescreen#ranksBugsFirstAndDropsFeatures'
+PASS prescreen#ranksBugsFirstAndDropsFeatures
+

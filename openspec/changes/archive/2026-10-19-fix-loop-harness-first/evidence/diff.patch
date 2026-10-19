@@ -1,0 +1,342 @@
+diff --git a/.pi/skills/fix-loop/REFERENCE.md b/.pi/skills/fix-loop/REFERENCE.md
+index 4817bd0..827103d 100644
+--- a/.pi/skills/fix-loop/REFERENCE.md
++++ b/.pi/skills/fix-loop/REFERENCE.md
+@@ -69,7 +69,8 @@ over all 31 `class: bug` entries → `eligible: none`; a later run: 0 closed, 32
+   against a ~40 min analysis;
+ - skip verdicts of that second pass: `needs-device 8 · needs-decision 7 · in-flight 7 · refuted 4 · too-wide 2
+   · stale 2 · unspecifiable 1 · needs-diagnosis 1` — **not one** died on the item's class, which is why the
+-  class is a ranking input and not a gate.
++  class is a ranking input and not a gate — and so is the category beside it: the profile's `firstCategories`
++  lead the queue and the class order decides inside a group.
+ 
+ ## Field notes
+ 
+diff --git a/.pi/skills/fix-loop/SKILL.md b/.pi/skills/fix-loop/SKILL.md
+index e8b0d61..3a33244 100644
+--- a/.pi/skills/fix-loop/SKILL.md
++++ b/.pi/skills/fix-loop/SKILL.md
+@@ -87,7 +87,10 @@ carries them as `pending` rather than guessing.
+ 
+ The pre-screen also drops `class/feature`, `status/in-flight`, an item the tracker has already settled
+ (`status/fixed-by`, `status/retired`, a closed issue) and an item whose author is not on the allowlist, and it
+-ranks bugs before improvements. Marking a rejection on the issue is `labels.sh <verdict> <issue>`; an item
++ranks by two keys: the profile's `firstCategories` first — the categories of the tooling, the process and the
++proof, whose defects every later item pays for — and then bugs before improvements, oldest issue first inside a
++group. A leading category is a rank and never a gate: a held harness item is excluded like any other. Marking a
++rejection on the issue is `labels.sh <verdict> <issue>`; an item
+ that turns out to need a decision mid-item is **escalated** (`labels.sh escalate`), which names the root
+ cause, the failing case and the branch on the issue instead of throwing the work away.
+ 
+diff --git a/tools/fixtures/foreign-project/tools/tooling.json b/tools/fixtures/foreign-project/tools/tooling.json
+index 8fc53a8..17e578c 100644
+--- a/tools/fixtures/foreign-project/tools/tooling.json
++++ b/tools/fixtures/foreign-project/tools/tooling.json
+@@ -18,7 +18,9 @@
+   "roles": {
+     "comment": "The foreign project's reading of its own vocabulary, in its own words: the loop's decisions are named after values of the namespaces above, and one of them (`deviceStatus`) is empty because this project has no device-gated state — declared empty, never omitted.",
+     "queuedVerdict": "eligible",
++    "heldVerdict": "held",
+     "workedClasses": ["bug", "improvement"],
++    "firstCategories": ["infra"],
+     "refusedClasses": ["feature"],
+     "inFlightStatus": "in-flight",
+     "deviceStatus": "",
+diff --git a/tools/loop-cases.sh b/tools/loop-cases.sh
+index 6e8af2d..1b5fd31 100755
+--- a/tools/loop-cases.sh
++++ b/tools/loop-cases.sh
+@@ -35,6 +35,11 @@ LOOP_SHELL_CASES=(
+   'prescreen#previousAttemptBranchIsADecision'
+   'prescreen#itemAwaitingADecisionIsNotQueued'
+   'prescreen#aHoldWithNoDecisionIsNotADecision'
++  'prescreen#harnessItemsLeadTheQueue'
++  'prescreen#aRenamedLeadingCategoryLeads'
++  'prescreen#priorityCategoriesAreReadFromTheProfile'
++  'prescreen#priorityDoesNotBypassTheGate'
++  'prescreen#anUndeclaredRoleStopsTheScreen'
+   'prescreen#escalatedItemKeepsItsBranchAsEvidence'
+   'prescreen#refusalLeavesATraceInTheTracker'
+   'worktree#seedsAllFourInputs'
+@@ -126,6 +131,11 @@ loop_run_shell_case() {
+     'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
+     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
+     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
++    'prescreen#harnessItemsLeadTheQueue') fn=case_prescreen_harnessItemsLeadTheQueue ;;
++    'prescreen#aRenamedLeadingCategoryLeads') fn=case_prescreen_aRenamedLeadingCategoryLeads ;;
++    'prescreen#priorityCategoriesAreReadFromTheProfile') fn=case_prescreen_priorityCategoriesAreReadFromTheProfile ;;
++    'prescreen#priorityDoesNotBypassTheGate') fn=case_prescreen_priorityDoesNotBypassTheGate ;;
++    'prescreen#anUndeclaredRoleStopsTheScreen') fn=case_prescreen_anUndeclaredRoleStopsTheScreen ;;
+     'prescreen#escalatedItemKeepsItsBranchAsEvidence') fn=case_prescreen_escalatedItemKeepsItsBranchAsEvidence ;;
+     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
+     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
+@@ -766,6 +776,109 @@ case_prescreen_escalatedItemKeepsItsBranchAsEvidence() {
+     "while still being marked as already escalated, so no second comment is posted"
+ }
+ 
++# A harness defect is paid again by every item after it — a broken `prescreen.sh`, `labels.sh`, `close.sh` or a
++# sensor can make the run's own report false — so the profile's leading categories rank ahead of every other
++# category, and inside one group the class order still decides (harness bug, harness improvement, app bug, app
++# improvement). Before this key the category was read, recorded and printed, and never ranked on.
++case_prescreen_harnessItemsLeadTheQueue() {
++  local p out
++  p=$(new_project)
++  init_state "$p" 5 90
++  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
++  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
++  assert_eq "22 26 23 21 24" \
++    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
++    "the leading group (bug, bug, improvement), then the app bug, then the app improvement"
++  assert_eq "1" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 22) | .rank')" \
++    "the harness bug leads the queue"
++  assert_eq "2" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 26) | .rank')" \
++    "the second harness bug follows by issue number inside the leading group"
++  assert_eq "3" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .rank')" \
++    "the leading improvement follows both leading bugs, so the class order decides inside the group"
++  assert_eq "4" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .rank')" \
++    "the app bug leads the app improvement but follows the whole leading group"
++  assert_eq "5" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .rank')" \
++    "the app improvement stays last"
++}
++
++# A renamed set is ordered on, not merely scanned: the profile declares `ui` as its leading category and the
++# fixture's `category/ui` improvement leads the queue, above a harness bug — the key is the declared value, not a
++# spelling this change happens to ship.
++case_prescreen_aRenamedLeadingCategoryLeads() {
++  local p out
++  p=$(new_project)
++  init_state "$p" 5 90
++  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
++  jq '.roles.firstCategories = ["ui"]' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
++    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not rename the leading category"
++  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on a renamed leading set"
++  assert_eq "24 21 22 26 23" \
++    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
++    "the declared value leads, and the class order decides among the rest"
++  assert_eq "1" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .rank')" \
++    "the ui improvement is rank 1 under the renamed set"
++}
++
++# The leading categories are the profile's values, read through the roles section like every other decision: an
++# empty list is a project that wants no category priority, and an absent key is a half-adapted profile that
++# must stop the script rather than silently rank by class.
++case_prescreen_priorityCategoriesAreReadFromTheProfile() {
++  local p out status
++  p=$(new_project)
++  init_state "$p" 5 90
++  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
++
++  jq '.roles.firstCategories = []' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
++    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not empty the priority list"
++  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on an empty priority list"
++  assert_eq "21 22 26 23 24" \
++    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
++    "an empty list leaves the class order alone"
++
++  jq 'del(.roles.firstCategories)' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
++    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not remove the priority list"
++  out=$(run_prescreen "$p" --json 2>&1); status=$?
++  assert_eq "2" "$status" "an absent role is a half-adapted profile, not 'no priority'"
++  assert_contains "$out" "firstCategories" "and the refusal names the key the profile does not declare"
++}
++
++# The category key is a rank, not a gate: an item in a leading category that is on hold is excluded exactly as
++# any other held item, writes no label and takes no rank, so the priority can never queue work the gate refused.
++case_prescreen_priorityDoesNotBypassTheGate() {
++  local p out log
++  p=$(new_project)
++  init_state "$p" 5 90
++  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
++  log="$p/gh.log"; : > "$log"; export GH_STUB_RECORD="$log"
++
++  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
++  assert_eq "held" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" \
++    "a held item in a leading category is still held"
++  assert_eq "null" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .rank')" \
++    "and it takes no rank"
++  assert_eq "author-not-allowlisted" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 27) | .verdict')" \
++    "a leading-category item by an unauthorised author is excluded as unauthorised, not ranked"
++  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 27) | .reason')" "allowlist" \
++    "and the reason names the allowlist"
++  assert_eq "0" "$(wc -c < "$log" | tr -d ' ')" "the category writes no label of its own"
++  assert_eq "5" "$(jq -r '.queue | length' "$(state_file "$p")")" \
++    "the queue holds the five eligible items and not the held one"
++}
++
++# Every role the script reads is required, not merely the one this change added: a half-adapted profile that
++# omits the hold verdict would otherwise report an empty verdict instead of stopping with a named reason.
++case_prescreen_anUndeclaredRoleStopsTheScreen() {
++  local p out status
++  p=$(new_project)
++  init_state "$p" 1 90
++  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
++  jq 'del(.roles.heldVerdict)' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
++    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not remove the hold verdict"
++  out=$(run_prescreen "$p" --json 2>&1); status=$?
++  assert_eq "2" "$status" "an undeclared role stops the pre-screen"
++  assert_contains "$out" "does not declare heldVerdict" "and the refusal names the key"
++}
++
+ # ----------------------------------------------------------------------------- cases: worktree
+ 
+ # The throwaway repository has no submodule and no vendored dependency, so the seed's submodule step is a
+diff --git a/tools/loop-mutations.sh b/tools/loop-mutations.sh
+index 85fcb72..9fea627 100755
+--- a/tools/loop-mutations.sh
++++ b/tools/loop-mutations.sh
+@@ -107,6 +107,7 @@ MUTATIONS=(
+   '20.2@-@tools/loop/prescreen.sh@prescreen#escalatedItemKeepsItsBranchAsEvidence@the awaiting clause not overwriting the branch the adoption path reads@s|^  if \[ "$verdict" = "$queued_verdict" \] && \[ "$awaiting_decision" -eq 1 \]; then$|  if [ "$awaiting_decision" -eq 1 ]; then|'
+   '21.1@-@tools/loop/prescreen.sh@prescreen#aHoldWithNoDecisionIsNotADecision@a hold with no recorded decision reported as a hold rather than as a decision@s|^      verdict="$held_verdict"$|      verdict="$decision_verdict"|'
+   '21.2@-@tools/loop/labels.sh@labels#holdCarriesItsReason@the reason a hold writes travelling with the state as a comment@s|^    comment_only=1$|    comment_only=0|'
++  '22.1@-@tools/loop/prescreen.sh@prescreen#harnessItemsLeadTheQueue@the category key ranking a leading category ahead of every other category@s|sort_by(\[._lead, ._rank, .issue\])|sort_by([._rank, .issue])|'
+   '20.3@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the reason it stopped on every exit path@s|^  loop_state stop "$1" >/dev/null 2>&1 .. true$|  : # the reason is printed and not recorded|'
+   '20.4@-@tools/loop/run.sh@run#aZeroRoundBudgetIsRefused@the refusal of a review budget that never runs@s|^case "$max_review_rounds" in .*$|: # the mutation accepts a budget that never runs|'
+ )
+diff --git a/tools/loop/lib.sh b/tools/loop/lib.sh
+index 7042423..059079b 100755
+--- a/tools/loop/lib.sh
++++ b/tools/loop/lib.sh
+@@ -119,7 +119,7 @@ loop_required_labels() {
+ # spells a vocabulary value (D16); `tools/check-portability.sh` enforces it. The keys are the contract
+ # (like the namespace names); a value another project does not need is declared empty, never omitted.
+ LOOP_ROLES=""
+-LOOP_ROLE_KEYS="queuedVerdict workedClasses refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
++LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
+ loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
+   [ -n "$LOOP_ROLES" ] && return 0
+   LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""
+diff --git a/tools/loop/prescreen.sh b/tools/loop/prescreen.sh
+index 5409c1d..500e383 100755
+--- a/tools/loop/prescreen.sh
++++ b/tools/loop/prescreen.sh
+@@ -70,6 +70,10 @@ queued_verdict=$(loop_role queuedVerdict)
+ held_verdict=$(loop_role heldVerdict)
+ decision_verdict=$(loop_role decisionAgent)
+ worked_classes="$(loop_role workedClasses)"
++# The categories whose items lead the queue, in the profile's order (this project: the tooling, the process and
++# the proof rather than the shipped app). Empty is a project that wants no category priority, and the queue then
++# keeps the class order alone — an absent key is a half-adapted profile, refused by `loop_roles_load`.
++priority_categories="$(loop_role firstCategories)"
+ refused_classes="$(loop_role refusedClasses)"
+ inflight_status=$(loop_role inFlightStatus)
+ device_status=$(loop_role deviceStatus)
+@@ -323,9 +327,11 @@ while [ "$i" -lt "$count" ]; do
+   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
+ done
+ 
+-ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$worked_classes" | jq -R . | jq -sc .)" '
+-  (map(. + {_rank: (. as $r | (($worked | index($r.class)) // ($worked | length)))})
+-   | sort_by([._rank, .issue]) | map(del(._rank))) as $sorted
++ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$worked_classes" | jq -R . | jq -sc .)" \
++  --argjson leading "$(printf '%s' "$priority_categories" | jq -R . | jq -sc .)" '
++  (map(. + {_rank: (. as $r | (($worked | index($r.class)) // ($worked | length))),
++             _lead: (. as $r | (($leading | index($r.category)) // ($leading | length)))})
++   | sort_by([._lead, ._rank, .issue]) | map(del(._lead, ._rank))) as $sorted
+   | ($sorted | map(select(.verdict == $queued))) as $q
+   | reduce range(0; ($q | length)) as $i ($sorted;
+       . as $all | ($q[$i].issue) as $id
+diff --git a/tools/tooling.json b/tools/tooling.json
+index d5e7c91..4adde97 100644
+--- a/tools/tooling.json
++++ b/tools/tooling.json
+@@ -35,10 +35,11 @@
+     "prio": "The four bands. The band EDGES, the scoring table and the TTL are the `bands` section below — one home, so a re-tuned model is one committed file."
+   },
+   "roles": {
+-    "comment": "THE VOCABULARY'S ROLES — for each decision an engine makes about a value of the namespaces above, which value it means. `tools/loop/prescreen.sh` reads `queuedVerdict`, `workedClasses` (rank order), `refusedClasses`, `inFlightStatus`, `deviceStatus` and `settledStatuses`; `tools/loop/labels.sh` reads `holdStatus`, `closeStatus`, `inProgressAgent`, `deviceAgent` and `decisionAgent`; `tools/loop/run.sh`, `report.sh` and `state.sh` read the verdicts the pre-screen writes; `tools/issues/resolve-stale.sh` reads `holdStatus` to park an item; `tools/issues/close.sh` reads `closeStatus` and `retiredStatus`, the settled state a closure records — a fix and a person's decision not to act, respectively. A key another project does not need is declared empty (`\"\"`, `[]`), never omitted: an absent key is a half-adapted profile, and `tools/check-portability.sh` forbids every value declared here in an engine exactly as it forbids the namespaces' values.",
++    "comment": "THE VOCABULARY'S ROLES — for each decision an engine makes about a value of the namespaces above, which value it means. `tools/loop/prescreen.sh` reads `queuedVerdict`, `workedClasses` (rank order), `refusedClasses`, `inFlightStatus`, `deviceStatus` and `settledStatuses`; `tools/loop/labels.sh` reads `holdStatus`, `closeStatus`, `inProgressAgent`, `deviceAgent` and `decisionAgent`; `tools/loop/run.sh`, `report.sh` and `state.sh` read the verdicts the pre-screen writes; `tools/issues/resolve-stale.sh` reads `holdStatus` to park an item; `tools/issues/close.sh` reads `closeStatus` and `retiredStatus`, the settled state a closure records — a fix and a person's decision not to act, respectively. A key another project does not need is declared empty (`\"\"`, `[]`), never omitted: an absent key is a half-adapted profile, and `tools/check-portability.sh` forbids every value declared here in an engine exactly as it forbids the namespaces' values. `tools/loop/prescreen.sh` also reads `firstCategories`: the categories whose items lead the queue, in this order — the tooling, the process and the proof, whose defects are paid again by every item after them.",
+     "queuedVerdict": "eligible",
+     "heldVerdict": "held",
+     "workedClasses": ["bug", "improvement"],
++    "firstCategories": ["build-and-harness", "verification", "specs-and-process"],
+     "refusedClasses": ["feature"],
+     "inFlightStatus": "in-flight",
+     "deviceStatus": "open-device",
+--- new file (untracked): tools/loop/fixtures/scenarios/categories/issues.json ---
+[
+  {
+    "number": 21,
+    "title": "§21 An app bug — the queue's head before the category key existed",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 22,
+    "title": "§22 A harness bug — the tooling the loop itself runs",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/build-and-harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 23,
+    "title": "§23 A verification improvement — the proof every later item needs",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/verification" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 24,
+    "title": "§24 An app improvement — after every bug of its own group",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 26,
+    "title": "§26 A second harness bug — the class order still decides inside the leading group",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/build-and-harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 27,
+    "title": "§27 A leading-category bug authored elsewhere — a rank is not an authorisation either",
+    "body": "no citation at all",
+    "author": { "login": "someone-else" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/build-and-harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 25,
+    "title": "§25 A held item in a leading category — a rank is not a gate",
+    "body": "<!-- nvid: 25 -->\n\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/specs-and-process" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

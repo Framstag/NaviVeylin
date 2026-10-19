@@ -1,0 +1,19 @@
+# red on HEAD — ef2c092, 2026-10-19T18:43:14Z
+# tree: a detached worktree at ef2c092 with the change's test assets copied in (tools/loop-cases.sh, the
+# categories fixture) and HEAD's production files untouched — so the cases run against the pre-fix sort.
+
+$ bash tools/loop-selftest.sh --case 'prescreen#harnessItemsLeadTheQueue'
+  the leading group (bug, bug, improvement), then the app bug, then the app improvement: expected '22 26 23 21 24', got '21 22 26 23 24'
+FAIL prescreen#harnessItemsLeadTheQueue
+
+$ bash tools/loop-selftest.sh --case 'prescreen#aRenamedLeadingCategoryLeads'
+  the declared value leads, and the class order decides among the rest: expected '24 21 22 26 23', got '21 22 26 23 24'
+FAIL prescreen#aRenamedLeadingCategoryLeads
+
+$ bash tools/loop-selftest.sh --case 'prescreen#priorityCategoriesAreReadFromTheProfile'
+  an absent role is a half-adapted profile, not 'no priority': expected '2', got '0'
+FAIL prescreen#priorityCategoriesAreReadFromTheProfile
+
+$ bash tools/loop-selftest.sh --case 'prescreen#priorityDoesNotBypassTheGate'
+PASS prescreen#priorityDoesNotBypassTheGate
+

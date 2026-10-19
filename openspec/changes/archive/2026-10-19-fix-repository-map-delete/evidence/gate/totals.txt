@@ -1,4 +1,5 @@
-gate: ./gradlew test -PforceTests --rerun-tasks
-suites=704 tests=5676 skipped=0 failures=0 errors=0
-BUILD SUCCESSFUL in 4m 49s (189 actionable tasks: 189 executed)
-modules: app mobileDebug 276 suites, app automotiveDebug 276, auto 85, core 60, osmscout-client-java 7
+suites=704
+tests=5678 skipped=0 failures=0 errors=0
+run: ./gradlew test -PforceTests --rerun-tasks
+BUILD SUCCESSFUL in 4m 46s
+189 actionable tasks: 189 executed

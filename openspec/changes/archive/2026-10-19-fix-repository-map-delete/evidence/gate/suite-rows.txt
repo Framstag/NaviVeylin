@@ -1,704 +1,704 @@
-tests="6" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="15" skipped="0" failures="0" errors="0"
-tests="20" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="21" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="16" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="66" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="37" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="27" skipped="0" failures="0" errors="0"
-tests="13" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="81" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="16" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="31" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="22" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="15" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="23" skipped="0" failures="0" errors="0"
-tests="22" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="22" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="19" skipped="0" failures="0" errors="0"
-tests="34" skipped="0" failures="0" errors="0"
-tests="13" skipped="0" failures="0" errors="0"
-tests="30" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="13" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="28" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="14" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="14" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="15" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="16" skipped="0" failures="0" errors="0"
-tests="57" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="31" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="13" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="15" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="23" skipped="0" failures="0" errors="0"
-tests="16" skipped="0" failures="0" errors="0"
-tests="20" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="13" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="18" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="15" skipped="0" failures="0" errors="0"
-tests="23" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="22" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="14" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="30" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="21" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="13" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="27" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="19" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="50" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="18" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="27" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="29" skipped="0" failures="0" errors="0"
-tests="31" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="24" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="14" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="27" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="38" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="18" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="24" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="23" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="16" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="15" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="23" skipped="0" failures="0" errors="0"
-tests="16" skipped="0" failures="0" errors="0"
-tests="20" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="13" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="18" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="15" skipped="0" failures="0" errors="0"
-tests="23" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="22" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="14" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="30" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="21" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="13" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="27" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="19" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="50" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="18" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="27" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="29" skipped="0" failures="0" errors="0"
-tests="31" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="24" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="14" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="27" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="38" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="18" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="17" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="12" skipped="0" failures="0" errors="0"
-tests="1" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="5" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="11" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="24" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="10" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="4" skipped="0" failures="0" errors="0"
-tests="6" skipped="0" failures="0" errors="0"
-tests="2" skipped="0" failures="0" errors="0"
-tests="8" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="7" skipped="0" failures="0" errors="0"
-tests="3" skipped="0" failures="0" errors="0"
-tests="23" skipped="0" failures="0" errors="0"
-tests="9" skipped="0" failures="0" errors="0"
-tests="16" skipped="0" failures="0" errors="0"
+com.framstag.libosmscout.client.FakeOSMScoutClientSearchRequestTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:07.994Z
+com.naviveylin.AutomotiveDeviceTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:08.135Z
+com.naviveylin.data.AddressBookRationaleStoreTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:14.576Z
+com.naviveylin.data.AddressBookResolverTest tests=27 skipped=0 failures=0 errors=0 2026-10-19T07:05:15.940Z
+com.naviveylin.data.AddressParserTest tests=23 skipped=0 failures=0 errors=0 2026-10-19T07:05:14.684Z
+com.naviveylin.data.AmbientLightClassifierTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:05:16.582Z
+com.naviveylin.data.AmbientLightMonitorTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:14.717Z
+com.naviveylin.data.AmbientLightPipelineTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:16.592Z
+com.naviveylin.data.AppSettingsTest tests=18 skipped=0 failures=0 errors=0 2026-10-19T07:05:15.053Z
+com.naviveylin.data.AssetCopierTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:05:16.605Z
+com.naviveylin.data.AutoSettingsMappingTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:05:15.232Z
+com.naviveylin.data.ContactsRepositoryTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:05:18.065Z
+com.naviveylin.data.DarkModeResolutionTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:15.236Z
+com.naviveylin.data.DaylightPaletteContrastTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:05:18.272Z
+com.naviveylin.data.FavoriteRepositoryTest tests=50 skipped=0 failures=0 errors=0 2026-10-19T07:05:15.270Z
+com.naviveylin.data.HttpUrlFetcherTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:18.512Z
+com.naviveylin.data.IconAssetsTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:17.337Z
+com.naviveylin.data.MapDataRegistrarTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:19.035Z
+com.naviveylin.data.MapSourceRegistryTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:17.348Z
+com.naviveylin.data.MapSourceSwitchTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:05:19.113Z
+com.naviveylin.data.MapUpdatesTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:05:17.630Z
+com.naviveylin.data.PackagedPoiIconsTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:19.424Z
+com.naviveylin.data.SearchHistoryRepositoryTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:05:18.265Z
+com.naviveylin.data.SettingsStorageSourceTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:19.741Z
+com.naviveylin.data.SettingsStorageTest tests=24 skipped=0 failures=0 errors=0 2026-10-19T07:05:18.572Z
+com.naviveylin.data.SettingsStorageUpdateStateTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.184Z
+com.naviveylin.data.StartMapResolverTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:19.748Z
+com.naviveylin.data.StylesheetHexColorCaseTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.310Z
+com.naviveylin.data.VehicleMaxSpeedTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:19.930Z
+com.naviveylin.data.ViewportStorageTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.441Z
+com.naviveylin.DeepLinkPrivacyTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:14.463Z
+com.naviveylin.di.AutoFavoritesProviderImplTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:19.948Z
+com.naviveylin.di.AutoMapDatabaseOpenTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.733Z
+com.naviveylin.di.AutoProviderLazinessTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.134Z
+com.naviveylin.di.AutoSearchProviderRankingTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.916Z
+com.naviveylin.di.AutoSearchProviderScopeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.222Z
+com.naviveylin.di.AutoServiceModuleTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:21.028Z
+com.naviveylin.di.CrossSurfaceSearchOrderTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.363Z
+com.naviveylin.di.MapDownloadModuleClientConfigTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:21.199Z
+com.naviveylin.di.NativeClientBuildLogTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.594Z
+com.naviveylin.di.NavigationSessionLeaseTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:21.262Z
+com.naviveylin.featurelist.ShippedSpecClassificationTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.853Z
+com.naviveylin.i18n.GermanRenderingTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:21.290Z
+com.naviveylin.i18n.GermanTranslationCompletenessTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.905Z
+com.naviveylin.i18n.PluralsTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:23.877Z
+com.naviveylin.location.FixFreshnessTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.926Z
+com.naviveylin.location.LocationServiceTest tests=27 skipped=0 failures=0 errors=0 2026-10-19T07:05:24.029Z
+com.naviveylin.location.SpeedSanityTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.929Z
+com.naviveylin.location.SpeedSpikeFilterTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:05:24.871Z
+com.naviveylin.location.SpeedStalenessTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.931Z
+com.naviveylin.memory.MemoryPressureResponderTest tests=19 skipped=0 failures=0 errors=0 2026-10-19T07:05:24.882Z
+com.naviveylin.navigation.CarSessionPresenceImplTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.935Z
+com.naviveylin.navigation.DrivingModeProviderImplTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:26.222Z
+com.naviveylin.navigation.EngineFaultHandlerTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:20.953Z
+com.naviveylin.navigation.EngineMainDispatcherTeardownTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:26.235Z
+com.naviveylin.navigation.NavigationEngineAcquisitionTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:21.790Z
+com.naviveylin.navigation.NavigationEngineArrivalTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:26.429Z
+com.naviveylin.navigation.NavigationEngineCalculationCancelTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:24.416Z
+com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:26.598Z
+com.naviveylin.navigation.NavigationEngineCalculationStateTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:24.597Z
+com.naviveylin.navigation.NavigationEngineErrorOriginTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:26.610Z
+com.naviveylin.navigation.NavigationEngineFailureReasonTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:25.198Z
+com.naviveylin.navigation.NavigationEngineFaultIsolationTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:26.734Z
+com.naviveylin.navigation.NavigationEngineRerouteTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:05:25.374Z
+com.naviveylin.navigation.NavigationEngineRoadInfoTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:27.116Z
+com.naviveylin.navigation.NavigationEngineRouteGeometryTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:26.973Z
+com.naviveylin.navigation.NavigationEngineStepIndexTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:27.208Z
+com.naviveylin.navigation.NavigationEngineStopPathTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:27.015Z
+com.naviveylin.navigation.NavigationEngineTest tests=18 skipped=0 failures=0 errors=0 2026-10-19T07:05:27.255Z
+com.naviveylin.navigation.NavigationEngineTwoSurfaceTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.128Z
+com.naviveylin.navigation.NavigationNotificationControllerTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:29.575Z
+com.naviveylin.navigation.RerouteConfirmationGateTest tests=14 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.170Z
+com.naviveylin.navigation.ReroutePolicyGuidelineParityTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:29.652Z
+com.naviveylin.navigation.RoundaboutInstructionDiagnosticsTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.174Z
+com.naviveylin.navigation.RouteGeometryTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:29.661Z
+com.naviveylin.navigation.StepIndexSelectionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.177Z
+com.naviveylin.NaviVeylinAppStartupLoggingTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:14.365Z
+com.naviveylin.NaviVeylinCarAppServiceLoggingTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:15.317Z
+com.naviveylin.service.CarHintContentTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:29.664Z
+com.naviveylin.service.MapDownloadServiceTimeoutTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.181Z
+com.naviveylin.service.NavigationNotificationBuilderTest tests=16 skipped=0 failures=0 errors=0 2026-10-19T07:05:29.690Z
+com.naviveylin.service.NavigationNotificationContentFormatterTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.526Z
+com.naviveylin.service.NavigationNotificationServiceActionTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:30.130Z
+com.naviveylin.service.NavigationNotificationServiceStatusTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.540Z
+com.naviveylin.service.NavigationNotificationServiceTapTargetTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:30.139Z
+com.naviveylin.service.NotificationFaultIsolationTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.541Z
+com.naviveylin.service.NotificationHostSendLoggingTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:30.197Z
+com.naviveylin.share.SharedLocationHandlerTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.604Z
+com.naviveylin.share.SharedLocationParserTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:05:30.679Z
+com.naviveylin.test.ComposeSandboxIsolationTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:28.683Z
+com.naviveylin.test.ComposeSandboxSnapshotPipelineTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:30.931Z
+com.naviveylin.test.GpxParserTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:30.763Z
+com.naviveylin.ui.about.AboutDiagnosticsComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:31.003Z
+com.naviveylin.ui.about.AboutDialogComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:30.774Z
+com.naviveylin.ui.about.DiagnosticsDisclosureTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:31.849Z
+com.naviveylin.ui.about.LicenseInventoryTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:32.110Z
+com.naviveylin.ui.about.LicensesDialogComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:32.161Z
+com.naviveylin.ui.about.LicensesViewModelTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:32.125Z
+com.naviveylin.ui.addressbook.AddressBookRationaleDialogComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:32.758Z
+com.naviveylin.ui.addressbook.AddressBookSheetComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:32.251Z
+com.naviveylin.ui.addressbook.AddressBookViewModelTest tests=13 skipped=0 failures=0 errors=0 2026-10-19T07:05:33.153Z
+com.naviveylin.ui.attribution.OsmAttributionComposeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:32.934Z
+com.naviveylin.ui.favorites.AddFavoriteDialogComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:33.494Z
+com.naviveylin.ui.favorites.FavoriteCountPluralTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:33.818Z
+com.naviveylin.ui.favorites.FavoriteItemComposeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:35.981Z
+com.naviveylin.ui.favorites.FavoriteOrderTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:05:33.965Z
+com.naviveylin.ui.favorites.FavoritesSheetGroupReorderComposeTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:36.162Z
+com.naviveylin.ui.favorites.FavoritesSheetMoveToGroupComposeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:33.976Z
+com.naviveylin.ui.favorites.FavoritesSheetReorderComposeTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:05:37.265Z
+com.naviveylin.ui.favorites.FavoritesSheetStarredReorderComposeTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:05:36.770Z
+com.naviveylin.ui.favorites.FavoritesViewModelTest tests=30 skipped=0 failures=0 errors=0 2026-10-19T07:05:38.848Z
+com.naviveylin.ui.favorites.GroupOrderTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:05:37.863Z
+com.naviveylin.ui.favorites.StarredOrderTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:05:39.423Z
+com.naviveylin.ui.map.ApproximateLocationMapParityTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:37.868Z
+com.naviveylin.ui.map.AreaFitViewModelTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:39.450Z
+com.naviveylin.ui.map.AutoZoomSpeedSourceTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:37.920Z
+com.naviveylin.ui.map.BackGestureComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:39.707Z
+com.naviveylin.ui.map.CandidatePickerSheetComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:37.927Z
+com.naviveylin.ui.map.CarSessionIndicatorComposeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:40.202Z
+com.naviveylin.ui.map.CarSessionSurfaceComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:38.567Z
+com.naviveylin.ui.map.CompassButtonComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:40.306Z
+com.naviveylin.ui.map.CompassNeedleStrokeTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:38.909Z
+com.naviveylin.ui.map.CompassNeedleTargetTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:40.672Z
+com.naviveylin.ui.map.CompassPaletteTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:50.619Z
+com.naviveylin.ui.map.DiagnosticsCoordinatePrivacyTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:40.706Z
+com.naviveylin.ui.map.DriveModeButtonComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:50.650Z
+com.naviveylin.ui.map.EmbeddedResultMapFitTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:41.114Z
+com.naviveylin.ui.map.FavAutoZoomClampRangeTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:50.853Z
+com.naviveylin.ui.map.FitVerificationTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:41.182Z
+com.naviveylin.ui.map.FollowAnchorFramingTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:05:50.877Z
+com.naviveylin.ui.map.FollowDisplayOffsetTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:41.308Z
+com.naviveylin.ui.map.FreeDrivingBackgroundLeaseTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:05:50.894Z
+com.naviveylin.ui.map.FreeDrivingStreetPillComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:41.391Z
+com.naviveylin.ui.map.KeepScreenOnEffectTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:51.175Z
+com.naviveylin.ui.map.LocationDetailsDialogComposeTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:05:41.717Z
+com.naviveylin.ui.map.LocationMarkerOverlayTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:05:53.451Z
+com.naviveylin.ui.map.LocationOptionsOverlayComposeTest tests=23 skipped=0 failures=0 errors=0 2026-10-19T07:05:42.800Z
+com.naviveylin.ui.mapmanager.BasemapSectionComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:05.204Z
+com.naviveylin.ui.mapmanager.BasemapSourceSelectionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:39.935Z
+com.naviveylin.ui.mapmanager.BasemapViewModelTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:06.818Z
+com.naviveylin.ui.mapmanager.MapDownloadServiceRepositoryLifecycleTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:06:40.253Z
+com.naviveylin.ui.mapmanager.MapManagerDeleteRepositoryMapTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:06.988Z
+com.naviveylin.ui.mapmanager.MapManagerInstalledRowSourceComposeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:06:40.861Z
+com.naviveylin.ui.mapmanager.MapManagerRepositoryTreeTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:06:07.110Z
+com.naviveylin.ui.mapmanager.MapManagerScreenOrderingTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:06:40.994Z
+com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:07.714Z
+com.naviveylin.ui.mapmanager.MapManagerSourceSelectorComposeTest tests=15 skipped=0 failures=0 errors=0 2026-10-19T07:06:46.473Z
+com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:06:07.839Z
+com.naviveylin.ui.mapmanager.MapManagerSwitchDialogComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:47.330Z
+com.naviveylin.ui.mapmanager.MapManagerTreeExpansionTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:08.055Z
+com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:47.675Z
+com.naviveylin.ui.mapmanager.MapManagerUpdatesStateTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:08.112Z
+com.naviveylin.ui.mapmanager.MapUpdatesSectionTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:06:47.866Z
+com.naviveylin.ui.mapmanager.PluralFormatTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:06:08.262Z
+com.naviveylin.ui.map.MapActionColumnComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:53.460Z
+com.naviveylin.ui.map.MapCanvasGestureTransformTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:05:47.715Z
+com.naviveylin.ui.map.MapCanvasLongPressTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:53.621Z
+com.naviveylin.ui.map.MapCanvasPanWindowTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:47.733Z
+com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:53.737Z
+com.naviveylin.ui.map.MapCanvasViewModelAdminRegionTest tests=20 skipped=0 failures=0 errors=0 2026-10-19T07:05:47.768Z
+com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:53.878Z
+com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:48.237Z
+com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest tests=23 skipped=0 failures=0 errors=0 2026-10-19T07:05:54.007Z
+com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:48.425Z
+com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:15.588Z
+com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:05:48.580Z
+com.naviveylin.ui.map.MapCanvasViewModelDatabaseOpenTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:19.724Z
+com.naviveylin.ui.map.MapCanvasViewModelFavAddTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:48.813Z
+com.naviveylin.ui.map.MapCanvasViewModelFavoriteSearchTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:20.546Z
+com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:05:48.913Z
+com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest tests=24 skipped=0 failures=0 errors=0 2026-10-19T07:06:20.683Z
+com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:05:55.641Z
+com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingStatusTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:21.200Z
+com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:55.715Z
+com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:21.350Z
+com.naviveylin.ui.map.MapCanvasViewModelModeTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:05:55.836Z
+com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:21.995Z
+com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:56.016Z
+com.naviveylin.ui.map.MapCanvasViewModelRoadInfoTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:22.129Z
+com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest tests=21 skipped=0 failures=0 errors=0 2026-10-19T07:05:56.080Z
+com.naviveylin.ui.map.MapCanvasViewModelRouteVisibilityTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:22.265Z
+com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:56.895Z
+com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:22.595Z
+com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:57.001Z
+com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:22.742Z
+com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:57.108Z
+com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:06:22.964Z
+com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:57.246Z
+com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:06:24.322Z
+com.naviveylin.ui.map.MapCanvasViewModelStartMapRecordingTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:57.305Z
+com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:26.552Z
+com.naviveylin.ui.map.MapCanvasViewModelStructuredAddressSearchTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:05:57.939Z
+com.naviveylin.ui.map.MapCanvasViewModelStyleTest tests=16 skipped=0 failures=0 errors=0 2026-10-19T07:06:26.821Z
+com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest tests=15 skipped=0 failures=0 errors=0 2026-10-19T07:05:57.992Z
+com.naviveylin.ui.map.MapCanvasViewModelVehicleSpeedTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:27.819Z
+com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:05:58.328Z
+com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:27.869Z
+com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:05:59.144Z
+com.naviveylin.ui.map.MapCanvasZoomAnimationRulesTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:06:27.961Z
+com.naviveylin.ui.map.MapFollowRefreshTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:05:59.272Z
+com.naviveylin.ui.map.MapGestureComposeTest tests=13 skipped=0 failures=0 errors=0 2026-10-19T07:06:28.026Z
+com.naviveylin.ui.map.MapKeyShortcutsTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:05:59.282Z
+com.naviveylin.ui.map.MapLayerBandsTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:29.069Z
+com.naviveylin.ui.map.MapLayerStackComposeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:05:59.396Z
+com.naviveylin.ui.map.MapMenuBackOrderComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:29.074Z
+com.naviveylin.ui.map.MapMenuComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:01.280Z
+com.naviveylin.ui.map.MapNavColumnWidthProbeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:06:29.280Z
+com.naviveylin.ui.map.MapPanDisplayWindowTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:01.716Z
+com.naviveylin.ui.map.MapReCenterButtonOverlayTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:06:30.232Z
+com.naviveylin.ui.map.MapRendererBlitTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:06:30.554Z
+com.naviveylin.ui.map.MapRendererImmediateRenderTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:02.008Z
+com.naviveylin.ui.map.MapRendererInvalidateDataTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:06:30.806Z
+com.naviveylin.ui.map.MapRendererReleaseStorageTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:02.112Z
+com.naviveylin.ui.map.MapRendererRotatedRenderTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:06:31.057Z
+com.naviveylin.ui.map.MapRendererSmokeTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:06:02.785Z
+com.naviveylin.ui.map.MapRenderUtilTest tests=18 skipped=0 failures=0 errors=0 2026-10-19T07:06:01.728Z
+com.naviveylin.ui.map.MapRightWidgetColumnTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:06:31.202Z
+com.naviveylin.ui.map.MarkerDisplayShiftTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:03.148Z
+com.naviveylin.ui.map.MiniMapComposeTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:06:31.477Z
+com.naviveylin.ui.map.OrientationLogicTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:06:03.149Z
+com.naviveylin.ui.map.PoiSearchPanelComposeTest tests=22 skipped=0 failures=0 errors=0 2026-10-19T07:06:34.378Z
+com.naviveylin.ui.map.PoiSearchPanelMapComposeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:06:03.152Z
+com.naviveylin.ui.map.PoiSearchViewModelTest tests=14 skipped=0 failures=0 errors=0 2026-10-19T07:06:36.706Z
+com.naviveylin.ui.map.PreciseLocationRequiredDialogTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:03.264Z
+com.naviveylin.ui.map.ProjectionUtilsTest tests=38 skipped=0 failures=0 errors=0 2026-10-19T07:06:36.944Z
+com.naviveylin.ui.map.RenderModeSwitchTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:03.531Z
+com.naviveylin.ui.map.RotationHandoffTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:37.411Z
+com.naviveylin.ui.map.RotationPivotTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:03.849Z
+com.naviveylin.ui.map.RouteSegmentHighlightComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:37.415Z
+com.naviveylin.ui.map.RouteSegmentHighlightOverlayTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:03.851Z
+com.naviveylin.ui.map.RouteSessionCardExitTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:06:37.594Z
+com.naviveylin.ui.map.SearchDialogFavoriteSearchComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:03.860Z
+com.naviveylin.ui.map.SearchDialogModeSwitchComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:37.830Z
+com.naviveylin.ui.map.SearchHistorySheetComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:04.275Z
+com.naviveylin.ui.map.SearchPanelComposeTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:06:38.044Z
+com.naviveylin.ui.map.SearchResultMarkingComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:04.454Z
+com.naviveylin.ui.map.SearchResultRowComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:38.450Z
+com.naviveylin.ui.map.SearchRowResolversTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:04.686Z
+com.naviveylin.ui.map.SpeedWidgetTest tests=29 skipped=0 failures=0 errors=0 2026-10-19T07:06:38.648Z
+com.naviveylin.ui.map.SymbolIconPreferenceTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:04.786Z
+com.naviveylin.ui.map.TileCacheRenderTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:39.572Z
+com.naviveylin.ui.map.TileCacheTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:06:05.051Z
+com.naviveylin.ui.map.ZoomControlsAnimationTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:39.736Z
+com.naviveylin.ui.navigation.NavigationDetailsOverlayTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:06:08.703Z
+com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:06:48.493Z
+com.naviveylin.ui.navigation.NavigationStatusRingRasterTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:09.423Z
+com.naviveylin.ui.navigation.NavProgressRingTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:06:48.475Z
+com.naviveylin.ui.navigation.NextTurnOverlayTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:49.132Z
+com.naviveylin.ui.route.FavoritePickerItemComposeTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:06:21.736Z
+com.naviveylin.ui.route.RouteGeometryTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:49.382Z
+com.naviveylin.ui.route.RoutePanelActionBandScaleTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:06:21.809Z
+com.naviveylin.ui.route.RoutePanelComposeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:49.741Z
+com.naviveylin.ui.route.RoutePanelNavigationReviewTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:06:22.320Z
+com.naviveylin.ui.route.RoutePanelOverlayAnchorTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:06:51.522Z
+com.naviveylin.ui.route.RoutePanelStepNavigatorTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:23.559Z
+com.naviveylin.ui.route.RoutePanelStoppedStateTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:54.816Z
+com.naviveylin.ui.route.RoutePanelViewModelCalculationProgressTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:24.516Z
+com.naviveylin.ui.route.RoutePanelViewModelFailureReasonTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:06:55.570Z
+com.naviveylin.ui.route.RoutePanelViewModelLocationGateTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:24.613Z
+com.naviveylin.ui.route.RoutePanelViewModelRerouteTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:55.695Z
+com.naviveylin.ui.route.RoutePanelViewModelRouteVisibilityTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:06:24.718Z
+com.naviveylin.ui.route.RoutePanelViewModelSearchCancellationTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:55.756Z
+com.naviveylin.ui.route.RoutePanelViewModelSearchHistoryTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:24.787Z
+com.naviveylin.ui.route.RoutePanelViewModelSearchRankingTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:06:55.808Z
+com.naviveylin.ui.route.RoutePanelViewModelSessionTest tests=27 skipped=0 failures=0 errors=0 2026-10-19T07:06:24.849Z
+com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest tests=31 skipped=0 failures=0 errors=0 2026-10-19T07:06:55.907Z
+com.naviveylin.ui.route.RoutePanelViewModelVehicleSpeedTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:06:25.250Z
+com.naviveylin.ui.route.RouteProgressTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:06:56.425Z
+com.naviveylin.ui.route.RouteSessionDismissOrderingTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:06:25.303Z
+com.naviveylin.ui.route.RouteStepAnchorsTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:56.427Z
+com.naviveylin.ui.route.RouteStepDisplayTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:06:25.484Z
+com.naviveylin.ui.route.RouteStepSegmentsTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:06:56.429Z
+com.naviveylin.ui.route.RouteStepValuesTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:06:25.493Z
+com.naviveylin.ui.route.RouteSummaryStepSelectionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:56.435Z
+com.naviveylin.ui.route.RoutingFailureWordingTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:06:25.508Z
+com.naviveylin.util.DistanceFormatTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:06:56.731Z
+com.framstag.libosmscout.client.FakeOSMScoutClientSearchRequestTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:01.571Z
+com.naviveylin.AutomotiveDeviceTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:01.540Z
+com.naviveylin.data.AddressBookRationaleStoreTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:08.120Z
+com.naviveylin.data.AddressBookResolverTest tests=27 skipped=0 failures=0 errors=0 2026-10-19T07:07:09.748Z
+com.naviveylin.data.AddressParserTest tests=23 skipped=0 failures=0 errors=0 2026-10-19T07:07:08.296Z
+com.naviveylin.data.AmbientLightClassifierTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:07:10.475Z
+com.naviveylin.data.AmbientLightMonitorTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:08.357Z
+com.naviveylin.data.AmbientLightPipelineTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:10.481Z
+com.naviveylin.data.AppSettingsTest tests=18 skipped=0 failures=0 errors=0 2026-10-19T07:07:08.755Z
+com.naviveylin.data.AssetCopierTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:07:10.488Z
+com.naviveylin.data.AutoSettingsMappingTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:08.978Z
+com.naviveylin.data.ContactsRepositoryTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:11.967Z
+com.naviveylin.data.DarkModeResolutionTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:08.989Z
+com.naviveylin.data.DaylightPaletteContrastTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:12.178Z
+com.naviveylin.data.FavoriteRepositoryTest tests=50 skipped=0 failures=0 errors=0 2026-10-19T07:07:09.035Z
+com.naviveylin.data.HttpUrlFetcherTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:12.431Z
+com.naviveylin.data.IconAssetsTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:11.115Z
+com.naviveylin.data.MapDataRegistrarTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:12.842Z
+com.naviveylin.data.MapSourceRegistryTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:11.124Z
+com.naviveylin.data.MapSourceSwitchTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:12.899Z
+com.naviveylin.data.MapUpdatesTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:07:11.391Z
+com.naviveylin.data.PackagedPoiIconsTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.216Z
+com.naviveylin.data.SearchHistoryRepositoryTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:11.924Z
+com.naviveylin.data.SettingsStorageSourceTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.549Z
+com.naviveylin.data.SettingsStorageTest tests=24 skipped=0 failures=0 errors=0 2026-10-19T07:07:12.181Z
+com.naviveylin.data.SettingsStorageUpdateStateTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.950Z
+com.naviveylin.data.StartMapResolverTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.248Z
+com.naviveylin.data.StylesheetHexColorCaseTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.053Z
+com.naviveylin.data.VehicleMaxSpeedTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.445Z
+com.naviveylin.data.ViewportStorageTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.137Z
+com.naviveylin.DeepLinkPrivacyTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:08.151Z
+com.naviveylin.di.AutoFavoritesProviderImplTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.462Z
+com.naviveylin.di.AutoMapDatabaseOpenTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.371Z
+com.naviveylin.di.AutoProviderLazinessTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.680Z
+com.naviveylin.di.AutoSearchProviderRankingTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.530Z
+com.naviveylin.di.AutoSearchProviderScopeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.766Z
+com.naviveylin.di.AutoServiceModuleTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.619Z
+com.naviveylin.di.CrossSurfaceSearchOrderTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:13.890Z
+com.naviveylin.di.MapDownloadModuleClientConfigTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.793Z
+com.naviveylin.di.NativeClientBuildLogTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.040Z
+com.naviveylin.di.NavigationSessionLeaseTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.864Z
+com.naviveylin.featurelist.ShippedSpecClassificationTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.151Z
+com.naviveylin.i18n.GermanRenderingTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.886Z
+com.naviveylin.i18n.GermanTranslationCompletenessTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.189Z
+com.naviveylin.i18n.PluralsTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:16.991Z
+com.naviveylin.location.FixFreshnessTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.204Z
+com.naviveylin.location.LocationServiceTest tests=27 skipped=0 failures=0 errors=0 2026-10-19T07:07:17.119Z
+com.naviveylin.location.SpeedSanityTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.206Z
+com.naviveylin.location.SpeedSpikeFilterTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:17.875Z
+com.naviveylin.location.SpeedStalenessTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.208Z
+com.naviveylin.memory.MemoryPressureResponderTest tests=19 skipped=0 failures=0 errors=0 2026-10-19T07:07:17.889Z
+com.naviveylin.navigation.CarSessionPresenceImplTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.211Z
+com.naviveylin.navigation.DrivingModeProviderImplTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:19.180Z
+com.naviveylin.navigation.EngineFaultHandlerTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:14.225Z
+com.naviveylin.navigation.EngineMainDispatcherTeardownTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:19.192Z
+com.naviveylin.navigation.NavigationEngineAcquisitionTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:15.085Z
+com.naviveylin.navigation.NavigationEngineArrivalTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:19.382Z
+com.naviveylin.navigation.NavigationEngineCalculationCancelTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:17.510Z
+com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:19.539Z
+com.naviveylin.navigation.NavigationEngineCalculationStateTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:17.670Z
+com.naviveylin.navigation.NavigationEngineErrorOriginTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:19.549Z
+com.naviveylin.navigation.NavigationEngineFailureReasonTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:18.288Z
+com.naviveylin.navigation.NavigationEngineFaultIsolationTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:19.694Z
+com.naviveylin.navigation.NavigationEngineRerouteTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:07:18.412Z
+com.naviveylin.navigation.NavigationEngineRoadInfoTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:20.079Z
+com.naviveylin.navigation.NavigationEngineRouteGeometryTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:19.807Z
+com.naviveylin.navigation.NavigationEngineStepIndexTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:20.175Z
+com.naviveylin.navigation.NavigationEngineStopPathTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:19.847Z
+com.naviveylin.navigation.NavigationEngineTest tests=18 skipped=0 failures=0 errors=0 2026-10-19T07:07:20.216Z
+com.naviveylin.navigation.NavigationEngineTwoSurfaceTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:20.967Z
+com.naviveylin.navigation.NavigationNotificationControllerTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:22.540Z
+com.naviveylin.navigation.RerouteConfirmationGateTest tests=14 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.024Z
+com.naviveylin.navigation.ReroutePolicyGuidelineParityTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:22.613Z
+com.naviveylin.navigation.RoundaboutInstructionDiagnosticsTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.027Z
+com.naviveylin.navigation.RouteGeometryTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:22.627Z
+com.naviveylin.navigation.StepIndexSelectionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.030Z
+com.naviveylin.NaviVeylinAppStartupLoggingTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:08.039Z
+com.naviveylin.NaviVeylinCarAppServiceLoggingTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:09.121Z
+com.naviveylin.service.CarHintContentTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:22.631Z
+com.naviveylin.service.MapDownloadServiceTimeoutTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.039Z
+com.naviveylin.service.NavigationNotificationBuilderTest tests=16 skipped=0 failures=0 errors=0 2026-10-19T07:07:22.652Z
+com.naviveylin.service.NavigationNotificationContentFormatterTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.355Z
+com.naviveylin.service.NavigationNotificationServiceActionTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:23.046Z
+com.naviveylin.service.NavigationNotificationServiceStatusTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.370Z
+com.naviveylin.service.NavigationNotificationServiceTapTargetTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:23.059Z
+com.naviveylin.service.NotificationFaultIsolationTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.372Z
+com.naviveylin.service.NotificationHostSendLoggingTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:23.122Z
+com.naviveylin.share.SharedLocationHandlerTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.433Z
+com.naviveylin.share.SharedLocationParserTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:07:23.628Z
+com.naviveylin.test.ComposeSandboxIsolationTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:21.514Z
+com.naviveylin.test.ComposeSandboxSnapshotPipelineTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:23.833Z
+com.naviveylin.test.GpxParserTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:23.394Z
+com.naviveylin.ui.about.AboutDiagnosticsComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:23.905Z
+com.naviveylin.ui.about.AboutDialogComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:23.408Z
+com.naviveylin.ui.about.DiagnosticsDisclosureTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:24.757Z
+com.naviveylin.ui.about.LicenseInventoryTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:24.563Z
+com.naviveylin.ui.about.LicensesDialogComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:25.057Z
+com.naviveylin.ui.about.LicensesViewModelTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:24.578Z
+com.naviveylin.ui.addressbook.AddressBookRationaleDialogComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:25.734Z
+com.naviveylin.ui.addressbook.AddressBookSheetComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:24.759Z
+com.naviveylin.ui.addressbook.AddressBookViewModelTest tests=13 skipped=0 failures=0 errors=0 2026-10-19T07:07:26.114Z
+com.naviveylin.ui.attribution.OsmAttributionComposeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:25.430Z
+com.naviveylin.ui.favorites.AddFavoriteDialogComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:26.407Z
+com.naviveylin.ui.favorites.FavoriteCountPluralTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:26.202Z
+com.naviveylin.ui.favorites.FavoriteItemComposeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:29.010Z
+com.naviveylin.ui.favorites.FavoriteOrderTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:07:26.323Z
+com.naviveylin.ui.favorites.FavoritesSheetGroupReorderComposeTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:29.305Z
+com.naviveylin.ui.favorites.FavoritesSheetMoveToGroupComposeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:26.332Z
+com.naviveylin.ui.favorites.FavoritesSheetReorderComposeTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:07:30.263Z
+com.naviveylin.ui.favorites.FavoritesSheetStarredReorderComposeTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:29.120Z
+com.naviveylin.ui.favorites.FavoritesViewModelTest tests=30 skipped=0 failures=0 errors=0 2026-10-19T07:07:31.737Z
+com.naviveylin.ui.favorites.GroupOrderTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:30.365Z
+com.naviveylin.ui.favorites.StarredOrderTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:07:32.232Z
+com.naviveylin.ui.map.ApproximateLocationMapParityTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:30.371Z
+com.naviveylin.ui.map.AreaFitViewModelTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:32.248Z
+com.naviveylin.ui.map.AutoZoomSpeedSourceTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:30.443Z
+com.naviveylin.ui.map.BackGestureComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:32.419Z
+com.naviveylin.ui.map.CandidatePickerSheetComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:30.451Z
+com.naviveylin.ui.map.CarSessionIndicatorComposeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:32.774Z
+com.naviveylin.ui.map.CarSessionSurfaceComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:30.935Z
+com.naviveylin.ui.map.CompassButtonComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:32.862Z
+com.naviveylin.ui.map.CompassNeedleStrokeTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:31.306Z
+com.naviveylin.ui.map.CompassNeedleTargetTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:33.146Z
+com.naviveylin.ui.map.CompassPaletteTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:36.829Z
+com.naviveylin.ui.map.DiagnosticsCoordinatePrivacyTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:33.174Z
+com.naviveylin.ui.map.DriveModeButtonComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:36.860Z
+com.naviveylin.ui.map.EmbeddedResultMapFitTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:33.561Z
+com.naviveylin.ui.map.FavAutoZoomClampRangeTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:37.064Z
+com.naviveylin.ui.map.FitVerificationTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:33.622Z
+com.naviveylin.ui.map.FollowAnchorFramingTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:37.088Z
+com.naviveylin.ui.map.FollowDisplayOffsetTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:33.774Z
+com.naviveylin.ui.map.FreeDrivingBackgroundLeaseTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:07:37.099Z
+com.naviveylin.ui.map.FreeDrivingStreetPillComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:33.841Z
+com.naviveylin.ui.map.KeepScreenOnEffectTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:37.375Z
+com.naviveylin.ui.map.LocationDetailsDialogComposeTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:07:34.112Z
+com.naviveylin.ui.map.LocationMarkerOverlayTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:39.612Z
+com.naviveylin.ui.map.LocationOptionsOverlayComposeTest tests=23 skipped=0 failures=0 errors=0 2026-10-19T07:07:35.070Z
+com.naviveylin.ui.mapmanager.BasemapSectionComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:52.648Z
+com.naviveylin.ui.mapmanager.BasemapSourceSelectionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:26.388Z
+com.naviveylin.ui.mapmanager.BasemapViewModelTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:54.401Z
+com.naviveylin.ui.mapmanager.MapDownloadServiceRepositoryLifecycleTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:08:26.705Z
+com.naviveylin.ui.mapmanager.MapManagerDeleteRepositoryMapTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:54.541Z
+com.naviveylin.ui.mapmanager.MapManagerInstalledRowSourceComposeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:08:27.320Z
+com.naviveylin.ui.mapmanager.MapManagerRepositoryTreeTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:07:54.653Z
+com.naviveylin.ui.mapmanager.MapManagerScreenOrderingTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:08:27.466Z
+com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:55.175Z
+com.naviveylin.ui.mapmanager.MapManagerSourceSelectorComposeTest tests=15 skipped=0 failures=0 errors=0 2026-10-19T07:08:33.059Z
+com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:55.294Z
+com.naviveylin.ui.mapmanager.MapManagerSwitchDialogComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:08:33.891Z
+com.naviveylin.ui.mapmanager.MapManagerTreeExpansionTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:55.520Z
+com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:08:34.181Z
+com.naviveylin.ui.mapmanager.MapManagerUpdatesStateTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:55.584Z
+com.naviveylin.ui.mapmanager.MapUpdatesSectionTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:08:34.327Z
+com.naviveylin.ui.mapmanager.PluralFormatTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:55.799Z
+com.naviveylin.ui.map.MapActionColumnComposeTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:39.620Z
+com.naviveylin.ui.map.MapCanvasGestureTransformTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:07:37.807Z
+com.naviveylin.ui.map.MapCanvasLongPressTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:39.770Z
+com.naviveylin.ui.map.MapCanvasPanWindowTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:37.820Z
+com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:39.869Z
+com.naviveylin.ui.map.MapCanvasViewModelAdminRegionTest tests=20 skipped=0 failures=0 errors=0 2026-10-19T07:07:37.836Z
+com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:40.004Z
+com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:38.133Z
+com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest tests=23 skipped=0 failures=0 errors=0 2026-10-19T07:07:40.093Z
+com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:38.242Z
+com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:01.627Z
+com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:38.342Z
+com.naviveylin.ui.map.MapCanvasViewModelDatabaseOpenTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:04.175Z
+com.naviveylin.ui.map.MapCanvasViewModelFavAddTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:38.521Z
+com.naviveylin.ui.map.MapCanvasViewModelFavoriteSearchTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:08:05.771Z
+com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:38.564Z
+com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest tests=24 skipped=0 failures=0 errors=0 2026-10-19T07:08:06.102Z
+com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:07:44.245Z
+com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingStatusTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:07.145Z
+com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:44.322Z
+com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:07.336Z
+com.naviveylin.ui.map.MapCanvasViewModelModeTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:07:44.437Z
+com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:08.162Z
+com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:44.598Z
+com.naviveylin.ui.map.MapCanvasViewModelRoadInfoTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:08.356Z
+com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest tests=21 skipped=0 failures=0 errors=0 2026-10-19T07:07:44.659Z
+com.naviveylin.ui.map.MapCanvasViewModelRouteVisibilityTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:08.543Z
+com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:45.387Z
+com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:08.925Z
+com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:45.494Z
+com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:09.111Z
+com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:45.623Z
+com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:08:09.338Z
+com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:45.754Z
+com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:08:10.770Z
+com.naviveylin.ui.map.MapCanvasViewModelStartMapRecordingTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:45.817Z
+com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:13.008Z
+com.naviveylin.ui.map.MapCanvasViewModelStructuredAddressSearchTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:46.392Z
+com.naviveylin.ui.map.MapCanvasViewModelStyleTest tests=16 skipped=0 failures=0 errors=0 2026-10-19T07:08:13.308Z
+com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest tests=15 skipped=0 failures=0 errors=0 2026-10-19T07:07:46.469Z
+com.naviveylin.ui.map.MapCanvasViewModelVehicleSpeedTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:08:14.307Z
+com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:46.742Z
+com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:14.367Z
+com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:07:47.579Z
+com.naviveylin.ui.map.MapCanvasZoomAnimationRulesTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:08:14.461Z
+com.naviveylin.ui.map.MapFollowRefreshTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:47.699Z
+com.naviveylin.ui.map.MapGestureComposeTest tests=13 skipped=0 failures=0 errors=0 2026-10-19T07:08:14.512Z
+com.naviveylin.ui.map.MapKeyShortcutsTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:47.706Z
+com.naviveylin.ui.map.MapLayerBandsTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:15.471Z
+com.naviveylin.ui.map.MapLayerStackComposeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:47.797Z
+com.naviveylin.ui.map.MapMenuBackOrderComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:08:15.476Z
+com.naviveylin.ui.map.MapMenuComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:49.416Z
+com.naviveylin.ui.map.MapNavColumnWidthProbeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:08:15.723Z
+com.naviveylin.ui.map.MapPanDisplayWindowTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:49.685Z
+com.naviveylin.ui.map.MapReCenterButtonOverlayTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:08:16.714Z
+com.naviveylin.ui.map.MapRendererBlitTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:08:16.971Z
+com.naviveylin.ui.map.MapRendererImmediateRenderTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:49.932Z
+com.naviveylin.ui.map.MapRendererInvalidateDataTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:08:17.270Z
+com.naviveylin.ui.map.MapRendererReleaseStorageTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:07:50.030Z
+com.naviveylin.ui.map.MapRendererRotatedRenderTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:08:17.528Z
+com.naviveylin.ui.map.MapRendererSmokeTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:07:50.643Z
+com.naviveylin.ui.map.MapRenderUtilTest tests=18 skipped=0 failures=0 errors=0 2026-10-19T07:07:49.693Z
+com.naviveylin.ui.map.MapRightWidgetColumnTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:08:17.689Z
+com.naviveylin.ui.map.MarkerDisplayShiftTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:50.950Z
+com.naviveylin.ui.map.MiniMapComposeTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:08:17.976Z
+com.naviveylin.ui.map.OrientationLogicTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:50.951Z
+com.naviveylin.ui.map.PoiSearchPanelComposeTest tests=22 skipped=0 failures=0 errors=0 2026-10-19T07:08:20.888Z
+com.naviveylin.ui.map.PoiSearchPanelMapComposeTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:07:50.953Z
+com.naviveylin.ui.map.PoiSearchViewModelTest tests=14 skipped=0 failures=0 errors=0 2026-10-19T07:08:23.253Z
+com.naviveylin.ui.map.PreciseLocationRequiredDialogTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:51.049Z
+com.naviveylin.ui.map.ProjectionUtilsTest tests=38 skipped=0 failures=0 errors=0 2026-10-19T07:08:23.483Z
+com.naviveylin.ui.map.RenderModeSwitchTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:51.255Z
+com.naviveylin.ui.map.RotationHandoffTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:23.925Z
+com.naviveylin.ui.map.RotationPivotTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:51.546Z
+com.naviveylin.ui.map.RouteSegmentHighlightComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:23.928Z
+com.naviveylin.ui.map.RouteSegmentHighlightOverlayTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:07:51.550Z
+com.naviveylin.ui.map.RouteSessionCardExitTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:08:24.103Z
+com.naviveylin.ui.map.SearchDialogFavoriteSearchComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:51.561Z
+com.naviveylin.ui.map.SearchDialogModeSwitchComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:08:24.330Z
+com.naviveylin.ui.map.SearchHistorySheetComposeTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:51.844Z
+com.naviveylin.ui.map.SearchPanelComposeTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:08:24.534Z
+com.naviveylin.ui.map.SearchResultMarkingComposeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:52.006Z
+com.naviveylin.ui.map.SearchResultRowComposeTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:24.949Z
+com.naviveylin.ui.map.SearchRowResolversTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:52.220Z
+com.naviveylin.ui.map.SpeedWidgetTest tests=29 skipped=0 failures=0 errors=0 2026-10-19T07:08:25.143Z
+com.naviveylin.ui.map.SymbolIconPreferenceTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:07:52.299Z
+com.naviveylin.ui.map.TileCacheRenderTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:25.980Z
+com.naviveylin.ui.map.TileCacheTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:07:52.511Z
+com.naviveylin.ui.map.ZoomControlsAnimationTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:26.180Z
+com.naviveylin.ui.navigation.NavigationDetailsOverlayTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:07:56.221Z
+com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:08:34.808Z
+com.naviveylin.ui.navigation.NavigationStatusRingRasterTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:07:56.909Z
+com.naviveylin.ui.navigation.NavProgressRingTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:08:34.799Z
+com.naviveylin.ui.navigation.NextTurnOverlayTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:35.326Z
+com.naviveylin.ui.route.FavoritePickerItemComposeTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:08:03.805Z
+com.naviveylin.ui.route.RouteGeometryTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:35.577Z
+com.naviveylin.ui.route.RoutePanelActionBandScaleTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:08:03.879Z
+com.naviveylin.ui.route.RoutePanelComposeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:35.944Z
+com.naviveylin.ui.route.RoutePanelNavigationReviewTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:08:04.399Z
+com.naviveylin.ui.route.RoutePanelOverlayAnchorTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:08:37.700Z
+com.naviveylin.ui.route.RoutePanelStepNavigatorTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:07.190Z
+com.naviveylin.ui.route.RoutePanelStoppedStateTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:41.098Z
+com.naviveylin.ui.route.RoutePanelViewModelCalculationProgressTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:08:08.668Z
+com.naviveylin.ui.route.RoutePanelViewModelFailureReasonTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:08:41.889Z
+com.naviveylin.ui.route.RoutePanelViewModelLocationGateTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:08.915Z
+com.naviveylin.ui.route.RoutePanelViewModelRerouteTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:08:42.011Z
+com.naviveylin.ui.route.RoutePanelViewModelRouteVisibilityTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:08:09.096Z
+com.naviveylin.ui.route.RoutePanelViewModelSearchCancellationTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:08:42.070Z
+com.naviveylin.ui.route.RoutePanelViewModelSearchHistoryTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:08:09.195Z
+com.naviveylin.ui.route.RoutePanelViewModelSearchRankingTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:08:42.119Z
+com.naviveylin.ui.route.RoutePanelViewModelSessionTest tests=27 skipped=0 failures=0 errors=0 2026-10-19T07:08:09.350Z
+com.naviveylin.ui.route.RoutePanelViewModelStepAnalysisTest tests=31 skipped=0 failures=0 errors=0 2026-10-19T07:08:42.201Z
+com.naviveylin.ui.route.RoutePanelViewModelVehicleSpeedTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:08:10.514Z
+com.naviveylin.ui.route.RouteProgressTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:08:42.702Z
+com.naviveylin.ui.route.RouteSessionDismissOrderingTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:08:10.659Z
+com.naviveylin.ui.route.RouteStepAnchorsTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:42.703Z
+com.naviveylin.ui.route.RouteStepDisplayTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:08:10.987Z
+com.naviveylin.ui.route.RouteStepSegmentsTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:08:42.706Z
+com.naviveylin.ui.route.RouteStepValuesTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:08:10.993Z
+com.naviveylin.ui.route.RouteSummaryStepSelectionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:42.715Z
+com.naviveylin.ui.route.RoutingFailureWordingTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:08:11.002Z
+com.naviveylin.util.DistanceFormatTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:08:43.005Z
+com.naviveylin.auto.AboutScreenTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:04:09.360Z
+com.naviveylin.auto.AddressBookScreenMapperTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:17.269Z
+com.naviveylin.auto.AddressBookScreenTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:04:17.291Z
+com.naviveylin.auto.AutoInitialViewportTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:18.486Z
+com.naviveylin.auto.AutoMapRendererLoopConfinementTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:18.753Z
+com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:19.519Z
+com.naviveylin.auto.AutoMapRendererPooledTargetTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:19.729Z
+com.naviveylin.auto.AutoMapRendererRenderCadenceTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:19.917Z
+com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:20.048Z
+com.naviveylin.auto.AutoMapRendererTest tests=81 skipped=0 failures=0 errors=0 2026-10-19T07:04:20.271Z
+com.naviveylin.auto.AutoPositionUtilTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:04:22.369Z
+com.naviveylin.auto.AutoZoomControllerTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:22.591Z
+com.naviveylin.auto.CalculationNoticeDecisionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:22.727Z
+com.naviveylin.auto.CandidatePickerScreenTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:22.732Z
+com.naviveylin.auto.CarDaylightApplierTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:22.734Z
+com.naviveylin.auto.CarHostGuardsTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:22.741Z
+com.naviveylin.auto.CarScreenObservationsTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:22.897Z
+com.naviveylin.auto.CarStyleApplierTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:23.101Z
+com.naviveylin.auto.CarStyleLoadNotifierTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:23.119Z
+com.naviveylin.auto.ClickPathDefersAndConfinesTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:23.300Z
+com.naviveylin.auto.DeepLinkDecisionTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:24.719Z
+com.naviveylin.auto.DeepLinkLogMessageTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:24.727Z
+com.naviveylin.auto.DeepLinkReadTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:24.731Z
+com.naviveylin.auto.DetailsScreenObservationsTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:24.829Z
+com.naviveylin.auto.DetailsScreenTest tests=31 skipped=0 failures=0 errors=0 2026-10-19T07:04:25Z
+com.naviveylin.auto.DiagnosticsScreenTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:25.713Z
+com.naviveylin.auto.ErrorNoticeDismissalTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:26.065Z
+com.naviveylin.auto.FavoritesScreenMapperTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:26.190Z
+com.naviveylin.auto.FavoritesScreenObservationsTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:26.198Z
+com.naviveylin.auto.FavoritesScreenTest tests=37 skipped=0 failures=0 errors=0 2026-10-19T07:04:26.316Z
+com.naviveylin.auto.FreeDrivingScreenObservationsTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.002Z
+com.naviveylin.auto.FreeDrivingScreenStatusTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.127Z
+com.naviveylin.auto.FreeDrivingScreenTest tests=16 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.172Z
+com.naviveylin.auto.GermanRenderingTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.530Z
+com.naviveylin.auto.GermanTranslationCompletenessTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.615Z
+com.naviveylin.auto.GestureMappingTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.631Z
+com.naviveylin.auto.HostInsetsTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.710Z
+com.naviveylin.auto.ManeuverGlyphsTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.785Z
+com.naviveylin.auto.MapPanHandlerTest tests=13 skipped=0 failures=0 errors=0 2026-10-19T07:04:27.990Z
+com.naviveylin.auto.MapScreenObservationsTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:28.217Z
+com.naviveylin.auto.MapScreenTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:28.267Z
+com.naviveylin.auto.MapStripActionsTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:04:28.468Z
+com.naviveylin.auto.MapTemplateFactoryTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:28.523Z
+com.naviveylin.auto.MapUnavailableOverlayTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:28.658Z
+com.naviveylin.auto.NavigationGateNoticeWordingTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:04:28.768Z
+com.naviveylin.auto.NavigationManagerControllerTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:28.803Z
+com.naviveylin.auto.NavigationManagerControllerTripTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:29.299Z
+com.naviveylin.auto.NavigationScreenActionsTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:04:29.461Z
+com.naviveylin.auto.NavigationScreenObservationsTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:29.622Z
+com.naviveylin.auto.NavigationScreenTest tests=22 skipped=0 failures=0 errors=0 2026-10-19T07:04:29.881Z
+com.naviveylin.auto.NavigationSessionDarkModeTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:30.186Z
+com.naviveylin.auto.NavigationSessionRestoreTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:04:30.288Z
+com.naviveylin.auto.NavigationTemplateFactoryTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:30.423Z
+com.naviveylin.auto.NavigationTemplateMapperTest tests=66 skipped=0 failures=0 errors=0 2026-10-19T07:04:30.555Z
+com.naviveylin.auto.NavigationTripTest tests=20 skipped=0 failures=0 errors=0 2026-10-19T07:04:31.335Z
+com.naviveylin.auto.OverspeedDeltaPickerScreenTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:31.582Z
+com.naviveylin.auto.PoiResultsScreenSearchLifecycleTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:04:31.858Z
+com.naviveylin.auto.PreferencesScreenMapperTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:31.921Z
+com.naviveylin.auto.PreferencesScreenTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:04:31.931Z
+com.naviveylin.auto.RendererGateTest tests=22 skipped=0 failures=0 errors=0 2026-10-19T07:04:32.243Z
+com.naviveylin.auto.RendererTestRuleTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:32.830Z
+com.naviveylin.auto.RenderLoopSupervisorTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:32.107Z
+com.naviveylin.auto.RootScreenTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:04:32.965Z
+com.naviveylin.auto.RouteCalculatingScreenTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:33.013Z
+com.naviveylin.auto.RouteDescriptionScreenTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:04:33.175Z
+com.naviveylin.auto.RoutingFailureNoticeTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:33.221Z
+com.naviveylin.auto.SearchHistoryScreenTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:04:33.327Z
+com.naviveylin.auto.SearchScreenMapperTest tests=23 skipped=0 failures=0 errors=0 2026-10-19T07:04:33.390Z
+com.naviveylin.auto.SearchScreenTest tests=15 skipped=0 failures=0 errors=0 2026-10-19T07:04:33.726Z
+com.naviveylin.auto.SessionCarSurfaceHostTest tests=27 skipped=0 failures=0 errors=0 2026-10-19T07:04:34.163Z
+com.naviveylin.auto.SessionEndArrivalDecisionTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:35.203Z
+com.naviveylin.auto.SessionHostGateTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:35.275Z
+com.naviveylin.auto.SessionLogTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:35.281Z
+com.naviveylin.auto.SessionScreenStackTest tests=16 skipped=0 failures=0 errors=0 2026-10-19T07:04:35.592Z
+com.naviveylin.auto.SettingsLoadGuardTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:35.595Z
+com.naviveylin.auto.ShowOnMapSwapTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:35.689Z
+com.naviveylin.auto.StartupScreensTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:35.795Z
+com.naviveylin.auto.StreetNameLabelTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:04:35.903Z
+com.naviveylin.auto.StreetNameUpdaterTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:36.073Z
+com.naviveylin.auto.SurfaceAttributionTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:36.204Z
+com.naviveylin.auto.SurfaceIndicatorsTest tests=15 skipped=0 failures=0 errors=0 2026-10-19T07:04:36.256Z
+com.naviveylin.auto.SurfaceLayoutTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:04:36.467Z
+com.naviveylin.auto.TemplateFaultIsolationTest tests=21 skipped=0 failures=0 errors=0 2026-10-19T07:04:36.480Z
+com.naviveylin.auto.TemplateRefreshTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:04:36.853Z
+com.naviveylin.auto.VehicleAnchorPickerScreenTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:04:36.882Z
+com.naviveylin.core.addressbook.ContactAddressModelsTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.481Z
+com.naviveylin.core.AnchorVisibleAreaTest tests=15 skipped=0 failures=0 errors=0 2026-10-19T07:04:05.349Z
+com.naviveylin.core.BasemapReloadNotifierTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:04:05.578Z
+com.naviveylin.core.CoordinateFormatTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:06.397Z
+com.naviveylin.core.DeepLinkParserTest tests=57 skipped=0 failures=0 errors=0 2026-10-19T07:04:08.866Z
+com.naviveylin.core.details.DetailsResolverTest tests=34 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.505Z
+com.naviveylin.core.DiagnosticsLogRetentionTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:04:09.782Z
+com.naviveylin.core.DiagnosticsLogTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.021Z
+com.naviveylin.core.DiagnosticsLogWritePathTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.399Z
+com.naviveylin.core.DistanceFormatTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.788Z
+com.naviveylin.core.DurationFormatTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.833Z
+com.naviveylin.core.EngineDispatchersTest tests=2 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.838Z
+com.naviveylin.core.EngineTimeSourceTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.841Z
+com.naviveylin.core.FollowDisplayRateTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.848Z
+com.naviveylin.core.FollowDisplayStateTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.884Z
+com.naviveylin.core.FollowPredictionTest tests=28 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.889Z
+com.naviveylin.core.FollowRefreshPolicyTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.896Z
+com.naviveylin.core.FreeDrivingStatusProviderTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.904Z
+com.naviveylin.core.GeoDistanceTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.991Z
+com.naviveylin.core.GermanTranslationCompletenessTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:04:10.994Z
+com.naviveylin.core.GroupOrderingTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.025Z
+com.naviveylin.core.LocationGrantTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.034Z
+com.naviveylin.core.LogLineCoordinatesTest tests=13 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.104Z
+com.naviveylin.core.ManeuverSymbolsTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.113Z
+com.naviveylin.core.mapsource.BasemapUpdateComparisonTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.882Z
+com.naviveylin.core.mapsource.Crc32VerifierTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.006Z
+com.naviveylin.core.mapsource.DatabaseMetadataParserTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.009Z
+com.naviveylin.core.mapsource.DownloadPlanTest tests=6 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.018Z
+com.naviveylin.core.mapsource.MapSourceMarkerTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.023Z
+com.naviveylin.core.mapsource.MapUpdateCheckTest tests=14 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.031Z
+com.naviveylin.core.mapsource.RegionIndexParserTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.106Z
+com.naviveylin.core.mapsource.RepositoryBasemapTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.112Z
+com.naviveylin.core.mapsource.RepositoryDatabaseInstallerTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.161Z
+com.naviveylin.core.mapsource.RepositoryDownloadTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.185Z
+com.naviveylin.core.mapsource.RepositorySourceListerTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.218Z
+com.naviveylin.core.mapsource.RepositoryUrlPlannerTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.237Z
+com.naviveylin.core.MapStyleLoadReporterTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.433Z
+com.naviveylin.core.NativeTileDataCacheTest tests=19 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.539Z
+com.naviveylin.core.NotificationIdsTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.781Z
+com.naviveylin.core.RenderBitmapPoolTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.790Z
+com.naviveylin.core.RenderBufferPoolTest tests=9 skipped=0 failures=0 errors=0 2026-10-19T07:04:11.920Z
+com.naviveylin.core.ResultMarkingsTest tests=10 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.017Z
+com.naviveylin.core.RouteCalculationTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.128Z
+com.naviveylin.core.search.FavoriteSearchMergerTest tests=13 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.241Z
+com.naviveylin.core.search.ResultMarkingTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.244Z
+com.naviveylin.core.search.ResultRowTextTest tests=17 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.246Z
+com.naviveylin.core.SearchRowIconsTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.135Z
+com.naviveylin.core.search.SearchFoldingTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.251Z
+com.naviveylin.core.search.SearchGateTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.259Z
+com.naviveylin.core.search.SearchQueryParserTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.301Z
+com.naviveylin.core.search.SearchRegionScopeTest tests=14 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.306Z
+com.naviveylin.core.search.SearchResultRankerTest tests=30 skipped=0 failures=0 errors=0 2026-10-19T07:04:13.314Z
+com.naviveylin.core.ShortLinkResolverTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.284Z
+com.naviveylin.core.SpeedZoomTableTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.452Z
+com.naviveylin.core.StartMapSelectionTest tests=8 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.456Z
+com.naviveylin.core.TurnInstructionLocalizerTest tests=31 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.460Z
+com.naviveylin.core.VehicleAnchorTest tests=11 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.466Z
+com.naviveylin.core.VehicleMarkerGeometryTest tests=12 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.469Z
+com.naviveylin.core.ZoomAnimationTest tests=13 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.473Z
+com.naviveylin.core.ZoomWalkTest tests=16 skipped=0 failures=0 errors=0 2026-10-19T07:04:12.477Z
+com.framstag.libosmscout.client.BasemapManagerTest tests=22 skipped=0 failures=0 errors=0 2026-10-19T07:04:01.100Z
+com.framstag.libosmscout.client.LocationEntryFieldsTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:01.303Z
+com.framstag.libosmscout.client.MapDownloadManagerRegisterTest tests=4 skipped=0 failures=0 errors=0 2026-10-19T07:04:01.308Z
+com.framstag.libosmscout.client.MapDownloadManagerVersionTest tests=3 skipped=0 failures=0 errors=0 2026-10-19T07:04:01.313Z
+com.framstag.libosmscout.client.OSMScoutClientFavoriteFileFormatApiTest tests=1 skipped=0 failures=0 errors=0 2026-10-19T07:04:01.317Z
+com.framstag.libosmscout.client.RouteInstructionFieldsTest tests=7 skipped=0 failures=0 errors=0 2026-10-19T07:04:01.322Z
+com.framstag.libosmscout.client.RoutingProfileFieldsTest tests=5 skipped=0 failures=0 errors=0 2026-10-19T07:04:01.328Z

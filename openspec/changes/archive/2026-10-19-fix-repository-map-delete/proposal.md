@@ -37,7 +37,10 @@ tests="2" skipped="0" failures="2" errors="0" timestamp="2026-10-19T06:39:52.013
       expected:<[…/maps/europe-germany-bremen, …/maps/europe-germany-bremen]> but was:<[…/maps/europe-germany-bremen]>
 ```
 
-XML as produced: `.pi/issue-loop/items/119/red-on-head/`, copied to this change's `evidence/`.
+XML as produced (excerpt: the `expected:`/`was:` line elided to its directory-name tail; the verbatim file is
+`.pi/issue-loop/items/119/red-on-head/`, copied to this change's `evidence/`). The third case in the file —
+`aDirectoryOutsideTheMapsRootIsNotSwept` — is the guard the fix introduces, so it is green on the base commit
+and is not part of the red run.
 
 **Owning capability**: `map-download-infrastructure` — its requirement *Delete removes map manager
 registration* ("the map's directory is removed from the map manager's lookup directories … AND the map no
@@ -66,7 +69,7 @@ can reach it).
 | file | change |
 |---|---|
 | `app/src/main/java/com/naviveylin/ui/mapmanager/MapManagerViewModel.kt` | `deleteMapDirectory` + `removeDirectoryTree`; `deleteMap` and the source switch's `unregister` call the first |
-| `app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerDeleteRepositoryMapTest.kt` | the two red cases |
+| `app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerDeleteRepositoryMapTest.kt` | the two red cases, and the guard case for the maps-root bound |
 | `app/src/test/java/com/framstag/libosmscout/client/FakeMapDownloadManager.kt` | the fake's `deleteMap` answer becomes a parameter, so a case can mirror the native rule |
 | `openspec/specs/map-download-infrastructure/spec.md` | one requirement added by the delta ("Deleting an installation removes the whole directory") |
 

@@ -8,7 +8,7 @@ one spec requirement. Compiled, so the Gradle gate applies.
 `MapDirectory::DeleteDatabase()` (`MapDirectory.cpp:144-174`) removes the files in `MandatoryFiles()`,
 `OptionalFiles()` and `MetadataFiles()` and then needs the directory to be empty. A repository installation
 always holds three files outside those lists — `db.json` (the app's metadata,
-`DatabaseMetadata.METADATA_FILE_NAME`), `.source.json` (`MapSourceMarker.FILE_NAME`) and the mapgen slot's
+`DatabaseMetadataParser.METADATA_FILE_NAME`, `DatabaseMetadata.kt:67-73`), `.source.json` (`MapSourceMarker.FILE_NAME`) and the mapgen slot's
 `ptroutes.dat` (`PTRouteDataFile.cpp:24`) — so the native call removes the 22 files it knows, fails on the
 directory, and `nativeDeleteMap` returns `false` without running `RemoveLookupDirectory`/`LookupDatabases`
 (`OSMScoutClient.cpp:9234-9241`). One mechanism explains both symptoms in the report: the banner (the `false`
@@ -40,7 +40,7 @@ runs `RemoveLookupDirectory` + `LookupDatabases` in `nativeDeleteMap`.
 | file | change |
 |---|---|
 | `app/src/main/java/com/naviveylin/ui/mapmanager/MapManagerViewModel.kt` | `deleteMapDirectory(path): Boolean` — native call, then on failure `removeDirectoryTree(Paths.get(path))` and one more native call, reporting whether the directory is gone; `removeDirectoryTree(directory): Boolean` — `Files.walk(...).sorted(reverseOrder())` with `deleteIfExists`, and a guard that the path is inside `storageManager.mapsRootDir`; `deleteMap` and `applySourceSwitch`'s `unregister` call `deleteMapDirectory` |
-| `app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerDeleteRepositoryMapTest.kt` | two cases: the directory is gone with no banner; the native delete is issued twice and the map leaves the installed list |
+| `app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerDeleteRepositoryMapTest.kt` | three cases: the directory is gone with no banner; the native delete is issued twice and the map leaves the installed list; a path outside the maps root is refused, not swept |
 | `app/src/test/java/com/framstag/libosmscout/client/FakeMapDownloadManager.kt` | `deleteSucceeds: (String) -> Boolean = { true }` — the case passes `{ path -> !Files.exists(Paths.get(path)) }`, which is the native rule itself |
 
 ## Blast radius
@@ -57,10 +57,14 @@ the map's own installation, and `deleteMap` was already documented as deleting t
 point the two call sites back at `downloadManager.deleteMap` and drop the two helpers.
 
 One measurement to keep honest: the first post-fix run of the new class reported one failure in the last
-assertion of the second case; three consecutive `--rerun-tasks` runs of the class afterwards were green
-(`evidence/green-on-fix/`). The state the case reads (`installedMapPaths`) is written by `refreshInstalledMaps`
-on the same test dispatcher, and no wall-clock wait is involved, so the case is deterministic as written; the
-single failure is recorded here rather than explained away.
+assertion of the second case. The cause is in the test file, and it is fixed there: `viewModel()` assigns
+`ioDispatcher` **after** the factory returns, while the constructor's own `refreshInstalledMaps()`
+(`MapManagerViewModel.kt:250`) has already launched on the default `Dispatchers.IO` (`:229`), so
+`advanceUntilIdle()` never observes that coroutine and its `_uiState` write (`:518`) could land after the
+delete's own refresh — exactly a last-assertion failure. `viewModel()` now joins the view model's launched
+children before it replaces the dispatcher, so the init refresh has written its state before the case acts and
+no write can follow the delete's refresh. Measured: six consecutive forced runs of the class green after the
+fix (three before the revert-check, three after it), the last three archived in `evidence/green-on-fix/`.
 
 ## Threading, lifecycle, platform
 
@@ -73,6 +77,7 @@ no platform object is touched.
 | what | how | evidence |
 |---|---|---|
 | the defect, on the base commit | `./gradlew :app:testMobileDebugUnitTest --tests "…MapManagerDeleteRepositoryMapTest"` → `tests="2" … failures="2"` | `evidence/red-on-head/` |
-| the fix | the same command → `tests="2" … failures="0"` | `evidence/green-on-fix/` |
+| the fix | the same command → `tests="3" … failures="0"`, three consecutive forced runs | `evidence/green-on-fix/` |
+| the guard in `removeDirectoryTree` | revert-check: `startsWith(root)` mutated to `startsWith(root.parent)` → `aDirectoryOutsideTheMapsRootIsNotSwept` fails on `a directory outside the maps root must not be swept`; restored; forced green | `evidence/revert-check/`, then `evidence/green-on-fix/` |
 | the neighbours | `--tests "com.naviveylin.ui.mapmanager.*"` → green before the gate; the gate's own set contains the same suites | `evidence/gate/` |
 | the run's gate | `./gradlew test -PforceTests --rerun-tasks` → 704 suites, tests=5676, failures=0 | `evidence/gate/` |

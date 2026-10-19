@@ -1,0 +1,7 @@
+# fix-loop-adopt-verification-leak — scoped cases, 2026-10-19T05:52:52Z
+
+## case 1: portability#passesOnTheRealTree
+PASS portability#passesOnTheRealTree
+
+## case 2: run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#mergesAFinishedAttemptAndClosesTheItem

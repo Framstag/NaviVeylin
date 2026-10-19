@@ -73,5 +73,27 @@
         "name": "agent/needs-decision"
       }
     ]
+  },
+  {
+    "number": 44,
+    "title": "§44 An eligible bug a person put on hold, never escalated",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/on-hold"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
   }
 ]

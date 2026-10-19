@@ -189,10 +189,29 @@ change.
 - **THEN** that review round is discarded with a reason, because a reviewer that wrote cannot have been
   the reviewer
 
-#### Scenario: Review rounds are bounded
+#### Scenario: Review rounds are bounded, and a corrective refusal earns one more
 
-- **WHEN** a change fails its second review round
-- **THEN** the item is recorded as needing a decision and no further round is attempted
+- **WHEN** a change fails its review round and the budget (`--max-review-rounds`, default
+  `LOOP_MAX_REVIEW_ROUNDS_DEFAULT`) is spent
+- **THEN** the item is recorded as needing a decision and no further round is attempted — unless the
+  reviewer's report states that every finding is subtractive (`LOOP-CORRECTIONS-ONLY: yes`), in which case
+  one more round is run and only its failure blocks the item
+- **Case**: `run#reviewBudgetIsARecordedValue`, `run#aCorrectiveRefusalEarnsOneMoreRound`
+
+#### Scenario: A refused review travels with the branch
+
+- **WHEN** a review round ends `FAIL`
+- **THEN** the run commits the verdict into the change's own evidence directory on the item's branch, and
+  a later run refuses to adopt that branch — a finished-looking branch whose change and verification are
+  otherwise green cannot be merged on a decision the reviewer denied
+- **Case**: `run#recordsAFailedReviewOnTheBranch`, `worktree#refusesABranchWhoseReviewFailed`
+
+#### Scenario: An escalation names the decision
+
+- **WHEN** the run escalates an item after a failed review
+- **THEN** the comment it posts carries the reviewer's `LOOP-DECISION` — the question, the options and the
+  recommendation — so the owner decides from the tracker rather than reconstructing the question
+- **Case**: `run#escalationCarriesTheDecision`
 
 ### Requirement: The run verifies rather than trusts
 
@@ -310,7 +329,7 @@ cap allows, and SHALL report them instead of producing more work.
 #### Scenario: The report names the decisions the run itself wrote
 
 - **WHEN** a run ends after escalating an item — a skip whose verdict means a decision, a branch a previous
-  attempt left, or a second review round that failed
+  attempt left, an item that already awaited a decision, or a review round that failed
 - **THEN** the report's list of decisions the owner owes names that item, read from the label the run's
   escalation wrote and recorded with the item rather than from the verdict the worker chose, and names no
   item this run did not escalate — so the run that fills the cap is the run whose report shows the cap

@@ -24,7 +24,8 @@ a red case that asserts a number rather than "better" (phase B, condition 7). A 
 
 ```bash
 tools/loop/run.sh --items N --minutes M [--review on|off] [--may-close yes|no] [--push yes|no]
-                  [--max-decisions N] [--review-read-only on|off] [--dry-run] [--clean-worktree]
+                  [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off] [--dry-run]
+                  [--clean-worktree]
 ```
 
 Every flag's default is recorded in `tools/loop/loop.conf`, and the run header prints the values it actually
@@ -40,6 +41,7 @@ nothing. What the flags mean:
 | `--may-close yes\|no` | whether a finished item may be **closed**; `no` leaves the issue open with `status/fixed-by` and still posts the evidence comment |
 | `--push yes\|no` | the only thing that publishes anything; this loop never opens a change request |
 | `--max-decisions N` | the pile of open `agent/needs-decision` items that stops a run **before** it starts |
+| `--max-review-rounds N` | how many review rounds one item gets (default 2); a refusal whose findings are strictly subtractive earns exactly one more |
 | `--clean-worktree` | remove the run's worktree at the end (default: keep it, so the next run keeps its warm build) |
 
 Exit codes: `0` the run ended (including "nothing eligible"), `2` usage, `3` stop (the identity is not
@@ -154,7 +156,7 @@ a child's prose.
 | situation | action |
 |---|---|
 | the child exits non-zero, or claims work it did not produce | the run records the item `blocked` and does **not** close it — it reads the tree, the archive and the gate XMLs itself |
-| the change fails its second review round | `agent/needs-decision` + `status/on-hold`, recorded `blocked`, and the next candidate is taken |
+| the change fails its last review round | `agent/needs-decision` + `status/on-hold`, recorded `blocked`, and the next candidate is taken. A report whose findings are subtractive (`LOOP-CORRECTIONS-ONLY: yes`) buys one more round instead |
 | the reviewer wrote to the tree during its round | the round is discarded with a reason (a reviewer that wrote cannot have been the reviewer), recorded `blocked` |
 | the fix needs a decision, or grows beyond one capability | the worker re-gates: `skipped` with `needs-decision`, escalated on the item with the work it had already done |
 | tests red after three focused attempts | `blocked`, as above. Never weaken a test to make it green |

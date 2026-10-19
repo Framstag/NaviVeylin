@@ -20,8 +20,7 @@
 #   state.sh show
 #   state.sh get <jq-path>              # e.g. `get run.base`
 #   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
-#   state.sh stop <reason>              # the condition that ended the run, as `next` names it
-#   state.sh next                       # the next candidate; exit 3 when the run may not continue
+#   state.sh stop <reason>              # the condition that ended the run, as `next` names it#   state.sh next                       # the next candidate; exit 3 when the run may not continue
 #   state.sh queue                      # read the queue as JSON on stdin (prescreen writes it)
 #   state.sh start <issue> --change <name>
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
@@ -133,7 +132,7 @@ cmd_init() {
   case "$items" in ''|*[!0-9]*) loop_die "init: --items must be a non-negative integer" ;; esac
   case "$minutes" in ''|*[!0-9]*) loop_die "init: --minutes must be a non-negative integer" ;; esac
   case "$max_decisions" in ''|*[!0-9]*) loop_die "init: --max-decisions must be a non-negative integer" ;; esac
-  case "$max_review_rounds" in ''|*[!0-9]*) loop_die "init: --max-review-rounds must be a positive integer" ;; esac
+  case "$max_review_rounds" in ''|*[!0-9]*|0) loop_die "init: --max-review-rounds must be a positive integer" ;; esac
   case "$review" in on|off) ;; *) loop_die "init: --review must be on or off" ;; esac
   case "$may_close" in yes|no) ;; *) loop_die "init: --may-close must be yes or no" ;; esac
   [ -n "$base" ] || base=$(git -C "$LOOP_ROOT" rev-parse HEAD 2>/dev/null) || loop_die "init: cannot read the current commit"
@@ -174,7 +173,8 @@ cmd_show() {
     | "agent-issue-loop — " + (if .current == null then "no item in progress"
                               else "#\(.current.issue) \(.current.change) · phase \(.current.phase)" end),
       "budget   \($r.items) items / \($r.minutes) min · \($r.items - (.items | length)) left · deadline \($r.deadlineAt) · \((($r.deadlineEpoch - now) / 60 | floor)) min left\(if $r.deadlineEpoch <= now then " · EXPIRED" else "" end)",
-      "flags    review \($r.review) · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
+      "flags    review \($r.review) · review rounds \($r.maxReviewRounds // "?") · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
+      "stop     \($r.stop.reason // "not stopped — the run is still going, or it ended without recording a reason")",
       "progress closed \(.items | map(select(.result == "done")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",
       "excluded \(.excluded | length): \([.excluded[] | "#\(.issue) \(.reason)"] | join(" · "))",
@@ -435,6 +435,6 @@ case "$cmd" in
   report) cmd_report "$@" ;;
   lock) cmd_lock "$@" ;;
   unlock) cmd_unlock "$@" ;;
-  ""|-h|--help) sed -n '2,29p' "$0" ;;
+  ""|-h|--help) sed -n '2,32p' "$0" ;;
   *) loop_die "unknown command '$cmd'" ;;
 esac

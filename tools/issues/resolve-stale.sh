@@ -197,14 +197,6 @@ $body")
     [ -n "$tok" ] || continue
     canon=$(issues_citation_resolve "$tok")
     if [ -z "$canon" ]; then
-      # The cheapest inference first: the token repeated its own directory, and the collapsed form is a
-      # tracked path. No history walk, no symbol search, no guess.
-      collapsed=$(issues_citation_collapsed "$tok")
-      if [ -n "$collapsed" ] && [ "$(issues_citation_class "$collapsed")" != "absent" ]; then
-        canon=$(issues_citation_resolve "$collapsed")
-      fi
-    fi
-    if [ -z "$canon" ]; then
       # Several tracked paths end with it and no suffix names the file: reported, never guessed (D4).
       item_ambiguous=$((item_ambiguous + 1))
       ambiguous=$((ambiguous + 1))

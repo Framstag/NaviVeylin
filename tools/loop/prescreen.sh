@@ -173,9 +173,11 @@ while [ "$i" -lt "$count" ]; do
   # described as carrying a loop escalation (#183).
   awaiting_decision=0
   awaiting_why=""
+  awaiting_label=0
   if [ -n "$decision_verdict" ] &&
      printf '%s' "$labels" | jq -e --arg l "$decision_label" 'any(.[]; .name == $l)' >/dev/null; then
     awaiting_decision=1
+    awaiting_label=1
     awaiting_why="$decision_label"
   fi
   if [ -n "$hold_status" ] && [ "$status" = "$hold_status" ]; then
@@ -201,14 +203,6 @@ while [ "$i" -lt "$count" ]; do
     # (design D15 property 4).
     verdict="$device_agent"
     reason="status${separator}${status} — the remaining evidence needs a device attached to the host"
-  elif [ "$awaiting_decision" -eq 1 ]; then
-    # The item already awaits a decision — either one this loop escalated (its label and the hold it left) or a
-    # person's hold. Both are the owner's until it is answered: re-deriving the same conclusion spends the very
-    # budget the decision cap protects, and #110 was escalated three times with one conclusion (#183).
-    verdict="$decision_verdict"
-    reason="the item already awaits a decision (${awaiting_why}) — left to its owner until a person decides it"
-    evidence="${decision_label:-status${separator}${hold_status}}"
-    already_escalated=1
   fi
 
   # The opt-in is the author's, so it is read and never written: a candidate without it is excluded rather
@@ -226,12 +220,20 @@ while [ "$i" -lt "$count" ]; do
   # A previous attempt's branch is the one rejection the tracker cannot state, so it is asked of git — and
   # asked before the citation sensor, because it names a decision for a person rather than a repair. The
   # verdict is a value of the profile's vocabulary, read here as the device verdict is (D16).
+  #
+  # It is asked before the awaiting-decision clause as well, and that ordering is load-bearing: an item the run
+  # escalated *and* whose branch carries a finished attempt is the one #176 exists to adopt, and the branch is
+  # the evidence `adopt_finished_exclusions` reads. An escalated item whose branch is unadoptable records the
+  # branch too — `adopt-item` refuses it on its own inputs and the refusal is printed.
   if [ "$verdict" = "$queued_verdict" ]; then
     attempt_branch=$(previous_attempt_branch_of "$number")
     if [ -n "$attempt_branch" ]; then
       verdict="$decision_verdict"
       reason="branch $attempt_branch carries a commit the run's base does not — a previous attempt's work is on it"
       evidence="$attempt_branch"
+      # The label still suppresses a second escalation comment: the branch is the new *evidence*, not a new
+      # decision, and the item was already escalated when the label was written.
+      [ "$awaiting_label" -eq 1 ] && already_escalated=1
     fi
   fi
 
@@ -254,6 +256,27 @@ while [ "$i" -lt "$count" ]; do
         fi
         evidence="$symbol resolves"
       done
+    fi
+  fi
+
+  # An item that already awaits a decision is its owner's until a person answers it: re-deriving the same
+  # conclusion spends the very budget the decision cap protects, and #110 was escalated three times with one
+  # conclusion (#183). The sensor and the branch rule above speak first, and that ordering is the point — a
+  # stale citation is a repair and a branch carrying a finished attempt is an adoption, both cheaper than a
+  # decision, and the spec's refusal label for `stale` must still be written on a held item.
+  #
+  # `alreadyEscalated` is the *label*'s fact, not the hold's: a hold written by a refusal (`too-wide`,
+  # `unspecifiable`) or by the repair path (`resolve-stale.sh` parks an item) was never an escalation, so the
+  # run still escalates that item once — otherwise nothing outside this machine-local state would name it.
+  if [ "$verdict" = "$queued_verdict" ] && [ "$awaiting_decision" -eq 1 ]; then
+    verdict="$decision_verdict"
+    reason="the item already awaits a decision (${awaiting_why}) — left to its owner until a person decides it"
+    if [ "$awaiting_label" -eq 1 ]; then
+      evidence="$decision_label"
+      already_escalated=1
+    else
+      evidence="status${separator}${hold_status}"
+      already_escalated=0
     fi
   fi
 

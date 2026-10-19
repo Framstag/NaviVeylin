@@ -15,9 +15,12 @@
 #       identity, or nothing eligible), 5 refuse (another run holds the lock, the decision cap is
 #       reached, the base has moved, the kept worktree carries a previous run's work).
 #
+# The run records the one condition that ended it (`state.sh stop`), so the printed report and the state
+# file state the same end (#184).
+#
 # Usage: run.sh [--items N] [--minutes M] [--review on|off] [--may-close yes|no] [--push yes|no]
-#               [--max-decisions N] [--review-read-only on|off] [--dry-run] [--clean-worktree]
-#               [--reset-worktree] [--base <sha>]
+#               [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off] [--dry-run]
+#               [--clean-worktree] [--reset-worktree] [--base <sha>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -50,7 +53,7 @@ while [ $# -gt 0 ]; do
     --dry-run) dry_run=1; shift ;;
     --clean-worktree) clean_worktree=1; shift ;;
     --reset-worktree) reset_worktree=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) loop_die "run: unknown argument $1" ;;
   esac
 done
@@ -69,9 +72,12 @@ export LOOP_CONF="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
 : "${max_decisions:=$(loop_conf_value LOOP_MAX_DECISIONS_DEFAULT)}"
 : "${max_review_rounds:=$(loop_conf_value LOOP_MAX_REVIEW_ROUNDS_DEFAULT)}"
 
-for pair in "items=$items" "minutes=$minutes" "max-decisions=$max_decisions" "max-review-rounds=$max_review_rounds"; do
+for pair in "items=$items" "minutes=$minutes" "max-decisions=$max_decisions"; do
   case "${pair#*=}" in ''|*[!0-9]*) loop_die "run: ${pair%%=*} must be a non-negative integer" ;; esac
 done
+# Zero rounds is not a cheap review, it is a review that never runs: the item would be blocked on a round that
+# never happened, and the branch would carry a `review-failed-round-0` that refuses it for ever.
+case "$max_review_rounds" in ''|*[!0-9]*|0) loop_die "run: --max-review-rounds must be a positive integer" ;; esac
 case "$review" in on|off) ;; *) loop_die "run: --review must be on or off" ;; esac
 case "$may_close" in yes|no) ;; *) loop_die "run: --may-close must be yes or no" ;; esac
 case "$push" in yes|no) ;; *) loop_die "run: --push must be yes or no" ;; esac
@@ -399,6 +405,13 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
   loop_render "$template" "$@" > "$out"
 }
 
+# Why a run ended is the run's own number, not a line on a console that scrolls away: every path that leaves
+# the item loop records its reason, so `report.sh` prints the end the state file holds (#184).
+stop_run() { # <reason> — printed and recorded, then the caller breaks or exits
+  printf 'stop: %s\n' "$1"
+  loop_state stop "$1" >/dev/null 2>&1 || true
+}
+
 # ── the item loop ───────────────────────────────────────────────────────────────────────────────
 
 queue_passes=1
@@ -413,12 +426,15 @@ while true; do
     # `next` names the stop condition on stdout and exits 3: it is the run's own verdict on why it may not
     # start another item, and the only account of the end besides the counters. Captured and dropped, the
     # printed report could not say why a run stopped (#184).
-    printf 'stop: %s\n' "$next_out"
-    loop_state stop "$next_out" >/dev/null
+    stop_run "$next_out"
     break
   fi
   issue="$next_out"
-  issue_json=$(loop_issue_json "$issue") || { printf 'run: gh could not read #%s\n' "$issue" >&2; break; }
+  issue_json=$(loop_issue_json "$issue") || {
+    printf 'run: gh could not read #%s\n' "$issue" >&2
+    stop_run "gh could not read #$issue — the tracker did not answer"
+    break
+  }
   title=$(printf '%s' "$issue_json" | jq -r '.title // ""')
   slug=$(slugify "$title")
   [ -n "$slug" ] || slug="issue-$issue"
@@ -446,10 +462,14 @@ while true; do
         in_progress=""
         continue
         ;;
-      *) break ;;
+      *) stop_run "the item could not be started: $(printf '%s' "$start_out" | head -1)"; break ;;
     esac
   fi
-  loop_labels pick "$issue" || { printf 'run: could not mark #%s in progress\n' "$issue" >&2; break; }
+  loop_labels pick "$issue" || {
+    printf 'run: could not mark #%s in progress\n' "$issue" >&2
+    stop_run "the in-progress label could not be written on #$issue"
+    break
+  }
   in_progress="$issue"
 
   item_dir="$stage_dir/items/$issue"

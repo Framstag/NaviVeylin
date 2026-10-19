@@ -34,6 +34,7 @@ LOOP_SHELL_CASES=(
   'prescreen#readsTheVerdictsFromTheProfile'
   'prescreen#previousAttemptBranchIsADecision'
   'prescreen#itemAwaitingADecisionIsNotQueued'
+  'prescreen#escalatedItemKeepsItsBranchAsEvidence'
   'prescreen#refusalLeavesATraceInTheTracker'
   'worktree#seedsAllFourInputs'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
@@ -75,6 +76,7 @@ LOOP_SHELL_CASES=(
   'run#dryRunTouchesNothing'
   'run#reviewRoundsCapAtTwo'
   'run#reviewBudgetIsARecordedValue'
+  'run#aZeroRoundBudgetIsRefused'
   'run#aCorrectiveRefusalEarnsOneMoreRound'
   'run#escalationCarriesTheDecision'
   'run#mayCloseNoLeavesTheIssueOpen'
@@ -119,6 +121,7 @@ loop_run_shell_case() {
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
     'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
+    'prescreen#escalatedItemKeepsItsBranchAsEvidence') fn=case_prescreen_escalatedItemKeepsItsBranchAsEvidence ;;
     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
@@ -160,6 +163,7 @@ loop_run_shell_case() {
     'run#dryRunTouchesNothing') fn=case_run_dryRunTouchesNothing ;;
     'run#reviewRoundsCapAtTwo') fn=case_run_reviewRoundsCapAtTwo ;;
     'run#reviewBudgetIsARecordedValue') fn=case_run_reviewBudgetIsARecordedValue ;;
+    'run#aZeroRoundBudgetIsRefused') fn=case_run_aZeroRoundBudgetIsRefused ;;
     'run#aCorrectiveRefusalEarnsOneMoreRound') fn=case_run_aCorrectiveRefusalEarnsOneMoreRound ;;
     'run#escalationCarriesTheDecision') fn=case_run_escalationCarriesTheDecision ;;
     'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
@@ -682,9 +686,45 @@ case_prescreen_itemAwaitingADecisionIsNotQueued() {
     assert_eq "true" "$(printf '%s' "$out" | jq -r --argjson i "$issue" '.[] | select(.issue == $i) | .alreadyEscalated')" \
       "and it is marked as already escalated, so the run does not escalate it again (#$issue)"
   done
+  # A hold with no escalation label is not an escalation: the refusal paths (`too-wide`, `unspecifiable`) and the
+  # repair path (`resolve-stale.sh` parks an item) write the same status, and an item they parked must still be
+  # escalated once — otherwise nothing outside the run's machine-local state would name it.
+  assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 44) | .verdict')" \
+    "a person's hold is excluded as a decision too (#44)"
+  assert_eq "false" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 44) | .alreadyEscalated')" \
+    "but it is not marked as already escalated, so the run escalates it once (#44)"
   assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "none of them is queued as work"
-  assert_eq "3" "$(jq -r '[.excluded[] | select(.verdict == "needs-decision")] | length' "$(state_file "$p")")" \
-    "all three are recorded as decisions in the exclusion list"
+  assert_eq "4" "$(jq -r '[.excluded[] | select(.verdict == "needs-decision")] | length' "$(state_file "$p")")" \
+    "all four are recorded as decisions in the exclusion list"
+}
+
+# An item the run escalated *and* whose branch carries a finished attempt is the one the adopt path exists for
+# (#176): the branch is the evidence `adopt_finished_exclusions` reads, so the awaiting-decision clause must not
+# overwrite it with a label name. Before this ordering the two fixes together made adoption unreachable (#185
+# review): every escalated item lost the only field the adoption path selects on.
+case_prescreen_escalatedItemKeepsItsBranchAsEvidence() {
+  local p base branch out status
+  p=$(new_project)
+  init_state "$p" 4 90
+  base=$(git -C "$p" rev-parse HEAD)
+  branch="fix/issue-41-an-escalated-item"
+  git -C "$p" checkout -q -b "$branch" "$base"
+  printf 'the earlier attempt\n' > "$p/attempt.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the earlier attempt" >/dev/null 2>&1 ||
+    fail "could not commit the earlier attempt"
+  git -C "$p" checkout -q main
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
+  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+
+  out=$(run_prescreen "$p" --json); status=$?
+  assert_eq "3" "$status" "an escalated backlog is 'nothing eligible'"
+  assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 41) | .verdict')" \
+    "the escalated item stays a decision"
+  assert_eq "$branch" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 41) | .evidence')" \
+    "and its branch stays the evidence, which is what the adoption path reads"
+  assert_eq "true" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 41) | .alreadyEscalated')" \
+    "while still being marked as already escalated, so no second comment is posted"
 }
 
 # ----------------------------------------------------------------------------- cases: worktree
@@ -1571,6 +1611,18 @@ case_run_reviewBudgetIsARecordedValue() {
   assert_contains "$(run_report "$p")" "review rounds 3" "the report states it beside the other budgets"
 }
 
+# Zero rounds is not a cheap review: the item would be blocked on a round that never ran, and the branch would
+# carry a `review-failed-round-0` that refuses it for ever (review of #187).
+case_run_aZeroRoundBudgetIsRefused() {
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on --max-review-rounds 0 2>&1); status=$?
+  assert_eq "2" "$status" "a zero round budget is a usage error"
+  assert_contains "$out" "run: --max-review-rounds must be a positive integer" "and the run itself says what it wants"
+  [ ! -f "$(state_file "$p")" ] || fail "the run wrote state before refusing"
+}
+
 # A report whose findings are strictly subtractive needs no new claim, case or assertion — one worker pass can
 # answer it — so a corrective refusal at the cap earns exactly one more round, and a second refusal blocks
 # (#187). The extension is `LOOP-CORRECTIONS-ONLY: yes` in the reviewer's report, which the prompt asks for.
@@ -1743,7 +1795,7 @@ case_run_stopReasonIsPrintedAndReported() {
 # an item that already carries the escalation label is not a new decision: escalating it again posts a second
 # identical comment, which is what #110 collected three of (#183).
 case_run_awaitingDecisionIsNotEscalatedAgain() {
-  local d p out
+  local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
   export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
@@ -1751,10 +1803,15 @@ case_run_awaitingDecisionIsNotEscalatedAgain() {
 
   out=$(run_loop "$p" --items 1 --minutes 90 --max-decisions 10 2>&1)
   assert_contains "$out" "nothing eligible" "a backlog awaiting decisions produces no work"
-  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
-    "and no second escalation comment is posted"
-  assert_eq "0" "$(grep -c 'issue edit' "$GH_STUB_RECORD" || true)" \
-    "nor a label write on an item that already carries its decision"
+  log=$(cat "$GH_STUB_RECORD")
+  for issue in 41 42 43; do
+    assert_eq "0" "$(printf '%s\n' "$log" | grep -c "issue comment $issue " || true)" \
+      "no second escalation comment is posted on #$issue"
+    assert_eq "0" "$(printf '%s\n' "$log" | grep -c "issue edit $issue " || true)" \
+      "nor a label write on #$issue, which already carries its decision"
+  done
+  assert_eq "1" "$(printf '%s\n' "$log" | grep -c 'issue comment 44 ' || true)" \
+    "while the hold that was never an escalation is escalated once (#44)"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
   assert_eq "0" "$(jq -r '.items | length' "$(state_file "$p")")" "and nothing is recorded as worked"
 }

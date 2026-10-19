@@ -248,7 +248,7 @@ cmd_adopt_item() {
   refused_round=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
     sed -n 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' | sort -n | tail -1)
   [ -z "$refused_round" ] ||
-    loop_refuse "branch $branch is not adopted — the reviewer refused $change in round $refused_round (evidence/review-failed-round-$refused_round.md)"
+    loop_refuse "branch $branch is not adopted — the reviewer refused $change in round $refused_round (evidence/review-failed-round-$refused_round.md); apply the reviewer's corrections and merge it by hand, or delete that file deliberately if the verdict no longer applies"
   commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
   [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
   # The merge lands in the project tree, where the base branch is checked out: over uncommitted work it would

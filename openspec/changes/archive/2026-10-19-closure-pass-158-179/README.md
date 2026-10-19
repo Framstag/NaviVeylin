@@ -50,3 +50,24 @@ Two defects the pass met while doing its own work, filed so the pass stayed a ve
 - **#182** — a comment-only `update.sh` call prints `already carries  — no label write` with an empty
   status. Cosmetic, but it describes a write that was never requested, in the tool every tracker write goes
   through.
+
+Both are filed with `class/bug`, `category/build-and-harness` and `source/agent`, and **without a priority
+band**: the band's marker is written by the metadata pass, and an unranked item is not a violation
+(`check#unrankedIsNotAViolation`). Ranking them is that pass's job, not this record's.
+
+A note on how they were filed: the first `create.sh` call passed `class` and `category` but no `labels`
+array, which the documented finding shape requires — the tool validates those two fields and derives no
+label from them, so #181 and #182 were created with no labels at all. Repaired with `update.sh`, and worth
+knowing for the next hand-authored finding.
+
+## The tracker's own gate
+
+`bash tools/issues/check-metadata.sh --live` over the whole tracker:
+
+```
+check-metadata: 181 issue(s) checked · 0 violation(s)
+```
+
+Before this pass's repairs it reported two `label-without-marker` violations on the newly filed items (the
+band label I had written by hand had no marker to agree with) — the reason those two bands were removed
+rather than invented.

@@ -1,0 +1,13 @@
+$ bash tools/loop-selftest.sh --case 'prescreen#aHoldWithNoDecisionIsNotADecision'   # before the fix
+  the verdict names the hold, not a decision: expected 'held', got 'needs-decision'
+FAIL prescreen#aHoldWithNoDecisionIsNotADecision
+
+$ bash tools/loop-selftest.sh --case 'run#awaitingDecisionIsNotEscalatedAgain'       # before the fix
+  the bare hold is not escalated (#44): expected '0', got '1'
+FAIL run#awaitingDecisionIsNotEscalatedAgain
+
+$ bash tools/loop-selftest.sh --case 'prescreen#aHoldWithNoDecisionIsNotADecision'   # after the fix
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+
+$ bash tools/loop-selftest.sh --case 'prescreen#itemAwaitingADecisionIsNotQueued'    # the escalated items are unchanged
+PASS prescreen#itemAwaitingADecisionIsNotQueued

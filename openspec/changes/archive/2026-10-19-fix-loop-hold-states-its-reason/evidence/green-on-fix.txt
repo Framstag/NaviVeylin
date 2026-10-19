@@ -1,0 +1,14 @@
+$ bash tools/issue-tooling-selftest.sh --case 'labels#holdCarriesItsReason'   # before the fix
+stub gh: recorded `gh issue edit`
+  a refused hold wrote something: gh issue edit 21 --add-label status/on-hold --remove-label status/open
+FAIL labels#holdCarriesItsReason
+
+$ bash tools/loop-selftest.sh --case 'run#aSkipClearsTheInProgressMark'       # before the fix
+  exactly one comment, naming why the item is held: expected '1', got '0'
+FAIL run#aSkipClearsTheInProgressMark
+
+$ bash tools/loop-selftest.sh --case 'labels#holdCarriesItsReason'            # after the fix
+PASS labels#holdCarriesItsReason
+
+$ bash tools/loop-selftest.sh --case 'labels#verdictToLabelMatrix'            # the matrix is unchanged
+PASS labels#verdictToLabelMatrix

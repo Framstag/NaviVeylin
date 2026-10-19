@@ -23,6 +23,23 @@ Do not use it to:
 - **rewrite someone else's finding into another finding.** If the claim changed, file a new issue and let the
   old one be closed with its reason.
 
+## Answering a decision
+
+An item that awaits a person's decision carries `agent/needs-decision` and `status/on-hold`. It is **not**
+answered by this skill's label calls alone — the answer has to be recorded, and the transition has to be the one
+the answer implies:
+
+```bash
+tools/issues/decisions.sh                                   # what awaits an answer, and what each item asks
+tools/issues/answer.sh 194 --decision "merge the rows"      # continue the work: decision label off, back to open
+tools/issues/answer.sh 110 --decision "needs a device run" --device
+tools/issues/answer.sh 109 --decision "refuted twice" --retire --evidence "the run's reports at 7ddf7ab"
+```
+
+`answer.sh` writes the decision as a comment **first** and only then changes the state, and it refuses an item
+that awaits no decision (exit 3) — re-opening a refuted item and closing a fixed one have their own paths. The
+spec is `openspec/specs/decision-queue/spec.md`.
+
 ## The call
 
 ```bash

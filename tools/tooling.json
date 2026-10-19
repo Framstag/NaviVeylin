@@ -37,11 +37,13 @@
   "roles": {
     "comment": "THE VOCABULARY'S ROLES — for each decision an engine makes about a value of the namespaces above, which value it means. `tools/loop/prescreen.sh` reads `queuedVerdict`, `workedClasses` (rank order), `refusedClasses`, `inFlightStatus`, `deviceStatus` and `settledStatuses`; `tools/loop/labels.sh` reads `holdStatus`, `closeStatus`, `inProgressAgent`, `deviceAgent` and `decisionAgent`; `tools/loop/run.sh`, `report.sh` and `state.sh` read the verdicts the pre-screen writes; `tools/issues/resolve-stale.sh` reads `holdStatus` to park an item; `tools/issues/close.sh` reads `closeStatus` and `retiredStatus`, the settled state a closure records — a fix and a person's decision not to act, respectively. A key another project does not need is declared empty (`\"\"`, `[]`), never omitted: an absent key is a half-adapted profile, and `tools/check-portability.sh` forbids every value declared here in an engine exactly as it forbids the namespaces' values.",
     "queuedVerdict": "eligible",
+    "heldVerdict": "held",
     "workedClasses": ["bug", "improvement"],
     "refusedClasses": ["feature"],
     "inFlightStatus": "in-flight",
     "deviceStatus": "open-device",
     "holdStatus": "on-hold",
+    "openStatus": "open",
     "closeStatus": "fixed-by",
     "retiredStatus": "retired",
     "settledStatuses": ["fixed-by", "retired"],

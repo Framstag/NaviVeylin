@@ -336,6 +336,47 @@ cap allows, and SHALL report them instead of producing more work.
   coming
 - **Case**: `report#escalatedSkipNamesTheLabelWritten`, `report#failedReviewEscalationIsNamed`, `report#aVerdictAloneIsNoEscalation`
 
+### Requirement: A state the run writes is readable from the item
+
+Every state label the run writes SHALL be accompanied, on the same item and in the same call, by the one line
+that accounts for it — the verdict and the clause of evidence that produced it — because the run's own state is
+machine-local and is replaced wholesale by the next run, so a state whose reason lives only there cannot be
+answered, re-checked or even understood by the item's reader (#192).
+
+#### Scenario: A skip verdict carries its reason
+
+- **WHEN** a worker skips an item and the run puts it on hold
+- **THEN** the item carries a comment naming the verdict and the one clause of evidence the worker gave, and no
+  decision label is added for it
+- **Case**: `labels#holdCarriesItsReason`, `run#aSkipClearsTheInProgressMark`
+
+#### Scenario: Nothing is written when the reason is missing
+
+- **WHEN** a call that must record a reason and its evidence is given neither
+- **THEN** it stops as a usage error before it writes anything, so no item is left in a state nobody can account
+  for
+- **Case**: `labels#holdCarriesItsReason`
+
+### Requirement: A hold is not a decision
+
+An item SHALL count as awaiting a decision only when it carries the decision label an escalation writes. The hold
+state has several writers — the worker's skip verdicts, the device verdict, the citation repair's park and a
+person's own hold — and none of them states a question, so a bare hold SHALL be reported as a hold, SHALL NOT be
+escalated, and SHALL NOT count against the decision cap (#193).
+
+#### Scenario: A bare hold is reported for what it is
+
+- **WHEN** the pre-screen meets an eligible item on hold that carries no decision label
+- **THEN** it records the item as held, writes no label and posts no escalation, and the report prints it as held
+- **Case**: `prescreen#aHoldWithNoDecisionIsNotADecision`, `run#awaitingDecisionIsNotEscalatedAgain`
+
+#### Scenario: The cap counts the questions a person can answer
+
+- **WHEN** the run counts the open decisions before it starts
+- **THEN** only items carrying the decision label are counted, so an item nobody asked a question about cannot
+  stop a run
+- **Case**: `run#decisionCapRefusesToStart`, `prescreen#aHoldWithNoDecisionIsNotADecision`
+
 ### Requirement: The run's mechanics are the project's configuration, not its code
 
 The run SHALL take the command it starts an agent process with, the skills it tells that process to use and

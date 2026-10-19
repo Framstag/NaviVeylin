@@ -1,0 +1,60 @@
+[
+  {
+    "number": 71,
+    "state": "OPEN",
+    "title": "§71 An item whose worker reached a fork in the road",
+    "updatedAt": "2026-10-19T17:24:25Z",
+    "body": "<!-- nvid: 71 -->\n\n- **Observed** ✗: two rows disagree.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-decision" }
+    ],
+    "comments": [
+      { "body": "the two rows disagree about the same number",
+        "createdAt": "2026-10-18T09:00:00Z" },
+      { "body": "**The decision:** merge the two rows into one, or keep both and mark the newer authoritative?\nMerging loses the older wording; keeping both costs one table row and one reading rule.",
+        "createdAt": "2026-10-19T17:24:25Z" }
+    ]
+  },
+  {
+    "number": 72,
+    "state": "OPEN",
+    "title": "§72 An item a worker put on hold without asking anything",
+    "updatedAt": "2026-10-19T10:00:00Z",
+    "body": "<!-- nvid: 72 -->\n\n- **Observed** ✗: nothing.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" }
+    ],
+    "comments": [
+      { "body": "skipped: the cited read already runs off the main thread",
+        "createdAt": "2026-10-19T10:00:00Z" }
+    ]
+  },
+  {
+    "number": 73,
+    "state": "OPEN",
+    "title": "§73 An escalated item whose escalation left no statement",
+    "updatedAt": "2026-10-19T11:00:00Z",
+    "body": "<!-- nvid: 73 -->\n\n- **Observed** ✗: nothing.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/ui" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-decision" }
+    ],
+    "comments": []
+  }
+]

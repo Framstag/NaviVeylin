@@ -1,0 +1,27 @@
+The twelve items that carried `agent/needs-decision` on 2026-10-20, what each was really waiting for, and what
+the drain did. Every write went through `tools/issues/update.sh` / `tools/issues/close.sh`; each item carries a
+comment naming the decision. Before the drain, `tools/loop/run.sh` refused to start: 12 awaiting a decision
+against `--max-decisions 3`.
+
+| item | why it was held (recorded on the item) | drain |
+|---|---|---|
+| #136 | `resolve-stale.sh` parked it: the body cited the deleted prose backlog file | citation repaired to the bare section id, then `status/open` + decision label removed |
+| #134 | same | same |
+| #131 | same | same |
+| #126 | same | same |
+| #106 | same | same |
+| #84 | same | same |
+| #69 | same (three citations) | same |
+| #68 | same | same |
+| #127 | parked for `libosmscout-client-java/src/OSMScoutClient.cpp` | unparked: the token classifies as a submodule path today (one tracked file inside `app/src/main/cpp/libosmscout/`), body untouched |
+| #125 | same | same |
+| #109 | worker verdict `stale`: claim refuted twice, `:auto` 35 tests 0 failures at base `7ddf7ab` | `close.sh --not-planned` — a decision not to act, with the refutation as its evidence |
+| #110 | worker verdict `needs-diagnosis`: cold-session latency, unattributed dispatcher occupancy | `status/open-device` — the pre-screen records `needs-device` with its reason; the item carries no `agent/eligible` |
+
+After the drain: `agent/needs-decision` count **0**; the next run's cap check passes.
+
+What the drain exposed, and what this change owns: none of the twelve carried a *question* on the item. Ten had a
+park comment, one had a worker refutation in the run's machine-local state directory and one had a diagnosis
+verdict — and the pre-screen had turned all twelve into "the item already awaits a decision" with a boilerplate
+sentence. The queue and the answer verb are what make that shape answerable; the two prerequisite changes
+(#192, #193) are what keep a hold from being counted as a question it never stated.

@@ -163,7 +163,15 @@ if [ "$write_status" -ne 0 ]; then
   printf 'close: the settled state was not written, so #%s was left open\n' "$number" >&2
   exit "$write_status"
 fi
-gh issue close "$number" --reason "$state_reason" >/dev/null || issues_die \
+# The CLI and the API spell the second reason differently: `gh issue close --reason` takes `not planned`,
+# while the record keeps the API's `not_planned`. The translation lives here, at the one call site that talks
+# to the CLI, because a value the CLI refuses leaves the item open with its settled state already written
+# (#195).
+case "$state_reason" in
+  not_planned) cli_reason="not planned" ;;
+  *) cli_reason="$state_reason" ;;
+esac
+gh issue close "$number" --reason "$cli_reason" >/dev/null || issues_die \
   "close: gh could not close #$number — it now carries status/$settled_status, check the tracker"
 if [ "$json" -eq 1 ]; then
   jq -n --argjson issue "$number" --arg stateReason "$state_reason" --arg reason "$reason" \

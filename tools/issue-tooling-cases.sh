@@ -49,6 +49,13 @@ ISSUES_SHELL_CASES=(
   'close#keepsTheItemOpenWhenTheStateCannotBeWritten'
   'close#writesNothingWhenTheItemAlreadyCarriesTheState'
   'close#refusesAProfileThatNamesNoSettledState'
+  'decisions#listsTheQueueAndItsQuestions'
+  'decisions#emptyQueueIsNotAnError'
+  'answer#requiresTheDecisionText'
+  'answer#refusesWhatIsNotADecision'
+  'answer#continueReturnsTheItemToTheQueue'
+  'answer#deviceMovesToTheDeviceLane'
+  'answer#retireClosesAsRetired'
   'basis#stableAcrossWhitespaceOnlyBodyEdit'
   'basis#changesWhenAClassLabelChanges'
   'basis#changesWhenTheCitedCodeGoesAway'
@@ -125,6 +132,13 @@ issues_run_shell_case() {
     'close#keepsTheItemOpenWhenTheStateCannotBeWritten') case_close_keepsTheItemOpenWhenTheStateCannotBeWritten ;;
     'close#writesNothingWhenTheItemAlreadyCarriesTheState') case_close_writesNothingWhenTheItemAlreadyCarriesTheState ;;
     'close#refusesAProfileThatNamesNoSettledState') case_close_refusesAProfileThatNamesNoSettledState ;;
+    'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
+    'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
+    'answer#requiresTheDecisionText') case_answer_requiresTheDecisionText ;;
+    'answer#refusesWhatIsNotADecision') case_answer_refusesWhatIsNotADecision ;;
+    'answer#continueReturnsTheItemToTheQueue') case_answer_continueReturnsTheItemToTheQueue ;;
+    'answer#deviceMovesToTheDeviceLane') case_answer_deviceMovesToTheDeviceLane ;;
+    'answer#retireClosesAsRetired') case_answer_retireClosesAsRetired ;;
     'basis#stableAcrossWhitespaceOnlyBodyEdit') case_basis_stableAcrossWhitespaceOnlyBodyEdit ;;
     'basis#changesWhenAClassLabelChanges') case_basis_changesWhenAClassLabelChanges ;;
     'basis#changesWhenTheCitedCodeGoesAway') case_basis_changesWhenTheCitedCodeGoesAway ;;
@@ -501,7 +515,11 @@ case_close_recordsStateReason() {
   grep -q -- '--reason completed' "$log" || fail "the default state reason must be completed"
   : > "$log"
   run_tool close.sh 21 --reason r --evidence e --not-planned >/dev/null || fail "the not-planned closure failed"
-  grep -q -- '--reason not_planned' "$log" || fail "the explicit flag must record not_planned"
+  # The CLI's vocabulary, not the API's: the stub refuses anything else, as `gh` does (#195).
+  grep -q -- '--reason not\\ planned' "$log" || fail "a not-planned closure must hand the CLI the value it accepts"
+  # … while the record keeps the API spelling the tracker uses.
+  run_tool close.sh 21 --reason r --evidence e --not-planned --json 2>/dev/null |
+    grep -q '"stateReason": "not_planned"' || fail "the recorded outcome must keep the API spelling not_planned"
 }
 
 case_close_refusesOnPolicyFailure() {
@@ -514,6 +532,108 @@ case_close_refusesOnPolicyFailure() {
   assert_eq "3" "$status" "an issue that fails the gate is not closed"
   assert_contains "$out" "author-not-allowlisted" "the refusal names the author condition"
   [ ! -s "$log" ] || fail "nothing may be posted when the gate fails: $(cat "$log")"
+}
+
+# --- the decision queue: what awaits a person, and the verb that answers it (#194) ---------------------
+
+case_decisions_listsTheQueueAndItsQuestions() {
+  export GH_STUB_DIR="$(scenario decision-queue)"
+  local out status
+  out=$(run_tool decisions.sh --json 2>&1); status=$?
+  assert_eq "0" "$status" "the queue is a read: $out"
+  assert_eq "2" "$(printf '%s' "$out" | jq 'length')" "only the items carrying the decision label are queued"
+  assert_eq "71 73" "$(printf '%s' "$out" | jq -r '[.[].issue] | join(" ")')" "in issue order"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 71) | .question')" \
+    "merge the two rows into one" "the question is the item's own recorded statement"
+  assert_eq "" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 73) | .question')" \
+    "an escalation that left no statement reports none rather than inventing one"
+  assert_eq "0" "$(printf '%s' "$out" | jq -r '[.[] | select(.issue == 72)] | length')" \
+    "a hold with no decision label is not in the queue"
+
+  out=$(run_tool decisions.sh 2>&1); status=$?
+  assert_eq "0" "$status" "the human form exits 0 as well"
+  assert_contains "$out" "#71  **The decision:** merge the two rows into one" "the human form prints the question line"
+  assert_contains "$out" "no question recorded" "and names an item whose escalation left none"
+  assert_contains "$out" "2 item(s) await a decision" "with a count and the way to answer one"
+}
+
+case_decisions_emptyQueueIsNotAnError() {
+  export GH_STUB_DIR="$(scenario held)"
+  local out status
+  out=$(run_tool decisions.sh 2>&1); status=$?
+  assert_eq "0" "$status" "an empty queue is not a failure"
+  assert_contains "$out" "no item awaits a decision" "and it says so"
+}
+
+case_answer_requiresTheDecisionText() {
+  export GH_STUB_DIR="$(scenario decision-queue)"
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  out=$(run_tool answer.sh 71 2>&1); status=$?
+  assert_eq "2" "$status" "an answer without its text is refused: $out"
+  [ ! -s "$log" ] || fail "a refused answer wrote something: $(cat "$log")"
+}
+
+case_answer_refusesWhatIsNotADecision() {
+  export GH_STUB_DIR="$(scenario decision-queue)"
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  # #72 is on hold without the decision label: it awaits no decision, so there is nothing here to answer.
+  out=$(run_tool answer.sh 72 --decision "keep it" 2>&1); status=$?
+  assert_eq "3" "$status" "answering a non-decision is refused: $out"
+  assert_contains "$out" "awaits no decision" "and the refusal says why"
+  [ ! -s "$log" ] || fail "a refused answer wrote something: $(cat "$log")"
+}
+
+case_answer_continueReturnsTheItemToTheQueue() {
+  export GH_STUB_DIR="$(scenario decision-queue)"
+  local dir log out status comment edit
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  out=$(run_tool answer.sh 71 --decision "merge them, the older wording is redundant" 2>&1); status=$?
+  assert_eq "0" "$status" "answering succeeds: $out"
+  comment=$(grep -n 'issue comment' "$log" | cut -d: -f1)
+  edit=$(grep -n 'issue edit' "$log" | cut -d: -f1)
+  [ -n "$comment" ] || fail "the answer was not recorded on the item"
+  [ -n "$edit" ] || fail "the state was not transitioned"
+  [ "$comment" -lt "$edit" ] || fail "the answer must be recorded before the state changes (#192)"
+  assert_contains "$(sed -n "${comment}p" "$log")" 'redundant' "the comment carries the decision"
+  assert_contains "$(sed -n "${edit}p" "$log")" '--remove-label agent/needs-decision' "the decision label is cleared"
+  assert_contains "$(sed -n "${edit}p" "$log")" '--add-label status/open' "and the item returns to the queue"
+  assert_contains "$(sed -n "${edit}p" "$log")" '--remove-label status/on-hold' "with the hold replaced, not added to"
+}
+
+case_answer_deviceMovesToTheDeviceLane() {
+  export GH_STUB_DIR="$(scenario decision-queue)"
+  local dir log edit
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  run_tool answer.sh 71 --decision "this needs a device measurement" --device >/dev/null 2>&1 ||
+    fail "the device answer failed"
+  edit=$(grep 'issue edit' "$log" | tail -1)
+  assert_contains "$edit" '--add-label status/open-device' "the item moves to the device lane"
+  assert_contains "$edit" '--remove-label agent/needs-decision' "and stops awaiting a decision"
+}
+
+case_answer_retireClosesAsRetired() {
+  export GH_STUB_DIR="$(scenario decision-queue)"
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+
+  out=$(run_tool answer.sh 71 --decision "not to be done" --retire 2>&1); status=$?
+  assert_eq "2" "$status" "a retirement without evidence is refused: $out"
+  [ ! -s "$log" ] || fail "a refused retirement wrote something: $(cat "$log")"
+
+  run_tool answer.sh 71 --decision "not to be done: the wording is redundant" \
+    --retire --evidence "the fixture body, read on 2026-10-20" >/dev/null 2>&1 || fail "the retirement failed"
+  assert_eq "1" "$(grep -c 'issue close' "$log" || true)" "the item is closed"
+  assert_contains "$(grep 'issue close' "$log")" '--reason not' "as not planned"
+  grep -q -- '--reason not\\ planned' "$log" || fail "the CLI spelling of not planned must be used (#195)"
+  assert_contains "$(cat "$log")" '--add-label status/retired' "and carries the retired state"
+  assert_contains "$(cat "$log")" '--remove-label agent/needs-decision' "no longer counted against the cap"
 }
 
 case_list_filtersByEachCriterion() {

@@ -34,6 +34,7 @@ LOOP_SHELL_CASES=(
   'prescreen#readsTheVerdictsFromTheProfile'
   'prescreen#previousAttemptBranchIsADecision'
   'prescreen#itemAwaitingADecisionIsNotQueued'
+  'prescreen#aHoldWithNoDecisionIsNotADecision'
   'prescreen#escalatedItemKeepsItsBranchAsEvidence'
   'prescreen#refusalLeavesATraceInTheTracker'
   'worktree#seedsAllFourInputs'
@@ -46,10 +47,12 @@ LOOP_SHELL_CASES=(
   'worktree#refusesABranchCarryingAPreviousAttempt'
   'worktree#refusesABranchWhoseReviewFailed'
   'labels#verdictToLabelMatrix'
+  'labels#holdCarriesItsReason'
   'labels#trapRemovesInProgressOnSignal'
   'labels#neverWritesReservedLabel'
   'labels#writesOnlyBetweenChildren'
   'prompt#workerNamesEveryPhaseAndSkill'
+  'prompt#workerNamesTheDecisionField'
   'prompt#reviewerCarriesTheEightItems'
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
@@ -69,6 +72,7 @@ LOOP_SHELL_CASES=(
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#aSkipClearsTheInProgressMark'
+  'run#skipEscalationCarriesTheDecision'
   'run#claimedGateWithoutEvidenceIsBlocked'
   'run#citedEvidenceMustTravelWithTheChange'
   'run#needsDecisionIsEscalatedWithTheWork'
@@ -121,6 +125,7 @@ loop_run_shell_case() {
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
     'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
+    'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
     'prescreen#escalatedItemKeepsItsBranchAsEvidence') fn=case_prescreen_escalatedItemKeepsItsBranchAsEvidence ;;
     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
@@ -133,10 +138,12 @@ loop_run_shell_case() {
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
+    'labels#holdCarriesItsReason') fn=case_labels_holdCarriesItsReason ;;
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
     'labels#neverWritesReservedLabel') fn=case_labels_neverWritesReservedLabel ;;
     'labels#writesOnlyBetweenChildren') fn=case_labels_writesOnlyBetweenChildren ;;
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
+    'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
@@ -156,6 +163,7 @@ loop_run_shell_case() {
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
+    'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
     'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
     'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
     'run#needsDecisionIsEscalatedWithTheWork') fn=case_run_needsDecisionIsEscalatedWithTheWork ;;
@@ -686,16 +694,47 @@ case_prescreen_itemAwaitingADecisionIsNotQueued() {
     assert_eq "true" "$(printf '%s' "$out" | jq -r --argjson i "$issue" '.[] | select(.issue == $i) | .alreadyEscalated')" \
       "and it is marked as already escalated, so the run does not escalate it again (#$issue)"
   done
-  # A hold with no escalation label is not an escalation: the refusal paths (`too-wide`, `unspecifiable`) and the
-  # repair path (`resolve-stale.sh` parks an item) write the same status, and an item they parked must still be
-  # escalated once — otherwise nothing outside the run's machine-local state would name it.
-  assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 44) | .verdict')" \
-    "a person's hold is excluded as a decision too (#44)"
+  # A hold with no escalation label is not a decision (#193): the worker's skip verdicts, the device verdict,
+  # the repair path (`resolve-stale.sh` parks an item) and a person's own hold all write the same state, and only
+  # the last of those four may be a question. The item is excluded as `held` — visible in the report, and outside
+  # the decision cap, which counts the items a person can actually answer.
+  assert_eq "held" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 44) | .verdict')" \
+    "a hold with no recorded decision is reported as a hold, not as a decision (#44)"
   assert_eq "false" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 44) | .alreadyEscalated')" \
-    "but it is not marked as already escalated, so the run escalates it once (#44)"
+    "and nothing is escalated for it (#44)"
+  assert_eq "0" "$(grep -c 'agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "no decision label is written for a hold nobody stated a question for"
   assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "none of them is queued as work"
-  assert_eq "4" "$(jq -r '[.excluded[] | select(.verdict == "needs-decision")] | length' "$(state_file "$p")")" \
-    "all four are recorded as decisions in the exclusion list"
+  assert_eq "3" "$(jq -r '[.excluded[] | select(.verdict == "needs-decision")] | length' "$(state_file "$p")")" \
+    "the three escalated items are recorded as decisions"
+  assert_eq "1" "$(jq -r '[.excluded[] | select(.verdict == "held")] | length' "$(state_file "$p")")" \
+    "and the bare hold is recorded as a hold"
+}
+
+# A hold states no question (#193): the worker's skip verdicts, the device verdict, the stale-citation repair's
+# park and a person's own hold all write the same state, and none of them is a decision. The pre-screen reports
+# the hold as what it is, writes nothing, and the run therefore spends no decision on it — before this, every
+# held item was escalated with a boilerplate sentence and counted against `--max-decisions` until the cap
+# stopped every future run (measured 2026-10-20: 12 items against a cap of 3).
+case_prescreen_aHoldWithNoDecisionIsNotADecision() {
+  local p out status log
+  p=$(new_project)
+  init_state "$p" 1 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario held)
+  log="$p/gh.log"; : > "$log"; export GH_STUB_RECORD="$log"
+
+  out=$(run_prescreen "$p" --json); status=$?
+  assert_eq "3" "$status" "a backlog whose only item is a bare hold is 'nothing eligible'"
+  assert_eq "held" "$(printf '%s' "$out" | jq -r '.[0].verdict')" "the verdict names the hold, not a decision"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[0].reason')" "no recorded decision" \
+    "and the reason says what the item lacks"
+  assert_eq "0" "$(wc -c < "$log" | tr -d ' ')" "the pre-screen writes no label for a hold"
+
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run failed: $out"
+  assert_contains "$out" "nothing eligible" "the run stops as 'nothing eligible'"
+  assert_eq "0" "$(grep -c 'needs-decision' "$log" || true)" "no decision label is written for the hold"
+  assert_eq "0" "$(grep -c 'issue comment' "$log" || true)" "and nothing is escalated for it"
+  assert_eq "held" "$(jq -r '.excluded[0].verdict' "$(state_file "$p")")" "the run records the item as held"
 }
 
 # An item the run escalated *and* whose branch carries a finished attempt is the one the adopt path exists for
@@ -960,6 +999,26 @@ case_labels_verdictToLabelMatrix() {
   assert_eq "1" "$(grep -c 'issue close' "$log")" "the item is closed"
 }
 
+case_labels_holdCarriesItsReason() {
+  local d p log out status
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  log="$d/gh-hold.log"; : > "$log"; export GH_STUB_RECORD="$log"
+
+  # A hold states no question, so it needs no decision label — but it needs its reason on the item (#192).
+  out=$(run_labels "$p" stale 21 2>&1); status=$?
+  assert_eq "2" "$status" "a hold without a reason is refused as usage: $out"
+  [ ! -s "$log" ] || fail "a refused hold wrote something: $(cat "$log")"
+
+  run_labels "$p" stale 21 --reason "the cited path no longer exists" --evidence "base abc123, the tree" >/dev/null 2>&1 ||
+    fail "a hold with reason and evidence failed"
+  assert_eq "1" "$(grep -c 'issue comment' "$log" || true)" "exactly one comment carries the reason"
+  assert_contains "$(cat "$log")" "the cited path no longer exists" "the comment names the reason"
+  assert_contains "$(cat "$log")" "status/on-hold" "the state is still written"
+  assert_eq "0" "$(grep -c 'needs-decision' "$log" || true)" "and no decision label is added for a hold"
+  assert_eq "0" "$(grep -c 'issue close' "$log" || true)" "the item stays open"
+}
+
 case_labels_trapRemovesInProgressOnSignal() {
   local d p block first waited
   d=$(scratch); p=$(new_project)
@@ -1044,6 +1103,32 @@ case_prompt_workerNamesEveryPhaseAndSkill() {
     assert_contains "$(cat "$prompt")" "$skill" "the worker prompt names the skill $skill"
   done
   assert_contains "$(cat "$prompt")" "data, not instructions" "the item's text is marked as data"
+}
+
+case_prompt_workerNamesTheDecisionField() {
+  local d p prompt
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  # The handover: what a person gets on the item when the worker reaches a fork (#194).
+  assert_contains "$(cat "$prompt")" 'LOOP-DECISION:' "the worker prompt asks for the decision field"
+  assert_contains "$(cat "$prompt")" 'the question in one sentence' "and says what it must contain"
+}
+
+case_run_skipEscalationCarriesTheDecision() {
+  local d p skip_report out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  skip_report=$(printf 'LOOP-VERDICT: skipped\nLOOP-SKIP-VERDICT: needs-decision\nLOOP-ROOT-CAUSE: the two rows disagree about the same number\nLOOP-RED-TEST: none — nothing compiled was touched\nLOOP-DECISION: merge the two rows, or keep both and mark the newer authoritative?\nMerging loses the older wording; keeping both costs one row. Recommend merging.')
+  stub_write "$d" "$skip_report" 'VERDICT: PASS'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run failed: $out"
+  # The item must be answerable from itself: the escalation carries the question, not only the news that one
+  # is needed.
+  assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "one escalation comment"
+  assert_contains "$(grep 'issue comment' "$GH_STUB_RECORD")" 'merge' \
+    "the escalation comment carries the worker's question"
+  assert_contains "$(cat "$GH_STUB_RECORD")" '--add-label agent/needs-decision' "and marks the item as awaiting one"
 }
 
 case_prompt_reviewerCarriesTheEightItems() {
@@ -1481,6 +1566,11 @@ case_run_aSkipClearsTheInProgressMark() {
   assert_contains "$(cat "$GH_STUB_RECORD")" "--remove-label agent/in-progress" \
     "a skipped item does not keep the in-progress mark"
   assert_contains "$(cat "$GH_STUB_RECORD")" "status/on-hold" "and the verdict's own status is applied"
+  # The hold must be readable from the item (#192): a state a reader cannot account for is the defect.
+  assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
+    "the skip posts exactly one comment, naming why the item is held"
+  assert_contains "$(grep 'issue comment' "$GH_STUB_RECORD" || true)" "the fixture condition no longer holds" \
+    "and the comment carries the worker's own root cause"
 }
 
 case_run_claimedGateWithoutEvidenceIsBlocked() {
@@ -1810,8 +1900,15 @@ case_run_awaitingDecisionIsNotEscalatedAgain() {
     assert_eq "0" "$(printf '%s\n' "$log" | grep -c "issue edit $issue " || true)" \
       "nor a label write on #$issue, which already carries its decision"
   done
-  assert_eq "1" "$(printf '%s\n' "$log" | grep -c 'issue comment 44 ' || true)" \
-    "while the hold that was never an escalation is escalated once (#44)"
+  # #44 is a hold nobody escalated, and a hold is not a decision (#193): it is left alone, so no escalation
+  # comment and no label write happens for it either — the case's own point is that nothing is written twice,
+  # and a boilerplate escalation written once was the defect rather than the guard.
+  assert_eq "0" "$(printf '%s\n' "$log" | grep -c 'issue comment 44 ' || true)" \
+    "the bare hold is not escalated (#44)"
+  assert_eq "0" "$(printf '%s\n' "$log" | grep -c 'issue edit 44 ' || true)" \
+    "and it carries no label write either (#44)"
+  assert_eq "held" "$(jq -r '.excluded[] | select(.issue == 44) | .verdict' "$(state_file "$p")")" \
+    "the run records it as held, which the report prints"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
   assert_eq "0" "$(jq -r '.items | length' "$(state_file "$p")")" "and nothing is recorded as worked"
 }

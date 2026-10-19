@@ -1,0 +1,16 @@
+$ bash tools/loop-selftest.sh
+PASS report#aVerdictAloneIsNoEscalation
+loop-selftest: all 80 cases passed (JDK 27, offline, no token, no sandbox)
+
+$ bash tools/issue-tooling-selftest.sh
+PASS check#selfCheckIsGreen
+issue-tooling-selftest: all 90 cases passed (JDK 27, offline, no token)
+
+$ bash tools/check-portability.sh
+check-portability: OK — 42 engines and 2 templates name no project value (98 value(s) read from the project)
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 89 section references resolve
+$ bash tools/check-todo-references.sh
+check-todo-references: 191 line(s) scanned, 62 distinct citation(s), 162 in the recorded table
+check-todo-references: 62 citation(s) resolve through the recorded table; 2530 file(s) excluded by the allowlist above

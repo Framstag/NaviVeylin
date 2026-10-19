@@ -1,0 +1,7 @@
+$ tools/loop-mutations.sh --only "21.1 21.2"
+RED    21.1  prescreen#aHoldWithNoDecisionIsNotADecision   (a hold with no recorded decision reported as a hold rather than as a decision)
+restore 21.1 prescreen#aHoldWithNoDecisionIsNotADecision green again
+RED    21.2  labels#holdCarriesItsReason   (the reason a hold writes travelling with the state as a comment)
+restore 21.2 labels#holdCarriesItsReason green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

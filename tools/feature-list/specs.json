@@ -57,6 +57,7 @@
     "current-road-info": { "area": "routing", "userVisible": true, "surfaces": ["phone", "car"] },
     "dark-mode": { "area": "map-appearance", "userVisible": true, "surfaces": ["phone", "car"] },
     "daylight-map-palette": { "area": "map-appearance", "userVisible": false, "surfaces": ["phone", "car"] },
+    "decision-queue": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "documentation-ownership": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "double-buffering": { "area": "map-appearance", "userVisible": false, "surfaces": ["phone"] },
     "download-wake-lock": { "area": "offline-maps", "userVisible": true, "surfaces": ["phone", "car"] },

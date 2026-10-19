@@ -497,6 +497,7 @@ while true; do
   skip_verdict=$(report_field "$item_dir/worker-report.md" LOOP-SKIP-VERDICT)
   change_claim=$(report_field "$item_dir/worker-report.md" LOOP-CHANGE)
   root_cause=$(report_field "$item_dir/worker-report.md" LOOP-ROOT-CAUSE)
+  worker_decision=$(report_field "$item_dir/worker-report.md" LOOP-DECISION 2>/dev/null || true)
   red_test=$(report_field "$item_dir/worker-report.md" LOOP-RED-TEST)
   gate_claim=$(report_field "$item_dir/worker-report.md" LOOP-GATE)
   outside_write=$(report_field "$item_dir/worker-report.md" LOOP-OUTSIDE-WRITE)
@@ -641,15 +642,27 @@ while true; do
       loop_labels unpick "$issue" >&2 || true   # the exit path clears the mark
       escalated_label=""
       if [ "$skip_verdict" = "$decision_agent" ] || [ "$skip_verdict" = "needs-diagnosis" ]; then
-        # Escalation, not abandonment: the work already done is named on the item (spec, D9). The worker's
+        # Escalation, not abandonment: the work already done is named on the item (spec, D9), and so is the
+        # question — a worker that reached a decision states it in LOOP-DECISION, and an escalation that
+        # carries a verdict without one leaves the owner a state nobody can answer (#194). The worker's
         # verdict is not the label written — a skip on `needs-diagnosis` writes the decision label — so the
         # label is recorded with the item, which is what the report reads (issue #177).
-        if loop_labels escalate "$issue" --reason "${root_cause:-$skip_verdict}" \
+        escalate_reason="${root_cause:-$skip_verdict}"
+        if [ -n "$worker_decision" ]; then
+          escalate_reason="$escalate_reason
+
+**The decision:** $worker_decision"
+        fi
+        if loop_labels escalate "$issue" --reason "$escalate_reason" \
           --evidence "$item_dir, branch fix/issue-$issue-$slug, red test: ${red_test:-not reached}" >&2; then
           escalated_label="$decision_label"   # the skip's own escalation
         fi
       else
-        loop_labels "${skip_verdict:-unspecifiable}" "$issue" >&2 || true
+        # A hold is not a decision, but it must still say why it was taken (#192): the verdict and the one
+        # clause that produced it travel with the state as a comment on the item.
+        loop_labels "${skip_verdict:-unspecifiable}" "$issue" \
+          --reason "${root_cause:-$skip_verdict}" \
+          --evidence "$item_dir, branch fix/issue-$issue-$slug, red test: ${red_test:-not reached}" >&2 || true
       fi
       loop_state done "$issue" --result skipped --verdict "${skip_verdict:-unspecified}" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \

@@ -67,6 +67,7 @@ fi
 # `roles` section — a second project renames its vocabulary in the profile, not in this script (D16).
 vocabulary() { loop_compat_profile_value "$1"; }
 queued_verdict=$(loop_role queuedVerdict)
+held_verdict=$(loop_role heldVerdict)
 decision_verdict=$(loop_role decisionAgent)
 worked_classes="$(loop_role workedClasses)"
 refused_classes="$(loop_role refusedClasses)"
@@ -265,16 +266,23 @@ while [ "$i" -lt "$count" ]; do
   # stale citation is a repair and a branch carrying a finished attempt is an adoption, both cheaper than a
   # decision, and the spec's refusal label for `stale` must still be written on a held item.
   #
-  # `alreadyEscalated` is the *label*'s fact, not the hold's: a hold written by a refusal (`too-wide`,
-  # `unspecifiable`) or by the repair path (`resolve-stale.sh` parks an item) was never an escalation, so the
-  # run still escalates that item once — otherwise nothing outside this machine-local state would name it.
+  # A hold is **not** a decision (#193): the state is written by the worker's skip verdict, by the device
+  # verdict, by the stale-citation repair parking an item and by a person by hand, and three of those four
+  # state no question at all. Only the decision label — the one an escalation writes — makes an item a
+  # decision; a hold without it is reported as what it is, so it is visible on the tracker and stops consuming
+  # the decision cap, which counts the items a person can actually answer.
+  #
+  # `alreadyEscalated` is the *label*'s fact, not the hold's: an item escalated by a worker keeps its comment
+  # and is not escalated a second time (#183).
   if [ "$verdict" = "$queued_verdict" ] && [ "$awaiting_decision" -eq 1 ]; then
-    verdict="$decision_verdict"
-    reason="the item already awaits a decision (${awaiting_why}) — left to its owner until a person decides it"
     if [ "$awaiting_label" -eq 1 ]; then
+      verdict="$decision_verdict"
+      reason="the item awaits a decision (${awaiting_why}) — left to its owner until a person answers it"
       evidence="$decision_label"
       already_escalated=1
     else
+      verdict="$held_verdict"
+      reason="the item is on hold with no recorded decision (status${separator}${hold_status}) — nobody has stated a question for it, so it is neither work nor a decision this run may take"
       evidence="status${separator}${hold_status}"
       already_escalated=0
     fi

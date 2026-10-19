@@ -11,7 +11,10 @@
 #
 #   pick                                    + agent/in-progress
 #   unpick                                  − agent/in-progress          (every exit path, incl. a signal)
-#   stale · unspecifiable · too-wide         + status/on-hold            (on the same issue; no new issue)
+#   stale · unspecifiable · too-wide         + status/on-hold            (on the same issue; no new issue,
+#     · not-spec-shaped · needs-target           and a comment that names the verdict and its one clause
+#                                                of evidence — a state change nobody can read is the
+#                                                defect #192, so the reason travels with the hold)
 #   … and the improvement verdicts
 #   needs-device                            + agent/needs-device + status/on-hold
 #   needs-decision · needs-diagnosis        + agent/needs-decision + status/on-hold
@@ -69,6 +72,9 @@ remove_labels=()
 status_value=""
 close_issue=0
 escalate=0
+# A hold states no question, so it is not an escalation — but it still has to be readable from the item (#192):
+# the comment carries the verdict and its one clause of evidence, and no label beyond the state is written.
+comment_only=0
 
 case "$verdict" in
   pick)
@@ -79,8 +85,9 @@ case "$verdict" in
     ;;
   stale|unspecifiable|too-wide|not-spec-shaped|needs-target)
     # The item is not thrown away and no new issue is filed for it: the verdict and its one clause of
-    # evidence are what the run produces, and they are attached to the item itself (D6).
+    # evidence are what the run produces, and they are attached to the item itself (D6, #192).
     status_value="$hold_status"
+    comment_only=1
     ;;
   exclude-stale) add_labels=("agent${separator}$(loop_role excludedStaleAgent)") ;;
   exclude-feature) add_labels=("agent${separator}$(loop_role excludedFeatureAgent)") ;;
@@ -126,13 +133,19 @@ if [ "${#add_labels[@]}" -gt 0 ]; then args+=(--label "${add_labels[@]}"); fi
 if [ "${#remove_labels[@]}" -gt 0 ]; then args+=(--remove-label "${remove_labels[@]}"); fi
 if [ -n "$status_value" ]; then args+=(--status "$status_value"); fi
 
+# Both arguments are required *before* anything is written: a call that forgets them used to leave the state
+# written and the reason missing, which is the half-written item the closure path already refuses to risk
+# (#192).
+if [ "$close_issue" -eq 1 ] || [ "$escalate" -eq 1 ] || [ "$comment_only" -eq 1 ]; then
+  [ -n "$reason" ] || loop_die "labels: $verdict needs --reason (the one line of root cause)"
+  [ -n "$evidence" ] || loop_die "labels: $verdict needs --evidence (the paths that carry the proof)"
+fi
+
 if [ "${#add_labels[@]}" -gt 0 ] || [ "${#remove_labels[@]}" -gt 0 ] || [ -n "$status_value" ]; then
   loop_issue_tool update.sh "${args[@]}" >&2 || exit $?
 fi
 
-if [ "$close_issue" -eq 1 ] || [ "$escalate" -eq 1 ]; then
-  [ -n "$reason" ] || loop_die "labels: $verdict needs --reason (the one line of root cause)"
-  [ -n "$evidence" ] || loop_die "labels: $verdict needs --evidence (the paths that carry the proof)"
+if [ "$close_issue" -eq 1 ] || [ "$escalate" -eq 1 ] || [ "$comment_only" -eq 1 ]; then
   close_args=("$issue" --reason "$reason" --evidence "$evidence")
   # `--may-close no` keeps the item open and still posts the comment: the deliverable is the evidence,
   # and whether the item is done is then a person's decision (D8). An escalation always leaves it open

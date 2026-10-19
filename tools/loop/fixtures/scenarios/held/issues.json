@@ -1,0 +1,15 @@
+[
+  {
+    "number": 61,
+    "title": "§61 An eligible bug a worker put on hold and never asked a question about",
+    "body": "<!-- nvid: 61 -->\n\n- **Observed** ✗: the surface shows nothing.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

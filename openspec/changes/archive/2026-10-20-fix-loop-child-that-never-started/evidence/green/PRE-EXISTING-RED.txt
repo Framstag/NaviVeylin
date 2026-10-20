@@ -24,4 +24,7 @@ C. the assertion is a path-substring false positive, not a worktree that survive
 
 D. Nothing of this change is involved: run#childThatNeverStartedIsTheRunsFault and the six cases on this
    surface pass (evidence/green/affected-cases.txt). Repairing the assertion is a separate item: it is a
-   second root cause, and this change owns one.
+   second root cause, and this change owns one. That item is **issue #215** ("A self-test case greps for
+   worktrees/loop and fails when the suite itself runs inside the loop's worktree", filed
+   2026-10-20T10:14:06Z, before this item's work), and it is why the whole mutation set's record 13.7 reports
+   RESTORE-FAILED in place and green again on a copy outside that path — evidence/green/WHOLE-MUTATION-SET.txt.

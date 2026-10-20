@@ -1,0 +1,33 @@
+2026-10-20T11:17:33Z  round-2 structural checks (docs only; no compiled file and no shell file changed in round 2)
+=== evidence-check.sh on the archived change ===
+ok   C1 §references: 7 checked, 5 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 422 resolved and in range, 1 unresolved or ambiguous
+----
+evidence-check: PASS
+EXIT=0
+=== openspec validate agent-issue-loop --type spec --strict ===
+Specification 'agent-issue-loop' is valid
+EXIT=0
+=== openspec validate --specs --strict (totals, compared with the base commit) ===
+Totals: 98 passed, 78 failed (176 items)
+=== openspec doctor ===
+
+References
+  (none declared)
+=== git status --porcelain (round 2 leaves only tracked edits) ===
+ M guidelines/Backlog.md
+ M openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/design.md
+ M openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/evidence/green/PRE-EXISTING-RED.txt
+ M openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/specs/agent-issue-loop/spec.md
+ M openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/tasks.md
+ M openspec/specs/agent-issue-loop/spec.md
+?? openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/evidence/green/WHOLE-MUTATION-SET.txt
+?? openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/evidence/green/affected-cases-timestamped.txt
+?? openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/evidence/green/full-mutation-set-copy.txt
+?? openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/evidence/green/full-mutation-set.txt
+?? openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/evidence/green/mutation-12.7-preexisting.txt
+?? openspec/changes/archive/2026-10-20-fix-loop-child-that-never-started/evidence/red/red-on-head-timestamped.txt
+2026-10-20T11:17:36Z  end

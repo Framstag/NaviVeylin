@@ -28,7 +28,15 @@
 
 - [x] 3.1 `tools/loop-mutations.sh`: mutation `27.1` turns the fault branch into `if false`, and
       `run#childThatNeverStartedIsTheRunsFault` must go red; restore and re-run it green — `evidence/green/`,
-      `evidence/green/mutation-27.1.txt`. Run the whole mutation set on the tree before archiving.
+      `evidence/green/mutation-27.1.txt`. The whole mutation set was then run before archiving, twice:
+      `evidence/green/full-mutation-set.txt` (in place, 2026-10-20T10:55:59Z→11:05:47Z) and
+      `evidence/green/full-mutation-set-copy.txt` (the same tree outside the loop worktree,
+      11:06:02Z→11:15:50Z). Both: **55 of 56 records red, 27.1 among them, red then green again**. The set is
+      not all-green, for two pre-existing harness defects this change does not claim and does not repair —
+      mutation `12.7` no longer applies (stale since 6cf9afa; proved on the base commit in
+      `evidence/green/mutation-12.7-preexisting.txt`) and `13.7`'s restore stays red only under
+      `.pi/worktrees/loop` (issue #215). `evidence/green/WHOLE-MUTATION-SET.txt` states both, with the
+      exclusion named.
 
 ## 4. The documents that state the rule
 
@@ -48,10 +56,9 @@
       the whole set — `evidence/green/selftest.txt`: **114 of 115 cases pass**, and the one red
       (`worktree#keepsByDefaultAndRemovesOnRequest`) is pre-existing and independent of this change, proved in
       `evidence/green/PRE-EXISTING-RED.txt` (red with the base engine too, and a path-substring false positive
-      of its assertion whenever the suite's scratch tree lies under `.pi/worktrees/loop`). The new invariant's
-      mutation was run and restored (`evidence/green/mutation-27.1.txt`); the whole mutation set was not — its
-      header asks for it before a change owning `tools/loop/**` is archived, and it mutates the engine in place
-      while it runs, so it belongs to a run that can afford to be interrupted there.
+      of its assertion whenever the suite's scratch tree lies under `.pi/worktrees/loop`; issue #215). The
+      whole mutation set was run before archiving — see 3.1 and `evidence/green/WHOLE-MUTATION-SET.txt`: 55 of
+      56 records red, and the two records that are not are pre-existing defects of the harness, named there.
 - [x] 5.3 No Gradle and no device: this change touches no Kotlin, Java, C++, manifest or resource file, so
       `guidelines/Build.md` §2's scope block names these structural checks in place of `./gradlew test
       -PforceTests --no-build-cache`. Exclusion stated: the JVM gate is not run for a delta no JVM module

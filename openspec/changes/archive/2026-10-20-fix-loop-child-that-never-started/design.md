@@ -75,7 +75,10 @@ and this change does not touch that path. It is a different question with a diff
 read — its work is in the tree, its change is archived — so a block on it names a true state ("the review did
 not pass"), and the escalation carries the work as evidence. Making the reviewer's death a run fault would
 discard a finished item's review record, which is the opposite of what this change protects. If a reviewer
-that never started is ever measured, it is its own item with its own red case.
+that never started is ever measured, it is its own item with its own red case. Checked, not assumed: the
+reviewer's child is started at `tools/loop/run.sh:769` by a bare `run_child` whose status is discarded, and the
+round is decided at `:778-805` from the report's own blocking count — so no reviewer status reaches the branch
+this change adds, which sits in the worker path after `head_now` is read.
 
 ## Blast radius
 

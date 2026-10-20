@@ -1,0 +1,5 @@
+2026-10-20T11:16:05Z  red case on the BASE engine (648d2bc via git archive, /tmp/loop212-base), current tree's case file:
+  the item is not recorded as a blocked one: expected '0', got '1'
+FAIL run#childThatNeverStartedIsTheRunsFault
+EXIT=1
+2026-10-20T11:16:11Z  end

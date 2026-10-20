@@ -1,0 +1,47 @@
+THE WHOLE MUTATION SET, RUN TWICE, AND THE TWO PRE-EXISTING DEFECTS THAT KEEP IT FROM ALL-GREEN
+
+The obligation (`tools/loop-mutations.sh:12-13`, "Run the full set before a change that owns `tools/loop/**`
+is archived") was unrun when this change was first archived. It has now been run, twice, and both transcripts
+are in this directory:
+
+- `full-mutation-set.txt` — in place, in the change's tree (`.pi/worktrees/loop`), the literal reading of the
+  obligation. Started 2026-10-20T10:55:59Z, ended 11:05:47Z.
+    red-when-mutated: 55 · not-noticed: 1 · restore-failures: 1            EXIT=1
+    MUTATION-DID-NOT-APPLY 12.7   RESTORE-FAILED 13.7   27.1 RED, restore green
+- `full-mutation-set-copy.txt` — the same set on a byte-identical copy of the same tree outside the loop
+  worktree (`git archive HEAD | tar -x -C /tmp/loop212-head`), so that the path-substring defect below cannot
+  fire. Started 2026-10-20T11:06:02Z, ended 11:15:50Z.
+    red-when-mutated: 55 · not-noticed: 1 · restore-failures: 0            EXIT=1
+
+Both runs put 55 of the 56 records red with their own case, including 27.1, this change's mutation, which went
+red and green again in both. Neither red is this change's, and the two are independent defects of the harness
+itself:
+
+1. **12.7 does not apply — stale at the base commit.** `MUTATION-DID-NOT-APPLY 12.7  …/tools/loop/run.sh (the
+   pattern no longer matches — fix the mutation, not the case)`. The record's sed still expects
+   `loop_state done "$issue" --result blocked --verdict blocked --note "$start_out" >/dev/null`, but that line
+   ends in a continuation (`… --note "$start_out" \`, `tools/loop/run.sh:625`) since 6cf9afa (#169/#170/#171),
+   so the pattern has matched nothing since then. Proof it is not this change's: the same `--only 12.7` on the
+   base commit 648d2bc reports the same thing — `mutation-12.7-preexisting.txt`. Repairing the pattern is a
+   separate item: it is a second root cause and this change owns one.
+
+2. **13.7's restore stays red only in place — issue #215.** `RESTORE-FAILED 13.7
+   worktree#keepsByDefaultAndRemovesOnRequest stayed red after the restore`. That case is this change's one
+   pre-existing red (`PRE-EXISTING-RED.txt`): its assertion greps `git -C "$p" worktree list` for
+   `worktrees/loop`, and when the suite itself runs under `.pi/worktrees/loop` the throwaway project's own
+   git entry matches the pattern. It is therefore red before any mutation and red after the restore, which the
+   harness reports as a restore failure. On the copy outside that path the same record is
+   `RED 13.7` → `restore 13.7 … green again`. Owned by issue **#215**, filed 2026-10-20T10:14:06Z, before this
+   item's work.
+
+So the set cannot reach `not-noticed: 0 · restore-failures: 0 · EXIT=0` on this tree without repairing a
+mutation record and a self-test assertion, which are two other capabilities. What the obligation asks — that
+the neighbouring invariants still falsify after this change — is carried by the 55 reds above, and the
+exclusion is named: **12.7 (stale since 6cf9afa) and 13.7 (issue #215) are the two records this change does not
+claim and does not repair.**
+
+Timestamps: every transcript written in this round opens and closes with a `date -u` line. The round-1
+artifacts carry their times only in the harness's own scratch path (`loop-selftest.Gpso61`,
+`runs/2026-10-20T10:38:48Z … 10:44:40Z`); the two re-captures that replace their numbers —
+`evidence/red/red-on-head-timestamped.txt` and `evidence/green/affected-cases-timestamped.txt` — carry them
+directly.

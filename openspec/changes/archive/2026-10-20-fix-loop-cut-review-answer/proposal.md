@@ -5,14 +5,16 @@
 A review report that ends mid-sentence is read as a refusal, so an item whose work passed is recorded
 `blocked` and escalated, and a person is asked to decide about a change nothing is wrong with (issue #224).
 
-**The entry, verified in the tree at the base commit `bf555c3`.** Item #81 reached review round 2 on
-2026-10-20 and its reviewer report ended mid-word — the last line of
-`.pi/issue-loop/items/81/reviewer-report-2.md` is `… and the post-restore gre` — while the report's own text
+**The entry, verified in the tree at the base commit `bf555c3`, and measured against the artifact.** Item #81
+reached review round 2 on 2026-10-20 and its reviewer report stopped mid-word: the last line of
+`.pi/issue-loop/items/81/reviewer-report-2.md` is `… and the post-restore gre`, the file is 6 067 bytes and it
+ends on the newline the child's adapter appends (`tools/pi-child-events.sh`), so the adapter handed over the text
+it received — that text was short. It carries no `VERDICT:` line and no `LOOP-BLOCKING:` line, while its own text
 recorded all seven delta scenarios as PASS, round 1's blocking finding as closed, the gate as a real execution
 and the revert-check as clean. The run recorded the item `blocked`
 (`2026-10-20-fix-jni-stub-sandbox-rule failed round 2`) and escalated it. The child's transcript carries no
-truncation marker (`stopReason` is `stop` 12 times, `toolUse` otherwise), so the answer was cut on its way to the
-file the run reads.
+truncation marker (`stopReason` is `stop` 12 times, `toolUse` otherwise), so nothing in the child or in the
+adapter can report the loss; the missing closing line is what the run can read for itself.
 
 **Root cause, one sentence.** `run.sh` decides a review round from two lines it greps out of the report and has no
 term for a report that arrived incomplete, so "no `LOOP-BLOCKING` line" — the shape an older review and a cut
@@ -35,8 +37,8 @@ FAIL run#aCutReportIsRetriedInsteadOfRefused
 ```
 
 i.e. `bash tools/loop-selftest.sh --case 'run#aCutReportIsRetriedInsteadOfRefused'` → **tests=1 failures=1**. The
-case drives the real `run.sh` against the stub child, whose first reviewer answer is cut exactly as the incident's
-was (no closing `VERDICT:`, no final newline) and whose retry arrives whole. The second case,
+case drives the real `run.sh` against the stub child, whose first reviewer answer is cut — no closing
+`VERDICT:` line and no final newline, the second fact on its own — and whose retry arrives whole. The second case,
 `run#aReportCutTwiceBlocksAsTheTransportsFault`, is red on the base engine for the same reason the incident was
 recorded — `and the reason is the transport, not a refusal: 'cut short twice' not found in: the change failed its
 last review round (2 of 2) — a decision is needed, not another attempt` (`evidence/red/`).
@@ -54,8 +56,10 @@ arrived.
 ## What Changes
 
 - `tools/loop/run.sh`: one helper, `answer_complete <file> <closing-line regex>` — a report is complete when it
-  ends with the newline the child's adapter prints after every answer and carries the closing line its prompt
-  asks for last. Applied to the reviewer's report inside the round loop: an incomplete answer is recorded on
+  carries the closing `VERDICT:` line its prompt asks for in the report's closing block and ends with the newline
+  the child's adapter prints after every answer (the first fact is the one the incident failed, the second covers
+  a file whose tail was lost). Applied to the reviewer's report inside the round loop: an incomplete answer is
+  recorded on
   stderr with the report's last line, the **same round** is retried exactly once (`reviewer-prompt-<n>-retry.md`
   → `reviewer-report-<n>-retry.md`, the cut attempt kept beside it), and the retried answer decides the round. A
   second incomplete answer blocks the item with the reason *the reviewer's report was cut short twice*, records

@@ -1,0 +1,59 @@
+# round 2 — the reviewer's evidence corrections, verified (no engine, case or mutation touched)
+
+start 2026-10-20T17:56:43Z
+
+== the incident measured, not assumed ==
+$ wc -c /home/tim/projects/NaviVeylin/.pi/issue-loop/items/81/reviewer-report-2.md
+6067 /home/tim/projects/NaviVeylin/.pi/issue-loop/items/81/reviewer-report-2.md
+$ tail -c 40 /home/tim/projects/NaviVeylin/.pi/issue-loop/items/81/reviewer-report-2.md | od -c
+0000000   t       d   i   f   f   `       e   m   p   t   y   ,       a
+0000020   n   d       t   h   e       p   o   s   t   -   r   e   s   t
+0000040   o   r   e       g   r   e  \n
+0000050
+$ grep -c 'VERDICT\|LOOP-BLOCKING' /home/tim/projects/NaviVeylin/.pi/issue-loop/items/81/reviewer-report-2.md
+0
+
+== the adapter prints the newline the report ends on ==
+  esac
+done
+rc=${PIPESTATUS[0]}
+
+if [ -s "$answer_file" ]; then
+  cat "$answer_file"
+  printf '\n'
+fi
+exit "$rc"
+
+== the measured shape is carried where the shape is taught ==
+guidelines/Backlog.md:267:mid-word — `… and the post-restore gre`, 6 067 bytes, ending on the newline the adapter adds — while its own
+openspec/specs/agent-issue-loop/spec.md:731:mid-word (`… and the post-restore gre`, 6 067 bytes, ending on the newline the child's adapter appends) while its
+openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/proposal.md:10:`.pi/issue-loop/items/81/reviewer-report-2.md` is `… and the post-restore gre`, the file is 6 067 bytes and it
+openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/design.md:40:rather than the first: its report is 6 067 bytes ending on the adapter's newline, with no `VERDICT:` and no
+openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/design.md:47:| the incident's round 2 (6 067 bytes) | no | yes | cut → retried (the missing `VERDICT:` is the fact that fires) |
+openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/design.md:62:report was 6 067 bytes of text that stopped mid-word and a person had to read it to learn nothing was wrong with
+openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/specs/agent-issue-loop/spec.md:47:mid-word (`… and the post-restore gre`, 6 067 bytes, ending on the newline the child's adapter appends) while its
+
+$ grep -rn '11 428' over the same five files
+(no match — exit=1)
+
+$ grep -rn 'closing line last' guidelines openspec/specs openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/proposal.md openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/design.md openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/specs
+(no match — exit=1)
+
+== delta requirement byte-identical to the merged spec ==
+identical: delta == merged spec 689-755
+
+== structural checks ==
+Specification 'agent-issue-loop' is valid
+⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
+== the red artifact now carries its tally and both timestamps ==
+# run on the base engine (tools/loop at bf555c3), one case, transcribed from the worker console:
+2026-10-20T17:11:35Z
+  an answer cut in transport does not block the item: expected 'done', got 'blocked'
+FAIL run#aCutReportIsRetriedInsteadOfRefused
+exit=0
+2026-10-20T17:11:46Z
+
+end 2026-10-20T17:56:43Z

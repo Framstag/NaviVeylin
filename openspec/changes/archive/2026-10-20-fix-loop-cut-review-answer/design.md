@@ -3,8 +3,8 @@
 ## D1 — The discriminating fact is the answer's shape
 
 The root cause is that the round is decided from two greps and one count, so every report the run cannot grade
-lands on the same reading: a refusal. Three facts could separate an incomplete answer from a quiet or a refusing
-one, and the measurement leaves only one.
+lands on the same reading: a refusal. Three discriminators were considered, and the measurement leaves only the
+shape facts the run can read itself.
 
 **Alternative A — recognise the cut by how the text ends semantically** (a sentence that stops mid-word, an
 unclosed code fence). **Refused:** it is a judgement about prose, it differs per language, and it is exactly the
@@ -14,11 +14,12 @@ letter short reads exactly like a model that chose a strange word.
 
 **Alternative B — have the adapter tell the run the answer was truncated.** The adapter is the only process that
 knows what it wrote. **Impossible, and already checked:** the adapter holds the last completed assistant message
-and prints it; the reported transcript carries no truncation marker at all (`stopReason` is `stop` 12 times,
-`toolUse` otherwise), so the adapter has nothing to report — the loss happened on the way to the file, which is
-the one place neither the child nor the adapter can observe. A project whose configured command is plain text has
-no adapter at all (`run#plainTextChildStillReports`), so a fact only the adapter can report would be missing
-exactly where the engine claims to need no second code path.
+and prints it, then prints one newline after it (`.pi/…/reviewer-report-*.md` ends `\n`, which is how the measured
+incident's file ends too); the reported transcript carries no truncation marker at all (`stopReason` is `stop` 12
+times, `toolUse` otherwise), so the adapter has nothing to report — the text it received was already short, and
+that loss is where neither the child nor the adapter can observe it. A project whose configured command is plain
+text has no adapter at all (`run#plainTextChildStillReports`), so a fact only the adapter can report would be
+missing exactly where the engine claims to need no second code path.
 
 **Alternative C — treat any report without a count as an incomplete answer.** That is the current refusal reading
 inverted. **Refused:** it would make an older-shaped review pass on a retry it never earned, and the recorded
@@ -29,16 +30,21 @@ reversed for a case that does not need it.
 
 1. the adapter prints exactly one newline after every answer it hands the run (`.pi/…/reviewer-report-*.md` ends
    with `\n` after a complete answer, and the run's own `LOOP-TIMEOUT` / `LOOP-OUTSIDE-WRITE` lines are appended
-   with one), so a file whose last byte is not a newline was never handed over whole;
-2. the prompt asks for the closing line last — `LOOP-BLOCKING: <n>` then `VERDICT: PASS|FAIL` — so a complete
-   answer always carries a `VERDICT:` line, whatever it refuses.
+   with one), so a report that lacks that newline was never handed over whole — the shape a plain-text child,
+   which writes the report itself (`run#plainTextChildStillReports`), can leave behind;
+2. the prompt asks for a `VERDICT: PASS|FAIL` line in the report's closing block (on a refusal,
+   `LOOP-CORRECTIONS-ONLY:` and `LOOP-DECISION:` follow it, so it is not the last line of the file), so a
+   complete answer always carries a `VERDICT:` line, whatever it refuses.
 
-`answer_complete <file> <closing-line regex>` is those two facts. A report that has both is decided exactly as
-before; a report that lacks either arrived cut.
+`answer_complete <file> <closing-line regex>` is those two facts, and the measured incident failed the second
+rather than the first: its report is 6 067 bytes ending on the adapter's newline, with no `VERDICT:` and no
+`LOOP-BLOCKING:`. The facts cover different cuts rather than restating one — the missing closing line caught the
+incident, the missing newline covers a report that lost its tail on a path with no adapter to append one. A
+report that has both is decided exactly as before; a report that lacks either arrived cut.
 
 | report | has `VERDICT:` | ends `\n` | reading |
 |---|---|---|---|
-| the incident's round 2 | no | no | cut → retried |
+| the incident's round 2 (6 067 bytes) | no | yes | cut → retried (the missing `VERDICT:` is the fact that fires) |
 | `VERDICT: FAIL`, no count (`run#reviewRoundsCapAtTwo`) | yes | yes | refusal, as before |
 | `VERDICT: PASS` (`run#metricsRecordedPerItem`) | yes | yes | pass, as before |
 | a reviewer the run ended (`LOOP-TIMEOUT`) | no | yes | **not retried** — the run's own end is already named |
@@ -46,13 +52,15 @@ before; a report that lacks either arrived cut.
 
 ## D2 — What the run does with it: one retry of the same round
 
-The fault is the transport's, so the record is the run's — but the run cannot finish the item either, so it does
+The round produced no verdict, and whether the loss was the transport's or the child's it is not the change's, so
+the record is the run's — but the run cannot finish the item either, so it does
 the cheapest thing that answers the question it actually has: it asks the same round again, once, with the same
 prompt contract and the same diff, and decides on the answer that arrived. The retry is not a second review
 round: `metrics.reviewRounds` stays at the round's number, the round budget is untouched, and no worker round is
 spent. The cut attempt is kept (`reviewer-report-<n>.md`) beside the retry (`reviewer-report-<n>-retry.md`)
-rather than overwritten, because it is the only evidence that the transport lost something — the incident's
-report was 11 428 bytes of text and a person had to read it to learn nothing was wrong with the work.
+rather than overwritten, because it is the only evidence that something was lost — the incident's
+report was 6 067 bytes of text that stopped mid-word and a person had to read it to learn nothing was wrong with
+the work.
 
 A **second** cut answer is not a hiccup the run can wait out, and it is not the item's fault either: the round
 produced no verdict, so the item is recorded `blocked` with the reason *the reviewer's report was cut short
@@ -78,8 +86,9 @@ that dies without a `VERDICT:` line still ends its round as a failed review, bec
 work is in the tree, its change is archived — so a block on it names a true state*. That reasoning holds for a
 reviewer that refused, and for one that died after reading: those rounds produced a judgement about the change.
 It does not hold for an answer the run never received, which is the case the same design left open (*"If a
-reviewer that never started is ever measured, it is its own item with its own red case"*). This is that item, with
-that red case.
+reviewer that never started is ever measured, it is its own item with its own red case"*): that sentence asks for
+a reviewer measured as never having started, and #224 measures a reviewer whose answer arrived short, so the red
+case here is its own and does not close that open question.
 
 What is *not* reversed: a reviewer that ends with a `VERDICT:` line — a refusal, a zero-count pass, a report with
 a verdict and no count — is read exactly as before. The worker path is untouched: a worker that writes no
@@ -104,7 +113,7 @@ case nobody measured.
 - `guidelines/Backlog.md` §7 and the capability spec — the rule and its measurement.
 
 The engine names no project value and no agent fact: `run#engineNamesNoProjectFact` and
-`tools/check-portability.sh` are unchanged and still report the same count.
+`tools/check-portability.sh` are untouched by this change, so its count is whatever the base commit reports.
 
 ## Rollback
 

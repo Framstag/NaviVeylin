@@ -5,11 +5,11 @@
 - [x] 1.1 `tools/loop-cases.sh`: write `run#aCutReportIsRetriedInsteadOfRefused`, registered in the `--list`
       array and the dispatch map (spec: "A review finding is blocking or it is not, and the round counts" —
       scenario "A report that arrived cut is retried, not read as a refusal"). The stub reviewer's round-1 and
-      round-2 answers are cut exactly as the incident's was — text that stops mid-word, no `VERDICT:`, no final
-      newline — and the retry after round 1 arrives whole. Verify it is red on the base commit `bf555c3`:
-      `bash tools/loop-selftest.sh --case 'run#aCutReportIsRetriedInsteadOfRefused'` →
+      round-2 answers are cut — text that stops mid-word, no `VERDICT:` line, no final newline — and the retry
+      after round 1 arrives whole. Verify it is red on the base commit `bf555c3`:
       `an answer cut in transport does not block the item: expected 'done', got 'blocked'`,
-      `evidence/red/red-on-head.txt` (tests=1 failures=1, 2026-10-20T17:11:35Z→17:11:46Z).
+      `evidence/red/red-on-head.txt` (tests=1 failures=1, 2026-10-20T17:11:35Z→17:11:46Z, both carried by that
+      artifact, transcribed from the worker console).
 - [x] 1.2 `tools/loop-cases.sh`: write `run#aReportCutTwiceBlocksAsTheTransportsFault`, same two registries
       (spec: scenario "Two cut answers in one round block it as the transport's fault"), asserting the block's
       reason, that no worker round-2 prompt exists, and that no `review-failed-round-*.md` reached the change.
@@ -74,3 +74,33 @@
       `guidelines/Build.md` §2's scope block names these structural checks in place of `./gradlew test
       -PforceTests --no-build-cache`. Exclusion stated: the JVM gate is not run for a delta no JVM module
       compiles.
+
+## 6. Review round 2 — the evidence the reviewer measured differently
+
+Corrections only: the defect, the engine, the two cases and mutation `31.1` are unchanged, so no case and no
+mutation is re-run here.
+
+- [x] 6.1 The incident's shape, measured instead of assumed: `.pi/issue-loop/items/81/reviewer-report-2.md` is
+      6 067 bytes (`wc -c`) and its last bytes are `… post-restore gre\n` (`tail -c 40 … | od -c`), i.e. it ends
+      on the adapter's newline (`tools/pi-child-events.sh` prints it) and carries neither `VERDICT:` nor
+      `LOOP-BLOCKING:`. The retry is right; the fact that fires is the missing closing line, not a missing
+      newline. Corrected in `guidelines/Backlog.md` §7, `proposal.md`, `design.md` D1/D2 and the scenario prose
+      in both spec copies. Verify: `grep -rn '6 067' guidelines/Backlog.md
+      openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/proposal.md
+      openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/design.md
+      openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/specs/agent-issue-loop/spec.md
+      openspec/specs/agent-issue-loop/spec.md` → one hit per copy, and `grep -rn '11 428'` over the same five
+      files → none.
+- [x] 6.2 The attribution "cut on its way to the file" dropped: the adapter's newline is in the report, so the
+      adapter handed its answer over and the text it received was short. Corrected in the same files.
+- [x] 6.3 "the prompt asks for its closing line last" corrected: on a refusal `LOOP-CORRECTIONS-ONLY:` and
+      `LOOP-DECISION:` follow `VERDICT:`, so the prompt asks for the verdict in the closing **block**. Verify:
+      `grep -rn 'closing line last' guidelines openspec/specs openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/proposal.md
+      openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/design.md
+      openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/specs` → none.
+- [x] 6.4 `design.md` D3 no longer identifies #224 with the earlier note about a reviewer that never started, and
+      the portability sentence no longer claims a count it has no baseline for. Verify: `grep -n 'This is that
+      item\|same count' openspec/changes/archive/2026-10-20-fix-loop-cut-review-answer/design.md` → none.
+- [x] 6.5 `evidence/red/red-on-head.txt` now carries the tally and both timestamps it is cited for, transcribed
+      from the worker console (2026-10-20T17:11:35Z → 17:11:46Z, `exit=0`). Verify: `cat` it — six lines,
+      timestamps present.

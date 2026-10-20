@@ -43,11 +43,13 @@ the change does not depend on. The run SHALL refuse on that count, not on the ve
 
 #### Scenario: A report that arrived cut is retried, not read as a refusal
 
-An answer can be lost between the child and the file the run decides from: on 2026-10-20 an item's round-2
-report ended mid-word (`… and the post-restore gre`, no `VERDICT:`, no final newline) while its own text
-recorded all seven scenarios PASS, and the run blocked and escalated work that had passed (issue #224). The shape
-of the answer is the discriminator, and it is checkable without a model: the child's adapter prints one newline
-after every answer it hands the run, and the prompt asks for the closing line last.
+An answer can reach the file the run decides from short: on 2026-10-20 an item's round-2 report stopped
+mid-word (`… and the post-restore gre`, 6 067 bytes, ending on the newline the child's adapter appends) while its
+own text recorded all seven scenarios PASS, and the run blocked and escalated work that had passed (issue #224).
+The shape of the answer is the discriminator, and it is checkable without a model: the child's adapter prints one
+newline after every answer it hands the run, and the prompt asks for a `VERDICT: PASS|FAIL` line in the report's
+closing block. The missing line is the fact that caught the measured incident; the missing newline covers an
+answer whose tail was lost outright.
 
 - **WHEN** a review round's report does not carry the `VERDICT: PASS|FAIL` line its prompt asks for last, or does
   not end with the newline the adapter prints after an answer, and the round's child was not ended by the run's

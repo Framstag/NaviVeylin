@@ -114,6 +114,7 @@ LOOP_SHELL_CASES=(
   'run#reviewDiffExcludesTheEvidenceArchive'
   'run#engineNamesNoProjectFact'
   'adapter#modeFlagIsItsOwnArgument'
+  'run#suiteIgnoresARunsStatePath'
   'report#headerAndTableShape'
   'report#yieldIsCountedFromState'
   'report#escalatedSkipNamesTheLabelWritten'
@@ -234,6 +235,7 @@ loop_run_shell_case() {
     'run#reviewDiffExcludesTheEvidenceArchive') fn=case_run_reviewDiffExcludesTheEvidenceArchive ;;
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
+    'run#suiteIgnoresARunsStatePath') fn=case_run_suiteIgnoresARunsStatePath ;;
     'report#headerAndTableShape') fn=case_report_headerAndTableShape ;;
     'report#yieldIsCountedFromState') fn=case_report_yieldIsCountedFromState ;;
     'report#escalatedSkipNamesTheLabelWritten') fn=case_report_escalatedSkipNamesTheLabelWritten ;;
@@ -2573,6 +2575,27 @@ case_adapter_modeFlagIsItsOwnArgument() {
   got=$(cat "$d/argv.txt" 2>/dev/null || true)
   assert_eq "$(printf -- '--mode\njson\n%s' "$prompt")" "$got" \
     "the child sees the mode flag as two arguments, then the prompt"
+  return 0
+}
+
+# A child is started with the run's identity in its environment (`run_child` exports `LOOP_STATE_FILE` and
+# `LOOP_WORKTREE`), and the gate of any change that touches `tools/loop/**` is this very suite: every case
+# would then write the **running** run's state instead of its fixture's. Measured 2026-10-20 (issue #214): a
+# live run's state was replaced six times inside 8 s while its worker was still working the item, and every
+# case stayed green, because each one asserted the file it had just clobbered. The suite therefore starts
+# from no run identity at all, and this case starts a nested suite that writes state with a foreign path in
+# its environment and requires that file to be untouched.
+case_run_suiteIgnoresARunsStatePath() {
+  local d foreign before after out
+  d=$(scratch)
+  foreign="$d/foreign-run.json"
+  printf '{"sentinel":"a run the suite does not own"}\n' > "$foreign"
+  before=$(cat "$foreign")
+  out=$(LOOP_STATE_FILE="$foreign" LOOP_WORKTREE="$d/not-this-worktree" \
+    bash "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" --case 'state#initAndShowRoundTrips' 2>&1)
+  after=$(cat "$foreign")
+  assert_eq "$before" "$after" "the suite writes no state path it inherited from a run"
+  assert_contains "$out" 'PASS state#initAndShowRoundTrips' "the nested case passes on its own fixture"
   return 0
 }
 

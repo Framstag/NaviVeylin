@@ -119,6 +119,9 @@ MUTATIONS=(
   # in place of two argv words is the whole defect (measured 2026-10-20): the agent rejects the option, the
   # child dies in seconds, and the run reads that as an item that blocked.
   '26.1@-@../pi-child-events.sh@adapter#modeFlagIsItsOwnArgument@the mode flag handed to the child as two argv words, not one (measured 2026-10-20)@s|^mode=(--mode json)$|mode="--mode json"|'
+  # The suite's own driver sits beside the engine directory, like the adapter, so its record reaches it through
+  # `../` as well. Dropping the `unset` hands every case the running run's state path again (issue #214).
+  '26.2@-@../loop-selftest.sh@run#suiteIgnoresARunsStatePath@the suite starting from no run identity a child inherited (issue #214)@s|^unset LOOP_STATE_FILE LOOP_WORKTREE$|: # the mutation inherits the run identity|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

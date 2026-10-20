@@ -86,6 +86,14 @@ export GH_STUB_DIR="$LOOP_ISSUE_FIXTURES"
 chmod +x "$LOOP_FIXTURES/pi" "$LOOP_ISSUE_FIXTURES/gh" 2>/dev/null || true
 export PATH="$LOOP_FIXTURES:$LOOP_ISSUE_FIXTURES:$PATH"
 
+# The suite starts from no run identity. `run.sh` exports `LOOP_STATE_FILE` and `LOOP_WORKTREE` to every child
+# so all of them agree on the run, and the gate of a change that touches `tools/loop/**` is this suite — so a
+# child starting it as its gate would hand that identity to 109 cases, each of which would then write the
+# *running* run's state instead of its fixture's. Measured 2026-10-20 (issue #214): a live run's state was
+# replaced six times inside 8 s while its worker was still working the item, and every case stayed green
+# because it asserted the file it had just clobbered. `run#suiteIgnoresARunsStatePath` holds this.
+unset LOOP_STATE_FILE LOOP_WORKTREE
+
 # shellcheck source=tools/loop-cases.sh
 source "$root/tools/loop-cases.sh"
 shell_cases=$(loop_shell_cases)

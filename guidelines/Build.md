@@ -324,7 +324,12 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   - Failed tasks: `> Task ... FAILED` lines
   - `checkSubmoduleStylesheets` failure → libosmscout submodule not initialized
     (`git submodule update --init --recursive`)
-- **Warnings**: the build must have no warnings — report them, don't ignore.
+- **Warnings**: the build must have no warnings — report them, don't ignore. A qualifier applied to an
+  injected property states its target — `@param:ApplicationContext`, not `@ApplicationContext` — because the
+  unqualified form is applied to the value parameter only and a later Kotlin default also applies it to the
+  field. Measured 2026-10-20: one site (`NavigationNotificationController`) and two `w:` lines, one per `:app`
+  flavor compile of the shared tree; `QualifierUseSiteTargetTest` holds the absence and names the line
+  (spec `build-test-gate`, "An injected property states its qualifier's use-site target").
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
 - **Per-flavor test tasks**: `:app` has one task per flavor —

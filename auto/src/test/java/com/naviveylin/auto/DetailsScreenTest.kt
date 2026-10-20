@@ -25,6 +25,7 @@ import dagger.hilt.EntryPoints
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -45,6 +46,7 @@ import java.util.Locale
  * title fallback chain (name → address → label → generic), the "Navigate to" / "Show" actions, and
  * the started-period lifetime of the screen's shared-state observations.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class DetailsScreenTest {
 

@@ -22,6 +22,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -53,6 +54,7 @@ import org.robolectric.RobolectricTestRunner
  * contact whose row text is empty (an empty row text is rejected by the library
  * validator) — see [addressBookScreenServesTheErrorTemplateWhenTheBuildFails].
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class TemplateFaultIsolationTest {
 

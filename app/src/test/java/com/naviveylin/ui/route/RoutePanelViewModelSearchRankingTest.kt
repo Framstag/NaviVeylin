@@ -12,6 +12,7 @@ import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -30,6 +31,7 @@ import java.io.File
  * larger candidate set, and the reference point used for ordering and for the
  * displayed distance.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class RoutePanelViewModelSearchRankingTest {
 

@@ -28,6 +28,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.verify
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -54,6 +55,7 @@ import org.robolectric.RobolectricTestRunner
  * dispatcher so all coroutine work (history load, debounced search) is driven
  * deterministically via the shared [kotlinx.coroutines.test.TestCoroutineScheduler].
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class SearchScreenTest {
 

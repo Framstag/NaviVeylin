@@ -1,0 +1,49 @@
+# Per-module tallies of the follow-up run (`evidence/gate-remaining-suites.log`, `BUILD SUCCESSFUL in 2m 11s`)
+
+Recomputed 2026-10-20 from the JUnit XML that run left in each module's `build/test-results`, after the gate
+itself stopped at `:app:testMobileDebugUnitTest` (`evidence/gate.log`). One-gate rule: no suite was re-run to
+produce these numbers.
+
+## Command (run in the change root)
+
+```sh
+for d in app/build/test-results/testMobileDebugUnitTest \
+         app/build/test-results/testAutomotiveDebugUnitTest \
+         auto/build/test-results/testDebugUnitTest \
+         core/build/test-results/testDebugUnitTest \
+         osmscout-client-java/build/test-results/test; do
+  n=$(ls "$d"/TEST-*.xml | wc -l)
+  echo "$d files=$n $(grep -ho 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$d"/TEST-*.xml \
+    | awk -F'"' '{t+=$2;s+=$4;f+=$6;e+=$8} END{printf "tests=%d skipped=%d failures=%d errors=%d",t,s,f,e}')"
+done
+```
+
+## Output
+
+```
+app/build/test-results/testMobileDebugUnitTest files=2 tests=7 skipped=0 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest files=279 tests=2068 skipped=0 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest files=85 tests=866 skipped=0 failures=0 errors=0
+core/build/test-results/testDebugUnitTest files=60 tests=642 skipped=0 failures=0 errors=0
+osmscout-client-java/build/test-results/test files=8 tests=48 skipped=0 failures=0 errors=0
+```
+
+The four suites the follow-up run produced are automotive 2068/0, auto 866/0, core 642/0, osmscout-client-java
+48/0 — the numbers `tasks.md` 4.5 carries. The mobile line is the focused rerun of `ComposeApiDeprecationTest`
+(`tests=2`) plus `MapManagerUpdatesQueueTest` (`tests=5`), not the gate's mobile run: that directory was
+overwritten after the failure.
+
+## The XML that carries it (class files, timestamp range of the run)
+
+```
+app/build/test-results/testAutomotiveDebugUnitTest: 279 XML, 2026-10-20T13:25:10.576Z .. 2026-10-20T13:26:49.688Z
+auto/build/test-results/testDebugUnitTest: 85 XML, 2026-10-20T13:24:43.114Z .. 2026-10-20T13:25:14.078Z
+core/build/test-results/testDebugUnitTest: 60 XML, 2026-10-20T13:24:41.971Z .. 2026-10-20T13:24:51.947Z
+osmscout-client-java/build/test-results/test: 8 XML, 2026-10-20T13:24:41.823Z .. 2026-10-20T13:24:42.482Z
+```
+
+## Not carried here
+
+`:app:testMobileDebugUnitTest` — the gate's own run of that suite is the one that failed
+(`2068 tests completed, 1 failed`, `evidence/gate.log:286-316`). Its results directory was overwritten by the
+focused reruns, so the gate log is the artifact that carries it, and the residual failure is issue #217.

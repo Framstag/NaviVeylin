@@ -11,10 +11,12 @@ path.quadraticBezierTo(0f, -hPx, x1 * hPx, y1 * hPx)
 the `Bezier` infix was never carried by `cubicTo`, so the quadratic spelling is the odd one. The replacement
 takes the same `(x1, y1, x2, y2)` control and end points. A later Compose release removes the deprecated name,
 at which point this line stops compiling — and nothing in this build would catch it earlier: no warning is an
-error, and the gate's compile log carries 109 `w:` lines on HEAD (28 of them in the focused run of this
-change), most of them opt-in notices in `:auto` test sources.
+error, and the compile that measured it prints 28 `w:` lines of its own (`evidence/head-red-run.log`), the
+post-fix gate's 53 — nearly all opt-in notices in `:auto` test sources (`evidence/gate.log`).
 
-One mechanism, not two. The same compile prints no other deprecation for this file, and the project's own
+One mechanism, not two. The incremental compile of the fix re-runs only the edited file and prints no other
+deprecation for it (`evidence/fixed-focused.log`; a clean `:app` main-source compile still prints
+`NavigationNotificationController.kt:36:5`, `evidence/head-red-run.log:142`), and the project's own
 `*.kt` tree carries exactly one deprecated quadratic spelling — measured by the new scan: `files=731
 findings=1` (`evidence/TEST-ComposeApiDeprecationTest-red.xml`).
 
@@ -43,8 +45,8 @@ the gate's existing `:app` unit-test step.
 ## What the evidence eliminated
 
 - **Turn Kotlin warnings into errors (`allWarningsAsErrors = true`, or `-Werror` on the Kotlin compiles).**
-  Eliminated by measurement: the gate's compile log carries 109 `w:` lines on HEAD, and the focused run of this
-  change alone prints 28 — mostly `@ExperimentalCoroutinesApi` opt-in notices in `:auto` test sources, plus
+  Eliminated by measurement: the gate's compile log carries 53 `w:` lines and the guard's own red run 28 —
+  mostly `@ExperimentalCoroutinesApi` opt-in notices in `:auto` test sources, plus
   `Condition is always 'true'` and a Java `field defaults` deprecation. Flipping the flag fails the suite on
   warnings that have nothing to do with this item, so it is not one fix and it would trade a silent warning for
   a broken gate.
@@ -52,9 +54,10 @@ the gate's existing `:app` unit-test step.
   the fix is behaviour-identical, and waiting buys a compile error at an unrelated dependency bump — with no
   case that would have caught it. A deferred removal is also the reversal of nothing recorded, so it needs no
   owner decision to refuse.
-- **Rely on the compiler warning as the guard (change the call, add no case).** Eliminated: one warning among
-  109 is not read; the delta would then be unenforceable and the next contributor could reintroduce the
-  spelling with nothing failing. The scan is the only host-decidable form of the absence.
+- **Rely on the compiler warning as the guard (change the call, add no case).** Eliminated: the delta would
+  then be unenforceable and the next contributor could reintroduce the
+  spelling with nothing failing. One warning among the compile's 53 is not read, so the scan is the only
+  host-decidable form of the absence.
 - **A Gradle `check` task that greps the sources, wired beside `checkHardcodedStrings`.** Eliminated twice
   over: each new script-level `DefaultTask` registration is one more of the configuration-cache problems
   `guidelines/Build.md` §7 records, and the `:app` unit test already runs in the gate and in CI's test step

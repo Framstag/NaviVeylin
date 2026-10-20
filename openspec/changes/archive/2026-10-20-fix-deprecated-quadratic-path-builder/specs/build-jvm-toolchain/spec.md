@@ -19,7 +19,6 @@ report no such call, so a returning one is a failing case rather than one warnin
 #### Scenario: The scan is still detectable
 
 - **WHEN** a source uses one of the deprecated spellings, or names one only in a comment
-- **THEN** the scan reports that line's file, number and text, and leaves the kept spelling and a comment that
-  names the deprecated one alone — so a passing scan means the spelling is absent, not that the scan cannot
-  see it
+- **THEN** the scan reports a finding for that line, and leaves the kept spelling and a comment that names the
+  deprecated one alone — so a passing scan means the spelling is absent, not that the scan cannot see it
 - **Case**: `app: ComposeApiDeprecationTest` "the scan is still detectable"

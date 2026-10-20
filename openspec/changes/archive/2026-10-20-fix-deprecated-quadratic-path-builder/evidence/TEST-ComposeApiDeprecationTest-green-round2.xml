@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.ComposeApiDeprecationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-20T13:32:34.834Z" hostname="dingens" time="0.471">
+  <properties/>
+  <testcase name="no project Kotlin source calls a deprecated quadratic path builder" classname="com.naviveylin.build.ComposeApiDeprecationTest" time="0.455"/>
+  <testcase name="the scan is still detectable" classname="com.naviveylin.build.ComposeApiDeprecationTest" time="0.008"/>
+  <system-out><![CDATA[files=731 findings=0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

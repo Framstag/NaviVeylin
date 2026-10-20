@@ -12,8 +12,9 @@ w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com
 (`app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165`, one call site in the project's own
 Kotlin sources): the pinned Compose ui 1.7.6 deprecates that spelling in favour of `quadraticTo`, which takes
 the same control and end points, and a later release removes it — so a call site nobody reads becomes a compile
-error at the next dependency bump. Nothing in this build turns the warning into a failure: the gate's compile
-log carries 109 `w:` lines on HEAD, most of them opt-in notices in `:auto` test sources.
+error at the next dependency bump. Nothing in this build turns the warning into a failure: the compile prints
+28 `w:` lines of its own (`evidence/head-red-run.log`) and the post-fix gate's 53, nearly all of them opt-in
+notices in `:auto` test sources (`evidence/gate.log`).
 
 **Red test on HEAD** (`3c1ecc78`), added as `app: ComposeApiDeprecationTest` "no project Kotlin source calls a
 deprecated quadratic path builder": a scan of every `*.kt` the project owns, asserting zero deprecated

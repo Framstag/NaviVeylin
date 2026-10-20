@@ -22,3 +22,37 @@ declared-cases: change 'fix-deprecated-quadratic-path-builder'
   4 declared auto    0.599     com.naviveylin.auto.SearchScreenTest
   5 declared auto    0.382     com.naviveylin.auto.TemplateFaultIsolationTest
   6 declared app     0.801     com.naviveylin.build.ComposeApiDeprecationTest
+
+
+=== Round-2 corrections (2026-10-20T13:3xZ) ===
+
+-- the change is archived, so "openspec validate <change> --strict" no longer resolves it; its merge
+   is checked by diffing the requirement against the merged capability spec
+   merged requirement text identical to the archived delta (20 lines)
+
+=== openspec validate --specs ===
+Totals: 176 passed, 0 failed (176 items)
+
+=== tools/check-doc-routes.sh ===
+check-doc-routes: all 89 section references resolve
+
+=== every evidence/ path the change cites resolves ===
+  present evidence/declared-cases.txt
+  present evidence/fixed-focused.log
+  present evidence/gate.log
+  present evidence/gate-module-tallies.txt
+  present evidence/gate-remaining-suites.log
+  present evidence/gate-tallies.txt
+  present evidence/head-red-run.log
+  present evidence/mapmanager-focused-1.log
+  present evidence/mapmanager-pair-with-new-case.log
+  present evidence/revert-check.txt
+  present evidence/structural-checks.txt
+  present evidence/TEST-ComposeApiDeprecationTest-green-round2.xml
+  present evidence/TEST-ComposeApiDeprecationTest-green.xml
+  present evidence/TEST-ComposeApiDeprecationTest-red.xml
+  present evidence/TEST-MapManagerUpdatesQueueTest-automotive-gate.xml
+
+=== the "w:" counts the texts now quote ===
+openspec/changes/archive/2026-10-20-fix-deprecated-quadratic-path-builder/evidence/gate.log:53
+openspec/changes/archive/2026-10-20-fix-deprecated-quadratic-path-builder/evidence/head-red-run.log:28

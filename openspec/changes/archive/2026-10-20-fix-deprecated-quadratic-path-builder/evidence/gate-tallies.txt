@@ -7,7 +7,8 @@ The documented gate, run ONCE. Gradle stopped after the mobile suite failed, so 
                                      failing case: MapManagerUpdatesQueueTest > updateOneItemRunsOnlyThatOne
                                      org.junit.ComparisonFailure: expected:<[new types]> but was:<[installed]>
                                      at MapManagerUpdatesQueueTest.kt:202
-                                     (evidence/gate.log, lines 286-311)
+                                     (evidence/gate.log, lines 286-316 — the tally "2068 tests completed, 1 failed"
+                                     is line 316)
 
 This delta cannot reach that case: its one production line is the marker path builder
 (app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165), the failing test never touches it, and
@@ -20,7 +21,8 @@ re-run, per the one-gate rule:
   :auto:testDebugUnitTest               tests=866  skipped=0 failures=0 errors=0
   :core:testDebugUnitTest               tests=642  skipped=0 failures=0 errors=0
   :osmscout-client-java:test            tests=48   skipped=0 failures=0 errors=0
-  (evidence/gate-remaining-suites.log, per-class XML as the runs produced them)
+  (evidence/gate-remaining-suites.log, BUILD SUCCESSFUL in 2m 11s; the counts are recomputed from the per-class
+  XML that run left behind — the log carries executed tasks, not tallies — evidence/gate-module-tallies.txt)
 
 The automotive suite runs the SAME 2068 test cases of `:app` from the same shared sources, and in it the
 failing case passes: MapManagerUpdatesQueueTest tests=5 failures=0 (2026-10-20T13:26:40.840Z, evidence/
@@ -34,6 +36,8 @@ Focused re-measurement of the one failing class, without touching the gate:
   the same class beside the new guard case: BUILD SUCCESSFUL in 7s, tests=5 failures=0
     (evidence/mapmanager-pair-with-new-case.log)
 
-Verdict of this measurement: one flaky case in the mobile suite, not this change's case, green in isolation and
-in the sibling flavor of the same suite. No Kotlin deprecation for LocationMarkerOverlay.kt in any run
+Verdict of this measurement: an intermittent failure in the mobile suite, not this change's case, green in
+isolation and in the sibling flavor of the same suite. The rate per configuration (N ≥ 3) and the neighbour
+bisect of `guidelines/Build.md` §4 are not measured, so this is an attribution, and the residual is filed as its
+own item — issue #217. No Kotlin deprecation for LocationMarkerOverlay.kt in any run
 (`grep -c '^w: .*LocationMarkerOverlay' gate.log gate-remaining-suites.log` -> 0, 0).

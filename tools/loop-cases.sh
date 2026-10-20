@@ -1412,36 +1412,28 @@ case_run_childStartsInTheProjectRoot() {
 }
 
 case_run_childReportsWhileItWaits() {
-  local d p fifo pid i out
+  local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # A child that says nothing while it works is the normal case, not the exception: print mode writes only the
   # final assistant text, so `pick #N` used to be followed by silence for the whole item and a working child
   # was indistinguishable from a hung one. The wait itself therefore has to report.
+  #
+  # A child that is merely *slow* proves it, and a blocked one does not: the first version of this case held the
+  # stub on a fifo, and whenever a suite was killed before the case released the writer, the stub and the run it
+  # blocked outlived the suite and held the caller's stdout open — the suite then hung instead of reporting
+  # (measured 2026-10-20: four orphaned runs in one worktree, and a suite stalled at this case twice). A sleep
+  # needs no second process to rendezvous with.
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
-  fifo="$d/wait.fifo"; mkfifo "$fifo"
-  # The stub blocks on this fifo and the run waits for the stub. A case that leaves through an assertion below
-  # used to leave both alive, and both hold the caller's stdout open — so a failing suite hung the shell instead
-  # of reporting the failure (measured 2026-10-20: three orphaned runs in one worktree). Release and reap on
-  # every exit path; the writer is backgrounded because a fifo with no reader blocks forever.
-  trap '( printf "go\n" > "$fifo" ) 2>/dev/null & kill "${pid:-0}" 2>/dev/null; wait "${pid:-0}" 2>/dev/null' EXIT
-  ( export PI_STUB_WAIT="$fifo" LOOP_PROGRESS_SECONDS=1
-    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
-  pid=$!
-  # The host may be loaded by another run's suites or a Gradle build, so the waits are ceilings rather than
-  # stopwatches: the time they allow is what a loaded machine needs, and the assertion says what is missing.
-  for i in $(seq 1 300); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
-  [ -e "$fifo.ready" ] || fail "the stub child never started"
-  # The child is blocked on the fifo: whatever the run says now it cannot have learned from the child.
-  for i in $(seq 1 600); do grep -q 'running' "$d/out" 2>/dev/null && break; sleep 0.1; done
-  out=$(cat "$d/out")
+  printf '#!/usr/bin/env bash\nsleep 3\n' > "$d/slow-child.sh"
+  out=$(PI_STUB_ACTION="$d/slow-child.sh" LOOP_PROGRESS_SECONDS=1 \
+    run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed"
+  # The child worked for seconds and printed nothing until it exited: every line below is the run's own.
   assert_contains "$out" "loop: worker-prompt started" "the wait is announced when the child starts"
   assert_contains "$out" "loop: worker-prompt running" "the wait reports while the child cannot"
   assert_contains "$out" "changed file(s)" "what it reports is read from the worktree"
-  printf 'go\n' > "$fifo"
-  wait "$pid" || fail "the run itself failed"
-  assert_contains "$(cat "$d/out")" "loop: worker-prompt finished in" "and the end is reported"
-  assert_contains "$(cat "$d/out")" "exit 0" "with the child's own exit status"
+  assert_contains "$out" "loop: worker-prompt finished in" "and the end is reported"
+  assert_contains "$out" "exit 0" "with the child's own exit status"
 }
 
 # A child that never returns used to be waited for with no bound at all: the run's deadline is consulted

@@ -106,8 +106,14 @@ expect "--only selecting no mutation exits 2" "2" "$rc"
 # 6. the repository's own mutation sets parse, and their labels are the ones the change's tasks name
 rc=$(bash "$root/tools/mutate.sh" --mutations "$root/tools/portability-mutations.json" --list 2>&1 | tee "$tmp/portability.log" >/dev/null; printf '%s' "$?")
 expect "the portability set lists cleanly" "0" "$rc"
-expect "the portability set has eight records" "8" "$(grep -vc '^#' "$tmp/portability.log")"
-for label in 5.1 5.2 5.3 5.3b 5.4 5.5 5.6 5.7; do
+# The guard is checked against the set the file *declares*, not against a number spelled here: a hard-coded
+# count goes stale on every change that adds a mutation, and then the repository's own step fails for the
+# change rather than for the harness (measured 2026-10-20 — the set grew from 8 to 13 records with labels
+# 6.1-6.5 and this step went red on main, which is what `Broken` #198 measured).
+labels=$(grep -o '"label": "[^"]*"' "$root/tools/portability-mutations.json" | sed 's/.*: *"//; s/"$//')
+declared=$(printf '%s\n' "$labels" | grep -c .)
+expect "the portability set lists every record it declares" "$declared" "$(grep -vc '^#' "$tmp/portability.log")"
+for label in $labels; do
   check "the portability set declares $label" "$(grep -q "^$label	" "$tmp/portability.log"; printf '%s' "$?")"
 done
 check "the portability set names the check's own self-test as its gate" \

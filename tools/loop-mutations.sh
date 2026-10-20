@@ -126,6 +126,12 @@ MUTATIONS=(
   # it every non-zero status is an item fault again, and one environment fault costs the run a decision slot
   # per item and stops it on "two consecutive items ended blocked" (measured 2026-10-20, issue #212).
   '27.1@-@tools/loop/run.sh@run#childThatNeverStartedIsTheRunsFault@the classification that keeps a child which never started off the item (issue #212)@s|^  if \[ "\$worker_exit" -ne 0 \] && \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
+  # 27.x — the process group a layer of the loop started, and the process the leftover report reads (issue #213).
+  # The group kill is implemented once, in `lib.sh`, because the suite and the run must not drift on *how* they
+  # end what they started (D16): 28.1 is that one implementation, 28.3 is the run's call site.
+  '28.1@-@tools/loop/lib.sh@clean#interruptedSuiteEndsItsProcessGroup@the one implementation of ending a process group a layer of the loop started@s#^  kill -s TERM -- -"\$pgid" 2>/dev/null || return 0$#  return 0#'
+  '28.2@-@tools/loop/loop-clean.sh@clean#reportsAndEndsAProcessLeftInAScratchTree@the report reading a process working directory inside a tree it removes@s|^  done <<< "\$(leftover_pids "\$dir")"$|  done <<< ""|'
+  '28.3@-@tools/loop/run.sh@run#interruptedRunEndsTheChildItStarted@the run trap ending the child it started, not only the run@s|^  loop_end_group "\$active_child"$|  : # the mutation ends the run and leaves its child|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

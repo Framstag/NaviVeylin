@@ -194,6 +194,44 @@ loop_scratch_remove() {
   return 0
 }
 
+# ── a process group the loop started, and how it is ended ────────────────────────────────────────
+# Every layer of the loop starts someone, and each layer must be able to end *all* of what it started, not only
+# the pid it holds: `set -m` before the command gives it a process group of its own (see `run_child`), and one
+# signal to that group reaches the children. Measured 2026-10-20 (issue #213): five `tools/loop/run.sh`
+# processes, each with its `sleep 1` child, were still running 55 to 100 min after their suites had ended, at a
+# working directory (`readlink /proc/<pid>/cwd`) inside a scratch tree that had already been deleted — the
+# suite's traps and the run's traps each ended their own pid only. `SIGTERM` comes first so a member's own trap
+# still runs (the run's in-progress label and its lock), then a grace, then `SIGKILL` for whatever is left.
+#
+# Usage: loop_end_group <pgid> → 0 when nothing of that group is left (or there was nothing to end)
+loop_end_group() {
+  local pgid="${1:-}" i
+  [ -n "$pgid" ] || return 0
+  kill -s TERM -- -"$pgid" 2>/dev/null || return 0
+  for i in $(seq 1 25); do
+    kill -s 0 -- -"$pgid" 2>/dev/null || return 0
+    sleep 0.2
+  done
+  kill -s KILL -- -"$pgid" 2>/dev/null || true
+  return 0
+}
+
+# One process, the same way and for the same reason: a leftover is ended with the signal that lets it clean up
+# behind itself, and only a process that ignores that is killed.
+#
+# Usage: loop_end_pid <pid> → 0 when it is gone (or was never a number)
+loop_end_pid() {
+  local pid="${1:-}" i
+  case "$pid" in ''|*[!0-9]*) return 0 ;; esac
+  kill -s TERM "$pid" 2>/dev/null || return 0
+  for i in $(seq 1 10); do
+    kill -s 0 "$pid" 2>/dev/null || return 0
+    sleep 0.2
+  done
+  kill -s KILL "$pid" 2>/dev/null || true
+  return 0
+}
+
 # ── the issue tooling, as the loop uses it ───────────────────────────────────────────────────────
 
 loop_profile() {

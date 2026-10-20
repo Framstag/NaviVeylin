@@ -62,7 +62,24 @@ tmp=$(mktemp -d "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"XXXXXX) || {
 # are trapped beside EXIT, and each leaves by `exit`, so the single removal below still runs. `SIGKILL`
 # cannot be trapped — a `kill -9`ed suite *does* leave its tree behind, and that is one of the leftovers
 # `tools/loop/loop-clean.sh` reports and removes after `LOOP_TMP_STALE_MINUTES`.
-trap 'rm -rf "$tmp"' EXIT
+# An interrupted suite removes its scratch tree the way a failing one does (issue #210), and ends the case it was
+# in together with every process that case started (issue #213): INT, TERM and HUP are trapped beside EXIT, and
+# each leaves by `exit`, so the one `on_exit` below still runs. `SIGKILL` cannot be trapped — a `kill -9`ed suite
+# *does* leave its tree, and the processes it leaves, behind; those are the leftovers `tools/loop/loop-clean.sh`
+# reports and ends after `LOOP_TMP_STALE_MINUTES`.
+case_pgid=""
+on_exit() {
+  local rc=$?
+  trap - EXIT
+  # The case first, then its tree. A case subshell has a process group of its own (`run_case` starts it under
+  # `set -m`), so this one signal ends the `run.sh` the case started, the stub child it waited for and the
+  # `sleep` beside them — the processes that used to outlive their suite by hours, at a deleted directory.
+  loop_end_group "$case_pgid"
+  case_pgid=""
+  rm -rf "$tmp"
+  exit "$rc"
+}
+trap on_exit EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
@@ -90,6 +107,23 @@ export PATH="$LOOP_FIXTURES:$LOOP_ISSUE_FIXTURES:$PATH"
 source "$root/tools/loop-cases.sh"
 shell_cases=$(loop_shell_cases)
 
+# One case, in a process group of its own: `set -m` makes the case's subshell a group leader, which is what lets
+# `on_exit` end the case *and* everything it started with one signal (issue #213). The group id is cleared once
+# the case has been waited for, so an id a later process may have been given is never signalled. The case's
+# stdin is closed for the same reason `run_child` closes its child's: a member of a background group that reads
+# a terminal is stopped, not run, and an unattended suite has nobody to type at it.
+run_case() { # <case name> → the case's own status
+  local rc
+  set -m
+  ( loop_run_shell_case "$1" ) < /dev/null &
+  case_pgid=$!
+  set +m
+  wait "$case_pgid"
+  rc=$?
+  case_pgid=""
+  return "$rc"
+}
+
 if [ "$list_only" -eq 1 ]; then
   printf '%s\n' "$shell_cases" | grep -v '^$'
   exit 0
@@ -97,7 +131,7 @@ fi
 
 if [ -n "$only_case" ]; then
   if printf '%s\n' "$shell_cases" | grep -qxF "$only_case"; then
-    if ( loop_run_shell_case "$only_case" ); then
+    if run_case "$only_case"; then
       printf 'PASS %s\n' "$only_case"
       exit 0
     fi
@@ -112,7 +146,7 @@ total=0
 failed=0
 for case_name in $shell_cases; do
   total=$((total + 1))
-  if ( loop_run_shell_case "$case_name" ); then
+  if run_case "$case_name"; then
     printf 'PASS %s\n' "$case_name"
   else
     failed=$((failed + 1))

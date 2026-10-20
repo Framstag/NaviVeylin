@@ -17,6 +17,13 @@
 # than `LOOP_TMP_STALE_MINUTES` and carry the self-test's own name — a suite writing into its tree right now
 # is younger than that and is left alone.
 #
+# A tree is not all a killed suite leaves: the processes that were working in it keep running, and nothing in
+# the tooling used to notice them (measured 2026-10-20, issue #213 — five `run.sh` processes, 55 to 100 min
+# after their suites ended, at a working directory that had already been deleted). Their working directory is
+# the evidence: a process standing inside a scratch tree this command is about to remove is reported with the
+# tree and ended with `--apply`. A process inside a tree that is kept belongs to a live suite and is never
+# signalled.
+#
 # Exit: 0 nothing to do, or done; 2 usage or an unusable configuration.
 #
 # Usage:
@@ -40,7 +47,7 @@ while [ $# -gt 0 ]; do
     --worktree) need_value "$@"; tree_arg="${2:-}"; shift 2 ;;
     --apply) apply=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
     *) loop_die "loop-clean: unknown argument $1" ;;
   esac
 done
@@ -57,6 +64,7 @@ apply_arg=""
 paths=0
 bytes=0
 kept=0
+procs=0
 say() { [ "$quiet" -eq 1 ] && return 0; printf '%s\n' "$*"; }
 
 # ── the kept worktree's build output ──────────────────────────────────────────────────────────────
@@ -76,8 +84,33 @@ else
   say "loop-clean: no worktree at $tree — no build output of the loop's to remove"
 fi
 
-# ── the scratch trees a killed suite left ────────────────────────────────────────────────────────
+# ── the scratch trees a killed suite left, and the processes still standing in them ─────────────
 say "loop-clean: self-test scratch trees under ${LOOP_TMP_DIR#"$LOOP_ROOT"/} older than ${stale_minutes} min"
+
+# The processes a killed suite left. A tree is not all of it: a case's `run.sh` and the child it waited for keep
+# polling a tree that no longer exists — measured 2026-10-20 (issue #213), five such processes 55 to 100 min
+# after their suites had ended, every one of them at a working directory `readlink /proc/<pid>/cwd` reported
+# inside a `loop-selftest.*` tree that had already been deleted. Their working directory is the evidence, and it
+# is the same evidence the removal acts on: a process standing inside a tree this command is about to remove.
+# `--apply` ends exactly those, and a process inside a *kept* tree is a live suite's and is never signalled.
+# `$$` and its parent are skipped, so a report never proposes to end the caller itself. Linux's `/proc` is the
+# only reader of a process's working directory there is; without it the report says so instead of guessing.
+leftover_pids() { # <dir> → one pid per line
+  local dir="$1" entry pid cwd
+  [ -d /proc/self ] || return 0
+  for entry in /proc/[0-9]*; do
+    pid="${entry#/proc/}"
+    case "$pid" in ''|*[!0-9]*) continue ;; esac
+    [ "$pid" = "$$" ] && continue
+    [ "$pid" = "$PPID" ] && continue
+    cwd=$(readlink "$entry/cwd" 2>/dev/null) || continue
+    [ -n "$cwd" ] || continue
+    case "$cwd" in
+      "$dir"|"$dir"/*) printf '%s\n' "$pid" ;;
+    esac
+  done
+}
+
 for dir in "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"*; do
   { [ -e "$dir" ] || [ -L "$dir" ]; } || continue
   if [ -L "$dir" ] || [ ! -d "$dir" ]; then
@@ -93,6 +126,21 @@ for dir in "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"*; do
     continue
   fi
   size=$(loop_bytes_of "$dir")
+  if [ ! -d /proc/self ]; then
+    say "  note: no /proc — the processes inside ${dir##*/} cannot be listed"
+  fi
+  # The processes first: one standing in a tree that is about to be removed is the leftover, and ending it before
+  # the removal is what stops it polling a path that no longer exists.
+  while IFS= read -r left_pid; do
+    [ -n "$left_pid" ] || continue
+    procs=$((procs + 1))
+    if [ "$apply" -eq 1 ]; then
+      loop_end_pid "$left_pid"
+      say "  ended process $left_pid — its working directory is inside ${dir##*/}"
+    else
+      say "  would end process $left_pid — its working directory is inside ${dir##*/}"
+    fi
+  done <<< "$(leftover_pids "$dir")"
   if [ "$apply" -eq 1 ]; then
     rm -rf -- "$dir" || { say "could not remove ${dir##*/}"; continue; }
     say "  removed ${dir##*/} ($size B)"
@@ -102,13 +150,17 @@ for dir in "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"*; do
   paths=$((paths + 1)); bytes=$((bytes + size))
 done
 
-if [ "$paths" -eq 0 ]; then
+if [ "$paths" -eq 0 ] && [ "$procs" -eq 0 ]; then
   printf 'loop-clean: nothing to remove — %s path(s) kept\n' "$kept"
   exit 0
 fi
 if [ "$apply" -eq 1 ]; then
-  printf 'loop-clean: removed %s path(s), %s B\n' "$paths" "$bytes"
+  proc_note=""
+  [ "$procs" -gt 0 ] && proc_note=" and ended $procs process(es)"
+  printf 'loop-clean: removed %s path(s), %s B%s\n' "$paths" "$bytes" "$proc_note"
 else
-  printf 'loop-clean: would remove %s path(s), %s B — nothing removed (pass --apply)\n' "$paths" "$bytes"
+  proc_note=""
+  [ "$procs" -gt 0 ] && proc_note=" and end $procs process(es)"
+  printf 'loop-clean: would remove %s path(s), %s B%s — nothing removed (pass --apply)\n' "$paths" "$bytes" "$proc_note"
 fi
 exit 0

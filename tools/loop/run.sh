@@ -367,9 +367,18 @@ loop_state lock --owner "$$" || exit $?
 
 in_progress=""
 interrupted=0
+# The process group of the child that is running right now, and nothing else: `run_child` sets it under `set -m`
+# and clears it once it has waited, so the traps below can end the child (and everything the child started) when
+# the run takes a signal — the path a person's `kill`, or an operator's Ctrl-C, takes — while it is waiting for
+# that child (issue #213).
+active_child=""
 on_exit() {
   local rc=$?
   trap - EXIT
+  # The child first: a run ended by a signal must not leave the item's agent working in the tree while the run
+  # writes the item's outcome. `loop_end_group` sends `TERM`, so the child's own cleanup runs, and waits for it.
+  loop_end_group "$active_child"
+  active_child=""
   if [ "$interrupted" -eq 1 ] && [ -n "$in_progress" ]; then
     # A killed run must leave no item looking in progress: the label comes off and the item is recorded
     # blocked, so the next run's pre-screen can take it up again (D7).
@@ -520,6 +529,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   set -m
   ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1 < /dev/null &
   child=$!
+  active_child="$child"
   set +m
   # The wait is a poll, not a blocking `wait`, because a blocking wait cannot notice the cap. The child is this
   # shell's unreaped child for as long as we poll, so its process group cannot be recycled under the kill.
@@ -535,6 +545,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   done
   wait "$child"
   rc=$?
+  active_child=""
   if [ "$timed_out" -eq 1 ]; then
     printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
     rc="$LOOP_CHILD_TIMEOUT"

@@ -88,12 +88,18 @@ Three facts follow, and each has one owner:
   resolves outside the tree, and skips one git tracks. It does not run under `--clean-worktree` (the tree is
   removed whole) or under `--reset-worktree` (the caller named the tree's contents as the thing to repair).
 - `tools/loop-selftest.sh` traps `HUP`, `INT` and `TERM` beside `EXIT`, so an interrupted suite removes its
-  scratch tree like a failing one. `SIGKILL` cannot be trapped; the tree it leaves is one of the leftovers
-  below.
+  scratch tree like a failing one — and each case runs in a process group of its own, so one signal to that group
+  ends the case subshell together with the `run.sh`, the stub child and the `sleep` it started (issue #213).
+  `SIGKILL` cannot be trapped; the tree and the processes it leaves are the leftovers below.
 - `tools/loop/loop-clean.sh` is the one report of both. Without `--apply` it prints each path with its bytes
   and removes nothing; with `--apply` it removes exactly those. Its scratch-tree half is age-gated by
   `LOOP_TMP_STALE_MINUTES` (default 120) because only the age tells a killed suite's tree from one a live
-  suite is writing into, and it is idempotent — a second run prints `nothing to remove` and exits 0.
+  suite is writing into, and it is idempotent — a second run prints `nothing to remove` and exits 0. A tree is
+  not all a killed suite leaves: a process whose working directory (`/proc/<pid>/cwd`) is inside a tree it would
+  remove is named beside that tree and ended by `--apply`, and a process inside a tree it keeps is never
+  signalled. Measured 2026-10-20 (issue #213): five `run.sh` processes, each with one `sleep` child, still running
+  55 to 100 min after their suites had ended, at a working directory that had already been deleted, and nothing
+  in the tooling had noticed them.
 
 ```bash
 tools/loop/loop-clean.sh             # report only

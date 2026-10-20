@@ -129,6 +129,9 @@ LOOP_SHELL_CASES=(
   'report#emptyRunSaysNone'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
+  'clean#interruptedSuiteEndsItsProcessGroup'
+  'clean#reportsAndEndsAProcessLeftInAScratchTree'
+  'run#interruptedRunEndsTheChildItStarted'
   'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
   'usage#bareValueFlagDoesNotSwallowTheNextFlag'
   'usage#bareValueFlagInASingleShotHarnessIsAUsageError'
@@ -259,6 +262,9 @@ loop_run_shell_case() {
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
+    'clean#interruptedSuiteEndsItsProcessGroup') fn=case_clean_interruptedSuiteEndsItsProcessGroup ;;
+    'clean#reportsAndEndsAProcessLeftInAScratchTree') fn=case_clean_reportsAndEndsAProcessLeftInAScratchTree ;;
+    'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -3134,3 +3140,158 @@ case_clean_reportsWithoutApplyAndRemovesWithIt() {
   assert_contains "$out" "nothing to remove" "a second run is a no-op"
 }
 
+# ------------------------------------------------------------------- cases: the processes a suite leaves
+
+# A suite ended by a signal ends the case *and every process that case started* (issue #213). The scratch-tree
+# case above proves the tree goes; the processes still polling inside it did not. Measured 2026-10-20: five
+# `tools/loop/run.sh --items 1 --minutes 90 --review off` processes, each with its `sleep 1` child, still running
+# 55 to 100 min after their suites had ended, every one of them at a working directory that had already been
+# deleted. The driver starts a case in a process group of its own (`set -m`) and signals that group, so a case
+# that leaves a child of its own behind is the proof: both pids it wrote down must be gone when the suite is.
+case_clean_interruptedSuiteEndsItsProcessGroup() {
+  local d nested tmp conf pid status i p survivors driver_alive
+  d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
+  mkdir -p "$nested/tools" "$tmp"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  # The case writes down the two pids it must not leave behind — its own process and the child it started — and
+  # then waits: a suite in the middle of a case is exactly that.
+  cat > "$nested/tools/loop-cases.sh" <<'PROBE'
+LOOP_SHELL_CASES=('stub#sleepsWithAChild')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  sleep 300 &
+  printf '%s\n' "$BASHPID" "$!" > "$PROBE_PIDS"
+  wait
+}
+PROBE
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf" PROBE_PIDS="$d/probe-pids"
+
+  bash "$nested/tools/loop-selftest.sh" --case 'stub#sleepsWithAChild' >/dev/null 2>&1 &
+  pid=$!
+  for i in $(seq 1 200); do
+    [ -f "$PROBE_PIDS" ] && [ "$(grep -c . "$PROBE_PIDS")" -ge 2 ] && break
+    sleep 0.1
+  done
+  if [ ! -f "$PROBE_PIDS" ] || [ "$(grep -c . "$PROBE_PIDS")" -lt 2 ]; then
+    kill -9 "$pid" 2>/dev/null
+    fail "the case never wrote the two pids it runs with — the probe cannot see the case at all"
+  fi
+  kill -TERM "$pid"
+  # A bound on the check, not on the case: a suite that has taken TERM is supposed to be gone at once, and the
+  # tree it removes at exit is the tree of a case that is still running on the tree before the fix.
+  for i in $(seq 1 100); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  driver_alive=0
+  kill -0 "$pid" 2>/dev/null && driver_alive=1
+  survivors=""
+  for p in $(cat "$PROBE_PIDS"); do
+    for i in $(seq 1 50); do kill -0 "$p" 2>/dev/null || break; sleep 0.1; done
+    kill -0 "$p" 2>/dev/null && survivors="$survivors $p"
+  done
+  if [ "$driver_alive" -eq 1 ] || [ -n "$survivors" ]; then
+    # The case's own leftovers go, so a red run leaves the tree exactly as it found it — a `sleep` or a subshell
+    # of this case's own would be the very leftover this case is about.
+    kill -9 "$pid" $survivors 2>/dev/null
+    wait "$pid" 2>/dev/null
+    fail "10 s after TERM the suite was still running its case (driver alive: $driver_alive) and left $(printf '%s' "$survivors" | wc -w) process(es) of it running:$survivors — a suite ended by a signal must end the case and everything the case started, at once"
+  fi
+  wait "$pid"; status=$?
+  [ "$status" -ne 0 ] || fail "a suite ended by TERM reported success (exit 0) — a false PASS"
+}
+
+# A tree is not all a killed suite leaves: the processes working in it keep running, and nothing reported or ended
+# them (issue #213). `loop-clean` reads a process's working directory, reports the ones standing inside a scratch
+# tree it would remove, and ends them with `--apply` — and never signals a process inside a tree it keeps, which
+# is a live suite's.
+case_clean_reportsAndEndsAProcessLeftInAScratchTree() {
+  local d p tmp conf out stale fresh i alive
+  d=$(scratch); p=$(new_project); tmp="$d/tmp"
+  mkdir -p "$tmp/loop-selftest.stale" "$tmp/loop-selftest.fresh"
+  touch -d '3 hours ago' "$tmp/loop-selftest.stale"
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  # Two processes this case starts, each at a working directory inside one of the trees: the stale one is what a
+  # killed suite leaves, the fresh one is what a live suite looks like.
+  ( cd "$tmp/loop-selftest.stale" && exec sleep 300 ) &
+  stale=$!
+  ( cd "$tmp/loop-selftest.fresh" && exec sleep 300 ) &
+  fresh=$!
+  # The case's own cleanup, so a red run leaves no `sleep` of its own: the very leftover this case is about. The
+  # pids are global because the trap fires when this case's subshell exits, after this function has returned.
+  CASE_SLEEPS="$stale $fresh"
+  trap 'kill -9 $CASE_SLEEPS 2>/dev/null; CASE_SLEEPS=""' EXIT
+
+  out=$(run_clean "$p") || fail "loop-clean failed: $out"
+  assert_contains "$out" "would end process $stale" "the report names the process standing inside the tree it would remove"
+  assert_contains "$out" "loop-selftest.stale" "and the tree that process is in"
+  assert_not_contains "$out" "would end process $fresh" "a process inside a tree it keeps is a live suite's and is not named"
+  kill -0 "$stale" 2>/dev/null || fail "the report ended a process without --apply"
+  [ -d "$tmp/loop-selftest.stale" ] || fail "the report removed the tree without --apply"
+
+  out=$(run_clean "$p" --apply) || fail "loop-clean --apply failed: $out"
+  assert_contains "$out" "ended process $stale" "--apply names the process it ends"
+  assert_contains "$out" "and ended 1 process(es)" "and counts it in the summary"
+  alive=1
+  for i in $(seq 1 50); do kill -0 "$stale" 2>/dev/null || { alive=0; break; }; sleep 0.1; done
+  [ "$alive" -eq 0 ] || fail "the process survived --apply — the tree it was working in was removed under it"
+  kill -0 "$fresh" 2>/dev/null || fail "--apply ended a process inside a tree it kept"
+  [ ! -e "$tmp/loop-selftest.stale" ] || fail "the stale tree survived --apply"
+  [ -d "$tmp/loop-selftest.fresh" ] || fail "--apply removed a tree younger than the stale threshold"
+}
+
+# A run ended by a signal ends the child it started (issue #213). The child is put in a process group of its own
+# so the wall-clock cap can end it *and its descendants* (#203), which means the run's own traps — the path a
+# person's `kill` takes mid-item — used to end the run and leave the child working. The stub child blocks on a
+# fifo, which is a child in the middle of its phase, and both the run and the child must be gone afterwards.
+case_run_interruptedRunEndsTheChildItStarted() {
+  local d p conf fifo pid i status child alive
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy the loop configuration"
+  export LOOP_CONF="$conf"
+  stub_success "$d"
+  # The child names the process the run started for it: the stub `pi`, which is this action's parent.
+  printf 'printf "%%s\\n" "$PPID" > %s\n' "'$d/child.pid'" >> "$d/worker-action.sh"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  if [ ! -e "$fifo.ready" ]; then
+    kill -9 "$pid" 2>/dev/null
+    fail "the stub child never started, so there is no child to end"
+  fi
+  # The case holds the fifo's writer side, so releasing a child never blocks and never leaves a writer behind.
+  exec 8> "$fifo"
+  child=""
+  for i in $(seq 1 100); do [ -f "$d/child.pid" ] && { child=$(cat "$d/child.pid"); break; }; sleep 0.1; done
+  if [ -z "$child" ]; then
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the child never named the process the run started"
+  fi
+  kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+  wait "$pid"; status=$?
+  assert_eq "143" "$status" "a run ended by TERM reports the signal it took"
+  # The child is checked while it is still blocked on the fifo: releasing it first would end it here, and a child
+  # this case ended is no evidence about the run.
+  for i in $(seq 1 50); do kill -0 "$child" 2>/dev/null || break; sleep 0.1; done
+  alive=0
+  kill -0 "$child" 2>/dev/null && alive=1
+  if [ "$alive" -eq 1 ]; then
+    # Still blocked on the fifo: release it so it can leave on its own, then make sure it is gone. Writing to the
+    # fifo is what a reader there makes safe — with the reader gone this case would take SIGPIPE instead.
+    printf 'go\n' >&8 2>/dev/null || true
+    kill -9 "$child" 2>/dev/null
+  fi
+  exec 8>&-
+  [ "$alive" -eq 0 ] || fail "the run ended but the child it started (pid $child) is still running — an interrupted run must end its child"
+}

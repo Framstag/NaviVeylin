@@ -81,6 +81,14 @@
       "search": "      if [ -n \"$collapsed\" ] && [ \"$(issues_citation_class \"$collapsed\")\" != \"absent\" ]; then",
       "replace": "      if false; then",
       "why": "the collapse of a citation that repeats its own directory, before the rename and symbol steps (#189)"
+    },
+    {
+      "label": "5.11",
+      "case": "resolver#ambiguityDoesNotConsumeTheBound",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "  if [ -n \"$repairs\" ] || [ -n \"$unresolved\" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi",
+      "replace": "  due=$((due + 1))",
+      "why": "the bound being spent only where a write follows — an item the ladder can only report costs no slot (#199)"
     }
   ]
 }

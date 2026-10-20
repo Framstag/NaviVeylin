@@ -37,6 +37,8 @@ source "$here/lib.sh"
 
 apply=0
 json=0
+# The bound is on the items a run **writes**, not on the items it visits: an item nothing can be written for
+# (an ambiguous citation, #199) spends no slot, so a non-action cannot exhaust the run's budget.
 max_items=20
 issues_file=""
 profile_arg=""
@@ -174,7 +176,8 @@ while [ "$issue_at" -lt "$read_count" ] && [ "$due" -lt "$max_items" ]; do
 
   # A citation the tree does not hold *at all* is the verdict; a citation that resolves by suffix is a
   # courtesy repair (D3) — it writes the full tracked path so the record is exact and the next run is cheap.
-  # Both make the item due; `exact`, `submodule`, `generated` and `not-a-path` do not.
+  # Either makes the item's processing reach a write; `exact`, `submodule`, `generated` and `not-a-path` do not.
+  # Being reachable for a write is also what spends the run's bound — see the guard below the two token loops.
   matrix=$(issues_citation_matrix_of "$title
 $body")
   suffix_toks=$(printf '%s\n' "$matrix" | awk -F'\t' '$1 == "suffix" { print $2 }')
@@ -187,7 +190,6 @@ $body")
     skipped=$((skipped + 1))
     continue
   fi
-  due=$((due + 1))
 
   new_body="$body"
   repairs=""
@@ -232,6 +234,13 @@ $body")
     fi
     unresolved=$(add_line "$unresolved" "- \`${tok}\` — no tracked file, no rename record, no single surviving declaration")
   done <<< "$absent_toks"
+
+  # The bound counts writes, not visits (#199). An item whose only stale citations are ambiguous reports that
+  # and reaches neither write branch below, so counting it as `due` spent a slot of every run's bound on a
+  # non-action while the items behind it waited — measured 2026-10-19, `due=25 repaired=4 parked=5
+  # ambiguous=22` meant 22 of 25 slots produced nothing. It is visited, written for nowhere, and counted
+  # `skipped`; the `ambiguous` counter still reports it per token.
+  if [ -n "$repairs" ] || [ -n "$unresolved" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi
 
   if [ -n "$repairs" ] && [ -z "$unresolved" ]; then
     if [ "$apply" -eq 1 ]; then

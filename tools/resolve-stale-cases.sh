@@ -29,6 +29,7 @@ RESOLVE_CASES=(
   'resolver#ambiguityIsReportedNotRepaired'
   'resolver#neverWritesTheAuthorisation'
   'resolver#boundHoldsAndReportsTheRest'
+  'resolver#ambiguityDoesNotConsumeTheBound'
   'resolver#secondRunChangesNothing'
   'pipeline#scheduledRunRepairs'
   'pipeline#residueIsADeclaredRow'
@@ -56,6 +57,7 @@ resolve_run_case() {
     'resolver#ambiguityIsReportedNotRepaired') case_resolver_ambiguityIsReportedNotRepaired ;;
     'resolver#neverWritesTheAuthorisation') case_resolver_neverWritesTheAuthorisation ;;
     'resolver#boundHoldsAndReportsTheRest') case_resolver_boundHoldsAndReportsTheRest ;;
+    'resolver#ambiguityDoesNotConsumeTheBound') case_resolver_ambiguityDoesNotConsumeTheBound ;;
     'resolver#secondRunChangesNothing') case_resolver_secondRunChangesNothing ;;
     'pipeline#scheduledRunRepairs') case_pipeline_scheduledRunRepairs ;;
     'pipeline#residueIsADeclaredRow') case_pipeline_residueIsADeclaredRow ;;
@@ -415,6 +417,31 @@ case_resolver_boundHoldsAndReportsTheRest() {
     fail "the resolver failed: $out"
   assert_eq "1" "$(jq -r '.due' <<< "$out")" "the bound holds"
   assert_eq "1" "$(jq -r '.waiting' <<< "$out")" "and the rest is reported as waiting"
+}
+
+# The bound exists so a run changes the tracker. An item the ladder can only *report* — an ambiguous suffix,
+# which is never guessed (D4) — writes nothing, so counting it as due spends a slot of the bound on a
+# non-action and the item behind it never gets one (#199). Tracker order decides nothing here: the ambiguous
+# item is first and the writable one is second, exactly as the live tracker had them.
+case_resolver_ambiguityDoesNotConsumeTheBound() {
+  local tree d out
+  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/a" "$tree/b" "$tree/app/src"
+  printf 'class Dup\n' > "$tree/a/Dup.kt"; printf 'class Dup\n' > "$tree/b/Dup.kt"
+  printf 'class Foo\n' > "$tree/app/src/Foo.kt"
+  git_init "$tree"
+  d=$(tracker "$tree/fixture-gh" 7 "the reported one" 'cites `Dup.kt:1`')
+  jq '. + [{number: 8, title: "the writable one", state: "OPEN", stateReason: "", body: "cites `Foo.kt`",
+             author: {login: "Framstag"},
+             labels: [{name: "class/bug"}, {name: "category/car"}, {name: "status/open"}], comments: []}]' \
+    "$d/issues.json" > "$d/issues.tmp" && mv "$d/issues.tmp" "$d/issues.json"
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json --max-items 1) ||
+    fail "the resolver failed: $out"
+  assert_eq "1" "$(jq -r '.repaired' <<< "$out")" \
+    "the one slot the bound allowed went to the item a run can write"
+  assert_eq "1" "$(jq -r '.due' <<< "$out")" "and the bound still holds at one"
+  assert_eq "0" "$(jq -r '.waiting' <<< "$out")" "nothing waits behind the item that can only be reported"
+  assert_eq "1" "$(jq -r '.ambiguous' <<< "$out")" "the ambiguity is still counted, and nothing is written for it"
+  assert_contains "$(recorded_body "$d/writes.log" 1)" "app/src/Foo.kt" "the writable citation is the one written"
 }
 
 case_resolver_secondRunChangesNothing() {

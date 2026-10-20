@@ -23,6 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowDialog
+import kotlinx.coroutines.Dispatchers
 
 /**
  * The session's dismissal (spec: `route-planning-session` — the session's only exits;
@@ -56,7 +57,7 @@ class RouteSessionDismissOrderingTest {
     private fun panelViewModel(client: FakeOSMScoutClient) = RoutePanelViewModel(
         client = client,
         favoriteRepository = FavoriteRepository(client),
-        searchHistoryRepository = SearchHistoryRepository(context()),
+        searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
         locationService = LocationService(context()),
         context = context(),
         settingsStorage = SettingsStorage(context())

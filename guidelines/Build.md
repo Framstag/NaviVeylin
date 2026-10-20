@@ -465,7 +465,11 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   exactly on the advanced-to instant never fires — advance past it by more than a tick, or `runCurrent()`
   after an exactly-at-the-deadline advance (a case that looked 50/50 flaky was this). And a production
   `withContext(…)` inside a suspend accessor makes a virtual-time test non-deterministic (green alone, red
-  under suite load): give the hop its own dispatcher seam (`guidelines/Design.md` §4).
+  under suite load): give the hop its own dispatcher seam (`guidelines/Design.md` §4). **A test that builds such
+  a component must then point the seam at its own scheduler** — an unwired seam leaves a real thread that no
+  `advanceUntilIdle()` reaches, and the failure surfaces as a flake in whatever change is under test;
+  `com.naviveylin.test.SearchHistoryDispatcherRuleTest` refuses an unwired `SearchHistoryRepository`
+  construction (96 sites in 65 classes were unwired when it was added, item §123).
 - **A background publisher publishes atomically, and its timing decision reads an injected source** (change
   `fix-navigation-engine-test-flakes`, specs `navigation-engine` / `unit-test-suite-runtime`): a tick or
   worker that runs off the main thread publishes through `MutableStateFlow.update { … }`, never

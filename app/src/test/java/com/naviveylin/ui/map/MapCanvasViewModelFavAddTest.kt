@@ -61,7 +61,7 @@ class MapCanvasViewModelFavAddTest {
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = favRepo,
-            searchHistoryRepository = SearchHistoryRepository(context),
+            searchHistoryRepository = SearchHistoryRepository(context).also { it.defaultDispatcher = mainDispatcherRule.dispatcher },
             locationService = LocationService(context),
             darkModeController = DarkModeController(SettingsStorage(context)),
             sharedLocationHandler = SharedLocationHandler(),

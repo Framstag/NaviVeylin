@@ -38,6 +38,7 @@ import org.junit.Before
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Compose UI tests for the route panel search flow:
@@ -71,7 +72,7 @@ class RoutePanelComposeTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())
@@ -155,7 +156,7 @@ class RoutePanelComposeTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())
@@ -228,7 +229,7 @@ class RoutePanelComposeTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())
@@ -294,7 +295,7 @@ class RoutePanelComposeTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())
@@ -339,7 +340,7 @@ class RoutePanelComposeTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())

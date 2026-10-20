@@ -113,6 +113,7 @@ LOOP_SHELL_CASES=(
   'run#reviewReadOnlyOffOnlyForDiagnosis'
   'run#reviewDiffExcludesTheEvidenceArchive'
   'run#engineNamesNoProjectFact'
+  'adapter#modeFlagIsItsOwnArgument'
   'report#headerAndTableShape'
   'report#yieldIsCountedFromState'
   'report#escalatedSkipNamesTheLabelWritten'
@@ -232,6 +233,7 @@ loop_run_shell_case() {
     'run#reviewReadOnlyOffOnlyForDiagnosis') fn=case_run_reviewReadOnlyOffOnlyForDiagnosis ;;
     'run#reviewDiffExcludesTheEvidenceArchive') fn=case_run_reviewDiffExcludesTheEvidenceArchive ;;
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
+    'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
     'report#headerAndTableShape') fn=case_report_headerAndTableShape ;;
     'report#yieldIsCountedFromState') fn=case_report_yieldIsCountedFromState ;;
     'report#escalatedSkipNamesTheLabelWritten') fn=case_report_escalatedSkipNamesTheLabelWritten ;;
@@ -2541,6 +2543,36 @@ case_run_engineNamesNoProjectFact() {
     newpath=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vxF "$(dirname "$sbxdir")" | paste -sd: -)
   fi
   PATH="$newpath" run_one_item "$p" "$d" >/dev/null || fail "the run needs something the sandbox would provide"
+  return 0
+}
+
+# The adapter the configuration names (`tools/pi-child-events.sh`) is the one place this project's agent and
+# its output mode are a fact, and it appends that flag immediately before the prompt. The child has to see it
+# as **words of its own** — `--mode`, then `json` — because that is what an option parser reads. Handed over as
+# one quoted string the agent rejects the whole argv, exits in seconds, and the run records an item it never
+# worked: measured 2026-10-20, every child of a run died with `Error: Unknown option: --mode json`, two in a
+# row, and the run stopped after 3 min of an 8 h budget with nothing merged (its state: `.pi/issue-loop/run.json`).
+#
+# The case drives the real adapter against a child that only records its argv, so the assertion is on the
+# adapter and not on an agent, a model or a token. A project that has no adapter — the porting recipe deletes
+# it and names a plain command — has nothing to assert here.
+case_adapter_modeFlagIsItsOwnArgument() {
+  local d prompt recorder got
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  recorder="$d/recorder.sh"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'for a in "$@"; do printf "%s\n" "$a"; done > "$RECORD"'
+  } > "$recorder"
+  RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
+    bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  got=$(cat "$d/argv.txt" 2>/dev/null || true)
+  assert_eq "$(printf -- '--mode\njson\n%s' "$prompt")" "$got" \
+    "the child sees the mode flag as two arguments, then the prompt"
   return 0
 }
 

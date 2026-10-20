@@ -29,7 +29,10 @@
 # Exit: the child's own status, so the run's "the worker process exited N" path keeps its meaning.
 set -uo pipefail
 
-mode="--mode json"
+# The mode the child is started in, as separate argv words: an option parser reads `--mode` and its value,
+# and a single quoted `"--mode json"` is one unknown option to it — measured 2026-10-20, when every child of a
+# run died with `Error: Unknown option: --mode json` in under 4 s and the run stopped after 3 min.
+mode=(--mode json)
 
 if [ $# -lt 2 ]; then
   printf 'pi-child-events: usage: %s <command> [args…] <prompt-file>\n' "$(basename "$0")" >&2
@@ -55,7 +58,7 @@ trap 'rm -f "$answer_file"' EXIT
 # The stream is read line by line. A line that is a JSON object is one event and is kept; anything else is the
 # command's own text — an agent that ignores the mode flag prints its answer as plain text — and is passed
 # through, so such a command still answers the loop and a project needs no second code path to keep working.
-"${cmd[@]}" "$mode" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
+"${cmd[@]}" "${mode[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     '{'*)
       [ -z "$events" ] || printf '%s\n' "$line" >> "$events"

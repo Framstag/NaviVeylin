@@ -328,8 +328,13 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   injected property states its target — `@param:ApplicationContext`, not `@ApplicationContext` — because the
   unqualified form is applied to the value parameter only and a later Kotlin default also applies it to the
   field. Measured 2026-10-20: one site (`NavigationNotificationController`) and two `w:` lines, one per `:app`
-  flavor compile of the shared tree; `QualifierUseSiteTargetTest` holds the absence and names the line
-  (spec `build-test-gate`, "An injected property states its qualifier's use-site target").
+  flavor compile of the shared tree; a forced recompile of both flavors with the site fixed prints none of the
+  family (`QualifierUseSiteTargetTest`, spec `build-test-gate`, "An injected property states its qualifier's
+  use-site target"). A guard that scans sources is subject to the same rule from both sides: it must walk the
+  source-set roots rather than prune a repository walk by directory name — the project's own source-scan
+  guards live in the package `com.naviveylin.build`, which a `build` prune removes, leaving a green that
+  scanned nothing — and a fixture inside its own surface must be assembled from parts, or it becomes a finding
+  of the guard it feeds (measured 2026-10-21: three such fixtures, `sources=719` against 716).
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
 - **Per-flavor test tasks**: `:app` has one task per flavor —

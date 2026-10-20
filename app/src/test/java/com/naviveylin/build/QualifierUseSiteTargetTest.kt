@@ -30,6 +30,14 @@ class QualifierUseSiteTargetTest {
 
     @Test
     fun `no qualifier on an injected property relies on the implicit target`() {
+        val missing = SCANNED_SOURCE_SETS.map { File(repoRoot, it) }.filterNot { it.isDirectory }
+        assertEquals(
+            "every scanned source set must exist under ${repoRoot.absolutePath} — a root that " +
+                "disappeared would make this case pass without looking",
+            emptyList<File>(),
+            missing
+        )
+
         val sources = kotlinSources()
         assertTrue(
             "the modules' Kotlin sources must be found under ${repoRoot.absolutePath} " +
@@ -55,10 +63,12 @@ class QualifierUseSiteTargetTest {
 
     @Test
     fun `the implicit target is still detectable`() {
+        // Assembled from parts on purpose: this file is inside the scan surface, so a fixture written whole
+        // would be a finding of the guard it feeds (measured 2026-10-21 — three whole fixtures, three findings).
         val implicit = listOf(
-            "    @ApplicationContext private val context: Context,",
-            "    @Named(\"clock\") val clock: Clock",
-            "@ActivityContext var activity: Context"
+            "    @" + "ApplicationContext private val context: Context,",
+            "    @" + "Named(\"clock\") val clock: Clock",
+            "@" + "ActivityContext var activity: Context"
         )
         val explicit = listOf(
             "    @param:ApplicationContext private val context: Context,",
@@ -84,15 +94,16 @@ class QualifierUseSiteTargetTest {
      * `test` trees. The libosmscout submodule's own Kotlin module (`app/src/main/cpp/libosmscout/libosmscout-kotlin`)
      * is outside them on purpose: the project never patches the submodule (`guidelines/Design.md` §5), so a
      * finding there would be a guard whose fix is forbidden.
+     *
+     * The six roots are walked directly, never the repository: a walk of the repository prunes a directory by
+     * name, and the project's own source-scan guards live in the package `com.naviveylin.build`, whose last
+     * directory is named `build` (measured 2026-10-21: a name-based prune left 716 of the 719 files, excluding
+     * this file and its two siblings).
      */
     private fun kotlinSources(): List<File> =
-        repoRoot.walkTopDown()
-            .onEnter { it.name !in SKIPPED_DIRECTORIES }
-            .filter { it.isFile && it.name.endsWith(".kt") }
-            .filter { source ->
-                val path = relative(source)
-                SCANNED_SOURCE_SETS.any { sourceSet -> path.startsWith("$sourceSet/") }
-            }
+        SCANNED_SOURCE_SETS
+            .map { File(repoRoot, it) }
+            .flatMap { root -> root.walkTopDown().filter { it.isFile && it.name.endsWith(".kt") } }
             .sorted()
             .toList()
 
@@ -132,7 +143,5 @@ class QualifierUseSiteTargetTest {
             "core/src/main/java",
             "core/src/test/java"
         )
-
-        val SKIPPED_DIRECTORIES = setOf("build", ".git", ".gradle", ".idea", ".pi", "node_modules")
     }
 }

@@ -887,15 +887,16 @@ byte-identical (same md5), as `release-target` requires.
 (`test -PforceTests --no-build-cache`, §3) and a following step prints the per-module, per-flavor tallies
 from the result XML, so the log names which suites executed rather than only the verdict.
 
-**The pin clears the Gradle 10 deprecation — 0.9.9 or newer.** Kover 0.9.8 passed a
+**The pin clears the Gradle 10 deprecation — Kover 0.9.9 or newer.** Kover 0.9.8 passed a
 `Project` object to `DependencyHandler.add` while its plugin was applied, which Gradle 9.6 reported as
 "Using a Project object as a dependency notation has been deprecated … This will fail with an error in
 Gradle 10". The stack frame was inside the plugin
 (`kotlinx.kover.gradle.plugin.appliers.PrepareKoverKt.prepare`), so no script here could silence it —
-the pinned version was the only lever, and upstream fixed it in 0.9.9 (issue #818). Measured on
-Gradle 9.6.1 with `./gradlew help --warning-mode all`, counting the `Project object as a dependency
-notation` lines: **0.9.8 → 1, 0.9.9 → 0, 0.9.11 → 0**. `KoverDeprecationBaselineTest` (`:app` unit
-tests) holds this section and `build.gradle.kts` to that number: a downgrade fails it.
+the pinned version was the only lever, and upstream ended that call path in 0.9.9: its changelog entry
+for issue #818 reads "Fixed Gradle 9.6.0 deprecation warning". The absence of the warning with 0.9.9
+is that changelog's attribution, not a measurement archived in this repository.
+`KoverDeprecationBaselineTest` (`:app` unit tests) holds this section and `build.gradle.kts` to the
+threshold the changelog names: a downgrade fails it.
 
 ## 8. SBOM generation (CycloneDX)
 

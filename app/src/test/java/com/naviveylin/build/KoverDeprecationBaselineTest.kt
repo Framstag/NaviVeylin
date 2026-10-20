@@ -13,17 +13,9 @@ import java.io.File
  * (`kotlinx.kover.gradle.plugin.appliers.PrepareKoverKt.prepare`), which Gradle 9.6 reports as
  * "Using a Project object as a dependency notation has been deprecated … This will fail with an
  * error in Gradle 10." The stack frame is inside the plugin, so no line of this repository can
- * silence it: the only lever is the pinned version, and upstream fixed it in 0.9.9 (issue #818,
- * commit "Fixed Gradle 9.6.0 deprecation warning").
- *
- * Measured on Gradle 9.6.1 in this tree with `./gradlew help --warning-mode all`, counting the
- * line "Project object as a dependency notation":
- *
- * | pinned Kover | warning lines |
- * |---|---|
- * | 0.9.8 | 1 |
- * | 0.9.9 | 0 |
- * | 0.9.11 | 0 |
+ * silence it: the only lever is the pinned version, and upstream credits the fix to 0.9.9 — its
+ * changelog entry for issue #818 reads "Fixed Gradle 9.6.0 deprecation warning". The absence of the
+ * warning with 0.9.9 is that changelog's attribution, not something a host test can observe.
  *
  * The repository files are read relative to the module directory, which is an `:app` unit test's
  * working directory — the way `ShippedSpecClassificationTest` and `FavAutoZoomClampRangeTest` read

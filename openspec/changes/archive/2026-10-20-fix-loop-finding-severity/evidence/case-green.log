@@ -1,0 +1,21 @@
+$ bash tools/loop-selftest.sh --case 'run#aZeroBlockingRefusalClosesWithItsNotes'
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+exit=0
+$ bash tools/loop-selftest.sh --case 'run#aBlockingRefusalStillTakesTheRoundTwoPath'
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+exit=0
+$ bash tools/loop-selftest.sh --case 'run#reviewRoundsCapAtTwo'
+PASS run#reviewRoundsCapAtTwo
+exit=0
+$ bash tools/loop-selftest.sh --case 'run#metricsRecordedPerItem'
+PASS run#metricsRecordedPerItem
+exit=0
+$ bash tools/loop-selftest.sh --case 'run#aCorrectiveRefusalEarnsOneMoreRound'
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+exit=0
+$ bash tools/loop-selftest.sh --case 'prompt#reviewerCarriesTheEightItems'
+PASS prompt#reviewerCarriesTheEightItems
+exit=0
+$ bash tools/loop-selftest.sh --case 'run#engineNamesNoProjectFact'
+PASS run#engineNamesNoProjectFact
+exit=0

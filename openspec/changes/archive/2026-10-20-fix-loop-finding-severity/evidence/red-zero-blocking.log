@@ -1,0 +1,5 @@
+$ LOOP_ENGINE=.pi/tmp/prefix/tools/loop bash tools/loop-selftest.sh --case 'run#aZeroBlockingRefusalClosesWithItsNotes'
+# engine at HEAD (dabf314): no LOOP-BLOCKING reading — the FAIL blocks (and buys a third round for CORRECTIONS-ONLY)
+  a refusal with no blocking finding does not block the item: expected 'done', got 'blocked'
+FAIL run#aZeroBlockingRefusalClosesWithItsNotes
+exit=1

@@ -41,7 +41,7 @@ nothing. What the flags mean:
 | `--may-close yes\|no` | whether a finished item may be **closed**; `no` leaves the issue open with `status/fixed-by` and still posts the evidence comment |
 | `--push yes\|no` | the only thing that publishes anything; this loop never opens a change request |
 | `--max-decisions N` | the pile of open `agent/needs-decision` items that stops a run **before** it starts |
-| `--max-review-rounds N` | how many review rounds one item gets (default 2); a refusal whose findings are strictly subtractive earns exactly one more |
+| `--max-review-rounds N` | how many review rounds one item gets (default 2); a refusal whose findings are strictly subtractive earns exactly one more, and a refusal that counts **no blocking finding** costs no round at all — it closes |
 | `--clean-worktree` | remove the run's worktree at the end (default: keep it, so the next run keeps its warm build) |
 
 Exit codes: `0` the run ended (including "nothing eligible"), `2` usage, `3` stop (the identity is not
@@ -79,6 +79,31 @@ through `{{EVIDENCE_DIR}}`, and the prompt says the diff excludes it, so an abse
 a missing artefact. Measured: item #126's round-3 diff carried 9 935 changed lines of which 9 364 (94.3 %)
 were evidence, against 112 lines of Kotlin (issue #204; re-measured on the run's own file at 10 883 lines, 9 574
 of them inside `evidence/`) — a cost paid three times, once per review round.
+
+### How a finding is graded
+
+A round states a number, not an adjective: `LOOP-BLOCKING: <n>`, the count of its own `BLOCKING:` findings, and
+`VERDICT: PASS` is allowed only at 0. `BLOCKING:` means the change cannot be merged as it stands — the contract
+is contradicted, a scenario is not exercised by the case that names it, or the gate or the red-case evidence is
+missing or false. `NOTE:` means it can: wording, a pointer, a naming, an ordering, anything the change does not
+depend on. A finding the reviewer cannot grade is blocking.
+
+| the round's lines | what the run does |
+|---|---|
+| `VERDICT: PASS`, count `0` or absent | closes, as it always has |
+| `VERDICT: FAIL`, `LOOP-BLOCKING: 0` | closes: the refusal blocked nothing, and the `NOTE:` findings are recorded in the closure comment and in the item's state note |
+| `VERDICT: FAIL`, `LOOP-BLOCKING: n ≥ 1` | a refusal — another round inside the budget, then `blocked` and escalated |
+| no `LOOP-BLOCKING` line at all | a refusal whatever the verdict says, because a run cannot tell an old-shaped review from a quiet one |
+
+`LOOP-CORRECTIONS-ONLY` describes the *shape of a refusal*, so it is read only when the blocking count is not
+zero: a report with zero blocking findings does not refuse, and has no round for that line to buy. The count
+wins because it is the machine-readable line and the shape of a refusal is not a refusal.
+
+Measured 2026-10-19, item #126: 83 minutes, three review rounds (16.2 KB, 13.4 KB, 15.6 KB — the findings were
+rewritten, not closed), then `blocked` and escalated, while the escalation itself said every finding was *a
+narrowing or a corrected pointer* and recommended the merge, with code, gate (5 680 tests, 0 failures) and
+revert-check all green. The run had no vocabulary for that distinction, so a misnamed constant and a broken
+scenario were the same refusal (#205).
 
 ## The eligibility gate (phase B)
 
@@ -179,7 +204,8 @@ a child's prose.
 |---|---|
 | the child exits non-zero, or claims work it did not produce | the run records the item `blocked` and does **not** close it — it reads the tree, the archive and the gate XMLs itself |
 | the child outlasts `LOOP_CHILD_MAX_SECONDS` | the run ends it and everything it started, appends `LOOP-TIMEOUT: the child exceeded <n> s` to the transcript, and records the item `blocked` with that transcript — the run is not waiting any more, and the gate is **never** retried |
-| the change fails its last review round | `agent/needs-decision` + `status/on-hold`, recorded `blocked`, and the next candidate is taken. A report whose findings are subtractive (`LOOP-CORRECTIONS-ONLY: yes`) buys one more round instead |
+| the review refuses with `LOOP-BLOCKING: 0` | **not a refusal**: the item closes, and the `NOTE:` findings travel into the closure comment and the state note — a note is recorded, never absorbed |
+| the change fails its last review round | `agent/needs-decision` + `status/on-hold`, recorded `blocked`, and the next candidate is taken. A report whose findings are subtractive (`LOOP-CORRECTIONS-ONLY: yes`) buys one more round instead, and a report with no `LOOP-BLOCKING` line is read as blocking |
 | the reviewer wrote to the tree during its round | the round is discarded with a reason (a reviewer that wrote cannot have been the reviewer), recorded `blocked` |
 | the fix needs a decision, or grows beyond one capability | the worker re-gates: `skipped` with `needs-decision`, escalated on the item with the work it had already done |
 | tests red after three focused attempts | `blocked`, as above. Never weaken a test to make it green |

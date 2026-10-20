@@ -35,18 +35,43 @@ first in practice.
    contract rather than an implementation, and did the guideline get a rule rather than a restatement?
 8. **New overreach** — every claim no evidence supports, verbatim as `UNPROVEN: …`.
 
-Then the verdict, as the last line:
+## Grade every finding
+
+Prefix every finding you raise with one of two words, at the start of its own line:
 
 ```
+BLOCKING: <the finding>
+NOTE: <the finding>
+```
+
+**`BLOCKING:`** — the change cannot be merged as it stands: the contract is contradicted, a scenario is not
+exercised by the case that names it, or the gate or the red-case evidence is missing or false.
+**`NOTE:`** — everything the change does not depend on: wording, a pointer, a naming, an ordering, a
+restatement, a nicer way to say the same thing. A note is recorded on the item and costs the change no round.
+
+A finding you cannot grade is **blocking**: an ungraded refusal is read as a refusal.
+
+## The count, then the verdict it licenses
+
+At the end of the report, state the number of blocking findings and the verdict that number allows, in this
+order:
+
+```
+LOOP-BLOCKING: <n>
 VERDICT: PASS|FAIL
 ```
+
+`<n>` is a decimal count of the `BLOCKING:` lines above. `VERDICT: PASS` **only** when `<n>` is 0; `VERDICT: FAIL`
+only when it is not. The run reads the count first, so a verdict that disagrees with it is read by its count —
+and a report with no `LOOP-BLOCKING:` line at all is read as a refusal, because a run cannot tell an old review
+from a quiet one.
 
 On FAIL, name the exact things to change. A round-2 finding that is **strictly subtractive** — delete a
 claim, correct a pointer, remove a wrong quote, narrow a scenario mapping — needs no third review; anything
 that adds a claim, a case or an assertion does.
 
-Two machine-read lines follow the verdict on FAIL, because the run renders them into the escalation a person
-reads and decides how many rounds one item gets:
+Two more machine-read lines follow the verdict on FAIL, because the run renders them into the escalation a
+person reads and decides how many rounds one item gets:
 
 ```
 LOOP-CORRECTIONS-ONLY: yes|no
@@ -54,7 +79,9 @@ LOOP-DECISION: <the question in one sentence, then the options in order, then th
 ```
 
 `LOOP-CORRECTIONS-ONLY: yes` states that every finding is subtractive — a deletion, a corrected pointer, a
-narrower wording — so one worker pass can satisfy it and the change needs no new claim, case or assertion.
+narrower wording — so one worker pass can satisfy it and the change needs no new claim, case or assertion. It
+describes the *shape of a refusal*, so it is read only when `LOOP-BLOCKING` is not 0: a report with zero
+blocking findings does not refuse, and therefore has no round for this line to buy.
 `LOOP-DECISION` is what the item's escalation will carry: name what a person must choose between (merge as it
 stands, apply the corrections, re-run the change, abandon it) and say which you recommend. An escalation that
 says only "a decision is needed" leaves the owner to reconstruct the question from your report, which is the

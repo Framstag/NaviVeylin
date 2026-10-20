@@ -90,6 +90,8 @@ LOOP_SHELL_CASES=(
   'run#reviewBudgetIsARecordedValue'
   'run#aZeroRoundBudgetIsRefused'
   'run#aCorrectiveRefusalEarnsOneMoreRound'
+  'run#aZeroBlockingRefusalClosesWithItsNotes'
+  'run#aBlockingRefusalStillTakesTheRoundTwoPath'
   'run#escalationCarriesTheDecision'
   'run#mayCloseNoLeavesTheIssueOpen'
   'run#metricsRecordedPerItem'
@@ -189,6 +191,8 @@ loop_run_shell_case() {
     'run#reviewBudgetIsARecordedValue') fn=case_run_reviewBudgetIsARecordedValue ;;
     'run#aZeroRoundBudgetIsRefused') fn=case_run_aZeroRoundBudgetIsRefused ;;
     'run#aCorrectiveRefusalEarnsOneMoreRound') fn=case_run_aCorrectiveRefusalEarnsOneMoreRound ;;
+    'run#aZeroBlockingRefusalClosesWithItsNotes') fn=case_run_aZeroBlockingRefusalClosesWithItsNotes ;;
+    'run#aBlockingRefusalStillTakesTheRoundTwoPath') fn=case_run_aBlockingRefusalStillTakesTheRoundTwoPath ;;
     'run#escalationCarriesTheDecision') fn=case_run_escalationCarriesTheDecision ;;
     'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
@@ -1930,6 +1934,57 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
   assert_eq "3" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" \
     "a corrective refusal earns the third round"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "and a third refusal still blocks the item"
+}
+
+# A refusal is a refusal only when something the change depends on is contradicted. A report that grades every
+# finding as a note and counts zero blocking findings is a pass whose notes are recorded: the item closes, one
+# round was spent, and the notes travel to the item instead of buying a second reviewer process (#205). The
+# report also asks for corrections, which is the shape of a refusal: there is none here, so no round is bought.
+case_run_aZeroBlockingRefusalClosesWithItsNotes() {
+  local d p f notes log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: none — no scenario is left unexercised and the gate tally is the one the run read
+NOTE: the script calls the round budget round_cap while the design names it maxReviewRounds
+NOTE: the tasks list cites the design section before the spec it belongs to
+LOOP-BLOCKING: 0
+LOOP-CORRECTIONS-ONLY: yes
+VERDICT: FAIL'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  f=$(state_file "$p")
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" "a refusal with no blocking finding does not block the item"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$f")" "it closes"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "and one review round was spent, though the report asked for corrections"
+  [ ! -f "$p/.pi/issue-loop/items/21/reviewer-prompt-2.md" ] ||
+    fail "a second reviewer round ran for a report with no blocking finding"
+  assert_eq "2" "$(grep -c '^invocation' "$PI_STUB_LOG")" "exactly one worker and one reviewer process"
+  notes=$(jq -r '.items[0].note' "$f")
+  assert_contains "$notes" "round_cap while the design names it maxReviewRounds" "the state records the notes"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "issue comment 21" "the closure comment is posted"
+  assert_contains "$log" "the tasks list cites the design section before the spec it belongs to" \
+    "and the notes reach the item"
+  assert_eq "1" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "the item is closed"
+}
+
+# The other half of the same line: a report that counts blocking findings refuses exactly as the loop has always
+# refused — the change goes back for a second round, and a second refusal blocks the item (#205).
+case_run_aBlockingRefusalStillTakesTheRoundTwoPath() {
+  local d p f
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: the scenario "the budget is arguments, not a prompt" has no asserting case
+BLOCKING: the red case is quoted from a build directory the next run overwrites
+LOOP-BLOCKING: 2
+VERDICT: FAIL'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  f=$(state_file "$p")
+  [ -f "$p/.pi/issue-loop/items/21/reviewer-prompt-2.md" ] || fail "no second review round was taken"
+  assert_eq "2" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "two rounds are taken"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "and the second refusal blocks the item"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "last review round" "the reason names the round"
+  assert_eq "4" "$(grep -c '^invocation' "$PI_STUB_LOG")" "two workers and two reviewers"
+  assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "nothing is closed"
 }
 
 # The escalation is what a person reads, so it carries the decision the reviewer already worked out: the

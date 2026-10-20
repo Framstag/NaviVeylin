@@ -1,0 +1,18 @@
+$ bash tools/check-portability.sh --quiet
+check-portability: OK — 42 engines and 2 templates name no project value (98 value(s) read from the project)
+exit=0
+
+$ openspec validate fix-loop-finding-severity --strict
+Change 'fix-loop-finding-severity' is valid
+exit=0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-severity
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit=0

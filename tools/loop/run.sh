@@ -372,6 +372,29 @@ report_field() { # report_field <file> <FIELD>
   sed -n "s/^${2}: //p" "$1" 2>/dev/null | tail -1
 }
 
+# The reviewer's severity count, and nothing else about its prose (#205). A report may say `VERDICT: FAIL` and
+# count zero blocking findings, which is a pass whose notes are recorded; a report that says nothing at all is
+# empty here, and an empty count keeps the loop's conservative reading — an old-shaped review never passes.
+blocking_count() { # blocking_count <report file> → the count, or empty when the line is absent or malformed
+  local value
+  value=$(report_field "$1" LOOP-BLOCKING)
+  case "$value" in ''|*[!0-9]*) return 0 ;; esac
+  printf '%s\n' "$value"
+}
+
+# What a round that refused nothing leaves behind: its `NOTE:` findings, one per line as bullets, or the path of
+# the report when it graded none. This is what the item's closure comment and its state note carry, so a note is
+# recorded rather than spent on another round (#205).
+review_notes() { # review_notes <report file>
+  local notes
+  notes=$(sed -n 's/^NOTE: //p' "$1" 2>/dev/null)
+  if [ -z "$notes" ]; then
+    printf 'no NOTE: finding — the report is %s\n' "$1"
+  else
+    printf '%s\n' "$notes" | sed 's/^/- /'
+  fi
+}
+
 slugify() { # a change name out of an item's title: lowercase, dashes, bounded
   printf '%s' "$1" |
     sed -e 's/^[^A-Za-z]*//' -e 's/§[0-9]*//g' |
@@ -640,6 +663,7 @@ while true; do
 
   review_rounds=0
   review_verdict="off"
+  review_notes_text=""
   if [ "$outcome" = "closed" ] && [ "$review" = "on" ]; then
     review_verdict="FAIL"
     round=1
@@ -670,8 +694,19 @@ while true; do
         outcome="blocked"; blocked_reason="the review round was discarded: the working tree changed while the reviewer ran"
         break
       fi
-      if grep -q '^VERDICT: PASS' "$item_dir/reviewer-report-$round.md" 2>/dev/null; then
+      # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
+      # with a non-zero count contradicts itself and is read as a refusal, and a refusal with a zero count is
+      # a pass whose notes are recorded — the findings are wording, pointers and naming, which cost the change
+      # no round. A report with no count line keeps today's reading, so an old-shaped review never passes.
+      blocking=$(blocking_count "$item_dir/reviewer-report-$round.md")
+      if grep -q '^VERDICT: PASS' "$item_dir/reviewer-report-$round.md" 2>/dev/null &&
+        { [ -z "$blocking" ] || [ "$blocking" -eq 0 ]; }; then
         review_verdict="PASS"
+        break
+      fi
+      if [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then
+        review_verdict="NOTES"
+        review_notes_text=$(review_notes "$item_dir/reviewer-report-$round.md")
         break
       fi
       if [ "$round" -ge "$round_cap" ]; then
@@ -723,12 +758,24 @@ while true; do
   case "$outcome" in
     closed)
       evidence_paths="$item_dir, $worktree/openspec/changes/archive/$change, ${gate_xmls:-no gate evidence}"
-      close_args=("$issue" --reason "${root_cause:-closed by the run}" --evidence "$evidence_paths")
+      close_reason="${root_cause:-closed by the run}"
+      note_field=""
+      if [ -n "$review_notes_text" ]; then
+        # A refusal that blocked nothing carries its notes into the tracker, in the closure comment and in the
+        # state: the round would otherwise have cost the item a decision and lost what the reviewer found (#205).
+        note_field="round $review_rounds, 0 blocking finding:\n$review_notes_text"
+        close_reason="$close_reason
+
+**Review notes** (recorded, not blocking):
+$review_notes_text"
+      fi
+      close_args=("$issue" --reason "$close_reason" --evidence "$evidence_paths")
       if [ "$may_close" = "no" ]; then close_args+=(--no-close); fi
       if loop_labels close "${close_args[@]}"; then closure="$(if [ "$may_close" = yes ]; then printf yes; else printf skipped; fi)"; fi
       loop_state done "$issue" --result done --verdict closed --change "$change" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --gate "$gate_field" \
-        --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" >/dev/null
+        --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
+        --note "$note_field" >/dev/null
       ;;
     skipped)
       # The in-progress mark comes off on every exit path (labels.sh, header): an item a run skipped is no

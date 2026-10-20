@@ -6,7 +6,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Holds `guidelines/Build.md` §6's test-scheduling rule to the test sources: a test that builds
+ * Holds `guidelines/Build.md` §4's test-scheduling rule ('Result evaluation', its test-scheduling-traps
+ * bullet) to the test sources: a test that builds
  * [com.naviveylin.data.SearchHistoryRepository] MUST point the repository's I/O hop at a dispatcher it
  * drives, because `record()` and `load()` run — including the `history` publication — inside
  * `withContext(defaultDispatcher)`, and a test that leaves the seam at its production value
@@ -130,8 +131,8 @@ class SearchHistoryDispatcherRuleTest {
         assertTrue("the test sources of the modules must be found (found $files files)", files > 0)
         assertEquals(
             "a test that builds the search history repository must point its I/O hop at the test's own " +
-                "dispatcher (`guidelines/Build.md` §6, test-scheduling traps) — these leave it on a real " +
-                "thread: $findings",
+                "dispatcher (`guidelines/Build.md` §4 'Result evaluation', its test-scheduling-traps " +
+                "bullet) — these leave it on a real thread: $findings",
             emptyList<String>(),
             findings
         )

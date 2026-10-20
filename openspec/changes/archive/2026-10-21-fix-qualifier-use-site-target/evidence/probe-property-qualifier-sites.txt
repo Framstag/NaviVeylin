@@ -1,0 +1,5 @@
+2026-10-20T23:01:23.369Z
+cmd: python3 probe-property-qualifier-sites.py .
+scanned=719 code_findings=0 comment_lines=1
+COMMENT app/src/test/java/com/naviveylin/build/QualifierUseSiteTargetTest.kt:14: * `@ApplicationContext private val context: Context`. Kotlin applies it to the constructor's value parameter
+exit=0

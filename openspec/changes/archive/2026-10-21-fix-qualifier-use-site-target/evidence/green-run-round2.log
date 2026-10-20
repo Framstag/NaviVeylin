@@ -20,7 +20,6 @@ Run with --info for a stacktrace.
 > Task :osmscout-client-java:classes UP-TO-DATE
 > Task :osmscout-client-java:jar UP-TO-DATE
 > Task :core:checkHardcodedStrings
-> Task :auto:checkHardcodedStrings
 > Task :core:checkNoWallClockWaits
 > Task :core:preBuild
 > Task :core:preDebugBuild
@@ -29,29 +28,11 @@ Run with --info for a stacktrace.
 > Task :core:packageDebugResources UP-TO-DATE
 > Task :core:parseDebugLocalResources UP-TO-DATE
 > Task :core:generateDebugRFile UP-TO-DATE
+> Task :auto:checkHardcodedStrings
 > Task :core:kspDebugKotlin UP-TO-DATE
 > Task :core:compileDebugKotlin UP-TO-DATE
 > Task :core:javaPreCompileDebug UP-TO-DATE
-> Task :auto:checkNoWallClockWaits
-> Task :auto:preBuild
-> Task :auto:preDebugBuild
-> Task :auto:processDebugNavigationResources UP-TO-DATE
-> Task :auto:generateDebugResources UP-TO-DATE
-> Task :auto:packageDebugResources UP-TO-DATE
 > Task :core:compileDebugJavaWithJavac UP-TO-DATE
-> Task :auto:parseDebugLocalResources UP-TO-DATE
-> Task :auto:generateDebugRFile UP-TO-DATE
-> Task :auto:javaPreCompileDebug UP-TO-DATE
-> Task :auto:writeDebugAarMetadata UP-TO-DATE
-> Task :auto:extractDeepLinksDebug UP-TO-DATE
-> Task :auto:processDebugManifest UP-TO-DATE
-> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
-> Task :auto:compileDebugLibraryResources UP-TO-DATE
-> Task :auto:mergeDebugJniLibFolders UP-TO-DATE
-> Task :auto:mergeDebugNativeLibs NO-SOURCE
-> Task :auto:copyDebugJniLibsProjectOnly UP-TO-DATE
-> Task :auto:generateDebugAssets UP-TO-DATE
-> Task :auto:mergeDebugAssets UP-TO-DATE
 > Task :core:transformDebugClassesWithAsm UP-TO-DATE
 > Task :core:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
@@ -67,12 +48,31 @@ Run with --info for a stacktrace.
 > Task :core:copyDebugJniLibsProjectOnly UP-TO-DATE
 > Task :core:generateDebugAssets UP-TO-DATE
 > Task :core:mergeDebugAssets UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
 > Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
 > Task :auto:compileDebugJavaWithJavac NO-SOURCE
 > Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :auto:processDebugJavaRes UP-TO-DATE
 > Task :auto:createFullJarDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:mergeDebugJniLibFolders UP-TO-DATE
+> Task :auto:mergeDebugNativeLibs NO-SOURCE
+> Task :auto:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
 > Task :app:checkHardcodedStrings
 > Task :app:checkNoCoordinatesInLogs
 > Task :app:checkNoWallClockWaits
@@ -128,14 +128,7 @@ Run with --info for a stacktrace.
 > Task :app:koverFindJar UP-TO-DATE
 > Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
 > Task :app:kspMobileDebugKotlin
-
 > Task :app:compileMobileDebugKotlin
-w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:36:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
-- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
-- To keep applying to the value parameter only, use the '@param:' annotation target.
-
-See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
-
 > Task :app:compileMobileDebugJavaWithJavac UP-TO-DATE
 > Task :app:hiltSyncMobileDebug UP-TO-DATE
 > Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
@@ -144,34 +137,16 @@ See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
 > Task :app:bundleMobileDebugClassesToRuntimeJar UP-TO-DATE
 > Task :app:processMobileDebugJavaRes UP-TO-DATE
 > Task :app:bundleMobileDebugClassesToCompileJar UP-TO-DATE
-> Task :app:kspMobileDebugUnitTestKotlin
-> Task :app:compileMobileDebugUnitTestKotlin
+> Task :app:kspMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestKotlin UP-TO-DATE
 > Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
 > Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :app:hiltSyncMobileDebugUnitTest
+> Task :app:hiltSyncMobileDebugUnitTest UP-TO-DATE
 > Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
 > Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
-> Task :app:transformMobileDebugUnitTestClassesWithAsm
+> Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :app:testMobileDebugUnitTest
 
-> Task :app:testMobileDebugUnitTest FAILED
-
-QualifierUseSiteTargetTest > no qualifier on an injected property relies on the implicit target FAILED
-    java.lang.AssertionError: a qualifier applied to an injected property must name its use-site target — write `@param:ApplicationContext` instead of `@ApplicationContext`, because the unqualified form is applied to the value parameter only and a later Kotlin default will also apply it to the field expected:<[]> but was:<[:36: @ApplicationContext private val context: Context, in app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt]>
-        at org.junit.Assert.fail(Assert.java:89)
-        at org.junit.Assert.failNotEquals(Assert.java:835)
-        at org.junit.Assert.assertEquals(Assert.java:120)
-        at com.naviveylin.build.QualifierUseSiteTargetTest.no qualifier on an injected property relies on the implicit target(QualifierUseSiteTargetTest.kt:46)
-
-2 tests completed, 1 failed
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':app:testMobileDebugUnitTest'.
-> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/reports/tests/testMobileDebugUnitTest/index.html
-
-* Try:
-> Run with --scan to get full insights from a Build Scan (powered by Develocity).
-
-BUILD FAILED in 5s
-114 actionable tasks: 23 executed, 91 up-to-date
+BUILD SUCCESSFUL in 3s
+114 actionable tasks: 19 executed, 95 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

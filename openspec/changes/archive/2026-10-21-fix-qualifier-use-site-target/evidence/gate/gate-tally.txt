@@ -1,10 +1,8 @@
-# gate tally — ./gradlew test -PforceTests --no-build-cache (2026-10-20, BUILD SUCCESSFUL in 3m 40s, 189 tasks: 25 executed)
-# read from each module's TEST-*.xml at the moment the run finished
-app/testMobileDebugUnitTest      tests=2074 failures=0 errors=0
-app/testAutomotiveDebugUnitTest  tests=2074 failures=0 errors=0
-auto/testDebugUnitTest           tests=866  failures=0 errors=0
-core/testDebugUnitTest           tests=642  failures=0 errors=0
-osmscout-client-java/test        tests=48   failures=0 errors=0
-total                            tests=5704 failures=0 errors=0
-# warning family this change removed: 0 lines matching 'value parameter only' in gate-console.log
-# guard case, both flavors: tests=2 failures=0, sources=716 findings=0
+2026-10-20T23:07:32.611Z
+cmd: ./gradlew test -PforceTests --no-build-cache  (BUILD SUCCESSFUL in 3m 36s, 189 tasks: 26 executed)
+app mobile: tests=2074 failures=0 errors=0
+app automotive: tests=2074 failures=0 errors=0
+auto: tests=866 failures=0 errors=0
+core: tests=642 failures=0 errors=0
+osmscout-client-java: tests=48 failures=0 errors=0
+total: tests=5704 failures=0 errors=0

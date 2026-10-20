@@ -37,9 +37,31 @@ Run with --info for a stacktrace.
 > Task :core:parseDebugLocalResources UP-TO-DATE
 > Task :core:generateDebugRFile UP-TO-DATE
 > Task :core:kspDebugKotlin UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
 > Task :core:compileDebugKotlin UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
 > Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:mergeDebugJniLibFolders UP-TO-DATE
+> Task :auto:mergeDebugNativeLibs NO-SOURCE
 > Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :auto:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
+> Task :auto:generateDebugUnitTestResources UP-TO-DATE
 > Task :core:transformDebugClassesWithAsm UP-TO-DATE
 > Task :core:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
@@ -56,50 +78,28 @@ Run with --info for a stacktrace.
 > Task :core:generateDebugAssets UP-TO-DATE
 > Task :core:mergeDebugAssets UP-TO-DATE
 > Task :core:preDebugUnitTestBuild
-> Task :auto:checkNoWallClockWaits
-> Task :auto:preBuild
-> Task :auto:preDebugBuild
-> Task :auto:processDebugNavigationResources UP-TO-DATE
-> Task :auto:generateDebugResources UP-TO-DATE
-> Task :auto:packageDebugResources UP-TO-DATE
-> Task :auto:parseDebugLocalResources UP-TO-DATE
-> Task :auto:generateDebugRFile UP-TO-DATE
 > Task :core:generateDebugUnitTestStubRFile UP-TO-DATE
 > Task :core:koverFindJar UP-TO-DATE
+> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
+> Task :core:kspDebugUnitTestKotlin UP-TO-DATE
 > Task :auto:compileDebugKotlin UP-TO-DATE
-> Task :auto:javaPreCompileDebug UP-TO-DATE
 > Task :auto:compileDebugJavaWithJavac NO-SOURCE
 > Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :auto:processDebugJavaRes UP-TO-DATE
 > Task :auto:createFullJarDebug UP-TO-DATE
-> Task :auto:writeDebugAarMetadata UP-TO-DATE
-> Task :auto:extractDeepLinksDebug UP-TO-DATE
-> Task :auto:processDebugManifest UP-TO-DATE
-> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
-> Task :auto:compileDebugLibraryResources UP-TO-DATE
-> Task :auto:mergeDebugJniLibFolders UP-TO-DATE
-> Task :auto:mergeDebugNativeLibs NO-SOURCE
-> Task :auto:copyDebugJniLibsProjectOnly UP-TO-DATE
-> Task :auto:generateDebugAssets UP-TO-DATE
-> Task :auto:mergeDebugAssets UP-TO-DATE
-> Task :auto:preDebugUnitTestBuild
-> Task :core:kspDebugUnitTestKotlin UP-TO-DATE
 > Task :core:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
 > Task :core:processDebugUnitTestJavaRes UP-TO-DATE
 > Task :core:javaPreCompileDebugUnitTest UP-TO-DATE
 > Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :core:hiltSyncDebugUnitTest UP-TO-DATE
-> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
-> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
-> Task :auto:generateDebugUnitTestResources UP-TO-DATE
-> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
-> Task :core:hiltAggregateDepsDebugUnitTest UP-TO-DATE
-> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
 > Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
 > Task :auto:processDebugUnitTestManifest UP-TO-DATE
-> Task :core:transformDebugUnitTestClassesWithAsm UP-TO-DATE
 > Task :auto:processDebugUnitTestResources UP-TO-DATE
+> Task :core:hiltAggregateDepsDebugUnitTest UP-TO-DATE
+> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :core:transformDebugUnitTestClassesWithAsm UP-TO-DATE
 > Task :auto:compileDebugUnitTestKotlin UP-TO-DATE
 > Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
 > Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
@@ -125,12 +125,7 @@ Run with --info for a stacktrace.
 > Task :app:parseAutomotiveDebugLocalResources UP-TO-DATE
 > Task :app:generateAutomotiveDebugRFile UP-TO-DATE
 > Task :app:kspAutomotiveDebugKotlin UP-TO-DATE
-> Task :app:compileAutomotiveDebugKotlin UP-TO-DATE
 > Task :app:javaPreCompileAutomotiveDebug UP-TO-DATE
-> Task :app:compileAutomotiveDebugJavaWithJavac UP-TO-DATE
-> Task :app:hiltSyncAutomotiveDebug UP-TO-DATE
-> Task :app:hiltAggregateDepsAutomotiveDebug UP-TO-DATE
-> Task :app:hiltJavaCompileAutomotiveDebug UP-TO-DATE
 > Task :app:checkAutomotiveDebugAarMetadata UP-TO-DATE
 > Task :app:mapAutomotiveDebugSourceSetPaths UP-TO-DATE
 > Task :app:compileAutomotiveDebugNavigationResources UP-TO-DATE
@@ -141,8 +136,6 @@ Run with --info for a stacktrace.
 > Task :app:processAutomotiveDebugManifest UP-TO-DATE
 > Task :app:processAutomotiveDebugManifestForPackage UP-TO-DATE
 > Task :app:processAutomotiveDebugResources UP-TO-DATE
-> Task :app:transformAutomotiveDebugClassesWithAsm UP-TO-DATE
-> Task :app:bundleAutomotiveDebugClassesToRuntimeJar UP-TO-DATE
 > Task :app:generateAutomotiveDebugAssets UP-TO-DATE
 > Task :app:downloadSbomCli UP-TO-DATE
 > Task :app:generateSbomJvmAutomotiveDebug UP-TO-DATE
@@ -169,8 +162,6 @@ Run with --info for a stacktrace.
 > Task :app:processAutomotiveDebugUnitTestManifest UP-TO-DATE
 > Task :app:generateAutomotiveDebugUnitTestConfig UP-TO-DATE
 > Task :app:koverFindJar UP-TO-DATE
-> Task :app:processAutomotiveDebugJavaRes UP-TO-DATE
-> Task :app:bundleAutomotiveDebugClassesToCompileJar UP-TO-DATE
 > Task :app:javaPreCompileAutomotiveDebugUnitTest UP-TO-DATE
 > Task :app:preMobileDebugBuild
 > Task :app:generateMobileDebugBuildConfig UP-TO-DATE
@@ -227,18 +218,28 @@ Run with --info for a stacktrace.
 > Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
 > Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
 > Task :osmscout-client-java:test
-> Task :app:kspAutomotiveDebugUnitTestKotlin
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 > Task :core:testDebugUnitTest
 > Task :core:test
-> Task :auto:testDebugUnitTest
 
+> Task :app:compileAutomotiveDebugKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 
+> Task :auto:testDebugUnitTest
 > Task :app:testMobileDebugUnitTest
 > Task :auto:test
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :app:compileAutomotiveDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncAutomotiveDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsAutomotiveDebug UP-TO-DATE
+> Task :app:hiltJavaCompileAutomotiveDebug UP-TO-DATE
+> Task :app:transformAutomotiveDebugClassesWithAsm UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:processAutomotiveDebugJavaRes UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspAutomotiveDebugUnitTestKotlin
 > Task :app:compileAutomotiveDebugUnitTestKotlin
 > Task :app:processAutomotiveDebugUnitTestJavaRes UP-TO-DATE
 > Task :app:compileAutomotiveDebugUnitTestJavaWithJavac NO-SOURCE
@@ -253,6 +254,6 @@ OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader clas
 
 > Task :app:test
 
-BUILD SUCCESSFUL in 3m 40s
-189 actionable tasks: 25 executed, 164 up-to-date
+BUILD SUCCESSFUL in 3m 36s
+189 actionable tasks: 26 executed, 163 up-to-date
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

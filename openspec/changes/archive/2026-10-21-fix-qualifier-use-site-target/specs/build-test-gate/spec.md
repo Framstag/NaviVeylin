@@ -5,16 +5,17 @@
 The Kotlin sources the gate compiles (`app/src/main/java`, `app/src/test/java`, `auto/src/main/java`,
 `auto/src/test/java`, `core/src/main/java`, `core/src/test/java`) SHALL apply a qualifier annotation —
 `@ApplicationContext`, `@ActivityContext` or `@Named` — to a property declaration only with an explicit
-use-site target: `@param:` for the constructor value parameter the annotation means today.
+use-site target: `@param:` for the constructor value parameter the annotation means today, so a compile of
+those sources carries no `value parameter only` warning.
 
 #### Scenario: A qualifier on an injected property names `param:`
 
 - **WHEN** the Kotlin sources are scanned for a qualifier applied to a `val`/`var` declaration without a
   use-site target
-- **THEN** the scan reports no such site, so a gate run carries no `This annotation is currently applied to
-  the value parameter only, but in the future it will also be applied to field` line, and the site that
-  carried one (`NavigationNotificationController`'s constructor) names `@param:ApplicationContext` —
-  exercised by `QualifierUseSiteTargetTest.no qualifier on an injected property relies on the implicit target`
+- **THEN** the scan reports no such site — its surface being every Kotlin file of the six source sets, which
+  the case asserts by requiring each root to exist — and the site that carried one
+  (`NavigationNotificationController`'s constructor) names `@param:ApplicationContext` — exercised by
+  `QualifierUseSiteTargetTest.no qualifier on an injected property relies on the implicit target`
 
 #### Scenario: The implicit target is still detectable
 

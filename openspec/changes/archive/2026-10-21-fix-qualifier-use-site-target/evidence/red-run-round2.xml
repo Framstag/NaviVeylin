@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.build.QualifierUseSiteTargetTest" tests="2" skipped="0" failures="1" errors="0" timestamp="2026-10-20T22:46:46.741Z" hostname="dingens" time="0.531">
+<testsuite name="com.naviveylin.build.QualifierUseSiteTargetTest" tests="2" skipped="0" failures="1" errors="0" timestamp="2026-10-20T23:02:07.005Z" hostname="dingens" time="0.54">
   <properties/>
-  <testcase name="the implicit target is still detectable" classname="com.naviveylin.build.QualifierUseSiteTargetTest" time="0.22"/>
-  <testcase name="no qualifier on an injected property relies on the implicit target" classname="com.naviveylin.build.QualifierUseSiteTargetTest" time="0.303">
+  <testcase name="the implicit target is still detectable" classname="com.naviveylin.build.QualifierUseSiteTargetTest" time="0.297"/>
+  <testcase name="no qualifier on an injected property relies on the implicit target" classname="com.naviveylin.build.QualifierUseSiteTargetTest" time="0.232">
     <failure message="java.lang.AssertionError: a qualifier applied to an injected property must name its use-site target — write `@param:ApplicationContext` instead of `@ApplicationContext`, because the unqualified form is applied to the value parameter only and a later Kotlin default will also apply it to the field expected:&lt;[]&gt; but was:&lt;[:36: @ApplicationContext private val context: Context, in app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt]&gt;" type="java.lang.AssertionError">java.lang.AssertionError: a qualifier applied to an injected property must name its use-site target — write `@param:ApplicationContext` instead of `@ApplicationContext`, because the unqualified form is applied to the value parameter only and a later Kotlin default will also apply it to the field expected:&lt;[]&gt; but was:&lt;[:36: @ApplicationContext private val context: Context, in app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt]&gt;
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.failNotEquals(Assert.java:835)
 	at org.junit.Assert.assertEquals(Assert.java:120)
-	at com.naviveylin.build.QualifierUseSiteTargetTest.no qualifier on an injected property relies on the implicit target(QualifierUseSiteTargetTest.kt:46)
+	at com.naviveylin.build.QualifierUseSiteTargetTest.no qualifier on an injected property relies on the implicit target(QualifierUseSiteTargetTest.kt:54)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
@@ -52,7 +52,7 @@
 	at worker.org.gradle.process.internal.worker.GradleWorkerMain.main(GradleWorkerMain.java:74)
 </failure>
   </testcase>
-  <system-out><![CDATA[sources=716 findings=1
+  <system-out><![CDATA[sources=719 findings=1
 FINDING :36: @ApplicationContext private val context: Context, in app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>

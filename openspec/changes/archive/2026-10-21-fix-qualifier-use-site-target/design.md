@@ -28,18 +28,35 @@ Two edits and one case:
 
 1. `NavigationNotificationController.kt:36` — `@ApplicationContext` → `@param:ApplicationContext`. The
    compiler's own second suggestion names this as the form that keeps today's meaning, and the compiled class
-   proves it: identical below the classfile header, `RuntimeVisibleParameterAnnotations: parameter 0:
-   dagger.hilt.android.qualifiers.ApplicationContext` in both states
-   (`evidence/javap-diff.txt`, `evidence/javap-constructor-{bare,param}.txt`).
+   proves it: two compilations of that class, one from each form, produced the same 6225 bytes and the same
+   SHA-256 (`evidence/classfile-bare.class`, `evidence/classfile-param.class`), so their `javap -v -p` dumps
+   are identical, `RuntimeVisibleParameterAnnotations: parameter 0:
+   dagger.hilt.android.qualifiers.ApplicationContext` included (`evidence/javap-diff-round2.txt`).
 2. `app/src/test/java/com/naviveylin/build/QualifierUseSiteTargetTest.kt` — the guard:
    - `no qualifier on an injected property relies on the implicit target` walks the six Kotlin source sets of
      `app`, `auto` and `core` and asserts the finding list is empty. Before the fix it holds exactly one
-     finding, the controller's line 36 (measured: `sources=716 findings=1`).
+     finding, the controller's line 36 (measured: `sources=719 findings=1`).
    - `the implicit target is still detectable` runs the same detector over eight literal lines — three bare
      property sites it must name, and `@param:`, `@field:`, a bare *method* parameter, a comment and a
      constructor with no qualified parameter it must leave alone. Without it a scan that read nothing would
      pass, which is the vacuous green #219's review refused.
 3. `guidelines/Build.md` §4 — one sentence in the warnings bullet: the site, the count, the guard's name.
+
+Two properties of the guard are part of the fix, because the first round got both wrong:
+
+- **The surface is the six roots, walked directly.** The first version walked the repository and pruned every
+  directory named `build`, `.git`, `.gradle`, `.idea`, `.pi`, `node_modules`. The project's source-scan guards
+  live in the package `com.naviveylin.build`, so the `build` prune silently excluded this file,
+  `GradleScriptDeprecationTest` and `KoverDeprecationBaselineTest`: 716 files scanned of 719 in the six roots
+  (`evidence/probe-guard-surface.txt` measured 719 for the root walk). A guard that cannot see the package it
+  lives in is the vacuous green it exists to prevent, so the walk now starts at `SCANNED_SOURCE_SETS` and the
+  case asserts each root exists (a lost root would otherwise shrink the surface silently).
+- **The fixtures are assembled from parts.** With the surface restored the file is inside its own scan, and a
+  fixture written whole (`"@ApplicationContext private val context: Context,"`) is a finding of the guard it
+  feeds — three of them, which is what the first review measured. Each fixture therefore concatenates the
+  qualifier off the rest (`"    @" + "ApplicationContext private val context: Context,"`), so the source text
+  cannot match while the value it produces still does. The same reason keeps the two probe scripts out of the
+  guard: a probe is evidence, not a fixture.
 
 ## Blast radius
 
@@ -58,7 +75,7 @@ compensating delta; restoring the bare annotation alone makes the guard's first 
   own message: that flag makes every unqualified annotation apply to *both* the value parameter and the
   field, which is the future default this change refuses — a project-wide semantic change to silence one
   site, and it would change annotation placement in the classfile for every unqualified annotation in both
-  flavors. The classfile diff above is the measurement the chosen form is free.
+  flavors. The two-state classfile measurement above is what shows the chosen form is free.
 - **A project-wide `allWarningsAsErrors` (or a per-diagnostic error).** Eliminated by the same compile's other
   warnings — the `:app` main compile still prints `LocationMarkerOverlay.kt:165`'s deprecation, and the four
   unit-test task families print the ones #218/#219 own — so error-ing this diagnostic means error-ing
@@ -82,10 +99,35 @@ It reads `//` line comments out (`a comment that names the refused form` is a fi
 lowercase and the qualifier name begins uppercase, which is what the `@param:`/`@field:` fixture lines pin.
 
 What it cannot see, and why that is enough here: the modifier list the pattern accepts is
-`private|internal|public|protected`, so a `lateinit`/`override` property carrying a qualifier would not be
-matched — a class-body site of that shape draws Kotlin's *field*-to-property message, not the value-parameter
-one this requirement is about, and the tree has no such site: on HEAD
-`probe-qualifier-targets.py` (in the item's evidence directory) reported
-`findings_whole_file == findings_in_constructor == 1`, so no qualifier sits on a property outside a
-constructor. The pattern is per line, so an annotation whose arguments span lines is invisible to it — no
-qualifier in the tree does that.
+`private|internal|public|protected`, so a `lateinit` or `override` property carrying a qualifier would not be
+matched — a class-body site of that shape would draw Kotlin's *field*-to-property message, not the
+value-parameter one this requirement is about, and the tree has no such site: a wider probe over the same six
+source sets, matching a qualifier applied to *any* `val`/`var` with any modifier list and skipping comment
+lines, reports `scanned=719 code_findings=0` (`evidence/probe-property-qualifier-sites.txt`; the one comment
+line it reports is this guard's own KDoc naming the refused form). The pattern is per line, so an annotation
+whose arguments span lines is invisible to it — no qualifier in the tree does that.
+
+## Round 2 — what the first review changed, and what it did not
+
+The first review refused the change on one measured contradiction: the guard's own fixture lines are findings
+of the pattern it scans for, so `findings=0` could not come from the committed source, and the recorded
+`javap` dumps were the same classfile twice, so "unchanged" was unmeasured. Both were re-taken:
+
+- **The fixtures.** The review's reading was right about the committed text and wrong about the run: the first
+  guard's repository walk pruned the `com.naviveylin/build` package, so the file was never scanned and
+  `findings=0` was genuinely what that run printed — a green that held because the surface was wrong, which is
+  the more serious of the two defects. Fixing the surface alone would have made the guard red on its own
+  tree; the fixtures are assembled from parts in the same pass. Red and green were re-run on the final source
+  (`evidence/red-run-round2.xml`, `evidence/green-run-round2.xml`), each `sources=719`, `findings=1`/`0`.
+- **The classfile.** The first pair of dumps differed in nothing, header included, because both were taken from
+  one state. The re-taken measurement compiles the class from the bare form and then from the `@param:` form,
+  records the source line at each capture, and keeps both classfiles: same size, same SHA-256, dumps identical
+  (`evidence/classfile-state-{bare,param}.txt`, `evidence/classfile-bare.class`,
+  `evidence/classfile-param.class`, `evidence/javap-diff-round2.txt`).
+
+What the review did not change: the production fix (still one line), the requirement, the guideline section,
+and the eliminated alternatives. Three notes were also applied — the eight remaining qualifier sites are value
+parameters that declare no property (seven function parameters, one constructor parameter at
+`AddressBookRationaleStore.kt:15`) rather than "method parameters"; the first scenario's `THEN` now stops at
+what the case asserts instead of promising a compiler log; and the pointer to the change's own delta is the
+archive path.

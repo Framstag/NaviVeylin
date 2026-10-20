@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.test.JniStubSandboxRuleTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-20T13:41:01.814Z" hostname="dingens" time="0.883">
+  <properties/>
+  <testcase name="aPinnedStubLoadingClassIsReported" classname="com.naviveylin.test.JniStubSandboxRuleTest" time="0.551"/>
+  <testcase name="noTestClassThatLoadsTheStubPinsTheSandbox" classname="com.naviveylin.test.JniStubSandboxRuleTest" time="0.226"/>
+  <testcase name="aPinnedClassThatLoadsNoStubIsAllowed" classname="com.naviveylin.test.JniStubSandboxRuleTest" time="0.001"/>
+  <testcase name="everyStubModuleIsScanned" classname="com.naviveylin.test.JniStubSandboxRuleTest" time="0.09"/>
+  <testcase name="aQualifierOnAStubLoadingClassIsAllowed" classname="com.naviveylin.test.JniStubSandboxRuleTest" time="0.001"/>
+  <system-out><![CDATA[jniStubSandbox positiveControl=[fixture/PinnedStubClientTest.kt:5: @Config(sdk = [34])]
+jniStubSandbox scanned app=287 auto=92 findings=[]
+jniStubSandbox negativeControl=[]
+jniStubSandbox roots app=287 auto=92
+jniStubSandbox qualifierControl=[]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

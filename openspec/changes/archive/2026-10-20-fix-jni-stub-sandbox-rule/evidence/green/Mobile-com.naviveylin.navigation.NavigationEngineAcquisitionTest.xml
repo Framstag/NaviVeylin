@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.NavigationEngineAcquisitionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-20T13:41:19.019Z" hostname="dingens" time="0.263">
+  <properties/>
+  <testcase name="navigateTo_withoutAnyGrant_isRefusedBeforeTheEngine" classname="com.naviveylin.navigation.NavigationEngineAcquisitionTest" time="0.023"/>
+  <testcase name="acquire_withRoute_startsNavigation" classname="com.naviveylin.navigation.NavigationEngineAcquisitionTest" time="0.03"/>
+  <testcase name="navigateTo_withoutRoutePanelViewModel_usesLocationServiceGps" classname="com.naviveylin.navigation.NavigationEngineAcquisitionTest" time="0.132"/>
+  <testcase name="navigateTo_withApproximateGrant_isRefusedBeforeTheEngineAndTheLease" classname="com.naviveylin.navigation.NavigationEngineAcquisitionTest" time="0.021"/>
+  <testcase name="navigateTo_withoutRoutePanelViewModelAndNoGps_reportsGpsError" classname="com.naviveylin.navigation.NavigationEngineAcquisitionTest" time="0.023"/>
+  <testcase name="acquire_routeError_setsErrorMessage" classname="com.naviveylin.navigation.NavigationEngineAcquisitionTest" time="0.03"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

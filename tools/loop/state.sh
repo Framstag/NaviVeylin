@@ -387,7 +387,7 @@ cmd_done() {
       *) [ -z "$issue" ] || loop_die "done: issue given twice"; issue="$1"; shift ;;
     esac
   done
-  case "$issue" in ''|*[!0-9]*) loop_die "done: usage: state.sh done <issue> --result done|skipped|blocked" ;; esac
+  case "$issue" in ''|*[!0-9]*) loop_die "done: usage: state.sh done <issue> --result done|skipped|blocked|falsified" ;; esac
   case "$result" in done|skipped|blocked|falsified) ;; *) loop_die "done: --result must be done|skipped|blocked|falsified" ;; esac
   [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading

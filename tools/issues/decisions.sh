@@ -42,7 +42,7 @@ decision_agent=$(jq -r '.roles.decisionAgent // empty' "$profile")
   issues_die "decisions: the profile's roles section declares no decisionAgent — there is no label to ask about"
 decision_label="agent${separator}${decision_agent}"
 
-issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,comments,updatedAt)
+issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,comments,updatedAt,state)
 
 # The question is the last comment's first non-empty line: the escalation writes its question there and the
 # options below it, and a later comment (a person's own note) is the more recent statement, so "last" is

@@ -551,6 +551,11 @@ case_decisions_listsTheQueueAndItsQuestions() {
     "an escalation that left no statement reports none rather than inventing one"
   assert_eq "0" "$(printf '%s' "$out" | jq -r '[.[] | select(.issue == 72)] | length')" \
     "a hold with no decision label is not in the queue"
+  # A closed item that still carries the label is not a question either: the query filters on the item's state,
+  # and it asked `gh` for no state at all until 2026-10-20 — so the filter was inert and a closed item stayed in
+  # the queue and in the run's ceiling for ever (#81, openspec change `fix-decision-queue-answerability`).
+  assert_eq "0" "$(printf '%s' "$out" | jq -r '[.[] | select(.issue == 74)] | length')" \
+    "a closed item is not in the queue, whatever labels it kept"
 
   out=$(run_tool decisions.sh 2>&1); status=$?
   assert_eq "0" "$status" "the human form exits 0 as well"
@@ -1031,6 +1036,10 @@ case_close_writesTheSettledStatus() {
   [ -n "$edit" ] || fail "the closure wrote no status label — the item is closed and still carries status/on-hold"
   assert_contains "$edit" "--add-label status/fixed-by" "the settled state is set"
   assert_contains "$edit" "--remove-label status/on-hold" "and the state it displaces is removed in the same write"
+  # The closure takes the decision label off only when the item carries it: an item that never asked for a
+  # decision is written exactly as before (openspec change `fix-decision-queue-answerability`, design D2).
+  printf '%s' "$edit" | grep -q 'agent/needs-decision' &&
+    fail "an item without the decision label must not be written as if it carried one"
   status_line=$(grep -n 'issue edit' "$log" | cut -d: -f1)
   close_line=$(grep -n 'issue close' "$log" | cut -d: -f1)
   [ -n "$close_line" ] || fail "the issue was not closed"

@@ -72,6 +72,7 @@ LOOP_SHELL_CASES=(
   'run#falsifiedSkipClosesWithItsMeasurement'
   'run#falsificationWithoutAMeasurementIsEscalated'
   'run#mayCloseNoKeepsAFalsificationOpen'
+  'run#falsificationWithAChangedTreeIsBlocked'
   'run#decisionCapRefusesToStart'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
@@ -126,6 +127,7 @@ LOOP_SHELL_CASES=(
   'report#escalatedSkipNamesTheLabelWritten'
   'report#failedReviewEscalationIsNamed'
   'report#aVerdictAloneIsNoEscalation'
+  'report#misdiagnosedIsCountedApart'
   'report#archivedStateIsReported'
   'report#impossibleBudgetNamesAnotherRun'
   'report#wallTimeAndReasonInTheTable'
@@ -208,6 +210,7 @@ loop_run_shell_case() {
     'run#falsifiedSkipClosesWithItsMeasurement') fn=case_run_falsifiedSkipClosesWithItsMeasurement ;;
     'run#falsificationWithoutAMeasurementIsEscalated') fn=case_run_falsificationWithoutAMeasurementIsEscalated ;;
     'run#mayCloseNoKeepsAFalsificationOpen') fn=case_run_mayCloseNoKeepsAFalsificationOpen ;;
+    'run#falsificationWithAChangedTreeIsBlocked') fn=case_run_falsificationWithAChangedTreeIsBlocked ;;
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
@@ -264,6 +267,7 @@ loop_run_shell_case() {
     'report#escalatedSkipNamesTheLabelWritten') fn=case_report_escalatedSkipNamesTheLabelWritten ;;
     'report#failedReviewEscalationIsNamed') fn=case_report_failedReviewEscalationIsNamed ;;
     'report#aVerdictAloneIsNoEscalation') fn=case_report_aVerdictAloneIsNoEscalation ;;
+    'report#misdiagnosedIsCountedApart') fn=case_report_misdiagnosedIsCountedApart ;;
     'report#archivedStateIsReported') fn=case_report_archivedStateIsReported ;;
     'report#impossibleBudgetNamesAnotherRun') fn=case_report_impossibleBudgetNamesAnotherRun ;;
     'report#wallTimeAndReasonInTheTable') fn=case_report_wallTimeAndReasonInTheTable ;;
@@ -1524,6 +1528,10 @@ case_prompt_workerNamesTheDecisionField() {
   # The handover: what a person gets on the item when the worker reaches a fork (#194).
   assert_contains "$(cat "$prompt")" 'LOOP-DECISION:' "the worker prompt asks for the decision field"
   assert_contains "$(cat "$prompt")" 'the question in one sentence' "and says what it must contain"
+  # The two fields a falsification carries (openspec change `falsified-items-close-in-the-loop`): without them
+  # in the rendered prompt the worker cannot answer the shape the run reads.
+  assert_contains "$(cat "$prompt")" 'LOOP-FALSIFIED:' "the worker prompt asks what the item blames"
+  assert_contains "$(cat "$prompt")" 'LOOP-MEASURED:' "and what was measured instead, with how it was taken"
 }
 
 case_run_skipEscalationCarriesTheDecision() {
@@ -1558,6 +1566,9 @@ case_prompt_reviewerCarriesTheEightItems() {
   # strictly subtractive, which is what earns the extra round (#187).
   assert_contains "$(cat "$prompt")" "LOOP-DECISION:" "the decision the escalation will carry"
   assert_contains "$(cat "$prompt")" "LOOP-CORRECTIONS-ONLY:" "and whether the findings are subtractive"
+  # A falsification reaches the review with an empty diff, and the reviewer is told it is read like a change
+  # (openspec change `falsified-items-close-in-the-loop`).
+  assert_contains "$(cat "$prompt")" "falsification" "the reviewer is told how a falsification is read"
 }
 
 case_prompt_packageIsAFileAndNotInlined() {
@@ -1669,6 +1680,7 @@ case_run_falsificationWithoutAMeasurementIsEscalated() {
   log=$(cat "$d/gh.log")
   assert_eq "skipped" "$(jq -r '.items[0].result' "$(state_file "$p")")" "without a measurement it is a skip"
   assert_contains "$log" "--add-label agent/needs-decision" "and it is escalated"
+  assert_contains "$log" "--add-label status/on-hold" "with the state that holds it"
   assert_not_contains "$log" "issue close" "nothing is closed"
 }
 
@@ -1686,7 +1698,42 @@ case_run_mayCloseNoKeepsAFalsificationOpen() {
   assert_eq "skipped" "$(jq -r '.items[0].metrics.closed' "$(state_file "$p")")" "the closure is left to a person"
   assert_contains "$log" "issue comment" "the evidence is still posted"
   assert_not_contains "$log" "issue close" "the item stays open"
+  assert_not_contains "$log" "status/retired" "no settled state is written"
   assert_not_contains "$log" "--add-label agent/needs-decision" "no decision label is written"
+}
+
+# A falsification is a claim about an unchanged tree. The review round may run a corrective worker that commits,
+# so the claim is read again after the review: a falsified item whose tree moved is a change, and closing it as
+# mis-diagnosed would close on evidence nobody reviewed.
+case_run_falsificationWithAChangedTreeIsBlocked() {
+  local d p out log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_FALSIFIED_REPORT" 'BLOCKING: the measurement does not cover the blamed mechanism
+LOOP-BLOCKING: 1
+VERDICT: FAIL'
+  # the round-2 worker commits; the round-2 reviewer then accepts, so the only thing that changed between the
+  # claim and the closure is the tree
+  cat > "$d/worker-action.sh" <<'ACTION'
+case "$1" in
+  worker-prompt-round2.md)
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    printf 'the fix\n' > demo-fix.txt
+    ;;
+  reviewer-prompt-2.md)
+    printf 'VERDICT: PASS\n' > "$PI_STUB_REPORT_REVIEWER"
+    ;;
+esac
+ACTION
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1) || fail "the run failed: $out"
+  log=$(cat "$d/gh.log")
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a falsification whose tree moved is blocked, not closed"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "the tree moved during its review" \
+    "and the note names what contradicted the claim"
+  assert_not_contains "$log" "issue close" "nothing is closed"
+  assert_contains "$log" "--add-label agent/needs-decision" "the item is escalated instead"
 }
 
 # ----------------------------------------------------------------------------- cases: run
@@ -2496,6 +2543,9 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "**The decision:**" "the escalation names the decision it asks for"
   assert_contains "$log" "recommended: apply the corrections" "including the reviewer's recommendation"
+  # The run's own retry/abandon sentence belongs to the block with no reviewer decision, and the two are
+  # mutually exclusive: appending it here would put two questions on one item (issues #225, #194).
+  assert_not_contains "$log" "retry the item, or abandon it" "and not the run's own question beside it"
 }
 
 case_run_mayCloseNoLeavesTheIssueOpen() {
@@ -2931,6 +2981,26 @@ case_report_yieldIsCountedFromState() {
   rows=$(printf '%s' "$out" | grep -c '^| #2' || true)
   assert_eq "2" "$rows" "every recorded item has a row"
   assert_contains "$out" "#21 needs-decision" "a skip is reported with its verdict"
+}
+
+# A falsified item is closed, but not by a change: the run measured that the item's premise does not hold. It is
+# counted and listed apart from the closures, so a run that only falsified does not read as a run that
+# delivered — and it is not asked for a gate it never had (openspec change
+# `falsified-items-close-in-the-loop`).
+case_report_misdiagnosedIsCountedApart() {
+  local p out
+  p=$(new_project)
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result falsified --verdict falsified \
+    --root-cause "the acquire await the item blames" --red-test "12-17 ms, probe reverted" >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "closed 0 · mis-diagnosed 1 · skipped 0 · blocked 0" \
+    "a falsified item is counted apart from a closure and from a skip"
+  assert_contains "$out" "mis-diagnosed: #21 the acquire await the item blames" \
+    "and listed with what it falsified"
+  assert_not_contains "$out" "re-run the gate for #21" \
+    "a falsified item is not asked for a gate it never had"
 }
 
 # The decision list is what the run *wrote*, not the verdict a worker chose (issue #177): a skip whose

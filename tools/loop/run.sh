@@ -848,9 +848,25 @@ while true; do
       outcome="blocked"
       blocked_reason="the change failed its last review round ($review_rounds of $round_cap) — a decision is needed, not another attempt"
       # The verdict has to outlive this run and travel with the change: the branch is what a later run adopts
-      # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185).
-      bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$review_rounds" >&2 ||
-        printf 'run: the failed review could not be recorded on the branch — a later run may adopt it\n' >&2
+      # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185). A
+      # falsification has no change to record the verdict against — its tree did not move — so the branch keeps
+      # no review marker and `worktree.sh` is not asked to write one.
+      if [ -n "$change" ]; then
+        bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$review_rounds" >&2 ||
+          printf 'run: the failed review could not be recorded on the branch — a later run may adopt it\n' >&2
+      fi
+    fi
+  fi
+
+  # A falsification claims that the tree was only measured. The review round can run a corrective worker, and
+  # that worker may commit — so the claim is read again after the review instead of before it: a falsified item
+  # whose tree moved is a change, and closing it as mis-diagnosed would be a closure on evidence the reviewer
+  # never saw (a reviewer's refusal is exactly the case where the report is the whole claim).
+  if [ "$outcome" = "falsified" ]; then
+    head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+    if [ "$head_now" != "$base" ]; then
+      outcome="blocked"
+      blocked_reason="the falsification claimed an unchanged tree, but the tree moved during its review — a change exists, so the item is not mis-diagnosed"
     fi
   fi
 
@@ -966,8 +982,8 @@ $review_notes_text"
         # states it, with the reason it holds as the ground for either answer.
         escalation_reason="$escalation_reason
 
-**The decision:** retry the item, or abandon it — $blocked_reason. Nothing about the item itself was found
-wrong by this run, so a retry costs another attempt and an abandonment removes it from the loop."
+**The decision:** retry the item, or abandon it — $blocked_reason. The reason above is the run's finding, not a
+question the item asked; a retry costs another attempt, and an abandonment removes it from the loop."
       fi
       if loop_labels escalate "$issue" --reason "$escalation_reason" \
         --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then

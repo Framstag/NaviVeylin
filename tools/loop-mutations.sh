@@ -139,6 +139,9 @@ MUTATIONS=(
   # 30.x — a falsified skip is a finding, not a question (openspec change `falsified-items-close-in-the-loop`):
   # without the verdict the item goes back to the escalation it used to take.
   '30.1@-@tools/loop/run.sh@run#falsifiedSkipClosesWithItsMeasurement@the verdict that tells a measured falsification from an ordinary skip@s|^    outcome="falsified"$|    outcome="skipped"|'
+  # The claim is read again after the review (openspec task 1.4): without the re-read, a falsification whose
+  # tree moved during a corrective round is still closed as mis-diagnosed.
+  '30.2@-@tools/loop/run.sh@run#falsificationWithAChangedTreeIsBlocked@the second read of the tree after the review of a falsification@s|^    if \[ "\$head_now" != "\$base" \]; then$|    if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

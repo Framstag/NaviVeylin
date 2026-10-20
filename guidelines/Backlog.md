@@ -174,6 +174,12 @@ counts that query (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
 - **A block asks its own question.** When the reviewer wrote no decision, the run states the only two-way
   choice a block leaves — retry the item, or abandon it — because a reason is not something a person can
   answer (`issue #225`).
+- **A reviewed falsification closes the item as mis-diagnosed, and only on an unchanged tree.** A run that
+  measured that the item's premise does not hold holds the evidence that settles it, so it closes the item in
+  the settled state a decision not to act records, with the measurement as the comment — under the same
+  `--may-close` permission a fix closure rides, and only after the review read the claim. A falsification whose
+  tree moved during the review is a change, so it is escalated instead (openspec change
+  `falsified-items-close-in-the-loop`).
 
 ## 6. How an item becomes work
 

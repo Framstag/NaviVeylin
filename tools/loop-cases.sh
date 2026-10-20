@@ -1416,13 +1416,20 @@ case_run_childReportsWhileItWaits() {
   # was indistinguishable from a hung one. The wait itself therefore has to report.
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   fifo="$d/wait.fifo"; mkfifo "$fifo"
+  # The stub blocks on this fifo and the run waits for the stub. A case that leaves through an assertion below
+  # used to leave both alive, and both hold the caller's stdout open — so a failing suite hung the shell instead
+  # of reporting the failure (measured 2026-10-20: three orphaned runs in one worktree). Release and reap on
+  # every exit path; the writer is backgrounded because a fifo with no reader blocks forever.
+  trap '( printf "go\n" > "$fifo" ) 2>/dev/null & kill "${pid:-0}" 2>/dev/null; wait "${pid:-0}" 2>/dev/null' EXIT
   ( export PI_STUB_WAIT="$fifo" LOOP_PROGRESS_SECONDS=1
     run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
   pid=$!
-  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  # The host may be loaded by another run's suites or a Gradle build, so the waits are ceilings rather than
+  # stopwatches: the time they allow is what a loaded machine needs, and the assertion says what is missing.
+  for i in $(seq 1 300); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
   [ -e "$fifo.ready" ] || fail "the stub child never started"
   # The child is blocked on the fifo: whatever the run says now it cannot have learned from the child.
-  for i in $(seq 1 100); do grep -q 'running' "$d/out" 2>/dev/null && break; sleep 0.1; done
+  for i in $(seq 1 600); do grep -q 'running' "$d/out" 2>/dev/null && break; sleep 0.1; done
   out=$(cat "$d/out")
   assert_contains "$out" "loop: worker-prompt started" "the wait is announced when the child starts"
   assert_contains "$out" "loop: worker-prompt running" "the wait reports while the child cannot"

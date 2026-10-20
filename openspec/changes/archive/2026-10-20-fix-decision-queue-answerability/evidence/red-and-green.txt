@@ -1,0 +1,67 @@
+# The red cases, and the green ones
+
+Recorded 2026-10-20 in the session that made the change; every line is quoted from that session's output.
+
+## 1. The red cases, before the fix
+
+### `run#blockedItemAsksItsOwnQuestion`
+
+```
+FAIL run#blockedItemAsksItsOwnQuestion
+  the escalation carries a decision field, not only a reason: 'The decision:' not found in:
+  gh issue comment 21 --body $'reported success but the tree is still at the base commit — nothing was
+  committed\n\nEvidence: /…/items/21, branch fix/issue-21-…'
+```
+
+The record shows the defect exactly as #91 had it on the live tracker: a block escalated with a reason, the
+decision label, and nothing a person can answer.
+
+### `labels#closeRemovesTheDecisionLabel`
+
+```
+FAIL labels#closeRemovesTheDecisionLabel
+gh issue edit 41 --add-label status/fixed-by --remove-label status/on-hold
+gh issue close 41 --reason completed
+```
+
+The closure writes the settled state and closes; the item keeps `agent/needs-decision`, so it stays in the
+decision queue (`tools/issues/decisions.sh`) and in the run's ceiling for ever — which is what #81 showed on
+the live tracker.
+
+## 2. The green runs
+
+```
+tools/loop-selftest.sh            all 120 cases passed at this change's commit,
+                                  all 125 cases passed on the tree this change archives from
+tools/issue-tooling-selftest.sh   all 91 cases passed (JDK 27, offline, no token)
+tools/mutate.sh --mutations tools/close-mutations.json
+                                  5 mutation(s) run, 5 went red and restored green, 0 problem(s)
+tools/check-portability.sh        OK — 43 engines and 2 templates name no project value (103 value(s))
+tools/check-doc-routes.sh         all 89 section references resolve
+```
+
+## 3. The revert-checks
+
+```
+tools/loop-mutations.sh --only "29.1 29.2"
+RED    29.1  run#blockedItemAsksItsOwnQuestion        (the question a block asks when the reviewer wrote none)
+restore 29.1 run#blockedItemAsksItsOwnQuestion green again
+RED    29.2  labels#closeRemovesTheDecisionLabel      (the closure taking the decision label off the item it ends)
+restore 29.2 labels#closeRemovesTheDecisionLabel green again
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+```
+
+## 4. The assertion that the removal fires only when the label is there
+
+`tools/issues/close.sh` passes `--remove-label agent/needs-decision` only when the item carries it. Verified by
+mutation in the session: inserting an unconditional `remove_args=(--remove-label "agent/needs-decision")` after
+`remove_args=()` makes `close#writesTheSettledStatus` fail with
+`an item without the decision label must not be written as if it carried one`, and the restore is green again.
+
+## 5. The two review rounds
+
+Round 1 (fresh read-only process) returned `VERDICT: FAIL` and named this change's casualty: the mutation set
+`tools/close-mutations.json` still searched for the line this change rewrote, so its revert-check could no
+longer run. A1.1 is repaired in the same commit, its set runs 5/5, and the reviewer's other findings (the
+prose, the guideline claim, the missing negative assertions) are addressed — round 2's list is in task 4.1.
+Change 'fix-decision-queue-answerability' is valid

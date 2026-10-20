@@ -1,0 +1,70 @@
+# The red runs, and the green ones
+
+Recorded 2026-10-20, in the session that made the change. Every line below is quoted from that session's own
+output; the case names are the ones `tools/loop-selftest.sh --list` declares.
+
+## 1. The red cases, before the fix
+
+### `run#falsifiedSkipClosesWithItsMeasurement`
+
+```
+FAIL run#falsifiedSkipClosesWithItsMeasurement
+  the item is recorded apart from a fix and from a skip: []: expected 'falsified', got 'none'
+```
+
+The first version of the case recorded no item at all: `state.sh done --result falsified` was refused
+(`done: --result must be done|skipped|blocked`), so the run died on its own bookkeeping. The message above is
+the state *after* `--result falsified` was accepted and the verdict branch was still the old `skipped`.
+
+### `run#falsificationWithoutAMeasurementIsEscalated`
+
+```
+FAIL run#falsificationWithoutAMeasurementIsEscalated
+  and it is escalated: '--add-label agent/needs-decision' not found in: gh issue edit 21 --add-in-progress
+```
+
+A `falsified` skip with no measurement fell through to `loop_labels falsified`, which is no verdict of
+`labels.sh` — the item was left with no label at all. The fix routes it to the decision verdict it belongs to.
+
+### `run#falsificationWithAChangedTreeIsBlocked`
+
+Written after the first review round found the hole: a falsification was classified before the review, and a
+corrective round's worker may commit. The case failed on the first run of the *old* code path in the same
+review, which is why the check now sits after the review block:
+
+```
+FAIL run#falsificationWithAChangedTreeIsBlocked
+  a falsification whose tree moved is blocked, not closed: expected 'blocked', got 'falsified'
+```
+
+## 2. The green runs
+
+```
+tools/loop-selftest.sh            all 125 cases passed (JDK 27, offline, no token, no sandbox)
+tools/issue-tooling-selftest.sh   all 91 cases passed (JDK 27, offline, no token)
+tools/check-portability.sh        OK — 43 engines and 2 templates name no project value (103 value(s))
+tools/check-doc-routes.sh         all 89 section references resolve
+```
+
+## 3. The revert-checks
+
+```
+tools/loop-mutations.sh --only "30.1 30.2"
+RED    30.1  run#falsifiedSkipClosesWithItsMeasurement   (the verdict that tells a measured falsification from an ordinary skip)
+restore 30.1 run#falsifiedSkipClosesWithItsMeasurement green again
+RED    30.2  run#falsificationWithAChangedTreeIsBlocked  (the second read of the tree after the review of a falsification)
+restore 30.2 run#falsificationWithAChangedTreeIsBlocked green again
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+```
+
+## 4. What the two review rounds changed (the record the reviewer asked for)
+
+Round 1 (`delegate`, read-only, fresh process) returned `VERDICT: FAIL` with six blocking findings; all six were
+addressed in this tree: the stale `tools/close-mutations.json` A1.1 search (repaired — five mutations, all
+red-when-mutated), the `--may-close no` prose, the `guidelines/Backlog.md` claim, the missing second read of the
+tree (this case and mutation `30.1`/`30.2`), and the unimplemented sibling-finding bullet (removed). Round 2
+found the same class again in two more places (the reversibility claim: `reopen.sh` refuses a `not_planned`
+closure) and the missing evidence directory this file fills. Round 3 is the round that closes it.
+Change 'falsified-items-close-in-the-loop' is valid
+
+openspec validate --strict recorded 2026-10-20T16:58:07Z UTC

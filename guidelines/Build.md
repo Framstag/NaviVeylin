@@ -327,14 +327,19 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
 - **Warnings**: the build must have no warnings — report them, don't ignore.
   - **The unit-test source sets carry none of the `… is deprecated. Deprecated in Java.` family.**
     Measured 2026-10-20 with `-Pkotlin.incremental=false` over the four suites (`:app` mobile and
-    automotive, `:auto`, `:core`): on HEAD 109 `w:` lines, of which exactly 7 were that family — four call
-    sites, counted twice because `:app`'s two flavors compile the same test tree (`addSensor(int, Sensor)`,
-    `isBroadcastIntent()`, `isActivityIntent()`, `Notification.defaults`); after change
-    `fix-test-source-deprecations` replaced each with the supported member its library publishes, 0 are.
+    automotive, `:auto`, `:core`): HEAD's log carries 109 `w:` lines, of which exactly 7 were that family —
+    four call sites, counted twice because `:app`'s two flavors compile the same test tree
+    (`addSensor(int, Sensor)`, `isBroadcastIntent()`, `isActivityIntent()`, `Notification.defaults`); after
+    change `fix-test-source-deprecations` replaced each with the supported member its library publishes, the
+    same four compiles carry none — its `w:` total is 100 rather than HEAD's 109 partly because
+    `:app:compileAutomotiveDebugKotlin` was up to date and did not re-emit that flavor's production warnings,
+    so the "none" is a statement about the four unit-test compiles, not about the total.
     `UnitTestSourceDeprecationBaselineTest` (`:app` unit tests, 3 cases) holds the absence, and the
     requirement is spec `build-test-gate` — "The unit-test source sets call no deprecated API". Of HEAD's
-    109 lines, 91 are the `ExperimentalCoroutinesApi` opt-in family, which has its own item; the
-    remainder are pre-existing non-deprecation warnings.
+    109 lines, 91 are the `ExperimentalCoroutinesApi` opt-in family, which has its own item; of the 18 that
+    are neither, 7 are the family above and 2 are a deprecation of a different family from production source
+    (`LocationMarkerOverlay.kt:165` — `quadraticBezierTo`, which the compiler names in its own message
+    rather than as `Deprecated in Java`), the remaining 9 being pre-existing non-deprecation warnings.
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
 - **Per-flavor test tasks**: `:app` has one task per flavor —

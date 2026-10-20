@@ -18,7 +18,9 @@ import java.io.File
  * The four unit-test suites compile from three source roots (`:app`'s two flavors share
  * `app/src/test/java`), which is why the scan walks three. The repository is read relative to the
  * module directory, which is an `:app` unit test's working directory — the way
- * [KoverDeprecationBaselineTest] reads `build.gradle.kts`.
+ * [KoverDeprecationBaselineTest] reads `build.gradle.kts`. It is a Kotlin text scan, so a deprecated
+ * call inside a string literal or behind a nested parenthesis is outside what it can see: a guard
+ * against a call site returning, not a proof that none exists.
  */
 class UnitTestSourceDeprecationBaselineTest {
 
@@ -82,12 +84,25 @@ class UnitTestSourceDeprecationBaselineTest {
     fun `no unit test asserts notification silence through the deprecated defaults bitmask`() {
         val sources = unitTestSources()
         val deprecated = Regex("""\.defaults\b""")
+        val silenceTest = "auto/src/test/java/com/naviveylin/auto/CarStyleLoadNotifierTest.kt"
 
+        val source = sources.singleOrNull { it.relative == silenceTest }
         assertTrue(
             "the scan must reach the notification test that asserts silence, or it proves nothing " +
                 "about the deprecated bitmask: ${sources.size} files scanned under $repoRoot",
-            sources.any { it.relative == "auto/src/test/java/com/naviveylin/auto/CarStyleLoadNotifierTest.kt" }
+            source != null
         )
+
+        // The claim the bitmask's removal is a substitution for lives in one function, so the
+        // positive control reads that function: a silence test that stopped naming the channel the
+        // notice rides would leave this case green while the property it replaces went unasserted.
+        val silence = functionBody(source!!.code, "noticeIsSilentSoGuidanceIsNotInterrupted")
+        assertTrue(
+            "the silence assertion must read the channel the posted notice rides and that channel's " +
+                "importance, not the notification's own deprecated values: $silenceTest",
+            silence.contains("posted.channelId") && silence.contains("IMPORTANCE_LOW")
+        )
+
         val offenders = sources.filter { deprecated.containsMatchIn(it.code) }.map { it.relative }
         assertTrue(
             "Notification.defaults is deprecated from API 26 — the concept moved to the channel, so " +
@@ -101,6 +116,16 @@ class UnitTestSourceDeprecationBaselineTest {
      * a comment cannot call a deprecated member, so a comment that names one is not an offence.
      */
     private data class Source(val relative: String, val code: String)
+
+    /**
+     * One test function's text, from its declaration to the next `@Test` (or the end of the file).
+     */
+    private fun functionBody(code: String, name: String): String {
+        val start = code.indexOf("fun $name(")
+        assertTrue("the test function must exist: $name", start >= 0)
+        val next = code.indexOf("@Test", start)
+        return code.substring(start, if (next < 0) code.length else next)
+    }
 
     /** Every `*.kt` file under the module test roots, minus this guard. */
     private fun unitTestSources(): List<Source> =

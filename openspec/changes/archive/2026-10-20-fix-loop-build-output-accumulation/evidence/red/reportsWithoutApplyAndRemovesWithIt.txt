@@ -1,0 +1,14 @@
+# red on HEAD 5dd5b35 (clean#reportsWithoutApplyAndRemovesWithIt)
+# there is no command that reports what the loop left
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-060302')
+HEAD ist jetzt bei d6c15da init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+bash: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-disk/tools/loop/loop-clean.sh: Datei oder Verzeichnis nicht gefunden
+  loop-clean failed: 
+FAIL clean#reportsWithoutApplyAndRemovesWithIt
+exit 1

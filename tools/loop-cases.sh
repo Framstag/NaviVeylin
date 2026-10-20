@@ -51,6 +51,7 @@ LOOP_SHELL_CASES=(
   'worktree#oneBranchPerItemOffTheBase'
   'worktree#refusesWhenMainAdvanced'
   'worktree#keepsByDefaultAndRemovesOnRequest'
+  'worktree#keepsSourcesNotBuildOutput'
   'worktree#noPushWithoutTheFlag'
   'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
   'worktree#refusesABranchCarryingAPreviousAttempt'
@@ -123,6 +124,8 @@ LOOP_SHELL_CASES=(
   'report#zeroUsagePrintsDashNotZero'
   'report#actionsNameDecisionAndBranch'
   'report#emptyRunSaysNone'
+  'clean#interruptedSuiteRemovesItsScratchTree'
+  'clean#reportsWithoutApplyAndRemovesWithIt'
 )
 
 loop_shell_cases() {
@@ -168,6 +171,7 @@ loop_run_shell_case() {
     'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
     'worktree#refusesWhenMainAdvanced') fn=case_worktree_refusesWhenMainAdvanced ;;
     'worktree#keepsByDefaultAndRemovesOnRequest') fn=case_worktree_keepsByDefaultAndRemovesOnRequest ;;
+    'worktree#keepsSourcesNotBuildOutput') fn=case_worktree_keepsSourcesNotBuildOutput ;;
     'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
     'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
@@ -239,6 +243,8 @@ loop_run_shell_case() {
     'report#zeroUsagePrintsDashNotZero') fn=case_report_zeroUsagePrintsDashNotZero ;;
     'report#actionsNameDecisionAndBranch') fn=case_report_actionsNameDecisionAndBranch ;;
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
+    'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
+    'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -273,7 +279,9 @@ scratch() { mktemp -d "$LOOP_TMP/case.XXXXXX"; }
 
 # A throwaway project: enough of this repository's shape that the loop's own scripts run unchanged — the
 # profile the issue tooling discovers, a directory standing in for the submodule, a `local.prop*` the
-# worktree does not inherit, and the gitignored skills it does not inherit either.
+# worktree does not inherit, and the gitignored skills it does not inherit either. `core/build` is ignored by
+# its whole path and not by `build/`, so a *symlink* at that recorded scratch path is untracked and the
+# removal has to refuse it on its own account (`worktree#keepsSourcesNotBuildOutput`).
 new_project() {
   local dir repo
   dir=$(scratch); repo="$dir/repo"
@@ -287,7 +295,7 @@ new_project() {
   if [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ]; then
     cp "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" "$repo/tools/pi-child-events.sh"
   fi
-  printf '.pi/\napp/build/\nbuild/\nlocal.prop*\n' > "$repo/.gitignore"
+  printf '.pi/\napp/build/\nbuild/\ncore/build\nlocal.prop*\n' > "$repo/.gitignore"
   printf 'cmake_minimum_required(VERSION 3.22)\n' > "$repo/app/src/main/cpp/libosmscout/CMakeLists.txt"
   printf '# machine-local SDK/NDK/Java paths\n' > "$repo/local.properties"
   printf -- '---\nname: fix-loop\n---\nfixture skill\n' > "$repo/.pi/skills/fix-loop/SKILL.md"
@@ -308,6 +316,7 @@ run_prescreen() {
   ( cd "$p" && GH_STUB_RECORD="${GH_STUB_RECORD:-$p/gh.log}" bash "$LOOP_ENGINE/prescreen.sh" "$@" )
 }
 run_worktree() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/worktree.sh" "$@" ); }
+run_clean() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/loop-clean.sh" "$@" ); }
 run_labels() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/labels.sh" "$@" ); }
 run_report() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/report.sh" "$@" ); }
 run_loop() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/run.sh" "$@" ); }
@@ -1199,6 +1208,51 @@ case_worktree_keepsByDefaultAndRemovesOnRequest() {
   return 0
 }
 
+# A kept worktree is the next run's warm *checkout* — the sources and the git state — and not a warm
+# *build* (issue #210): the run removes the module build directories the project records
+# (`LOOP_WORKTREE_SCRATCH_PATHS`) when it keeps the tree. Measured 2026-10-20: the kept worktree was 3.2 GB,
+# of which `app/build` alone was 1.9 GB, and nothing removed it. The removal is confined to the tree: a
+# recorded path that is a symlink out of it is left exactly where it is, and so is everything git holds.
+case_worktree_keepsSourcesNotBuildOutput() {
+  local d p w outside out bytes branch
+  d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
+  outside="$d/outside"; mkdir -p "$outside"
+  printf 'the file outside the tree\n' > "$outside/keep.txt"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # The child builds: one recorded build directory with real bytes, and one recorded path that is a symlink
+  # out of the tree. Both are gitignored, so the run's own `git add -A` does not stage them either.
+  cat > "$d/worker-action.sh" <<ACTION
+case "\$1" in
+  worker*)
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence app/build/test-results/test
+    printf 'archived\\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    printf '<testsuite tests="1" failures="0"></testsuite>\\n' > openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+    printf '<testsuite tests="1" failures="0"></testsuite>\\n' > app/build/test-results/test/TEST-demo.xml
+    head -c 102400 /dev/zero > app/build/blobs.bin
+    mkdir -p core
+    ln -s "$outside" core/build
+    printf 'the fix\\n' > demo-fix.txt
+    ;;
+esac
+ACTION
+
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1) || fail "the run failed: $out"
+  [ -d "$w" ] || fail "the worktree was not kept"
+  [ ! -e "$w/app/build" ] || fail "the kept worktree still carries its build output: $(du -sh "$w/app/build" | cut -f1)"
+  [ -f "$w/demo-fix.txt" ] || fail "the kept worktree lost the change's source file"
+  [ -L "$w/core/build" ] || fail "a recorded path that is a symlink was removed from the kept worktree"
+  [ -f "$outside/keep.txt" ] || fail "the removal followed the symlink out of the worktree"
+  assert_eq "" "$(git -C "$w" status --porcelain)" "the kept worktree is clean, its git state untouched"
+  branch=$(cat "$w/.pi/loop-branch")
+  [ -n "$(git -C "$p" branch --list "$branch")" ] || fail "the run's branch $branch is gone"
+  assert_eq "$(git -C "$p" rev-parse "$branch")" "$(git -C "$w" rev-parse HEAD)" \
+    "the kept worktree still holds the item's commit"
+  bytes=$(printf '%s\n' "$out" | sed -n 's/.*removed from the kept worktree: \([0-9][0-9]*\) B.*/\1/p' | head -1)
+  [ -n "$bytes" ] || fail "the run does not say how much build output it removed: $out"
+  [ "$bytes" -ge 102400 ] || fail "the run reports $bytes B removed, fewer than the 102400 B the child built"
+}
+
 case_worktree_noPushWithoutTheFlag() {
   local d p trace hits
   hits=$(grep -rn 'gh pr create' "$LOOP_PROJECT_ROOT/tools/loop/" || true)
@@ -1961,7 +2015,7 @@ case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
 }
 
-# The kept worktree is deliberate (the next run inherits its warm build) and refusing a previous run's
+# The kept worktree is deliberate (the next run inherits its warm checkout) and refusing a previous run's
 # leftovers is the right rule — but the refusal has to name the item the leftovers belong to, be recorded
 # and be reported, and it has to be reached before the run pays for anything else (issue #173): a refusal
 # that ends a run with an exit code and no item is the "nothing processed and no reason" outcome the report
@@ -2469,6 +2523,10 @@ case_run_engineNamesNoProjectFact() {
     "$LOOP_ENGINE"/*.sh "$LOOP_ENGINE/prompts/" 2>/dev/null || true)
   [ -z "$hits" ] || fail "a phase or a prompt names a project fact of its own: $hits"
   assert_contains "$(cat "$LOOP_ENGINE/loop.conf")" "LOOP_AGENT_CMD" "the configuration is where those facts live"
+  # the module build directories a kept worktree loses are this project's paths too, so they are recorded
+  # there as well — `tools/check-portability.sh` reads the list as a value no engine may name (issue #210)
+  assert_contains "$(cat "$LOOP_ENGINE/loop.conf")" "LOOP_WORKTREE_SCRATCH_PATHS" \
+    "the build directories the loop removes are recorded, not named by a phase"
 
   # and the run does not need a sandbox tool: the same run with `sbx` off PATH
   d=$(scratch); p=$(new_project)
@@ -2792,5 +2850,90 @@ case_report_emptyRunSaysNone() {
   assert_contains "$block" "none — no decision" "and says none, with what that covers"
   lines=$(printf '%s\n' "$block" | grep -c . || true)
   assert_eq "2" "$lines" "the heading and the one word, not an omitted section"
+}
+
+# ----------------------------------------------------------------------------- cases: the leftovers
+
+# A suite ended by a signal removes its scratch tree the way a failing one does (issue #210): INT, TERM and
+# HUP are trapped beside EXIT. The suite is this project's own driver, driven with a cases file of its own
+# whose one case sleeps — a suite in the middle of a case is exactly that — and it is ended with TERM in that
+# window. The scratch root is the loop's recorded one (`LOOP_TMP_DIR`, a temporary directory of this case's
+# own), which is also the root `loop-clean` reports; `SIGKILL` is not tested because nothing can trap it, and
+# those trees are what `loop-clean` is for.
+case_clean_interruptedSuiteRemovesItsScratchTree() {
+  local d nested suite pid status tree i tmp conf
+  d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
+  mkdir -p "$nested/tools" "$tmp"
+  # the driver is this project's; the engine and the issue tooling are the ones under test, so the nested
+  # suite reads the same `lib.sh` (`LOOP_TMP_DIR`, `LOOP_SELFTEST_PREFIX`) the real one does
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  cat > "$nested/tools/loop-cases.sh" <<'CASES'
+LOOP_SHELL_CASES=('stub#sleeps')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() { sleep 30; }
+CASES
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+
+  bash "$nested/tools/loop-selftest.sh" --case 'stub#sleeps' >/dev/null 2>&1 &
+  pid=$!
+  tree=""
+  for i in $(seq 1 100); do
+    tree=$(ls -d "$tmp/${LOOP_SELFTEST_PREFIX:-loop-selftest.}"* 2>/dev/null | head -1)
+    [ -n "$tree" ] && [ -d "$tree" ] && break
+    sleep 0.1
+  done
+  [ -n "$tree" ] || { kill -9 "$pid" 2>/dev/null; fail "the suite never created a scratch tree under the recorded root $tmp"; }
+  sleep 0.3   # the suite is inside its case now
+  kill -TERM "$pid"
+  wait "$pid"; status=$?
+  [ "$status" -ne 0 ] || fail "a suite ended by TERM reported success (exit 0) — a false PASS"
+  [ ! -e "$tree" ] || fail "the scratch tree survived TERM: $tree ($(du -sh "$tree" | cut -f1))"
+}
+
+# `loop-clean` is the one command that answers "what did the loop leave, and how much is it": it reports
+# without removing, removes with `--apply`, removes only the recorded build paths and only scratch trees old
+# enough that no suite can be writing into them, and finds nothing on a second run (issue #210).
+case_clean_reportsWithoutApplyAndRemovesWithIt() {
+  local d p w tmp conf out n1 n2
+  d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  # a build the next run would pay for, and one stale scratch tree beside one a suite is writing into
+  mkdir -p "$w/app/build/test-results/test" "$w/app/build/blobs"
+  head -c 65536 /dev/zero > "$w/app/build/blobs/blobs.bin"
+  tmp="$d/tmp"
+  mkdir -p "$tmp/loop-selftest.stale/sub" "$tmp/loop-selftest.fresh"
+  printf 'the killed suite left this\n' > "$tmp/loop-selftest.stale/sub/file"
+  touch -d '3 hours ago' "$tmp/loop-selftest.stale/sub/file" "$tmp/loop-selftest.stale/sub" "$tmp/loop-selftest.stale"
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+
+  out=$(run_clean "$p") || fail "loop-clean failed: $out"
+  assert_contains "$out" "would remove" "without --apply it reports what it would remove"
+  assert_contains "$out" "app/build" "naming the kept worktree's build output"
+  assert_contains "$out" "loop-selftest.stale" "and the tree a killed suite left"
+  assert_contains "$out" "loop-selftest.fresh" "and the tree it leaves alone"
+  [ -d "$w/app/build" ] || fail "the report removed the build output without --apply"
+  [ -d "$tmp/loop-selftest.stale" ] || fail "the report removed a scratch tree without --apply"
+  n1=$(printf '%s\n' "$out" | sed -n 's/^loop-clean: would remove [0-9][0-9]* path(s), \([0-9][0-9]*\) B.*/\1/p' | head -1)
+  [ -n "$n1" ] || fail "the report names no total: $out"
+  [ "$n1" -ge 65536 ] || fail "the report undercounts what it would reclaim: $n1 B for 65536 B of build output"
+
+  out=$(run_clean "$p" --apply) || fail "loop-clean --apply failed: $out"
+  assert_contains "$out" "removed 2 path(s)" "--apply removes both what it named"
+  [ ! -e "$w/app/build" ] || fail "the build output survived --apply"
+  [ ! -e "$tmp/loop-selftest.stale" ] || fail "the stale scratch tree survived --apply"
+  [ -d "$tmp/loop-selftest.fresh" ] || fail "--apply removed a scratch tree younger than the stale threshold"
+  [ -f "$w/demo-fix.txt" ] || fail "the cleanup removed a source file from the worktree"
+  assert_eq "" "$(git -C "$w" status --porcelain)" "and left the worktree's git state untouched"
+  n2=$(printf '%s\n' "$out" | sed -n 's/^loop-clean: removed [0-9][0-9]* path(s), \([0-9][0-9]*\) B.*/\1/p' | head -1)
+  assert_eq "$n1" "$n2" "what it reported and what it removed are the same bytes"
+
+  out=$(run_clean "$p" --apply) || fail "the second --apply failed: $out"
+  assert_contains "$out" "nothing to remove" "a second run is a no-op"
 }
 

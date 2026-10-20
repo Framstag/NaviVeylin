@@ -1,0 +1,43 @@
+# green on the working tree — the two revert-checks this change owes, and the case names the report is built from
+
+## bash tools/loop-mutations.sh --only '25.1 25.2'
+RED    25.1  worktree#keepsSourcesNotBuildOutput   (the symlink refusal that keeps the cleanup inside a kept worktree)
+restore 25.1 worktree#keepsSourcesNotBuildOutput green again
+RED    25.2  clean#reportsWithoutApplyAndRemovesWithIt   (the age gate that keeps a scratch tree a live suite may be writing into)
+restore 25.2 clean#reportsWithoutApplyAndRemovesWithIt green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+
+## bash -n on every edited script
+ok tools/loop/lib.sh
+ok tools/loop/worktree.sh
+ok tools/loop/run.sh
+ok tools/loop/loop-clean.sh
+ok tools/loop-selftest.sh
+ok tools/loop-cases.sh
+ok tools/loop-mutations.sh
+ok tools/check-portability.sh
+
+## bash tools/check-portability.sh --quiet
+check-portability: OK — 43 engines and 2 templates name no project value (103 value(s) read from the project)
+exit 0
+
+## bash tools/loop-selftest.sh --list | tail -4
+report#actionsNameDecisionAndBranch
+report#emptyRunSaysNone
+clean#interruptedSuiteRemovesItsScratchTree
+clean#reportsWithoutApplyAndRemovesWithIt
+
+## openspec validate fix-loop-build-output-accumulation --strict
+Change 'fix-loop-build-output-accumulation' is valid
+exit 0
+
+## openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-disk
+  OpenSpec root: ok
+
+References
+  (none declared)

@@ -42,7 +42,7 @@ nothing. What the flags mean:
 | `--push yes\|no` | the only thing that publishes anything; this loop never opens a change request |
 | `--max-decisions N` | the pile of open `agent/needs-decision` items that stops a run **before** it starts |
 | `--max-review-rounds N` | how many review rounds one item gets (default 2); a refusal whose findings are strictly subtractive earns exactly one more, and a refusal that counts **no blocking finding** costs no round at all — it closes |
-| `--clean-worktree` | remove the run's worktree at the end (default: keep it, so the next run keeps its warm build) |
+| `--clean-worktree` | remove the run's worktree at the end (default: keep it — the next run inherits its checkout and its git state, and the run first removes the module build directories `LOOP_WORKTREE_SCRATCH_PATHS` records, so a kept tree carries no build output) |
 
 Exit codes: `0` the run ended (including "nothing eligible"), `2` usage, `3` stop (the identity is not
 authorised, or nothing is eligible), `5` refuse (another run holds the lock, the decision cap is reached, the
@@ -60,7 +60,8 @@ read against the machine it ran on, and `free-mib=unknown` says the reading coul
 | `run.sh` | the budget, the lock, the worktree, the branches, the commits, the labels, the closure, the report | a script cannot be talked into "one more" |
 | `state.sh` | the only writer of `.pi/issue-loop/run.json` (machine-local, gitignored), and the keeper of the state it replaces (`runs/<startedAt>.json` beside it, or `LOOP_RUNS_DIR`) | a run that survives an interrupt has one writer, and a finished run's counters outlive the next one starting (issue #207) |
 | `prescreen.sh` | the mechanical half of the gate, before any agent process | measured: 9 of 12 candidates were gated out, and the cheap filters are what a script does better |
-| `worktree.sh` | one worktree per run, one branch per item off the run's base, the two commits, the stale-base refusal | the landing step is this repository's most fragile |
+| `worktree.sh` | one worktree per run, one branch per item off the run's base, the two commits, the stale-base refusal, and the build output it strips from a tree it keeps (`strip-scratch`) | the landing step is this repository's most fragile |
+| `loop-clean.sh` | reports what the loop left on disk — a kept worktree's build output and the scratch trees a killed self-test left under the loop's temporary root — and removes it with `--apply`, idempotently | a leftover nobody reports is a leftover nobody removes (issue #210) |
 | `labels.sh` | every label transition, through the tooling's own write paths | the authorisation label stays unwritable by the loop it authorises |
 | `report.sh` | the run's numbers, read from the state file and from git | concept doc §6 asks a loop to justify itself |
 | `tools/pi-child-events.sh` | this project's child adapter: starts the agent in its JSON event mode, keeps the stream in the item's directory, prints the answer. `LOOP_AGENT_CMD` names it | the engine may name no agent command or mode flag, and print mode throws the spend away (issue #211) |
@@ -325,6 +326,34 @@ the line reads `budget left unknown: these numbers belong to another run — …
 negative number. Everything the tail names is read from the state the report was pointed at, so `--state`
 changes what the action list describes as well as the budget line.
 
+## What the loop leaves on disk
+
+The run keeps its worktree for the next run, and the next run wants the *checkout*, not the *build*. Two rules
+follow, and one command answers for both (issue #210):
+
+- **A kept worktree carries sources, not build output.** When the run ends and keeps the tree, it removes the
+  module build directories the project records in `LOOP_WORKTREE_SCRATCH_PATHS` (`worktree.sh strip-scratch`) —
+  the next build regenerates them and no item reads them. Measured 2026-10-20: the kept tree was 3.2 GB, of
+  which one module's build output alone was 1.9 GB, on a root filesystem at 88 %. The removal never leaves the
+  tree, never follows a symlink out of it, never touches a path git tracks, and does not run when the caller
+  asked for the tree to be removed whole (`--clean-worktree`) or named it as the thing to repair
+  (`--reset-worktree`).
+- **A suite ended by a signal cleans up after itself.** `tools/loop-selftest.sh` traps `HUP`, `INT` and `TERM`
+  beside `EXIT`, so an interrupted suite removes its scratch tree the way a failing one does. `SIGKILL` cannot
+  be trapped: a `kill -9`ed suite does leave its tree behind, which is what the command below is for.
+- **`tools/loop/loop-clean.sh` reports and removes what is left.**
+
+  ```bash
+  tools/loop/loop-clean.sh            # what it would remove, with the bytes, and nothing removed
+  tools/loop/loop-clean.sh --apply    # remove it; a second run finds nothing
+  tools/loop/loop-clean.sh --worktree <dir>   # another tree than the loop's worktree
+  ```
+
+  It removes the recorded build paths from the kept worktree and the self-test's scratch trees under the loop's
+  temporary root (`LOOP_TMP_DIR`, `.pi/tmp` by default) that are older than `LOOP_TMP_STALE_MINUTES` — an age,
+  because a killed suite leaves no lock that outlives it — and it never touches a worktree's tracked or
+  untracked source.
+
 ## What changed when the loop became a script
 
 Recorded so a reader of the old name is not surprised. The skill kept its name and its rules; the mechanics
@@ -346,7 +375,10 @@ report, and the rule that an item that needs a decision is escalated rather than
 `REFERENCE.md`, beside this file, carries what a run needs but no rule of its own:
 
 - **Running the loop in a worktree** — the five facts that shape verification inside one, including where
-  a child process is started (the wrapper now performs the recipe).
+  a child process is started (the wrapper now performs the recipe), and what a kept tree keeps.
+- **What the loop leaves on disk** — the measured cost of a kept worktree's build output, the scratch trees a
+  killed suite leaves, and the one command that reports and removes both (`SKILL.md`, "What the loop leaves on
+  disk").
 - **Measured costs** — the minute budget of a change, a skip and the gate, and the measurements behind the
   rules above, including the 1.5 spread the measured floor is derived with; read it before planning a run's
   clock.

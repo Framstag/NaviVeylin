@@ -1,0 +1,3 @@
+# green on the working tree (worktree#keepsSourcesNotBuildOutput)
+PASS worktree#keepsSourcesNotBuildOutput
+exit 0

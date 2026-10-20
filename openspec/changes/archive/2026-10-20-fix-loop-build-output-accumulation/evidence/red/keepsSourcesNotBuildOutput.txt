@@ -1,0 +1,5 @@
+# red on HEAD 5dd5b35 (worktree#keepsSourcesNotBuildOutput)
+# the run keeps the worktree and carries its module build output with it
+  the kept worktree still carries its build output: 116K
+FAIL worktree#keepsSourcesNotBuildOutput
+exit 1

@@ -39,7 +39,7 @@ tools/loop/run.sh --items N --minutes M
 #    the project's .pi/issue-loop/run.json
 ```
 
-The worktree is **kept** at the end of a run — it is the next run's warm build — and removed only by
+The worktree is **kept** at the end of a run — it is the next run's warm checkout — and removed only by
 `--clean-worktree`. One branch per item is created from the run's recorded base
 (`fix/issue-<N>-<slug>`), and the wrapper refuses the next item when `main` has advanced past that base.
 
@@ -60,9 +60,45 @@ Five facts shape verification in a worktree:
   worktree could reach none of them. The tree it changes is the worktree, and its prompt names it. The run
   reads the project's own tracked tree around every child, so a write left outside the worktree blocks the
   item instead of being committed.
-- The worktree stays after the run **by design** (it is the next run's warm build), and the branches stay
+- The worktree stays after the run **by design** (it is the next run's warm checkout), and the branches stay
   until the run's commits are merged. Delete a branch then, not before: the run's report names the branches
   it created.
+
+## What a kept worktree keeps, and what the loop leaves on disk
+
+Keeping the tree is a decision about the *checkout*: the next run inherits the repository, the submodule and
+the git state, and skips the measured 11-minute cold build (`Measured costs`). Carrying the *build output* of
+the previous run's gate is not part of that bargain — no item reads it, every build regenerates it, and it is
+the largest thing on the developer host's disk.
+
+Measured 2026-10-20 (issue #210), on a root filesystem at **88 %** (391 GB of 471 GB):
+
+| what | size | where |
+|---|---|---|
+| the kept loop worktree | **3.2 GB** | `.pi/worktrees/loop` |
+| of which one module's build output | **1.9 GB** | `.pi/worktrees/loop/app/build` |
+| `loop-selftest.*` scratch trees of killed suites | **90 MB** across four trees | `.pi/tmp` |
+
+Three facts follow, and each has one owner:
+
+- `tools/loop/run.sh`'s end step (`worktree.sh strip-scratch`) removes the module build directories the
+  project records in `LOOP_WORKTREE_SCRATCH_PATHS` from a tree it keeps. The list is configuration because the
+  directories are the project's (`tools/check-portability.sh` reads each as a value no engine may name). The
+  removal stays inside `$LOOP_WORKTREE`, skips a recorded path that is a symlink, skips one whose directory
+  resolves outside the tree, and skips one git tracks. It does not run under `--clean-worktree` (the tree is
+  removed whole) or under `--reset-worktree` (the caller named the tree's contents as the thing to repair).
+- `tools/loop-selftest.sh` traps `HUP`, `INT` and `TERM` beside `EXIT`, so an interrupted suite removes its
+  scratch tree like a failing one. `SIGKILL` cannot be trapped; the tree it leaves is one of the leftovers
+  below.
+- `tools/loop/loop-clean.sh` is the one report of both. Without `--apply` it prints each path with its bytes
+  and removes nothing; with `--apply` it removes exactly those. Its scratch-tree half is age-gated by
+  `LOOP_TMP_STALE_MINUTES` (default 120) because only the age tells a killed suite's tree from one a live
+  suite is writing into, and it is idempotent — a second run prints `nothing to remove` and exits 0.
+
+```bash
+tools/loop/loop-clean.sh             # report only
+tools/loop/loop-clean.sh --apply     # remove; safe to repeat
+```
 
 ## Measured costs (plan with these numbers)
 

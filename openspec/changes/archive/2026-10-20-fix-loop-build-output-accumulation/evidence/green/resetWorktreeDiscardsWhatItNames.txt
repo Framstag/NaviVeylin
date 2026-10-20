@@ -1,0 +1,11 @@
+# green on the working tree (run#resetWorktreeDiscardsWhatItNames)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-060722')
+HEAD ist jetzt bei c9befb8 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#resetWorktreeDiscardsWhatItNames
+exit 0

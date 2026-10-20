@@ -41,6 +41,18 @@ LOOP_ROOT=""
 # empty string here would drop the environment's answer.
 LOOP_STATE_FILE="${LOOP_STATE_FILE:-}"
 LOOP_WORKTREE="${LOOP_WORKTREE:-}"
+# Where the loop's tooling puts throwaway trees: the self-test creates one per run here, and
+# `loop-clean.sh` removes the ones a killed suite left behind — the same name, read from this one
+# definition, is what tells the loop's trees from another suite's. `LOOP_TMP_DIR` (loop.conf) moves it;
+# empty means `.pi/tmp` under the project root, beside the worktree default. Resolved in `loop_resolve`.
+LOOP_TMP_DIR="${LOOP_TMP_DIR:-}"
+# The name one self-test scratch tree carries: `<LOOP_TMP_DIR>/loop-selftest.<random>`.
+LOOP_SELFTEST_PREFIX="loop-selftest."
+
+# Bytes and the line the last `loop_scratch_remove` produced. Globals rather than a return value: a
+# command substitution would run the removal in a subshell and lose the count with it.
+LOOP_SCRATCH_LINE=""
+LOOP_SCRATCH_BYTES=0
 
 # Read-only: the label that authorises automated work. The loop *reads* it (a candidate must carry it
 # to be selected) and has no code path that writes it — the write paths of the issue tooling refuse it
@@ -76,11 +88,92 @@ loop_resolve() {
   # A relative override is relative to the project, not to whatever the caller's cwd happened to be.
   case "$LOOP_STATE_FILE" in /*) ;; *) LOOP_STATE_FILE="$LOOP_ROOT/$LOOP_STATE_FILE" ;; esac
   case "$LOOP_WORKTREE" in /*) ;; *) LOOP_WORKTREE="$LOOP_ROOT/$LOOP_WORKTREE" ;; esac
+  loop_tmp_resolve
+}
+
+# `LOOP_TMP_DIR` as recorded, resolved against the project root — a relative value is relative to the
+# project, exactly like the state file and the worktree. Idempotent, so the self-test can call it itself.
+loop_tmp_resolve() {
+  case "$LOOP_TMP_DIR" in
+    "") LOOP_TMP_DIR="$LOOP_ROOT/.pi/tmp" ;;
+    /*) ;;
+    *) LOOP_TMP_DIR="$LOOP_ROOT/$LOOP_TMP_DIR" ;;
+  esac
 }
 
 loop_conf_value() { # print one configuration key's value by name
   local key="$1"
   eval "printf '%s' \"\${$key:-}\""
+}
+
+# ── the build output a kept worktree does not need ────────────────────────────────────────────────
+# A worktree that has been built carries a full module build tree, which the next run's build regenerates
+# and no item ever reads: measured 2026-10-20 (issue #210), the kept worktree was 3.2 GB, of which one
+# module's build output alone was 1.9 GB, and nothing removed either. Which directories those are is the
+# project's, so the list is `LOOP_WORKTREE_SCRATCH_PATHS` in the loop's configuration — no script under
+# `tools/loop/` names one, and `tools/check-portability.sh` reads the list as a forbidden value.
+loop_scratch_paths() { # one recorded path per line
+  printf '%s\n' "$(loop_conf_value LOOP_WORKTREE_SCRATCH_PATHS)" | tr ' ' '\n' | grep -v '^$'
+}
+
+# What one path occupies. `du -sk` never follows a symlink, so a link's target is not counted here — the
+# number a report prints is what removing the path actually reclaims.
+loop_bytes_of() {
+  local k
+  k=$(du -sk "$1" 2>/dev/null | awk '{print $1}')
+  printf '%s\n' "$(( ${k:-0} * 1024 ))"
+}
+
+# Remove one recorded build path inside a tree, or say why it stays — never both, and never by guessing.
+# The four refusals are the whole safety argument: an absolute or `..`-carrying entry is not a path inside
+# the tree; a path that IS a symlink is never followed (a directory holding one loses only the link); a
+# path whose parent resolves outside the tree is not inside it; and a path git tracks is the project's
+# source, which no cleanup may touch. Removal is `rm -rf` on a path `du` did not follow either, so a link
+# *inside* a build directory costs the link, never its target.
+#
+# Usage: loop_scratch_remove <tree> <relative path> [--apply] → status 0 when it removed something
+loop_scratch_remove() {
+  local tree="$1" rel="$2" apply="${3:-}" target real_tree real_parent bytes
+  LOOP_SCRATCH_LINE=""
+  LOOP_SCRATCH_BYTES=0
+  case "$rel" in
+    ""|.|..|/*|../*|*/..|*/../*)
+      LOOP_SCRATCH_LINE="kept $rel — not a path inside the tree"
+      return 1 ;;
+  esac
+  target="$tree/$rel"
+  { [ -e "$target" ] || [ -L "$target" ]; } || return 1
+  if [ -L "$target" ]; then
+    LOOP_SCRATCH_LINE="kept $rel — a symlink, never followed out of the tree"
+    return 1
+  fi
+  real_tree=$(cd "$tree" && pwd -P) || return 1
+  real_parent=$(cd "$(dirname "$target")" 2>/dev/null && pwd -P) || {
+    LOOP_SCRATCH_LINE="kept $rel — its directory does not resolve"
+    return 1
+  }
+  case "$real_parent/" in
+    "$real_tree"/*) ;;
+    *)
+      LOOP_SCRATCH_LINE="kept $rel — it resolves outside the tree, to $real_parent"
+      return 1 ;;
+  esac
+  if git -C "$tree" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then
+    LOOP_SCRATCH_LINE="kept $rel — git tracks it"
+    return 1
+  fi
+  bytes=$(loop_bytes_of "$target")
+  if [ "$apply" = "--apply" ]; then
+    rm -rf -- "$target" || {
+      LOOP_SCRATCH_LINE="could not remove $rel"
+      return 1
+    }
+    LOOP_SCRATCH_LINE="removed $rel ($bytes B)"
+  else
+    LOOP_SCRATCH_LINE="would remove $rel ($bytes B)"
+  fi
+  LOOP_SCRATCH_BYTES="$bytes"
+  return 0
 }
 
 # ── the issue tooling, as the loop uses it ───────────────────────────────────────────────────────

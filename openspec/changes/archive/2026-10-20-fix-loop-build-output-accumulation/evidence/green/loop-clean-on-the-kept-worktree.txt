@@ -1,0 +1,7 @@
+loop-clean: build output in /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  would remove auto/build (26714112 B)
+  would remove core/build (24743936 B)
+  would remove buildSrc/build (2596864 B)
+  would remove osmscout-client-java/build (1216512 B)
+loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+loop-clean: would remove 4 path(s), 55271424 B — nothing removed (pass --apply)

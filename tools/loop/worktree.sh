@@ -8,8 +8,10 @@
 # own behalf, and nothing pushes unless the run asked to publish.
 #
 # A stale base is refused rather than worked on: an item built on a tree nobody reviewed is worse than
-# an item not started (D4). The worktree is kept at the end of a run — it is the next run's warm build —
-# and removed only when the run asked for it.
+# an item not started (D4). The worktree is kept at the end of a run — it is the next run's warm checkout —
+# and removed only when the run asked for it. A kept tree keeps its sources and its git state and loses the
+# module build directories the project records (`strip-scratch`): the next build regenerates them and no
+# item reads them, and carrying them cost 1.9 GB per kept worktree (issue #210).
 #
 # Exit: 0 ok, 2 usage, 3 stop, 5 refuse.
 #
@@ -21,6 +23,7 @@
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
+#   worktree.sh strip-scratch
 #   worktree.sh remove
 set -uo pipefail
 
@@ -51,7 +54,7 @@ cmd_create() {
   [ -n "$branch" ] || branch="loop-$(date -u +%Y%m%d-%H%M%S)"
 
   if [ -e "$worktree" ]; then
-    # The worktree is kept at the end of a run so the next run inherits its warm build (D4): a second
+    # The worktree is kept at the end of a run so the next run inherits its warm checkout (D4): a second
     # run reuses it, on a branch of its own off its own base. A dirty tree is refused rather than
     # carried, because the previous run's unfinished work is not this run's to commit — the run's own
     # pre-flight refuses this earlier, under the item the marker names and with the repair flag offered
@@ -304,6 +307,32 @@ cmd_record_review_failure() { # <issue> <change> <round>
 cmd_head() { [ -d "$worktree" ] || loop_die "head: no worktree at $worktree"; gitw rev-parse HEAD; }
 cmd_status() { [ -d "$worktree" ] || loop_die "status: no worktree at $worktree"; gitw status --porcelain; }
 
+# The build output a kept worktree does not need (issue #210). Which directories those are is the project's
+# (`LOOP_WORKTREE_SCRATCH_PATHS`), and the safety of removing them is `lib.sh`'s `loop_scratch_remove`, so
+# this command and `loop-clean.sh` remove the same paths under the same four refusals. The total is printed
+# because the point of the removal is a number a reader can check against `du`.
+cmd_strip_scratch() {
+  local rel removed=0 kept=0 bytes=0
+  [ -d "$worktree" ] || loop_die "strip-scratch: no worktree at $worktree"
+  while IFS= read -r rel; do
+    [ -n "$rel" ] || continue
+    if loop_scratch_remove "$worktree" "$rel" --apply; then
+      removed=$((removed + 1)); bytes=$((bytes + LOOP_SCRATCH_BYTES))
+      printf 'worktree: %s\n' "$LOOP_SCRATCH_LINE"
+    else
+      [ -z "$LOOP_SCRATCH_LINE" ] && continue
+      kept=$((kept + 1))
+      printf 'worktree: %s\n' "$LOOP_SCRATCH_LINE"
+    fi
+  done <<< "$(loop_scratch_paths)"
+  if [ "$removed" -eq 0 ] && [ "$kept" -eq 0 ]; then
+    printf 'worktree: no recorded build output in the kept worktree (0 B)\n'
+    return 0
+  fi
+  printf 'worktree: %s build path(s) removed from the kept worktree: %s B — its sources and its git state stay\n' \
+    "$removed" "$bytes"
+}
+
 cmd_remove() {
   local branch=""
   [ -e "$worktree/.pi/loop-branch" ] && branch=$(cat "$worktree/.pi/loop-branch")
@@ -322,6 +351,7 @@ case "$cmd" in
   adopt-item) cmd_adopt_item "$@" ;;
   head) cmd_head "$@" ;;
   status) cmd_status "$@" ;;
+  strip-scratch) cmd_strip_scratch "$@" ;;
   remove) cmd_remove "$@" ;;
   ""|-h|--help) sed -n '2,25p' "$0" ;;
   *) loop_die "unknown command '$cmd'" ;;

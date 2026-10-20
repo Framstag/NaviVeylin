@@ -216,11 +216,21 @@ adopt_finished_exclusions() {
 # The run's end: the report, and the worktree the run asked not to keep (D4). The flag is the run's, so it
 # holds wherever the run ends — and the pre-screen can end one earlier than the item loop does, because a
 # decision it records leaves nothing eligible (issue #175).
+#
+# A kept worktree is kept for its *sources*: the next run inherits the checkout and the git state, while what
+# the next build regenerates is removed here rather than carried into the next run (issue #210, `worktree.sh
+# strip-scratch`, the paths from `LOOP_WORKTREE_SCRATCH_PATHS`). Nothing is removed when the tree is removed
+# whole, and nothing is removed from a tree the caller named as the thing to repair with `--reset-worktree`:
+# that flag is the caller's own statement about what the previous run left there, and this step makes no
+# further decision about the tree's contents.
 end_run() {
   bash "$LOOP_DIR/report.sh"
   if [ "$clean_worktree" -eq 1 ]; then
     bash "$LOOP_DIR/worktree.sh" remove || true
   elif [ -n "${worktree:-}" ] && [ -d "$worktree" ]; then
+    if [ "$reset_worktree" -eq 0 ]; then
+      bash "$LOOP_DIR/worktree.sh" strip-scratch || true
+    fi
     printf 'worktree kept for the next run: %s\n' "$worktree"
   fi
 }
@@ -241,7 +251,7 @@ if [ "$preflight_status" -ne 0 ]; then
   loop_die "run: the preflight could not be evaluated (exit $preflight_status)"
 fi
 
-# 2. the kept worktree. Keeping it is deliberate (the next run inherits its warm build, D4) and refusing a
+# 2. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
 #    previous run's leftovers is the right rule — but the refusal may not end a run with an exit code and no
 #    item: it names the item whose branch the kept tree carries, records the refusal under that item,
 #    escalates it and prints the report, so the "a run that ends with nothing processed and no reason"

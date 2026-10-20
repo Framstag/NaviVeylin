@@ -38,12 +38,34 @@ if [ "$feature" -lt 17 ]; then
 fi
 
 # The scratch tree goes under the gitignored `.pi/tmp/`, so a failed run leaves nothing in the diff.
-mkdir -p "$root/.pi/tmp" 2>/dev/null || true
-tmp=$(mktemp -d "$root/.pi/tmp/loop-selftest.XXXXXX") || {
-  echo "loop-selftest: cannot create a scratch directory under $root/.pi/tmp" >&2
+#
+# The root and the name one scratch tree carries are the loop's own definitions (`lib.sh`, `LOOP_TMP_DIR` in
+# the configuration), so the trees a killed suite leaves behind are exactly the trees
+# `tools/loop/loop-clean.sh` reports and removes.
+# shellcheck source=tools/loop/lib.sh
+source "$root/tools/loop/lib.sh"
+LOOP_ROOT="$root"
+export LOOP_CONF="${LOOP_CONF:-$root/tools/loop/loop.conf}"
+[ -f "$LOOP_CONF" ] || {
+  echo "loop-selftest: no loop configuration at $LOOP_CONF" >&2
   exit 2
 }
+# shellcheck source=tools/loop/loop.conf
+source "$LOOP_CONF"
+loop_tmp_resolve
+mkdir -p "$LOOP_TMP_DIR" 2>/dev/null || true
+tmp=$(mktemp -d "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"XXXXXX) || {
+  echo "loop-selftest: cannot create a scratch directory under $LOOP_TMP_DIR" >&2
+  exit 2
+}
+# An interrupted suite removes its scratch tree the way a failing one does (issue #210): INT, TERM and HUP
+# are trapped beside EXIT, and each leaves by `exit`, so the single removal below still runs. `SIGKILL`
+# cannot be trapped — a `kill -9`ed suite *does* leave its tree behind, and that is one of the leftovers
+# `tools/loop/loop-clean.sh` reports and removes after `LOOP_TMP_STALE_MINUTES`.
 trap 'rm -rf "$tmp"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 mkdir -p "$tmp/classes"
 
 javac --release 17 -d "$tmp/classes" "$root"/tools/issues/core/*.java || {
@@ -51,14 +73,13 @@ javac --release 17 -d "$tmp/classes" "$root"/tools/issues/core/*.java || {
   exit 1
 }
 
+export LOOP_PROJECT_ROOT="$root"
+# Overridable so the mutation harness can point a case at a mutated *copy* of the engine and confirm its own
+# guards (`tools/loop-mutations.sh --engine <copy>`); the defaults are this repository.
 export LOOP_ENGINE="${LOOP_ENGINE:-$root/tools/loop}"
 export LOOP_ISSUES_ENGINE="$root/tools/issues"
 export LOOP_FIXTURES="$root/tools/loop/fixtures"
 export LOOP_ISSUE_FIXTURES="$root/tools/issues/fixtures"
-export LOOP_PROJECT_ROOT="$root"
-# Overridable so the mutation harness can point a case at a mutated *copy* of the engine and confirm its own
-# guards (`tools/loop-mutations.sh --engine <copy>`); the defaults are this repository.
-export LOOP_CONF="${LOOP_CONF:-$root/tools/loop/loop.conf}"
 export ISSUES_CORE_CLASSES="$tmp/classes"
 export LOOP_TMP="$tmp"
 export GH_STUB_DIR="$LOOP_ISSUE_FIXTURES"

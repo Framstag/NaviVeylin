@@ -1,0 +1,5 @@
+# red on HEAD 5dd5b35 (clean#interruptedSuiteRemovesItsScratchTree)
+# the suite ignores the recorded scratch root, so nothing of the loop can find its trees
+  the suite never created a scratch tree under the recorded root /home/tim/projects/NaviVeylin/.pi/worktrees/fix-disk/.pi/tmp/loop-selftest.xg37VA/case.8IAOM0/tmp
+FAIL clean#interruptedSuiteRemovesItsScratchTree
+exit 1

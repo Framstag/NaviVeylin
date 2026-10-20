@@ -185,6 +185,11 @@ conf_value() { # <KEY> → the double-quoted value, or nothing
 add "$(conf_value LOOP_GATE_CMD)" "tools/loop/loop.conf LOOP_GATE_CMD"
 # the submodule path is a project path: it belongs in the loop's configuration, not in its worktree
 add "$(conf_value LOOP_SUBMODULE_PATH)" "tools/loop/loop.conf LOOP_SUBMODULE_PATH"
+# The module build directories the loop removes from a kept worktree are this project's paths as well (issue
+# #210): a directory a build regenerates is named by the project that builds it, never by an engine.
+while IFS= read -r value; do
+  add "$value" "tools/loop/loop.conf LOOP_WORKTREE_SCRATCH_PATHS"
+done < <(printf '%s' "$(conf_value LOOP_WORKTREE_SCRATCH_PATHS)" | tr ' ' '\n' | grep -v '^$')
 while IFS= read -r skill; do add "$skill" "tools/loop/loop.conf LOOP_WORKER_SKILLS" word; done \
   < <(printf '%s' "$(conf_value LOOP_WORKER_SKILLS)" | tr ' ' '\n')
 

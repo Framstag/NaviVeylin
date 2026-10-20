@@ -1,0 +1,3 @@
+# green on the working tree (clean#interruptedSuiteRemovesItsScratchTree)
+PASS clean#interruptedSuiteRemovesItsScratchTree
+exit 0

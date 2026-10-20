@@ -45,8 +45,11 @@ Each task names the check that proves it. The change touches no compiled file, s
       *Verify*: `ls openspec/changes/archive/*fix-loop-process-group-lifetime/evidence/*/` after the archive.
 
 - [x] 10. The gate, once: `tools/loop-selftest.sh` (the whole offline suite), quoted as it printed.
-      *Verify*: the run's last line (`… all N cases passed`) and the failure count, recorded in
-      `evidence/green/suite.txt`.
+      *Verify*: the lines the suite actually ended on, quoted verbatim in `evidence/green/suite.txt` —
+      `loop-selftest: 1 of 117 cases failed`, `exit: 1` (116 pass) — with the one failure
+      (`worktree#keepsByDefaultAndRemovesOnRequest`) named as the exclusion it is: the same case fails
+      identically on the base engine in `evidence/green/PRE-EXISTING-RED.txt` B, and `tools/loop/worktree.sh`
+      is untouched by this change (pre-filed as issue #215).
 
 - [x] 11. Archive, and confirm the delta merged into `openspec/specs/agent-issue-loop/spec.md`.
       *Verify*: the three new requirement headers are in the spec, and the archive directory exists.

@@ -25,7 +25,7 @@ the same thing.
 **3. Have the driver kill the case's pid only, and accept a case that outlives its suite.**
 Eliminated by the measurement in the proposal: bash defers a trap until the foreground command returns, so with
 the case in the foreground a `TERM`ed suite honours the signal only after its case has finished anyway — a
-5-minute case makes a 5-minute interrupt (`real 5m01,505s` for the case as it was first written). The case that
+5-minute case makes a 5-minute interrupt. The case that
 reproduces the leak therefore fails on HEAD for the delay alone, and the group kill is what makes the interrupt
 immediate.
 

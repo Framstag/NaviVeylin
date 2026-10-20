@@ -1,0 +1,7 @@
+PASS run#childThatNeverStartedIsTheRunsFault
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childClaimWithoutCommitIsBlocked
+PASS run#blockedItemIsEscalatedWithItsReason
+PASS run#plainTextChildStillReports
+PASS run#stopReasonIsPrintedAndReported
+PASS run#oneItemOrderIsFixed

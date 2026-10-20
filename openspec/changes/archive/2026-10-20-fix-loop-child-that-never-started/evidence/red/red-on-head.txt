@@ -1,0 +1,3 @@
+  the item is not recorded as a blocked one: expected '0', got '1'
+FAIL run#childThatNeverStartedIsTheRunsFault
+EXIT=1

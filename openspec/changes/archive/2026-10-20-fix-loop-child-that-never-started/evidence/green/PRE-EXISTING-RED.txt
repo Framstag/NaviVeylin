@@ -1,0 +1,27 @@
+ONE PRE-EXISTING RED IN THE OFFLINE GATE, AND IT IS NOT THIS CHANGE'S
+
+A. the whole suite on this tree (evidence/green/selftest.txt):
+FAIL worktree#keepsByDefaultAndRemovesOnRequest
+loop-selftest: 1 of 115 cases failed
+
+B. the same case with the BASE engine — the base commit 648d2bc extracted by `git archive` and run as
+   LOOP_ENGINE/LOOP_CONF, in this worktree (so its scratch tree is under .pi/worktrees/loop as usual):
+  git still lists the worktree that was removed
+FAIL worktree#keepsByDefaultAndRemovesOnRequest
+
+C. the assertion is a path-substring false positive, not a worktree that survived. The case checks
+   `git -C "$p" worktree list | grep -q worktrees/loop`, and it runs its throwaway project inside the
+   suite's scratch tree — which lies under <project>/.pi/worktrees/loop/.pi/tmp/… whenever the suite runs
+   inside the run's own worktree. git prints the main worktree entry, which is that project's own path, so
+   the pattern matches whatever git reports. Proof on a copy of this worktree under /tmp (neither this
+   branch's engine nor the base's), the configuration named explicitly (the inherited LOOP_CONF in a child's
+   environment would otherwise point a copy at this project's loop.conf):
+   - LOOP_TMP_DIR moved to a path containing "worktrees/loop":
+         git still lists the worktree that was removed
+       FAIL worktree#keepsByDefaultAndRemovesOnRequest
+   - the same copy with its own LOOP_TMP_DIR:
+       PASS worktree#keepsByDefaultAndRemovesOnRequest
+
+D. Nothing of this change is involved: run#childThatNeverStartedIsTheRunsFault and the six cases on this
+   surface pass (evidence/green/affected-cases.txt). Repairing the assertion is a separate item: it is a
+   second root cause, and this change owns one.

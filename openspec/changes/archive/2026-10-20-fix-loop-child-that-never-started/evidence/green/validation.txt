@@ -1,0 +1,24 @@
+=== bash -n ===
+ok tools/loop/run.sh
+ok tools/loop-cases.sh
+ok tools/loop/fixtures/pi
+ok tools/loop-mutations.sh
+
+=== tools/check-portability.sh ===
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:60:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 43 engines and 2 templates name no project value (103 value(s) read from the project)
+
+=== openspec validate --strict ===
+Change 'fix-loop-child-that-never-started' is valid
+
+=== openspec doctor ===
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
+References
+  (none declared)
+
+=== grep the guideline ===
+1

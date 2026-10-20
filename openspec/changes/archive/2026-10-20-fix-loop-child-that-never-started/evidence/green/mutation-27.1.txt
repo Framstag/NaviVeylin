@@ -1,0 +1,5 @@
+RED    27.1  run#childThatNeverStartedIsTheRunsFault   (the classification that keeps a child which never started off the item (issue #212))
+restore 27.1 run#childThatNeverStartedIsTheRunsFault green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+EXIT=0

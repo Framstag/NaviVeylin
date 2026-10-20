@@ -42,8 +42,8 @@ red state recorded in `evidence/`.
 - **Keeping `args.size > 1` and widening only the cast** — eliminated by measurement: the guard's positive
   control shows a checked `as?` cast is the whole fix, and `getOrNull` carries the size test.
 - **Enabling `allWarningsAsErrors` for the `:auto` test compilation instead of a scan** — eliminated by the
-  measured warning set: the set still carries 50 warnings from the opt-in family and one deprecated field
-  (issue #218/#219's families), so the build would fail on unrelated sites today.
+  measured warning set: the set still carries 49 warnings from the opt-in family and one deprecated field
+  (issue #218/#219's families), 50 in total, so the build would fail on unrelated sites today.
 - **Placing the guard in `auto/src/test`** — eliminated by the reading path: an `:auto` test's working
   directory is that module, so the main-source roots the bound rule resolves against (`app/src/main/java`,
   `core/src/main/java`) would be `../../` climbs, while the `:app` build-rule package reads the repository as

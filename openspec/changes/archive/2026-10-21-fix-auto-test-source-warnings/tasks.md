@@ -31,17 +31,21 @@
 
 ## 3. Guard green and the record
 
-- [x] 3.1 `AutoTestSourceWarningBaselineTest` green: focused run `BUILD SUCCESSFUL in 2s` (23:19Z), and the
-      versioned copy is the gate's own `:app:testMobileDebugUnitTest` XML — `tests=3 failures=0`
-      (`evidence/TEST-AutoTestSourceWarningBaselineTest-focused-green.xml`, identical to the mobile gate
-      copy).
+- [x] 3.1 `AutoTestSourceWarningBaselineTest` green in the gate's own `:app:testMobileDebugUnitTest` run —
+      `tests=3 failures=0` (`evidence/gate-mobile-TEST-AutoTestSourceWarningBaselineTest.xml`, the copy also
+      carried as `TEST-AutoTestSourceWarningBaselineTest-focused-green.xml`); the focused green run is 3.3's
+      `evidence/revert-check-restored-green.xml` (`tests=3 failures=0`, 23:28:48.245Z).
 - [x] 3.2 `guidelines/Build.md` §4, the "Warnings" bullet: one sentence naming the guard. This delta touches
-      no compiled file, so its verification is `tools/check-doc-routes.sh` and the change's own gate run —
-      not a separate build.
-- [x] 3.3 Falsification (`revert-check`): restore each of the three sites one at a time and confirm the
-      owning case goes red, then restore the fix — `evidence/revert-check.txt`.
+      no compiled file, so its verification is `tools/check-doc-routes.sh` — `evidence/check-doc-routes.log`,
+      all 89 section references resolve — and not a separate build.
+- [x] 3.3 Falsification (`revert-check`): each of the three sites restored to its HEAD form **one at a time**,
+      the guard run after each — the owning case red naming its own file, the other two green — then the fix
+      restored and the guard green: `evidence/revert-check.txt` with the four runs' XMLs
+      (`revert-check-bound-site1.xml` `23:27:28.744Z`, `revert-check-throwing-site2.xml` `23:28:37.462Z`,
+      `revert-check-cast-site3.xml` `23:28:43.812Z`, `revert-check-restored-green.xml` `23:28:48.245Z`).
 
 ## 4. The gate
 
-- [x] 4.1 `./gradlew test -PforceTests --no-build-cache` once → `tests=5707 failures=0`
-      (`evidence/gate-tally.txt`, per-module XMLs copied into `evidence/`).
+- [x] 4.1 `./gradlew test -PforceTests --no-build-cache` once → `tests=5706 failures=0`
+      (`evidence/gate-tally.txt`: 2075 + 2075 + 866 + 642 + 48; `evidence/gate-per-module.txt` records the
+      recount from the run's XML trees, four of which still reproduce their line).

@@ -1,8 +1,31 @@
-revert-check: the three sites restored from HEAD, guard run once
+revert-check, one site at a time (run 2026-10-20T23:27Z–23:29Z): each fixed site restored to its HEAD form
+alone, the guard run, the owning case red and the other two green, then the fix restored.
 
-AutoTestSourceWarningBaselineTest: 3 tests completed, 3 failed (BUILD FAILED in 2s, 2026-10-20T23:25Z)
-- no type parameter is bounded by a class that cannot be extended FAILED
-- a runIteration comparison against null names the block type FAILED
-- no auto test source casts to a parameterized type unchecked FAILED
+site 1 — auto/src/test/java/com/naviveylin/auto/RendererTestRule.kt
+  mutation: fun <T : AutoMapRenderer> track(renderer: T): T
+  tests=3 failures=1 errors=0 (2026-10-20T23:27:28.744Z, revert-check-bound-site1.xml)
+  FAILED no type parameter is bounded by a class that cannot be extended
+    "a type parameter bounded by a final class has a predetermined value, so the compiler reports the bound
+     as noise — name the class in the signature instead: [RendererTestRule.kt: T : AutoMapRenderer]"
 
-fixes restored; guard green: tests=3 failures=0
+site 2 — auto/src/test/java/com/naviveylin/auto/RenderLoopSupervisorTest.kt
+  mutation: runIteration(loop) { error("native render failed") } == null
+  tests=3 failures=1 errors=0 (2026-10-20T23:28:37.462Z, revert-check-throwing-site2.xml)
+  FAILED a runIteration comparison against null names the block type
+    "a block that only throws infers `Nothing`, so comparing its result against null is a predetermined
+     condition the compiler reports — name the block's type …: [RenderLoopSupervisorTest.kt:
+     runIteration(loop) { error("native render failed") } == null]"
+
+site 3 — auto/src/test/java/com/naviveylin/auto/TestCarContext.kt
+  mutation: args[1] as Array<Any?>
+  tests=3 failures=1 errors=0 (2026-10-20T23:28:43.812Z, revert-check-cast-site3.xml)
+  FAILED no auto test source casts to a parameterized type unchecked
+    "a cast to a parameterized type is unchecked at run time, so the compiler reports it — cast to a star
+     projection, use a checked `as?`, or copy through a typed collection: TestCarContext.kt: as Array<Any?>"
+
+fixes restored (each file byte-identical to the fixed tree), guard green:
+  tests=3 failures=0 errors=0 (2026-10-20T23:28:48.245Z, revert-check-restored-green.xml)
+
+This replaces the one-run record the file carried before, which listed all three cases from a single run with
+the three sites restored together and stamped that run `2026-10-20T23:25Z` — a time later than the file's own
+write.

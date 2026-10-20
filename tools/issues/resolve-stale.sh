@@ -238,8 +238,8 @@ $body")
   # The bound counts writes, not visits (#199). An item whose only stale citations are ambiguous reports that
   # and reaches neither write branch below, so counting it as `due` spent a slot of every run's bound on a
   # non-action while the items behind it waited — measured 2026-10-19, `due=25 repaired=4 parked=5
-  # ambiguous=22` meant 22 of 25 slots produced nothing. It is visited, written for nowhere, and counted
-  # `skipped`; the `ambiguous` counter still reports it per token.
+  # ambiguous=22` meant 16 of the 25 visited items produced no write (`ambiguous` counts tokens). It is
+  # visited, written for nowhere, and counted `skipped`; the `ambiguous` counter still reports it per token.
   if [ -n "$repairs" ] || [ -n "$unresolved" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi
 
   if [ -n "$repairs" ] && [ -z "$unresolved" ]; then

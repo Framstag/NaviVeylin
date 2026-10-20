@@ -22,6 +22,8 @@ ISSUES_SHELL_CASES=(
   'create#duplicateRefusesAndNamesTheIssue'
   'create#writesMarkerAndLabels'
   'create#refusesTwoValuesOfOneNamespace'
+  'create#carriesTheFindingsClassAndCategory'
+  'create#refusesAClassItsLabelsContradict'
   'create#refusesADoubledCitation'
   'create#bareValueFlagNeedsAValue'
   'update#refusesUnknownLabel'
@@ -115,6 +117,8 @@ issues_run_shell_case() {
     'create#duplicateRefusesAndNamesTheIssue') case_create_duplicateRefusesAndNamesTheIssue ;;
     'create#writesMarkerAndLabels') case_create_writesMarkerAndLabels ;;
     'create#refusesTwoValuesOfOneNamespace') case_create_refusesTwoValuesOfOneNamespace ;;
+    'create#carriesTheFindingsClassAndCategory') case_create_carriesTheFindingsClassAndCategory ;;
+    'create#refusesAClassItsLabelsContradict') case_create_refusesAClassItsLabelsContradict ;;
     'create#refusesADoubledCitation') case_create_refusesADoubledCitation ;;
     'create#bareValueFlagNeedsAValue') case_create_bareValueFlagNeedsAValue ;;
     'update#refusesUnknownLabel') case_update_refusesUnknownLabel ;;
@@ -449,6 +453,75 @@ case_create_writesMarkerAndLabels() {
     assert_contains "$line" "--label $label" "the label set must carry $label"
   done
   assert_eq "1" "$(grep -c 'issue create' "$log")" "exactly one issue is created"
+}
+
+# #201 — the finding states its class and its area, and the same script refuses a finding that omits either.
+# HEAD read both fields, validated both, and then built the label set from `.labels[]`, `--label` and
+# `--status` alone: a finding that named its kind only in the two required fields filed an item no selector
+# reads — #199 and #200 arrived with `labels: []` and were repaired by hand. The class and the category are
+# labels on the filing path, or the call is refused.
+case_create_carriesTheFindingsClassAndCategory() {
+  local dir log finding line out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  finding=$(jq -n '{sourceId: "199", title: "a finding whose kind is in its fields alone",
+                    class: "bug", category: "build-and-harness", claim: "A claim", anchor: "a",
+                    body: "the body, verbatim"}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1) || fail "create.sh refused a complete finding: $out"
+  line=$(grep 'issue create' "$log" | head -1)
+  [ -n "$line" ] || fail "no gh issue create invocation was recorded"
+  assert_contains "$line" "--label class/bug" "the finding's class reaches the tracker as a label"
+  assert_contains "$line" "--label category/build-and-harness" \
+    "the finding's category reaches the tracker as a label"
+
+  # The sensor path already writes both labels itself, so a finding that names both routes still files one
+  # label per value rather than one per route.
+  : > "$log"
+  finding=$(jq '.labels += ["class/bug", "category/build-and-harness"]' <<< "$finding")
+  printf '%s' "$finding" | run_tool create.sh >/dev/null 2>&1 ||
+    fail "a finding that names its kind twice is still one filing"
+  line=$(grep 'issue create' "$log" | head -1)
+  assert_eq "1" "$(grep -o -- '--label class/bug' <<< "$line" | wc -l | tr -d ' ')" \
+    "the class label is named once, not once per route"
+
+  # …and a value the vocabulary does not carry is refused rather than dropped, because the field is a label.
+  : > "$log"
+  finding=$(jq -n '{sourceId: "202", title: "a finding with a misspelt class", class: "bugg",
+                    category: "ui", claim: "A claim", anchor: "a", body: "b"}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "3" "$status" "a class outside the vocabulary is refused: $out"
+  assert_contains "$out" "label-opaque" "the refusal is the label gate's"
+  [ ! -s "$log" ] || fail "a gh issue create call was made: $(cat "$log")"
+}
+
+# The fields are not a second opinion to be silently overruled. A finding whose `.labels[]` names one class
+# and whose `class` field names another is the filing path's one-value-per-namespace refusal — before any
+# write, naming both values — not a filing that quietly keeps the array's.
+case_create_refusesAClassItsLabelsContradict() {
+  local dir log finding out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  finding=$(jq -n '{sourceId: "203", title: "a finding whose field contradicts its labels",
+                    class: "bug", category: "ui", claim: "A claim", anchor: "a", body: "b",
+                    labels: ["class/improvement", "category/ui"]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "2" "$status" "a filing naming two classes is a usage error: $out"
+  assert_contains "$out" "class/improvement" "the refusal names the value the labels carried"
+  assert_contains "$out" "class/bug" "and the value the finding's class field carried"
+  [ ! -s "$log" ] || fail "a gh issue create call was made: $(cat "$log")"
+
+  finding=$(jq -n '{sourceId: "204", title: "a finding whose area contradicts its labels",
+                    class: "bug", category: "ui", claim: "A second claim", anchor: "a", body: "b",
+                    labels: ["class/bug", "category/car"]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "2" "$status" "a filing naming two categories is a usage error: $out"
+  assert_contains "$out" "category/car" "the refusal names the value the labels carried"
+  assert_contains "$out" "category/ui" "and the value the finding's category field carried"
+  [ ! -s "$log" ] || fail "a gh issue create call was made: $(cat "$log")"
 }
 
 # The filing path has nothing to displace, so a merged label set that names two values of one namespace is

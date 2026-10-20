@@ -13,6 +13,10 @@
 # means it (the override is recorded in the output). A reserved label in any input is refused with exit 3 —
 # no script here can authorise work (design D2, D4).
 #
+# `class` and `category` are required, and each is filed as a label of its namespace (`class/<value>`,
+# `category/<value>`): a finding whose `.labels[]` spells them too is filed once per value, and one whose
+# `.labels[]` contradicts them is refused rather than quietly overruled (issue #201).
+#
 # `--sensor <id>` is the check registry's path into this writer (`sensor-registry-and-metric-issues`,
 # D4): the row's id is validated against the registry — the one owner of the `sensor` namespace's values —
 # and the label is added; the finding's own `fingerprint` is then the dedup anchor, because for a sensor
@@ -116,6 +120,24 @@ done
 if [ -n "$extra_status" ]; then
   labels+=("status${separator}${extra_status}")
 fi
+
+# The finding's `class` and `category` are not decoration: this script refuses a finding that omits either, so
+# both reach the tracker as labels (#201 — #199 and #200 were filed from findings that carried both fields and
+# arrived with `labels: []`, invisible to every selector). They join the set after every other route and an
+# exact duplicate is dropped, so a caller that already spells them in `.labels[]` (the sensor path does) files
+# one label per value, while a contradiction survives the dedup and is the namespace-uniqueness refusal below
+# rather than a silent override of what the caller wrote. They go through the same vocabulary gate as any
+# other label, so a misspelt class is refused instead of dropped.
+labels+=("class${separator}${clazz}" "category${separator}${category}")
+declare -A seen_label=()
+merged_labels=()
+for label in "${labels[@]}"; do
+  [ -n "$label" ] || continue
+  [ -z "${seen_label[$label]:-}" ] || continue
+  seen_label[$label]=1
+  merged_labels+=("$label")
+done
+labels=("${merged_labels[@]}")
 
 # The ownership label a sensor files under. Its vocabulary is the registry's, not the profile's list: the
 # namespace is *declared* in the profile and its values are the rows (design D9/D12), so an id the registry

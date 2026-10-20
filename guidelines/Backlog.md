@@ -197,6 +197,13 @@ an item cites still exists, whether a device is needed) and **interpretation is 
 unavoidable** — grouping an item, scoring it, judging whether one cause explains a symptom. The prose
 backlog had no such split: every reading interpreted everything.
 
+The intake step is a write, so it is the filing path's job to make an item exist in a selector's queue: a
+finding states its `class` and its `category`, and `tools/issues/create.sh` files both as labels of their
+namespaces — the fields are required, a value outside the closed vocabulary is refused rather than dropped, and
+a field that contradicts the labels the same finding carries is the one-value-per-namespace refusal. An item
+filed from a finding whose kind lived only in those fields used to arrive with no label at all, present in the
+tracker and in no queue (#199, #200, issue #201).
+
 The last of those cheap decisions has a home of its own: **what counts as a citation** is defined once, in
 `tools/issues/lib.sh` (`stale-citation-resolution`), and asked by the loop's pre-screen and by
 `tools/issues/resolve-stale.sh` — so detection and repair cannot disagree about a body. A citation that

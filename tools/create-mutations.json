@@ -1,5 +1,5 @@
 {
-  "comment": "The filing path's one-value-per-namespace refusal (`fix-issue-filing-state-namespace`, issue #179). At filing time there is nothing to displace, so a merged label set naming two values of one namespace is a refusal, not the replacement `update.sh` performs for the state namespace. Run it with `bash tools/mutate.sh --mutations tools/create-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. The search is a single line and unique in its file (the runner's replacement is literal and line-based).",
+  "comment": "The filing path's one-value-per-namespace refusal (`fix-issue-filing-state-namespace`, issue #179), and the two required fields that are labels (issue #201). At filing time there is nothing to displace, so a merged label set naming two values of one namespace is a refusal, not the replacement `update.sh` performs for the state namespace; and because `create.sh` insists on a finding's `class` and `category`, both join the label set — the mutation that removes the join must be visible in the case that asserts it. Run it with `bash tools/mutate.sh --mutations tools/create-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. The search is a single line and unique in its file (the runner's replacement is literal and line-based).",
   "case-cmd": "bash tools/issue-tooling-selftest.sh --case {case}",
   "mutations": [
     {
@@ -17,6 +17,14 @@
       "search": "  [ \"$(issues_citation_class \"$collapsed\")\" != \"absent\" ] || continue",
       "replace": "    continue",
       "why": "the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)"
+    },
+    {
+      "label": "1.3",
+      "case": "create#carriesTheFindingsClassAndCategory",
+      "file": "tools/issues/create.sh",
+      "search": "labels+=(\"class${separator}${clazz}\" \"category${separator}${category}\")",
+      "replace": "labels+=()",
+      "why": "the finding's required class and category reaching the tracker as labels (issue #201), so a finding that names its kind only in the two fields cannot file an item no selector reads"
     }
   ]
 }

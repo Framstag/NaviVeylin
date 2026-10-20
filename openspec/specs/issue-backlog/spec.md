@@ -11,12 +11,24 @@ backlog, and so an automated actor can only ever act on an item its owner has ex
 ### Requirement: One issue per distinct finding
 
 The tooling SHALL create exactly one issue per distinct finding, and SHALL refuse to create a second
-issue for a finding whose computed fingerprint already matches one, naming the issue that already exists.
+issue for a finding whose computed fingerprint already matches one, naming the issue that already exists. A
+finding's required `class` and `category` SHALL each be filed as a label of its namespace, so a finding cannot
+state a kind or an area the tracker does not carry, and a value the vocabulary does not hold SHALL be refused
+rather than dropped.
 
 #### Scenario: A new finding is filed
 
 - **WHEN** a finding is submitted with its kind, its area and its claim
 - **THEN** one issue exists carrying that claim, and its labels record the kind and the area
+- **Case**: `create#carriesTheFindingsClassAndCategory`
+
+#### Scenario: The required fields are labels, not decoration
+
+- **WHEN** a finding states its kind and its area only in its `class` and `category` fields — its `labels` array
+  empty or absent — or states them in both places
+- **THEN** the issue is created carrying `class/<value>` and `category/<value>`, each named once, and a value
+  outside the closed vocabulary is refused before any write
+- **Case**: `create#carriesTheFindingsClassAndCategory`
 
 #### Scenario: A repeated finding is refused, not duplicated
 
@@ -35,7 +47,9 @@ The tooling SHALL express an item's kind, area, lifecycle state and provenance a
 namespaces, with exactly one value per namespace where the item has that fact, and SHALL draw every value
 from a closed vocabulary held by the project. On the filing path — where the item is born and there is nothing
 to displace — a label set that names two values of one namespace SHALL be refused before any write, with a
-reason naming both values.
+reason naming both values. The finding's `class` and `category` fields are one of the routes a value arrives
+through, so a field that names a different value than the item's own labels for that namespace SHALL be refused
+like any other conflicting route, never resolved in silence.
 
 #### Scenario: Each fact has its own namespace
 
@@ -48,6 +62,13 @@ reason naming both values.
 - **WHEN** a caller supplies a value that the project's vocabulary does not contain
 - **THEN** the operation is refused with a reason naming the value, and no label is created, so a typo
   cannot hide an issue from every selector
+
+#### Scenario: A field cannot contradict the labels it duplicates
+
+- **WHEN** a finding's `labels` array names one class (or one category) and the finding's own `class` (or
+  `category`) field names another
+- **THEN** the filing is refused before any issue write, with exit 2 and a reason naming both values
+- **Case**: `create#refusesAClassItsLabelsContradict`
 
 #### Scenario: A priority namespace is reserved
 

@@ -113,6 +113,14 @@
       "search": "      if [ \"$(issues_citation_class \"$new\")\" = \"absent\" ]; then",
       "replace": "      if false; then",
       "why": "a repair counting only when its rewritten citation re-classifies as a path the tree holds (#200)"
+    },
+    {
+      "label": "5.15",
+      "case": "resolver#titleSuffixBesideItsCanonicalPathIsSettled",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "  printf '%s\\n' \"$body_matrix\" | awk -F'\\t' -v t=\"$1\" '$2 == t { found = 1 } END { exit !found }'",
+      "replace": "  return 0",
+      "why": "a token the body does not carry being settled instead of rewritten into a no-op that parks the item (#226)"
     }
   ]
 }

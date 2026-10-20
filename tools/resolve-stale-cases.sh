@@ -23,6 +23,8 @@ RESOLVE_CASES=(
   'resolver#doubledPrefixIsCollapsed'
   'resolver#basenameRepairLeavesALongerPathAlone'
   'resolver#repairWithoutAChangeIsNotReported'
+  'resolver#titleSuffixBesideItsCanonicalPathIsSettled'
+  'resolver#titleAbsentCitationIsParkedWhereItStands'
   'resolver#repairIsVerifiedByReclassification'
   'resolver#renamedFileIsFollowed'
   'resolver#removedSymbolIsReAnchored'
@@ -54,6 +56,8 @@ resolve_run_case() {
     'resolver#doubledPrefixIsCollapsed') case_resolver_doubledPrefixIsCollapsed ;;
     'resolver#basenameRepairLeavesALongerPathAlone') case_resolver_basenameRepairLeavesALongerPathAlone ;;
     'resolver#repairWithoutAChangeIsNotReported') case_resolver_repairWithoutAChangeIsNotReported ;;
+    'resolver#titleSuffixBesideItsCanonicalPathIsSettled') case_resolver_titleSuffixBesideItsCanonicalPathIsSettled ;;
+    'resolver#titleAbsentCitationIsParkedWhereItStands') case_resolver_titleAbsentCitationIsParkedWhereItStands ;;
     'resolver#repairIsVerifiedByReclassification') case_resolver_repairIsVerifiedByReclassification ;;
     'resolver#renamedFileIsFollowed') case_resolver_renamedFileIsFollowed ;;
     'resolver#removedSymbolIsReAnchored') case_resolver_removedSymbolIsReAnchored ;;
@@ -267,6 +271,43 @@ case_resolver_repairWithoutAChangeIsNotReported() {
   assert_contains "$(recorded_text "$d/writes.log")" "unresolved citation" \
     "the item is parked with its reason instead of reported repaired"
   assert_contains "$(recorded_text "$d/writes.log")" "the rewrite changed nothing" "and the reason names the no-op"
+}
+
+# The matrix is asked of the title *and* the body — the pair the pre-screen asks — but the resolver writes the
+# body only, so a token that stands in the title alone is not repairable by it. #201, #182 and #181 are exactly
+# that shape: a title naming `create.sh`, `update.sh`, `close.sh` beside the body's full `tools/issues/<name>.sh`.
+# The suffix loop rewrote the body for the title's token, changed nothing, and the no-op landed in the same
+# accumulator a genuine failure feeds — so a body that had *just been repaired* was parked on the next run, and
+# the header's idempotence claim was false (#226).
+case_resolver_titleSuffixBesideItsCanonicalPathIsSettled() {
+  local tree d out
+  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/tools/alpha"
+  printf '#!/bin/sh\n' > "$tree/tools/alpha/alpha.sh"
+  git_init "$tree"
+  d=$(tracker "$tree/fixture-gh" 7 'the writer is `alpha.sh`' 'the writer is `tools/alpha/alpha.sh`')
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "0" "$(jq -r '.parked' <<< "$out")" "an item whose body already holds the canonical path is not parked"
+  assert_eq "0" "$(jq -r '.due' <<< "$out")" "and its title's bare token does not make it due"
+  assert_eq "0" "$(jq -r '.writes' <<< "$out")" "nothing is written for it"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'status/on-hold')" "the item keeps the state it had"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'issue comment')" "and no comment claims anything about it"
+}
+
+# The other half of the same rule, and the reason the skip may not be generalised to `absent`: a citation the
+# tree does not hold is stale wherever it stands — the pre-screen asks the title too — and this tool cannot
+# rewrite a title, so the item is still parked, with a reason that names where the citation is. Skipping it as
+# "nothing to do" would leave an item every later run refuses with nothing on the tracker saying why (#163).
+case_resolver_titleAbsentCitationIsParkedWhereItStands() {
+  local tree d out text
+  tree=$(tree_with_file)
+  d=$(tracker "$tree/fixture-gh" 7 'the writer is `Ghost.kt:3`' 'the case lives in `Foo.kt:12`')
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "1" "$(jq -r '.parked' <<< "$out")" "a stale citation in the title still parks the item"
+  text=$(recorded_text "$d/writes.log")
+  assert_contains "$text" "the citation is in the title" "and the reason names where it is"
+  assert_not_contains "$text" "the rewrite changed nothing" "not a no-op that was never attempted"
 }
 
 # The other half of the same verification: a repair counts only when its target re-classifies as a citation the

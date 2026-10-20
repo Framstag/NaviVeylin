@@ -29,6 +29,12 @@
 # rewritten citation re-classifies as no longer `absent` — an attempt that a later rewrite undoes, or whose
 # target the tree does not hold, is unresolved and parks the item rather than being reported as repaired.
 #
+# The matrix is asked of the title and the body together — the pair the pre-screen asks — but only the body is
+# written, so a token that stands in the title alone cannot be repaired by this script: a `suffix` one is
+# settled (the class is not stale, and the body already reads as it should), an `absent` one is parked with a
+# reason that names the title (#226). Counting such a token's body-identical rewrite as unresolved is how an
+# item that had just been repaired was parked on the next run.
+#
 # Exit: 0 ran (including "nothing to do"), 2 usage or unusable input, 3 policy refusal.
 #
 # Usage: resolve-stale.sh [--apply] [--max-items <n>] [--issues <file>] [--json] [--profile <path>]
@@ -115,6 +121,13 @@ add_line() {
   if [ -n "$1" ]; then printf '%s\n%s' "$1" "$2"; else printf '%s' "$2"; fi
 }
 
+# Whether the item's *body* carries this token at all. The matrix is asked of the title and the body together
+# — the pair the pre-screen asks — but this script writes the body only, so this is the question a rewrite can
+# act on: a token it answers no for is settled or parked below, never rewritten (#226).
+body_cites() { # <token>
+  printf '%s\n' "$body_matrix" | awk -F'\t' -v t="$1" '$2 == t { found = 1 } END { exit !found }'
+}
+
 # The successor of a citation the tree does not hold, from the repository's own records: an archived change
 # (its directory moved under `archive/` with a date prefix), then the rename map, then a single surviving
 # declaration of the symbol.
@@ -195,6 +208,9 @@ $body")
   fi
 
   new_body="$body"
+  # The body's own citation set: both loops below write this body and nothing else, so a token that is not in
+  # this set is not theirs to repair (#226).
+  body_matrix=$(issues_citation_matrix_of "$body")
   repairs=""
   pairs=""
   unresolved=""
@@ -209,6 +225,10 @@ $body")
       continue
     fi
     [ "$canon" != "$tok" ] || continue
+    # A token the body does not carry stands in the title alone: a body write cannot reach it, and a `suffix`
+    # citation is not stale in the first place — it is settled, so the item is not due from it and nothing is
+    # written (#226).
+    body_cites "$tok" || continue
     # `standalone=1`: a basename repair may not rewrite the tail of a longer path — that is how the suffix loop
     # used to give a doubled token a third copy of its directory (#200).
     new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -v standalone=1 -f "$here/rewrite.awk")
@@ -217,6 +237,13 @@ $body")
 
   while IFS= read -r tok; do
     [ -n "$tok" ] || continue
+    # A citation the tree does not hold, standing in the title alone: the item *is* stale there — the pre-screen
+    # asks the title too — and this script writes bodies, so it cannot repair it. Parked with a reason that
+    # names where the citation is, rather than a rewrite that was never attempted (#226).
+    if ! body_cites "$tok"; then
+      unresolved=$(add_line "$unresolved" "- \`${tok}\` — the citation is in the title, which this tool does not rewrite")
+      continue
+    fi
     canon=$(successor_of "$tok")
     if [ -z "$canon" ]; then
       # Before a rename walk or a symbol search: the token said its own directory twice, and the collapsed form

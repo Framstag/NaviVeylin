@@ -161,6 +161,12 @@ the ladder can only report cannot consume the run's budget, and SHALL never hide
 the run SHALL report how many wait. The count of unresolved citations SHALL be a declared check row, so a
 growing residue is a measurement.
 
+The citations SHALL be classified from the item's title and body together — the pair the pre-screen asks — while
+only the body can be written. A token the body does not carry SHALL therefore neither repair nor charge the
+bound: a token that resolves SHALL leave the item settled and unwritten, and a token the tree does not hold
+SHALL be parked with the reason recording that the citation stands in the title, so a stale title is a state a
+person can query rather than a rewrite reported as having changed nothing.
+
 #### Scenario: A scheduled run repairs without a person
 
 - **WHEN** the pipeline runs on its schedule
@@ -185,6 +191,21 @@ growing residue is a measurement.
 - **WHEN** the resolver runs again over items it already processed
 - **THEN** no citation is rewritten, no comment is posted, and the run reports an empty working set
 - **Case**: `resolver#secondRunChangesNothing`
+
+#### Scenario: A citation the body does not carry is settled
+
+- **WHEN** an item's title names a file by a bare name whose tracked path the body already cites in full, as
+  every item repaired from the doubled-directory form ends up
+- **THEN** the item is not due, its body is not rewritten, no comment is posted and its state is unchanged, so
+  the run after a repair finds nothing to do
+- **Case**: `resolver#titleSuffixBesideItsCanonicalPathIsSettled`
+
+#### Scenario: A stale citation in the title is parked where it stands
+
+- **WHEN** the title cites a file the repository does not hold and the body's own citations do not need it
+- **THEN** the item is parked with a reason naming the title as the citation's place, because the resolver
+  writes bodies and cannot rewrite a title, and no rewrite that was never attempted is reported
+- **Case**: `resolver#titleAbsentCitationIsParkedWhereItStands`
 
 #### Scenario: The residue is a declared check
 

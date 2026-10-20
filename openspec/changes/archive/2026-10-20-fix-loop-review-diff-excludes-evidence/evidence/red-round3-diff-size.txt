@@ -1,0 +1,46 @@
+# The real round-3 diff of item #126, measured 2026-11-02 on the machine-local copy the run wrote
+# (`.pi/issue-loop/` is gitignored and not retained in the repository; transcribed here so the number can be re-checked
+# while the file still exists).
+
+$ wc -lc review-3.diff
+ 10883 446092 review-3.diff
+
+$ awk: sum the lines of every `diff --git` block, split by whether its path carries /evidence/
+
+Per-file line counts (evidence blocks first, then the change):
+
+  3148  openspec/changes/archive/2026-10-19-fix-i18n-gate-state-field-text/evidence/gate-reports/app-mobile.html
+  3148  …/evidence/gate-reports/app-automotive.html
+  1047  …/evidence/gate-reports/auto.html
+   786  …/evidence/gate-reports/core.html
+   405  …/evidence/revert-check-mutated.xml
+   200  …/evidence/gate-reports/osmscout-client-java.html
+   192  …/evidence/red-buildsrc-scan.xml
+  ---- (further evidence blocks: gate.txt 49, gate-results.txt 43, suites/*.xml, buildsrc/*.xml …)
+  9574  total evidence lines of 10 820 counted (88.5 %)
+   111  …/design.md
+    84  …/proposal.md
+    65  …/tasks.md
+    50  …/specs/i18n-l10n/spec.md
+   103  buildSrc/src/main/kotlin/com/naviveylin/build/i18n/HardcodedStringScanner.kt
+    66  buildSrc/src/test/kotlin/com/naviveylin/build/i18n/HardcodedStringScannerTest.kt
+    …    the remainder of the change (Kotlin, XML resources, guidelines, openspec/specs)
+  1246  total kept lines of 10 820 counted
+
+Issue #204 quotes 9 935 changed lines of which 9 364 were evidence (94.3 %), from the same file
+earlier in its life; this copy measures 10 883 lines and 9 574 evidence lines. Both readings say
+the same thing — four fifths or more of what a reviewer is handed is generated output — and the
+difference between them is the copy, not the claim.
+
+# the tree at rest:
+$ git ls-files 'openspec/changes/archive/*/evidence/*' | wc -l
+609
+$ git ls-files … | sed "s/.*\.//" | sort | uniq -c | sort -rn
+    404 xml
+     87 txt
+     59 log
+     51 md
+      3 sh
+      2 json
+$ du -sh openspec/changes/archive
+23M	/home/tim/projects/NaviVeylin/.pi/worktrees/fix-evidence/openspec/changes/archive

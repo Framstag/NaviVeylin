@@ -1,0 +1,4 @@
+# green — the same case on the fixed write_review_diff:
+# bash tools/loop-selftest.sh --case "run#reviewDiffExcludesTheEvidenceArchive"
+PASS run#reviewDiffExcludesTheEvidenceArchive
+# exit: 0

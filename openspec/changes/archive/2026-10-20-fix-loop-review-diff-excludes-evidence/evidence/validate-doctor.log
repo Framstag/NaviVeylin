@@ -1,0 +1,14 @@
+$ openspec validate fix-loop-review-diff-excludes-evidence
+Change 'fix-loop-review-diff-excludes-evidence' is valid
+# exit: 0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-evidence
+  OpenSpec root: ok
+
+References
+  (none declared)
+# exit: 0

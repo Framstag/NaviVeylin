@@ -1,0 +1,346 @@
+# red — the exclusion removed from write_review_diff (single line: the diff is built without the pathspec), then
+# bash tools/loop-selftest.sh --case "run#reviewDiffExcludesTheEvidenceArchive"
+# tool: tools/loop/run.sh mutation of the fix commit, restored immediately afterwards
+  the generated gate report is not part of the review's reading surface: 'gate-report.html' should not appear in: diff --git a/Demo.kt b/Demo.kt
+new file mode 100644
+index 0000000..e48daf5
+--- /dev/null
++++ b/Demo.kt
+@@ -0,0 +1 @@
++val fixed = 1
+diff --git a/demo-fix.txt b/demo-fix.txt
+new file mode 100644
+index 0000000..00711c2
+--- /dev/null
++++ b/demo-fix.txt
+@@ -0,0 +1 @@
++the fix
+diff --git a/notes-for-the-reviewer.txt b/notes-for-the-reviewer.txt
+new file mode 100644
+index 0000000..5641421
+--- /dev/null
++++ b/notes-for-the-reviewer.txt
+@@ -0,0 +1 @@
++a note the reviewer has to read
+diff --git a/openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml b/openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+new file mode 100644
+index 0000000..901154f
+--- /dev/null
++++ b/openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+@@ -0,0 +1 @@
++<testsuite tests="1" failures="0"></testsuite>
+diff --git a/openspec/changes/archive/2026-01-01-fix-demo/evidence/gate-report.html b/openspec/changes/archive/2026-01-01-fix-demo/evidence/gate-report.html
+new file mode 100644
+index 0000000..43a4190
+--- /dev/null
++++ b/openspec/changes/archive/2026-01-01-fix-demo/evidence/gate-report.html
+@@ -0,0 +1,300 @@
++<tr><td>gate row 0</td></tr>
++<tr><td>gate row 1</td></tr>
++<tr><td>gate row 2</td></tr>
++<tr><td>gate row 3</td></tr>
++<tr><td>gate row 4</td></tr>
++<tr><td>gate row 5</td></tr>
++<tr><td>gate row 6</td></tr>
++<tr><td>gate row 7</td></tr>
++<tr><td>gate row 8</td></tr>
++<tr><td>gate row 9</td></tr>
++<tr><td>gate row 10</td></tr>
++<tr><td>gate row 11</td></tr>
++<tr><td>gate row 12</td></tr>
++<tr><td>gate row 13</td></tr>
++<tr><td>gate row 14</td></tr>
++<tr><td>gate row 15</td></tr>
++<tr><td>gate row 16</td></tr>
++<tr><td>gate row 17</td></tr>
++<tr><td>gate row 18</td></tr>
++<tr><td>gate row 19</td></tr>
++<tr><td>gate row 20</td></tr>
++<tr><td>gate row 21</td></tr>
++<tr><td>gate row 22</td></tr>
++<tr><td>gate row 23</td></tr>
++<tr><td>gate row 24</td></tr>
++<tr><td>gate row 25</td></tr>
++<tr><td>gate row 26</td></tr>
++<tr><td>gate row 27</td></tr>
++<tr><td>gate row 28</td></tr>
++<tr><td>gate row 29</td></tr>
++<tr><td>gate row 30</td></tr>
++<tr><td>gate row 31</td></tr>
++<tr><td>gate row 32</td></tr>
++<tr><td>gate row 33</td></tr>
++<tr><td>gate row 34</td></tr>
++<tr><td>gate row 35</td></tr>
++<tr><td>gate row 36</td></tr>
++<tr><td>gate row 37</td></tr>
++<tr><td>gate row 38</td></tr>
++<tr><td>gate row 39</td></tr>
++<tr><td>gate row 40</td></tr>
++<tr><td>gate row 41</td></tr>
++<tr><td>gate row 42</td></tr>
++<tr><td>gate row 43</td></tr>
++<tr><td>gate row 44</td></tr>
++<tr><td>gate row 45</td></tr>
++<tr><td>gate row 46</td></tr>
++<tr><td>gate row 47</td></tr>
++<tr><td>gate row 48</td></tr>
++<tr><td>gate row 49</td></tr>
++<tr><td>gate row 50</td></tr>
++<tr><td>gate row 51</td></tr>
++<tr><td>gate row 52</td></tr>
++<tr><td>gate row 53</td></tr>
++<tr><td>gate row 54</td></tr>
++<tr><td>gate row 55</td></tr>
++<tr><td>gate row 56</td></tr>
++<tr><td>gate row 57</td></tr>
++<tr><td>gate row 58</td></tr>
++<tr><td>gate row 59</td></tr>
++<tr><td>gate row 60</td></tr>
++<tr><td>gate row 61</td></tr>
++<tr><td>gate row 62</td></tr>
++<tr><td>gate row 63</td></tr>
++<tr><td>gate row 64</td></tr>
++<tr><td>gate row 65</td></tr>
++<tr><td>gate row 66</td></tr>
++<tr><td>gate row 67</td></tr>
++<tr><td>gate row 68</td></tr>
++<tr><td>gate row 69</td></tr>
++<tr><td>gate row 70</td></tr>
++<tr><td>gate row 71</td></tr>
++<tr><td>gate row 72</td></tr>
++<tr><td>gate row 73</td></tr>
++<tr><td>gate row 74</td></tr>
++<tr><td>gate row 75</td></tr>
++<tr><td>gate row 76</td></tr>
++<tr><td>gate row 77</td></tr>
++<tr><td>gate row 78</td></tr>
++<tr><td>gate row 79</td></tr>
++<tr><td>gate row 80</td></tr>
++<tr><td>gate row 81</td></tr>
++<tr><td>gate row 82</td></tr>
++<tr><td>gate row 83</td></tr>
++<tr><td>gate row 84</td></tr>
++<tr><td>gate row 85</td></tr>
++<tr><td>gate row 86</td></tr>
++<tr><td>gate row 87</td></tr>
++<tr><td>gate row 88</td></tr>
++<tr><td>gate row 89</td></tr>
++<tr><td>gate row 90</td></tr>
++<tr><td>gate row 91</td></tr>
++<tr><td>gate row 92</td></tr>
++<tr><td>gate row 93</td></tr>
++<tr><td>gate row 94</td></tr>
++<tr><td>gate row 95</td></tr>
++<tr><td>gate row 96</td></tr>
++<tr><td>gate row 97</td></tr>
++<tr><td>gate row 98</td></tr>
++<tr><td>gate row 99</td></tr>
++<tr><td>gate row 100</td></tr>
++<tr><td>gate row 101</td></tr>
++<tr><td>gate row 102</td></tr>
++<tr><td>gate row 103</td></tr>
++<tr><td>gate row 104</td></tr>
++<tr><td>gate row 105</td></tr>
++<tr><td>gate row 106</td></tr>
++<tr><td>gate row 107</td></tr>
++<tr><td>gate row 108</td></tr>
++<tr><td>gate row 109</td></tr>
++<tr><td>gate row 110</td></tr>
++<tr><td>gate row 111</td></tr>
++<tr><td>gate row 112</td></tr>
++<tr><td>gate row 113</td></tr>
++<tr><td>gate row 114</td></tr>
++<tr><td>gate row 115</td></tr>
++<tr><td>gate row 116</td></tr>
++<tr><td>gate row 117</td></tr>
++<tr><td>gate row 118</td></tr>
++<tr><td>gate row 119</td></tr>
++<tr><td>gate row 120</td></tr>
++<tr><td>gate row 121</td></tr>
++<tr><td>gate row 122</td></tr>
++<tr><td>gate row 123</td></tr>
++<tr><td>gate row 124</td></tr>
++<tr><td>gate row 125</td></tr>
++<tr><td>gate row 126</td></tr>
++<tr><td>gate row 127</td></tr>
++<tr><td>gate row 128</td></tr>
++<tr><td>gate row 129</td></tr>
++<tr><td>gate row 130</td></tr>
++<tr><td>gate row 131</td></tr>
++<tr><td>gate row 132</td></tr>
++<tr><td>gate row 133</td></tr>
++<tr><td>gate row 134</td></tr>
++<tr><td>gate row 135</td></tr>
++<tr><td>gate row 136</td></tr>
++<tr><td>gate row 137</td></tr>
++<tr><td>gate row 138</td></tr>
++<tr><td>gate row 139</td></tr>
++<tr><td>gate row 140</td></tr>
++<tr><td>gate row 141</td></tr>
++<tr><td>gate row 142</td></tr>
++<tr><td>gate row 143</td></tr>
++<tr><td>gate row 144</td></tr>
++<tr><td>gate row 145</td></tr>
++<tr><td>gate row 146</td></tr>
++<tr><td>gate row 147</td></tr>
++<tr><td>gate row 148</td></tr>
++<tr><td>gate row 149</td></tr>
++<tr><td>gate row 150</td></tr>
++<tr><td>gate row 151</td></tr>
++<tr><td>gate row 152</td></tr>
++<tr><td>gate row 153</td></tr>
++<tr><td>gate row 154</td></tr>
++<tr><td>gate row 155</td></tr>
++<tr><td>gate row 156</td></tr>
++<tr><td>gate row 157</td></tr>
++<tr><td>gate row 158</td></tr>
++<tr><td>gate row 159</td></tr>
++<tr><td>gate row 160</td></tr>
++<tr><td>gate row 161</td></tr>
++<tr><td>gate row 162</td></tr>
++<tr><td>gate row 163</td></tr>
++<tr><td>gate row 164</td></tr>
++<tr><td>gate row 165</td></tr>
++<tr><td>gate row 166</td></tr>
++<tr><td>gate row 167</td></tr>
++<tr><td>gate row 168</td></tr>
++<tr><td>gate row 169</td></tr>
++<tr><td>gate row 170</td></tr>
++<tr><td>gate row 171</td></tr>
++<tr><td>gate row 172</td></tr>
++<tr><td>gate row 173</td></tr>
++<tr><td>gate row 174</td></tr>
++<tr><td>gate row 175</td></tr>
++<tr><td>gate row 176</td></tr>
++<tr><td>gate row 177</td></tr>
++<tr><td>gate row 178</td></tr>
++<tr><td>gate row 179</td></tr>
++<tr><td>gate row 180</td></tr>
++<tr><td>gate row 181</td></tr>
++<tr><td>gate row 182</td></tr>
++<tr><td>gate row 183</td></tr>
++<tr><td>gate row 184</td></tr>
++<tr><td>gate row 185</td></tr>
++<tr><td>gate row 186</td></tr>
++<tr><td>gate row 187</td></tr>
++<tr><td>gate row 188</td></tr>
++<tr><td>gate row 189</td></tr>
++<tr><td>gate row 190</td></tr>
++<tr><td>gate row 191</td></tr>
++<tr><td>gate row 192</td></tr>
++<tr><td>gate row 193</td></tr>
++<tr><td>gate row 194</td></tr>
++<tr><td>gate row 195</td></tr>
++<tr><td>gate row 196</td></tr>
++<tr><td>gate row 197</td></tr>
++<tr><td>gate row 198</td></tr>
++<tr><td>gate row 199</td></tr>
++<tr><td>gate row 200</td></tr>
++<tr><td>gate row 201</td></tr>
++<tr><td>gate row 202</td></tr>
++<tr><td>gate row 203</td></tr>
++<tr><td>gate row 204</td></tr>
++<tr><td>gate row 205</td></tr>
++<tr><td>gate row 206</td></tr>
++<tr><td>gate row 207</td></tr>
++<tr><td>gate row 208</td></tr>
++<tr><td>gate row 209</td></tr>
++<tr><td>gate row 210</td></tr>
++<tr><td>gate row 211</td></tr>
++<tr><td>gate row 212</td></tr>
++<tr><td>gate row 213</td></tr>
++<tr><td>gate row 214</td></tr>
++<tr><td>gate row 215</td></tr>
++<tr><td>gate row 216</td></tr>
++<tr><td>gate row 217</td></tr>
++<tr><td>gate row 218</td></tr>
++<tr><td>gate row 219</td></tr>
++<tr><td>gate row 220</td></tr>
++<tr><td>gate row 221</td></tr>
++<tr><td>gate row 222</td></tr>
++<tr><td>gate row 223</td></tr>
++<tr><td>gate row 224</td></tr>
++<tr><td>gate row 225</td></tr>
++<tr><td>gate row 226</td></tr>
++<tr><td>gate row 227</td></tr>
++<tr><td>gate row 228</td></tr>
++<tr><td>gate row 229</td></tr>
++<tr><td>gate row 230</td></tr>
++<tr><td>gate row 231</td></tr>
++<tr><td>gate row 232</td></tr>
++<tr><td>gate row 233</td></tr>
++<tr><td>gate row 234</td></tr>
++<tr><td>gate row 235</td></tr>
++<tr><td>gate row 236</td></tr>
++<tr><td>gate row 237</td></tr>
++<tr><td>gate row 238</td></tr>
++<tr><td>gate row 239</td></tr>
++<tr><td>gate row 240</td></tr>
++<tr><td>gate row 241</td></tr>
++<tr><td>gate row 242</td></tr>
++<tr><td>gate row 243</td></tr>
++<tr><td>gate row 244</td></tr>
++<tr><td>gate row 245</td></tr>
++<tr><td>gate row 246</td></tr>
++<tr><td>gate row 247</td></tr>
++<tr><td>gate row 248</td></tr>
++<tr><td>gate row 249</td></tr>
++<tr><td>gate row 250</td></tr>
++<tr><td>gate row 251</td></tr>
++<tr><td>gate row 252</td></tr>
++<tr><td>gate row 253</td></tr>
++<tr><td>gate row 254</td></tr>
++<tr><td>gate row 255</td></tr>
++<tr><td>gate row 256</td></tr>
++<tr><td>gate row 257</td></tr>
++<tr><td>gate row 258</td></tr>
++<tr><td>gate row 259</td></tr>
++<tr><td>gate row 260</td></tr>
++<tr><td>gate row 261</td></tr>
++<tr><td>gate row 262</td></tr>
++<tr><td>gate row 263</td></tr>
++<tr><td>gate row 264</td></tr>
++<tr><td>gate row 265</td></tr>
++<tr><td>gate row 266</td></tr>
++<tr><td>gate row 267</td></tr>
++<tr><td>gate row 268</td></tr>
++<tr><td>gate row 269</td></tr>
++<tr><td>gate row 270</td></tr>
++<tr><td>gate row 271</td></tr>
++<tr><td>gate row 272</td></tr>
++<tr><td>gate row 273</td></tr>
++<tr><td>gate row 274</td></tr>
++<tr><td>gate row 275</td></tr>
++<tr><td>gate row 276</td></tr>
++<tr><td>gate row 277</td></tr>
++<tr><td>gate row 278</td></tr>
++<tr><td>gate row 279</td></tr>
++<tr><td>gate row 280</td></tr>
++<tr><td>gate row 281</td></tr>
++<tr><td>gate row 282</td></tr>
++<tr><td>gate row 283</td></tr>
++<tr><td>gate row 284</td></tr>
++<tr><td>gate row 285</td></tr>
++<tr><td>gate row 286</td></tr>
++<tr><td>gate row 287</td></tr>
++<tr><td>gate row 288</td></tr>
++<tr><td>gate row 289</td></tr>
++<tr><td>gate row 290</td></tr>
++<tr><td>gate row 291</td></tr>
++<tr><td>gate row 292</td></tr>
++<tr><td>gate row 293</td></tr>
++<tr><td>gate row 294</td></tr>
++<tr><td>gate row 295</td></tr>
++<tr><td>gate row 296</td></tr>
++<tr><td>gate row 297</td></tr>
++<tr><td>gate row 298</td></tr>
++<tr><td>gate row 299</td></tr>
+diff --git a/openspec/changes/archive/2026-01-01-fix-demo/proposal.md b/openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+new file mode 100644
+index 0000000..119ec43
+--- /dev/null
++++ b/openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+@@ -0,0 +1 @@
++archived
+FAIL run#reviewDiffExcludesTheEvidenceArchive
+# exit: 1

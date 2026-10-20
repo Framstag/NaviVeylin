@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.licensing.LicenseExpressionsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.373Z" hostname="dingens" time="0.0">
+  <properties/>
+  <testcase name="alternatives nested inside a conjunction are not top level" classname="com.naviveylin.build.licensing.LicenseExpressionsTest" time="0.0"/>
+  <testcase name="redundant parentheses are stripped" classname="com.naviveylin.build.licensing.LicenseExpressionsTest" time="0.0"/>
+  <testcase name="splits top level alternatives" classname="com.naviveylin.build.licensing.LicenseExpressionsTest" time="0.0"/>
+  <testcase name="splits top level conjunctions" classname="com.naviveylin.build.licensing.LicenseExpressionsTest" time="0.0"/>
+  <testcase name="parentheses that do not enclose the whole expression are kept" classname="com.naviveylin.build.licensing.LicenseExpressionsTest" time="0.0"/>
+  <testcase name="with operator stays part of the identifier" classname="com.naviveylin.build.licensing.LicenseExpressionsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

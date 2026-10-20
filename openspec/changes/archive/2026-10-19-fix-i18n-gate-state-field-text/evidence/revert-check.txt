@@ -1,0 +1,34 @@
+# Revert-check for the new rule (skill `revert-check`)
+
+Mutation applied 2026-10-19T22:49:45+02:00 (file digest before the edit,
+`sha256 9a01ea28af103ad320643e1ddbc1c4a131b4075898904088bd0d554158a4ba39`):
+`DISPLAY_FIELD.findAll(line)` → `DISPLAY_FIELD.findAll(line).drop(999)` in `lineFindings`, so the
+assignment arm observes nothing.
+
+    ./gradlew -p buildSrc test                       # 2026-10-19T22:49:45 … 22:49:50 (+02:00)
+    HardcodedStringScannerTest > stateFieldIsFlagged FAILED
+    HardcodedStringScannerTest > interpolatedDisplayTextIsFlagged FAILED
+    HardcodedStringScannerTest > templateCarryingAWordIsFlagged FAILED
+    HardcodedStringScannerTest > everyTextPositionIsCovered FAILED
+    HardcodedStringScannerTest > conditionalAssignmentIsFlaggedOnce FAILED
+    HardcodedStringScannerTest > prefixedStateFieldIsFlagged FAILED
+    HardcodedStringScannerTest > channelDescriptionAssignmentIsFlagged FAILED
+    127 tests completed, 7 failed
+    BUILD FAILED in 5s
+
+The failing suite is archived as `revert-check-mutated.xml`:
+`tests="20" skipped="0" failures="7" errors="0" timestamp="2026-10-19T20:49:50.105Z"` (22:49:50 local).
+The seven that fall are the seven the assignment arm carries, and the delta's own witnesses
+(`stateFieldIsFlagged`, `prefixedStateFieldIsFlagged`) are among them.
+
+Restore, 2026-10-19T22:49:52+02:00: the pre-mutation file copied back. Evidence that the tree is clean
+again, all three from that moment:
+
+    git status --porcelain                        → no output (0 changed files)
+    grep -c 'drop(999)' HardcodedStringScanner.kt → 0
+    sha256sum HardcodedStringScanner.kt           → 9a01ea28af103ad320643e1ddbc1c4a131b4075898904088bd0d554158a4ba39 (same as before the edit)
+
+Restored run:
+
+    ./gradlew -p buildSrc test                       # 2026-10-19T22:49:55 … 22:49:56 (+02:00), BUILD SUCCESSFUL in 1s
+    `buildsrc-green.xml`: tests="20" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.163Z"

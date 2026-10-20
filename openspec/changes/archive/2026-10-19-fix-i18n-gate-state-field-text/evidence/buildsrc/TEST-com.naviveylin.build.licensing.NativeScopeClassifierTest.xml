@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.licensing.NativeScopeClassifierTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.385Z" hostname="dingens" time="0.002">
+  <properties/>
+  <testcase name="component found by probe symbol is shipped" classname="com.naviveylin.build.licensing.NativeScopeClassifierTest" time="0.001"/>
+  <testcase name="component packaged as its own shared object is shipped" classname="com.naviveylin.build.licensing.NativeScopeClassifierTest" time="0.0"/>
+  <testcase name="component with nothing packaged is build time only" classname="com.naviveylin.build.licensing.NativeScopeClassifierTest" time="0.0"/>
+  <testcase name="name matching covers debug and map library suffixes" classname="com.naviveylin.build.licensing.NativeScopeClassifierTest" time="0.0"/>
+  <testcase name="every component receives a scope" classname="com.naviveylin.build.licensing.NativeScopeClassifierTest" time="0.0"/>
+  <testcase name="component whose archive is linked but whose symbols are hidden is shipped and ambiguous" classname="com.naviveylin.build.licensing.NativeScopeClassifierTest" time="0.001"/>
+  <testcase name="installed archive that no link line reaches is build time only" classname="com.naviveylin.build.licensing.NativeScopeClassifierTest" time="0.0"/>
+  <testcase name="component found by prefix probe is shipped" classname="com.naviveylin.build.licensing.NativeScopeClassifierTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

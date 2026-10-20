@@ -1,0 +1,20 @@
+# The i18n gate over the three source trees
+
+Before the sweep, with the widened scanner run against HEAD's sources — 20 positions, nothing in `:core`:
+
+    ./gradlew :app:checkHardcodedStrings :auto:checkHardcodedStrings :core:checkHardcodedStrings
+    app/src/main/java/com/naviveylin/ui/favorites/FavoritesViewModel.kt:104,113,122,131,140,149,169   (7)
+    app/src/main/java/com/naviveylin/ui/mapmanager/BasemapViewModel.kt:351                            (1)
+    app/src/main/java/com/naviveylin/ui/mapmanager/MapManagerViewModel.kt:527,636,720,750,755,1027    (6)
+    app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt:2452,2923,3563,3569,3581            (5)
+    auto/src/main/java/com/naviveylin/auto/SurfaceAttribution.kt:21                                  (1)
+    BUILD FAILED
+
+After the sweep (22:14, 21:57 and 21:50 runs of the same three tasks):
+
+    > Task :core:checkHardcodedStrings
+    > Task :auto:checkHardcodedStrings
+    > Task :app:checkHardcodedStrings
+    BUILD SUCCESSFUL in 3s
+
+`:core` reports nothing both before and after — the shared module owns no wording.

@@ -1,0 +1,38 @@
+# Gate tallies, from the result directories of the one full-gate run
+
+Run: `./gradlew test -PforceTests --no-build-cache`, `BUILD SUCCESSFUL in 3m 47s`,
+189 actionable tasks: 22 executed, 167 up-to-date (local ≈22:45:30 … 22:49:17, 2026-10-19).
+
+Summing a result directory — `tests`/`skipped`/`failures`/`errors` of every `<testsuite>` it holds, the
+timestamp range of its suites, and a sha256 over `sha256sum` of its sorted `TEST-*.xml` list (the digest
+makes an overwrite by a later run detectable — but only against the build directory itself, which a later run
+overwrites too: it is a tripwire, not a re-checkable number):
+
+    for d in auto/build/test-results/testDebugUnitTest \
+             core/build/test-results/testDebugUnitTest \
+             osmscout-client-java/build/test-results/test \
+             app/build/test-results/testMobileDebugUnitTest \
+             app/build/test-results/testAutomotiveDebugUnitTest; do
+      files=$(find "$d" -name 'TEST-*.xml' -type f | wc -l)
+      tests=$(sed -n 's/.*<testsuite[^>]* tests="\([0-9]*\)".*/\1/p' "$d"/TEST-*.xml | awk '{s+=$1} END {print s+0}')
+      fails=$(sed -n 's/.*<testsuite[^>]* failures="\([0-9]*\)".*/\1/p' "$d"/TEST-*.xml | awk '{s+=$1} END {print s+0}')
+      errs=$(sed -n 's/.*<testsuite[^>]* errors="\([0-9]*\)".*/\1/p' "$d"/TEST-*.xml | awk '{s+=$1} END {print s+0}')
+      digest=$(find "$d" -name 'TEST-*.xml' -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+      echo "$d files=$files tests=$tests failures=$fails errors=$errs sha256:$digest"
+    done
+
+Output:
+
+    auto/build/test-results/testDebugUnitTest            files=85  tests=866  skipped=0 failures=0 errors=0 timestamp=2026-10-19T20:45:49.096Z..2026-10-19T20:46:25.451Z digest=sha256:66eedad34bb8ae6e992b43753d4686c25f8d34f1d4412b3da09e3abf76dce6a0
+    core/build/test-results/testDebugUnitTest            files=60  tests=642  skipped=0 failures=0 errors=0 timestamp=2026-10-19T20:45:48.835Z..2026-10-19T20:45:58.730Z digest=sha256:c32c5752a4c2a5094624590a5196e9474cef58a16c75f213dd69026ce2c2caa1
+    osmscout-client-java/build/test-results/test         files=8   tests=48   skipped=0 failures=0 errors=0 timestamp=2026-10-19T20:45:48.503Z..2026-10-19T20:45:48.789Z digest=sha256:e6d40d5100900e460189e2ad7b7226e1dcbaff363bb5815de4afad73abfde84c
+    app/build/test-results/testMobileDebugUnitTest       files=276 tests=2062 skipped=0 failures=0 errors=0 timestamp=2026-10-19T20:47:45.091Z..2026-10-19T20:49:25.169Z digest=sha256:cd11b48bd2ef3a0cf4df9d744eb4723dba2bfc8f3c1e7f911c4f61834dfc9dc1
+    app/build/test-results/testAutomotiveDebugUnitTest   files=276 tests=2062 skipped=0 failures=0 errors=0 timestamp=2026-10-19T20:45:50.750Z..2026-10-19T20:47:41.571Z digest=sha256:61bc0264ded14cafce182952bb19b15017f9ce36d07a61bbb0ed6917fd2b3b89
+
+`buildSrc` (not reached by `./gradlew test`; run separately, see `gate.txt`):
+
+    buildSrc/build/test-results/test                     files=11  tests=127  skipped=0 failures=0 errors=0 timestamp=2026-10-19T20:49:56.163Z..2026-10-19T20:49:56.397Z digest=sha256:dbdfe3035ecf6e65eb47561630ec974a220325e72f839754c26273853030d006
+
+Cross-check from Gradle's own aggregate report (`gate-reports/*.html`, counters tests/failures/errors/duration):
+`app-mobile` 2062/0/0 · `app-automotive` 2062/0/0 · `auto` 866/0/0 · `core` 642/0/0 ·
+`osmscout-client-java` 48/0/0.

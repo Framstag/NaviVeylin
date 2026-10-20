@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.favorites.FavoritesViewModelTest" tests="30" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:39:14.142Z" hostname="dingens" time="0.528">
+  <properties/>
+  <testcase name="a later cross-group move is accepted after the in-flight one finished" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.028"/>
+  <testcase name="the starred channel reaches the UI state across groups" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.02"/>
+  <testcase name="refused cross-group move reports the name conflict and keeps both groups" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.017"/>
+  <testcase name="addFavorite adds to group" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.019"/>
+  <testcase name="deleteGroup removes group" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.017"/>
+  <testcase name="a later starred reorder is accepted after the in-flight one finished" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.016"/>
+  <testcase name="moveFavoriteToGroup into a new group creates it" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.016"/>
+  <testcase name="failed cross-group move reports the move failure" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.018"/>
+  <testcase name="addGroup creates group and shows snackbar" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.024"/>
+  <testcase name="moveStarred reorders the chips and shows no error" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.023"/>
+  <testcase name="reorder while a cross-group move is in flight is dropped" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.022"/>
+  <testcase name="setGroupColor updates groupColors" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.017"/>
+  <testcase name="a later group reorder is accepted after the in-flight one finished" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.019"/>
+  <testcase name="toggleStar adds to starredFavorites" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <testcase name="moveFavorite reorders the group and shows no error" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.016"/>
+  <testcase name="another order write while a starred reorder is in flight is dropped" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.016"/>
+  <testcase name="failed moveStarred keeps the order and reports it" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.02"/>
+  <testcase name="a later reorder is accepted after the in-flight one finished" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.016"/>
+  <testcase name="moveGroup reorders the groups and shows no error" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <testcase name="reorder while a group reorder is in flight is dropped" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.016"/>
+  <testcase name="group reorder while a reorder is in flight is dropped" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <testcase name="toggleStar twice removes from starredFavorites" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <testcase name="multiple starred favorites all appear" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <testcase name="failed moveGroup keeps the order and reports it" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.014"/>
+  <testcase name="failed moveFavorite keeps the order and reports it" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <testcase name="selectGroup updates selectedGroup" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.016"/>
+  <testcase name="moveFavoriteToGroup moves the favorite and reports success" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <testcase name="cross-group move while a reorder is in flight is dropped" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <testcase name="starred reorder while another order write is in flight is dropped" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.014"/>
+  <testcase name="reorder commit while one is in flight is dropped" classname="com.naviveylin.ui.favorites.FavoritesViewModelTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

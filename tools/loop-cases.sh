@@ -22,6 +22,8 @@ LOOP_SHELL_CASES=(
   'state#floorIsDerivedFromTheFinishedItemsWallTimes'
   'state#floorWithNoHistoryIsTheConfiguredMinimum'
   'state#secondRunRefusesWithExit5'
+  'state#initKeepsTheStateItReplaces'
+  'state#initAnnouncesARunWithoutAStop'
   'state#defaultsComeFromLoopConf'
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
@@ -110,6 +112,8 @@ LOOP_SHELL_CASES=(
   'report#escalatedSkipNamesTheLabelWritten'
   'report#failedReviewEscalationIsNamed'
   'report#aVerdictAloneIsNoEscalation'
+  'report#archivedStateIsReported'
+  'report#impossibleBudgetNamesAnotherRun'
 )
 
 loop_shell_cases() {
@@ -126,6 +130,8 @@ loop_run_shell_case() {
     'state#floorIsDerivedFromTheFinishedItemsWallTimes') fn=case_state_floorIsDerivedFromTheFinishedItemsWallTimes ;;
     'state#floorWithNoHistoryIsTheConfiguredMinimum') fn=case_state_floorWithNoHistoryIsTheConfiguredMinimum ;;
     'state#secondRunRefusesWithExit5') fn=case_state_secondRunRefusesWithExit5 ;;
+    'state#initKeepsTheStateItReplaces') fn=case_state_initKeepsTheStateItReplaces ;;
+    'state#initAnnouncesARunWithoutAStop') fn=case_state_initAnnouncesARunWithoutAStop ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
@@ -213,6 +219,8 @@ loop_run_shell_case() {
     'report#escalatedSkipNamesTheLabelWritten') fn=case_report_escalatedSkipNamesTheLabelWritten ;;
     'report#failedReviewEscalationIsNamed') fn=case_report_failedReviewEscalationIsNamed ;;
     'report#aVerdictAloneIsNoEscalation') fn=case_report_aVerdictAloneIsNoEscalation ;;
+    'report#archivedStateIsReported') fn=case_report_archivedStateIsReported ;;
+    'report#impossibleBudgetNamesAnotherRun') fn=case_report_impossibleBudgetNamesAnotherRun ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -540,6 +548,49 @@ case_state_secondRunRefusesWithExit5() {
   printf '\n' > "$block"
   wait "$first"
   unset PI_STUB_WAIT
+}
+
+# A finished run's counters, verdicts and stop reason live in one file, and `init` writes over it: the file is
+# kept first, under the start time it carries itself, so a run that has ended can still be asked what it did
+# after the next run has started (issue #207).
+case_state_initKeepsTheStateItReplaces() {
+  local p sf runs first_started archived out
+  p=$(new_project)
+  init_state "$p" 2 90
+  run_state "$p" stop "queue empty" >/dev/null || fail "stop failed"
+  first_started=$(run_state "$p" get run.startedAt)
+  sf=$(state_file "$p")
+
+  init_state "$p" 3 30
+  runs="$(dirname "$sf")/runs"
+  archived="$runs/$first_started.json"
+  [ -f "$archived" ] || fail "the replaced state was not kept at $archived (found: $(ls -A "$runs" 2>/dev/null))"
+  assert_eq "2" "$(jq -r '.run.items' "$archived")" "the kept file is the run init replaced"
+  assert_eq "queue empty" "$(jq -r '.run.stop.reason' "$archived")" "the kept file carries the stop reason"
+  assert_eq "$first_started" "$(jq -r '.run.startedAt' "$archived")" "the archive is named by the run's own start time"
+  assert_eq "3" "$(run_state "$p" get run.items)" "the new state is the one in place"
+
+  # The kept file is a state like any other; that it can be reported on is `report#archivedStateIsReported`.
+  out=$(run_report "$p" --state "$archived") || fail "report --state on the kept state failed"
+  assert_contains "$out" "budget 2 items / 90 min" "the kept state is the run it was taken from"
+}
+
+# A run that was killed or crashed recorded no stop, and restarting over it must stay possible — a flag to
+# confirm would make a crashed run unstartable — but the state it loses is announced on stderr, not dropped
+# silently (issue #207).
+case_state_initAnnouncesARunWithoutAStop() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 1 90
+  out=$(run_state "$p" init --items 2 --minutes 30 2>&1 >/dev/null); status=$?
+  assert_eq "0" "$status" "a run without a stop reason is announced, never refused"
+  assert_contains "$out" "never recorded a stop reason" "the announcement names what is being replaced"
+  assert_eq "2" "$(run_state "$p" get run.items)" "the announced run is replaced, so the next run can start"
+
+  # A run that did record why it ended is kept without the warning: the warning names a defect, not the norm.
+  run_state "$p" stop "queue empty" >/dev/null || fail "stop failed"
+  out=$(run_state "$p" init --items 2 --minutes 30 2>&1 >/dev/null)
+  assert_not_contains "$out" "never recorded a stop reason" "a finished run is replaced without a warning"
 }
 
 case_state_defaultsComeFromLoopConf() {
@@ -2391,5 +2442,67 @@ case_report_aVerdictAloneIsNoEscalation() {
   line=$(decisions_line "$out")
   assert_eq "#22" "$line" "only the item whose escalation recorded the label is listed"
   assert_not_contains "$line" "#21" "a verdict alone names no decision"
+}
+
+# `--state` reports on a state the next run replaced, so what a finished run attempted, spent and recorded as
+# its end is still readable afterwards; without it the report is the run in place, as before (issue #207).
+case_report_archivedStateIsReported() {
+  local p archived out
+  p=$(new_project)
+  init_state "$p" 4 480
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result skipped --verdict needs-diagnosis --decision-label agent/needs-decision >/dev/null
+  run_state "$p" stop "queue empty" >/dev/null || fail "stop failed"
+  archived="$(dirname "$(state_file "$p")")/runs/$(run_state "$p" get run.startedAt).json"
+
+  # the later run that used to destroy the record of the one above
+  init_state "$p" 1 30
+  out=$(run_report "$p" --state "$archived") || fail "report --state failed"
+  assert_contains "$out" "budget 4 items / 480 min" "the archived run's own budget is reported"
+  assert_contains "$out" "closed 0 · skipped 1 · blocked 0" "the archived run's counters are reported"
+  assert_contains "$out" "stop: queue empty" "the archived run's stop reason is reported"
+  assert_contains "$out" "| #21 |" "the archived run's item is tabled"
+  assert_contains "$out" "#21 needs-diagnosis" "the archived run's skip is reported"
+
+  out=$(run_report "$p") || fail "the default report failed"
+  assert_contains "$out" "budget 1 items / 30 min" "without --state the report is still the run in place"
+
+  # a relative name is relative to the project, and `--json` reports the same file
+  out=$(run_report "$p" --state ".pi/issue-loop/runs/$(basename "$archived")") || fail "report --state with a relative name failed"
+  assert_contains "$out" "budget 4 items / 480 min" "a relative --state is resolved against the project"
+  out=$(run_report "$p" --json --state "$archived") || fail "report --json --state failed"
+  assert_contains "$out" '"budgetLeft":3' "--json reports the state --state named"
+}
+
+# The budget left subtracts one run's spend from that same run's budget. A state whose window closed without a
+# recorded stop cannot describe the tree it is read in — the measured case was a later 30-minute run that had
+# re-initialised the file, reported as `budget left -421 min` about a 480-minute run (issue #207) — so the line
+# names whose numbers these are instead of printing an impossible one.
+case_report_impossibleBudgetNamesAnotherRun() {
+  local p sf started deadline started_at deadline_at out
+  p=$(new_project); sf=$(state_file "$p")
+  init_state "$p" 2 30
+  # the run's window closed 423 minutes ago and it recorded no stop: what the clock says now is not its spend
+  started=$(( $(date +%s) - 27120 ))
+  deadline=$(( started + 1800 ))
+  started_at=$(date -u -d "@$started" +%Y-%m-%dT%H:%M:%SZ)
+  deadline_at=$(date -u -d "@$deadline" +%Y-%m-%dT%H:%M:%SZ)
+  jq --argjson started "$started" --argjson deadline "$deadline" \
+     --arg startedAt "$started_at" --arg deadlineAt "$deadline_at" \
+     '.run.startedEpoch = $started | .run.deadlineEpoch = $deadline
+      | .run.startedAt = $startedAt | .run.deadlineAt = $deadlineAt | del(.run.stop)' "$sf" > "$sf.tmp" &&
+    mv "$sf.tmp" "$sf" || fail "could not write the stale state"
+
+  out=$(run_report "$p" 2>/dev/null) || fail "the report failed"
+  assert_contains "$out" "budget left unknown: these numbers belong to another run — its window closed at $deadline_at and it recorded no stop" \
+    "an impossible budget names the run its numbers belong to"
+  assert_not_contains "$out" "budget left -" "no negative budget is printed"
+
+  # The guard is the missing stop, not the closed window: the same run, having recorded that it ended 25 minutes
+  # into its window, reports its own numbers however long ago that was.
+  jq --arg at "$(date -u -d "@$((started + 1500))" +%Y-%m-%dT%H:%M:%SZ)" '.run.stop = {reason: "queue empty", at: $at}' "$sf" > "$sf.tmp" &&
+    mv "$sf.tmp" "$sf" || fail "could not record the stop"
+  out=$(run_report "$p" 2>/dev/null) || fail "the report failed"
+  assert_contains "$out" "budget left 2 items / 5 min" "a run that recorded its end reports its own numbers"
 }
 

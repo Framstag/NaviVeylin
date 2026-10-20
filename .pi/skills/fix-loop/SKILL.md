@@ -53,7 +53,7 @@ base has moved).
 | owner | what it does | why |
 |---|---|---|
 | `run.sh` | the budget, the lock, the worktree, the branches, the commits, the labels, the closure, the report | a script cannot be talked into "one more" |
-| `state.sh` | the only writer of `.pi/issue-loop/run.json` (machine-local, gitignored) | a run that survives an interrupt has one writer |
+| `state.sh` | the only writer of `.pi/issue-loop/run.json` (machine-local, gitignored), and the keeper of the state it replaces (`runs/<startedAt>.json` beside it, or `LOOP_RUNS_DIR`) | a run that survives an interrupt has one writer, and a finished run's counters outlive the next one starting (issue #207) |
 | `prescreen.sh` | the mechanical half of the gate, before any agent process | measured: 9 of 12 candidates were gated out, and the cheap filters are what a script does better |
 | `worktree.sh` | one worktree per run, one branch per item off the run's base, the two commits, the stale-base refusal | the landing step is this repository's most fragile |
 | `labels.sh` | every label transition, through the tooling's own write paths | the authorisation label stays unwritable by the loop it authorises |
@@ -265,6 +265,15 @@ New entries filed: #165 #166
 Decisions the owner owes: <the on-hold items, with the decision named>
 Budget left: <items> items / <min> min · State: .pi/issue-loop/run.json
 ```
+
+A finished run's state is not lost when the next run starts: `state.sh init` keeps the file it replaces under
+`runs/<run.startedAt>.json` beside the state file (`LOOP_RUNS_DIR` in `loop.conf` moves it), and
+`tools/loop/report.sh --state .pi/issue-loop/runs/<startedAt>.json` reports on that run afterwards — the
+counters, the verdicts and the stop reason it recorded (issue #207). Replacing a state that never recorded a
+stop reason is announced on stderr and never refused, so a crashed run stays restartable. The budget line
+subtracts one run's spend from that same run's budget: when the state's window closed and it recorded no stop,
+the line reads `budget left unknown: these numbers belong to another run — …` instead of an impossible
+negative number.
 
 ## What changed when the loop became a script
 

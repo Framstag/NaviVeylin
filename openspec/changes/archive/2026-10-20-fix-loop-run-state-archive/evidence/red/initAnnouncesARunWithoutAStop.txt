@@ -1,0 +1,4 @@
+# red on HEAD 8461bd2 — the engine taken from HEAD (state#initAnnouncesARunWithoutAStop), the case from the working tree
+  the announcement names what is being replaced: 'never recorded a stop reason' not found in: 
+FAIL state#initAnnouncesARunWithoutAStop
+exit 1

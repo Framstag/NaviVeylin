@@ -1,0 +1,35 @@
+host: Linux 7.2.9-arch1-1 · HEAD before the change: 8461bd2 · recorded 2026-10-20
+
+## bash -n (the three edited scripts)
+ok
+
+## bash tools/check-portability.sh --quiet
+check-portability: OK — 42 engines and 2 templates name no project value (98 value(s) read from the project)
+exit 0
+
+## openspec validate fix-loop-run-state-archive --strict (before archiving)
+Change 'fix-loop-run-state-archive' is valid
+
+## openspec doctor (before archiving)
+Root: Location ok, OpenSpec root ok · References: none declared · exit 0
+
+## openspec archive fix-loop-run-state-archive --yes
+Change 'fix-loop-run-state-archive' archived as '2026-10-20-fix-loop-run-state-archive'.
+Specs to update: agent-issue-loop: update — Totals: + 1, ~ 0, - 0, -> 0
+One non-blocking proposal warning: "Why section should not exceed 1000 characters" — the
+section quotes the measured arithmetic of the defect, which is the evidence; it is not trimmed.
+
+## openspec validate agent-issue-loop --type spec --strict (the delta as applied)
+Specification 'agent-issue-loop' is valid
+exit 0
+
+## openspec doctor (after archiving)
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-state-archive
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit 0

@@ -1,0 +1,4 @@
+# red on HEAD 8461bd2 — the engine taken from HEAD (state#initKeepsTheStateItReplaces), the case from the working tree
+  the replaced state was not kept at /home/tim/projects/NaviVeylin/.pi/worktrees/fix-state-archive/.pi/tmp/loop-selftest.Iie6Bu/case.EMUlYb/repo/.pi/issue-loop/runs/2026-10-20T05:50:54Z.json (found: )
+FAIL state#initKeepsTheStateItReplaces
+exit 1

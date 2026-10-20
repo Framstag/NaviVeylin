@@ -1,0 +1,24 @@
+# red on HEAD 8461bd2 — the engine taken from HEAD (report#impossibleBudgetNamesAnotherRun), the case from the working tree
+  an impossible budget names the run its numbers belong to: 'budget left unknown: these numbers belong to another run — its window closed at 2026-10-19T22:48:57Z and it recorded no stop' not found in: **agent-issue-loop — 2026-10-20T05:50:57Z** (budget 2 items / 30 min · review on · review rounds 2 · may-close yes · max-decisions 3 · base 6d2fc4f6b45a)
+
+closed 0 · skipped 0 · blocked 0 · budget left 2 items / -422 min · spent 452 min
+
+stop: not stopped — the run is still going, or it ended without recording a reason
+
+closed 0 · skipped 0 · blocked 0 of 2 items · budget 30 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | outcome |
+|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | nothing processed |
+
+merged finished attempts: none
+no exclusions
+
+skipped: none
+excluded before any work: none
+decisions the owner owes: none
+branches: none
+worktree: not present at run end (/home/tim/projects/NaviVeylin/.pi/worktrees/fix-state-archive/.pi/tmp/loop-selftest.2lJSCN/case.umAhgB/repo/.pi/worktrees/loop)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-state-archive/.pi/tmp/loop-selftest.2lJSCN/case.umAhgB/repo/.pi/issue-loop/run.json
+FAIL report#impossibleBudgetNamesAnotherRun
+exit 1

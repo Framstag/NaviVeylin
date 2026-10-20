@@ -1,0 +1,3 @@
+# green on the working tree (report#impossibleBudgetNamesAnotherRun)
+PASS report#impossibleBudgetNamesAnotherRun
+exit 0

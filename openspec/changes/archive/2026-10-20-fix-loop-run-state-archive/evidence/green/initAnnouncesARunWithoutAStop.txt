@@ -1,0 +1,3 @@
+# green on the working tree (state#initAnnouncesARunWithoutAStop)
+PASS state#initAnnouncesARunWithoutAStop
+exit 0

@@ -1,0 +1,3 @@
+# green on the working tree (state#initKeepsTheStateItReplaces)
+PASS state#initKeepsTheStateItReplaces
+exit 0

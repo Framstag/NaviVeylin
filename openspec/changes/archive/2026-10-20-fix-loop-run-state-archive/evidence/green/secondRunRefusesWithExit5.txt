@@ -1,0 +1,3 @@
+# green on the working tree (state#secondRunRefusesWithExit5)
+PASS state#secondRunRefusesWithExit5
+exit 0

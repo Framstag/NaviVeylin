@@ -1,0 +1,5 @@
+# red on HEAD 8461bd2 — the engine taken from HEAD (report#archivedStateIsReported), the case from the working tree
+loop: report: unknown argument --state
+  report --state failed
+FAIL report#archivedStateIsReported
+exit 1

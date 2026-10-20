@@ -3,6 +3,22 @@
 Reference material for the `fix-loop` skill. **The rules live in `SKILL.md`**; nothing here is a rule, and a
 child running one iteration never needs this file. `SKILL.md` names the section below where a run needs it.
 
+## The run's state, and the state it replaces
+
+`.pi/issue-loop/run.json` is the run's only record: its budget, its queue, the items it finished with their
+verdicts and metrics, and the stop reason `next` recorded. `state.sh init` writes over it, so it keeps the
+file it is about to replace first — copied to `runs/<run.startedAt>.json` beside the state file (`LOOP_RUNS_DIR`
+in `tools/loop/loop.conf` moves that directory) — and announces on stderr, without refusing, when the state it
+replaces never recorded a stop reason (a crashed or killed run). Measured 2026-10-20: a later 30-minute run had
+re-initialised the file, and the 100-item / 480-minute run under review had to be reconstructed from the
+console transcript and `.pi/issue-loop/items/*` instead of from its own state.
+
+Reporting on a kept run: `tools/loop/report.sh --state .pi/issue-loop/runs/<startedAt>.json` (the default is
+still the run in place). The budget line subtracts the spend of the run whose state it reads — to the stop that
+run recorded once it ended, and to the clock only while its window is open — so a state whose window closed
+without a stop reads `budget left unknown: these numbers belong to another run — its window closed at <time>
+and it recorded no stop`, never a negative budget left (issue #207).
+
 ## Running the loop in a worktree (the wrapper owns it)
 
 The loop runs in its own worktree, so the run's commits and the OpenSpec archive never mix with another

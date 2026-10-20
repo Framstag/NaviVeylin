@@ -6,6 +6,12 @@
 # script is its only writer, so a field that disagrees with the run was edited by hand — which is
 # reported as a drift warning rather than silently obeyed (design D5).
 #
+# `init` replaces the whole state, so it keeps the state it replaces first: the file is copied under the run's
+# own start time into the runs directory (`runs/` beside the state file, or `LOOP_RUNS_DIR` when the project
+# records one), which is what lets `report.sh --state <file>` still describe a finished run after the next run
+# has started (issue #207). A state that never recorded a stop reason is announced on stderr first: a crashed
+# run is still restartable, but not silently.
+#
 # `next` exits 3 whenever the run may not start another item, and that exit code — not a caller's
 # arithmetic — is the authority on whether an item may start: the item cap, the deadline, an empty
 # queue, two consecutive blocked items, or a remaining time below the next item's floor, which is
@@ -39,6 +45,7 @@ source "$here/lib.sh"
 
 STATE_FILE=""
 STATE_DIR=""
+RUNS_DIR=""
 LOCK_FILE=""
 FLOOR_MINUTES=45
 
@@ -55,6 +62,15 @@ state_resolve() {
   FLOOR_MINUTES="${FLOOR_MINUTES:-45}"
   STATE_DIR=$(dirname "$STATE_FILE")
   LOCK_FILE="$STATE_DIR/lock"
+  # Where `init` keeps the state it replaces. Empty means `runs/` beside the state file — derived from the
+  # state, never a project path, because the engine knows no project (D16). A recorded value is relative to
+  # the project root unless it is absolute.
+  RUNS_DIR=$(loop_conf_value LOOP_RUNS_DIR)
+  case "$RUNS_DIR" in
+    "") RUNS_DIR="$STATE_DIR/runs" ;;
+    /*) ;;
+    *) RUNS_DIR="$LOOP_ROOT/$RUNS_DIR" ;;
+  esac
 }
 
 need_jq() {
@@ -107,6 +123,29 @@ require_state() {
 
 # ── commands ─────────────────────────────────────────────────────────────────────────────────────
 
+# The state a run leaves behind is the only record of what it attempted, what it spent and why it ended, and
+# `init` writes over it. So the file is copied away before it is replaced, named by the start time it carries
+# itself: two runs therefore never share an archive, and the name needs nothing but the run's own record
+# (issue #207). A run interrupted or crashed never wrote a stop, so its state is still kept — announced on
+# stderr, never refused.
+keep_replaced_state() {
+  [ -f "$STATE_FILE" ] || return 0
+  local started path n=1
+  started=$(jq -r '.run.startedAt // ""' "$STATE_FILE" 2>/dev/null)
+  [ -n "$started" ] || started="undated-$(now_epoch)"
+  path="$RUNS_DIR/$started.json"
+  while [ -e "$path" ]; do
+    path="$RUNS_DIR/$started.$n.json"
+    n=$((n + 1))
+  done
+  mkdir -p "$RUNS_DIR" || loop_die "init: cannot create the runs directory $RUNS_DIR"
+  cp "$STATE_FILE" "$path" || loop_die "init: cannot keep the state it replaces at $path"
+  # `jq -e` fails on a missing or empty reason, and on a state no longer parseable at all: either way the run
+  # being replaced never said why it ended.
+  jq -e '.run.stop.reason // empty' "$STATE_FILE" >/dev/null 2>&1 ||
+    loop_note "state: the state being replaced never recorded a stop reason — its run is kept at $path"
+}
+
 cmd_init() {
   state_resolve
   local items="" minutes="" review="" may_close="" max_decisions="" max_review_rounds="" base=""
@@ -138,6 +177,7 @@ cmd_init() {
   case "$may_close" in yes|no) ;; *) loop_die "init: --may-close must be yes or no" ;; esac
   [ -n "$base" ] || base=$(git -C "$LOOP_ROOT" rev-parse HEAD 2>/dev/null) || loop_die "init: cannot read the current commit"
 
+  keep_replaced_state
   local started deadline
   started=$(now_epoch)
   deadline=$(( started + minutes * 60 ))

@@ -1,0 +1,3 @@
+# green on the working tree (report#archivedStateIsReported)
+PASS report#archivedStateIsReported
+exit 0

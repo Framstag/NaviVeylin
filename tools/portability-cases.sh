@@ -35,6 +35,7 @@ PORTABILITY_CASES=(
   'foreign#identityIsRefusedToo'
   'foreign#emptyGateCommandStillRunsThePhases'
   'foreign#fixtureIsVersioned'
+  'foreign#fixtureDeclaresEveryBudgetDefault'
   'foreign#statesWhatItDoesNotModel'
   'porting#everyCommandInTheRecipeRuns'
   'porting#recipeDoesNotAssumeOurBuild'
@@ -69,6 +70,7 @@ portability_run_case() {
     'foreign#identityIsRefusedToo') case_foreign_identityIsRefusedToo ;;
     'foreign#emptyGateCommandStillRunsThePhases') case_foreign_emptyGateCommandStillRunsThePhases ;;
     'foreign#fixtureIsVersioned') case_foreign_fixtureIsVersioned ;;
+    'foreign#fixtureDeclaresEveryBudgetDefault') case_foreign_fixtureDeclaresEveryBudgetDefault ;;
     'foreign#statesWhatItDoesNotModel') case_foreign_statesWhatItDoesNotModel ;;
     'porting#everyCommandInTheRecipeRuns') case_porting_everyCommandInTheRecipeRuns ;;
     'porting#recipeDoesNotAssumeOurBuild') case_porting_recipeDoesNotAssumeOurBuild ;;
@@ -620,6 +622,24 @@ case_foreign_fixtureIsVersioned() {
   assert_empty "$engines" "the fixture carries a shell engine of its own"
   [ ! -d "$f/tools/issues" ] || fail "the fixture carries the issue tooling"
   [ -z "$(find "$f/tools/loop" -name '*.sh' 2>/dev/null)" ] || fail "the fixture carries the loop engine"
+}
+
+# The budget defaults the loop's engine reads out of its configuration: the `_DEFAULT` keys `run.sh`
+# resolves an omitted flag to and validates before it starts. Read from the engine rather than listed here,
+# so a budget added there is a budget the fixture has to declare.
+engine_budget_keys() {
+  grep -ho 'loop_conf_value LOOP_[A-Z_]*_DEFAULT' "$PORTABILITY_ROOT"/tools/loop/*.sh |
+    sed 's/.* //' | LC_ALL=C sort -u
+}
+
+case_foreign_fixtureDeclaresEveryBudgetDefault() {
+  local key missing=""
+  [ -n "$(engine_budget_keys)" ] || fail "the loop's engine reads no budget default at all"
+  for key in $(engine_budget_keys); do
+    grep -q "^${key}=" "$PORTABILITY_FIXTURE/tools/loop/loop.conf" || missing="$missing $key"
+  done
+  assert_empty "$missing" \
+    "every budget default the loop's engine reads is declared by the fixture's loop.conf"
 }
 
 case_foreign_statesWhatItDoesNotModel() {

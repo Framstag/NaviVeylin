@@ -1,6 +1,6 @@
 ---
 name: portability-check
-description: Proves the tooling under tools/ still names no project value — runs the leak check, its 26-case self-test and the synthetic foreign project end to end. Use when a change touches tools/issues, tools/sensors, tools/loop or tools/check-portability.sh, when a task says "portability", "no project value in an engine", "the foreign project" or "the porting recipe", when CI's Check portability step fails, or before copying this tooling into another project.
+description: Proves the tooling under tools/ still names no project value — runs the leak check, its 27-case self-test and the synthetic foreign project end to end. Use when a change touches tools/issues, tools/sensors, tools/loop or tools/check-portability.sh, when a task says "portability", "no project value in an engine", "the foreign project" or "the porting recipe", when CI's Check portability step fails, or before copying this tooling into another project.
 ---
 
 # Portability check
@@ -20,7 +20,7 @@ the recipe for keeping it true when an engine or a config changes.
 |---|---|
 | `bash tools/check-portability.sh` | does any engine name a project value? Prints the engine set, the excluded set and the value set it read |
 | `bash tools/check-portability.sh --values` | …and prints every forbidden value with the file it was read from (for debugging a verdict) |
-| `bash tools/check-portability-selftest.sh` | 26 cases: the suite's two preconditions, the value-set cases, the four discovery cases, the foreign project end to end, and the recipe's commands |
+| `bash tools/check-portability-selftest.sh` | 27 cases: the suite's two preconditions, the value-set cases, the four discovery cases, the foreign project end to end, and the recipe's commands |
 | `bash tools/mutate.sh --mutations tools/portability-mutations.json` | the portability revert-checks as a versioned set (13 records: 5.1–5.7, 5.3 naming two cases, and 6.1–6.5 for the value set, the exception and the suite's preconditions); the recipe is `.pi/skills/mutation-runner` |
 
 `--quiet` gives the verdict without the sets; `--root <dir>` checks another tree (the self-test's

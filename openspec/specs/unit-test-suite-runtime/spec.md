@@ -398,6 +398,14 @@ loads that stub SHALL NOT pin a Robolectric sandbox: no line-anchored `@Config(â
 - **THEN** it reports exactly one finding and that finding names the fixture's line
 - **Case**: `JniStubSandboxRuleTest.aPinnedStubLoadingClassIsReported`
 
+#### Scenario: The detector reports a stub-loading class that pins a graphics mode
+
+- **WHEN** the detector is given a fixture that imports the client package and declares a line-anchored
+  `@GraphicsMode(GraphicsMode.Mode.NATIVE)` and no `@Config(â€¦ sdk â€¦)`
+- **THEN** it reports exactly one finding and that finding names the fixture's line, so the second refused form
+  is measured rather than stated only
+- **Case**: `JniStubSandboxRuleTest.aGraphicsModeOnAStubLoadingClassIsReported`
+
 #### Scenario: A pinned class that loads no stub is allowed
 
 - **WHEN** the detector is given a fixture that declares a line-anchored `@Config(sdk = â€¦)` and names no client
@@ -415,7 +423,13 @@ loads that stub SHALL NOT pin a Robolectric sandbox: no line-anchored `@Config(â
 
 #### Scenario: The unpinned engine class keeps its cases in the default sandbox
 
-- **WHEN** the engine class that used to pin SDK 34 runs with no sandbox pin, in the suite and in the gate
-- **THEN** its cases still pass on the default sandbox, so removing the pin moved the sandbox and not the
-  behaviour
+- **WHEN** the engine class that used to pin SDK 34 runs in the suite with no sandbox annotation on the class
+- **THEN** its six cases still pass, so removing the pin changed no measured behaviour; which SDK level the
+  default sandbox resolves to is not asserted here
 - **Case**: `NavigationEngineAcquisitionTest.acquire_withRoute_startsNavigation`
+
+Scope of the case, so the claim is not wider than the evidence: the scan reads `*.kt` files under each
+stub-shipping module's `src/test/java`, so a module-wide sandbox pinned in `src/test/resources/robolectric.properties`
+(`:auto` carries `sdk=34` there) is outside this requirement, and so is a file that reaches the stub without
+naming the client package. The case lives in `:app`, so a `:auto`-only test run enforces nothing on `:auto`
+sources; the gate runs both modules.

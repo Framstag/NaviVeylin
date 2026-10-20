@@ -21,7 +21,12 @@ import java.io.File
  * copy of the rule is written down twice. A module is scanned when it ships the stub in
  * `src/test/jniLibs` (`:app`, `:auto`), and a file counts as stub-loading when it names the client package.
  * Only an SDK pin and a graphics mode are refused — a `@Config(qualifiers = …)` is applied per test and
- * starts no second sandbox, which is why the locale cases are not violations.
+ * starts no second sandbox, which is why the locale cases are not violations. Each refused form is
+ * measured by its own control, because a branch nothing exercises is a sentence, not a rule.
+ *
+ * Scope, stated rather than implied: the scan reads `*.kt` under each module's `src/test/java`, so a
+ * module-wide pin in `src/test/resources/robolectric.properties` (`:auto` carries `sdk=34` there) is not
+ * part of this rule, and the guard lives in `:app`, so a `./gradlew :auto:test` run enforces nothing.
  *
  * The needles are assembled from parts on purpose: this file quotes the annotations and the client package
  * in its own text, and an assembled needle keeps it out of its own finding list.
@@ -91,6 +96,27 @@ class JniStubSandboxRuleTest {
 
         assertEquals("the detector must report a pinned stub-loading class", 1, findings.size)
         assertTrue("the finding names the line", findings.single().endsWith("5: " + SDK_PIN + "(sdk = [34])"))
+    }
+
+    @Test
+    fun aGraphicsModeOnAStubLoadingClassIsReported() {
+        val fixture = listOf(
+            "package fixture",
+            "",
+            "import ${CLIENT_PACKAGE}FakeOSMScoutClient",
+            "",
+            GRAPHICS_PIN + "(GraphicsMode.Mode.NATIVE)",
+            "class NativeGraphicsStubTest"
+        ).joinToString("\n")
+
+        val findings = findingsIn("fixture/NativeGraphicsStubTest.kt", fixture)
+        println("jniStubSandbox graphicsModeControl=$findings")
+
+        assertEquals("the detector must report a stub-loading class that pins a graphics mode", 1, findings.size)
+        assertTrue(
+            "the finding names the line",
+            findings.single().endsWith("5: " + GRAPHICS_PIN + "(GraphicsMode.Mode.NATIVE)")
+        )
     }
 
     @Test

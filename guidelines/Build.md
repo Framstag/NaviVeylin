@@ -581,8 +581,13 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   (`app/src/test/java/com/naviveylin/test/`) reads the test sources of both
   stub-shipping modules (`:app`, `:auto`) and fails naming file and line for a
   line-anchored `@Config(… sdk …)`/`@GraphicsMode(…)` in a file that names the
-  client package. A `@Config(qualifiers=...)` starts no second sandbox and stays
-  allowed.
+  client package — one control per refused form, so neither is a sentence only.
+  A `@Config(qualifiers=...)` starts no second sandbox and stays
+  allowed. Scope, so the claim is not wider than the case: the scan reads `*.kt`
+  under `src/test/java`, so a module-wide `sdk=…` in
+  `src/test/resources/robolectric.properties` (`:auto` carries one) is outside the
+  rule, and the case lives in `:app`, so a `./gradlew :auto:test` run alone
+  enforces nothing on `:auto` sources — the gate runs both modules.
 - **Teardown rule — release what the test starts.** Any test that constructs a
   component owning long-lived background work (its own coroutine scope, timers, a
   render loop, a native surface, a large retained bitmap) MUST release it before

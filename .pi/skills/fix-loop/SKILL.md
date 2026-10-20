@@ -187,12 +187,21 @@ worker phase spent 83 minutes inside a single wait with the budget untouched.
 - the item cap is reached, or the deadline has passed;
 - the queue is empty — the wrapper re-runs the pre-screen **once** per run, never twice;
 - two consecutive items ended `blocked`;
-- less time remains than the next item can cost (the floor is recorded in `loop.conf`);
+- less time remains than the next item can cost — the floor is **measured**, not the constant: `next` takes
+  the median wall time of the items this run has finished (`done --wall`), multiplies it by the 1.5 spread
+  the measurements show, rounds up, and never goes below `LOOP_ITEM_FLOOR_MINUTES` in `loop.conf`, which is
+  therefore the floor of a run with no history or with a cheap one. The refusal names both numbers, e.g.
+  `only 28 min left, below the 90 min floor for the next item (median 60 min over 3 finished items,
+  configured minimum 45)` — so an operator can see whether the floor is honest. The median is the central
+  value because one expensive item does not move it; the 1.5 is the spread the measurements already show
+  (65/45 inside the change range, 100/65 for #126);
 - the user interrupts (then the wrapper removes `agent/in-progress` and records the item `blocked`).
 
-**Never start an item you cannot finish**: with less than ~45 min left, an item may start only if the
-pre-screen named its host seam. Two thirds of the first run's candidates were skips, so a budget that ignores
-skip cost plans for the wrong shape.
+**Never start an item you cannot finish**, and never stop with time a cheap item could have used. Two
+thirds of the first run's candidates were skips, so a floor that ignores skip cost plans for the wrong
+shape — and a history of skips (median 10-15 min) is exactly the case where the configured minimum, not the
+measurement, is the floor. The `--wall` on every `done` is what makes the next floor honest, which is why an
+item is never recorded without it.
 
 A stopped clock is not a failed loop. Report what closed, what was skipped and why, the yield, and the state
 file — `tools/loop/report.sh` prints exactly that, and the numbers come from the state file rather than from
@@ -280,5 +289,6 @@ report, and the rule that an item that needs a decision is escalated rather than
 - **Running the loop in a worktree** — the five facts that shape verification inside one, including where
   a child process is started (the wrapper now performs the recipe).
 - **Measured costs** — the minute budget of a change, a skip and the gate, and the measurements behind the
-  rules above; read it before planning a run's clock.
+  rules above, including the 1.5 spread the measured floor is derived with; read it before planning a run's
+  clock.
 - **Field notes** — ten failure modes, each naming the section above that owns its rule.

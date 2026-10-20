@@ -1,0 +1,6 @@
+# red on HEAD 10a832f (the engine archived out of git), 2026-10-20T05:43:44Z
+# every other file — the cases themselves — is the one this change adds them to.
+$ LOOP_ENGINE=<HEAD tools/loop> bash tools/loop-selftest.sh --case 'state#floorIsDerivedFromTheFinishedItemsWallTimes'
+  the floor is the measured one, not the constant: '90 min floor' not found in: only 27 min left, below the 45 min floor for the next item
+FAIL state#floorIsDerivedFromTheFinishedItemsWallTimes
+exit=1

@@ -19,6 +19,8 @@ set -uo pipefail
 LOOP_SHELL_CASES=(
   'state#initAndShowRoundTrips'
   'state#nextHonoursEveryStopCondition'
+  'state#floorIsDerivedFromTheFinishedItemsWallTimes'
+  'state#floorWithNoHistoryIsTheConfiguredMinimum'
   'state#secondRunRefusesWithExit5'
   'state#defaultsComeFromLoopConf'
   'state#projectKeysAreReadFromLoopConf'
@@ -121,6 +123,8 @@ loop_run_shell_case() {
   case "$1" in
     'state#initAndShowRoundTrips') fn=case_state_initAndShowRoundTrips ;;
     'state#nextHonoursEveryStopCondition') fn=case_state_nextHonoursEveryStopCondition ;;
+    'state#floorIsDerivedFromTheFinishedItemsWallTimes') fn=case_state_floorIsDerivedFromTheFinishedItemsWallTimes ;;
+    'state#floorWithNoHistoryIsTheConfiguredMinimum') fn=case_state_floorWithNoHistoryIsTheConfiguredMinimum ;;
     'state#secondRunRefusesWithExit5') fn=case_state_secondRunRefusesWithExit5 ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
@@ -415,6 +419,98 @@ case_state_nextHonoursEveryStopCondition() {
   out=$(run_state "$p" next 2>&1); status=$?
   assert_eq "3" "$status" "a remaining time below the floor stops the run"
   assert_contains "$out" "floor" "the floor is named"
+}
+
+# The floor a caller is refused by is the run's own measurement (issue #206): the median wall time of the
+# items this run has finished, times the spread the measurements show (1.5), with `LOOP_ITEM_FLOOR_MINUTES`
+# as its lower bound. Both numbers the refusal compared are named, so an operator can see whether the floor
+# is honest.
+case_state_floorIsDerivedFromTheFinishedItemsWallTimes() {
+  local p conf_floor out status i
+  local queue='[{"issue":21,"class":"bug","verdict":"eligible","rank":1},
+                {"issue":22,"class":"bug","verdict":"eligible","rank":2},
+                {"issue":23,"class":"bug","verdict":"eligible","rank":3},
+                {"issue":24,"class":"bug","verdict":"eligible","rank":4}]'
+  conf_floor=$(sed -n 's/^LOOP_ITEM_FLOOR_MINUTES=//p' "$LOOP_CONF")
+  [ -n "$conf_floor" ] || fail "the configuration records no LOOP_ITEM_FLOOR_MINUTES"
+
+  # three finished items of 60 min each: the median the state already holds decides the floor, and the
+  # configured minimum no longer decides on its own (60 min x 1.5 = 90 min)
+  p=$(new_project)
+  init_state "$p" 9 28
+  printf '%s' "$queue" | run_state "$p" queue >/dev/null
+  for i in 21 22 23; do
+    run_state "$p" done "$i" --result done --verdict closed --wall 3600 >/dev/null || fail "done #$i failed"
+  done
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "a floor above the remaining time stops the run"
+  assert_contains "$out" "90 min floor" "the floor is the measured one, not the constant"
+  assert_contains "$out" "median 60 min over 3 finished items" "the refusal names the median it derived"
+  assert_contains "$out" "configured minimum $conf_floor" "the refusal names the configured minimum too"
+  assert_not_contains "$out" "$conf_floor min floor" "the constant alone does not decide the refusal any more"
+
+  # the same measured floor is a bound and not a block: a run with room to pay for an item continues
+  p=$(new_project)
+  init_state "$p" 9 180
+  printf '%s' "$queue" | run_state "$p" queue >/dev/null
+  for i in 21 22 23; do
+    run_state "$p" done "$i" --result done --verdict closed --wall 3600 >/dev/null || fail "done #$i failed"
+  done
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "a remaining time above the measured floor starts the next item"
+  assert_eq "24" "$out" "the next candidate"
+
+  # three finished skips of 10 min each: the derived 15 min is below the configured minimum, which stays
+  # the lower bound — a cheap history must not admit an item the documented range says costs 40-65 min
+  p=$(new_project)
+  init_state "$p" 9 28
+  printf '%s' "$queue" | run_state "$p" queue >/dev/null
+  for i in 21 22 23; do
+    run_state "$p" done "$i" --result skipped --verdict needs-decision --wall 600 >/dev/null || fail "done #$i failed"
+  done
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "the configured minimum still stops a thin tail"
+  assert_contains "$out" "$conf_floor min floor" "a cheap history keeps the configured minimum as the floor"
+  assert_contains "$out" "median 10 min over 3 finished items" "the cheap median is named rather than hidden"
+  # one expensive item among cheap ones does not move the median (600, 600, 6000 -> 10 min), which is the
+  # failure a p90 floor would have: after a 100 min item it would refuse the cheap tail of the run
+  p=$(new_project)
+  init_state "$p" 9 60
+  printf '%s' "$queue" | run_state "$p" queue >/dev/null
+  for i in 21 22; do
+    run_state "$p" done "$i" --result skipped --verdict needs-decision --wall 600 >/dev/null || fail "done #$i failed"
+  done
+  run_state "$p" done 23 --result done --verdict closed --wall 6000 >/dev/null || fail "done #23 failed"
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "one expensive item does not raise the floor over a cheap history"
+  assert_eq "24" "$out" "the cheap tail of the run is still taken"
+}
+
+case_state_floorWithNoHistoryIsTheConfiguredMinimum() {
+  local p conf_floor out status
+  conf_floor=$(sed -n 's/^LOOP_ITEM_FLOOR_MINUTES=//p' "$LOOP_CONF")
+  [ -n "$conf_floor" ] || fail "the configuration records no LOOP_ITEM_FLOOR_MINUTES"
+
+  # nothing finished yet: there is no measurement, so the configured value stands — and it is named
+  p=$(new_project)
+  init_state "$p" 3 30
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "the configured floor stops a run with no history"
+  assert_contains "$out" "$conf_floor min floor" "with no history the configured minimum is the floor"
+  assert_contains "$out" "configured minimum $conf_floor" "the refusal names the number it compared against"
+  assert_contains "$out" "no finished item records a wall time" "the refusal says why the floor is the constant"
+
+  # an item recorded without a wall time is no measurement either
+  p=$(new_project)
+  init_state "$p" 3 30
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed >/dev/null || fail "done failed"
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "an item with no wall time leaves the floor at the minimum"
+  assert_contains "$out" "$conf_floor min floor" "an absent wall time is not a measurement"
+  assert_contains "$out" "no finished item records a wall time" "the absence is named, not silently ignored"
 }
 
 case_state_secondRunRefusesWithExit5() {

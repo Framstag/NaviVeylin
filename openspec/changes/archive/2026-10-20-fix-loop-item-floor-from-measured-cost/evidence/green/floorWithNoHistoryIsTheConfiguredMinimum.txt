@@ -1,0 +1,4 @@
+# green, 2026-10-20T05:42:31Z
+$ bash tools/loop-selftest.sh --case 'state#floorWithNoHistoryIsTheConfiguredMinimum'
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+exit=0

@@ -1,0 +1,22 @@
+# the derived floor, driven directly through state.sh (no run, no token, no child)
+# floor = max(LOOP_ITEM_FLOOR_MINUTES, ceil(median(wallSeconds) / 60 * 1.5)); exit 3 = stop
+
+## no history, 28 min left
+no history                         only 27 min left, below the 45 min floor for the next item (no finished item records a wall time, configured minimum 45)
+
+
+## three skips of 10 min each, 28 min left
+skips 600/600/600 s                only 27 min left, below the 45 min floor for the next item (median 10 min over 3 finished items, configured minimum 45)
+
+
+## three changes of 45/55/60 min, 80 min left
+changes 2700/3300/3600 s           only 79 min left, below the 83 min floor for the next item (median 55 min over 3 finished items, configured minimum 45)
+
+
+## 12/12/12/100 min (the #126 shape), 80 min left
+mixed 720/720/720/6000 s           25
+
+
+## one 100 min item alone, 80 min left
+single 6000 s                      only 79 min left, below the 150 min floor for the next item (median 100 min over 1 finished item, configured minimum 45)
+

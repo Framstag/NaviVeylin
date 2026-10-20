@@ -56,6 +56,13 @@ Five facts shape verification in a worktree:
 | `gated-out` skip | 10–15 min **with** the cheap-first rule, 20–25 min without | the gate is a few greps and one file read. Never analyse before it passes |
 | cold loop worktree, first build | 11 min | one-time; after that a single test class is 1–3 min |
 | forced both-flavor gate | 4m42s–6m41s | **it overwrites the previous run's XML evidence** — `SKILL.md`, invariant 1 |
+| one item, measured 2026-10-19 (#126) | 100 min | worker 83 min plus three review rounds — the item the constant floor could not pay for |
+
+The floor `state.sh next` refuses by is these numbers, not a constant (issue #206): the median of the run's
+own finished wall times × **1.5**, rounded up, with `LOOP_ITEM_FLOOR_MINUTES` as its lower bound. The 1.5 is
+the spread the table above already shows — 65/45 inside the change range, 100/65 for the #126 item — so a run
+whose items are typical gets a floor just above them, a run of skips keeps the configured minimum, and one
+expensive item among cheap ones does not move the median at all.
 
 The measurements behind the rules (first run, 2026-10-09: 12 candidates, 3 archived, 9 gated out; a second pass
 over all 31 `class: bug` entries → `eligible: none`; a later run: 0 closed, 32 skipped):

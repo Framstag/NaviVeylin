@@ -8,9 +8,10 @@
 #
 # `next` exits 3 whenever the run may not start another item, and that exit code — not a caller's
 # arithmetic — is the authority on whether an item may start: the item cap, the deadline, an empty
-# queue, two consecutive blocked items, or a remaining time below the next item's floor (design D5,
-# invariant 3). Exit 5 is a refusal that must not be retried inside the same reasoning: the lock is
-# held, or the base has moved (design D12, D4).
+# queue, two consecutive blocked items, or a remaining time below the next item's floor, which is
+# derived from the wall times this run records for its finished items and bounded below by
+# `LOOP_ITEM_FLOOR_MINUTES` (design D5, invariant 3). Exit 5 is a refusal that must not be retried inside
+# the same reasoning: the lock is held, or the base has moved (design D12, D4).
 #
 # Exit: 0 ok, 2 usage, 3 stop, 5 refuse.
 #
@@ -199,11 +200,33 @@ cmd_next() {
   ' "$STATE_FILE")
   if [ -z "$reason" ]; then
     # The last stop condition is a clock, not a count: do not start an item the remaining budget
-    # cannot pay for (measured: 40-65 min for a change, 10-15 min for a skip — REFERENCE.md).
-    local minutes_left
+    # cannot pay for. What an item costs is not a constant — the run measures it, one `done --wall` at a
+    # time — so the floor is derived from the items this run has finished: their median wall time times
+    # the spread the measurements show (1.5), rounded up to the whole minute. The median is the central
+    # value because it is the one a single expensive item does not move; the margin is what turns a
+    # typical item into a floor for the one still to come. `LOOP_ITEM_FLOOR_MINUTES` remains the lower
+    # bound, so a run with no history — or a cheap one, which a run of skips is — keeps the documented
+    # floor, and the refusal names both numbers it compared (issue #206, design D5).
+    local minutes_left floor measured median n items_word
     minutes_left=$(jq -r '((.run.deadlineEpoch - now) / 60 | floor)' "$STATE_FILE")
-    if [ "$minutes_left" -lt "$FLOOR_MINUTES" ]; then
-      reason="only ${minutes_left} min left, below the ${FLOOR_MINUTES} min floor for the next item"
+    measured=$(jq -r --argjson min "$FLOOR_MINUTES" '
+      [.items[] | .metrics.wallSeconds | select(type == "number" and . > 0)] as $w
+      | ($w | length) as $n
+      | ($w | sort) as $s
+      | (if $n == 0 then null
+         elif ($n % 2) == 1 then ($s[($n / 2) | floor] / 60)
+         else ((($s[$n / 2 - 1] + $s[$n / 2]) / 2) / 60) end) as $median
+      | (if $median == null then [$min, 0, 0]
+         else [([($median * 1.5 | ceil), $min] | max), $n, ($median | round)] end)
+      | @tsv' "$STATE_FILE")
+    IFS=$'\t' read -r floor n median <<< "$measured"
+    if [ "$minutes_left" -lt "$floor" ]; then
+      items_word="finished items"; [ "$n" -eq 1 ] && items_word="finished item"
+      if [ "$n" -eq 0 ]; then
+        reason="only ${minutes_left} min left, below the ${floor} min floor for the next item (no finished item records a wall time, configured minimum ${FLOOR_MINUTES})"
+      else
+        reason="only ${minutes_left} min left, below the ${floor} min floor for the next item (median ${median} min over ${n} ${items_word}, configured minimum ${FLOOR_MINUTES})"
+      fi
     fi
   fi
   if [ -n "$reason" ]; then

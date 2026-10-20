@@ -1,0 +1,7 @@
+# green, 2026-10-20T05:41:36Z — the two existing cases on this surface
+$ bash tools/loop-selftest.sh --case 'state#nextHonoursEveryStopCondition'
+PASS state#nextHonoursEveryStopCondition
+exit=0
+$ bash tools/loop-selftest.sh --case 'run#stopReasonIsPrintedAndReported'
+PASS run#stopReasonIsPrintedAndReported
+exit=0

@@ -249,22 +249,35 @@ report, so "running" lines that stop appearing without that line are a stopped *
 
 ## Report (end of run)
 
-`tools/loop/report.sh` prints the header, the per-item table, the skip list, the open decisions, the branches
-and the budget left. Use it verbatim, then add the closing lines:
+`tools/loop/report.sh` prints the header, the per-item table (with each item's wall time and, when its result
+is not a closure, the reason it recorded), the skip list, the open decisions, the branches, the kept
+worktree and the **actions the caller owes**. Use it verbatim; its last block is the answer to "what must I
+do now", so do not replace it with a summary of your own:
 
 ```markdown
 **fix-loop — <date>** (budget N items / M min; closed X, skipped Y, blocked Z, spent T min)
 
-| issue | class | verdict | change | root cause (one line) | red test | gate | review | outcome |
-|---|---|---|---|---|---|---|---|---|
-| #138 | bug | closed | fix-pinned-band-height | constant reservation vs font-scale band | BandScale#…fs2: 42.67<48 dp | 1750/0 | 2 rounds | done |
-| #122 | bug | stale | — | the case it cited no longer exists | — | — | — | skipped |
+| issue | class | verdict | change | root cause (one line) | red test | gate | review | wall | outcome | reason |
+|---|---|---|---|---|---|---|---|---|---|---|
+| #138 | bug | closed | fix-pinned-band-height | constant reservation vs font-scale band | BandScale#…fs2: 42.67<48 dp | 1750/0 | 2 rounds | 52m10s | done | — |
+| #122 | bug | stale | — | the case it cited no longer exists | — | — | — | 9m04s | skipped | skipped by the worker |
 
 Skipped: #130 needs-device + needs-decision · #56 needs-decision (owner decision D7) · …
 New entries filed: #165 #166
-Decisions the owner owes: <the on-hold items, with the decision named>
+Decisions the owner owes: <the items, with the decision named>
 Budget left: <items> items / <min> min · State: .pi/issue-loop/run.json
+
+actions the caller owes:
+  1. decide #126 — the run escalated it (blocked): the review refused round 2 · the comment itself: gh issue view 126
+  2. land fix/issue-126-pinned-band-height — 3 commit(s) the base does not have — item #126
+  3. re-run the gate for #130 — the run recorded no gate result — transcript .pi/issue-loop/items/130/worker-report.md
+  4. keep or remove the worktree .pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
 ```
+
+Every action names what to do, where (issue, branch, log, worktree) and why. A decision whose question the
+state does not hold says where the question is (`gh issue view <n>`) instead of paraphrasing it, the branch
+lines are read from git by what each branch *carries*, and `none` is printed only when all five sources were
+read and empty.
 
 A finished run's state is not lost when the next run starts: `state.sh init` keeps the file it replaces under
 `runs/<run.startedAt>.json` beside the state file (`LOOP_RUNS_DIR` in `loop.conf` moves it), and
@@ -273,7 +286,8 @@ counters, the verdicts and the stop reason it recorded (issue #207). Replacing a
 stop reason is announced on stderr and never refused, so a crashed run stays restartable. The budget line
 subtracts one run's spend from that same run's budget: when the state's window closed and it recorded no stop,
 the line reads `budget left unknown: these numbers belong to another run — …` instead of an impossible
-negative number.
+negative number. Everything the tail names is read from the state the report was pointed at, so `--state`
+changes what the action list describes as well as the budget line.
 
 ## What changed when the loop became a script
 

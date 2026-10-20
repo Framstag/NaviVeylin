@@ -1,0 +1,7 @@
+# red on HEAD 8461bd2 — report#emptyRunSaysNone
+# tools/loop/state.sh and tools/loop/report.sh restored to HEAD, cases new
+
+  the action list is printed even when it is empty: 'actions the caller owes:' not found in: 
+FAIL report#emptyRunSaysNone
+
+exit 1

@@ -240,6 +240,16 @@ is named on the item, the item is marked as awaiting a decision, and the run tak
 work is preserved rather than abandoned (I11), which is the part the prose-era loop got wrong by treating a
 mid-item decision as a failure.
 
+The report a run prints at its end is the run's product, and it answers three questions without the caller
+opening the tracker (#208): **which** items were handled and how each ended — the per-item table, with the
+item's own recorded reason when the result is not a closure; **what each one cost** — the wall time
+`done --wall` records, beside the run-level `spent`; and **what the caller must now do** — a named action list
+whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
+where the state does not hold it, where it is), a branch that carries commits the base does not have with the
+item that owns it, the kept worktree, an item whose gate never completed with its transcript, and a citation
+the pre-screen still refuses. A count is not an answer, so `none` is printed only when all five sources were
+read and empty — it never hides a branch that carries work.
+
 An item whose citation nothing accounts for is *not* worked, and it must not be re-decided in silence either:
 `tools/issues/resolve-stale.sh` repairs what the repository's own records state (the full tracked path, a
 rename, a single surviving declaration, an archived change's new directory) and parks the rest with the

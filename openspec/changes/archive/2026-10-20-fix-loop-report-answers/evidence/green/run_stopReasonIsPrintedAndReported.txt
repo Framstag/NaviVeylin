@@ -1,0 +1,5 @@
+# green — run#stopReasonIsPrintedAndReported
+
+PASS run#stopReasonIsPrintedAndReported
+
+exit 0

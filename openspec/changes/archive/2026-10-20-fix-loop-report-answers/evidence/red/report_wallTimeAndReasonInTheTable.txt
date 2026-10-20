@@ -1,0 +1,7 @@
+# red on HEAD 8461bd2 — report#wallTimeAndReasonInTheTable
+# tools/loop/state.sh and tools/loop/report.sh restored to HEAD, cases new
+
+  the table has a column for the item's wall time: '| wall |' not found in: | issue | class | verdict | change | root cause | red test | gate | review | outcome |
+FAIL report#wallTimeAndReasonInTheTable
+
+exit 1

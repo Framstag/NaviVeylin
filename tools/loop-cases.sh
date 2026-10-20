@@ -114,6 +114,9 @@ LOOP_SHELL_CASES=(
   'report#aVerdictAloneIsNoEscalation'
   'report#archivedStateIsReported'
   'report#impossibleBudgetNamesAnotherRun'
+  'report#wallTimeAndReasonInTheTable'
+  'report#actionsNameDecisionAndBranch'
+  'report#emptyRunSaysNone'
 )
 
 loop_shell_cases() {
@@ -221,6 +224,9 @@ loop_run_shell_case() {
     'report#aVerdictAloneIsNoEscalation') fn=case_report_aVerdictAloneIsNoEscalation ;;
     'report#archivedStateIsReported') fn=case_report_archivedStateIsReported ;;
     'report#impossibleBudgetNamesAnotherRun') fn=case_report_impossibleBudgetNamesAnotherRun ;;
+    'report#wallTimeAndReasonInTheTable') fn=case_report_wallTimeAndReasonInTheTable ;;
+    'report#actionsNameDecisionAndBranch') fn=case_report_actionsNameDecisionAndBranch ;;
+    'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -2504,5 +2510,83 @@ case_report_impossibleBudgetNamesAnotherRun() {
     mv "$sf.tmp" "$sf" || fail "could not record the stop"
   out=$(run_report "$p" 2>/dev/null) || fail "the report failed"
   assert_contains "$out" "budget left 2 items / 5 min" "a run that recorded its end reports its own numbers"
+}
+
+# The report's tail, read from its `actions the caller owes:` heading to its end: the tail is what a caller
+# acts on, so a case about the tail has to look at the tail and not at a line that happens to echo it.
+actions_block() { printf '%s\n' "$1" | sed -n '/^actions the caller owes:/,$p'; }
+
+# The table has to answer the run's first two questions on its own (#208): how did each item end — the
+# verdict and, when the result is not a closure, the item's own recorded reason — and what did it cost,
+# read from the wall time `done --wall` already recorded. Both facts were in the state and printed nowhere.
+case_report_wallTimeAndReasonInTheTable() {
+  local p out header row_done row_blocked
+  p=$(new_project)
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 754 \
+    --gate "tests=1 failures=0" --root-cause "the fixture has exactly one cause" >/dev/null
+  run_state "$p" done 22 --result blocked --verdict blocked \
+    --note "two mechanisms explain the symptom" --decision-label agent/needs-decision >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  header=$(printf '%s\n' "$out" | grep '^| issue |' || true)
+  assert_contains "$header" "| wall |" "the table has a column for the item's wall time"
+  assert_contains "$header" "| reason |" "and one for the reason a non-done result carries"
+  row_done=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
+  row_blocked=$(printf '%s\n' "$out" | grep '^| #22 |' || true)
+  [ -n "$row_done" ] || fail "no table row for #21"
+  assert_contains "$row_done" "12m34s" "754 s is printed as the item's wall time"
+  assert_contains "$row_done" "| done |" "and the row still says how the item ended"
+  assert_contains "$row_blocked" "two mechanisms explain the symptom" "the blocked item's own reason is printed"
+  assert_contains "$row_blocked" "| blocked |" "beside its outcome"
+  # Eleven columns, so twelve separators: the wall and the reason were added, nothing was dropped.
+  assert_eq "12" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its eleven columns"
+  assert_eq "12" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the blocked row has the same shape"
+}
+
+# The tail is what the caller acts on (#208): an owed decision with the question the run wrote, and every
+# branch that carries commits the base does not have, named with the item that owns it. `none` may not stand
+# in for a branch that carries work.
+case_report_actionsNameDecisionAndBranch() {
+  local p out block
+  p=$(new_project)
+  init_state "$p" 2 90
+  # A branch of the run's own shape, one commit ahead of the state's base — the work a finished attempt
+  # left behind and the caller has to land or drop.
+  printf 'demo work\n' > "$p/demo.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "demo work" >/dev/null 2>&1 || fail "could not commit in the throwaway repository"
+  git -C "$p" branch fix/issue-21-two-mechanisms >/dev/null 2>&1 || fail "could not create the attempt branch"
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked \
+    --note "two mechanisms explain the symptom" --decision-label agent/needs-decision >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 100 --change fix-demo \
+    --gate "tests=1 failures=0" >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  block=$(actions_block "$out")
+  assert_contains "$block" "decide #21" "the escalated item is an action of its own"
+  assert_contains "$block" "two mechanisms explain the symptom" "carrying the question the run wrote beside it"
+  assert_contains "$block" "land fix/issue-21-two-mechanisms" "the branch that carries unmerged work is named"
+  assert_contains "$block" "1 commit(s)" "with what it carries"
+  assert_contains "$block" "item #21" "and the item that owns it"
+  assert_not_contains "$block" "none — no decision" "a branch carrying a commit is never hidden behind none"
+}
+
+# An action list is empty only when the state and git say so — and it says it, rather than leaving the
+# question unanswered by omission.
+case_report_emptyRunSaysNone() {
+  local p out block lines
+  p=$(new_project)
+  init_state "$p" 1 90
+  out=$(run_report "$p") || fail "the report failed"
+  block=$(actions_block "$out")
+  assert_contains "$block" "actions the caller owes:" "the action list is printed even when it is empty"
+  assert_contains "$block" "none — no decision" "and says none, with what that covers"
+  lines=$(printf '%s\n' "$block" | grep -c . || true)
+  assert_eq "2" "$lines" "the heading and the one word, not an omitted section"
 }
 

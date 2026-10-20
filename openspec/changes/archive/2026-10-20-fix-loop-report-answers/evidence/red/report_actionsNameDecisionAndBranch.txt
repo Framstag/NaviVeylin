@@ -1,0 +1,7 @@
+# red on HEAD 8461bd2 — report#actionsNameDecisionAndBranch
+# tools/loop/state.sh and tools/loop/report.sh restored to HEAD, cases new
+
+  the escalated item is an action of its own: 'decide #21' not found in: 
+FAIL report#actionsNameDecisionAndBranch
+
+exit 1

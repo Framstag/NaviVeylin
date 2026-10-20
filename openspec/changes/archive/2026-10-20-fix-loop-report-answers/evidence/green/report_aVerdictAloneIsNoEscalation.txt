@@ -1,0 +1,5 @@
+# green — report#aVerdictAloneIsNoEscalation
+
+PASS report#aVerdictAloneIsNoEscalation
+
+exit 0

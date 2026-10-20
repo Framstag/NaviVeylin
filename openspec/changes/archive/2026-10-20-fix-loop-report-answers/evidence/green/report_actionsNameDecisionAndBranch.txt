@@ -1,0 +1,5 @@
+# green — report#actionsNameDecisionAndBranch
+
+PASS report#actionsNameDecisionAndBranch
+
+exit 0

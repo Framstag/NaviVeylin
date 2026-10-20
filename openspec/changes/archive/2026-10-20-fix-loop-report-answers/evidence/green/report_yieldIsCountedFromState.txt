@@ -1,0 +1,5 @@
+# green — report#yieldIsCountedFromState
+
+PASS report#yieldIsCountedFromState
+
+exit 0

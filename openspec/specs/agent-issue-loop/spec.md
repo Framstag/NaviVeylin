@@ -64,7 +64,32 @@ one wait.
 
 - **WHEN** a run ends
 - **THEN** a report exists naming each item, its verdict, its wall time, its review rounds and what it
-  closed, so the run justifies itself with numbers
+  closed, so the run justifies itself with numbers — every item's row carries the wall time the run recorded
+  for it and, when the item's result is not a closure, the reason the item recorded, and the columns the
+  report already had keep their name and their order
+- **Case**: `report#wallTimeAndReasonInTheTable`
+
+#### Scenario: The report names the actions the caller owes
+
+The report is read instead of the tracker, so a list of ids is not an answer: a decision without its question,
+a branch without its owner, a gate without its log and a kept worktree without its path send the caller back
+to `gh` to reconstruct what the run already knew (issue #208).
+
+- **WHEN** a run ends holding a decision it escalated, a branch that carries commits the run's base does not
+  have, a kept worktree, an item whose gate never completed, or a citation the pre-screen refused
+- **THEN** the report prints one named action for each: the decision with the question the run wrote beside
+  it — or, where the state does not hold that text, where the question is (`gh issue view <n>`) rather than an
+  invented one — the branch with what it carries and the item that owns it, the kept worktree with its path,
+  the item's transcript for the gate that never completed, and the repair command for the refused citation
+- **Case**: `report#actionsNameDecisionAndBranch`
+
+#### Scenario: An action list is empty only when the state says so
+
+- **WHEN** no decision, no branch carrying commits, no kept worktree, no incomplete gate and no refused
+  citation is recorded — or when the state names any one of them
+- **THEN** the report prints the action list heading with `none` and what that covers in the first case, and
+  never prints `none` in the second, so an empty list cannot hide a branch that carries work
+- **Case**: `report#emptyRunSaysNone`
 
 ### Requirement: The run acts only on authorised, eligible items
 

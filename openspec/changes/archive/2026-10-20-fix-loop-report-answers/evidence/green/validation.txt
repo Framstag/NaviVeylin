@@ -1,0 +1,59 @@
+# structural checks — fix-loop-report-answers
+
+## bash -n on the three changed scripts
+state.sh: ok
+report.sh: ok
+loop-cases.sh: ok
+
+## tools/check-portability.sh --quiet
+check-portability: OK — 42 engines and 2 templates name no project value (98 value(s) read from the project)
+exit 0
+
+## openspec validate agent-issue-loop --strict (the archived delta applied)
+Specification 'agent-issue-loop' is valid
+exit 0
+
+## openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-report
+  OpenSpec root: ok
+
+References
+  (none declared)
+
+## the change delta, before archive
+Change 'fix-loop-report-answers' is valid
+exit 0
+
+## the cases are registered in both places
+8 report cases listed by --list
+report#headerAndTableShape
+report#yieldIsCountedFromState
+report#escalatedSkipNamesTheLabelWritten
+report#failedReviewEscalationIsNamed
+report#aVerdictAloneIsNoEscalation
+report#wallTimeAndReasonInTheTable
+report#actionsNameDecisionAndBranch
+report#emptyRunSaysNone
+
+## the archived change
+openspec/changes/archive/2026-10-20-fix-loop-report-answers
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/design.md
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/report_actionsNameDecisionAndBranch.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/report_aVerdictAloneIsNoEscalation.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/report_emptyRunSaysNone.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/report_escalatedSkipNamesTheLabelWritten.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/report_failedReviewEscalationIsNamed.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/report_headerAndTableShape.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/report_wallTimeAndReasonInTheTable.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/report_yieldIsCountedFromState.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/run_stopReasonIsPrintedAndReported.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/green/validation.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/red/report_actionsNameDecisionAndBranch.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/red/report_emptyRunSaysNone.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/evidence/red/report_wallTimeAndReasonInTheTable.txt
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/proposal.md
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/specs/agent-issue-loop/spec.md
+openspec/changes/archive/2026-10-20-fix-loop-report-answers/tasks.md

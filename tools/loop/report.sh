@@ -5,6 +5,11 @@
 # is the only component that can observe them without trusting a model, so every number below is read
 # from the state file (or from git) rather than from a report a child wrote (D11).
 #
+# It answers the three questions a finished run has to answer on its own (#208): which items were handled
+# and how each ended (the table, with the item's own reason when the outcome is not a closure), what each
+# one cost (the table's `wall` column, and the run-level `spent`), and what the caller must now do — the
+# named action list at the end, built from the state and from git, never from a count.
+#
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is
 # the run in place, exactly as before.
@@ -29,7 +34,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
     --state) state_opt="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) loop_die "report: unknown argument $1" ;;
   esac
 done
@@ -121,3 +126,93 @@ else
   printf 'worktree: not present at run end (%s)\n' "$LOOP_WORKTREE"
 fi
 printf 'state: %s\n' "$state_file"
+
+# ── the actions the caller owes ───────────────────────────────────────────────────────────────────
+# The report's third answer (#208). A count is not an answer: the caller has to know *which* decision is
+# owed and what it asks, *which* branch carries work the base does not have and *whose* item it is, where
+# the kept worktree is, and which item never got a gate result and where its transcript sits to say why.
+# Every line comes from the state or from git — the same two sources as everything above it — and a
+# question the state does not hold says where it is (`gh issue view <n>`) instead of inventing one.
+printf '\n'
+decisions() {
+  jq -r --arg d "$(loop_role decisionAgent)" '
+    (.items[] | select((.escalatedLabel // "") != "")
+      | ["item", (.issue | tostring), .verdict, (.note // ""), (.metrics.rootCause // "")]),
+    (.excluded[] | select($d != "" and .verdict == $d)
+      | ["excluded", (.issue | tostring), .verdict, (.reason // ""), (.evidence // "")])
+    | @tsv' "$state_file"
+}
+
+state_dir=$(dirname "$state_file")
+base=$(jq -r '.run.base // ""' "$state_file")
+actions=()
+
+while IFS=$'\t' read -r kind issue verdict reason extra; do
+  [ -n "${issue:-}" ] || continue
+  # The question the run asked is the escalation's reason, and the state records it only where the
+  # pre-screen produced it (an exclusion keeps `reason`); an item's escalation keeps the label it wrote
+  # and the item's own note. Where neither holds the text, the action names the place it does.
+  question="$reason"
+  [ -n "$question" ] || question="$extra"
+  case "$kind" in
+    item) line="decide #$issue — the run escalated it ($verdict)" ;;
+    *) line="decide #$issue — the pre-screen refused it ($verdict)" ;;
+  esac
+  if [ -n "$question" ]; then
+    line="$line: $question · the comment itself: gh issue view $issue"
+  else
+    line="$line: the run's state does not hold the question — gh issue view $issue"
+  fi
+  actions[${#actions[@]}]="$line"
+done < <(decisions)
+
+# The branches are read from git, and a branch is an action because of what it *carries*, not because it
+# exists: `none` must never hide commits. A range git cannot answer is named rather than counted as zero.
+while IFS= read -r branch; do
+  [ -n "$branch" ] || continue
+  if ahead=$(git -C "$LOOP_ROOT" rev-list --count "$base..$branch" 2>/dev/null); then :; else ahead=1; fi
+  case "$ahead" in ''|*[!0-9]*) ahead=1 ;; esac
+  [ "$ahead" -gt 0 ] || continue
+  owner=$(printf '%s' "$branch" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1)
+  if [ -z "$owner" ]; then
+    owner=$(jq -r --arg b "$branch" '[.items[] | select((.merged.branch // "") == $b) | .issue] | (.[0] // "")' "$state_file")
+  fi
+  if [ -n "$owner" ]; then
+    actions[${#actions[@]}]="land $branch — $ahead commit(s) the base does not have — item #$owner"
+  else
+    actions[${#actions[@]}]="land $branch — $ahead commit(s) the base does not have — no item of this run owns it"
+  fi
+done <<< "$branches"
+
+# An item that ended without a gate result is the one failure a caller cannot reconstruct from the table:
+# the transcript beside its id says how far the item got.
+while IFS=$'\t' read -r issue; do
+  [ -n "${issue:-}" ] || continue
+  actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"
+done < <(jq -r '.items[] | select(.result != "done") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
+
+# A citation the pre-screen still refuses is work a person can do and the run cannot: the repair path is
+# the tooling's own, and it is named with the item.
+stale_role=$(loop_role excludedStaleAgent)
+if [ -n "$stale_role" ]; then
+  while IFS=$'\t' read -r issue reason; do
+    [ -n "${issue:-}" ] || continue
+    actions[${#actions[@]}]="repair the citation in #$issue — the pre-screen refused it as $stale_role: $reason — tools/issues/resolve-stale.sh --id $issue"
+  done < <(jq -r --arg s "$stale_role" '.excluded[] | select(.verdict == $s) | [(.issue | tostring), (.reason // "a citation no record accounts for")] | @tsv' "$state_file")
+fi
+
+if [ -d "$LOOP_WORKTREE" ]; then
+  actions[${#actions[@]}]="keep or remove the worktree $LOOP_WORKTREE — the next run reuses its warm build; --clean-worktree removes it at the end of a run"
+fi
+
+printf 'actions the caller owes:\n'
+if [ "${#actions[@]}" -eq 0 ]; then
+  # Empty only when every one of the five sources was read and empty — not because a list was skipped.
+  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no refused citation\n'
+else
+  n=1
+  for action in "${actions[@]}"; do
+    printf '  %s. %s\n' "$n" "$action"
+    n=$((n + 1))
+  done
+fi

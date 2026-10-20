@@ -417,15 +417,27 @@ num_or_null() {
   case "${1:-}" in ''|*[!0-9.]*) printf 'null' ;; *) printf '%s' "$1" ;; esac
 }
 
+# The table answers the first two questions a finished run has to answer on its own (#208): which items
+# were handled and how each ended — `outcome` plus the item's own recorded reason when that outcome is not
+# a closure — and what each one cost, read from the wall time `done --wall` records. The columns are
+# appended rather than interleaved so a reader that quoted the earlier shape keeps its columns in order.
 cmd_report() {
   require_state
   jq -r '
     "closed \(.items | map(select(.result == "done")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | outcome |",
-    "|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | nothing processed |"
-     else (.items[] | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \(.result) |") end),
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | outcome | reason |",
+    "|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | nothing processed | — |"
+     else (.items[]
+       | ((.metrics.wallSeconds // null) as $w
+          | if $w == null then "-"
+            elif $w < 60 then "\($w | floor)s"
+            else "\(($w / 60) | floor)m\(($w % 60) | floor)s" end) as $wall
+       | ((.note // "") | gsub("[\\t\\n\\r]+"; " ") | gsub("\\|"; "/")) as $note
+       | ((.metrics.rootCause // "") | gsub("[\\t\\n\\r]+"; " ") | gsub("\\|"; "/")) as $cause
+       | (if .result == "done" then "-" elif $note != "" then $note elif $cause != "" then $cause else "-" end) as $reason
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \(.result) | \($reason) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

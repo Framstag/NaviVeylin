@@ -1,0 +1,18 @@
+the one red in evidence/selftest.txt, proved pre-existing and independent — 2026-10-20T21:20:40Z
+
+worktree.sh is not in this change:
+$ git diff --name-only
+.pi/skills/fix-loop/SKILL.md
+tools/loop-cases.sh
+tools/loop/lib.sh
+tools/loop/run.sh
+
+$ bash tools/loop-selftest.sh --case worktree#keepsByDefaultAndRemovesOnRequest   (this change)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+  git still lists the worktree that was removed
+FAIL worktree#keepsByDefaultAndRemovesOnRequest
+
+$ LOOP_ENGINE=/tmp/191-base-engine/tools/loop bash tools/loop-selftest.sh --case worktree#keepsByDefaultAndRemovesOnRequest   (tools/loop at base 3211d4d8b395)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+  git still lists the worktree that was removed
+FAIL worktree#keepsByDefaultAndRemovesOnRequest

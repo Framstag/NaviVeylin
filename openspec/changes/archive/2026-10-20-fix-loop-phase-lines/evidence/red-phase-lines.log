@@ -1,0 +1,17 @@
+red on HEAD (base 3211d4d8b395) — tools/loop-selftest.sh --case <case>, one case per invocation — 2026-10-20T21:09:11Z
+
+== run#headerNamesTheLiveView
+exit=1
+  the header names the command that shows the run's progress: 'state.sh show' not found in: agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on child-max-seconds=2700 min-free-mib=1024 free-mib=4037 dry-run=1 reset-worktree=0
+FAIL run#headerNamesTheLiveView
+
+== run#prescreenAnnouncesItselfBeforeItReturns
+exit=1
+  the phase is announced on the console: 'loop: pre-screen' not found in: agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on child-max-seconds=2700 min-free-mib=1024 free-mib=3991 dry-run=0 reset-worktree=0
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+
+== run#everyPhaseBoundaryIsPrinted
+exit=1
+  the pre-screen's boundary: 'loop: pre-screen · ' not found in: agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on child-max-seconds=2700 min-free-mib=1024 free-mib=4124 dry-run=0 reset-worktree=0
+FAIL run#everyPhaseBoundaryIsPrinted
+

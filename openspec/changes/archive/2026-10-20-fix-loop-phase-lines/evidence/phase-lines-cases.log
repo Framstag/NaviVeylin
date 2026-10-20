@@ -1,0 +1,11 @@
+green on the final tree (base 3211d4d8b395 + this change) — tools/loop-selftest.sh --case <case> — 2026-10-20T21:24:28Z
+
+== run#headerNamesTheLiveView
+PASS run#headerNamesTheLiveView
+
+== run#prescreenAnnouncesItselfBeforeItReturns
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+
+== run#everyPhaseBoundaryIsPrinted
+PASS run#everyPhaseBoundaryIsPrinted
+

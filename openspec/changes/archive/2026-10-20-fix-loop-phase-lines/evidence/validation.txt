@@ -1,0 +1,36 @@
+structural validation — 2026-10-20T21:11:57Z
+
+$ openspec validate fix-loop-phase-lines --type change --strict
+Change 'fix-loop-phase-lines' has issues
+⚠ [WARNING] agent-issue-loop/spec.md: ADDED "The run names its phases and the live view into it": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+  - Ensure change has deltas in specs/: use headers ## ADDED/MODIFIED/REMOVED/RENAMED Requirements
+  - Each requirement MUST include at least one #### Scenario: block
+  - Debug parsed deltas: openspec show fix-loop-phase-lines --json --deltas-only
+
+$ openspec validate agent-issue-loop --type spec --strict
+Specification 'agent-issue-loop' has issues
+⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+  - Ensure spec includes ## Purpose and ## Requirements sections
+  - Each requirement MUST include at least one #### Scenario: block
+  - Re-run with --json to see structured report
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
+References
+  (none declared)
+
+$ bash -n tools/loop/lib.sh tools/loop/run.sh tools/loop-cases.sh
+clean
+
+$ git status --porcelain
+ M .pi/skills/fix-loop/SKILL.md
+ M tools/loop-cases.sh
+ M tools/loop/lib.sh
+ M tools/loop/run.sh

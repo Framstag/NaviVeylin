@@ -1,0 +1,6 @@
+2026-10-20T20:42:16Z
+PASS check#labelWithoutMarkerFails
+PASS check#unrankedIsNotAViolation
+PASS check#selfCheckIsGreen
+issue-tooling-selftest: all 102 cases passed (JDK 27, offline, no token)
+exit=

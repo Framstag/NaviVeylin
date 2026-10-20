@@ -1,0 +1,8 @@
+2026-10-20T20:41:38Z
+5.15	resolver#titleSuffixBesideItsCanonicalPathIsSettled	a token the body does not carry being settled instead of rewritten into a no-op that parks the item (#226)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+exit=0

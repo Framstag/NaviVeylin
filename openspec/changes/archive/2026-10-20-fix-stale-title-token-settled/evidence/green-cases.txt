@@ -1,0 +1,6 @@
+2026-10-20T20:41:11Z
+PASS resolver#titleSuffixBesideItsCanonicalPathIsSettled
+PASS resolver#titleAbsentCitationIsParkedWhereItStands
+PASS resolver#repairWithoutAChangeIsNotReported
+PASS resolver#basenameRepairLeavesALongerPathAlone
+PASS resolver#secondRunChangesNothing

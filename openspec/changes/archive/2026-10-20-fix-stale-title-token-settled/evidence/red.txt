@@ -1,0 +1,10 @@
+2026-10-20T20:40:27Z
+== resolver#titleSuffixBesideItsCanonicalPathIsSettled
+  an item whose body already holds the canonical path is not parked: expected '0', got '1'
+FAIL resolver#titleSuffixBesideItsCanonicalPathIsSettled
+exit=1
+== resolver#titleAbsentCitationIsParkedWhereItStands
+  and the reason names where it is: 'the citation is in the title' not found in: gh issue edit 7 --add-label status/on-hold --remove-label status/open
+gh issue comment 7 --body $unresolved citation — parked so the pre-screen stops re-deciding this item:\n\n- `Ghost.kt` — no tracked file, no rename record, no single surviving declaration\n\nRepaired in the same run:\n- `Foo.kt` -> `app/src/main/java/com/example/Foo.kt` — exactly one tracked path ends with the citation
+FAIL resolver#titleAbsentCitationIsParkedWhereItStands
+exit=1

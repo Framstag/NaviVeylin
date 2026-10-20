@@ -1,0 +1,166 @@
+diff --git a/guidelines/Backlog.md b/guidelines/Backlog.md
+index 609e67e..7d209c0 100644
+--- a/guidelines/Backlog.md
++++ b/guidelines/Backlog.md
+@@ -308,7 +308,9 @@ An item whose citation nothing accounts for is *not* worked, and it must not be
+ `tools/issues/resolve-stale.sh` repairs what the repository's own records state (the full tracked path, a
+ rename, a single surviving declaration, an archived change's new directory) and parks the rest with the
+ attempts recorded — so the refusal is a state a person can query instead of a line in a machine-local file
+-(`stale-citation-resolution`, D4/D5).
++(`stale-citation-resolution`, D4/D5). A citation that stands only in an item's **title** is parked rather than
++repaired: the resolver writes bodies, so a bare name there is a title for a person to fix, and an item that was
++just repaired is settled instead of being rewritten into a no-op that parks it (#226).
+ 
+ ## 8. The human lane
+ 
+diff --git a/tools/issues/resolve-stale.sh b/tools/issues/resolve-stale.sh
+index f4dc210..5d28dac 100755
+--- a/tools/issues/resolve-stale.sh
++++ b/tools/issues/resolve-stale.sh
+@@ -29,6 +29,12 @@
+ # rewritten citation re-classifies as no longer `absent` — an attempt that a later rewrite undoes, or whose
+ # target the tree does not hold, is unresolved and parks the item rather than being reported as repaired.
+ #
++# The matrix is asked of the title and the body together — the pair the pre-screen asks — but only the body is
++# written, so a token that stands in the title alone cannot be repaired by this script: a `suffix` one is
++# settled (the class is not stale, and the body already reads as it should), an `absent` one is parked with a
++# reason that names the title (#226). Counting such a token's body-identical rewrite as unresolved is how an
++# item that had just been repaired was parked on the next run.
++#
+ # Exit: 0 ran (including "nothing to do"), 2 usage or unusable input, 3 policy refusal.
+ #
+ # Usage: resolve-stale.sh [--apply] [--max-items <n>] [--issues <file>] [--json] [--profile <path>]
+@@ -115,6 +121,13 @@ add_line() {
+   if [ -n "$1" ]; then printf '%s\n%s' "$1" "$2"; else printf '%s' "$2"; fi
+ }
+ 
++# Whether the item's *body* carries this token at all. The matrix is asked of the title and the body together
++# — the pair the pre-screen asks — but this script writes the body only, so this is the question a rewrite can
++# act on: a token it answers no for is settled or parked below, never rewritten (#226).
++body_cites() { # <token>
++  printf '%s\n' "$body_matrix" | awk -F'\t' -v t="$1" '$2 == t { found = 1 } END { exit !found }'
++}
++
+ # The successor of a citation the tree does not hold, from the repository's own records: an archived change
+ # (its directory moved under `archive/` with a date prefix), then the rename map, then a single surviving
+ # declaration of the symbol.
+@@ -195,6 +208,9 @@ $body")
+   fi
+ 
+   new_body="$body"
++  # The body's own citation set: both loops below write this body and nothing else, so a token that is not in
++  # this set is not theirs to repair (#226).
++  body_matrix=$(issues_citation_matrix_of "$body")
+   repairs=""
+   pairs=""
+   unresolved=""
+@@ -209,6 +225,10 @@ $body")
+       continue
+     fi
+     [ "$canon" != "$tok" ] || continue
++    # A token the body does not carry stands in the title alone: a body write cannot reach it, and a `suffix`
++    # citation is not stale in the first place — it is settled, so the item is not due from it and nothing is
++    # written (#226).
++    body_cites "$tok" || continue
+     # `standalone=1`: a basename repair may not rewrite the tail of a longer path — that is how the suffix loop
+     # used to give a doubled token a third copy of its directory (#200).
+     new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -v standalone=1 -f "$here/rewrite.awk")
+@@ -217,6 +237,13 @@ $body")
+ 
+   while IFS= read -r tok; do
+     [ -n "$tok" ] || continue
++    # A citation the tree does not hold, standing in the title alone: the item *is* stale there — the pre-screen
++    # asks the title too — and this script writes bodies, so it cannot repair it. Parked with a reason that
++    # names where the citation is, rather than a rewrite that was never attempted (#226).
++    if ! body_cites "$tok"; then
++      unresolved=$(add_line "$unresolved" "- \`${tok}\` — the citation is in the title, which this tool does not rewrite")
++      continue
++    fi
+     canon=$(successor_of "$tok")
+     if [ -z "$canon" ]; then
+       # Before a rename walk or a symbol search: the token said its own directory twice, and the collapsed form
+diff --git a/tools/resolve-stale-cases.sh b/tools/resolve-stale-cases.sh
+index 662a7f2..1cd0e68 100755
+--- a/tools/resolve-stale-cases.sh
++++ b/tools/resolve-stale-cases.sh
+@@ -23,6 +23,8 @@ RESOLVE_CASES=(
+   'resolver#doubledPrefixIsCollapsed'
+   'resolver#basenameRepairLeavesALongerPathAlone'
+   'resolver#repairWithoutAChangeIsNotReported'
++  'resolver#titleSuffixBesideItsCanonicalPathIsSettled'
++  'resolver#titleAbsentCitationIsParkedWhereItStands'
+   'resolver#repairIsVerifiedByReclassification'
+   'resolver#renamedFileIsFollowed'
+   'resolver#removedSymbolIsReAnchored'
+@@ -54,6 +56,8 @@ resolve_run_case() {
+     'resolver#doubledPrefixIsCollapsed') case_resolver_doubledPrefixIsCollapsed ;;
+     'resolver#basenameRepairLeavesALongerPathAlone') case_resolver_basenameRepairLeavesALongerPathAlone ;;
+     'resolver#repairWithoutAChangeIsNotReported') case_resolver_repairWithoutAChangeIsNotReported ;;
++    'resolver#titleSuffixBesideItsCanonicalPathIsSettled') case_resolver_titleSuffixBesideItsCanonicalPathIsSettled ;;
++    'resolver#titleAbsentCitationIsParkedWhereItStands') case_resolver_titleAbsentCitationIsParkedWhereItStands ;;
+     'resolver#repairIsVerifiedByReclassification') case_resolver_repairIsVerifiedByReclassification ;;
+     'resolver#renamedFileIsFollowed') case_resolver_renamedFileIsFollowed ;;
+     'resolver#removedSymbolIsReAnchored') case_resolver_removedSymbolIsReAnchored ;;
+@@ -269,6 +273,43 @@ case_resolver_repairWithoutAChangeIsNotReported() {
+   assert_contains "$(recorded_text "$d/writes.log")" "the rewrite changed nothing" "and the reason names the no-op"
+ }
+ 
++# The matrix is asked of the title *and* the body — the pair the pre-screen asks — but the resolver writes the
++# body only, so a token that stands in the title alone is not repairable by it. #201, #182 and #181 are exactly
++# that shape: a title naming `create.sh`, `update.sh`, `close.sh` beside the body's full `tools/issues/<name>.sh`.
++# The suffix loop rewrote the body for the title's token, changed nothing, and the no-op landed in the same
++# accumulator a genuine failure feeds — so a body that had *just been repaired* was parked on the next run, and
++# the header's idempotence claim was false (#226).
++case_resolver_titleSuffixBesideItsCanonicalPathIsSettled() {
++  local tree d out
++  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/tools/alpha"
++  printf '#!/bin/sh\n' > "$tree/tools/alpha/alpha.sh"
++  git_init "$tree"
++  d=$(tracker "$tree/fixture-gh" 7 'the writer is `alpha.sh`' 'the writer is `tools/alpha/alpha.sh`')
++  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
++    fail "the resolver failed: $out"
++  assert_eq "0" "$(jq -r '.parked' <<< "$out")" "an item whose body already holds the canonical path is not parked"
++  assert_eq "0" "$(jq -r '.due' <<< "$out")" "and its title's bare token does not make it due"
++  assert_eq "0" "$(jq -r '.writes' <<< "$out")" "nothing is written for it"
++  assert_eq "0" "$(recorded_count "$d/writes.log" 'status/on-hold')" "the item keeps the state it had"
++  assert_eq "0" "$(recorded_count "$d/writes.log" 'issue comment')" "and no comment claims anything about it"
++}
++
++# The other half of the same rule, and the reason the skip may not be generalised to `absent`: a citation the
++# tree does not hold is stale wherever it stands — the pre-screen asks the title too — and this tool cannot
++# rewrite a title, so the item is still parked, with a reason that names where the citation is. Skipping it as
++# "nothing to do" would leave an item every later run refuses with nothing on the tracker saying why (#163).
++case_resolver_titleAbsentCitationIsParkedWhereItStands() {
++  local tree d out text
++  tree=$(tree_with_file)
++  d=$(tracker "$tree/fixture-gh" 7 'the writer is `Ghost.kt:3`' 'the case lives in `Foo.kt:12`')
++  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
++    fail "the resolver failed: $out"
++  assert_eq "1" "$(jq -r '.parked' <<< "$out")" "a stale citation in the title still parks the item"
++  text=$(recorded_text "$d/writes.log")
++  assert_contains "$text" "the citation is in the title" "and the reason names where it is"
++  assert_not_contains "$text" "the rewrite changed nothing" "not a no-op that was never attempted"
++}
++
+ # The other half of the same verification: a repair counts only when its target re-classifies as a citation the
+ # tree holds (#200). The rename map is history, so it can name a path that was deleted afterwards — the old
+ # token then leaves the body while the citation stays stale, which is not a repair either.
+diff --git a/tools/resolve-stale-mutations.json b/tools/resolve-stale-mutations.json
+index 786e01a..ff3f9a1 100644
+--- a/tools/resolve-stale-mutations.json
++++ b/tools/resolve-stale-mutations.json
+@@ -113,6 +113,14 @@
+       "search": "      if [ \"$(issues_citation_class \"$new\")\" = \"absent\" ]; then",
+       "replace": "      if false; then",
+       "why": "a repair counting only when its rewritten citation re-classifies as a path the tree holds (#200)"
++    },
++    {
++      "label": "5.15",
++      "case": "resolver#titleSuffixBesideItsCanonicalPathIsSettled",
++      "file": "tools/issues/resolve-stale.sh",
++      "search": "  printf '%s\\n' \"$body_matrix\" | awk -F'\\t' -v t=\"$1\" '$2 == t { found = 1 } END { exit !found }'",
++      "replace": "  return 0",
++      "why": "a token the body does not carry being settled instead of rewritten into a no-op that parks the item (#226)"
+     }
+   ]
+ }

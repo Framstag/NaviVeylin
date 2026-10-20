@@ -1,0 +1,44 @@
+{
+  "read": 3,
+  "due": 3,
+  "repaired": 0,
+  "parked": 3,
+  "ambiguous": 0,
+  "skipped": 0,
+  "waiting": 0,
+  "writes": 0,
+  "applied": false,
+  "wall_ms": 1052,
+  "items": [
+    {
+      "issue": 201,
+      "repaired": false,
+      "parked": true,
+      "ambiguous": 0,
+      "suffix": 1,
+      "absent": 0,
+      "repairs": "",
+      "unresolved": "- `create.sh` -> `tools/issues/create.sh` — the rewrite changed nothing"
+    },
+    {
+      "issue": 181,
+      "repaired": false,
+      "parked": true,
+      "ambiguous": 0,
+      "suffix": 1,
+      "absent": 0,
+      "repairs": "",
+      "unresolved": "- `close.sh` -> `tools/issues/close.sh` — the rewrite changed nothing"
+    },
+    {
+      "issue": 182,
+      "repaired": false,
+      "parked": true,
+      "ambiguous": 0,
+      "suffix": 1,
+      "absent": 0,
+      "repairs": "",
+      "unresolved": "- `update.sh` -> `tools/issues/update.sh` — the rewrite changed nothing"
+    }
+  ]
+}

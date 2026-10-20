@@ -1,0 +1,48 @@
+2026-10-20T20:41:41Z
+5.1	classifier#fragmentIsNotACitation	the trailing-boundary check that keeps a token cut out of a longer one out of the citation set
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/citations.awk
+  GREEN(exit 0)  restored, and the case passes again
+5.2	classifier#bareHeaderIsNotAPath	the rule that a header is only a citation when it is written as a path
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.3	classifier#bareSourceNameResolvesBySuffix	the suffix test — a bare class-file name is a citation, not a bug
+  RED(exit 1)  2 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.4	classifier#submodulePathResolves	the submodule files joining the index, so a citation inside one resolves
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.5	resolver#markersSurviveTheRepair	the repair editing the citation token in place, so the body's markers survive
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.6	resolver#ambiguityIsReportedNotRepaired	an ambiguous citation being reported rather than resolved to the first candidate
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.7	resolver#unrepairableCitationIsParked	an unresolvable citation parking the item, so it leaves the eligible queue visibly
+  MUTATION-DID-NOT-APPLY  the search matches no line of tools/issues/resolve-stale.sh — the pattern no longer matches the code
+5.8	resolver#secondRunChangesNothing	the idempotence guard — a parked item is not re-decided, so a second run posts nothing
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.9	prescreen#refusalIsVisibleInTheTracker	the pre-screen asking the shared classifier instead of extracting tokens for itself
+  RED(exit 1)  1 occurrence(s) replaced in tools/loop/prescreen.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.10	resolver#doubledPrefixIsCollapsed	the collapse of a citation that repeats its own directory, before the rename and symbol steps (#189)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.11	resolver#ambiguityDoesNotConsumeTheBound	the bound being spent only where a write follows — an item the ladder can only report costs no slot (#199)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.12	resolver#basenameRepairLeavesALongerPathAlone	a basename repair refusing an occurrence that stands inside a longer path, so the two loops cannot cancel (#200)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/rewrite.awk
+  GREEN(exit 0)  restored, and the case passes again
+5.13	resolver#repairWithoutAChangeIsNotReported	a repair counting only when the produced body differs from the input (#200)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.14	resolver#repairIsVerifiedByReclassification	a repair counting only when its rewritten citation re-classifies as a path the tree holds (#200)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+5.15	resolver#titleSuffixBesideItsCanonicalPathIsSettled	a token the body does not carry being settled instead of rewritten into a no-op that parks the item (#226)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 15 mutation(s) run, 14 went red and restored green, 1 problem(s)
+exit=1

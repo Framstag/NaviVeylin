@@ -1,0 +1,8 @@
+== sensor-selftest (2026-10-20T20:04:28Z)
+FAIL workflow#onlyTwoTriggers
+PASS workflow#aRedRecordRunsNoRecordRow
+PASS workflow#theTickDeclaresItsWindow
+PASS sensors#engineNamesNoProjectValue
+PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
+sensor-selftest: 1 of 43 cases failed
+exit=

@@ -1,0 +1,5 @@
+== final full issue tooling suite (2026-10-20T20:24:40Z)
+PASS check#unrankedIsNotAViolation
+PASS check#selfCheckIsGreen
+issue-tooling-selftest: all 102 cases passed (JDK 27, offline, no token)
+exit=

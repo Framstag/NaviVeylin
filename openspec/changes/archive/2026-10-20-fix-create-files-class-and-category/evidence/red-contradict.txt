@@ -1,0 +1,4 @@
+== HEAD red: create#refusesAClassItsLabelsContradict (2026-10-20T20:03:07Z)
+  a filing naming two classes is a usage error: https://example.invalid/Framstag/NaviVeylin/issues/1: expected '2', got '0'
+FAIL create#refusesAClassItsLabelsContradict
+exit=1

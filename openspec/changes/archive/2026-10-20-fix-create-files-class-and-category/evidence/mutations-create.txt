@@ -1,0 +1,14 @@
+== create mutations (2026-10-20T20:04:18Z)
+1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/create.sh
+  GREEN(exit 0)  restored, and the case passes again
+1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/create.sh
+  GREEN(exit 0)  restored, and the case passes again
+1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as labels (issue #201), so a finding that names its kind only in the two fields cannot file an item no selector reads
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/create.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 3 mutation(s) run, 3 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+exit=0

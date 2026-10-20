@@ -1,0 +1,5 @@
+== fixed: both cases (2026-10-20T20:03:20Z)
+PASS create#carriesTheFindingsClassAndCategory
+exit=0 (create#carriesTheFindingsClassAndCategory)
+PASS create#refusesAClassItsLabelsContradict
+exit=0 (create#refusesAClassItsLabelsContradict)

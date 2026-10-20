@@ -1,0 +1,16 @@
+# Files this change touches (base db1fe8e → this tree)
+
+Written by hand rather than read from `git diff --stat`: this item's phases forbid the agent from running
+version control, and the run's own script produces the authoritative diff. Each line names the edit and the
+reason.
+
+| file | what changed |
+|---|---|
+| `tools/issues/create.sh` | +the finding's `class` and `category` appended to the label set after every other route, +an exact-duplicate drop so the sensor path still files one label per value, +header contract (3 lines) and the `--help` range |
+| `tools/issue-tooling-cases.sh` | +`create#carriesTheFindingsClassAndCategory`, +`create#refusesAClassItsLabelsContradict`, and their entries in `ISSUES_SHELL_CASES` / `issues_run_shell_case` |
+| `tools/create-mutations.json` | +mutation `1.3` (removes the join, names the first case), and the set's `comment` now states what it proves |
+| `guidelines/Backlog.md` | §6 "How an item becomes work": +one paragraph stating that the filing path files the finding's `class` and `category` as labels |
+| `openspec/changes/fix-create-files-class-and-category/**` | the change itself (proposal, spec delta, design, tasks, evidence), archived by task 5.2 |
+
+No compiled file, no manifest, no resource and no build script is touched, so the Gradle gate does not apply
+(`guidelines/Build.md` §2, the scope block); the structural gate is `tools/issue-tooling-selftest.sh`.

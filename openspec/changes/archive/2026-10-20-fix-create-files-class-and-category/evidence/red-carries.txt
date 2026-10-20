@@ -1,0 +1,4 @@
+== HEAD red: create#carriesTheFindingsClassAndCategory (2026-10-20T20:03:05Z)
+  the finding's class reaches the tracker as a label: '--label class/bug' not found in: gh issue create --title a\ finding\ whose\ kind\ is\ in\ its\ fields\ alone --body $'the body, verbatim\n<!-- nvid: 199 -->\n<!-- fingerprint: a346ca9cf5e301ecad76b8b4dacf5c42427de6b4f0da2bfc85acac8fee7db0be -->'
+FAIL create#carriesTheFindingsClassAndCategory
+exit=1

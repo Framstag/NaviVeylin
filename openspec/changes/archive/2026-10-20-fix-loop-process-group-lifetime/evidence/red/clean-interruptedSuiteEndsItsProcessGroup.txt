@@ -1,0 +1,7 @@
+case: clean#interruptedSuiteEndsItsProcessGroup
+tree: HEAD 648d2bc + this change's tools/loop-cases.sh (git archive of tools/)
+started: 2026-10-20T11:35:15Z
+  10 s after TERM the suite was still running its case (driver alive: 1) and left 2 process(es) of it running: 3681780 3681781 — a suite ended by a signal must end the case and everything the case started, at once
+FAIL clean#interruptedSuiteEndsItsProcessGroup
+exit: 1
+finished: 2026-10-20T11:35:37Z

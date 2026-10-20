@@ -1,0 +1,7 @@
+case: run#interruptedRunEndsTheChildItStarted
+tree: HEAD 648d2bc + this change's tools/loop-cases.sh (git archive of tools/)
+started: 2026-10-20T11:35:38Z
+  the run ended but the child it started (pid 3684598) is still running — an interrupted run must end its child
+FAIL run#interruptedRunEndsTheChildItStarted
+exit: 1
+finished: 2026-10-20T11:35:45Z

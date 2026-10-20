@@ -1,0 +1,11 @@
+started: 2026-10-20T11:37:33Z
+RED    27.1  clean#interruptedSuiteEndsItsProcessGroup   (the one implementation of ending a process group a layer of the loop started)
+restore 27.1 clean#interruptedSuiteEndsItsProcessGroup green again
+RED    27.2  clean#reportsAndEndsAProcessLeftInAScratchTree   (the report reading a process working directory inside a tree it removes)
+restore 27.2 clean#reportsAndEndsAProcessLeftInAScratchTree green again
+RED    27.3  run#interruptedRunEndsTheChildItStarted   (the run trap ending the child it started, not only the run)
+restore 27.3 run#interruptedRunEndsTheChildItStarted green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+exit: 0
+finished: 2026-10-20T11:37:58Z

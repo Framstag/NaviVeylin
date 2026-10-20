@@ -1,0 +1,11 @@
+case: clean#reportsAndEndsAProcessLeftInAScratchTree
+tree: HEAD 648d2bc + this change's tools/loop-cases.sh (git archive of tools/)
+started: 2026-10-20T11:35:37Z
+  the report names the process standing inside the tree it would remove: 'would end process 3682960' not found in: loop-clean: no worktree at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/red/.pi/tmp/loop-selftest.TxeSc6/case.IJMesn/repo/.pi/worktrees/loop — no build output of the loop's to remove
+loop-clean: self-test scratch trees under /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/red/.pi/tmp/loop-selftest.TxeSc6/case.g7xkMp/tmp older than 120 min
+  kept loop-selftest.fresh (4096 B) — younger than 120 min, a suite may be writing into it
+  would remove loop-selftest.stale (4096 B)
+loop-clean: would remove 1 path(s), 4096 B — nothing removed (pass --apply)
+FAIL clean#reportsAndEndsAProcessLeftInAScratchTree
+exit: 1
+finished: 2026-10-20T11:35:38Z

@@ -1,0 +1,6 @@
+case: run#interruptedRunEndsTheChildItStarted
+tree: this change on base 648d2bc
+started: 2026-10-20T11:35:50Z
+PASS run#interruptedRunEndsTheChildItStarted
+exit: 0
+finished: 2026-10-20T11:35:52Z

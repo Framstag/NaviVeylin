@@ -1,0 +1,35 @@
+A. the whole suite on this tree (evidence/green/suite.txt):
+FAIL worktree#keepsByDefaultAndRemovesOnRequest
+loop-selftest: 1 of 117 cases failed
+
+B. the same case with the BASE engine (HEAD 648d2bc extracted by git archive, run as LOOP_ENGINE/LOOP_CONF in this worktree):
+started: 2026-10-20T11:45:27Z
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-114528')
+HEAD ist jetzt bei e6119ca init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+Aktualisiere e6119ca..d3d4379
+Fast-forward
+ demo-fix.txt                                                        | 1 +
+ openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml | 1 +
+ openspec/changes/archive/2026-01-01-fix-demo/proposal.md            | 1 +
+ 3 files changed, 3 insertions(+)
+ create mode 100644 demo-fix.txt
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+adopted: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e -> d3d4379 · commits f5db4630905ee2f458d8137fdc0f61a32fd6c05c,d3d4379d069d7648a7d9c34dfe5558395300be22 · change 2026-01-01-fix-demo · evidence TEST-demo.xml
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+close #21
+item #21: closed (merged fix/issue-21-an-eligible-bug-whose-cited-path-still-e — a finished attempt the base did not have) · 0 review round(s)
+  git still lists the worktree that was removed
+FAIL worktree#keepsByDefaultAndRemovesOnRequest
+exit: 1
+finished: 2026-10-20T11:45:36Z
+
+C. The assertion is a path-substring false positive: the case greps 'git worktree list' for 'worktrees/loop' and its throwaway project lives under <project>/.pi/worktrees/loop/.pi/tmp/… because the suite itself runs inside the loop's worktree. Filed as issue #215 by item #212, before this item started; this change touches no worktree, no case on that surface and no scratch-root choice.

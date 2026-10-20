@@ -1,0 +1,6 @@
+case: clean#reportsAndEndsAProcessLeftInAScratchTree
+tree: this change on base 648d2bc
+started: 2026-10-20T11:35:48Z
+PASS clean#reportsAndEndsAProcessLeftInAScratchTree
+exit: 0
+finished: 2026-10-20T11:35:50Z

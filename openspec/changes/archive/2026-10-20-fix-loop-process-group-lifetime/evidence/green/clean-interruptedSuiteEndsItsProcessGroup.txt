@@ -1,0 +1,6 @@
+case: clean#interruptedSuiteEndsItsProcessGroup
+tree: this change on base 648d2bc
+started: 2026-10-20T11:35:46Z
+PASS clean#interruptedSuiteEndsItsProcessGroup
+exit: 0
+finished: 2026-10-20T11:35:48Z

@@ -806,7 +806,7 @@ covered; no instrumented/device coverage):
 
 | Module | Engine | Report task | Output |
 |---|---|---|---|
-| `app`, `auto`, `core` | Kover 0.9.8 | `./gradlew :koverHtmlReport :koverXmlReport` (root merge) | `build/reports/kover/` (root merged), `app|auto|core/build/reports/kover/` (per module) |
+| `app`, `auto`, `core` | Kover 0.9.9 | `./gradlew :koverHtmlReport :koverXmlReport` (root merge) | `build/reports/kover/` (root merged), `app|auto|core/build/reports/kover/` (per module) |
 | `osmscout-client-java` | Gradle JaCoCo | `./gradlew :osmscout-client-java:jacocoTestReport` | `osmscout-client-java/build/reports/jacoco/test/` |
 
 Rationale for two engines: Kover measures Kotlin sources accurately (lambdas,
@@ -887,11 +887,15 @@ byte-identical (same md5), as `release-target` requires.
 (`test -PforceTests --no-build-cache`, §3) and a following step prints the per-module, per-flavor tallies
 from the result XML, so the log names which suites executed rather than only the verdict.
 
-**Known upstream issue** — Kover 0.9.8 emits a Gradle deprecation warning on
-Gradle 9.6 (Project-object dependency notation from its own internals); the
-project's own scripts use string notation. This becomes a hard error in
-Gradle 10 — revisit when upgrading either dependency (tracked as the backlog entry `§22` —
-`tools/issues/list.sh --id 22`).
+**The pin clears the Gradle 10 deprecation — 0.9.9 or newer.** Kover 0.9.8 passed a
+`Project` object to `DependencyHandler.add` while its plugin was applied, which Gradle 9.6 reported as
+"Using a Project object as a dependency notation has been deprecated … This will fail with an error in
+Gradle 10". The stack frame was inside the plugin
+(`kotlinx.kover.gradle.plugin.appliers.PrepareKoverKt.prepare`), so no script here could silence it —
+the pinned version was the only lever, and upstream fixed it in 0.9.9 (issue #818). Measured on
+Gradle 9.6.1 with `./gradlew help --warning-mode all`, counting the `Project object as a dependency
+notation` lines: **0.9.8 → 1, 0.9.9 → 0, 0.9.11 → 0**. `KoverDeprecationBaselineTest` (`:app` unit
+tests) holds this section and `build.gradle.kts` to that number: a downgrade fails it.
 
 ## 8. SBOM generation (CycloneDX)
 

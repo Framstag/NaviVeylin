@@ -5,7 +5,7 @@ plugins {
     id("com.google.dagger.hilt.android") version "2.59" apply false
     id("com.google.devtools.ksp") version "2.3.6" apply false
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10" apply false
-    id("org.jetbrains.kotlinx.kover") version "0.9.8"
+    id("org.jetbrains.kotlinx.kover") version "0.9.9"
 }
 
 // ── Test coverage (Kover) ───────────────────────────────────────────────────
@@ -18,8 +18,10 @@ plugins {
 // standard Gradle JaCoCo plugin instead — see guidelines/Build.md.
 // Report-only — no threshold gate.
 dependencies {
-    // String (project-path) notation — Project-object notation is deprecated
-    // in Gradle 9.6 and fails in Gradle 10.
+    // The merged modules, as project references (Kover resolves each one to the module's own
+    // coverage artifact). No line here can add a `Project`-object dependency itself: the pin is
+    // 0.9.9, the first release whose plugin-apply path stops doing that — see guidelines/Build.md
+    // §7, held by `KoverDeprecationBaselineTest`.
     kover(project(":app"))
     kover(project(":auto"))
     kover(project(":core"))

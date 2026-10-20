@@ -13,9 +13,22 @@ osmscout-client-java/build/test-results/test: files=8 tests=48 failures=0 errors
 
 TOTAL tests=5684 failures=0 errors=0 skipped=0 first=2026-10-20T12:01:59.054Z last=2026-10-20T12:06:01.613Z
 
-Cited individually (copied next to this file): the guard class's two suite XMLs
-(TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml from testMobileDebugUnitTest and
-from testAutomotiveDebugUnitTest); the red-on-HEAD and focused-green runs are
-TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml (timestamp 2026-10-20T11:59:38.216Z,
-tests=2 failures=2) and focused-green-TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml
-(timestamp 2026-10-20T12:01:12.496Z, tests=2 failures=0).
+Cited individually, by exact file name (all copied next to this file). Every XML with the guard class
+in its name is the same two-case class; the names below say which run each one is:
+
+- RED run on HEAD, tests=2 failures=2, 2026-10-20T11:59:38.216Z:
+  TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml (byte-identical copy:
+  red-TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml)
+- FOCUSED GREEN before this round's corrections, tests=2 failures=0, 2026-10-20T12:01:12.496Z:
+  focused-green-TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml
+- GATE copies of the same class, tests=2 failures=0:
+  gate-mobile-TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml — from
+  app/build/test-results/testMobileDebugUnitTest, 2026-10-20T12:02:13.832Z;
+  gate-automotive-TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml — from
+  app/build/test-results/testAutomotiveDebugUnitTest, 2026-10-20T12:04:28.437Z
+- FOCUSED GREEN after the round-2 corrections (the guideline and spec text the second case reads),
+  tests=2 failures=0, 2026-10-20T12:09:05.935Z:
+  round2-green-TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml
+
+The per-suite tallies above are a transcription of the gate's result XMLs; that run's per-suite XMLs
+live in the worktree's build/ trees and are not copied here.

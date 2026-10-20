@@ -30,14 +30,8 @@ at kotlinx.kover.gradle.plugin.KoverGradlePlugin.apply(KoverGradlePlugin.kt:29)
 
 **The fix is the pin, and the pin has a release that already carries it:** upstream issue #818 ("Gradle
 9.6.0 deprecation warning") is fixed in Kover 0.9.9 — its changelog lists `#818 Fixed Gradle 9.6.0
-deprecation warning`, commit `135968e`. Measured in this tree, counting the
-`Project object as a dependency notation` lines from `./gradlew help --warning-mode all`:
-
-| pinned Kover | warning lines |
-|---|---|
-| 0.9.8 (HEAD) | 1 |
-| 0.9.9 | 0 |
-| 0.9.11 | 0 |
+deprecation warning`. That attribution is the changelog's, not a local measurement: this change archived
+no `--warning-mode all` capture, so it states no warning counts.
 
 **Red test on HEAD** — `KoverDeprecationBaselineTest` (`:app` unit tests, file
 `app/src/test/java/com/naviveylin/build/KoverDeprecationBaselineTest.kt`), run with
@@ -60,9 +54,9 @@ fixing a test — constraints, fork budget, coverage, the JNI stub" → `Build.m
 ## What changes
 
 - `build.gradle.kts`: the Kover plugin pin `0.9.8` → `0.9.9`, and the comment above the root `kover`
-  configuration states what the pin buys instead of claiming a notation the code does not use.
+  configuration states what the pin buys.
 - `guidelines/Build.md` §7: the engine table names 0.9.9, and the "Known upstream issue" paragraph
-  becomes the measured record of the fix (which release cleared it, how it was measured, the guard
-  test that holds it).
+  becomes the upstream-attributed record of the fix (the release and the issue the changelog names, the
+  guard test that holds it).
 - `app/src/test/java/com/naviveylin/build/KoverDeprecationBaselineTest.kt`: the guard — two cases,
   the pinned version and the guideline's statement of it.

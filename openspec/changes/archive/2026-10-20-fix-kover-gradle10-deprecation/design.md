@@ -16,16 +16,15 @@ quoted verbatim in `proposal.md`'s `## Why` (produced with
 ## The fix
 
 One edit sets the lever: the Kover plugin pin in `build.gradle.kts` moves `0.9.8` → `0.9.9`, the
-release whose changelog entry is `#818 Fixed Gradle 9.6.0 deprecation warning` (upstream commit
-`135968e`). Nothing else in the build changes: the root `kover` configuration, the module-level
-`kover { }` blocks and the report filters are untouched, and 0.9.9 keeps the aggregation dependency
-notation the project uses (`kover(project(":app"))` etc.).
+release whose changelog entry for upstream issue #818 reads `Fixed Gradle 9.6.0 deprecation warning`.
+Nothing else in the build changes: the root `kover` configuration, the module-level `kover { }` blocks
+and the report filters are untouched.
 
 Two supporting edits keep the record honest and the pin enforced:
 
 - `guidelines/Build.md` §7's engine table names 0.9.9 and the "Known upstream issue" paragraph becomes
-  the measured record of the fix — the release that cleared it, the three-version measurement, the
-  guard test.
+  the upstream-attributed record of the fix — the release and issue the changelog names, and the guard
+  test that holds it.
 - `KoverDeprecationBaselineTest` (`:app` unit tests) reads the pin out of `build.gradle.kts` and the
   §7 section out of `guidelines/Build.md`, so a downgrade and a guideline drift each fail a host test.
 
@@ -33,12 +32,11 @@ Two supporting edits keep the record honest and the pin enforced:
 
 A build's deprecation output is not reachable from a JUnit case: no host test can configure the
 project it runs inside. The case therefore asserts the one thing the deprecation *is* a function of —
-the pinned release — against `0.9.9`, the threshold measured in `proposal.md`'s table. That is a proxy,
-and it is stated as one here: the direct evidence for the absence of the warning is the
-`--warning-mode all` measurement (0.9.8 → 1 line, 0.9.9 → 0 lines), quoted in §7 and in the proposal,
-not a test. The proxy is falsifiable in the useful direction — reverting the pin to 0.9.8 fails both
-cases — and it cannot pass for a release that still emitted the warning, because the threshold is the
-release that fixed it.
+the pinned release — against `0.9.9`, the threshold `proposal.md` names from upstream issue #818. That
+is a proxy, and it is stated as one here: the claim about the warning's absence is the upstream
+changelog's, quoted in §7 and in the proposal, not a test. The proxy is falsifiable in the useful
+direction — reverting the pin to 0.9.8 fails both cases — and it cannot pass for a release that still
+emitted the warning, because the threshold is the release the changelog names as the fix.
 
 ## Alternatives the evidence eliminated
 
@@ -59,10 +57,10 @@ release that fixed it.
 - `build.gradle.kts` (root): one version string, one comment.
 - `guidelines/Build.md` §7: the engine table row and the former known-issue paragraph.
 - One new test class in `:app`; it reads two repository files and touches no app code.
-- Coverage behaviour: 0.9.8 → 0.9.9 is a patch release whose changelog carries `#818` and `#810`
-  (0 % coverage for classes in `com.android.*` packages). The aggregation graph is unchanged —
-  verified: `./gradlew :dependencies --configuration koverExternalArtifacts` still resolves
-  `project ':app'`, `project ':auto'`, `project ':core'`. The report tasks themselves are not run by
+- Coverage behaviour: 0.9.8 → 0.9.9 is a patch release whose changelog carries `#818`.
+  The aggregation graph is unchanged by construction — the root `kover` configuration and its
+  `kover(project(...))` entries are not touched — and this change archived no capture of a
+  `:koverExternalArtifacts` resolution run. The report tasks themselves are not run by
   this change's gate (`./gradlew test`); that exclusion is recorded in `tasks.md`.
 
 ## Rollback

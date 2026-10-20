@@ -1,0 +1,7 @@
+date=2026-10-20T20:55:22Z
+$ openspec validate stale-citation-resolution --type spec
+Specification 'stale-citation-resolution' is valid
+⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+exit=0

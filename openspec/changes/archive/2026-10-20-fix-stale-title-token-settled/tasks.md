@@ -29,9 +29,10 @@
   return true — naming case 1.1. Verification: `bash tools/mutate.sh --mutations
   tools/resolve-stale-mutations.json --list` lists all 15; `--only 5.15` reports `RED(exit 1)` then
   `GREEN(exit 0)` (`evidence/revert-checks.md`).
-- [x] 2.5 Add one clause to `guidelines/Backlog.md` §7: a citation standing only in an item's title is parked,
-  not repaired, because the resolver writes bodies. Verification: the paragraph still states the repair ladder
-  and the parking rule; `tools/check-doc-routes.sh` OK.
+- [x] 2.5 Add one clause to `guidelines/Backlog.md` §7: a citation standing only in an item's title is never
+  rewritten — a title whose tracked path the body already carries leaves the item settled, and a title the tree
+  does not hold parks it — because the resolver writes bodies. Verification: the paragraph still states the
+  repair ladder and the parking rule; `tools/check-doc-routes.sh` OK.
 
 ## 3. Verification
 
@@ -55,3 +56,23 @@
   delta merged into `openspec/specs/stale-citation-resolution/spec.md` (the two new scenarios and the
   requirement's title/body clause). Verification: `openspec list` shows no open `fix-stale-title-token-settled`,
   and the merged spec carries `A citation the body does not carry is settled`.
+
+## 5. Round-2 corrections (review, wording only)
+
+- [x] 5.1 Narrow the requirement's title/body paragraph in both the merged spec and the archived delta: a
+  body-absent token is never *rewritten*; a resolving one leaves the item settled and costing no slot, a
+  non-resolving one is parked and costs the slot a park costs (`tools/issues/resolve-stale.sh:307`, the `due`
+  guard). Verification: `openspec validate stale-citation-resolution --type spec` → valid
+  (`evidence/round2-openspec-validate.txt`); the merged and delta texts are identical.
+- [x] 5.2 Narrow `guidelines/Backlog.md` §7's clause to the two outcomes the tree holds — a title whose tracked
+  path the body already carries leaves the item settled, one the tree does not hold parks it. Verification:
+  `tools/check-doc-routes.sh` → 89 of 89 (`evidence/round2-doc-routes.txt`).
+- [x] 5.3 Correct the change's own prose: the proposal and design no longer date the repairing run (no artifact
+  of this tree post-dates that date), and the design no longer claims a title-only `absent` token reaches a
+  no-op rewrite — the second red case shows the ladder's absent verdict and a park reason that names nothing
+  about the title.
+- [x] 5.4 Re-run the gate after the prose edits: `bash tools/resolve-stale-selftest.sh` → 27 of 27, exit 0
+  (`evidence/round2-resolver-selftest.txt`). No compiled file is touched, so no Gradle gate applies.
+- [x] 5.5 Complete the evidence: `evidence/diff.txt` regenerated over the whole production diff (5 file
+  headers, the merged-spec hunk included) and the dry runs' input `real-items-201-181-182.json` archived beside
+  its transcripts, so the reproduction can be re-run from the archive.

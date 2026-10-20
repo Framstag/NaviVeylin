@@ -12,10 +12,11 @@ the run SHALL report how many wait. The count of unresolved citations SHALL be a
 growing residue is a measurement.
 
 The citations SHALL be classified from the item's title and body together — the pair the pre-screen asks — while
-only the body can be written. A token the body does not carry SHALL therefore neither repair nor charge the
-bound: a token that resolves SHALL leave the item settled and unwritten, and a token the tree does not hold
-SHALL be parked with the reason recording that the citation stands in the title, so a stale title is a state a
-person can query rather than a rewrite reported as having changed nothing.
+only the body can be written. A token the body does not carry SHALL therefore never be rewritten, and the two
+outcomes are the bound's own terms: a token that resolves SHALL leave the item settled and unwritten, costing no
+slot, and a token the tree does not hold SHALL be parked with the reason recording that the citation stands in
+the title — a park, so it costs the slot a park costs — and SHALL never be reported as a rewrite that changed
+nothing, so a stale title is a state a person can query.
 
 #### Scenario: A scheduled run repairs without a person
 

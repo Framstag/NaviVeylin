@@ -23,7 +23,7 @@ the #200 rule) — so the body comes out byte-identical, and the no-op is append
 accumulator a genuinely unresolvable citation feeds (`:258`). The park branch (`:292`–`:304`) then sets
 `status/on-hold` on a record that is already correct.
 
-This is the second half of #226's report: the run of 2026-10-21 repaired `#201`, `#182`, `#181` (each body
+This is the second half of #226's report: the run before this change repaired `#201`, `#182`, `#181` (each body
 carried a doubled directory prefix, reported repaired) and the next run parked all three. A park is not a no-op:
 the loop's pre-screen skips a parked item, so a repair freezes the work it just fixed and hides the reason
 behind a label. It also falsifies the header's own claim (`tools/issues/resolve-stale.sh:27`): after a repair, a
@@ -64,15 +64,17 @@ gate is `tools/resolve-stale-selftest.sh`, the command the CI step "Check stale 
 - `tools/resolve-stale-cases.sh`: the two red cases above.
 - `tools/resolve-stale-mutations.json`: mutation `5.15`, the skip in `body_cites` — with it removed the settled
   case goes red again.
-- `guidelines/Backlog.md` §7: one clause stating that a citation standing only in an item's title is parked, not
-  repaired, because the tooling writes bodies.
+- `guidelines/Backlog.md` §7: one clause stating that a citation standing only in an item's title is never
+  rewritten — one whose tracked path the body already carries is settled, and one the tree does not hold is
+  parked — because the tooling writes bodies.
 
 ## Spec
 
 `openspec/specs/stale-citation-resolution/spec.md`, requirement "The resolver runs on its own, bounded and
-idempotent": MODIFIED — the requirement states that a token the body does not carry neither repairs nor charges
-the bound, and that a stale one is parked with the title named. Two scenarios are added, one per red case; the
-five existing scenarios each name their case.
+idempotent": MODIFIED — the requirement states that a token the body does not carry is never rewritten: a
+resolving one leaves the item settled and unwritten, costing no slot, and a stale one is parked with the title
+named and costs the slot a park costs. Two scenarios are added, one per red case; the five existing scenarios
+each name their case.
 
 ## Cases and evidence
 

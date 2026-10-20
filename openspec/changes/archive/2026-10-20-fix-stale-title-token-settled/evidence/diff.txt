@@ -1,18 +1,60 @@
 diff --git a/guidelines/Backlog.md b/guidelines/Backlog.md
-index 609e67e..7d209c0 100644
+index 609e67e..737c84c 100644
 --- a/guidelines/Backlog.md
 +++ b/guidelines/Backlog.md
-@@ -308,7 +308,9 @@ An item whose citation nothing accounts for is *not* worked, and it must not be
+@@ -308,7 +308,11 @@ An item whose citation nothing accounts for is *not* worked, and it must not be
  `tools/issues/resolve-stale.sh` repairs what the repository's own records state (the full tracked path, a
  rename, a single surviving declaration, an archived change's new directory) and parks the rest with the
  attempts recorded — so the refusal is a state a person can query instead of a line in a machine-local file
 -(`stale-citation-resolution`, D4/D5).
-+(`stale-citation-resolution`, D4/D5). A citation that stands only in an item's **title** is parked rather than
-+repaired: the resolver writes bodies, so a bare name there is a title for a person to fix, and an item that was
-+just repaired is settled instead of being rewritten into a no-op that parks it (#226).
++(`stale-citation-resolution`, D4/D5). A citation that stands only in an item's **title** is never rewritten —
++the resolver writes bodies, so a bare name there is a title for a person to fix. Two outcomes follow from what
++the tree holds: a title naming a file whose tracked path the body already carries leaves the item settled and
++unwritten (the state every item repaired from the doubled-directory form ends in), while a title citing a file
++the tree does not hold parks the item, because the citation is stale wherever it stands (#226).
  
  ## 8. The human lane
  
+diff --git a/openspec/specs/stale-citation-resolution/spec.md b/openspec/specs/stale-citation-resolution/spec.md
+index 0f80ecc..b354a71 100644
+--- a/openspec/specs/stale-citation-resolution/spec.md
++++ b/openspec/specs/stale-citation-resolution/spec.md
+@@ -161,6 +161,13 @@ the ladder can only report cannot consume the run's budget, and SHALL never hide
+ the run SHALL report how many wait. The count of unresolved citations SHALL be a declared check row, so a
+ growing residue is a measurement.
+ 
++The citations SHALL be classified from the item's title and body together — the pair the pre-screen asks — while
++only the body can be written. A token the body does not carry SHALL therefore never be rewritten, and the two
++outcomes are the bound's own terms: a token that resolves SHALL leave the item settled and unwritten, costing no
++slot, and a token the tree does not hold SHALL be parked with the reason recording that the citation stands in
++the title — a park, so it costs the slot a park costs — and SHALL never be reported as a rewrite that changed
++nothing, so a stale title is a state a person can query.
++
+ #### Scenario: A scheduled run repairs without a person
+ 
+ - **WHEN** the pipeline runs on its schedule
+@@ -186,6 +193,21 @@ growing residue is a measurement.
+ - **THEN** no citation is rewritten, no comment is posted, and the run reports an empty working set
+ - **Case**: `resolver#secondRunChangesNothing`
+ 
++#### Scenario: A citation the body does not carry is settled
++
++- **WHEN** an item's title names a file by a bare name whose tracked path the body already cites in full, as
++  every item repaired from the doubled-directory form ends up
++- **THEN** the item is not due, its body is not rewritten, no comment is posted and its state is unchanged, so
++  the run after a repair finds nothing to do
++- **Case**: `resolver#titleSuffixBesideItsCanonicalPathIsSettled`
++
++#### Scenario: A stale citation in the title is parked where it stands
++
++- **WHEN** the title cites a file the repository does not hold and the body's own citations do not need it
++- **THEN** the item is parked with a reason naming the title as the citation's place, because the resolver
++  writes bodies and cannot rewrite a title, and no rewrite that was never attempted is reported
++- **Case**: `resolver#titleAbsentCitationIsParkedWhereItStands`
++
+ #### Scenario: The residue is a declared check
+ 
+ - **WHEN** citations remain unresolved
 diff --git a/tools/issues/resolve-stale.sh b/tools/issues/resolve-stale.sh
 index f4dc210..5d28dac 100755
 --- a/tools/issues/resolve-stale.sh

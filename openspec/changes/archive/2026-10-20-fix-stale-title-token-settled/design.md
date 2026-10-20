@@ -17,8 +17,10 @@ comes out byte-identical, and the verification block records that as `unresolved
 that block exists to catch a repair that a later rewrite undid or whose target the tree does not hold.
 
 `unresolved` decides the park: `due` is charged (`:280`) and the item is set to `status/on-hold` with the
-comment at `:294`–`:300`. The same shape holds for an `absent` token that stands in the title alone: the ladder
-finds a successor, the body is unchanged, and the item is parked with a reason that misdescribes what happened.
+comment at `:294`–`:300`. An `absent` token that stands in the title alone is the same asymmetry without a
+no-op: the ladder finds no successor, so no rewrite is attempted at all, and the item is parked with the
+ladder's verdict — "no tracked file, no rename record, no single surviving declaration" — as its reason, which
+names nothing about where the citation actually stands.
 
 One mechanism, not two: **a body write is attempted for a token the body does not carry.** The no-op is the
 symptom; the title/body asymmetry is the cause.
@@ -80,5 +82,5 @@ Cost: one extra matrix pass per item that reaches the token loops — the same c
 
 Revert the commit. A title-only token is rewritten for the body again, the no-op lands in `unresolved` again,
 and the item is parked on the run after its repair — the base behaviour. No tracker state exists to undo: this
-change writes nothing to the tracker by itself, and the three items the 2026-10-21 pass parked by hand stay as
+change writes nothing to the tracker by itself, and the three items the last pass parked by hand stay as
 they are under either behaviour.

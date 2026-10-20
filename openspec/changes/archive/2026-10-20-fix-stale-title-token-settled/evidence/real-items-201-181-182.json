@@ -1,0 +1,149 @@
+[
+  {
+    "author": {
+      "id": "MDQ6VXNlcjE0MDYxNTgy",
+      "is_bot": false,
+      "login": "Framstag",
+      "name": "Tim Teulings"
+    },
+    "body": "- **Observed** ✗: #199 and #200 were filed on 2026-10-19 through `tools/issues/create.sh --finding <file>` and arrived in the tracker with **zero labels** (`\"labels\": []`). The findings carried `\"class\": \"bug\"` and `\"category\": \"build-and-harness\"`. `tools/issues/create.sh` demands both fields — `[ -n \"$clazz\" ] || issues_die \"create: the finding has no class\"`, same for `category` — and then never turns either into a label: the label list is built from `jq -r '.labels[]?'` plus `--label` and `--status` alone. Both fields are read, validated and dropped. They were labelled by hand afterwards (`tools/issues/update.sh --label class/bug --label category/build-and-harness --label source/agent --label status/open`).\n- **Why it matters more than a missing label**: an unlabelled issue is invisible to everything that routes work. `tools/issues/list.sh --eligible-only`, `--class`, `--category`, `--status` and the loop's pre-screen all select on labels, so the item is in the tracker and in no queue; `triage-todo` never ranks it; `tools/issues/check-metadata.sh` does not look. The filing reported success (`https://github.com/…/issues/199`) and the caller had no reason to look.\n- **Expected** ✓: a finding that states its class and category files an issue carrying `class/*` and `category/*`, or the call is refused. Silently discarding a field the same script insists on is the worst of the three options: it makes the missing label a caller's invisible mistake, and the documented invariant (`AGENTS.md`: exactly one `class/*`, one `category/*`, one `status/*`, one `source/*`) is asserted by no check — `tools/issues/check-metadata.sh` covers the priority band and the write paths; `guidelines/Backlog.md` gates only the state namespace (I16).\n- **Evidence** ⊨: `tools/issues/create.sh` (the three `jq` reads of `class`, `category`, `claim`, then the label loop that reads only `.labels[]`); #199 and #200 in the tracker with `\"labels\": []` at creation and the by-hand repair in their timeline; `tools/issues/check-metadata.sh` (its three modes check bands, the marker grammar and the reserved label, and never class/category/source); `guidelines/Backlog.md:135` (I16, the state namespace only).\n- **Fix sketch**: add the finding's `class` and `category` to `labels` when the caller gave none — or refuse when they disagree with `.labels[]` — so one route states the kind. Then one cheap assertion beside the existing four, in `tools/issues/check-metadata.sh --live` or a new check: every open item carries exactly one `class/*`, one `category/*`, one `status/*` and one `source/*`, which is the invariant the backlog states and no gate reads.\n<!-- nvid: create-drops-class-category -->\n<!-- fingerprint: 5c4d6e784c118c625ee8d70280629f8238a85d8d62be537a9b6954284f2e6012 -->",
+    "labels": [
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omuzQ",
+        "name": "agent/eligible",
+        "description": "agent — from the project profile",
+        "color": "8bdd84"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omwAg",
+        "name": "category/build-and-harness",
+        "description": "category — from the project profile",
+        "color": "07af22"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omzQA",
+        "name": "class/bug",
+        "description": "class — from the project profile",
+        "color": "96e7bb"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9om1HA",
+        "name": "source/agent",
+        "description": "source — from the project profile",
+        "color": "71e4bb"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9om2SA",
+        "name": "status/fixed-by",
+        "description": "status — from the project profile",
+        "color": "36a8a2"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC-AaC3w",
+        "name": "agent/excluded-settled",
+        "description": "agent — from the project profile",
+        "color": "9a520e"
+      }
+    ],
+    "number": 201,
+    "title": "`create.sh` requires and validates the finding's `class` and `category`, then files the issue with no labels at all, and nothing asserts the four-label invariant"
+  },
+  {
+    "author": {
+      "id": "MDQ6VXNlcjE0MDYxNTgy",
+      "is_bot": false,
+      "login": "Framstag",
+      "name": "Tim Teulings"
+    },
+    "body": "Found 2026-10-19 during the closure pass over #158-#179.\n\n`<dir>/tools/issues/close.sh:138` runs `gh issue close` and never rewrites the `status/*` label. Measured on three items closed during that pass:\n\n```\n$ gh issue view 161 --json state,labels -q '.state + \" \" + ([.labels[].name] | join(\",\"))'\nCLOSED agent/eligible,category/build-and-harness,class/improvement,prio/p3,source/agent,status/open\n```\n\nThe same for #163 and #164. Consequence: `bash tools/issues/list.sh --status open` lists them, so an item that is closed is offered to the next selection as open work — the mirror image of #163 (a state the tracker shows that no run holds).\n\nFive items closed earlier carry `status/fixed-by`, so the surviving label depends on which status the item happened to carry *before* closure, not on the closure itself.\n\n**Repair applied by hand in the tracker** (not by the tooling): `tools/issues/update.sh <n> --status fixed-by` on #161, #163, #164, matching the precedent those five set.\n\n**The defect**: whichever status label the item carried survives its closure, and `tools/issues/close.sh` has no step that settles it.\n<!-- fingerprint: b6a463976a2cf73ffae1e1e1e25ca81077d1f35426920143ad286b2fbf93c881 -->",
+    "labels": [
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omuzQ",
+        "name": "agent/eligible",
+        "description": "agent — from the project profile",
+        "color": "8bdd84"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omwAg",
+        "name": "category/build-and-harness",
+        "description": "category — from the project profile",
+        "color": "07af22"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omzQA",
+        "name": "class/bug",
+        "description": "class — from the project profile",
+        "color": "96e7bb"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9om1HA",
+        "name": "source/agent",
+        "description": "source — from the project profile",
+        "color": "71e4bb"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9om2SA",
+        "name": "status/fixed-by",
+        "description": "status — from the project profile",
+        "color": "36a8a2"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC-AaC3w",
+        "name": "agent/excluded-settled",
+        "description": "agent — from the project profile",
+        "color": "9a520e"
+      }
+    ],
+    "number": 181,
+    "title": "close.sh closes the item but leaves its old `status/*` label, so a closed item is still selected as open work"
+  },
+  {
+    "author": {
+      "id": "MDQ6VXNlcjE0MDYxNTgy",
+      "is_bot": false,
+      "login": "Framstag",
+      "name": "Tim Teulings"
+    },
+    "body": "Found 2026-10-19 while posting the reason comments of the closure pass over #158-#179.\n\nEvery one of the six comment-only calls printed:\n\n```\n$ bash <dir>/tools/issues/update.sh 165 --comment '<text>'\nupdate: #165 already carries  — no label write\n```\n\nTwo spaces, no value. The comment itself is posted correctly (line 210, `gh issue comment`), so nothing is lost — the note is wrong.\n\n**Cause**: line 186 is\n\n```sh\n[ \"$edit_needed\" -eq 1 ] || issues_note \"update: #$number already carries $status_label — no label write\"\n```\n\n`edit_needed` is 0 both when a state write found the state already in place *and* when no state write was requested at all, and `status_label` is empty in the second case. The sentence then claims the item already carries something, which is true of the empty string and meaningful to nobody.\n\n**Repair**: make the note conditional on a status having been requested (`[ -z \"$status_label\" ] || …`, or a second message for the comment-only case). It is a one-line change in the tool the tracker's every write goes through, which is why it is filed rather than folded into the closure pass.\n<!-- fingerprint: bdde5287688246bb460a608e68f3d13358d752e7d79f4a73a4bf0fc35331fd33 -->",
+    "labels": [
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omuzQ",
+        "name": "agent/eligible",
+        "description": "agent — from the project profile",
+        "color": "8bdd84"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omwAg",
+        "name": "category/build-and-harness",
+        "description": "category — from the project profile",
+        "color": "07af22"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9omzQA",
+        "name": "class/bug",
+        "description": "class — from the project profile",
+        "color": "96e7bb"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9om1HA",
+        "name": "source/agent",
+        "description": "source — from the project profile",
+        "color": "71e4bb"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC9om2SA",
+        "name": "status/fixed-by",
+        "description": "status — from the project profile",
+        "color": "36a8a2"
+      },
+      {
+        "id": "LA_kwDOTqK3iM8AAAAC-AaC3w",
+        "name": "agent/excluded-settled",
+        "description": "agent — from the project profile",
+        "color": "9a520e"
+      }
+    ],
+    "number": 182,
+    "title": "A comment-only `update.sh` call prints `already carries  — no label write` with an empty status, so the note describes a write that was never requested"
+  }
+]

@@ -1,0 +1,26 @@
+Gate: `./gradlew test -PforceTests --no-build-cache` (run once, exact command of the run's configuration)
+Result: BUILD SUCCESSFUL in 4m 10s — log in `gate.log` (tail carries the verdict and the remaining
+plugin-owned deprecation banner).
+
+Per result-XML directory (files, tests, failures, errors):
+
+app/build/test-results/testMobileDebugUnitTest          files=277 tests=2064 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest      files=277 tests=2064 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest               files=85  tests=866  failures=0 errors=0
+core/build/test-results/testDebugUnitTest               files=60  tests=642  failures=0 errors=0
+osmscout-client-java/build/test-results/test            files=8   tests=48   failures=0 errors=0
+
+Total: tests=5684 failures=0 errors=0
+
+The change's own case inside that gate run (both app flavors ran it):
+
+testcase name="no project build script uses a removed Gradle construct" classname="com.naviveylin.build.GradleScriptDeprecationTest"
+testcase name="the removal is still detectable" classname="com.naviveylin.build.GradleScriptDeprecationTest"
+
+XMLs of that class as the gate produced them: `gate-mobile-TEST-GradleScriptDeprecationTest.xml`,
+`gate-automotive-TEST-GradleScriptDeprecationTest.xml`.
+
+The run's banner (`Deprecated Gradle features were used in this build…`) is still printed, and that is the
+measured remainder this change records: the only family left is Kover's own `Project`-object dependency
+notation (`guidelines/Build.md` §7, `evidence/kover-probe-lines-removed.txt`), which no script of this project
+can reach.

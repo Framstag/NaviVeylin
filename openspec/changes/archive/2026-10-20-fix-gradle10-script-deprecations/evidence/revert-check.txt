@@ -1,0 +1,43 @@
+Revert-check — the guard case fails when one delegate returns (2026-10-20, tree of change
+`fix-gradle10-script-deprecations`, base `648d2bc`)
+
+1. The tree after the fix, the case green:
+
+   $ ./gradlew --offline :app:testMobileDebugUnitTest \
+       --tests "com.naviveylin.build.GradleScriptDeprecationTest" -PforceTests
+   BUILD SUCCESSFUL
+   tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-20T12:15:36.723Z"
+   system-out: scripts=8 findings=0
+   (evidence/TEST-GradleScriptDeprecationTest-green.xml)
+
+2. Mutation — `app/build.gradle.kts:377` restored to the delegate form:
+
+   $ sed -i '377s/val checkHardcodedStrings = tasks.register("checkHardcodedStrings") {/val checkHardcodedStrings by tasks.registering {/' app/build.gradle.kts
+   $ sed -n '377p' app/build.gradle.kts
+   val checkHardcodedStrings by tasks.registering {
+
+   $ ./gradlew --offline :app:testMobileDebugUnitTest \
+       --tests "com.naviveylin.build.GradleScriptDeprecationTest" -PforceTests
+   GradleScriptDeprecationTest > no project build script uses a removed Gradle construct FAILED
+       java.lang.AssertionError: a script that registers a task with the `by tasks.registering { }` delegate
+       must use `tasks.register("name") { }` instead — Gradle 10 removes the delegate expected:<[]> but
+       was:<[:377: val checkHardcodedStrings by tasks.registering {]>
+           at com.naviveylin.build.GradleScriptDeprecationTest.no project build script uses a removed Gradle construct(GradleScriptDeprecationTest.kt:41)
+
+   exit 1
+
+3. Restore — byte-identical (`md5 29f1ed11af62b11fb6af63e2ebd9ba54` before the mutation and after the
+   restore), and the case green again:
+
+   $ cp /tmp/app-build-green.kts app/build.gradle.kts
+   $ md5sum app/build.gradle.kts
+   29f1ed11af62b11fb6af63e2ebd9ba54  app/build.gradle.kts
+
+   $ ./gradlew --offline :app:testMobileDebugUnitTest \
+       --tests "com.naviveylin.build.GradleScriptDeprecationTest" -PforceTests
+   BUILD SUCCESSFUL
+   tests="2" skipped="0" failures="0" errors="0"
+   system-out: scripts=8 findings=0
+
+No mutation marker is left in the tree: `grep -rn --include="*.gradle.kts" "by tasks.registering" .` prints
+nothing.

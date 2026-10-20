@@ -1,0 +1,736 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:tasks
+
+------------------------------------------------------------
+Tasks runnable from project ':app'
+------------------------------------------------------------
+
+Android tasks
+-------------
+signingReport - Displays the signing info for the base and test modules
+
+Build tasks
+-----------
+assemble - Assemble main outputs for all the variants.
+assembleAndroidTest - Assembles all the Test applications.
+assembleAutomotive - Assembles main outputs for all Automotive variants.
+assembleDebug - Assembles main outputs for all Debug variants.
+assembleMobile - Assembles main outputs for all Mobile variants.
+assembleRelease - Assembles main outputs for all Release variants.
+assembleUnitTest - Assembles all the unit test applications.
+build - Assembles and tests this project.
+buildDependents - Assembles and tests this project and all projects that depend on it.
+buildNeeded - Assembles and tests this project and all projects it depends on.
+bundle - Assemble bundles for all the variants.
+bundleAutomotive - Assembles bundles for all Automotive variants.
+bundleDebug - Assembles bundles for all Debug variants.
+bundleMobile - Assembles bundles for all Mobile variants.
+bundleRelease - Assembles bundles for all Release variants.
+clean - Deletes the build directory.
+compileAutomotiveDebugAndroidTestSources
+compileAutomotiveDebugSources
+compileAutomotiveDebugUnitTestSources
+compileAutomotiveReleaseSources
+compileMobileDebugAndroidTestSources
+compileMobileDebugSources
+compileMobileDebugUnitTestSources
+compileMobileReleaseSources
+
+Help tasks
+----------
+artifactTransforms - Displays the Artifact Transforms that can be executed in project ':app'.
+buildEnvironment - Displays all buildscript dependencies declared in project ':app'.
+dependencies - Displays all dependencies declared in project ':app'.
+dependencyInsight - Displays the insight into a specific dependency in project ':app'.
+help - Displays a help message.
+javaToolchains - Displays the detected java toolchains.
+kotlinDslAccessorsReport - Prints the Kotlin code for accessing the currently available project extensions.
+outgoingVariants - Displays the outgoing variants of project ':app'.
+projects - Displays the sub-projects of project ':app'.
+properties - Displays the properties of project ':app'.
+resolvableConfigurations - Displays the configurations that can be resolved in project ':app'.
+tasks - Displays the tasks runnable from project ':app'.
+
+Install tasks
+-------------
+installAutomotiveDebug - Installs the Debug build for flavor Automotive.
+installAutomotiveDebugAndroidTest - Installs the android (on device) tests for the AutomotiveDebug build.
+installMobileDebug - Installs the Debug build for flavor Mobile.
+installMobileDebugAndroidTest - Installs the android (on device) tests for the MobileDebug build.
+uninstallAll - Uninstall all applications.
+uninstallAutomotiveDebug - Uninstalls the Debug build for flavor Automotive.
+uninstallAutomotiveDebugAndroidTest - Uninstalls the android (on device) tests for the AutomotiveDebug build.
+uninstallAutomotiveRelease - Uninstalls the Release build for flavor Automotive.
+uninstallMobileDebug - Uninstalls the Debug build for flavor Mobile.
+uninstallMobileDebugAndroidTest - Uninstalls the android (on device) tests for the MobileDebug build.
+uninstallMobileRelease - Uninstalls the Release build for flavor Mobile.
+
+License tasks
+-------------
+checkLicensePolicy - Runs the license policy gate over the mobileDebug SBOM (the SBOM CI publishes).
+checkLicensePolicyAutomotiveDebug - Checks the automotiveDebug SBOM against licenses/license-policy.json.
+checkLicensePolicyAutomotiveRelease - Checks the automotiveRelease SBOM against licenses/license-policy.json.
+checkLicensePolicyMobileDebug - Checks the mobileDebug SBOM against licenses/license-policy.json.
+checkLicensePolicyMobileRelease - Checks the mobileRelease SBOM against licenses/license-policy.json.
+generateLicenseAssetsAutomotiveDebug - Writes the automotiveDebug license inventory, texts and NOTICE.
+generateLicenseAssetsAutomotiveRelease - Writes the automotiveRelease license inventory, texts and NOTICE.
+generateLicenseAssetsMobileDebug - Writes the mobileDebug license inventory, texts and NOTICE.
+generateLicenseAssetsMobileRelease - Writes the mobileRelease license inventory, texts and NOTICE.
+
+Release tasks
+-------------
+release - Bumps the version state and builds both Play-ready AABs: mobile (phone + Android Auto) and automotive (AAOS).
+
+Sbom tasks
+----------
+downloadSbomCli - Downloads the pinned cyclonedx-cli binary (cached under build/cyclonedx-cli/).
+generateSbomAutomotiveDebug - Generates the full CycloneDX SBOM for automotiveDebug (JVM + native + submodule).
+generateSbomAutomotiveRelease - Generates the full CycloneDX SBOM for automotiveRelease (JVM + native + submodule).
+generateSbomJvmAutomotiveDebug - Generates the JVM dependency CycloneDX BOM for automotiveDebug.
+generateSbomJvmAutomotiveRelease - Generates the JVM dependency CycloneDX BOM for automotiveRelease.
+generateSbomJvmMobileDebug - Generates the JVM dependency CycloneDX BOM for mobileDebug.
+generateSbomJvmMobileRelease - Generates the JVM dependency CycloneDX BOM for mobileRelease.
+generateSbomMobileDebug - Generates the full CycloneDX SBOM for mobileDebug (JVM + native + submodule).
+generateSbomMobileRelease - Generates the full CycloneDX SBOM for mobileRelease (JVM + native + submodule).
+mergeNativeSbom - Converts every vcpkg package SPDX SBOM (all triplets) to CycloneDX and merges them.
+
+Verification tasks
+------------------
+check - Runs all checks.
+checkJetifier - Checks whether Jetifier is needed for the current project
+connectedAndroidTest - Installs and runs instrumentation tests for all flavors on connected devices.
+connectedAutomotiveDebugAndroidTest - Installs and runs the tests for automotiveDebug on connected devices.
+connectedCheck - Runs all device checks on currently connected devices.
+connectedMobileDebugAndroidTest - Installs and runs the tests for mobileDebug on connected devices.
+deviceAndroidTest - Installs and runs instrumentation tests using all Device Providers.
+deviceCheck - Runs all device checks using Device Providers and Test Servers.
+koverBinaryReport - Task to generate binary coverage report in IntelliJ format for all code.
+koverBinaryReportAutomotiveDebug - Task to generate binary coverage report in IntelliJ format for 'automotiveDebug' Android build variant
+koverBinaryReportAutomotiveRelease - Task to generate binary coverage report in IntelliJ format for 'automotiveRelease' Android build variant
+koverBinaryReportMobileDebug - Task to generate binary coverage report in IntelliJ format for 'mobileDebug' Android build variant
+koverBinaryReportMobileRelease - Task to generate binary coverage report in IntelliJ format for 'mobileRelease' Android build variant
+koverCachedVerify - Cacheable task for performing verification for all code.
+koverCachedVerifyAutomotiveDebug - Cacheable task for performing verification for 'automotiveDebug' Android build variant
+koverCachedVerifyAutomotiveRelease - Cacheable task for performing verification for 'automotiveRelease' Android build variant
+koverCachedVerifyMobileDebug - Cacheable task for performing verification for 'mobileDebug' Android build variant
+koverCachedVerifyMobileRelease - Cacheable task for performing verification for 'mobileRelease' Android build variant
+koverHtmlReport - Task to generate HTML coverage report for all code.
+koverHtmlReportAutomotiveDebug - Task to generate HTML coverage report for 'automotiveDebug' Android build variant
+koverHtmlReportAutomotiveRelease - Task to generate HTML coverage report for 'automotiveRelease' Android build variant
+koverHtmlReportMobileDebug - Task to generate HTML coverage report for 'mobileDebug' Android build variant
+koverHtmlReportMobileRelease - Task to generate HTML coverage report for 'mobileRelease' Android build variant
+koverLog - Task to print coverage to log for all code.
+koverLogAutomotiveDebug - Task to print coverage to log for 'automotiveDebug' Android build variant
+koverLogAutomotiveRelease - Task to print coverage to log for 'automotiveRelease' Android build variant
+koverLogMobileDebug - Task to print coverage to log for 'mobileDebug' Android build variant
+koverLogMobileRelease - Task to print coverage to log for 'mobileRelease' Android build variant
+koverVerify
+koverVerifyAutomotiveDebug
+koverVerifyAutomotiveRelease
+koverVerifyMobileDebug
+koverVerifyMobileRelease
+koverXmlReport - Task to generate XML coverage report for all code.
+koverXmlReportAutomotiveDebug - Task to generate XML coverage report for 'automotiveDebug' Android build variant
+koverXmlReportAutomotiveRelease - Task to generate XML coverage report for 'automotiveRelease' Android build variant
+koverXmlReportMobileDebug - Task to generate XML coverage report for 'mobileDebug' Android build variant
+koverXmlReportMobileRelease - Task to generate XML coverage report for 'mobileRelease' Android build variant
+lint - Runs lint on the default variant.
+lintAutomotiveDebug - Print text output from the corresponding lint report task
+lintAutomotiveRelease - Print text output from the corresponding lint report task
+lintFix - Runs lint on the default variant and applies any safe suggestions to the source code.
+lintMobileDebug - Print text output from the corresponding lint report task
+lintMobileRelease - Print text output from the corresponding lint report task
+lintVitalAutomotiveRelease - Print text output from the corresponding lint report task
+lintVitalMobileRelease - Print text output from the corresponding lint report task
+test - Run unit tests for all variants.
+testAutomotiveDebugUnitTest - Run unit tests for the automotiveDebug build.
+testMobileDebugUnitTest - Run unit tests for the mobileDebug build.
+updateLintBaseline - Updates the lint baseline using the default variant.
+
+Other tasks
+-----------
+analyzeAutomotiveDebugAndroidTestDependencies
+analyzeAutomotiveDebugDependencies
+analyzeAutomotiveDebugUnitTestDependencies
+analyzeAutomotiveReleaseDependencies
+analyzeAutomotiveReleaseR8Config
+analyzeMobileDebugAndroidTestDependencies
+analyzeMobileDebugDependencies
+analyzeMobileDebugUnitTestDependencies
+analyzeMobileReleaseDependencies
+analyzeMobileReleaseR8Config
+assembleAutomotiveDebug - Assembles main output for variant automotiveDebug
+assembleAutomotiveDebugAndroidTest - Assembles main output for variant automotiveDebugAndroidTest
+assembleAutomotiveDebugUnitTest - Assembles main output for variant automotiveDebugUnitTest
+assembleAutomotiveRelease - Assembles main output for variant automotiveRelease
+assembleMobileDebug - Assembles main output for variant mobileDebug
+assembleMobileDebugAndroidTest - Assembles main output for variant mobileDebugAndroidTest
+assembleMobileDebugUnitTest - Assembles main output for variant mobileDebugUnitTest
+assembleMobileRelease - Assembles main output for variant mobileRelease
+buildAutomotiveDebugPreBundle
+buildAutomotiveReleasePreBundle
+buildCMakeDebug
+buildCMakeDebug[arm64-v8a]
+buildCMakeDebug[armeabi-v7a]
+buildCMakeDebug[x86_64]
+buildCMakeRelWithDebInfo
+buildCMakeRelWithDebInfo[arm64-v8a]
+buildCMakeRelWithDebInfo[armeabi-v7a]
+buildCMakeRelWithDebInfo[x86_64]
+buildMobileDebugPreBundle
+buildMobileReleasePreBundle
+bundleAutomotiveDebug - Assembles bundle for variant automotiveDebug
+bundleAutomotiveDebugClassesToCompileJar
+bundleAutomotiveDebugClassesToRuntimeJar
+bundleAutomotiveDebugResources
+bundleAutomotiveRelease - Assembles bundle for variant automotiveRelease
+bundleAutomotiveReleaseClassesToCompileJar
+bundleAutomotiveReleaseClassesToRuntimeJar
+bundleAutomotiveReleaseResources
+bundleMobileDebug - Assembles bundle for variant mobileDebug
+bundleMobileDebugClassesToCompileJar
+bundleMobileDebugClassesToRuntimeJar
+bundleMobileDebugResources
+bundleMobileRelease - Assembles bundle for variant mobileRelease
+bundleMobileReleaseClassesToCompileJar
+bundleMobileReleaseClassesToRuntimeJar
+bundleMobileReleaseResources
+checkAutomotiveDebugAarMetadata
+checkAutomotiveDebugAndroidTestAarMetadata
+checkAutomotiveDebugAndroidTestDuplicateClasses
+checkAutomotiveDebugDuplicateClasses
+checkAutomotiveDebugManifest
+checkAutomotiveReleaseAarMetadata
+checkAutomotiveReleaseDuplicateClasses
+checkAutomotiveReleaseManifest
+checkCleartextTransportPolicy
+checkHardcodedStrings
+checkMobileDebugAarMetadata
+checkMobileDebugAndroidTestAarMetadata
+checkMobileDebugAndroidTestDuplicateClasses
+checkMobileDebugDuplicateClasses
+checkMobileDebugManifest
+checkMobileReleaseAarMetadata
+checkMobileReleaseDuplicateClasses
+checkMobileReleaseManifest
+checkNoCoordinatesInLogs
+checkNoWallClockWaits
+checkSubmoduleIcons
+checkSubmoduleStylesheets
+collectAutomotiveReleaseDependencies
+collectMobileReleaseDependencies
+compileAutomotiveDebugAndroidTestJavaWithJavac
+compileAutomotiveDebugAndroidTestKotlin
+compileAutomotiveDebugAndroidTestNavigationResources
+compileAutomotiveDebugArtProfile
+compileAutomotiveDebugJavaWithJavac
+compileAutomotiveDebugKotlin
+compileAutomotiveDebugNavigationResources
+compileAutomotiveDebugUnitTestJavaWithJavac
+compileAutomotiveDebugUnitTestKotlin
+compileAutomotiveReleaseArtProfile
+compileAutomotiveReleaseJavaWithJavac
+compileAutomotiveReleaseKotlin
+compileAutomotiveReleaseNavigationResources
+compileLint
+compileLintChecks
+compileMobileDebugAndroidTestJavaWithJavac
+compileMobileDebugAndroidTestKotlin
+compileMobileDebugAndroidTestNavigationResources
+compileMobileDebugArtProfile
+compileMobileDebugJavaWithJavac
+compileMobileDebugKotlin
+compileMobileDebugNavigationResources
+compileMobileDebugUnitTestJavaWithJavac
+compileMobileDebugUnitTestKotlin
+compileMobileReleaseArtProfile
+compileMobileReleaseJavaWithJavac
+compileMobileReleaseKotlin
+compileMobileReleaseNavigationResources
+compressAutomotiveDebugAndroidTestAssets
+compressAutomotiveDebugAssets
+compressAutomotiveReleaseAssets
+compressMobileDebugAndroidTestAssets
+compressMobileDebugAssets
+compressMobileReleaseAssets
+configureAutomotiveReleaseDependencies
+configureCMakeDebug
+configureCMakeDebug[arm64-v8a]
+configureCMakeDebug[armeabi-v7a]
+configureCMakeDebug[x86_64]
+configureCMakeRelWithDebInfo
+configureCMakeRelWithDebInfo[arm64-v8a]
+configureCMakeRelWithDebInfo[armeabi-v7a]
+configureCMakeRelWithDebInfo[x86_64]
+configureMobileReleaseDependencies
+consumeConfigAttr
+convertLinkedResourcesToBinaryAutomotiveRelease
+convertLinkedResourcesToBinaryMobileRelease
+convertShrunkResourcesToBinaryAutomotiveRelease
+convertShrunkResourcesToBinaryMobileRelease
+createAutomotiveDebugAndroidTestApkListingFileRedirect
+createAutomotiveDebugApkListingFileRedirect
+createAutomotiveDebugApksFromBundleListingFileRedirect
+createAutomotiveDebugBundleListingFileRedirect
+createAutomotiveDebugCompatibleScreenManifests
+createAutomotiveReleaseApkListingFileRedirect
+createAutomotiveReleaseApksFromBundleListingFileRedirect
+createAutomotiveReleaseBundleListingFileRedirect
+createAutomotiveReleaseCompatibleScreenManifests
+createMobileDebugAndroidTestApkListingFileRedirect
+createMobileDebugApkListingFileRedirect
+createMobileDebugApksFromBundleListingFileRedirect
+createMobileDebugBundleListingFileRedirect
+createMobileDebugCompatibleScreenManifests
+createMobileReleaseApkListingFileRedirect
+createMobileReleaseApksFromBundleListingFileRedirect
+createMobileReleaseBundleListingFileRedirect
+createMobileReleaseCompatibleScreenManifests
+createMockableJar
+cyclonedxBom
+cyclonedxDirectBom
+desugarAutomotiveDebugAndroidTestFileDependencies
+desugarAutomotiveDebugFileDependencies
+desugarMobileDebugAndroidTestFileDependencies
+desugarMobileDebugFileDependencies
+dexBuilderAutomotiveDebug
+dexBuilderAutomotiveDebugAndroidTest
+dexBuilderMobileDebug
+dexBuilderMobileDebugAndroidTest
+expandAutomotiveReleaseArtProfileWildcards
+expandAutomotiveReleaseL8ArtProfileWildcards
+expandMobileReleaseArtProfileWildcards
+expandMobileReleaseL8ArtProfileWildcards
+externalNativeBuildAutomotiveDebug
+externalNativeBuildAutomotiveRelease
+externalNativeBuildCleanAutomotiveDebug
+externalNativeBuildCleanAutomotiveRelease
+externalNativeBuildCleanMobileDebug
+externalNativeBuildCleanMobileRelease
+externalNativeBuildMobileDebug
+externalNativeBuildMobileRelease
+extractApksForAutomotiveDebug
+extractApksForAutomotiveRelease
+extractApksForMobileDebug
+extractApksForMobileRelease
+extractApksFromBundleForAutomotiveDebug
+extractApksFromBundleForAutomotiveRelease
+extractApksFromBundleForMobileDebug
+extractApksFromBundleForMobileRelease
+extractAutomotiveDebugNativeDebugMetadata
+extractAutomotiveDebugNativeSymbolTables
+extractAutomotiveReleaseNativeDebugMetadata
+extractAutomotiveReleaseNativeSymbolTables
+extractAutomotiveReleaseVersionControlInfo
+extractDeepLinksAutomotiveDebug
+extractDeepLinksAutomotiveRelease
+extractDeepLinksMobileDebug
+extractDeepLinksMobileRelease
+extractMobileDebugNativeDebugMetadata
+extractMobileDebugNativeSymbolTables
+extractMobileReleaseNativeDebugMetadata
+extractMobileReleaseNativeSymbolTables
+extractMobileReleaseVersionControlInfo
+extractProguardFiles
+generateAutomotiveDebugAndroidTestAssets
+generateAutomotiveDebugAndroidTestBuildConfig
+generateAutomotiveDebugAndroidTestGlobalSynthetics
+generateAutomotiveDebugAndroidTestLintModel
+generateAutomotiveDebugAndroidTestResources
+generateAutomotiveDebugAndroidTestRFile
+generateAutomotiveDebugAndroidTestSources
+generateAutomotiveDebugAssets
+generateAutomotiveDebugBuildConfig
+generateAutomotiveDebugFeatureMetadata
+generateAutomotiveDebugFeatureTransitiveDeps
+generateAutomotiveDebugGlobalSynthetics
+generateAutomotiveDebugLintModel
+generateAutomotiveDebugLintReportModel
+generateAutomotiveDebugManifestClass
+generateAutomotiveDebugResources
+generateAutomotiveDebugRFile
+generateAutomotiveDebugSources
+generateAutomotiveDebugUnitTestAssets
+generateAutomotiveDebugUnitTestConfig
+generateAutomotiveDebugUnitTestLintModel
+generateAutomotiveDebugUnitTestResources
+generateAutomotiveDebugUnitTestSources
+generateAutomotiveReleaseAssets
+generateAutomotiveReleaseBuildConfig
+generateAutomotiveReleaseFeatureMetadata
+generateAutomotiveReleaseFeatureTransitiveDeps
+generateAutomotiveReleaseLintModel
+generateAutomotiveReleaseLintReportModel
+generateAutomotiveReleaseLintVitalReportModel
+generateAutomotiveReleaseManifestClass
+generateAutomotiveReleaseResources
+generateAutomotiveReleaseRFile
+generateAutomotiveReleaseSources
+generateJsonModelAutomotiveDebug
+generateJsonModelAutomotiveRelease
+generateJsonModelMobileDebug
+generateJsonModelMobileRelease
+generateMobileDebugAndroidTestAssets
+generateMobileDebugAndroidTestBuildConfig
+generateMobileDebugAndroidTestGlobalSynthetics
+generateMobileDebugAndroidTestLintModel
+generateMobileDebugAndroidTestResources
+generateMobileDebugAndroidTestRFile
+generateMobileDebugAndroidTestSources
+generateMobileDebugAssets
+generateMobileDebugBuildConfig
+generateMobileDebugFeatureMetadata
+generateMobileDebugFeatureTransitiveDeps
+generateMobileDebugGlobalSynthetics
+generateMobileDebugLintModel
+generateMobileDebugLintReportModel
+generateMobileDebugManifestClass
+generateMobileDebugResources
+generateMobileDebugRFile
+generateMobileDebugSources
+generateMobileDebugUnitTestAssets
+generateMobileDebugUnitTestConfig
+generateMobileDebugUnitTestLintModel
+generateMobileDebugUnitTestResources
+generateMobileDebugUnitTestSources
+generateMobileReleaseAssets
+generateMobileReleaseBuildConfig
+generateMobileReleaseFeatureMetadata
+generateMobileReleaseFeatureTransitiveDeps
+generateMobileReleaseLintModel
+generateMobileReleaseLintReportModel
+generateMobileReleaseLintVitalReportModel
+generateMobileReleaseManifestClass
+generateMobileReleaseResources
+generateMobileReleaseRFile
+generateMobileReleaseSources
+hiltAggregateDepsAutomotiveDebug
+hiltAggregateDepsAutomotiveDebugAndroidTest
+hiltAggregateDepsAutomotiveDebugUnitTest
+hiltAggregateDepsAutomotiveRelease
+hiltAggregateDepsMobileDebug
+hiltAggregateDepsMobileDebugAndroidTest
+hiltAggregateDepsMobileDebugUnitTest
+hiltAggregateDepsMobileRelease
+hiltJavaCompileAutomotiveDebug
+hiltJavaCompileAutomotiveDebugAndroidTest
+hiltJavaCompileAutomotiveDebugUnitTest
+hiltJavaCompileAutomotiveRelease
+hiltJavaCompileMobileDebug
+hiltJavaCompileMobileDebugAndroidTest
+hiltJavaCompileMobileDebugUnitTest
+hiltJavaCompileMobileRelease
+hiltSyncAutomotiveDebug
+hiltSyncAutomotiveDebugAndroidTest
+hiltSyncAutomotiveDebugUnitTest
+hiltSyncAutomotiveRelease
+hiltSyncMobileDebug
+hiltSyncMobileDebugAndroidTest
+hiltSyncMobileDebugUnitTest
+hiltSyncMobileRelease
+javaPreCompileAutomotiveDebug
+javaPreCompileAutomotiveDebugAndroidTest
+javaPreCompileAutomotiveDebugUnitTest
+javaPreCompileAutomotiveRelease
+javaPreCompileMobileDebug
+javaPreCompileMobileDebugAndroidTest
+javaPreCompileMobileDebugUnitTest
+javaPreCompileMobileRelease
+koverFindJar
+koverGenerateArtifact
+koverGenerateArtifactAutomotiveDebug
+koverGenerateArtifactAutomotiveRelease
+koverGenerateArtifactMobileDebug
+koverGenerateArtifactMobileRelease
+koverPrintCoverage
+koverPrintCoverageAutomotiveDebug
+koverPrintCoverageAutomotiveRelease
+koverPrintCoverageMobileDebug
+koverPrintCoverageMobileRelease
+kspAutomotiveDebugAndroidTestKotlin
+kspAutomotiveDebugKotlin
+kspAutomotiveDebugUnitTestKotlin
+kspAutomotiveReleaseKotlin
+kspMobileDebugAndroidTestKotlin
+kspMobileDebugKotlin
+kspMobileDebugUnitTestKotlin
+kspMobileReleaseKotlin
+l8DexDesugarLibAutomotiveDebug
+l8DexDesugarLibAutomotiveRelease
+l8DexDesugarLibMobileDebug
+l8DexDesugarLibMobileRelease
+lintAnalyzeAutomotiveDebug - Run lint analysis on the automotiveDebug component
+lintAnalyzeAutomotiveDebugAndroidTest - Run lint analysis on the automotiveDebugAndroidTest component
+lintAnalyzeAutomotiveDebugUnitTest - Run lint analysis on the automotiveDebugUnitTest component
+lintAnalyzeAutomotiveRelease - Run lint analysis on the automotiveRelease component
+lintAnalyzeMobileDebug - Run lint analysis on the mobileDebug component
+lintAnalyzeMobileDebugAndroidTest - Run lint analysis on the mobileDebugAndroidTest component
+lintAnalyzeMobileDebugUnitTest - Run lint analysis on the mobileDebugUnitTest component
+lintAnalyzeMobileRelease - Run lint analysis on the mobileRelease component
+lintFixAutomotiveDebug - Fix lint on the automotiveDebug variant
+lintFixAutomotiveRelease - Fix lint on the automotiveRelease variant
+lintFixMobileDebug - Fix lint on the mobileDebug variant
+lintFixMobileRelease - Fix lint on the mobileRelease variant
+lintReportAutomotiveDebug - Run lint on the automotiveDebug variant
+lintReportAutomotiveRelease - Run lint on the automotiveRelease variant
+lintReportMobileDebug - Run lint on the mobileDebug variant
+lintReportMobileRelease - Run lint on the mobileRelease variant
+lintVitalAnalyzeAutomotiveRelease - Run lint analysis with only the fatal issues enabled 
+lintVitalAnalyzeMobileRelease - Run lint analysis with only the fatal issues enabled 
+lintVitalReportAutomotiveRelease - Run lint with only the fatal issues enabled on the automotiveRelease variant
+lintVitalReportMobileRelease - Run lint with only the fatal issues enabled on the mobileRelease variant
+makeApkFromBundleForAutomotiveDebug
+makeApkFromBundleForAutomotiveRelease
+makeApkFromBundleForMobileDebug
+makeApkFromBundleForMobileRelease
+mapAutomotiveDebugAndroidTestSourceSetPaths
+mapAutomotiveDebugSourceSetPaths
+mapAutomotiveReleaseSourceSetPaths
+mapMobileDebugAndroidTestSourceSetPaths
+mapMobileDebugSourceSetPaths
+mapMobileReleaseSourceSetPaths
+mergeAutomotiveDebugAndroidTestAssets
+mergeAutomotiveDebugAndroidTestGeneratedProguardFiles
+mergeAutomotiveDebugAndroidTestJavaResource
+mergeAutomotiveDebugAndroidTestJniLibFolders
+mergeAutomotiveDebugAndroidTestManifest
+mergeAutomotiveDebugAndroidTestNativeLibs
+mergeAutomotiveDebugAndroidTestResources
+mergeAutomotiveDebugArtProfile
+mergeAutomotiveDebugAssets
+mergeAutomotiveDebugGeneratedProguardFiles
+mergeAutomotiveDebugJavaResource
+mergeAutomotiveDebugJniLibFolders
+mergeAutomotiveDebugNativeDebugMetadata
+mergeAutomotiveDebugNativeLibs
+mergeAutomotiveDebugResources
+mergeAutomotiveDebugStartupProfile
+mergeAutomotiveDebugUnitTestManifest
+mergeAutomotiveReleaseArtProfile
+mergeAutomotiveReleaseAssets
+mergeAutomotiveReleaseGeneratedProguardFiles
+mergeAutomotiveReleaseJavaResource
+mergeAutomotiveReleaseJniLibFolders
+mergeAutomotiveReleaseNativeDebugMetadata
+mergeAutomotiveReleaseNativeLibs
+mergeAutomotiveReleaseResources
+mergeAutomotiveReleaseStartupProfile
+mergeExtDexAutomotiveDebug
+mergeExtDexAutomotiveDebugAndroidTest
+mergeExtDexMobileDebug
+mergeExtDexMobileDebugAndroidTest
+mergeLibDexAutomotiveDebug
+mergeLibDexAutomotiveDebugAndroidTest
+mergeLibDexMobileDebug
+mergeLibDexMobileDebugAndroidTest
+mergeMobileDebugAndroidTestAssets
+mergeMobileDebugAndroidTestGeneratedProguardFiles
+mergeMobileDebugAndroidTestJavaResource
+mergeMobileDebugAndroidTestJniLibFolders
+mergeMobileDebugAndroidTestManifest
+mergeMobileDebugAndroidTestNativeLibs
+mergeMobileDebugAndroidTestResources
+mergeMobileDebugArtProfile
+mergeMobileDebugAssets
+mergeMobileDebugGeneratedProguardFiles
+mergeMobileDebugJavaResource
+mergeMobileDebugJniLibFolders
+mergeMobileDebugNativeDebugMetadata
+mergeMobileDebugNativeLibs
+mergeMobileDebugResources
+mergeMobileDebugStartupProfile
+mergeMobileDebugUnitTestManifest
+mergeMobileReleaseArtProfile
+mergeMobileReleaseAssets
+mergeMobileReleaseGeneratedProguardFiles
+mergeMobileReleaseJavaResource
+mergeMobileReleaseJniLibFolders
+mergeMobileReleaseNativeDebugMetadata
+mergeMobileReleaseNativeLibs
+mergeMobileReleaseResources
+mergeMobileReleaseStartupProfile
+mergeProjectDexAutomotiveDebug
+mergeProjectDexAutomotiveDebugAndroidTest
+mergeProjectDexMobileDebug
+mergeProjectDexMobileDebugAndroidTest
+minifyAutomotiveReleaseWithR8
+minifyMobileReleaseWithR8
+optimizeAutomotiveReleaseResources
+optimizeMobileReleaseResources
+packageAutomotiveDebug
+packageAutomotiveDebugAndroidTest
+packageAutomotiveDebugAndroidTestResources
+packageAutomotiveDebugBundle
+packageAutomotiveDebugResources
+packageAutomotiveDebugUnitTestForUnitTest
+packageAutomotiveDebugUniversalApk
+packageAutomotiveRelease
+packageAutomotiveReleaseBundle
+packageAutomotiveReleaseResources
+packageAutomotiveReleaseUniversalApk
+packageMobileDebug
+packageMobileDebugAndroidTest
+packageMobileDebugAndroidTestResources
+packageMobileDebugBundle
+packageMobileDebugResources
+packageMobileDebugUnitTestForUnitTest
+packageMobileDebugUniversalApk
+packageMobileRelease
+packageMobileReleaseBundle
+packageMobileReleaseResources
+packageMobileReleaseUniversalApk
+parseAutomotiveDebugAndroidTestLocalResources
+parseAutomotiveDebugIntegrityConfig
+parseAutomotiveDebugLocalResources
+parseAutomotiveReleaseIntegrityConfig
+parseAutomotiveReleaseLocalResources
+parseMobileDebugAndroidTestLocalResources
+parseMobileDebugIntegrityConfig
+parseMobileDebugLocalResources
+parseMobileReleaseIntegrityConfig
+parseMobileReleaseLocalResources
+preAutomotiveDebugAndroidTestBuild
+preAutomotiveDebugBuild
+preAutomotiveDebugUnitTestBuild
+preAutomotiveReleaseBuild
+preBuild
+preMobileDebugAndroidTestBuild
+preMobileDebugBuild
+preMobileDebugUnitTestBuild
+preMobileReleaseBuild
+prepareLintJarForPublish
+processApplicationManifestAutomotiveDebugForBundle
+processApplicationManifestAutomotiveReleaseForBundle
+processApplicationManifestMobileDebugForBundle
+processApplicationManifestMobileReleaseForBundle
+processAutomotiveDebugAndroidTestJavaRes
+processAutomotiveDebugAndroidTestManifest
+processAutomotiveDebugAndroidTestNavigationResources
+processAutomotiveDebugAndroidTestResources
+processAutomotiveDebugJavaRes
+processAutomotiveDebugMainManifest
+processAutomotiveDebugManifest
+processAutomotiveDebugManifestForPackage
+processAutomotiveDebugNavigationResources
+processAutomotiveDebugResources
+processAutomotiveDebugUnitTestJavaRes
+processAutomotiveDebugUnitTestManifest
+processAutomotiveReleaseJavaRes
+processAutomotiveReleaseMainManifest
+processAutomotiveReleaseManifest
+processAutomotiveReleaseManifestForPackage
+processAutomotiveReleaseNavigationResources
+processAutomotiveReleaseResources
+processManifestAutomotiveDebugForFeature
+processManifestAutomotiveReleaseForFeature
+processManifestMobileDebugForFeature
+processManifestMobileReleaseForFeature
+processMobileDebugAndroidTestJavaRes
+processMobileDebugAndroidTestManifest
+processMobileDebugAndroidTestNavigationResources
+processMobileDebugAndroidTestResources
+processMobileDebugJavaRes
+processMobileDebugMainManifest
+processMobileDebugManifest
+processMobileDebugManifestForPackage
+processMobileDebugNavigationResources
+processMobileDebugResources
+processMobileDebugUnitTestJavaRes
+processMobileDebugUnitTestManifest
+processMobileReleaseJavaRes
+processMobileReleaseMainManifest
+processMobileReleaseManifest
+processMobileReleaseManifestForPackage
+processMobileReleaseNavigationResources
+processMobileReleaseResources
+produceAutomotiveDebugBundleIdeListingFile
+produceAutomotiveReleaseBundleIdeListingFile
+produceMobileDebugBundleIdeListingFile
+produceMobileReleaseBundleIdeListingFile
+resolveConfigAttr
+sdkAutomotiveReleaseDependencyData
+sdkMobileReleaseDependencyData
+signAutomotiveDebugBundle
+signAutomotiveReleaseBundle
+signingConfigWriterAutomotiveDebug
+signingConfigWriterAutomotiveDebugAndroidTest
+signingConfigWriterAutomotiveRelease
+signingConfigWriterMobileDebug
+signingConfigWriterMobileDebugAndroidTest
+signingConfigWriterMobileRelease
+signMobileDebugBundle
+signMobileReleaseBundle
+stripAutomotiveDebugAndroidTestDebugSymbols
+stripAutomotiveDebugDebugSymbols
+stripAutomotiveReleaseDebugSymbols
+stripMobileDebugAndroidTestDebugSymbols
+stripMobileDebugDebugSymbols
+stripMobileReleaseDebugSymbols
+syncSubmoduleIcons
+syncSubmoduleStylesheets
+transformAutomotiveDebugAndroidTestClassesWithAsm
+transformAutomotiveDebugClassesWithAsm
+transformAutomotiveDebugUnitTestClassesWithAsm
+transformAutomotiveReleaseClassesWithAsm
+transformMobileDebugAndroidTestClassesWithAsm
+transformMobileDebugClassesWithAsm
+transformMobileDebugUnitTestClassesWithAsm
+transformMobileReleaseClassesWithAsm
+updateLintBaselineAutomotiveDebug - Update the lint baseline using the automotiveDebug variant
+updateLintBaselineAutomotiveRelease - Update the lint baseline using the automotiveRelease variant
+updateLintBaselineMobileDebug - Update the lint baseline using the mobileDebug variant
+updateLintBaselineMobileRelease - Update the lint baseline using the mobileRelease variant
+validateSigningAutomotiveDebug
+validateSigningAutomotiveDebugAndroidTest
+validateSigningMobileDebug
+validateSigningMobileDebugAndroidTest
+writeAutomotiveDebugAndroidTestSigningConfigVersions
+writeAutomotiveDebugApplicationId
+writeAutomotiveDebugAppMetadata
+writeAutomotiveDebugModuleMetadata
+writeAutomotiveDebugSigningConfigVersions
+writeAutomotiveReleaseApplicationId
+writeAutomotiveReleaseAppMetadata
+writeAutomotiveReleaseModuleMetadata
+writeAutomotiveReleaseSigningConfigVersions
+writeMobileDebugAndroidTestSigningConfigVersions
+writeMobileDebugApplicationId
+writeMobileDebugAppMetadata
+writeMobileDebugModuleMetadata
+writeMobileDebugSigningConfigVersions
+writeMobileReleaseApplicationId
+writeMobileReleaseAppMetadata
+writeMobileReleaseModuleMetadata
+writeMobileReleaseSigningConfigVersions
+zipApksForAutomotiveDebug
+zipApksForAutomotiveRelease
+zipApksForMobileDebug
+zipApksForMobileRelease
+
+Rules
+-----
+Pattern: clean<TaskName>: Cleans the output files of a task.
+Pattern: build<ConfigurationName>: Assembles the artifacts of a configuration.
+
+[Incubating] Problems report is available at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.6.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1s
+4 actionable tasks: 1 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

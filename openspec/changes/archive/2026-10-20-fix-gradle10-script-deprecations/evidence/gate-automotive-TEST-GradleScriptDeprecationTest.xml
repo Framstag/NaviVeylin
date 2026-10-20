@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.GradleScriptDeprecationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-20T12:19:33.597Z" hostname="dingens" time="0.184">
+  <properties/>
+  <testcase name="no project build script uses a removed Gradle construct" classname="com.naviveylin.build.GradleScriptDeprecationTest" time="0.181"/>
+  <testcase name="the removal is still detectable" classname="com.naviveylin.build.GradleScriptDeprecationTest" time="0.002"/>
+  <system-out><![CDATA[scripts=8 findings=0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

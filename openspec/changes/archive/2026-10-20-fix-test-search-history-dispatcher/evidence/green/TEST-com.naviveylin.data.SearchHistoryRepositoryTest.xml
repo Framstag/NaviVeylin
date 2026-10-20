@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.data.SearchHistoryRepositoryTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-20T19:18:03.982Z" hostname="dingens" time="0.35">
+<testsuite name="com.naviveylin.data.SearchHistoryRepositoryTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-20T19:39:22.908Z" hostname="dingens" time="0.646">
   <properties/>
-  <testcase name="loadCollapsesPersistedDuplicates" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.049"/>
-  <testcase name="recordAppendsEntryWithTextAndTimestamp" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.036"/>
-  <testcase name="repeatingSearchMovesEntryToFront" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.028"/>
-  <testcase name="repeatingAnEntryAtTheCapDropsNothing" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.041"/>
-  <testcase name="youngestFirstOrdering" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.038"/>
-  <testcase name="collapseKeepsTheNewestDateOfAnOutOfOrderFile" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.03"/>
-  <testcase name="blankTextNotRecorded" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.023"/>
-  <testcase name="persistenceRoundTrip" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.026"/>
-  <testcase name="collapseIsPersistedAndACleanFileIsNotRewritten" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.041"/>
-  <testcase name="capAt50EvictsOldest" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.034"/>
+  <testcase name="loadCollapsesPersistedDuplicates" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.079"/>
+  <testcase name="recordAppendsEntryWithTextAndTimestamp" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.058"/>
+  <testcase name="repeatingSearchMovesEntryToFront" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.061"/>
+  <testcase name="repeatingAnEntryAtTheCapDropsNothing" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.121"/>
+  <testcase name="youngestFirstOrdering" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.069"/>
+  <testcase name="collapseKeepsTheNewestDateOfAnOutOfOrderFile" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.05"/>
+  <testcase name="blankTextNotRecorded" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.048"/>
+  <testcase name="persistenceRoundTrip" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.041"/>
+  <testcase name="collapseIsPersistedAndACleanFileIsNotRewritten" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.056"/>
+  <testcase name="capAt50EvictsOldest" classname="com.naviveylin.data.SearchHistoryRepositoryTest" time="0.052"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

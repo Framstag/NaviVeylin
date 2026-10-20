@@ -2,18 +2,17 @@
 
 ## ADDED Requirements
 
-### Requirement: A test that builds a time-hopped repository wires the hop
+### Requirement: A test that builds the search-history repository wires its I/O hop
 
-Every unit test or test helper that constructs a component whose persisted state is published inside a
-dispatcher hop SHALL point that hop at a dispatcher the test drives. The component SHALL keep its production
-value and its production ordering: the repair is confined to test sources.
+Every unit test or test helper that constructs a `SearchHistoryRepository` SHALL point that repository's I/O hop
+(`defaultDispatcher`) at a dispatcher the test drives. The repository SHALL keep its production value
+(`Dispatchers.Default`) and its production ordering: the repair is confined to test sources.
 
 #### Scenario: Every construction in the module's test sources is wired
 
 - **WHEN** the test sources of every test-bearing module are read and the repository's construction is found in
   them
-- **THEN** every construction names a dispatcher the test drives and none is reported, with the number of roots
-  and files read printed before the verdict
+- **THEN** every construction names a dispatcher the test drives and none is reported
 - **Case**: `SearchHistoryDispatcherRuleTest.noTestLeavesTheSearchHistoryRepositoryIoHopOnAProductionDispatcher`
 
 #### Scenario: A chained wiring is accepted
@@ -30,10 +29,10 @@ value and its production ordering: the repair is confined to test sources.
 - **THEN** the check accepts it, so the rule does not force one spelling on every test class
 - **Case**: `SearchHistoryDispatcherRuleTest.aNameWiredLaterInTheFileIsAllowed`
 
-### Requirement: An unwired hop is refused from the sources alone
+### Requirement: An unwired search-history hop is refused from the sources alone
 
-A construction that leaves the hop at the component's production value SHALL be refused by a host check that
-names the file and the line and that decides its verdict from the sources, without executing a test.
+A host check over the test sources SHALL refuse a `SearchHistoryRepository` construction that leaves its I/O hop
+at the repository's production value, and its finding SHALL name the file and the line.
 
 #### Scenario: A construction that leaves the hop at the production value is refused
 
@@ -47,3 +46,11 @@ names the file and the line and that decides its verdict from the sources, witho
 - **WHEN** a declared test-source root no longer exists — a module was renamed or removed
 - **THEN** the check fails instead of scanning nothing, so the invariant cannot be lost silently
 - **Case**: `SearchHistoryDispatcherRuleTest.everyTestBearingModuleIsScanned`
+
+Scope of both requirements, so the claim is not wider than the case: the obligation binds
+`SearchHistoryRepository`'s hop only. The sibling seams of the same shape — `FavoriteRepository.kt:101`,
+`MapCanvasViewModel.kt:431`, `RoutePanelViewModel.kt:228`, `AddressBookViewModel.kt:62` (all named
+`defaultDispatcher`) and `MemoryPressureResponder.kt:87` (named `dispatcher`) — are outside it: this change
+neither sweeps their tests nor reads them, and extending the guard to them is a separate item. The scan reads `*.kt` under each test-bearing module's
+`src/test/java`, so a construction that lives in another module or is reached by reflection is outside it; and
+the check lives in `:app`, so a `:auto`-only run enforces nothing on `:auto` sources.

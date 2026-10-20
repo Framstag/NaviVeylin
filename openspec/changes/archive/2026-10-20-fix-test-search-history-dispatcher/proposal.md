@@ -13,11 +13,12 @@ follows a result selection then reads the pre-selection state. `MapCanvasViewMod
 publishes the selection, so it is the path that shows the race first.
 
 The rule itself is recorded — `guidelines/Design.md` §4 ("**MUST**: a dispatcher hop inside a suspend accessor
-needs its own test seam … never a test-side timeout or a longer advance") and `guidelines/Build.md` §6
-("Test-scheduling traps"). What was missing is a check: the seam exists, five classes wire it
-(`MapCanvasViewModelSearchHistoryTest`, `MapCanvasViewModelSharedLocationTest`,
+needs its own test seam … never a test-side timeout or a longer advance") and `guidelines/Build.md` §4 "Result
+evaluation", in its test-scheduling-traps bullet. What was missing is a check: the seam exists, seven test files
+wire it — `MapCanvasViewModelSearchHistoryTest`, `MapCanvasViewModelSharedLocationTest`,
 `MapCanvasViewModelFavoriteSearchTest`, `RoutePanelViewModelSearchHistoryTest`,
-`RoutePanelViewModelSearchCancellationTest`), and the rest of the suite does not.
+`RoutePanelViewModelSearchCancellationTest`, `MapCanvasViewModelFixQualityTest` and
+`MapCanvasViewModelViewportRestoreTest` — and 65 of the 72 classes that construct the repository do not.
 
 Evidence: `com.naviveylin.test.SearchHistoryDispatcherRuleTest#noTestLeavesTheSearchHistoryRepositoryIoHopOnAProductionDispatcher`
 fails on the base commit `db1fe8e8` — XML `tests="5" skipped="0" failures="1" errors="0"`,
@@ -33,8 +34,9 @@ The item (§123) states 41 sites in `app/src/test/java/com/naviveylin/ui/map/`; 
 96 sites in 65 classes across `data/`, `di/`, `navigation/`, `ui/map/` and `ui/route/` — true, and roughly twice
 the stated size.
 
-Spec: `unit-test-suite-runtime` / "A test that builds a time-hopped repository wires the hop" (ADDED by this
-change)   Guideline: `guidelines/Build.md` §6 "Test constraints" (test-scheduling traps),
+Spec: `unit-test-suite-runtime` / "A test that builds the search-history repository wires its I/O hop" and
+"An unwired search-history hop is refused from the sources alone" (ADDED by this change)   Guideline:
+`guidelines/Build.md` §4 "Result evaluation" (its test-scheduling-traps bullet),
 `guidelines/Design.md` §4 (a dispatcher hop needs its own seam).
 
 ## What Changes
@@ -50,9 +52,9 @@ change)   Guideline: `guidelines/Build.md` §6 "Test constraints" (test-scheduli
   that leaves the seam unwired, and fails naming file and line. Both allowed forms have a control — a chained
   `.also { … }` and a property wired later in the same file — the refused form has a positive control, and a
   further case fails if a declared module root disappears.
-- **`unit-test-suite-runtime` gains one requirement** with its scenarios, one per case above.
-- **`guidelines/Build.md` §6 gains one sentence** in "Test-scheduling traps" naming the guard, so the rule the
-  case enforces is discoverable from the guideline that owns it.
+- **`unit-test-suite-runtime` gains two requirements** with five scenarios, one per case above.
+- **`guidelines/Build.md` §4 "Result evaluation" gains one sentence** in its test-scheduling-traps bullet naming
+  the guard, so the rule the case enforces is discoverable from the guideline that owns it.
 
 ## Capabilities
 
@@ -62,13 +64,17 @@ None.
 
 ### Modified Capabilities
 
-- `unit-test-suite-runtime` — ADDED requirement "A test that builds a time-hopped repository wires the hop",
-  four scenarios. No existing requirement is rewritten.
+- `unit-test-suite-runtime` — two ADDED requirements, "A test that builds the search-history repository wires its
+  I/O hop" and "An unwired search-history hop is refused from the sources alone", five scenarios in all. No
+  existing requirement is rewritten, and both requirements are scoped to `SearchHistoryRepository` in their own
+  text: the sibling dispatcher seams (`FavoriteRepository`, `MapCanvasViewModel`, `RoutePanelViewModel`,
+  `AddressBookViewModel` — all `defaultDispatcher` — and `MemoryPressureResponder`, whose field is `dispatcher`)
+  are named as outside this change.
 
 ## Impact
 
 Additive, test-only: `app/src/test/java/**` (66 files: the new guard plus 65 swept classes) and one sentence in
-`guidelines/Build.md` §6. No main source, no build script, no dependency, no manifest, no native file. `:auto`
+`guidelines/Build.md` §4. No main source, no build script, no dependency, no manifest, no native file. `:auto`
 and `:core` are scanned but contain no construction of this repository.
 
 Rollback: `git revert` is a no-op for behaviour — the sweep only assigns a test hook the repository already

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.test.SearchHistoryDispatcherRuleTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-20T19:18:16.452Z" hostname="dingens" time="0.073">
+<testsuite name="com.naviveylin.test.SearchHistoryDispatcherRuleTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-20T19:39:35.513Z" hostname="dingens" time="0.075">
   <properties/>
   <testcase name="aChainedWiringIsAllowed" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.001"/>
-  <testcase name="noTestLeavesTheSearchHistoryRepositoryIoHopOnAProductionDispatcher" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.054"/>
-  <testcase name="aNameWiredLaterInTheFileIsAllowed" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.001"/>
-  <testcase name="anUnwiredConstructionIsReported" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.001"/>
-  <testcase name="everyTestBearingModuleIsScanned" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.016"/>
+  <testcase name="noTestLeavesTheSearchHistoryRepositoryIoHopOnAProductionDispatcher" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.047"/>
+  <testcase name="aNameWiredLaterInTheFileIsAllowed" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.0"/>
+  <testcase name="anUnwiredConstructionIsReported" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.002"/>
+  <testcase name="everyTestBearingModuleIsScanned" classname="com.naviveylin.test.SearchHistoryDispatcherRuleTest" time="0.025"/>
   <system-out><![CDATA[searchHistoryDispatcher chainedControl=[]
 searchHistoryDispatcher roots=3 files=441 findings=0
 searchHistoryDispatcher namedControl=[]

@@ -1,0 +1,34 @@
+$ bash -n tools/pi-child-events.sh tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/loop-cases.sh tools/loop/fixtures/pi
+no syntax error in the six files
+
+$ bash tools/check-portability.sh --quiet
+check-portability: OK — 42 engines and 2 templates name no project value (98 value(s) read from the project)
+exit: 0
+
+$ openspec validate fix-loop-child-usage-in-report --strict
+Change 'fix-loop-child-usage-in-report' is valid
+exit: 0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-usage
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit: 0
+
+$ bash tools/loop-selftest.sh --list | grep -E "childUsage|zeroUsage|plainText"
+run#childUsageIsRecordedPerItem
+run#plainTextChildStillReports
+report#zeroUsagePrintsDashNotZero
+
+Cases run green one at a time (evidence/green/*.txt): run#childUsageIsRecordedPerItem,
+report#zeroUsagePrintsDashNotZero, run#plainTextChildStillReports, run#metricsRecordedPerItem,
+report#headerAndTableShape, report#wallTimeAndReasonInTheTable, run#childReportsWhileItWaits,
+run#engineNamesNoProjectFact, state#agentCommandIsTheOnlyIndirection — plus evidence/green/revert-check.txt.
+
+Exclusion: no Gradle, no suite. The delta touches no compiled file (guidelines/Build.md §2, the scope block),
+and the whole offline suite is run by the orchestrator once on the merged tree.

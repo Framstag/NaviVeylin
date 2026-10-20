@@ -243,7 +243,10 @@ mid-item decision as a failure.
 The report a run prints at its end is the run's product, and it answers three questions without the caller
 opening the tracker (#208): **which** items were handled and how each ended — the per-item table, with the
 item's own recorded reason when the result is not a closure; **what each one cost** — the wall time
-`done --wall` records, beside the run-level `spent`; and **what the caller must now do** — a named action list
+`done --wall` records, and beside it the spend read from the child's own event stream: the tools it called with
+their count, the tokens it used and what they cost, the largest context it reached, with `-` where nothing was
+reported rather than a zero that reads as a measurement (#211) — beside the run-level `spent`; and **what the
+caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries commits the base does not have with the
 item that owns it, the kept worktree, an item whose gate never completed with its transcript, and a citation

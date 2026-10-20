@@ -450,13 +450,13 @@ write_review_diff() { # write_review_diff <base> <file>
   fi
 }
 
-# A child's own stream is silent by construction: the configured agent command is print mode, which writes the
-# final assistant text and nothing else (measured 2026-10-19: on a pipe it emits nothing until the process
-# exits), so a run used to print `pick #N` and then nothing for the whole item — a working child and a hung one
-# looked the same. The wait therefore reports itself: one line when the child starts, one every
-# `LOOP_PROGRESS_SECONDS` (default 30), and one when it ends. What those lines carry is read from the tree the
-# child writes — its log's size, the worktree's changed files, its commits since the base — never from the
-# child's own claim, which only exists once it is over.
+# A child's own stream is silent by construction: the adapter the configured agent command names keeps the
+# child's event stream for the report (`LOOP_CHILD_EVENTS`) and prints its answer once it has exited (measured
+# 2026-10-19: on a pipe nothing appears until then), so a run used to print `pick #N` and then nothing for the
+# whole item — a working child and a hung one looked the same. The wait therefore reports itself: one line when
+# the child starts, one every `LOOP_PROGRESS_SECONDS` (default 30), and one when it ends. What those lines carry
+# is read from the tree the child writes — its log's size, the worktree's changed files, its commits since the
+# base — never from the child's own claim, which only exists once it is over.
 fmt_elapsed() { # <seconds> -> `37s`, `4m12s`
   local s="$1"
   if [ "$s" -ge 60 ]; then printf '%dm%02ds' "$((s / 60))" "$((s % 60))"; else printf '%ds' "$s"; fi
@@ -623,6 +623,13 @@ while true; do
 
   item_dir="$stage_dir/items/$issue"
   mkdir -p "$item_dir"
+  # The event file of this item's children. Its contents decide what the report can say an item cost, so the
+  # path is the run's to name, inside the item's own directory, and it is removed here for the same reason the
+  # per-child progress marker is: a run that starts the item again must not inherit a previous attempt's spend.
+  # Nothing else about it is the run's — a child that writes no stream leaves no file, and the report says `-`.
+  events_file="$item_dir/events.jsonl"
+  rm -f "$events_file"
+  export LOOP_CHILD_EVENTS="$events_file"
   package="$item_dir/work-package.md"
   fingerprint=$(printf '%s' "$issue_json" | jq -r '.body // ""' | { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
   # The item's text reaches the child inside a delimited data field, never in an instruction position
@@ -813,7 +820,7 @@ $review_notes_text"
       loop_state done "$issue" --result done --verdict closed --change "$change" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --gate "$gate_field" \
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
-        --note "$note_field" >/dev/null
+        --events "$events_file" --note "$note_field" >/dev/null
       ;;
     skipped)
       # The in-progress mark comes off on every exit path (labels.sh, header): an item a run skipped is no
@@ -847,7 +854,7 @@ $review_notes_text"
       loop_state done "$issue" --result skipped --verdict "${skip_verdict:-unspecified}" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --root-cause "$root_cause" --red-test "$red_test" --note "skipped by the worker" \
-        --decision-label "$escalated_label" >/dev/null
+        --events "$events_file" --decision-label "$escalated_label" >/dev/null
       ;;
     *)
       loop_labels unpick "$issue" >&2 || true
@@ -875,7 +882,7 @@ $review_notes_text"
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_reason" \
-        --decision-label "$escalated_label" >/dev/null
+        --events "$events_file" --decision-label "$escalated_label" >/dev/null
       ;;
   esac
   detail="${change:-$blocked_reason}"

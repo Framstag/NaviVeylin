@@ -1,0 +1,19 @@
+$ # revert-check 1: the tokens cell prints the figure even when nothing was reported
+$ sed -i "s/if \$t == null then \"-\"/if false then \"-\"/" tools/loop/state.sh
+1
+  a turn whose usage is zero prints -, never a zero that reads as a measurement: '| 42s | - | - | - | done |' not found in: | #21 | bug | closed |  |  |  |  | - | 42s | - | in=null out=null cache=0 | - | done | - |
+FAIL report#zeroUsagePrintsDashNotZero
+$ cp back  # the mutation is restored
+0
+PASS report#zeroUsagePrintsDashNotZero
+
+$ # revert-check 2: the events file is truncated per child instead of per item
+$ # (run_child gains `: > "$LOOP_CHILD_EVENTS"`, so only the last child of an item is counted)
+  : > "$2"
+  [ -z "${LOOP_CHILD_EVENTS:-}" ] || : > "$LOOP_CHILD_EVENTS"
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+  both of the item's children are counted, in one number: expected '4', got '2'
+FAIL run#childUsageIsRecordedPerItem
+$ cp back  # the mutation is restored
+PASS run#childUsageIsRecordedPerItem

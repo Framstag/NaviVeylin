@@ -102,6 +102,8 @@ LOOP_SHELL_CASES=(
   'run#escalationCarriesTheDecision'
   'run#mayCloseNoLeavesTheIssueOpen'
   'run#metricsRecordedPerItem'
+  'run#childUsageIsRecordedPerItem'
+  'run#plainTextChildStillReports'
   'run#emptyQueueIsNotAFailure'
   'run#stopReasonIsPrintedAndReported'
   'run#awaitingDecisionIsNotEscalatedAgain'
@@ -118,6 +120,7 @@ LOOP_SHELL_CASES=(
   'report#archivedStateIsReported'
   'report#impossibleBudgetNamesAnotherRun'
   'report#wallTimeAndReasonInTheTable'
+  'report#zeroUsagePrintsDashNotZero'
   'report#actionsNameDecisionAndBranch'
   'report#emptyRunSaysNone'
 )
@@ -215,6 +218,8 @@ loop_run_shell_case() {
     'run#escalationCarriesTheDecision') fn=case_run_escalationCarriesTheDecision ;;
     'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
+    'run#childUsageIsRecordedPerItem') fn=case_run_childUsageIsRecordedPerItem ;;
+    'run#plainTextChildStillReports') fn=case_run_plainTextChildStillReports ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
     'run#stopReasonIsPrintedAndReported') fn=case_run_stopReasonIsPrintedAndReported ;;
     'run#awaitingDecisionIsNotEscalatedAgain') fn=case_run_awaitingDecisionIsNotEscalatedAgain ;;
@@ -231,6 +236,7 @@ loop_run_shell_case() {
     'report#archivedStateIsReported') fn=case_report_archivedStateIsReported ;;
     'report#impossibleBudgetNamesAnotherRun') fn=case_report_impossibleBudgetNamesAnotherRun ;;
     'report#wallTimeAndReasonInTheTable') fn=case_report_wallTimeAndReasonInTheTable ;;
+    'report#zeroUsagePrintsDashNotZero') fn=case_report_zeroUsagePrintsDashNotZero ;;
     'report#actionsNameDecisionAndBranch') fn=case_report_actionsNameDecisionAndBranch ;;
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
@@ -275,6 +281,12 @@ new_project() {
            "$repo/.pi/skills/fix-loop" "$repo/.pi/skills/openspec-apply-change" \
            "$repo/openspec/changes/archive"
   cp "$LOOP_PROJECT_ROOT/tools/tooling.json" "$repo/tools/tooling.json"
+  # The child adapter the configuration names is the project's own tooling, started relative to the project
+  # root the way `LOOP_GATE_CMD` is: a project that wants the child's event stream copies this file beside
+  # its own tools. Absent is a state a case can still run in (a plain-text agent command needs none).
+  if [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ]; then
+    cp "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" "$repo/tools/pi-child-events.sh"
+  fi
   printf '.pi/\napp/build/\nbuild/\nlocal.prop*\n' > "$repo/.gitignore"
   printf 'cmake_minimum_required(VERSION 3.22)\n' > "$repo/app/src/main/cpp/libosmscout/CMakeLists.txt"
   printf '# machine-local SDK/NDK/Java paths\n' > "$repo/local.properties"
@@ -2268,6 +2280,81 @@ case_run_metricsRecordedPerItem() {
   assert_eq "true" "$(jq -r '(.items[0].metrics.redTest | length) > 0' "$f")" "the red test"
 }
 
+# What a child spent lives in its own event stream — the tools it called, the usage each response reported, the
+# largest context it reached — and a print-mode child's stream carries the final text and nothing else, so a
+# run could name an item's verdict, change, gate and wall time and not one tool call or token (issue #211).
+# `run.sh` keeps the stream beside the item's reports and records the sums with the wall time; the table prints
+# them. The fixture is a hand-written event stream: no model, no network, and every number below is asserted.
+case_run_childUsageIsRecordedPerItem() {
+  local d p f row
+  d=$(scratch); p=$(new_project)
+  cat > "$d/events.jsonl" <<'JSONL'
+{"type":"turn_start"}
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"bash","durationMs":1200}
+{"type":"tool_execution_end","toolCallId":"c2","toolName":"bash","durationMs":800}
+{"type":"tool_execution_end","toolCallId":"c3","toolName":"read","durationMs":10}
+{"type":"message_update","usage":{"input":1000,"output":100,"cacheRead":500,"cacheWrite":0,"totalTokens":1600,"cost":{"input":0.01,"output":0.002,"cacheRead":0.0005,"cacheWrite":0,"total":0.0125}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"a"}}
+{"type":"message_update","usage":{"input":2000,"output":200,"cacheRead":1000,"cacheWrite":0,"totalTokens":3200,"cost":{"input":0.02,"output":0.004,"cacheRead":0.001,"cacheWrite":0,"total":0.025}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"b"}}
+{"type":"turn_end","message":{"role":"assistant","content":[]},"toolResults":[]}
+{"type":"compaction_end","reason":"threshold","result":{"summary":"the conversation so far","tokensBefore":150000},"aborted":false,"willRetry":false}
+JSONL
+  # …and the answer itself has to come out of the stream: this child prints no plain text at all, so the item
+  # can only close if the adapter read the last assistant message out of `message_end` and printed it.
+  jq -cn --arg text "$STUB_WORKER_REPORT" \
+    '{type:"message_end",message:{role:"assistant",content:[{type:"text",text:$text}]}}' >> "$d/events.jsonl"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  export PI_STUB_EVENTS="$d/events.jsonl" PI_STUB_REPORT_WORKER=""
+  # One child, so every figure below is the fixture's own: with the review off the worker is the item's only
+  # process.
+  run_loop "$p" --items 1 --minutes 90 --review off >/dev/null || fail "the run failed"
+  f=$(state_file "$p")
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" \
+    "the report the adapter printed out of the stream's last assistant message is the one the run read"
+  assert_eq "2" "$(jq -r '.items[0].metrics.tools.bash' "$f")" "the tool counts are recorded by name"
+  assert_eq "1" "$(jq -r '.items[0].metrics.tools.read' "$f")" "every tool the child used has its own count"
+  # `usage` is the latest cumulative figure of one response, so a turn's spend is its *last* update: summing the
+  # two updates of one turn would report 3000 input tokens for a 2000-token response.
+  assert_eq "2000" "$(jq -r '.items[0].metrics.tokens.input' "$f")" "tokens are summed per turn, not per update"
+  assert_eq "200" "$(jq -r '.items[0].metrics.tokens.output' "$f")" "the output tokens"
+  assert_eq "1000" "$(jq -r '.items[0].metrics.tokens.cacheRead' "$f")" "and the cache read"
+  assert_eq "0.025" "$(jq -r '.items[0].metrics.cost' "$f")" "the cost of the turns"
+  assert_eq "150000" "$(jq -r '.items[0].metrics.context' "$f")" \
+    "the largest context: the compaction's tokensBefore, above the turn's own 3000"
+  row=$(run_report "$p" | grep '^| #21 |' || true)
+  [ -n "$row" ] || fail "no table row for #21"
+  assert_contains "$row" "bash=2 read=1" "the row names the tools and their counts"
+  assert_contains "$row" "in=2000 out=200 cache=1000" "the tokens the item spent"
+  assert_contains "$row" "cost=\$0.025" "and what they cost"
+  assert_contains "$row" "| 150000 |" "and the largest context the child reached"
+
+  # An item's spend is the spend of *its* children: the worker and the reviewer append to one file, so the row
+  # counts both rather than the last one to finish.
+  local p2 d2
+  p2=$(new_project); d2=$(scratch)
+  run_one_item "$p2" "$d2" >/dev/null || fail "the reviewed run failed"
+  assert_eq "4" "$(jq -r '.items[0].metrics.tools.bash' "$(state_file "$p2")")" \
+    "both of the item's children are counted, in one number"
+}
+
+# A project whose agent command writes plain text — no event stream at all — must keep working exactly as it
+# did: nothing about the run may depend on the stream. The item is worked, recorded and reported, and the three
+# new columns say `-` rather than a zero nobody measured.
+case_run_plainTextChildStillReports() {
+  local d p conf f row
+  d=$(scratch); p=$(new_project)
+  conf="$d/loop.conf"
+  sed -e 's|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD="pi --print"|' "$LOOP_CONF" > "$conf"
+  export LOOP_CONF="$conf"
+  run_one_item "$p" "$d" >/dev/null || fail "a plain-text agent command could not run an item"
+  f=$(state_file "$p")
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" "the item completed"
+  [ ! -e "$p/.pi/issue-loop/items/21/events.jsonl" ] || fail "an event file appeared for a child that writes none"
+  row=$(run_report "$p" | grep '^| #21 |' || true)
+  [ -n "$row" ] || fail "no table row for #21"
+  assert_contains "$row" "| - | - | - | done |" "tools, tokens and context are -, not zero"
+}
+
 case_run_commitsWithoutAnAmbientIdentity() {
   # A container or a CI runner has no `user.name`/`user.email` anywhere: git then refuses every commit, and
   # the run would block on its own commit (measured 2026-10-18, issue #167). The throwaway repository's local
@@ -2602,9 +2689,11 @@ case_report_impossibleBudgetNamesAnotherRun() {
 # acts on, so a case about the tail has to look at the tail and not at a line that happens to echo it.
 actions_block() { printf '%s\n' "$1" | sed -n '/^actions the caller owes:/,$p'; }
 
-# The table has to answer the run's first two questions on its own (#208): how did each item end — the
-# verdict and, when the result is not a closure, the item's own recorded reason — and what did it cost,
-# read from the wall time `done --wall` already recorded. Both facts were in the state and printed nowhere.
+# The table has to answer the run's own questions on its own (#208): how did each item end — the verdict and,
+# when the result is not a closure, the item's own recorded reason — and what did it cost, read from the wall
+# time `done --wall` already recorded. Both facts were in the state and printed nowhere. The spend columns
+# (`tools`, `tokens`, `context`, #211) are appended after the wall time, and this case keeps the shape of the
+# row honest: the earlier columns stay where they were.
 case_report_wallTimeAndReasonInTheTable() {
   local p out header row_done row_blocked
   p=$(new_project)
@@ -2626,11 +2715,40 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_contains "$row_done" "| done |" "and the row still says how the item ended"
   assert_contains "$row_blocked" "two mechanisms explain the symptom" "the blocked item's own reason is printed"
   assert_contains "$row_blocked" "| blocked |" "beside its outcome"
-  # Eleven columns, so twelve separators: the wall and the reason were added, nothing was dropped.
-  assert_eq "12" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
-    "the row keeps its eleven columns"
-  assert_eq "12" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+  # Fourteen columns, so fifteen separators: the wall, the reason and the three spend columns were added,
+  # nothing was dropped.
+  assert_eq "15" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its fourteen columns"
+  assert_eq "15" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
+}
+
+# A provider that does not report usage leaves zeros in the stream, and a zero printed as a figure reads as a
+# measurement nobody made: the row says `-` where nothing was reported. The event stream in this case is a
+# complete turn whose usage is zero, which is what a non-reporting provider leaves behind (issue #211).
+case_report_zeroUsagePrintsDashNotZero() {
+  local d p row
+  d=$(scratch); p=$(new_project)
+  cat > "$d/zero.jsonl" <<'JSONL'
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"a"}}
+{"type":"turn_end","message":{"role":"assistant","content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/zero.jsonl" >/dev/null
+  row=$(run_report "$p" | grep '^| #21 |' || true)
+  [ -n "$row" ] || fail "no table row for #21"
+  assert_contains "$row" "| 42s | - | - | - | done |" \
+    "a turn whose usage is zero prints -, never a zero that reads as a measurement"
+  assert_not_contains "$row" "=0" "no zero is printed as a count"
+  assert_not_contains "$row" "in=0" "nor as a token figure"
+  # An item recorded with no event file at all says the same, because absence and a zeroed stream are one
+  # answer: nothing was measured.
+  init_state "$p" 2 90
+  printf '[{"issue":22,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 42 >/dev/null
+  row=$(run_report "$p" | grep '^| #22 |' || true)
+  assert_contains "$row" "| 42s | - | - | - | done |" "an item with no event stream prints the same three dashes"
 }
 
 # The tail is what the caller acts on (#208): an owed decision with the question the run wrote, and every

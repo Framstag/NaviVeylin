@@ -33,7 +33,7 @@
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
 #   state.sh done <issue> --result done|skipped|blocked [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
-#                         [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
+#                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL]
 #   state.sh report
 #   state.sh lock | unlock
@@ -364,7 +364,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" merged_branch="" merged_commits="" merged_evidence=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" merged_branch="" merged_commits="" merged_evidence="" events=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) result="${2:-}"; shift 2 ;;
@@ -375,6 +375,7 @@ cmd_done() {
       --pi-exit) pi_exit="${2:-}"; shift 2 ;;
       --rounds) rounds="${2:-}"; shift 2 ;;
       --gate) gate="${2:-}"; shift 2 ;;
+      --events) events="${2:-}"; shift 2 ;;
       --closed) closed="${2:-}"; shift 2 ;;
       --root-cause) root_cause="${2:-}"; shift 2 ;;
       --red-test) red_test="${2:-}"; shift 2 ;;
@@ -394,14 +395,20 @@ cmd_done() {
   # `--decision-label` is the label the run's escalation *wrote* on the item — not the verdict the worker
   # chose, which is a different fact: a skip verdict of `needs-diagnosis` and a blocked item both end as
   # the decision label. The report names the decisions an item was left with from this field (issue #177).
-  local class
+  local class usage
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
+  # What the item spent is read from the event stream its children wrote, and recorded beside the wall time so
+  # the report has one source. The sums are the item's — every child of it appended to the same file — and a
+  # figure nothing reported stays null, which the report prints as `-` (issue #211).
+  usage=$(child_usage_json "$events")
   patch_state '
     .items += [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
                 escalatedLabel:$dl,
                 merged:{branch:$mb, commits:$mc, evidence:$me},
                 metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
-                         closed:$closed, rootCause:$rc, redTest:$rt}}]
+                         closed:$closed, rootCause:$rc, redTest:$rt,
+                         tools:$usage.tools, tokens:$usage.tokens, cost:$usage.cost,
+                         context:$usage.context}}]
     | .queue = [.queue[] | select(.issue != $i)]
     | (if $mb == "" then . else .excluded = [.excluded[] | select(.issue != $i)] end)
     | (if .current != null and .current.issue == $i then .current = null else . end)
@@ -409,6 +416,7 @@ cmd_done() {
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
+    --argjson usage "$usage" \
     --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence"
   printf 'recorded %s (#%s %s)\n' "$result" "$issue" "$verdict"
 }
@@ -417,18 +425,78 @@ num_or_null() {
   case "${1:-}" in ''|*[!0-9.]*) printf 'null' ;; *) printf '%s' "$1" ;; esac
 }
 
-# The table answers the first two questions a finished run has to answer on its own (#208): which items
-# were handled and how each ended — `outcome` plus the item's own recorded reason when that outcome is not
-# a closure — and what each one cost, read from the wall time `done --wall` records. The columns are
-# appended rather than interleaved so a reader that quoted the earlier shape keeps its columns in order.
+# What one item's children spent, read from the event stream they appended to (issue #211). The stream is the
+# agent's: `tool_execution_end` names the tool that ran, `message_update.usage` carries the latest cumulative
+# usage of one response, `turn_end` closes that response, and a compaction carries `tokensBefore`. Three rules
+# make the numbers honest:
+#
+#   * **a turn's spend is its last usage record**, not the sum of its updates — `usage` is cumulative within a
+#     response, so summing the updates would count the same tokens once per streamed chunk;
+#   * **the largest context is a maximum, not a sum**: the biggest `input + cacheRead` any turn reported, or a
+#     compaction's `tokensBefore` when one happened, because that is the size the window had to hold;
+#   * **nothing reported is null, never zero.** A provider that streams no usage leaves zeros, and a zero
+#     printed as a figure reads as a measurement nobody made; the report prints `-` for a null.
+#
+# A stream that holds none of these records — a plain-text command, or another agent's format — yields four
+# nulls, so the engine reads a child's dialect without depending on it.
+child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,context}
+  local events="${1:-}" blob=""
+  if [ -n "$events" ] && [ -f "$events" ]; then
+    blob=$(jq -s -c '
+      def turns:
+        reduce .[] as $e ({cur:null, done:[]};
+          if $e.type == "message_update" and (($e.usage? // null) | type) == "object" then .cur = $e.usage
+          elif $e.type == "turn_end" then ((if .cur != null then .done = (.done + [.cur]) else . end) | .cur = null)
+          else . end)
+        | if .cur != null then (.done + [.cur]) else .done end;
+      . as $all
+      | ($all | turns) as $t
+      | ([$all[] | select(.type == "tool_execution_end") | (.toolName? // empty) | strings]
+         | group_by(.) | map({key: .[0], value: length}) | from_entries) as $tools
+      | ([$all[] | select(.type == "compaction_end") | (.result?.tokensBefore? // empty) | numbers] | max) as $compacted
+      | ([$t[] | ((.input // 0) + (.cacheRead // 0))] | max) as $turnMax
+      | ([$turnMax // 0, $compacted // 0] | max) as $context
+      | {tools: (if ($tools | length) > 0 then $tools else null end),
+         tokens:
+           (if ($t | length) == 0 then null
+            else ([$t[] | ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0))] | add) as $sum
+                 | if $sum == 0 then null
+                   else {input: ([$t[] | .input // 0] | add),
+                         output: ([$t[] | .output // 0] | add),
+                         cacheRead: ([$t[] | .cacheRead // 0] | add),
+                         cacheWrite: ([$t[] | .cacheWrite // 0] | add)}
+                   end
+            end),
+         cost:
+           (if ($t | length) == 0 then null
+            else ([$t[] | (.cost?.total? // 0)] | add) as $c
+                 | if $c > 0 then $c else null end
+            end),
+         context: (if $context > 0 then $context else null end)}' "$events" 2>/dev/null) || blob=""
+  fi
+  case "$blob" in
+    '{'*) printf '%s' "$blob" ;;
+    *) printf '%s' '{"tools":null,"tokens":null,"cost":null,"context":null}' ;;
+  esac
+}
+
+# The table answers the run's questions on its own (#208, #211): which items were handled and how each ended —
+# `outcome` plus the item's own recorded reason when that outcome is not a closure — what each one cost in
+# clock time (the wall time `done --wall` records) and in spend (the tools it called, the tokens it used and
+# what they cost, the largest context it reached, all read from the child's own event stream), and, after it,
+# what the caller must do now. The columns are appended rather than interleaved so a reader that quoted the
+# earlier shape keeps its columns in order.
+#
+# A figure nothing reported prints `-`, never `0`: a provider that streams no usage leaves zeros behind, and a
+# zero in a column of numbers reads as a measurement that was made.
 cmd_report() {
   require_state
   jq -r '
     "closed \(.items | map(select(.result == "done")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | outcome | reason |",
-    "|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | nothing processed | — |"
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -437,7 +505,17 @@ cmd_report() {
        | ((.note // "") | gsub("[\\t\\n\\r]+"; " ") | gsub("\\|"; "/")) as $note
        | ((.metrics.rootCause // "") | gsub("[\\t\\n\\r]+"; " ") | gsub("\\|"; "/")) as $cause
        | (if .result == "done" then "-" elif $note != "" then $note elif $cause != "" then $cause else "-" end) as $reason
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \(.result) | \($reason) |") end),
+       | ((.metrics.tools // null) as $tools
+          | if $tools == null then "-"
+            else ($tools | to_entries | sort_by(.key) | map("\(.key)=\(.value)") | join(" ")) end) as $toolcol
+       | ((.metrics.tokens // null) as $t
+          | if $t == null then "-"
+            else "in=\($t.input) out=\($t.output) cache=\(($t.cacheRead // 0) + ($t.cacheWrite // 0))"
+                 + ((.metrics.cost // null) as $c
+                    | if $c == null then "" else " cost=$\(($c * 10000 | round) / 10000)" end)
+            end) as $tokencol
+       | ((.metrics.context // null) as $n | if $n == null then "-" else "\($n)" end) as $contextcol
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

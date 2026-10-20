@@ -1,0 +1,4 @@
+$ bash tools/loop-selftest.sh --case 'run#metricsRecordedPerItem'
+closed #21 (completed)
+PASS run#metricsRecordedPerItem
+exit: 

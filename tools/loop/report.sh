@@ -7,8 +7,9 @@
 #
 # It answers the three questions a finished run has to answer on its own (#208): which items were handled
 # and how each ended (the table, with the item's own reason when the outcome is not a closure), what each
-# one cost (the table's `wall` column, and the run-level `spent`), and what the caller must now do — the
-# named action list at the end, built from the state and from git, never from a count.
+# one cost (the table's `wall`, `tools`, `tokens` and `context` columns — the last three summed from the
+# child's own event stream, `-` where nothing was reported — and the run-level `spent`), and what the caller
+# must now do — the named action list at the end, built from the state and from git, never from a count.
 #
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is

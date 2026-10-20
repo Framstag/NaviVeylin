@@ -63,6 +63,7 @@ read against the machine it ran on, and `free-mib=unknown` says the reading coul
 | `worktree.sh` | one worktree per run, one branch per item off the run's base, the two commits, the stale-base refusal | the landing step is this repository's most fragile |
 | `labels.sh` | every label transition, through the tooling's own write paths | the authorisation label stays unwritable by the loop it authorises |
 | `report.sh` | the run's numbers, read from the state file and from git | concept doc §6 asks a loop to justify itself |
+| `tools/pi-child-events.sh` | this project's child adapter: starts the agent in its JSON event mode, keeps the stream in the item's directory, prints the answer. `LOOP_AGENT_CMD` names it | the engine may name no agent command or mode flag, and print mode throws the spend away (issue #211) |
 | the **worker** process | phases A–F for exactly one item — root cause, red test, change, apply, archive | its contract is `tools/loop/prompts/worker.md` |
 | the **reviewer** process | the fixed eight-item review, read-only | its contract is `tools/loop/prompts/reviewer.md` |
 
@@ -248,9 +249,11 @@ inside the child's wall-clock is `blocked` with its log, not retried (#203).
 
 ## What a run prints while it works
 
-A child runs in print mode, so its own stream is silent until it exits. The run therefore reports the wait
-itself: one line when a child starts, one every 30 s (`LOOP_PROGRESS_SECONDS` overrides it, which is what the
-case `run#childReportsWhileItWaits` uses), and one when it ends.
+A child's answer arrives when it exits, so its own stream is silent until then: the adapter the configuration
+names (`tools/pi-child-events.sh`) keeps the child's event stream in the item's directory and prints the answer
+once the child is done. The run therefore reports the wait itself: one line when a child starts, one every 30 s
+(`LOOP_PROGRESS_SECONDS` overrides it, which is what the case `run#childReportsWhileItWaits` uses), and one when
+it ends.
 
 ```
 loop: worker-prompt started (log .pi/issue-loop/items/126/worker-report.md)
@@ -259,7 +262,7 @@ loop: worker-prompt finished in 12m04s (exit 0, log 812 B)
 ```
 
 The numbers are read from the tree the child writes and never from the child: `log N B` is the transcript's
-size (0 until the child exits, because print mode writes its answer at the end), `changed file(s)` is
+size (0 until the child exits, because the answer is printed at the end), `changed file(s)` is
 `git status --porcelain` in the worktree, `commit(s) since the base` is `git rev-list --count <base>..HEAD`.
 Numbers that keep moving are a child thinking; `running` lines that stop appearing are a stopped run — and a
 child that outlasts `LOOP_CHILD_MAX_SECONDS` ends itself with `exit 124` and the `LOOP-TIMEOUT` line in its
@@ -267,18 +270,18 @@ report, so "running" lines that stop appearing without that line are a stopped *
 
 ## Report (end of run)
 
-`tools/loop/report.sh` prints the header, the per-item table (with each item's wall time and, when its result
-is not a closure, the reason it recorded), the skip list, the open decisions, the branches, the kept
-worktree and the **actions the caller owes**. Use it verbatim; its last block is the answer to "what must I
-do now", so do not replace it with a summary of your own:
+`tools/loop/report.sh` prints the header, the per-item table (with each item's wall time and spend, and, when
+its result is not a closure, the reason it recorded), the skip list, the open decisions, the branches, the
+kept worktree and the **actions the caller owes**. Use it verbatim; its last block is the answer to "what must
+I do now", so do not replace it with a summary of your own:
 
 ```markdown
 **fix-loop — <date>** (budget N items / M min; closed X, skipped Y, blocked Z, spent T min)
 
-| issue | class | verdict | change | root cause (one line) | red test | gate | review | wall | outcome | reason |
-|---|---|---|---|---|---|---|---|---|---|---|
-| #138 | bug | closed | fix-pinned-band-height | constant reservation vs font-scale band | BandScale#…fs2: 42.67<48 dp | 1750/0 | 2 rounds | 52m10s | done | — |
-| #122 | bug | stale | — | the case it cited no longer exists | — | — | — | 9m04s | skipped | skipped by the worker |
+| issue | class | verdict | change | root cause (one line) | red test | gate | review | wall | tools | tokens | context | outcome | reason |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #138 | bug | closed | fix-pinned-band-height | constant reservation vs font-scale band | BandScale#…fs2: 42.67<48 dp | 1750/0 | 2 rounds | 52m10s | bash=41 edit=22 read=9 | in=214000 out=31500 cache=1880000 cost=$0.4182 | 76000 | done | — |
+| #122 | bug | stale | — | the case it cited no longer exists | — | — | — | 9m04s | - | - | - | skipped | skipped by the worker |
 
 Skipped: #130 needs-device + needs-decision · #56 needs-decision (owner decision D7) · …
 New entries filed: #165 #166
@@ -291,6 +294,21 @@ actions the caller owes:
   3. re-run the gate for #130 — the run recorded no gate result — transcript .pi/issue-loop/items/130/worker-report.md
   4. keep or remove the worktree .pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
 ```
+
+**What a run measures.** Three columns say what an item spent, and every one of them is read from the child's
+own event stream — never from its prose — at `state.sh done --events` time:
+
+| column | what it is | where it comes from |
+|---|---|---|
+| `tools` | the tools the item's processes called, with their count (`bash=41 read=9`) | `tool_execution_end.toolName`, one count per finished call |
+| `tokens` | input, output and cached tokens, and their cost (`in=… out=… cache=… cost=$…`) | `message_update.usage`, the **last** update of each response — `usage` is cumulative within one, so summing the updates would count the same tokens once per chunk |
+| `context` | the largest context the item's children reached | the biggest `input + cacheRead` any response reported, or a compaction's `tokensBefore` when one happened; a maximum, because that is the size a window had to hold |
+
+An item's figures are the sum over *its* children (worker and reviewers append to one file,
+`.pi/issue-loop/items/<n>/events.jsonl`), and `-` is printed where nothing was reported. `-` is not `0`: a
+provider that streams no usage leaves zeros behind, and a zero in a column of numbers reads as a measurement
+that was made. A project whose agent command writes plain text has no stream to read, keeps working exactly as
+before, and says `-` in all three columns.
 
 Every action names what to do, where (issue, branch, log, worktree) and why. A decision whose question the
 state does not hold says where the question is (`gh issue view <n>`) instead of paraphrasing it, the branch

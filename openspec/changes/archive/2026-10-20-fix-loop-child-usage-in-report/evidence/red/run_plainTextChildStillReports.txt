@@ -1,0 +1,13 @@
+$ LOOP_ENGINE=<HEAD tools/loop> LOOP_CONF=<HEAD tools/loop/loop.conf> bash tools/loop-selftest.sh --case 'run#plainTextChildStillReports'
+# the cases are this change's; the engine and configuration beneath them are those of HEAD 2424cf4
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-060207')
+HEAD ist jetzt bei 75fa109 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+  tools, tokens and context are -, not zero: '| - | - | - | done |' not found in: | #21 | bug | closed | 2026-01-01-fix-demo | the fixture has exactly one cause | Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z) | tests=1 failures=0 (fixture) | 1 | 4s | done | - |
+FAIL run#plainTextChildStillReports
+exit: 1

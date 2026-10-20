@@ -64,11 +64,36 @@ one wait.
 #### Scenario: A run is recorded
 
 - **WHEN** a run ends
-- **THEN** a report exists naming each item, its verdict, its wall time, its review rounds and what it
-  closed, so the run justifies itself with numbers — every item's row carries the wall time the run recorded
-  for it and, when the item's result is not a closure, the reason the item recorded, and the columns the
-  report already had keep their name and their order
+- **THEN** a report exists naming each item, its verdict, its wall time, its spend, its review rounds and what
+  it closed, so the run justifies itself with numbers — every item's row carries the wall time the run recorded
+  for it, the tools its children called with their count, the tokens they used with their cost and the largest
+  context they reached, and, when the item's result is not a closure, the reason the item recorded, and the
+  columns the report already had keep their name and their order
 - **Case**: `report#wallTimeAndReasonInTheTable`
+
+#### Scenario: An item's spend is read from the child's own stream
+
+The agent reports its tool calls, its tokens and its cost in its event stream, and the loop used to start it in
+a mode that discards the stream, so the one measurement of spend that exists was never read (issue #211).
+
+- **WHEN** a child's process produced an event stream and the item is recorded with it
+- **THEN** the item's metrics hold the count of each tool its children called, the tokens they used summed over
+  their responses (each response counted once, at its last usage record, not once per streamed update), what
+  those tokens cost, and the largest context any of them reached — the biggest input-plus-cache-read of a
+  response, or a compaction's `tokensBefore` when the context was compacted — and the row the report prints
+  shows them in the `tools`, `tokens` and `context` columns
+- **Case**: `run#childUsageIsRecordedPerItem`
+
+#### Scenario: Nothing reported is printed as zero
+
+A provider that streams no usage leaves zeros behind, and a zero in a column of numbers reads as a measurement
+that was made.
+
+- **WHEN** an item's stream holds no usage record, holds only zeroed ones, or no stream was written at all —
+  a project whose agent command prints plain text is the third case
+- **THEN** the report prints `-` in the `tools`, `tokens` and `context` columns rather than `0`, the item is
+  worked and recorded exactly as before, and nothing about the run depends on the stream existing
+- **Case**: `report#zeroUsagePrintsDashNotZero`, `run#plainTextChildStillReports`
 
 #### Scenario: The report names the actions the caller owes
 
@@ -591,9 +616,9 @@ not a rule of the phase.
 ### Requirement: A run reports the wait it cannot get from the child
 
 A run SHALL print what it is doing while a child process is in flight, from what the run can observe itself,
-because the configured agent command is print mode and writes nothing before the child exits. It SHALL name the
-wait when a child starts, report the child's progress on a configured cadence, and report the end with the
-child's exit status, so a working child and a hung one stay distinguishable.
+because a child's answer arrives when it exits. It SHALL name the wait when a child starts, report the child's
+progress on a configured cadence, and report the end with the child's exit status, so a working child and a hung
+one stay distinguishable.
 
 #### Scenario: The wait is announced when the child starts
 

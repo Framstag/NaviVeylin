@@ -1,0 +1,16 @@
+# red on HEAD — 648d2bc — 2026-10-20T10:15:00Z
+$ bash tools/resolve-stale-selftest.sh --case resolver#basenameRepairLeavesALongerPathAlone
+  and the doubled citation is collapsed, not re-doubled by the basename repair: 'the writer is `tools/alpha/alpha.sh`' not found in: the writer is `tools/alpha/tools/alpha/alpha.sh` and the bare name is `tools/alpha/alpha.sh`
+FAIL resolver#basenameRepairLeavesALongerPathAlone
+exit=1
+
+$ bash tools/resolve-stale-selftest.sh --case resolver#repairWithoutAChangeIsNotReported
+  no repair is counted when the body did not change: expected '0', got '1'
+FAIL resolver#repairWithoutAChangeIsNotReported
+exit=1
+
+$ bash tools/resolve-stale-selftest.sh --case resolver#repairIsVerifiedByReclassification
+  a target the history names but the tree does not hold is not a repair: expected '0', got '1'
+FAIL resolver#repairIsVerifiedByReclassification
+exit=1
+

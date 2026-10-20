@@ -1,0 +1,1218 @@
+# The complete diff of change 2026-10-20-fix-stale-repair-verification, from the run base 648d2bc to this tree.
+# Tracked files: `git diff 648d2bc`. Files new in this change (untracked at the time of writing) are
+# appended as whole-file diffs against /dev/null. The one exclusion is this file: a file cannot quote its
+# own content, so evidence/diff.txt carries no hunk for itself.
+
+diff --git a/openspec/specs/stale-citation-resolution/spec.md b/openspec/specs/stale-citation-resolution/spec.md
+index 3e49a34..0f80ecc 100644
+--- a/openspec/specs/stale-citation-resolution/spec.md
++++ b/openspec/specs/stale-citation-resolution/spec.md
+@@ -2,16 +2,13 @@
+ 
+ ## Purpose
+ 
+-
+ An issue's citation is checked and, where it can be, repaired automatically: one definition of what a citation
+ is, a mechanical ladder that rewrites a citation whose target moved, a quarantine for the ones that cannot be
+ repaired, and a bounded scheduled run — so that an authorised item is excluded only when its citation really is
+ gone, and the residue that needs a person is small, visible and ranked rather than silent.
+ 
+-
+ ## Requirements
+ 
+-
+ ### Requirement: One definition of what a citation is
+ 
+ The tooling SHALL decide what counts as a citation in exactly one place, used by every consumer, and that
+@@ -76,33 +73,62 @@ in the run's machine-local state.
+ The resolver SHALL repair a citation whose target can be established as a fact, in this order: a unique suffix
+ of a tracked path (canonicalised to that path), a rename recorded in the repository's history, or a single
+ surviving file that declares the cited symbol. A repair SHALL rewrite the citation token and nothing else, and
+-SHALL preserve every body marker verbatim.
++SHALL preserve every body marker verbatim. A basename repair SHALL NOT rewrite an occurrence that stands inside a
++longer path. A repair is a change to the record: the item SHALL count as repaired, and a comment SHALL claim a
++repair, only when the produced body differs from the input **and** every rewritten citation re-classifies as no
++longer `absent`; a rewrite that fails either test SHALL be reported as unresolved and the item parked instead.
+ 
+ #### Scenario: A suffixed path is canonicalised
+ 
+ - **WHEN** a body cites a class-file name that ends exactly one tracked path
+ - **THEN** the citation is rewritten to that full path
++- **Case**: `resolver#suffixedCitationIsCanonicalised`
+ 
+ #### Scenario: A renamed file is followed
+ 
+ - **WHEN** the cited path no longer exists and the repository's history records a rename or a move of it
+ - **THEN** the citation is rewritten to its successor
++- **Case**: `resolver#renamedFileIsFollowed`
+ 
+ #### Scenario: A removed symbol is re-anchored
+ 
+ - **WHEN** the cited file is gone and exactly one surviving file declares the cited symbol
+ - **THEN** the citation is rewritten to that file
++- **Case**: `resolver#removedSymbolIsReAnchored`
+ 
+ #### Scenario: The item's record survives the repair
+ 
+ - **WHEN** a citation is rewritten
+ - **THEN** the body's `fingerprint` and `nvid` markers are byte-identical to what they were, and no prose around
+   the citation is changed
++- **Case**: `resolver#markersSurviveTheRepair`
+ 
+ #### Scenario: A repair is recorded
+ 
+-- **WHEN** a citation is rewritten
++- **WHEN** a citation is rewritten and the repair is verified
+ - **THEN** one comment on the item names the citation before and after the repair, and the evidence for it
++- **Case**: `resolver#repairPostsOneComment`
++
++#### Scenario: A basename repair leaves a longer path alone
++
++- **WHEN** a body cites a bare file name whose only other occurrence stands inside a longer citation — the
++  doubled-directory form — and both are stale in the same body
++- **THEN** the bare occurrence is canonicalised and the longer citation is collapsed, not re-doubled, so every
++  citation in the written body resolves
++- **Case**: `resolver#basenameRepairLeavesALongerPathAlone`
++
++#### Scenario: A rewrite that changes nothing is not a repair
++
++- **WHEN** the repair ladder attempts a rewrite whose result is the input again
++- **THEN** nothing is counted as repaired, no comment claims a repair, and the item is parked with the reason
++- **Case**: `resolver#repairWithoutAChangeIsNotReported`
++
++#### Scenario: A repair is verified by re-classification
++
++- **WHEN** a rewrite replaces the cited token with a target the repository does not hold
++- **THEN** the citation is not counted as repaired and the item is parked with the reason, so the record is not
++  claimed to be repaired again
++- **Case**: `resolver#repairIsVerifiedByReclassification`
+ 
+ ### Requirement: What cannot be repaired is parked, never guessed
+ 
+diff --git a/tools/issues/resolve-stale.sh b/tools/issues/resolve-stale.sh
+index fad72e2..f4dc210 100755
+--- a/tools/issues/resolve-stale.sh
++++ b/tools/issues/resolve-stale.sh
+@@ -24,7 +24,10 @@
+ # vocabulary apply to it exactly as to a person (`Backlog.md` §5).
+ #
+ # Idempotence needs no bookkeeping: a repair is verified by re-classifying — a canonical citation is `exact`,
+-# and a parked item is skipped — so a second run finds nothing to do and posts nothing.
++# and a parked item is skipped — so a second run finds nothing to do and posts nothing. Verified is the operative
++# word (#200): a rewrite is counted as a repair only when the produced body differs from the input and every
++# rewritten citation re-classifies as no longer `absent` — an attempt that a later rewrite undoes, or whose
++# target the tree does not hold, is unresolved and parks the item rather than being reported as repaired.
+ #
+ # Exit: 0 ran (including "nothing to do"), 2 usage or unusable input, 3 policy refusal.
+ #
+@@ -193,6 +196,7 @@ $body")
+ 
+   new_body="$body"
+   repairs=""
++  pairs=""
+   unresolved=""
+   item_ambiguous=0
+   while IFS= read -r tok; do
+@@ -205,8 +209,10 @@ $body")
+       continue
+     fi
+     [ "$canon" != "$tok" ] || continue
+-    new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -f "$here/rewrite.awk")
+-    repairs=$(add_line "$repairs" "- \`${tok}\` -> \`${canon}\` — $(basis_of "$tok" "$canon")")
++    # `standalone=1`: a basename repair may not rewrite the tail of a longer path — that is how the suffix loop
++    # used to give a doubled token a third copy of its directory (#200).
++    new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -v standalone=1 -f "$here/rewrite.awk")
++    pairs=$(add_line "$pairs" "$tok"$'\t'"$canon")
+   done <<< "$suffix_toks"
+ 
+   while IFS= read -r tok; do
+@@ -222,7 +228,7 @@ $body")
+     fi
+     if [ -n "$canon" ]; then
+       new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -f "$here/rewrite.awk")
+-      repairs=$(add_line "$repairs" "- \`${tok}\` -> \`${canon}\` — $(basis_of "$tok" "$canon")")
++      pairs=$(add_line "$pairs" "$tok"$'\t'"$canon")
+       continue
+     fi
+     # Ambiguity: several tracked paths end with the citation, and the repository states no successor.
+@@ -235,6 +241,36 @@ $body")
+     unresolved=$(add_line "$unresolved" "- \`${tok}\` — no tracked file, no rename record, no single surviving declaration")
+   done <<< "$absent_toks"
+ 
++  # A repair is a change to the record, not the attempt at one (#200). The two loops rewrite independently, so
++  # the suffix loop's basename repair can sit inside a doubled token the absent loop then collapses back to
++  # exactly what it was — and the history can name a successor the tree no longer holds. A pair therefore counts
++  # only when the body differs from the input and both halves re-classify: the target a path the tree holds, the
++  # old token no longer an `absent` citation of the new body — asked of the matrix, so a target path that
++  # legitimately contains the old name is not mistaken for a surviving citation. What fails becomes
++  # `unresolved`, so the item is parked with its reason instead of counted repaired with a comment claiming it:
++  # a refusal recorded nowhere is the state the resolver exists to remove (#163).
++  repairs=""
++  if [ -n "$pairs" ]; then
++    matrix_after=$(issues_citation_matrix_of "$new_body")
++    while IFS=$'\t' read -r old new; do
++      [ -n "$old" ] || continue
++      if [ "$new_body" = "$body" ]; then
++        unresolved=$(add_line "$unresolved" "- \`${old}\` -> \`${new}\` — the rewrite changed nothing")
++        continue
++      fi
++      if [ "$(issues_citation_class "$new")" = "absent" ]; then
++        unresolved=$(add_line "$unresolved" "- \`${old}\` -> \`${new}\` — the target is not a tracked path")
++        continue
++      fi
++      if printf '%s\n' "$matrix_after" | \
++         awk -F'\t' -v t="$old" '$1 == "absent" && $2 == t { found = 1 } END { exit !found }'; then
++        unresolved=$(add_line "$unresolved" "- \`${old}\` — the citation survives the rewrite, so nothing was repaired")
++        continue
++      fi
++      repairs=$(add_line "$repairs" "- \`${old}\` -> \`${new}\` — $(basis_of "$old" "$new")")
++    done <<< "$pairs"
++  fi
++
+   # The bound counts the items a run would write, not the items it visits (#199). An item whose only stale
+   # citations are ambiguous reports them and reaches neither write branch below, so counting it as `due` spent
+   # a slot of every run's bound on a non-action while the items behind it waited — measured 2026-10-19,
+diff --git a/tools/issues/rewrite.awk b/tools/issues/rewrite.awk
+index 252fbc8..70a53c3 100644
+--- a/tools/issues/rewrite.awk
++++ b/tools/issues/rewrite.awk
+@@ -6,6 +6,12 @@
+ # token stands alone, exactly as the extractor defines a citation. Everything else on the line — prose, the
+ # `fingerprint` and `nvid` markers, whitespace — is copied through untouched, which is what makes the repair
+ # reviewable at a glance.
++#
++# `standalone=1` tightens the left boundary by one character. `/` has to be a boundary for a full path —
++# `old/Place.kt` follows a separator in prose — but a *basename* repair that rewrote a `/`-preceded occurrence
++# rewrites the tail of a longer citation, giving it a second copy of a directory the absent loop then collapses
++# back, and the two rewrites cancel (#200). The suffix loop passes it; the absent loop, which writes full paths,
++# does not.
+ {
+   text = $0; out = ""; start = 1
+   while (start <= length(text)) {
+@@ -15,7 +21,7 @@
+     i = start + p - 1
+     l = (i == 1) ? "" : substr(text, i - 1, 1)
+     r = (i + length(old) > length(text)) ? "" : substr(text, i + length(old), 1)
+-    if (l ~ /[A-Za-z0-9_.-]/ || r ~ /[A-Za-z0-9_]/) {
++    if (l ~ /[A-Za-z0-9_.-]/ || (standalone && l == "/") || r ~ /[A-Za-z0-9_]/) {
+       out = out substr(text, start, p)
+       start = i + 1
+       continue
+diff --git a/tools/resolve-stale-cases.sh b/tools/resolve-stale-cases.sh
+index ec71ab9..662a7f2 100755
+--- a/tools/resolve-stale-cases.sh
++++ b/tools/resolve-stale-cases.sh
+@@ -21,6 +21,9 @@ RESOLVE_CASES=(
+   'prescreen#refusalIsVisibleInTheTracker'
+   'resolver#suffixedCitationIsCanonicalised'
+   'resolver#doubledPrefixIsCollapsed'
++  'resolver#basenameRepairLeavesALongerPathAlone'
++  'resolver#repairWithoutAChangeIsNotReported'
++  'resolver#repairIsVerifiedByReclassification'
+   'resolver#renamedFileIsFollowed'
+   'resolver#removedSymbolIsReAnchored'
+   'resolver#markersSurviveTheRepair'
+@@ -49,6 +52,9 @@ resolve_run_case() {
+     'prescreen#refusalIsVisibleInTheTracker') case_prescreen_refusalIsVisibleInTheTracker ;;
+     'resolver#suffixedCitationIsCanonicalised') case_resolver_suffixedCitationIsCanonicalised ;;
+     'resolver#doubledPrefixIsCollapsed') case_resolver_doubledPrefixIsCollapsed ;;
++    'resolver#basenameRepairLeavesALongerPathAlone') case_resolver_basenameRepairLeavesALongerPathAlone ;;
++    'resolver#repairWithoutAChangeIsNotReported') case_resolver_repairWithoutAChangeIsNotReported ;;
++    'resolver#repairIsVerifiedByReclassification') case_resolver_repairIsVerifiedByReclassification ;;
+     'resolver#renamedFileIsFollowed') case_resolver_renamedFileIsFollowed ;;
+     'resolver#removedSymbolIsReAnchored') case_resolver_removedSymbolIsReAnchored ;;
+     'resolver#markersSurviveTheRepair') case_resolver_markersSurviveTheRepair ;;
+@@ -117,6 +123,22 @@ classify() { # <tree> <token> → the class
+   rm -f "$idx"
+ }
+ 
++# The tokens of a text the tree does not hold — what the pre-screen refuses and a reader calls "still stale".
++# Asked of a *written* body, it is the re-classification a repair owes before it may be reported (#200).
++absent_in() { # <tree> <text> → the absent citations, one per line, and nothing when all of them resolve
++  local tree="$1" text="$2" idx
++  idx=$(mktemp "$RESOLVE_TMP/idx.XXXXXX")
++  (
++    set -uo pipefail
++    # shellcheck source=tools/issues/lib.sh
++    source "$RESOLVE_ROOT/tools/issues/lib.sh"
++    ISSUES_CITATION_ROOT="$tree" ISSUES_CITATION_INDEX="$idx"
++    issues_citation_index_build "$tree" "$idx" || true
++    issues_stale_citations_of "$text"
++  )
++  rm -f "$idx"
++}
++
+ candidates_of() { # <tree> <text> → every citation-shaped token, before the path rules filter them
+   local tree="$1" text="$2" idx
+   idx=$(mktemp "$RESOLVE_TMP/idx.XXXXXX")
+@@ -206,6 +228,69 @@ case_resolver_doubledPrefixIsCollapsed() {
+ }
+ 
+ 
++# A basename repair may not rewrite an occurrence that stands inside a longer path (#200). The suffix loop used
++# to rewrite `alpha.sh` everywhere, the doubled token included — giving it a third copy of its directory — and the
++# absent loop then collapsed the doubled token, which now stood inside that triple, so the two rewrites
++# cancelled each other and the item was counted repaired, and commented, while its body was unchanged.
++case_resolver_basenameRepairLeavesALongerPathAlone() {
++  local tree d after
++  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/tools/alpha"
++  # A shell script whose content carries no symbol: the ladder's symbol step cannot answer this one, only the
++  # collapse can.
++  printf '#!/bin/sh\n' > "$tree/tools/alpha/alpha.sh"
++  git_init "$tree"
++  d=$(tracker "$tree/fixture-gh" 7 "an item" \
++    'the writer is `tools/alpha/tools/alpha/alpha.sh` and the bare name is `alpha.sh`')
++  GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply >/dev/null || fail "the resolver failed"
++  after=$(recorded_body "$d/writes.log" 1)
++  assert_contains "$after" 'the bare name is `tools/alpha/alpha.sh`' "the bare citation is canonicalised"
++  assert_contains "$after" 'the writer is `tools/alpha/alpha.sh`' \
++    "and the doubled citation is collapsed, not re-doubled by the basename repair"
++  assert_not_contains "$after" 'tools/alpha/tools/alpha' "no citation stands inside a longer path in the written body"
++  assert_eq "" "$(absent_in "$tree" "$after")" "every citation in the written body resolves"
++}
++
++# A repair is a change to the record, not an attempt at one (#200): the rewritten body must differ from the old
++# one before the item counts as repaired and before any comment claims it. A basename occurrence that stands
++# inside a longer path is not rewritten (that is the rule above), so this body comes out of the two loops
++# byte-identical — and nothing was repaired, so nothing may be reported as repaired.
++case_resolver_repairWithoutAChangeIsNotReported() {
++  local tree d out
++  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/tools/alpha"
++  printf '#!/bin/sh\n' > "$tree/tools/alpha/alpha.sh"
++  git_init "$tree"
++  d=$(tracker "$tree/fixture-gh" 7 "an item" 'the writer is `/alpha.sh`')
++  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
++    fail "the resolver failed: $out"
++  assert_eq "0" "$(jq -r '.repaired' <<< "$out")" "no repair is counted when the body did not change"
++  assert_eq "0" "$(recorded_count "$d/writes.log" 'citation repaired')" "and no comment claims one"
++  assert_contains "$(recorded_text "$d/writes.log")" "unresolved citation" \
++    "the item is parked with its reason instead of reported repaired"
++  assert_contains "$(recorded_text "$d/writes.log")" "the rewrite changed nothing" "and the reason names the no-op"
++}
++
++# The other half of the same verification: a repair counts only when its target re-classifies as a citation the
++# tree holds (#200). The rename map is history, so it can name a path that was deleted afterwards — the old
++# token then leaves the body while the citation stays stale, which is not a repair either.
++case_resolver_repairIsVerifiedByReclassification() {
++  local tree d out
++  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/old" "$tree/new"
++  printf 'class Place\n' > "$tree/old/Place.kt"
++  git_init "$tree"
++  git -C "$tree" mv old/Place.kt new/Place.kt >/dev/null 2>&1 || fail "could not move the file"
++  git_commit "$tree" "move Place.kt"
++  git -C "$tree" rm -q new/Place.kt >/dev/null 2>&1 || fail "could not delete the file"
++  git_commit "$tree" "drop Place.kt"
++  d=$(tracker "$tree/fixture-gh" 7 "an item" 'the case lives in `old/Place.kt:4`')
++  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
++    fail "the resolver failed: $out"
++  assert_eq "0" "$(jq -r '.repaired' <<< "$out")" \
++    "a target the history names but the tree does not hold is not a repair"
++  assert_eq "0" "$(recorded_count "$d/writes.log" 'citation repaired')" "and no comment claims one"
++  assert_contains "$(recorded_text "$d/writes.log")" "unresolved citation" "the item is parked with its reason"
++  assert_contains "$(recorded_text "$d/writes.log")" "the target is not a tracked path" "and the reason names it"
++}
++
+ case_classifier_fragmentIsNotACitation() {
+   local tree out candidates
+   tree=$(tree_with_file)
+diff --git a/tools/resolve-stale-mutations.json b/tools/resolve-stale-mutations.json
+index e417448..786e01a 100644
+--- a/tools/resolve-stale-mutations.json
++++ b/tools/resolve-stale-mutations.json
+@@ -38,7 +38,7 @@
+       "label": "5.5",
+       "case": "resolver#markersSurviveTheRepair",
+       "file": "tools/issues/resolve-stale.sh",
+-      "search": "    new_body=$(printf '%s\\n' \"$new_body\" | awk -v old=\"$tok\" -v new=\"$canon\" -f \"$here/rewrite.awk\")",
++      "search": "    new_body=$(printf '%s\\n' \"$new_body\" | awk -v old=\"$tok\" -v new=\"$canon\" -v standalone=1 -f \"$here/rewrite.awk\")",
+       "replace": "    new_body=$(printf '%s\\n' \"$new_body\" | grep -v '^<!-- fingerprint:' | sed \"s|$tok|$canon|\")",
+       "why": "the repair editing the citation token in place, so the body's markers survive"
+     },
+@@ -89,6 +89,30 @@
+       "search": "  if [ -n \"$repairs\" ] || [ -n \"$unresolved\" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi",
+       "replace": "  due=$((due + 1))",
+       "why": "the bound being spent only where a write follows — an item the ladder can only report costs no slot (#199)"
++    },
++    {
++      "label": "5.12",
++      "case": "resolver#basenameRepairLeavesALongerPathAlone",
++      "file": "tools/issues/rewrite.awk",
++      "search": "    if (l ~ /[A-Za-z0-9_.-]/ || (standalone && l == \"/\") || r ~ /[A-Za-z0-9_]/) {",
++      "replace": "    if (l ~ /[A-Za-z0-9_.-]/ || r ~ /[A-Za-z0-9_]/) {",
++      "why": "a basename repair refusing an occurrence that stands inside a longer path, so the two loops cannot cancel (#200)"
++    },
++    {
++      "label": "5.13",
++      "case": "resolver#repairWithoutAChangeIsNotReported",
++      "file": "tools/issues/resolve-stale.sh",
++      "search": "      if [ \"$new_body\" = \"$body\" ]; then",
++      "replace": "      if false; then",
++      "why": "a repair counting only when the produced body differs from the input (#200)"
++    },
++    {
++      "label": "5.14",
++      "case": "resolver#repairIsVerifiedByReclassification",
++      "file": "tools/issues/resolve-stale.sh",
++      "search": "      if [ \"$(issues_citation_class \"$new\")\" = \"absent\" ]; then",
++      "replace": "      if false; then",
++      "why": "a repair counting only when its rewritten citation re-classifies as a path the tree holds (#200)"
+     }
+   ]
+ }
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/.openspec.yaml b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/.openspec.yaml
+new file mode 100644
+index 0000000..9076a66
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/.openspec.yaml
+@@ -0,0 +1,2 @@
++schema: spec-driven
++created: 2026-10-20
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/design.md b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/design.md
+new file mode 100644
+index 0000000..714f5b5
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/design.md
+@@ -0,0 +1,84 @@
++## Root cause
++
++A repair is counted, and commented, from the fact that a rewrite was *attempted*. `tools/issues/resolve-stale.sh`
++(base `648d2bc`) accumulates a human bullet in `repairs` for every token the ladder resolves (`:209`, `:225`), and
++every consequence is gated on that variable being non-empty: the due charge (`:244`), the body write and the
++`citation repaired` comment (`:249`–`:252`), the `writes` count (`:253`) and `repaired=$((repaired + 1))`
++(`:255`). Nothing compares the produced body with the input, and nothing re-classifies the token.
++
++The attempt becomes a *no-op* through the basename half. `tools/issues/rewrite.awk:18` refuses a match whose left
++character is `[A-Za-z0-9_.-]` and whose right one is `[A-Za-z0-9_]`; `/` is deliberately outside both classes,
++because a full path such as `old/Place.kt` legitimately follows a separator. So when the body cites both a
++doubled-directory token `D/D/f` and the bare name `f`, the suffix loop rewrites `f` **everywhere** — including at
++the tail of `D/D/f`, which becomes `D/D/D/f`. The absent loop then looks for `D/D/f`, finds it starting at the
++second segment of `D/D/D/f` (preceded by `/`, which the same rule admits), collapses it, and writes `D/D/f`
++back. The body leaves the loops byte-identical to its input while `repairs` holds two bullets — the measurement
++the apply run of 2026-10-19 shows: `repaired=14`, of which 4 bodies were never written.
++
++One mechanism, not two: the run reports the attempt, never the change. The boundary gap is only the way an
++attempt is manufactured that changes nothing; the accounting is what makes it a false report.
++
++## The single fix
++
++Two guards, both of them the same rule — *a repair is a change to the record*:
++
++1. `tools/issues/rewrite.awk` takes `-v standalone=1`, which additionally refuses a match preceded by `/`. The
++   suffix loop passes it, so a basename repair rewrites only an occurrence that stands as its own citation and
++   never the tail of a longer path. The absent loop writes full paths and keeps the rule unchanged, so nothing
++   about its boundary behaviour moves.
++2. The two loops record pairs (`old` → `new`) instead of bullets. After both loops, a pair is kept only when all
++   three hold — the body differs from the input, `issues_citation_class "$new"` is not `absent`, and the old
++   token is not present in the new body as an `absent` citation (asked of `issues_citation_matrix_of "$new_body"`,
++   so a token that survives *inside another path* is caught while the target path that now legitimately contains
++   its own name is not). Kept pairs compose `repairs`; a failing pair becomes an `unresolved` bullet naming what
++   failed, so the item takes the park branch with its reason instead of the repair branch with a false claim.
++
++Guards 1 and 2 are not alternatives: 1 alone leaves the accounting lying about any other no-op (a successor the
++rename map names but the tree no longer holds — red case 3), and 2 alone turns a repairable item into a park
++because the cancellation it detects was manufactured by the other half (red case 1, which asserts the *written*
++body and would see no body write at all). The park is the honest fate: the script's header states that a refusal
++recorded nowhere is the defect this tool exists to fix (#163), so an item whose citation stays stale is parked
++with a reason rather than silently skipped.
++
++The `due` guard keeps its place and now charges verified repairs only, which is `#199`'s rule unchanged in
++substance: an item the run writes nothing for costs no slot.
++
++## Blast radius
++
++`tools/issues/resolve-stale.sh` (pair collection in both loops, one verification block, `repairs` composed after
++it, comments), `tools/issues/rewrite.awk` (one flag and one condition), `tools/resolve-stale-cases.sh` (three
++cases, one helper), `tools/resolve-stale-mutations.json` (one search string follows the changed line, three records
++added), the spec delta. No compiled file, no change to the classifier, the ladder, the parking rule, the
++ambiguity rule, the bound's semantics or the residue metric's measurement.
++
++## What the evidence eliminated
++
++- **Order the loops by specificity — longest token first, bare basename last** (the issue's first sketch, and
++  the alternative a reader reaches first). Eliminated by measurement: the absent loop's collapse of `D/D/f`
++  *creates* `D/f`, whose tail is the bare name `f`, so the trailing suffix pass would re-repair it into
++  `D/D/f` again unless the basename rewrite refuses a `/`-preceded occurrence — i.e. the ordering is only
++  correct together with guard 1, and guard 1 alone is then correct in either order. Two mechanisms where one
++  suffices; the run also pays a second matrix pass for it.
++- **Count a repair from the per-token text comparison** (`[ "$before" != "$after" ]` around each rewrite).
++  Eliminated by the measurement in the root cause: each individual rewrite *does* change the text — `f` becomes
++  `D/f`, and later `D/D/D/f` becomes `D/D/f` — the cancellation is only visible across both loops, so the
++  comparison has to be item-level (the body against the input) and the resolution has to be asked of the token
++  after the loops.
++- **Detect the no-op with a substring test** (`case "$new_body" in *"$new"*)`) instead of the citation matrix.
++  Eliminated by case 1: the repaired body legitimately contains `tools/alpha/alpha.sh`, so a substring test would
++  reject the very repair that succeeded; the matrix asks whether the *citation* is absent, which is the question
++  the pre-screen asks.
++- **Refuse the whole item when one pair fails** (no park, `skipped`), reading the issue's "post no comment when
++  nothing changed" literally. Eliminated: the item is then refused by the pre-screen on every later run with
++  nothing on the tracker saying why — the state #163 was filed about. The park comment claims no repair; it
++  states the failure, which is what the "nothing changed" clause protects.
++
++Honest cost: an item whose repair does not verify now lands in `parked` instead of `repaired`, so the run's line
++moves those items between two counters (`repaired` falls, `parked` rises). That is the report becoming true, not
++a new state.
++
++## Rollback
++
++Revert the commit. A no-op counts as a repair again, and a `/`-preceded basename occurrence is rewritten inside
++its longer path again — exactly the base behaviour. No tracker state exists to undo: this change writes nothing
++to the tracker by itself, and the four hand-repaired bodies of 2026-10-19 stay repaired under either behaviour.
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/green.txt b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/green.txt
+new file mode 100644
+index 0000000..3310bff
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/green.txt
+@@ -0,0 +1,29 @@
++# green on the fix — 648d2bc + working tree — 2026-10-20T10:16:11Z
++$ bash tools/resolve-stale-selftest.sh
++PASS classifier#fragmentIsNotACitation
++PASS classifier#bareHeaderIsNotAPath
++PASS classifier#externalLibraryPathIsNotAPath
++PASS classifier#bareSourceNameResolvesBySuffix
++PASS classifier#submodulePathResolves
++PASS classifier#generatedArtefactIsNotMissing
++PASS classifier#absentIsTheOnlyStale
++PASS prescreen#refusalIsVisibleInTheTracker
++PASS resolver#suffixedCitationIsCanonicalised
++PASS resolver#doubledPrefixIsCollapsed
++PASS resolver#basenameRepairLeavesALongerPathAlone
++PASS resolver#repairWithoutAChangeIsNotReported
++PASS resolver#repairIsVerifiedByReclassification
++PASS resolver#renamedFileIsFollowed
++PASS resolver#removedSymbolIsReAnchored
++PASS resolver#markersSurviveTheRepair
++PASS resolver#repairPostsOneComment
++PASS resolver#unrepairableCitationIsParked
++PASS resolver#ambiguityIsReportedNotRepaired
++PASS resolver#neverWritesTheAuthorisation
++PASS resolver#boundHoldsAndReportsTheRest
++PASS resolver#ambiguityDoesNotConsumeTheBound
++PASS resolver#secondRunChangesNothing
++PASS pipeline#scheduledRunRepairs
++PASS pipeline#residueIsADeclaredRow
++resolve-stale-selftest: all 25 cases passed (JDK 27, offline, no token, no Gradle)
++exit=0
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/issue-tooling-selftest.txt b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/issue-tooling-selftest.txt
+new file mode 100644
+index 0000000..0d365eb
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/issue-tooling-selftest.txt
+@@ -0,0 +1,6 @@
++# the issue tooling suite — 2026-10-20T10:18:21Z
++$ bash tools/issue-tooling-selftest.sh
++PASS check#unrankedIsNotAViolation
++PASS check#selfCheckIsGreen
++issue-tooling-selftest: all 91 cases passed (JDK 27, offline, no token)
++exit=0
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/loop-selftest.txt b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/loop-selftest.txt
+new file mode 100644
+index 0000000..454ccfe
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/loop-selftest.txt
+@@ -0,0 +1,342 @@
++# the neighbouring suite — tools/loop-selftest.sh — 2026-10-20T10:25:21Z
++$ bash tools/loop-selftest.sh
++PASS state#initAndShowRoundTrips
++PASS state#nextHonoursEveryStopCondition
++PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
++PASS state#floorWithNoHistoryIsTheConfiguredMinimum
++PASS state#secondRunRefusesWithExit5
++PASS state#initKeepsTheStateItReplaces
++PASS state#initAnnouncesARunWithoutAStop
++PASS state#defaultsComeFromLoopConf
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101834')
++HEAD ist jetzt bei 1bd577f init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS state#projectKeysAreReadFromLoopConf
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101840')
++HEAD ist jetzt bei e891fa5 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS state#agentCommandIsTheOnlyIndirection
++PASS state#agentCommandRefusesAnEmptyValue
++stub gh: recorded `gh issue edit`
++exclude-feature #25
++PASS prescreen#ranksBugsFirstAndDropsFeatures
++PASS prescreen#missingPathYieldsStale
++stub gh: recorded `gh issue edit`
++exclude-feature #25
++PASS prescreen#doesNotClaimJudgementGates
++PASS prescreen#refusesReservedLabelInSelection
++PASS prescreen#withoutTheOptInIsNeverQueued
++PASS prescreen#settledItemIsDropped
++PASS prescreen#deviceItemIsAVerdictNotWork
++PASS prescreen#readsTheVerdictsFromTheProfile
++stub gh: recorded `gh issue edit`
++exclude-feature #25
++PASS prescreen#previousAttemptBranchIsADecision
++PASS prescreen#itemAwaitingADecisionIsNotQueued
++PASS prescreen#aHoldWithNoDecisionIsNotADecision
++PASS prescreen#harnessItemsLeadTheQueue
++PASS prescreen#aRenamedLeadingCategoryLeads
++PASS prescreen#priorityCategoriesAreReadFromTheProfile
++PASS prescreen#priorityDoesNotBypassTheGate
++PASS prescreen#anUndeclaredRoleStopsTheScreen
++PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
++PASS prescreen#refusalLeavesATraceInTheTracker
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
++HEAD ist jetzt bei 71a3291 init
++PASS worktree#seedsAllFourInputs
++PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
++HEAD ist jetzt bei 71a3291 init
++Zu neuem Branch 'fix/issue-22-other' gewechselt
++PASS worktree#oneBranchPerItemOffTheBase
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
++HEAD ist jetzt bei f32d0f0 init
++Zu neuem Branch 'fix/issue-21-demo' gewechselt
++PASS worktree#refusesWhenMainAdvanced
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101903')
++HEAD ist jetzt bei f32d0f0 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++Aktualisiere f32d0f0..bde3260
++Fast-forward
++ demo-fix.txt                                                        | 1 +
++ openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml | 1 +
++ openspec/changes/archive/2026-01-01-fix-demo/proposal.md            | 1 +
++ 3 files changed, 3 insertions(+)
++ create mode 100644 demo-fix.txt
++ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
++ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/proposal.md
++adopted: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e -> bde3260 · commits 0eda15bd73e2fd6442917efe8578d7c77914b989,bde326094ff8be4e7850db22a8019fb960e70f97 · change 2026-01-01-fix-demo · evidence TEST-demo.xml
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++close #21
++item #21: closed (merged fix/issue-21-an-eligible-bug-whose-cited-path-still-e — a finished attempt the base did not have) · 0 review round(s)
++  git still lists the worktree that was removed
++FAIL worktree#keepsByDefaultAndRemovesOnRequest
++PASS worktree#keepsSourcesNotBuildOutput
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101918')
++HEAD ist jetzt bei 04e3792 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS worktree#noPushWithoutTheFlag
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
++HEAD ist jetzt bei 897f871 init
++Zu neuem Branch 'fix/issue-21-demo' gewechselt
++state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.4ZaX2l/case.aXHVTS/repo/.pi/issue-loop/runs/2026-10-20T10:19:24Z.json
++PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
++HEAD ist jetzt bei 897f871 init
++Zu neuem Branch 'fix/issue-21-demo' gewechselt
++PASS worktree#refusesABranchCarryingAPreviousAttempt
++PASS worktree#refusesABranchWhoseReviewFailed
++PASS labels#verdictToLabelMatrix
++PASS labels#holdCarriesItsReason
++PASS labels#trapRemovesInProgressOnSignal
++PASS labels#neverWritesReservedLabel
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101931')
++HEAD ist jetzt bei ab44682 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS labels#writesOnlyBetweenChildren
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101937')
++HEAD ist jetzt bei 2a7b1bc init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS prompt#workerNamesEveryPhaseAndSkill
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101944')
++HEAD ist jetzt bei aefc30a init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS prompt#workerNamesTheDecisionField
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101951')
++HEAD ist jetzt bei f04c986 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS prompt#reviewerCarriesTheEightItems
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-101957')
++HEAD ist jetzt bei 42e8490 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS prompt#packageIsAFileAndNotInlined
++PASS prompt#inlineInjectionCannotReachTheInstructionPosition
++PASS run#preflightRefusalStopsBeforeAnyWork
++PASS run#decisionCapRefusesToStart
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102011')
++HEAD ist jetzt bei 6ede43c init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#oneItemOrderIsFixed
++PASS run#childClaimWithoutCommitIsBlocked
++PASS run#blockedItemIsEscalatedWithItsReason
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102028')
++HEAD ist jetzt bei b8e9204 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#childStartsInTheProjectRoot
++PASS run#childReportsWhileItWaits
++PASS run#childOutlastingTheWallClockIsBlocked
++PASS run#hostBelowTheFloorBlocksTheItemAndStops
++PASS run#hostAboveTheFloorRunsTheItem
++PASS run#hostWithoutTheReadingPasses
++PASS run#childWriteOutsideTheWorktreeIsBlocked
++PASS run#reviewerWriteInTheProjectIsDiscarded
++PASS run#leftoverBranchIsRecordedNotDropped
++PASS run#branchThatAppearsWhileTheRunIsOpenIsRecorded
++PASS run#mergesAFinishedAttemptAndClosesTheItem
++PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
++PASS run#recordsAFailedReviewOnTheBranch
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102137')
++HEAD ist jetzt bei bc99efe init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#dirtyKeptWorktreeIsARecordedRefusal
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102144')
++HEAD ist jetzt bei b129475 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#resetWorktreeDiscardsWhatItNames
++PASS run#aSkipClearsTheInProgressMark
++PASS run#skipEscalationCarriesTheDecision
++PASS run#claimedGateWithoutEvidenceIsBlocked
++PASS run#citedEvidenceMustTravelWithTheChange
++PASS run#needsDecisionIsEscalatedWithTheWork
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102215')
++HEAD ist jetzt bei f9973e9 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#noGateStillRuns
++state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.4ZaX2l/case.PrMjXH/repo/.pi/issue-loop/runs/2026-10-20T10:22:21Z.json
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
++HEAD ist jetzt bei d425f19 init
++PASS run#dryRunTouchesNothing
++PASS run#reviewRoundsCapAtTwo
++PASS run#reviewBudgetIsARecordedValue
++PASS run#aZeroRoundBudgetIsRefused
++PASS run#aCorrectiveRefusalEarnsOneMoreRound
++PASS run#aZeroBlockingRefusalClosesWithItsNotes
++PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
++PASS run#escalationCarriesTheDecision
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102334')
++HEAD ist jetzt bei ab7df62 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++commented on #21 (left open)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#mayCloseNoLeavesTheIssueOpen
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102340')
++HEAD ist jetzt bei 8659eb9 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#metricsRecordedPerItem
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102347')
++HEAD ist jetzt bei 5648d68 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102352')
++HEAD ist jetzt bei 1d83215 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#childUsageIsRecordedPerItem
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102359')
++HEAD ist jetzt bei 33f09b6 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#plainTextChildStillReports
++PASS run#emptyQueueIsNotAFailure
++PASS run#stopReasonIsPrintedAndReported
++PASS run#awaitingDecisionIsNotEscalatedAgain
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102415')
++HEAD ist jetzt bei 9d4b260 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#commitsWithoutAnAmbientIdentity
++PASS run#reviewerWriteInvalidatesTheRound
++PASS run#reviewReadOnlyOffOnlyForDiagnosis
++PASS run#reviewDiffExcludesTheEvidenceArchive
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102441')
++HEAD ist jetzt bei 992df03 init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS run#engineNamesNoProjectFact
++PASS adapter#modeFlagIsItsOwnArgument
++PASS state#inheritedStatePathOutsideTheTreeIsIgnored
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102448')
++HEAD ist jetzt bei dffaf2c init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS report#headerAndTableShape
++PASS report#yieldIsCountedFromState
++PASS report#escalatedSkipNamesTheLabelWritten
++PASS report#failedReviewEscalationIsNamed
++PASS report#aVerdictAloneIsNoEscalation
++PASS report#archivedStateIsReported
++PASS report#impossibleBudgetNamesAnotherRun
++PASS report#wallTimeAndReasonInTheTable
++state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.4ZaX2l/case.UAUW8k/repo/.pi/issue-loop/runs/2026-10-20T10:25:12Z.json
++PASS report#zeroUsagePrintsDashNotZero
++PASS report#actionsNameDecisionAndBranch
++PASS report#emptyRunSaysNone
++PASS clean#interruptedSuiteRemovesItsScratchTree
++Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-102515')
++HEAD ist jetzt bei 934ebbd init
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++stub gh: recorded `gh issue edit`
++closed #21 (completed)
++pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
++  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
++PASS clean#reportsWithoutApplyAndRemovesWithIt
++PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
++PASS usage#bareValueFlagDoesNotSwallowTheNextFlag
++PASS usage#bareValueFlagInASingleShotHarnessIsAUsageError
++PASS usage#noUnguardedValueFlagRemains
++loop-selftest: 1 of 114 cases failed
++exit=1
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/mutations-full.txt b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/mutations-full.txt
+new file mode 100644
+index 0000000..7df60a4
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/mutations-full.txt
+@@ -0,0 +1,45 @@
++# the whole mutation set — 2026-10-20T10:16:37Z
++5.1	classifier#fragmentIsNotACitation	the trailing-boundary check that keeps a token cut out of a longer one out of the citation set
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/citations.awk
++  GREEN(exit 0)  restored, and the case passes again
++5.2	classifier#bareHeaderIsNotAPath	the rule that a header is only a citation when it is written as a path
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.3	classifier#bareSourceNameResolvesBySuffix	the suffix test — a bare class-file name is a citation, not a bug
++  RED(exit 1)  2 occurrence(s) replaced in tools/issues/lib.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.4	classifier#submodulePathResolves	the submodule files joining the index, so a citation inside one resolves
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.5	resolver#markersSurviveTheRepair	the repair editing the citation token in place, so the body's markers survive
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.6	resolver#ambiguityIsReportedNotRepaired	an ambiguous citation being reported rather than resolved to the first candidate
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.7	resolver#unrepairableCitationIsParked	an unresolvable citation parking the item, so it leaves the eligible queue visibly
++  MUTATION-DID-NOT-APPLY  the search matches no line of tools/issues/resolve-stale.sh — the pattern no longer matches the code
++5.8	resolver#secondRunChangesNothing	the idempotence guard — a parked item is not re-decided, so a second run posts nothing
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.9	prescreen#refusalIsVisibleInTheTracker	the pre-screen asking the shared classifier instead of extracting tokens for itself
++  RED(exit 1)  1 occurrence(s) replaced in tools/loop/prescreen.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.10	resolver#doubledPrefixIsCollapsed	the collapse of a citation that repeats its own directory, before the rename and symbol steps (#189)
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.11	resolver#ambiguityDoesNotConsumeTheBound	the bound being spent only where a write follows — an item the ladder can only report costs no slot (#199)
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.12	resolver#basenameRepairLeavesALongerPathAlone	a basename repair refusing an occurrence that stands inside a longer path, so the two loops cannot cancel (#200)
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/rewrite.awk
++  GREEN(exit 0)  restored, and the case passes again
++5.13	resolver#repairWithoutAChangeIsNotReported	a repair counting only when the produced body differs from the input (#200)
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
++  GREEN(exit 0)  restored, and the case passes again
++5.14	resolver#repairIsVerifiedByReclassification	a repair counting only when its rewritten citation re-classifies as a path the tree holds (#200)
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
++  GREEN(exit 0)  restored, and the case passes again
++
++mutate: 14 mutation(s) run, 13 went red and restored green, 1 problem(s)
++exit=1
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/portability.txt b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/portability.txt
+new file mode 100644
+index 0000000..74f0250
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/portability.txt
+@@ -0,0 +1,9 @@
++# tools/check-portability.sh — 2026-10-20T10:25:23Z
++$ bash tools/check-portability.sh
++  .pi/**	machine-local state: worktrees, captures, session logs
++  openspec/**	the project's documents
++  guidelines/**	the project's documents
++check-portability: the documented exception — the label that authorises work is declared read-only, once:
++  tools/loop/lib.sh:60:LOOP_AUTHORISATION_LABEL="agent/eligible"
++check-portability: OK — 43 engines and 2 templates name no project value (103 value(s) read from the project)
++exit=0
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/red.txt b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/red.txt
+new file mode 100644
+index 0000000..298630e
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/red.txt
+@@ -0,0 +1,16 @@
++# red on HEAD — 648d2bc — 2026-10-20T10:15:00Z
++$ bash tools/resolve-stale-selftest.sh --case resolver#basenameRepairLeavesALongerPathAlone
++  and the doubled citation is collapsed, not re-doubled by the basename repair: 'the writer is `tools/alpha/alpha.sh`' not found in: the writer is `tools/alpha/tools/alpha/alpha.sh` and the bare name is `tools/alpha/alpha.sh`
++FAIL resolver#basenameRepairLeavesALongerPathAlone
++exit=1
++
++$ bash tools/resolve-stale-selftest.sh --case resolver#repairWithoutAChangeIsNotReported
++  no repair is counted when the body did not change: expected '0', got '1'
++FAIL resolver#repairWithoutAChangeIsNotReported
++exit=1
++
++$ bash tools/resolve-stale-selftest.sh --case resolver#repairIsVerifiedByReclassification
++  a target the history names but the tree does not hold is not a repair: expected '0', got '1'
++FAIL resolver#repairIsVerifiedByReclassification
++exit=1
++
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/revert-checks.md b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/revert-checks.md
+new file mode 100644
+index 0000000..4278845
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/evidence/revert-checks.md
+@@ -0,0 +1,28 @@
++# revert-check — mutations 5.12, 5.13, 5.14 of `tools/resolve-stale-mutations.json` — 2026-10-20T10:16:28Z
++
++$ bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --only 5.12
++5.12	resolver#basenameRepairLeavesALongerPathAlone	a basename repair refusing an occurrence that stands inside a longer path, so the two loops cannot cancel (#200)
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/rewrite.awk
++  GREEN(exit 0)  restored, and the case passes again
++
++mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
++mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
++exit=0
++
++$ bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --only 5.13
++5.13	resolver#repairWithoutAChangeIsNotReported	a repair counting only when the produced body differs from the input (#200)
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
++  GREEN(exit 0)  restored, and the case passes again
++
++mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
++mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
++exit=0
++
++$ bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --only 5.14
++5.14	resolver#repairIsVerifiedByReclassification	a repair counting only when its rewritten citation re-classifies as a path the tree holds (#200)
++  RED(exit 1)  1 occurrence(s) replaced in tools/issues/resolve-stale.sh
++  GREEN(exit 0)  restored, and the case passes again
++
++mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
++mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
++exit=0
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/proposal.md b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/proposal.md
+new file mode 100644
+index 0000000..3144712
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/proposal.md
+@@ -0,0 +1,91 @@
++# fix-stale-repair-verification
++
++## Why
++
++The scheduled repair reports repairs the tracker does not hold. Measured on the applying run of 2026-10-19
++(`bash tools/issues/resolve-stale.sh --apply --max-items 200`, `due=22 repaired=14 parked=3`), **4 of the 14
++"repaired" items were still classified `absent` afterwards**: #181 and #182 (the doubled form of
++`tools/issues/close.sh` and of `tools/issues/update.sh`), #196 (the doubled form of
++`tools/sensors/metrics/coverage.sh`) and #16 (a doubled `guidelines/` prefix). #181's timeline carries the
++`citation repaired for the repository's own record` comment and **no `edited` event** — the body was never
++written.
++
++**Root cause.** A repair is counted, and commented, from the fact that a rewrite was *attempted*, never from the
++record changing: `tools/issues/resolve-stale.sh:255` (base `648d2bc`) does `repaired=$((repaired + 1))` on
++`[ -n "$repairs" ]` alone, `:253` counts the write `gh` is handed, and the comment at `:250` is posted from the
++same variable — no comparison of the produced body with the input, no re-classification of the token. The
++basename half makes the attempt reachable as a no-op: the suffix loop (`:208`) rewrites a bare citation
++**everywhere**, including inside a doubled token, because `tools/issues/rewrite.awk:18` treats `/` as a
++boundary and so rewrites `close.sh` at the tail of `tools/issues/tools/issues/close.sh`. The token gains a third
++copy of its directory, and the absent loop (`:224`) then collapses the doubled form — which still occurs inside
++that triple — back to exactly what it was. The two rewrites cancel: the body comes out of the loop byte-identical
++to its input, and the run reports a repair for it.
++
++**Red tests on HEAD** (`648d2bc`), added to `tools/resolve-stale-cases.sh` and each failing for its own reason
++(2026-10-20T10:15:00Z, `evidence/red.txt`):
++
++- `resolver#basenameRepairLeavesALongerPathAlone` — a body citing the doubled `tools/alpha/tools/alpha/alpha.sh`
++  and the bare `alpha.sh`; the written body is still `the writer is \`tools/alpha/tools/alpha/alpha.sh\` and the
++  bare name is \`tools/alpha/alpha.sh\``, i.e. the doubled citation survived:
++  `and the doubled citation is collapsed, not re-doubled by the basename repair: 'the writer is
++  \`tools/alpha/alpha.sh\`' not found in: …` (exit 1).
++- `resolver#repairWithoutAChangeIsNotReported` — the same no-op in its purest form (one citation at
++  `\`/alpha.sh\``, so the basename repair may not touch it and the body is unchanged):
++  `no repair is counted when the body did not change: expected '0', got '1'` (exit 1).
++- `resolver#repairIsVerifiedByReclassification` — the rename map names a successor that was deleted afterwards:
++  `a target the history names but the tree does not hold is not a repair: expected '0', got '1'` (exit 1).
++
++**Owning capability:** `stale-citation-resolution`, requirement "A citation is repaired when the repair is
++mechanical" — its clause "A repair SHALL rewrite the citation token and nothing else" and its scenario "A
++repair is recorded". **Owning guideline section:** `guidelines/Backlog.md` §7 "The loop" (the paragraph stating
++what the resolver repairs and parks); the gate is `tools/resolve-stale-selftest.sh`, the CI step "Check stale
++citation resolver".
++
++## What Changes
++
++- `tools/issues/resolve-stale.sh`: the two rewrites record a **pair** (`old` → `new`) instead of a bullet; after
++  both loops every pair is verified — the produced body must differ from the input, the target must classify as a
++  citation the tree holds, and the old token must not survive in the new body as an `absent` citation. Only
++  verified pairs are composed into `repairs` (the bullets the comment and the report use), and a pair that fails
++  becomes an `unresolved` line, so the item is parked with the reason instead of reported repaired. The `due`
++  guard keeps its place: it now counts verified repairs.
++- `tools/issues/rewrite.awk`: a pair rewrite may pass `standalone=1`, which refuses an occurrence preceded by
++  `/` — a basename repair may not rewrite the tail of a longer path. The suffix loop passes it; the absent loop
++  (which writes full paths) keeps the current boundary rule.
++- `tools/resolve-stale-cases.sh`: the three red cases above, plus the `absent_in` helper they re-classify with.
++- `tools/resolve-stale-mutations.json`: mutation `5.5`'s search string follows the changed suffix-loop line, and
++  three records are added — `5.12` (the `standalone` rule), `5.13` (the changed-body guard) and `5.14` (the
++  re-classification guard) — so each new invariant has its revert-check.
++
++## Spec
++
++`openspec/specs/stale-citation-resolution/spec.md`, requirement "A citation is repaired when the repair is
++mechanical": MODIFIED — the requirement states that a repair is a change to the record, counted and commented
++only when the body differs from the input and the rewritten citation classifies as no longer `absent`, and that
++a basename repair does not rewrite an occurrence that stands inside a longer path. Three scenarios are added
++(one per red case); the five existing scenarios each name their case.
++
++## Cases and evidence
++
++- The three red cases above — red on HEAD, green after the fix.
++- `bash tools/resolve-stale-selftest.sh` — 25 of 25, offline, no token, no Gradle (`evidence/green.txt`).
++- Mutations `5.12`, `5.13` and `5.14` — red with the rule removed, green again after the restore
++  (`evidence/revert-checks.md`); the whole set reports 13 of 14 falsified, the one problem being the pre-existing
++  `5.7` whose search predates the profile's hold status (`evidence/mutations-full.txt`).
++- `evidence/red.txt`, `evidence/diff.txt`, `evidence/green.txt`, `evidence/issue-tooling-selftest.txt`,
++  `evidence/portability.txt`, `evidence/loop-selftest.txt`.
++
++## Impact
++
++`tools/issues/resolve-stale.sh`, `tools/issues/rewrite.awk`, `tools/resolve-stale-cases.sh`,
++`tools/resolve-stale-mutations.json` and the spec above. No compiled file is touched, so no Gradle gate applies
++(`guidelines/Build.md` §2, the scope block); the structural gate is `tools/resolve-stale-selftest.sh`, which CI
++runs.
++
++Behavioural change, visible in the run's own line: an item whose rewrite nets out, or whose target the tree does
++not hold, is no longer counted `repaired` and is no longer commented as repaired — it is parked with the reason
++(`unresolved`), which moves it from `repaired` to `parked` for exactly those items and leaves every other item
++untouched. Items whose citations do repair are unaffected in body, comment and count.
++
++Rollback: revert the commit. A no-op then counts as a repair again — exactly the old behaviour, with no tracker
++state to undo, because this change writes nothing to the tracker by itself.
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/specs/stale-citation-resolution/spec.md b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/specs/stale-citation-resolution/spec.md
+new file mode 100644
+index 0000000..278bf6a
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/specs/stale-citation-resolution/spec.md
+@@ -0,0 +1,65 @@
++# stale-citation-resolution — deltas
++
++## MODIFIED Requirements
++
++### Requirement: A citation is repaired when the repair is mechanical
++
++The resolver SHALL repair a citation whose target can be established as a fact, in this order: a unique suffix
++of a tracked path (canonicalised to that path), a rename recorded in the repository's history, or a single
++surviving file that declares the cited symbol. A repair SHALL rewrite the citation token and nothing else, and
++SHALL preserve every body marker verbatim. A basename repair SHALL NOT rewrite an occurrence that stands inside a
++longer path. A repair is a change to the record: the item SHALL count as repaired, and a comment SHALL claim a
++repair, only when the produced body differs from the input **and** every rewritten citation re-classifies as no
++longer `absent`; a rewrite that fails either test SHALL be reported as unresolved and the item parked instead.
++
++#### Scenario: A suffixed path is canonicalised
++
++- **WHEN** a body cites a class-file name that ends exactly one tracked path
++- **THEN** the citation is rewritten to that full path
++- **Case**: `resolver#suffixedCitationIsCanonicalised`
++
++#### Scenario: A renamed file is followed
++
++- **WHEN** the cited path no longer exists and the repository's history records a rename or a move of it
++- **THEN** the citation is rewritten to its successor
++- **Case**: `resolver#renamedFileIsFollowed`
++
++#### Scenario: A removed symbol is re-anchored
++
++- **WHEN** the cited file is gone and exactly one surviving file declares the cited symbol
++- **THEN** the citation is rewritten to that file
++- **Case**: `resolver#removedSymbolIsReAnchored`
++
++#### Scenario: The item's record survives the repair
++
++- **WHEN** a citation is rewritten
++- **THEN** the body's `fingerprint` and `nvid` markers are byte-identical to what they were, and no prose around
++  the citation is changed
++- **Case**: `resolver#markersSurviveTheRepair`
++
++#### Scenario: A repair is recorded
++
++- **WHEN** a citation is rewritten and the repair is verified
++- **THEN** one comment on the item names the citation before and after the repair, and the evidence for it
++- **Case**: `resolver#repairPostsOneComment`
++
++#### Scenario: A basename repair leaves a longer path alone
++
++- **WHEN** a body cites a bare file name whose only other occurrence stands inside a longer citation — the
++  doubled-directory form — and both are stale in the same body
++- **THEN** the bare occurrence is canonicalised and the longer citation is collapsed, not re-doubled, so every
++  citation in the written body resolves
++- **Case**: `resolver#basenameRepairLeavesALongerPathAlone`
++
++#### Scenario: A rewrite that changes nothing is not a repair
++
++- **WHEN** the repair ladder attempts a rewrite whose result is the input again
++- **THEN** nothing is counted as repaired, no comment claims a repair, and the item is parked with the reason
++- **Case**: `resolver#repairWithoutAChangeIsNotReported`
++
++#### Scenario: A repair is verified by re-classification
++
++- **WHEN** a rewrite replaces the cited token with a target the repository does not hold
++- **THEN** the citation is not counted as repaired and the item is parked with the reason, so the record is not
++  claimed to be repaired again
++- **Case**: `resolver#repairIsVerifiedByReclassification`
+diff --git a/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/tasks.md b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/tasks.md
+new file mode 100644
+index 0000000..2cde214
+--- /dev/null
++++ b/openspec/changes/archive/2026-10-20-fix-stale-repair-verification/tasks.md
+@@ -0,0 +1,68 @@
++# Tasks — fix-stale-repair-verification
++
++## 1. The red cases
++
++- [x] 1.1 Add `resolver#basenameRepairLeavesALongerPathAlone` to `tools/resolve-stale-cases.sh` (registry,
++  dispatch, body, and the `absent_in` helper it re-classifies with): a tree holding `tools/alpha/alpha.sh`, a body
++  citing the doubled `tools/alpha/tools/alpha/alpha.sh` and the bare `alpha.sh`; it asserts the written body
++  carries the collapsed citation, carries no `tools/alpha/tools/alpha`, and leaves no `absent` citation.
++  Verification: on the base commit `648d2bc` it fails with `and the doubled citation is collapsed, not
++  re-doubled by the basename repair: 'the writer is \`tools/alpha/alpha.sh\`' not found in: …`, exit 1
++  (`evidence/red.txt`, 2026-10-20T10:15:00Z). Parent: `stale-citation-resolution`, "A citation is repaired when
++  the repair is mechanical".
++- [x] 1.2 Add `resolver#repairWithoutAChangeIsNotReported` — one citation at `\`/alpha.sh\``, so the basename
++  repair may not touch it and the body is unchanged; asserts `.repaired == 0`, no recorded write carrying
++  `citation repaired`, and a park whose comment names `the rewrite changed nothing`. Verification: on the base
++  commit it fails with `no repair is counted when the body did not change: expected '0', got '1'`, exit 1
++  (`evidence/red.txt`).
++- [x] 1.3 Add `resolver#repairIsVerifiedByReclassification` — `old/Place.kt` renamed to `new/Place.kt` and then
++  deleted, so the rename map names a target the tree does not hold; asserts `.repaired == 0`, no `citation
++  repaired` write, and a park whose comment names `the target is not a tracked path`. Verification: on the base
++  commit it fails with `a target the history names but the tree does not hold is not a repair: expected '0', got
++  '1'`, exit 1 (`evidence/red.txt`).
++
++## 2. The fix
++
++- [x] 2.1 In `tools/issues/rewrite.awk`, admit `-v standalone=1`: refuse a match whose left character is `/`, so
++  a basename repair cannot rewrite the tail of a longer path. Default stays 0, so the absent loop's boundary
++  rule is unchanged. Verification: `case 1.1` passes; `classifier#fragmentIsNotACitation` and
++  `resolver#markersSurviveTheRepair` stay green (they assert the existing boundary rules).
++- [x] 2.2 In `tools/issues/resolve-stale.sh`, pass `-v standalone=1` on the suffix loop's rewrite (`:208`) and
++  record a pair (`tok<TAB>canon`) in each loop instead of composing the bullet there. Verification:
++  `bash -n tools/issues/resolve-stale.sh`; case 1.1 passes.
++- [x] 2.3 Add the verification block between the absent loop and the `due` guard: keep a pair only when the body
++  differs from the input, `issues_citation_class "$new"` is not `absent`, and the old token is not an `absent`
++  citation of `issues_citation_matrix_of "$new_body"`; compose `repairs` from the kept pairs and add a failing
++  pair to `unresolved` with what failed. Verification: cases 1.2 and 1.3 pass; the park comment carries the
++  reason and never the phrase `citation repaired`.
++- [x] 2.4 Add mutations `5.12` (the `standalone` condition), `5.13` (the changed-body guard) and `5.14` (the
++  re-classification guard) to `tools/resolve-stale-mutations.json`, naming case 1.1, case 1.2 and case 1.3
++  respectively, and update mutation `5.5`'s search string to the changed suffix-loop line. Verification:
++  `bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list` lists all 14;
++  `--only 5.12`, `--only 5.13` and `--only 5.14` each report `RED(exit 1)` then `GREEN(exit 0)`
++  (`evidence/revert-checks.md`); the whole set reports `14 mutation(s) run, 13 went red and restored green, 1
++  problem(s)`, the one being 5.7 below (`evidence/mutations-full.txt`).
++
++## 3. Verification
++
++- [x] 3.1 The full resolver self-test, offline: 25 of 25 (`evidence/green.txt`, 2026-10-20T10:16:00Z).
++- [x] 3.2 No compiled file is touched, so this task replaces the Gradle build task with the structural check and
++  says so instead of running a build "for completeness" (`guidelines/Build.md` §2, the scope block): the gate is
++  `bash tools/resolve-stale-selftest.sh`, the command the CI step "Check stale citation resolver" runs. No
++  tracker write, no dependency, no native code.
++- [x] 3.3 The neighbouring suites, run once: `tools/issue-tooling-selftest.sh` 91 of 91, exit 0
++  (`evidence/issue-tooling-selftest.txt`) and `tools/check-portability.sh` OK, exit 0 (`evidence/portability.txt`) —
++  the second because `tools/issues/**` is one of the engines it scans. `tools/loop-selftest.sh` reports `1 of 114
++  cases failed` on `worktree#keepsByDefaultAndRemovesOnRequest`, the documented artefact of this tree's own path
++  (`worktrees/loop`), which the archived `2026-10-20-fix-stale-repair-budget` change records as pre-existing
++  (`evidence/loop-selftest.txt`). This change touches no loop file.
++- [x] 3.4 Mutation `5.7` of the same set reports `MUTATION-DID-NOT-APPLY` (its search, `--status on-hold`,
++  matches no line since the status became a profile value) — pre-existing, named as an exclusion rather than
++  repaired inside a fix for another defect, as the archived `2026-10-20-fix-stale-repair-budget` change records.
++
++## 4. Archive
++
++- [x] 4.1 `openspec validate fix-stale-repair-verification --strict`, then archive the change and confirm the
++  delta merged into `openspec/specs/stale-citation-resolution/spec.md` (the requirement's three new scenarios and
++  the `Case` lines). Verification: `openspec list` shows no open change, and the merged spec carries
++  `A rewrite that changes nothing is not a repair`.

@@ -1,0 +1,9 @@
+# tools/check-portability.sh — 2026-10-20T10:25:23Z
+$ bash tools/check-portability.sh
+  .pi/**	machine-local state: worktrees, captures, session logs
+  openspec/**	the project's documents
+  guidelines/**	the project's documents
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:60:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 43 engines and 2 templates name no project value (103 value(s) read from the project)
+exit=0

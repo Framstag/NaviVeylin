@@ -1,0 +1,6 @@
+# the issue tooling suite — 2026-10-20T10:18:21Z
+$ bash tools/issue-tooling-selftest.sh
+PASS check#unrankedIsNotAViolation
+PASS check#selfCheckIsGreen
+issue-tooling-selftest: all 91 cases passed (JDK 27, offline, no token)
+exit=0

@@ -1,0 +1,4 @@
+# the case, on the rebased tree (0205d83 docs(openspec): record the progress-reporting fix (#202)) — 2026-10-20T05:09:49Z
+$ timeout 300 bash tools/loop-selftest.sh --case 'run#childOutlastingTheWallClockIsBlocked'
+PASS run#childOutlastingTheWallClockIsBlocked
+exit=0

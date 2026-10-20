@@ -1,0 +1,11 @@
+# the mechanical revert-check, on the rebased tree (0205d83 docs(openspec): record the progress-reporting fix (#202)) — 2026-10-20T05:10:01Z
+$ bash tools/loop-mutations.sh --only "9.9 12.2 23.1"
+RED    9.9  state#agentCommandIsTheOnlyIndirection   (the single agent-command indirection)
+restore 9.9 state#agentCommandIsTheOnlyIndirection green again
+RED    12.2  run#childStartsInTheProjectRoot   (the child started in the project, where the project's own policy is resolved)
+restore 12.2 run#childStartsInTheProjectRoot green again
+RED    23.1  run#childOutlastingTheWallClockIsBlocked   (the wall-clock that ends a child instead of waiting for it for ever)
+restore 23.1 run#childOutlastingTheWallClockIsBlocked green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+exit=0

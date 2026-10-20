@@ -1,0 +1,7 @@
+# red on HEAD — 2026-10-20T04:51:29Z
+# the single mutation (revert-check): git show HEAD:tools/loop/run.sh > tools/loop/run.sh — run_child keeps no cap
+$ bash tools/loop-selftest.sh --case 'run#childOutlastingTheWallClockIsBlocked'
+  the run was still waiting after 10 s on a child that outlasted its 2 s cap
+FAIL run#childOutlastingTheWallClockIsBlocked
+exit=1
+# fix restored:  tools/loop/run.sh | 49 ++++++++++++++++++++++++++++++++++++++++++++-----  1 file changed, 44 insertions(+), 5 deletions(-) 

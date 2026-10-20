@@ -1,0 +1,15 @@
+# openspec — 2026-10-20T05:00:52Z
+$ openspec validate fix-loop-gate-and-child-timeout
+Change 'fix-loop-gate-and-child-timeout' is valid
+exit=0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-gate
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit=0

@@ -952,8 +952,10 @@ quadraticBezierTo(x1, y1, x2, y2)' is deprecated. Use quadraticTo() for consiste
 pinned Compose ui 1.7.6 (`compose-bom:2024.12.01`) deprecates the `Bezier` spelling and a later release removes
 it, so the marker's rounded tip is built with `quadraticTo` at the same control and end point (change
 `fix-deprecated-quadratic-path-builder`); the file's compile line is gone. **No warning-as-error flag is set:**
-the gate's compile log carries 109 `w:` lines on HEAD — `@ExperimentalCoroutinesApi` opt-in notices in `:auto`
-test sources, `Condition is always 'true'`, a Java `field defaults` deprecation — so `allWarningsAsErrors`
+the post-fix gate's compile log carries 53 `w:` lines — 49 of them `@ExperimentalCoroutinesApi` opt-in notices in
+`:auto` test sources, beside `Condition is always 'true'`, a Java `field defaults` deprecation and two others —
+and the guard's own red run printed 28, all in `:app` test sources (change
+`fix-deprecated-quadratic-path-builder`: `evidence/gate.log`, `evidence/head-red-run.log`) — so `allWarningsAsErrors`
 would fail the gate on warnings this baseline does not own. The guard is the `:app` case
 `ComposeApiDeprecationTest` "no project Kotlin source calls a deprecated quadratic path builder": it scans
 every `*.kt` the project owns (731 files, `files=`/`findings=` printed) for `quadraticBezierTo` and

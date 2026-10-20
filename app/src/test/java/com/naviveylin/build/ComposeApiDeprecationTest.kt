@@ -14,9 +14,10 @@ import java.io.File
  * "'fun quadraticBezierTo(x1, y1, x2, y2)' is deprecated. Use quadraticTo() for consistency with cubicTo()":
  * the replacement takes the same control and end points, so the call is behaviour-identical. The call site is
  * the defect — every `:app` compile prints the warning, and the name is removed in a later release, at which
- * point the build stops compiling. Nothing in this build turns a Kotlin warning into a failure (the gate's log
- * carries ~109 `w:` lines on HEAD, most of them opt-in notices in test sources), so a call site nobody reads
- * stays until an upgrade breaks it.
+ * point the build stops compiling. Nothing in this build turns a Kotlin warning into a failure (the post-fix
+ * gate's compile log carries 53 `w:` lines, the pre-fix run 28, mostly opt-in notices in test sources — change
+ * `fix-deprecated-quadratic-path-builder`, `evidence/gate.log` and `evidence/head-red-run.log`), so a call site
+ * nobody reads stays until an upgrade breaks it.
  *
  * The case reads the repository's own sources rather than the Kotlin compile log, for the reason
  * `GradleScriptDeprecationTest` reads the build scripts: a unit test cannot observe another compilation. The

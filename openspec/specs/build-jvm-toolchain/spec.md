@@ -4,8 +4,9 @@
 Defines how the build declares and satisfies the JVM its Gradle daemon runs on, so a workstation and a
 CI runner resolve the same requirement from what each machine already has, and provisioning never
 depends on a third party's rotating package ids — and holds the build's own scripts to the Gradle syntax
-surface the next release keeps, and the project's own Kotlin sources to the API surface its pinned libraries
-keep, so an upgrade does not fail on a construct this project can rewrite today.
+surface the next release keeps, and the project's own Kotlin sources to the one library spelling the
+next Compose upgrade drops — the quadratic path builder — scanning no other library API, so an upgrade does
+not fail on a construct this project can rewrite today.
 
 ## Requirements
 
@@ -117,7 +118,6 @@ report no such call, so a returning one is a failing case rather than one warnin
 #### Scenario: The scan is still detectable
 
 - **WHEN** a source uses one of the deprecated spellings, or names one only in a comment
-- **THEN** the scan reports that line's file, number and text, and leaves the kept spelling and a comment that
-  names the deprecated one alone — so a passing scan means the spelling is absent, not that the scan cannot
-  see it
+- **THEN** the scan reports a finding for that line, and leaves the kept spelling and a comment that names the
+  deprecated one alone — so a passing scan means the spelling is absent, not that the scan cannot see it
 - **Case**: `app: ComposeApiDeprecationTest` "the scan is still detectable"

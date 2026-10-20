@@ -59,6 +59,22 @@ LOOP_SCRATCH_BYTES=0
 # as a reserved label, and `labels#neverWritesReservedLabel` asserts this file is its only mention.
 LOOP_AUTHORISATION_LABEL="agent/eligible"
 
+# The run's own progress lines (issue #191). One format — `loop: <phase> · <elapsed> · <what>` — where the
+# elapsed time is counted from this process reading this library, so it is the run's own age and not a phase's.
+# A progress line is terminal output and nothing else: no state field, no report cell and no verdict is derived
+# from one, which is what makes a run that printed them and a run that did not the same run (#191, constraint).
+LOOP_PROGRESS_STARTED="$(date +%s)"
+
+fmt_elapsed() { # <seconds> -> `37s`, `4m12s`
+  local s="$1"
+  if [ "$s" -ge 60 ]; then printf '%dm%02ds' "$((s / 60))" "$((s % 60))"; else printf '%ds' "$s"; fi
+}
+
+progress() { # progress <phase> <what> — one line wherever the run crosses a boundary it can observe itself
+  local phase="$1"; shift
+  printf 'loop: %s · %s · %s\n' "$phase" "$(fmt_elapsed $(( $(date +%s) - LOOP_PROGRESS_STARTED )))" "$*"
+}
+
 loop_die() {
   printf 'loop: %s\n' "$*" >&2
   exit "$LOOP_USAGE"

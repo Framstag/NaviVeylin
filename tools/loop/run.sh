@@ -120,6 +120,13 @@ free_mib=$(host_free_mib)
 printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s child-max-seconds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
   "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
   "$read_only" "$child_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
+# What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
+# not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
+# arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
+# were interrupted by hand inside that window. The two views that exist while a run works are named here, so the
+# answer does not depend on the operator remembering them.
+printf 'run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory %s\n' \
+  "$(dirname "$LOOP_STATE_FILE")"
 
 init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" \
   --max-decisions "$max_decisions" --max-review-rounds "$max_review_rounds")
@@ -329,9 +336,18 @@ fi
 # happen" stays a statement about the run and not about the tracker.
 prescreen_args=()
 [ "$dry_run" -eq 0 ] || prescreen_args+=(--dry-run)
-prescreen_out=$(bash "$LOOP_DIR/prescreen.sh" "${prescreen_args[@]}" 2>&1)
-prescreen_status=$?
-printf '%s\n' "$prescreen_out"
+stage_dir=$(dirname "$LOOP_STATE_FILE")
+prescreen_log="$stage_dir/prescreen.log"
+progress pre-screen "started — its own output follows as it is written, its text is kept in $prescreen_log"
+# Streamed, not captured and replayed (issue #191): the text reaches the terminal while the call runs, and the
+# same bytes are kept for a path that has to read them afterwards instead of watching. `pipefail` inside the
+# subshell makes the pipeline's status the pre-screen's own, so the verdict below reads what it always read.
+prescreen_status=0
+(
+  set -o pipefail
+  bash "$LOOP_DIR/prescreen.sh" "${prescreen_args[@]}" 2>&1 | tee "$prescreen_log"
+) || prescreen_status=$?
+progress pre-screen "finished (exit $prescreen_status) — the run decides on it next"
 # A previous attempt's branch is decided by what it carries *before* it is escalated as a decision: a finished
 # attempt is merged and its item closed, and only what is left is the owner's.
 adopt_finished_exclusions
@@ -404,8 +420,7 @@ if [ -f "$worktree/.pi/loop-env.sh" ]; then
   export VCPKG_ROOT
 fi
 printf 'worktree: %s on %s from %s\n' "$worktree" "$branch" "${base:0:12}"
-
-stage_dir=$(dirname "$LOOP_STATE_FILE")
+progress worktree "ready — $(basename "$worktree") on $branch from ${base:0:12}"
 
 # The only push in the loop, and only when the run asked to publish (D4): no pull request is opened by
 # this change at all.
@@ -496,12 +511,9 @@ write_review_diff() { # write_review_diff <base> <file>
 # whole item — a working child and a hung one looked the same. The wait therefore reports itself: one line when
 # the child starts, one every `LOOP_PROGRESS_SECONDS` (default 30), and one when it ends. What those lines carry
 # is read from the tree the child writes — its log's size, the worktree's changed files, its commits since the
-# base — never from the child's own claim, which only exists once it is over.
-fmt_elapsed() { # <seconds> -> `37s`, `4m12s`
-  local s="$1"
-  if [ "$s" -ge 60 ]; then printf '%dm%02ds' "$((s / 60))" "$((s % 60))"; else printf '%ds' "$s"; fi
-}
-
+# base — never from the child's own claim, which only exists once it is over. `fmt_elapsed` and the `progress`
+# line the run's own phases use live in `lib.sh`, so a phase line and a child's line agree on what an elapsed
+# time looks like (issue #191).
 run_child() { # run_child <prompt-file> <report-file> — every child goes through LOOP_AGENT_CMD (D3)
   # The child is bounded by the recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 2700 = 45 min) and not
   # only by the run's `--minutes`: the deadline is consulted between items, so a child that never returns
@@ -676,6 +688,9 @@ while true; do
 
   item_dir="$stage_dir/items/$issue"
   mkdir -p "$item_dir"
+  # The report a person can tail while the item is worked, named where the item starts: the child's own stream
+  # arrives only when it exits, so that file is the view that exists in between (issue #191).
+  progress item "picked #$issue — its report is written to $item_dir/worker-report.md"
   # The event file of this item's children. Its contents decide what the report can say an item cost, so the
   # path is the run's to name, inside the item's own directory, and it is removed here for the same reason the
   # per-child progress marker is: a run that starts the item again must not inherit a previous attempt's spend.
@@ -722,6 +737,7 @@ while true; do
   # archive and the gate's evidence, instead of repeating the child's claims (D3, D8).
   commit_out=$(bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" 2>&1)
   head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+  progress commit "end-item returned — HEAD ${head_now:0:12} (base ${base:0:12})"
 
   # A child that never started is the run's fault, not the item's (issue #212). `run_child` returns the child's
   # status and nothing else, so a status alone cannot tell a child whose argv the environment refused — measured
@@ -748,6 +764,7 @@ while true; do
   [ -n "$change" ] || change=$(printf '%s\n' "$archives" | head -1)
   gate_xmls=$(find "$worktree" -path '*test-results*' -name '*.xml' 2>/dev/null | head -20)
   gate_found=$(printf '%s' "$gate_xmls" | grep -c . || true)
+  progress gate "read — $gate_found test-results XML in the tree"
   # The gate tally the item carries: the child's claim when it made one, what the run found otherwise,
   # and "skipped" when the project configured no gate at all (a project with no build still runs — D16).
   if [ -z "$LOOP_GATE_CMD" ]; then

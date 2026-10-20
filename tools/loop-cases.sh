@@ -79,6 +79,9 @@ LOOP_SHELL_CASES=(
   'run#blockedItemIsEscalatedWithItsReason'
   'run#childStartsInTheProjectRoot'
   'run#childReportsWhileItWaits'
+  'run#headerNamesTheLiveView'
+  'run#prescreenAnnouncesItselfBeforeItReturns'
+  'run#everyPhaseBoundaryIsPrinted'
   'run#childOutlastingTheWallClockIsBlocked'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
@@ -220,6 +223,9 @@ loop_run_shell_case() {
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
     'run#childReportsWhileItWaits') fn=case_run_childReportsWhileItWaits ;;
+    'run#headerNamesTheLiveView') fn=case_run_headerNamesTheLiveView ;;
+    'run#prescreenAnnouncesItselfBeforeItReturns') fn=case_run_prescreenAnnouncesItselfBeforeItReturns ;;
+    'run#everyPhaseBoundaryIsPrinted') fn=case_run_everyPhaseBoundaryIsPrinted ;;
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
@@ -1867,6 +1873,77 @@ case_run_childReportsWhileItWaits() {
   assert_contains "$out" "changed file(s)" "what it reports is read from the worktree"
   assert_contains "$out" "loop: worker-prompt finished in" "and the end is reported"
   assert_contains "$out" "exit 0" "with the child's own exit status"
+}
+
+# The console named neither the pre-screen nor any view into the run: measured 2026-10-20, the pre-screen of the
+# real backlog is a 53 s call (`tools/loop/prescreen.sh --dry-run --json`, 84 records over 188 items) that reached
+# the terminal only after it returned, two runs of that day were interrupted by hand inside that window, and
+# nothing on the console said where a person could look meanwhile (issue #191). The header therefore names the
+# step that follows it, the state directory, and the command that shows what the run is doing.
+case_run_headerNamesTheLiveView() {
+  local d p out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off --dry-run 2>&1) || fail "the run itself failed"
+  assert_contains "$out" "state.sh show" "the header names the command that shows the run's progress"
+  assert_contains "$out" ".pi/issue-loop" "the header names the state directory"
+  assert_contains "$out" "pre-screen" "the header names the step that runs next"
+  assert_contains "$out" "not instant" "and says that step does not return at once"
+}
+
+# The pre-screen's own text has to reach the terminal while the call runs and not after it returns. The case's
+# `list.sh` holds that call for 3 s, so what the console carries 1.5 s in is what the run printed *before* the
+# call returned — the whole of the difference between streaming it and capturing it (issue #191).
+case_run_prescreenAnnouncesItselfBeforeItReturns() {
+  local d p slow log pid out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  slow="$d/issues"
+  cp -r "$LOOP_ISSUES_ENGINE" "$slow"
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf 'sleep 3\n'
+    printf 'exec bash %q "$@"\n' "$LOOP_ISSUES_ENGINE/list.sh"
+  } > "$slow/list.sh"
+  chmod +x "$slow/list.sh"
+  log="$d/console.log"
+  ( LOOP_ISSUES_ENGINE="$slow" run_loop "$p" --items 1 --minutes 90 --review off ) > "$log" 2>&1 &
+  pid=$!
+  sleep 1.5
+  out=$(cat "$log")
+  assert_contains "$out" "loop: pre-screen" "the phase is announced on the console"
+  assert_contains "$out" "started" "as started, while the pre-screen is still running"
+  wait "$pid" || fail "the run itself failed"
+  out=$(cat "$log")
+  assert_contains "$out" "pre-screen:" "the pre-screen's own text reached the console"
+  assert_contains "$out" "finished" "and the end of the phase is printed with it"
+  # The status the run decides on is the pre-screen's own and not the stream's: a stand-in pre-screen that fails
+  # with 7 has to leave the run with 7 too, which is what `pipefail` on the pipeline buys. Without it the pipeline
+  # would report the `tee`'s 0 and the run would walk past a pre-screen that never answered. The copy is of the
+  # whole `tools` tree, not of `tools/loop`: `lib.sh` sources `../issues/lib.sh`, and an engine beside no tooling
+  # dies in its own first line instead of reaching the pre-screen.
+  local p2 tools engine rc
+  p2=$(new_project)
+  tools="$d/tools"
+  cp -r "$(dirname "$LOOP_ENGINE")" "$tools"
+  printf '#!/usr/bin/env bash\nprintf "pre-screen: a stand-in that fails\\n"\nexit 7\n' > "$tools/loop/prescreen.sh"
+  out=$( LOOP_ENGINE="$tools/loop" run_loop "$p2" --items 1 --minutes 90 --review off 2>&1 )
+  rc=$?
+  assert_eq "7" "$rc" "the run's exit status is the pre-screen's, not the stream's"
+}
+
+# Silence never exceeds a bounded interval, and outside a child the run's own boundaries are what bound it: the
+# run prints one line where the pre-screen starts and ends, where the worktree comes ready, where the item is
+# picked, where the gate's evidence is read and where the item's work is committed (issue #191).
+case_run_everyPhaseBoundaryIsPrinted() {
+  local d p out
+  d=$(scratch); p=$(new_project)
+  out=$(run_one_item "$p" "$d" --review off 2>&1) || fail "the run failed"
+  assert_contains "$out" "loop: pre-screen · " "the pre-screen's boundary"
+  assert_contains "$out" "loop: worktree · " "the worktree coming ready"
+  assert_contains "$out" "loop: item · " "the item being picked"
+  assert_contains "$out" "loop: gate · " "the gate's evidence being read"
+  assert_contains "$out" "loop: commit · " "the item's work being committed"
 }
 
 # A child that never returns used to be waited for with no bound at all: the run's deadline is consulted

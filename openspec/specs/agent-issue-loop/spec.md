@@ -64,9 +64,9 @@ one wait.
 #### Scenario: A child that never started is the run's fault, not the item's
 
 A non-zero status alone cannot tell a child whose argv the environment refused from a child that worked the
-item and failed: on 2026-10-20 every child of a run died in under 4 s with the same 35-byte complaint, and the
-run recorded two items `blocked`, escalated both with `agent/needs-decision` and `status/on-hold`, and stopped
-on "two consecutive items ended blocked" 3 minutes into an 8 h budget — two questions nobody had asked, and two
+item and failed: on 2026-10-20 both children of that run died in under 4 s with the same 35-byte complaint,
+and the run recorded two items `blocked`, escalated both with `agent/needs-decision` and `status/on-hold`, and
+stopped on "two consecutive items ended blocked" 3 minutes into an 8 h budget — two questions nobody had asked, and two
 of the run's three decision slots (issue #212).
 
 - **WHEN** an agent process ends with a non-zero status, wrote no verdict line, was not ended by the run's own

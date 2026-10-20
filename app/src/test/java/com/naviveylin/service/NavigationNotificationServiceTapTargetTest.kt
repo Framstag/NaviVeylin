@@ -37,7 +37,7 @@ class NavigationNotificationServiceTapTargetTest {
 
         assertTrue(
             "projection: the tap is a broadcast the host answers with startCarApp",
-            shadow.isBroadcastIntent()
+            shadow.isBroadcast()
         )
         assertFalse(
             "the host has to add its start-car-app extras, so the intent cannot be immutable",
@@ -66,7 +66,7 @@ class NavigationNotificationServiceTapTargetTest {
 
         assertTrue(
             "Android Automotive OS: the tap launches the template host activity",
-            shadow.isActivityIntent()
+            shadow.isActivity()
         )
         assertEquals(
             CarAppActivity::class.java.name,

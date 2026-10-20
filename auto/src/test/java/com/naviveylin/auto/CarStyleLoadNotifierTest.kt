@@ -84,8 +84,17 @@ class CarStyleLoadNotifierTest {
 
         CarStyleLoadNotifier(context).notify("Map style \"cycle\" could not be loaded")
 
+        // From API 26 the sound and the vibration belong to the channel, not to the notification:
+        // Notification.defaults and the notification's own sound/vibrate fields are all deprecated,
+        // and the platform ignores them for a channel-based post. "Silent" is therefore the channel's
+        // importance — asserted here on the channel the posted notice actually rides.
         val posted = shadowOf(manager).getNotification(CarStyleLoadNotifier.NOTIFICATION_ID)
-        assertEquals("no sound/vibration", 0, posted.defaults)
+        val channel = manager.notificationChannels.first { it.id == posted.channelId }
+        assertEquals(
+            "guidance is not interrupted: the notice rides the low-importance (silent) channel",
+            NotificationManager.IMPORTANCE_LOW,
+            channel.importance
+        )
     }
 
     @Test

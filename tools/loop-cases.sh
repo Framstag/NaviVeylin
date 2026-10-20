@@ -69,6 +69,9 @@ LOOP_SHELL_CASES=(
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
   'run#preflightRefusalStopsBeforeAnyWork'
   'run#blockedItemAsksItsOwnQuestion'
+  'run#falsifiedSkipClosesWithItsMeasurement'
+  'run#falsificationWithoutAMeasurementIsEscalated'
+  'run#mayCloseNoKeepsAFalsificationOpen'
   'run#decisionCapRefusesToStart'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
@@ -202,6 +205,9 @@ loop_run_shell_case() {
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
+    'run#falsifiedSkipClosesWithItsMeasurement') fn=case_run_falsifiedSkipClosesWithItsMeasurement ;;
+    'run#falsificationWithoutAMeasurementIsEscalated') fn=case_run_falsificationWithoutAMeasurementIsEscalated ;;
+    'run#mayCloseNoKeepsAFalsificationOpen') fn=case_run_mayCloseNoKeepsAFalsificationOpen ;;
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
@@ -385,6 +391,16 @@ LOOP-CHANGE: fix-demo
 LOOP-ROOT-CAUSE: the fixture has exactly one cause
 LOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)
 LOOP-GATE: tests=1 failures=0 (fixture)'
+
+# A falsified skip: the worker measured that the item's premise does not hold. Both halves are there — what the
+# item blames and what was measured instead, with how it was taken — and the tree is untouched.
+STUB_FALSIFIED_REPORT='LOOP-VERDICT: skipped
+LOOP-SKIP-VERDICT: falsified
+LOOP-FALSIFIED: the acquire await the item blames
+LOOP-MEASURED: 12-17 ms measured by MapCanvasViewModelNavEndRestoreTest, probe reverted
+LOOP-ROOT-CAUSE: the acquire await the item blames
+LOOP-RED-TEST: none — nothing was changed
+LOOP-GATE: not run — the tree is unchanged'
 
 stub_success() { # stub_success <dir> — a run that produces a change and a passing review
   stub_write "$1" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
@@ -1618,6 +1634,59 @@ case_run_blockedItemAsksItsOwnQuestion() {
   assert_contains "$body" 'The decision:' "the escalation carries a decision field, not only a reason"
   assert_contains "$body" 'retry' "the question names the first option"
   assert_contains "$body" 'abandon' "and the second"
+}
+
+# A falsification is the one skip whose finding is not a question: the run holds the number that settles the
+# item, so closing it as mis-diagnosed is the same two artifacts a fix closure posts (openspec change
+# `falsified-items-close-in-the-loop`).
+case_run_falsifiedSkipClosesWithItsMeasurement() {
+  local d p out log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_FALSIFIED_REPORT" 'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\n: # a falsification leaves the tree at the base\n' > "$d/worker-action.sh"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1) || fail "the run failed: $out"
+  log=$(cat "$d/gh.log")
+  assert_eq "item cap reached (1/1)" "$(jq -r '.run.stop.reason // "-"' "$(state_file "$p")")" \
+    "the run worked its one item and stopped on the cap"
+  assert_eq "falsified" "$(jq -r '.items[0].result // "none"' "$(state_file "$p")")" \
+    "the item is recorded apart from a fix and from a skip: $(jq -c '.items' "$(state_file "$p")")"
+  assert_eq "yes" "$(jq -r '.items[0].metrics.closed' "$(state_file "$p")")" "the closure happened"
+  assert_contains "$log" "issue close" "the item is closed"
+  assert_contains "$log" "12-17 ms" "the closure carries the measurement"
+  assert_contains "$log" "mis-diagnosed" "and names the reason: the named cause does not hold"
+  assert_not_contains "$log" "--add-label agent/needs-decision" "no decision label is written"
+}
+
+# Without the number the claim is a question again: two of the three halves is an escalation, not a finding.
+case_run_falsificationWithoutAMeasurementIsEscalated() {
+  local d p out log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$(printf '%s\n' "$STUB_FALSIFIED_REPORT" | grep -v '^LOOP-MEASURED:')" 'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\n: # nothing was changed\n' > "$d/worker-action.sh"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1) || fail "the run failed: $out"
+  log=$(cat "$d/gh.log")
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$(state_file "$p")")" "without a measurement it is a skip"
+  assert_contains "$log" "--add-label agent/needs-decision" "and it is escalated"
+  assert_not_contains "$log" "issue close" "nothing is closed"
+}
+
+# Closure disabled: the evidence is posted and the item stays open — the run does not reopen the question it
+# already answered.
+case_run_mayCloseNoKeepsAFalsificationOpen() {
+  local d p out log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_FALSIFIED_REPORT" 'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\n: # a falsification leaves the tree at the base\n' > "$d/worker-action.sh"
+  out=$(run_loop "$p" --items 1 --minutes 90 --may-close no 2>&1) || fail "the run failed: $out"
+  log=$(cat "$d/gh.log")
+  assert_eq "falsified" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the finding is recorded"
+  assert_eq "skipped" "$(jq -r '.items[0].metrics.closed' "$(state_file "$p")")" "the closure is left to a person"
+  assert_contains "$log" "issue comment" "the evidence is still posted"
+  assert_not_contains "$log" "issue close" "the item stays open"
+  assert_not_contains "$log" "--add-label agent/needs-decision" "no decision label is written"
 }
 
 # ----------------------------------------------------------------------------- cases: run
@@ -2858,7 +2927,7 @@ case_report_yieldIsCountedFromState() {
   run_state "$p" done 21 --result skipped --verdict needs-decision >/dev/null
   run_state "$p" done 22 --result blocked --verdict blocked >/dev/null
   out=$(run_report "$p") || fail "the report failed"
-  assert_contains "$out" "closed 0 · skipped 1 · blocked 1" "the yield is counted from the state file"
+  assert_contains "$out" "closed 0 · mis-diagnosed 0 · skipped 1 · blocked 1" "the yield is counted from the state file"
   rows=$(printf '%s' "$out" | grep -c '^| #2' || true)
   assert_eq "2" "$rows" "every recorded item has a row"
   assert_contains "$out" "#21 needs-decision" "a skip is reported with its verdict"
@@ -2935,7 +3004,7 @@ case_report_archivedStateIsReported() {
   init_state "$p" 1 30
   out=$(run_report "$p" --state "$archived") || fail "report --state failed"
   assert_contains "$out" "budget 4 items / 480 min" "the archived run's own budget is reported"
-  assert_contains "$out" "closed 0 · skipped 1 · blocked 0" "the archived run's counters are reported"
+  assert_contains "$out" "closed 0 · mis-diagnosed 0 · skipped 1 · blocked 0" "the archived run's counters are reported"
   assert_contains "$out" "stop: queue empty" "the archived run's stop reason is reported"
   assert_contains "$out" "| #21 |" "the archived run's item is tabled"
   assert_contains "$out" "#21 needs-diagnosis" "the archived run's skip is reported"

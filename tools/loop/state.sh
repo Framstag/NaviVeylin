@@ -31,7 +31,7 @@
 #   state.sh queue                      # read the queue as JSON on stdin (prescreen writes it)
 #   state.sh start <issue> --change <name>
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
-#   state.sh done <issue> --result done|skipped|blocked [--verdict V] [--change C] [--note TEXT]
+#   state.sh done <issue> --result done|skipped|blocked|falsified [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL]
@@ -216,7 +216,7 @@ cmd_show() {
       "budget   \($r.items) items / \($r.minutes) min · \($r.items - (.items | length)) left · deadline \($r.deadlineAt) · \((($r.deadlineEpoch - now) / 60 | floor)) min left\(if $r.deadlineEpoch <= now then " · EXPIRED" else "" end)",
       "flags    review \($r.review) · review rounds \($r.maxReviewRounds // "?") · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
       "stop     \($r.stop.reason // "not stopped — the run is still going, or it ended without recording a reason")",
-      "progress closed \(.items | map(select(.result == "done")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \($r.items)",
+      "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",
       "excluded \(.excluded | length): \([.excluded[] | "#\(.issue) \(.reason)"] | join(" · "))",
       "",
@@ -388,7 +388,7 @@ cmd_done() {
     esac
   done
   case "$issue" in ''|*[!0-9]*) loop_die "done: usage: state.sh done <issue> --result done|skipped|blocked" ;; esac
-  case "$result" in done|skipped|blocked) ;; *) loop_die "done: --result must be done|skipped|blocked" ;; esac
+  case "$result" in done|skipped|blocked|falsified) ;; *) loop_die "done: --result must be done|skipped|blocked|falsified" ;; esac
   [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading
   # the tracker; an item with no queue entry (a resumed run) falls back to the empty string.
@@ -492,7 +492,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,con
 cmd_report() {
   require_state
   jq -r '
-    "closed \(.items | map(select(.result == "done")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
+    "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
     "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason |",
     "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",

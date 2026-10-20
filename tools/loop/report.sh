@@ -58,6 +58,7 @@ fi
 items=$(jq -r '.run.items' "$state_file")
 minutes=$(jq -r '.run.minutes' "$state_file")
 closed=$(jq -r '[.items[] | select(.result == "done")] | length' "$state_file")
+misdiagnosed=$(jq -r '[.items[] | select(.result == "falsified")] | length' "$state_file")
 skipped=$(jq -r '[.items[] | select(.result == "skipped")] | length' "$state_file")
 blocked=$(jq -r '[.items[] | select(.result == "blocked")] | length' "$state_file")
 
@@ -88,12 +89,12 @@ if is_num "$run_epoch" && is_num "$deadline_epoch"; then
   fi
 fi
 if [ -n "$spent_min" ]; then
-  printf 'closed %s · skipped %s · blocked %s · budget left %s items / %s min · spent %s min\n\n' \
-    "$closed" "$skipped" "$blocked" \
-    "$((items - closed - skipped - blocked))" "$((minutes - spent_min))" "$spent_min"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left %s items / %s min · spent %s min\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" \
+    "$((items - closed - misdiagnosed - skipped - blocked))" "$((minutes - spent_min))" "$spent_min"
 else
-  printf 'closed %s · skipped %s · blocked %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
-    "$closed" "$skipped" "$blocked" "$deadline_at"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$deadline_at"
 fi
 
 # Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
@@ -108,6 +109,10 @@ printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reaso
 LOOP_STATE_FILE="$state_file" bash "$LOOP_DIR/state.sh" report
 
 printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#\(.issue) \(.verdict)\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# A falsified item is closed, but not by a change: the run measured that the item's premise does not hold. It is
+# named apart from the closures so a run that only falsified does not read as a run that delivered (openspec
+# change `falsified-items-close-in-the-loop`).
+printf 'mis-diagnosed: %s\n' "$(jq -r '[.items[] | select(.result == "falsified") | "#\(.issue) \(.metrics.rootCause // "")"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
@@ -190,7 +195,7 @@ done <<< "$branches"
 while IFS=$'\t' read -r issue; do
   [ -n "${issue:-}" ] || continue
   actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"
-done < <(jq -r '.items[] | select(.result != "done") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
+done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
 
 # A citation the pre-screen still refuses is work a person can do and the run cannot: the repair path is
 # the tooling's own, and it is named with the item.

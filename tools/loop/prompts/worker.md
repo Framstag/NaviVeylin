@@ -116,12 +116,22 @@ LOOP-ROOT-CAUSE: <one line>
 LOOP-RED-TEST: <case name> fails on HEAD — XML tests=<n> failures=<n> (<timestamp>)
 LOOP-GATE: tests=<n> failures=<n> (<flavour/module coverage>)
 LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why>
+LOOP-FALSIFIED: <the mechanism the item blames, quoted — only with LOOP-SKIP-VERDICT: falsified>
+LOOP-MEASURED: <the number you measured instead, and how you took it: case name, command, or probe>
 ```
 
 `LOOP-DECISION` is required when your verdict leaves a person a choice — a skip on `needs-decision` or
 `needs-diagnosis`, or a blocked item. It is what the item's escalation carries onto the tracker, and it is the
 only thing a later reader will see: name what must be chosen between, what each option costs, and which one you
 recommend. An escalation that carries a verdict and no question is a state nobody can answer.
+
+**The one skip that is not a question.** When your verification shows the item's *premise* does not hold — the
+mechanism it blames is not what the measurement shows, or the cause it names is not in the tree — answer
+`skipped` with the sub-verdict `falsified` and record both halves: `LOOP-FALSIFIED` names what the item blames,
+`LOOP-MEASURED` names the number you measured instead **and how you took it** (the case, the command, or the
+probe). A falsification means the tree is unchanged, so it carries no `LOOP-DECISION`: the run holds the
+measurement, closes the item as mis-diagnosed and records it apart from a fix. A falsification with no number,
+or with a number whose origin nobody can repeat, is read as an ordinary skip and escalated.
 
 `LOOP-VERDICT: closed` means: the red case existed and is now green, the affected cases pass, the archive
 exists, and the evidence is in `{{EVIDENCE_DIR}}`.

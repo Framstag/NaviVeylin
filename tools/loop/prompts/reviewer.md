@@ -51,6 +51,13 @@ restatement, a nicer way to say the same thing. A note is recorded on the item a
 
 A finding you cannot grade is **blocking**: an ungraded refusal is read as a refusal.
 
+**When the item is a falsification.** A round can reach you with an empty diff, because the worker answered
+that the item's premise does not hold (`LOOP-FALSIFIED` and `LOOP-MEASURED` in its report). The diff cannot show
+whether that is right, so the report is the whole claim and it is read like one: does the measurement cover the
+*mechanism* the item blames, and can it be repeated from what the worker named? A measurement of something else,
+a number with no origin, or a claimed falsification that left files changed is a **blocking** finding — the item
+then escalates instead of closing.
+
 ## The count, then the verdict it licenses
 
 At the end of the report, state the number of blocking findings and the verdict that number allows, in this

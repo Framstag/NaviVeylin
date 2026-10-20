@@ -685,6 +685,12 @@ while true; do
   gate_claim=$(report_field "$item_dir/worker-report.md" LOOP-GATE)
   outside_write=$(report_field "$item_dir/worker-report.md" LOOP-OUTSIDE-WRITE)
   timeout_claim=$(report_field "$item_dir/worker-report.md" LOOP-TIMEOUT)
+  # A falsification is the one skip whose finding is not a question: the worker measured that the mechanism the
+  # item blames does not hold. Both halves are required before the run treats it as one — what was blamed, and
+  # what was measured instead with how it was taken — because a claim nobody can check is a question again
+  # (openspec change `falsified-items-close-in-the-loop`).
+  falsified_mechanism=$(report_field "$item_dir/worker-report.md" LOOP-FALSIFIED 2>/dev/null || true)
+  falsified_measurement=$(report_field "$item_dir/worker-report.md" LOOP-MEASURED 2>/dev/null || true)
 
   # The run verifies rather than trusts: it commits the child's work itself and then reads the tree, the
   # archive and the gate's evidence, instead of repeating the child's claims (D3, D8).
@@ -741,6 +747,12 @@ while true; do
     if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
   elif [ -n "$outside_write" ]; then
     outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran"
+  elif [ "$verdict_claim" = "skipped" ] && [ "${skip_verdict:-}" = "falsified" ] \
+    && [ -n "$falsified_mechanism" ] && [ -n "$falsified_measurement" ] && [ "$head_now" = "$base" ]; then
+    # Measured 2026-10-20: three of the first four items of one run (#89, #99, #137) were items whose premise the
+    # worker disproved, and each was escalated as a decision although the run held the number that settled it.
+    # The empty tree is part of the evidence — a falsification that changed files is a change.
+    outcome="falsified"
   elif [ "$verdict_claim" = "skipped" ]; then
     outcome="skipped"
   elif [ "$head_now" = "$base" ]; then
@@ -756,7 +768,7 @@ while true; do
   review_rounds=0
   review_verdict="off"
   review_notes_text=""
-  if [ "$outcome" = "closed" ] && [ "$review" = "on" ]; then
+  if { [ "$outcome" = "closed" ] || [ "$outcome" = "falsified" ]; } && [ "$review" = "on" ]; then
     review_verdict="FAIL"
     round=1
     # The round budget is the recorded one (`--max-review-rounds`, or the config's default), and one
@@ -869,13 +881,38 @@ $review_notes_text"
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
         --events "$events_file" --note "$note_field" >/dev/null
       ;;
+    falsified)
+      # The run holds the evidence that settles the item: what it blames was measured and does not hold. That is a
+      # finding, not a question, so the item is closed as mis-diagnosed — the same two artifacts a fix closure
+      # posts (a reason, then the evidence), with the settled state a decision not to act records. With closure
+      # disabled the same comment is posted and the item stays open, and no decision label is written either
+      # way: the run already answered the item it would have asked about.
+      falsified_reason="mis-diagnosed: the named cause does not hold — $falsified_mechanism
+
+**Measured:** $falsified_measurement"
+      falsified_evidence="$item_dir, $worktree unchanged at $base, review round $review_rounds"
+      loop_labels unpick "$issue" >&2 || true
+      closure="skipped"
+      if [ "$may_close" = yes ]; then
+        if loop_issue_tool close.sh "$issue" --reason "$falsified_reason" --evidence "$falsified_evidence" \
+          --not-planned >&2; then closure="yes"; fi
+      else
+        loop_issue_tool close.sh "$issue" --reason "$falsified_reason" --evidence "$falsified_evidence" \
+          --not-planned --comment-only >&2 || true
+      fi
+      loop_state done "$issue" --result falsified --verdict falsified \
+        --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --closed "$closure" \
+        --root-cause "$falsified_mechanism" --red-test "$falsified_measurement" \
+        --events "$events_file" --note "the premise does not hold" >/dev/null
+      ;;
     skipped)
       # The in-progress mark comes off on every exit path (labels.sh, header): an item a run skipped is no
       # more in progress than one it blocked, and an item that carries `agent/in-progress` while nothing is
       # running misreports the tracker to whoever reads it next.
       loop_labels unpick "$issue" >&2 || true   # the exit path clears the mark
       escalated_label=""
-      if [ "$skip_verdict" = "$decision_agent" ] || [ "$skip_verdict" = "needs-diagnosis" ]; then
+      if [ "$skip_verdict" = "$decision_agent" ] || [ "$skip_verdict" = "needs-diagnosis" ] \
+        || [ "$skip_verdict" = "falsified" ]; then
         # Escalation, not abandonment: the work already done is named on the item (spec, D9), and so is the
         # question — a worker that reached a decision states it in LOOP-DECISION, and an escalation that
         # carries a verdict without one leaves the owner a state nobody can answer (#194). The worker's

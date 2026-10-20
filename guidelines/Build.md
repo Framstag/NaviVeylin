@@ -887,16 +887,25 @@ byte-identical (same md5), as `release-target` requires.
 (`test -PforceTests --no-build-cache`, §3) and a following step prints the per-module, per-flavor tallies
 from the result XML, so the log names which suites executed rather than only the verdict.
 
-**The pin clears the Gradle 10 deprecation — Kover 0.9.9 or newer.** Kover 0.9.8 passed a
-`Project` object to `DependencyHandler.add` while its plugin was applied, which Gradle 9.6 reported as
-"Using a Project object as a dependency notation has been deprecated … This will fail with an error in
-Gradle 10". The stack frame was inside the plugin
-(`kotlinx.kover.gradle.plugin.appliers.PrepareKoverKt.prepare`), so no script here could silence it —
-the pinned version was the only lever, and upstream ended that call path in 0.9.9: its changelog entry
-for issue #818 reads "Fixed Gradle 9.6.0 deprecation warning". The absence of the warning with 0.9.9
-is that changelog's attribution, not a measurement archived in this repository.
-`KoverDeprecationBaselineTest` (`:app` unit tests) holds this section and `build.gradle.kts` to the
-threshold the changelog names: a downgrade fails it.
+**Gradle deprecation baseline: swept 2026-10-20, and the one upstream family is pinned away.** `./gradlew
+--offline --warning-mode all help` reports exactly two warning families on Gradle 9.6.1. The project-owned
+one — ten `val <name> by tasks.registering { }` registrations in `app`, `auto` and `core` — is gone (change
+`fix-gradle10-script-deprecations`): each is now `val <name> = tasks.register("<name>") { }`, with the same
+task name, configure block and `dependsOn` edges, and the command reports **none** of them. The guard is the
+`:app` case `GradleScriptDeprecationTest` "no project build script uses a removed Gradle construct", which
+the gate runs: it scans every `*.gradle.kts` the project owns (8 scripts) and prints `scripts=`/`findings=`,
+so a returning delegate is a failing case rather than a warning nobody reads.
+
+The family that remains is upstream — Kover: 0.9.8 passed a `Project` object to `DependencyHandler.add`
+while its plugin was applied, which Gradle 9.6 reported as "Using a Project object as a dependency notation
+has been deprecated … This will fail with an error in Gradle 10". The stack frame was inside the plugin
+(`kotlinx.kover.gradle.plugin.appliers.PrepareKoverKt.prepare`), so no script here could silence it, and
+commenting the three `kover(project(":x"))` declarations of `build.gradle.kts` out did not remove the
+warning either — the pinned version was the only lever. Upstream ended that call path in 0.9.9 (its changelog
+for issue #818: "Fixed Gradle 9.6.0 deprecation warning"), and the pin is 0.9.9.
+`KoverDeprecationBaselineTest` (`:app` unit tests) holds this section and `build.gradle.kts` to that
+threshold: a downgrade fails it. The absence of the warning with 0.9.9 is that changelog's attribution, not
+a measurement archived in this repository.
 
 ## 8. SBOM generation (CycloneDX)
 

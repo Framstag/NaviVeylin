@@ -101,7 +101,7 @@ kover {
 // literal here (the shared details resolver's generic title was one) is a defect
 // the app-side gate could not see. The rule lives in `buildSrc`
 // (`com.naviveylin.build.i18n.HardcodedStringScanner`, unit-tested).
-val checkHardcodedStrings by tasks.registering {
+val checkHardcodedStrings = tasks.register("checkHardcodedStrings") {
     val sourceDirs = listOf(file("src/main/java"))
     inputs.files(sourceDirs)
     doLast {
@@ -122,7 +122,7 @@ tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 // — Wall-clock waits in test sources are refused by a build check). The scanner is the pure buildSrc
 // object, so this task only points it at this module's own test sources, and there is no allowlist on
 // purpose.
-val checkNoWallClockWaits by tasks.registering {
+val checkNoWallClockWaits = tasks.register("checkNoWallClockWaits") {
     val testSources = file("src/test/java")
     inputs.files(testSources)
     doLast {

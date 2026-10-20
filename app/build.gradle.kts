@@ -374,7 +374,7 @@ kover {
 // (`"$favCount favorite"`), and a `NotificationChannel` name — are each a defect
 // this gate existed for. It scans the same three source roots as the diagnostics
 // gate so one `:app` build covers every module that renders user-facing text.
-val checkHardcodedStrings by tasks.registering {
+val checkHardcodedStrings = tasks.register("checkHardcodedStrings") {
     val sourceDirs = listOf(
         file("src/main/java"),
         rootProject.file("auto/src/main/java"),
@@ -403,7 +403,7 @@ tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 // its logic and fixtures live in buildSrc
 // (`com.naviveylin.build.diagnostics`). A message that only mentions a coordinate
 // word in prose must be reworded — the gate has no allowlist on purpose.
-val checkNoCoordinatesInLogs by tasks.registering {
+val checkNoCoordinatesInLogs = tasks.register("checkNoCoordinatesInLogs") {
     val sourceDirs = listOf(
         file("src/main/java"),
         rootProject.file("auto/src/main/java"),
@@ -441,7 +441,7 @@ tasks.named("preBuild") { dependsOn(checkNoCoordinatesInLogs) }
 // name build-time hosts), and the main manifest references the config — without that reference no
 // config applies at all. The scanner and its fixtures live in buildSrc
 // (`com.naviveylin.build.transport`).
-val checkCleartextTransportPolicy by tasks.registering {
+val checkCleartextTransportPolicy = tasks.register("checkCleartextTransportPolicy") {
     val configFile = file("src/main/res/xml/network_security_config.xml")
     val manifestFile = file("src/main/AndroidManifest.xml")
     inputs.files(configFile, manifestFile)
@@ -471,7 +471,7 @@ tasks.named("preBuild") { dependsOn(checkCleartextTransportPolicy) }
 //
 // `:auto` and `:core` get the same wiring in their own build files, each in the change that cleans that
 // module's sources (tasks 4.3 and 5.2).
-val checkNoWallClockWaits by tasks.registering {
+val checkNoWallClockWaits = tasks.register("checkNoWallClockWaits") {
     val testSources = file("src/test/java")
     inputs.files(testSources)
     doLast {
@@ -603,7 +603,7 @@ val sbomOutputRoot = layout.buildDirectory.dir("outputs/sbom")
 
 // One-time (cached) download of the pinned CLI. Pure-Java download so the
 // task works on every host; fails with an actionable message on network error.
-val downloadSbomCli by tasks.registering {
+val downloadSbomCli = tasks.register("downloadSbomCli") {
     group = "sbom"
     description =
         "Downloads the pinned cyclonedx-cli binary (cached under build/cyclonedx-cli/)."
@@ -731,7 +731,7 @@ fun vcpkgPorts(vcpkgStatusFile: File, triplet: String): List<String> {
     return ports.sorted()
 }
 
-val mergeNativeSbom by tasks.registering {
+val mergeNativeSbom = tasks.register("mergeNativeSbom") {
     group = "sbom"
     description =
         "Converts every vcpkg package SPDX SBOM (all triplets) to CycloneDX and merges them."

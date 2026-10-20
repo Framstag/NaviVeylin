@@ -115,7 +115,7 @@ kover {
 // (`com.naviveylin.build.i18n.HardcodedStringScanner`, unit-tested). It covers
 // Compose text positions, interpolated display text and `NotificationChannel`
 // names — the shapes the previous inline regexes let through.
-val checkHardcodedStrings by tasks.registering {
+val checkHardcodedStrings = tasks.register("checkHardcodedStrings") {
     val sourceDirs = listOf(file("src/main/java"))
     inputs.files(sourceDirs)
     doLast {
@@ -135,7 +135,7 @@ tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 // controls, never from a sleep or a system-clock deadline (spec `unit-test-suite-runtime` — Wall-clock
 // waits in test sources are refused by a build check). The scanner is the pure buildSrc object, so this
 // task only points it at this module's own test sources, and there is no allowlist on purpose.
-val checkNoWallClockWaits by tasks.registering {
+val checkNoWallClockWaits = tasks.register("checkNoWallClockWaits") {
     val testSources = file("src/test/java")
     inputs.files(testSources)
     doLast {

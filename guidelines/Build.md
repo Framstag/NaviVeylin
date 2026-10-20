@@ -577,6 +577,12 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   run under `@RunWith(RobolectricTestRunner::class)` with the DEFAULT sandbox
   config — do NOT set `@Config(sdk=...)` or `@GraphicsMode(...)`. Violations
   cause "already loaded in another classloader" failures in full-suite runs.
+  The rule is enforced, not remembered: `JniStubSandboxRuleTest`
+  (`app/src/test/java/com/naviveylin/test/`) reads the test sources of both
+  stub-shipping modules (`:app`, `:auto`) and fails naming file and line for a
+  line-anchored `@Config(… sdk …)`/`@GraphicsMode(…)` in a file that names the
+  client package. A `@Config(qualifiers=...)` starts no second sandbox and stays
+  allowed.
 - **Teardown rule — release what the test starts.** Any test that constructs a
   component owning long-lived background work (its own coroutine scope, timers, a
   render loop, a native surface, a large retained bitmap) MUST release it before

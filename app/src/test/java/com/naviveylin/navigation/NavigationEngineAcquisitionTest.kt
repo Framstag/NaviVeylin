@@ -24,7 +24,6 @@ import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.FailureReason
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
-import org.robolectric.annotation.Config
 import androidx.test.core.app.ApplicationProvider
 import com.naviveylin.test.engineUnderTest
 
@@ -32,10 +31,13 @@ import com.naviveylin.test.engineUnderTest
  * Tests for the car-only route calculation fallback in [NavigationEngine]
  * (used when the phone [com.naviveylin.ui.route.RoutePanelViewModel] is not
  * wired — e.g. navigation started from Android Auto via a deep link).
+ *
+ * Runs under Robolectric with the DEFAULT sandbox — no `@Config(sdk = …)`: the class instantiates
+ * `FakeOSMScoutClient`, whose stub `.so` can only load in one classloader (`guidelines/Build.md` §6;
+ * `JniStubSandboxRuleTest` holds that rule to the sources).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class NavigationEngineAcquisitionTest {
 
     /**

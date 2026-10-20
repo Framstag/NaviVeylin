@@ -16,12 +16,27 @@ latent and green, and the suite's verdict depended on fork order rather than on 
 2. Add `app/src/test/java/com/naviveylin/test/JniStubSandboxRuleTest.kt`, a plain JUnit case that reads the
    test sources of the two modules that ship the stub (`:app`, `:auto`), reports every line-anchored
    `@Config(…sdk…)`/`@GraphicsMode(…)` in a file that names the `com.framstag.libosmscout.client` package, and
-   fails naming file and line. Five cases: the tree scan, a module-root presence check (no vacuous pass), and
-   three controls (a pinned stub-loading fixture is reported; a pinned non-stub fixture and a
-   `@Config(qualifiers=…)` on a stub fixture are not).
+   fails naming file and line. Five cases at round 1: the tree scan, a module-root presence check (no vacuous
+   pass), and three controls (a pinned stub-loading fixture is reported; a pinned non-stub fixture and a
+   `@Config(qualifiers=…)` on a stub fixture are not); the round-2 correction below adds the sixth.
 
 One fix, no option left open: the annotation goes, and the rule becomes mechanical in the same artefact the gate
 already runs.
+
+## Round-2 correction (review refusal, item #81)
+
+Round 1 measured only the `@Config(… sdk …)` half of the contract: the requirement refused two syntactic forms,
+but the red case, the positive control and both negative controls used `@Config`, so
+`sandboxPinHits`'s `GRAPHICS_PIN` branch never ran and Scenario 1's graphics trigger rested on the sdk trigger.
+The branch is live, not hypothetical — `ui/map/CompassNeedleStrokeTest.kt:44` and
+`ui/navigation/NavigationStatusRingRasterTest.kt:55` carry `@GraphicsMode(GraphicsMode.Mode.NATIVE)` today (they
+name no client package, which is why the tree scan stays green).
+
+Correction, one case and no production change: `aGraphicsModeOnAStubLoadingClassIsReported` — a fixture that
+imports the client package and carries `@GraphicsMode(GraphicsMode.Mode.NATIVE)` at its fifth line — asserts one
+finding ending in `5: @GraphicsMode(GraphicsMode.Mode.NATIVE)`. The delta gains that scenario, so each refused
+form now has exactly one case. Falsified by mutating the branch (`val graphicsMode = false`): the new case fails
+alone (`tests="6" failures="1"`), and it is green again with the branch restored, in both `:app` flavours.
 
 ## Alternatives the evidence eliminated
 
@@ -41,7 +56,7 @@ already runs.
 
 ## Blast radius
 
-- Two test files: one annotation + one import deleted (plus a KDoc paragraph), one new 5-case test class.
+- Two test files: one annotation + one import deleted (plus a KDoc paragraph), one new 6-case test class.
 - No production source, no build script, no dependency, no native input, no flavour definition — the same class
   set runs in both `:app` flavours.
 - The only behaviour that changes is which Robolectric sandbox the acquisition class gets: default (targetSdk 36
@@ -49,6 +64,19 @@ already runs.
   `FakeOSMScoutClient` through shadows that exist on both levels.
 - Suite-level risk: the removed pin is exactly what could have caused "already loaded in another classloader" in
   a full-suite run; the gate is the measurement that it does not.
+
+## What the case does not cover (stated, not implied)
+
+- **The properties form**: `auto/src/test/resources/robolectric.properties` sets `sdk=34` for the whole `:auto`
+  module, and 33 `:auto` test files name the client package. The scan reads `*.kt` under `src/test/java` only, so
+  that module-wide pin is out of the requirement's scope — deliberately, because widening the detector to
+  `.properties` is a second mechanism and a second fix, not this one.
+- **A `:auto`-only run**: the case lives in `:app`, so `./gradlew :auto:test` alone enforces nothing on `:auto`
+  sources. The gate (`./gradlew test`) runs `:app` and `:auto`, which is the run that matters.
+- **The default sandbox's SDK level**: the engine class's six green cases measure that removing the annotation
+  broke nothing; they do not measure which level the default resolves to.
+- **A multi-line `@Config(\n sdk = …)` and a stub reached without naming the client package**: outside the
+  line-anchored, package-named form the requirement states.
 
 ## Rollback
 

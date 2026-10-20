@@ -22,7 +22,7 @@ base commit `3c1ecc7` — XML `tests="5" skipped="0" failures="1" errors="0"`,
 @Config(sdk = [34])]`. The red XML is retained at
 `.pi/issue-loop/items/81/red-jnistubsandbox-JniStubSandboxRuleTest.xml` and copied into this change's
 `evidence/red/`; after the fix the same class is green (`tests="5" failures="0"`, ts
-`2026-10-20T13:40:10.xxx`).
+`2026-10-20T13:41:01.814Z`).
 
 Repro: `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.test.JniStubSandboxRuleTest"`.
 
@@ -38,9 +38,10 @@ change)   Guideline: `guidelines/Build.md` §6 "Test constraints" (the JNI stub 
 - **A host case holds the rule to the sources** (`app/src/test/java/com/naviveylin/test/JniStubSandboxRuleTest.kt`):
   it reads the test sources of both stub-shipping modules (`:app`, `:auto`), reports every line-anchored
   `@Config(…sdk…)` / `@GraphicsMode(…)` in a file that names the client package, and fails naming file and
-  line. Two control cases prove the detector is not vacuous (a pinned stub-loading fixture is reported) and
-  not over-reaching (a pinned class that loads no stub, and a `@Config(qualifiers = …)` on a stub class, are
-  allowed); a fourth case fails if a module root was not read.
+  line. Controls prove the detector is neither vacuous nor over-reaching: a pinned stub-loading fixture is
+  reported, a `@GraphicsMode(GraphicsMode.Mode.NATIVE)` stub-loading fixture is reported through the second
+  refused form, a pinned class that loads no stub and a `@Config(qualifiers = …)` on a stub class are allowed,
+  and a further case fails if a module root was not read.
 - **`unit-test-suite-runtime` gains one requirement** with its scenarios, one per case above.
 - Additive, not breaking: no production code, no API, no persisted state. Rollback is the reversion of two
   files, plus the delta spec.
@@ -58,8 +59,8 @@ change)   Guideline: `guidelines/Build.md` §6 "Test constraints" (the JNI stub 
 ## Impact
 
 - **Test code**: `app/src/test/java/com/naviveylin/navigation/NavigationEngineAcquisitionTest.kt` (annotation +
-  import removed, KDoc extended), `app/src/test/java/com/naviveylin/test/JniStubSandboxRuleTest.kt` (new, 5
-  cases).
+  import removed, KDoc extended), `app/src/test/java/com/naviveylin/test/JniStubSandboxRuleTest.kt` (new, 6
+  cases — five from the fix, one added by the review round for the `@GraphicsMode` form).
 - **No production code, no build script, no dependency.** The gate is `./gradlew test -PforceTests
   --no-build-cache`; the full `:app` suite is also the only measurement that can show the removed pin caused no
   "already loaded in another classloader" failure.

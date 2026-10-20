@@ -42,14 +42,18 @@
   XML tallies: both `:app` flavours (the removed pin's only suite-level risk is an "already loaded in another
   classloader" failure, which only a full-suite run can show), `:auto`, `:core` and
   `:osmscout-client-java`. Grep the log for `already loaded in another classloader` and record the count.
-  **Done:** `BUILD SUCCESSFUL in 3m 30s` (2026-10-20T13:40:55Z start, gate log `/tmp/gate-81.log`), 558 suite
-  XMLs, `grep -c 'already loaded in another classloader'` = **0**. Tallies from the XML:
+  **Done:** `BUILD SUCCESSFUL in 3m 30s` (2026-10-20T13:40:55Z start, gate log retained as
+  `evidence/green/gate-81.log`), 711 suite XMLs across the five test tasks (279 `:app` mobile, 279 `:app`
+  automotive, 85 `:auto`, 60 `:core`, 8 `:osmscout-client-java`; re-derived from the gate's XMLs, because the
+  round's focused runs later replaced the two `:app` result directories), `grep -c 'already loaded in another
+  classloader'` = **0**. Tallies from the XML:
   `:app` mobile `tests=2071 skipped=0 failures=0 errors=0`; `:app` automotive `tests=2071 failures=0`;
   `:auto` `tests=866 failures=0`; `:core` `tests=642 failures=0`; `:osmscout-client-java` `tests=48 failures=0`
   — 5698 tests, 0 failures, 0 errors. The two changed classes in both `:app` flavours:
-  `JniStubSandboxRuleTest tests="5" failures="0"` (mobile ts `2026-10-20T13:43:01.165Z`) and
-  `NavigationEngineAcquisitionTest tests="6" failures="0"` (mobile ts `2026-10-20T13:43:09.343Z`), each with its
-  automotive sibling. Retained: `evidence/green/{Mobile,Automotive}-com.naviveylin.*.xml`.
+  `NavigationEngineAcquisitionTest tests="6" failures="0"` (mobile ts `2026-10-20T13:41:19.019Z`, automotive ts
+  `2026-10-20T13:43:01.165Z`) and `JniStubSandboxRuleTest tests="5" failures="0"` (mobile ts
+  `2026-10-20T13:41:01.814Z`, automotive ts `2026-10-20T13:43:09.343Z`), each with its automotive sibling.
+  Retained: `evidence/green/{Mobile,Automotive}-com.naviveylin.*.xml`.
 
 ## 5. Evidence and archive
 
@@ -58,4 +62,33 @@
   `openspec/specs/unit-test-suite-runtime/spec.md`.
   **Done:** `Change 'fix-jni-stub-sandbox-rule' is valid`; archived as `2026-10-20-fix-jni-stub-sandbox-rule`,
   `unit-test-suite-runtime: + 1 added`, and the requirement is at
-  `openspec/specs/unit-test-suite-runtime/spec.md:373` with the five case names.
+  `openspec/specs/unit-test-suite-runtime/spec.md:374` with the six case names.
+
+## 6. Round-2 correction: the second refused form gets a case
+
+- [x] 6.1 The review round refused the change: the requirement refuses `@Config(… sdk …)` **and**
+  `@GraphicsMode(…)`, but no case executed the detector's graphics branch (review `BLOCKING: 1`). Add one case,
+  `JniStubSandboxRuleTest.aGraphicsModeOnAStubLoadingClassIsReported`: a fixture that imports the client package
+  and carries `@GraphicsMode(GraphicsMode.Mode.NATIVE)` at line 5 is reported exactly once, with the line named.
+  **Done:** the class runs six cases, all green in both `:app` flavours — mobile `tests="6" failures="0"` (ts
+  `2026-10-20T13:48:04.022Z`), automotive `tests="6" failures="0"` (ts `2026-10-20T13:48:09.316Z`), with
+  `system-out` `graphicsModeControl=[fixture/NativeGraphicsStubTest.kt:5: @GraphicsMode(GraphicsMode.Mode.NATIVE)]`.
+  Retained: `evidence/green/round2-Mobile-…JniStubSandboxRuleTest.xml`, `evidence/green/round2-Automotive-…`.
+
+- [x] 6.2 Falsify the new branch: with `val graphicsMode = false` in `sandboxPinHits` the new case is the only
+  failure — `tests="6" failures="1" errors="0"`, ts `2026-10-20T13:47:53.932Z`, message `the detector must
+  report a stub-loading class that pins a graphics mode`. Restored, the class is green again (6.1). No marker
+  or mutation is left in the tree.
+  **Done:** retained as `evidence/red/round2-jnistubsandbox-JniStubSandboxRuleTest.xml`.
+
+- [x] 6.3 Say what the case does not cover, where the reader looks: the delta requirement and its
+  `:auto`-only / properties-file / line-anchored scope (`unit-test-suite-runtime`), the class KDoc,
+  `guidelines/Build.md` §6's pointer, and `design.md`'s "What the case does not cover".
+  **Done:** the delta's scope paragraph names the `*.kt`-under-`src/test/java` scope and the out-of-scope
+  properties form; Scenario 7's THEN claims only that the six cases pass, not which level the default sandbox
+  resolves to.
+
+- [x] 6.4 Repair this change's own record: task 4.1's "558 suite XMLs" was only the two `:app` flavour suites
+  (279 + 279) where the gate's five test tasks produced 711, and its two timestamps were attributed to the
+  wrong class and flavour. The gate log is copied into `evidence/green/` so the tallies outlive `/tmp`.
+  **Done:** 4.1 corrected; `evidence/green/gate-81.log` retained.

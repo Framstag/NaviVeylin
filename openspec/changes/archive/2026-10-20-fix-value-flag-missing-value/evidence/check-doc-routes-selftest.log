@@ -1,0 +1,13 @@
+$ bash tools/check-doc-routes-selftest.sh
+PASS  a map where every reference resolves (exit 0)
+PASS  a dangling section number fails naming the reference (exit 1)
+PASS  a bare duplicated number is reported as ambiguous (exit 1)
+PASS  heading text that matches nothing fails (exit 1)
+PASS  a document the table references but that does not exist is reported (exit 1)
+PASS  an AGENTS.md without a Documentation Map is reported (exit 2)
+PASS  an extra guideline that no route names is reported (exit 1)
+PASS  an extra guideline that is routed and resolves passes without editing the check (exit 0)
+PASS  an extra guideline whose section does not exist is reported (exit 1)
+PASS  the repository's AGENTS.md is untouched by every case
+check-doc-routes-selftest: 10 passed, 0 failed
+exit=0

@@ -1,0 +1,9 @@
+$ bash -n <changed scripts>
+bash -n exit=0
+$ bash tools/issues/create.sh --finding --class bug
+create: --finding needs a value
+exit=2
+$ bash tools/loop/run.sh --items 100 --minutes 480 --push
+run: --push needs a value
+exit=2
+2026-10-20T07:39:14Z

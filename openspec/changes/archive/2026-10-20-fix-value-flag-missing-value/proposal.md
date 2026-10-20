@@ -20,16 +20,24 @@ unguarded consumption was in every one of the tooling's parsers.
   `tools/loop/run.sh` (9), `tools/issues/list.sh` (8), `tools/sensors/run.sh`, `tools/issues/update.sh`,
   `tools/issues/prioritise.sh`, `tools/gen-feature-list.sh` (7 each), down to one in
   `tools/check-portability.sh`. Which of them hang depends only on where the bare flag lands in argv; none
-  can report the missing value, because none checks for it before shifting.
-- **Red test** (base commit, 2026-10-20T07:11Z, `tools/loop-selftest.sh --case …` and
-  `tools/issue-tooling-selftest.sh --case …`, logs in `.pi/issue-loop/items/190/red-3.log`):
+  can report the missing value, because none checks for it before shifting. Ten more arms in ten harnesses
+  (seven self-tests, three mutation harnesses) read `${2:-}` with no check and no shift at all, so a bare
+  `--case` ran every case and a bare `--only` ran the whole mutation set: 162 value-flag arms across 45
+  engines (measured in the tree at the end of this change).
+- **Red test** (base commit `a04ef9bf`, 2026-10-20, `tools/loop-selftest.sh --case …` and
+  `tools/issue-tooling-selftest.sh --case …`):
 
-  | case | on HEAD |
-  |---|---|
-  | `usage#bareValueFlagAtTheEndOfArgvIsAUsageError` | FAIL — `run.sh --items 100 --minutes 480 --push` exited 124, not 2 |
-  | `usage#bareValueFlagDoesNotSwallowTheNextFlag` | FAIL — `run.sh --items 100 --push --dry-run` answered `run: --push must be yes or no` |
-  | `usage#noUnguardedValueFlagRemains` | FAIL — 152 value flags still consume their value before checking it |
-  | `create#bareValueFlagNeedsAValue` | FAIL — `create.sh --finding --class bug` answered `create: unknown argument bug` |
+  | case | on the base commit | log |
+  |---|---|---|
+  | `usage#bareValueFlagAtTheEndOfArgvIsAUsageError` | FAIL — `run.sh --items 100 --minutes 480 --push` exited 124, not 2 | `evidence/red-on-HEAD.log` |
+  | `usage#bareValueFlagDoesNotSwallowTheNextFlag` | FAIL — `run.sh --items 100 --push --dry-run` answered `run: --push must be yes or no` | `evidence/red-on-HEAD.log` |
+  | `create#bareValueFlagNeedsAValue` | FAIL — `create.sh --finding --class bug` answered `create: unknown argument bug` | `evidence/red-on-HEAD.log` |
+  | `usage#noUnguardedValueFlagRemains` (as first written) | FAIL — 152 value flags still consume their value before checking it | `evidence/red-on-HEAD-first-run.log` (154: it still counted the two literals in `loop-cases.sh`, superseded) and `evidence/red-on-HEAD-sweep.log` (152) |
+  | `usage#bareValueFlagInASingleShotHarnessIsAUsageError` and the widened sweep | FAIL — the ten single-shot arms ran their whole set; `sensor-selftest.sh --case` exited 0 after all 43 cases, and the sweep named 10 offenders | `evidence/red-round2-single-shot-and-sweep.log` (revert-check: the ten guards removed, both cases red, restored, both green) |
+
+  The first four rows are the red run of the change's first round; the last row is the red run of the two
+  cases the review of 2026-10-20 demanded, produced by removing the ten guards (the same defect) and restored
+  by the script that removed them.
 
 - **Owning requirement**: `tooling-portability` — the capability that owns the tooling's shared engine
   behaviour ("the whole toolchain runs in the foreign project"): a hang in an engine is a defect every
@@ -47,22 +55,30 @@ unguarded consumption was in every one of the tooling's parsers.
   `tools/issues/**` directly and by `tools/loop/**` and `tools/sensors/**` through their own libraries. A
   value flag whose value is missing, or whose next word is itself a flag, is a usage error naming the tool and
   the flag, before the arm consumes anything.
-- Every one of the 152 value-flag arms is guarded: `need_value "$@"` inserted before the arm's own read and
-  `shift`, in the 26 engines that source a library, and the same check inline in the 9 standalone engines that
+- Every one of the 162 value-flag arms is guarded: `need_value "$@"` inserted before the arm's own read and
+  `shift`, in the 26 engines that source a library; the same check inline in the 9 standalone engines that
   source none (`tools/mutate.sh`, `tools/gen-feature-list.sh`, `tools/fetch-build-inputs.sh`,
-  `tools/build-inputs.sh`, `tools/loop-mutations.sh`, the four `tools/check-*.sh`).
-- Three new cases in `tools/loop-selftest.sh` and one in `tools/issue-tooling-selftest.sh`: the bare flag at
-  the end of argv, the bare flag in front of another flag, and a sweep over the tree that makes a newly
-  written unguarded arm a red case on the next run instead of a hang discovered by an operator.
+  `tools/build-inputs.sh`, `tools/loop-mutations.sh`, the four `tools/check-*.sh`); and inline in the ten
+  single-shot harnesses (seven self-tests, three mutation harnesses) whose `--case`/`--only` arm reads
+  `${2:-}` with no shift.
+- Five new cases and one widened: `tools/loop-selftest.sh` gets the bare flag at the end of argv, the bare
+  flag in front of another flag, the ten single-shot harnesses, and a sweep over the tree that makes a newly
+  written unguarded arm a red case on the next run instead of a hang discovered by an operator;
+  `tools/issue-tooling-selftest.sh` gets the fourth. The sweep reads arm lines only and scans the harnesses
+  too — its first version grepped `shift 2 ;;` and excluded every `-selftest.sh`, which is why it could not
+  see the ten arms the review found.
 
-Additive; no behaviour that worked before changes, except that a value beginning with `--` is now refused —
-no flag of this tooling takes one. Rollback: `git revert` restores the previous one-line arms; nothing
-persisted depends on the change.
+Additive; no behaviour that worked before changes, except that a value beginning with `--` is now refused.
+That is a limitation and it has no escape: no flag of this tooling accepts `--flag=value`, so a free-text
+value that itself begins with `--` (an `--evidence`, `--reason`, `--note`, `--finding` or `--title` word)
+cannot be passed at all. No caller in the tree passes one — they are prose fields whose values start with a
+word — and a later need for one has to add `--flag=value` support rather than bypass the guard. Rollback:
+`git revert` restores the previous one-line arms; nothing persisted depends on the change.
 
 ## Impact
 
-- Modified: `tools/issues/lib.sh` (the helper), 26 engines that source it, 9 standalone engines, and the two
-  case files/suites (`tools/loop-cases.sh`, `tools/issue-tooling-cases.sh`).
+- Modified: `tools/issues/lib.sh` (the helper), 26 engines that source it, 9 standalone engines, the ten
+  single-shot harnesses, and the two case files/suites (`tools/loop-cases.sh`, `tools/issue-tooling-cases.sh`).
 - Affected specs: `tooling-portability` (one ADDED requirement); `agent-issue-loop`, `issue-backlog` and
   `backlog-sensors` gain nothing — the rule is the engines' shared one, stated once.
 - Affected guidelines: none contradicts the change; `guidelines/Backlog.md` §9 and §10 are the sections read.

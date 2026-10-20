@@ -1,0 +1,7 @@
+== HEAD 2026-10-20T07:11:51Z
+  'tools/loop/run.sh --items 100 --minutes 480 --push' exited 124 instead of 2 — a bare value flag is a usage error, never a hang and never a default: 
+FAIL usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+  'tools/loop/run.sh --items 100 --push --dry-run' reports the flag, not the flag's neighbour as its value: 'needs a value' not found in: loop: run: --push must be yes or no
+FAIL usage#bareValueFlagDoesNotSwallowTheNextFlag
+  the refusal names the flag that is missing its value: '--finding needs a value' not found in: create: unknown argument bug
+FAIL create#bareValueFlagNeedsAValue

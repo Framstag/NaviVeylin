@@ -1,0 +1,4 @@
+gate: ./gradlew test -PforceTests --no-build-cache (2026-10-20T07:23Z, 5m36s, BUILD SUCCESSFUL)
+junit xmls: 705 files under */test-results/*/TEST-*.xml (mobile, automotive and debug unit-test tasks)
+tally: tests=5680 failures=0 errors=0 skipped=0
+note: the delta touches no compiled file — this gate is the run's evidence, not proof of the change; the change is proven by the shell cases named in green-after-fix.log

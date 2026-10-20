@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.CarStyleLoadNotifierTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-20T22:19:36.403Z" hostname="dingens" time="3.723">
+  <properties/>
+  <testcase name="theNoticeNeverPostsOnTheOngoingNavigationIdentity" classname="com.naviveylin.auto.CarStyleLoadNotifierTest" time="3.587"/>
+  <testcase name="failureReportsTheSharedWording" classname="com.naviveylin.auto.CarStyleLoadNotifierTest" time="0.044"/>
+  <testcase name="successfulLoadReportsNothing" classname="com.naviveylin.auto.CarStyleLoadNotifierTest" time="0.028"/>
+  <testcase name="noticeIsSilentSoGuidanceIsNotInterrupted" classname="com.naviveylin.auto.CarStyleLoadNotifierTest" time="0.026"/>
+  <testcase name="noticeIsPostedWithTheMessageAndALowImportanceChannel" classname="com.naviveylin.auto.CarStyleLoadNotifierTest" time="0.033"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

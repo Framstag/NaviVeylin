@@ -21,12 +21,10 @@ fun testCarContext(): CarContext {
         every { getString(any()) } answers { appContext.getString(firstArg()) }
         every { getString(any(), *anyVararg()) } answers {
             val resId = firstArg<Int>()
-            // mockk exposes the vararg as a single Array element in `args`
-            val formatArgs = if (args.size > 1 && args[1] is Array<*>) {
-                args[1] as Array<Any?>
-            } else {
-                emptyArray()
-            }
+            // mockk exposes the vararg as a single Array element in `args`; the star-projection cast is
+            // checked, so the elements are copied into the array `getString` spreads.
+            val formatArgs: Array<Any?> =
+                (args.getOrNull(1) as? Array<*>)?.map { it }?.toTypedArray() ?: emptyArray()
             appContext.getString(resId, *formatArgs)
         }
     }

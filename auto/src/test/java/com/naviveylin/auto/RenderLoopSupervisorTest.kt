@@ -36,8 +36,13 @@ class RenderLoopSupervisorTest {
         record = { records += it }
     )
 
+    /**
+     * Runs one iteration whose block faults and reports whether the supervisor swallowed the fault. The
+     * block's type is named (`<Unit>`): an unnamed one infers `Nothing`, which would make the `== null`
+     * comparison below a condition the compiler can prove.
+     */
     private fun RenderLoopSupervisor.boom(loop: RenderLoop): Boolean =
-        runIteration(loop) { error("native render failed") } == null
+        runIteration<Unit>(loop) { error("native render failed") } == null
 
     @Test
     fun aFaultSkipsTheIterationAndTheLoopKeepsRunning() {

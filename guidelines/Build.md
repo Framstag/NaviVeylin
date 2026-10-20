@@ -324,7 +324,10 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   - Failed tasks: `> Task ... FAILED` lines
   - `checkSubmoduleStylesheets` failure → libosmscout submodule not initialized
     (`git submodule update --init --recursive`)
-- **Warnings**: the build must have no warnings — report them, don't ignore.
+- **Warnings**: the build must have no warnings — report them, don't ignore. The `:auto` unit-test source
+  set's three non-opt-in diagnostics (a final-class type parameter, an always-true condition, an unchecked
+  cast) were swept by change `fix-auto-test-source-warnings`, and
+  `AutoTestSourceWarningBaselineTest` — an `:app` unit test — now holds that set to this bullet.
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
 - **Per-flavor test tasks**: `:app` has one task per flavor —

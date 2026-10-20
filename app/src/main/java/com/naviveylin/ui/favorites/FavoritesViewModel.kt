@@ -101,7 +101,11 @@ class FavoritesViewModel @Inject constructor(
         viewModelScope.launch {
             val success = favoriteRepository.addGroup(name)
             _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (success) "Group '$name' created" else "Group '$name' already exists"
+                snackbarMessage = if (success) {
+                    context.getString(R.string.group_created, name)
+                } else {
+                    context.getString(R.string.group_already_exists, name)
+                }
             )
         }
     }
@@ -110,7 +114,11 @@ class FavoritesViewModel @Inject constructor(
         viewModelScope.launch {
             val success = favoriteRepository.deleteGroup(name)
             _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (success) "Group '$name' deleted" else "Failed to delete group"
+                snackbarMessage = if (success) {
+                    context.getString(R.string.group_deleted, name)
+                } else {
+                    context.getString(R.string.group_delete_failed)
+                }
             )
         }
     }
@@ -119,7 +127,11 @@ class FavoritesViewModel @Inject constructor(
         viewModelScope.launch {
             val success = favoriteRepository.renameGroup(oldName, newName)
             _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (success) "Group renamed to '$newName'" else "Group name '$newName' already exists"
+                snackbarMessage = if (success) {
+                    context.getString(R.string.group_renamed, newName)
+                } else {
+                    context.getString(R.string.group_rename_conflict, newName)
+                }
             )
         }
     }
@@ -128,7 +140,11 @@ class FavoritesViewModel @Inject constructor(
         viewModelScope.launch {
             val success = favoriteRepository.addFavorite(groupName, favName, lat, lon)
             _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (success) "Added '$favName'" else "Failed to add favorite"
+                snackbarMessage = if (success) {
+                    context.getString(R.string.favorite_added, favName)
+                } else {
+                    context.getString(R.string.favorite_add_failed)
+                }
             )
         }
     }
@@ -137,7 +153,11 @@ class FavoritesViewModel @Inject constructor(
         viewModelScope.launch {
             val success = favoriteRepository.deleteFavorite(groupName, favName)
             _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (success) "Deleted '$favName'" else "Failed to delete"
+                snackbarMessage = if (success) {
+                    context.getString(R.string.favorite_deleted, favName)
+                } else {
+                    context.getString(R.string.favorite_delete_failed)
+                }
             )
         }
     }
@@ -146,7 +166,11 @@ class FavoritesViewModel @Inject constructor(
         viewModelScope.launch {
             val success = favoriteRepository.renameFavorite(groupName, oldName, newName)
             _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (success) "Renamed to '$newName'" else "Failed to rename"
+                snackbarMessage = if (success) {
+                    context.getString(R.string.favorite_renamed, newName)
+                } else {
+                    context.getString(R.string.favorite_rename_failed)
+                }
             )
         }
     }
@@ -166,7 +190,7 @@ class FavoritesViewModel @Inject constructor(
                 val success = favoriteRepository.moveFavorite(groupName, favName, newIndex)
                 if (!success) {
                     _uiState.value = _uiState.value.copy(
-                        snackbarMessage = "Failed to reorder '$favName'"
+                        snackbarMessage = context.getString(R.string.favorite_reorder_failed, favName)
                     )
                 }
             } finally {

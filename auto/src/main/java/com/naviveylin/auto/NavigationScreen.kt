@@ -321,7 +321,8 @@ class NavigationScreen(
                 surfaceWidth = w,
                 surfaceHeight = h,
                 density = density,
-                usableBounds = stableArea
+                usableBounds = stableArea,
+                text = carContext.getString(R.string.osm_attribution)
             )
             // The map is gone (design D5): the host template has no slot for this text, so the
             // app draws it — the surface keeps its last frame, which is where the driver reads it.

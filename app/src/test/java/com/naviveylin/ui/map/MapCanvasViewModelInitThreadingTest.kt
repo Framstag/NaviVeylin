@@ -3,6 +3,7 @@ package com.naviveylin.ui.map
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
+import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
@@ -240,7 +241,7 @@ class MapCanvasViewModelInitThreadingTest {
         assertEquals(
             "the rejected path reaches the map screen as an error (spec scenario: Rejected database " +
                 "path still reaches the UI) — the dispatcher move must not make the branch unreachable",
-            "Could not open map database",
+            context.getString(R.string.map_open_failed),
             viewModel.uiState.value.error
         )
         assertEquals(

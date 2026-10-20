@@ -18,7 +18,8 @@ import android.graphics.Typeface
  */
 object SurfaceAttribution {
 
-    private const val TEXT = "© OpenStreetMap contributors"
+    /* The notice text is the caller's resource (spec: i18n-l10n — All user-facing text is
+       translatable): this drawer owns no wording. */
     private const val BOTTOM_MARGIN_DP = 8f
     private const val RIGHT_MARGIN_DP = 8f
     private const val PADDING_DP = 8f
@@ -37,16 +38,17 @@ object SurfaceAttribution {
 
     /**
      * Attribution rect in surface pixels; null when the surface is too small
-     * to fit the notice. Bottom-right corner, above the stable-area/surface
+     * to fit [text]. Bottom-right corner, above the stable-area/surface
      * bottom edge.
      */
     fun geometry(
         usableBounds: Rect,
         surfaceWidth: Int,
         surfaceHeight: Int,
-        density: Float
+        density: Float,
+        text: String
     ): Rect? {
-        val textW = textPaint(density).measureText(TEXT)
+        val textW = textPaint(density).measureText(text)
         val width = (textW + 2f * PADDING_DP * density).toInt()
         val height = (TEXT_SIZE_DP * density + 2f * PADDING_DP * density).toInt()
         if (width <= 0 || height <= 0) return null
@@ -58,15 +60,16 @@ object SurfaceAttribution {
         return Rect(right - width, bottom - height, right, bottom)
     }
 
-    /** Draw the attribution notice; no-op when the surface is too small. */
+    /** Draw the attribution notice [text]; no-op when the surface is too small. */
     fun draw(
         canvas: Canvas,
         surfaceWidth: Int,
         surfaceHeight: Int,
         density: Float,
-        usableBounds: Rect
+        usableBounds: Rect,
+        text: String
     ) {
-        val rect = geometry(usableBounds, surfaceWidth, surfaceHeight, density) ?: return
+        val rect = geometry(usableBounds, surfaceWidth, surfaceHeight, density, text) ?: return
 
         val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = BG
@@ -78,12 +81,12 @@ object SurfaceAttribution {
             corner, corner, bg
         )
 
-        val text = textPaint(density)
+        val noticePaint = textPaint(density)
         canvas.drawText(
-            TEXT,
+            text,
             rect.left + PADDING_DP * density,
-            rect.exactCenterY() - (text.ascent() + text.descent()) / 2f,
-            text
+            rect.exactCenterY() - (noticePaint.ascent() + noticePaint.descent()) / 2f,
+            noticePaint
         )
     }
 }

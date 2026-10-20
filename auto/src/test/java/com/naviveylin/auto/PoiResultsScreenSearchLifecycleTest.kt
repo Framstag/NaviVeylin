@@ -120,7 +120,11 @@ class PoiResultsScreenSearchLifecycleTest {
         assertEquals("the request is begun, so the screen can still be abandoned", listOf(SearchSlots.CAR_POI), client.begunSearchSlots)
         assertTrue("no native POI search runs without a position", client.poiSearchGenerations.isEmpty())
         assertEquals(
-            listOf("GPS signal required. Please wait for a fix."),
+            listOf(
+                carContext.getString(
+                    com.naviveylin.core.R.string.navigation_failure_gps_signal_missing
+                )
+            ),
             titles(screen.onGetTemplate() as ListTemplate)
         )
     }

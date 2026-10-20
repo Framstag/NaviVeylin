@@ -4,6 +4,7 @@ import com.naviveylin.core.BasemapReloadNotifier
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
+import com.naviveylin.R
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
@@ -86,7 +87,10 @@ class MapCanvasViewModelFavAddTest {
         viewModel.addSelectedToFavorites("NewGroup", "My Place", isNewGroup = true)
 
         viewModel.uiState.first { it.snackbarMessage != null }
-        assertEquals("Added to NewGroup", viewModel.uiState.value.snackbarMessage)
+        assertEquals(
+            context.getString(R.string.favorite_added_to_group, "NewGroup"),
+            viewModel.uiState.value.snackbarMessage
+        )
         val groups = favRepo.favorites.value
         assertEquals(listOf("NewGroup"), groups.keys.toList())
         assertEquals("My Place", groups["NewGroup"]?.first()?.name)
@@ -101,7 +105,10 @@ class MapCanvasViewModelFavAddTest {
         viewModel.addSelectedToFavorites("Home", "Dupe", isNewGroup = true)
 
         viewModel.uiState.first { it.snackbarMessage != null }
-        assertEquals("Group \"Home\" already exists", viewModel.uiState.value.snackbarMessage)
+        assertEquals(
+            context.getString(R.string.group_already_exists, "Home"),
+            viewModel.uiState.value.snackbarMessage
+        )
         assertTrue(favRepo.favorites.value["Home"].isNullOrEmpty())
     }
 }

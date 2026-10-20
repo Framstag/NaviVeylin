@@ -671,7 +671,7 @@ class NavigationSession : Session() {
             } else {
                 Log.w(TAG, "Deep link geocoding found no match for '$query'")
                 navigationViewModel.reportError(
-                    "No matching location found for \"$query\"",
+                    carContext.getString(R.string.deep_link_no_match, query),
                     SurfaceOrigin.CAR
                 )
             }

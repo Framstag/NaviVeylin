@@ -140,7 +140,12 @@ class PoiResultsScreen(
     private suspend fun searchOnce(generation: Long): PoiOutcome = withContext(ioDispatcher) {
         val pos = entryPoint.autoLocationProvider().position().value
         if (pos == null) {
-            return@withContext PoiOutcome(null, "GPS signal required. Please wait for a fix.")
+            return@withContext PoiOutcome(
+                null,
+                carContext.getString(
+                    com.naviveylin.core.R.string.navigation_failure_gps_signal_missing
+                )
+            )
         }
 
         try {
@@ -158,7 +163,13 @@ class PoiResultsScreen(
             PoiOutcome(rows, null)
         } catch (e: Exception) {
             Log.w(TAG, "POI search failed for $category", e)
-            PoiOutcome(null, "POI search failed: ${e.message ?: "unknown error"}")
+            PoiOutcome(
+                null,
+                carContext.getString(
+                    R.string.poi_search_failed,
+                    e.message ?: carContext.getString(R.string.unknown_error)
+                )
+            )
         }
     }
 

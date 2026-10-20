@@ -524,7 +524,10 @@ class MapManagerViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Failed to refresh installed maps: ${e.message ?: "unknown error"}"
+                    error = application.getString(
+                        R.string.map_refresh_failed,
+                        e.message ?: application.getString(R.string.unknown_error)
+                    )
                 )
             }
         }
@@ -633,7 +636,7 @@ class MapManagerViewModel @Inject constructor(
             entry = entry,
             downloadState = DownloadState.Downloading,
             progress = 0,
-            statusText = "Starting",
+            statusText = application.getString(R.string.download_status_starting),
             downloadHandle = null
         )
         downloadStates[mapName] = entryState
@@ -717,7 +720,11 @@ class MapManagerViewModel @Inject constructor(
             downloadStates[mapName] = existing.copy(
                 downloadState = if (isCancelled) DownloadState.Available else DownloadState.Error,
                 progress = 0,
-                statusText = if (isCancelled) "Cancelled" else "Error: $msg",
+                statusText = if (isCancelled) {
+                    application.getString(R.string.download_status_cancelled)
+                } else {
+                    application.getString(R.string.download_status_error, msg)
+                },
                 downloadHandle = null
             )
             if (isCancelled) downloadStates.remove(mapName)
@@ -747,12 +754,15 @@ class MapManagerViewModel @Inject constructor(
                     refreshInstalledMaps()
                 } else {
                     _uiState.value = _uiState.value.copy(
-                        error = "Failed to delete map: $mapName"
+                        error = application.getString(R.string.map_delete_failed, mapName)
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Failed to delete map: ${e.message ?: "unknown error"}"
+                    error = application.getString(
+                        R.string.map_delete_failed,
+                        e.message ?: application.getString(R.string.unknown_error)
+                    )
                 )
             }
         }
@@ -1024,7 +1034,7 @@ class MapManagerViewModel @Inject constructor(
                 is RegionIndexResult.Unusable -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "The repository's region index could not be read"
+                        error = application.getString(R.string.repository_region_index_unreadable)
                     )
                 }
             }

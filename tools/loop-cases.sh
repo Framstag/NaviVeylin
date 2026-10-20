@@ -114,7 +114,7 @@ LOOP_SHELL_CASES=(
   'run#reviewDiffExcludesTheEvidenceArchive'
   'run#engineNamesNoProjectFact'
   'adapter#modeFlagIsItsOwnArgument'
-  'run#suiteIgnoresARunsStatePath'
+  'state#inheritedStatePathOutsideTheTreeIsIgnored'
   'report#headerAndTableShape'
   'report#yieldIsCountedFromState'
   'report#escalatedSkipNamesTheLabelWritten'
@@ -154,6 +154,7 @@ loop_run_shell_case() {
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
     'state#agentCommandRefusesAnEmptyValue') fn=case_state_agentCommandRefusesAnEmptyValue ;;
+    'state#inheritedStatePathOutsideTheTreeIsIgnored') fn=case_state_inheritedStatePathOutsideTheTreeIsIgnored ;;
     'prescreen#ranksBugsFirstAndDropsFeatures') fn=case_prescreen_ranksBugsFirstAndDropsFeatures ;;
     'prescreen#missingPathYieldsStale') fn=case_prescreen_missingPathYieldsStale ;;
     'prescreen#doesNotClaimJudgementGates') fn=case_prescreen_doesNotClaimJudgementGates ;;
@@ -239,7 +240,6 @@ loop_run_shell_case() {
     'run#reviewDiffExcludesTheEvidenceArchive') fn=case_run_reviewDiffExcludesTheEvidenceArchive ;;
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
-    'run#suiteIgnoresARunsStatePath') fn=case_run_suiteIgnoresARunsStatePath ;;
     'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
     'usage#bareValueFlagDoesNotSwallowTheNextFlag') fn=case_usage_bareValueFlagDoesNotSwallowTheNextFlag ;;
     'usage#bareValueFlagInASingleShotHarnessIsAUsageError') fn=case_usage_bareValueFlagInASingleShotHarnessIsAUsageError ;;
@@ -707,6 +707,27 @@ case_state_agentCommandRefusesAnEmptyValue() {
   assert_eq "2" "$status" "an empty agent command is a usage error"
   assert_contains "$out" "LOOP_AGENT_CMD is empty" "the refusal names the configuration key"
   [ ! -f "$PI_STUB_LOG" ] || [ ! -s "$PI_STUB_LOG" ] || fail "an agent process was started anyway"
+}
+
+# A child is started with the run's identity in its environment (`run_child` exports `LOOP_STATE_FILE` and
+# `LOOP_WORKTREE` so all of the run's children agree on it), and the gate of any change that touches
+# `tools/loop/**` is this very suite. Measured 2026-10-20 (issue #214): a live run's state was replaced five
+# times — each time with a fixture's base, queue and budget — while its worker was still working the item, and
+# the run then walked the fixture's queue. The rule that stops it is `lib.sh`: a path the environment names
+# outside the tree this process resolved is not this tree's run, and is ignored. `run_child` keeps exporting
+# them, because a fixture's run is a real run and its stub child reads them too.
+case_state_inheritedStatePathOutsideTheTreeIsIgnored() {
+  local d p foreign before after
+  d=$(scratch); p=$(new_project)
+  foreign="$d/foreign-run.json"
+  printf '{"sentinel":"a state file no tree here owns"}\n' > "$foreign"
+  before=$(cat "$foreign")
+  LOOP_STATE_FILE="$foreign" run_state "$p" init --items 1 --minutes 90 >/dev/null || fail "init failed"
+  after=$(cat "$foreign")
+  assert_eq "$before" "$after" "a state path named from outside the tree is not written"
+  [ -f "$(state_file "$p")" ] || fail "the tree resolved no state file of its own"
+  assert_eq "1" "$(jq -r '.run.items' "$(state_file "$p")")" "the tree's own state carries the budget"
+  return 0
 }
 
 # ----------------------------------------------------------------------------- cases: prescreen
@@ -2671,27 +2692,6 @@ case_adapter_modeFlagIsItsOwnArgument() {
   got=$(cat "$d/argv.txt" 2>/dev/null || true)
   assert_eq "$(printf -- '--mode\njson\n%s' "$prompt")" "$got" \
     "the child sees the mode flag as two arguments, then the prompt"
-  return 0
-}
-
-# A child is started with the run's identity in its environment (`run_child` exports `LOOP_STATE_FILE` and
-# `LOOP_WORKTREE`), and the gate of any change that touches `tools/loop/**` is this very suite: every case
-# would then write the **running** run's state instead of its fixture's. Measured 2026-10-20 (issue #214): a
-# live run's state was replaced six times inside 8 s while its worker was still working the item, and every
-# case stayed green, because each one asserted the file it had just clobbered. The suite therefore starts
-# from no run identity at all, and this case starts a nested suite that writes state with a foreign path in
-# its environment and requires that file to be untouched.
-case_run_suiteIgnoresARunsStatePath() {
-  local d foreign before after out
-  d=$(scratch)
-  foreign="$d/foreign-run.json"
-  printf '{"sentinel":"a run the suite does not own"}\n' > "$foreign"
-  before=$(cat "$foreign")
-  out=$(LOOP_STATE_FILE="$foreign" LOOP_WORKTREE="$d/not-this-worktree" \
-    bash "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" --case 'state#initAndShowRoundTrips' 2>&1)
-  after=$(cat "$foreign")
-  assert_eq "$before" "$after" "the suite writes no state path it inherited from a run"
-  assert_contains "$out" 'PASS state#initAndShowRoundTrips' "the nested case passes on its own fixture"
   return 0
 }
 

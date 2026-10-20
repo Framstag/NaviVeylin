@@ -83,6 +83,10 @@ loop_resolve() {
   [ -f "$conf" ] || loop_die "no configuration at $conf — the loop reads its defaults and its project keys from loop.conf"
   # shellcheck source=tools/loop/loop.conf
   source "$conf"
+  # An inherited run identity is honoured only inside the tree this process resolved; `loop_path_outside_tree`
+  # above carries the measurement and the reason (issue #214).
+  if loop_path_outside_tree "$LOOP_STATE_FILE" "$LOOP_ROOT"; then LOOP_STATE_FILE=""; fi
+  if loop_path_outside_tree "$LOOP_WORKTREE" "$LOOP_ROOT"; then LOOP_WORKTREE=""; fi
   LOOP_STATE_FILE="${LOOP_STATE_FILE:-$LOOP_ROOT/.pi/issue-loop/run.json}"
   LOOP_WORKTREE="${LOOP_WORKTREE:-$LOOP_ROOT/.pi/worktrees/loop}"
   # A relative override is relative to the project, not to whatever the caller's cwd happened to be.
@@ -93,6 +97,20 @@ loop_resolve() {
 
 # `LOOP_TMP_DIR` as recorded, resolved against the project root — a relative value is relative to the
 # project, exactly like the state file and the worktree. Idempotent, so the self-test can call it itself.
+# `loop_path_outside_tree <path> <root>` — true when <path> is absolute and lies outside <root>. `run_child`
+# hands the run's identity to every child so all of them agree on the run, and a child that runs the loop's own
+# tooling in another tree — a scratch repository, a fixture, the self-test of the loop itself — would otherwise
+# write the *running* run's state and point its worktree operations at the run's tree. Measured 2026-10-20
+# (issue #214): a live run's state was replaced five times, each time with a fixture's base, queue and budget,
+# while its worker was still working the item; the run then walked the fixture's queue. A relative value, and
+# an absolute one inside this tree (two loops in one repository, deliberately), are not affected.
+loop_path_outside_tree() { # <path> <root> → 0 outside
+  case "$1" in
+    /*) case "$1" in "$2"/*) return 1 ;; *) return 0 ;; esac ;;
+    *) return 1 ;;
+  esac
+}
+
 loop_tmp_resolve() {
   case "$LOOP_TMP_DIR" in
     "") LOOP_TMP_DIR="$LOOP_ROOT/.pi/tmp" ;;

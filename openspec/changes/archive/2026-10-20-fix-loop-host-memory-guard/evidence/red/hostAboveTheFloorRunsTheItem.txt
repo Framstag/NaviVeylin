@@ -1,0 +1,48 @@
+HEAD fb713c1 (tools/loop/run.sh and tools/loop/loop.conf as committed, the new cases in tools/loop-cases.sh)
+$ bash tools/loop-selftest.sh --case 'run#hostAboveTheFloorRunsTheItem'
+  the header names the floor it compared against: 'min-free-mib=0' not found in: agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=3 max-review-rounds=2 review-read-only=on child-max-seconds=2700 dry-run=0 reset-worktree=0
+state: budget 1 items / 90 min · review off · may-close yes · max-decisions 3 · max-review-rounds 2 · base a0e391539990
+state: deadline 2026-10-20T07:25:08Z
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.3lXDB8/case.VBNa05/repo/.pi/issue-loop/lock (owner 2481567)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-055509')
+HEAD ist jetzt bei a0e3915 init
+worktree /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.3lXDB8/case.VBNa05/repo/.pi/worktrees/loop on branch loop-20261020-055509 from a0e391539990 (1 local.prop* copied)
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.3lXDB8/case.VBNa05/repo/.pi/worktrees/loop on loop-20261020-055509 from a0e391539990
+stub gh: recorded `gh issue edit`
+pick #21
+loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.3lXDB8/case.VBNa05/repo/.pi/issue-loop/items/21/worker-report.md)
+loop: worker-prompt finished in 2s (exit 0, log 223 B)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+close #21
+item #21: closed (2026-01-01-fix-demo) · 2.171s · 0 review round(s)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+stop: item cap reached (1/1)
+**agent-issue-loop — 2026-10-20T05:55:13Z** (budget 1 items / 90 min · review off · review rounds 2 · may-close yes · max-decisions 3 · base a0e391539990)
+
+closed 1 · skipped 0 · blocked 0 · budget left 0 items / 90 min · spent 0 min
+
+stop: item cap reached (1/1)
+
+closed 1 · skipped 0 · blocked 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | outcome |
+|---|---|---|---|---|---|---|---|---|
+| #21 | bug | closed | 2026-01-01-fix-demo | the fixture has exactly one cause | Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z) | tests=1 failures=0 (fixture) | 0 | done |
+
+merged finished attempts: none
+excluded: #21 needs-decision
+
+skipped: none
+excluded before any work: #21 needs-decision
+decisions the owner owes: #21
+branches: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261020-055509
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.3lXDB8/case.VBNa05/repo/.pi/worktrees/loop (kept for the next run)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.3lXDB8/case.VBNa05/repo/.pi/issue-loop/run.json
+worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.3lXDB8/case.VBNa05/repo/.pi/worktrees/loop
+FAIL run#hostAboveTheFloorRunsTheItem
+exit=1

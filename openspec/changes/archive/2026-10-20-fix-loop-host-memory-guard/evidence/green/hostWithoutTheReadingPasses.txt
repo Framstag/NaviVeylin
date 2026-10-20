@@ -1,0 +1,4 @@
+the fix applied (tools/loop/run.sh, tools/loop/loop.conf), cases registered in tools/loop-cases.sh
+$ bash tools/loop-selftest.sh --case 'run#hostWithoutTheReadingPasses'
+PASS run#hostWithoutTheReadingPasses
+exit=0

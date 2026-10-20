@@ -1,0 +1,9 @@
+The two cases this change runs beside its own, on the fix.
+
+$ bash tools/loop-selftest.sh --case 'run#childOutlastingTheWallClockIsBlocked'
+PASS run#childOutlastingTheWallClockIsBlocked
+exit=0
+
+$ bash tools/loop-selftest.sh --case 'run#stopReasonIsPrintedAndReported'
+PASS run#stopReasonIsPrintedAndReported
+exit=0

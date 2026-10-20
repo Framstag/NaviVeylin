@@ -1,0 +1,5 @@
+$ bash tools/loop-mutations.sh --only 24.1
+RED    24.1  run#hostBelowTheFloorBlocksTheItemAndStops   (the host read that records a starved item instead of starting it (issue #209))
+restore 24.1 run#hostBelowTheFloorBlocksTheItemAndStops green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

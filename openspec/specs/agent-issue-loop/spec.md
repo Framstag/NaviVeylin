@@ -21,7 +21,8 @@ require no interactive answer, so that the same run can be repeated and audited.
 #### Scenario: The run stops on its own authority
 
 - **WHEN** the item cap is reached, the time budget is spent, the queue is empty, two items in a row were
-  blocked, or the remaining time cannot pay for another item
+  blocked, the remaining time cannot pay for another item, or the host has less available memory than the
+  recorded floor
 - **THEN** the run stops without needing a further decision
 
 #### Scenario: The floor the run refuses by is what its own items cost
@@ -90,6 +91,37 @@ to `gh` to reconstruct what the run already knew (issue #208).
 - **THEN** the report prints the action list heading with `none` and what that covers in the first case, and
   never prints `none` in the second, so an empty list cannot hide a branch that carries work
 - **Case**: `report#emptyRunSaysNone`
+
+#### Scenario: The host a run works on is read and named
+
+The budget had no term for the machine: on 2026-10-19 the same 5 680 tests took 3m47s on a quiet host and 30
+minutes inside one Gradle task at 194 MB free and 18 GB of swap, so the run's `wallSeconds` measured the
+desktop session (issue #209).
+
+- **WHEN** a run is started, and the host publishes the memory it has available in the file the configured
+  key names
+- **THEN** the run's header prints the available memory in MiB beside the budget and beside the floor it is
+  compared against, so a run's numbers can be read against the host it ran on
+- **Case**: `run#hostAboveTheFloorRunsTheItem`
+
+#### Scenario: A host below the floor is reported instead of spent
+
+- **WHEN** the available memory read before an item's first agent process is started is below the recorded
+  floor (`LOOP_MIN_FREE_MIB`, default 1024 MiB)
+- **THEN** no agent process is started and no branch is created for the item, the item is recorded `blocked`
+  with the measurement and the floor it was compared against, and the run stops with that shortfall as its
+  stop reason — a run on a starved host cannot become productive by taking the next item either
+- **Case**: `run#hostBelowTheFloorBlocksTheItemAndStops`
+
+#### Scenario: A host that publishes no reading is not refused
+
+A check that cannot be made is not a refusal: the engine has to run in a container without procfs, or on a
+host that keeps the number somewhere else.
+
+- **WHEN** the file the configured key names does not exist, or carries no `MemAvailable` value
+- **THEN** the check passes, the item's child is started as it always was, and the header says the reading is
+  unavailable instead of inventing a number
+- **Case**: `run#hostWithoutTheReadingPasses`
 
 ### Requirement: The run acts only on authorised, eligible items
 

@@ -73,6 +73,9 @@ LOOP_SHELL_CASES=(
   'run#childStartsInTheProjectRoot'
   'run#childReportsWhileItWaits'
   'run#childOutlastingTheWallClockIsBlocked'
+  'run#hostBelowTheFloorBlocksTheItemAndStops'
+  'run#hostAboveTheFloorRunsTheItem'
+  'run#hostWithoutTheReadingPasses'
   'run#childWriteOutsideTheWorktreeIsBlocked'
 
   'run#reviewerWriteInTheProjectIsDiscarded'
@@ -184,6 +187,9 @@ loop_run_shell_case() {
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
     'run#childReportsWhileItWaits') fn=case_run_childReportsWhileItWaits ;;
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
+    'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
+    'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
+    'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
     'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
     'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
@@ -1648,6 +1654,86 @@ case_run_childOutlastingTheWallClockIsBlocked() {
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "exceeded 2 s" \
     "and the reason on the item names the cap that ended it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+}
+
+# ── the host the run works on (issue #209) ──────────────────────────────────────────────────────────
+# The reading is driven through the recorded keys — the floor (`LOOP_MIN_FREE_MIB`) and the file the number is
+# read from (`LOOP_MEMINFO_PATH`) — so these cases never depend on how much memory the machine running the
+# suite happens to have, and the third one can point the reading at a file that does not exist.
+
+case_run_hostBelowTheFloorBlocksTheItemAndStops() {
+  local d p conf out note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # A floor no host reaches: what blocks the item is the reading, not this machine. The key is appended, because
+  # `loop.conf` is sourced top to bottom — the last assignment wins — so the case does not depend on the tree it
+  # runs against already carrying the key.
+  conf="$d/loop.conf"
+  { cat "$LOOP_CONF"; printf 'LOOP_MIN_FREE_MIB=99999999\n'; } > "$conf"
+  [ "$(tail -1 "$conf")" = 'LOOP_MIN_FREE_MIB=99999999' ] ||
+    fail "this case could not raise the memory floor in loop.conf"
+  stub_success "$d"
+  out=$( ( export LOOP_CONF="$conf"; run_loop "$p" --items 1 --minutes 90 --review off ) 2>&1 ) ||
+    fail "a blocked item is not a failed run"
+  # Nothing was started: the item is recorded before its first child exists, so there is no transcript and no
+  # branch either.
+  assert_eq "" "$(cat "$d/pi.log")" "no agent process is started on a host below the floor"
+  [ ! -e "$p/.pi/issue-loop/items/21/worker-report.md" ] ||
+    fail "the worker's transcript exists although no child was started"
+  assert_eq "" "$(git -C "$p" branch --list 'fix/issue-*')" "a starved item creates no branch"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is recorded blocked"
+  note=$(jq -r '.items[0].note' "$(state_file "$p")")
+  printf '%s\n' "$note" | grep -qE 'the host has [0-9]+ MiB available' ||
+    fail "the item's reason carries the measurement, not a claim: $note"
+  assert_contains "$note" "below the recorded floor of 99999999 MiB" \
+    "and the number the check compared it against"
+  # The run stops on that measurement, and the stop is the run's own record as well as its printed line.
+  assert_contains "$out" "stop: " "the run prints the stop it recorded"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "99999999" \
+    "the recorded stop reason names the floor it was compared against"
+  assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" "the run stopped instead of taking the next item"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+case_run_hostAboveTheFloorRunsTheItem() {
+  local d p conf out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The other direction of the same check, with a floor any host is above: an item on a host that can pay for it
+  # runs exactly as before, and the header names the host it ran on.
+  conf="$d/loop.conf"
+  { cat "$LOOP_CONF"; printf 'LOOP_MIN_FREE_MIB=0\n'; } > "$conf"
+  [ "$(tail -1 "$conf")" = 'LOOP_MIN_FREE_MIB=0' ] || fail "this case could not lower the memory floor in loop.conf"
+  stub_success "$d"
+  out=$( ( export LOOP_CONF="$conf"; run_loop "$p" --items 1 --minutes 90 --review off ) 2>&1 ) ||
+    fail "the run failed"
+  assert_contains "$out" "min-free-mib=0" "the header names the floor it compared against"
+  printf '%s\n' "$out" | grep -q 'free-mib=[0-9]\+' ||
+    fail "the header names the free memory beside the budget: $out"
+  assert_eq "1" "$(grep -c 'prompt:' "$d/pi.log" || true)" "the item's child is started"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "an item above the floor runs as today"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "and closes through the same path"
+}
+
+case_run_hostWithoutTheReadingPasses() {
+  local d p conf out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # A host that publishes no `MemAvailable`: the file the recorded key names does not exist. The floor is the
+  # unreachable one of the first case, so the only thing that can let the item run is the missing reading — a
+  # check that cannot be made is not a refusal, and the engine has to run in a container without procfs.
+  conf="$d/loop.conf"
+  { cat "$LOOP_CONF";
+    printf 'LOOP_MEMINFO_PATH="%s"\n' "$d/no-such-meminfo";
+    printf 'LOOP_MIN_FREE_MIB=99999999\n'; } > "$conf"
+  grep -qxF "LOOP_MEMINFO_PATH=\"$d/no-such-meminfo\"" "$conf" ||
+    fail "this case could not point the memory reading at an absent file"
+  stub_success "$d"
+  out=$( ( export LOOP_CONF="$conf"; run_loop "$p" --items 1 --minutes 90 --review off ) 2>&1 ) ||
+    fail "the run failed"
+  assert_contains "$out" "free-mib=unknown" "the header says the reading is unavailable instead of inventing one"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a host without the reading is not refused"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "and the item closes as usual"
 }
 
 case_run_childWriteOutsideTheWorktreeIsBlocked() {

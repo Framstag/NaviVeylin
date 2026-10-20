@@ -1,0 +1,10 @@
+HEAD fb713c1 (tools/loop/run.sh and tools/loop/loop.conf as committed, the new cases in tools/loop-cases.sh)
+$ bash tools/loop-selftest.sh --case 'run#hostBelowTheFloorBlocksTheItemAndStops'
+  no agent process is started on a host below the floor: expected '', got 'invocation
+argv: --print /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.lDq5u8/case.uKa22a/repo/.pi/issue-loop/items/21/worker-prompt.md
+cwd: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host/.pi/tmp/loop-selftest.lDq5u8/case.uKa22a/repo
+prompt: worker-prompt.md
+state-before: c26c3ab932368e6e 1792475704
+state-after: c26c3ab932368e6e'
+FAIL run#hostBelowTheFloorBlocksTheItemAndStops
+exit=1

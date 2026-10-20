@@ -1,0 +1,23 @@
+the fix applied, on the run that archived this change
+
+$ bash -n tools/loop/run.sh tools/loop-cases.sh
+exit=0
+
+$ bash tools/check-portability.sh --quiet
+check-portability: OK — 42 engines and 2 templates name no project value (98 value(s) read from the project)
+exit=0
+
+$ openspec validate fix-loop-host-memory-guard --strict
+Change 'fix-loop-host-memory-guard' is valid
+exit=0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/fix-host
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit=0

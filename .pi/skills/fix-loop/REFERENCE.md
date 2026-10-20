@@ -80,6 +80,18 @@ the spread the table above already shows — 65/45 inside the change range, 100/
 whose items are typical gets a floor just above them, a run of skips keeps the configured minimum, and one
 expensive item among cheap ones does not move the median at all.
 
+The clock is not the only budget an item spends. Measured 2026-10-19 (issue #209) on one host: item #126's gate
+found **194 MB free RAM and 18 GB of swap** and spent **30 min** inside `:app:kspMobileDebugUnitTestKotlin`, the
+same 5 680 tests took **3m47s** on the same tree when the machine was quiet, and a `free` taken during another
+run read **467 MB free / 2 499 MB available** with 13 915 MB of 37 887 MB swap used — Firefox 7 600 MB, three
+VS Code language-server JVMs 2 282 MB, Gradle/Kotlin daemons 1 625 MB, `cpptools` 407 MB, the loop's own
+children 649 MB. The loop was the smallest consumer and the one that failed, and its `wallSeconds` measured the
+desktop session. The wrapper therefore reads `MemAvailable` (the file `LOOP_MEMINFO_PATH` names, `/proc/meminfo`
+here) before an item's first child and compares it with `LOOP_MIN_FREE_MIB` (1024 MiB): below the floor the item
+is recorded `blocked` with the measurement and the run stops — a shorter `wallSeconds` on a starved host is not
+a cheaper item. `MemAvailable`, not `MemFree`, is the number: on the host this was measured, `free` read
+8 383 MiB free against 11 505 MiB available on the same moment, so `MemFree` would refuse a host that can pay.
+
 The measurements behind the rules (first run, 2026-10-09: 12 candidates, 3 archived, 9 gated out; a second pass
 over all 31 `class: bug` entries → `eligible: none`; a later run: 0 closed, 32 skipped):
 
@@ -114,3 +126,6 @@ Each line names the section of `SKILL.md` that owns the rule; none of them is a 
 9. **Reading a round-2 `FAIL` as "the fix is wrong"** — separate the classes (Phase E).
 10. **Starting an iteration the clock cannot finish** — the pre-screen and the measured costs above tell a
     15-minute skip from a 65-minute change (Stop conditions).
+11. **Starting an iteration the machine cannot finish** — a starved host turns a 3m47s gate into 30 minutes in
+    one Gradle task, and the run's own numbers then measure the desktop session (Stop conditions, Budget
+    authority).

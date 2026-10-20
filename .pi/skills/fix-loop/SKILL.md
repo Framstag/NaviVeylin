@@ -48,6 +48,11 @@ Exit codes: `0` the run ended (including "nothing eligible"), `2` usage, `3` sto
 authorised, or nothing is eligible), `5` refuse (another run holds the lock, the decision cap is reached, the
 base has moved).
 
+Two values are recorded for the **host** rather than for the budget (`loop.conf`): `LOOP_MIN_FREE_MIB`
+(default 1024) and `LOOP_MEMINFO_PATH` (default `/proc/meminfo`, the file the available memory is read from).
+The header prints them beside the budget as `min-free-mib=<n> free-mib=<n>`, so a run's `wallSeconds` can be
+read against the machine it ran on, and `free-mib=unknown` says the reading could not be taken at all.
+
 ## What the wrapper owns, and what an agent may not touch
 
 | owner | what it does | why |
@@ -180,6 +185,14 @@ outlasts it is ended together with everything it started, its transcript gains
 read only at the top of the loop cannot bound the body of the loop — measured 2026-10-19, when an item's
 worker phase spent 83 minutes inside a single wait with the budget untouched.
 
+A bound on the damage is not a reading of the host, so the run reads the host too. Before an item's first child
+is started it reads `MemAvailable` (the field the recorded key `LOOP_MEMINFO_PATH` names) and compares it in
+MiB against `LOOP_MIN_FREE_MIB`. Below the floor it starts nothing, records the item `blocked` with
+`the host has <n> MiB available, below the recorded floor of <floor> MiB (LOOP_MIN_FREE_MIB)`, and stops: every
+item pays the same gate, so the next candidate cannot be productive either. This is **not** a decision — it is
+not escalated, nothing was spent, and the answer is `free` the memory and re-run. A host that publishes no such
+number (a container without procfs) passes the check, because a check that cannot be made is not a refusal.
+
 ## Stop conditions
 
 `state.sh next` exits 3 when the run may not continue, and it is the only authority. It stops when:
@@ -195,6 +208,10 @@ worker phase spent 83 minutes inside a single wait with the budget untouched.
   configured minimum 45)` — so an operator can see whether the floor is honest. The median is the central
   value because one expensive item does not move it; the 1.5 is the spread the measurements already show
   (65/45 inside the change range, 100/65 for #126);
+- the host has less available memory than the recorded floor — the wrapper's own check, taken before an item's
+  first child exists, not `state.sh next`'s: the item is recorded `blocked` with the measurement and the floor
+  and the run stops with that shortfall as its stop reason (2026-10-19: 194 MB free / 18 GB swap turned a 3m47s
+  gate into 30 minutes inside one Gradle task, issue #209);
 - the user interrupts (then the wrapper removes `agent/in-progress` and records the item `blocked`).
 
 **Never start an item you cannot finish**, and never stop with time a cheap item could have used. Two
@@ -213,6 +230,7 @@ a child's prose.
 |---|---|
 | the child exits non-zero, or claims work it did not produce | the run records the item `blocked` and does **not** close it — it reads the tree, the archive and the gate XMLs itself |
 | the child outlasts `LOOP_CHILD_MAX_SECONDS` | the run ends it and everything it started, appends `LOOP-TIMEOUT: the child exceeded <n> s` to the transcript, and records the item `blocked` with that transcript — the run is not waiting any more, and the gate is **never** retried |
+| the host has less available memory than `LOOP_MIN_FREE_MIB` | no child is started and no branch is created; the item is recorded `blocked` with the measurement and the floor, the run stops with that shortfall, and **nothing is escalated** — nobody decides anything, the owner frees memory and re-runs |
 | the review refuses with `LOOP-BLOCKING: 0` | **not a refusal**: the item closes, and the `NOTE:` findings travel into the closure comment and the state note — a note is recorded, never absorbed |
 | the change fails its last review round | `agent/needs-decision` + `status/on-hold`, recorded `blocked`, and the next candidate is taken. A report whose findings are subtractive (`LOOP-CORRECTIONS-ONLY: yes`) buys one more round instead, and a report with no `LOOP-BLOCKING` line is read as blocking |
 | the reviewer wrote to the tree during its round | the round is discarded with a reason (a reviewer that wrote cannot have been the reviewer), recorded `blocked` |

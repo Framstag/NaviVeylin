@@ -93,9 +93,33 @@ fi
 # wall-clock is a recorded value too (`loop.conf`), so it is named here with the rest of the budget.
 child_max="${LOOP_CHILD_MAX_SECONDS:-2700}"
 case "$child_max" in ''|*[!0-9]*|0) child_max=2700 ;; esac
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s child-max-seconds=%s dry-run=%s reset-worktree=%s\n' \
+
+# The host is part of a run's numbers, so the run reads it and names it beside the budget. Both values are
+# recorded (`loop.conf`, `LOOP_MIN_FREE_MIB` and `LOOP_MEMINFO_PATH`) because both are facts about the host and
+# neither is a fact about a phase (D16). Measured 2026-10-19 (issue #209): item #126's gate found 194 MB free
+# and 18 GB of shared swap and spent 30 min inside `:app:kspMobileDebugUnitTestKotlin` that takes 3m47s on a
+# quiet host, and a `free` taken during another run of the same tree read 467 MB free against 13.9 GB of swap
+# used. The run's wall time then measures the desktop session, not the change. A host that publishes no
+# `MemAvailable` — a container without procfs, a platform that keeps the number elsewhere — makes the check
+# pass: a check that cannot be made is not a refusal, and the engine must run there too.
+host_free_mib() { # → MiB the host has available, or nothing when this host publishes no such number
+  local meminfo kb
+  meminfo="${LOOP_MEMINFO_PATH:-/proc/meminfo}"
+  [ -n "$meminfo" ] || return 0
+  [ -r "$meminfo" ] || return 0
+  kb=$(sed -n 's/^MemAvailable:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$meminfo" 2>/dev/null | head -1)
+  case "$kb" in ''|*[!0-9]*) return 0 ;; esac
+  printf '%s\n' $((kb / 1024))
+}
+
+# The floor an item may not start below, in MiB. Absent or malformed keeps the recorded default, exactly as the
+# child's wall-clock does, and `0` disables the check for a project that has nothing to compare against.
+min_free_mib="${LOOP_MIN_FREE_MIB:-1024}"
+case "$min_free_mib" in ''|*[!0-9]*) min_free_mib=1024 ;; esac
+free_mib=$(host_free_mib)
+printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s child-max-seconds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
   "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$child_max" "$dry_run" "$reset_worktree"
+  "$read_only" "$child_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
 
 init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" \
   --max-decisions "$max_decisions" --max-review-rounds "$max_review_rounds")
@@ -541,6 +565,20 @@ while true; do
     break
   fi
   issue="$next_out"
+  # The host is read again for every item, because memory is what the previous item's own gate may have spent,
+  # and it is read *before* the item's first child exists: below the recorded floor the item is recorded
+  # `blocked` with the measurement and the number it was compared against, and the run stops. A run on a starved
+  # host cannot become productive by taking the next item either — the gate that would have run there measures
+  # the desktop session instead of the change (issue #209). Nothing was started, so nothing is escalated: this
+  # is not a decision the item owes, it is a condition a person clears by freeing memory and re-running.
+  free_mib=$(host_free_mib)
+  if [ -n "$free_mib" ] && [ "$free_mib" -lt "$min_free_mib" ]; then
+    shortfall="the host has ${free_mib} MiB available, below the recorded floor of ${min_free_mib} MiB (LOOP_MIN_FREE_MIB) — the item was not started"
+    loop_state done "$issue" --result blocked --verdict blocked --note "$shortfall" >/dev/null
+    printf 'item #%s: blocked (%s)\n' "$issue" "$shortfall"
+    stop_run "$shortfall; free memory and re-run — a starved host cannot become productive by taking the next item"
+    break
+  fi
   issue_json=$(loop_issue_json "$issue") || {
     printf 'run: gh could not read #%s\n' "$issue" >&2
     stop_run "gh could not read #$issue — the tracker did not answer"

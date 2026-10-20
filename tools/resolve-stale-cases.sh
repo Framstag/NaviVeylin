@@ -21,6 +21,9 @@ RESOLVE_CASES=(
   'prescreen#refusalIsVisibleInTheTracker'
   'resolver#suffixedCitationIsCanonicalised'
   'resolver#doubledPrefixIsCollapsed'
+  'resolver#basenameRepairLeavesALongerPathAlone'
+  'resolver#repairWithoutAChangeIsNotReported'
+  'resolver#repairIsVerifiedByReclassification'
   'resolver#renamedFileIsFollowed'
   'resolver#removedSymbolIsReAnchored'
   'resolver#markersSurviveTheRepair'
@@ -49,6 +52,9 @@ resolve_run_case() {
     'prescreen#refusalIsVisibleInTheTracker') case_prescreen_refusalIsVisibleInTheTracker ;;
     'resolver#suffixedCitationIsCanonicalised') case_resolver_suffixedCitationIsCanonicalised ;;
     'resolver#doubledPrefixIsCollapsed') case_resolver_doubledPrefixIsCollapsed ;;
+    'resolver#basenameRepairLeavesALongerPathAlone') case_resolver_basenameRepairLeavesALongerPathAlone ;;
+    'resolver#repairWithoutAChangeIsNotReported') case_resolver_repairWithoutAChangeIsNotReported ;;
+    'resolver#repairIsVerifiedByReclassification') case_resolver_repairIsVerifiedByReclassification ;;
     'resolver#renamedFileIsFollowed') case_resolver_renamedFileIsFollowed ;;
     'resolver#removedSymbolIsReAnchored') case_resolver_removedSymbolIsReAnchored ;;
     'resolver#markersSurviveTheRepair') case_resolver_markersSurviveTheRepair ;;
@@ -113,6 +119,22 @@ classify() { # <tree> <token> → the class
     ISSUES_CITATION_ROOT="$tree" ISSUES_CITATION_INDEX="$idx"
     issues_citation_index_build "$tree" "$idx" || true
     issues_citation_class "$tok"
+  )
+  rm -f "$idx"
+}
+
+# The tokens of a text the tree does not hold — what the pre-screen refuses and a reader calls "still stale".
+# Asked of a *written* body, it is the re-classification a repair owes before it may be reported (#200).
+absent_in() { # <tree> <text> → the absent citations, one per line, and nothing when all of them resolve
+  local tree="$1" text="$2" idx
+  idx=$(mktemp "$RESOLVE_TMP/idx.XXXXXX")
+  (
+    set -uo pipefail
+    # shellcheck source=tools/issues/lib.sh
+    source "$RESOLVE_ROOT/tools/issues/lib.sh"
+    ISSUES_CITATION_ROOT="$tree" ISSUES_CITATION_INDEX="$idx"
+    issues_citation_index_build "$tree" "$idx" || true
+    issues_stale_citations_of "$text"
   )
   rm -f "$idx"
 }
@@ -205,6 +227,69 @@ case_resolver_doubledPrefixIsCollapsed() {
     "and the comment says why the collapsed path is the right one"
 }
 
+
+# A basename repair may not rewrite an occurrence that stands inside a longer path (#200). The suffix loop used
+# to rewrite `alpha.sh` everywhere, the doubled token included — giving it a third copy of its directory — and the
+# absent loop then collapsed the doubled token, which now stood inside that triple, so the two rewrites
+# cancelled each other and the item was counted repaired, and commented, while its body was unchanged.
+case_resolver_basenameRepairLeavesALongerPathAlone() {
+  local tree d after
+  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/tools/alpha"
+  # A shell script whose content carries no symbol: the ladder's symbol step cannot answer this one, only the
+  # collapse can.
+  printf '#!/bin/sh\n' > "$tree/tools/alpha/alpha.sh"
+  git_init "$tree"
+  d=$(tracker "$tree/fixture-gh" 7 "an item" \
+    'the writer is `tools/alpha/tools/alpha/alpha.sh` and the bare name is `alpha.sh`')
+  GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply >/dev/null || fail "the resolver failed"
+  after=$(recorded_body "$d/writes.log" 1)
+  assert_contains "$after" 'the bare name is `tools/alpha/alpha.sh`' "the bare citation is canonicalised"
+  assert_contains "$after" 'the writer is `tools/alpha/alpha.sh`' \
+    "and the doubled citation is collapsed, not re-doubled by the basename repair"
+  assert_not_contains "$after" 'tools/alpha/tools/alpha' "no citation stands inside a longer path in the written body"
+  assert_eq "" "$(absent_in "$tree" "$after")" "every citation in the written body resolves"
+}
+
+# A repair is a change to the record, not an attempt at one (#200): the rewritten body must differ from the old
+# one before the item counts as repaired and before any comment claims it. A basename occurrence that stands
+# inside a longer path is not rewritten (that is the rule above), so this body comes out of the two loops
+# byte-identical — and nothing was repaired, so nothing may be reported as repaired.
+case_resolver_repairWithoutAChangeIsNotReported() {
+  local tree d out
+  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/tools/alpha"
+  printf '#!/bin/sh\n' > "$tree/tools/alpha/alpha.sh"
+  git_init "$tree"
+  d=$(tracker "$tree/fixture-gh" 7 "an item" 'the writer is `/alpha.sh`')
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "0" "$(jq -r '.repaired' <<< "$out")" "no repair is counted when the body did not change"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'citation repaired')" "and no comment claims one"
+  assert_contains "$(recorded_text "$d/writes.log")" "unresolved citation" \
+    "the item is parked with its reason instead of reported repaired"
+  assert_contains "$(recorded_text "$d/writes.log")" "the rewrite changed nothing" "and the reason names the no-op"
+}
+
+# The other half of the same verification: a repair counts only when its target re-classifies as a citation the
+# tree holds (#200). The rename map is history, so it can name a path that was deleted afterwards — the old
+# token then leaves the body while the citation stays stale, which is not a repair either.
+case_resolver_repairIsVerifiedByReclassification() {
+  local tree d out
+  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/old" "$tree/new"
+  printf 'class Place\n' > "$tree/old/Place.kt"
+  git_init "$tree"
+  git -C "$tree" mv old/Place.kt new/Place.kt >/dev/null 2>&1 || fail "could not move the file"
+  git_commit "$tree" "move Place.kt"
+  git -C "$tree" rm -q new/Place.kt >/dev/null 2>&1 || fail "could not delete the file"
+  git_commit "$tree" "drop Place.kt"
+  d=$(tracker "$tree/fixture-gh" 7 "an item" 'the case lives in `old/Place.kt:4`')
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "0" "$(jq -r '.repaired' <<< "$out")" \
+    "a target the history names but the tree does not hold is not a repair"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'citation repaired')" "and no comment claims one"
+  assert_contains "$(recorded_text "$d/writes.log")" "unresolved citation" "the item is parked with its reason"
+  assert_contains "$(recorded_text "$d/writes.log")" "the target is not a tracked path" "and the reason names it"
+}
 
 case_classifier_fragmentIsNotACitation() {
   local tree out candidates

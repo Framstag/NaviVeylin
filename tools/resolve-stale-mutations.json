@@ -38,7 +38,7 @@
       "label": "5.5",
       "case": "resolver#markersSurviveTheRepair",
       "file": "tools/issues/resolve-stale.sh",
-      "search": "    new_body=$(printf '%s\\n' \"$new_body\" | awk -v old=\"$tok\" -v new=\"$canon\" -f \"$here/rewrite.awk\")",
+      "search": "    new_body=$(printf '%s\\n' \"$new_body\" | awk -v old=\"$tok\" -v new=\"$canon\" -v standalone=1 -f \"$here/rewrite.awk\")",
       "replace": "    new_body=$(printf '%s\\n' \"$new_body\" | grep -v '^<!-- fingerprint:' | sed \"s|$tok|$canon|\")",
       "why": "the repair editing the citation token in place, so the body's markers survive"
     },
@@ -89,6 +89,30 @@
       "search": "  if [ -n \"$repairs\" ] || [ -n \"$unresolved\" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi",
       "replace": "  due=$((due + 1))",
       "why": "the bound being spent only where a write follows — an item the ladder can only report costs no slot (#199)"
+    },
+    {
+      "label": "5.12",
+      "case": "resolver#basenameRepairLeavesALongerPathAlone",
+      "file": "tools/issues/rewrite.awk",
+      "search": "    if (l ~ /[A-Za-z0-9_.-]/ || (standalone && l == \"/\") || r ~ /[A-Za-z0-9_]/) {",
+      "replace": "    if (l ~ /[A-Za-z0-9_.-]/ || r ~ /[A-Za-z0-9_]/) {",
+      "why": "a basename repair refusing an occurrence that stands inside a longer path, so the two loops cannot cancel (#200)"
+    },
+    {
+      "label": "5.13",
+      "case": "resolver#repairWithoutAChangeIsNotReported",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "      if [ \"$new_body\" = \"$body\" ]; then",
+      "replace": "      if false; then",
+      "why": "a repair counting only when the produced body differs from the input (#200)"
+    },
+    {
+      "label": "5.14",
+      "case": "resolver#repairIsVerifiedByReclassification",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "      if [ \"$(issues_citation_class \"$new\")\" = \"absent\" ]; then",
+      "replace": "      if false; then",
+      "why": "a repair counting only when its rewritten citation re-classifies as a path the tree holds (#200)"
     }
   ]
 }

@@ -24,7 +24,10 @@
 # vocabulary apply to it exactly as to a person (`Backlog.md` §5).
 #
 # Idempotence needs no bookkeeping: a repair is verified by re-classifying — a canonical citation is `exact`,
-# and a parked item is skipped — so a second run finds nothing to do and posts nothing.
+# and a parked item is skipped — so a second run finds nothing to do and posts nothing. Verified is the operative
+# word (#200): a rewrite is counted as a repair only when the produced body differs from the input and every
+# rewritten citation re-classifies as no longer `absent` — an attempt that a later rewrite undoes, or whose
+# target the tree does not hold, is unresolved and parks the item rather than being reported as repaired.
 #
 # Exit: 0 ran (including "nothing to do"), 2 usage or unusable input, 3 policy refusal.
 #
@@ -193,6 +196,7 @@ $body")
 
   new_body="$body"
   repairs=""
+  pairs=""
   unresolved=""
   item_ambiguous=0
   while IFS= read -r tok; do
@@ -205,8 +209,10 @@ $body")
       continue
     fi
     [ "$canon" != "$tok" ] || continue
-    new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -f "$here/rewrite.awk")
-    repairs=$(add_line "$repairs" "- \`${tok}\` -> \`${canon}\` — $(basis_of "$tok" "$canon")")
+    # `standalone=1`: a basename repair may not rewrite the tail of a longer path — that is how the suffix loop
+    # used to give a doubled token a third copy of its directory (#200).
+    new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -v standalone=1 -f "$here/rewrite.awk")
+    pairs=$(add_line "$pairs" "$tok"$'\t'"$canon")
   done <<< "$suffix_toks"
 
   while IFS= read -r tok; do
@@ -222,7 +228,7 @@ $body")
     fi
     if [ -n "$canon" ]; then
       new_body=$(printf '%s\n' "$new_body" | awk -v old="$tok" -v new="$canon" -f "$here/rewrite.awk")
-      repairs=$(add_line "$repairs" "- \`${tok}\` -> \`${canon}\` — $(basis_of "$tok" "$canon")")
+      pairs=$(add_line "$pairs" "$tok"$'\t'"$canon")
       continue
     fi
     # Ambiguity: several tracked paths end with the citation, and the repository states no successor.
@@ -234,6 +240,36 @@ $body")
     fi
     unresolved=$(add_line "$unresolved" "- \`${tok}\` — no tracked file, no rename record, no single surviving declaration")
   done <<< "$absent_toks"
+
+  # A repair is a change to the record, not the attempt at one (#200). The two loops rewrite independently, so
+  # the suffix loop's basename repair can sit inside a doubled token the absent loop then collapses back to
+  # exactly what it was — and the history can name a successor the tree no longer holds. A pair therefore counts
+  # only when the body differs from the input and both halves re-classify: the target a path the tree holds, the
+  # old token no longer an `absent` citation of the new body — asked of the matrix, so a target path that
+  # legitimately contains the old name is not mistaken for a surviving citation. What fails becomes
+  # `unresolved`, so the item is parked with its reason instead of counted repaired with a comment claiming it:
+  # a refusal recorded nowhere is the state the resolver exists to remove (#163).
+  repairs=""
+  if [ -n "$pairs" ]; then
+    matrix_after=$(issues_citation_matrix_of "$new_body")
+    while IFS=$'\t' read -r old new; do
+      [ -n "$old" ] || continue
+      if [ "$new_body" = "$body" ]; then
+        unresolved=$(add_line "$unresolved" "- \`${old}\` -> \`${new}\` — the rewrite changed nothing")
+        continue
+      fi
+      if [ "$(issues_citation_class "$new")" = "absent" ]; then
+        unresolved=$(add_line "$unresolved" "- \`${old}\` -> \`${new}\` — the target is not a tracked path")
+        continue
+      fi
+      if printf '%s\n' "$matrix_after" | \
+         awk -F'\t' -v t="$old" '$1 == "absent" && $2 == t { found = 1 } END { exit !found }'; then
+        unresolved=$(add_line "$unresolved" "- \`${old}\` — the citation survives the rewrite, so nothing was repaired")
+        continue
+      fi
+      repairs=$(add_line "$repairs" "- \`${old}\` -> \`${new}\` — $(basis_of "$old" "$new")")
+    done <<< "$pairs"
+  fi
 
   # The bound counts the items a run would write, not the items it visits (#199). An item whose only stale
   # citations are ambiguous reports them and reaches neither write branch below, so counting it as `due` spent

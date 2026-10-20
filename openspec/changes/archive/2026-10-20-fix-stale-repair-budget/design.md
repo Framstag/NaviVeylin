@@ -46,9 +46,10 @@ not parked).
   option also reverses the ladder's stated rule that an ambiguous match is reported rather than acted on; (b)
   it would put 22 items on hold whose citations are *not* proven gone, so a person's queue fills with items
   whose only defect is that the tooling could not decide; (c) it moves the residue metric as a side effect —
-  `tools/sensors/metrics/stale-citations.sh` reads `.parked` from the bounded dry run against bound 5 with
-  `consecutive: 2`, so a budget fix would file a `unresolved-citations` violation on its first scheduled run,
-  which is an alarm the repair tool caused rather than a condition it found; (d) it would relax an existing
+  `tools/sensors/metrics/stale-citations.sh` reads `.parked` from the bounded dry run against bound 5, and
+  `tools/sensors/sensors.json` gives that row `consecutive: 2`, so a budget fix would add to a residue the
+  metric *files* only on the second consecutive above-bound run (`tools/sensors/run.sh:371-377` records the
+  first) — an alarm the repair tool contributed to rather than a condition it found; (d) it would relax an existing
   assertion — `resolver#ambiguityIsReportedNotRepaired` asserts no `gh issue edit` at all, and a park is one —
   and an assertion rewritten to fit a fix is a falsification spent.
 - **Order the queue, writable items first, ambiguous tail last** (a two-pass walk). Eliminated: it needs the

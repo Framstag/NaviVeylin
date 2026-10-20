@@ -52,8 +52,11 @@
 - [x] 4.2 The count in the evidence prose is the one the quoted run line supports: `due=25` is `repaired=4` +
   `parked=5` + 16, so **16 of the 25** visited items produced no write, and `ambiguous=22` counts tokens —
   corrected in `proposal.md`, `design.md` and the production comment at `tools/issues/resolve-stale.sh`.
-  Verification: `grep -rn '22 of 25\|22 of the 25' openspec/changes/archive/2026-10-20-fix-stale-repair-budget
-  tools/issues/resolve-stale.sh` finds nothing.
+  Verification: `grep -rn '22 of 25\|22 of the 25'
+  openspec/changes/archive/2026-10-20-fix-stale-repair-budget/proposal.md
+  openspec/changes/archive/2026-10-20-fix-stale-repair-budget/design.md tools/issues/resolve-stale.sh` — the
+  three files the claim names — finds nothing. The directory-wide grep this task first stated was false: it
+  matched this task line itself and the old `evidence/diff.txt`, and is narrowed here (5.2).
 - [x] 4.3 Two line citations corrected against base `9e7e969`: the walk's `while` is `:168` (not `:171`), in
   `proposal.md` and `design.md`, and the park write is `:248` (not `:249`), in both. Verification:
   `git show 9e7e969:tools/issues/resolve-stale.sh | sed -n '168p;248p'` prints the `while` and the
@@ -74,3 +77,35 @@
   changed, no compiled file did: `bash tools/resolve-stale-selftest.sh`, 22 of 22, exit 0
   (`evidence/green-round2.txt`, 2026-10-20T09:50:34Z). Verification: that file; the case the change adds is
   among the 22 `PASS` lines.
+
+## 5. Round-3 corrections (the review refused round 2's evidence, not its fix)
+
+- [x] 5.1 `evidence/diff.txt` regenerated from the base commit to this tree, the archived change directory
+  included — it had been round 1's diff, quoting the clause round 2 refused and two blob hashes that no longer
+  exist. The file itself is the one exclusion, a file cannot quote its own content, and its header says so.
+  Verification: on the diff's merged-spec section — `sed -n
+  '/^diff --git a\/openspec\/specs\/stale-citation-resolution\/spec.md/,/^diff --git a\/tools/p' evidence/diff.txt` —
+  `grep -c 'the items the run writes'` prints `0` and `grep -c 'the items the run acts on'` prints `1`, so the
+  quoted clause is this tree's; `grep -n 'index f3e0cb2'` shows `..3e49a34`, not round 1's `..3fa5fe3`; and
+  `grep -c '^diff --git'` prints `14`, the 13 tracked files `git diff --name-only 9e7e969 -- .
+  ':(exclude)…/evidence/diff.txt'` lists plus the untracked `evidence/green-round3.txt` the second section adds.
+- [x] 5.2 Task 4.2's verification narrowed to the three files its claim names (4.2, above), so the command it
+  states is true on the corrected tree. Verification: that command, run verbatim, finds nothing.
+- [x] 5.3 The second unrelated blank-line deletion in the merged spec is restored (the one before
+  `## Requirements`), so 4.5's claim now holds literally. Verification: `git diff 9e7e969..HEAD --
+  openspec/specs/stale-citation-resolution/spec.md` carries no whitespace-only hunk — one hunk, the
+  requirement and the `Case` lines.
+- [x] 5.4 The production comments no longer say the bound is on what a run "writes", which excluded the default
+  dry run the corrected clause covers: they say `would write` (`tools/issues/resolve-stale.sh:40` and the
+  comment above the guard). Verification: `grep -n 'would write' tools/issues/resolve-stale.sh` finds both, and
+  `grep -n 'a run \*\*writes\*\*' tools/issues/resolve-stale.sh` finds none.
+- [x] 5.5 The round-2 block of `evidence/revert-checks.md` carries its own timestamp, so it is not read under
+  round 1's date. Verification: the block's `(recorded …)` line.
+- [x] 5.6 `design.md` (c) states the hysteresis the tooling has — the metric row is `threshold 5,
+  consecutive 2` and `tools/sensors/run.sh:371-377` records the first above-bound run and files on the second —
+  instead of "on its first scheduled run". Verification: `design.md`, the sentence citing
+  `tools/sensors/sensors.json`.
+- [x] 5.7 The structural gate re-run after 5.3 and 5.4 — `tools/issues/resolve-stale.sh` changed again, no
+  compiled file did: `bash tools/resolve-stale-selftest.sh`, 22 of 22, exit 0 (`evidence/green-round3.txt`,
+  2026-10-20T09:54:33Z).
+  Verification: that file, and `bash -n tools/issues/resolve-stale.sh`.

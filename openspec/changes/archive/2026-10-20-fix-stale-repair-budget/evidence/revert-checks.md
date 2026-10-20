@@ -11,6 +11,9 @@ exit=0
 
 ## The mutated run's own failure message — recorded in round 2, before the 09:50:34Z suite run
 
+(recorded 2026-10-20, before the 09:50:34Z suite run; the timestamp in the title above is round 1's run of the
+same mutation)
+
 Recorded in round 2, because the summary above proves red by exit status but not by reason. The same mutation
 (`5.11`: the guard line replaced by `  due=$((due + 1))`, i.e. the pre-fix unconditional charge) was applied by
 hand to `tools/issues/resolve-stale.sh`, the named case was run against it, and the tree was restored from a

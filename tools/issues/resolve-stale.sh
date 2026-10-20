@@ -37,7 +37,7 @@ source "$here/lib.sh"
 
 apply=0
 json=0
-# The bound is on the items a run **writes**, not on the items it visits: an item nothing can be written for
+# The bound is on the items a run **would write**, not on the items it visits: an item nothing can be written for
 # (an ambiguous citation, #199) spends no slot, so a non-action cannot exhaust the run's budget.
 max_items=20
 issues_file=""
@@ -235,11 +235,12 @@ $body")
     unresolved=$(add_line "$unresolved" "- \`${tok}\` — no tracked file, no rename record, no single surviving declaration")
   done <<< "$absent_toks"
 
-  # The bound counts writes, not visits (#199). An item whose only stale citations are ambiguous reports that
-  # and reaches neither write branch below, so counting it as `due` spent a slot of every run's bound on a
-  # non-action while the items behind it waited — measured 2026-10-19, `due=25 repaired=4 parked=5
-  # ambiguous=22` meant 16 of the 25 visited items produced no write (`ambiguous` counts tokens). It is
-  # visited, written for nowhere, and counted `skipped`; the `ambiguous` counter still reports it per token.
+  # The bound counts the items a run would write, not the items it visits (#199). An item whose only stale
+  # citations are ambiguous reports them and reaches neither write branch below, so counting it as `due` spent
+  # a slot of every run's bound on a non-action while the items behind it waited — measured 2026-10-19,
+  # `due=25 repaired=4 parked=5 ambiguous=22` meant 16 of the 25 visited items produced no write (`ambiguous`
+  # counts tokens). It is visited, written for nowhere, and counted `skipped`; the `ambiguous` counter still
+  # reports it per token.
   if [ -n "$repairs" ] || [ -n "$unresolved" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi
 
   if [ -n "$repairs" ] && [ -z "$unresolved" ]; then

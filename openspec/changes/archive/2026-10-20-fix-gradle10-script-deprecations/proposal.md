@@ -54,9 +54,8 @@ which the documented gate and CI's test step both run.
 
 - `app/build.gradle.kts`, `auto/build.gradle.kts`, `core/build.gradle.kts`: the ten
   `val <name> by tasks.registering { … }` registrations become `val <name> = tasks.register("<name>") { … }` —
-  the same task name, the same configure block, the same `TaskProvider`, so every `dependsOn`, every
-  `tasks.named("preBuild")` edge and every task path (`:app:checkHardcodedStrings`, `:app:mergeNativeSbom`, …)
-  is unchanged.
+  the same task name, the same configure block, the same `TaskProvider`, so every task path
+  (`:app:checkHardcodedStrings`, `:app:mergeNativeSbom`, …) is unchanged.
 - `app/src/test/java/com/naviveylin/build/GradleScriptDeprecationTest.kt`: the two cases above.
 - `guidelines/Build.md` §7: the sweep's result recorded — the project-owned family is gone (with the command
   that measures it), the Kover plugin warning remains and why, and the guard that keeps the family out.

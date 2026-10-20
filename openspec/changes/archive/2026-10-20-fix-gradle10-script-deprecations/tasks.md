@@ -58,3 +58,35 @@
 - [x] 3.6 The change's declared cases select the new class: `bash tools/declared-cases.sh
   fix-gradle10-script-deprecations` — rule `declared` selects 1 class, `com.naviveylin.build.GradleScriptDeprecationTest`,
   in `app` (`evidence/declared-cases.txt`).
+
+## 4. Round-2 corrections (review of round 1)
+
+Two blocking findings of the first review, both subtractive: a scenario promised more than the artifacts
+carry. No assertion, no fix and no case changed, so the red and green runs of tasks 1.1 and 3.3 and the gate of
+task 3.5 keep their results; only the case's two comments changed, and one focused run re-confirms them green.
+
+- [x] 4.1 Scenario "A project script registers its tasks by name" no longer promises the `dependsOn` edge —
+  nothing in this change exercises that edge (`fixed-checks.log` invokes the eight tasks by name, so no edge
+  resolves). Its THEN keeps the name half: "every task keeps the name its CI invocation already uses". The same
+  unproven phrase is gone from `proposal.md`, `design.md`'s equivalence sentence and from
+  `guidelines/Build.md` §7. Verification:
+  `grep -rn dependsOn openspec/changes/archive/2026-10-20-fix-gradle10-script-deprecations/proposal.md
+  openspec/changes/archive/2026-10-20-fix-gradle10-script-deprecations/design.md
+  openspec/changes/archive/2026-10-20-fix-gradle10-script-deprecations/specs
+  openspec/specs/build-jvm-toolchain/spec.md` finds nothing (exit 1); §7's paragraph still names the sweep, the
+  command and the guard case; `bash tools/check-doc-routes.sh` → `all 89 section references resolve`, exit 0.
+- [x] 4.2 Scenario "The removal is still detectable" promises what the scan prints — "each offending line's
+  number and text" — in the applied spec, the archived delta, the class KDoc and the `findingsIn` comment, so no
+  document claims a path the finding does not carry (the red XML's `system-out` and failure message both show
+  `:<line>: <text>`). Verification: `grep -rn "by file\|names its file"` over the two spec files, the
+  change's `proposal.md` and `design.md`, and the case finds nothing (exit 1).
+- [x] 4.3 The edited case still compiles and both cases stay green:
+  `./gradlew --offline :app:testMobileDebugUnitTest --tests "com.naviveylin.build.GradleScriptDeprecationTest"
+  -PforceTests` — JUnit XML `tests=2 failures=0`, timestamp `2026-10-20T12:25:15.470Z`, `scripts=8 findings=0`
+  (`evidence/round2-TEST-GradleScriptDeprecationTest.xml`, log `evidence/round2-focused.log`). The gate of task
+  3.5 is not re-run: a comment-only edit changes no behaviour, and a re-run is what destroys its evidence.
+- [x] 4.4 The applied requirement and the delta are still the same text: the requirement region of
+  `openspec/specs/build-jvm-toolchain/spec.md` diffs clean against the archived delta (`diff` → no output).
+  Structural checks after the correction: `openspec validate --specs` → `Totals: 176 passed, 0 failed`,
+  `bash tools/check-doc-routes.sh` → 89 resolve, `bash tools/check-todo-references.sh` → 62 citations resolve
+  (`evidence/round2-structural-checks.txt`).

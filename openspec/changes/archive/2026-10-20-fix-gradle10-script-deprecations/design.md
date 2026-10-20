@@ -31,9 +31,8 @@ val checkHardcodedStrings = tasks.register("checkHardcodedStrings") {
 ```
 
 The name is the one the delegate derived from the property name, the configure block is unchanged, and the
-value is the same `TaskProvider<Task>` a delegate produced — so `tasks.named("preBuild") { dependsOn(…) }`,
-`dependsOn(downloadSbomCli)` and every task path in CI (`:app:checkHardcodedStrings`, `:app:mergeNativeSbom`,
-`:app:downloadSbomCli`, …) resolve exactly as before. Nothing else in those scripts changes: no configuration
+value is the same `TaskProvider<Task>` a delegate produced — so every task path in CI
+(`:app:checkHardcodedStrings`, `:app:mergeNativeSbom`, `:app:downloadSbomCli`, …) resolves exactly as before. Nothing else in those scripts changes: no configuration
 moved out of a block, no `doLast` closure rewritten, no input or output declaration touched.
 
 ## Blast radius

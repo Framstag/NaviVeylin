@@ -9,8 +9,9 @@ a command substitution and printed only after it returned — `prescreen_out=$(b
 followed by `printf '%s\n' "$prescreen_out"` (`tools/loop/run.sh`, pre-fix lines 332–334). Nothing of it reached
 the terminal while it ran. No line marked any other phase boundary either: the run's last words before an item's
 result were the `worktree:` line, so one item's whole life — 40–65 min for a change, 10–15 min for a skip
-(`tools/loop/state.sh`, the item floor's comment) — looked the same as a hung run. On 2026-10-19 and 2026-10-20
-two runs were interrupted by hand inside that pre-screen window, and a third invocation that hung on a missing
+(`.pi/skills/fix-loop/REFERENCE.md`, "Measured costs") — looked the same as a hung run. On 2026-10-19 and 2026-10-20
+two runs were interrupted by hand inside that pre-screen window (the issue's operator account, not a transcript
+this change holds), and a third invocation that hung on a missing
 flag value (#190) was indistinguishable from both.
 
 What the header named was its arguments and nothing else, so nothing on the console said that the pre-screen
@@ -98,7 +99,12 @@ None.
 - `tools/loop/run.sh` — the header hint, the streamed pre-screen, and five `progress` call sites; `fmt_elapsed`
   leaves this file for `lib.sh`; `stage_dir` is read once, before the path that needs it.
 - `tools/loop-cases.sh` — three new shell cases, registered in `LOOP_SHELL_CASES` and in the dispatcher of
-  `loop_run_shell_case`.
+  `loop_run_shell_case`, each asserting its scenario's clauses: the pre-screen case holds a stand-in pre-screen
+  (one line, a 3 s hold, a second line) and reads the console 1.5 s in, so the text is proved streamed rather
+  than replayed, and reads the kept `<state dir>/prescreen.log` afterwards; the boundary case asserts the
+  elapsed format and one line per crossing and that no phase line reaches the state file or the report.
+- `tools/loop-mutations.sh` — mutations 33.1–33.4, one per property the phase lines own (streamed, kept,
+  elapsed field, never read back), so the falsification of each is a versioned record rather than a one-off.
 - `.pi/skills/fix-loop/SKILL.md` — the section "What a run prints while it works" gains the phase lines and the
   header hint.
 - `openspec/specs/agent-issue-loop/spec.md` — gains the ADDED requirement at archive time; this change's delta

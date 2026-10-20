@@ -19,3 +19,10 @@ PASS run#prescreenAnnouncesItselfBeforeItReturns
 What this means: the capture is what the case guards. With `pipefail` off the fixture still delivers the
 pre-screen's status to the run, so `set -o pipefail` in the subshell is the statement of a dependency, not an
 invariant a case measures — recorded that way rather than claimed.
+
+== Correction added after the first review (2026-10-20T21:40Z)
+The line above this block says "restored"; it overstates the technique. The mutation was applied to a *copy* of
+the engine (`LOOP_ENGINE=/tmp/191-mut.4F2m0J/m1/tools/loop`), so the production tree was never mutated and that
+run measured the unmutated tree rather than a restore. The stronger technique, but the word was a claim the
+transcript does not carry. The registered mutations 33.1–33.4 (`tools/loop-mutations.sh`, transcript in
+`mutations-round2.txt`) do mutate and restore in place, and record both steps.

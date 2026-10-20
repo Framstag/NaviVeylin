@@ -24,7 +24,8 @@ printf '%s\n' "$prescreen_out"          # the first of it a terminal sees, in on
    says what it is doing — its output carries the per-record verdicts and its own exclusion summary
    (`pre-screen: 0 eligible, 1 excluded — …`) — so a timer would add a process and a lifecycle to reproduce,
    less truthfully, information the call itself emits. The case that measures this is possible only because the
-   text streams: `run#prescreenAnnouncesItselfBeforeItReturns` reads the console 1.5 s into a 3 s call.
+   text streams: `run#prescreenAnnouncesItselfBeforeItReturns` runs a stand-in pre-screen that prints one line,
+   holds for 3 s and prints a second, reads the console 1.5 s in and requires the first line and not the second.
 2. **Streaming to the terminal only, dropping the capture.** Eliminated by the pre-screen's second consumer: the
    dry-run listing and a person reading the transcript after the fact both need the text once the terminal has
    scrolled. `tee` gives both from one pipeline, and the state directory is already where a run writes what it
@@ -112,6 +113,15 @@ run, which is what its case asserts.
   The same file records the honest limit of that measurement: with only `pipefail` removed and the capture kept,
   the case still passes, so the capture is what the case guards and the `set -o pipefail` in the subshell stays a
   statement of the dependency rather than a claim that a test measures it.
+- The other three properties the phase lines own are falsified by their own mutations, one case each: 33.1
+  redirects the pre-screen's stream into the file instead of through `tee`, and the case fails on the console's
+  missing first line; 33.2 keeps the stream and drops the kept copy (`tee /dev/null`), and the case fails on the
+  state directory's missing text; 33.3 drops the elapsed field from `progress`, and the boundary case fails on
+  the format; 33.4 writes the phase line into the state file as a field, and the boundary case fails on its
+  "never read back" clause. Each mutation restores green.
+- The kept copy is asserted, not assumed: `<state dir>/prescreen.log` is read after the run and must carry both
+  of the stand-in's lines, so a `tee` that stopped writing there would not stay green on the back of the
+  console's own output.
 - `tee` is a POSIX tool the loop already assumes (`report.sh` and the cases pipe constantly); a host without it
   could not run the suite either.
 - A case that reads the console mid-flight can be flaky on a starved host: it holds the pre-screen for 3 s and
@@ -120,7 +130,8 @@ run, which is what its case asserts.
 
 ## Blast radius
 
-`tools/loop/lib.sh`, `tools/loop/run.sh`, `tools/loop-cases.sh`, `.pi/skills/fix-loop/SKILL.md` and this change.
+`tools/loop/lib.sh`, `tools/loop/run.sh`, `tools/loop-cases.sh`, `tools/loop-mutations.sh`,
+`.pi/skills/fix-loop/SKILL.md` and this change.
 No app module, resource, manifest, stylesheet or native source; no phone or car variant, so `guidelines/UI.md`
 §1 does not apply. No guideline text changes: `guidelines/Build.md` §2 already owns the verification shape this
 delta follows, and `guidelines/Logging.md` §1–§3 is about the app's lines, not the loop's console.
@@ -134,7 +145,9 @@ byte-identical to this change's, and no consumer notices — nothing reads a pro
 
 The offline shell suite is the gate that owns `tools/loop/**` (`guidelines/Build.md` §2's scope block; the same
 shape the archived change `2026-10-20-fix-loop-cut-review-answer` recorded). Each of the three new cases fails on
-the base (`evidence/red-phase-lines.log`) and passes with the change (`evidence/phase-lines-cases.log`); the
-whole suite is run once over the final tree (`evidence/selftest.txt`). No Gradle and no device: the delta touches
+the base (`evidence/red-phase-lines.log`, and the two rewritten cases again in `evidence/red-phase-lines-round2.log`)
+and passes with the change (`evidence/phase-lines-cases.log`); the four properties the phase lines own are
+falsified by mutations 33.1–33.4 (`evidence/mutations-round2.txt`); the whole suite is run once over the final
+tree (`evidence/selftest.txt`). No Gradle and no device: the delta touches
 no Kotlin, Java, C++, manifest or resource file, so `./gradlew test -PforceTests --no-build-cache` is excluded
 and the reason is stated rather than implied.

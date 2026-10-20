@@ -1,0 +1,28 @@
+# the four mutations of tools/loop-mutations.sh, each applied to a copy of tools/, with the reason it
+# goes red — 2026-10-20T21:34:48Z
+
+## 33.1 — run#prescreenAnnouncesItselfBeforeItReturns
+   mutated: run.sh:   bash "$LOOP_DIR/prescreen.sh" "${prescreen_args[@]}" 2>&1 | cat > "$prescreen_log"
+   exit=1
+   reason: the pre-screen's own first line reaches the console while the call runs: 'pre-screen: first record' not found in: agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on child-max-seconds=2700 min-free-mib=1024 free-mib=3953 dry-run=0 reset-worktree=0
+   FAIL run#prescreenAnnouncesItselfBeforeItReturns
+
+## 33.2 — run#prescreenAnnouncesItselfBeforeItReturns
+   mutated: run.sh:   bash "$LOOP_DIR/prescreen.sh" "${prescreen_args[@]}" 2>&1 | tee /dev/null
+   exit=1
+   reason: the pre-screen's text is kept in the state directory: 'pre-screen: first record' not found in: 
+   FAIL run#prescreenAnnouncesItselfBeforeItReturns
+
+## 33.3 — run#everyPhaseBoundaryIsPrinted
+   mutated: lib.sh:   printf 'loop: %s · %s · %s\n' "$phase" "" "$*"
+   exit=1
+   reason: the pre-screen is announced and reported: expected '2', got '0'
+   FAIL run#everyPhaseBoundaryIsPrinted
+
+## 33.4 — run#everyPhaseBoundaryIsPrinted
+   mutated: lib.sh:   local phase="$1"; shift; jq --arg l "loop: $phase" '.run.progressNote = $l' "$LOOP_STATE_FILE" > "$LOOP_STATE_FILE.n" 2>/dev/null && mv "$LOOP_STATE_FILE.n" "$LOOP_STATE_FILE"
+   exit=1
+   reason: no progress line is written to the state file: 'loop: ' should not appear in: {"current":{"phase":"A"},"excluded":[{"alreadyEscalated":false,"class":"bug","evidence":"fix/issue-21-an-eligible-bug-whose-cited-path-still-e","issue":21,"reason":"branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it","verdict":"needs-decision"}],"items":[{"at":"2026-10-20T21:35:13Z","change":"2026-01-01-fix-demo","class":"bug","escalatedLabel":"","issue":21,"merged":{"branch":"","commits":"","evidence":""},"metrics":{"closed":"yes","context":null,"cost":null,"gate":"tests=1 failures=0 (fixture)","piExit":"0","redTest":"Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)","reviewRounds":0,"rootCause":"the fixture has exactly one cause","tokens":null,"tools":null,"wallSeconds":2.205},"note":"","result":"done","verdict":"closed"}],"queue":[],"run":{"base":"964b8a93289bc949563f7cd1a8b5526a9dbaed76","deadlineAt":"2026-10-20T23:05:09Z","deadlineEpoch":1792537509,"items":1,"maxDecisions":10,"maxReviewRounds":2,"mayClose":"yes","minutes":90,"progressNote":"loop: gate","review":"off","startedAt":"2026-10-20T21:35:09Z","startedEpoch":1792532109,"stop":{"at":"2026-10-20T21:35:14Z","reason":"item cap reached (1/1)"}},"stateDigest":"3c3fe6ea5d1a46e0","steps":[{"at":"2026-10-20T21:35:13Z","issue":0,"name":"worker","note":"exit 0","phase":"A","status":"ok"}]}
+   FAIL run#everyPhaseBoundaryIsPrinted
+
+restore: no mutation is left in the tree — each copy was thrown away (git status is untouched by this file).

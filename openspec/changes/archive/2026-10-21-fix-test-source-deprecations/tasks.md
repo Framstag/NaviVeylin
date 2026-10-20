@@ -20,7 +20,7 @@
 
 ## 5. Falsification of the new guard (revert-check)
 
-- [x] 5.1 Mutate one call site back (`addSensor(Sensor.TYPE_LIGHT, sensor)`), re-run the sensor case forced, restore, re-run forced green. Verify: the mutation fails the sensor case with the offending path in the message, the restore passes. — **done 2026-10-20**: the red run of 1.1 *is* that mutation (HEAD carries all four sites), the green run of 3.1 is the restore; both XMLs are in `evidence/`, so no separate mutation run was made for a guard whose only input is the text it scans.
+- [x] 5.1 Falsify the guard: the pre-fix run of 1.1 (HEAD carries all four sites) is the mutation that fails the three cases, and the green run of 3.1 is the restore. Verify: each case fails with the offending path in the message and passes again afterwards; both XMLs are in `evidence/`. — **done 2026-10-20**: no separate mutation run was made, because the only input the guard reads is the text it scans, so the red run *is* three mutated call sites at once rather than one restored state; round 2 added the single-site mutation the missing assertion needed (task 8.2).
 
 ## 6. Gate
 
@@ -30,3 +30,30 @@
 ## 7. Archive
 
 - [x] 7.1 Archive the change and confirm the delta merged into `openspec/specs/build-test-gate/spec.md`. Verify: `openspec/changes/archive/2026-10-21-fix-test-source-deprecations/` exists and the capability spec carries "The unit-test source sets call no deprecated API" (`openspec/specs/build-test-gate/spec.md:235`). — **done 2026-10-20** via `openspec archive fix-test-source-deprecations --yes`; the CLI reported `build-test-gate: update`, `+ 1 added`.
+
+## 8. Round 2 — the review's two blocking findings
+
+- [x] 8.1 Extend the third case's positive control from a filename check to the assertion it stands for: the
+  silence test function `noticeIsSilentSoGuidanceIsNotInterrupted` reads `posted.channelId` and
+  `IMPORTANCE_LOW`. Verify: `./gradlew :app:testMobileDebugUnitTest --tests
+  'com.naviveylin.build.UnitTestSourceDeprecationBaselineTest' -PforceTests --no-build-cache` is green and
+  the XML is copied to `evidence/`. — **done 2026-10-20**: focused green `tests=3 failures=0` at
+  `2026-10-20T22:29:52.647Z` (before a KDoc-only edit), and the gate's own guard XMLs below are the run of
+  the final source.
+- [x] 8.2 Mutate that assertion to the eliminated alternative (`assertNull(posted.sound)`), re-run the case
+  forced, restore. Verify: the case fails with "the silence assertion must read the channel the posted
+  notice rides…", XML `tests=3 failures=1` copied to `evidence/` as
+  `round2-mutation-silence-read-…xml`; the restore re-runs green. — **done 2026-10-20**: mutation failed at
+  `22:29:59.230Z` with `tests=3 failures=1 errors=0` and exactly that message; restore left
+  `CarStyleLoadNotifierTest.kt` byte-identical to the committed version, green in the gate.
+- [x] 8.3 Delete the `design.md` bullet that declares the implemented fourth-site fix an eliminated
+  alternative, and correct the two `UNPROVEN` recollections and the `guidelines/Build.md` §4 remainder
+  sentence the review found. Verify: `grep -n 'Asserting silence through the notification channel in the
+  fourth site' design.md` finds nothing, and the surviving text marks the first-attempt reading as a
+  recollection. — **done 2026-10-20**: the bullet is gone, both claims now say what measured them and what
+  did not, and Build.md §4 separates the 18 non-opt-in lines into 7 of this family, 2 of another
+  (`quadraticBezierTo`) and 9 non-deprecation.
+- [x] 8.4 Re-run the gate once: `./gradlew test -PforceTests --no-build-cache`. Verify: `BUILD SUCCESSFUL`,
+  the console log and per-suite tallies transcribed into `evidence/gate-tally.txt` and
+  `evidence/gate-console.log`. — **done 2026-10-20**: `BUILD SUCCESSFUL in 3m 34s` (189 tasks: 29 executed,
+  160 up-to-date), 5706 tests / 0 failures / 0 errors, guard `tests=3 failures=0` in both `:app` flavors.

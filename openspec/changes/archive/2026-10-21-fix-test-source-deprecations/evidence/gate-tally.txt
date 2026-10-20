@@ -27,3 +27,29 @@ both tests=3 failures=0.
 Excluded by this change, and stated as such: no AAB is assembled and no native ABI is built (the delta
 touches test sources and one guideline), and the coverage report tasks (`:koverHtmlReport`,
 `:koverXmlReport`) are not part of `./gradlew test`.
+
+## Round 2 — the gate re-run after the review's blocking finding
+
+Gate: ./gradlew test -PforceTests --no-build-cache
+Run on 2026-10-20, same tree at base 3211d4d + this change + the round-2 correction (the third guard
+case reads the silence test's body instead of its filename).
+Result: BUILD SUCCESSFUL in 3m 34s — 189 actionable tasks: 29 executed, 160 up-to-date. The console is
+kept, not transcribed: `evidence/gate-console.log` (its `-PforceTests` effect is the XML timestamps below,
+every one later than the run's start).
+
+Tallies, re-read from each module's result XML:
+
+  :app:testMobileDebugUnitTest        tests=2075  failures=0  errors=0  (280 XMLs)
+    result timestamps 2026-10-20T22:32:56.431Z .. 2026-10-20T22:34:35.978Z
+  :app:testAutomotiveDebugUnitTest    tests=2075  failures=0  errors=0  (280 XMLs)
+    result timestamps 2026-10-20T22:31:10.195Z .. 2026-10-20T22:32:53.712Z
+  :auto:testDebugUnitTest             tests=866   failures=0  errors=0  (85 XMLs)
+    result timestamps 2026-10-20T22:31:06.403Z .. 2026-10-20T22:31:39.179Z
+  :core:testDebugUnitTest             tests=642   failures=0  errors=0  (60 XMLs)
+    result timestamps 2026-10-20T22:31:05.342Z .. 2026-10-20T22:31:15.414Z
+  :osmscout-client-java:test           tests=48   failures=0  errors=0  (8 XMLs)
+    result timestamps 2026-10-20T22:31:05.226Z .. 2026-10-20T22:31:05.933Z
+
+Total: 5706 tests, 0 failures, 0 errors. The guard class ran in both `:app` flavors inside this gate
+(`evidence/gate-round2-mobile-…xml` 2026-10-20T22:32:56.431Z, `evidence/gate-round2-automotive-…xml`
+2026-10-20T22:31:18.909Z), both `tests=3 failures=0` — the extended third case included.

@@ -39,10 +39,12 @@ deprecation, so the call sites outlived both the Robolectric bump and the notifi
 - `isBroadcast()` and `isBroadcastIntent()` — and `isActivity()`/`isActivityIntent()` — are byte-identical
   in the same jar: both read `ShadowPendingIntent.type`.
 - `Notification.defaults` has no non-deprecated form: the field is deprecated from API 26 and so are the
-  notification's own `sound` and `vibrate` fields (measured — asserting those two left two `Deprecated in
-  Java` lines where there had been one). From API 26 the sound and the vibration belong to the
-  `NotificationChannel`, and the platform ignores per-notification values for a channel-based post, so the
-  supported assertion of "silent" is the channel the notice rides and that channel's importance.
+  notification's own `sound` and `vibrate` fields — asserting those two leaves a `Deprecated in Java` line
+  where there had been one (a recollection of a first compile attempt whose log was not kept; the archived
+  `fixed-compile.log` is the run that followed it). From API 26 the sound and the vibration belong to the
+  `NotificationChannel` (framework-documented; this change's evidence does not measure the platform's
+  handling), so the supported assertion of "silent" is the channel the notice rides and that channel's
+  importance.
 
 **Red test on HEAD** — `UnitTestSourceDeprecationBaselineTest` (`:app` unit tests, file
 `app/src/test/java/com/naviveylin/build/UnitTestSourceDeprecationBaselineTest.kt`), run with
@@ -81,3 +83,19 @@ rerun, read a gate result → `Build.md` §2, §3, §4").
 
 No production code, no build script, no dependency changes. Rollback: restore the four call sites; all
 three guard cases fail, so the regression is visible rather than silent.
+
+## Round 2 — the review's findings
+
+The first review refused the change on two blocking points, both about the record rather than the four
+replacements: the third scenario promised that "the scan reaches the notification test that asserts silence,
+**and that test reads the channel the notice rides**", while its case asserted only the filename, so
+deleting the assertion or replacing it with `assertNull(posted.sound)` left the guard green; and `design.md`
+listed the implemented fourth-site fix among the *eliminated* alternatives.
+
+Both are corrected in place, not papered over: the third case now reads the body of
+`noticeIsSilentSoGuidanceIsNotInterrupted` and asserts it names `posted.channelId` and `IMPORTANCE_LOW`, and
+the contradicting `design.md` bullet is deleted. The new assertion is falsified like the others — the
+alternative it replaced (`assertNull(posted.sound)`) is run as a single-site mutation and the case fails
+with the message above, XML `round2-mutation-silence-read-…xml` (`tests=3 failures=1`). The review's
+non-blocking notes about the `guidelines/Build.md` §4 "remainder" sentence, the two recollection claims
+marked `UNPROVEN`, and the task 5.1 wording are corrected in the same pass; the gate is re-run once.

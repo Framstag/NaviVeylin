@@ -29,12 +29,19 @@ they are what makes the first three replacements free rather than a re-specifica
 No host test can configure the project it runs inside, so a case cannot assert "the compiler emitted no
 deprecation warning". The guard therefore asserts the condition the warning is a function of: the
 deprecated call is absent from the unit-test source roots. Each of the three cases asserts the absence
-**and** a positive control — the supported successor is present, or (for the `defaults` case) the scan
-reached the file that carried it — so a scan that read nothing cannot pass vacuously.
+**and** a positive control, so a scan that read nothing cannot pass vacuously: for the sensor and the
+pending-intent families the control is that some source calls the supported successor; for the `defaults`
+case it is that the scan reached `CarStyleLoadNotifierTest.kt` **and** that
+`noticeIsSilentSoGuidanceIsNotInterrupted` reads `posted.channelId` and `IMPORTANCE_LOW` — the assertion
+that replaced the bitmask, read out of that function rather than out of the file that happens to contain it.
 
-The scan covers `app/src/test/java`, `auto/src/test/java` and `core/src/test/java`: the three roots the
-gate's four suites compile from, since `:app`'s two flavors compile the same tree. It skips its own file
-(the guard names the members it forbids, so it would otherwise match itself).
+The scan covers `app/src/test/java`, `auto/src/test/java` and `core/src/test/java`: the Kotlin test roots
+whose four suites the gate compiles, since `:app`'s two flavors compile the same tree. It does not scan
+`:osmscout-client-java`'s Java suite (48 tests, no file of the deprecated families), and it reads a source
+with `//` line comments stripped and matches call shapes, so a deprecated call inside a string literal or
+behind a nested parenthesis is outside what it can see — bounds the contract it holds shares, and the reason
+it is a guard against return rather than a proof of absence. It skips its own file (the guard names the
+members it forbids, so it would otherwise match itself).
 
 ## Alternatives the evidence eliminated
 
@@ -44,11 +51,15 @@ gate's four suites compile from, since `:app`'s two flavors compile the same tre
   (`LocationService.kt:527`, `MapScreen.kt:1`) — that is the *fourth* site's alternative, and it is
   eliminated there by the measurement: the property the assertion holds ("cannot interrupt guidance") has a
   supported form once it moves to the channel, so a suppression would keep a deprecated read that the
-  platform ignores anyway on API 29+.
+  platform ignores anyway on API 29+ (framework-documented; this change's evidence does not measure it).
 - **`assertNull(posted.sound)` + `assertNull(posted.vibrate)` as the fourth site's successor.** Eliminated by
   the compile, not by judgement: `Notification.sound` and `Notification.vibrate` are deprecated from the
-  same API level, so the substitution left two `Deprecated in Java` lines in place of one (measured; the
-  run is why this change states the post-fix count as 0 rather than as the count of the first attempt).
+  same API level, so the substitution leaves a `Deprecated in Java` line where there had been one. That
+  reading is a recollection of the first attempt, whose compile log was not kept — the archived
+  `fixed-compile.log` is the run that followed it, which is why the post-fix count is stated as 0 from that
+  run rather than from the first attempt. The assertion this change does make is falsifiable without it:
+  `round2-mutation-silence-read-TEST-…xml` is the guard case failing when that alternative replaced the
+  channel assertion.
 - **Asserting silence through `NotificationChannel.sound`/`shouldVibrate()`.** Eliminated by the framework's
   own defaults: a freshly constructed channel carries the default notification URI and vibration enabled,
   and `IMPORTANCE_LOW` is what suppresses both at post time — so the channel's importance is the property,
@@ -59,10 +70,6 @@ gate's four suites compile from, since `:app`'s two flavors compile the same tre
 - **Downgrading Robolectric to a release where the members are not deprecated.** Eliminated as a reversal:
   the pinned versions are the point (the jars are the reason the successors exist), and the deprecation is
   upstream's statement that the old form goes away.
-- **Asserting silence through the notification channel in the fourth site.** Eliminated as a wider claim
-  than the test holds: `noticeIsPostedWithTheMessageAndALowImportanceChannel` already asserts
-  `IMPORTANCE_LOW` (the channel-based successor of `DEFAULT_SOUND`/`DEFAULT_VIBRATE`), so repeating it here
-  would duplicate a claim instead of preserving the per-notification one.
 
 ## Blast radius
 

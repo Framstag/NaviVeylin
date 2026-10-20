@@ -136,6 +136,13 @@ the loop in a worktree" — now the wrapper's job, not a recipe a person follows
 `state.sh next` (exit 3 = stop) is the authority on whether another item may start — never your own
 arithmetic, and never "one more". The wrapper asks it; a session that drives the loop by hand asks it too.
 
+That authority is consulted **between items**, so it cannot see inside one: the wrapper therefore bounds
+each child by its own recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 2700 s = 45 min). A child that
+outlasts it is ended together with everything it started, its transcript gains
+`LOOP-TIMEOUT: the child exceeded <n> s`, and the item is recorded `blocked` with that transcript. A deadline
+read only at the top of the loop cannot bound the body of the loop — measured 2026-10-19, when an item's
+worker phase spent 83 minutes inside a single wait with the budget untouched.
+
 ## Stop conditions
 
 `state.sh next` exits 3 when the run may not continue, and it is the only authority. It stops when:
@@ -159,6 +166,7 @@ a child's prose.
 | situation | action |
 |---|---|
 | the child exits non-zero, or claims work it did not produce | the run records the item `blocked` and does **not** close it — it reads the tree, the archive and the gate XMLs itself |
+| the child outlasts `LOOP_CHILD_MAX_SECONDS` | the run ends it and everything it started, appends `LOOP-TIMEOUT: the child exceeded <n> s` to the transcript, and records the item `blocked` with that transcript — the run is not waiting any more, and the gate is **never** retried |
 | the change fails its last review round | `agent/needs-decision` + `status/on-hold`, recorded `blocked`, and the next candidate is taken. A report whose findings are subtractive (`LOOP-CORRECTIONS-ONLY: yes`) buys one more round instead |
 | the reviewer wrote to the tree during its round | the round is discarded with a reason (a reviewer that wrote cannot have been the reviewer), recorded `blocked` |
 | the fix needs a decision, or grows beyond one capability | the worker re-gates: `skipped` with `needs-decision`, escalated on the item with the work it had already done |
@@ -166,6 +174,12 @@ a child's prose.
 | a defect is found that is not this change's | file it as a new issue (`tools/issues/create.sh`, fingerprint-deduped, cross-referencing the issue it touches) and continue |
 | the gate needs a device that is absent | the verdict is `needs-device`: the run records it and attempts nothing on the device. An item counts as closed only if **host** evidence proves correctness |
 | the same item keeps coming back | it is not eligible: re-gate it, or record what the decision is — a third attempt is not a plan |
+
+**The gate is run once.** The gate command is a recorded value (`LOOP_GATE_CMD`), run as it is stated and
+quoted from the XML it produced, and never re-run to "refresh" or to "try again": the second attempt is what
+spent the clock on 2026-10-19 — `--rerun-tasks` never reached a suite in 30 minutes, the retry died in another
+module, and the same 5680 tests through `-PforceTests --no-build-cache` took 3m47s. A gate that does not complete
+inside the child's wall-clock is `blocked` with its log, not retried (#203).
 
 ## What a run prints while it works
 
@@ -182,7 +196,9 @@ loop: worker-prompt finished in 12m04s (exit 0, log 812 B)
 The numbers are read from the tree the child writes and never from the child: `log N B` is the transcript's
 size (0 until the child exits, because print mode writes its answer at the end), `changed file(s)` is
 `git status --porcelain` in the worktree, `commit(s) since the base` is `git rev-list --count <base>..HEAD`.
-Numbers that keep moving are a child thinking; `running` lines that stop appearing are a stopped run.
+Numbers that keep moving are a child thinking; `running` lines that stop appearing are a stopped run — and a
+child that outlasts `LOOP_CHILD_MAX_SECONDS` ends itself with `exit 124` and the `LOOP-TIMEOUT` line in its
+report, so "running" lines that stop appearing without that line are a stopped *host*, not a bounded child.
 
 ## Report (end of run)
 

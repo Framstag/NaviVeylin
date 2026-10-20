@@ -68,6 +68,7 @@ LOOP_SHELL_CASES=(
   'run#blockedItemIsEscalatedWithItsReason'
   'run#childStartsInTheProjectRoot'
   'run#childReportsWhileItWaits'
+  'run#childOutlastingTheWallClockIsBlocked'
   'run#childWriteOutsideTheWorktreeIsBlocked'
 
   'run#reviewerWriteInTheProjectIsDiscarded'
@@ -166,6 +167,7 @@ loop_run_shell_case() {
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
     'run#childReportsWhileItWaits') fn=case_run_childReportsWhileItWaits ;;
+    'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
     'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
     'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
@@ -1438,6 +1440,63 @@ case_run_childReportsWhileItWaits() {
   wait "$pid" || fail "the run itself failed"
   assert_contains "$(cat "$d/out")" "loop: worker-prompt finished in" "and the end is reported"
   assert_contains "$(cat "$d/out")" "exit 0" "with the child's own exit status"
+}
+
+# A child that never returns used to be waited for with no bound at all: the run's deadline is consulted
+# between items, so a hung gate could spend the whole budget inside one `wait` (measured 2026-10-19: item
+# #126's worker phase ran 83 min that way, and its retry died inside the same module that had taken 30 min).
+# The cap is a recorded value; the run ends the child and everything the child started, the transcript carries
+# the one line that says so, and the item is recorded `blocked` with that transcript instead of spending the
+# run's clock (issue #203).
+case_run_childOutlastingTheWallClockIsBlocked() {
+  local d p conf fifo pid i status out report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The recorded default is 45 min, which no case can wait for: the same seam the other cases use for the
+  # configuration (`LOOP_CONF`) carries a two-second cap here.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  # The child blocks on the fifo and is never released: with no cap the run is still there after the bound this
+  # case gives it, which is what makes this case red on the tree before the fix.
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  # The case holds the fifo's writer side for its whole life (`exec 8>`), so releasing a child never blocks and
+  # never leaves a writer behind: the stub opens the fifo for reading, this descriptor opens against it.
+  exec 8> "$fifo"
+  # Ten seconds is a bound on this case, not on the run: the run is supposed to end itself well inside it.
+  for i in $(seq 1 100); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    # The tree before the fix only reaches this line, and the diagnosis has to clean up after itself: the run's
+    # own group dies here, and the line the fifo never got is written so a child still waiting on it leaves too.
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 10 s on a child that outlasted its 2 s cap"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  assert_contains "$out" "loop: worker-prompt finished in" "the wait is reported as finished, not abandoned"
+  assert_contains "$out" "exit 124" "with the timeout's own status, distinct from a child's failure"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child that was ended"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
+    "the report carries the one machine-readable line that says the child was ended"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child was ended is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "exceeded 2 s" \
+    "and the reason on the item names the cap that ended it"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
 }
 
 case_run_childWriteOutsideTheWorktreeIsBlocked() {

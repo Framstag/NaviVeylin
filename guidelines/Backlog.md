@@ -222,6 +222,14 @@ outcome from what it reads itself (I10).
 What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
 is the script's (I8); and the tracker credential is not in the agent's environment (§5).
 
+What bounds it: the budget is consulted between items, so the run also bounds **one child** by its own
+recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 45 min). A child that outlasts it is ended together with
+everything it started — a gate leaves daemons and test workers behind, and those are the memory the next item
+needs — its transcript gains one machine-readable line (`LOOP-TIMEOUT: the child exceeded <n> s`), and the item
+is recorded `blocked` with that transcript rather than spending the run's clock. Measured 2026-10-19: an item's
+worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
+fired (#203).
+
 The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
 identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never
 an invented one, because a fresh container or CI runner has neither and the item would block on its own
@@ -372,6 +380,7 @@ configuration**, not a rewrite:
 ```
 LOOP_AGENT_CMD   how a child is started          on the host  |  inside an isolated environment
 LOOP_GATE_CMD    how this project's gate runs    empty for a project with no build
+LOOP_CHILD_MAX_SECONDS   how long one child may run   2700 s (45 min); a longer child is ended and blocked
 LOOP_WORKER_SKILLS   which of this project's skills the worker is told to use
 ```
 

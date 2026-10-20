@@ -89,10 +89,13 @@ if [ -z "$(printf '%s' "${LOOP_AGENT_CMD:-}" | tr -d '[:space:]')" ]; then
   loop_die "run: LOOP_AGENT_CMD is empty in $LOOP_CONF — the run has no way to start an agent process"
 fi
 
-# The run header names every effective value, so a run can be repeated and audited (D2).
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s dry-run=%s reset-worktree=%s\n' \
+# The run header names every effective value, so a run can be repeated and audited (D2). The child's
+# wall-clock is a recorded value too (`loop.conf`), so it is named here with the rest of the budget.
+child_max="${LOOP_CHILD_MAX_SECONDS:-2700}"
+case "$child_max" in ''|*[!0-9]*|0) child_max=2700 ;; esac
+printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s child-max-seconds=%s dry-run=%s reset-worktree=%s\n' \
   "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$dry_run" "$reset_worktree"
+  "$read_only" "$child_max" "$dry_run" "$reset_worktree"
 
 init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" \
   --max-decisions "$max_decisions" --max-review-rounds "$max_review_rounds")
@@ -397,15 +400,22 @@ fmt_elapsed() { # <seconds> -> `37s`, `4m12s`
 }
 
 run_child() { # run_child <prompt-file> <report-file> — every child goes through LOOP_AGENT_CMD (D3)
+  # The child is bounded by the recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 2700 = 45 min) and not
+  # only by the run's `--minutes`: the deadline is consulted between items, so a child that never returns
+  # spends the whole budget inside one wait and nothing notices (measured 2026-10-19: an item's worker phase
+  # ran 83 min that way — issue #203). A child that outlasts the cap is ended together with everything it
+  # started and its transcript says so, so the run's ordinary "exited N" path records the item `blocked`.
   # The working directory is the project and not the worktree on purpose: the project's own tool policy is
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase stop hb started interval
+  local before after rc phase stop hb started interval cap child timed_out=0
   before=$(project_state)
   phase=$(basename "$1" .md)
   interval="${LOOP_PROGRESS_SECONDS:-30}"
   case "$interval" in ''|*[!0-9]*|0) interval=30 ;; esac
+  cap="${LOOP_CHILD_MAX_SECONDS:-2700}"
+  case "$cap" in ''|*[!0-9]*|0) cap=2700 ;; esac
   stop="$2.progress-stop"
   rm -f "$stop"
   : > "$2"
@@ -423,8 +433,33 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
     done ) >&2 &
   hb=$!
-  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1
+  # `set -m` on the one command that starts the child, immediately undone: a background job of a shell with job
+  # control is its own process group, which is what lets the cap end the child *and its descendants* — a Gradle
+  # gate leaves daemons and test workers behind, and those are the memory the next item needs. Its stdin is
+  # closed because a member of a background group that reads a terminal is stopped, not run, and an unattended
+  # child has nobody to type at it anyway.
+  set -m
+  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1 < /dev/null &
+  child=$!
+  set +m
+  # The wait is a poll, not a blocking `wait`, because a blocking wait cannot notice the cap. The child is this
+  # shell's unreaped child for as long as we poll, so its process group cannot be recycled under the kill.
+  while kill -0 "$child" 2>/dev/null; do
+    if [ $(( $(date +%s) - started )) -ge "$cap" ]; then
+      timed_out=1
+      kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+      sleep 1
+      kill -KILL -"$child" 2>/dev/null || true
+      break
+    fi
+    sleep 1
+  done
+  wait "$child"
   rc=$?
+  if [ "$timed_out" -eq 1 ]; then
+    printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
+    rc="$LOOP_CHILD_TIMEOUT"
+  fi
   : > "$stop"
   wait "$hb" 2>/dev/null
   rm -f "$stop"
@@ -538,6 +573,7 @@ while true; do
   red_test=$(report_field "$item_dir/worker-report.md" LOOP-RED-TEST)
   gate_claim=$(report_field "$item_dir/worker-report.md" LOOP-GATE)
   outside_write=$(report_field "$item_dir/worker-report.md" LOOP-OUTSIDE-WRITE)
+  timeout_claim=$(report_field "$item_dir/worker-report.md" LOOP-TIMEOUT)
 
   # The run verifies rather than trusts: it commits the child's work itself and then reads the tree, the
   # archive and the gate's evidence, instead of repeating the child's claims (D3, D8).
@@ -569,6 +605,9 @@ while true; do
   blocked_reason=""
   if [ "$worker_exit" -ne 0 ]; then
     outcome="blocked"; blocked_reason="the worker process exited $worker_exit"
+    # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
+    # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
+    if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
   elif [ -n "$outside_write" ]; then
     outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran"
   elif [ "$verdict_claim" = "skipped" ]; then

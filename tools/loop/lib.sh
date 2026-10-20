@@ -21,6 +21,10 @@ LOOP_OK=0
 LOOP_USAGE=2
 LOOP_STOP=3
 LOOP_REFUSE=5
+# The status `run.sh`'s `run_child` returns when it ended a child at the configured wall-clock
+# (`LOOP_CHILD_MAX_SECONDS`). It is a child's status, never the run's, and it is distinct so the run's own
+# "the worker process exited N" path and a reader can tell a timeout from a child that failed by itself.
+LOOP_CHILD_TIMEOUT=124
 
 # The engine's own directory. Everything the loop owns relative to itself is derived from this, never
 # from the current directory, so the engine can run inside another project (D16).

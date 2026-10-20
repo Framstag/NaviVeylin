@@ -73,11 +73,17 @@ Use the planning skill from the list above; it must not touch project code. Chan
 ## Phase D — apply
 
 Use the apply and verification skills from the list above. Iterate with focused suites, and run the
-project's gate exactly as the run's configuration states it:
+project's gate **once**, exactly as the run's configuration states it:
 
 ```
 {{GATE_CMD}}
 ```
+
+The gate is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A
+gate that does not complete inside the run's budget — the run ends a child that outlasts its configured
+wall-clock, and that includes every command you started — leaves the item `blocked` with its log, and a second
+attempt is not yours to make. Two attempts at one gate is how a run spends its whole budget inside one child,
+so record `blocked` with what the first run printed and the item goes to a person with its transcript.
 
 Scoped by what the change touched: no compiled file — no gate, the structural check stands in and you say
 so; test sources only — the red case plus the affected cases; code — the gate above. Do not re-run a gate

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.QualifierUseSiteTargetTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-20T22:49:01.367Z" hostname="dingens" time="0.332">
+  <properties/>
+  <testcase name="the implicit target is still detectable" classname="com.naviveylin.build.QualifierUseSiteTargetTest" time="0.003"/>
+  <testcase name="no qualifier on an injected property relies on the implicit target" classname="com.naviveylin.build.QualifierUseSiteTargetTest" time="0.329"/>
+  <system-out><![CDATA[sources=716 findings=0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

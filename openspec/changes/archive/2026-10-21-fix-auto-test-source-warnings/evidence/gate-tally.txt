@@ -1,0 +1,9 @@
+gate: ./gradlew test -PforceTests --no-build-cache - BUILD SUCCESSFUL in 3m 35s (2026-10-20T23:34Z)
+
+app/build/test-results/testMobileDebugUnitTest: tests=2075 failures=0 errors=0 (280 classes)
+app/build/test-results/testAutomotiveDebugUnitTest: tests=2075 failures=0 errors=0 (280 classes)
+auto/build/test-results/testDebugUnitTest: tests=866 failures=0 errors=0 (85 classes)
+core/build/test-results/testDebugUnitTest: tests=642 failures=0 errors=0 (60 classes)
+osmscout-client-java/build/test-results/test: tests=48 failures=0 errors=0 (8 classes)
+
+total tests=5706 failures=0 errors=0

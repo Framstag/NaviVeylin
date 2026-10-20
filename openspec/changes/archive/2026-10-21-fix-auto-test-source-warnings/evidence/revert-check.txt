@@ -1,0 +1,8 @@
+revert-check: the three sites restored from HEAD, guard run once
+
+AutoTestSourceWarningBaselineTest: 3 tests completed, 3 failed (BUILD FAILED in 2s, 2026-10-20T23:25Z)
+- no type parameter is bounded by a class that cannot be extended FAILED
+- a runIteration comparison against null names the block type FAILED
+- no auto test source casts to a parameterized type unchecked FAILED
+
+fixes restored; guard green: tests=3 failures=0

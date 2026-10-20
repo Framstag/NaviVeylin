@@ -1,0 +1,205 @@
+# the change, against 9e7e969 — 2026-10-20T09:47:01Z
+
+## tracked diff
+
+```diff
+diff --git a/openspec/specs/stale-citation-resolution/spec.md b/openspec/specs/stale-citation-resolution/spec.md
+index f3e0cb2..3fa5fe3 100644
+--- a/openspec/specs/stale-citation-resolution/spec.md
++++ b/openspec/specs/stale-citation-resolution/spec.md
+@@ -2,16 +2,13 @@
+ 
+ ## Purpose
+ 
+-
+ An issue's citation is checked and, where it can be, repaired automatically: one definition of what a citation
+ is, a mechanical ladder that rewrites a citation whose target moved, a quarantine for the ones that cannot be
+ repaired, and a bounded scheduled run — so that an authorised item is excluded only when its citation really is
+ gone, and the residue that needs a person is small, visible and ranked rather than silent.
+ 
+-
+ ## Requirements
+ 
+-
+ ### Requirement: One definition of what a citation is
+ 
+ The tooling SHALL decide what counts as a citation in exactly one place, used by every consumer, and that
+@@ -129,25 +126,38 @@ change an item's kind, area or priority.
+ ### Requirement: The resolver runs on its own, bounded and idempotent
+ 
+ The resolver SHALL run without a person, in the checks' own pipeline under that pipeline's least privilege,
+-SHALL be bounded per run, SHALL default to a dry run, and SHALL be idempotent. The count of unresolved
+-citations SHALL be a declared check row, so a growing residue is a measurement.
++SHALL be bounded per run, SHALL default to a dry run, and SHALL be idempotent. The bound SHALL be spent only
++on the items the run writes — a repair or a park — so an item the ladder can only report cannot consume the
++run's budget, and SHALL never hide the items it did not reach: the run SHALL report how many wait. The count
++of unresolved citations SHALL be a declared check row, so a growing residue is a measurement.
+ 
+ #### Scenario: A scheduled run repairs without a person
+ 
+ - **WHEN** the pipeline runs on its schedule
+ - **THEN** the citations it can repair are repaired, and the items are eligible again
++- **Case**: `pipeline#scheduledRunRepairs`
+ 
+ #### Scenario: The bound holds
+ 
+ - **WHEN** more items are due than the run's bound allows
+ - **THEN** the run repairs the first ones, reports how many wait, and the next run continues
++- **Case**: `resolver#boundHoldsAndReportsTheRest`
++
++#### Scenario: The bound is spent where the tracker changes
++
++- **WHEN** an item's only stale citation is ambiguous, so the ladder can report it but write nothing for it
++- **THEN** the item costs no slot of the run's bound, the items behind it in tracker order are still reached,
++  and the ambiguity is still counted and still writes nothing
++- **Case**: `resolver#ambiguityDoesNotConsumeTheBound`
+ 
+ #### Scenario: A second run changes nothing
+ 
+ - **WHEN** the resolver runs again over items it already processed
+ - **THEN** no citation is rewritten, no comment is posted, and the run reports an empty working set
++- **Case**: `resolver#secondRunChangesNothing`
+ 
+ #### Scenario: The residue is a declared check
+ 
+ - **WHEN** citations remain unresolved
+ - **THEN** a registry row reports their count as its measurement, so the pile cannot grow unobserved
++- **Case**: `pipeline#residueIsADeclaredRow`
+diff --git a/tools/issues/resolve-stale.sh b/tools/issues/resolve-stale.sh
+index 8748e56..27e18cb 100755
+--- a/tools/issues/resolve-stale.sh
++++ b/tools/issues/resolve-stale.sh
+@@ -37,6 +37,8 @@ source "$here/lib.sh"
+ 
+ apply=0
+ json=0
++# The bound is on the items a run **writes**, not on the items it visits: an item nothing can be written for
++# (an ambiguous citation, #199) spends no slot, so a non-action cannot exhaust the run's budget.
+ max_items=20
+ issues_file=""
+ profile_arg=""
+@@ -174,7 +176,8 @@ while [ "$issue_at" -lt "$read_count" ] && [ "$due" -lt "$max_items" ]; do
+ 
+   # A citation the tree does not hold *at all* is the verdict; a citation that resolves by suffix is a
+   # courtesy repair (D3) — it writes the full tracked path so the record is exact and the next run is cheap.
+-  # Both make the item due; `exact`, `submodule`, `generated` and `not-a-path` do not.
++  # Either makes the item's processing reach a write; `exact`, `submodule`, `generated` and `not-a-path` do not.
++  # Being reachable for a write is also what spends the run's bound — see the guard below the two token loops.
+   matrix=$(issues_citation_matrix_of "$title
+ $body")
+   suffix_toks=$(printf '%s\n' "$matrix" | awk -F'\t' '$1 == "suffix" { print $2 }')
+@@ -187,7 +190,6 @@ $body")
+     skipped=$((skipped + 1))
+     continue
+   fi
+-  due=$((due + 1))
+ 
+   new_body="$body"
+   repairs=""
+@@ -233,6 +235,13 @@ $body")
+     unresolved=$(add_line "$unresolved" "- \`${tok}\` — no tracked file, no rename record, no single surviving declaration")
+   done <<< "$absent_toks"
+ 
++  # The bound counts writes, not visits (#199). An item whose only stale citations are ambiguous reports that
++  # and reaches neither write branch below, so counting it as `due` spent a slot of every run's bound on a
++  # non-action while the items behind it waited — measured 2026-10-19, `due=25 repaired=4 parked=5
++  # ambiguous=22` meant 22 of 25 slots produced nothing. It is visited, written for nowhere, and counted
++  # `skipped`; the `ambiguous` counter still reports it per token.
++  if [ -n "$repairs" ] || [ -n "$unresolved" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi
++
+   if [ -n "$repairs" ] && [ -z "$unresolved" ]; then
+     if [ "$apply" -eq 1 ]; then
+       printf '%s' "$new_body" > "$scratch/body-$number"
+diff --git a/tools/resolve-stale-cases.sh b/tools/resolve-stale-cases.sh
+index 24e2d9b..ec71ab9 100755
+--- a/tools/resolve-stale-cases.sh
++++ b/tools/resolve-stale-cases.sh
+@@ -29,6 +29,7 @@ RESOLVE_CASES=(
+   'resolver#ambiguityIsReportedNotRepaired'
+   'resolver#neverWritesTheAuthorisation'
+   'resolver#boundHoldsAndReportsTheRest'
++  'resolver#ambiguityDoesNotConsumeTheBound'
+   'resolver#secondRunChangesNothing'
+   'pipeline#scheduledRunRepairs'
+   'pipeline#residueIsADeclaredRow'
+@@ -56,6 +57,7 @@ resolve_run_case() {
+     'resolver#ambiguityIsReportedNotRepaired') case_resolver_ambiguityIsReportedNotRepaired ;;
+     'resolver#neverWritesTheAuthorisation') case_resolver_neverWritesTheAuthorisation ;;
+     'resolver#boundHoldsAndReportsTheRest') case_resolver_boundHoldsAndReportsTheRest ;;
++    'resolver#ambiguityDoesNotConsumeTheBound') case_resolver_ambiguityDoesNotConsumeTheBound ;;
+     'resolver#secondRunChangesNothing') case_resolver_secondRunChangesNothing ;;
+     'pipeline#scheduledRunRepairs') case_pipeline_scheduledRunRepairs ;;
+     'pipeline#residueIsADeclaredRow') case_pipeline_residueIsADeclaredRow ;;
+@@ -417,6 +419,31 @@ case_resolver_boundHoldsAndReportsTheRest() {
+   assert_eq "1" "$(jq -r '.waiting' <<< "$out")" "and the rest is reported as waiting"
+ }
+ 
++# The bound exists so a run changes the tracker. An item the ladder can only *report* — an ambiguous suffix,
++# which is never guessed (D4) — writes nothing, so counting it as due spends a slot of the bound on a
++# non-action and the item behind it never gets one (#199). Tracker order decides nothing here: the ambiguous
++# item is first and the writable one is second, exactly as the live tracker had them.
++case_resolver_ambiguityDoesNotConsumeTheBound() {
++  local tree d out
++  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/a" "$tree/b" "$tree/app/src"
++  printf 'class Dup\n' > "$tree/a/Dup.kt"; printf 'class Dup\n' > "$tree/b/Dup.kt"
++  printf 'class Foo\n' > "$tree/app/src/Foo.kt"
++  git_init "$tree"
++  d=$(tracker "$tree/fixture-gh" 7 "the reported one" 'cites `Dup.kt:1`')
++  jq '. + [{number: 8, title: "the writable one", state: "OPEN", stateReason: "", body: "cites `Foo.kt`",
++             author: {login: "Framstag"},
++             labels: [{name: "class/bug"}, {name: "category/car"}, {name: "status/open"}], comments: []}]' \
++    "$d/issues.json" > "$d/issues.tmp" && mv "$d/issues.tmp" "$d/issues.json"
++  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json --max-items 1) ||
++    fail "the resolver failed: $out"
++  assert_eq "1" "$(jq -r '.repaired' <<< "$out")" \
++    "the one slot the bound allowed went to the item a run can write"
++  assert_eq "1" "$(jq -r '.due' <<< "$out")" "and the bound still holds at one"
++  assert_eq "0" "$(jq -r '.waiting' <<< "$out")" "nothing waits behind the item that can only be reported"
++  assert_eq "1" "$(jq -r '.ambiguous' <<< "$out")" "the ambiguity is still counted, and nothing is written for it"
++  assert_contains "$(recorded_body "$d/writes.log" 1)" "app/src/Foo.kt" "the writable citation is the one written"
++}
++
+ case_resolver_secondRunChangesNothing() {
+   local tree d first second
+   tree=$(tree_with_file)
+diff --git a/tools/resolve-stale-mutations.json b/tools/resolve-stale-mutations.json
+index 9eb4859..e417448 100644
+--- a/tools/resolve-stale-mutations.json
++++ b/tools/resolve-stale-mutations.json
+@@ -81,6 +81,14 @@
+       "search": "      if [ -n \"$collapsed\" ] && [ \"$(issues_citation_class \"$collapsed\")\" != \"absent\" ]; then",
+       "replace": "      if false; then",
+       "why": "the collapse of a citation that repeats its own directory, before the rename and symbol steps (#189)"
++    },
++    {
++      "label": "5.11",
++      "case": "resolver#ambiguityDoesNotConsumeTheBound",
++      "file": "tools/issues/resolve-stale.sh",
++      "search": "  if [ -n \"$repairs\" ] || [ -n \"$unresolved\" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi",
++      "replace": "  due=$((due + 1))",
++      "why": "the bound being spent only where a write follows — an item the ladder can only report costs no slot (#199)"
+     }
+   ]
+ }
+```
+
+## the archived change (untracked, the run commits it)
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/design.md
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/evidence/diff.txt
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/evidence/green.txt
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/evidence/loop-selftest.txt
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/evidence/red.txt
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/evidence/revert-checks.md
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/proposal.md
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/specs/stale-citation-resolution/spec.md
+
+### openspec/changes/archive/2026-10-20-fix-stale-repair-budget/tasks.md
+

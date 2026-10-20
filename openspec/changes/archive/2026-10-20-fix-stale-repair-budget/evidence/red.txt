@@ -1,0 +1,5 @@
+# red on HEAD — 9e7e969 — 2026-10-20T09:17:07Z
+$ bash tools/resolve-stale-selftest.sh --case resolver#ambiguityDoesNotConsumeTheBound
+  the one slot the bound allowed went to the item a run can write: expected '1', got '0'
+FAIL resolver#ambiguityDoesNotConsumeTheBound
+exit=1

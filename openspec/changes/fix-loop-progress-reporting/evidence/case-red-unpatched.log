@@ -1,0 +1,13 @@
+  the wait is announced when the child starts: 'loop: worker-prompt started' not found in: agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=3 max-review-rounds=2 review-read-only=on dry-run=0 reset-worktree=0
+state: budget 1 items / 90 min · review off · may-close yes · max-decisions 3 · max-review-rounds 2 · base de52d2263583
+state: deadline 2026-10-20T06:22:39Z
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/record-202/.pi/tmp/loop-selftest.1qHauV/case.Fa9s0V/repo/.pi/issue-loop/lock (owner 665212)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-045240')
+HEAD ist jetzt bei de52d22 init
+worktree /home/tim/projects/NaviVeylin/.pi/worktrees/record-202/.pi/tmp/loop-selftest.1qHauV/case.Fa9s0V/repo/.pi/worktrees/loop on branch loop-20261020-045240 from de52d2263583 (1 local.prop* copied)
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/record-202/.pi/tmp/loop-selftest.1qHauV/case.Fa9s0V/repo/.pi/worktrees/loop on loop-20261020-045240 from de52d2263583
+stub gh: recorded `gh issue edit`
+pick #21
+FAIL run#childReportsWhileItWaits

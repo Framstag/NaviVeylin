@@ -1,0 +1,21 @@
+probe: print-mode stand-in child, 5 s of work, 16-byte final text
+probe: sampling every second; "at exit" is the sample taken after the child is reaped
+
+redirected to a file (child-report.md)
+  t=1s    0 B
+  t=2s    0 B
+  t=3s    0 B
+  t=4s    0 B
+  t=5s   16 B
+  at exit   16 B   <- what run_child had in the report file all along
+
+redirected into a pipe
+  t=1s    0 B
+  t=2s    0 B
+  t=3s    0 B
+  t=4s    0 B
+  t=5s   16 B
+  at exit   16 B   <- a pipe carries no more than a file did
+
+probe: the stream is empty for the whole life of a print-mode child, on a file and on a pipe —
+probe: redirecting it (what run_child did) cannot report the wait; the run must say something itself.

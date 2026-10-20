@@ -162,7 +162,7 @@ private fun DrawScope.drawCompassArrowWithShadow(center: Offset, bearingDegrees:
         val (x0, y0) = vertices[0]
         val (x1, y1) = vertices[1]
         path.moveTo(x0 * hPx, y0 * hPx)
-        path.quadraticBezierTo(0f, -hPx, x1 * hPx, y1 * hPx)
+        path.quadraticTo(0f, -hPx, x1 * hPx, y1 * hPx)
         for (i in 2 until vertices.size) {
             val (x, y) = vertices[i]
             path.lineTo(x * hPx, y * hPx)

@@ -946,6 +946,20 @@ for issue #818: "Fixed Gradle 9.6.0 deprecation warning"), and the pin is 0.9.9.
 threshold: a downgrade fails it. The absence of the warning with 0.9.9 is that changelog's attribution, not
 a measurement archived in this repository.
 
+**Kotlin deprecation baseline: the one project-owned call site is swept (2026-10-20).** The `:app` compile
+printed `w: …/app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165:14 'fun
+quadraticBezierTo(x1, y1, x2, y2)' is deprecated. Use quadraticTo() for consistency with cubicTo().` — the
+pinned Compose ui 1.7.6 (`compose-bom:2024.12.01`) deprecates the `Bezier` spelling and a later release removes
+it, so the marker's rounded tip is built with `quadraticTo` at the same control and end point (change
+`fix-deprecated-quadratic-path-builder`); the file's compile line is gone. **No warning-as-error flag is set:**
+the gate's compile log carries 109 `w:` lines on HEAD — `@ExperimentalCoroutinesApi` opt-in notices in `:auto`
+test sources, `Condition is always 'true'`, a Java `field defaults` deprecation — so `allWarningsAsErrors`
+would fail the gate on warnings this baseline does not own. The guard is the `:app` case
+`ComposeApiDeprecationTest` "no project Kotlin source calls a deprecated quadratic path builder": it scans
+every `*.kt` the project owns (731 files, `files=`/`findings=` printed) for `quadraticBezierTo` and
+`relativeQuadraticBezierTo`, so a returning spelling is a failing case rather than one warning among the
+others.
+
 ## 8. SBOM generation (CycloneDX)
 
 Every build variant can produce a CycloneDX JSON SBOM covering the JVM

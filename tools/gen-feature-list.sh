@@ -50,13 +50,13 @@ usage() { sed -n '3,30p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --root) root="${2:-}"; shift 2 ;;
-    --data-dir) data_dir="${2:-}"; shift 2 ;;
-    --out-dir) out_dir="${2:-}"; shift 2 ;;
-    --release) release="${2:-}"; shift 2 ;;
-    --phrase-cmd) phrase_cmd="${2:-}"; shift 2 ;;
-    --emit-bundles) bundles_dir="${2:-}"; shift 2 ;;
-    --sections) sections_dir="${2:-}"; shift 2 ;;
+    --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
+    --data-dir) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; data_dir="${2:-}"; shift 2 ;;
+    --out-dir) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; out_dir="${2:-}"; shift 2 ;;
+    --release) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; release="${2:-}"; shift 2 ;;
+    --phrase-cmd) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; phrase_cmd="${2:-}"; shift 2 ;;
+    --emit-bundles) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; bundles_dir="${2:-}"; shift 2 ;;
+    --sections) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; sections_dir="${2:-}"; shift 2 ;;
     --check-classification) mode="check"; shift ;;
     --list) listing=1; shift ;;
     --report-only) write=0; shift ;;

@@ -47,9 +47,9 @@ evidence=""
 may_close=1
 while [ $# -gt 0 ]; do
   case "$1" in
-    --change) change="${2:-}"; shift 2 ;;
-    --reason) reason="${2:-}"; shift 2 ;;
-    --evidence) evidence="${2:-}"; shift 2 ;;
+    --change) need_value "$@"; change="${2:-}"; shift 2 ;;
+    --reason) need_value "$@"; reason="${2:-}"; shift 2 ;;
+    --evidence) need_value "$@"; evidence="${2:-}"; shift 2 ;;
     --no-close) may_close=0; shift ;;
     *) loop_die "labels: unknown argument $1" ;;
   esac

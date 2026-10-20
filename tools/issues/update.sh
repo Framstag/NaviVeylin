@@ -48,13 +48,13 @@ comment=""
 comment_file=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --label) labels+=("${2:-}"); shift 2 ;;
-    --remove-label) remove_labels+=("${2:-}"); shift 2 ;;
-    --status) status_value="${2:-}"; shift 2 ;;
-    --body) body_file="${2:-}"; shift 2 ;;
-    --comment) comment="${2:-}"; shift 2 ;;
-    --comment-file) comment_file="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --label) need_value "$@"; labels+=("${2:-}"); shift 2 ;;
+    --remove-label) need_value "$@"; remove_labels+=("${2:-}"); shift 2 ;;
+    --status) need_value "$@"; status_value="${2:-}"; shift 2 ;;
+    --body) need_value "$@"; body_file="${2:-}"; shift 2 ;;
+    --comment) need_value "$@"; comment="${2:-}"; shift 2 ;;
+    --comment-file) need_value "$@"; comment_file="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) issues_die "update: unknown argument $1" ;;

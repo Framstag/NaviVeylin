@@ -35,13 +35,13 @@ json=0
 profile_arg=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     --dry-run) write=0; shift ;;
     --write) write=1; shift ;;
-    --proposals) proposals_file="${2:-}"; shift 2 ;;
-    --plan) plan_file="${2:-}"; shift 2 ;;
-    --max-classify) max_classify="${2:-}"; shift 2 ;;
-    --write-log) write_log="${2:-}"; shift 2 ;;
+    --proposals) need_value "$@"; proposals_file="${2:-}"; shift 2 ;;
+    --plan) need_value "$@"; plan_file="${2:-}"; shift 2 ;;
+    --max-classify) need_value "$@"; max_classify="${2:-}"; shift 2 ;;
+    --write-log) need_value "$@"; write_log="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
     *) issues_die "classify: unknown argument $1" ;;

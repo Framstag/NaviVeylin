@@ -54,16 +54,16 @@ registry_arg=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --due) due=1; shift ;;
-    --within) within="${2:-}"; shift 2 ;;
-    --only) only_id="${2:-}"; shift 2 ;;
-    --rows) rows_ids="${rows_ids:+$rows_ids,}${2:-}"; shift 2 ;;
+    --within) need_value "$@"; within="${2:-}"; shift 2 ;;
+    --only) need_value "$@"; only_id="${2:-}"; shift 2 ;;
+    --rows) need_value "$@"; rows_ids="${rows_ids:+$rows_ids,}${2:-}"; shift 2 ;;
     --dry-run) SENSORS_DRY_RUN=1; shift ;;
     --apply) SENSORS_DRY_RUN=0; shift ;;
     --json) json=1; shift ;;
-    --input) input="${2:-}"; shift 2 ;;
-    --now) now="${2:-}"; shift 2 ;;
-    --registry) registry_arg="${2:-}"; shift 2 ;;
-    --profile) profile_arg="${2:-}"; shift 2 ;;
+    --input) need_value "$@"; input="${2:-}"; shift 2 ;;
+    --now) need_value "$@"; now="${2:-}"; shift 2 ;;
+    --registry) need_value "$@"; registry_arg="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) sensors_die "run: unknown argument $1" ;;
   esac

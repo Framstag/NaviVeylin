@@ -41,15 +41,15 @@ reset_worktree=0
 base=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --items) items="${2:-}"; shift 2 ;;
-    --minutes) minutes="${2:-}"; shift 2 ;;
-    --review) review="${2:-}"; shift 2 ;;
-    --may-close) may_close="${2:-}"; shift 2 ;;
-    --push) push="${2:-}"; shift 2 ;;
-    --max-decisions) max_decisions="${2:-}"; shift 2 ;;
-    --max-review-rounds) max_review_rounds="${2:-}"; shift 2 ;;
-    --review-read-only) read_only="${2:-}"; shift 2 ;;
-    --base) base="${2:-}"; shift 2 ;;
+    --items) need_value "$@"; items="${2:-}"; shift 2 ;;
+    --minutes) need_value "$@"; minutes="${2:-}"; shift 2 ;;
+    --review) need_value "$@"; review="${2:-}"; shift 2 ;;
+    --may-close) need_value "$@"; may_close="${2:-}"; shift 2 ;;
+    --push) need_value "$@"; push="${2:-}"; shift 2 ;;
+    --max-decisions) need_value "$@"; max_decisions="${2:-}"; shift 2 ;;
+    --max-review-rounds) need_value "$@"; max_review_rounds="${2:-}"; shift 2 ;;
+    --review-read-only) need_value "$@"; read_only="${2:-}"; shift 2 ;;
+    --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     --clean-worktree) clean_worktree=1; shift ;;
     --reset-worktree) reset_worktree=1; shift ;;

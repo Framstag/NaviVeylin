@@ -34,10 +34,10 @@ profile_arg=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --live) mode="live"; shift ;;
-    --issues) mode="issues"; issues_file="${2:-}"; shift 2 ;;
-    --write-log) write_log="${2:-}"; shift 2 ;;
+    --issues) need_value "$@"; mode="issues"; issues_file="${2:-}"; shift 2 ;;
+    --write-log) need_value "$@"; write_log="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    --profile) profile_arg="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) issues_die "check-metadata: unknown argument $1" ;;
   esac

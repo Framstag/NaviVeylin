@@ -127,6 +127,9 @@ LOOP_SHELL_CASES=(
   'report#emptyRunSaysNone'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
+  'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
+  'usage#bareValueFlagDoesNotSwallowTheNextFlag'
+  'usage#noUnguardedValueFlagRemains'
 )
 
 loop_shell_cases() {
@@ -234,6 +237,9 @@ loop_run_shell_case() {
     'run#reviewDiffExcludesTheEvidenceArchive') fn=case_run_reviewDiffExcludesTheEvidenceArchive ;;
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
+    'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
+    'usage#bareValueFlagDoesNotSwallowTheNextFlag') fn=case_usage_bareValueFlagDoesNotSwallowTheNextFlag ;;
+    'usage#noUnguardedValueFlagRemains') fn=case_usage_noUnguardedValueFlagRemains ;;
     'report#headerAndTableShape') fn=case_report_headerAndTableShape ;;
     'report#yieldIsCountedFromState') fn=case_report_yieldIsCountedFromState ;;
     'report#escalatedSkipNamesTheLabelWritten') fn=case_report_escalatedSkipNamesTheLabelWritten ;;
@@ -2556,6 +2562,59 @@ case_run_engineNamesNoProjectFact() {
 # The case drives the real adapter against a child that only records its argv, so the assertion is on the
 # adapter and not on an agent, a model or a token. A project that has no adapter — the porting recipe deletes
 # it and names a plain command — has nothing to assert here.
+# ── a value flag's value (issue #190) ──────────────────────────────────────────────────────────────
+# A value flag whose value is missing is a usage error, named, *before* the arm consumes the two words. The
+# shape it replaces was `--push) push="${2:-}"; shift 2 ;;`: `shift 2` on a one-word tail fails, leaves `$#`
+# at 1 and re-enters the same iteration for ever, so `run.sh --items 100 --minutes 480 --push` printed nothing
+# and never returned (measured 2026-10-20: `timeout 5 …` exited 124 with empty stdout and stderr), and the
+# validation that would have refused the empty value sits after the loop. Every call below is bounded, so a
+# parser that hangs again fails this case instead of taking the suite with it.
+case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError() {
+  local line out status
+  for line in \
+    'tools/loop/run.sh --items 100 --minutes 480 --push' \
+    'tools/loop/state.sh init --items' \
+    'tools/loop/prescreen.sh --limit' \
+    'tools/loop/worktree.sh create --base' \
+    'tools/issues/create.sh --finding' \
+    'tools/mutate.sh --only'; do
+    out=$( cd "$LOOP_PROJECT_ROOT" && timeout 20 bash -c "$line" 2>&1 ); status=$?
+    [ "$status" -eq 2 ] ||
+      fail "'$line' exited $status instead of 2 — a bare value flag is a usage error, never a hang and never a default: $out"
+    assert_contains "$out" "needs a value" "'$line' names the value it is missing"
+  done
+  return 0
+}
+
+case_usage_bareValueFlagDoesNotSwallowTheNextFlag() {
+  local line out status
+  for line in \
+    'tools/loop/run.sh --items 100 --push --dry-run' \
+    'tools/issues/create.sh --finding --class bug'; do
+    out=$( cd "$LOOP_PROJECT_ROOT" && timeout 20 bash -c "$line" 2>&1 ); status=$?
+    [ "$status" -eq 2 ] || fail "'$line' exited $status instead of 2: $out"
+    assert_contains "$out" "needs a value" "'$line' reports the flag, not the flag's neighbour as its value"
+  done
+  return 0
+}
+
+# The rule is one line per value flag, so the sweep is a check over the tree rather than a case per script: a
+# new value flag written the old way is a red case on the next run, not a hang discovered by an operator. The
+# case files are harness, not engines — the portability check excludes them for the same reason — and one of
+# them quotes the shape this case looks for, in a comment and in the `grep` below; a comment that quotes the
+# shape is not the shape, exactly as the portability check skips comment lines.
+case_usage_noUnguardedValueFlagRemains() {
+  local offenders n
+  offenders=$(grep -rn 'shift 2 ;;' "$LOOP_PROJECT_ROOT/tools" --include='*.sh' 2>/dev/null |
+    grep -v -- '-cases.sh:' | grep -v -- '-selftest.sh:' |
+    grep -v 'need_value' | grep -v 'needs a value' |
+    awk -F: '$3 !~ /^[[:space:]]*#/' || true)
+  n=$(printf '%s' "$offenders" | grep -c . || true)
+  [ "$n" -eq 0 ] ||
+    fail "$n value flags still consume their value before checking it: $(printf '%s\n' "$offenders" | head -3 | cut -d: -f1,2 | tr '\n' ' ')"
+  return 0
+}
+
 case_adapter_modeFlagIsItsOwnArgument() {
   local d prompt recorder got
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0

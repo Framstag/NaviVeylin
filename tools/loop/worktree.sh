@@ -45,8 +45,8 @@ cmd_create() {
   local base="" branch="" dirty
   while [ $# -gt 0 ]; do
     case "$1" in
-      --base) base="${2:-}"; shift 2 ;;
-      --branch) branch="${2:-}"; shift 2 ;;
+      --base) need_value "$@"; base="${2:-}"; shift 2 ;;
+      --branch) need_value "$@"; branch="${2:-}"; shift 2 ;;
       *) loop_die "create: unknown argument $1" ;;
     esac
   done

@@ -37,11 +37,11 @@ measurement_file=""
 body_file=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --status) status_value="${2:-}"; shift 2 ;;
-    --measurement) measurement="${2:-}"; shift 2 ;;
-    --measurement-file) measurement_file="${2:-}"; shift 2 ;;
-    --body) body_file="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --status) need_value "$@"; status_value="${2:-}"; shift 2 ;;
+    --measurement) need_value "$@"; measurement="${2:-}"; shift 2 ;;
+    --measurement-file) need_value "$@"; measurement_file="${2:-}"; shift 2 ;;
+    --body) need_value "$@"; body_file="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
     *) issues_die "reopen: unknown argument $1" ;;

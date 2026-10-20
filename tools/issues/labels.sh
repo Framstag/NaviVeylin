@@ -23,7 +23,7 @@ while [ $# -gt 0 ]; do
     --dry-run) apply=0; shift ;;
     --apply) apply=1; shift ;;
     --json) json=1; shift ;;
-    --profile) profile_arg="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
     *) issues_die "labels: unknown argument $1" ;;
   esac

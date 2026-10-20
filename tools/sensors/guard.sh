@@ -31,10 +31,10 @@ remote=""
 json=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --ref) ref="${2:-}"; shift 2 ;;
-    --remote) remote="${2:-}"; shift 2 ;;
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --registry) registry_arg="${2:-}"; shift 2 ;;
+    --ref) need_value "$@"; ref="${2:-}"; shift 2 ;;
+    --remote) need_value "$@"; remote="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --registry) need_value "$@"; registry_arg="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
     *) sensors_die "guard: unknown argument $1" ;;

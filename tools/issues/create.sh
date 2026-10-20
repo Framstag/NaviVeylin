@@ -38,11 +38,11 @@ extra_status=""
 sensor_id=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --finding) finding_file="${2:-}"; shift 2 ;;
-    --label) extra_labels+=("${2:-}"); shift 2 ;;
-    --status) extra_status="${2:-}"; shift 2 ;;
-    --sensor) sensor_id="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --finding) need_value "$@"; finding_file="${2:-}"; shift 2 ;;
+    --label) need_value "$@"; extra_labels+=("${2:-}"); shift 2 ;;
+    --status) need_value "$@"; extra_status="${2:-}"; shift 2 ;;
+    --sensor) need_value "$@"; sensor_id="${2:-}"; shift 2 ;;
     --allow-duplicate) allow_duplicate=1; shift ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,29p' "$0"; exit 0 ;;

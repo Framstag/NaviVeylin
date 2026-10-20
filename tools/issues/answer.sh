@@ -27,12 +27,12 @@ profile_arg=""
 json=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --decision) decision="${2:-}"; shift 2 ;;
+    --decision) need_value "$@"; decision="${2:-}"; shift 2 ;;
     --continue) outcome="continue"; shift ;;
     --device) outcome="device"; shift ;;
     --retire) outcome="retire"; shift ;;
-    --evidence) evidence="${2:-}"; shift 2 ;;
-    --profile) profile_arg="${2:-}"; shift 2 ;;
+    --evidence) need_value "$@"; evidence="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
     --*) issues_die "answer: unknown argument $1" ;;

@@ -37,7 +37,7 @@ quiet=0
 tree_arg=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --worktree) tree_arg="${2:-}"; shift 2 ;;
+    --worktree) need_value "$@"; tree_arg="${2:-}"; shift 2 ;;
     --apply) apply=1; shift ;;
     --quiet) quiet=1; shift ;;
     -h|--help) sed -n '2,32p' "$0"; exit 0 ;;

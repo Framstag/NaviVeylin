@@ -28,8 +28,8 @@ issue_file="-"
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --login) login="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --login) need_value "$@"; login="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
     -) issue_file="-"; shift ;;
     -*) issues_die "policy: unknown argument $1" ;;

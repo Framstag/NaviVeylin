@@ -1,0 +1,5 @@
+test: classes=8 tests=48 failures=0 errors=0 skipped=0 ts=2026-10-20T19:17:40.443Z..2026-10-20T19:17:40.957Z
+testAutomotiveDebugUnitTest: classes=280 tests=2077 failures=0 errors=0 skipped=0 ts=2026-10-20T19:20:17.319Z..2026-10-20T19:21:58.189Z
+testDebugUnitTest: classes=145 tests=1508 failures=0 errors=0 skipped=0 ts=2026-10-20T19:17:49.796Z..2026-10-20T19:18:32.330Z
+testMobileDebugUnitTest: classes=280 tests=2077 failures=0 errors=0 skipped=0 ts=2026-10-20T19:17:48.686Z..2026-10-20T19:19:38.951Z
+TOTAL {'classes': 713, 'tests': 5710, 'failures': 0, 'errors': 0, 'skipped': 0}

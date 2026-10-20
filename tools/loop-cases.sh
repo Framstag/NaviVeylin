@@ -114,6 +114,7 @@ LOOP_SHELL_CASES=(
   'run#plainTextChildStillReports'
   'run#emptyQueueIsNotAFailure'
   'run#stopReasonIsPrintedAndReported'
+  'run#staleBaseStopsTheRunWithItsReason'
   'run#awaitingDecisionIsNotEscalatedAgain'
   'run#commitsWithoutAnAmbientIdentity'
   'run#reviewerWriteInvalidatesTheRound'
@@ -251,6 +252,7 @@ loop_run_shell_case() {
     'run#plainTextChildStillReports') fn=case_run_plainTextChildStillReports ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
     'run#stopReasonIsPrintedAndReported') fn=case_run_stopReasonIsPrintedAndReported ;;
+    'run#staleBaseStopsTheRunWithItsReason') fn=case_run_staleBaseStopsTheRunWithItsReason ;;
     'run#awaitingDecisionIsNotEscalatedAgain') fn=case_run_awaitingDecisionIsNotEscalatedAgain ;;
     'run#commitsWithoutAnAmbientIdentity') fn=case_run_commitsWithoutAnAmbientIdentity ;;
     'run#reviewerWriteInvalidatesTheRound') fn=case_run_reviewerWriteInvalidatesTheRound ;;
@@ -2918,6 +2920,23 @@ case_run_stopReasonIsPrintedAndReported() {
   assert_eq "stop: $recorded" "$stop_line" "the printed line and the recorded reason are one condition"
   out=$(run_report "$p")
   assert_contains "$out" "stop: $recorded" "the report repeats it, so its counters and its end agree"
+}
+
+# A base that moved under the run stops it **with a reason**: the alternative is an exit that records nothing, and
+# then the report reads "ended without recording a reason" while its counters belong to a run nobody can name
+# (#184). Measured 2026-10-20 on a live run whose base advanced while it worked.
+case_run_staleBaseStopsTheRunWithItsReason() {
+  local d p out f
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' 'git -C "$LOOP_CHILD_ROOT" commit -q --allow-empty -m "advance main"'
+  out=$(run_loop "$p" --items 2 --minutes 90 2>&1)
+  f=$(state_file "$p")
+  assert_contains "$out" "base moved" "the refusal is printed"
+  assert_eq "1" "$(jq -r '.items | length' "$f")" "the item that was in flight is recorded"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$f")" "the base moved" \
+    "and the reason is recorded, so the report can name why the run ended"
+  return 0
 }
 
 # The pre-screen's decision exclusions reach the tracker through one path (`escalate_prescreen_decisions`), and

@@ -458,6 +458,9 @@ slugify() { # a change name out of an item's title: lowercase, dashes, bounded
 # the only tree a phase may write — so a write the child left in the project's tree is caught here and
 # never carried into the item's commit (D4, "one writer per tree").
 project_state() { git -C "$LOOP_ROOT" status --porcelain 2>/dev/null; }
+# …and the base it recorded, so a child that commits on the project's own branch without touching a file is
+# still a change of the tree the run promised to build on. `project_state` is compared before and after every
+# child, which is what catches a write outside the worktree.
 
 # The diff a review round is handed is the change, not the generated output a change is archived beside:
 # item #126's round-3 diff (issue #204) carried 9 935 changed lines, 9 364 of them gate HTML and XML, against
@@ -618,7 +621,10 @@ while true; do
   if ! start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" 2>&1); then
     printf '%s\n' "$start_out"
     case "$start_out" in
-      *"base moved"*) exit "$LOOP_REFUSE" ;;
+      # The base moved: main is not what this run recorded, so nothing may be branched off it. That is a stop
+      # with a reason, not a silent exit — a run that ends without recording why makes its own report read
+      # "ended without recording a reason" and its numbers unattributable (#184, measured 2026-10-20).
+      *"base moved"*) stop_run "the base moved: main advanced while this run was open — $(printf '%s' "$start_out" | head -1)"; break ;;
       *"carries commits the base does not"*)
         # A previous attempt left work on the item's branch. What it carries decides: a finished change with a
         # green verification is merged and the item closed, and only a branch without that evidence is the

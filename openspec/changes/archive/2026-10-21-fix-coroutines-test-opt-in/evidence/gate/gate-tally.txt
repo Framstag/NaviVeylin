@@ -1,0 +1,9 @@
+gate command: ./gradlew test -PforceTests --no-build-cache
+base commit: 3211d4d8b395c61041dfccff9330e754dfb3499b
+run at: Di 20. Okt 22:05:17 UTC 2026
+
+app/build/test-results/testMobileDebugUnitTest: classes=280 tests=2076 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest: classes=280 tests=2076 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest: classes=85 tests=866 failures=0 errors=0
+core/build/test-results/testDebugUnitTest: classes=60 tests=642 failures=0 errors=0
+osmscout-client-java/build/test-results/test: classes=8 tests=48 failures=0 errors=0

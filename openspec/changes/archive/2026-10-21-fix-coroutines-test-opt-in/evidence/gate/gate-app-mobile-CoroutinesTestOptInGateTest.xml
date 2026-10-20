@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.test.CoroutinesTestOptInGateTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T22:01:57.474Z" hostname="dingens" time="0.138">
+  <properties/>
+  <testcase name="aTestSourceThatDeclaresTheOptInIsNotNamed" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.002"/>
+  <testcase name="everyTestSourceThatUsesTheExperimentalTimeControlDeclaresTheOptIn" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.135"/>
+  <testcase name="aTestSourceThatOnlyImportsTheMarkerIsStillNamed" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.0"/>
+  <testcase name="aTestSourceThatUsesTheExperimentalTimeControlWithoutTheOptInIsNamed" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.001"/>
+  <system-out><![CDATA[scanned=441 missingOptIn=0 []
+fixture findings=[app/src/test/java/com/naviveylin/example/FixtureTest.kt]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

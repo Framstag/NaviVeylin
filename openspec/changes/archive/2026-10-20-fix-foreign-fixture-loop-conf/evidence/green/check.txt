@@ -1,0 +1,3 @@
+# the fixed tree, 2026-10-20T10:32:53+02:00; command: bash tools/check-portability.sh --quiet
+check-portability: OK — 43 engines and 2 templates name no project value (103 value(s) read from the project)
+EXIT=0

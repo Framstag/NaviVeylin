@@ -1,0 +1,20 @@
+2026-10-20T07:15:03.4162312Z check-portability: engines checked (43 files):
+2026-10-20T07:15:03.4183658Z check-portability: templates checked (2 files):
+2026-10-20T07:15:03.4186360Z check-portability: excluded, printed so the proof names its own scope:
+2026-10-20T07:15:03.9271197Z check-portability: the documented exception — the label that authorises work is declared read-only, once:
+2026-10-20T07:15:03.9339048Z check-portability: OK — 43 engines and 2 templates name no project value (103 value(s) read from the project)
+2026-10-20T07:15:05.9676290Z PASS portability#plantedRepoNameFails
+2026-10-20T07:15:06.6653345Z PASS portability#plantedCategoryFails
+2026-10-20T07:15:07.4711292Z PASS portability#plantedValueInEveryNamespaceFails
+2026-10-20T07:15:08.1797105Z PASS portability#plantedSubmodulePathFails
+2026-10-20T07:15:09.5265385Z PASS portability#authorisationLabelIsTheOneException
+2026-10-20T07:15:10.2422184Z PASS portability#excludesTheAdapterAndFixtures
+2026-10-20T07:15:11.6262770Z PASS portability#valueSetIsReadNotHardCoded
+2026-10-20T07:15:12.2747183Z PASS portability#passesOnTheRealTree
+2026-10-20T07:15:16.0120088Z FAIL foreign#toolchainRunsEndToEnd
+2026-10-20T07:15:17.1929582Z FAIL foreign#emptyGateCommandStillRunsThePhases
+2026-10-20T07:15:18.6409398Z FAIL porting#everyCommandInTheRecipeRuns
+2026-10-20T07:15:18.6530988Z check-portability-selftest: 3 of 26 cases failed
+2026-10-20T07:15:18.7404156Z ##[error]Process completed with exit code 1.
+2026-10-20T07:15:18.7755547Z build-inputs: the record is incomplete — nothing publishes: app/build/reports/jacoco/coverage.json (the per-module Kover XMLs are missing — the coverage step did not run, which a red test run explains); build/gate-timings.json (the Gradle steps must run with -I tools/gate-timings.init.gradle.kts); app/build/outputs/apk/mobile/debug/app-mobile-debug.apk (the step that assembles :app:assembleDebug did not run)
+2026-10-20T07:15:18.7758905Z ##[error]Process completed with exit code 1.

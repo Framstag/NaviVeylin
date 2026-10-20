@@ -1,0 +1,36 @@
+# HEAD f2e57ee + the new case only (fixture unfixed); run 2026-10-20T10:31:26+02:00
+# command: bash tools/check-portability-selftest.sh
+PASS portability#plantedRepoNameFails
+PASS portability#plantedCategoryFails
+PASS portability#plantedValueInEveryNamespaceFails
+PASS portability#plantedSubmodulePathFails
+PASS portability#authorisationLabelIsTheOneException
+PASS portability#excludesTheAdapterAndFixtures
+PASS portability#valueSetIsReadNotHardCoded
+PASS portability#passesOnTheRealTree
+PASS discovery#fromASubdirectory
+PASS discovery#fromAWorktree
+PASS discovery#ignoresGithubRepositoryEnv
+PASS discovery#outsideAGitTree
+PASS preconditions#refusesOutsideAGitTree
+PASS preconditions#refusesUnderMachineLocalState
+PASS foreign#profileDiffersFromOurs
+PASS foreign#noProjectNameInTheStub
+stub gh: recorded `gh issue edit`
+loop: run: --max-review-rounds must be a positive integer
+  the dry-run loop failed in the foreign project: 
+FAIL foreign#toolchainRunsEndToEnd
+PASS foreign#duplicateIsRefused
+PASS foreign#identityIsRefusedToo
+  the run completes with an empty gate command: loop: run: --max-review-rounds must be a positive integer: expected '0', got '2'
+FAIL foreign#emptyGateCommandStillRunsThePhases
+PASS foreign#fixtureIsVersioned
+  every budget default the loop's engine reads is declared by the fixture's loop.conf: expected nothing, got:  LOOP_MAX_REVIEW_ROUNDS_DEFAULT
+FAIL foreign#fixtureDeclaresEveryBudgetDefault
+PASS foreign#statesWhatItDoesNotModel
+  the recipe's step 'bash tools/loop/run.sh --dry-run --items 0 --minutes 0' exits 0 (output: loop: run: --max-review-rounds must be a positive integer): expected '0', got '2'
+FAIL porting#everyCommandInTheRecipeRuns
+PASS porting#recipeDoesNotAssumeOurBuild
+PASS porting#namesTheAdaptationPoint
+PASS porting#statesTheCopyCost
+check-portability-selftest: 4 of 27 cases failed

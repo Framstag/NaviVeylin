@@ -40,7 +40,7 @@ while [ $# -gt 0 ]; do
     --json) json=1; shift ;;
     --no-sensor) sensor=0; shift ;;
     --dry-run) write=0; shift ;;
-    --limit) limit="${2:-}"; shift 2 ;;
+    --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,31p' "$0"; exit 0 ;;
     *) loop_die "prescreen: unknown argument $1" ;;
   esac

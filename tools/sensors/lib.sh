@@ -80,8 +80,8 @@ sensors_resolve() {
   local profile_arg="" registry_arg=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --profile) profile_arg="${2:-}"; shift 2 ;;
-      --registry) registry_arg="${2:-}"; shift 2 ;;
+      --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+      --registry) need_value "$@"; registry_arg="${2:-}"; shift 2 ;;
       *) sensors_die "unknown argument $1" ;;
     esac
   done

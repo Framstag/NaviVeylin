@@ -30,12 +30,12 @@ conclusion_file=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --commit) commit="${2:-}"; shift 2 ;;
-    --repo) repo="${2:-}"; shift 2 ;;
-    --workflow) workflow="${2:-}"; shift 2 ;;
-    --artifact) artifact="${2:-}"; shift 2 ;;
-    --dest) dest="${2:-}"; shift 2 ;;
-    --conclusion-file) conclusion_file="${2:-}"; shift 2 ;;
+    --commit) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; commit="${2:-}"; shift 2 ;;
+    --repo) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; repo="${2:-}"; shift 2 ;;
+    --workflow) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; workflow="${2:-}"; shift 2 ;;
+    --artifact) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; artifact="${2:-}"; shift 2 ;;
+    --dest) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; dest="${2:-}"; shift 2 ;;
+    --conclusion-file) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; conclusion_file="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) printf 'fetch-build-inputs: unknown argument %s\n' "$1" >&2; exit 2 ;;
   esac

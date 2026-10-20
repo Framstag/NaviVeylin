@@ -1,0 +1,30 @@
+== the usage cases after the round-2 corrections
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+exit=0
+PASS usage#bareValueFlagDoesNotSwallowTheNextFlag
+exit=0
+PASS usage#bareValueFlagInASingleShotHarnessIsAUsageError
+exit=0
+PASS usage#noUnguardedValueFlagRemains
+exit=0
+PASS adapter#modeFlagIsItsOwnArgument
+exit=0
+
+== the ten guarded harnesses in their normal mode (--list)
+tools/loop-selftest.sh                        exit=0 first=state#initAndShowRoundTrips
+tools/sensor-selftest.sh                      exit=0 first=guard#eachCheckHasItsOwnReason
+tools/build-inputs-selftest.sh                exit=0 first=workflow#tickMinutesCoverTheRegistryCrons
+tools/issues/check-metadata-selftest.sh       exit=0 first=check#markerLabelMismatchFails
+tools/issue-tooling-selftest.sh               exit=0 first=Profile#everySectionIsPresent
+tools/check-portability-selftest.sh           exit=2 first=check-portability-selftest: the suite's root /home/tim/projects/NaviVeylin/.pi/worktrees/loop is a /.pi/ path — machine-local state is not a checkout; run it from the project's working tree, or use tools/check-portability.sh from here
+tools/resolve-stale-selftest.sh               exit=0 first=classifier#fragmentIsNotACitation
+tools/sensor-mutations.sh                     exit=0 first=8.1 guard#refusesOffMain — HEAD is the remote main branch (tools/sensors/guard.sh)
+tools/build-inputs-mutations.sh               exit=0 first=5.1 inputs#manifestIsTheProducerSet — the manifest is the set of paths the producer writes (tools/build-inputs.sh)
+tools/issues/metadata-mutations.sh            exit=0 first=basis-drops-labels               the basis must move when a kind label changes (task 8.1, D3)
+
+== the two shapes, named by the tool itself
+run: --push needs a value
+exit=2
+create: --sensor needs a value
+exit=2
+2026-10-20T07:48:55Z

@@ -24,8 +24,8 @@ limit=400
 json=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --limit) limit="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
     *) issues_die "decisions: unknown argument $1" ;;

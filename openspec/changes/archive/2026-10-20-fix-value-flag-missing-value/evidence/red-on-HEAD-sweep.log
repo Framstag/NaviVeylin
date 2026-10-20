@@ -1,0 +1,7 @@
+== usage#noUnguardedValueFlagRemains (HEAD)
+  152 value flags still consume their value before checking it: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/report.sh:37 /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/labels.sh:50 /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/labels.sh:51 
+FAIL usage#noUnguardedValueFlagRemains
+== create#bareValueFlagNeedsAValue (HEAD)
+  the refusal names the flag that is missing its value: '--title needs a value' not found in: create: unknown argument --title
+FAIL create#bareValueFlagNeedsAValue
+2026-10-20T07:11:37Z

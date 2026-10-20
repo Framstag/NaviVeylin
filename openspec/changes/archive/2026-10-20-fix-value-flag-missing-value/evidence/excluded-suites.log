@@ -1,0 +1,49 @@
+$ bash tools/mutate-selftest.sh   (cwd: .pi/worktrees/loop, LOOP_* of the outer run removed)
+PASS  a real mutation exits 0
+PASS  the transcript reports the red run
+PASS  the transcript reports the restored green run
+PASS  the byte-for-byte restore is reported
+PASS  the toy tree is pristine after the run
+PASS  a mutation that does not apply exits 1
+PASS  MUTATION-DID-NOT-APPLY is reported
+PASS  the toy tree is pristine after the failed mutation
+PASS  a mutation the case does not notice exits 1
+PASS  STAYS-GREEN is reported
+PASS  the toy tree is pristine after the unnoticed mutation
+PASS  a record for a missing file exits 1
+PASS  MUTATION-FILE-MISSING is reported
+PASS  --list exits 0
+PASS  --list names the label, the case and the reason
+PASS  --only selecting no mutation exits 2
+PASS  the portability set lists cleanly
+FAIL  the portability set has eight records — expected 8, got 13
+PASS  the portability set declares 5.1
+PASS  the portability set declares 5.2
+PASS  the portability set declares 5.3
+PASS  the portability set declares 5.3b
+PASS  the portability set declares 5.4
+PASS  the portability set declares 5.5
+PASS  the portability set declares 5.6
+PASS  the portability set declares 5.7
+PASS  the portability set names the check's own self-test as its gate
+
+mutate-selftest: 26 passed, 1 failed
+exit=1
+2026-10-20T07:47:35Z
+
+$ bash tools/loop-mutations-selftest.sh
+ok   a non-matching mutation exits non-zero
+ok   and it is named as such
+ok   an unnoticed mutation exits non-zero
+ok   and it says the case did not notice
+ok   a real mutation exits zero
+ok   the case noticed it
+ok   and the restore went green
+ok   the mutated copy is byte-identical to the pristine one again
+ok   the mutation set lists what it declares
+loop-mutations-selftest: the harness reports an unapplied mutation, an unnoticed one and a real red, and it restores what it touches
+exit=0
+2026-10-20T07:47:52Z
+
+$ diff -r <tools snapshot> tools
+tools/ unchanged by both runs

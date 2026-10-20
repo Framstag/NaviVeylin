@@ -29,8 +29,8 @@ use_api=0
 quiet=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --root) root="${2:-}"; shift 2 ;;
-    --table) table_arg="${2:-}"; shift 2 ;;
+    --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
+    --table) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; table_arg="${2:-}"; shift 2 ;;
     --api) use_api=1; shift ;;
     --quiet) quiet=1; shift ;;
     -h|--help) sed -n '2,25p' "${BASH_SOURCE[0]}"; exit 0 ;;

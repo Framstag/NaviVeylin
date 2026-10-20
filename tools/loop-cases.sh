@@ -128,6 +128,10 @@ LOOP_SHELL_CASES=(
   'report#emptyRunSaysNone'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
+  'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
+  'usage#bareValueFlagDoesNotSwallowTheNextFlag'
+  'usage#bareValueFlagInASingleShotHarnessIsAUsageError'
+  'usage#noUnguardedValueFlagRemains'
 )
 
 loop_shell_cases() {
@@ -236,6 +240,10 @@ loop_run_shell_case() {
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
     'run#suiteIgnoresARunsStatePath') fn=case_run_suiteIgnoresARunsStatePath ;;
+    'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
+    'usage#bareValueFlagDoesNotSwallowTheNextFlag') fn=case_usage_bareValueFlagDoesNotSwallowTheNextFlag ;;
+    'usage#bareValueFlagInASingleShotHarnessIsAUsageError') fn=case_usage_bareValueFlagInASingleShotHarnessIsAUsageError ;;
+    'usage#noUnguardedValueFlagRemains') fn=case_usage_noUnguardedValueFlagRemains ;;
     'report#headerAndTableShape') fn=case_report_headerAndTableShape ;;
     'report#yieldIsCountedFromState') fn=case_report_yieldIsCountedFromState ;;
     'report#escalatedSkipNamesTheLabelWritten') fn=case_report_escalatedSkipNamesTheLabelWritten ;;
@@ -2545,6 +2553,94 @@ case_run_engineNamesNoProjectFact() {
     newpath=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vxF "$(dirname "$sbxdir")" | paste -sd: -)
   fi
   PATH="$newpath" run_one_item "$p" "$d" >/dev/null || fail "the run needs something the sandbox would provide"
+  return 0
+}
+
+# ── a value flag's value (issue #190) ──────────────────────────────────────────────────────────────
+# A value flag whose value is missing is a usage error, named, *before* the arm consumes the two words. The
+# shape it replaces was `--push) push="${2:-}"; shift 2 ;;`: `shift 2` on a one-word tail fails, leaves `$#`
+# at 1 and re-enters the same iteration for ever, so `run.sh --items 100 --minutes 480 --push` printed nothing
+# and never returned (measured 2026-10-20: `timeout 5 …` exited 124 with empty stdout and stderr), and the
+# validation that would have refused the empty value sits after the loop. Every call below is bounded, so a
+# parser that hangs again fails this case instead of taking the suite with it. Each assertion names the flag
+# too: `needs a value` alone would also pass if the refusal named the *next* flag.
+case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError() {
+  local line flag out status
+  for line in \
+    'tools/loop/run.sh --items 100 --minutes 480 --push' \
+    'tools/loop/state.sh init --items' \
+    'tools/loop/prescreen.sh --limit' \
+    'tools/loop/worktree.sh create --base' \
+    'tools/issues/create.sh --finding' \
+    'tools/mutate.sh --only'; do
+    flag=${line##* }
+    out=$( cd "$LOOP_PROJECT_ROOT" && timeout 20 bash -c "$line" 2>&1 ); status=$?
+    [ "$status" -eq 2 ] ||
+      fail "'$line' exited $status instead of 2 — a bare value flag is a usage error, never a hang and never a default: $out"
+    assert_contains "$out" "$flag needs a value" "'$line' names the value it is missing"
+  done
+  return 0
+}
+
+case_usage_bareValueFlagDoesNotSwallowTheNextFlag() {
+  local pair flag line out status
+  for pair in \
+    '--push:tools/loop/run.sh --items 100 --push --dry-run' \
+    '--finding:tools/issues/create.sh --finding --class bug' \
+    '--case:bash tools/sensor-selftest.sh --case --list'; do
+    flag=${pair%%:*}; line=${pair#*:}
+    out=$( cd "$LOOP_PROJECT_ROOT" && timeout 20 bash -c "$line" 2>&1 ); status=$?
+    [ "$status" -eq 2 ] || fail "'$line' exited $status instead of 2: $out"
+    # The second word (`--dry-run`, `--class`, `--list`) is the flag that must *not* be read as a value, so the
+    # assertion names the first flag rather than accepting any refusal.
+    assert_contains "$out" "$flag needs a value" "'$line' reports $flag, not the flag's neighbour as its value"
+  done
+  return 0
+}
+
+# The harnesses that are engines in their own right — seven self-tests and the three mutation harnesses — parse
+# `--case`/`--only` once, with no loop and no library, and the same bare flag used to run the whole set instead
+# of failing: measured 2026-10-20, `bash tools/sensor-selftest.sh --case` exited 0 after all 43 cases, and a bare
+# `--only` runs the whole mutation set, which rewrites and restores the tree. The assertion is the refusal
+# before anything starts, and it is separate from the sweep because the sweep can only read the shape.
+case_usage_bareValueFlagInASingleShotHarnessIsAUsageError() {
+  local line flag out status
+  for line in \
+    'bash tools/loop-selftest.sh --case' \
+    'bash tools/sensor-selftest.sh --case' \
+    'bash tools/build-inputs-selftest.sh --case' \
+    'bash tools/issues/check-metadata-selftest.sh --case' \
+    'bash tools/issue-tooling-selftest.sh --case' \
+    'bash tools/check-portability-selftest.sh --case' \
+    'bash tools/resolve-stale-selftest.sh --case' \
+    'bash tools/sensor-mutations.sh --only' \
+    'bash tools/build-inputs-mutations.sh --only' \
+    'bash tools/issues/metadata-mutations.sh --only'; do
+    flag=${line##* }
+    out=$( cd "$LOOP_PROJECT_ROOT" && timeout 20 bash -c "$line" 2>&1 ); status=$?
+    [ "$status" -eq 2 ] ||
+      fail "'$line' exited $status instead of 2 — a bare value flag never runs the whole set: $out"
+    assert_contains "$out" "$flag needs a value" "'$line' names the value it is missing"
+  done
+  return 0
+}
+
+# The rule is one line per value flag, so the sweep is a check over the tree rather than a case per script: a
+# new value flag written the old way is a red case on the next run, not a hang discovered by an operator. It
+# reads *arm* lines only (`:--flag) …`), so a function's `local x="${2:-}"` is not a flag, and it scans the
+# harnesses too — the earlier version excluded every `-selftest.sh` and so could not see the ten arms that
+# still swallowed a bare `--case` (review of #190, B1). Only the `*-cases.sh` files are excluded: they are
+# harness, and this file quotes the shape it looks for. An arm is guarded when it carries `need_value "$@"`,
+# the inline `[ $# -ge 2 ]` check, or the message it produces.
+case_usage_noUnguardedValueFlagRemains() {
+  local offenders n
+  offenders=$(grep -rnF -e 'shift 2 ;;' -e '${2:-}' "$LOOP_PROJECT_ROOT/tools" --include='*.sh' 2>/dev/null |
+    grep -v -- '-cases.sh:' |
+    grep -E ':[[:space:]]*--[a-z0-9-]+\)' |
+    grep -v 'need_value' | grep -v 'needs a value' | grep -v '\$# -ge 2' || true)
+  n=$(printf '%s' "$offenders" | grep -c . || true)
+  [ "$n" -eq 0 ] ||
+    fail "$n value flags still consume their value before checking it: $(printf '%s\n' "$offenders" | head -3 | cut -d: -f1,2 | tr '\n' ' ')"
   return 0
 }
 

@@ -34,7 +34,7 @@ state_opt=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
-    --state) state_opt="${2:-}"; shift 2 ;;
+    --state) need_value "$@"; state_opt="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) loop_die "report: unknown argument $1" ;;
   esac

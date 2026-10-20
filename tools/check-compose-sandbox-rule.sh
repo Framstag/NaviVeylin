@@ -23,7 +23,7 @@ set -uo pipefail
 root=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --root) root="${2:-}"; shift 2 ;;
+    --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,20p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "check-compose-sandbox-rule: unknown argument '$1'" >&2; exit 2 ;;
   esac

@@ -34,16 +34,16 @@ unranked=0
 filters=()
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --id) id_arg="${2:-}"; shift 2 ;;     # one migrated entry, by its nvid marker
-    --class) filters+=("class=${2:-}"); shift 2 ;;
-    --category) filters+=("category=${2:-}"); shift 2 ;;
-    --status) filters+=("status=${2:-}"); shift 2 ;;
-    --author) filters+=("author=${2:-}"); shift 2 ;;
-    --prio) prio_filter="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --id) need_value "$@"; id_arg="${2:-}"; shift 2 ;;     # one migrated entry, by its nvid marker
+    --class) need_value "$@"; filters+=("class=${2:-}"); shift 2 ;;
+    --category) need_value "$@"; filters+=("category=${2:-}"); shift 2 ;;
+    --status) need_value "$@"; filters+=("status=${2:-}"); shift 2 ;;
+    --author) need_value "$@"; filters+=("author=${2:-}"); shift 2 ;;
+    --prio) need_value "$@"; prio_filter="${2:-}"; shift 2 ;;
     --unranked) unranked=1; shift ;;
     --eligible-only) eligible_only=1; shift ;;
-    --limit) limit="${2:-}"; shift 2 ;;
+    --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) issues_die "list: unknown argument $1" ;;

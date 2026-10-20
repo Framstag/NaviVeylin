@@ -31,11 +31,11 @@ probe=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --list) list_only=1; shift ;;
-    --only) only="${2:-}"; shift 2 ;;
-    --engine) engine="${2:-}"; shift 2 ;;
-    --out) out="${2:-}"; shift 2 ;;
-    --timeout) case_timeout="${2:-}"; shift 2 ;;
-    --probe) probe="${2:-}"; shift 2 ;;
+    --only) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only="${2:-}"; shift 2 ;;
+    --engine) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; engine="${2:-}"; shift 2 ;;
+    --out) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; out="${2:-}"; shift 2 ;;
+    --timeout) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; case_timeout="${2:-}"; shift 2 ;;
+    --probe) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; probe="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
     *) echo "loop-mutations: unknown argument $1" >&2; exit 2 ;;
   esac

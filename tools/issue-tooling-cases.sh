@@ -23,6 +23,7 @@ ISSUES_SHELL_CASES=(
   'create#writesMarkerAndLabels'
   'create#refusesTwoValuesOfOneNamespace'
   'create#refusesADoubledCitation'
+  'create#bareValueFlagNeedsAValue'
   'update#refusesUnknownLabel'
   'close#requiresReasonAndEvidence'
   'close#recordsStateReason'
@@ -106,6 +107,7 @@ issues_run_shell_case() {
     'create#writesMarkerAndLabels') case_create_writesMarkerAndLabels ;;
     'create#refusesTwoValuesOfOneNamespace') case_create_refusesTwoValuesOfOneNamespace ;;
     'create#refusesADoubledCitation') case_create_refusesADoubledCitation ;;
+    'create#bareValueFlagNeedsAValue') case_create_bareValueFlagNeedsAValue ;;
     'update#refusesUnknownLabel') case_update_refusesUnknownLabel ;;
     'close#requiresReasonAndEvidence') case_close_requiresReasonAndEvidence ;;
     'close#recordsStateReason') case_close_recordsStateReason ;;
@@ -1139,6 +1141,20 @@ case_create_refusesADoubledCitation() {
   assert_eq "2" "$status" "a doubled citation is refused as a malformed payload"
   assert_contains "$out" "the repository's path is 'tools/issues/close.sh'" "the refusal names the tracked path"
   [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+# A value flag with no value left in argv is a usage error and not a hang: `shift 2` on a one-word tail
+# fails, leaves `$#` at 1 and re-enters the same iteration for ever, so `create.sh --finding` printed nothing and
+# never returned (issue #190). `need_value` refuses before the arm consumes the two words, which is why the
+# call is bounded here: a parser that hangs again must fail this case, not the suite.
+case_create_bareValueFlagNeedsAValue() {
+  local out status
+  out=$( cd "$ISSUES_REPO_ROOT" && timeout 20 bash "$ISSUES_ENGINE/create.sh" --finding --class bug 2>&1 ); status=$?
+  assert_eq "2" "$status" "a bare value flag is a usage error"
+  assert_contains "$out" "--finding needs a value" "the refusal names the flag that is missing its value"
+  out=$( cd "$ISSUES_REPO_ROOT" && timeout 20 bash "$ISSUES_ENGINE/list.sh" --id 2>&1 ); status=$?
+  assert_eq "2" "$status" "a bare value flag at the end of argv is a usage error too"
+  assert_contains "$out" "--id needs a value" "the last word of argv is checked like any other"
 }
 
 # ------------------------------------------------------------------- the metadata pass (`issue-metadata-loop`)

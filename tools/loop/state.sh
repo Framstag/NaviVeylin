@@ -151,13 +151,13 @@ cmd_init() {
   local items="" minutes="" review="" may_close="" max_decisions="" max_review_rounds="" base=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --items) items="${2:-}"; shift 2 ;;
-      --minutes) minutes="${2:-}"; shift 2 ;;
-      --review) review="${2:-}"; shift 2 ;;
-      --may-close) may_close="${2:-}"; shift 2 ;;
-      --max-decisions) max_decisions="${2:-}"; shift 2 ;;
-      --max-review-rounds) max_review_rounds="${2:-}"; shift 2 ;;
-      --base) base="${2:-}"; shift 2 ;;
+      --items) need_value "$@"; items="${2:-}"; shift 2 ;;
+      --minutes) need_value "$@"; minutes="${2:-}"; shift 2 ;;
+      --review) need_value "$@"; review="${2:-}"; shift 2 ;;
+      --may-close) need_value "$@"; may_close="${2:-}"; shift 2 ;;
+      --max-decisions) need_value "$@"; max_decisions="${2:-}"; shift 2 ;;
+      --max-review-rounds) need_value "$@"; max_review_rounds="${2:-}"; shift 2 ;;
+      --base) need_value "$@"; base="${2:-}"; shift 2 ;;
       *) loop_die "init: unknown argument $1" ;;
     esac
   done
@@ -305,7 +305,7 @@ cmd_start() {
   local issue="" change=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --change) change="${2:-}"; shift 2 ;;
+      --change) need_value "$@"; change="${2:-}"; shift 2 ;;
       --*) loop_die "start: unknown argument $1" ;;
       *) [ -z "$issue" ] || loop_die "start: issue given twice"; issue="$1"; shift ;;
     esac
@@ -347,9 +347,9 @@ cmd_step() {
   local name="" status="ok" note=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --name) name="${2:-}"; shift 2 ;;
-      --status) status="${2:-}"; shift 2 ;;
-      --note) note="${2:-}"; shift 2 ;;
+      --name) need_value "$@"; name="${2:-}"; shift 2 ;;
+      --status) need_value "$@"; status="${2:-}"; shift 2 ;;
+      --note) need_value "$@"; note="${2:-}"; shift 2 ;;
       *) loop_die "step: unknown argument $1" ;;
     esac
   done
@@ -367,22 +367,22 @@ cmd_done() {
   local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" merged_branch="" merged_commits="" merged_evidence="" events=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --result) result="${2:-}"; shift 2 ;;
-      --verdict) verdict="${2:-}"; shift 2 ;;
-      --change) change="${2:-}"; shift 2 ;;
-      --note) note="${2:-}"; shift 2 ;;
-      --wall) wall="${2:-}"; shift 2 ;;
-      --pi-exit) pi_exit="${2:-}"; shift 2 ;;
-      --rounds) rounds="${2:-}"; shift 2 ;;
-      --gate) gate="${2:-}"; shift 2 ;;
-      --events) events="${2:-}"; shift 2 ;;
-      --closed) closed="${2:-}"; shift 2 ;;
-      --root-cause) root_cause="${2:-}"; shift 2 ;;
-      --red-test) red_test="${2:-}"; shift 2 ;;
-      --decision-label) decision_label="${2:-}"; shift 2 ;;
-      --merged-branch) merged_branch="${2:-}"; shift 2 ;;
-      --merged-commits) merged_commits="${2:-}"; shift 2 ;;
-      --merged-evidence) merged_evidence="${2:-}"; shift 2 ;;
+      --result) need_value "$@"; result="${2:-}"; shift 2 ;;
+      --verdict) need_value "$@"; verdict="${2:-}"; shift 2 ;;
+      --change) need_value "$@"; change="${2:-}"; shift 2 ;;
+      --note) need_value "$@"; note="${2:-}"; shift 2 ;;
+      --wall) need_value "$@"; wall="${2:-}"; shift 2 ;;
+      --pi-exit) need_value "$@"; pi_exit="${2:-}"; shift 2 ;;
+      --rounds) need_value "$@"; rounds="${2:-}"; shift 2 ;;
+      --gate) need_value "$@"; gate="${2:-}"; shift 2 ;;
+      --events) need_value "$@"; events="${2:-}"; shift 2 ;;
+      --closed) need_value "$@"; closed="${2:-}"; shift 2 ;;
+      --root-cause) need_value "$@"; root_cause="${2:-}"; shift 2 ;;
+      --red-test) need_value "$@"; red_test="${2:-}"; shift 2 ;;
+      --decision-label) need_value "$@"; decision_label="${2:-}"; shift 2 ;;
+      --merged-branch) need_value "$@"; merged_branch="${2:-}"; shift 2 ;;
+      --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
+      --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
       --*) loop_die "done: unknown argument $1" ;;
       *) [ -z "$issue" ] || loop_die "done: issue given twice"; issue="$1"; shift ;;
     esac
@@ -535,7 +535,7 @@ cmd_lock() {
   local owner="${PPID:-unknown}"
   while [ $# -gt 0 ]; do
     case "$1" in
-      --owner) owner="${2:-}"; shift 2 ;;
+      --owner) need_value "$@"; owner="${2:-}"; shift 2 ;;
       *) loop_die "lock: unknown argument $1" ;;
     esac
   done
@@ -555,7 +555,7 @@ cmd_unlock() {
   local owner="${PPID:-unknown}"
   while [ $# -gt 0 ]; do
     case "$1" in
-      --owner) owner="${2:-}"; shift 2 ;;
+      --owner) need_value "$@"; owner="${2:-}"; shift 2 ;;
       *) loop_die "unlock: unknown argument $1" ;;
     esac
   done

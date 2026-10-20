@@ -44,15 +44,15 @@ json=0
 profile_arg=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     --dry-run) write=0; shift ;;
     --write) write=1; shift ;;
-    --scores) scores_file="${2:-}"; shift 2 ;;
-    --plan) plan_file="${2:-}"; shift 2 ;;
-    --max-rescore) max_rescore="${2:-}"; shift 2 ;;
-    --ttl-days) ttl_override="${2:-}"; shift 2 ;;
-    --write-log) write_log="${2:-}"; shift 2 ;;
-    --body-of) body_of="${2:-}"; shift 2 ;;
+    --scores) need_value "$@"; scores_file="${2:-}"; shift 2 ;;
+    --plan) need_value "$@"; plan_file="${2:-}"; shift 2 ;;
+    --max-rescore) need_value "$@"; max_rescore="${2:-}"; shift 2 ;;
+    --ttl-days) need_value "$@"; ttl_override="${2:-}"; shift 2 ;;
+    --write-log) need_value "$@"; write_log="${2:-}"; shift 2 ;;
+    --body-of) need_value "$@"; body_of="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) issues_die "prioritise: unknown argument $1" ;;

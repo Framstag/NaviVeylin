@@ -23,10 +23,10 @@ registry_arg=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
-    --stale-days) stale_days="${2:-60}"; shift 2 ;;
-    --now) now="${2:-}"; shift 2 ;;
-    --registry) registry_arg="${2:-}"; shift 2 ;;
-    --profile) profile_arg="${2:-}"; shift 2 ;;
+    --stale-days) need_value "$@"; stale_days="${2:-60}"; shift 2 ;;
+    --now) need_value "$@"; now="${2:-}"; shift 2 ;;
+    --registry) need_value "$@"; registry_arg="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
     *) sensors_die "report: unknown argument $1" ;;
   esac

@@ -1,0 +1,12 @@
+== usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+  'tools/loop/run.sh --items 100 --minutes 480 --push' exited 124 instead of 2 — a bare value flag is a usage error, never a hang and never a default: 
+FAIL usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+exit=0
+== usage#bareValueFlagDoesNotSwallowTheNextFlag
+  'tools/loop/run.sh --items 100 --push --dry-run' reports the flag, not the flag's neighbour as its value: 'needs a value' not found in: loop: run: --push must be yes or no
+FAIL usage#bareValueFlagDoesNotSwallowTheNextFlag
+exit=0
+== usage#noUnguardedValueFlagRemains
+  154 value flags still consume their value before checking it: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/report.sh:37 /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/labels.sh:50 /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/labels.sh:51 
+FAIL usage#noUnguardedValueFlagRemains
+exit=0

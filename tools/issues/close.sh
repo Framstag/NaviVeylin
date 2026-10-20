@@ -53,12 +53,12 @@ comment_only=0
 sensor_id=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --reason) reason="${2:-}"; shift 2 ;;
-    --evidence) evidence="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --reason) need_value "$@"; reason="${2:-}"; shift 2 ;;
+    --evidence) need_value "$@"; evidence="${2:-}"; shift 2 ;;
     --not-planned) state_reason="not_planned"; shift ;;
     --comment-only) comment_only=1; shift ;;
-    --sensor) sensor_id="${2:-}"; shift 2 ;;
+    --sensor) need_value "$@"; sensor_id="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) issues_die "close: unknown argument $1" ;;

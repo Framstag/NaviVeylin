@@ -26,7 +26,7 @@ only=""
 list_only=0
 case "${1:-}" in
   --list) list_only=1 ;;
-  --only) only="${2:-}" ;;
+  --only) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only="${2:-}" ;;
   "") ;;
   -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
   *) echo "metadata-mutations: unknown argument $1" >&2; exit 2 ;;

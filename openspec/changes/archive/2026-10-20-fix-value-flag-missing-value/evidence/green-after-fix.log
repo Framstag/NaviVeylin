@@ -1,0 +1,5 @@
+== GREEN 2026-10-20T07:14:17Z
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+PASS usage#bareValueFlagDoesNotSwallowTheNextFlag
+PASS usage#noUnguardedValueFlagRemains
+PASS create#bareValueFlagNeedsAValue

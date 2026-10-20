@@ -62,11 +62,11 @@ list_only=0
 case_timeout=600
 while [ $# -gt 0 ]; do
   case "$1" in
-    --mutations) mutations_file="${2:-}"; shift 2 ;;
-    --root) root="${2:-}"; shift 2 ;;
-    --only) only="${2:-}"; shift 2 ;;
-    --out) out="${2:-}"; shift 2 ;;
-    --timeout) case_timeout="${2:-}"; shift 2 ;;
+    --mutations) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; mutations_file="${2:-}"; shift 2 ;;
+    --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
+    --only) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only="${2:-}"; shift 2 ;;
+    --out) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; out="${2:-}"; shift 2 ;;
+    --timeout) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; case_timeout="${2:-}"; shift 2 ;;
     --list) list_only=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'mutate: unknown argument %s\n' "$1" >&2; exit 2 ;;

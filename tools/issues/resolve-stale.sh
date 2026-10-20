@@ -44,10 +44,10 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --apply) apply=1; shift ;;
     --dry-run) apply=0; shift ;;
-    --max-items) max_items="${2:-}"; shift 2 ;;
-    --issues) issues_file="${2:-}"; shift 2 ;;
+    --max-items) need_value "$@"; max_items="${2:-}"; shift 2 ;;
+    --issues) need_value "$@"; issues_file="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    --profile) profile_arg="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
     *) issues_die "resolve-stale: unknown argument $1" ;;
   esac

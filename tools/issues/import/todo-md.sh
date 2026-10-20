@@ -21,8 +21,8 @@ run_import=0
 import_args=()
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --todo) todo_path="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --todo) need_value "$@"; todo_path="${2:-}"; shift 2 ;;
     --import) run_import=1; shift ;;
     --dry-run|--apply|--json) import_args+=("$1"); shift ;;
     -h|--help) sed -n '2,12p' "$0"; exit 0 ;;

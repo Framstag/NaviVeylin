@@ -37,6 +37,26 @@ issues_die() {
   exit "$ISSUES_EXIT_USAGE"
 }
 
+# need_value FLAG [VALUE...] — a flag arm's own argv, passed as `need_value "$@"` before the arm reads "$2".
+#
+# A value whose flag was written without it is a usage error, and it is one *before* the arm consumes the two
+# words. The shape it replaces was `--push) push="${2:-}"; shift 2 ;;`: `shift 2` with one word left fails,
+# leaves `$#` unchanged and re-enters the same iteration for ever, so the parser never returns and the
+# validation after the loop that would have refused the empty value is never reached (issue #190: `run.sh
+# --items 100 --minutes 480 --push` printed nothing, stdout and stderr both empty, until it was killed by
+# hand). A word that is itself a flag is refused as a value too, so `--items --minutes 30` names `--items`
+# instead of reading `--minutes` as the count; no flag of this tooling takes a value that begins with `--`.
+# Nothing is shifted here — the arm keeps its own `shift` — and the tool is named as `$0` names it, so one
+# message shape serves every script that sources this library and the ones that source `loop/lib.sh` or
+# `sensors/lib.sh` through it.
+need_value() {
+  local flag="${1:-}" tool
+  if [ $# -lt 2 ] || [ "${2#--}" != "$2" ]; then
+    tool=${0##*/}
+    issues_die "${tool%.sh}: $flag needs a value"
+  fi
+}
+
 issues_note() {
   printf '%s\n' "$*" >&2
 }

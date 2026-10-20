@@ -1,0 +1,13 @@
+$ bash tools/check-todo-references-selftest.sh
+PASS  refcheck#instructionLineFails (exit 1)
+PASS  refcheck#citationLinePasses (exit 0)
+PASS  refcheck#allowlistIsPrinted (exit 0)
+PASS  refcheck#unresolvedCitationFails (exit 1)
+PASS  refcheck#allowlistedPathsAreNotScanned (exit 0)
+PASS  refcheck#missingTableRowFails (exit 1)
+PASS  refcheck#apiResolvesThroughTheTracker (exit 0)
+PASS  refcheck#apiLeavesAnUnknownNumberRed (exit 1)
+PASS  refcheck#unknownRootIsAUsageError (exit 2)
+PASS  the repository's documents are untouched by every case
+check-todo-references-selftest: 10 passed, 0 failed
+exit=0

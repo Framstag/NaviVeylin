@@ -21,8 +21,8 @@ apply=0
 findings_file="-"
 while [ $# -gt 0 ]; do
   case "$1" in
-    --profile) profile_arg="${2:-}"; shift 2 ;;
-    --findings) findings_file="${2:-}"; shift 2 ;;
+    --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
+    --findings) need_value "$@"; findings_file="${2:-}"; shift 2 ;;
     --dry-run) apply=0; shift ;;
     --apply) apply=1; shift ;;
     --json) json=1; shift ;;

@@ -24,7 +24,7 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 case "${1:-}" in
   --list) list_only=1; only_case="" ;;
-  --case) list_only=0; only_case="${2:-}" ;;
+  --case) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; list_only=0; only_case="${2:-}" ;;
   "") list_only=0; only_case="" ;;
   -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
   *) echo "check-portability-selftest: unknown argument $1" >&2; exit 2 ;;

@@ -18,7 +18,7 @@ cd "$root" || exit 2
 only=""
 case "${1:-}" in
   --list) mode=list ;;
-  --only) mode=run; only="${2:-}" ;;
+  --only) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; mode=run; only="${2:-}" ;;
   ""|--run) mode=run ;;
   -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
   *) echo "sensor-mutations: unknown argument $1" >&2; exit 2 ;;

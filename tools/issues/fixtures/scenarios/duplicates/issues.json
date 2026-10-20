@@ -1,0 +1,242 @@
+[
+  {
+    "number": 81,
+    "title": "§81 a finding filed twice, the older item",
+    "state": "OPEN",
+    "stateReason": "",
+    "body": "the first filing\n<!-- nvid: 81 -->\n<!-- fingerprint: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/agent"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 82,
+    "title": "§82 the same finding filed again, authorisable",
+    "state": "OPEN",
+    "stateReason": "",
+    "body": "the second filing\n<!-- nvid: 82 -->\n<!-- fingerprint: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/agent"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 83,
+    "title": "§83 the same finding a third time, not authorisable",
+    "state": "OPEN",
+    "stateReason": "",
+    "body": "the third filing\n<!-- nvid: 83 -->\n<!-- fingerprint: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/agent"
+      }
+    ]
+  },
+  {
+    "number": 84,
+    "title": "§84 a migrated item claiming an identifier",
+    "state": "OPEN",
+    "stateReason": "",
+    "body": "claims the same identifier as 85\n<!-- nvid: 900 -->\n<!-- fingerprint: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/improvement"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/todo-import"
+      }
+    ]
+  },
+  {
+    "number": 85,
+    "title": "§85 the other item claiming the same identifier",
+    "state": "OPEN",
+    "stateReason": "",
+    "body": "claims the same identifier as 84\n<!-- nvid: 900 -->\n<!-- fingerprint: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/improvement"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/todo-import"
+      }
+    ]
+  },
+  {
+    "number": 225,
+    "title": "§225 an open item whose number a commit on main names",
+    "state": "OPEN",
+    "stateReason": "",
+    "body": "the work may already be on main\n<!-- nvid: 225 -->\n<!-- fingerprint: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/build-and-harness"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/agent"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 86,
+    "title": "§86 an item that duplicates only a closed one",
+    "state": "OPEN",
+    "stateReason": "",
+    "body": "its twin is closed\n<!-- nvid: 86 -->\n<!-- fingerprint: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/agent"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 87,
+    "title": "§87 the closed twin of 86",
+    "state": "CLOSED",
+    "stateReason": "COMPLETED",
+    "body": "closed already\n<!-- nvid: 87 -->\n<!-- fingerprint: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/fixed-by"
+      },
+      {
+        "name": "source/agent"
+      }
+    ]
+  },
+  {
+    "number": 9001,
+    "title": "§9001 an item no commit has ever named",
+    "state": "OPEN",
+    "stateReason": "",
+    "body": "never landed\n<!-- nvid: 9001 -->\n<!-- fingerprint: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff -->\n",
+    "comments": [],
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/agent"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

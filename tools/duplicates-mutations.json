@@ -1,0 +1,38 @@
+{
+  "comment": "The revert-check of the tracker's mechanical hygiene (`sensors-mechanical-hygiene`): one mutation per invariant that decides a closure, plus the reason each is falsifiable. Run it with `bash tools/mutate.sh --mutations tools/duplicates-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule.",
+  "case-cmd": "bash tools/issue-tooling-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "D1",
+      "case": "duplicates#olderItemSurvives",
+      "file": "tools/issues/duplicates.sh",
+      "search": "        | map(select(length > 1) | sort_by(.issue))",
+      "replace": "        | map(select(length > 1) | sort_by(.issue) | reverse)",
+      "why": "the survivor is the older item: the number is immutable, labels and body length are not"
+    },
+    {
+      "label": "D2",
+      "case": "duplicates#unauthorisedDuplicateIsCommentedNotClosed",
+      "file": "tools/issues/duplicates.sh",
+      "search": "  if [ \"$authorised\" = \"true\" ]; then",
+      "replace": "  if true; then",
+      "why": "the authorisation label is never widened to make the rule fire"
+    },
+    {
+      "label": "D3",
+      "case": "duplicates#landedCandidateIsPrintedNotClosed",
+      "file": "tools/issues/duplicates.sh",
+      "search": "  | . + {landed: [.candidates[] | select(.issue as $i | $named | index($i))]}",
+      "replace": "  | . + {landed: [.candidates[]]}",
+      "why": "the candidate list is one commit away from every item, which is why it acts on none"
+    },
+    {
+      "label": "D4",
+      "case": "duplicates#aMarkedDuplicateIsNotCommentedTwice",
+      "file": "tools/issues/duplicates.sh",
+      "search": "  elif [ \"$marked\" = \"0\" ]; then",
+      "replace": "  elif true; then",
+      "why": "a duplicate nobody may close is commented once, not on every scheduled tick"
+    }
+  ]
+}

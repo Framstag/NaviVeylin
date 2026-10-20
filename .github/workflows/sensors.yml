@@ -117,6 +117,20 @@ jobs:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
         run: bash tools/issues/resolve-stale.sh "$SENSORS_MODE" --max-items 25
 
+      # The mechanical half of the tracker's hygiene, after the repair: a duplicate found by its own fingerprint
+      # marker is closed against the older item **when it carries the authorisation label** (an item without it is
+      # commented once and left open — the authorisation is never widened to make a rule fire), an identifier
+      # collision is reported and never repaired, and an item a commit on main names is printed as a candidate for
+      # a person. No model, no judgement: what needs one (`cleanup-todo`'s merges and provably-done closures) stays
+      # a skill a person runs. `--limit` bounds the read, `--max-items` the writes.
+      - name: Close what the tracker says about itself
+        if: steps.record.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: |
+          set -o pipefail
+          bash tools/issues/duplicates.sh "$SENSORS_MODE" --limit 400 --max-items 25 | tee -a "$GITHUB_STEP_SUMMARY"
+
       # The identity is a repository-scoped token, never the workflow's own: the tracker's gate requires
       # an allowlisted author, and the token's scope is the one `guidelines/Backlog.md` §9 states — Issues
       # read and write, plus Pull requests read for the row that lists pull requests.

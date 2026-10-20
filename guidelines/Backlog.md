@@ -339,6 +339,19 @@ already had:
   must not become a second committer (I12). The previous measurement *is* the baseline, so growth and level
   are both answerable without a store.
 
+Beside the rows, the same scheduled worker runs the two repairs that are pure functions of the tracker's own
+fields, and one report that is deliberately not one: `tools/issues/labels.sh --apply` (a label outside the
+closed vocabulary), `tools/issues/resolve-stale.sh --apply` (a citation whose target moved), and
+`tools/issues/duplicates.sh` — **a duplicate found by its own fingerprint marker is closed against the older
+item**, but only when that item carries the authorisation label: without it the sweep posts one pointer comment
+and leaves the closure to a person, because the label that authorises unattended work is never widened to make a
+rule fire. An `nvid` collision is reported and never repaired, because which item legitimately carries the
+identifier is recorded in the migration table rather than derivable from the tracker. The same run prints, and
+never acts on, the items whose number a commit on `main` names: a commit that mentions an id has not necessarily
+delivered the item, and today's landing practice cherry-picks, so one message names the id on `main` and on the
+item's branch. Its two bounds are separate — `--limit` is what it reads, `--max-items` what it writes in one run.
+What needs a judgement — a merge of two items whose fingerprints differ, a closure of work that is provably done,
+a status a run left behind — stays `cleanup-todo`, a skill a person runs.
 The checks run in a pipeline of their own, off the change-validation path, triggered only by a schedule or
 an explicit dispatch, pinned to the main branch by a check at run time, guarded against overlapping runs, and
 reviewed like code. Its credential is one repository secret (`SENSORS_TOKEN`), created with

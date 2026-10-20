@@ -52,6 +52,15 @@ ISSUES_SHELL_CASES=(
   'close#refusesAProfileThatNamesNoSettledState'
   'decisions#listsTheQueueAndItsQuestions'
   'decisions#emptyQueueIsNotAnError'
+  'duplicates#dryRunWritesNothing'
+  'duplicates#youngerDuplicateIsClosedWithAPointer'
+  'duplicates#olderItemSurvives'
+  'duplicates#unauthorisedDuplicateIsCommentedNotClosed'
+  'duplicates#aMarkedDuplicateIsNotCommentedTwice'
+  'duplicates#collisionIsReportedAndNothingIsWritten'
+  'duplicates#landedCandidateIsPrintedNotClosed'
+  'duplicates#cleanTrackerExitsZeroWithoutAWrite'
+  'duplicates#differentFingerprintsAreNotMerged'
   'answer#requiresTheDecisionText'
   'answer#refusesWhatIsNotADecision'
   'answer#continueReturnsTheItemToTheQueue'
@@ -136,6 +145,15 @@ issues_run_shell_case() {
     'close#refusesAProfileThatNamesNoSettledState') case_close_refusesAProfileThatNamesNoSettledState ;;
     'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
+    'duplicates#dryRunWritesNothing') case_duplicates_dryRunWritesNothing ;;
+    'duplicates#youngerDuplicateIsClosedWithAPointer') case_duplicates_youngerDuplicateIsClosedWithAPointer ;;
+    'duplicates#olderItemSurvives') case_duplicates_olderItemSurvives ;;
+    'duplicates#unauthorisedDuplicateIsCommentedNotClosed') case_duplicates_unauthorisedDuplicateIsCommentedNotClosed ;;
+    'duplicates#aMarkedDuplicateIsNotCommentedTwice') case_duplicates_aMarkedDuplicateIsNotCommentedTwice ;;
+    'duplicates#collisionIsReportedAndNothingIsWritten') case_duplicates_collisionIsReportedAndNothingIsWritten ;;
+    'duplicates#landedCandidateIsPrintedNotClosed') case_duplicates_landedCandidateIsPrintedNotClosed ;;
+    'duplicates#cleanTrackerExitsZeroWithoutAWrite') case_duplicates_cleanTrackerExitsZeroWithoutAWrite ;;
+    'duplicates#differentFingerprintsAreNotMerged') case_duplicates_differentFingerprintsAreNotMerged ;;
     'answer#requiresTheDecisionText') case_answer_requiresTheDecisionText ;;
     'answer#refusesWhatIsNotADecision') case_answer_refusesWhatIsNotADecision ;;
     'answer#continueReturnsTheItemToTheQueue') case_answer_continueReturnsTheItemToTheQueue ;;
@@ -562,6 +580,140 @@ case_decisions_listsTheQueueAndItsQuestions() {
   assert_contains "$out" "#71  **The decision:** merge the two rows into one" "the human form prints the question line"
   assert_contains "$out" "no question recorded" "and names an item whose escalation left none"
   assert_contains "$out" "2 item(s) await a decision" "with a count and the way to answer one"
+}
+
+# ----------------------------------------------------------------------------- cases: duplicates
+
+# The sweep's own tracker: `tools/issues/fixtures/scenarios/duplicates` holds one fingerprint shared by three
+# open items (81 authorisable, 82 authorisable and younger, 83 not authorisable), one `nvid` claimed by two open
+# items (84, 85), one open item whose number a commit on main names (225), and one open item whose twin is
+# closed (86 against the closed 87).
+duplicates_tracker() { # <case dir> — sets the stub's tracker and record in the caller, so call it directly
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario duplicates)
+  : > "$1/calls.log"
+  export GH_STUB_RECORD="$1/calls.log"
+}
+
+# A line that named one issue, so a case can assert that a number is absent from the writes.
+not_written() { # <log> <number> → 0 when the log holds no write naming that issue
+  ! grep -Eq "issue (edit|comment|close) $2( |$)" "$1"
+}
+
+case_duplicates_dryRunWritesNothing() {
+  local d log out status
+  d=$(scratch); duplicates_tracker "$d"; log="$d/calls.log"
+  out=$(run_tool duplicates.sh 2>&1); status=$?
+  assert_eq "0" "$status" "a dry run exits 0: $out"
+  assert_eq "0" "$(grep -c 'issue \(edit\|comment\|close\)' "$log" || true)" "a dry run writes nothing"
+  assert_contains "$out" "#82" "and names the duplicate a scheduled run would close"
+}
+
+case_duplicates_youngerDuplicateIsClosedWithAPointer() {
+  local d log out status
+  d=$(scratch); duplicates_tracker "$d"; log="$d/calls.log"
+  out=$(run_tool duplicates.sh --apply 2>&1); status=$?
+  assert_eq "0" "$status" "the sweep exits 0: $out"
+  assert_contains "$(cat "$log")" "issue close 82" "the younger authorisable duplicate is closed"
+  assert_contains "$(cat "$log")" "#81" "and its comment names the surviving item"
+  # The pair is readable from both ends: the survivor gets the pointer, and is not itself closed. The stub
+  # quotes every argument, so an assertion names single tokens rather than a phrase.
+  assert_contains "$(cat "$log")" "issue comment 81" "the survivor is pointed at the duplicate it absorbed"
+  grep -Eq "issue close 81( |$)" "$log" && fail "the survivor was closed"
+  return 0
+}
+
+case_duplicates_olderItemSurvives() {
+  local d out
+  d=$(scratch); duplicates_tracker "$d"
+  out=$(run_tool duplicates.sh --json 2>&1)
+  assert_eq "81" "$(printf '%s' "$out" | jq -r '.groups[0].survivor')" \
+    "the survivor is the lowest issue number"
+  assert_eq "82 83" "$(printf '%s' "$out" | jq -r '[.groups[0].duplicates[].issue] | join(" ")')" \
+    "and both younger items are its duplicates"
+}
+
+case_duplicates_unauthorisedDuplicateIsCommentedNotClosed() {
+  local d log out
+  d=$(scratch); duplicates_tracker "$d"; log="$d/calls.log"
+  out=$(run_tool duplicates.sh --apply 2>&1)
+  assert_contains "$(cat "$log")" "issue comment 83" "an item without the authorisation label is commented"
+  grep -Eq "issue close 83( |$)" "$log" && fail "an unauthorised duplicate was closed"
+  assert_contains "$out" "agent/eligible" "the report says why"
+  return 0
+}
+
+# The dedupe: a group nobody may close survives the run by construction, so the comment is written once and the
+# next run skips it. Without that, a scheduled worker comments on the same item every 30 minutes (measured in
+# review: 48 a day).
+case_duplicates_aMarkedDuplicateIsNotCommentedTwice() {
+  local d log out
+  d=$(scratch)
+  cp -r "$(scenario duplicates)" "$d/tracker"
+  jq 'map(if .number == 83 then .comments = [{author: {login: "Framstag"}, createdAt: "2026-10-20T12:00:00Z",
+        body: "a pointer\n\n<!-- duplicates: #81 -->"}] else . end)' \
+    "$d/tracker/issues.json" > "$d/tracker/issues.new" && mv "$d/tracker/issues.new" "$d/tracker/issues.json"
+  export GH_STUB_DIR="$d/tracker"
+  : > "$d/calls.log"; export GH_STUB_RECORD="$d/calls.log"
+  out=$(run_tool duplicates.sh --apply 2>&1)
+  assert_eq "0" "$(grep -c 'issue comment 83' "$d/calls.log" || true)" \
+    "a duplicate already pointed at is not commented again"
+  assert_contains "$(cat "$d/calls.log")" "issue close 82" "while the closure of the other one still happens"
+  return 0
+}
+
+case_duplicates_collisionIsReportedAndNothingIsWritten() {
+  local d log out
+  d=$(scratch); duplicates_tracker "$d"; log="$d/calls.log"
+  out=$(run_tool duplicates.sh --apply --json 2>&1)
+  assert_eq "900" "$(printf '%s' "$out" | jq -r '.collisions[0].nvid')" "the shared identifier is reported"
+  assert_eq "84 85" "$(printf '%s' "$out" | jq -r '[.collisions[0].issues[]] | join(" ")')" "with both items"
+  not_written "$log" 84 || fail "a collision was repaired (84)"
+  not_written "$log" 85 || fail "a collision was repaired (85)"
+}
+
+case_duplicates_landedCandidateIsPrintedNotClosed() {
+  local d log out repo
+  d=$(scratch); duplicates_tracker "$d"; log="$d/calls.log"
+  # A fixture repository whose one commit names #225: the case must not depend on this repository's history, or
+  # it fails in CI where the checkout is shallow (`build.yml` fetches one commit).
+  repo="$d/repo"; mkdir -p "$repo"
+  git -C "$repo" init -q -b main
+  git -C "$repo" -c user.email=fixture@example.invalid -c user.name=fixture \
+    commit -q --allow-empty -m "fix: a fixture landing (#225)"
+  out=$(env ISSUES_REPO_ROOT="$repo" bash "$ISSUES_ENGINE/duplicates.sh" --apply --json 2>&1)
+  # An item a commit subject names is listed; one that no commit names is not — the pair is what makes the list
+  # assertable, and it acts on neither.
+  assert_eq "true" "$(printf '%s' "$out" | jq -r '[.landed[].issue] | index(225) != null')" \
+    "the landed candidate list holds the item a commit on main names"
+  assert_eq "false" "$(printf '%s' "$out" | jq -r '[.landed[].issue] | index(9001) != null')" \
+    "and not the item no commit names"
+  grep -Eq "issue (edit|comment|close) 225( |$)" "$log" && fail "a landed candidate was written to"
+  return 0
+}
+
+case_duplicates_cleanTrackerExitsZeroWithoutAWrite() {
+  local d out status repo
+  d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario present)
+  : > "$d/calls.log"; export GH_STUB_RECORD="$d/calls.log"
+  # A fixture repository whose one commit names no item: the case must not depend on this repository's history,
+  # or a future commit message mentioning the fixture's numbers turns it red (found in review round 3).
+  repo="$d/repo"; mkdir -p "$repo"
+  git -C "$repo" init -q -b main
+  git -C "$repo" -c user.email=fixture@example.invalid -c user.name=fixture commit -q --allow-empty -m "init"
+  out=$(env ISSUES_REPO_ROOT="$repo" bash "$ISSUES_ENGINE/duplicates.sh" --apply 2>&1); status=$?
+  assert_eq "0" "$status" "a clean tracker is a pass: $out"
+  assert_contains "$out" "nothing to do" "and says so"
+  assert_eq "0" "$(grep -c 'issue \(edit\|comment\|close\)' "$d/calls.log" || true)" "with no write"
+  return 0
+}
+
+case_duplicates_differentFingerprintsAreNotMerged() {
+  local d out
+  d=$(scratch); duplicates_tracker "$d"
+  out=$(run_tool duplicates.sh --json 2>&1)
+  # 84 and 85 share an nvid but not a fingerprint: a duplicate is one fingerprint, several items, and nothing else
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.groups | length')" "exactly the one real duplicate group"
 }
 
 case_decisions_emptyQueueIsNotAnError() {

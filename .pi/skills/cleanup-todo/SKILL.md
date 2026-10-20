@@ -5,6 +5,15 @@ description: Tracker hygiene — repairs an issue's labels and status against th
 
 # Tracker hygiene
 
+**The mechanical half is not this pass.** A duplicate found by its own fingerprint marker and an `nvid`
+collision are found by `tools/issues/duplicates.sh`, which the scheduled worker runs
+(`.github/workflows/sensors.yml`): the older item survives, the younger duplicate is closed when it carries the
+authorisation label, and a collision is reported and never repaired. Run `bash tools/issues/duplicates.sh` first
+and read its report — it is also where the list of items a commit on `main` names comes from, which is the best
+starting point for "provably done". This pass owns what needs a judgement: a merge of two items whose
+fingerprints differ, a closure of work that is provably done, a status a run left behind, and a label or
+identifier a person has to decide about.
+
 The tracker is the project's live backlog: one GitHub issue per item, each carrying exactly one
 `class/*`, one `category/*`, one `status/*` and one `source/*` label. Items accumulate — a change fixes
 one and never comes back to close it, a label is set by hand outside the vocabulary, the same finding is

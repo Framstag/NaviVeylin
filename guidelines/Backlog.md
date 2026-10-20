@@ -165,6 +165,16 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   three write paths plus the other label flags to prove no route sets it. The import is also asserted to
   arrive with 0 eligible items.
 
+Two rules keep the decision queue answerable, because it is a query over one label and the run's ceiling
+counts that query (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
+
+- **A closure leaves no decision label behind.** An item that carries the label and is closed would stay in
+  the queue for ever and keep spending a decision slot; `tools/issues/close.sh` takes the label off in the same
+  write that records the settled state, for every path that closes — the run, a person, a declared check.
+- **A block asks its own question.** When the reviewer wrote no decision, the run states the only two-way
+  choice a block leaves — retry the item, or abandon it — because a reason is not something a person can
+  answer (`issue #225`).
+
 ## 6. How an item becomes work
 
 ```

@@ -921,6 +921,16 @@ $review_notes_text"
         escalation_reason="$escalation_reason
 
 **The decision:** $decision_field"
+      else
+        # A block that never reached a review round asked the item no question — most often because the cause is
+        # the run's own child rather than the item (a claim with no commit, a timeout, a child that could not
+        # start). Escalating the reason alone put an entry in the decision queue that nobody can answer, and the
+        # ceiling counts labels (issues #194, #225). The block leaves exactly one two-way choice, so the run
+        # states it, with the reason it holds as the ground for either answer.
+        escalation_reason="$escalation_reason
+
+**The decision:** retry the item, or abandon it — $blocked_reason. Nothing about the item itself was found
+wrong by this run, so a retry costs another attempt and an abandonment removes it from the loop."
       fi
       if loop_labels escalate "$issue" --reason "$escalation_reason" \
         --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then

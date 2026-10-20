@@ -61,12 +61,14 @@ LOOP_SHELL_CASES=(
   'labels#trapRemovesInProgressOnSignal'
   'labels#neverWritesReservedLabel'
   'labels#writesOnlyBetweenChildren'
+  'labels#closeRemovesTheDecisionLabel'
   'prompt#workerNamesEveryPhaseAndSkill'
   'prompt#workerNamesTheDecisionField'
   'prompt#reviewerCarriesTheEightItems'
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
   'run#preflightRefusalStopsBeforeAnyWork'
+  'run#blockedItemAsksItsOwnQuestion'
   'run#decisionCapRefusesToStart'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
@@ -192,12 +194,14 @@ loop_run_shell_case() {
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
     'labels#neverWritesReservedLabel') fn=case_labels_neverWritesReservedLabel ;;
     'labels#writesOnlyBetweenChildren') fn=case_labels_writesOnlyBetweenChildren ;;
+    'labels#closeRemovesTheDecisionLabel') fn=case_labels_closeRemovesTheDecisionLabel ;;
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
+    'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
@@ -1582,6 +1586,38 @@ case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
   assert_eq "0" "$(grep -c 'Ignore all previous instructions\|^<<<ISSUE_TEXT$' "$prompt" || true)" \
     "the injected text does not reach the instruction position"
   return 0
+}
+
+# A closure ends an item's life as an open question, so the label that made it one has to go with it: an item
+# that carries `agent/needs-decision` and is closed stays in the decision queue for ever, and the ceiling that
+# counts the queue then refuses runs over an item nobody can answer — measured 2026-10-20 on #81, which was
+# closed and still listed (issue #225).
+case_labels_closeRemovesTheDecisionLabel() {
+  local d p log
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
+  log="$d/gh-close.log"; : > "$log"; export GH_STUB_RECORD="$log"
+  run_labels "$p" close 41 --reason "the fixture cause" --evidence "the fixture evidence" >/dev/null 2>&1 ||
+    fail "close failed"
+  assert_contains "$(cat "$log")" "--remove-label agent/needs-decision" \
+    "a closure takes the decision label off, so the item leaves the queue"
+  assert_contains "$(cat "$log")" "--add-label status/fixed-by" "and marks the item as fixed"
+}
+
+# A block whose cause is the run's own child is not a question the item asked. Rather than escalate a reason
+# and call it a decision, the run states the only choice a block leaves — retry the item, or abandon it — so
+# the queue holds something a person can answer (issues #225, #194).
+case_run_blockedItemAsksItsOwnQuestion() {
+  local d p out body
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1)
+  body=$(grep 'issue comment' "$GH_STUB_RECORD" 2>/dev/null || true)
+  assert_contains "$body" 'The decision:' "the escalation carries a decision field, not only a reason"
+  assert_contains "$body" 'retry' "the question names the first option"
+  assert_contains "$body" 'abandon' "and the second"
 }
 
 # ----------------------------------------------------------------------------- cases: run

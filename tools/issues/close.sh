@@ -155,8 +155,24 @@ fi
 # loop's own path writes the status first (`tools/loop/labels.sh`), and this one writes it through the same
 # `update.sh --status` gate, so the closed vocabulary and the reserved-label refusal apply here unchanged and
 # the state the item carried is displaced rather than left beside the new one (#188).
+#
+# The decision label goes with it for the same reason one step further out: an item that carries it and is
+# closed stays in the decision queue (`tools/issues/decisions.sh`, a query over the label) for ever, and the
+# ceiling that counts the queue then refuses runs over an item nobody can answer — measured 2026-10-20 on #81,
+# closed and still listed (issue #225). An item without the label is untouched, so a closure writes nothing it
+# would have to justify.
+separator=$(jq -r '.namespaceSeparator // "/"' "$profile")
+decision_role=$(jq -r '.roles.decisionAgent // empty' "$profile")
+remove_args=()
+if [ -n "$decision_role" ]; then
+  decision_label_closed="agent${separator}${decision_role}"
+  if printf '%s' "$issue" | jq -e --arg l "$decision_label_closed" \
+    '[.labels[]? | if type == "string" then . else .name end] | index($l) != null' >/dev/null 2>&1; then
+    remove_args=(--remove-label "$decision_label_closed")
+  fi
+fi
 write_status=0
-bash "$here/update.sh" "$number" --status "$settled_status" --profile "$profile" >&2 || write_status=$?
+bash "$here/update.sh" "$number" --status "$settled_status" "${remove_args[@]}" --profile "$profile" >&2 || write_status=$?
 if [ "$write_status" -ne 0 ]; then
   # The closure did not happen: the item is left open with the state it carried, which is the honest outcome —
   # a half-written item is worse than one a person can still read.

@@ -1,0 +1,64 @@
+# The red case, the green suite, and the revert-checks
+
+Recorded 2026-10-20 in the session that made the change; each line is that session's own output.
+
+## 1. Red first
+
+`bash tools/issue-tooling-selftest.sh --case duplicates#dryRunWritesNothing`, before `duplicates.sh` existed:
+
+```
+  a dry run exits 0: bash: /home/tim/projects/NaviVeylin/tools/issues/duplicates.sh: Datei oder Verzeichnis
+  nicht gefunden: expected '0', got '127'
+FAIL duplicates#dryRunWritesNothing
+```
+
+## 2. Two defects the cases then found in the sweep itself
+
+```
+FAIL duplicates#unauthorisedDuplicateIsCommentedNotClosed
+  the report says why: 'agent/eligible' not found in: duplicates: 1 group(s)
+  survivor #81 ← #82, #83 (not authorisable)
+```
+→ the report names the profile's label now (`not authorisable: no agent/eligible`), so a reader learns *why* the
+closure stayed a person's.
+
+```
+FAIL duplicates#landedCandidateIsPrintedNotClosed
+  open items a commit subject on main names: 0
+```
+→ the candidate list was empty although the log names the item: `git log | grep -q` per item is a pipeline whose
+reader exits early, and under `pipefail` the resulting EPIPE on `git` made the test false. The ids are read out
+of the log once now (`git log --format='%s' | grep -oE '#[0-9]+'`).
+
+And one the portability gate found, not a case:
+
+```
+check-portability: FAIL tools/issues/duplicates.sh:104: names the project value 'eligible' …: 3 leak(s)
+```
+→ the engine named two profile values as literals; the variable is `authorised` and the prose is neutral.
+
+## 3. Green
+
+```
+tools/issue-tooling-selftest.sh   all 100 cases passed (JDK 27, offline, no token)   [91 before the change]
+tools/check-portability.sh        OK — 44 engines and 2 templates name no project value (103 value(s))
+tools/check-doc-routes.sh         all 89 section references resolve
+tools/check-todo-references.sh    62 citation(s) resolve; 2807 file(s) excluded by the allowlist
+```
+
+## 4. The revert-checks
+
+```
+bash tools/mutate.sh --mutations tools/duplicates-mutations.json
+D1  duplicates#olderItemSurvives                        RED → restored GREEN
+D2  duplicates#unauthorisedDuplicateIsCommentedNotClosed RED → restored GREEN
+D3  duplicates#landedCandidateIsPrintedNotClosed         RED → restored GREEN
+D4  duplicates#aMarkedDuplicateIsNotCommentedTwice         RED → restored GREEN
+mutate: 4 mutation(s) run, 4 went red and restored green, 0 problem(s)
+```
+
+## 5. What the sweep is not
+
+The scheduled worker runs it; a person still owns the judgement half (`cleanup-todo`): merging two items whose
+fingerprints differ (#64 into #65 on this very day), closing work that is provably done, and repairing a status a
+run left behind. The sweep's candidate list is where that pass starts reading.

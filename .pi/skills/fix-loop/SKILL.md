@@ -286,7 +286,8 @@ loop: commit · 41m05s · end-item returned — HEAD 9f2b1c4ee0a1 (base 3211d4d8
 ```
 
 The pre-screen is the slowest step before the first child (measured 2026-10-20: 53 s for 84 records over 188
-tracker items), so it streams through `tee` rather than being replayed after it returns; the header line above it
+tracker items), so it streams through `tee` rather than being replayed after it returns, and the same bytes stay
+in `.pi/issue-loop/prescreen.log` for whoever reads them after the terminal has scrolled; the header line above it
 names the step and the two views that exist meanwhile — `bash tools/loop/state.sh show` and the item's report
 file. No progress line is parsed back: the state file stays the run's record and `report.sh` stays derived from
 it, so a run that printed these lines and one that did not record the same state.

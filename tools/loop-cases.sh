@@ -321,6 +321,16 @@ assert_not_contains() {
   esac
 }
 
+assert_matches() { # assert_matches <text> <ere> <message> — the *shape* of a line, not a substring of it
+  printf '%s\n' "$1" | grep -qE -- "$2" || fail "$3: no line matching /$2/ in: $1"
+}
+
+assert_line_count() { # assert_line_count <text> <ere> <expected> <message> — one line per boundary crossing
+  local n
+  n=$(printf '%s\n' "$1" | grep -cE -- "$2" || true)
+  assert_eq "$3" "$n" "$4"
+}
+
 scratch() { mktemp -d "$LOOP_TMP/case.XXXXXX"; }
 
 # A throwaway project: enough of this repository's shape that the loop's own scripts run unchanged — the
@@ -1891,41 +1901,53 @@ case_run_headerNamesTheLiveView() {
   assert_contains "$out" "not instant" "and says that step does not return at once"
 }
 
-# The pre-screen's own text has to reach the terminal while the call runs and not after it returns. The case's
-# `list.sh` holds that call for 3 s, so what the console carries 1.5 s in is what the run printed *before* the
-# call returned — the whole of the difference between streaming it and capturing it (issue #191).
+# The pre-screen's own text has to reach the terminal *while* the call runs and not after it returns, and the
+# same bytes have to stay where a path can read them afterwards. Both halves are measured against a stand-in
+# *pre-screen* — one line, a 3 s hold, a second line — because that shape is the only one that separates
+# streaming from capture-and-replay: read 1.5 s in, the console must carry the first line and must not carry
+# the second, and the kept text must carry both once the run is over (issue #191). Holding the issue listing
+# instead left the run's own phase line as the only mid-flight evidence, which a capture-and-replay would also
+# print.
 case_run_prescreenAnnouncesItselfBeforeItReturns() {
-  local d p slow log pid out
+  local d p log pid out tools p2 rc
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  slow="$d/issues"
-  cp -r "$LOOP_ISSUES_ENGINE" "$slow"
+  # The copy is of the whole `tools` tree, not of `tools/loop`: `lib.sh` sources `../issues/lib.sh`, and an
+  # engine beside no tooling dies in its own first line instead of reaching the pre-screen.
+  tools="$d/tools"
+  cp -r "$(dirname "$LOOP_ENGINE")" "$tools"
   {
     printf '#!/usr/bin/env bash\n'
+    printf 'printf "pre-screen: first record\\n"\n'
     printf 'sleep 3\n'
-    printf 'exec bash %q "$@"\n' "$LOOP_ISSUES_ENGINE/list.sh"
-  } > "$slow/list.sh"
-  chmod +x "$slow/list.sh"
+    printf 'printf "pre-screen: second record\\n"\n'
+  } > "$tools/loop/prescreen.sh"
   log="$d/console.log"
-  ( LOOP_ISSUES_ENGINE="$slow" run_loop "$p" --items 1 --minutes 90 --review off ) > "$log" 2>&1 &
+  ( LOOP_ENGINE="$tools/loop" run_loop "$p" --items 1 --minutes 90 --review off ) > "$log" 2>&1 &
   pid=$!
   sleep 1.5
   out=$(cat "$log")
   assert_contains "$out" "loop: pre-screen" "the phase is announced on the console"
   assert_contains "$out" "started" "as started, while the pre-screen is still running"
+  assert_matches "$out" '^loop: pre-screen · [0-9]+(m[0-9]{2})?s · started — .*prescreen\.log$' \
+    "and its start line names the file that keeps the text"
+  assert_contains "$out" "pre-screen: first record" \
+    "the pre-screen's own first line reaches the console while the call runs"
+  assert_not_contains "$out" "pre-screen: second record" \
+    "and the line it has not printed yet does not: the text is streamed, not replayed"
   wait "$pid" || fail "the run itself failed"
   out=$(cat "$log")
-  assert_contains "$out" "pre-screen:" "the pre-screen's own text reached the console"
+  assert_contains "$out" "pre-screen: second record" "the rest of it reaches the console too"
   assert_contains "$out" "finished" "and the end of the phase is printed with it"
+  # The kept bytes: a path that reads the state directory afterwards sees what the terminal saw.
+  assert_contains "$(cat "$(dirname "$(state_file "$p")")/prescreen.log")" "pre-screen: first record" \
+    "the pre-screen's text is kept in the state directory"
+  assert_contains "$(cat "$(dirname "$(state_file "$p")")/prescreen.log")" "pre-screen: second record" \
+    "the whole of it, not only its first line"
   # The status the run decides on is the pre-screen's own and not the stream's: a stand-in pre-screen that fails
   # with 7 has to leave the run with 7 too, which is what `pipefail` on the pipeline buys. Without it the pipeline
-  # would report the `tee`'s 0 and the run would walk past a pre-screen that never answered. The copy is of the
-  # whole `tools` tree, not of `tools/loop`: `lib.sh` sources `../issues/lib.sh`, and an engine beside no tooling
-  # dies in its own first line instead of reaching the pre-screen.
-  local p2 tools engine rc
+  # would report the `tee`'s 0 and the run would walk past a pre-screen that never answered.
   p2=$(new_project)
-  tools="$d/tools"
-  cp -r "$(dirname "$LOOP_ENGINE")" "$tools"
   printf '#!/usr/bin/env bash\nprintf "pre-screen: a stand-in that fails\\n"\nexit 7\n' > "$tools/loop/prescreen.sh"
   out=$( LOOP_ENGINE="$tools/loop" run_loop "$p2" --items 1 --minutes 90 --review off 2>&1 )
   rc=$?
@@ -1934,16 +1956,22 @@ case_run_prescreenAnnouncesItselfBeforeItReturns() {
 
 # Silence never exceeds a bounded interval, and outside a child the run's own boundaries are what bound it: the
 # run prints one line where the pre-screen starts and ends, where the worktree comes ready, where the item is
-# picked, where the gate's evidence is read and where the item's work is committed (issue #191).
+# picked, where the gate's evidence is read and where the item's work is committed (issue #191). One format
+# with an elapsed field, one line per crossing, and terminal output only — a line that leaked into the state
+# file or into the report would make a heartbeated run a different run from a quiet one.
 case_run_everyPhaseBoundaryIsPrinted() {
-  local d p out
+  local d p out sf report
   d=$(scratch); p=$(new_project)
   out=$(run_one_item "$p" "$d" --review off 2>&1) || fail "the run failed"
-  assert_contains "$out" "loop: pre-screen · " "the pre-screen's boundary"
-  assert_contains "$out" "loop: worktree · " "the worktree coming ready"
-  assert_contains "$out" "loop: item · " "the item being picked"
-  assert_contains "$out" "loop: gate · " "the gate's evidence being read"
-  assert_contains "$out" "loop: commit · " "the item's work being committed"
+  assert_line_count "$out" '^loop: pre-screen · [0-9]+(m[0-9]{2})?s · ' 2 "the pre-screen is announced and reported"
+  assert_line_count "$out" '^loop: worktree · [0-9]+(m[0-9]{2})?s · ' 1 "the worktree coming ready"
+  assert_line_count "$out" '^loop: item · [0-9]+(m[0-9]{2})?s · ' 1 "the item being picked"
+  assert_line_count "$out" '^loop: gate · [0-9]+(m[0-9]{2})?s · ' 1 "the gate's evidence being read"
+  assert_line_count "$out" '^loop: commit · [0-9]+(m[0-9]{2})?s · ' 1 "the item's work being committed"
+  sf=$(state_file "$p")
+  assert_not_contains "$(cat "$sf")" "loop: " "no progress line is written to the state file"
+  report=$(run_report "$p")
+  assert_not_contains "$report" "loop: " "and none is carried into the report's text"
 }
 
 # A child that never returns used to be waited for with no bound at all: the run's deadline is consulted

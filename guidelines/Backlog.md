@@ -262,6 +262,20 @@ identity that authorises it), as that login's noreply address — never the mach
 an invented one, because a fresh container or CI runner has neither and the item would block on its own
 commit (`fix-loop-git-identity`, issue #167).
 
+What it does with an answer that arrived cut: the report a review round is decided from is the file the child's
+answer reached, and an answer can be lost on the way there. On 2026-10-20 an item's round-2 report ended
+mid-word — `… and the post-restore gre`, 11 428 bytes, no `VERDICT:` line and no final newline — while its own
+text recorded all seven delta scenarios as PASS and round 1's blocking finding as closed; the run read the
+missing count as a refusal, took another worker round, recorded the item `blocked` and escalated it, so a person
+had to read the report to learn that nothing was wrong with the work (#224). The **shape** of the answer decides
+it, never its content: the adapter prints exactly one newline after every answer it hands the run, and the
+prompt asks for the closing `VERDICT:` last, so a report that ends mid-word or carries no `VERDICT:` line is an
+**incomplete child answer** — the run says so, asks the same round once more (same prompt and same diff, the
+answer kept beside the cut attempt as `reviewer-report-<n>-retry.md`) and decides on the answer that arrived. A
+round the run itself ended already says so in its report (`LOOP-TIMEOUT`) and is not retried; two cut answers
+in one round block the item with *the reviewer's report was cut short twice*, and the branch carries no
+review-failure marker, because no reviewer refused that change.
+
 What it does when it cannot proceed: an item that needs a decision is **escalated** — the work already done
 is named on the item, the item is marked as awaiting a decision, and the run takes the next candidate. The
 work is preserved rather than abandoned (I11), which is the part the prose-era loop got wrong by treating a

@@ -421,6 +421,18 @@ last_line() { # last_line <file>
   grep -v '^[[:space:]]*$' "$1" 2>/dev/null | tail -1
 }
 
+# Whether a child's answer arrived whole — the shape of the report, never its content (#224). Two facts make it
+# checkable without a model: the adapter prints exactly one newline after every answer it hands the run, and the
+# prompt asks for its closing line last (the reviewer's `VERDICT:`, after the count it licenses). An answer that
+# ends mid-word, or carries no closing line at all, was cut on its way to the file. Measured 2026-10-20: a
+# round-2 report ended `… and the post-restore gre` while its own text recorded all seven scenarios PASS, and the
+# run read the absence as a refusal, took another worker round and escalated work that had passed.
+answer_complete() { # answer_complete <report file> <closing-line regex>
+  [ -s "$1" ] || return 1
+  [ -z "$(tail -c 1 "$1" 2>/dev/null)" ] || return 1
+  grep -qE "$2" "$1" 2>/dev/null
+}
+
 # The reviewer's severity count, and nothing else about its prose (#205). A report may say `VERDICT: FAIL` and
 # count zero blocking findings, which is a pass whose notes are recorded; a report that says nothing at all is
 # empty here, and an empty count keeps the loop's conservative reading — an old-shaped review never passes.
@@ -568,6 +580,14 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
 render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
   local template="$1" out="$2"; shift 2
   loop_render "$template" "$@" > "$out"
+}
+
+# The round's prompt, rendered once per attempt: the same contract and the same diff, only the file it is written
+# to differs, so a retried answer is the same question asked again rather than a second review (#224).
+render_reviewer_prompt() { # render_reviewer_prompt <out file>
+  render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
+    "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir" \
+    "REVIEW_EXCLUDE=${review_exclude_spec:-none}"
 }
 
 # Why a run ended is the run's own number, not a line on a console that scrolls away: every path that leaves
@@ -774,6 +794,8 @@ while true; do
   review_rounds=0
   review_verdict="off"
   review_notes_text=""
+  # The report the round is decided from: the reviewer's answer, or the retry's when the first one arrived cut.
+  reviewer_report=""
   if { [ "$outcome" = "closed" ] || [ "$outcome" = "falsified" ]; } && [ "$review" = "on" ]; then
     review_verdict="FAIL"
     round=1
@@ -792,10 +814,31 @@ while true; do
       write_review_diff "$base" "$diff_file"
       before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
-      render_prompt "$LOOP_DIR/prompts/reviewer.md" "$item_dir/reviewer-prompt-$round.md" \
-        "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir" \
-        "REVIEW_EXCLUDE=${review_exclude_spec:-none}"
-      run_child "$item_dir/reviewer-prompt-$round.md" "$item_dir/reviewer-report-$round.md"
+      reviewer_report="$item_dir/reviewer-report-$round.md"
+      render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md"
+      run_child "$item_dir/reviewer-prompt-$round.md" "$reviewer_report"
+      # An answer cut on its way to the file decides nothing, and it is not a reviewer that stayed quiet either
+      # (#224): it is the run's own transport, so the round is asked once more instead of the item being blocked.
+      # A round the run itself ended already says so in its report (`LOOP-TIMEOUT`), so only a silent cut is
+      # retried — a timeout is read exactly as it was.
+      if [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
+        ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
+        printf 'run: the round %s answer was cut short (%s) — retrying the round once\n' \
+          "$round" "$(last_line "$reviewer_report")" >&2
+        reviewer_report="$item_dir/reviewer-report-$round-retry.md"
+        render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md"
+        run_child "$item_dir/reviewer-prompt-$round-retry.md" "$reviewer_report"
+        if [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
+          ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
+          # Twice is not a hiccup the run can wait out: the round has no verdict at all, so the block says that
+          # instead of naming a refusal no reviewer made, and it records no failed review on the branch — a
+          # later run must not be told the reviewer refused this change.
+          review_verdict="cut-short"
+          outcome="blocked"
+          blocked_reason="the reviewer's report was cut short twice — the round $round answer never arrived, so no reviewer refused this change"
+          break
+        fi
+      fi
       after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       if [ "$read_only" = "on" ] && [ "$before" != "$after" ]; then
@@ -808,21 +851,21 @@ while true; do
       # with a non-zero count contradicts itself and is read as a refusal, and a refusal with a zero count is
       # a pass whose notes are recorded — the findings are wording, pointers and naming, which cost the change
       # no round. A report with no count line keeps today's reading, so an old-shaped review never passes.
-      blocking=$(blocking_count "$item_dir/reviewer-report-$round.md")
-      if grep -q '^VERDICT: PASS' "$item_dir/reviewer-report-$round.md" 2>/dev/null &&
+      blocking=$(blocking_count "$reviewer_report")
+      if grep -q '^VERDICT: PASS' "$reviewer_report" 2>/dev/null &&
         { [ -z "$blocking" ] || [ "$blocking" -eq 0 ]; }; then
         review_verdict="PASS"
         break
       fi
       if [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then
         review_verdict="NOTES"
-        review_notes_text=$(review_notes "$item_dir/reviewer-report-$round.md")
+        review_notes_text=$(review_notes "$reviewer_report")
         break
       fi
       if [ "$round" -ge "$round_cap" ]; then
         # A corrective refusal earns one more round, once: a reviewer that says "nothing here adds a claim" has
         # answered the question its FAIL otherwise leaves open (#186, #187).
-        corrections_only=$(report_field "$item_dir/reviewer-report-$round.md" LOOP-CORRECTIONS-ONLY)
+        corrections_only=$(report_field "$reviewer_report" LOOP-CORRECTIONS-ONLY)
         if [ "$corrective_round_used" -eq 0 ] && [ "$corrections_only" = "yes" ]; then
           corrective_round_used=1
           round_cap=$((round_cap + 1))
@@ -831,7 +874,7 @@ while true; do
         fi
       fi
       # FAIL: the same change goes back to a new worker process with the reviewer's findings.
-      findings=$(cat "$item_dir/reviewer-report-$round.md")
+      findings=$(cat "$reviewer_report")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
         "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
@@ -975,7 +1018,7 @@ $review_notes_text"
       # already answered the question when it wrote its report, so the owner reads the options and the
       # recommendation instead of re-deriving them (#186).
       escalation_reason="${blocked_reason:-the item was blocked}"
-      decision_field=$(report_field "$item_dir/reviewer-report-$review_rounds.md" LOOP-DECISION 2>/dev/null || true)
+      decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
       if [ -n "$decision_field" ]; then
         escalation_reason="$escalation_reason
 

@@ -142,7 +142,11 @@ MUTATIONS=(
   # The claim is read again after the review (openspec task 1.4): without the re-read, a falsification whose
   # tree moved during a corrective round is still closed as mis-diagnosed.
   '30.2@-@tools/loop/run.sh@run#falsificationWithAChangedTreeIsBlocked@the second read of the tree after the review of a falsification@s|^    if \[ "\$head_now" != "\$base" \]; then$|    if false; then|'
-  '31.1@-@tools/loop/run.sh@run#staleBaseStopsTheRunWithItsReason@the stop that records why a stale base ended the run@s|^      \*"base moved"\*) stop_run "the base moved: main advanced|      *"base moved"*) : "the base moved: main advanced|'
+  # Without the retry, an answer cut on its way to the file is read as a refusal again: the round buys a second
+  # worker and the item is blocked and escalated although every scenario in the report passed (issue #224).
+  '31.1@-@tools/loop/run.sh@run#aCutReportIsRetriedInsteadOfRefused@the retry of a report that arrived cut on its way to the file (issue #224)@s|^      if \[ -z "\$(report_field "\$reviewer_report" LOOP-TIMEOUT)" \] &&$|      if false \&\&|'
+  # 32.1 — a base that moved under the run stops it with a reason; the silent exit is what the case catches.
+  '32.1@-@tools/loop/run.sh@run#staleBaseStopsTheRunWithItsReason@the stop that records why a stale base ended the run@s|^      \*"base moved"\*) stop_run "the base moved: main advanced|      *"base moved"*) : "the base moved: main advanced|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

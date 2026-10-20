@@ -107,6 +107,8 @@ LOOP_SHELL_CASES=(
   'run#aCorrectiveRefusalEarnsOneMoreRound'
   'run#aZeroBlockingRefusalClosesWithItsNotes'
   'run#aBlockingRefusalStillTakesTheRoundTwoPath'
+  'run#aCutReportIsRetriedInsteadOfRefused'
+  'run#aReportCutTwiceBlocksAsTheTransportsFault'
   'run#escalationCarriesTheDecision'
   'run#mayCloseNoLeavesTheIssueOpen'
   'run#metricsRecordedPerItem'
@@ -245,6 +247,8 @@ loop_run_shell_case() {
     'run#aCorrectiveRefusalEarnsOneMoreRound') fn=case_run_aCorrectiveRefusalEarnsOneMoreRound ;;
     'run#aZeroBlockingRefusalClosesWithItsNotes') fn=case_run_aZeroBlockingRefusalClosesWithItsNotes ;;
     'run#aBlockingRefusalStillTakesTheRoundTwoPath') fn=case_run_aBlockingRefusalStillTakesTheRoundTwoPath ;;
+    'run#aCutReportIsRetriedInsteadOfRefused') fn=case_run_aCutReportIsRetriedInsteadOfRefused ;;
+    'run#aReportCutTwiceBlocksAsTheTransportsFault') fn=case_run_aReportCutTwiceBlocksAsTheTransportsFault ;;
     'run#escalationCarriesTheDecision') fn=case_run_escalationCarriesTheDecision ;;
     'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
@@ -2529,6 +2533,82 @@ VERDICT: FAIL'
   assert_contains "$(jq -r '.items[0].note' "$f")" "last review round" "the reason names the round"
   assert_eq "4" "$(grep -c '^invocation' "$PI_STUB_LOG")" "two workers and two reviewers"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# A report that stops mid-sentence is an answer that never arrived, and the run used to read it as a refusal
+# (#224). Item #81's round-2 report ended `… and the post-restore gre` — no `VERDICT:`, no count line, no final
+# newline — while its own text recorded all seven delta scenarios PASS and round 1's blocking finding as closed;
+# the run took another worker round and recorded the item `blocked`, which is the same record a reviewer that
+# refused the change leaves, and the same escalation a reviewer that said nothing leaves. The shape of the
+# answer decides it, not its content: a cut answer ends mid-word and lacks the line the prompt asks for last, so
+# the round is retried once, the item closes on the answer that arrived, and the cut attempt stays as evidence.
+case_run_aCutReportIsRetriedInsteadOfRefused() {
+  local d p f out log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The answer as it reached the file: every scenario PASS, the earlier finding closed, then the cut.
+  printf 'Scenario 1 PASS, 2 PASS, 3 PASS, 4 PASS, 5 PASS, 6 PASS, 7 PASS, round 1 closed, and the post-restore gre' \
+    > "$d/reviewer-cut.txt"
+  printf 'VERDICT: PASS\n' > "$d/reviewer-complete.txt"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # Round 1's reviewer is cut on its way to the file, and so is round 2 — the path HEAD takes, where the cut
+  # round reads as a refusal and buys a second worker. The one retry after round 1 is the answer that arrives.
+  cat >> "$d/worker-action.sh" <<ACTION
+case "\$1" in
+  reviewer-prompt-1.md|reviewer-prompt-2.md) cp "$d/reviewer-cut.txt" "$PI_STUB_REPORT_REVIEWER" ;;
+  reviewer-prompt-1-retry.md) cp "$d/reviewer-complete.txt" "$PI_STUB_REPORT_REVIEWER" ;;
+esac
+ACTION
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  f=$(state_file "$p")
+  # The answer that did arrive decides the round.
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" "an answer cut in transport does not block the item"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$f")" "the item closes on the retried answer"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" \
+    "a retried answer is the same round, not a new one"
+  # What the run did about it, in words a person reads without opening the transcript.
+  assert_contains "$out" "the round 1 answer was cut short" "the run says why it read no verdict"
+  assert_contains "$out" "retrying the round once" "and that it retried instead of escalating"
+  # Both answers stay: the cut one is the evidence that the transport lost it, the other decided the round.
+  [ -f "$p/.pi/issue-loop/items/21/reviewer-report-1.md" ] || fail "the cut answer was not kept as evidence"
+  [ -f "$p/.pi/issue-loop/items/21/reviewer-report-1-retry.md" ] || fail "the retried answer was not kept"
+  assert_eq "3" "$(grep -c '^invocation' "$PI_STUB_LOG")" "one worker, the cut reviewer and its one retry"
+  # Nothing is escalated: the owner is not asked to decide about work that passed.
+  log=$(cat "$GH_STUB_RECORD")
+  assert_not_contains "$log" "agent/needs-decision" "no decision is asked for"
+  assert_not_contains "$log" "status/on-hold" "and the item is not put on hold"
+  assert_eq "1" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "the item is closed"
+}
+
+# The retry is one, and it is not an unbounded wait: an answer cut twice is the transport's failure, so the
+# round produced no verdict at all and the item must say that. What it must not say is what a reviewer's refusal
+# leaves — "the change failed its last review round" — and the branch must carry no review-failure marker, or a
+# later run refuses to adopt a change no reviewer ever refused (#224).
+case_run_aReportCutTwiceBlocksAsTheTransportsFault() {
+  local d p f out note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  printf 'Scenario 1 PASS, 2 PASS, 3 PASS, and then the answer stop' > "$d/reviewer-cut.txt"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # Every reviewer invocation is cut, so the one retry is cut too and there is no third attempt.
+  cat >> "$d/worker-action.sh" <<ACTION
+case "\$1" in
+  reviewer*) cp "$d/reviewer-cut.txt" "$PI_STUB_REPORT_REVIEWER" ;;
+esac
+ACTION
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  f=$(state_file "$p")
+  note=$(jq -r '.items[0].note' "$f")
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "an answer cut twice blocks the item"
+  assert_contains "$note" "cut short twice" "and the reason is the transport, not a refusal"
+  assert_not_contains "$note" "last review round" "the item is not recorded as a change its reviewer refused"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" \
+    "the retry is one, and it is not a second review round"
+  assert_eq "3" "$(grep -c '^invocation' "$PI_STUB_LOG")" "one worker, one reviewer and its one retry"
+  [ ! -f "$p/.pi/issue-loop/items/21/worker-prompt-round2.md" ] ||
+    fail "a second worker round was taken for an answer that never arrived"
+  [ -z "$(find "$p/.pi/worktrees/loop/openspec/changes" -name 'review-failed-round-*.md' 2>/dev/null)" ] ||
+    fail "a review-failure marker was written for a round no reviewer decided"
 }
 
 # The escalation is what a person reads, so it carries the decision the reviewer already worked out: the

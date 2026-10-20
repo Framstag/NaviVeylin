@@ -2,11 +2,12 @@
 
 `tools/issues/resolve-stale.sh:190` (base `9e7e969`) spends a slot of the run's bound as soon as an item is
 *reachable* for the repair ladder — `due=$((due + 1))`, before the two token loops classify anything — while
-the write that was supposed to justify the slot happens at `:236` (repair) or `:249` (park) and needs `repairs`
+the write that was supposed to justify the slot happens at `:236` (repair) or `:248` (park) and needs `repairs`
 or `unresolved` to be non-empty. The suffix loop's ambiguous branch (`:203`) fills neither: it counts the
 ambiguity (`ambiguous`, `item_ambiguous`) and `continue`s, because an ambiguity is reported, never guessed
-(D4). So the reachable-but-unwritable case has no write, yet has already paid, and `:171`'s `while … "$due" -lt
-"$max_items"` stops the walk there. Run 39296403233: `due=25 repaired=4 parked=5 ambiguous=22 waiting=66`.
+(D4). So the reachable-but-unwritable case has no write, yet has already paid, and `:168`'s `while … "$due" -lt
+"$max_items"` stops the walk there. Run 39296403233: `due=25 repaired=4 parked=5 ambiguous=22 waiting=66` —
+16 of the 25 visited items produced no write, the `ambiguous=22` counts tokens.
 
 One mechanism, not two: the bound is charged against a property the run cannot know it has until after the
 work that would justify it.
@@ -20,8 +21,9 @@ if [ -n "$repairs" ] || [ -n "$unresolved" ]; then due=$((due + 1)); else skippe
 ```
 
 placed between the token loops and the two write branches, and delete the `due=$((due + 1))` at `:190`. The
-bound now counts writes; an item the ladder can only report is visited, accounted `skipped`, and costs
-nothing — so the walk continues to the next item. `read = due + skipped + waiting` still accounts for every
+bound now counts the items a run acts on — a repair or a park, and in the default dry run the items it would
+act on; an item the ladder can only report is visited, accounted `skipped`, and costs nothing — so the walk
+continues to the next item. `read = due + skipped + waiting` still accounts for every
 issue in the tracker, `ambiguous` still counts every ambiguous token, and the write branches are untouched:
 nothing is rewritten, parked or commented for an ambiguous citation.
 

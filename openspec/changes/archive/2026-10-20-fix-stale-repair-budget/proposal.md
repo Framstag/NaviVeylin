@@ -5,16 +5,17 @@
 The scheduled repair (`.github/workflows/sensors.yml:118`, `bash tools/issues/resolve-stale.sh
 "$SENSORS_MODE" --max-items 25`) spends its bound on items it can only report. Run 39296403233
 (2026-10-19T17:42Z) ended `read=173 due=25 repaired=4 parked=5 ambiguous=22 skipped=82 waiting=66 writes=18`:
-22 of the 25 budgeted items reached neither write branch, so nothing was written for them — and the 66 behind
-them never got a slot.
+16 of the 25 budgeted items reached neither write branch — `due=25` is `repaired=4` plus `parked=5` plus those
+16 — so nothing was written for them, and the 66 behind them never got a slot. The `ambiguous=22` in that line
+counts ambiguous tokens, not items.
 
 **Root cause.** `due` is incremented from *reachability for a repair*, not from the write that follows it:
 `tools/issues/resolve-stale.sh:190` (base `9e7e969`) does `due=$((due + 1))` right after the parked/skip
 filters, before the two token loops run; an ambiguous suffix token (`:203` `ambiguous=$((ambiguous + 1));
-continue`) records nothing in `unresolved`, and both write branches (`:236` on `repairs`, `:249` on
+continue`) records nothing in `unresolved`, and both write branches (`:236` on `repairs`, `:248` on
 `unresolved`) require a non-empty result. So one mechanism explains the symptom: **a slot of the bound is
 spent before it is known whether the run can write anything for the item.** An ambiguous-only item therefore
-consumes a slot of every run for ever, and `:171`'s `while … "$due" -lt "$max_items"` stops the walk at the
+consumes a slot of every run for ever, and `:168`'s `while … "$due" -lt "$max_items"` stops the walk at the
 head of the queue.
 
 **Red test on HEAD** (`9e7e969`), added as `resolver#ambiguityDoesNotConsumeTheBound` — an ambiguous item
@@ -39,20 +40,24 @@ stale citation resolver".
 
 - `tools/issues/resolve-stale.sh`: the `due` increment moved from "the item has a citation the ladder will
   look at" to one guard above the write branches — `if [ -n "$repairs" ] || [ -n "$unresolved" ]; then
-  due=$((due + 1)); else skipped=$((skipped + 1)); fi`. The bound now counts the items a run **writes**; an
-  item it can only report is visited, accounted as `skipped`, and costs no slot. The invariant that made the
+  due=$((due + 1)); else skipped=$((skipped + 1)); fi`. The bound now counts the items a run **acts on** — the
+  ones it writes in an applying run, the ones it would write in the default dry run — so an item it can only
+  report is visited, accounted as `skipped`, and costs no slot. The invariant that made the
   ambiguity non-actionable is untouched: nothing is rewritten, parked or commented for it, and the
   `ambiguous` counter still reports it per token (D4, "reported, not guessed").
-- `tools/resolve-stale-cases.sh`: the red case above, and the header comment of the `due` rule updated.
+- `tools/resolve-stale-cases.sh`: the red case above.
+- `tools/issues/resolve-stale.sh`: the header comment of the `due` rule updated, beside the guard that now
+  carries it.
 - `tools/resolve-stale-mutations.json`: mutation `5.11` restores the unconditional `due=$((due + 1))` and the
   new case must go red — the revert-check for this invariant.
 
 ## Spec
 
 `openspec/specs/stale-citation-resolution/spec.md`, requirement "The resolver runs on its own, bounded and
-idempotent": MODIFIED — the bound is stated as a bound on the items a run *writes*, and one scenario is added,
-"The bound is spent where the tracker changes". The other four scenarios of that requirement are repeated
-unchanged and now each names its own case.
+idempotent": MODIFIED — the bound is stated as a bound on the items a run *acts on* — a repair or a park, and
+in a dry run the items it would act on, since the default mode writes nothing and a bound on writes alone would
+be unsatisfiable there — and one scenario is added, "The bound is spent where the tracker changes". The other
+four scenarios of that requirement are repeated unchanged and now each names its own case.
 
 ## Cases and evidence
 

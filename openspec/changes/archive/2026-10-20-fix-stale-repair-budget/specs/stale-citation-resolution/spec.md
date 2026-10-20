@@ -6,9 +6,10 @@
 
 The resolver SHALL run without a person, in the checks' own pipeline under that pipeline's least privilege,
 SHALL be bounded per run, SHALL default to a dry run, and SHALL be idempotent. The bound SHALL be spent only
-on the items the run writes — a repair or a park — so an item the ladder can only report cannot consume the
-run's budget, and SHALL never hide the items it did not reach: the run SHALL report how many wait. The count
-of unresolved citations SHALL be a declared check row, so a growing residue is a measurement.
+on the items the run acts on — a repair or a park, and in a dry run the items it would act on — so an item
+the ladder can only report cannot consume the run's budget, and SHALL never hide the items it did not reach:
+the run SHALL report how many wait. The count of unresolved citations SHALL be a declared check row, so a
+growing residue is a measurement.
 
 #### Scenario: A scheduled run repairs without a person
 

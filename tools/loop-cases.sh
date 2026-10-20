@@ -1580,9 +1580,14 @@ case_run_oneItemOrderIsFixed() {
   assert_eq "2" "$(printf '%s\n' "$prompts" | grep -c .)" "one item starts exactly two processes"
   assert_eq "worker-prompt.md reviewer-prompt-1.md" "$(printf '%s' "$prompts" | paste -sd' ' -)" \
     "the worker runs first and the reviewer second"
-  # the child is given a prompt file and nothing else: no tracker credential, no token, no label
-  assert_eq "2" "$(sed -n 's/^argv://p' "$PI_STUB_LOG" | head -1 | wc -w)" \
-    "the child's argv carries the flag and the prompt, and nothing that could write to the tracker"
+  # the child is given a prompt file and nothing else: no tracker credential, no token, no label. The adapter
+  # a project names in `LOOP_AGENT_CMD` legitimately adds its own flags (the output mode it selects), so the
+  # assertion is on where the prompt sits and on what must be absent — not on a word count a wrapper changes.
+  first_argv=$(sed -n 's/^argv://p' "$PI_STUB_LOG" | head -1)
+  assert_eq "$p/.pi/issue-loop/items/21/worker-prompt.md" "$(printf '%s' "$first_argv" | awk '{print $NF}')" \
+    "the prompt file is the child's last argument, and nothing follows it"
+  assert_not_contains "$first_argv" "GH_TOKEN" "no tracker credential reaches the child"
+  assert_not_contains "$first_argv" "label" "no label-writing argument reaches the child"
 }
 
 case_run_childClaimWithoutCommitIsBlocked() {

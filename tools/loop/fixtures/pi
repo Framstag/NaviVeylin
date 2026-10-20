@@ -21,6 +21,9 @@
 #                      worker's edits — the stub runs it in the tree the wrapper exported as
 #                      LOOP_WORKTREE, which is the tree the prompt names as its change root
 #   PI_STUB_WAIT       a fifo: the stub blocks until one line is written to it (signal cases)
+#   PI_STUB_SAY        a file whose text the stub prints on stdout as its own words, before any report — the
+#                      line a child that never started leaves behind, which is what an adapter that refused
+#                      its argv prints (issue #212)
 #   PI_STUB_EXIT       the exit status to end with (default 0)
 set -uo pipefail
 
@@ -90,6 +93,12 @@ fi
 
 if [ -n "${PI_STUB_EVENTS:-}" ] && [ -f "$PI_STUB_EVENTS" ]; then
   cat "$PI_STUB_EVENTS"
+fi
+
+# The child's own words, and nothing that looks like a report: a child that ends before it has written the block
+# it owes. The wrapper passes a non-JSON line through, so what the run is handed is exactly this text.
+if [ -n "${PI_STUB_SAY:-}" ] && [ -f "$PI_STUB_SAY" ]; then
+  cat "$PI_STUB_SAY"
 fi
 
 # The report may differ by role, because the two children answer in different shapes.

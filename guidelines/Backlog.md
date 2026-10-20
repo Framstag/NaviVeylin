@@ -230,6 +230,17 @@ is recorded `blocked` with that transcript rather than spending the run's clock.
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
+What it does with a child that never started: a status alone cannot tell a child whose argv the environment
+refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
+that ended non-zero, wrote no verdict and left the tree at the base commit never read the item. That is the
+run's fault, recorded once as its own stop reason and naming the child's own last line: no item record is
+written, nothing is escalated, the in-progress mark comes off and the item stays exactly as its owner set it.
+Measured 2026-10-20: every child of a run died in under 4 s with the same 35-byte complaint, the run recorded
+two items `blocked`, escalated both, and stopped on "two consecutive items ended blocked" 3 minutes into an
+8 h budget — two questions nobody had asked, and two of its three decision slots (#212). A child the run ended
+itself, and one that left work behind, stay blocked items: the first carries its own transcript line, the
+second its branch, which is what a later pass escalates.
+
 The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
 identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never
 an invented one, because a fresh container or CI runner has neither and the item would block on its own

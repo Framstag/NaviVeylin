@@ -61,6 +61,21 @@ one wait.
   condition instead of spending its clock in one wait
 - **Case**: `run#childOutlastingTheWallClockIsBlocked`
 
+#### Scenario: A child that never started is the run's fault, not the item's
+
+A non-zero status alone cannot tell a child whose argv the environment refused from a child that worked the
+item and failed: on 2026-10-20 every child of a run died in under 4 s with the same 35-byte complaint, and the
+run recorded two items `blocked`, escalated both with `agent/needs-decision` and `status/on-hold`, and stopped
+on "two consecutive items ended blocked" 3 minutes into an 8 h budget — two questions nobody had asked, and two
+of the run's three decision slots (issue #212).
+
+- **WHEN** an agent process ends with a non-zero status, wrote no verdict line, was not ended by the run's own
+  wall-clock, and left the item's tree at the run's base commit
+- **THEN** the run records that once as its own stop reason, naming the child's own last line, and stops
+  without escalating an item: no item record is written for it, no decision label and no hold reach it, and it
+  is left as its owner set it — `status/open` and no `agent/needs-decision` — because no part of it was read
+- **Case**: `run#childThatNeverStartedIsTheRunsFault`
+
 #### Scenario: A run is recorded
 
 - **WHEN** a run ends

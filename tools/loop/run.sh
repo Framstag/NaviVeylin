@@ -406,6 +406,12 @@ report_field() { # report_field <file> <FIELD>
   sed -n "s/^${2}: //p" "$1" 2>/dev/null | tail -1
 }
 
+# The child's own last words, when it wrote no report line: a process that never got to work the item prints a
+# complaint instead of a verdict, and that line is the whole of what the run has to name (issue #212).
+last_line() { # last_line <file>
+  grep -v '^[[:space:]]*$' "$1" 2>/dev/null | tail -1
+}
+
 # The reviewer's severity count, and nothing else about its prose (#205). A report may say `VERDICT: FAIL` and
 # count zero blocking findings, which is a pass whose notes are recorded; a report that says nothing at all is
 # empty here, and an empty count keeps the loop's conservative reading — an old-shaped review never passes.
@@ -673,6 +679,26 @@ while true; do
   # archive and the gate's evidence, instead of repeating the child's claims (D3, D8).
   commit_out=$(bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" 2>&1)
   head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+
+  # A child that never started is the run's fault, not the item's (issue #212). `run_child` returns the child's
+  # status and nothing else, so a status alone cannot tell a child whose argv the environment refused — measured
+  # 2026-10-20: every child of a run died in under 4 s with one 35-byte complaint and exit 1 — from a child that
+  # worked the item and failed. The item's own evidence separates the two: a child that ended non-zero, wrote no
+  # verdict and left the tree at the base never read the item. Recording that as a blocked item put a question
+  # on the tracker that nobody had asked and spent one of the run's decision slots, twice in 3 minutes. It is
+  # recorded once as the run's own stop instead, and the item is left exactly as its owner set it. Two children
+  # stay on the item's side of this line: one the run itself ended carries its own transcript line and is a
+  # blocked item (issue #203), and one that left work behind has a branch, which is what a later pass escalates
+  # (issue #176).
+  if [ "$worker_exit" -ne 0 ] && [ -z "$verdict_claim" ] && [ -z "$timeout_claim" ] && [ "$head_now" = "$base" ]; then
+    child_words=$(last_line "$item_dir/worker-report.md")
+    # The in-progress mark comes off before the run stops: an item nothing was done to must be as eligible
+    # afterwards as it was before the run picked it.
+    loop_labels unpick "$issue" >&2 || true
+    in_progress=""
+    stop_run "the child could not start — it exited $worker_exit without a verdict and left the tree at the base${child_words:+: $child_words}"
+    break
+  fi
   archives=$(git -C "$worktree" diff --name-only "$base"..HEAD -- openspec/changes/archive 2>/dev/null |
     awk -F/ 'NF > 3 {print $4}' | sort -u)
   change=$(printf '%s\n' "$archives" | grep -x -- "$change_claim" 2>/dev/null | head -1)

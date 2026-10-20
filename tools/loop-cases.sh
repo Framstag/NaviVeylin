@@ -74,6 +74,7 @@ LOOP_SHELL_CASES=(
   'run#childStartsInTheProjectRoot'
   'run#childReportsWhileItWaits'
   'run#childOutlastingTheWallClockIsBlocked'
+  'run#childThatNeverStartedIsTheRunsFault'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
   'run#hostWithoutTheReadingPasses'
@@ -201,6 +202,7 @@ loop_run_shell_case() {
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
     'run#childReportsWhileItWaits') fn=case_run_childReportsWhileItWaits ;;
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
+    'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
     'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
@@ -1758,6 +1760,45 @@ case_run_childOutlastingTheWallClockIsBlocked() {
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "exceeded 2 s" \
     "and the reason on the item names the cap that ended it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+}
+
+# `run_child` returns the child's status and nothing else, so the caller could not tell a child whose argv the
+# adapter refused from a child that worked the item and failed. Measured 2026-10-20: every child of a run died
+# in under 4 s with the same 35-byte answer (`Error: Unknown option: --mode json`), the run recorded the two
+# items `blocked`, escalated both with `agent/needs-decision` and `status/on-hold`, and stopped on "two
+# consecutive items ended blocked" 3 minutes into an 8 h budget — two questions nobody had asked, and two of
+# the three decision slots the run had (issue #212). A child that ends non-zero, writes no verdict and leaves
+# the tree at the base never read the item: that is the run's own fault, recorded once as its stop, and the
+# item stays exactly as its owner set it.
+case_run_childThatNeverStartedIsTheRunsFault() {
+  local d p out status log sf
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The child's own words and a non-zero status, with no report block and no change in the tree behind it —
+  # which is the whole of what an adapter that refused its argv leaves. No action is installed, so nothing of
+  # the item is touched.
+  printf 'Error: Unknown option: --mode json\n' > "$d/child-says.txt"
+  export PI_STUB_SAY="$d/child-says.txt" PI_STUB_EXIT=1
+  export PI_STUB_LOG="$d/pi.log"; : > "$PI_STUB_LOG"
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
+  sf=$(state_file "$p")
+  # A child that never started is not a failed run…
+  assert_eq "0" "$status" "the run ends on its own stop, not with a child's failure"
+  # …and not a failed item either: nothing about #21 was read, so nothing about #21 is recorded.
+  assert_eq "0" "$(jq -r '.items | length' "$sf")" "the item is not recorded as a blocked one"
+  # What happened is named in the child's own words, and recorded once as the run's own stop.
+  assert_contains "$out" "could not start" "the stop says what did not happen"
+  assert_contains "$out" "Error: Unknown option: --mode json" "and carries the child's own message"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "could not start" \
+    "the stop is recorded, not only printed"
+  # The item stays the owner's: no escalation, no hold, no comment about a question nobody asked.
+  log=$(cat "$GH_STUB_RECORD")
+  assert_not_contains "$log" "agent/needs-decision" "an item nobody read is not escalated"
+  assert_not_contains "$log" "status/on-hold" "and is not put on hold"
+  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "nothing is written about it"
+  assert_contains "$log" "--remove-label agent/in-progress" "and the in-progress mark comes off again"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
 }
 
 # ── the host the run works on (issue #209) ──────────────────────────────────────────────────────────

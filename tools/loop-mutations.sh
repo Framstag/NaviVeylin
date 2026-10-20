@@ -122,6 +122,10 @@ MUTATIONS=(
   # 26.2 reaches the guard through the engine directory it lives in. Removing it hands every child that runs
   # the loop's tooling in another tree the running run's state path again (issue #214).
   '26.2@-@tools/loop/lib.sh@state#inheritedStatePathOutsideTheTreeIsIgnored@the guard that ignores a run identity named from outside this tree (issue #214)@s|^  if loop_path_outside_tree "\$LOOP_STATE_FILE" "\$LOOP_ROOT"; then LOOP_STATE_FILE=""; fi$|  : # the mutation keeps the inherited path|'
+  # The classification that tells a child which never started from one that worked the item and failed: without
+  # it every non-zero status is an item fault again, and one environment fault costs the run a decision slot
+  # per item and stops it on "two consecutive items ended blocked" (measured 2026-10-20, issue #212).
+  '27.1@-@tools/loop/run.sh@run#childThatNeverStartedIsTheRunsFault@the classification that keeps a child which never started off the item (issue #212)@s|^  if \[ "\$worker_exit" -ne 0 \] && \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

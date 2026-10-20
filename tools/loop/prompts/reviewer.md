@@ -11,7 +11,9 @@ Your whole output is the review below.
 - item: **#{{ISSUE}}**
 - change root: `{{CHANGE_ROOT}}` — the tree under review. Your working directory is the project, so read
   there and never write anywhere.
-- the diff under review: `{{DIFF_PATH}}`
+- the diff under review: `{{DIFF_PATH}}` — it excludes the generated evidence trees (`{{REVIEW_EXCLUDE}}`)
+  on purpose: they are output, written to be cited rather than read, so the evidence reaches you by path
+  through `{{EVIDENCE_DIR}}`. Do not grep the diff for it, and do not report its absence as a missing artefact.
 - the evidence directory the change cites: `{{EVIDENCE_DIR}}`
 
 Check these eight items, in this order, and quote what you checked. Items 4 and 6 are the two that failed

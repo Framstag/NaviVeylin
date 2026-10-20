@@ -387,6 +387,22 @@ slugify() { # a change name out of an item's title: lowercase, dashes, bounded
 # never carried into the item's commit (D4, "one writer per tree").
 project_state() { git -C "$LOOP_ROOT" status --porcelain 2>/dev/null; }
 
+# The diff a review round is handed is the change, not the generated output a change is archived beside:
+# item #126's round-3 diff (issue #204) carried 9 935 changed lines, 9 364 of them gate HTML and XML, against
+# 112 lines of Kotlin. Which directories hold generated output is a fact about a project's change records,
+# so the exclusion is a recorded pathspec (`loop.conf`'s `LOOP_REVIEW_EXCLUDE_PATHSPEC`) and this phase names
+# no path of its own (D16). It excludes a *directory tree* and not a file extension on purpose: a `.txt` a
+# reviewer must read can live outside an evidence directory, and an `.md` blended into one is still generated.
+write_review_diff() { # write_review_diff <base> <file>
+  local spec
+  spec=$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)
+  if [ -n "$spec" ]; then
+    git -C "$worktree" diff "$1"..HEAD -- . "$spec" > "$2"
+  else
+    git -C "$worktree" diff "$1"..HEAD > "$2"
+  fi
+}
+
 # A child's own stream is silent by construction: the configured agent command is print mode, which writes the
 # final assistant text and nothing else (measured 2026-10-19: on a pipe it emits nothing until the process
 # exits), so a run used to print `pick #N` and then nothing for the whole item — a working child and a hung one
@@ -634,14 +650,17 @@ while true; do
     # blocks, which is the line the prompt draws.
     round_cap="$max_review_rounds"
     corrective_round_used=0
+    # Read once: the same pathspec the round's diff is built with is the one its prompt names.
+    review_exclude_spec=$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)
     while [ "$round" -le "$round_cap" ]; do
       review_rounds=$round
       diff_file="$item_dir/review-$round.diff"
-      git -C "$worktree" diff "$base"..HEAD > "$diff_file"
+      write_review_diff "$base" "$diff_file"
       before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       render_prompt "$LOOP_DIR/prompts/reviewer.md" "$item_dir/reviewer-prompt-$round.md" \
-        "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir"
+        "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir" \
+        "REVIEW_EXCLUDE=${review_exclude_spec:-none}"
       run_child "$item_dir/reviewer-prompt-$round.md" "$item_dir/reviewer-report-$round.md"
       after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
@@ -683,7 +702,7 @@ while true; do
         break
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
-      git -C "$worktree" diff "$base"..HEAD > "$item_dir/review-$((round + 1)).diff"
+      write_review_diff "$base" "$item_dir/review-$((round + 1)).diff"
       round=$((round + 1))
     done
     if [ "$review_verdict" = "FAIL" ]; then

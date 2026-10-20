@@ -99,6 +99,7 @@ LOOP_SHELL_CASES=(
   'run#commitsWithoutAnAmbientIdentity'
   'run#reviewerWriteInvalidatesTheRound'
   'run#reviewReadOnlyOffOnlyForDiagnosis'
+  'run#reviewDiffExcludesTheEvidenceArchive'
   'run#engineNamesNoProjectFact'
   'report#headerAndTableShape'
   'report#yieldIsCountedFromState'
@@ -197,6 +198,7 @@ loop_run_shell_case() {
     'run#commitsWithoutAnAmbientIdentity') fn=case_run_commitsWithoutAnAmbientIdentity ;;
     'run#reviewerWriteInvalidatesTheRound') fn=case_run_reviewerWriteInvalidatesTheRound ;;
     'run#reviewReadOnlyOffOnlyForDiagnosis') fn=case_run_reviewReadOnlyOffOnlyForDiagnosis ;;
+    'run#reviewDiffExcludesTheEvidenceArchive') fn=case_run_reviewDiffExcludesTheEvidenceArchive ;;
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'report#headerAndTableShape') fn=case_report_headerAndTableShape ;;
     'report#yieldIsCountedFromState') fn=case_report_yieldIsCountedFromState ;;
@@ -2044,6 +2046,46 @@ case_run_reviewReadOnlyOffOnlyForDiagnosis() {
     fail "the run itself failed"
   assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "with the switch off the round is accepted"
   assert_eq "yes" "$(jq -r '.items[0].metrics.closed' "$(state_file "$p")")" "and the item closes"
+}
+
+# The reviewer reads the change, not the evidence archive (#204): item #126's round-3 diff was 435 KB and
+# 9 935 changed lines, of which 9 364 (94.3 %) were archived gate HTML and XML, against 112 lines of Kotlin.
+# So the round's diff excludes the evidence trees by *directory*, which leaves a text file outside one in the
+# diff where an extension filter would have dropped it, and the prompt names the exclusion so the reviewer
+# reads neither the absence nor a missing artefact.
+case_run_reviewDiffExcludesTheEvidenceArchive() {
+  local d p diff prompt
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The worker leaves a code change, a text note a reviewer must read that is *not* under an evidence tree, and a
+  # gate report whose absence from the diff is what this case asserts.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' 'case "$1" in
+  worker*)
+    printf "val fixed = 1\n" > Demo.kt
+    printf "a note the reviewer has to read\n" > notes-for-the-reviewer.txt
+    { i=0; while [ "$i" -lt 300 ]; do printf "<tr><td>gate row %s</td></tr>\n" "$i"; i=$((i+1)); done; } \
+      > openspec/changes/archive/2026-01-01-fix-demo/evidence/gate-report.html
+    ;;
+esac'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 ||
+    fail "the run itself failed"
+  diff="$p/.pi/issue-loop/items/21/review-1.diff"
+  [ -f "$diff" ] || fail "the review round was handed no diff"
+  # the change is all there — including the file an extension filter would have removed
+  assert_contains "$(cat "$diff")" "Demo.kt" "the diff carries the change's code"
+  assert_contains "$(cat "$diff")" "val fixed = 1" "with its hunk"
+  assert_contains "$(cat "$diff")" "notes-for-the-reviewer.txt" \
+    "and a text file outside an evidence tree, which an extension filter would have dropped"
+  # …and none of the generated output is
+  assert_not_contains "$(cat "$diff")" "gate-report.html" \
+    "the generated gate report is not part of the review's reading surface"
+  assert_not_contains "$(cat "$diff")" "gate row 0" "nor any of its content"
+  # …and the reviewer is pointed at the evidence by path instead
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$prompt" ] || fail "the reviewer prompt was not rendered"
+  assert_contains "$(cat "$prompt")" "$p/.pi/issue-loop/items/21" \
+    "the prompt points at the evidence directory the change cites"
+  assert_contains "$(cat "$prompt")" "**/evidence/**" "and names the exclusion its diff was built with"
 }
 
 case_run_engineNamesNoProjectFact() {

@@ -68,6 +68,18 @@ skeleton in `tools/loop/prompts/`, not a copy here**: one home per rule. This sk
 gate, the invariants, the stop conditions, the failure handling, the report — and the wrapper owns the
 mechanics.
 
+### What a reviewer receives
+
+The round's diff is the **change**, not the tree the change sits in. The run writes `review-<round>.diff` with
+the project's exclusion pathspec (`loop.conf`'s `LOOP_REVIEW_EXCLUDE_PATHSPEC` — `**/evidence/**` here), so the
+generated material an item archives beside its code — gate HTML, JUnit XML, mutation transcripts — never
+reaches the reading surface. It is an exclusion by *directory* and not by extension, because a `.txt` a
+reviewer has to read can live outside an evidence tree. The evidence still reaches the reviewer, by path,
+through `{{EVIDENCE_DIR}}`, and the prompt says the diff excludes it, so an absence in the diff is not read as
+a missing artefact. Measured: item #126's round-3 diff carried 9 935 changed lines of which 9 364 (94.3 %)
+were evidence, against 112 lines of Kotlin (issue #204; re-measured on the run's own file at 10 883 lines, 9 574
+of them inside `evidence/`) — a cost paid three times, once per review round.
+
 ## The eligibility gate (phase B)
 
 An item is eligible only if **all** conditions below hold. Condition 7 applies to an improvement; a bug

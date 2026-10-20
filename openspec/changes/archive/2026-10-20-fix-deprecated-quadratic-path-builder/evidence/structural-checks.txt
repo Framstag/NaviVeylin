@@ -1,0 +1,24 @@
+structural checks — fix-deprecated-quadratic-path-builder (2026-10-20)
+
+=== openspec validate fix-deprecated-quadratic-path-builder --strict ===
+Change 'fix-deprecated-quadratic-path-builder' is valid
+
+=== openspec validate --specs ===
+Totals: 176 passed, 0 failed (176 items)
+
+=== tools/check-doc-routes.sh ===
+check-doc-routes: all 89 section references resolve
+
+=== tools/declared-cases.sh fix-deprecated-quadratic-path-builder ===
+declared-cases: change 'fix-deprecated-quadratic-path-builder'
+  diff      working tree of /home/tim/projects/NaviVeylin/.pi/worktrees/loop — 4 path(s), 1 production file(s), 1 test file(s)
+  rules     declared 18 · touched 1 · mention 1 · union of declared,touched,mention
+
+  # rule     module  last time test class
+──────────────────────────────────────────────────────────────────────────────
+  1 declared auto    0.132     com.naviveylin.auto.CarStyleLoadNotifierTest
+  2 declared auto    0.606     com.naviveylin.auto.DetailsScreenTest
+  3 declared auto    0.151     com.naviveylin.auto.RenderLoopSupervisorTest
+  4 declared auto    0.599     com.naviveylin.auto.SearchScreenTest
+  5 declared auto    0.382     com.naviveylin.auto.TemplateFaultIsolationTest
+  6 declared app     0.801     com.naviveylin.build.ComposeApiDeprecationTest

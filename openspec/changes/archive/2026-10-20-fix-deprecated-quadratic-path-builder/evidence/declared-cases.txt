@@ -1,0 +1,31 @@
+declared-cases: change 'fix-deprecated-quadratic-path-builder'
+  diff      working tree of /home/tim/projects/NaviVeylin/.pi/worktrees/loop — 4 path(s), 1 production file(s), 1 test file(s)
+  rules     declared 18 · touched 1 · mention 1 · union of declared,touched,mention
+
+  # rule     module  last time test class
+──────────────────────────────────────────────────────────────────────────────
+  1 declared auto    0.132     com.naviveylin.auto.CarStyleLoadNotifierTest
+  2 declared auto    0.606     com.naviveylin.auto.DetailsScreenTest
+  3 declared auto    0.151     com.naviveylin.auto.RenderLoopSupervisorTest
+  4 declared auto    0.599     com.naviveylin.auto.SearchScreenTest
+  5 declared auto    0.382     com.naviveylin.auto.TemplateFaultIsolationTest
+  6 declared app     0.801     com.naviveylin.build.ComposeApiDeprecationTest
+  7 declared app     0.123     com.naviveylin.build.GradleScriptDeprecationTest
+  8 declared app     0.266     com.naviveylin.data.AmbientLightMonitorTest
+  9 declared app     0.156     com.naviveylin.data.StartMapResolverTest
+ 10 declared app     0.025     com.naviveylin.featurelist.ShippedSpecClassificationTest
+ 11 declared app     0.043     com.naviveylin.service.NavigationNotificationServiceTapTargetTest
+ 12 declared app     4.642     com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest
+ 13 declared app     0.068     com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest
+ 14 declared app     0.1       com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest
+ 15 declared app     0.11      com.naviveylin.ui.map.MapCanvasViewModelRoadInfoTest
+ 16 declared app     0.097     com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest
+ 17 declared app     0.049     com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest
+ 18 mention  app     0.282     com.naviveylin.ui.map.MapRendererSmokeTest
+ 19 declared app     0.094     com.naviveylin.ui.route.RoutePanelViewModelSearchRankingTest
+──────────────────────────────────────────────────────────────────────────────
+selected 19 of 424 test classes; measured class time 8.7s
+The suite's wall time is not that sum: it runs at the declared fork count, every invocation pays the
+Robolectric fork bootstrap plus the daemon and (when test sources changed) the test compile, so the
+floor is ~30s, not 10s. And a pre-gate run is NOT gate evidence: run the unfiltered module suite
+before marking the change complete.

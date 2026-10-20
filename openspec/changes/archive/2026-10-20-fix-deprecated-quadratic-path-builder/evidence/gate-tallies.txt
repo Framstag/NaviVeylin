@@ -1,0 +1,39 @@
+Gate — ./gradlew test -PforceTests --no-build-cache  (base 3c1ecc78 + this change, 2026-10-20T13:23Z)
+=====================================================================================================
+The documented gate, run ONCE. Gradle stopped after the mobile suite failed, so its own tallies are:
+
+  :app:testMobileDebugUnitTest       2068 tests completed, 1 failed   -> Task :app:testMobileDebugUnitTest FAILED
+                                     BUILD FAILED in 2m
+                                     failing case: MapManagerUpdatesQueueTest > updateOneItemRunsOnlyThatOne
+                                     org.junit.ComparisonFailure: expected:<[new types]> but was:<[installed]>
+                                     at MapManagerUpdatesQueueTest.kt:202
+                                     (evidence/gate.log, lines 286-311)
+
+This delta cannot reach that case: its one production line is the marker path builder
+(app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165), the failing test never touches it, and
+its dispatchers are the test dispatcher (MapManagerUpdatesQueueTest.kt:259, :272-273).
+
+The gate's remaining suites, measured after the gate stopped (same flags, 2026-10-20T13:25-13:27Z) — mobile not
+re-run, per the one-gate rule:
+
+  :app:testAutomotiveDebugUnitTest      tests=2068 skipped=0 failures=0 errors=0
+  :auto:testDebugUnitTest               tests=866  skipped=0 failures=0 errors=0
+  :core:testDebugUnitTest               tests=642  skipped=0 failures=0 errors=0
+  :osmscout-client-java:test            tests=48   skipped=0 failures=0 errors=0
+  (evidence/gate-remaining-suites.log, per-class XML as the runs produced them)
+
+The automotive suite runs the SAME 2068 test cases of `:app` from the same shared sources, and in it the
+failing case passes: MapManagerUpdatesQueueTest tests=5 failures=0 (2026-10-20T13:26:40.840Z, evidence/
+TEST-MapManagerUpdatesQueueTest-automotive-gate.xml), and the change's guard is green in both flavors
+(evidence/TEST-ComposeApiDeprecationTest-automotive-gate.xml, files=731 findings=0).
+
+Focused re-measurement of the one failing class, without touching the gate:
+  ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest" -PforceTests --no-build-cache
+    run 1: BUILD SUCCESSFUL in 8s   (evidence/mapmanager-focused-1.log)
+    run 2: BUILD SUCCESSFUL in 7s   (evidence/mapmanager-focused-2.log)
+  the same class beside the new guard case: BUILD SUCCESSFUL in 7s, tests=5 failures=0
+    (evidence/mapmanager-pair-with-new-case.log)
+
+Verdict of this measurement: one flaky case in the mobile suite, not this change's case, green in isolation and
+in the sibling flavor of the same suite. No Kotlin deprecation for LocationMarkerOverlay.kt in any run
+(`grep -c '^w: .*LocationMarkerOverlay' gate.log gate-remaining-suites.log` -> 0, 0).

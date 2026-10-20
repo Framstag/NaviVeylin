@@ -1,0 +1,23 @@
+revert-check — fix-deprecated-quadratic-path-builder
+====================================================
+
+Mutation: app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165
+          path.quadraticTo(0f, -hPx, x1 * hPx, y1 * hPx)  ->  path.quadraticBezierTo(0f, -hPx, x1 * hPx, y1 * hPx)
+
+1. md5 before mutation: e38a7a6c3b6617c0bbe5b54d7b9a896b
+2. Red run (mutated):
+   ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.build.ComposeApiDeprecationTest" -PforceTests --no-build-cache
+   exit=1, "BUILD FAILED in 3s", "2 tests completed, 1 failed"
+   ComposeApiDeprecationTest > no project Kotlin source calls a deprecated quadratic path builder FAILED
+   w: .../LocationMarkerOverlay.kt:165:14 'fun quadraticBezierTo(...)' is deprecated. Use quadraticTo() ...
+   JUnit XML tests=2 failures=1 timestamp=2026-10-20T13:20:51.131Z
+   (evidence/revert-check-red.log, evidence/TEST-ComposeApiDeprecationTest-revert-red.xml)
+3. Restore: the same one-line edit back to `quadraticTo`.
+4. md5 after restore: e38a7a6c3b6617c0bbe5b54d7b9a896b  — byte-identical to step 1.
+5. Forced green after restore:
+   same command -> exit=0, "BUILD SUCCESSFUL in 3s", JUnit XML tests=2 failures=0
+   timestamp=2026-10-20T13:20:57.882Z
+   (evidence/revert-check-green.log, evidence/TEST-ComposeApiDeprecationTest-revert-green.xml)
+
+Not-mutated guard: the same file's other content is untouched, and the scan's second case ("the scan is still
+detectable") is green in all three runs, so the red above is the deprecated spelling and not a broken scan.

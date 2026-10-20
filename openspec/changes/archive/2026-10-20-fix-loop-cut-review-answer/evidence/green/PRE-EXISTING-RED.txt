@@ -1,0 +1,11 @@
+case worktree#keepsByDefaultAndRemovesOnRequest — is it my delta's?
+
+1) with the change's engine (tools/loop-selftest.sh --case, 2026-10-20T17:24:10Z):
+  git still lists the worktree that was removed
+FAIL worktree#keepsByDefaultAndRemovesOnRequest
+
+2) with the BASE engine — /tmp/base224/loop is tools/loop at bf555c3 with run.sh restored from HEAD (`git show HEAD:tools/loop/run.sh`, answer_complete absent: 0), the same case:
+  git still lists the worktree that was removed
+FAIL worktree#keepsByDefaultAndRemovesOnRequest
+
+Same failure, same message, without the change in the engine: the assertion's path-substring matches the suite's own scratch tree when it lies under .pi/worktrees/loop (issue #215, recorded as pre-existing by the archive entry 2026-10-20-fix-loop-child-that-never-started/evidence/green/PRE-EXISTING-RED.txt). This change touches tools/loop/run.sh only, and worktree.sh — where the assertion lives — is not in the diff.

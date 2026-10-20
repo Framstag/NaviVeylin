@@ -1,0 +1,6 @@
+2026-10-20T17:12:23Z
+RED    31.1  run#aCutReportIsRetriedInsteadOfRefused   (the retry of a report that arrived cut on its way to the file (issue #224))
+restore 31.1 run#aCutReportIsRetriedInsteadOfRefused green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+2026-10-20T17:12:44Z

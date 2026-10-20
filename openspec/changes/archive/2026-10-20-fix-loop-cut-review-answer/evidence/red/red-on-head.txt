@@ -1,0 +1,2 @@
+  an answer cut in transport does not block the item: expected 'done', got 'blocked'
+FAIL run#aCutReportIsRetriedInsteadOfRefused

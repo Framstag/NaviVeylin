@@ -1,0 +1,24 @@
+2026-10-20T17:26:05Z
+# the two new cases and every case that reads a review report the round's paths touch
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aReportCutTwiceBlocksAsTheTransportsFault
+PASS run#reviewRoundsCapAtTwo
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+PASS run#reviewBudgetIsARecordedValue
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+PASS run#escalationCarriesTheDecision
+PASS run#blockedItemAsksItsOwnQuestion
+PASS run#reviewerWriteInvalidatesTheRound
+PASS run#reviewerWriteInTheProjectIsDiscarded
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#recordsAFailedReviewOnTheBranch
+PASS run#falsificationWithAChangedTreeIsBlocked
+PASS run#reviewReadOnlyOffOnlyForDiagnosis
+PASS run#reviewDiffExcludesTheEvidenceArchive
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#plainTextChildStillReports
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#metricsRecordedPerItem
+PASS run#aSkipClearsTheInProgressMark
+2026-10-20T17:29:15Z

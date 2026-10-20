@@ -89,12 +89,12 @@ SHALL report no such delegate, so a returning one is a failing case rather than 
 
 - **WHEN** a module script registers a check or an SBOM task
 - **THEN** the registration names the task explicitly and the scan of the project's own `*.gradle.kts` files
-  finds no delegate, while every task keeps the name its `dependsOn` edge and its CI invocation already use
+  finds no delegate, while every task keeps the name its CI invocation already uses
 - **Case**: `app: GradleScriptDeprecationTest` "no project build script uses a removed Gradle construct"
 
 #### Scenario: The removal is still detectable
 
 - **WHEN** the deprecated delegate form returns to a script, or a script names it only in a comment
-- **THEN** the scan reports the code line by file, line and text, and leaves the named form beside a comment
+- **THEN** the scan reports each offending line's number and text, and leaves the named form beside a comment
   alone — so a passing scan means the construct is absent, not that the scan cannot see it
 - **Case**: `app: GradleScriptDeprecationTest` "the removal is still detectable"

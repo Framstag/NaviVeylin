@@ -19,7 +19,7 @@ import java.io.File
  * a second build: the working directory of an `:app` unit test is the module directory, the way
  * `ShippedSpecClassificationTest` reads the shipped spec set. The script count and the findings are printed
  * before the assertion, so the JUnit XML's `system-out` carries the measurement of the run that made it, and
- * a finding names its file, line and text.
+ * a finding names its line and text.
  */
 class GradleScriptDeprecationTest {
 
@@ -77,7 +77,10 @@ class GradleScriptDeprecationTest {
             .sorted()
             .toList()
 
-    /** One finding per code line that carries the removed delegate, as `path:line: text`. */
+    /**
+     * One finding per code line that carries the removed delegate, as `:<line>: <text>` — the caller hands in
+     * one script's lines, so the finding carries no path.
+     */
     private fun findingsIn(lines: List<String>): List<String> =
         lines.withIndex()
             .filter { (_, line) -> !line.isComment() }

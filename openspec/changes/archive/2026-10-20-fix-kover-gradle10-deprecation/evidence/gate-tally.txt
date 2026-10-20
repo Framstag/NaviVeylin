@@ -1,0 +1,21 @@
+Gate run: ./gradlew test -PforceTests --no-build-cache
+Tree: .pi/worktrees/loop, base commit 648d2bc5af1e4a0a667b65d802a53f6e750ffaad
+Result: BUILD SUCCESSFUL in 4m 7s (189 actionable tasks: 92 executed, 97 up-to-date)
+Machine-local wall clock: 2026-10-20T12:07 (+02:00)
+
+Per-suite tallies, read from each suite's result XMLs:
+
+app/build/test-results/testMobileDebugUnitTest: files=277 tests=2064 failures=0 errors=0 skipped=0 first=2026-10-20T12:02:04.521Z last=2026-10-20T12:03:55.590Z
+app/build/test-results/testAutomotiveDebugUnitTest: files=277 tests=2064 failures=0 errors=0 skipped=0 first=2026-10-20T12:04:21.748Z last=2026-10-20T12:06:01.613Z
+auto/build/test-results/testDebugUnitTest: files=85 tests=866 failures=0 errors=0 skipped=0 first=2026-10-20T12:02:07.511Z last=2026-10-20T12:02:46.116Z
+core/build/test-results/testDebugUnitTest: files=60 tests=642 failures=0 errors=0 skipped=0 first=2026-10-20T12:02:06.346Z last=2026-10-20T12:02:18.156Z
+osmscout-client-java/build/test-results/test: files=8 tests=48 failures=0 errors=0 skipped=0 first=2026-10-20T12:01:59.054Z last=2026-10-20T12:01:59.418Z
+
+TOTAL tests=5684 failures=0 errors=0 skipped=0 first=2026-10-20T12:01:59.054Z last=2026-10-20T12:06:01.613Z
+
+Cited individually (copied next to this file): the guard class's two suite XMLs
+(TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml from testMobileDebugUnitTest and
+from testAutomotiveDebugUnitTest); the red-on-HEAD and focused-green runs are
+TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml (timestamp 2026-10-20T11:59:38.216Z,
+tests=2 failures=2) and focused-green-TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml
+(timestamp 2026-10-20T12:01:12.496Z, tests=2 failures=0).

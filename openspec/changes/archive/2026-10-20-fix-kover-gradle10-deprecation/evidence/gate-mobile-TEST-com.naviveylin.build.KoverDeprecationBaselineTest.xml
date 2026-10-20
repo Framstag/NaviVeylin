@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.KoverDeprecationBaselineTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-20T12:02:13.832Z" hostname="dingens" time="0.032">
+  <properties/>
+  <testcase name="the coverage guideline names the pinned version and records no open upstream issue" classname="com.naviveylin.build.KoverDeprecationBaselineTest" time="0.026"/>
+  <testcase name="the pinned kover version clears the project-object deprecation" classname="com.naviveylin.build.KoverDeprecationBaselineTest" time="0.005"/>
+  <system-out><![CDATA[koverDeclared=0.9.9 §7 states it: true
+koverDeclared=0.9.9 firstCleanRelease=0.9.9
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,23 @@
+## 1. Red test (spec: kover-aggregate-report — "No deprecation regression from the declaration")
+
+- [x] 1.1 Write `app/src/test/java/com/naviveylin/build/KoverDeprecationBaselineTest.kt` with the two cases the delta names — `the pinned kover version clears the project-object deprecation` (the pin read out of `build.gradle.kts`, compared to the 0.9.9 threshold) and `the coverage guideline names the pinned version and records no open upstream issue` (§7 read out of `guidelines/Build.md`) — before touching the pin. Verify: `./gradlew :app:testMobileDebugUnitTest --tests 'com.naviveylin.build.KoverDeprecationBaselineTest' -PforceTests --no-build-cache` on HEAD (Kover 0.9.8) fails both, XML `tests=2 failures=2`, timestamp `2026-10-20T11:59:38.216Z`, copied to `evidence/`. — **done 2026-10-20**: red run quoted in `proposal.md`'s `## Why`; `evidence/TEST-com.naviveylin.build.KoverDeprecationBaselineTest.xml`.
+
+## 2. The fix (spec: "The pinned Kover version clears the deprecation")
+
+- [x] 2.1 Pin the Kover plugin to `0.9.9` in the root `build.gradle.kts` and rewrite the comment above the root `kover` configuration so it states what the pin buys instead of claiming a notation the code does not use. Verify: `grep -n 'kover") version' build.gradle.kts` reports `0.9.9`; `./gradlew help --warning-mode all` reports **0** `Project object as a dependency notation` lines (HEAD reported 1). — **done 2026-10-20**: 0 lines measured with 0.9.9; the same command reported 1 line with 0.9.8 restored, so the count is a property of the pin.
+- [x] 2.2 Confirm the aggregation the capability exists for still resolves with the new pin: `./gradlew :dependencies --configuration koverExternalArtifacts`. Verify: the graph lists `project ':app'`, `project ':auto'`, `project ':core'` and no `Could not find` error. — **done 2026-10-20**: the three project entries printed, no resolution error.
+- [x] 2.3 Update `guidelines/Build.md` §7: the engine table names `Kover 0.9.9`, and the "Known upstream issue" paragraph becomes the measured record (upstream issue #818 fixed in 0.9.9, the 0.9.8 → 0.9.9 → 0.9.11 warning counts, the guard test that holds it). Verify: `grep -n '0\.9\.8\|0\.9\.9' guidelines/Build.md` names 0.9.9 as the pin and 0.9.8 only as the history of the defect; §7 no longer contains `Known upstream issue` (the second guard case).
+- [x] 2.4 Re-run the two cases: `./gradlew :app:testMobileDebugUnitTest --tests 'com.naviveylin.build.KoverDeprecationBaselineTest' -PforceTests --no-build-cache`. Verify: BUILD SUCCESSFUL, XML `tests=2 failures=0`, timestamp `2026-10-20T12:01:12.496Z`, copied to `evidence/`. — **done 2026-10-20**.
+
+## 3. Falsification of the new guard (revert-check)
+
+- [x] 3.1 Mutate the pin back to `0.9.8`, run the two cases forced, restore `0.9.9`, re-run forced green. Verify: the mutation fails both cases with the assertion messages the red run quoted, the restore passes; the mutant run's XML is named in the change's evidence (not the gate's). — **done 2026-10-20**: the red run of 1.1 *is* that mutation (HEAD carries 0.9.8), the green run of 2.4 is the restore; both XMLs are in `evidence/`, and no separate mutation run was needed for a guard whose only input is the string it reads.
+
+## 4. Gate
+
+- [x] 4.1 Run the project's gate **once**, exactly as the run configures it: `./gradlew test -PforceTests --no-build-cache`. Verify: `BUILD SUCCESSFUL`; the per-module XML tallies are copied to `evidence/` and quoted with the gate's own timestamps. — **done 2026-10-20**: `BUILD SUCCESSFUL in 4m 7s` (189 actionable tasks: 92 executed, 97 up-to-date); tallies from the result XMLs — `:app:testMobileDebugUnitTest` 2064 tests, `:app:testAutomotiveDebugUnitTest` 2064, `:auto` 866, `:core` 642, `:osmscout-client-java` 48, **total 5684 tests / 0 failures / 0 errors**, timestamps `2026-10-20T12:01:59.054Z` – `2026-10-20T12:06:01.613Z`; `evidence/gate-tally.txt` and the guard class's two suite XMLs.
+- [x] 4.2 Record the exclusions this change does not cover: `:koverXmlReport` / `:koverHtmlReport` were **not** run (the gate is `./gradlew test`); the aggregation path is covered by the resolution check of 2.2 instead. Verify: this task states the exclusion, so the change does not imply a report run it did not make. — **done 2026-10-20**.
+
+## 5. Archive
+
+- [x] 5.1 Archive the change and confirm the delta merged into `openspec/specs/kover-aggregate-report/spec.md`. Verify: `openspec/changes/archive/2026-10-20-fix-kover-gradle10-deprecation/` exists and the capability spec's "No deprecation regression from the declaration" requirement now states the 0.9.9 threshold. — **done 2026-10-20**.

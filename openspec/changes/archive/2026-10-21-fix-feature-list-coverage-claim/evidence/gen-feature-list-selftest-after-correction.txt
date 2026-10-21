@@ -1,0 +1,109 @@
+run: 2026-10-21T11:13:33Z
+ok   keys: one per requirement of every shipped spec
+ok   keys: a nested spec id is enumerated too
+ok   keys: derived as <spec id>#<requirement name>
+ok   keys: an in-flight change contributes no key
+ok   keys: every shipped spec is classified
+ok   keys: the surface a spec is classified for is reported
+ok   delta: a prose-only edit is not a change
+ok   delta: a prose-only edit does not dirty an area
+ok   delta: a requirement text edit is a change
+ok   delta: a requirement text edit dirties its area
+ok   delta: an added requirement is an addition
+ok   delta: the spec's other keys are unchanged
+ok   gate: an unclassified shipped spec id fails the run
+ok   gate: an unclassified spec id writes no document
+ok   gate: a stale classification entry does not fail the run
+ok   gate: a stale entry is reported
+ok   gate: the stale entry is named
+ok   gate: a surface outside the vocabulary fails the run
+ok   gate: the unknown surface is named
+ok   gate: a user-visible spec with no renderable surface fails
+ok   gate: not exactly one car-only area fails the run
+ok   gate: an unknown area id fails the run
+ok   snapshot: the requested version is recorded
+ok   snapshot: every key carries a digest
+ok   snapshot: no requirement text is recorded, only a digest
+ok   snapshot: no earlier snapshot is reported
+ok   snapshot: the baseline is the most recent earlier snapshot
+ok   report: a no-op run is visibly a no-op
+ok   snapshot: versions order as the release format orders them (-1 < -10 < -2)
+ok   report: a one-spec change is visibly one change
+ok   report: the whole fixture set is indexed
+ok   catalogue: every user-visible area is named
+ok   catalogue: an area holding only internal capabilities gets no heading
+ok   catalogue: the car-only area is rendered under its own heading
+ok   catalogue: an internal capability is absent
+ok   catalogue: a nested internal spec is absent
+ok   catalogue: the surface tag follows the shortlist, not every user-visible spec
+ok   catalogue: the car-only area states the car surface
+ok   catalogue: a dual-surface capability tags both surfaces
+ok   catalogue: a dual-surface capability appears once
+ok   catalogue: a capability outside the shortlist is absent
+ok   catalogue: a shortlisted-away capability is not published
+ok   catalogue: no generation timestamp
+ok   catalogue: every entry carries a marker
+ok   catalogue: every entry leads with a bold keyword
+ok   catalogue: the report states what it published
+ok   catalogue: mechanical assembly works with no model available
+ok   catalogue: the mechanical mode names the capability
+ok   gates: a well-sourced section passes
+ok   gates: an entry with no key fails the run
+ok   gates: the keyless entry is named
+ok   gates: an invented figure fails the run
+ok   gates: the invented figure is named
+ok   gates: a figure taken from a cited spec passes
+ok   gates: a sourced figure is accepted
+ok   gates: an unsourced word is reported and the run stays green
+ok   gates: the unsourced word is named
+ok   gates: the report does not stand in for the figure gate
+ok   gates: a fully sourced bullet is not reported
+ok   gates: a key citing a spec that does not exist fails the run
+ok   gates: a key citing an internal spec fails the run
+ok   gates: an unreached selling point fails the run
+ok   gates: the unreached selling point is named
+ok   gates: an entry with no bold keyword fails the run
+ok   gates: the missing keyword is named
+ok   gates: a keyword longer than six words fails the run
+ok   gates: the over-long keyword is named with its length
+ok   gates: a keyword word the cited specs lack fails the run
+ok   gates: the invented keyword word is named
+ok   gates: a well-formed entry passes the keyword gates
+ok   gates: a capitalised stopword in a keyword is accepted
+ok   shortlist: a capability outside the shortlist fails the run
+ok   shortlist: the unlisted spec is named
+ok   shortlist: an entry spanning two selling points fails the run
+ok   shortlist: the spanning entry is named
+ok   length: an over-long paragraph fails the run
+ok   length: the paragraph and its length are named
+ok   length: a short paragraph passes
+ok   regeneration: nothing changed means no dirty area
+ok   regeneration: two runs produce the same file
+ok   regeneration: an instruction change dirties every area
+ok   regeneration: a merged capability survives
+ok   notes: the first run writes no entry
+ok   notes: the first run says the baseline was established
+ok   notes: one entry per version carrying a change
+ok   notes: the entry names its version
+ok   notes: the changed capability appears
+ok   notes: the entry is grouped by feature area
+ok   notes: re-running a version leaves one entry
+ok   notes: re-running a version replaces its entry byte for byte
+ok   notes: an internal-only change writes no entry
+ok   notes: the empty-release verdict is reported
+ok   notes: an internal-only change still reports the delta
+ok   notes: a renamed requirement is a change, not a removal
+ok   notes: the rename is reported in the run report
+ok   notes: a rename is not published as a removal
+ok   notes: the renamed version still gets an entry
+ok   notes: a deleted requirement is published as a removal
+ok   notes: a spec leaving the shipped set is reported in the run report
+ok   notes: a departed spec is not published as a change
+ok   notes: the changed set is reproducible with no model
+ok   version: a run without a version fails with a usage error
+ok   version: a run without a version writes nothing
+ok   version: the version-state file is never read
+ok   version: the run works where the version-state file is absent
+
+gen-feature-list-selftest: 105 passed, 0 failed
+exit=0

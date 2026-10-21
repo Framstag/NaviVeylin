@@ -31,8 +31,9 @@
 - [x] 2.3 §1: delete the second `Cases:` block — the three `density:` names and the density report have no
       check behind them in the tool or in the spec; the length sentence above keeps the cases that exist.
       — `guidelines/FeatureList.md` §1.
-- [x] 2.4 §5: the case list names `catalogue: a dual-surface capability tags both surfaces` and
-      `catalogue: the car-only area is rendered under its own heading`, the two cases that exist there.
+- [x] 2.4 §5: the case list names `catalogue: a dual-surface capability tags both surfaces`,
+      `catalogue: the car-only area is rendered under its own heading` and
+      `catalogue: a dual-surface capability appears once`, the cases that exist there.
 - [x] 2.5 §6: `gates: the keyless bullet is named` → `gates: the keyless entry is named`, the name
       `tools/gen-feature-list-selftest.sh:378` prints.
 - [x] 2.6 `.pi/skills/feature-list/SKILL.md` §3 and §4 follow the same two statements (a catalogue section
@@ -44,7 +45,10 @@
 
 - [x] 3.1 The probe on the changed tree.
       — 2026-10-21T11:09:36Z: exit **0**, `stated cases: 35, without a carrying case: 0` (re-taken after the
-      last prose edit); `evidence/probe-after-fix.txt`.
+      last prose edit); `evidence/probe-after-fix.txt`. Re-taken after the round-2 correction below:
+      2026-10-21T11:13:18Z, exit **0**, `stated cases: 35, without a carrying case: 0`;
+      `evidence/probe-after-correction.txt`. The count is unchanged because the deleted sentence's own
+      backticked `areas.json` had been counted as a case name and the real case replaces it.
 - [x] 3.2 `bash tools/gen-feature-list-selftest.sh`.
       — 2026-10-21T11:09:36Z: **105 passed, 0 failed**, exit 0;
       `evidence/gen-feature-list-selftest-after-fix.txt`. The suite is untouched by this change, so this run
@@ -76,3 +80,19 @@
       and the evidence inside it; no capability spec changes, so no delta is merged.
       — 2026-10-21: `openspec archive fix-feature-list-coverage-claim --yes` → "archived as
       '2026-10-21-fix-feature-list-coverage-claim'"; `openspec/changes/` now holds only `archive/`.
+
+## 6. Round 2 — the reviewer's single blocking correction
+
+- [x] 6.1 §5 no longer claims that "one capability one area is a property of `areas.json`, not a check that could
+      fail": `tools/gen-feature-list-selftest.sh:328` is that check (`catalogue: a dual-surface capability appears
+      once`, a count of the rendered entry). The claim is deleted and the case is named in the list instead.
+      The same sentence in the archived `design.md` (D2's car-placement row) is replaced by the three case names
+      with their line numbers.
+- [x] 6.2 Structural re-check after the edit, prose only, no build owed (`guidelines/Build.md` §2 scope block):
+      `bash tools/check-doc-routes.sh` → all 89 section references resolve, exit 0, 2026-10-21T11:13:18Z
+      (`evidence/doc-routes-after-correction.txt`); `bash tools/gen-feature-list-selftest.sh` → 105 passed,
+      0 failed, exit 0, 2026-10-21T11:13:33Z (`evidence/gen-feature-list-selftest-after-correction.txt`); the
+      probe → exit 0, `stated cases: 35, without a carrying case: 0`, 2026-10-21T11:13:18Z
+      (`evidence/probe-after-correction.txt`).
+      `./gradlew test -PforceTests --no-build-cache` again not run and not claimed — the delta is still two
+      Markdown files and this change's artifacts.

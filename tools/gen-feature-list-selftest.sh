@@ -141,6 +141,34 @@ section() {
   awk -v want="## $2" '$0 == want {inside = 1; next} /^## / {inside = 0} inside' "$1"
 }
 
+# within_bound <file> — every entry in a generated document is composed the way the gates require: a keyword of
+# six words at most and a paragraph inside the length bound, measured as gate.awk measures them. Asserting on the
+# written document, not only on the run's exit status, is what tells the catalogue and the release note apart.
+# The bound is read from the tool's own `maxpara`, so the assertion cannot drift from the number the gate uses.
+maxpara=$(sed -n 's/^maxpara=\([0-9][0-9]*\).*/\1/p' "$tool")
+[ -n "$maxpara" ] || { echo "gen-feature-list-selftest: cannot read the length bound from $tool" >&2; exit 1; }
+within_bound() {
+  awk -v maxpara="$maxpara" '
+    function flush() {
+      if (p == "") return
+      k = index(p, "**"); rest = substr(p, k + 2); q = index(rest, "**")
+      kw = substr(rest, 1, q - 1); para = substr(rest, q + 2)
+      sub(/^[[:space:]]+/, "", para); sub(/[[:space:]]+$/, "", para)
+      if (length(para) > maxpara) bad = 1
+      n = split(kw, W, /[^A-Za-z0-9]+/); c = 0
+      for (i = 1; i <= n; i++) if (W[i] != "") c++
+      if (c > 6) bad = 1
+      p = ""
+    }
+    /^- / { flush(); p = substr($0, 3); next }
+    /^[[:space:]]*<!-- cap:/ { next }
+    /^#/ { flush(); next }
+    /^[[:space:]]*$/ { flush(); next }
+    { if (p != "") p = p " " $0 }
+    END { flush(); exit bad }
+  ' "$1"
+}
+
 # A sections directory with one entry per selling point, written by hand so the gates can be exercised. Each entry
 # leads with a bold keyword and a paragraph (at most 320 characters), carries its keys as one marker line per
 # key — and its words are drawn from the fixture specs' own text, so that a fully-sourced entry exists and the
@@ -469,6 +497,40 @@ grep -qE 'entry paragraph is [0-9]+ characters, more than the 320' "$work/g.err"
 
 sections; rm -rf "$data/cache"; run_split --release 6-1-3-4 --sections "$work/sec"
 is "length: a short paragraph passes" "0" "$last_rc"
+
+# The degraded mode composes each entry from the capabilities' own names: it clips the names to the paragraph
+# bound and then adds the lead-in and the full stop the gate measures, and it leads the entry with a keyword of
+# six tokens at most. A name of nine-character words puts the 320th character on a space, so a clip that forgets
+# what it prefixes and appends overshoots by two characters, and such a name is far more than six tokens, so a
+# keyword taken whole from it is refused as well. The catalogue and the release note are asserted separately:
+# the catalogue gate runs first, and it used to hide the note gate behind it. The note case needs a real delta,
+# so the run that establishes the baseline carries a second requirement which the second run then loses.
+zeta_name="Paragraph"
+i=1; while [ "$i" -lt 40 ]; do zeta_name="$zeta_name paragraph"; i=$((i + 1)); done
+spec zeta "$zeta_name" "Zeta secondary requirement whose name is longer than six tokens"
+jq '.specs.zeta = {"area": "three", "userVisible": true, "surfaces": ["phone"]}' "$data/specs.json" \
+  > "$data/specs.json.tmp" && mv "$data/specs.json.tmp" "$data/specs.json"
+jq '.highlights += [{"id": "zeta-selling-point", "area": "three", "keyword": "Zeta paragraph", "specs": ["zeta"]}]' \
+  "$data/highlights.json" > "$data/highlights.json.tmp" && mv "$data/highlights.json.tmp" "$data/highlights.json"
+rm -rf "$data/cache"
+run_split --release 1-0-0-1
+if [ "$last_rc" -eq 0 ] && [ -f "$out/FEATURES.md" ] && within_bound "$out/FEATURES.md"; then
+  ok "length: a mechanical catalogue entry is composed inside the bound"
+else
+  bad "length: a mechanical catalogue entry is composed inside the bound" \
+    "exit $last_rc: $(grep 'entry paragraph is' "$work/g.err" | head -1)"
+fi
+spec zeta "$zeta_name"
+rm -rf "$data/cache"
+run_split --release 1-0-0-2
+if [ "$last_rc" -eq 0 ] && [ -f "$out/RELEASE-NOTES.md" ] && within_bound "$out/RELEASE-NOTES.md"; then
+  ok "length: a mechanical release-note entry is composed inside the bound"
+else
+  bad "length: a mechanical release-note entry is composed inside the bound" \
+    "exit $last_rc: $(grep -E 'entry (paragraph|keyword) is' "$work/g.err" | head -1)"
+fi
+rm -rf "$repo/openspec/specs/zeta" "$data/snapshots/1-0-0-1.json" "$data/snapshots/1-0-0-2.json" "$data/cache"
+specs_; highlights_
 
 # ---------------------------------------------------------------------------
 # 7. Regeneration and byte-identity
